@@ -15,15 +15,16 @@ u"""П295/П299 (14.10.2026): 19 из 21 расходящегося ребра �
 без ИТ = 93.1 (11)»).
 
 ⛔ ЗАПИСАНО 18, ОДНО УДЕРЖАНО (П299): 119I → 119TEm краснит сторож `check_parent_rule` §3г — ветвь
-изомера 119TEm в `l_decays` только «β+ 0.41», судьи ε+β⁺ нет (см. `HELD` ниже); пишется ключом
-`--include-held` после решения Amber.
+изомера 119TEm в `l_decays` только «β+ 0.41», судьи ε+β⁺ нет (см. `HELD` ниже). Решение Amber
+14.10.2026 вопросником, дословно: «Не писать это ребро (Рекомендую)» — `--include-held` эту пару
+не открывает (запрет `add_isomer_edges.NOT_TO_WRITE`, П308).
 
 ⚠ ПОРЯДОК: ПОСЛЕ `fix_lost_branches.py` — у 119I ребро считается от строки захвата 100 (после правки
 49 → 100); на поставке (BR 49) метод дал бы 0.4685 %. Скрипт проверяет это сам и отказывает.
 
 ⚠ ОДИН ПРОХОД. Записанные изомеры сами становятся родителями, и `add_isomer_edges.py` находит у них
 изомеры дочек (129SNm1 → 129SBm1, 130SNm → 130SBm, 91MOm → 91NBm — П295, «второй проход»); здесь они
-НЕ пишутся — это отдельный вопрос.
+НЕ пишутся — записаны П308 ключом `add_isomer_edges.py --only` (слово Amber «Записать β⁻ + три ребра»).
 
 ⛔ ЗАПИСЬ В ЖИВУЮ БАЗУ — ТОЛЬКО ПО СЛОВУ AMBER: база дерева, каталога сборки и %AppData% — отказ без
 `--allow-live` (как у `add_isomer_edges.py`). Повтор — без изменений.
@@ -62,6 +63,8 @@ PROPOSED = {
 # его под свою запись нельзя. Остальные 18 рёбер сторожа не задевают. Журнал —
 # `handover/handover-2026-10-14-p299-lost-branches-diverging-write.md`.
 HELD = {("119I", "119TEm")}
+# ⛔ (П308) Решение Amber 14.10.2026 по удержанному, дословно: «Не писать это ребро (Рекомендую)».
+# `--include-held` пару из `add_isomer_edges.NOT_TO_WRITE` НЕ открывает — отказ.
 
 
 def main():
@@ -73,6 +76,9 @@ def main():
     ap.add_argument("--include-held", action="store_true",
                     help=u"писать и удержанные (HELD: 119I → 119TEm) — только после решения Amber по сторожу §3г")
     a = ap.parse_args()
+    if a.include_held and HELD & set(m.NOT_TO_WRITE):
+        sys.exit(u"⛔ --include-held: %s — %s" % (", ".join("%s → %s" % k for k in sorted(HELD & set(m.NOT_TO_WRITE))),
+                                                  "; ".join(m.NOT_TO_WRITE[k] for k in sorted(HELD & set(m.NOT_TO_WRITE)))))
     if a.apply and m.is_live(a.nucdb) and not a.allow_live:
         sys.exit(u"⛔ %s — база дерева/сборки/AppData; запись только в копию (или --allow-live по слову Amber)" % a.nucdb)
     nuc = m.connect(a.nucdb, a.apply)

@@ -1,13 +1,15 @@
 {
  "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
  "dirty": [
+  "BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs",
+  "BecquerelMonitor/nucdb.sqlite",
   "tools/CORPUS/data/res_hint.csv"
  ],
  "files": {
-  "BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs": "c5d45b29a12f426395a5644eed10467f0beb62db636fb93a3cf49ae0be9604f7",
+  "BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs": "336ab47ee1627c62a2b355356445e0b9871f41c70adc0d94af61b95643a77145",
   "BecquerelMonitor/FullSpectrumAnalysis/KSeriesRule.cs": "f47f043d81524be6c2df9ef9a622a8a8b1c4a9a84585f04e8b76b34c77fe6eda",
   "BecquerelMonitor/matdb.sqlite#fluorescence_k": "4777fa3109ac5ad523ee3abb123261723bb5767d45fed8b6f524bda1a4169cbd",
-  "BecquerelMonitor/nucdb.sqlite": "b8a60b6dc81dc3b4041ab235921715cdfe80409605eee342b71554741aa754bf",
+  "BecquerelMonitor/nucdb.sqlite": "ee36b07c2899d755e7bb26f4817952a376f365663160e4e100d66d1c5f41b0a5",
   "tools/CORPUS/data/res_hint.csv": "58bbd3b28bc32d3c8e174ec18a3662b12086b7bd945eacba2c9952fb3d38b3f4",
   "tools/CORPUS/scripts/build_corpus.py": "ddf0e80eb5038ae9fff8fbe18093f3f8ccf6cd13ef21fb7b3b37873498971838",
   "tools/CORPUS/scripts/calibrate.py": "5c2548a831d15b9bb0641b356d132c54548808ffd2c8ebb8bb255bfc0d38d0ec",
@@ -19,8 +21,8 @@
   "tools/CORPUS/scripts/gaussfit.py": "09721c755be20cba3452255246140c54b7fcd5fecb8e19e613eb4986260ff3c7",
   "tools/CORPUS/scripts/spectrum.py": "a525983d3ddc94690c0c9a7508e406b3c2266a73b373b9ddbb7ef492bb5a2c1e"
  },
- "fp": "b52d64ab4145f04d3f13997b2f2392fc2aa2ba31455419dec1b69b0a17b9889a",
- "head": "ef68ae61ed739cb21ba618e5092c53b3f306a2a6",
+ "fp": "2eabe574cac4dd64f8b9cdbbb0cad3574488fe7f5d5c6899350a3026afce8fff",
+ "head": "53179f80a4c4c56b37959de5924414ccd50e2ada",
  "reads": [
   "BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs",
   "BecquerelMonitor/nucdb.sqlite",

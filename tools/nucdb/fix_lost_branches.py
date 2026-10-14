@@ -42,9 +42,12 @@ V_семьи − Σ задержанных, а дочь задержанной �
 доли строки захвата (код 7) до ε+β⁺ семьи по `l_decays` (49 → 100), код остаётся: линии β⁺
 таких родителей лежат в `decay_radiations` кодом 7, и вставка строки β⁺ (код 15) отдала бы
 позитроны в сумматоре совпадений одной ε (511 кэВ у 119I 109.78 → 98 %, замерено). Прочие
-строки поставки не правятся и не удаляются. Повтор — без изменений. Ключ `--fix-excess` (НЕ по
-умолчанию) ещё и уменьшает долю основной дочери на Σ задержанных (классы ЗАДЕРЖ_ДВАЖДЫ,
-ЗАДЕРЖ_БЕЗ_СТРОКИ) — правит строки поставки, это отдельное решение Amber.
+строки поставки не правятся и не удаляются. Повтор — без изменений. Классы ЗАДЕРЖ_ДВАЖДЫ и
+ЗАДЕРЖ_БЕЗ_СТРОКИ (двойной счёт задержанных частиц, сумма выше 100 %) здесь только печатаются;
+их правит `fix_delayed_double_count.py` (П306/П308) — он берёт отсюда `analyse`/`classify` как
+модуль. ⛔ Прежний ключ `--fix-excess` (П295) СНЯТ П308: он неверен в семи местах (П306, журнал
+`handover/handover-2026-10-14-p306-excess-sums-second-pass.md`, «Метод правки») — вызов с ним
+отказывает.
 
 ⛔ ЗАПИСЬ В ЖИВУЮ БАЗУ — ТОЛЬКО ПО СЛОВУ AMBER. Без `--apply` база открыта `mode=ro`; `--apply`
 в файл дерева, каталога сборки или %AppData% отказывает без `--allow-live`. Доли — только из
@@ -54,8 +57,9 @@ V_семьи − Σ задержанных, а дочь задержанной �
 и Lu-166m (ряд Hf-166 0.925 → 1.0). На копии: 146 вставок + 1 правка, корпус побайтно rev46…
 Записывать в живую базу?»); записано полосой П299 (журнал
 `handover/handover-2026-10-14-p299-lost-branches-diverging-write.md`), разбор и метод — П295
-(`handover/handover-2026-10-14-p295-isomer-diverging-lost-branches.md`). Ключ `--fix-excess`
-(сумма выше 100 %) этим словом НЕ покрыт — решено «Починить на копии, принести».
+(`handover/handover-2026-10-14-p295-isomer-diverging-lost-branches.md`). Сумма выше 100 % этим
+словом НЕ покрыта — её слово («Записать β⁻ + три ребра (Рекомендую)», 14.10.2026) исполнено
+`fix_delayed_double_count.py` (П308).
 
 Скрипт стоит ДО `add_diverging_isomer_edges.py`: ребро 119I → 119TEm (0.956 %) считается от
 ветви ε+β⁺ 100, которую даёт правка 119I здесь.
@@ -348,7 +352,7 @@ def analyse(nuc, p):
 def loss_kind(a, d):
     u"""Потерянная дочь d: 'real' — ветви в ряду нет; 'delayed_full' — потеряна задержанная мода, а
     основная дочь её семьи несёт всю моду (сумма 100 случайно, раскол неверен — класс двойного
-    счёта, правится только с --fix-excess)."""
+    счёта, правит `fix_delayed_double_count.py`)."""
     for fam, kind, rows, val, places in a["src"].get(d, []):
         if kind == "delayed" and fam in a["fam_main"]:
             dm = a["fam_main"][fam][0]
@@ -445,8 +449,9 @@ def _insert_for(a, d):
     return out
 
 
-def plan_fixes(nuc, a, cls, fix_excess):
-    u"""[(вид, nucid, l_seqno, daughter, dec_type, perc_text, было, пояснение)]"""
+def plan_fixes(nuc, a, cls):
+    u"""[(вид, nucid, l_seqno, daughter, dec_type, perc_text, было, пояснение)]. Классы двойного
+    счёта (ЗАДЕРЖ_ДВАЖДЫ, ЗАДЕРЖ_БЕЗ_СТРОКИ) здесь не правятся — `fix_delayed_double_count.py`."""
     out = []
     if a["plv"] is None or cls is None:
         return out
@@ -483,22 +488,6 @@ def plan_fixes(nuc, a, cls, fix_excess):
                           % num_text(a["S"] + add, 4))
         return [("skip", p, plv, x[3], "", "", None, u"S после вставки %s > 100" % num_text(a["S"] + add, 4))
                 for x in out if x[0] == "ins"]
-    if fix_excess and cls in (u"ЗАДЕРЖ_ДВАЖДЫ", u"ЗАДЕРЖ_БЕЗ_СТРОКИ"):
-        for d, t in a["dfull"]:
-            out.extend(_insert_for(a, d))
-        for d, c, t in a["excess"]:
-            mains = [s for s in a["src"].get(d, []) if s[1] == "main"]
-            if not mains:
-                continue
-            rows = [x for x in a["Ccodes"].get(d, []) if x[2] == plv and x[4] == d]
-            if len(rows) != 1 or len(a["Ccodes"].get(d, [])) != 1:
-                out.append(("skip", p, plv, d, "", "", None,
-                            u"строк в дочь %d (правило: %d) — правка доли не однозначна"
-                            % (len(rows), len(a["Ccodes"].get(d, [])))))
-                continue
-            dt, pr, lv, v, dn = rows[0]
-            out.append(("upd", p, plv, d, dt, num_text(t, mains[0][4]), pr,
-                        u"основная мода минус задержанные (%s)" % num_text(c - t, mains[0][4])))
     return out
 
 
@@ -641,13 +630,16 @@ def main():
     ap.add_argument("--apply", action="store_true", help=u"ЗАПИСЬ в --nucdb (только копия)")
     ap.add_argument("--allow-live", action="store_true", help=u"запись в базу дерева/сборки — ТОЛЬКО по слову Amber")
     ap.add_argument("--fix-excess", action="store_true",
-                    help=u"ещё и снять двойной счёт задержанных (правит строки поставки; отдельное решение)")
+                    help=u"СНЯТ П308 (неверен, П306) — двойной счёт задержанных правит fix_delayed_double_count.py")
     ap.add_argument("--csv", default="", help=u"перечень всех классов в CSV (по умолчанию не пишется)")
     ap.add_argument("--list", default="")
     ap.add_argument("--schemedb", default=os.path.join(REPO, "BecquerelMonitor", "schemedb.sqlite"),
                     help=u"для ИТ изомеров (находка П294); открывается mode=ro")
     ap.add_argument("--ensdf2", default=ENSDF2_DIR, help=u"сырой ENSDF2 ЛСРМ — BR записи N набора ИТ")
     a = ap.parse_args()
+    if a.fix_excess:
+        sys.exit(u"⛔ ключ --fix-excess снят П308: метод П295 неверен в семи местах (П306); двойной счёт"
+                 u" задержанных — tools/nucdb/fix_delayed_double_count.py")
     if a.apply and is_live(a.nucdb) and not a.allow_live:
         sys.exit(u"⛔ %s — база дерева/сборки/AppData; запись только в копию (или --allow-live по слову Amber)" % a.nucdb)
     nuc = connect(a.nucdb, a.apply)
@@ -667,7 +659,7 @@ def main():
         cls = classify(an)
         if cls is None:
             continue
-        fx = plan_fixes(nuc, an, cls, a.fix_excess)
+        fx = plan_fixes(nuc, an, cls)
         it = it_from_ensdf2(nuc, sch, an, cls, a.ensdf2)
         if it:
             cls = u"ИТ_ИЗОМЕРА"

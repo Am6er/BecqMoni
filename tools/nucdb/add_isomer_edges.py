@@ -71,6 +71,18 @@ Amber; разрешение на МЕТОД ≠ разрешение на ЗАП
 (журнал `handover/handover-2026-10-14-p294-isomer-edges-write.md`), метод и перечень —
 П282 (`handover/handover-2026-10-14-p282-isomer-edges.md`).
 
+ВТОРОЙ ПРОХОД (П306/П308). Изомеры, записанные П294/П299, сами стали родителями, и план находит у
+них изомеры дочек. Слово Amber 14.10.2026, вопросником, дословно: «Записать β⁻ + три ребра
+(Рекомендую)» — 91MOm → 91NBm 50 %, 130SNm → 130SBm 13.35 %, 129SNm1 → 129SBm1 5.269 % (ход по
+схеме, сверка — П306, `handover/handover-2026-10-14-p306-excess-sums-second-pass.md`); записано
+полосой П308 (`handover/handover-2026-10-14-p308-beta-family-second-pass-write.md`) так:
+    python tools/nucdb/add_isomer_edges.py --only 91MOm:91NBm,130SNm:130SBm,129SNm1:129SBm1 --apply --allow-live
+⛔ `--only` — белый список пар «родитель:изомер» (двоеточие, а не «>»: в cmd и PowerShell «>» —
+перенаправление вывода); пара плана вне списка не пишется. Запись в базу дерева (`--allow-live`)
+БЕЗ `--only` отказывает: слово Amber даётся на пары, а план после каждой записи находит новые.
+⛔ `NOT_TO_WRITE` — пары, которые НЕ пишутся никогда, никаким ключом: `119I → 119TEm` (решение Amber
+14.10.2026 «Не писать это ребро (Рекомендую)»; план его находит — 0.9561 % после починки ветви 119I).
+
     python tools/nucdb/add_isomer_edges.py                          # перечень, без записи (база дерева, ro)
     python tools/nucdb/add_isomer_edges.py --nucdb <копия> --apply  # запись в копию
     python tools/nucdb/add_isomer_edges.py --list 99MO,91SR         # подробно по родителям
@@ -98,6 +110,13 @@ FOLD_MIN = 0.5                # у родителя ≥ 0.5·f·I_X — слож
 LOST_MAX = 0.2                # у родителя < 0.2·f·I_X — потеряно
 LINE_MIN = 0.01               # %, линии изомера на распад родителя — в перечень
 ANCHOR_FRAC = 0.1             # якорь сверки — линии не слабее 10 % сильнейшей сопоставленной
+
+# ⛔ Пары (родитель, изомер), которые НЕ пишутся никаким ключом (`--only` их тоже не открывает).
+# 119I → 119TEm 0.9561 %: вместе с ребром метод кладёт ветвь самого изомера из `l_decays` его уровня, а
+# там у 119TEm только «β+ 0.41» (строки ε+β⁺ 100 нет) — `tools/check_parent_rule.py` §3г краснеет
+# (П299). Решение Amber 14.10.2026 вопросником, дословно: «Не писать это ребро (Рекомендую)»
+# (таблица «Чего делать НЕ надо» `TODO.md`). Тот же запрет держит `add_diverging_isomer_edges.py`.
+NOT_TO_WRITE = {("119I", "119TEm"): u"решение Amber 14.10.2026 «Не писать это ребро (Рекомендую)»"}
 
 # мода набора ENSDF → `dec_type` поставки (0 α, 1 EC+β⁺, 7 EC, 15 β⁺, 50 β⁺ ec, 2 β⁻, 3 IT)
 MODES = {"B-": ("2",), "EC": ("1", "7", "15", "50"), "B+": ("1", "7", "15", "50"), "A": ("0",), "IT": ("3",)}
@@ -812,6 +831,41 @@ def fmt_t(t):
     return "%.3g s" % t
 
 
+def parse_only(text):
+    u"""«P:X,P2:X2» → множество пар; None — список не задан."""
+    if not text:
+        return None
+    out = set()
+    for tok in text.split(","):
+        tok = tok.strip()
+        if not tok:
+            continue
+        if ":" not in tok:
+            sys.exit(u"⛔ --only: пара «%s» не в виде родитель:изомер" % tok)
+        p, x = [s.strip() for s in tok.split(":", 1)]
+        out.add((p, x))
+    return out
+
+
+def restrict(cases, only, tag):
+    u"""Снять с записи пары `NOT_TO_WRITE` и (если задан `--only`) всё вне белого списка; печать каждой."""
+    for c in cases:
+        if not c["apply"]:
+            continue
+        key = (c["p"], c["X"])
+        if key in NOT_TO_WRITE:
+            w(u"  ⏸ %s %s → %s: план пишет %s %% — НЕ пишется (%s)", tag, c["p"], c["X"], num_text(c["f"]),
+              NOT_TO_WRITE[key])
+            c["apply"] = False
+        elif only is not None and key not in only:
+            w(u"  ⛔ %s %s → %s: план пишет %s %% — вне --only, не пишется", tag, c["p"], c["X"], num_text(c["f"]))
+            c["apply"] = False
+        elif only is not None:
+            w(u"  %s %s → %s: f %s %% (f_отн %.5f × BR %s), сверка: %s, набор %d «%s»", tag, c["p"], c["X"],
+              num_text(c["f"]), c["f_rel"], num_text(c["br"]), c["check"], c["did"], c["dsid"])
+    return cases
+
+
 def main():
     ap = argparse.ArgumentParser(description=u"П282: рёбра родитель → изомер из ENSDF дерева")
     ap.add_argument("--nucdb", default=DEFAULT_NUCDB)
@@ -823,9 +877,19 @@ def main():
                     help=u"писать и случаи, где сверка балансом РАСХОДИТСЯ с ходом по схеме (по умолчанию — нет)")
     ap.add_argument("--csv", default="", help=u"перечень всех пар в CSV (по умолчанию не пишется)")
     ap.add_argument("--list", default="")
+    ap.add_argument("--only", default="",
+                    help=u"белый список пар к записи «родитель:изомер,…» (П308); в базу дерева без него — отказ")
     a = ap.parse_args()
+    only = parse_only(a.only)
     if a.apply and is_live(a.nucdb) and not a.allow_live:
         sys.exit(u"⛔ %s — база дерева/сборки/AppData; запись только в копию (или --allow-live по слову Amber)" % a.nucdb)
+    if a.apply and is_live(a.nucdb) and only is None:
+        sys.exit(u"⛔ запись в базу дерева — только перечнем пар, на которые есть слово Amber (--only P:X,…)")
+    if only is not None:
+        bad = sorted(only & set(NOT_TO_WRITE))
+        if bad:
+            sys.exit(u"⛔ --only называет запрещённые пары: %s (%s)" % (
+                ", ".join("%s:%s" % k for k in bad), "; ".join(NOT_TO_WRITE[k] for k in bad)))
     nuc = connect(a.nucdb, a.apply)
     sch = connect(a.schemedb, False)
     w(u"nucdb: %s (%s)", a.nucdb, u"ЗАПИСЬ" if a.apply else u"mode=ro")
@@ -836,6 +900,7 @@ def main():
     w(u"строк decay_chain с числовым нулём в perc до: %d (их прогон не трогает; удаляются только нули,"
       u" порождённые расщеплением этого прогона)", len(z0))
     cases, nodata = plan(nuc, sch, a.min_f, a.include_diverging)
+    restrict(cases, only, u"план:")
     corpus, corpus_names = corpus_nuclides(nuc)
     by = {}
     for c in cases:
@@ -843,9 +908,21 @@ def main():
     w(u"случаев «родитель → изомер дочки, набор ENSDF есть, уровень изомера найден»: %d", len(cases))
     for k in ("ПОТЕРЯНО", "ЧАСТИЧНО", "СЛОЖЕНО", "ЕСТЬ", "НЕТ_γ", "НЕ_НАСЕЛЯЕТ", "НЕ_ОПРЕДЕЛЕНО"):
         w(u"  %-12s %d", k, len(by.get(k, [])))
-    w(u"к записи (ПОТЕРЯНО, f ≥ %s %%, линия изомера ≥ %s %% на распад родителя, сверка %s): %d",
+    w(u"к записи (ПОТЕРЯНО, f ≥ %s %%, линия изомера ≥ %s %% на распад родителя, сверка %s%s): %d",
       num_text(a.min_f), num_text(LINE_MIN), u"любая" if a.include_diverging else u"не расходится",
-      sum(1 for c in cases if c["apply"]))
+      u"" if only is None else u", только --only", sum(1 for c in cases if c["apply"]))
+    if only is not None:
+        have = set((c["p"], c["X"]) for c in cases if c["status"] == u"ЕСТЬ")
+        # ребро, чья нулевая строка P → D снята (`91MOm` → 91NBm 50 = вся ветвь), план случаем уже
+        # не видит — записанным его считает сама строка P → X
+        have |= set(k for k in only if nuc.execute("select 1 from decay_chain where nucid = ? and daughter_nucid = ?",
+                                                   k).fetchone())
+        found = set((c["p"], c["X"]) for c in cases if c["apply"])
+        missing = sorted(only - have - found)
+        w(u"--only: %d пар, к записи %d, уже записано %d, план не нашёл %d%s", len(only), len(found),
+          len(only & have), len(missing), (u": " + ", ".join("%s:%s" % k for k in missing)) if missing else u"")
+        if missing and a.apply:
+            sys.exit(u"⛔ --only называет пары, которых план к записи не нашёл — запись отменена")
     w(u"родитель → изомер с γ, набора ENSDF в дереве нет: %d (у родителя линии изомера нет: %d)",
       len(nodata), sum(1 for r in nodata if r[7] <= 0))
     if a.csv:
@@ -868,12 +945,14 @@ def main():
             if done["ins"] == 0 and done["upd"] == 0:
                 break
             cases, nodata = plan(nuc, sch, a.min_f, a.include_diverging)
+            restrict(cases, only, u"проход %d:" % (rnd + 1))
         w(u"нулевые строки расщепления (P → D, доля 0 — весь распад в D идёт через изомер): %d", len(zeros))
         dz = drop_zero_rows(nuc, zeros)
         nuc.commit()
         w(u"удалено %d, оставлено %d", dz["del"], dz["kept"])
         # Неподвижная точка ПОСЛЕ удаления: план по записанной базе не должен ничего писать.
         cases, nodata = plan(nuc, sch, a.min_f, a.include_diverging)
+        restrict(cases, only, u"неподвижная точка:")
         cur = nuc.cursor()
         cur.execute("savepoint fixed")
         chk = apply(nuc, cases, None)
