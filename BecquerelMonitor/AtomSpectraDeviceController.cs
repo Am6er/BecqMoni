@@ -211,14 +211,18 @@ namespace BecquerelMonitor
                 {
                     commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
                 }
-                if (new_document_created)
+                // ⛔ П303 (14.10.2026): НАЧАЛО — ТОЛЬКО ПРИНЯТОМУ ПУСКУ. Прежде «сейчас»
+                //    ставилось и тогда, когда прибор не ответил и пуск отказан, — у
+                //    загруженного файла известное начало переписывалось, отсчёты же
+                //    оставались файловыми (проба П300, случай A6: Cs-137 ×1.063838 вместо
+                //    ×1.000009), и после «Сохранить» настоящее начало терялось. Отказ
+                //    документ не трогает; принятый пуск — как был, побайтно
+                //    (`RefusedStartProbeP303`). Продолжение (`new_document_created == false`)
+                //    не тронуто: решение Amber 14.10.2026 «Оставить как есть».
+                if (new_document_created && commands_accepted)
                 {
                     resultData.StartTime = DateTime.Now;
-                    if (commands_accepted) new_document_created = false;
-                }
-                else
-                {
-                    //resultData.StartTime.Add = stopTimestamp;
+                    new_document_created = false;
                 }
                 resultDataStatus.Recording = commands_accepted;
                 if (commands_accepted)
@@ -307,14 +311,11 @@ namespace BecquerelMonitor
                 {
                     commands_accepted &= AtomSpectraVCPIn.getInstance(resultData.DeviceConfig.Guid).waitForAnswer("-ok", 1000);
                 }
-                if (new_document_created)
+                // П303: как в `StartMeasurement` — отказанное подключение начало не трогает.
+                if (new_document_created && commands_accepted)
                 {
                     resultData.StartTime = DateTime.Now;
-                    if (commands_accepted) new_document_created = false;
-                }
-                else
-                {
-                    //resultData.StartTime.Add = stopTimestamp;
+                    new_document_created = false;
                 }
                 resultDataStatus.Recording = commands_accepted;
                 if (commands_accepted)
