@@ -18,6 +18,17 @@ namespace BecquerelMonitor
             this.InitializeComponent();
             this.Icon = Resources.becqmoni;
             this.button6.Enabled = false;
+            // ⛔ (П266, 14.10.2026) ПРЕДЕЛЫ ЧИСЛОВЫХ КОЛОНОК ТАБЛИЦЫ. «Энергия» и «Период» —
+            // `NumberColumn` XPTable с умолчаниями Minimum 0 / Maximum 100, и редактор ячейки
+            // (`NumberCellEditor.SetEditValue`) зажимает значение в них ещё ДО ввода, а
+            // `table1_EditingStopped` переносит зажатое в определение: двойной щелчок по
+            // ячейке и Enter (или уход фокуса) без единого символа делали линию U-235
+            // 109.19 кэВ линией 100 кэВ, а период 7·10⁸ лет — 100 годами (замер
+            // `NuclideEditProbeP266`), в памяти сразу и в файле при сохранении. Пределы —
+            // во всю ширину `decimal` (7.9·10²⁸: самый длинный период базы ~10²⁴ лет), снизу
+            // ноль, как и было.
+            this.textColumn2.Maximum = decimal.MaxValue;
+            this.textColumn3.Maximum = decimal.MaxValue;
             this.DisableForm();
         }
 
