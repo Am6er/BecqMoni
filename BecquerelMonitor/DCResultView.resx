@@ -4579,7 +4579,7 @@
     <value>At sampling</value>
   </data>
   <data name="DCResult_ColumnSamplingTip" xml:space="preserve">
-    <value>Referred to the sampling date {0}: acquisition mean × 2^((start − sampling)/T½) × λT/(1 − e^(−λT)), T = acquisition span; MDA likewise. Rows without a half-life stay the acquisition mean.</value>
+    <value>Referred to the sampling date {0}: acquisition mean × 2^((start − sampling)/T½) × λT/(1 − e^(−λT)), T = acquisition span; MDA likewise. Rows without a half-life stay the acquisition mean. For a decay-chain member T½ is that of the chain root.</value>
   </data>
   <data name="DCResult_MomentMean" xml:space="preserve">
     <value>mean over acquisition</value>
