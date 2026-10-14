@@ -445,7 +445,7 @@
     <value>Cs137, Pa234m1</value>
   </data>
   <data name="label13.Location" type="System.Drawing.Point, System.Drawing">
-    <value>136, 46</value>
+    <value>160, 46</value>
   </data>
   <data name="HighEnrgTextBox.Size" type="System.Drawing.Size, System.Drawing">
     <value>45, 20</value>
@@ -502,7 +502,7 @@
     <value>7</value>
   </data>
   <data name="label12.Location" type="System.Drawing.Point, System.Drawing">
-    <value>408, 23</value>
+    <value>397, 23</value>
   </data>
   <data name="label1.Text" xml:space="preserve">
     <value>Isotope Name</value>
@@ -949,7 +949,7 @@
     <value>5</value>
   </data>
   <data name="label12.Size" type="System.Drawing.Size, System.Drawing">
-    <value>21, 13</value>
+    <value>30, 13</value>
   </data>
   <data name="IsotopeZLabel.ToolTip" xml:space="preserve">
     <value />
@@ -5383,7 +5383,7 @@
     <value>True</value>
   </data>
   <data name="IsotopeSpecActivity.Location" type="System.Drawing.Point, System.Drawing">
-    <value>225, 46</value>
+    <value>252, 46</value>
   </data>
   <data name="EnergyColumn.HeaderText" xml:space="preserve">
     <value>Energy, keV</value>
@@ -5554,7 +5554,7 @@
     <value>CenterParent</value>
   </data>
   <data name="label12.Text" xml:space="preserve">
-    <value>λ &gt;</value>
+    <value>T½ &gt;</value>
   </data>
   <data name="PercentColum.Width" type="System.Int32, mscorlib">
     <value>140</value>

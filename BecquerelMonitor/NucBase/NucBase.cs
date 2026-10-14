@@ -65,16 +65,88 @@ namespace BecquerelMonitor.NucBase
         public NucBase()
         {
             InitializeComponent();
+            InitGrids();
         }
 
         public NucBase(Form mainForm)
         {
             InitializeComponent();
+            InitGrids();
             this.mainForm = mainForm;
             this.Icon = Resources.becqmoni;
             this.IncludeDecayChainCheckBox.Enabled = false;
             this.comboBoxNameFormat.SelectedIndex = 1;
         }
+
+        /// <summary>
+        /// (П275, 14.10.2026) ЧИСЛА ТАБЛИЦ — С ТОЧКОЙ В ЛЮБОЙ КУЛЬТУРЕ.
+        ///
+        /// Энергия и выход лежат в ячейках числом <c>double</c> — так их читает
+        /// импорт в набор нуклидов и так сортирует колонка, — а печатает число
+        /// сама <see cref="DataGridView"/>, поставщиком формата стиля ячейки; не
+        /// заданный, он берёт культуру потока. На `ru-RU` таблица показывала
+        /// «111,238», «727,33», «6,99877963…» (П273, снимки `12_…`, `22_…`) —
+        /// и в английском интерфейсе тоже, культура потока там та же.
+        ///
+        /// Поставщик ставится на стиль ТАБЛИЦЫ: стили строк и колонок своего не
+        /// задают и наследуют его (у лишней строки Kβ задан только цвет).
+        /// Разбора обратно нет и не нужно: числовые колонки только для чтения,
+        /// импорт берёт <c>double</c> из <c>Value</c>, а не текст.
+        ///
+        /// Подпись периода в колонке переводится при показе, а не в самой ячейке:
+        /// текст ячейки «60.55(m)» — договор с разбором
+        /// <see cref="HalfLifeYearsFromCell"/>, и единица в нём остаётся кодом базы.
+        /// </summary>
+        void InitGrids()
+        {
+            foreach (DataGridView grid in new[] { this.ResultDataGridView, this.ParentsDataGridView, this.DaughtersDataGridView })
+            {
+                grid.DefaultCellStyle.FormatProvider = CultureInfo.InvariantCulture;
+            }
+
+            this.ResultDataGridView.CellFormatting += this.ResultDataGridView_CellFormatting;
+        }
+
+        void ResultDataGridView_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            string cell = e.ColumnIndex == HalfLifeColumnIdx ? e.Value as string : null;
+            if (cell == null)
+            {
+                return;
+            }
+
+            e.Value = HalfLifeCellCaption(cell);
+            e.FormattingApplied = true;
+        }
+
+        /// <summary>
+        /// (П275) Показ ячейки периода «60.55(m)» на языке интерфейса: «60.55(мин)»
+        /// по-русски, «60.55(m)» — по-английски, как и было. Ячейка без единицы в
+        /// скобках показывается как есть.
+        /// </summary>
+        public static string HalfLifeCellCaption(string cell)
+        {
+            int open = (cell ?? "").IndexOf('(');
+            if (open < 0 || !cell.EndsWith(")", StringComparison.Ordinal))
+            {
+                return cell ?? "";
+            }
+
+            string unit = cell.Substring(open + 1, cell.Length - open - 2);
+            return cell.Substring(0, open) + "(" + NucBaseFramework.HalfLifeUnitCaption(unit) + ")";
+        }
+
+        /// <summary>
+        /// (П275) Коды единиц периода у пунктов списка рядом с полем «T½ &gt;» —
+        /// ПО МЕСТУ пункта. Пункты списка переведены (`NucBase.ru.resx`:
+        /// «нс … лет»), а пересчёт в секунды
+        /// (<see cref="ConvertHalfLifeToSeconds"/>) понимает код базы, поэтому
+        /// единица берётся по номеру выбранного пункта, а не по его тексту. Прежде
+        /// брался текст: перевод пунктов сломал бы отбор молча — неизвестная
+        /// единица считается секундами. Порядок совпадает с пунктами `NucBase.resx`
+        /// («ns … Y»); их число и порядок сверяет проба `NucBaseCardProbeP275`.
+        /// </summary>
+        internal static readonly string[] FilterUnits = { "ns", "us", "ms", "s", "m", "h", "d", "Y" };
 
         private void SearchButton_Click(object sender, EventArgs e)
         {
@@ -109,12 +181,15 @@ namespace BecquerelMonitor.NucBase
                 UserNumber.TryParseDouble(this.IntencityTextBox.Text, out intensity);
             }
             double half_life = -1;
-            if (this.HalfLifeUOMComboBox.Text.Length > 0 && this.HalfLifeTextBox.Text.Length > 0)
+            // (П275) Единица — кодом по месту пункта (`FilterUnits`), а не текстом
+            // пункта: по-русски пункты переведены.
+            int unitIndex = this.HalfLifeUOMComboBox.SelectedIndex;
+            if (unitIndex >= 0 && unitIndex < FilterUnits.Length && this.HalfLifeTextBox.Text.Length > 0)
             {
                 double halfLifeValue;
                 if (UserNumber.TryParseDouble(this.HalfLifeTextBox.Text, out halfLifeValue))
                 {
-                    half_life = ConvertHalfLifeToSeconds(halfLifeValue, this.HalfLifeUOMComboBox.Text);
+                    half_life = ConvertHalfLifeToSeconds(halfLifeValue, FilterUnits[unitIndex]);
                 }
             }
 

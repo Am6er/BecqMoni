@@ -273,6 +273,10 @@ namespace FsaQualityRowProbe
             FsaResult result = new FsaResult
             {
                 Chi2Ndf = Chi2,
+                // (П275, попутно) Строка качества печатает χ² по Пуассону (`AMBER209`,
+                // решение Amber 06.10.2026 «Заменить на Пуассона»); без этого поля
+                // колонка значения давала 0.00 — 11 отказов и в каталоге проб HEAD `da55dc1a`.
+                Chi2NdfPoisson = Chi2,
                 BackgroundUsed = true,
                 ResponseMatrixUsed = matrixUsed,
                 EfficiencyUsed = efficiency,
@@ -476,11 +480,16 @@ namespace FsaQualityRowProbe
                 Z = 0.0
             });
 
+            // (П275, 14.10.2026) Строка называет образ ПЕРЕВОДОМ его имени
+            // (`FsaPalette.DisplayName`), а не самим служебным именем: по-русски
+            // это «Обратное рассеяние». Сравнение с голым `BackscatterLayerName`
+            // на русской культуре потока строки бы не нашло.
+            string shownName = FsaPalette.DisplayName(FsaResult.BackscatterLayerName);
             int rows = 0;
             string value = null, hint = null;
             foreach (FsaReportRow row in FsaPresentationBuilder.Build(dropped, FsaGrouping.Daughters, false).Rows)
             {
-                if (row.Name == FsaResult.BackscatterLayerName)
+                if (row.Name == shownName)
                 {
                     rows++;
                     value = row.Value;
@@ -508,7 +517,7 @@ namespace FsaQualityRowProbe
             int again = 0;
             foreach (FsaReportRow row in FsaPresentationBuilder.Build(quiet, FsaGrouping.Daughters, false).Rows)
             {
-                if (row.Name == FsaResult.BackscatterLayerName) again++;
+                if (row.Name == shownName) again++;
             }
 
             Console.WriteLine("  контроль: без отсеянного рассеяния строк {0}", again);

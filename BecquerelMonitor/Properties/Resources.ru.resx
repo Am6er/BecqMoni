@@ -2771,4 +2771,34 @@ http://xptable.sourceforge.net/</value>
   <data name="ERRDeviceNotClearedNotConnected" xml:space="preserve">
     <value>Спектр в приборе не очищен: прибор в состоянии {0}. Его отсчёты вернутся со следующим Пуском. Запустите набор и очистите ещё раз.</value>
   </data>
+  <data name="FSABackscatterName" xml:space="preserve">
+    <value>Обратное рассеяние</value>
+  </data>
+  <data name="NucBase_HalfLifeStable" xml:space="preserve">
+    <value>стабилен</value>
+  </data>
+  <data name="NucBase_UnitNs" xml:space="preserve">
+    <value>нс</value>
+  </data>
+  <data name="NucBase_UnitUs" xml:space="preserve">
+    <value>мкс</value>
+  </data>
+  <data name="NucBase_UnitMs" xml:space="preserve">
+    <value>мс</value>
+  </data>
+  <data name="NucBase_UnitS" xml:space="preserve">
+    <value>с</value>
+  </data>
+  <data name="NucBase_UnitMin" xml:space="preserve">
+    <value>мин</value>
+  </data>
+  <data name="NucBase_UnitH" xml:space="preserve">
+    <value>ч</value>
+  </data>
+  <data name="NucBase_UnitD" xml:space="preserve">
+    <value>сут</value>
+  </data>
+  <data name="NucBase_UnitY" xml:space="preserve">
+    <value>лет</value>
+  </data>
 </root>

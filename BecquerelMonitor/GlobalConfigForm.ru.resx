@@ -257,7 +257,7 @@
     <value />
   </data>
   <data name="numericUpDown13.Location" type="System.Drawing.Point, System.Drawing">
-    <value>207, 48</value>
+    <value>436, 80</value>
   </data>
   <data name="numericUpDown13.ToolTip" xml:space="preserve">
     <value />
@@ -274,7 +274,7 @@
     <value />
   </data>
   <data name="label90.Location" type="System.Drawing.Point, System.Drawing">
-    <value>204, 30</value>
+    <value>301, 83</value>
   </data>
   <data name="label90.Size" type="System.Drawing.Size, System.Drawing">
     <value>71, 13</value>

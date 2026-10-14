@@ -677,8 +677,48 @@ namespace BecquerelMonitor.NucBase
                 return "";
             }
 
-            string text = (nuc.HalfLife ?? "") + " " + (nuc.HalfLifeUOM ?? "");
+            // (П275, 14.10.2026) Число — как в базе, единица и слово «STABLE» —
+            // на языке интерфейса (`HalfLifeUnitCaption`): по-русски карточка
+            // писала «60.55 m» латиницей (П273, снимок `22b_zoom.png`).
+            // По-английски подпись побайтно прежняя.
+            string value = nuc.HalfLife ?? "";
+            if (string.Equals(value, StableHalfLife, StringComparison.OrdinalIgnoreCase))
+            {
+                value = Resources.NucBase_HalfLifeStable;
+            }
+
+            string text = value + " " + HalfLifeUnitCaption(nuc.HalfLifeUOM ?? "");
             return nuc.HalfLifeIsLimit ? LimitMark + text : text;
+        }
+
+        /// <summary>Строка периода стабильного нуклида в `nuclides.half_life` (244 нуклида).</summary>
+        public const string StableHalfLife = "STABLE";
+
+        /// <summary>
+        /// (П275, 14.10.2026) Подпись единицы периода на языке интерфейса по коду
+        /// базы (`nuclides.half_life_unit`: ns, us, ms, s, m, h, d, Y — других в
+        /// поставке нет, счётом по базе 14.10.2026). По-английски — сам код, как
+        /// показывалось и прежде; по-русски — «нс … лет» (образец «лет» — поле
+        /// периода редактора нуклидов). Незнакомый код показывается как есть.
+        ///
+        /// ⚠ Только для ПОКАЗА. Разбор периода (<c>NucBase.HalfLifeYearsFromCell</c>,
+        /// <c>ConvertHalfLifeToSeconds</c>) понимает код базы, и переведённая подпись
+        /// туда попадать не должна.
+        /// </summary>
+        public static string HalfLifeUnitCaption(string unit)
+        {
+            switch (unit)
+            {
+                case "ns": return Resources.NucBase_UnitNs;
+                case "us": return Resources.NucBase_UnitUs;
+                case "ms": return Resources.NucBase_UnitMs;
+                case "s": return Resources.NucBase_UnitS;
+                case "m": return Resources.NucBase_UnitMin;
+                case "h": return Resources.NucBase_UnitH;
+                case "d": return Resources.NucBase_UnitD;
+                case "Y": return Resources.NucBase_UnitY;
+                default: return unit ?? "";
+            }
         }
 
         /// <summary>

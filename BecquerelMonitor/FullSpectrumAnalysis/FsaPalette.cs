@@ -298,6 +298,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return Properties.Resources.FSAPileUpName;
             }
 
+            // (П275, 14.10.2026) Обратное рассеяние — тем же путём, что наложения:
+            // имя слоя служебное (по нему раздаётся цвет, его ищут пробы и
+            // построитель отчёта), человеку — перевод. По-русски строка состава
+            // писала «Backscatter» (П273, снимок `20b_zoom.png`) рядом с
+            // «Рентген Pb» и «Наложения». Подпись та же, что у переключателя
+            // «Обратное рассеяние» окна отчёта.
+            if (string.Equals(component, FsaResult.BackscatterLayerName, StringComparison.Ordinal))
+            {
+                return Properties.Resources.FSABackscatterName;
+            }
+
             return component;
         }
 
