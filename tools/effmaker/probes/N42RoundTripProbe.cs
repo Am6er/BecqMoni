@@ -404,14 +404,20 @@ namespace N42RoundTripProbe
             }
 
             bool countsOk = chSrc == chBack && diffChannels == 0 && sumSrc == sumBack;
+            // ⚠ П322 (решение Amber 15.10.2026 «Живое или полное (Рекомендую)»): ЖИВОЕ
+            //   СВЕРЯЕТСЯ ЗНАМЕНАТЕЛЕМ (EffectiveLiveTime), а не полем. Экспорт пишет
+            //   живое, если задано, иначе полное — у спектра без живого времени поле
+            //   «живое» после круга равно полному (0 → полное), и это ожидаемо: число,
+            //   на которое делит приложение, то же. Спектр с заданным живым сверяется,
+            //   как прежде: его знаменатель и есть поле.
             bool timeOk = srcEs.MeasurementTime == backEs.MeasurementTime
-                          && srcEs.LiveTime == backEs.LiveTime;
+                          && srcEs.EffectiveLiveTime == backEs.EffectiveLiveTime;
 
             // `A147`: «разошлось» — приговор, а НЕ величина. Прежде здесь было
             //   только равенство, и потеря целой секунды выглядела так же, как
             //   промах на единицу младшего разряда double. Мерить надо остаток.
             double dTime = Math.Max(Math.Abs(srcEs.MeasurementTime - backEs.MeasurementTime),
-                                    Math.Abs(srcEs.LiveTime - backEs.LiveTime));
+                                    Math.Abs(srcEs.EffectiveLiveTime - backEs.EffectiveLiveTime));
 
             // `A150`: пережил ли круг ПРИЗНАК ФОНА. До правки фон приезжал вторым
             //   равноправным спектром списка, и мерить это было нечем.
@@ -434,8 +440,10 @@ namespace N42RoundTripProbe
             // `A155`: ЖИВОЕ ВРЕМЯ ФОНА. Прежде экспорт писал в LiveTimeDuration фона
             //   его же MeasurementTime, то есть живое время фона в файл не уходило
             //   вовсе. Столбец «-» значит «фона нет и мерить нечего».
-            double bgLiveSrc = bgSrc ? srcRd.BackgroundEnergySpectrum.LiveTime : 0.0;
-            double bgLiveBack = bgBack ? backRd.BackgroundEnergySpectrum.LiveTime : 0.0;
+            //   ⚠ П322: знаменателем, как у переднего спектра выше; дефект `A155`
+            //   (в файл фона уходило полное при заданном живом) так виден по-прежнему.
+            double bgLiveSrc = bgSrc ? srcRd.BackgroundEnergySpectrum.EffectiveLiveTime : 0.0;
+            double bgLiveBack = bgBack ? backRd.BackgroundEnergySpectrum.EffectiveLiveTime : 0.0;
             string bgLiveOk = !bgSrc ? "-" : (bgBack && bgLiveSrc == bgLiveBack ? "1" : "0");
 
             bool ok = countsOk && ordSrc == ordBack && coeffRel == 0.0 && timeOk

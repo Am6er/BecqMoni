@@ -228,6 +228,9 @@ static class P316ScreenPassProbe
             return;
         }
         Form h = make();
+        // (П322, решение Amber 15.10.2026 «64…65536 (Рекомендую)») пустое поле числа каналов —
+        // теперь отказ словами, окно остаётся; Enter меряется с годным числом.
+        if (h is ChanNumberChangeDialog) ((TextBox)Field(h, "textBox1")).Text = "4096";
         ShowOff(h);
         Call(h, "ProcessDialogKey", Keys.Enter);
         Pump(50);
@@ -487,7 +490,9 @@ static class P316ScreenPassProbe
             TextBox tm = (TextBox)Field(f, "doubleTextBox5");
             string ch0 = ch.Text, tm0 = tm.Text;
             int cfgCh0 = cfg.NumberOfChannels, cfgTm0 = cfg.DefaultMeasurementTime;
-            foreach (string[] pair in new[] { new[] { "-5", tm0 }, new[] { "0", tm0 }, new[] { ch0, "-100" } })
+            // (П322, решение Amber 15.10.2026 «0 — отказ (Рекомендую)») лимит «0» —
+            // теперь отказ, как отрицательный; прежде он стоял в контроле «принимается».
+            foreach (string[] pair in new[] { new[] { "-5", tm0 }, new[] { "0", tm0 }, new[] { ch0, "-100" }, new[] { ch0, "0" } })
             {
                 ch.Text = pair[0];
                 tm.Text = pair[1];
@@ -500,8 +505,8 @@ static class P316ScreenPassProbe
                 cfg.NumberOfChannels = cfgCh0;
                 cfg.DefaultMeasurementTime = cfgTm0;
             }
-            // Положительный контроль: прежние числа и «0» лимита — принимаются.
-            foreach (string t in new[] { tm0, "0" })
+            // Положительный контроль: прежние числа — принимаются («0» лимита — с П322 отказ).
+            foreach (string t in new[] { tm0 })
             {
                 ch.Text = ch0;
                 tm.Text = t;
