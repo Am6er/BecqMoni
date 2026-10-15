@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Xml.Serialization;
 
@@ -144,13 +145,26 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///     «TiO2 reflective paint» по паспорту Eljen EJ-510 — отражатель
         ///     шаблонов «RadiaCode-101/103». Новое ИМЯ, довозится сведением по
         ///     именам; переноса не нужно.
-        public const int CurrentSeedVersion = 10;
+        /// 11 (15.10.2026, П324) — ЕЩЁ ТРИ ОПЕЧАТКИ ТАБЛИЦЫ ЛСРМ (найдены сверкой
+        ///     засева с NIST STAR, П317; решение Amber 15.10.2026 вопросником,
+        ///     дословно: «Патч целиком (Рекомендую)»): «Aniline» — доля C
+        ///     0.775838 вместо 0.773838; «Skin (icrp)» — доля N 0.04602 вместо
+        ///     0.04642; «Krypton, liquid» — плотность 0.002418 вместо 2.418
+        ///     (жидкость была ЛЕГЧЕ газа 0.003478: сдвиг порядка). Перенос — тем
+        ///     же правилом «только побитово прежний засев»
+        ///     (<see cref="MigrateSeedErrata"/>); у криптона прежняя ПЛОТНОСТЬ
+        ///     записана третьим полем <see cref="SeedErrata"/>.
+        public const int CurrentSeedVersion = 11;
 
         /// <summary>
-        /// (`AMBER107`) Поколение, начиная с которого опечатки таблицы ЛСРМ
-        /// исправлены; файл старше проходит <see cref="MigrateSeedErrata"/>.
+        /// (`AMBER107`, П324) Поколение, начиная с которого ВСЕ опечатки таблицы
+        /// ЛСРМ исправлены; файл старше проходит <see cref="MigrateSeedErrata"/>.
+        /// Поколения 9 и 10 держат только две первые опечатки, поэтому файл этих
+        /// поколений проходит перенос заново — ради трёх новых; две прежние у
+        /// него уже исправлены, а перенос узнаёт лишь запись, побитово равную
+        /// ПРЕЖНЕМУ засеву, — исправленную он не узнает и не тронет.
         /// </summary>
-        const int SeedErrataVersion = 9;
+        const int SeedErrataVersion = 11;
 
         /// <summary>
         /// (`AMBER104`, П172 28.09.2026) Поколение, начиная с которого формулы
@@ -331,9 +345,10 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>
         /// (`AMBER107`, П172 28.09.2026) Опечатки таблицы ЛСРМ, исправленные
-        /// поколением 9: имя и ПРЕЖНИЕ доли строкой «Z:доля …» — ровно те, что
+        /// поколением 9 и 11: имя и ПРЕЖНИЕ доли строкой «Z:доля …» — ровно те, что
         /// лежали в <c>GeometryMaterialSeed</c> до исправления. Новые доли
-        /// берутся из самого засева, второй их копии здесь нет.
+        /// берутся из самого засева, второй их копии здесь нет. Третье поле, если
+        /// оно есть, — ПРЕЖНЯЯ ПЛОТНОСТЬ строкой (опечатка не в долях, а в ней).
         /// </summary>
         static readonly string[][] SeedErrata =
         {
@@ -341,10 +356,21 @@ namespace BecquerelMonitor.EfficiencyMaker
             new[] { "Freon-13ii", "6:0.061309 9:0.290924 55:0.647767" },
             // La2O2S: в `materials.dat` ЛСРМ доли La2OS.
             new[] { "Lanthanum oxysulfide", "8:0.049097 16:0.098383 57:0.85252" },
+            // (П324, поколение 11) C6H5NH2: доля C 0.775838 вместо NIST 0.773838.
+            new[] { "Aniline", "1:0.075759 6:0.775838 7:0.150403" },
+            // (П324, поколение 11) доля N 0.04602 вместо NIST 0.04642.
+            new[] { "Skin (icrp)", "1:0.100588 6:0.22825 7:0.04602 8:0.619002 11:7e-05 12:6e-05 15:0.00033 16:0.00159 17:0.00267 19:0.00085 20:0.00015 26:1e-05 30:1e-05" },
+            // (П324, поколение 11) плотность 0.002418 — легче газа 0.003478; сдвиг
+            // порядка, верная 2.418 (жидкий криптон при кипении 2.41 г/см³).
+            new[] { "Krypton, liquid", "36:1", "0.002418" },
         };
 
-        /// <summary>Запись засева с ПРЕЖНИМИ долями опечатки — то, что лежит у пользователя.</summary>
-        static GeometryMaterialLibrary.Entry PreviousErratum(GeometryMaterialLibrary.Entry now, string packed)
+        /// <summary>
+        /// Запись засева с ПРЕЖНИМИ долями опечатки (и прежней плотностью, если
+        /// она названа) — то, что лежит у пользователя.
+        /// </summary>
+        static GeometryMaterialLibrary.Entry PreviousErratum(GeometryMaterialLibrary.Entry now, string packed,
+                                                             string density = null)
         {
             if (now == null)
             {
@@ -358,15 +384,28 @@ namespace BecquerelMonitor.EfficiencyMaker
                 before.ElementFractions[pair.Key] = pair.Value;
             }
 
+            if (density != null)
+            {
+                // Тем же разбором, каким засев читает плотность строки таблицы
+                // (`GeometryMaterialLibrary.Seed`): иначе «побитово» было бы словом.
+                before.Density = double.Parse(density, NumberStyles.Float, CultureInfo.InvariantCulture);
+            }
+
             return before;
+        }
+
+        /// <summary>Прежняя плотность опечатки (третье поле) или null, если опечатка не в ней.</summary>
+        static string PreviousDensity(string[] erratum)
+        {
+            return erratum.Length > 2 ? erratum[2] : null;
         }
 
         /// <summary>
         /// (`AMBER107`, по правилу решения Amber 22.09.2026 для `AMBER67`:
-        /// «только записи, ПОБИТОВО равные прежнему засеву») ПЕРЕНОС двух
-        /// опечаток таблицы ЛСРМ на доли NIST. Правленная рукой запись (хоть
-        /// одна цифра плотности) не трогается; перенос живёт в памяти, файл
-        /// переписывает только редактор.
+        /// «только записи, ПОБИТОВО равные прежнему засеву») ПЕРЕНОС пяти
+        /// опечаток таблицы ЛСРМ на доли NIST (и плотность, у криптона).
+        /// Правленная рукой запись (хоть одна цифра плотности) не трогается;
+        /// перенос живёт в памяти, файл переписывает только редактор.
         /// </summary>
         static void MigrateSeedErrata(List<GeometryMaterialLibrary.Entry> list,
                                       List<GeometryMaterialLibrary.Entry> seed)
@@ -374,7 +413,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             foreach (string[] erratum in SeedErrata)
             {
                 GeometryMaterialLibrary.Entry now = Find(seed, erratum[0]);
-                Migrate(list, PreviousErratum(now, erratum[1]), now);
+                Migrate(list, PreviousErratum(now, erratum[1], PreviousDensity(erratum)), now);
             }
         }
 
@@ -588,7 +627,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 GeometryMaterialLibrary.Entry now = GeometryMaterialLibrary.Seed().Find(
                     x => string.Equals(x.Name, erratum[0], StringComparison.OrdinalIgnoreCase));
-                GeometryMaterialLibrary.Entry before = PreviousErratum(now, erratum[1]);
+                GeometryMaterialLibrary.Entry before = PreviousErratum(now, erratum[1], PreviousDensity(erratum));
                 if (before == null)
                 {
                     return;
