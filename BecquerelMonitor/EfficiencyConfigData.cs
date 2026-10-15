@@ -11,7 +11,11 @@ namespace BecquerelMonitor
         /// <summary>Посчитана из геометрии монте-карловским переносом.</summary>
         Simulation,
 
-        /// <summary>Импортирована из пары файлов LSRM: `.in` + экспорт кривой.</summary>
+        /// <summary>
+        /// Импортирована из файла LSRM (`.txt`, `.efa`, `.efr`) в конструкторе
+        /// кривой, геометрия — полями или `.in` (`AMBER226`); до 15.10.2026 ещё и
+        /// кнопкой вкладки прибора (`AMBER13`/`AMBER18`, снята — `AMBER227`).
+        /// </summary>
         Lsrm,
 
         /// <summary>

@@ -1621,12 +1621,6 @@
   <data name="FsaNoFwhmSource" xml:space="preserve">
     <value>У конфигурации прибора «{0}» калибровки ПШПВ тоже нет.</value>
   </data>
-  <data name="EfficiencyTabImportLsrm" xml:space="preserve">
-    <value>Импорт ЛСРМ...</value>
-  </data>
-  <data name="EfficiencyTabImportLsrmTitle" xml:space="preserve">
-    <value>ЛСРМ EffCalcMC.txt → кривая эффективности</value>
-  </data>
   <data name="EfficiencyTabResponseMatrix" xml:space="preserve">
     <value>Матрица отклика...</value>
   </data>
@@ -1799,9 +1793,6 @@
   </data>
   <data name="DeviceTypeRadiaCode" xml:space="preserve">
     <value>RadiaCode</value>
-  </data>
-  <data name="EffCalcMCFileFilter" xml:space="preserve">
-    <value>EffCalcMC.txt|EffCalcMC.txt|*.txt|*.txt</value>
   </data>
   <data name="EffCalcMCImportDialogTitle" xml:space="preserve">
     <value>ЛСРМ EffCalcMC.txt → ROI</value>
@@ -2936,5 +2927,8 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="LsrmCurveFewPoints" xml:space="preserve">
     <value>{0}: геометрия «{1}» дала точек кривой: {2}, нужно не меньше {3} (исключено самим LSRM: {4}, с погрешностью выше {6:f0} %: {5}).</value>
+  </data>
+  <data name="EfficiencyMakerLsrmFieldScene" xml:space="preserve">
+    <value>Кривую LSRM нельзя сохранить со сценой поля (ISO): эффективность ЛСРМ нормирована на испущенный квант, а не на единичный флюенс, и у мощности дозы не будет масштаба. Выберите для кривой сцену источника или посчитайте кривую из этой геометрии.</value>
   </data>
 </root>

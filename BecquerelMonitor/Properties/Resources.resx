@@ -42176,9 +42176,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="NotDetected" xml:space="preserve">
     <value>Not detected</value>
   </data>
-  <data name="EffCalcMCFileFilter" xml:space="preserve">
-    <value>EffCalcMC.txt|EffCalcMC.txt|*.txt|*.txt</value>
-  </data>
   <data name="EffCalcMCImportDialogTitle" xml:space="preserve">
     <value>LSRM EffCalcMC.txt -&gt; ROI</value>
   </data>
@@ -42976,12 +42973,6 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="FsaNoFwhmSource" xml:space="preserve">
     <value>Device configuration "{0}" has no FWHM calibration either.</value>
-  </data>
-  <data name="EfficiencyTabImportLsrm" xml:space="preserve">
-    <value>Import LSRM...</value>
-  </data>
-  <data name="EfficiencyTabImportLsrmTitle" xml:space="preserve">
-    <value>LSRM EffCalcMC.txt -&gt; efficiency curve</value>
   </data>
   <data name="EfficiencyTabResponseMatrix" xml:space="preserve">
     <value>Response matrix...</value>
@@ -44171,5 +44162,8 @@ Entered: {0}</value>
   </data>
   <data name="LsrmCurveFewPoints" xml:space="preserve">
     <value>{0}: geometry &quot;{1}&quot; gave {2} curve point(s) - at least {3} are needed ({4} excluded by LSRM itself, {5} declared to more than {6:f0} % uncertainty).</value>
+  </data>
+  <data name="EfficiencyMakerLsrmFieldScene" xml:space="preserve">
+    <value>The LSRM curve cannot be saved with a field scene (ISO): the LSRM efficiency is per emitted quantum, not per unit fluence, and the dose rate would have no scale. Choose a source scene for this curve, or calculate the curve from this geometry.</value>
   </data>
 </root>

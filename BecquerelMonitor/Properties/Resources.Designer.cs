@@ -724,15 +724,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to EffCalcMC.txt|EffCalcMC.txt|*.txt|*.txt.
-        /// </summary>
-        public static string EffCalcMCFileFilter {
-            get {
-                return ResourceManager.GetString("EffCalcMCFileFilter", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to LSRM EffCalcMC.txt -&gt; ROI.
         /// </summary>
         public static string EffCalcMCImportDialogTitle {
@@ -4752,24 +4743,6 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
-        /// <summary>
-        ///   Looks up a localized string similar to EfficiencyTabImportLsrm.
-        /// </summary>
-        public static string EfficiencyTabImportLsrm {
-            get {
-                return ResourceManager.GetString("EfficiencyTabImportLsrm", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to EfficiencyTabImportLsrmTitle.
-        /// </summary>
-        public static string EfficiencyTabImportLsrmTitle {
-            get {
-                return ResourceManager.GetString("EfficiencyTabImportLsrmTitle", resourceCulture);
-            }
-        }
-        
         /// <summary>
         ///   Looks up a localized string similar to EfficiencyTabResponseMatrix.
         /// </summary>
