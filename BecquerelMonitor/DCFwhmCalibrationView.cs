@@ -1179,6 +1179,23 @@ namespace BecquerelMonitor
                 return;
             }
 
+            // (П321, 15.10.2026; решение Amber вопросником 15.10.2026, дословно: «Брать только
+            // из документов, где число каналов такое же.») Опора кривой ПШПВ — это КАНАЛ и
+            // ширина в КАНАЛАХ своего спектра, а не в кэВ: опора спектра другой сетки (1024
+            // рядом с 4096, RadiaCode рядом с ASN) легла бы в чужие единицы, и степенная
+            // кривая после сбора принималась с ошибкой −15.9 / +19.9 / +38.6 % на 120 / 660 /
+            // 1332 кэВ (П314, плечо E). Поэтому берутся только спектры с тем же числом
+            // каналов, что у активного; остальные считаются и называются человеку ОДНОЙ
+            // строкой после сбора. ⚠ Спектр без шкалы каналов (`EnergySpectrum == null`) сеткой
+            // не обладает — как «того же числа каналов» он не берётся.
+            if (activeResultData.EnergySpectrum == null)
+            {
+                UpdateCalibrateButtonState();
+                return;
+            }
+            int activeChannels = activeResultData.EnergySpectrum.NumberOfChannels;
+            int skippedOtherGrid = 0;
+
             if (mainForm.DocumentList != null)
             {
                 foreach (DocEnergySpectrum doc in mainForm.DocumentList)
@@ -1195,6 +1212,11 @@ namespace BecquerelMonitor
                             data.FwhmCalibration.CalibrationPeaks != null &&
                             data.FwhmCalibration.CalibrationPeaks.Count > 0)
                         {
+                            if (data.EnergySpectrum == null || data.EnergySpectrum.NumberOfChannels != activeChannels)
+                            {
+                                skippedOtherGrid += data.FwhmCalibration.CalibrationPeaks.Count;
+                                continue;
+                            }
                             peaks.AddRange(data.FwhmCalibration.CalibrationPeaks);
                         }
                     }
@@ -1224,6 +1246,12 @@ namespace BecquerelMonitor
                 }
                 UpdateFwhmCalibration();
                 UpdateCalibrateButtonState();
+                if (skippedOtherGrid > 0)
+                {
+                    // Окно через `AppUi.Report`: метод зовут отражением безоконные пробы.
+                    AppUi.Report(String.Format(CultureInfo.InvariantCulture, Resources.MSGFwhmPeaksOtherGridSkipped, skippedOtherGrid),
+                                 Resources.NotificationDialogTitle, MessageBoxIcon.Information);
+                }
             }
         }
 
