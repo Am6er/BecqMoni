@@ -656,7 +656,7 @@
     <value>Коэффициенты калибровки успешно загружены в устройство.</value>
   </data>
   <data name="MSGNoNewVersion" xml:space="preserve">
-    <value>Новой версии нету :( Ваша версия приложения: {0}</value>
+    <value>Новой версии нет. Ваша версия приложения: {0}</value>
   </data>
   <data name="MSGRestartNeeded" xml:space="preserve">
     <value>Обновление приложения завершено успешно. Сейчас приложение БУДЕТ ПЕРЕЗАГРУЖЕНО.</value>
@@ -2828,11 +2828,11 @@ http://xptable.sourceforge.net/</value>
     <value>Нет изотопов, подходящих под фильтр</value>
   </data>
   <data name="ERRDeviceConfigChannelsNotPositive" xml:space="preserve">
-    <value>Кол-во каналов должно быть целым числом больше нуля.
+    <value>Число каналов должно быть целым числом от {1} до {2}.
 Введено: {0}</value>
   </data>
   <data name="ERRDeviceConfigTimeLimitNegative" xml:space="preserve">
-    <value>Лимит времени не может быть отрицательным.
+    <value>Лимит времени должен быть больше нуля.
 Введено: {0}</value>
   </data>
   <data name="ERRSoundFileNotFound" xml:space="preserve">

@@ -7523,7 +7523,7 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Number of channels must be a whole number greater than zero. Entered: {0}.
+        ///   Looks up a localized string similar to Number of channels must be a whole number from {1} to {2}. Entered: {0}.
         /// </summary>
         public static string ERRDeviceConfigChannelsNotPositive {
             get {
@@ -7532,7 +7532,7 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Preset time cannot be negative. Entered: {0}.
+        ///   Looks up a localized string similar to Preset time must be greater than zero. Entered: {0}.
         /// </summary>
         public static string ERRDeviceConfigTimeLimitNegative {
             get {
