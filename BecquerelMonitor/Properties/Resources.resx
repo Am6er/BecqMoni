@@ -44100,4 +44100,76 @@ Entered: {0}</value>
 
 {1}</value>
   </data>
+  <data name="EfficiencyMakerLsrmImportFilter" xml:space="preserve">
+    <value>LSRM files (*.in;*.txt;*.efa;*.efr)|*.in;*.txt;*.efa;*.efr|LSRM geometry (*.in)|*.in|LSRM efficiency curve (*.txt;*.efa;*.efr)|*.txt;*.efa;*.efr|All files (*.*)|*.*</value>
+  </data>
+  <data name="EfficiencyMakerLsrmBusy" xml:space="preserve">
+    <value>A calculation is running - stop it before importing a curve.</value>
+  </data>
+  <data name="EfficiencyMakerLsrmCurveExport" xml:space="preserve">
+    <value>Curve: {0} point(s) of the LSRM EffCalcMC export.</value>
+  </data>
+  <data name="EfficiencyMakerLsrmGeometry" xml:space="preserve">
+    <value>LSRM file: {0}; geometry: {1}</value>
+  </data>
+  <data name="EfficiencyMakerLsrmHeader" xml:space="preserve">
+    <value>File header (into this log only - the geometry fields are not changed):</value>
+  </data>
+  <data name="EfficiencyMakerLsrmSources" xml:space="preserve">
+    <value>Sources ({0}): {1}</value>
+  </data>
+  <data name="EfficiencyMakerLsrmPoints" xml:space="preserve">
+    <value>Measured points of the file ({0}):</value>
+  </data>
+  <data name="EfficiencyMakerLsrmExcluded" xml:space="preserve">
+    <value>(excluded by LSRM: No)</value>
+  </data>
+  <data name="EfficiencyMakerLsrmCurveFit" xml:space="preserve">
+    <value>Curve: the LSRM fit, {0} zone(s), {1} nodes {2:f1}...{3:f1} keV; overlapping zones are joined by a linear weight in lg E; nothing beyond the zones.</value>
+  </data>
+  <data name="EfficiencyMakerLsrmGap" xml:space="preserve">
+    <value>  {0} grid node(s) fell into a gap between zones - the curve has no value there.</value>
+  </data>
+  <data name="EfficiencyMakerLsrmCurvePoints" xml:space="preserve">
+    <value>Curve: {0} measured point(s); excluded by LSRM (No): {1}; over {2:f0} % uncertainty: {3}; same energy merged with 1/σ² weights: {4}.</value>
+  </data>
+  <data name="EfficiencyMakerLsrmSaveHint" xml:space="preserve">
+    <value>Save puts this curve into the configuration with the geometry of the editor fields (origin: LSRM); Calculate replaces it with a computed one.</value>
+  </data>
+  <data name="EfficiencyMakerLsrmImported" xml:space="preserve">
+    <value>LSRM curve imported: {0} points, {1:f1}...{2:f1} keV - {3}</value>
+  </data>
+  <data name="EfficiencyMakerLsrmPickTitle" xml:space="preserve">
+    <value>Import LSRM curve</value>
+  </data>
+  <data name="EfficiencyMakerLsrmPickPrompt" xml:space="preserve">
+    <value>The file holds {0} geometries. Which curve to import?</value>
+  </data>
+  <data name="EfficiencyMakerLsrmPickItem" xml:space="preserve">
+    <value>{0} - {1} point(s), {2} zone(s)</value>
+  </data>
+  <data name="EfficiencyMakerLsrmPickOk" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="EfficiencyMakerLsrmPickCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="LsrmCurveBadPoint" xml:space="preserve">
+    <value>{0} (line {1}): &quot;{2}&quot; is not an LSRM efficiency point (energy=efficiency,uncertainty %,nuclide,...).</value>
+  </data>
+  <data name="LsrmCurveNoSections" xml:space="preserve">
+    <value>{0}: no LSRM section ([detector;geometry]) found - this is not an .efa / .efr file.</value>
+  </data>
+  <data name="LsrmCurveBadZone" xml:space="preserve">
+    <value>{0}: geometry &quot;{1}&quot;: the LSRM fit is broken - {2}.</value>
+  </data>
+  <data name="LsrmCurveBadLine" xml:space="preserve">
+    <value>{0} (line {1}): &quot;{2}&quot; - numbers expected.</value>
+  </data>
+  <data name="LsrmCurveNoFit" xml:space="preserve">
+    <value>{0}: geometry &quot;{1}&quot; holds no LSRM fit (Zones / Zone_i / Curve_i) - the curve of an .efa is its fit, and there is none.</value>
+  </data>
+  <data name="LsrmCurveFewPoints" xml:space="preserve">
+    <value>{0}: geometry &quot;{1}&quot; gave {2} curve point(s) - at least {3} are needed ({4} excluded by LSRM itself, {5} declared to more than {6:f0} % uncertainty).</value>
+  </data>
 </root>

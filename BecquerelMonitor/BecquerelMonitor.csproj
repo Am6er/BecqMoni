@@ -333,6 +333,7 @@
     <Compile Include="EfficiencyMaker\ScatteringData.cs" />
     <Compile Include="EfficiencyMaker\BremsstrahlungData.cs" />
     <Compile Include="EfficiencyMaker\EfficiencyModel.cs" />
+    <Compile Include="EfficiencyMaker\LsrmEfficiencyFile.cs" />
     <Compile Include="EfficiencyMaker\GeometryMaterialLibrary.cs" />
     <Compile Include="EfficiencyMaker\GeometryMaterialStore.cs" />
     <Compile Include="EfficiencyMaker\GeometryMaterialSeed.cs" />
