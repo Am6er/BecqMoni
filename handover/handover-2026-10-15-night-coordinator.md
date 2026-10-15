@@ -97,6 +97,25 @@
   каналов, заголовки окон, ложные «*», пустой выбор экспорта, N42 и CSV без данных. Факт обслуги: `todo_edit.py` не
   находит опору по ВЫЧЕРКНУТОМУ номеру (`~~**A329**~~`) — строка вписана руками.
 - Повтор разбора стража A320 только для проб — полоса П323.
+- П322 закоммичена (`9daaa9b5`): N42 — живое или полное; каналы 64…65536 (одно место `ChannelCountLimits`); лимит ≤ 0 —
+  отказ. Ресурсы к ней (тексты `ERRDeviceConfigChannelsNotPositive`, `ERRDeviceConfigTimeLimitNegative` с границами) —
+  после П321. Следствия решений — полоса П325: `MainForm` отказывал на 64 каналах (`> 64`), пробы П316/П318/П319/O14
+  мерили старое поведение, проба П316 писала `config\BecquerelMonitor.xml` заверенного каталога проб.
+
+### Стоп 11:30 15.10.2026 — Amber: «Сделай пока стоп всех задач. Нужно перезагрузиться.»
+
+Остановлены П323–П326 (до отчётов); процессов полос не осталось. Их НЕЗАКОММИЧЕННЫЕ правки лежат в дереве — не
+принимать на слово, после перезагрузки довести приёмку замером (возобновить полосу или новой полосой «проверь и доделай»):
+- П323 (повтор стража A320 только для проб): `FullSpectrumAnalysis/FsaAnalysisSession.cs`, `FsaAnalyzer.cs`, проба
+  `P323GuardReplayProbe.cs` (писалась в момент стопа); малая база не досчитана;
+- П324 (опечатки ЛСРМ, «Патч целиком»): `EfficiencyMaker/GeometryMaterialSeed.cs`, `GeometryMaterialStore.cs`,
+  `tools/effmaker/import_lsrm_materials.py`, проба `P324SeedErrataProbe.cs`, журнал `handover-2026-10-15-p324-*.md` и
+  каталог `handover/p324-seed-errata/`; ждала сборку проб;
+- П325 (следствия решений): `MainForm.cs`, `DeviceConfigForm.cs` (комментарии), пробы `CultureProbeO14.cs`,
+  `P316ScreenPassProbe.cs`, `P318RevertAndCloseProbe.cs`, `P319AppDefectsProbe.cs`;
+- П326 (вопрос перед записью наборов): `NuclideSetForm.cs`, `NuclideDefinitionForm.cs`, `Properties/Resources*`,
+  проба `P326SetSaveAsksProbe.cs`, журнал `handover-2026-10-15-p326-*.md`; шла сборка каталога проб.
+`EfficiencyMaker/EstarCalculator.cs` в `git status` — устаревшая метка индекса, `git diff` пуст.
 
 По слову Amber 15.10.2026 «пропиши эти дефекты в TODO как закрытые» — ночные починки вписаны закрытыми строками
 `A322` (П309), `A323` (П311), `A324` (П310), `A325` (П313), `A326` (П314), `A327` (П312 + П316), `A328` (П315),
