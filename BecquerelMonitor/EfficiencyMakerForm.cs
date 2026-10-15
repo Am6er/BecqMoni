@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
@@ -532,18 +533,42 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Загрузить геометрию из файла LSRM `.in` прямо в поля редактора.
-        /// Предупреждения разбора идут в журнал сразу: слой без вещества там не
-        /// исчезает, а замещается соседним, и кривая выходит правдоподобной и
-        /// чужой.
+        /// «Импорт из LSRM…» редактора геометрии. Файл `.in` — геометрия в поля
+        /// редактора; `.txt` (экспорт `EffCalcMC`), `.efa`, `.efr` — кривая
+        /// эффективности окна (`AMBER226`, П330: Amber 15.10.2026, дословно:
+        /// «Нужно добавить в диалог открытия файла в редакторе геометрий: Импорт
+        /// кривых интенсивности из LSRM в редактор геометрий. Помимо txt формата,
+        /// нужно поддержать формат файлов efa и efr»). Различает их расширение;
+        /// всё прочее («Все файлы») читается геометрией, как и до П330.
         /// </summary>
         void ImportGeometryClick(object sender, EventArgs e)
         {
             using (OpenFileDialog dialog = new OpenFileDialog())
             {
-                dialog.Filter = Resources.EfficiencyMakerGeometryFilter;
+                // Фильтр свой, а не `EfficiencyMakerGeometryFilter`: тот же
+                // ресурс несёт второй шаг импорта кривой на вкладке прибора, где
+                // спрашивают именно `.in`.
+                dialog.Filter = ResourceText("EfficiencyMakerLsrmImportFilter",
+                    "LSRM files (*.in;*.txt;*.efa;*.efr)|*.in;*.txt;*.efa;*.efr"
+                    + "|LSRM geometry (*.in)|*.in"
+                    + "|LSRM efficiency curve (*.txt;*.efa;*.efr)|*.txt;*.efa;*.efr"
+                    + "|All files (*.*)|*.*");
                 if (dialog.ShowDialog(this) != DialogResult.OK)
                 {
+                    return;
+                }
+
+                if (LsrmEfficiencyFile.IsCurveFile(dialog.FileName))
+                {
+                    string problem;
+                    if (!this.ImportCurveFile(dialog.FileName, sets => PickLsrmSet(this, sets), out problem)
+                        && problem != null)
+                    {
+                        MessageBox.Show(this,
+                            string.Format(Resources.ERRFileOpenFailure, dialog.FileName, problem),
+                            this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+
                     return;
                 }
 
@@ -587,6 +612,275 @@ namespace BecquerelMonitor
                     MessageBox.Show(this, ex.Message, this.Text,
                                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER226`, П330) Кривая ЛСРМ из файла — КРИВОЙ ОКНА: рисуется
+        /// вместо посчитанной, «Сохранить» кладёт её в конфигурацию вместе с
+        /// геометрией из полей (происхождение LSRM), «Посчитать» заменяет её
+        /// своей. Решения Amber 15.10.2026 вопросником, дословно: «Кривая окна
+        /// (Рекомендую)»; из `.efa` — «Подгонку ЛСРМ (Рекомендую)»; из `.efr` —
+        /// «Точки как есть (Рекомендую)»; шапка файла — «Только в журнал
+        /// (Рекомендую)»: поля геометрии импорт кривой НЕ трогает.
+        ///
+        /// Окна не поднимает (кроме выбора геометрии через
+        /// <paramref name="choose"/>, если их в файле несколько) — его зовёт
+        /// проба. Ложь с <paramref name="problem"/> == null — человек отказался
+        /// от выбора; с причиной — файл негоден, кривая окна прежняя.
+        /// </summary>
+        /// <param name="choose">индекс геометрии из нескольких; −1 — отказ</param>
+        internal bool ImportCurveFile(string path, Func<IList<LsrmCurveSet>, int> choose, out string problem)
+        {
+            problem = null;
+            if (Busy())
+            {
+                // Счёт, закончившись, положил бы свою кривую поверх импортированной.
+                problem = ResourceText("EfficiencyMakerLsrmBusy",
+                    "A calculation is running - stop it before importing a curve.");
+                return false;
+            }
+
+            string file = System.IO.Path.GetFileName(path);
+            List<ROIEfficiencyData> curve;
+            List<string> log = new List<string>();
+            string note;
+            string summary;
+            if (!LsrmEfficiencyFile.IsApproximation(path)
+                && string.Equals(System.IO.Path.GetExtension(path), ".txt", StringComparison.OrdinalIgnoreCase))
+            {
+                // Экспорт `EffCalcMC.txt` — тем же читателем, что импорт на вкладке
+                // прибора (`AMBER13`): шапка проверяется, точки за 100 % отсекаются.
+                curve = DeviceConfigForm.ReadLsrmEfficiencyExport(path, out problem);
+                if (problem != null)
+                {
+                    return false;
+                }
+
+                summary = string.Format(CultureInfo.InvariantCulture,
+                    ResourceText("EfficiencyMakerLsrmCurveExport", "Curve: {0} point(s) of the LSRM EffCalcMC export."),
+                    curve.Count);
+                note = string.Format(CultureInfo.InvariantCulture, "LSRM export: {0}", file);
+            }
+            else
+            {
+                List<LsrmCurveSet> sets = LsrmEfficiencyFile.Read(path, out problem);
+                if (sets == null)
+                {
+                    return false;
+                }
+
+                int index = 0;
+                if (sets.Count > 1)
+                {
+                    index = choose == null ? -1 : choose(sets);
+                    if (index < 0 || index >= sets.Count)
+                    {
+                        return false;
+                    }
+                }
+
+                LsrmCurveSet set = sets[index];
+                bool fromFit = LsrmEfficiencyFile.IsApproximation(path);
+                LsrmCurveReport report;
+                curve = LsrmEfficiencyFile.BuildCurve(set, fromFit, path, out report, out problem);
+                if (curve == null)
+                {
+                    return false;
+                }
+
+                log.Add(string.Format(CultureInfo.InvariantCulture,
+                    ResourceText("EfficiencyMakerLsrmGeometry", "LSRM file: {0}; geometry: {1}"),
+                    file, set.Title));
+                log.Add(ResourceText("EfficiencyMakerLsrmHeader",
+                    "File header (into this log only - the geometry fields are not changed):"));
+                foreach (KeyValuePair<string, string> pair in set.Header)
+                {
+                    string value = pair.Value ?? "";
+                    log.Add("  " + pair.Key + " = " + (value.Length > 200 ? value.Substring(0, 200) + "..." : value));
+                }
+
+                if (set.Sources.Count > 0)
+                {
+                    log.Add(string.Format(CultureInfo.InvariantCulture,
+                        ResourceText("EfficiencyMakerLsrmSources", "Sources ({0}): {1}"),
+                        set.Sources.Count, string.Join("; ", set.Sources)));
+                }
+
+                log.Add(string.Format(CultureInfo.InvariantCulture,
+                    ResourceText("EfficiencyMakerLsrmPoints", "Measured points of the file ({0}):"),
+                    set.Points.Count));
+                foreach (LsrmMeasuredPoint point in set.Points.OrderBy(p => p.Energy))
+                {
+                    log.Add(string.Format(CultureInfo.InvariantCulture, "  {0,9:f3} keV  {1,-12:G6} ±{2,6:f2} %  {3}{4}{5}",
+                        point.Energy, point.Efficiency, point.ErrorPercent, point.Nuclide,
+                        point.Source.Length > 0 ? "  [" + point.Source + "]" : "",
+                        point.Excluded
+                            ? "  " + ResourceText("EfficiencyMakerLsrmExcluded", "(excluded by LSRM: No)")
+                            : ""));
+                }
+
+                if (fromFit)
+                {
+                    summary = string.Format(CultureInfo.InvariantCulture,
+                        ResourceText("EfficiencyMakerLsrmCurveFit",
+                            "Curve: the LSRM fit, {0} zone(s), {1} nodes {2:f1}...{3:f1} keV; overlapping zones"
+                            + " are joined by a linear weight in lg E; nothing beyond the zones."),
+                        report.Zones, curve.Count, curve[0].Energy, curve[curve.Count - 1].Energy);
+                    if (report.GapNodes > 0)
+                    {
+                        summary += Environment.NewLine + string.Format(CultureInfo.InvariantCulture,
+                            ResourceText("EfficiencyMakerLsrmGap",
+                                "  {0} grid node(s) fell into a gap between zones - the curve has no value there."),
+                            report.GapNodes);
+                    }
+
+                    note = string.Format(CultureInfo.InvariantCulture,
+                        "LSRM fit (.efa): {0}; [{1};{2}]; {3} zone(s), {4} nodes",
+                        file, set.Detector, set.Geometry, report.Zones, curve.Count);
+                }
+                else
+                {
+                    summary = string.Format(CultureInfo.InvariantCulture,
+                        ResourceText("EfficiencyMakerLsrmCurvePoints",
+                            "Curve: {0} measured point(s); excluded by LSRM (No): {1}; over {2:f0} % uncertainty: {3};"
+                            + " same energy merged with 1/sigma^2 weights: {4}."),
+                        curve.Count, report.ExcludedByLsrm, DeviceConfigForm.LsrmMaxErrorPercent,
+                        report.OverMaxError, report.MergedDuplicates);
+                    note = string.Format(CultureInfo.InvariantCulture,
+                        "LSRM points (.efr): {0}; [{1};{2}]; {3} point(s) from {4} source(s), {5} excluded by LSRM, {6} merged",
+                        file, set.Detector, set.Geometry, curve.Count, set.Sources.Count,
+                        report.ExcludedByLsrm, report.MergedDuplicates);
+                }
+            }
+
+            note += "; geometry: editor fields of the curve designer";
+            EfficiencyFitResult result = new EfficiencyFitResult
+            {
+                Curve = curve,
+                MinEnergy = curve.Min(p => p.Energy),
+                MaxEnergy = curve.Max(p => p.Energy),
+                Origin = EfficiencyOrigin.Lsrm,
+                ImportNote = note,
+            };
+
+            this.lastResult = result;
+            this.graph.SetData(this.referenceCurve, result);
+            this.SetDirty();
+            this.UpdateSaveState();
+
+            if (this.logTextBox.TextLength > 0)
+            {
+                AppendLog("");
+            }
+
+            foreach (string line in log)
+            {
+                AppendLog(line);
+            }
+
+            AppendLog(summary);
+            AppendLog(ResourceText("EfficiencyMakerLsrmSaveHint",
+                "Save puts this curve into the configuration with the geometry of the editor fields (origin: LSRM);"
+                + " Calculate replaces it with a computed one."));
+            this.statusLabel.Text = string.Format(CultureInfo.InvariantCulture,
+                ResourceText("EfficiencyMakerLsrmImported", "LSRM curve imported: {0} points, {1:f1}...{2:f1} keV - {3}"),
+                curve.Count, result.MinEnergy, result.MaxEnergy, file);
+            AppendLog(this.statusLabel.Text);
+
+            // График с журналом живут на вкладке расчёта, а на вкладке редактора
+            // спрятаны (`UpdateGeometryLayout`): без перехода импорт кривой
+            // выглядел бы не сделавшим ничего.
+            this.tabControl.SelectedTab = this.tabPageCalculate;
+            return true;
+        }
+
+        /// <summary>
+        /// (`AMBER226`) Выбор геометрии сводного файла ЛСРМ (в `…_2024.efa` их
+        /// четыре). −1 — отказ.
+        /// </summary>
+        static int PickLsrmSet(IWin32Window owner, IList<LsrmCurveSet> sets)
+        {
+            using (Form form = new Form
+            {
+                Text = ResourceText("EfficiencyMakerLsrmPickTitle", "Import LSRM curve"),
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                StartPosition = FormStartPosition.CenterParent,
+                MinimizeBox = false,
+                MaximizeBox = false,
+                ShowInTaskbar = false,
+                ClientSize = new System.Drawing.Size(520, 260),
+            })
+            {
+                Label prompt = new Label
+                {
+                    Dock = DockStyle.Top,
+                    Height = 34,
+                    Padding = new Padding(8, 8, 8, 0),
+                    Text = string.Format(CultureInfo.InvariantCulture,
+                        ResourceText("EfficiencyMakerLsrmPickPrompt",
+                            "The file holds {0} geometries. Which curve to import?"),
+                        sets.Count),
+                };
+
+                ListBox list = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false };
+                foreach (LsrmCurveSet set in sets)
+                {
+                    list.Items.Add(string.Format(CultureInfo.InvariantCulture,
+                        ResourceText("EfficiencyMakerLsrmPickItem", "{0} - {1} point(s), {2} zone(s)"),
+                        set.Title, set.Points.Count, set.Zones.Count));
+                }
+
+                list.SelectedIndex = 0;
+
+                Button ok = new Button
+                {
+                    Text = ResourceText("EfficiencyMakerLsrmPickOk", "Import"),
+                    DialogResult = DialogResult.OK,
+                    Size = new System.Drawing.Size(90, 26),
+                    Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                };
+                Button cancel = new Button
+                {
+                    Text = ResourceText("EfficiencyMakerLsrmPickCancel", "Cancel"),
+                    DialogResult = DialogResult.Cancel,
+                    Size = new System.Drawing.Size(90, 26),
+                    Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                };
+
+                // Ширина панели — сразу ширина окна: кнопки привязаны к правому
+                // краю, и панель умолчательной ширины (200) при растяжке доком
+                // уводила их за край окна (проверка экраном П330).
+                Panel buttons = new Panel { Dock = DockStyle.Bottom, Height = 40, Width = form.ClientSize.Width };
+                // Ширина кнопки — по подписи: русское «Импортировать» в 90
+                // точек не помещалось (проверка экраном П330).
+                foreach (Button button in new[] { ok, cancel })
+                {
+                    button.Width = Math.Max(90, TextRenderer.MeasureText(button.Text, form.Font).Width + 24);
+                }
+
+                cancel.Location = new System.Drawing.Point(form.ClientSize.Width - cancel.Width - 8, 7);
+                ok.Location = new System.Drawing.Point(cancel.Left - ok.Width - 8, 7);
+                buttons.Controls.Add(ok);
+                buttons.Controls.Add(cancel);
+
+                Panel body = new Panel { Dock = DockStyle.Fill, Padding = new Padding(8, 0, 8, 0) };
+                body.Controls.Add(list);
+
+                form.Controls.Add(body);
+                form.Controls.Add(buttons);
+                form.Controls.Add(prompt);
+                form.AcceptButton = ok;
+                form.CancelButton = cancel;
+                list.DoubleClick += delegate
+                {
+                    if (list.SelectedIndex >= 0)
+                    {
+                        form.DialogResult = DialogResult.OK;
+                    }
+                };
+
+                return form.ShowDialog(owner) == DialogResult.OK ? list.SelectedIndex : -1;
             }
         }
 
@@ -813,15 +1107,30 @@ namespace BecquerelMonitor
                 }
 
                 this.boundConfig.Curve = curve;
-                // Кривую здесь даёт только расчёт из геометрии (`AMBER25`,
-                // 13.09.2026): прежняя развилка по `LevelSource` на
-                // `EfficiencyOrigin.Measurement` ушла вместе с фитом.
-                this.boundConfig.Origin = EfficiencyOrigin.Simulation;
-                // Клеймо едет вместе с кривой (E12).
+                // Кривую здесь даёт расчёт из геометрии (`AMBER25`, 13.09.2026:
+                // прежняя развилка по `LevelSource` на `EfficiencyOrigin.Measurement`
+                // ушла вместе с фитом) либо импорт файла ЛСРМ (`AMBER226`).
+                this.boundConfig.Origin = this.lastResult.Origin;
+                // Клеймо едет вместе с кривой (E12); у импорта оно пустое —
+                // кривую считали не мы.
                 this.boundConfig.ComputeStamp = this.lastResult.ComputeStamp ?? "";
-                // (`AMBER185`) ...и отпечаток геометрии, ДЛЯ КОТОРОЙ она
-                // посчитана, — снятый в начале счёта, а не с полей сейчас.
-                this.boundConfig.GeometryFingerprint = this.lastResult.GeometryFingerprint ?? "";
+                if (this.lastResult.Origin == EfficiencyOrigin.Lsrm)
+                {
+                    // (`AMBER226`) Кривая ЛСРМ относится к геометрии, которую
+                    // человек задал полями к ней (у `.efa`/`.efr` файла `.in` нет)
+                    // — отпечаток той, что сохраняется, как у импорта с `.in` на
+                    // вкладке прибора (`AMBER18`/`AMBER185`). Правка геометрии
+                    // после этого видна тем же предупреждением.
+                    this.boundConfig.GeometryFingerprint =
+                        ResponseMatrix.GeometryFingerprint(this.boundConfig.Geometry);
+                    this.boundConfig.Note = new CDATA(this.lastResult.ImportNote ?? "");
+                }
+                else
+                {
+                    // (`AMBER185`) ...и отпечаток геометрии, ДЛЯ КОТОРОЙ она
+                    // посчитана, — снятый в начале счёта, а не с полей сейчас.
+                    this.boundConfig.GeometryFingerprint = this.lastResult.GeometryFingerprint ?? "";
+                }
             }
 
             // (`AMBER185`) Геометрию правили после счёта: сохраняется и она, и
@@ -1215,11 +1524,18 @@ namespace BecquerelMonitor
                 // не одной строкой на все случаи: свежий расчёт остаётся в окне и
                 // после «Сохранить», и шапка выгрузки уверяла «NOT saved» о кривой,
                 // которая уже лежит в конфигурации точка в точку.
-                header.Add(this.LastResultIsInConfig()
-                    ? "source: computed in the curve designer, saved into the configuration"
-                    : "source: computed in the curve designer, NOT saved into the configuration");
-                header.Add("origin: " + EfficiencyOrigin.Simulation);
+                string made = this.lastResult.Origin == EfficiencyOrigin.Lsrm
+                    ? "source: imported from an LSRM file in the curve designer"
+                    : "source: computed in the curve designer";
+                header.Add(made + (this.LastResultIsInConfig()
+                    ? ", saved into the configuration"
+                    : ", NOT saved into the configuration"));
+                header.Add("origin: " + this.lastResult.Origin);
                 header.Add("stamp: " + (this.lastResult.ComputeStamp ?? ""));
+                if (!string.IsNullOrEmpty(this.lastResult.ImportNote))
+                {
+                    header.Add("import: " + this.lastResult.ImportNote);
+                }
             }
             else
             {

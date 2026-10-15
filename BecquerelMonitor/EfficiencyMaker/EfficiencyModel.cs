@@ -47,6 +47,20 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public string GeometryFingerprint = "";
 
+        /// <summary>
+        /// (`AMBER226`, П330) Откуда кривая окна конструктора: расчёт из
+        /// геометрии либо импорт файла ЛСРМ («Импорт из LSRM…» редактора
+        /// геометрии, решение Amber 15.10.2026 «Кривая окна»). «Сохранить»
+        /// кладёт это происхождение в конфигурацию.
+        /// </summary>
+        public BecquerelMonitor.EfficiencyOrigin Origin = BecquerelMonitor.EfficiencyOrigin.Simulation;
+
+        /// <summary>
+        /// (`AMBER226`) Заметка импорта — файл, геометрия, что взято кривой; при
+        /// «Сохранить» уходит в <c>EfficiencyConfigData.Note</c>. Пусто у расчёта.
+        /// </summary>
+        public string ImportNote = "";
+
         public string Error;
 
         public bool Ok
