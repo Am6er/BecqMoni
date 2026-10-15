@@ -152,6 +152,13 @@ Yes - save those changes together with the sets (nothing will be left unsaved in
 No - save only the sets; the library changes stay unsaved in the "Edit Nuclide Definition" window.
 Cancel - save nothing.</value>
   </data>
+  <data name="MSGNucBaseImportUnsavedNuclides" xml:space="preserve">
+    <value>The "Edit Nuclide Definition" window has unsaved changes to the nuclide library. The import saves the whole library file.
+
+Yes - save those changes together with the imported lines (nothing will be left unsaved in the "Edit Nuclide Definition" window).
+No - save only the imported lines; the library changes stay unsaved in the "Edit Nuclide Definition" window.
+Cancel - do not import.</value>
+  </data>
   <data name="NuclideSetAssignColor" xml:space="preserve">
     <value>Assign peak color:</value>
   </data>

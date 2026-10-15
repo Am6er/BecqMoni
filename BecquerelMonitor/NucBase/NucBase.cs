@@ -1067,137 +1067,346 @@ namespace BecquerelMonitor.NucBase
             this.toolTip1.Show(Resources.NucBase_IsotopeTextBoxTooltip1, this.IsotopeTextBox, 0, -23, DisplayTime);
         }
 
+        /// <summary>
+        /// Импорт помеченных строк таблицы в библиотеку нуклидов.
+        ///
+        /// ⛔ (П328, 15.10.2026, `A336`) СПРОСИТЬ ПЕРЕД ЗАПИСЬЮ, если открыт
+        /// редактор нуклидов с несохранёнными правками, — тем же приёмом, что
+        /// «Сохранить» редактора наборов (П326). Решение Amber вопросником
+        /// 15.10.2026, дословно: «Да, тем же приёмом (Рекомендую)».
+        ///
+        /// Библиотека лежит в одном файле, и
+        /// <see cref="NuclideDefinitionManager.SaveDefinitionFile"/> пишет всё, что
+        /// в памяти; редактор нуклидов немодален, его правки ячеек и галки
+        /// «Видимый» живут в линиях до его «Сохранить». Прежде импорт уносил их в
+        /// файл молча, а окно нуклидов продолжало считать их несохранёнными (его
+        /// «Нет» потом откатывал память, файл оставался с правкой). Ответы:
+        ///  * «Да» — правки окна нуклидов записываются, как его собственной
+        ///    кнопкой «Сохранить» (окно становится «сохранено»), затем импорт;
+        ///  * «Нет» — импорт записывается так, будто правок окна нуклидов нет:
+        ///    составлен он по линиям ДО правок окна и записан с ними же
+        ///    (<see cref="NuclideDefinitionForm.WriteWithoutUnsavedEdits"/>);
+        ///    правки остаются в окне несохранёнными, его «Нет» вернёт память к
+        ///    файлу, импортированное не трогая;
+        ///  * «Отмена» — импорта нет: ни память, ни файл не тронуты.
+        /// Поэтому импорт сперва СОСТАВЛЯЕТСЯ (<see cref="PlanImport"/>), не трогая
+        /// память, и применяется только после ответа.
+        ///
+        /// (П328, попутно, `A9`) Отказ записи откатывает импорт в памяти — как у
+        /// заведения и удаления линий в редакторе нуклидов. Прежде линии
+        /// оставались в памяти без файла (`AMBER201`: «линии лишь в памяти»):
+        /// разметка пиков и FSA видели их до перезапуска, а ближайшая запись
+        /// библиотеки любым окном уносила их в файл молча.
+        /// Проба — <c>P328NucBaseImportAsksProbe</c>, журнал П328.
+        /// </summary>
         private void buttonImportDef_Click(object sender, EventArgs e)
         {
             try
             {
-                int updatedCount = 0;
-                int createdCount = 0;
-                int redundantSkipped = 0;
-                int redundantSkippedL = 0;
                 NuclideDefinitionManager defManager = NuclideDefinitionManager.GetInstance();
-                // Ряд у всех импортируемых линий один — тот, по которому шёл поиск.
-                // Пишется НЕЗАВИСИМО от «дописать имя родителя»: та галочка
-                // решает, как линия подписана на графике, а поле — на чей
-                // распад дан выход. Раньше это было одно и то же, и выключенная
-                // галочка молча теряла принадлежность к ряду.
-                string chain = this.IncludeDecayChainCheckBox.Checked
-                               && !string.IsNullOrEmpty(this.SearchedIsotope)
-                    ? FormatIsotopeName(this.SearchedIsotope)
-                    : "";
-                foreach (DataGridViewRow row in this.ResultDataGridView.Rows)
+                ImportPlan plan = this.PlanImport(defManager);
+                if (plan.IsEmpty)
                 {
-                    if ((bool)row.Cells[CheckedColumnIdx].Value == true)
-                    {
-                        // ⛔ Обе половины Kβ вместе НЕ ВЫГРУЖАЮТСЯ (`D33`): это
-                        // не запрет взять помеченную строку, а запрет взять её
-                        // ВМЕСТЕ с теми, чью сумму она и есть. Молча пропустить
-                        // нельзя — считается и говорится вслух.
-                        if (IsRedundantSeries(row) && HasCheckedCounterpart(row))
-                        {
-                            // (`AMBER151`) L-серия считается отдельно: у неё своё
-                            // сообщение — лишней там стоит сводная рядом с подлиниями.
-                            if (LKind(row) != FullSpectrumAnalysis.FsaSampleLibrary.LSeriesNone)
-                            {
-                                redundantSkippedL++;
-                                continue;
-                            }
-
-                            redundantSkipped++;
-                            continue;
-                        }
-
-                        string name = (string)row.Cells[NameColumnIdx].Value;
-                        bool fluorescence = NucBaseFramework.FluorescenceLine.Equals(
-                            row.Cells[LineColumnIdx].Value as string, StringComparison.Ordinal);
-                        // Формат имени — про нуклиды («137CS» -> «Cs-137»), у
-                        // символа элемента ему не за что зацепиться. Подпись
-                        // складывается своя: «W x-ray». Слово в ней не украшение
-                        // — по отсутствию массового числа в имени рентген и
-                        // отличается потом от нуклида (NuclideDefinition).
-                        string formattedName = fluorescence
-                            ? XrayDefinitionName(name)
-                            : FormatIsotopeName(name);
-                        double energy = (double)row.Cells[EnergyColumnIdx].Value;
-                        double intencity = (double)row.Cells[IntencityColumnIdx].Value;
-                        double halfLifeYears = HalfLifeYearsFromCell(
-                            (string)row.Cells[HalfLifeColumnIdx].Value);
-
-                        if (!fluorescence && IncludeDecayChainCheckBox.Checked
-                            && checkBoxAppendRootName.Checked && this.SearchedIsotope != name)
-                        {
-                            formattedName += " (" + FormatIsotopeName(this.SearchedIsotope) + ")";
-                        }
-
-                        // Ряда у рентгена нет: выход дан не на распад родителя, а
-                        // долей внутри K-серии, и вписанный сюда родитель означал
-                        // бы, что линию можно ставить на вековое равновесие.
-                        string rowChain = fluorescence ? "" : chain;
-
-                        // ⛔ (`AMBER197`) Ключ — НУКЛИД И энергия. Прежде одна
-                        // энергия: линия другого нуклида на той же энергии (у
-                        // двух и более родителей таких 3212 при выходе ≥ 1 %)
-                        // без «перезаписать» молча не заводилась, а с ним
-                        // чужая запись получала новые имя, выход, период и ряд.
-                        string rowIdentity = LineIdentity(name, fluorescence);
-                        NuclideDefinition existingDef = defManager.NuclideDefinitions.FirstOrDefault(
-                            def => def.Energy == energy
-                                   && LineIdentity(def.NuclideName, def.IsElementXray) == rowIdentity);
-                        if (existingDef != null && checkBoxOverwriteDef.Checked)
-                        {
-                            existingDef.Name = formattedName;
-                            existingDef.Intencity = intencity;
-                            existingDef.HalfLife = halfLifeYears;
-                            existingDef.Chain = rowChain;
-                            updatedCount++;
-                        }
-
-                        if (existingDef == null)
-                        {
-                            defManager.NuclideDefinitions.Add(new NuclideDefinition()
-                            {
-                                Name = formattedName,
-                                Chain = rowChain,
-                                Energy = energy,
-                                Intencity = intencity,
-                                HalfLife = halfLifeYears,
-                                Visible = true,
-                                NuclideColor = new SerializableColor(System.Drawing.Color.Green)
-                            });
-                            createdCount++;
-                        }
-                    }
+                    return;
                 }
 
-                if (updatedCount > 0 || createdCount > 0)
+                List<NuclideDefinitionForm> editors = NuclideDefinitionForm.OpenWithUnsavedEdits();
+                bool withoutEditorsEdits = false;
+                if (editors.Count > 0)
                 {
-                    // (`AMBER201`, 5.9) Ответ записи читается: при отказе окно
-                    // об ошибке уже показал менеджер, и следом за ним «импорт
-                    // удался» было бы неправдой — линии лишь в памяти.
-                    if (!defManager.SaveDefinitionFile())
+                    DialogResult answer = MessageBox.Show(this, Resources.MSGNucBaseImportUnsavedNuclides,
+                                                          Resources.ConfirmationDialogTitle,
+                                                          MessageBoxButtons.YesNoCancel, MessageBoxIcon.Exclamation);
+                    if (answer == DialogResult.Yes)
+                    {
+                        foreach (NuclideDefinitionForm editor in editors)
+                        {
+                            // Отказ (нечисло в поле — окно «Введите число», файл
+                            // занят — окно менеджера): импорта нет, как при «Отмене».
+                            if (!editor.SaveTogether())
+                            {
+                                return;
+                            }
+                        }
+
+                        // Перенос полей окна мог сменить имя или энергию линии —
+                        // импорт составляется заново, по записанному.
+                        plan = this.PlanImport(defManager);
+                    }
+                    else if (answer == DialogResult.No)
+                    {
+                        // Импорт «будто правок окна нет»: и составлен по линиям до
+                        // правок (переименованная окном линия иначе не узнаётся и
+                        // заводится в файл второй раз), и записан с ними.
+                        ImportPlan clean = null;
+                        RunWithoutEditorsEdits(editors, 0, () =>
+                        {
+                            clean = this.PlanImport(defManager);
+                            return true;
+                        });
+                        plan = clean;
+                        withoutEditorsEdits = true;
+                    }
+                    else
                     {
                         return;
                     }
-
-                    string text = string.Format(CultureInfo.InvariantCulture, Resources.NuclideDefImportSuccess, createdCount, updatedCount);
-                    if (redundantSkipped > 0)
-                    {
-                        text += Environment.NewLine + Environment.NewLine
-                                + string.Format(CultureInfo.InvariantCulture, Resources.NucBase_KSeriesRedundantSkipped, redundantSkipped);
-                    }
-
-                    if (redundantSkippedL > 0)
-                    {
-                        text += Environment.NewLine + Environment.NewLine
-                                + string.Format(CultureInfo.InvariantCulture, Resources.NucBase_LSeriesRedundantSkipped, redundantSkippedL);
-                    }
-
-                    MessageBox.Show(text);
                 }
+
+                if (!plan.IsEmpty)
+                {
+                    plan.Apply(defManager);
+                    // (`AMBER201`, 5.9) Ответ записи читается: при отказе окно
+                    // об ошибке уже показал менеджер, и следом за ним «импорт
+                    // удался» было бы неправдой. (П328) Отказ откатывает импорт.
+                    bool written = withoutEditorsEdits
+                        ? RunWithoutEditorsEdits(editors, 0, defManager.SaveDefinitionFile)
+                        : defManager.SaveDefinitionFile();
+                    if (!written)
+                    {
+                        plan.Revert(defManager);
+                        return;
+                    }
+                }
+
+                string text = string.Format(CultureInfo.InvariantCulture, Resources.NuclideDefImportSuccess, plan.CreatedCount, plan.UpdatedCount);
+                if (plan.RedundantSkipped > 0)
+                {
+                    text += Environment.NewLine + Environment.NewLine
+                            + string.Format(CultureInfo.InvariantCulture, Resources.NucBase_KSeriesRedundantSkipped, plan.RedundantSkipped);
+                }
+
+                if (plan.RedundantSkippedL > 0)
+                {
+                    text += Environment.NewLine + Environment.NewLine
+                            + string.Format(CultureInfo.InvariantCulture, Resources.NucBase_LSeriesRedundantSkipped, plan.RedundantSkippedL);
+                }
+
+                MessageBox.Show(text);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(string.Format(Resources.NuclideDefImportError, ex.Message + ex.StackTrace));
+            }
+        }
+
+        /// <summary>
+        /// (П328) Выполнить <paramref name="act"/>, пока каждое из окон нуклидов
+        /// снимает свои несохранённые правки с линий
+        /// (<see cref="NuclideDefinitionForm.WriteWithoutUnsavedEdits"/>); после —
+        /// правки на месте. Тем же порядком пишет «только наборы» редактор наборов (П326).
+        /// </summary>
+        static bool RunWithoutEditorsEdits(List<NuclideDefinitionForm> editors, int index, Func<bool> act)
+        {
+            if (index == editors.Count)
+            {
+                return act();
+            }
+
+            return editors[index].WriteWithoutUnsavedEdits(() => RunWithoutEditorsEdits(editors, index + 1, act));
+        }
+
+        /// <summary>
+        /// (П328) Что сделает импорт помеченных строк — НЕ трогая библиотеку:
+        /// какие линии завести и какие переписать. Правило отбора прежнее
+        /// (`D33`, `AMBER151`, `AMBER197`); заводимые линии видны следующим
+        /// строкам того же импорта, как и прежде, когда они сразу ложились в
+        /// список менеджера.
+        /// </summary>
+        ImportPlan PlanImport(NuclideDefinitionManager defManager)
+        {
+            ImportPlan plan = new ImportPlan();
+            // Ряд у всех импортируемых линий один — тот, по которому шёл поиск.
+            // Пишется НЕЗАВИСИМО от «дописать имя родителя»: та галочка
+            // решает, как линия подписана на графике, а поле — на чей
+            // распад дан выход. Раньше это было одно и то же, и выключенная
+            // галочка молча теряла принадлежность к ряду.
+            string chain = this.IncludeDecayChainCheckBox.Checked
+                           && !string.IsNullOrEmpty(this.SearchedIsotope)
+                ? FormatIsotopeName(this.SearchedIsotope)
+                : "";
+            foreach (DataGridViewRow row in this.ResultDataGridView.Rows)
+            {
+                if ((bool)row.Cells[CheckedColumnIdx].Value == true)
+                {
+                    // ⛔ Обе половины Kβ вместе НЕ ВЫГРУЖАЮТСЯ (`D33`): это
+                    // не запрет взять помеченную строку, а запрет взять её
+                    // ВМЕСТЕ с теми, чью сумму она и есть. Молча пропустить
+                    // нельзя — считается и говорится вслух.
+                    if (IsRedundantSeries(row) && HasCheckedCounterpart(row))
+                    {
+                        // (`AMBER151`) L-серия считается отдельно: у неё своё
+                        // сообщение — лишней там стоит сводная рядом с подлиниями.
+                        if (LKind(row) != FullSpectrumAnalysis.FsaSampleLibrary.LSeriesNone)
+                        {
+                            plan.RedundantSkippedL++;
+                            continue;
+                        }
+
+                        plan.RedundantSkipped++;
+                        continue;
+                    }
+
+                    string name = (string)row.Cells[NameColumnIdx].Value;
+                    bool fluorescence = NucBaseFramework.FluorescenceLine.Equals(
+                        row.Cells[LineColumnIdx].Value as string, StringComparison.Ordinal);
+                    // Формат имени — про нуклиды («137CS» -> «Cs-137»), у
+                    // символа элемента ему не за что зацепиться. Подпись
+                    // складывается своя: «W x-ray». Слово в ней не украшение
+                    // — по отсутствию массового числа в имени рентген и
+                    // отличается потом от нуклида (NuclideDefinition).
+                    string formattedName = fluorescence
+                        ? XrayDefinitionName(name)
+                        : FormatIsotopeName(name);
+                    double energy = (double)row.Cells[EnergyColumnIdx].Value;
+                    double intencity = (double)row.Cells[IntencityColumnIdx].Value;
+                    double halfLifeYears = HalfLifeYearsFromCell(
+                        (string)row.Cells[HalfLifeColumnIdx].Value);
+
+                    if (!fluorescence && IncludeDecayChainCheckBox.Checked
+                        && checkBoxAppendRootName.Checked && this.SearchedIsotope != name)
+                    {
+                        formattedName += " (" + FormatIsotopeName(this.SearchedIsotope) + ")";
+                    }
+
+                    // Ряда у рентгена нет: выход дан не на распад родителя, а
+                    // долей внутри K-серии, и вписанный сюда родитель означал
+                    // бы, что линию можно ставить на вековое равновесие.
+                    string rowChain = fluorescence ? "" : chain;
+
+                    // ⛔ (`AMBER197`) Ключ — НУКЛИД И энергия. Прежде одна
+                    // энергия: линия другого нуклида на той же энергии (у
+                    // двух и более родителей таких 3212 при выходе ≥ 1 %)
+                    // без «перезаписать» молча не заводилась, а с ним
+                    // чужая запись получала новые имя, выход, период и ряд.
+                    string rowIdentity = LineIdentity(name, fluorescence);
+                    NuclideDefinition existingDef = defManager.NuclideDefinitions.Concat(plan.Created).FirstOrDefault(
+                        def => def.Energy == energy
+                               && LineIdentity(def.NuclideName, def.IsElementXray) == rowIdentity);
+                    if (existingDef != null && checkBoxOverwriteDef.Checked)
+                    {
+                        plan.Overwrite(existingDef, formattedName, intencity, halfLifeYears, rowChain);
+                    }
+
+                    if (existingDef == null)
+                    {
+                        plan.Created.Add(new NuclideDefinition()
+                        {
+                            Name = formattedName,
+                            Chain = rowChain,
+                            Energy = energy,
+                            Intencity = intencity,
+                            HalfLife = halfLifeYears,
+                            Visible = true,
+                            NuclideColor = new SerializableColor(System.Drawing.Color.Green)
+                        });
+                    }
+                }
+            }
+
+            return plan;
+        }
+
+        /// <summary>
+        /// (П328) Составленный импорт: линии, которые заводятся, и правки
+        /// существующих («перезаписать»). <see cref="Apply"/> кладёт его в
+        /// библиотеку, <see cref="Revert"/> снимает (отказ записи).
+        /// </summary>
+        sealed class ImportPlan
+        {
+            public readonly List<NuclideDefinition> Created = new List<NuclideDefinition>();
+            readonly List<ImportOverwrite> overwrites = new List<ImportOverwrite>();
+            public int UpdatedCount;
+            public int RedundantSkipped;
+            public int RedundantSkippedL;
+
+            public int CreatedCount
+            {
+                get { return this.Created.Count; }
+            }
+
+            public bool IsEmpty
+            {
+                get { return this.Created.Count == 0 && this.UpdatedCount == 0; }
+            }
+
+            /// <summary>
+            /// Переписать линию. Линия этого же импорта (ещё не в библиотеке)
+            /// правится сразу — в библиотеку она ляжет уже такой; линия
+            /// библиотеки — при <see cref="Apply"/>.
+            /// </summary>
+            public void Overwrite(NuclideDefinition target, string name, double intencity, double halfLife, string chain)
+            {
+                this.UpdatedCount++;
+                ImportOverwrite change = new ImportOverwrite
+                {
+                    Target = target, Name = name, Intencity = intencity, HalfLife = halfLife, Chain = chain
+                };
+                if (this.Created.Any(created => ReferenceEquals(created, target)))
+                {
+                    change.Put();
+                    return;
+                }
+
+                this.overwrites.Add(change);
+            }
+
+            public void Apply(NuclideDefinitionManager manager)
+            {
+                foreach (ImportOverwrite change in this.overwrites)
+                {
+                    change.Remember();
+                    change.Put();
+                }
+
+                manager.NuclideDefinitions.AddRange(this.Created);
+            }
+
+            public void Revert(NuclideDefinitionManager manager)
+            {
+                manager.NuclideDefinitions.RemoveAll(def => this.Created.Any(created => ReferenceEquals(created, def)));
+                for (int i = this.overwrites.Count - 1; i >= 0; i--)
+                {
+                    this.overwrites[i].Undo();
+                }
+            }
+        }
+
+        /// <summary>(П328) Правка линии импортом: новые имя, выход, период, ряд — и прежние, для отката.</summary>
+        sealed class ImportOverwrite
+        {
+            public NuclideDefinition Target;
+            public string Name;
+            public double Intencity;
+            public double HalfLife;
+            public string Chain;
+            string oldName;
+            double oldIntencity;
+            double oldHalfLife;
+            string oldChain;
+
+            public void Remember()
+            {
+                this.oldName = this.Target.Name;
+                this.oldIntencity = this.Target.Intencity;
+                this.oldHalfLife = this.Target.HalfLife;
+                this.oldChain = this.Target.Chain;
+            }
+
+            public void Put()
+            {
+                this.Target.Name = this.Name;
+                this.Target.Intencity = this.Intencity;
+                this.Target.HalfLife = this.HalfLife;
+                this.Target.Chain = this.Chain;
+            }
+
+            public void Undo()
+            {
+                this.Target.Name = this.oldName;
+                this.Target.Intencity = this.oldIntencity;
+                this.Target.HalfLife = this.oldHalfLife;
+                this.Target.Chain = this.oldChain;
             }
         }
 
