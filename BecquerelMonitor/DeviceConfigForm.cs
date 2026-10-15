@@ -1242,17 +1242,22 @@ namespace BecquerelMonitor
                 // (П316, Н12) Границы — тоже до первой записи (`A6`). Число каналов
                 // ≤ 0 и отрицательный лимит времени прежде записывались в файл без
                 // слова: прибор с «−5» каналами дал бы спектр отрицательной длины.
-                // Лимит 0 не отклоняется — что он должен значить, решает Amber
-                // (сейчас 0 = «предел уже достигнут»: набор не стартует).
-                if (numberOfChannels <= 0)
+                // (П322, решения Amber 15.10.2026) Каналы — «64…65536 (Рекомендую)»:
+                // те же границы, что у «Изменить число каналов» (`ChannelCountLimits`),
+                // 2000000000 прежде записывалось и роняло набор нехваткой памяти.
+                // Лимит времени — «0 — отказ (Рекомендую)»: 0 значил «предел уже
+                // достигнут», и набор с такой конфигурацией молча не стартовал. Путь
+                // набора не тронут — отказ здесь, в форме, как у отрицательного.
+                if (!ChannelCountLimits.Accepts(numberOfChannels))
                 {
                     AppUi.Report(string.Format(CultureInfo.InvariantCulture,
-                                               Resources.ERRDeviceConfigChannelsNotPositive, this.integerTextBox1.Text),
+                                               Resources.ERRDeviceConfigChannelsNotPositive, this.integerTextBox1.Text,
+                                               ChannelCountLimits.Min, ChannelCountLimits.Max),
                                  Resources.InvalidValueDialogTitle, MessageBoxIcon.Exclamation);
                     this.saveRefusalReported = true;
                     return false;
                 }
-                if (defaultMeasurementTime < 0)
+                if (defaultMeasurementTime <= 0)
                 {
                     AppUi.Report(string.Format(CultureInfo.InvariantCulture,
                                                Resources.ERRDeviceConfigTimeLimitNegative, this.doubleTextBox5.Text),

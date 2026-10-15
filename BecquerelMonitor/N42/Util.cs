@@ -169,7 +169,18 @@ namespace BecquerelMonitor.N42
                 {
                     id = idSpectrum, //"SpectrumData",
                     energyCalibrationReference = idEnergyCalibration, //rad.EnergyCalibration[0].id,
-                    LiveTimeDuration = N42Duration(data.EnergySpectrum.LiveTime)
+                    // ⛔ (П322, решение Amber 15.10.2026 «Живое или полное (Рекомендую)»)
+                    //    В ФАЙЛ ИДЁТ ЗНАМЕНАТЕЛЬ ПРИЛОЖЕНИЯ, А НЕ ПОЛЕ КАК ЕСТЬ. Живое
+                    //    время 0 у приложения значит «не задано», и делит оно тогда на
+                    //    ПОЛНОЕ (`EffectiveLiveTime`, `AMBER35`). Прежде сюда писалось
+                    //    поле LiveTime как есть, и у спектров без живого времени (585
+                    //    из 907 у Amber и в корпусе, П311) в файле стояло «PT0S»:
+                    //    SpecUtils / InterSpec читали «детектор был жив 0 секунд».
+                    //    Спектр с заданным живым временем пишется побайтно как прежде;
+                    //    при повторном импорте у спектра без живого времени поле
+                    //    «живое» станет равным полному — знаменатель тот же, числа
+                    //    разбора те же (`P322N42LiveProbe`).
+                    LiveTimeDuration = N42Duration(data.EnergySpectrum.EffectiveLiveTime)
                 };
                 rad.Spectrum[0].ChannelData.SpectrumFromArray(data.EnergySpectrum.Spectrum);
 
@@ -207,7 +218,9 @@ namespace BecquerelMonitor.N42
                     //    выгружается честно (ветка Foreground выше), то есть разница
                     //    вносилась ТОЛЬКО в фон и вычитание фона переставало быть
                     //    вычитанием той же величины.
-                    LiveTimeDuration = N42Duration(data.BackgroundEnergySpectrum.LiveTime)
+                    // ⛔ (П322) Как у переднего спектра выше: живое, если задано, иначе
+                    //    полное — знаменатель, на который фон делит само приложение.
+                    LiveTimeDuration = N42Duration(data.BackgroundEnergySpectrum.EffectiveLiveTime)
                 };
                 rad.Spectrum[0].ChannelData.SpectrumFromArray(data.BackgroundEnergySpectrum.Spectrum);
 
@@ -542,7 +555,8 @@ namespace BecquerelMonitor.N42
             //    знаменателе скорости счёта; нулём оно попадало в поле «Live
             //    time» окна (DCControlPanel.cs:366 — «0.00»), складывалось нулём
             //    при сложении спектров (SpectrumAriphmetics.cs:303) и, что хуже
-            //    всего, УХОДИЛО В ФАЙЛ: ExportToN42 пишет
+            //    всего, УХОДИЛО В ФАЙЛ: ExportToN42 писал (до П322; теперь —
+            //    EffectiveLiveTime, живое или полное)
             //    LiveTimeDuration = N42Duration(LiveTime), то есть импортированный
             //    Alpha Hound выгружался обратно с «PT0S». Получатель такого
             //    файла восстановить живое время уже ниоткуда не может.
