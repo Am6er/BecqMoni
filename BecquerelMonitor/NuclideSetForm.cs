@@ -16,6 +16,8 @@ namespace BecquerelMonitor
         private const int SetIntensityLinesColumnIndex = 2;
 
         bool dirty = false;
+        /// <summary>(П326) За время окна правили хоть раз — пересчёт при закрытии; «Сохранить» его не гасит.</summary>
+        bool changed = false;
         NuclideSet selectedSet = null;
         NuclideDefinitionManager nuclideManager = NuclideDefinitionManager.GetInstance();
         MainForm mainForm;
@@ -314,6 +316,7 @@ namespace BecquerelMonitor
         {
             this.buttonSave.Enabled = true;
             this.dirty = true;
+            this.changed = true;
         }
 
         private void buttonSave_Click(object sender, EventArgs e)
@@ -322,12 +325,87 @@ namespace BecquerelMonitor
             // читается: при отказе окно об ошибке показал менеджер, а пометка
             // «есть несохранённое» и кнопка остаются — прежде они гасли, и при
             // закрытии о правках наборов больше не спрашивали.
-            if (!this.nuclideManager.SaveDefinitionFile())
+            if (!this.SaveLibrary())
             {
                 return;
             }
             this.dirty = false;
             this.buttonSave.Enabled = false;
+        }
+
+        /// <summary>
+        /// ⛔ (П326, 15.10.2026) Записать библиотеку — СПРОСИВ, если рядом открыт
+        /// редактор нуклидов с несохранёнными правками. Решение Amber вопросником
+        /// 15.10.2026, дословно: «Спросить перед записью (Рекомендую)».
+        ///
+        /// Библиотека и наборы лежат в одном файле, и
+        /// <see cref="NuclideDefinitionManager.SaveDefinitionFile"/> пишет всё, что
+        /// в памяти; редактор нуклидов немодален, его правки ячеек и галки
+        /// «Видимый» живут в линиях до своего «Сохранить». Прежде «Сохранить»
+        /// наборов уносил их в файл молча, а редактор нуклидов продолжал считать
+        /// их несохранёнными (его «Нет» потом откатывал память, файл оставался с
+        /// правкой). Ответы:
+        ///  * «Да» — записать вместе: правки окна нуклидов записываются, как его
+        ///    собственной кнопкой «Сохранить», и окно становится «сохранено»;
+        ///  * «Нет» — записать только наборы: файл пишется с линиями ДО правок окна
+        ///    нуклидов (<see cref="NuclideDefinitionForm.WriteWithoutUnsavedEdits"/>),
+        ///    правки остаются в окне несохранёнными, его «Нет» вернёт память к файлу;
+        ///  * «Отмена» — не писать ничего.
+        /// Отказ любого пути — false, пометка «есть несохранённое» остаётся.
+        /// Проба — <c>P326SetSaveAsksProbe</c>, журнал П326.
+        /// </summary>
+        bool SaveLibrary()
+        {
+            List<NuclideDefinitionForm> editors = NuclideDefinitionForm.OpenWithUnsavedEdits();
+            if (editors.Count == 0)
+            {
+                return this.CommitWritten(this.nuclideManager.SaveDefinitionFile());
+            }
+
+            DialogResult answer = MessageBox.Show(this, Resources.MSGSavingNuclideSetUnsavedNuclides,
+                                                  Resources.ConfirmationDialogTitle,
+                                                  MessageBoxButtons.YesNoCancel, MessageBoxIcon.Exclamation);
+            if (answer == DialogResult.Yes)
+            {
+                foreach (NuclideDefinitionForm editor in editors)
+                {
+                    if (!editor.SaveTogether())
+                    {
+                        return false;
+                    }
+                }
+                return this.CommitWritten(true);
+            }
+            if (answer == DialogResult.No)
+            {
+                return this.CommitWritten(this.WriteWithoutEditorsEdits(editors, 0));
+            }
+            return false;
+        }
+
+        /// <summary>(П326) Запись «только наборы»: каждое окно нуклидов снимает свои правки на время записи.</summary>
+        bool WriteWithoutEditorsEdits(List<NuclideDefinitionForm> editors, int index)
+        {
+            if (index == editors.Count)
+            {
+                return this.nuclideManager.SaveDefinitionFile();
+            }
+            return editors[index].WriteWithoutUnsavedEdits(() => this.WriteWithoutEditorsEdits(editors, index + 1));
+        }
+
+        /// <summary>
+        /// (П326) Записано — снимок для «Нет» берётся заново. Прежде он брался
+        /// один раз, на открытии окна, и «Нет» при закрытии после «Сохранить» и
+        /// следующей правки откатывал в памяти и ЗАПИСАННОЕ: в файле правка была,
+        /// в памяти — нет, и ближайшая запись библиотеки снимала её молча.
+        /// </summary>
+        bool CommitWritten(bool written)
+        {
+            if (written)
+            {
+                this.TakeOpeningSnapshot();
+            }
+            return written;
         }
 
         private void buttonDeleteSet_Click(object sender, EventArgs e)
@@ -378,11 +456,13 @@ namespace BecquerelMonitor
             if (this.dirty)
             {
                 DialogResult dialogResult = MessageBox.Show(Resources.MSGSavingNuclideSet, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
-                if (dialogResult == DialogResult.Yes && !this.nuclideManager.SaveDefinitionFile())
+                if (dialogResult == DialogResult.Yes && !this.SaveLibrary())
                 {
                     // (`AMBER201`, 5.9) Запись не удалась — окно остаётся открытым
                     // с правками, как у редактора нуклидов (`NuclideDefinitionForm`):
-                    // закрыться значило бы потерять их молча.
+                    // закрыться значило бы потерять их молча. (П326) Так же и
+                    // «Отмена» на вопрос о правках редактора нуклидов: не записано
+                    // ничего, правки наборов целы.
                     e.Cancel = true;
                     return;
                 }
@@ -414,7 +494,12 @@ namespace BecquerelMonitor
                 // надо и когда человек отказался писать их в файл; а вот
                 // открытое и закрытое без правок окно дёргать поиск пиков не
                 // должно.
-                if (this.dirty)
+                //
+                // (П326) Признак — `changed` («за время окна правили»), а не
+                // `dirty` («есть незаписанное»): «Сохранить» гасит `dirty`, и
+                // «Сохранить» → «Закрыть» уходило без пересчёта — ровно то, что
+                // чинила `A31`.
+                if (this.changed)
                 {
                     this.mainForm.UpdateDetectedPeakView();
                     if (this.mainForm.ActiveDocument != null)
@@ -536,6 +621,9 @@ namespace BecquerelMonitor
         /// открытый рядом со своими несохранёнными правками, потерял бы их, а его
         /// строки остались бы на объектах, которых в менеджере больше нет.
         /// «Нет» здесь значит «снять правки ЭТОГО окна», и снимок делает ровно это.
+        ///
+        /// (П326) Берётся заново после каждой удачной записи (<see cref="CommitWritten"/>):
+        /// «Нет» снимает только НЕЗАПИСАННЫЕ правки.
         /// </summary>
         void TakeOpeningSnapshot()
         {
@@ -565,7 +653,7 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// (П316, Н2) Вернуть состояние на открытии окна (<see cref="TakeOpeningSnapshot"/>):
+        /// (П316, Н2) Вернуть состояние на открытии окна или последней записи (<see cref="TakeOpeningSnapshot"/>):
         /// удалённые наборы — те же объекты на прежних местах, добавленные —
         /// прочь, имена и галки — прежние; членство линий и цвета — прежние;
         /// выбор панели поиска пиков — прежний (удаление набора его снимало).
