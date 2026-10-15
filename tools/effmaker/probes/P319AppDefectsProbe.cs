@@ -30,6 +30,11 @@
 //       Н6 заголовки отказов (каналы −5, обрезка −5 кэВ, предел −5, предупреждение экспорта N42);
 //       Н22 имя по умолчанию «Жёсткого вычета в файл» у изменённого документа; П311 «Экспорт
 //       спектра в файл» без выбранных; Н18 объединение с файлом другого числа каналов.
+//       (П325, решение Amber 15.10.2026 «64…65536 (Рекомендую)») «Изменить число каналов»:
+//       −5, 2000000000, 63, 65537 — отказ из САМОГО окна (окно после «Ввод» открыто, заголовок
+//       отказа — `InvalidValueDialogTitle`, после «Закрыть» `SendData` = 0, до MainForm число не
+//       доходит, документов не прибавилось); 64 — новый документ (меню берёт те же границы
+//       `ChannelCountLimits`, прежнее `> 64` отказывало).
 //       ⚠ Признак окон `AppUi.hasWindows` выставляется в true (как `ModalThreadProbeO25`): без
 //       него отказы `AppUi.Report` без окон бросают, а не показывают окно.
 //
@@ -712,14 +717,78 @@ namespace P319AppDefectsProbe
         /// </summary>
         static void Accept(Form f)
         {
+            dialogStayedOpen = false;
+            dialogSent = int.MinValue;
             ((Button)FieldValue(f, "button1")).PerformClick();
             // ⚠ Модальное окно после Close() остаётся Visible до выхода из своего цикла (он ещё
             // в этом такте таймера) — признак «закрывается» здесь DialogResult ≠ None.
             if (!f.IsDisposed && f.Visible && f.DialogResult == DialogResult.None)
             {
+                dialogStayedOpen = true;
                 Console.WriteLine("окно\t" + f.GetType().Name + ": после «Ввод» осталось открытым — отказ в самом окне, «Закрыть»\t\tКОНТРОЛЬ");
                 ((Button)FieldValue(f, "button2")).PerformClick();
             }
+            // (П325) То, что окно отдаст MainForm, — его же SendData, тем вызовом, каким его
+            // читает `ConcatSpectrumsStripMenuItem_Click` (окно ещё не освобождено: `using`
+            // вызывающего снимает его после возврата ShowDialog).
+            if (f is ChanNumberChangeDialog) dialogSent = ((ChanNumberChangeDialog)f).SendData();
+        }
+
+        /// <summary>(П325) Окно ввода после «Ввод» осталось открытым (отказ в самом окне).</summary>
+        static bool dialogStayedOpen;
+
+        /// <summary>(П325) Что окно «Изменить число каналов» отдало MainForm (SendData после закрытия).</summary>
+        static int dialogSent = int.MinValue;
+
+        /// <summary>
+        /// (П325) Одно число в «Изменить число каналов» — настоящим пунктом меню. Возвращает
+        /// окна, увиденные автоответчиком, и число новых документов; печатает, что отдало окно.
+        /// </summary>
+        static List<string> ChanCase(QuietMainForm mf, string text, out int newDocs, out string thrown, out DocEnergySpectrum made)
+        {
+            int docs0 = DocumentManager.GetInstance().DocumentList.Count;
+            Arm("ChanNumberChangeDialog", f =>
+            {
+                ((TextBox)FieldValue(f, "textBox1")).Text = text;
+                Accept(f);
+            });
+            Responder.Take();
+            thrown = "нет";
+            try
+            {
+                ClickItem(mf, "ConcatSpectrumsStripMenuItem");
+            }
+            catch (Exception ex)
+            {
+                Exception e = ex;
+                while (e is TargetInvocationException && e.InnerException != null) e = e.InnerException;
+                thrown = e.GetType().Name + ": " + e.Message;
+            }
+            Pump(600);
+            List<string> seen = Responder.Take();
+            int docs1 = DocumentManager.GetInstance().DocumentList.Count;
+            newDocs = docs1 - docs0;
+            made = newDocs > 0 ? DocumentManager.GetInstance().DocumentList[docs1 - 1] : null;
+            return seen;
+        }
+
+        /// <summary>
+        /// (П325, решение Amber 15.10.2026 «64…65536 (Рекомендую)») Отказ «Изменить число
+        /// каналов» обязан прийти из САМОГО окна: после «Ввод» окно открыто, окно отказа одно и
+        /// с заголовком отказа окна (`InvalidValueDialogTitle`, не «Ошибка» меню), после
+        /// «Закрыть» окно отдаёт 0 — MainForm выходит на `newChan == 0`, до своей проверки и
+        /// до `ConcatSpectrums` число не доходит; исключений и новых документов нет.
+        /// </summary>
+        static void JudgeDialogRefusal(string item, string text, List<string> seen, int newDocs, string thrown)
+        {
+            string want = "[" + BecquerelMonitor.Properties.Resources.InvalidValueDialogTitle + "]";
+            bool fromDialog = seen.Count == 1 && seen[0].StartsWith(want, StringComparison.Ordinal);
+            string value = string.Format(Inv, "окно после «Ввод»: {0}; отдало MainForm: {1}; окна: {2}; новых документов {3}; исключение: {4}",
+                dialogStayedOpen ? "открыто" : "ЗАКРЫЛОСЬ",
+                dialogSent == int.MinValue ? "не прочитано" : dialogSent.ToString(Inv),
+                Caption(seen), newDocs, thrown);
+            Judge(item, "«Изменить число каналов» " + text + ": отказ из самого окна, до MainForm не дошло", value,
+                  dialogStayedOpen && dialogSent == 0 && fromDialog && newDocs == 0 && thrown == "нет");
         }
 
         static void ClickItem(MainForm mf, string field)
@@ -808,57 +877,49 @@ namespace P319AppDefectsProbe
             doc.Dirty = false;
 
             // ---------------------------------------------------------------- Н6 (каналы −5)
-            int docs0 = DocumentManager.GetInstance().DocumentList.Count;
-            Arm("ChanNumberChangeDialog", f =>
-            {
-                ((TextBox)FieldValue(f, "textBox1")).Text = "-5";
-                Accept(f);
-            });
-            Responder.Take();
-            ClickItem(mf, "ConcatSpectrumsStripMenuItem");
-            Pump(600);
-            seen = Responder.Take();
-            Judge("Н6", "«Изменить число каналов» −5: заголовок окна отказа", Caption(seen), seen.Count == 1 && !seen[0].StartsWith("[]", StringComparison.Ordinal));
+            // (П325) С П322 (решение Amber 15.10.2026 «64…65536 (Рекомендую)») −5 и 2000000000
+            // отказывает само окно ввода, а не MainForm после его закрытия: мерится, ЧТО отказало
+            // (окно открыто, заголовок отказа окна, SendData = 0), а не только что заголовок не пуст.
+            int newDocs;
+            string thrown;
+            DocEnergySpectrum made;
+            seen = ChanCase(mf, "-5", out newDocs, out thrown, out made);
+            JudgeDialogRefusal("Н6", "−5", seen, newDocs, thrown);
+            Line("Н6", "заголовок окна отказа «Изменить число каналов» −5 (П319: не пуст)", Caption(seen),
+                 seen.Count == 1 && !seen[0].StartsWith("[]", StringComparison.Ordinal) ? "КОНТРОЛЬ" : "ОБВЯЗКА");
+            CloseExtraDocuments(mf, doc);
 
             // ---------------------------------------------------------------- Н5
-            Arm("ChanNumberChangeDialog", f =>
+            seen = ChanCase(mf, "2000000000", out newDocs, out thrown, out made);
+            JudgeDialogRefusal("Н5", "2000000000", seen, newDocs, thrown);
+            CloseExtraDocuments(mf, doc);
+
+            // ---------------------------------------------------------------- П325: границы окна = границы меню
+            // 63 и 65537 — за границами `ChannelCountLimits`: отказ из окна, как у −5.
+            foreach (string outside in new[] { "63", "65537" })
             {
-                ((TextBox)FieldValue(f, "textBox1")).Text = "2000000000";
-                Accept(f);
-            });
-            Responder.Take();
-            string thrown = "нет";
-            try
-            {
-                ClickItem(mf, "ConcatSpectrumsStripMenuItem");
+                seen = ChanCase(mf, outside, out newDocs, out thrown, out made);
+                JudgeDialogRefusal("П325", outside, seen, newDocs, thrown);
+                CloseExtraDocuments(mf, doc);
             }
-            catch (Exception ex)
-            {
-                Exception e = ex;
-                while (e is TargetInvocationException && e.InnerException != null) e = e.InnerException;
-                thrown = e.GetType().Name + ": " + e.Message;
-            }
-            Pump(600);
-            seen = Responder.Take();
-            int docs1 = DocumentManager.GetInstance().DocumentList.Count;
-            Judge("Н5", "2000000000 каналов: исключение мимо окна / новых документов / окно отказа",
-                  thrown + " / " + (docs1 - docs0).ToString(Inv) + " / " + Caption(seen),
-                  thrown == "нет" && docs1 == docs0 && seen.Count == 1 && !seen[0].StartsWith("[]", StringComparison.Ordinal));
+            // 64 — нижняя граница: окно пропускает, и меню обязано создать документ (прежнее
+            // `newChan > 64` в MainForm отвечало на неё «Ошибка»).
+            seen = ChanCase(mf, "64", out newDocs, out thrown, out made);
+            bool made64 = made != null && newDocs == 1 && made.ActiveResultData.EnergySpectrum.NumberOfChannels == 64
+                          && Sum(made.ActiveResultData.EnergySpectrum) == Sum(rd.EnergySpectrum);
+            Judge("П325", "«Изменить число каналов» 64 (нижняя граница окна): новый документ, сумма та же, окон нет",
+                  string.Format(Inv, "окно после «Ввод»: {0}; отдало MainForm: {1}; {2}; окна: {3}; исключение: {4}",
+                      dialogStayedOpen ? "ОТКРЫТО" : "закрылось",
+                      dialogSent == int.MinValue ? "не прочитано" : dialogSent.ToString(Inv),
+                      made == null ? "документа НЕТ" : made.ActiveResultData.EnergySpectrum.NumberOfChannels.ToString(Inv) + " кан., сумма "
+                          + Sum(made.ActiveResultData.EnergySpectrum).ToString(Inv) + " из " + Sum(rd.EnergySpectrum).ToString(Inv),
+                      Caption(seen), thrown),
+                  made64 && seen.Count == 0 && thrown == "нет");
             CloseExtraDocuments(mf, doc);
 
             // контроль: 4096 каналов — новый документ, без окна отказа
-            Arm("ChanNumberChangeDialog", f =>
-            {
-                ((TextBox)FieldValue(f, "textBox1")).Text = "4096";
-                Accept(f);
-            });
-            Responder.Take();
-            ClickItem(mf, "ConcatSpectrumsStripMenuItem");
-            Pump(600);
-            seen = Responder.Take();
-            int docs2 = DocumentManager.GetInstance().DocumentList.Count;
-            DocEnergySpectrum made = docs2 > docs0 ? DocumentManager.GetInstance().DocumentList[docs2 - 1] : null;
-            bool madeOk = made != null && made.ActiveResultData.EnergySpectrum.NumberOfChannels == 4096
+            seen = ChanCase(mf, "4096", out newDocs, out thrown, out made);
+            bool madeOk = made != null && newDocs == 1 && made.ActiveResultData.EnergySpectrum.NumberOfChannels == 4096
                           && Sum(made.ActiveResultData.EnergySpectrum) == Sum(rd.EnergySpectrum);
             Line("Н5", "контроль: 4096 каналов — новый документ, сумма та же, окон нет",
                  (made == null ? "документа нет" : made.ActiveResultData.EnergySpectrum.NumberOfChannels.ToString(Inv) + " кан., сумма "

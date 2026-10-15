@@ -16,6 +16,12 @@
 // (IDNO), запись файлов проба не делает. Библиотека нуклидов каталога проб сверяется
 // sha256 до и после — «Нет» обязан не писать.
 //
+// (П325) Н14 «ОК» окна настроек мерится под решения Amber 15.10.2026 («Вернуть прежнее
+// (Рекомендую)», «Оставить (Рекомендую)»): с «abc» в числовом поле «ОК» молча записывает
+// прежнее число. «ОК» ПИШЕТ конфигурацию — запись уходит во временный каталог пробы
+// (--tmp; путь менеджера подменён на время щелчка), а весь config\ каталога проб и живой
+// %AppData%\BecqMoni\config сверяются sha256 до и после (строка W).
+//
 // Коды: 0 — дефектов нет; 4 — есть дефекты (на сборке ДО — ожидаемо); 5 — обвязка.
 using System;
 using System.Collections.Generic;
@@ -63,6 +69,12 @@ static class P316ScreenPassProbe
             + File.GetLastWriteTime(exe).ToString("yyyy-MM-dd HH:mm:ss", Inv) + ")");
         Thread.CurrentThread.CurrentCulture = Inv;
         Application.EnableVisualStyles();
+        // (П325) Проба обязана ничего не записать в config\ каталога проб и в живой конфиг:
+        // сверка sha256 до и после (как у P318RevertAndCloseProbe).
+        string cfgDir = Path.Combine(Path.GetDirectoryName(exe), "config");
+        string amberDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BecqMoni", "config");
+        Dictionary<string, string> cfgBefore = HashTree(cfgDir);
+        Dictionary<string, string> amberBefore = HashTree(amberDir);
         // Сообщения AppUi без окон идут в поток ошибок — перехватываем, чтобы назвать.
         TextWriter realErr = Console.Error;
         Console.SetError(errors);
@@ -99,6 +111,20 @@ static class P316ScreenPassProbe
         {
             Console.SetError(realErr);
             DialogAnswerer.Stop();
+        }
+        Section("сверка записей");
+        List<string> changed = Diff(cfgBefore, HashTree(cfgDir));
+        Verdict("W", "config пробы не тронут (sha256 до = после, " + cfgBefore.Count.ToString(Inv) + " файлов)",
+                changed.Count == 0 ? "совпал" : "изменены: " + string.Join(", ", changed), changed.Count == 0);
+        List<string> amberChanged = Diff(amberBefore, HashTree(amberDir));
+        if (amberChanged.Count > 0)
+        {
+            Console.WriteLine("⛔ обвязка: ЖИВОЙ конфиг изменился: " + string.Join(", ", amberChanged));
+            rig++;
+        }
+        else
+        {
+            Console.WriteLine("W\tживой конфиг %AppData%\\BecqMoni\\config не тронут\t{0} файлов совпали\tЧИСТО", amberBefore.Count.ToString(Inv));
         }
         string err = errors.ToString();
         if (err.Length > 0)
@@ -342,9 +368,34 @@ static class P316ScreenPassProbe
     static void Preferences()
     {
         Thread.CurrentThread.CurrentUICulture = Ru;
+        // (П325) «ОК» окна настроек ПИШЕТ конфигурацию (`GlobalConfigManager.SaveConfigFile`,
+        // `AMBER201` 3.5). Запись перенаправляется во временный каталог пробы — подменой пути
+        // самого менеджера на время плеча, — и заверенный config\ каталога проб не трогается
+        // (сверка sha256 всего config\ — в конце пробы, строка W).
+        GlobalConfigManager gm = GlobalConfigManager.GetInstance();
+        FieldInfo pathField = typeof(GlobalConfigManager).GetField("becqMoniMainConfig", Any);
+        if (pathField == null || !(pathField.GetValue(gm) is string))
+        {
+            Console.WriteLine("⛔ обвязка: путь конфигурации GlobalConfigManager не найден — «ОК» мерить нельзя (запись ушла бы в каталог проб)");
+            rig++;
+            return;
+        }
+        string realPath = (string)pathField.GetValue(gm);
+        string okControl = Path.Combine(tmp, "ok_control_BecquerelMonitor.xml");
+        string okAbc = Path.Combine(tmp, "ok_abc_BecquerelMonitor.xml");
+        foreach (string p in new[] { okControl, okAbc }) if (File.Exists(p)) File.Delete(p);
+
+        // Контроль «ОК»: поле не тронуто — что «ОК» пишет, когда в поле прежнее число.
+        PreferencesOk(gm, pathField, realPath, okControl, null);
+
         // Н14: нечисло в поле; «Отмена», крестик, «ОК».
         foreach (string how in new[] { "Отмена", "крестик", "ОК" })
         {
+            if (how == "ОК")
+            {
+                PreferencesOk(gm, pathField, realPath, okAbc, okControl);
+                continue;
+            }
             GlobalConfigForm g = new GlobalConfigForm();
             g.LoadFormContents(GlobalConfigManager.GetInstance().GlobalConfig);
             ShowOff(g);
@@ -362,15 +413,11 @@ static class P316ScreenPassProbe
             box.Text = "abc";
             int before = Count(errors.ToString(), BecquerelMonitor.Properties.Resources.ERRInputNumber);
             if (how == "Отмена") ((Button)Field(g, "button2")).PerformClick();
-            else if (how == "ОК") ((Button)Field(g, "button1")).PerformClick();
             else g.Close();
             Pump(50);
             int reports = Count(errors.ToString(), BecquerelMonitor.Properties.Resources.ERRInputNumber) - before;
             string got = "закрыто=" + g.IsDisposed + ", сообщений «" + BecquerelMonitor.Properties.Resources.ERRInputNumber + "»: " + reports.ToString(Inv);
-            if (how == "ОК")
-                Verdict("Н14", "поле «" + box.Name + "» = abc, «ОК» по-прежнему НЕ принимает", got, !g.IsDisposed && reports == 1);
-            else
-                Verdict("Н14", "поле «" + box.Name + "» = abc, " + how + " закрывает без проверки", got, g.IsDisposed && reports == 0);
+            Verdict("Н14", "поле «" + box.Name + "» = abc, " + how + " закрывает без проверки", got, g.IsDisposed && reports == 0);
             if (!g.IsDisposed)
             {
                 box.Text = "1";
@@ -405,6 +452,98 @@ static class P316ScreenPassProbe
             Verdict("Н21", "«Play» с " + Path.GetFileName(path) + (File.Exists(path) ? " (не WAV)" : " (нет файла)"),
                 thrown != null ? "ИСКЛЮЧЕНИЕ: " + thrown : "без исключения; сказано: " + (said.Length == 0 ? "—" : said.Replace("\r", " ").Replace("\n", " ")),
                 thrown == null && said.Length > 0);
+            g.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// (П325; решения Amber 15.10.2026 вопросником: «Вернуть прежнее (Рекомендую)» — нечисло в
+    /// числовом поле, «Оставить (Рекомендую)» — следствие: «ОК» с нечислом молча записывает
+    /// прежнее число) «ОК» окна настроек — настоящей кнопкой. <paramref name="control"/> = null —
+    /// контроль: поле не тронуто, файл <paramref name="target"/> — то, что «ОК» пишет при
+    /// прежнем числе. Иначе в первом числовом поле «abc»: «ОК» обязан пройти без окна и без
+    /// сообщения «Введите число», в поле — прежнее число, а записанный файл побайтно равен
+    /// контрольному. Запись идёт во временный <paramref name="target"/> (путь менеджера
+    /// подменён на время щелчка), заверенный config\ пробы не трогается.
+    ///
+    /// ⚠ В пробе окно настроек поднято без главного окна (`mainForm` = null): путь «ОК» доходит
+    /// до записи и кончается на обновлении главного окна. NullReferenceException в кадре
+    /// окна настроек ПОСЛЕ того, как файл записан, — граница обвязки (в приложении главное
+    /// окно есть; до П320 тот же путь кончался там же, П322 Находка 4), любое иное исключение —
+    /// отказ обвязки.
+    /// </summary>
+    static void PreferencesOk(GlobalConfigManager gm, FieldInfo pathField, string realPath, string target, string control)
+    {
+        GlobalConfigForm g = new GlobalConfigForm();
+        g.LoadFormContents(gm.GlobalConfig);
+        ShowOff(g);
+        DoubleTextBox box = Find<DoubleTextBox>(g).FirstOrDefault(b => b.Enabled);
+        if (box == null)
+        {
+            Console.WriteLine("⛔ обвязка: в настройках нет поля DoubleTextBox");
+            rig++;
+            g.Dispose();
+            return;
+        }
+        TabPage page = Parent<TabPage>(box);
+        if (page != null) ((TabControl)page.Parent).SelectedTab = page;
+        g.ActiveControl = box;
+        string loaded = box.Text;
+        if (control != null) box.Text = "abc";
+        int before = Count(errors.ToString(), BecquerelMonitor.Properties.Resources.ERRInputNumber);
+        string stop = null, other = null;
+        pathField.SetValue(gm, target);
+        try
+        {
+            ((Button)Field(g, "button1")).PerformClick();
+        }
+        catch (Exception ex)
+        {
+            Exception e = ex;
+            while (e is TargetInvocationException && e.InnerException != null) e = e.InnerException;
+            StackTrace st = new StackTrace(e, false);
+            MethodBase top = st.FrameCount > 0 ? st.GetFrame(0).GetMethod() : null;
+            string where = e.GetType().Name + " в " + (top == null ? "?" : top.DeclaringType.Name + "." + top.Name);
+            if (e is NullReferenceException && g.mainForm == null && File.Exists(target)
+                && top != null && top.DeclaringType == typeof(GlobalConfigForm))
+                stop = where;
+            else
+                other = where + ": " + e.Message;
+        }
+        finally
+        {
+            pathField.SetValue(gm, realPath);
+        }
+        Pump(50);
+        int reports = Count(errors.ToString(), BecquerelMonitor.Properties.Resources.ERRInputNumber) - before;
+        bool written = File.Exists(target);
+        if (stop != null)
+            Console.WriteLine("Н14\t«ОК» без главного окна: путь кончился ПОСЛЕ записи — граница обвязки (в приложении главное окно есть)\t{0}\tКОНТРОЛЬ", stop);
+        if (other != null)
+        {
+            Console.WriteLine("⛔ обвязка: «ОК» окна настроек бросил не там: " + other);
+            rig++;
+        }
+        if (control == null)
+        {
+            string got = "поле «" + box.Name + "» = «" + loaded + "», записано во временный файл: "
+                         + (written ? new FileInfo(target).Length.ToString(Inv) + " байт" : "НЕТ");
+            Console.WriteLine("Н14\tконтроль: «ОК» с нетронутым полем\t{0}\t{1}", got, written ? "КОНТРОЛЬ" : "ОБВЯЗКА");
+            if (!written) rig++;
+        }
+        else
+        {
+            bool same = written && File.Exists(control) && Sha(target) == Sha(control);
+            string got = "сообщений «" + BecquerelMonitor.Properties.Resources.ERRInputNumber + "»: " + reports.ToString(Inv)
+                         + ", в поле «" + box.Text + "» (загружено «" + loaded + "»), записано: "
+                         + (written ? "да, побайтно " + (same ? "= контролю" : "≠ КОНТРОЛЮ") : "НЕТ");
+            Verdict("Н14", "поле «" + box.Name + "» = abc, «ОК»: молча записано прежнее число", got,
+                    reports == 0 && box.Text == loaded && same);
+        }
+        if (!g.IsDisposed)
+        {
+            box.Text = loaded;
+            g.Close();
             g.Dispose();
         }
     }
@@ -675,6 +814,26 @@ static class P316ScreenPassProbe
     {
         while (ex is TargetInvocationException && ex.InnerException != null) ex = ex.InnerException;
         return ex.GetType().Name + ": " + ex.Message;
+    }
+
+    static Dictionary<string, string> HashTree(string dir)
+    {
+        Dictionary<string, string> map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (!Directory.Exists(dir)) return map;
+        foreach (string p in Directory.GetFiles(dir, "*", SearchOption.AllDirectories))
+        {
+            try { map[p.Substring(dir.Length)] = Sha(p); }
+            catch (IOException) { map[p.Substring(dir.Length)] = "занят"; }
+        }
+        return map;
+    }
+
+    static List<string> Diff(Dictionary<string, string> a, Dictionary<string, string> b)
+    {
+        List<string> d = new List<string>();
+        foreach (var kv in a) { string v; if (!b.TryGetValue(kv.Key, out v) || v != kv.Value) d.Add(kv.Key); }
+        foreach (var kv in b) if (!a.ContainsKey(kv.Key)) d.Add(kv.Key + " (новый)");
+        return d;
     }
 
     /// <summary>

@@ -3568,7 +3568,10 @@ namespace BecquerelMonitor
                 dialog.ShowDialog();
                 int newChan = dialog.SendData();
                 if (newChan == 0) return;
-                if (newChan > 64 && newChan != this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
+                // (П325) Границы — те же, что у самого окна (`ChannelCountLimits`, решение Amber
+                // 15.10.2026 «64…65536 (Рекомендую)»): прежнее `newChan > 64` отказывало на 64,
+                // которую окно уже пропустило, — человек видел «годно» в окне и отказ сразу за ним.
+                if (ChannelCountLimits.Accepts(newChan) && newChan != this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
                 {
                     // (П319, Н5) отказ (нехватка памяти на новый массив) — документа нет,
                     // и подгонять масштаб нечему.

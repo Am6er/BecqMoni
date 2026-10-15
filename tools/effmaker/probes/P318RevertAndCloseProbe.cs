@@ -8,7 +8,12 @@
 //      ссылке. Мерится цепочка приложения целиком: два документа с выбранными наборами, панель
 //      поиска пиков (`DCPeakDetectionView`), окно редактора, правка, «Нет», обновление панели.
 //   D. Конфигурация прибора (`DeviceConfigForm`): «Закрыть» и крестик при нечисле в поле;
-//      «Сохранить» и «Закрыть → Да» нечисла по-прежнему не пропускают.
+//      «Сохранить» и «Закрыть → Да» нечисла не пропускают — с П320 (решения Amber 15.10.2026
+//      «Вернуть прежнее (Рекомендую)» и «Оставить (Рекомендую)») поле молча возвращает
+//      прежнее число, и запись идёт им, без сообщения о поле (П325 перемерила ожидания: прежде
+//      здесь судилось «запись отказывает, поле названо»). Запись идёт во ВРЕМЕННУЮ копию
+//      config\device (путь `DeviceConfigManager` подменён на весь раздел D), и по ней же
+//      сверяется записанное число.
 //
 // ЗАПУСК — из каталога, где лежат BecquerelMonitor.exe и config\ (менеджеры берут пути от
 // каталога входной сборки). Проба зовёт приложение тем, что есть И ДО, И ПОСЛЕ правки (поля
@@ -20,7 +25,8 @@
 //
 // Окна строятся вне экрана (−4000, −4000); настоящие окна — только вопросы приложения
 // (MessageBox), на них отвечает поток-автоответчик. Каталог config\ пробы и живой конфиг
-// %AppData%\BecqMoni\config сверяются sha256 до и после: проба обязана ничего не записать.
+// %AppData%\BecqMoni\config сверяются sha256 до и после: проба обязана ничего не записать
+// (записи раздела D уходят во временную копию, см. выше).
 //
 // Строка вывода — «<шаг>\tчто мерено\tзначение\tЧИСТО|ДЕФЕКТ». Строки «НАХОДКА» — замеры
 // вне поручения, в код возврата не входят.
@@ -502,9 +508,48 @@ static class P318RevertAndCloseProbe
     }
 
     // ================================================================== D
+    /// <summary>
+    /// (П325) Временная копия config\device: запись конфигурации прибора («Сохранить», «Да» на
+    /// «Сохранить?») с П320 доходит до файла — путь менеджера подменяется сюда на весь раздел
+    /// D, заверенный config\ каталога проб не трогается (строка W).
+    /// </summary>
+    static string deviceTmp;
+
+    static bool RedirectDeviceWrites()
+    {
+        DeviceConfigManager dm = DeviceConfigManager.GetInstance();
+        FieldInfo pf = typeof(DeviceConfigManager).GetField("userDirectoryConfigDevice", Any);
+        string real = pf == null ? null : pf.GetValue(dm) as string;
+        if (real == null || !Directory.Exists(real))
+        {
+            Console.WriteLine("⛔ обвязка: путь записи DeviceConfigManager не найден — запись ушла бы в каталог проб, раздел D не мерится");
+            rig++;
+            return false;
+        }
+        deviceTmp = Path.Combine(Path.GetTempPath(), "p318probe_" + Process.GetCurrentProcess().Id.ToString(Inv), "device");
+        if (Directory.Exists(deviceTmp)) Directory.Delete(deviceTmp, true);
+        Directory.CreateDirectory(deviceTmp);
+        foreach (string p in Directory.GetFiles(real)) File.Copy(p, Path.Combine(deviceTmp, Path.GetFileName(p)));
+        pf.SetValue(dm, deviceTmp + Path.DirectorySeparatorChar);
+        Console.WriteLine("SETUP\tзапись конфигураций прибора перенаправлена: {0} → {1}", real, deviceTmp);
+        return true;
+    }
+
+    /// <summary>Число из записанного файла конфигурации (первый элемент с таким именем), или null.</summary>
+    static double? WrittenNumber(string file, string element)
+    {
+        if (!File.Exists(file)) return null;
+        System.Xml.XmlDocument doc = new System.Xml.XmlDocument();
+        doc.Load(file);
+        System.Xml.XmlNodeList found = doc.GetElementsByTagName(element);
+        double v;
+        return found.Count > 0 && double.TryParse(found[0].InnerText, NumberStyles.Float, Inv, out v) ? v : (double?)null;
+    }
+
     static void Device()
     {
         Thread.CurrentThread.CurrentUICulture = Ru;
+        if (!RedirectDeviceWrites()) return;
         // Числовое поле шапки (шаг канала) — DoubleTextBox первой вкладки.
         foreach (string how in new[] { "Закрыть", "крестик", "Сохранить", "Закрыть → Да", "Закрыть → Да → Сохранить" })
         {
@@ -514,6 +559,9 @@ static class P318RevertAndCloseProbe
             TextBox box = (TextBox)Field(f, "doubleTextBox6");
             string orig = box.Text;
             double pitch0 = cfg.ChannelPitch;
+            string file = Path.Combine(deviceTmp, cfg.Filename);
+            bool writing = how != "Закрыть" && how != "крестик";
+            if (writing && File.Exists(file)) File.Delete(file); // записано ли — по появлению файла
             Focus(f, box);
             box.Text = "abc";
             Pump(20);
@@ -544,9 +592,19 @@ static class P318RevertAndCloseProbe
             }
             else
             {
-                bool kept = !closed && cfg.ChannelPitch == pitch0 && reports >= 1;
-                Verdict("D", "поле «шаг канала» = abc, «" + how + "»: НЕ принято, поле названо", got
-                        + ", шаг в конфигурации " + cfg.ChannelPitch.ToString(Inv), kept);
+                // (П325; решения Amber 15.10.2026 «Вернуть прежнее (Рекомендую)» и «Оставить
+                // (Рекомендую)») Нечисло в поле запись больше не отказывает: поле молча
+                // возвращает прежнее число, и запись идёт им — без сообщения о поле. «Сохранить»
+                // окно оставляет открытым (в поле — прежнее), «Да» на «Сохранить?» закрывает.
+                double? written = WrittenNumber(file, "ChannelPitch");
+                bool fieldBack = closed || box.Text == orig;
+                bool asWanted = how == "Сохранить" ? !closed : closed;
+                bool ok = reports == 0 && fieldBack && asWanted && cfg.ChannelPitch == pitch0
+                          && written.HasValue && written.Value == pitch0;
+                Verdict("D", "поле «шаг канала» = abc, «" + how + "»: молча записан прежний шаг " + pitch0.ToString(Inv), got
+                        + (closed ? "" : ", в поле «" + box.Text + "»")
+                        + ", шаг в конфигурации " + cfg.ChannelPitch.ToString(Inv)
+                        + ", в записанном файле " + (written.HasValue ? written.Value.ToString(Inv) : "ФАЙЛА НЕТ (запись не дошла)"), ok);
             }
             if (!f.IsDisposed)
             {
@@ -569,6 +627,7 @@ static class P318RevertAndCloseProbe
 
         // Звуковой вход: поле порога во вложенной форме прибора.
         AudioField();
+        try { Directory.Delete(Path.GetDirectoryName(deviceTmp), true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
     }
 
     static void AudioField()
@@ -610,6 +669,8 @@ static class P318RevertAndCloseProbe
         double lower0 = pra.LowerThreshold;
         Console.WriteLine("SETUP\tзвуковой вход: нижний порог «{0}» = {1}", orig, lower0.ToString(Inv));
 
+        string file = Path.Combine(deviceTmp, cfg.Filename);
+        if (File.Exists(file)) File.Delete(file); // записано ли — по появлению файла
         Focus(f, lower);
         lower.Text = "abc";
         Pump(20);
@@ -619,12 +680,22 @@ static class P318RevertAndCloseProbe
         List<string> seen = Answered(new[] { IDYES, IDCANCEL, IDOK }, () => Press(f, close));
         if (!f.IsDisposed) seen.AddRange(Answered(new[] { IDCANCEL, IDOK }, () => Press(f, save)));
         int reports = FieldReports() - before;
-        Verdict("D", "звуковой вход, порог = abc, «Закрыть → Да», затем «Сохранить»: НЕ принято",
+        // (П325; решения Amber 15.10.2026 «Вернуть прежнее (Рекомендую)» и «Оставить
+        // (Рекомендую)») «Да» на «Сохранить?» с нечислом в поле вложенной формы записывает
+        // прежний порог молча, и окно закрывается.
+        pra = (PRAHomageMethodConfig)((AudioInputDeviceConfig)cfg.InputDeviceConfig).PulseDetectionMethodConfig;
+        double? written = WrittenNumber(file, "LowerThreshold");
+        Verdict("D", "звуковой вход, порог = abc, «Закрыть → Да» (затем «Сохранить», если окно осталось): молча записан прежний порог " + lower0.ToString(Inv),
                 "закрыто=" + f.IsDisposed + ", сообщений о поле " + reports.ToString(Inv) + ", порог в конфигурации " + pra.LowerThreshold.ToString(Inv)
+                + ", в записанном файле " + (written.HasValue ? written.Value.ToString(Inv) : "ФАЙЛА НЕТ (запись не дошла)")
                 + ", вопросы: " + (seen.Count == 0 ? "—" : string.Join(" || ", seen)),
-                !f.IsDisposed && pra.LowerThreshold == lower0 && reports >= 1);
+                f.IsDisposed && reports == 0 && pra.LowerThreshold == lower0 && written.HasValue && written.Value == lower0);
 
         // НАХОДКИ вне поручения: разбор полей звукового входа при записи.
+        if (f.IsDisposed)
+        {
+            Console.WriteLine("НАХОДКА\tзвуковой вход: SaveFormContents с «abc» и «0,5»\tне мерено: окно закрыто записью (П320 «Вернуть прежнее»; «0,5» → 5 закрыта П320)\t—");
+        }
         if (!f.IsDisposed)
         {
             lower.Text = "abc";
