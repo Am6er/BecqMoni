@@ -840,6 +840,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             analyzer.LibraryLines = LibraryLinesOf(job.Definitions);
 
             Action<FsaAnalyzer> probeHook = ProbeAnalyzerHook;
+
+            // (`A320`, П323 15.10.2026; решение Amber вопросником, дословно: «Только
+            // для проб (Рекомендую)») ПОВТОР СТРАЖА НУЛЯ — НЕ В ПРИЛОЖЕНИИ. Повтор
+            // отданного разбора нужен лишь тому, кто читает анализатор после
+            // разбора; сеанс берёт только `FsaResult` (и `Refusal` при null) и
+            // анализатор выбрасывает, а у сработавшего стража повтор — полный
+            // разбор лишний (П310, находка 2). Крючок проб — признак такого
+            // читателя (`FsaBqProbe`, `FsaLinePosProbeP255`, `FsaAnchorZeroProbeP258`,
+            // `FsaComptonEdgeProbeP281` читают анализатор после разбора): с ним
+            // повтор остаётся, как прежде; крючок волен поставить ключ сам.
+            analyzer.AnchorZeroGuardReplay = probeHook != null;
             if (probeHook != null)
             {
                 probeHook(analyzer);

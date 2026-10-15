@@ -5990,8 +5990,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (<see cref="FsaResult.Chi2NdfPoisson"/>), если он меньше, чем у нуля
         /// по съёмке, умноженного на <see cref="AnchorZeroGuardRatio"/>.
         /// Отданный разбор пересчитывается последним, чтобы состояние
-        /// анализатора отвечало ему. "off" или пустое — стража нет, числа
-        /// прежние до бита; умолчание — в конструкторе.
+        /// анализатора отвечало ему, — только при <see cref="AnchorZeroGuardReplay"/>
+        /// (умолчание — да; сеанс приложения снимает, П323). "off" или пустое —
+        /// стража нет, числа прежние до бита; умолчание — в конструкторе.
         ///
         /// Довод (журнал П258): на Th232_29.07.2022 Amber кандидаты нуля
         /// съёмки — две несогласные группы (рентген ниже 100 кэВ тянет нуль на
@@ -6013,6 +6014,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// раз. Умолчание — в конструкторе.
         /// </summary>
         public double AnchorZeroGuardRatio { get; set; }
+
+        /// <summary>
+        /// (`A320`, П323 15.10.2026; решение Amber вопросником, дословно: «Только для
+        /// проб (Рекомендую)») ПОВТОР ОТДАННОГО РАЗБОРА СТРАЖА НУЛЯ. Когда страж
+        /// сработал, отданный разбор (нуль по съёмке, если запасные не лучше
+        /// вдвое, или победитель, если он считался не последним) пересчитывается
+        /// ещё раз — ТОЛЬКО ради состояния анализатора: его после
+        /// <see cref="Analyze"/> читают пробы (ход привязки, след фита, нуль
+        /// АЦП) и корпус. Числа отданного разбора повтор не меняет (П277: «⚠
+        /// повтор разошёлся» — 0 из 14; П323 — побитово по всему результату).
+        /// Сеанс приложения (<see cref="FsaAnalysisSession"/>) анализатор после
+        /// разбора выбрасывает и снимает повтор: у сработавшего стража это
+        /// полный разбор из четырёх (П310, находка 2). Умолчание — да (в
+        /// конструкторе): пробы и корпус как прежде.
+        /// </summary>
+        public bool AnchorZeroGuardReplay { get; set; }
+
+        /// <summary>
+        /// (`A320`, П323) Счётчик проходов разбора (<c>AnalyzeCore</c>, включая
+        /// запасные стража, его повтор и перефит доли столбца) на ПРОЦЕСС — для
+        /// положительного контроля проб: у сеанса приложения анализатор не виден,
+        /// а разность счётчика до и после разбора видна. Приложением не читается.
+        /// </summary>
+        public static long CorePassCount
+        {
+            get { return System.Threading.Interlocked.Read(ref corePassCount); }
+        }
+
+        static long corePassCount;
 
         /// <summary>
         /// (`S169`) Свет в НУЛЕВОМ КАНАЛЕ, кэВ, НУЛЬ ПРИБОРА: у "adc-fixed" —
@@ -9138,6 +9168,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // запасом ×2. Обратное плечо — "off" (числа прежние до бита)
             this.AnchorZeroGuard = "calib,adc-fixed";
             this.AnchorZeroGuardRatio = 0.5;
+            // (`A320`, П323) повтор отданного разбора — пробам и корпусу; сеанс
+            // приложения снимает (`FsaAnalysisSession.Capture`)
+            this.AnchorZeroGuardReplay = true;
             this.AnchorZeroKev = 0.0;
             // (`S169`, П13) кандидат нуля съёмки — доля синего от половины
             // порога опоры (доводы у свойства); свет не выше границы П8 §3
@@ -9444,9 +9477,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (best != null)
             {
-                if (bestWord != lastWord)
+                if (bestWord != lastWord && this.AnchorZeroGuardReplay)
                 {
                     // состояние анализатора — от отданного разбора: победитель пересчитывается
+                    // (`A320`, П323: только при повторе — сеанс приложения его снимает)
                     try
                     {
                         this.AnchorZero = bestWord;
@@ -9465,18 +9499,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return best;
             }
 
-            FsaResult again = this.AnalyzeCore(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
-            if (again == null)
+            // (`A320`, П323) без повтора отдаётся сам разбор с нулём по съёмке: тот
+            // же разбор, посчитанный раньше запасных, — служебная строка та же
+            // (сверка «повтор разошёлся» без повтора не к чему)
+            FsaResult kept = main;
+            string diverged = "";
+            if (this.AnchorZeroGuardReplay)
             {
-                return main;
+                FsaResult again = this.AnalyzeCore(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+                if (again == null)
+                {
+                    return main;
+                }
+
+                kept = again;
+                diverged = again.Chi2NdfPoisson.Equals(chiMain) ? "" : string.Format(CultureInfo.InvariantCulture, "; ⚠ повтор разошёлся: {0:R}", again.Chi2NdfPoisson);
             }
 
-            again.AnchorNote = (again.AnchorNote ?? "") + string.Format(CultureInfo.InvariantCulture,
+            kept.AnchorNote = (kept.AnchorNote ?? "") + string.Format(CultureInfo.InvariantCulture,
                 "; страж нуля (A320): совместная привязка не сошлась (χ²/ndf Пуассона {0:F2}), запасные {1} не лучше в {2:F2} раза — оставлен нуль по съёмке{3}",
                 chiMain, string.Join(", ", tried),
                 this.AnchorZeroGuardRatio > 0.0 ? 1.0 / this.AnchorZeroGuardRatio : double.PositiveInfinity,
-                again.Chi2NdfPoisson.Equals(chiMain) ? "" : string.Format(CultureInfo.InvariantCulture, "; ⚠ повтор разошёлся: {0:R}", again.Chi2NdfPoisson));
-            return again;
+                diverged);
+            return kept;
         }
 
         /// <summary>(`A320`, П258, внесён П277) Сработал ли страж нуля на последнем <see cref="Analyze"/> (пробам).</summary>
@@ -9496,6 +9541,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<FsaComponent> originalLibrary,
             FsaEfficiency efficiency)
         {
+            // (`A320`, П323) счёт проходов — положительному контролю проб
+            System.Threading.Interlocked.Increment(ref corePassCount);
+
             // ⛔ (`AMBER154`, П194 01.10.2026) ФОН — В ИСТИННОЙ ШКАЛЕ ПРОБЫ.
             // Хранимый фон снят СВОЕЙ съёмкой, и прибор между съёмками плывёт
             // (сезон, прогрев, загрузка): в корпусе относительный дрейф фона
