@@ -301,6 +301,21 @@ namespace BecquerelMonitor.EfficiencyMaker
             int MarginX = this.Mode == SketchMode.Overview ? 10 : 78;
             int MarginTop = this.Mode == SketchMode.Overview ? 8 : 42;
             int MarginBottom = this.Mode == SketchMode.Overview ? 8 : 30;
+
+            // (`AMBER225`) Табличка объёма стоит в левом верхнем углу, а над
+            // телом там же идёт верхний размер с числом. Чертёж опускается
+            // ровно настолько, чтобы число размера встало НИЖЕ таблички:
+            // иначе размерная линия прошла бы сквозь надпись. 23 точки — это
+            // `AboveTop(22)` верхнего размера плюс точка, на которую
+            // `SpotsH` поднимает над линией его число.
+            string volumeText = this.VolumeText(m);
+            SizeF volumeSize = SizeF.Empty;
+            if (volumeText != null)
+            {
+                volumeSize = g.MeasureString(volumeText, this.Font);
+                MarginTop = Math.Max(MarginTop,
+                    (int)Math.Ceiling(VolumePlateBottom(volumeSize) + Gap + 23f + volumeSize.Height));
+            }
             double worldWidth = Math.Max(right - left, 1e-6);
             double worldHeight = Math.Max(bottom - top, 1e-6);
             double sx = (this.Width - 2.0 * MarginX) / worldWidth;
@@ -323,6 +338,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             this.DrawDetector(g, m, halfWidth, height, tfr, tsr, tfc, tsc, tm, tfg, tsg);
+
+            // Табличка — ДО размеров: её прямоугольник уже лежит в `labels`,
+            // и раскладка чисел (`Place`) обходит его, как любую подпись.
+            if (volumeText != null)
+            {
+                this.DrawVolume(g, volumeText, volumeSize);
+            }
+
             if (this.Mode == SketchMode.Detector)
             {
                 this.Annotate(g, m, halfWidth, height, boxDepthIntoPage,
@@ -369,6 +392,81 @@ namespace BecquerelMonitor.EfficiencyMaker
             Trace.WriteLine(string.Format(CultureInfo.InvariantCulture,
                 "GeometrySketch [{0}, {1}x{2}]: размерных чисел без свободного места — {3}",
                 this.Mode, this.Width, this.Height, this.crowded));
+        }
+
+        /// <summary>
+        /// Надпись об объёме для левого верхнего угла (`AMBER225`, Amber
+        /// 15.10.2026: «При редактировании геометрии детектора и образца
+        /// указывать объём в см^3 на скетче … при редактировании детектора -
+        /// объём детектора; при редактировании образца - объём образца. если
+        /// объём определить нельзя (лунка, поле, ISO) ничего не указывать,
+        /// оставить пусто»; вид — словами, её же выбором вопросником).
+        /// </summary>
+        /// <remarks>
+        /// <c>null</c> — надписи нет. У пробы её нет на всех трёх полевых
+        /// сценах (<see cref="GeometrySceneKind.Ground"/>,
+        /// <see cref="GeometrySceneKind.Borehole"/>,
+        /// <see cref="GeometrySceneKind.Iso"/>): у грунта объём — число из
+        /// правила свободного пробега, а не размер пробы. Нет её и у точечного
+        /// источника — объёма у точки нет (<see cref="GeometryModel.HasSampleVolume"/>).
+        /// Объём пробы — тем же счётом, что строка сцены в редакторе и сам
+        /// расчёт (<see cref="GeometryScenes.SampleVolumeCm3"/>): у маринелли
+        /// это разность двух тел, и вторая формула разъехалась бы с первой
+        /// молча. Миниатюра (<see cref="SketchMode.Overview"/>) — не
+        /// редактирование, и надписи там нет.
+        /// </remarks>
+        string VolumeText(GeometryModel m)
+        {
+            double volume;
+            string format;
+            if (this.Mode == SketchMode.Detector)
+            {
+                volume = GeometryScenes.CrystalVolumeCm3(m);
+                format = Resources.EfficiencySketchCrystalVolume;
+            }
+            else if (this.Mode == SketchMode.Source
+                     && m.Scene == GeometrySceneKind.None && m.HasSampleVolume)
+            {
+                volume = GeometryScenes.SampleVolumeCm3(m);
+                format = Resources.EfficiencySketchSampleVolume;
+            }
+            else
+            {
+                return null;
+            }
+
+            if (!(volume > 0.0) || double.IsInfinity(volume))
+            {
+                return null;
+            }
+
+            // Четыре значащих, как у размеров; от тысячи — целым числом:
+            // `G4` печатал бы 12 л кюветы как «1.2E+04».
+            string number = volume < 1000.0
+                ? volume.ToString("G4", CultureInfo.InvariantCulture)
+                : volume.ToString("F0", CultureInfo.InvariantCulture);
+            return string.Format(CultureInfo.InvariantCulture, format, number);
+        }
+
+        /// <summary>Низ таблички объёма, точек от верха поля.</summary>
+        static float VolumePlateBottom(SizeF size)
+        {
+            return 4f + size.Height + 6f;
+        }
+
+        /// <summary>
+        /// Табличка объёма — той же подложкой и в том же углу, что табличка
+        /// миниатюры, и через <see cref="Print"/>: подпись мимо него для
+        /// приёмки (`EditorShot --check`) не существует.
+        /// </summary>
+        void DrawVolume(Graphics g, string text, SizeF size)
+        {
+            using (Brush plate = new SolidBrush(Color.FromArgb(0xC8, 0xFF, 0xFF, 0xFF)))
+            using (Brush ink = new SolidBrush(Ink))
+            {
+                g.FillRectangle(plate, 4f, 4f, size.Width + 8f, VolumePlateBottom(size) - 4f);
+                this.Print(g, ink, text, null, 8f, 6f, size);
+            }
         }
 
         /// <summary>
@@ -908,8 +1006,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     bool lit = this.Lit("FieldRadius");
                     using (Brush litInk = lit ? new SolidBrush(LitColor) : null)
                     {
-                        g.DrawString(text, this.Font, lit ? litInk : ink,
-                                     this.X(0.0) - size.Width / 2f, this.Y(zc - rr) - size.Height - 2f);
+                        // Через Print, а не голым DrawString (П329): подпись мимо
+                        // него в `Labels` не попадала, и у сцены ISO приёмка
+                        // чертежа видела ноль подписей.
+                        this.Print(g, lit ? litInk : ink, text, "FieldRadius",
+                                   this.X(0.0) - size.Width / 2f, this.Y(zc - rr) - size.Height - 2f, size);
                     }
 
                     return;

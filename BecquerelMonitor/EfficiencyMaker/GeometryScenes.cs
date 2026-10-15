@@ -761,6 +761,25 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// Объём кристалла, см³ (`AMBER225`) — без отражателя, зазора и
+        /// корпуса: так объём детектора называют в паспорте. Постановка
+        /// (<see cref="GeometryModel.Facing"/>) брусок только разворачивает,
+        /// объёма она не меняет, поэтому берутся сами поля X, Y, Z.
+        /// </summary>
+        public static double CrystalVolumeCm3(GeometryModel g)
+        {
+            const double Mm3PerCm3 = 1000.0;
+            if (g.Shape == CrystalShape.Box)
+            {
+                return Math.Max(0.0, g.CrystalBoxX) * Math.Max(0.0, g.CrystalBoxY)
+                       * Math.Max(0.0, g.CrystalBoxZ) / Mm3PerCm3;
+            }
+
+            double r = 0.5 * Math.Max(0.0, g.CrystalDiameter);
+            return Math.PI * r * r * Math.Max(0.0, g.CrystalHeight) / Mm3PerCm3;
+        }
+
+        /// <summary>
         /// Убедиться, что вещество пробы годится сцене, и подменить его грунтом,
         /// если нет. Возвращает имя подставленного вещества; пусто — не трогали.
         ///

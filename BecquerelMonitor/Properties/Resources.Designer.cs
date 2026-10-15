@@ -4471,6 +4471,18 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string EfficiencySketchCrystalVolume {
+            get {
+                return ResourceManager.GetString("EfficiencySketchCrystalVolume", resourceCulture);
+            }
+        }
+
+        public static string EfficiencySketchSampleVolume {
+            get {
+                return ResourceManager.GetString("EfficiencySketchSampleVolume", resourceCulture);
+            }
+        }
+
         public static string DeviceConfigEfficiencyTab {
             get {
                 return ResourceManager.GetString("DeviceConfigEfficiencyTab", resourceCulture);

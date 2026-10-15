@@ -42845,6 +42845,12 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="EfficiencySketchMarinelli" xml:space="preserve">
     <value>Marinelli beaker</value>
   </data>
+  <data name="EfficiencySketchCrystalVolume" xml:space="preserve">
+    <value>Crystal volume {0} cm³</value>
+  </data>
+  <data name="EfficiencySketchSampleVolume" xml:space="preserve">
+    <value>Sample volume {0} cm³</value>
+  </data>
   <data name="DeviceConfigEfficiencyTab" xml:space="preserve">
     <value>Efficiency</value>
   </data>
