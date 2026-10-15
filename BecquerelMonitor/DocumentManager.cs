@@ -433,7 +433,7 @@ namespace BecquerelMonitor
                     throw new InvalidOperationException(
                         "BecqMoni: " + text + " (" + AppUi.Where(filename) + ")", ex);
                 }
-                AppUi.Report(text, "", MessageBoxIcon.None);
+                AppUi.Report(text, Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
 
                 Cursor.Current = Cursors.Default;
                 return null;
@@ -485,7 +485,7 @@ namespace BecquerelMonitor
                         "BecqMoni: " + empty + " (" + AppUi.Where(filename)
                         + "): в файле нет ни одного спектра (<ResultDataList/> пуст).");
                 }
-                AppUi.Report(empty, "", MessageBoxIcon.None);
+                AppUi.Report(empty, Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
                 return null;
             }
             docEnergySpectrum2.ResultDataFile.ResultDataList[0].Selected = true;
@@ -838,7 +838,7 @@ namespace BecquerelMonitor
                     throw new InvalidOperationException(
                         "BecqMoni: " + text + " (" + AppUi.Where(pathname) + ")", ex);
                 }
-                AppUi.Report(text, "", MessageBoxIcon.None);
+                AppUi.Report(text, Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
                 Cursor.Current = Cursors.Default;
                 return null;
             }
@@ -998,7 +998,7 @@ namespace BecquerelMonitor
                     throw new InvalidOperationException(
                         "BecqMoni: " + text + " (0.93b, " + AppUi.Where(filename) + ")", ex);
                 }
-                AppUi.Report(text, "", MessageBoxIcon.None);
+                AppUi.Report(text, Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
                 return null;
             }
             docEnergySpectrum2.IsNamed = true;
@@ -2202,7 +2202,7 @@ namespace BecquerelMonitor
                         "BecqMoni: импорт через SpecUtils оборвался (" + AppUi.Where(filepath)
                         + "): " + Detail(ex) + ". Документ остался разобранным наполовину.", ex);
                 }
-                AppUi.Report(text, "", MessageBoxIcon.None);
+                AppUi.Report(text, Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
             }
             finally
             {
@@ -2341,7 +2341,7 @@ namespace BecquerelMonitor
                                 + energyCalibration.PolynomialOrder.ToString(CultureInfo.InvariantCulture)
                                 + "). Дальше по этому спектру считать нельзя: шкала энергий негодна.");
                         }
-                        AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
+                        AppUi.Report(Resources.CalibrationFunctionError, Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
                     }
 
                     // $COUNTS:
@@ -2375,7 +2375,7 @@ namespace BecquerelMonitor
                         "BecqMoni: импорт GBS оборвался (" + AppUi.Where(filePath)
                         + "): " + Detail(ex) + ". Документ остался разобранным наполовину.", ex);
                 }
-                AppUi.Report(text, "", MessageBoxIcon.None);
+                AppUi.Report(text, Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
             }
             Cursor.Current = Cursors.Default;
         }
@@ -2432,7 +2432,7 @@ namespace BecquerelMonitor
                     throw new InvalidOperationException(
                         "BecqMoni: " + text + " (Atom Spectra, " + AppUi.Where(filePath) + ")", ex);
                 }
-                AppUi.Report(text, "", MessageBoxIcon.None);
+                AppUi.Report(text, Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
                 return;
             }
             
@@ -2585,7 +2585,7 @@ namespace BecquerelMonitor
                                     + energyCalibration.PolynomialOrder.ToString(CultureInfo.InvariantCulture)
                                     + "). Дальше по этому спектру считать нельзя: шкала энергий негодна.");
                             }
-                            AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
+                            AppUi.Report(Resources.CalibrationFunctionError, Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
                         }
 
                     }
@@ -2621,7 +2621,7 @@ namespace BecquerelMonitor
                         "BecqMoni: импорт Atom Spectra оборвался (" + AppUi.Where(filePath)
                         + "): " + Detail(ex) + ". Спектр в документе неполон.", ex);
                 }
-                AppUi.Report(text, "", MessageBoxIcon.None);
+                AppUi.Report(text, Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
                 return;
             }
         }
@@ -2757,9 +2757,19 @@ namespace BecquerelMonitor
                     energySpectrum.Initialize();
                     // (`AMBER201`, подозрение полосы 2) другое число каналов — сброс
                     // под файл, как у дверей CSV, SPE и Atom Spectra (`A260`).
-                    if (importWithEmtyConfig || this.ResetForChannelMismatch(doc, ChannelsOrZero(() => util.N42_2012_getChannels(n42object))))
+                    // ⛔ (П319, 15.10.2026; находка П311) Число каналов файла читается
+                    //    ОДИН раз и через ChannelsOrZero во ВСЕХ ветках. Прежде при
+                    //    «импорт с пустой конфигурацией» (`importWithEmtyConfig`)
+                    //    сверка замыкалась накоротко, и сброс звал чтение каналов
+                    //    напрямую: файл без RadMeasurement (или без Spectrum) ронял
+                    //    импорт NullReferenceException — причина «Object reference not
+                    //    set…» вместо названного отказа разбора (`A176`), а пустой
+                    //    ChannelData сбрасывал настройку под спектр из НУЛЯ каналов.
+                    //    Ноль — «не сбрасывать»: разбор ниже откажет своими словами.
+                    int fileChannels2012 = ChannelsOrZero(() => util.N42_2012_getChannels(n42object));
+                    if ((importWithEmtyConfig && fileChannels2012 > 0) || this.ResetForChannelMismatch(doc, fileChannels2012))
                     {
-                        this.ResetSpectrumConfig(doc.ActiveResultData, util.N42_2012_getChannels(n42object));
+                        this.ResetSpectrumConfig(doc.ActiveResultData, fileChannels2012);
                     }
                     util.ImportFromN42(n42object, doc, filename);
                 } else if (n42Type == typeof(RadiologicalInstrumentData))
@@ -2770,9 +2780,11 @@ namespace BecquerelMonitor
                         n42object = (RadiologicalInstrumentData)ser.Deserialize(reader);
                     }
                     energySpectrum.Initialize();
-                    if (importWithEmtyConfig || this.ResetForChannelMismatch(doc, ChannelsOrZero(() => n42object.MeasurementGroup.Measurement.Spectrum.ChannelData.NumberOfChannels)))
+                    // (П319) то же правило, что у 2012 выше: каналы — один раз и через ChannelsOrZero.
+                    int fileChannelsRad = ChannelsOrZero(() => n42object.MeasurementGroup.Measurement.Spectrum.ChannelData.NumberOfChannels);
+                    if ((importWithEmtyConfig && fileChannelsRad > 0) || this.ResetForChannelMismatch(doc, fileChannelsRad))
                     {
-                        this.ResetSpectrumConfig(doc.ActiveResultData, n42object.MeasurementGroup.Measurement.Spectrum.ChannelData.NumberOfChannels);
+                        this.ResetSpectrumConfig(doc.ActiveResultData, fileChannelsRad);
                     }
                     util.ImportFromN42(n42object, doc, filename);
                 } else if (n42Type == typeof(N42InstrumentData))
@@ -2783,9 +2795,11 @@ namespace BecquerelMonitor
                         n42object = (N42InstrumentData)ser.Deserialize(reader);
                     }
                     energySpectrum.Initialize();
-                    if (importWithEmtyConfig || this.ResetForChannelMismatch(doc, ChannelsOrZero(() => util.N42_2006_getChannels(n42object))))
+                    // (П319) то же правило, что у 2012 выше: каналы — один раз и через ChannelsOrZero.
+                    int fileChannels2006 = ChannelsOrZero(() => util.N42_2006_getChannels(n42object));
+                    if ((importWithEmtyConfig && fileChannels2006 > 0) || this.ResetForChannelMismatch(doc, fileChannels2006))
                     {
-                        this.ResetSpectrumConfig(doc.ActiveResultData, util.N42_2006_getChannels(n42object));
+                        this.ResetSpectrumConfig(doc.ActiveResultData, fileChannels2006);
                     }
                     util.ImportFromN42(n42object, doc, filename);
                 }
@@ -2834,7 +2848,7 @@ namespace BecquerelMonitor
                         "BecqMoni: импорт N42 оборвался (" + AppUi.Where(filename)
                         + "): " + Detail(ex), ex);
                 }
-                AppUi.Report(text, "", MessageBoxIcon.None);
+                AppUi.Report(text, Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
                 return;
             }
         }
@@ -2867,7 +2881,7 @@ namespace BecquerelMonitor
                         "BecqMoni: экспорт Atom Spectra не записан (" + AppUi.Where(fileName)
                         + "): " + ex.Message, ex);
                 }
-                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
+                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
             }
             Cursor.Current = Cursors.Default;
         }
@@ -3066,7 +3080,9 @@ namespace BecquerelMonitor
                 doc != null ? doc.ResultDataFile : null);
             if (efficiencyWarning != null)
             {
-                AppUi.Report(efficiencyWarning, "", MessageBoxIcon.None);
+                // (П319, П312 Н6/Н13) заголовок — тот же, что у окна сохранения N42,
+                // значок — предупреждение: прежде окно шло с пустой строкой заголовка.
+                AppUi.Report(efficiencyWarning, Resources.N42ExportDialogTitle, MessageBoxIcon.Warning);
             }
 
             SaveFileDialog saveFileDialog = new SaveFileDialog();
@@ -3095,7 +3111,7 @@ namespace BecquerelMonitor
                         "BecqMoni: экспорт N42 не записан (" + AppUi.Where(fileName)
                         + "): " + ex.Message, ex);
                 }
-                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
+                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
             }
             Cursor.Current = Cursors.Default;
         }
@@ -3163,7 +3179,7 @@ namespace BecquerelMonitor
                         "BecqMoni: спектр НЕ записан (" + AppUi.Where(doc.Filename)
                         + "): " + ex.Message, ex);
                 }
-                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, doc.Filename, ex.Message), "", MessageBoxIcon.None);
+                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, doc.Filename, ex.Message), Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
                 return false;
             }
             finally
@@ -3328,14 +3344,14 @@ namespace BecquerelMonitor
                     }
                     try
                     {
-                        AppUi.Report(string.Format(Resources.ERRBackgroundLoadFailure, backgroundSpectrumPathname, ex.Message), "", MessageBoxIcon.None);
+                        AppUi.Report(string.Format(Resources.ERRBackgroundLoadFailure, backgroundSpectrumPathname, ex.Message), Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
                     }
                     catch
                     {
                         // Строка ресурса без нужных подстановок: сообщение всё
                         // равно должно дойти. Ловушка оставлена такой же
                         // широкой, какой была.
-                        AppUi.Report(Resources.ERRBackgroundLoadFailure, "", MessageBoxIcon.None);
+                        AppUi.Report(Resources.ERRBackgroundLoadFailure, Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
                     }
 
                     return;
@@ -3405,7 +3421,7 @@ namespace BecquerelMonitor
                         "BecqMoni: экспорт CSV не записан (" + AppUi.Where(fileName)
                         + "): " + ex.Message, ex);
                 }
-                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
+                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
             }
         }
 
@@ -3435,7 +3451,7 @@ namespace BecquerelMonitor
                         "BecqMoni: экспорт CSV с энергиями не записан (" + AppUi.Where(fileName)
                         + "): " + ex.Message, ex);
                 }
-                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), "", MessageBoxIcon.None);
+                AppUi.Report(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
             }
         }
 
@@ -3575,6 +3591,17 @@ namespace BecquerelMonitor
                             totalpulsecount += count;
                         }
                     }
+                    // ⛔ (П319, 15.10.2026) ФАЙЛ БЕЗ СТРОК ДАННЫХ — ОТКАЗ, а не спектр.
+                    //    Одна шапка проходила разбор без слова: при «импорте с пустой
+                    //    конфигурацией» документ становился спектром из НУЛЯ каналов,
+                    //    без неё — прежний спектр стирался в нули (замер
+                    //    `P319AppDefectsProbe --mode=n42`). Тот же разряд, что пустой
+                    //    ChannelData у N42 (П311, `A176`): отказ до первой записи в
+                    //    документ, причина — той же строкой разбора, что «Wrong header format».
+                    if (list.Count == 0)
+                    {
+                        throw new ArgumentException("No data lines (Channel,Counts) after the header");
+                    }
                 }
             }
             catch (Exception ex)
@@ -3606,7 +3633,7 @@ namespace BecquerelMonitor
                         + "Документ остался с ПРЕЖНИМ спектром, и молчание здесь "
                         + "неотличимо от удачного импорта.", ex);
                 }
-                AppUi.Report(message, "", MessageBoxIcon.None);
+                AppUi.Report(message, Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
                 // Abort the import: falling through used to wipe the current spectrum
                 // (Initialize below) and write partially parsed data into the document.
                 return;
@@ -3764,6 +3791,12 @@ namespace BecquerelMonitor
                             channel++;
                         }
                     }
+                    // (П319) Файл без строк данных — отказ, а не спектр из нуля каналов
+                    // (или стёртый в нули прежний): то же правило, что у двери каналов выше.
+                    if (listCounts.Count == 0)
+                    {
+                        throw new ArgumentException("No data lines (Energy,Count) after the header");
+                    }
                 }
             }
             catch (Exception ex)
@@ -3792,7 +3825,7 @@ namespace BecquerelMonitor
                         + "с ПРЕЖНИМ спектром и ПРЕЖНЕЙ калибровкой, и молчание здесь "
                         + "неотличимо от удачного импорта.", ex);
                 }
-                AppUi.Report(message, "", MessageBoxIcon.None);
+                AppUi.Report(message, Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
                 // Abort the import: falling through used to wipe the current spectrum
                 // and write partially parsed data into the document.
                 return;

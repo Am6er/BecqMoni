@@ -1658,7 +1658,8 @@ namespace BecquerelMonitor
         {
             if (this.activeDocument == null)
             {
-                MessageBox.Show(Resources.CombineEmptySpectrum);
+                // (П319, Н6) заголовок и значок — у окна без них пустая строка заголовка.
+                MessageBox.Show(Resources.CombineEmptySpectrum, Resources.NotificationDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -1680,35 +1681,68 @@ namespace BecquerelMonitor
                 return;
             }
             SpectrumAriphmetics sa = new SpectrumAriphmetics(this.activeDocument);
-            this.activeDocument = sa.CombineWith(combinedSpectrum);
+            DocEnergySpectrum combined = sa.CombineWith(combinedSpectrum);
             sa.Dispose();
+            if (combined == null)
+            {
+                // (П319, Н18) отказ (разное число каналов): сложения не было, окно
+                // отказа уже показано — документ не помечается изменённым.
+                return;
+            }
+            this.activeDocument = combined;
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
             this.UpdateDetectedPeakView();
         }
 
-        void ConcatSpectrums(DocEnergySpectrum docEnergySpectrum, int newChan)
+        /// <summary>
+        /// «Спектр → Изменить число каналов»: новый документ со спектром (и фоном)
+        /// в <paramref name="newChan"/> каналах.
+        ///
+        /// ⛔ (П319, 15.10.2026; находка П312 Н5) СПЕКТРЫ СЧИТАЮТСЯ ДО
+        /// <c>CreateDocument</c>. Прежде документ создавался первым, а число
+        /// каналов 2 000 000 000 роняло <c>new EnergySpectrum</c> в
+        /// <c>OutOfMemoryException</c> («Измерения массива превысили
+        /// поддерживаемый диапазон») — окно необработанного исключения, а после
+        /// «Продолжить» пустая вкладка «Новый файл (1)». Теперь нехватка памяти
+        /// на новый массив — отказ тем же текстом, что у неверного числа
+        /// каналов, и документа нет. Верхней границы числа каналов здесь нет
+        /// нарочно: какой она должна быть — вопрос Amber (П312, «Ждут решения»,
+        /// п. 2); ловится только то, что выделить нельзя.
+        /// </summary>
+        /// <returns>false — отказ (документ не создан).</returns>
+        bool ConcatSpectrums(DocEnergySpectrum docEnergySpectrum, int newChan)
         {
-            if (!CreateDocument()) return; // `AMBER201`: документ не создан — не писать в прежний
-            if (newChan < docEnergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels)
+            EnergySpectrum newSpectrum;
+            EnergySpectrum newBackground = null;
+            FwhmCalibration fwhmCalibration;
+            try
             {
-                this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.ConcatSpectrum(docEnergySpectrum.ActiveResultData.EnergySpectrum, newChan);
-            } else
-            {
-                this.activeDocument.ActiveResultData.EnergySpectrum = SpectrumAriphmetics.RestoreSpectrum(docEnergySpectrum.ActiveResultData.EnergySpectrum, newChan);
+                newSpectrum = ResampleSpectrum(docEnergySpectrum.ActiveResultData.EnergySpectrum, newChan);
+                if (docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum != null)
+                {
+                    newBackground = ResampleSpectrum(docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum, newChan);
+                }
+                // FwhmCalibration can be null (DefaultCalibration may fail) - guard the NRE.
+                fwhmCalibration = docEnergySpectrum.ActiveResultData.FwhmCalibration != null
+                    ? docEnergySpectrum.ActiveResultData.FwhmCalibration.RecalcWithNewChannelNum(docEnergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels, newChan)
+                    : null;
             }
-            
+            catch (OutOfMemoryException)
+            {
+                // Выделение одного массива не прошло — куча цела, прежний документ не тронут.
+                MessageBox.Show(Resources.ERRChanNumber, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return false;
+            }
+
+            if (!CreateDocument()) return false; // `AMBER201`: документ не создан — не писать в прежний
+            this.activeDocument.ActiveResultData.EnergySpectrum = newSpectrum;
+
             this.activeDocument.ActiveResultData.DeviceConfigReference = null;
             this.activeDocument.ActiveResultData.DeviceConfig = new DeviceConfigInfo();
-            if (docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum != null)
+            if (newBackground != null)
             {
-                if (newChan < docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum.NumberOfChannels)
-                {
-                    this.activeDocument.ActiveResultData.BackgroundEnergySpectrum = SpectrumAriphmetics.ConcatSpectrum(docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum, newChan);
-                } else
-                {
-                    this.activeDocument.ActiveResultData.BackgroundEnergySpectrum = SpectrumAriphmetics.RestoreSpectrum(docEnergySpectrum.ActiveResultData.BackgroundEnergySpectrum, newChan);
-                }
+                this.activeDocument.ActiveResultData.BackgroundEnergySpectrum = newBackground;
                 this.activeDocument.ActiveResultData.BackgroundSpectrumFile = docEnergySpectrum.ActiveResultData.BackgroundSpectrumFile;
             }
             this.activeDocument.ActiveResultData.ResultDataStatus = docEnergySpectrum.ActiveResultData.ResultDataStatus.Clone();
@@ -1717,13 +1751,23 @@ namespace BecquerelMonitor
             this.activeDocument.ActiveResultData.PulseCollection = docEnergySpectrum.ActiveResultData.PulseCollection.Clone();
             this.activeDocument.ActiveResultData.SampleInfo = docEnergySpectrum.ActiveResultData.SampleInfo.Clone(); // `AMBER201` 2.14: своя карточка пробы — масса и объём новой правкой не меняют исходный документ
             this.activeDocument.ActiveResultData.StartTime = docEnergySpectrum.ActiveResultData.StartTime;
-            // FwhmCalibration can be null (DefaultCalibration may fail) - guard the NRE.
-            FwhmCalibration fwhmCalibration = docEnergySpectrum.ActiveResultData.FwhmCalibration != null
-                ? docEnergySpectrum.ActiveResultData.FwhmCalibration.RecalcWithNewChannelNum(docEnergySpectrum.ActiveResultData.EnergySpectrum.NumberOfChannels, newChan)
-                : null;
             this.activeDocument.ActiveResultData.FwhmCalibration = fwhmCalibration;
             this.activeDocument.Dirty = true;
             this.UpdateAllView();
+            return true;
+        }
+
+        /// <summary>
+        /// Спектр в <paramref name="newChan"/> каналах: меньше — сложение соседних
+        /// (<see cref="SpectrumAriphmetics.ConcatSpectrum"/>), больше — раскладка
+        /// (<see cref="SpectrumAriphmetics.RestoreSpectrum"/>); правило выбора то же,
+        /// что стояло в <see cref="ConcatSpectrums"/> отдельно у спектра и фона.
+        /// </summary>
+        static EnergySpectrum ResampleSpectrum(EnergySpectrum source, int newChan)
+        {
+            return newChan < source.NumberOfChannels
+                ? SpectrumAriphmetics.ConcatSpectrum(source, newChan)
+                : SpectrumAriphmetics.RestoreSpectrum(source, newChan);
         }
 
         void NormalizeSpectrum(DocEnergySpectrum docEnergySpectrum)
@@ -2207,7 +2251,8 @@ namespace BecquerelMonitor
                 }
                 catch
                 {
-                    MessageBox.Show(Resources.ERRUpdateApp);
+                    // (П319, Н6) заголовок и значок у всех трёх окон «Проверить обновление».
+                    MessageBox.Show(Resources.ERRUpdateApp, Resources.NotificationDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
                 if (info.UpdateAvailable)
@@ -2225,12 +2270,14 @@ namespace BecquerelMonitor
                 }
                 else
                 {
-                    MessageBox.Show(String.Format(Resources.MSGNoNewVersion, updateCheck.CurrentVersion.ToString()));
+                    MessageBox.Show(String.Format(Resources.MSGNoNewVersion, updateCheck.CurrentVersion.ToString()),
+                        Resources.NotificationDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show(String.Format(Resources.ERRUpdateExc, ex.Message));
+                MessageBox.Show(String.Format(Resources.ERRUpdateExc, ex.Message),
+                    Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -2892,7 +2939,10 @@ namespace BecquerelMonitor
             saveFileDialog.RestoreDirectory = true;
             if (!string.IsNullOrEmpty(this.activeDocument.ActiveResultData.BackgroundSpectrumFile))
             {
-                saveFileDialog.FileName = this.activeDocument.Text + " - subtract" + ".xml";
+                // (П319, П312 Н22) заголовок вкладки изменённого документа начинается
+                // с «* », а «*» в имени окна сохранения — маска фильтра: «Сохранить»
+                // молчал. Тот же Trim, что у снимка экрана и прочих экспортов.
+                saveFileDialog.FileName = this.activeDocument.Text.Trim(new char[] { '*', ' ' }) + " - subtract" + ".xml";
             }
             if (saveFileDialog.ShowDialog() != DialogResult.OK)
             {
@@ -2922,7 +2972,7 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
+                MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Error); // П319 Н6
             }
         }
 
@@ -2970,13 +3020,39 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
+                MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Error); // П319 Н6
             }
         }
 
         // Token: 0x06000A91 RID: 2705 RVA: 0x0003F0F4 File Offset: 0x0003D2F4
         public void SaveSpectrumToFile(DocEnergySpectrum doc)
         {
+            // ⛔ (П319, 15.10.2026; находка П311) ПУСТОЙ ВЫБОР — ОТКАЗ ДО ОКНА
+            //    СОХРАНЕНИЯ. В файл уходят спектры с `ResultData.Selected`; кнопка
+            //    «Экспорт...» списка спектров при пустом выборе погашена (П311), но
+            //    пункт меню «Экспорт спектра в файл» доступен всегда, и без выбора
+            //    писался файл без единого спектра — его потом не открыть («в файле
+            //    нет ни одного спектра»). Текст отказа — готовая пара en/ru
+            //    «No spectrum selected» / «Спектр не выбран».
+            if (doc == null)
+            {
+                return;
+            }
+            bool anySelected = false;
+            foreach (ResultData resultData in doc.ResultDataFile.ResultDataList)
+            {
+                if (resultData.Selected)
+                {
+                    anySelected = true;
+                    break;
+                }
+            }
+            if (!anySelected)
+            {
+                MessageBox.Show(Resources.FSAReportNoSpectrum, Resources.ExportSpectraToFileDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
             SaveFileDialog saveFileDialog = new SaveFileDialog();
             saveFileDialog.Title = Resources.ExportSpectraToFileDialogTitle;
             saveFileDialog.Filter = Resources.SpectrumFileFilter;
@@ -3015,7 +3091,7 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message));
+                MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, fileName, ex.Message), Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Error); // П319 Н6
             }
         }
 
@@ -3494,15 +3570,18 @@ namespace BecquerelMonitor
                 if (newChan == 0) return;
                 if (newChan > 64 && newChan != this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
                 {
-                    ConcatSpectrums(this.activeDocument, newChan);
-                    if (this.activeDocument.EnergySpectrumView.HorizontalMagnification == HorizontalMagnification.Fit)
+                    // (П319, Н5) отказ (нехватка памяти на новый массив) — документа нет,
+                    // и подгонять масштаб нечему.
+                    if (ConcatSpectrums(this.activeDocument, newChan)
+                        && this.activeDocument.EnergySpectrumView.HorizontalMagnification == HorizontalMagnification.Fit)
                     {
                         this.activeDocument.EnergySpectrumView.FitHorizontalScale();
                     }
                 }
                 else
                 {
-                    MessageBox.Show(Resources.ERRChanNumber);
+                    // (П319, Н6) заголовок и значок: без них окно отказа — с пустой строкой заголовка.
+                    MessageBox.Show(Resources.ERRChanNumber, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 }
             }            
         }
@@ -3524,12 +3603,12 @@ namespace BecquerelMonitor
                 }
                 if (energyVal == 0.0 && channel == 0)
                 {
-                    MessageBox.Show(Resources.ERRChanNumber);
+                    MessageBox.Show(Resources.ERRChanNumber, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation); // П319 Н6: заголовок и значок
                     return;
                 }
                 if (!isEnergy && channel >= this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
                 {
-                    MessageBox.Show(Resources.ERRChanNumber);
+                    MessageBox.Show(Resources.ERRChanNumber, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation); // П319 Н6: заголовок и значок
                     return;
                 }
                 // (`AMBER201`, подозрение полосы 2, 05.10.2026) Обрезка до нуля
@@ -3539,7 +3618,7 @@ namespace BecquerelMonitor
                 // у самой обрезки (`SpectrumAriphmetics.CutoffSpectrumEnergy`).
                 if (!isEnergy && channel < 1)
                 {
-                    MessageBox.Show(Resources.ERRChanNumber);
+                    MessageBox.Show(Resources.ERRChanNumber, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation); // П319 Н6: заголовок и значок
                     return;
                 }
                 if (isEnergy)
@@ -3548,7 +3627,7 @@ namespace BecquerelMonitor
                     int chan = Convert.ToInt32(PolynomialEnergyCalibration.ChannelOf(calibration, energyVal, this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels));
                     if (chan < 1 || chan >= this.activeDocument.ActiveResultData.EnergySpectrum.NumberOfChannels)
                     {
-                        MessageBox.Show(Resources.ERRChanNumber);
+                        MessageBox.Show(Resources.ERRChanNumber, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation); // П319 Н6: заголовок и значок
                         return;
                     }
                 }
@@ -3652,7 +3731,7 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, text, ex.Message));
+                MessageBox.Show(string.Format(Resources.ERRFileSaveFailure, text, ex.Message), Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Error); // П319 Н6
             }
         }
 
@@ -3672,7 +3751,7 @@ namespace BecquerelMonitor
         {
             this.globalConfigManager.GlobalConfig.Language = "OS";
             this.UpdateLanguageCheckState();
-            MessageBox.Show(BecquerelMonitor.Properties.Resources.RestartRequiredMessage);
+            MessageBox.Show(BecquerelMonitor.Properties.Resources.RestartRequiredMessage, Resources.NotificationDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Information); // П319 Н6
         }
 
         // Token: 0x06000AA9 RID: 2729 RVA: 0x0003F9D0 File Offset: 0x0003DBD0
@@ -3680,7 +3759,7 @@ namespace BecquerelMonitor
         {
             this.globalConfigManager.GlobalConfig.Language = "";
             this.UpdateLanguageCheckState();
-            MessageBox.Show(BecquerelMonitor.Properties.Resources.RestartRequiredMessage);
+            MessageBox.Show(BecquerelMonitor.Properties.Resources.RestartRequiredMessage, Resources.NotificationDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Information); // П319 Н6
         }
 
         // Token: 0x06000AAA RID: 2730 RVA: 0x0003F9F8 File Offset: 0x0003DBF8
@@ -3688,7 +3767,7 @@ namespace BecquerelMonitor
         {
             this.globalConfigManager.GlobalConfig.Language = "ru-RU";
             this.UpdateLanguageCheckState();
-            MessageBox.Show(BecquerelMonitor.Properties.Resources.RestartRequiredMessage);
+            MessageBox.Show(BecquerelMonitor.Properties.Resources.RestartRequiredMessage, Resources.NotificationDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Information); // П319 Н6
         }
 
         // Token: 0x06000AAB RID: 2731 RVA: 0x0003FA20 File Offset: 0x0003DC20

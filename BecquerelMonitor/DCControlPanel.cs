@@ -115,7 +115,7 @@ namespace BecquerelMonitor
             ResultDataStatus resultDataStatus = activeResultData.ResultDataStatus;
             if (this.PresetTime < 0)
             {
-                MessageBox.Show(Resources.ERRInvalidPresetTime);
+                MessageBox.Show(Resources.ERRInvalidPresetTime, Resources.InvalidValueDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation); // П319 Н6: заголовок и значок
                 return;
             }
             resultDataStatus.PresetTime = this.PresetTime;
@@ -150,7 +150,7 @@ namespace BecquerelMonitor
             ResultDataStatus resultDataStatus = activeResultData.ResultDataStatus;
             if (this.PresetTime < 0)
             {
-                MessageBox.Show(Resources.ERRInvalidPresetTime);
+                MessageBox.Show(Resources.ERRInvalidPresetTime, Resources.InvalidValueDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Exclamation); // П319 Н6: заголовок и значок
                 return false;
             }
             resultDataStatus.PresetTime = this.PresetTime;
@@ -990,10 +990,18 @@ namespace BecquerelMonitor
             {
                 this.realTimeLimitTextBox.Text = "0";
             }
+            // (П319, 15.10.2026; находка П312 Н16) Документ помечается изменённым,
+            // только если предел действительно сменился. Метод зовут и Enter, и
+            // уход фокуса (`Validated`) — прежде любой из них ставил «*» и вопрос
+            // «Сохранить?» при закрытии, даже когда в поле то же число.
+            bool changed = resultDataStatus.PresetTime != presetTime || activeResultData.PresetTime != presetTime;
             resultDataStatus.PresetTime = presetTime;
             activeResultData.PresetTime = presetTime;
             this.ShowMeasurementProgressBar();
-            activeDocument.Dirty = true;
+            if (changed)
+            {
+                activeDocument.Dirty = true;
+            }
         }
 
         // Token: 0x060002A6 RID: 678 RVA: 0x0000C354 File Offset: 0x0000A554

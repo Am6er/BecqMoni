@@ -223,7 +223,20 @@ namespace BecquerelMonitor.Utils
         /// файл» и понимает, что ничего не произошло; без окон это молчаливое
         /// «сложил» с прежними числами — ровно тот случай, где продолжение
         /// хуже зависания, потому что даёт ЧИСЛА.
+        ///
+        /// ⛔ (П319, 15.10.2026; находка П312 Н18) ОТКАЗ В ОКНАХ ВОЗВРАЩАЕТ
+        /// <c>null</c>, а не главный спектр. Прежде возвращался тот же
+        /// нетронутый документ, и вызывающий не мог отличить отказ от сложения:
+        /// после «ОК» на окне отказа вкладка получала «*» и при закрытии
+        /// спрашивала «Сохранить?» о документе, который не менялся. Вызывающий
+        /// (<c>MainForm.CombineSpectrasToolStripMenuItem_Click</c>) на
+        /// <c>null</c> ничего не трогает. Подпись метода прежняя нарочно:
+        /// <c>RestCultureProbeF47</c> берёт его по имени
+        /// (<c>GetMethod("CombineWith")</c>), и перегрузка сделала бы поиск
+        /// неоднозначным.
         /// </summary>
+        /// <returns>Главный документ со сложенным спектром; <c>null</c> — отказ
+        /// (разное число каналов), сложения не было.</returns>
         public DocEnergySpectrum CombineWith(DocEnergySpectrum docenergySpectrum)
         {
             EnergySpectrum mainSpectrum = this.MainSpectrum.ActiveResultData.EnergySpectrum;
@@ -340,6 +353,8 @@ namespace BecquerelMonitor.Utils
                         + "cannot tell that from a successful combine. " + Resources.CombineIncorrectChannels);
                 }
                 AppUi.Report(Resources.CombineIncorrectChannels, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                // (П319, Н18) отказ — null: вызывающему нечего помечать изменённым.
+                return null;
             }
 
             return this.MainSpectrum;
