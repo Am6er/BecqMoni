@@ -33,11 +33,19 @@ namespace BecquerelMonitor
             int y = Pad;
 
             // --- зачем это вообще -----------------------------------------
+            // Высота меряется по тексту, а не прибита: прежние 96 пикселей
+            // вмещали ровно прежний абзац, и строка сверх него уходила бы за
+            // нижний край молча. Меряем чуть уже метки — запас на её поля,
+            // лишняя строка высоты дешевле обрезанной.
+            int aboutWidth = FormWidth - 2 * Pad;
+            Size aboutNeed = TextRenderer.MeasureText(
+                Resources.ResponseMatrixWhatFor, this.Font, new Size(aboutWidth - 6, int.MaxValue),
+                TextFormatFlags.WordBreak);
             var about = new Label
             {
                 Text = Resources.ResponseMatrixWhatFor,
                 Location = new Point(Pad, y),
-                Size = new Size(FormWidth - 2 * Pad, 96),
+                Size = new Size(aboutWidth, aboutNeed.Height + 4),
                 ForeColor = SystemColors.GrayText
             };
             this.Controls.Add(about);

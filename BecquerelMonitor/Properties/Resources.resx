@@ -43089,9 +43089,9 @@ Computed: {7}, took {8:F0} s</value>
     <value>Could not compute the matrix: {0}</value>
   </data>
   <data name="ResponseMatrixWhatFor" xml:space="preserve">
-    <value>The matrix describes how the detector spreads the energy of a photon that hits it: the full-energy peak, the Compton plateau, the escape peaks. Full-spectrum analysis uses it to model the continuum of each nuclide instead of leaving it to a free baseline.
+    <value>The matrix describes how the detector spreads the energy of a photon that hits it: the full-energy peak, the Compton plateau, the escape peaks. From it FSA builds the response of each nuclide together with its continuum, the dose rate takes the total efficiency, and the activity of a line takes the cascade-summing correction. Without a valid matrix the continuum is left to the free FSA baseline, the dose rate is computed from the peak efficiency (≈), and there is no summing correction.
 
-The matrix is stored next to the device configuration, one file per geometry, and does not travel inside spectrum files.</value>
+The matrix is stored on this computer, one file per geometry; a computed one takes its place when the device configuration is saved. When a spectrum is saved, the matrix goes into its file (setting "Save response matrix into spectrum file", on by default), and a recipient who has no valid matrix of their own for this geometry analyses the spectrum with it, without recomputing.</value>
   </data>
   <data name="ResponseMatrixInheritedHistories" xml:space="preserve">
     <value>Computed with {0:F0} histories per node, nominal is {1:F0}; field raised to nominal</value>
