@@ -907,6 +907,9 @@
   <data name="ERRPeakExist" xml:space="preserve">
     <value>FWHM выбранного пика уже присутствуют в таблице калибровочных пиков! Попробуйте выбрать другой пик. FWHM = {0} канал, Канал = {1} канал.</value>
   </data>
+  <data name="MSGFwhmPeaksOtherGridSkipped" xml:space="preserve">
+    <value>Калибровочных пиков из спектров с другим числом каналов не взято: {0} — их каналы и ширины в других единицах.</value>
+  </data>
   <data name="ImportSpecUtilsFileDialogTitle" xml:space="preserve">
     <value>Импорт при помощи SpecUtils</value>
   </data>

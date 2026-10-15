@@ -1849,6 +1849,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to {0} calibration peaks from spectra with a different number of channels were not taken: their channels and widths are in other units..
+        /// </summary>
+        public static string MSGFwhmPeaksOtherGridSkipped {
+            get {
+                return ResourceManager.GetString("MSGFwhmPeaksOtherGridSkipped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Initialize all color settings?.
         /// </summary>
         public static string MSGInitializeAllColorSetting {
