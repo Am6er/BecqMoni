@@ -1,5 +1,4 @@
-﻿using BecquerelMonitor.Properties;
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Globalization;
@@ -105,35 +104,65 @@ namespace BecquerelMonitor
     [ToolboxBitmap(typeof(TextBox))]
     public class DoubleTextBox : TextBox
     {
+        /// <summary>
+        /// (П320, решение Amber 15.10.2026 вопросником, дословно: «Вернуть прежнее
+        /// (Рекомендую)»; находки П312 Н14/Н15) Последний текст поля, читавшийся
+        /// числом, — то, что поле вернёт, если человек уйдёт с него с нечислом.
+        /// Прежним считается текст, поставленный КОДОМ (загрузка формы, смена
+        /// документа, подстановка порога), и текст, прошедший проверку ухода.
+        /// Набор человека (клавиатура, Ctrl+V — мимо свойства <see cref="Text"/>)
+        /// прежним не становится, пока не пройдёт проверку: промежуточное «12» по
+        /// дороге к «12x» прежним значением не является.
+        /// </summary>
+        string lastNumberText;
+
         // Token: 0x06000BE8 RID: 3048 RVA: 0x00047FA0 File Offset: 0x000461A0
         public DoubleTextBox()
         {
             base.Validating += this.DoubleTextBox_Validating;
         }
 
+        /// <summary>Текст, поставленный кодом: число становится «прежним».</summary>
+        public override string Text
+        {
+            get
+            {
+                return base.Text;
+            }
+            set
+            {
+                base.Text = value;
+                double ignored;
+                if (UserNumber.TryParseDouble(value, out ignored))
+                {
+                    this.lastNumberText = value;
+                }
+            }
+        }
+
         // Token: 0x06000BE9 RID: 3049 RVA: 0x00047FBC File Offset: 0x000461BC
         void DoubleTextBox_Validating(object sender, CancelEventArgs e)
         {
-            if (this != null && this.Text == "")
+            if (this.Text == "")
             {
                 this.Text = "0";
             }
             double num;
-            if (!UserNumber.TryParseDouble(this.Text, out num))
+            if (UserNumber.TryParseDouble(this.Text, out num))
             {
-                // ⛔ `A245`, полоса F20 05.09.2026. Голое модальное окно на
-                //    безоконном пути: этот обработчик зовут отражением пробы
-                //    (`CultureProbeO14`, раздел `A244P1P3`), и до правки
-                //    сторона ОТКАЗА поля не мерилась вовсе — плечо обходило
-                //    настоящий обработчик, потому что прогон повис бы на
-                //    окне. Дверь маршалится сама (~~`A241`~~), а на потоке
-                //    окон вызов остаётся синхронным: в приложении вид
-                //    сообщения прежний — тот же текст, тот же заголовок,
-                //    та же «ОК» и тот же знак.
-                AppUi.Report(Resources.ERRInputNumber, Resources.InvalidValueDialogTitle, MessageBoxIcon.Exclamation);
-                base.SelectAll();
-                e.Cancel = true;
+                this.lastNumberText = this.Text;
+                return;
             }
+
+            // (П320, решение Amber 15.10.2026 «Вернуть прежнее») Нечисло при уходе
+            // фокуса МОЛЧА заменяется прежним числом, фокус уходит. Прежде здесь
+            // поднималось окно «Введите число» и ставилось `e.Cancel = true`: фокус
+            // оставался в поле, а вместе с ним запиралось окно — в «Настройках» не
+            // закрывалась «Отмена» (Н14), на панели «Управление измерением» не
+            // переключались документы (Н15). Запись нечисла не пропускает и теперь:
+            // окно прибора перед записью проверяет все поля (`FieldsValid`), и поле с
+            // нечислом к записи уже держит прежнее число.
+            this.Text = this.lastNumberText ?? "0";
         }
 
         // Token: 0x06000BEA RID: 3050 RVA: 0x00048020 File Offset: 0x00046220

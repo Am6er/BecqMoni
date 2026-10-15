@@ -1,5 +1,4 @@
-﻿using BecquerelMonitor.Properties;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -9,10 +8,36 @@ namespace BecquerelMonitor
     [ToolboxBitmap(typeof(TextBox))]
     public class IntegerTextBox : TextBox
     {
+        /// <summary>
+        /// (П320, решение Amber 15.10.2026 «Вернуть прежнее») Последний текст поля,
+        /// читавшийся целым, — то, что поле вернёт при уходе с нечислом. Устроено
+        /// так же, как у <see cref="DoubleTextBox"/>: прежним становится текст,
+        /// поставленный кодом, и текст, прошедший проверку ухода, — не набор.
+        /// </summary>
+        string lastNumberText;
+
         // Token: 0x060005C8 RID: 1480 RVA: 0x000253CC File Offset: 0x000235CC
         public IntegerTextBox()
         {
             base.Validating += this.IntegerTextBox_Validating;
+        }
+
+        /// <summary>Текст, поставленный кодом: целое становится «прежним».</summary>
+        public override string Text
+        {
+            get
+            {
+                return base.Text;
+            }
+            set
+            {
+                base.Text = value;
+                int ignored;
+                if (UserNumber.TryParseInt(value, out ignored))
+                {
+                    this.lastNumberText = value;
+                }
+            }
         }
 
         // Token: 0x060005C9 RID: 1481 RVA: 0x000253E8 File Offset: 0x000235E8
@@ -25,19 +50,18 @@ namespace BecquerelMonitor
             int num;
             // `A244`: разбор ввода человека — инвариантом, с уступкой культуре
             // системы (см. `UserNumber` в `DoubleTextBox.cs`).
-            if (!UserNumber.TryParseInt(this.Text, out num))
+            if (UserNumber.TryParseInt(this.Text, out num))
             {
-                // ⛔ `A245`, полоса F20 05.09.2026 — то же, что в
-                //    `DoubleTextBox_Validating`: голое модальное окно на
-                //    безоконном пути. Сторож `check_headless.py` этого места
-                //    не называл только потому, что до него не дотягивалась ни
-                //    одна проба; чинится вместе с соседом, иначе одно поле
-                //    ввода из двух осталось бы с окном, а разницы между ними
-                //    нет никакой.
-                AppUi.Report(Resources.ERRInputInteger, Resources.InvalidValueDialogTitle, MessageBoxIcon.Exclamation);
-                base.SelectAll();
-                e.Cancel = true;
+                this.lastNumberText = this.Text;
+                return;
             }
+
+            // (П320, решение Amber 15.10.2026 «Вернуть прежнее») Нечисло при уходе
+            // фокуса МОЛЧА заменяется прежним целым, фокус уходит — без окна
+            // «Введите целое число» и без `e.Cancel`, которое запирало фокус: на
+            // панели «Управление измерением» с нечислом в пределе времени не
+            // переключались документы (П312 Н15). См. `DoubleTextBox_Validating`.
+            this.Text = this.lastNumberText ?? "0";
         }
 
         // Token: 0x060005CA RID: 1482 RVA: 0x0002544C File Offset: 0x0002364C

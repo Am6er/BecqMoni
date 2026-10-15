@@ -177,18 +177,26 @@ namespace BecquerelMonitor
                 audioInputDeviceConfig.AutoVolumeSetting = this.checkBox2.Checked;
                 audioInputDeviceConfig.NegativePolarity = this.checkBox1.Checked;
                 PRAHomageMethodConfig prahomageMethodConfig = (PRAHomageMethodConfig)audioInputDeviceConfig.PulseDetectionMethodConfig;
-                prahomageMethodConfig.LowerThreshold = double.Parse(this.doubleTextBox1.Text, CultureInfo.InvariantCulture);
-                prahomageMethodConfig.UpperThreshold = double.Parse(this.doubleTextBox2.Text, CultureInfo.InvariantCulture);
+                // (П320, находка П318 В1) Пороги — общим разбором человеческого ввода
+                // `UserNumber`, тем же, которым их судит само поле (`DoubleTextBox`).
+                // Здесь стоял `double.Parse(text, InvariantCulture)`: умолчание стиля этой
+                // перегрузки — `Float | AllowThousands`, а запятая инварианта — разделитель
+                // РАЗРЯДОВ. «0,5», которое поле на русской системе честно принимало как 0.5,
+                // записывалось как 5, «1,234» — как 1234, молча. Проба P320UserNumberProbe.
+                prahomageMethodConfig.LowerThreshold = UserNumber.ParseDouble(this.doubleTextBox1.Text);
+                prahomageMethodConfig.UpperThreshold = UserNumber.ParseDouble(this.doubleTextBox2.Text);
                 if (prahomageMethodConfig.UpperThreshold < prahomageMethodConfig.LowerThreshold)
                 {
                     prahomageMethodConfig.UpperThreshold = prahomageMethodConfig.LowerThreshold;
                     this.doubleTextBox2.Text = prahomageMethodConfig.UpperThreshold.ToString(CultureInfo.InvariantCulture);
                 }
-                prahomageMethodConfig.PulseThreshold = double.Parse(this.maskedTextBox2.Text, CultureInfo.InvariantCulture) / 100.0;
+                // Поле процентов под маской «999» запятой не пропускает; разбор — тот же, для
+                // единообразия всех пяти чисел формы.
+                prahomageMethodConfig.PulseThreshold = UserNumber.ParseDouble(this.maskedTextBox2.Text) / 100.0;
                 prahomageMethodConfig.PulseShapeSize = (int)this.numericUpDown1.Value;
                 prahomageMethodConfig.PeakIndex = (int)this.numericUpDown2.Value;
-                prahomageMethodConfig.PulseLowerThreshold = double.Parse(this.doubleTextBox3.Text, CultureInfo.InvariantCulture);
-                prahomageMethodConfig.PulseUpperThreshold = double.Parse(this.doubleTextBox4.Text, CultureInfo.InvariantCulture);
+                prahomageMethodConfig.PulseLowerThreshold = UserNumber.ParseDouble(this.doubleTextBox3.Text);
+                prahomageMethodConfig.PulseUpperThreshold = UserNumber.ParseDouble(this.doubleTextBox4.Text);
                 if (prahomageMethodConfig.PulseUpperThreshold < prahomageMethodConfig.PulseLowerThreshold)
                 {
                     prahomageMethodConfig.PulseUpperThreshold = prahomageMethodConfig.PulseLowerThreshold;
