@@ -136,6 +136,57 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// (П318, находка П316) Закрыть окно — крестиком, Alt+F4, «Закрыть» — можно и с
+        /// нечислом в поле. Форма немодальная (<c>MainForm.ShowDeviceConfigForm</c> зовёт
+        /// <c>Show</c>), и на WM_CLOSE проверяет активное поле (<c>Form.WmClose</c> →
+        /// <c>Validate(true)</c>): поле <see cref="DoubleTextBox"/>/<see cref="IntegerTextBox"/>
+        /// с нечислом отменяло закрытие — даже после ответа «Нет» на «Сохранить?». Замер
+        /// (`P318RevertAndCloseProbe`): «шаг канала» = abc — «Закрыть» не срабатывал вовсе,
+        /// крестик спрашивал «Сохранить?», а на «Нет» окно оставалось открытым. Тот же приём,
+        /// что у настроек программы (`GlobalConfigForm`, П316 Н14): на время закрытия
+        /// неявная проверка снимается; у кнопки «Закрыть» <c>CausesValidation = false</c>
+        /// (дизайнер). Нечисло при этом НЕ уходит в запись: ответ «Да» на «Сохранить?» и
+        /// кнопка «Сохранить» проверяют все поля явно (<see cref="FieldsValid"/>).
+        /// </summary>
+        protected override void WndProc(ref Message m)
+        {
+            const int WM_CLOSE = 0x0010;
+            if (m.Msg != WM_CLOSE)
+            {
+                base.WndProc(ref m);
+                return;
+            }
+            AutoValidate previous = this.AutoValidate;
+            this.AutoValidate = AutoValidate.Disable;
+            try
+            {
+                base.WndProc(ref m);
+            }
+            finally
+            {
+                if (!this.IsDisposed)
+                {
+                    this.AutoValidate = previous;
+                }
+            }
+        }
+
+        /// <summary>
+        /// (П318) Все числовые поля окна — и вложенных форм прибора — проходят свою
+        /// проверку (<c>Validating</c> полей <see cref="DoubleTextBox"/>/<see cref="IntegerTextBox"/>;
+        /// поле само называет беду). Зовётся перед КАЖДОЙ записью: фокус мог уйти с поля без
+        /// проверки — на «Закрыть» (у неё проверка снята) или крестиком, — а
+        /// <c>SaveFormContents</c> отказ вложенной формы не читает (её поля разбираются после
+        /// записей в конфигурацию). <c>ValidateChildren</c> работает и при
+        /// <see cref="AutoValidate.Disable"/>; <see cref="ValidationConstraints.None"/> — поля
+        /// всех вкладок, не только видимой.
+        /// </summary>
+        bool FieldsValid()
+        {
+            return this.ValidateChildren(ValidationConstraints.None);
+        }
+
         // Token: 0x06000516 RID: 1302 RVA: 0x00020748 File Offset: 0x0001E948
         public void ListupConfigFiles()
         {
@@ -621,6 +672,11 @@ namespace BecquerelMonitor
         void button6_Click(object sender, EventArgs e)
         {
             if (this.activeDeviceConfig == null)
+            {
+                return;
+            }
+            // (П318) Поле, покинутое без проверки, — отказ его же словами (`FieldsValid`).
+            if (!this.FieldsValid())
             {
                 return;
             }
@@ -1485,6 +1541,12 @@ namespace BecquerelMonitor
                     if (!pe.CheckCalibration(channels: this.activeDeviceConfig.NumberOfChannels))
                     {
                         MessageBox.Show(Resources.CalibrationFunctionError);
+                        return false;
+                    }
+                    // (П318) «Да» — это запись: поле, покинутое без проверки («Закрыть»,
+                    // крестик), проверяется здесь и называет себя само (`FieldsValid`).
+                    if (!this.FieldsValid())
+                    {
                         return false;
                     }
                     if (!this.SaveFormContents(this.activeDeviceConfig))
