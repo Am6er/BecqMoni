@@ -2009,6 +2009,15 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("MSGSavingNuclideSet", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The &quot;Edit Nuclide Definition&quot; window has unsaved changes to the nuclide library [rest of string was truncated]&quot;;.
+        /// </summary>
+        public static string MSGSavingNuclideSetUnsavedNuclides {
+            get {
+                return ResourceManager.GetString("MSGSavingNuclideSetUnsavedNuclides", resourceCulture);
+            }
+        }
 
         /// <summary>
         ///   Looks up a localized string similar to --- All Nuclides ---.

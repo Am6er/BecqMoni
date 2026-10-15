@@ -145,6 +145,13 @@
   <data name="MSGSavingNuclideSet" xml:space="preserve">
     <value>Nuclide set(s) has been modified. Save?</value>
   </data>
+  <data name="MSGSavingNuclideSetUnsavedNuclides" xml:space="preserve">
+    <value>The "Edit Nuclide Definition" window has unsaved changes to the nuclide library. The library and the nuclide sets are stored in one file.
+
+Yes - save those changes together with the sets (nothing will be left unsaved in the "Edit Nuclide Definition" window).
+No - save only the sets; the library changes stay unsaved in the "Edit Nuclide Definition" window.
+Cancel - save nothing.</value>
+  </data>
   <data name="NuclideSetAssignColor" xml:space="preserve">
     <value>Assign peak color:</value>
   </data>

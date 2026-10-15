@@ -220,6 +220,7 @@ namespace BecquerelMonitor
             // после правки в таблице.
             this.RememberBeforeEdit(this.activeNuclide);
             this.activeNuclide.Visible = this.checkBox1.Checked;
+            this.NoteEdited(this.activeNuclide);
             this.SetActiveNuclideDirty();
         }
 
@@ -354,6 +355,7 @@ namespace BecquerelMonitor
                     this.activeNuclide.HalfLife = number;
                     break;
             }
+            this.NoteEdited(this.activeNuclide);
             this.SetActiveNuclideDirty();
             this.definitionsDirty = true;
             this.LoadFormContents(this.activeNuclide);
@@ -530,7 +532,12 @@ namespace BecquerelMonitor
         bool SaveNuclideDefinitions()
         {
             this.RememberBeforeEdit(this.activeNuclide);
-            if (!this.SaveFormContents(this.activeNuclide))
+            bool moved = this.SaveFormContents(this.activeNuclide);
+            // (П326) Перенесённое из полей — правка этого окна, даже частичная
+            // (отказ разбора числа на середине): откат и запись «без правок окна»
+            // обязаны знать, что именно окно положило в линию.
+            this.NoteEdited(this.activeNuclide);
+            if (!moved)
             {
                 MessageBox.Show(Resources.ERRInvalidInputForm);
                 return false;
@@ -572,6 +579,25 @@ namespace BecquerelMonitor
             this.definitionsDirty = true;
         }
 
+        /// <summary>
+        /// (П326) Запомнить линию такой, какой её оставила последняя правка ЭТОГО
+        /// окна. Зовётся после каждой записи окна в линию (ячейка таблицы, галка
+        /// «Видимый», перенос полей). Нужна затем, что линию правит не только это
+        /// окно: редактор наборов красит линии своего набора («Назначить цвет»), и
+        /// откат по одному снимку «до правки» вернул бы и чужую покраску.
+        /// </summary>
+        void NoteEdited(NuclideDefinition nuclide)
+        {
+            foreach (NuclideState state in this.unsaved)
+            {
+                if (ReferenceEquals(state.Definition, nuclide))
+                {
+                    state.After = LineValues.Of(nuclide);
+                    return;
+                }
+            }
+        }
+
         /// <summary>(П318) Ответ «Нет»: линии — как до правок этого окна; объекты те же.</summary>
         void RollBackUnsaved()
         {
@@ -594,62 +620,214 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// (П326) Есть ли в окне несохранённое — то, о чём оно само спросит
+        /// «Сохранить?» при уходе со строки или закрытии: правки линий в памяти
+        /// (ячейки таблицы, галка «Видимый») или правки полей справа, ещё не
+        /// перенесённые в линию.
+        /// </summary>
+        internal bool HasUnsavedEdits
+        {
+            get
+            {
+                return this.definitionsDirty || (this.activeNuclide != null && this.activeNuclide.Dirty);
+            }
+        }
+
+        /// <summary>
+        /// (П326) Открытые окна редактора нуклидов с несохранённым
+        /// (<see cref="HasUnsavedEdits"/>). Библиотека и наборы лежат в ОДНОМ
+        /// файле (<see cref="NuclideDefinitionManager.SaveDefinitionFile"/> пишет
+        /// всё, что в памяти), поэтому любой, кто пишет библиотеку, обязан знать
+        /// об этих окнах: иначе их правки уходят в файл молча.
+        /// </summary>
+        internal static List<NuclideDefinitionForm> OpenWithUnsavedEdits()
+        {
+            List<NuclideDefinitionForm> list = new List<NuclideDefinitionForm>();
+            foreach (Form form in Application.OpenForms)
+            {
+                NuclideDefinitionForm editor = form as NuclideDefinitionForm;
+                if (editor != null && !editor.IsDisposed && editor.HasUnsavedEdits)
+                {
+                    list.Add(editor);
+                }
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// (П326) Ответ «Да» на вопрос редактора наборов: записать правки окна в
+        /// файл вместе с остальным — ровно как кнопка «Сохранить» этого окна
+        /// (поля переносятся в линию, файл пишется, окно становится «сохранено»).
+        /// Отказ (нечисло в поле, файл не записан) — false, пометка остаётся.
+        /// </summary>
+        internal bool SaveTogether()
+        {
+            if (this.activeNuclide != null && this.activeNuclide.Dirty)
+            {
+                if (!this.SaveNuclideDefinitions())
+                {
+                    return false;
+                }
+                this.ResetActiveNuclideDirty();
+                this.ListupNuclideDefinitions();
+                return true;
+            }
+            if (!this.manager.SaveDefinitionFile())
+            {
+                return false;
+            }
+            this.ForgetUnsaved();
+            return true;
+        }
+
+        /// <summary>
+        /// (П326) Ответ «Нет» на вопрос редактора наборов: записать файл так, будто
+        /// несохранённых правок ЭТОГО окна нет. На время записи линии получают
+        /// значения до правок окна (<see cref="NuclideState.WithoutEdits"/>), после —
+        /// ровно прежние, с правками; пометка окна не трогается. Правки полей, не
+        /// перенесённые в линию, в файл не попадают и так.
+        ///
+        /// Разделить честно можно потому, что заведение и удаление линий окно
+        /// пишет в файл СРАЗУ (<see cref="CommitDefinitions"/>): несохранёнными
+        /// бывают только поля существующих линий, и у каждой есть снимок.
+        /// </summary>
+        internal bool WriteWithoutUnsavedEdits(Func<bool> write)
+        {
+            List<KeyValuePair<NuclideState, LineValues>> current = new List<KeyValuePair<NuclideState, LineValues>>();
+            foreach (NuclideState state in this.unsaved)
+            {
+                current.Add(new KeyValuePair<NuclideState, LineValues>(state, LineValues.Of(state.Definition)));
+            }
+            try
+            {
+                foreach (KeyValuePair<NuclideState, LineValues> pair in current)
+                {
+                    pair.Key.WithoutEdits().Put(pair.Key.Definition);
+                }
+                return write();
+            }
+            finally
+            {
+                foreach (KeyValuePair<NuclideState, LineValues> pair in current)
+                {
+                    pair.Value.Put(pair.Key.Definition);
+                }
+            }
+        }
+
+        /// <summary>
         /// (П318) Всё, что окно может записать в линию: правки таблицы (имя,
         /// энергия, период), галка «Видимый» и поля формы (<c>SaveFormContents</c>).
         /// Заметка — ссылка: форма её не правит, а заменяет новым объектом.
         /// </summary>
+        sealed class LineValues
+        {
+            public string Name;
+            public string Chain;
+            public double Energy;
+            public double HalfLife;
+            public double Intensity;
+            public CDATA Note;
+            public bool HasColor;
+            public System.Drawing.Color Color;
+            public bool Visible;
+
+            public static LineValues Of(NuclideDefinition d)
+            {
+                return new LineValues
+                {
+                    Name = d.Name,
+                    Chain = d.Chain,
+                    Energy = d.Energy,
+                    HalfLife = d.HalfLife,
+                    Intensity = d.Intencity,
+                    Note = d.Note,
+                    HasColor = d.NuclideColor != null,
+                    Color = d.NuclideColor != null ? d.NuclideColor.Color : System.Drawing.Color.Empty,
+                    Visible = d.Visible,
+                };
+            }
+
+            /// <summary>Положить значения в линию. Пометку <c>Dirty</c> не трогает.</summary>
+            public void Put(NuclideDefinition d)
+            {
+                d.Name = this.Name;
+                d.Chain = this.Chain;
+                d.Energy = this.Energy;
+                d.HalfLife = this.HalfLife;
+                d.Intencity = this.Intensity;
+                d.Note = this.Note;
+                if (this.HasColor && d.NuclideColor != null)
+                {
+                    d.NuclideColor.Color = this.Color;
+                }
+                d.Visible = this.Visible;
+            }
+        }
+
+        /// <summary>
+        /// (П318) Линия до первой несохранённой правки окна (<see cref="Before"/>)
+        /// и (П326) такая, какой окно её оставило (<see cref="After"/>).
+        /// </summary>
         sealed class NuclideState
         {
             public NuclideDefinition Definition;
-            string name;
-            string chain;
-            double energy;
-            double halfLife;
-            double intensity;
-            CDATA note;
-            bool hasColor;
-            System.Drawing.Color color;
-            bool visible;
+            public LineValues Before;
+            public LineValues After;
 
             public static NuclideState Of(NuclideDefinition d)
             {
                 return new NuclideState
                 {
                     Definition = d,
-                    name = d.Name,
-                    chain = d.Chain,
-                    energy = d.Energy,
-                    halfLife = d.HalfLife,
-                    intensity = d.Intencity,
-                    note = d.Note,
-                    hasColor = d.NuclideColor != null,
-                    color = d.NuclideColor != null ? d.NuclideColor.Color : System.Drawing.Color.Empty,
-                    visible = d.Visible,
+                    Before = LineValues.Of(d),
+                    After = LineValues.Of(d),
                 };
+            }
+
+            /// <summary>
+            /// (П326) Линия без правок ЭТОГО окна. Поле, которое держит то, что
+            /// окно туда положило, получает значение до правки; поле, которое с
+            /// тех пор сменил кто-то другой, остаётся как есть. Другой здесь —
+            /// редактор наборов: он красит линии («Назначить цвет»), и прежний
+            /// откат по одному снимку «до» возвращал линии цвет до покраски —
+            /// в памяти одно, в файле, записанном наборами, другое.
+            /// </summary>
+            public LineValues WithoutEdits()
+            {
+                LineValues now = LineValues.Of(this.Definition);
+                LineValues v = LineValues.Of(this.Definition);
+                if (string.Equals(now.Name, this.After.Name, StringComparison.Ordinal)) v.Name = this.Before.Name;
+                if (string.Equals(now.Chain, this.After.Chain, StringComparison.Ordinal)) v.Chain = this.Before.Chain;
+                if (now.Energy.Equals(this.After.Energy)) v.Energy = this.Before.Energy;
+                if (now.HalfLife.Equals(this.After.HalfLife)) v.HalfLife = this.Before.HalfLife;
+                if (now.Intensity.Equals(this.After.Intensity)) v.Intensity = this.Before.Intensity;
+                if (ReferenceEquals(now.Note, this.After.Note)) v.Note = this.Before.Note;
+                if (now.HasColor && this.After.HasColor && this.Before.HasColor && now.Color == this.After.Color)
+                {
+                    v.Color = this.Before.Color;
+                }
+                if (now.Visible == this.After.Visible) v.Visible = this.Before.Visible;
+                return v;
             }
 
             public void Restore()
             {
-                NuclideDefinition d = this.Definition;
-                d.Name = this.name;
-                d.Chain = this.chain;
-                d.Energy = this.energy;
-                d.HalfLife = this.halfLife;
-                d.Intencity = this.intensity;
-                d.Note = this.note;
-                if (this.hasColor && d.NuclideColor != null)
-                {
-                    d.NuclideColor.Color = this.color;
-                }
-                d.Visible = this.visible;
-                d.Dirty = false;
+                this.WithoutEdits().Put(this.Definition);
+                this.Definition.Dirty = false;
             }
         }
 
         // Token: 0x060000CF RID: 207 RVA: 0x000042D4 File Offset: 0x000024D4
         void UpdatePeakDetectionResult()
         {
-            MainForm mainForm = (MainForm)base.Owner;
+            // (П326) Без хозяина-MainForm (окно, поднятое пробой) пересчитывать
+            // нечего; прежде здесь было приведение `(MainForm)base.Owner` и NRE.
+            MainForm mainForm = base.Owner as MainForm;
+            if (mainForm == null)
+            {
+                return;
+            }
             mainForm.UpdateDetectedPeakView();
             if (mainForm.ActiveDocument != null)
             {
