@@ -6,7 +6,9 @@
 // формула там записана для человека ((C2F4)n, и опечатка H20 у воды),
 // а доли — величины NIST и сходятся к единице у всех строк.
 // Две опечатки ЛСРМ (Freon-13ii, Lanthanum oxysulfide) заменены долями
-// NIST из matdb.star_material_composition (AMBER107, П172 28.09.2026).
+// NIST из matdb.star_material_composition (AMBER107, П172 28.09.2026);
+// ещё три (П317, 15.10.2026): доли Aniline и Skin (icrp) — из NIST,
+// плотность Krypton, liquid 2.418e-03 -> 2.418 (сдвиг порядка).
 using System.Collections.Generic;
 
 namespace BecquerelMonitor.EfficiencyMaker
@@ -24,7 +26,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             new[] { "Air, dry (near sea level)", "", "0.001205", "6:0.000124 7:0.755268 8:0.231781 18:0.012827" },
             new[] { "Amber", "C10H16O", "1.1", "1:0.10593 6:0.788973 8:0.105096" },
             new[] { "Ammonia", "NH3", "0.000826", "1:0.177547 7:0.822453" },
-            new[] { "Aniline", "C6H5NH2", "1.024", "1:0.075759 6:0.775838 7:0.150403" },
+            new[] { "Aniline", "C6H5NH2", "1.024", "1:0.075759 6:0.773838 7:0.150403" },
             new[] { "Anthracene", "C14H10", "1.283", "1:0.05655 6:0.94345" },
             new[] { "Antimony", "Sb", "6.691", "51:1" },
             new[] { "Argon, gaseous", "Ar", "0.001662", "18:1" },
@@ -133,7 +135,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             new[] { "Iodine", "I", "4.93", "53:1" },
             new[] { "Iridium", "Ir", "22.42", "77:1" },
             new[] { "Krypton, gaseous", "Kr", "0.003478", "36:1" },
-            new[] { "Krypton, liquid", "Kr", "0.002418", "36:1" },
+            new[] { "Krypton, liquid", "Kr", "2.418", "36:1" },
             new[] { "Lanthanum", "La", "6.154", "57:1" },
             new[] { "Lanthanum oxybromide", "LaOBr", "6.28", "8:0.068138 35:0.340294 57:0.591568" },
             new[] { "Lanthanum oxysulfide", "La2OS", "5.86", "8:0.0936 16:0.093778 57:0.812622" },
@@ -238,7 +240,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             new[] { "Silver chloride", "AgCl", "5.56", "17:0.247368 47:0.752632" },
             new[] { "Silver halides in photographic emulsion", "", "6.47", "35:0.422895 47:0.573748 53:0.003357" },
             new[] { "Silver iodide", "AgI", "6.01", "47:0.459458 53:0.540542" },
-            new[] { "Skin (icrp)", "", "1.1", "1:0.100588 6:0.22825 7:0.04602 8:0.619002 11:7e-05 12:6e-05 15:0.00033 16:0.00159 17:0.00267 19:0.00085 20:0.00015 26:1e-05 30:1e-05" },
+            new[] { "Skin (icrp)", "", "1.1", "1:0.100588 6:0.22825 7:0.04642 8:0.619002 11:7e-05 12:6e-05 15:0.00033 16:0.00159 17:0.00267 19:0.00085 20:0.00015 26:1e-05 30:1e-05" },
             new[] { "Sodium", "Na", "0.971", "11:1" },
             new[] { "Sodium carbonate", "Na2CO3", "2.532", "6:0.113323 8:0.452861 11:0.433815" },
             new[] { "Sodium monoxide", "Na2O", "2.27", "8:0.258143 11:0.741857" },

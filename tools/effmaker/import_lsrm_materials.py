@@ -33,6 +33,15 @@ NIST STAR, откуда таблица и взята, и доли у них по
   * `Lanthanum oxysulfide` — доли La2OS вместо La2O2S: μ ×1.048.
 Прочие строки генератор выдаёт побайтно прежними (проверено перед правкой).
 
+Ещё три опечатки (П317, 15.10.2026) — найдены сверкой засева с NIST STAR
+(`tools/effmaker/probes/P317XcomProbe.cs`, раздел 6):
+  * `Aniline` — доля C 0.775838 вместо 0.773838 (сумма долей 1.002);
+  * `Skin (icrp)` — доля N 0.04602 вместо 0.04642 (сумма 0.9996);
+  * `Krypton, liquid` — плотность 2.418e-03 (жидкость ЛЕГЧЕ газа 3.478e-03):
+    сдвиг порядка, мантисса — плотность жидкого криптона при кипении
+    (2.41 г/см³); ставится 2.418 (`DENSITY_ERRATA`). Доли — у первых двух из
+    NIST тем же `ERRATA`.
+
 ВИД («куда годится») у импортированных — `Other`: в файле ЛСРМ его нет, а разложить
 287 веществ по нашим пяти видам можно только угадыванием. В списках редактора
 они идут после веществ своего вида, за разделителем; назначить вид — одно
@@ -81,6 +90,14 @@ def read_dat(path):
 ERRATA = {
     'Freon-13ii': 'FREON-13I1',
     'Lanthanum oxysulfide': 'LANTHANUM OXYSULFIDE',
+    # (П317) доли ЛСРМ расходятся с NIST в одной цифре — см. шапку
+    'Aniline': 'ANILINE',
+    'Skin (icrp)': 'SKIN (ICRP)',
+}
+
+# (П317) плотность-опечатка ЛСРМ -> верная, г/см³ (см. шапку).
+DENSITY_ERRATA = {
+    'Krypton, liquid': 2.418,
 }
 MATDB = os.path.join(REPO, 'BecquerelMonitor', 'matdb.sqlite')
 
@@ -110,6 +127,12 @@ def apply_errata(rows):
                 star))
     finally:
         con.close()
+
+    for r in rows:
+        density = DENSITY_ERRATA.get(r['name'])
+        if density is not None:
+            print(u'опечатка ЛСРМ %-22s: плотность %g -> %g' % (r['name'], r['density'], density))
+            r['density'] = density
 
 
 def seeded_names():
@@ -161,7 +184,9 @@ def main():
     add(u'// формула там записана для человека ((C2F4)n, и опечатка H20 у воды),')
     add(u'// а доли — величины NIST и сходятся к единице у всех строк.')
     add(u'// Две опечатки ЛСРМ (Freon-13ii, Lanthanum oxysulfide) заменены долями')
-    add(u'// NIST из matdb.star_material_composition (AMBER107, П172 28.09.2026).')
+    add(u'// NIST из matdb.star_material_composition (AMBER107, П172 28.09.2026);')
+    add(u'// ещё три (П317, 15.10.2026): доли Aniline и Skin (icrp) — из NIST,')
+    add(u'// плотность Krypton, liquid 2.418e-03 -> 2.418 (сдвиг порядка).')
     add(u'using System.Collections.Generic;')
     add(u'')
     add(u'namespace BecquerelMonitor.EfficiencyMaker')
