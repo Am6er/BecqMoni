@@ -7266,19 +7266,4 @@ Read only by the full-spectrum decomposition (Show FSA) with a response matrix.<
   <data name="centroidComCheckBox.Text" xml:space="preserve">
     <value>Centroid by center of mass</value>
   </data>
-  <data name="lsrmGeometryDialogTitle" xml:space="preserve">
-    <value>Geometry of the LSRM curve: the .in file it was computed for (Cancel - import without geometry)</value>
-  </data>
-  <data name="lsrmGeometryProblem" xml:space="preserve">
-    <value>The geometry could not be attached to the curve "{0}":
-{1}
-
-The curve is imported without geometry; the dose rate has no scale until a geometry is added with Edit...</value>
-  </data>
-  <data name="lsrmGeometryNoCrystal" xml:space="preserve">
-    <value>{0}: no scintillator crystal dimensions found (DS_CrystalDiameter / DS_CrystalHeight or DS_CrystalBoxX / Y / Z) - not an LSRM scintillator geometry.</value>
-  </data>
-  <data name="lsrmGeometryFieldScene" xml:space="preserve">
-    <value>{0}: a field scene (DS_Scene = ISO) cannot be the geometry of an LSRM curve - the LSRM efficiency is per emitted quantum, not per unit fluence.</value>
-  </data>
 </root>

@@ -3284,8 +3284,8 @@ namespace BecquerelMonitor
         //
         // ⛔ Вкладки `Dose Rate` (`tabPage7`) В ФОРМЕ БОЛЬШЕ НЕТ. 10.09.2026 с
         // неё сняты ручная таблица точек, эталонный спектр с объявленной дозой,
-        // кнопка оценки и импорт ЛСРМ (уехал на вкладку Efficiency —
-        // `ImportLsrmEfficiency` в `DeviceConfigForm.Efficiency.cs`); остался
+        // кнопка оценки и импорт ЛСРМ (уехал на вкладку Efficiency, а 15.10.2026,
+        // `AMBER227`, снят и оттуда — кривая ЛСРМ импортируется в конструкторе); остался
         // один список `comboDoseRateEfficiency`, и 11.09.2026 по снимку с ним
         // Amber сказала дословно: «Привязаться к текущей выбранной
         // эффективности на ControlPanel. Этот Combobox удалить, вся привязка
@@ -3494,9 +3494,10 @@ namespace BecquerelMonitor
         //
         //  * `buttonLoadEff_Click` — решение «Снять и завести ввоз на
         //    Efficiency»: импорт экспорта ЛСРМ переехал на вкладку Efficiency
-        //    (`ImportLsrmEfficiency` в `DeviceConfigForm.Efficiency.cs`), где
-        //    импортированная кривая СОХРАНЯЕТСЯ в конфигурации прибора. Здесь она
-        //    жила в поле формы и пропадала с закрытием окна;
+        //    (кнопкой «Импорт ЛСРМ...»), где импортированная кривая СОХРАНЯЛАСЬ в
+        //    конфигурации прибора. Здесь она жила в поле формы и пропадала с
+        //    закрытием окна. 15.10.2026 (`AMBER227`) кнопка снята и с Efficiency:
+        //    кривую ЛСРМ заводит «Импорт из LSRM…» конструктора (`AMBER226`);
         //  * `buttonEstimateDRConf_Click` и `CalculateDoseRateConfig` — оценка
         //    точек по эталону, решение «Чистить сразу»;
         //  * `EvaluateButtonEstimateDRState` — состояние снятой кнопки;
@@ -3504,8 +3505,9 @@ namespace BecquerelMonitor
         //
         // ⛔ 12.09.2026 (`AMBER18`): генератор точек `DoseRateEstimator.Estimate`
         // снят вместе с самими точками — расчёт идёт от кривой панели одним
-        // проходом в `DoseRateManager`. `ReadLsrmEfficiencyExport` ниже
-        // остаётся: её зовёт импорт на вкладке Efficiency.
+        // проходом в `DoseRateManager`. `ReadLsrmEfficiencyExport` выше
+        // остаётся: её зовёт импорт `.txt` в конструкторе кривой
+        // (`EfficiencyMakerForm.ImportCurveFile`, `AMBER226`).
 
         private void peakTypecomboBox_SelectedIndexChanged(object sender, EventArgs e)
         {

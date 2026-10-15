@@ -76,19 +76,14 @@ namespace BecquerelMonitor
         /// <summary>Просвет между меткой и именем геометрии, точек.</summary>
         const int StaleMarkGap = 4;
 
-        /// <summary>
-        /// Импорт текстового экспорта ЛСРМ (`EffCalcMC.txt`).
-        ///
-        /// ⛔ `AMBER13`, решение Amber 10.09.2026 «Снять и завести ввоз на
-        /// Efficiency». До того импорт жил на вкладке `DoseRate` кнопкой
-        /// `buttonLoadEff`, и это была ЕДИНСТВЕННАЯ дверь импорта ЛСРМ во всём
-        /// приложении — а импортированная кривая никуда не сохранялась: она лежала в
-        /// поле формы (`doseRateFileCurve`) и пропадала вместе с окном. Здесь
-        /// она становится обычной <see cref="EfficiencyConfigData"/> в списке
-        /// прибора, то есть переживает закрытие окна, «Сохранить» и снимок в
-        /// файл спектра.
-        /// </summary>
-        Button efficiencyImportButton;
+        // ⛔ (`AMBER227`, П331 15.10.2026) Кнопки «Импорт ЛСРМ...» (`efficiencyImportButton`,
+        // `AMBER13`) на вкладке БОЛЬШЕ НЕТ — снята вместе со своим путём: обработчиком,
+        // `ImportLsrmEfficiency`/`ImportLsrmEfficiencyWithGeometry`, `ReadLsrmGeometry`,
+        // `SuggestLsrmGeometryPath`, `FormText` и их строками ресурсов. Amber 15.10.2026,
+        // дословно: «Эту кнопку удали и подтяни GUI в связи с удалением кнопки так как
+        // появилось пустое место», и на вопросник — «Убрать эту логику». Кривая ЛСРМ
+        // (txt, .efa, .efr) импортируется в конструкторе: «Импорт из LSRM…» редактора
+        // геометрии (`AMBER226`), геометрия к ней — полями или `.in` той же кнопкой.
 
         /// <summary>
         /// Собрать вкладку и вставить её СРАЗУ ЗА калибровкой энергии: кривая —
@@ -119,10 +114,11 @@ namespace BecquerelMonitor
             // размера не зависит вовсе.
             //
             // ⛔ Высота шапки — ЧИСЛО, и оно устаревает при первой же
-            // добавленной строке: панель обрезает детей МОЛЧА, без исключения
-            // и без признака. Третий ряд кнопок (импорт ЛСРМ, `AMBER13`) прибавил
-            // 32 точки, и высота выросла ровно на них: 166 → 198.
-            this.efficiencyHeader = new Panel { Dock = DockStyle.Top, Height = 198 };
+            // добавленной или снятой строке: панель обрезает детей МОЛЧА, без
+            // исключения и без признака, а лишняя высота остаётся пустой полосой.
+            // Третий ряд кнопок (импорт ЛСРМ, `AMBER13`) прибавлял 32 точки
+            // (166 → 198); с его снятием (`AMBER227`) — снова 166.
+            this.efficiencyHeader = new Panel { Dock = DockStyle.Top, Height = 166 };
             Panel header = this.efficiencyHeader;
 
             int y = Margin;
@@ -141,21 +137,12 @@ namespace BecquerelMonitor
             this.efficiencyMatrixButton = this.EfficiencyButton(
                 Resources.EfficiencyTabResponseMatrix, Margin + 2 * (ButtonWidth + Gap), y, ButtonWidth);
 
-            // Третий ряд: импорт экспорта ЛСРМ (`AMBER13`, решение Amber
-            // 10.09.2026). Стоит ОТДЕЛЬНО от шести кнопок правки, а не седьмой
-            // в их ряду: те шесть работают с ВЫБРАННОЙ кривой, а эта заводит
-            // новую и выбора не требует вовсе.
-            y += 32;
-            this.efficiencyImportButton = this.EfficiencyButton(
-                Resources.EfficiencyTabImportLsrm, Margin, y, ButtonWidth);
-
             this.efficiencyNewButton.Click += this.efficiencyNewButton_Click;
             this.efficiencyEditButton.Click += this.efficiencyEditButton_Click;
             this.efficiencyRenameButton.Click += this.efficiencyRenameButton_Click;
             this.efficiencyDuplicateButton.Click += this.efficiencyDuplicateButton_Click;
             this.efficiencyDeleteButton.Click += this.efficiencyDeleteButton_Click;
             this.efficiencyMatrixButton.Click += this.efficiencyMatrixButton_Click;
-            this.efficiencyImportButton.Click += this.efficiencyImportButton_Click;
 
             // Подпись отдельной строкой над списком, а не слева от него:
             // «Конфигурация эффективности:» съедает треть ширины, и списку
@@ -1258,291 +1245,6 @@ namespace BecquerelMonitor
 
             this.openEfficiencyMakers.Add(maker);
             maker.Show(this);
-        }
-
-        /// <summary>
-        /// Завести кривую эффективности из текстового экспорта ЛСРМ
-        /// (`EffCalcMC.txt`) и ПОЛОЖИТЬ ЕЁ В КОНФИГУРАЦИЮ ПРИБОРА.
-        ///
-        /// ⛔ `AMBER13`, решение Amber 10.09.2026: «`buttonLoadEff` /
-        /// `labelEffNote` уходят с вкладки `DoseRate`, а ввоз экспорта ЛСРМ
-        /// заводится на вкладке Efficiency, и ввезённая кривая наконец
-        /// СОХРАНЯЕТСЯ». Прежний импорт клал точки в поле формы
-        /// (`doseRateFileCurve`), откуда их нельзя было ни сохранить, ни
-        /// посмотреть после закрытия окна.
-        ///
-        /// ⚠ Метод отделён от кнопки нарочно и окна не поднимает: разбор файла
-        /// и попадание кривой в конфигурацию проверяются пробой без диалога.
-        /// Геометрии у импортированной кривой НЕТ — экспорт ЛСРМ её не несёт, — и
-        /// это законное состояние: <see cref="EfficiencyConfigData"/> без
-        /// геометрии пользуется, но не пересчитывается. Кривую С геометрией
-        /// заводит <see cref="ImportLsrmEfficiencyWithGeometry"/>; этот вход
-        /// оставлен ровно в прежней подписи — его зовёт отражением проба П21
-        /// (`DoseRateCleanupP21Probe`) по имени без списка параметров, и
-        /// перегрузка того же имени сломала бы ей `GetMethod`.
-        /// </summary>
-        /// <returns>Заведённая конфигурация или null, если файл негоден.</returns>
-        internal static EfficiencyConfigData ImportLsrmEfficiency(
-            DeviceConfigInfo device, string path, out string problem)
-        {
-            string geometryProblem;
-            return ImportLsrmEfficiencyWithGeometry(device, path, null, out problem, out geometryProblem);
-        }
-
-        /// <summary>
-        /// Импорт экспорта ЛСРМ ВМЕСТЕ С ГЕОМЕТРИЕЙ — `AMBER18`, решение Amber
-        /// 12.09.2026, вопросником, дословно: «Привязать геометрию при ввозе
-        /// ЛСРМ». С 12.09.2026 мощность дозы считается от кривой панели, и у
-        /// кривой БЕЗ геометрии дозы нет вовсе («у кривой «X» нет геометрии —
-        /// у дозы нет масштаба»): между «квант/с в 4π» и «квант/(см²·с) в
-        /// точке» стоит геометрия (`DoseRateGeometry.FluencePerPhoton`).
-        /// Единственный импорт, дающий кривую без геометрии, — этот; ЛСРМ же
-        /// считает свою кривую из файла `.in` той же геометрии, и файл у
-        /// человека есть — его и спрашиваем вторым шагом.
-        ///
-        /// Правила:
-        ///  * <paramref name="geometryPath"/> == null — отказ от `.in` (Cancel):
-        ///    кривая импортируется как раньше, без геометрии, доза откажет словами;
-        ///  * `.in` негоден (нет файла, не разбирается, нет кристалла, сцена
-        ///    поля) — кривая ВСЁ РАВНО импортируется, без геометрии, а причина
-        ///    уходит в <paramref name="geometryProblem"/>: точки кривой от
-        ///    негодного `.in` не портятся, и терять их ради него незачем;
-        ///  * геометрия читается ТЕМ ЖЕ читателем, что конструктор кривой
-        ///    (<see cref="GeometryModel.Load"/>), — другого разбора `.in` в
-        ///    дереве нет и не должно быть;
-        ///  * `Origin` остаётся <see cref="EfficiencyOrigin.Lsrm"/>, а
-        ///    <see cref="EfficiencyConfigData.ComputeStamp"/> — ПУСТЫМ: клеймо
-        ///    значит «чем посчитана», а эту кривую считал ЛСРМ, не мы. Кривая с
-        ///    геометрией и пустым клеймом — не «посчитанная из геометрии»:
-        ///    матрицы у неё нет по построению, доза пойдёт со знаком «≈» (по
-        ///    пиковой), как велит решение (3) `AMBER18`. Откуда кривая и
-        ///    геометрия — в <see cref="EfficiencyConfigData.Note"/>.
-        /// </summary>
-        /// <param name="geometryPath">файл `.in` той же геометрии; null — без геометрии</param>
-        /// <param name="problem">почему кривая НЕ импортирована (null — импортирована)</param>
-        /// <param name="geometryProblem">почему геометрия НЕ привязана (null — привязана либо не просили)</param>
-        /// <returns>Заведённая конфигурация или null, если экспорт негоден.</returns>
-        public static EfficiencyConfigData ImportLsrmEfficiencyWithGeometry(
-            DeviceConfigInfo device, string path, string geometryPath,
-            out string problem, out string geometryProblem)
-        {
-            problem = null;
-            geometryProblem = null;
-            if (device == null)
-            {
-                // Не подпись для человека, а страж вызова: с кнопки сюда с
-                // пустой конфигурацией не приходят, а проба обязана получить
-                // причину. Поэтому строка не переводится и в resx не заводится.
-                problem = "no device configuration selected";
-                return null;
-            }
-
-            List<ROIEfficiencyData> points = ReadLsrmEfficiencyExport(path, out problem);
-            if (problem != null)
-            {
-                return null;
-            }
-
-            EfficiencyConfigData config = new EfficiencyConfigData(
-                Path.GetFileNameWithoutExtension(path))
-            {
-                Origin = EfficiencyOrigin.Lsrm,
-                Curve = points,
-            };
-
-            string note = string.Format(CultureInfo.InvariantCulture, "LSRM export: {0}",
-                                        Path.GetFileName(path));
-            if (geometryPath != null)
-            {
-                GeometryModel geometry = ReadLsrmGeometry(geometryPath, out geometryProblem);
-                if (geometry != null)
-                {
-                    config.Geometry = geometry;
-                    // (`AMBER185`) Кривая ЛСРМ посчитана для этой геометрии —
-                    // её отпечаток и ставится; правка геометрии потом видна.
-                    config.GeometryFingerprint = ResponseMatrix.GeometryFingerprint(config.Geometry);
-                    note += string.Format(CultureInfo.InvariantCulture, "; geometry: {0}",
-                                          Path.GetFileName(geometryPath));
-                    foreach (string warning in geometry.Warnings)
-                    {
-                        note += Environment.NewLine + warning;
-                    }
-                }
-            }
-
-            config.Note = new CDATA(note);
-            device.EfficiencyConfigs.Add(config);
-            return config;
-        }
-
-        /// <summary>
-        /// Прочитать `.in` для кривой ЛСРМ и ПРОВЕРИТЬ, что это геометрия, с
-        /// которой у дозы будет масштаб. null — негоден, причина в
-        /// <paramref name="problem"/>.
-        ///
-        /// ⚠ Проверка нужна потому, что читатель `.in` — разбор `ключ = значение`
-        /// и на чужом тексте НЕ падает: любой файл даёт модель с нулевым
-        /// кристаллом, и дефект всплыл бы не здесь, а в дозе («кристалл нулевой
-        /// глубины») — у человека, который никакого кристалла не трогал.
-        /// Коаксиальный `.in` ЛСРМ (`DC_*`) читателем не берётся — германий вне
-        /// работы, — и он же ловится здесь как «нет кристалла».
-        /// </summary>
-        public static GeometryModel ReadLsrmGeometry(string geometryPath, out string problem)
-        {
-            problem = null;
-            GeometryModel geometry;
-            try
-            {
-                geometry = GeometryModel.Load(geometryPath);
-            }
-            catch (Exception ex)
-            {
-                problem = string.Format(CultureInfo.InvariantCulture, "{0}: {1}", geometryPath, ex.Message);
-                return null;
-            }
-
-            bool crystal = geometry.Shape == CrystalShape.Box
-                ? geometry.CrystalBoxX > 0.0 && geometry.CrystalBoxY > 0.0 && geometry.CrystalBoxZ > 0.0
-                : geometry.CrystalDiameter > 0.0 && geometry.CrystalHeight > 0.0;
-            if (geometry.Raw.Count == 0 || !crystal)
-            {
-                problem = string.Format(CultureInfo.InvariantCulture,
-                    FormText("lsrmGeometryNoCrystal",
-                        "{0}: no scintillator crystal dimensions found (DS_CrystalDiameter / DS_CrystalHeight"
-                        + " or DS_CrystalBoxX / Y / Z) - not an LSRM scintillator geometry."),
-                    geometryPath);
-                return null;
-            }
-
-            // Сцена поля — наше расширение, ЛСРМ его не знает; отклик там на
-            // единичный флюенс (см²), а кривая ЛСРМ — доли квантов источника.
-            // Пустить такую пару — значит получить в дозе отказ «пересчитайте
-            // кривую из геометрии», который для кривой ЛСРМ невыполним.
-            if (ResponseMatrix.NormalizationOf(geometry) == ResponseMatrixNormalization.PerUnitFluence)
-            {
-                problem = string.Format(CultureInfo.InvariantCulture,
-                    FormText("lsrmGeometryFieldScene",
-                        "{0}: a field scene (DS_Scene = ISO) cannot be the geometry of an LSRM curve"
-                        + " - the LSRM efficiency is per emitted quantum, not per unit fluence."),
-                    geometryPath);
-                return null;
-            }
-
-            return geometry;
-        }
-
-        /// <summary>
-        /// Автоподбор `.in`: одноимённый файл рядом с экспортом
-        /// (`X.txt` → `X.in`). null — такого нет; тогда диалог открывается
-        /// в каталоге экспорта пустым, и человек выбирает сам.
-        /// </summary>
-        public static string SuggestLsrmGeometryPath(string exportPath)
-        {
-            try
-            {
-                string candidate = Path.ChangeExtension(exportPath, ".in");
-                return File.Exists(candidate) ? candidate : null;
-            }
-            catch (ArgumentException)
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Строка из ресурсов САМОЙ ФОРМЫ (пара `DeviceConfigForm.resx` /
-        /// `DeviceConfigForm.ru.resx`, как у <c>crystalMaterialNotSet</c>) с
-        /// запасным английским текстом: подписи импорта нужны этой вкладке и
-        /// нигде больше, а общие `Properties/Resources` правят другие полосы.
-        /// </summary>
-        static string FormText(string key, string fallback)
-        {
-            try
-            {
-                string value = new System.ComponentModel.ComponentResourceManager(typeof(DeviceConfigForm))
-                    .GetString(key);
-                return string.IsNullOrEmpty(value) ? fallback : value;
-            }
-            catch (Exception)
-            {
-                return fallback;
-            }
-        }
-
-        void efficiencyImportButton_Click(object sender, EventArgs e)
-        {
-            if (this.activeDeviceConfig == null)
-            {
-                return;
-            }
-
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Title = Resources.EfficiencyTabImportLsrmTitle;
-            openFileDialog.Filter = Resources.EffCalcMCFileFilter;
-            openFileDialog.FilterIndex = 2;
-            openFileDialog.RestoreDirectory = true;
-            if (openFileDialog.ShowDialog() != DialogResult.OK)
-            {
-                return;
-            }
-
-            // Второй шаг (`AMBER18`, 12.09.2026): `.in` той же геометрии.
-            // Cancel — законный ответ: кривая импортируется без геометрии, как
-            // раньше, и доза по ней откажет словами, пока геометрию не зададут
-            // кнопкой «Изменить…».
-            string geometryPath = null;
-            using (OpenFileDialog geometryDialog = new OpenFileDialog())
-            {
-                geometryDialog.Title = FormText("lsrmGeometryDialogTitle",
-                    "Geometry of the LSRM curve: the .in file it was computed for (Cancel - import without geometry)");
-                geometryDialog.Filter = Resources.EfficiencyMakerGeometryFilter;
-                geometryDialog.RestoreDirectory = true;
-                string suggested = SuggestLsrmGeometryPath(openFileDialog.FileName);
-                if (suggested != null)
-                {
-                    geometryDialog.InitialDirectory = Path.GetDirectoryName(suggested);
-                    geometryDialog.FileName = Path.GetFileName(suggested);
-                }
-                else
-                {
-                    geometryDialog.InitialDirectory = Path.GetDirectoryName(openFileDialog.FileName);
-                }
-
-                if (geometryDialog.ShowDialog(this) == DialogResult.OK)
-                {
-                    geometryPath = geometryDialog.FileName;
-                }
-            }
-
-            string problem, geometryProblem;
-            EfficiencyConfigData config = ImportLsrmEfficiencyWithGeometry(
-                this.activeDeviceConfig, openFileDialog.FileName, geometryPath,
-                out problem, out geometryProblem);
-            if (config == null)
-            {
-                MessageBox.Show(this,
-                    string.Format(Resources.ERRFileOpenFailure, openFileDialog.FileName, problem),
-                    this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            if (geometryProblem != null)
-            {
-                // Кривая уже в конфигурации — сказать надо про геометрию, а не
-                // про импорт: иначе человек решит, что импорт не удался, и повторит.
-                MessageBox.Show(this,
-                    string.Format(CultureInfo.CurrentCulture,
-                        FormText("lsrmGeometryProblem",
-                            "The geometry could not be attached to the curve \"{0}\":"
-                            + Environment.NewLine + "{1}" + Environment.NewLine + Environment.NewLine
-                            + "The curve is imported without geometry; the dose rate has no scale"
-                            + " until a geometry is added with Edit..."),
-                        config.Name, geometryProblem),
-                    this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-
-            this.RefreshEfficiencyList(config.Guid);
-            this.SetActiveDeviceConfigDirty();
         }
 
         void efficiencyRenameButton_Click(object sender, EventArgs e)

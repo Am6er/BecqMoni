@@ -4,8 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Serialization;
 
@@ -14,19 +16,26 @@ namespace LsrmGeometryImportProbe
     /// <summary>
     /// Приёмка остатка `AMBER18` (полоса П7, 12.09.2026) — решение Amber
     /// 12.09.2026, вопросником, дословно: «Привязать геометрию при ввозе ЛСРМ».
-    /// Импорт экспорта ЛСРМ на вкладке Efficiency вторым шагом берёт `.in` той
-    /// же геометрии (`DeviceConfigForm.ImportLsrmEfficiencyWithGeometry`), и
-    /// у кривой появляется масштаб для дозы. Окно `BecqMoni` не поднимается:
-    /// проба зовёт тот же статический метод, что и кнопка.
+    /// У кривой ЛСРМ с геометрией `.in` появляется масштаб для дозы.
     ///
-    ///  §1 ИМПОРТ ПАРЫ ЛСРМ (экспорт `RadiaCode - marinelli 0.5.txt` + модель
-    ///     `RadiaCode_Marinelli0.5.in`; ⛔ `LSRM Geometries/` снят из дерева
-    ///     15.09.2026 решением Amber, и без `--lsrm=` пара собирается ИЗ ДЕРЕВА:
-    ///     текст экспорта пишется в рабочий каталог пробы из поставочной кривой
-    ///     `BecquerelMonitor\config\ROI\RadiaCode Marinelli 0.5.xml` — тот же
-    ///     набор из 150 точек, сличён точка в точку 15.09.2026, — а модель
-    ///     берётся из копии `tools\effmaker\models\RadiaCode_Marinelli0.5.in`;
-    ///     с `--lsrm=` — настоящая пара из названного каталога): в конфигурации
+    /// ⛔ С 15.10.2026 (`AMBER227`, П331) импорта ЛСРМ на вкладке Efficiency
+    /// НЕТ — кнопка снята вместе со своим путём (`ImportLsrmEfficiencyWithGeometry`,
+    /// автоподбор `.in`, второй шаг диалога). Кривую ЛСРМ заводит конструктор:
+    /// «Импорт из LSRM…» редактора геометрии (`AMBER226`). Проба переведена на
+    /// этот путь: настоящий `EfficiencyMakerForm` вне экрана, привязанный к
+    /// конфигурации с геометрией из `.in` (так её даёт та же кнопка `.in`),
+    /// `ImportCurveFile` экспорта и «Сохранить» (`SaveIntoConfig`) — отражением.
+    /// Покрытие дозы (§2) сохранено целиком; §3 — отказ «сцена поля», §4
+    /// (автоподбор) снят вместе с путём.
+    ///
+    ///  §1 ИМПОРТ ПАРЫ ЛСРМ (с `--lsrm=` — настоящая пара `RadiaCode - marinelli
+    ///     0.5.txt` + `RadiaCode_Marinelli0.5.in` из названного каталога; без
+    ///     ключа — пара ИЗ ДЕРЕВА: узел `Efficiency` спектра корпуса
+    ///     `G1S24_K40_Mar` — кривая пишется экспортом ЛСРМ, геометрия —
+    ///     писателем `.in` в рабочий каталог пробы. ⚠ До П331 пара из дерева
+    ///     бралась из поставочного `config\ROI\RadiaCode Marinelli 0.5.xml`, а
+    ///     `config\ROI` снят 06–07.10.2026 (`AMBER208`, коммит `4916c626`) — с
+    ///     тех пор проба без `--lsrm=` отказывала кодом 2): в конфигурации
     ///     прибора кривая с `Origin = Lsrm`, `Geometry != null`, клеймо
     ///     `ComputeStamp` ПУСТОЕ (кривая не выдаёт себя за посчитанную из
     ///     геометрии); размеры сцены сверяются с числами, прочитанными из
@@ -35,12 +44,12 @@ namespace LsrmGeometryImportProbe
     ///     прямого чтения тем же читателем; после XML туда-обратно
     ///     (`DeviceConfigInfo`) геометрия НАЙДЕНА и её текст тот же.
     ///
-    ///  §2 ДОЗА: (а) корпусный `RC103_K40Village` (RadiaCode-103, K-40 в
-    ///     маринелли 0.5 л) с кривой §1 — число со знаком «≈» вместо отказа.
-    ///     ⚠ Пара УСЛОВНАЯ: модель ЛСРМ — RadiaCode с кристаллом Ø11.28×10 мм в
-    ///     маринелли 0.5 л, спектр — RC-103 в маринелли 0.5 л, но паспортной
-    ///     связи «эта кривая считана для этого прибора» нет, число — проверка
-    ///     механики, не измерение. (б) СТРОГИЙ КОНТРОЛЬ: точки кривой из узла
+    ///  §2 ДОЗА: (а) спектр корпуса с кривой §1 — число со знаком «≈» вместо
+    ///     отказа. С `--lsrm=` — `RC103_K40Village` (RadiaCode-103, K-40 в
+    ///     маринелли 0.5 л); ⚠ эта пара УСЛОВНАЯ: модель ЛСРМ — RadiaCode с
+    ///     кристаллом Ø11.28×10 мм, паспортной связи «эта кривая считана для
+    ///     этого прибора» нет, число — проверка механики, не измерение. Без
+    ///     ключа — сам `G1S24_K40_Mar`, чья кривая и импортирована. (б) СТРОГИЙ КОНТРОЛЬ: точки кривой из узла
     ///     `Efficiency` спектра `AS80_Cs137_0cm` записываются экспортом ЛСРМ и
     ///     импортируются с `.in` той же сцены `AS80_point0` — доза «≈» по импортированной
     ///     кривой обязана совпасть с дозой «≈» по родной кривой снимка
@@ -48,18 +57,14 @@ namespace LsrmGeometryImportProbe
     ///     точки, та же геометрия, тот же путь. Число печатается рядом с
     ///     ≈ 0.195 мкЗв/ч из журнала П1.
     ///
-    ///  §3 ОТКАЗ ОТ `.in` (Cancel → null) — `Geometry == null`, доза — прежний
-    ///     отказ словами («геометрии нет»); `.in`, которого нет на диске, —
-    ///     кривая импортирована, геометрии нет, причина названа; `.in` сцены поля
-    ///     (`DS_Scene = ISO`) — то же: кривая ЛСРМ в долях к сцене на флюенс
-    ///     не привязывается.
+    ///  §3 СЦЕНА ПОЛЯ: кривая ЛСРМ с геометрией `DS_Scene = ISO` (единичный
+    ///     флюенс) — «Сохранить» конструктора ОТКАЗЫВАЕТ, конфигурация не
+    ///     тронута; правило `LsrmCurveGeometryProblem` — только для кривой ЛСРМ
+    ///     и только для ISO; мусорный `.in` — нет кристалла (`HasScintillatorCrystal`).
     ///
-    ///  §4 АВТОПОДБОР: одноимённый `.in` рядом с экспортом находится, без
-    ///     него — null.
-    ///
-    ///  §5 ПОДПИСИ: четыре ключа импорта в `DeviceConfigForm.resx` / `.ru.resx`
-    ///     читаются по обеим культурам и различаются (сторож `check_resx_designer`
-    ///     обращений через `ComponentResourceManager` не видит).
+    ///  §5 ПОДПИСИ: текст отказа §3 — в обеих культурах и различается; четыре
+    ///     ключа снятого второго шага (`DeviceConfigForm.resx`) и три ключа
+    ///     снятой кнопки (`Resources.resx`) не вернулись.
     ///
     ///   lsrmgeometryimportprobe [--dir=&lt;корпус&gt;] [--lsrm=&lt;каталог с Exported Curves\ и Models\&gt;]
     ///   lsrmgeometryimportprobe --sabotage=badin|stamp     (ждёт ОТКАЗ пробы)
@@ -69,9 +74,10 @@ namespace LsrmGeometryImportProbe
     /// перевёрнуты: 0 — отказ получен (проба смотрит), 1 — не получен (слепа).
     ///
     ///   badin — вместо `.in` §1 подсунут БИТЫЙ файл (текст экспорта под
-    ///           именем `.in`): импорт обязан положить кривую БЕЗ геометрии и
-    ///           НАЗВАТЬ причину; проба обязана это поймать (§1 «геометрия
-    ///           есть» падает, сообщение непустое);
+    ///           именем `.in`): его, как кнопка `.in` конструктора, обязан
+    ///           отвергнуть признак «нет кристалла», и кривая ляжет с
+    ///           геометрией-заготовкой полей; проба обязана это поймать (§1
+    ///           «источник — маринелли» и размеры из `.in` падают);
     ///   stamp — импортированная кривая выдаёт себя за посчитанную из геометрии
     ///           (`Origin = Simulation`, клеймо `phys=…`): проба обязана
     ///           отказать на §1.
@@ -99,16 +105,19 @@ namespace LsrmGeometryImportProbe
         const string LsrmModel = @"Models\RadiaCode_Marinelli0.5.in";
 
         /// <summary>
-        /// Та же пара из дерева: поставочная кривая (тот же набор из 150 точек, что
-        /// и снятый экспорт; ⛔ только чтение, приказ Amber 05.09.2026) и копия
-        /// модели с нашими ключами.
+        /// Пара из дерева (П331): спектр корпуса в маринелли со своей кривой и
+        /// геометрией в узле `Efficiency`. Прежний источник — поставочный
+        /// `config\ROI\RadiaCode Marinelli 0.5.xml` — снят 06–07.10.2026 (`AMBER208`).
         /// </summary>
-        const string TreeCurve = @"BecquerelMonitor\config\ROI\RadiaCode Marinelli 0.5.xml";
-        const string TreeModel = @"tools\effmaker\models\RadiaCode_Marinelli0.5.in";
+        const string TreeSpectrum = "G1S24_K40_Mar";
+
+        /// <summary>Спектр §2(а): с настоящей парой `--lsrm=` — условная пара RC-103.</summary>
+        static string DoseSpectrum = TreeSpectrum;
 
         /// <summary>Журнал П1 §9: `AS80_Cs137_0cm` по пиковой — ≈ 0.195 мкЗв/ч.</summary>
         const double P1Approximate = 0.195;
 
+        [STAThread]
         static int Main(string[] args)
         {
             try { Console.OutputEncoding = Encoding.UTF8; } catch (IOException) { }
@@ -139,6 +148,7 @@ namespace LsrmGeometryImportProbe
             {
                 exportPath = Path.Combine(lsrmDir, LsrmExport);
                 modelPath = Path.Combine(lsrmDir, LsrmModel);
+                DoseSpectrum = "RC103_K40Village";
             }
             else if (!PairFromTree(scratch, out exportPath, out modelPath))
             {
@@ -153,11 +163,12 @@ namespace LsrmGeometryImportProbe
 
             try
             {
+                // Конструктору нужны общие менеджеры (готовые детекторы, вещества).
+                GlobalConfigManager.GetInstance();
                 EfficiencyConfigData imported = ImportPair(exportPath, modelPath, scratch);
                 DoseOnCorpus(imported);
                 StrictControlAs80(scratch);
                 Refusals(exportPath, modelPath, scratch);
-                AutoSuggest(exportPath, modelPath, scratch);
                 FormStrings();
             }
             catch (Exception ex)
@@ -207,7 +218,7 @@ namespace LsrmGeometryImportProbe
             var device = new DeviceConfigInfo();
             device.Name = "P7 probe";
             string problem, geometryProblem;
-            EfficiencyConfigData config = DeviceConfigForm.ImportLsrmEfficiencyWithGeometry(
+            EfficiencyConfigData config = ImportViaDesigner(
                 device, exportPath, geometryPath, out problem, out geometryProblem);
             Ok(config != null, config != null
                 ? "экспорт импортирован: точек " + config.Curve.Count
@@ -245,8 +256,11 @@ namespace LsrmGeometryImportProbe
                 return config;
             }
 
-            Ok(note.IndexOf(Path.GetFileName(geometryPath), StringComparison.Ordinal) >= 0,
-               "Note называет файл геометрии");
+            // Геометрия кривой из конструктора — его поля (`.in` в них загружен
+            // той же кнопкой): заметка называет поля, а не файл.
+            Ok(note.IndexOf("editor fields", StringComparison.Ordinal) >= 0,
+               "Note называет источник геометрии — поля конструктора");
+            Ok(!config.CurveGeometryMismatch, "отпечаток геометрии кривой сходится с геометрией конфигурации");
 
             // Числа сцены — против текста `.in`, разобранного НЕЗАВИСИМО.
             GeometryModel g = config.Geometry;
@@ -367,13 +381,17 @@ namespace LsrmGeometryImportProbe
 
         static void DoseOnCorpus(EfficiencyConfigData curve)
         {
-            Head("§2(а). ДОЗА: RC103_K40Village (RadiaCode-103, K-40 в маринелли 0.5 л) × кривая ЛСРМ §1");
-            Console.WriteLine("  ⚠ пара УСЛОВНАЯ: модель ЛСРМ RadiaCode Ø11.28×10 мм / маринелли 0.5 л, спектр RC-103 в маринелли 0.5 л;");
-            Console.WriteLine("    паспортной связи кривой с прибором нет — число проверяет механику, а не измеряет дозу");
-            ResultData data = LoadSpectrum(Path.Combine(corpusDir, "spectra", "RC103_K40Village.xml"));
+            Head("§2(а). ДОЗА: " + DoseSpectrum + " × кривая ЛСРМ §1");
+            if (DoseSpectrum != TreeSpectrum)
+            {
+                Console.WriteLine("  ⚠ пара УСЛОВНАЯ: модель ЛСРМ RadiaCode Ø11.28×10 мм / маринелли 0.5 л, спектр RC-103 в маринелли 0.5 л;");
+                Console.WriteLine("    паспортной связи кривой с прибором нет — число проверяет механику, а не измеряет дозу");
+            }
+
+            ResultData data = LoadSpectrum(Path.Combine(corpusDir, "spectra", DoseSpectrum + ".xml"));
             if (data == null)
             {
-                Ok(false, "нет спектра корпуса RC103_K40Village");
+                Ok(false, "нет спектра корпуса " + DoseSpectrum);
                 return;
             }
 
@@ -431,7 +449,7 @@ namespace LsrmGeometryImportProbe
             var device = new DeviceConfigInfo();
             device.Name = "P7 probe AS80";
             string problem, geometryProblem;
-            EfficiencyConfigData imported = DeviceConfigForm.ImportLsrmEfficiencyWithGeometry(
+            EfficiencyConfigData imported = ImportViaDesigner(
                 device, exportPath, inPath, out problem, out geometryProblem);
             Ok(imported != null && imported.Geometry != null,
                "импорт с AS80_point0.in: кривая " + (imported == null ? "НЕ импортирована: " + problem
@@ -498,142 +516,219 @@ namespace LsrmGeometryImportProbe
         }
 
         /// <summary>
-        /// Пара §1 из дерева, когда каталога `--lsrm=` нет: текст экспорта
-        /// пишется в <paramref name="scratch"/> под именем снятого файла из точек
-        /// поставочной кривой <see cref="TreeCurve"/> — погрешности КАК ЕСТЬ,
-        /// чтобы правило `T174` отсекло ту же первую точку (20 кэВ, 1150 %), что и
-        /// в настоящем экспорте; модель — копия <see cref="TreeModel"/>.
+        /// Пара §1 из дерева, когда каталога `--lsrm=` нет (П331): узел
+        /// `Efficiency` спектра <see cref="TreeSpectrum"/> — кривая пишется
+        /// экспортом ЛСРМ (<see cref="WriteLsrmExport"/>), геометрия — писателем
+        /// `.in` (<see cref="GeometryWriter.Save"/>, кодировка файлов ЛСРМ) в
+        /// <paramref name="scratch"/>.
         /// </summary>
         static bool PairFromTree(string scratch, out string exportPath, out string modelPath)
         {
-            exportPath = Path.Combine(scratch, Path.GetFileName(LsrmExport));
-            modelPath = TreeModel;
-            if (!File.Exists(TreeCurve))
+            exportPath = Path.Combine(scratch, TreeSpectrum + "_lsrm.txt");
+            modelPath = Path.Combine(scratch, TreeSpectrum + ".in");
+            ResultData data = LoadSpectrum(Path.Combine(corpusDir, "spectra", TreeSpectrum + ".xml"));
+            if (data == null || data.Efficiency == null || !data.Efficiency.HasCurve || data.Efficiency.Geometry == null)
             {
-                Console.Error.WriteLine("нет поставочной кривой " + TreeCurve + " — пары из дерева не собрать");
+                Console.Error.WriteLine("нет спектра " + TreeSpectrum + " с кривой и геометрией в узле Efficiency — пары из дерева не собрать");
                 return false;
             }
 
-            var document = new XmlDocument();
-            document.Load(TreeCurve);
-            var sb = new StringBuilder();
-            sb.Append("Energy, keV\tEfficiency\tUncertainty, %\r\n");
-            int rows = 0;
-            foreach (XmlNode node in document.SelectNodes("//ROIEfficiency/ROIEfficiencyData"))
-            {
-                sb.Append(node["Energy"].InnerText.Trim()).Append("\t\t\t")
-                  .Append(node["Efficiency"].InnerText.Trim()).Append("\t\t")
-                  .Append(node["ErrorPercent"].InnerText.Trim()).Append("\r\n");
-                rows++;
-            }
-
-            File.WriteAllText(exportPath, sb.ToString(), new UTF8Encoding(false));
-            Console.WriteLine("пара из дерева: экспорт {0} ({1} точек из {2}); модель {3}",
-                              exportPath, rows, TreeCurve, modelPath);
-            return rows > 0;
+            WriteLsrmExport(exportPath, data.Efficiency.Curve);
+            GeometryWriter.Save(data.Efficiency.Geometry, modelPath);
+            Console.WriteLine("пара из дерева: {0} — экспорт {1} ({2} точек), модель {3}",
+                              TreeSpectrum, exportPath, data.Efficiency.Curve.Count, modelPath);
+            return true;
         }
 
         // ==================================================================
-        // §3. Отказы: Cancel, нет файла, сцена поля
+        // §3. Сцена поля: «Сохранить» конструктора отказывает кривой ЛСРМ
         // ==================================================================
 
         static void Refusals(string exportPath, string modelPath, string scratch)
         {
-            Head("§3. ОТКАЗ ОТ .in (Cancel), .in которого нет, .in сцены поля");
-            var manager = new DoseRateManager(Config());
-            ResultData data = LoadSpectrum(Path.Combine(corpusDir, "spectra", "RC103_K40Village.xml"));
+            Head("§3. СЦЕНА ПОЛЯ (ISO) У КРИВОЙ ЛСРМ — ОТКАЗ «СОХРАНИТЬ»; МУСОРНЫЙ .in");
 
-            // Cancel → null
+            // Правило — функцией, без окна.
+            GeometryModel marinelli = GeometryModel.Load(modelPath);
+            string iso = Path.Combine(scratch, "iso.in");
+            // Кодировка файлов ЛСРМ (её пишет `GeometryWriter.Save`): имя вещества
+            // бывает кириллицей, и чтение как UTF-8 его испортило бы.
+            Encoding lsrm = Encoding.GetEncoding(1251);
+            File.WriteAllText(iso, File.ReadAllText(modelPath, lsrm) + "\r\nDS_Scene = ISO\r\nDS_FieldRadius = 50 cm\r\n", lsrm);
+            GeometryModel field = GeometryModel.Load(iso);
+            // Сцена поля у редактора — пара «точечный источник + ISO» (его
+            // таблица видов источника); маринелли с приписанной сценой панель
+            // законно сводит к сосуду, и окно мерило бы не ту сцену.
+            field.SourceType = GeometrySourceType.Point;
+            Ok(field.Scene == GeometrySceneKind.Iso, "подставная сцена прочиталась как ISO: " + field.Scene);
+            Ok(Rule(EfficiencyOrigin.Lsrm, field) != null,
+               "ЛСРМ + ISO: отказ — «" + Short(Rule(EfficiencyOrigin.Lsrm, field)) + "»");
+            Ok(Rule(EfficiencyOrigin.Simulation, field) == null, "расчёт + ISO: можно (кривая из геометрии поля законна)");
+            Ok(Rule(EfficiencyOrigin.Lsrm, marinelli) == null, "ЛСРМ + маринелли: можно");
+
+            // То же окном: конфигурация с геометрией ISO, импорт экспорта, «Сохранить».
             var device = new DeviceConfigInfo();
-            device.Name = "P7 probe cancel";
-            string problem, geometryProblem;
-            EfficiencyConfigData config = DeviceConfigForm.ImportLsrmEfficiencyWithGeometry(
-                device, exportPath, null, out problem, out geometryProblem);
-            Ok(config != null && config.Geometry == null && geometryProblem == null,
-               "Cancel (.in = null): кривая импортирована, Geometry == null, сообщения о геометрии нет");
-            Ok(config != null && config.Origin == EfficiencyOrigin.Lsrm, "Cancel: Origin = Lsrm");
-            if (config != null && data != null)
+            device.Name = "P331 probe iso";
+            string problem, geometryProblem = null;
+            EfficiencyConfigData config = new EfficiencyConfigData("iso") { Geometry = field };
+            device.EfficiencyConfigs.Add(config);
+            using (EfficiencyMakerForm form = new EfficiencyMakerForm())
             {
-                ResultData copy = new ResultData();
-                copy.EnergySpectrum = data.EnergySpectrum;
-                copy.Efficiency = config;
-                DoseRate dose = manager.Calculate(copy);
-                string refusal = dose == null ? "" : dose.Refusal;
-                Ok(dose != null && !string.IsNullOrEmpty(refusal)
-                   && (refusal.IndexOf("geometry", StringComparison.OrdinalIgnoreCase) >= 0
-                       || refusal.IndexOf("геометри", StringComparison.OrdinalIgnoreCase) >= 0),
-                   "Cancel: доза — прежний отказ словами: «" + Short(refusal) + "»");
+                form.BindTo(device, config);
+                bool imported = Import(form, exportPath, out problem);
+                Ok(imported, "экспорт импортирован в окно с геометрией ISO" + (imported ? "" : ": " + problem));
+                object panel = typeof(EfficiencyMakerForm).GetField("geometryPanel", Any).GetValue(form);
+                GeometryModel shown = (GeometryModel)panel.GetType().GetProperty("Model", Any).GetValue(panel, null);
+                Ok(shown != null && shown.Scene == GeometrySceneKind.Iso,
+                   "поля конструктора держат сцену ISO: " + (shown == null ? "нет модели" : shown.Scene.ToString()));
+                bool saved = imported && Save(form, out geometryProblem);
+                Ok(imported && !saved && geometryProblem == "SaveIntoConfig = false",
+                   "«Сохранить» ОТКАЗАЛО (кривая ЛСРМ + ISO)" + (geometryProblem == null ? "" : ": " + geometryProblem));
+                Ok(!config.HasCurve && config.Origin != EfficiencyOrigin.Lsrm,
+                   "конфигурация не тронута: кривой нет, Origin = " + config.Origin);
             }
 
-            // Файла нет
-            string missing = Path.Combine(scratch, "no-such-file.in");
-            config = DeviceConfigForm.ImportLsrmEfficiencyWithGeometry(
-                device, exportPath, missing, out problem, out geometryProblem);
-            Ok(config != null && config.Geometry == null && !string.IsNullOrEmpty(geometryProblem),
-               ".in отсутствует: кривая импортирована без геометрии, причина: «" + Short(geometryProblem) + "»");
-
-            // Сцена поля
-            string iso = Path.Combine(scratch, "iso.in");
-            File.WriteAllText(iso, File.ReadAllText(modelPath) + "\r\nDS_Scene = ISO\r\nDS_FieldRadius = 50 cm\r\n");
-            config = DeviceConfigForm.ImportLsrmEfficiencyWithGeometry(
-                device, exportPath, iso, out problem, out geometryProblem);
-            Ok(config != null && config.Geometry == null && !string.IsNullOrEmpty(geometryProblem),
-               ".in сцены поля (ISO): кривая импортирована без геометрии, причина: «" + Short(geometryProblem) + "»");
-
-            // Прямая проверка читателя: битый файл → причина «нет кристалла»
+            // Мусорный `.in` — признак, которым отказывает кнопка `.in` конструктора.
             string broken = Path.Combine(scratch, "garbage.in");
             File.WriteAllText(broken, "this is not a geometry\r\nEnergy, keV\tEfficiency\r\n20.0\t0.01\r\n");
-            GeometryModel model = DeviceConfigForm.ReadLsrmGeometry(broken, out geometryProblem);
-            Ok(model == null && !string.IsNullOrEmpty(geometryProblem),
-               "ReadLsrmGeometry на мусоре: null и причина: «" + Short(geometryProblem) + "»");
+            Ok(!GeometryModel.Load(broken).HasScintillatorCrystal(), "мусорный .in: кристалла нет — кнопка .in его отвергнет");
         }
 
-        // ==================================================================
-        // §4. Автоподбор одноимённого .in
-        // ==================================================================
-
-        static void AutoSuggest(string exportPath, string modelPath, string scratch)
+        static string Rule(EfficiencyOrigin origin, GeometryModel geometry)
         {
-            Head("§4. АВТОПОДБОР ОДНОИМЁННОГО .in РЯДОМ С ЭКСПОРТОМ");
-            string txt = Path.Combine(scratch, "Pair.txt");
-            File.Copy(exportPath, txt);
-            Ok(DeviceConfigForm.SuggestLsrmGeometryPath(txt) == null, "без Pair.in рядом — null");
-            string inFile = Path.Combine(scratch, "Pair.in");
-            File.Copy(modelPath, inFile);
-            string suggested = DeviceConfigForm.SuggestLsrmGeometryPath(txt);
-            Ok(string.Equals(suggested, inFile, StringComparison.OrdinalIgnoreCase),
-               "с Pair.in рядом — найден: " + suggested);
-            Ok(DeviceConfigForm.SuggestLsrmGeometryPath(exportPath) == null,
-               "у настоящего экспорта ЛСРМ одноимённого .in нет (имена в поставке разные) — null");
+            return (string)typeof(EfficiencyMakerForm).GetMethod("LsrmCurveGeometryProblem", Any)
+                .Invoke(null, new object[] { origin, geometry });
         }
 
         // ==================================================================
-        // §5. Подписи импорта — в ресурсах САМОЙ ФОРМЫ, обе культуры
+        // §5. Подписи: текст отказа §3 в обеих культурах; снятые ключи не вернулись
         // ==================================================================
 
-        /// <summary>
-        /// Четыре ключа `DeviceConfigForm.resx` / `.ru.resx`, которые читает
-        /// импорт через `ComponentResourceManager(typeof(DeviceConfigForm))`.
-        /// ⚠ Сторож `check_resx_designer.py` разбирает только форму записи
-        /// `Resources.ResourceManager.GetString("X")` и этих обращений НЕ
-        /// видит: опечатка в ключе отдала бы запасной английский текст молча.
-        /// Поэтому ключи сверяются здесь — по обеим культурам, и русский
-        /// обязан отличаться от английского.
-        /// </summary>
         static void FormStrings()
         {
-            Head("§5. ПОДПИСИ ИМПОРТА В РЕСУРСАХ ФОРМЫ: обе культуры, ключ в ключ");
-            var manager = new System.ComponentModel.ComponentResourceManager(typeof(DeviceConfigForm));
+            Head("§5. ПОДПИСИ: отказ «сцена поля» en/ru; ключи снятой кнопки (`AMBER227`) не вернулись");
             var en = CultureInfo.GetCultureInfo("en-US");
             var ru = CultureInfo.GetCultureInfo("ru-RU");
+            var resources = BecquerelMonitor.Properties.Resources.ResourceManager;
+            string english = resources.GetString("EfficiencyMakerLsrmFieldScene", en);
+            string russian = resources.GetString("EfficiencyMakerLsrmFieldScene", ru);
+            Ok(!string.IsNullOrEmpty(english) && !string.IsNullOrEmpty(russian) && english != russian,
+               "EfficiencyMakerLsrmFieldScene: en «" + Short(english) + "» / ru «" + Short(russian) + "»");
+
+            foreach (string key in new[] { "EfficiencyTabImportLsrm", "EfficiencyTabImportLsrmTitle", "EffCalcMCFileFilter" })
+            {
+                Ok(resources.GetString(key, en) == null && resources.GetString(key, ru) == null,
+                   "Resources: ключа " + key + " нет");
+            }
+
+            var form = new System.ComponentModel.ComponentResourceManager(typeof(DeviceConfigForm));
             foreach (string key in new[] { "lsrmGeometryDialogTitle", "lsrmGeometryProblem",
                                            "lsrmGeometryNoCrystal", "lsrmGeometryFieldScene" })
             {
-                string english = manager.GetString(key, en);
-                string russian = manager.GetString(key, ru);
-                Ok(!string.IsNullOrEmpty(english) && !string.IsNullOrEmpty(russian) && english != russian,
-                   key + ": en «" + Short(english) + "» / ru «" + Short(russian) + "»");
+                Ok(form.GetString(key, en) == null && form.GetString(key, ru) == null,
+                   "DeviceConfigForm.resx: ключа " + key + " нет");
             }
+
+            Ok(typeof(DeviceConfigForm).GetMethod("ImportLsrmEfficiencyWithGeometry", Any | BindingFlags.Static) == null
+               && typeof(DeviceConfigForm).GetMethod("SuggestLsrmGeometryPath", Any | BindingFlags.Static) == null
+               && typeof(DeviceConfigForm).GetField("efficiencyImportButton", Any) == null,
+               "путь снятой кнопки (кнопка, импорт с геометрией, автоподбор .in) в приложении не живёт");
+        }
+
+        // ==================================================================
+        // Импорт через конструктор кривой — единственный путь с `AMBER227`
+        // ==================================================================
+
+        static readonly BindingFlags Any = BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public;
+
+        /// <summary>
+        /// Кривая ЛСРМ с геометрией так, как её заводит человек: конфигурация
+        /// прибора, геометрия `.in` в полях конструктора (кнопка `.in` отвергает
+        /// файл без кристалла — здесь тем же признаком, и тогда остаётся
+        /// заготовка полей, а причина — в <paramref name="geometryProblem"/>),
+        /// «Импорт из LSRM…» экспорта и «Сохранить». null — кривая не легла.
+        /// </summary>
+        static EfficiencyConfigData ImportViaDesigner(DeviceConfigInfo device, string exportPath, string geometryPath,
+                                                      out string problem, out string geometryProblem)
+        {
+            problem = null;
+            geometryProblem = null;
+            GeometryModel geometry = null;
+            if (geometryPath != null)
+            {
+                try
+                {
+                    geometry = GeometryModel.Load(geometryPath);
+                    if (!geometry.HasScintillatorCrystal())
+                    {
+                        geometryProblem = geometryPath + ": нет размеров сцинтиллятора — кнопка .in конструктора его отвергает";
+                        geometry = null;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    geometryProblem = geometryPath + ": " + ex.Message;
+                    geometry = null;
+                }
+            }
+
+            EfficiencyConfigData config = new EfficiencyConfigData(Path.GetFileNameWithoutExtension(exportPath))
+            {
+                Geometry = geometry,
+            };
+            device.EfficiencyConfigs.Add(config);
+            using (EfficiencyMakerForm form = new EfficiencyMakerForm())
+            {
+                form.BindTo(device, config);
+                if (!Import(form, exportPath, out problem))
+                {
+                    device.EfficiencyConfigs.Remove(config);
+                    return null;
+                }
+
+                string saveProblem;
+                if (!Save(form, out saveProblem))
+                {
+                    problem = "«Сохранить» отказало: " + saveProblem;
+                    device.EfficiencyConfigs.Remove(config);
+                    return null;
+                }
+            }
+
+            return config;
+        }
+
+        static bool Import(EfficiencyMakerForm form, string path, out string problem)
+        {
+            object[] a = { path, null, null };
+            bool ok = (bool)typeof(EfficiencyMakerForm).GetMethod("ImportCurveFile", Any).Invoke(form, a);
+            problem = (string)a[2];
+            return ok;
+        }
+
+        /// <summary>«Сохранить» — только при годных полях: иначе `TryCommit` поднял бы модальное окно.</summary>
+        static bool Save(EfficiencyMakerForm form, out string problem)
+        {
+            problem = null;
+            object panel = typeof(EfficiencyMakerForm).GetField("geometryPanel", Any).GetValue(form);
+            Type pt = panel.GetType();
+            bool marks = (bool)pt.GetMethod("MarkBadValues", Any).Invoke(panel, null);
+            object g = pt.GetMethod("BuildModel", Any).Invoke(panel, null);
+            string error = (string)pt.GetMethod("Validate", Any, null, new[] { typeof(GeometryModel) }, null)
+                .Invoke(panel, new[] { g });
+            if (!marks || error != null)
+            {
+                problem = "поля геометрии негодны: " + (error ?? "неверное число");
+                return false;
+            }
+
+            bool saved = (bool)typeof(EfficiencyMakerForm).GetMethod("SaveIntoConfig", Any).Invoke(form, null);
+            if (!saved)
+            {
+                problem = "SaveIntoConfig = false";
+            }
+
+            return saved;
         }
 
         // ==================================================================

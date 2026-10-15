@@ -580,9 +580,9 @@ namespace BecquerelMonitor
                     // значение» и на любом тексте не падает: прежде картинка,
                     // CSV или `.in` коаксиального германия (`DC_*`) въезжали в
                     // поля кристаллом нулевых размеров, и журнал говорил
-                    // «геометрия загружена». Признак тот же, что у импорта кривой
-                    // ЛСРМ (`DeviceConfigForm.ReadLsrmGeometry`): ни одного ключа
-                    // или нет размеров сцинтиллятора.
+                    // «геометрия загружена». Признак — ни одного ключа или нет
+                    // размеров сцинтиллятора (тот же, что был у снятого с вкладки
+                    // прибора импорта ЛСРМ, `AMBER227`).
                     if (!model.HasScintillatorCrystal())
                     {
                         MessageBox.Show(this,
@@ -1074,6 +1074,30 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// (`AMBER227`, П331) Почему кривую с этим происхождением нельзя сохранить
+        /// с этой геометрией; null — можно. Кривая ЛСРМ — доля квантов
+        /// источника, а сцена поля (ISO) нормирована на единичный флюенс
+        /// (<see cref="ResponseMatrix.NormalizationOf"/>): у такой пары нет
+        /// масштаба дозы, а отказ дозы «пересчитайте кривую из геометрии» для
+        /// кривой ЛСРМ невыполним. Запрет жил в импорте ЛСРМ на вкладке прибора
+        /// (`ReadLsrmGeometry`, `AMBER18`); с её снятием кривая ЛСРМ заводится
+        /// только здесь, и запрет переехал сюда. Без окна — его зовёт проба.
+        /// </summary>
+        internal static string LsrmCurveGeometryProblem(EfficiencyOrigin origin, GeometryModel geometry)
+        {
+            if (origin != EfficiencyOrigin.Lsrm
+                || ResponseMatrix.NormalizationOf(geometry) != ResponseMatrixNormalization.PerUnitFluence)
+            {
+                return null;
+            }
+
+            return ResourceText("EfficiencyMakerLsrmFieldScene",
+                "The LSRM curve cannot be saved with a field scene (ISO): the LSRM efficiency is per emitted quantum,"
+                + " not per unit fluence, and the dose rate would have no scale. Choose a source scene for this curve,"
+                + " or calculate the curve from this geometry.");
+        }
+
+        /// <summary>
         /// Положить посчитанное в привязанную конфигурацию. false — сохранять
         /// некуда либо геометрия в полях неверна, о чём уже сказано.
         /// </summary>
@@ -1089,6 +1113,27 @@ namespace BecquerelMonitor
             if (!this.geometryPanel.TryCommit())
             {
                 return false;
+            }
+
+            // (`AMBER227`) Кривая ЛСРМ и сцена поля — отказ ДО записи: ни
+            // кривая, ни геометрия не ложатся, окно остаётся несохранённым.
+            // Происхождение — той кривой, что ОКАЖЕТСЯ в конфигурации: кривой
+            // окна, а без неё — уже сохранённой (правка одной геометрии на ISO
+            // под сохранённой кривой ЛСРМ дала бы ту же пару).
+            bool freshCurve = this.lastResult != null && this.lastResult.Ok;
+            if (freshCurve || this.boundConfig.HasCurve)
+            {
+                string pairProblem = LsrmCurveGeometryProblem(
+                    freshCurve ? this.lastResult.Origin : this.boundConfig.Origin, this.geometryPanel.Model);
+                if (pairProblem != null)
+                {
+                    AppendLog(pairProblem);
+                    // Общая дверь, а не MessageBox: метод зовёт отражением проба
+                    // (`LsrmGeometryImportProbe`), и в безоконном прогоне окно
+                    // повесило бы её (сторож `check_headless`, `S100`).
+                    AppUi.Report(pairProblem, this.Text, MessageBoxIcon.Warning);
+                    return false;
+                }
             }
 
             // (`AMBER201`, Р4, мелочь 8.8) КОПИЯ, а не модель панели. Прежде
