@@ -1489,6 +1489,12 @@
   <data name="EfficiencySketchMarinelli" xml:space="preserve">
     <value>Стакан Маринелли</value>
   </data>
+  <data name="EfficiencySketchCrystalVolume" xml:space="preserve">
+    <value>Объём кристалла {0} см³</value>
+  </data>
+  <data name="EfficiencySketchSampleVolume" xml:space="preserve">
+    <value>Объём пробы {0} см³</value>
+  </data>
   <data name="DeviceConfigEfficiencyTab" xml:space="preserve">
     <value>Эффективность</value>
   </data>
