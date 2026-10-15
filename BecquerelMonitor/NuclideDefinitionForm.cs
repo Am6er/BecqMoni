@@ -44,14 +44,17 @@ namespace BecquerelMonitor
             this.table1.SuspendLayout();
             this.tableModel1.Rows.Clear();
             this.tableModel1.Selections.Clear();
-            if (definitionsDirty && this.manager.LoadDefinitionFile(forceReload: true))
-            {
-                // (`AMBER196`) Список перечитан с диска — память снова сходится
-                // с файлом. Прежде признак оставался, и КАЖДОЕ следующее
-                // перестроение списка перечитывало файл заново, подменяя
-                // объекты под уже выбранной строкой.
-                this.definitionsDirty = false;
-            }
+            // ⛔ (П318, 15.10.2026) Файл библиотеки здесь БОЛЬШЕ НЕ ПЕРЕЧИТЫВАЕТСЯ.
+            // Перечитыванием (`d20d69fb`) откатывались правки на ответ «Нет», но
+            // оно подменяло ВСЕ объекты менеджера — линии и наборы, — а их держат
+            // по ссылке: выбор набора у каждого открытого спектра
+            // (`DocEnergySpectrum.SelectedNuclideSet`, панель ищет его
+            // `NuclideSets.IndexOf`) при ближайшем обновлении панели молча
+            // слетал на «все нуклиды», и разметка пиков и FSA шли по всей
+            // библиотеке. Занятый файл ронял окно (NullReferenceException) и
+            // оставлял менеджер без библиотеки. Откат «Нет» теперь — по снимку
+            // линий до правки (`RollBackUnsaved`), объекты те же. Замер —
+            // `P318RevertAndCloseProbe`, журнал П318.
             this.manager.NuclideDefinitions.Sort();
             // ⛔ (`AMBER196`) Активная линия ищется ПО ССЫЛКЕ, а если список
             // перечитан с диска (объекты новые) — по имени И энергии. Прежде
@@ -165,6 +168,9 @@ namespace BecquerelMonitor
                 this.ListupNuclideDefinitions();
                 return;
             }
+            // (П318) Файл записан целиком — с несохранёнными правками линий тоже:
+            // откатывать «Нет» больше нечего.
+            this.ForgetUnsaved();
             this.activeNuclide = item;
             this.ListupNuclideDefinitions();
             this.UpdatePeakDetectionResult();
@@ -209,6 +215,10 @@ namespace BecquerelMonitor
                 return;
             }
 
+            // (П318) Галка пишет в определение сразу — снимок ДО неё, иначе «Нет»
+            // её не откатывал: прежний откат перечитыванием файла срабатывал только
+            // после правки в таблице.
+            this.RememberBeforeEdit(this.activeNuclide);
             this.activeNuclide.Visible = this.checkBox1.Checked;
             this.SetActiveNuclideDirty();
         }
@@ -250,6 +260,8 @@ namespace BecquerelMonitor
                     return;
                 }
 
+                // (П318) Записано всё, что лежало в памяти, — снимок для «Нет» не нужен.
+                this.ForgetUnsaved();
                 this.activeNuclide = this.manager.NuclideDefinitions.Count > 0
                     ? this.manager.NuclideDefinitions[0]
                     : null;
@@ -307,20 +319,17 @@ namespace BecquerelMonitor
             // определение не трогается вовсе (и период вида 5.808599695585997E-06 не
             // проходит круг double → decimal → double, где теряет шестнадцатую цифру).
             bool changed;
-            double number;
+            double number = 0.0;
             switch (e.CellPos.Column)
             {
                 case 0:
                     changed = !string.Equals(this.activeNuclide.Name, e.Cell.Text, StringComparison.Ordinal);
-                    if (changed) this.activeNuclide.Name = e.Cell.Text;
                     break;
                 case 1:
                     changed = NumberEdited(e.Cell.Data, this.activeNuclide.Energy, out number);
-                    if (changed) this.activeNuclide.Energy = number;
                     break;
                 case 2:
                     changed = NumberEdited(e.Cell.Data, this.activeNuclide.HalfLife, out number);
-                    if (changed) this.activeNuclide.HalfLife = number;
                     break;
                 default:
                     changed = false;
@@ -329,6 +338,21 @@ namespace BecquerelMonitor
             if (!changed)
             {
                 return;
+            }
+            // (П318) Снимок линии ДО правки — им откатывает ответ «Нет»
+            // (`RollBackUnsaved`); правка ячейки пишет в определение сразу.
+            this.RememberBeforeEdit(this.activeNuclide);
+            switch (e.CellPos.Column)
+            {
+                case 0:
+                    this.activeNuclide.Name = e.Cell.Text;
+                    break;
+                case 1:
+                    this.activeNuclide.Energy = number;
+                    break;
+                case 2:
+                    this.activeNuclide.HalfLife = number;
+                    break;
             }
             this.SetActiveNuclideDirty();
             this.definitionsDirty = true;
@@ -440,6 +464,13 @@ namespace BecquerelMonitor
                         return false;
                     }
                 }
+                else
+                {
+                    // (П318) «Нет» — линии возвращаются к снимку до правки, те же
+                    // объекты; файл не читается (прежде — перечитывался, см.
+                    // `ListupNuclideDefinitions`).
+                    this.RollBackUnsaved();
+                }
                 this.ResetActiveNuclideDirty();
                 this.ListupNuclideDefinitions();
             }
@@ -487,25 +518,132 @@ namespace BecquerelMonitor
         /// названо обычным способом — пометкой «есть несохранённое», которая
         /// остаётся стоять, плюс окно менеджера об отказе.
         ///
-        /// ⚠ <c>definitionsDirty</c> снимается ДО записи по-прежнему, нарочно: по
-        /// нему <c>ListupNuclideDefinitions</c> перечитывает файл с диска, а такое
-        /// перечитывание после отказа выбросило бы набранное — и, если файл занят,
-        /// оставило бы менеджер с <c>NuclideDefinitionFile = null</c>.
+        /// (П318) Файл больше не перечитывается вовсе (см.
+        /// <c>ListupNuclideDefinitions</c>), и снимок до правки
+        /// (<see cref="RememberBeforeEdit"/>) снимается только УДАЧНОЙ записью:
+        /// после отказа ответ «Нет» на следующий вопрос откатывает и поля формы,
+        /// уже перенесённые в линию <c>SaveFormContents</c>. Прежде
+        /// <c>definitionsDirty</c> гасился до записи, и после отказа «Нет» не
+        /// откатывал ничего — перенесённое оставалось в памяти и уходило в файл
+        /// при следующей записи библиотеки.
         /// </summary>
         bool SaveNuclideDefinitions()
         {
+            this.RememberBeforeEdit(this.activeNuclide);
             if (!this.SaveFormContents(this.activeNuclide))
             {
                 MessageBox.Show(Resources.ERRInvalidInputForm);
                 return false;
             }
-            this.definitionsDirty = false;
             if (!this.manager.SaveDefinitionFile())
             {
                 return false;
             }
+            this.ForgetUnsaved();
             this.UpdatePeakDetectionResult();
             return true;
+        }
+
+        /// <summary>
+        /// (П318) Запомнить линию такой, какой она была ДО первой несохранённой
+        /// правки этого окна. Правки ячеек таблицы и галка «Видимый» пишут в
+        /// определение сразу, поля формы — при сохранении; ответ «Нет» на
+        /// «Сохранить?» возвращает линии к этим снимкам (<see cref="RollBackUnsaved"/>).
+        /// Повторный вызов для той же линии снимок не трогает — он «до правки».
+        ///
+        /// ⚠ Почему снимок, а не перечитывание файла: объекты менеджера держат
+        /// по ссылке документы (выбор набора), панель поиска пиков, подписи
+        /// пиков и открытый редактор наборов — перечитывание подменяло их все.
+        /// </summary>
+        void RememberBeforeEdit(NuclideDefinition nuclide)
+        {
+            if (nuclide == null)
+            {
+                return;
+            }
+            foreach (NuclideState state in this.unsaved)
+            {
+                if (ReferenceEquals(state.Definition, nuclide))
+                {
+                    return;
+                }
+            }
+            this.unsaved.Add(NuclideState.Of(nuclide));
+            this.definitionsDirty = true;
+        }
+
+        /// <summary>(П318) Ответ «Нет»: линии — как до правок этого окна; объекты те же.</summary>
+        void RollBackUnsaved()
+        {
+            if (!this.definitionsDirty)
+            {
+                return;
+            }
+            foreach (NuclideState state in this.unsaved)
+            {
+                state.Restore();
+            }
+            this.ForgetUnsaved();
+        }
+
+        /// <summary>(П318) Файл записан — в памяти то же, что на диске; откатывать нечего.</summary>
+        void ForgetUnsaved()
+        {
+            this.unsaved.Clear();
+            this.definitionsDirty = false;
+        }
+
+        /// <summary>
+        /// (П318) Всё, что окно может записать в линию: правки таблицы (имя,
+        /// энергия, период), галка «Видимый» и поля формы (<c>SaveFormContents</c>).
+        /// Заметка — ссылка: форма её не правит, а заменяет новым объектом.
+        /// </summary>
+        sealed class NuclideState
+        {
+            public NuclideDefinition Definition;
+            string name;
+            string chain;
+            double energy;
+            double halfLife;
+            double intensity;
+            CDATA note;
+            bool hasColor;
+            System.Drawing.Color color;
+            bool visible;
+
+            public static NuclideState Of(NuclideDefinition d)
+            {
+                return new NuclideState
+                {
+                    Definition = d,
+                    name = d.Name,
+                    chain = d.Chain,
+                    energy = d.Energy,
+                    halfLife = d.HalfLife,
+                    intensity = d.Intencity,
+                    note = d.Note,
+                    hasColor = d.NuclideColor != null,
+                    color = d.NuclideColor != null ? d.NuclideColor.Color : System.Drawing.Color.Empty,
+                    visible = d.Visible,
+                };
+            }
+
+            public void Restore()
+            {
+                NuclideDefinition d = this.Definition;
+                d.Name = this.name;
+                d.Chain = this.chain;
+                d.Energy = this.energy;
+                d.HalfLife = this.halfLife;
+                d.Intencity = this.intensity;
+                d.Note = this.note;
+                if (this.hasColor && d.NuclideColor != null)
+                {
+                    d.NuclideColor.Color = this.color;
+                }
+                d.Visible = this.visible;
+                d.Dirty = false;
+            }
         }
 
         // Token: 0x060000CF RID: 207 RVA: 0x000042D4 File Offset: 0x000024D4
@@ -606,6 +744,14 @@ namespace BecquerelMonitor
         // Token: 0x0400003B RID: 59
         bool reenter;
 
+        /// <summary>
+        /// В памяти есть правки линий, не записанные в файл (правка ячейки,
+        /// галка «Видимый»). Держится вместе с <see cref="unsaved"/>; до П318
+        /// по нему перечитывался файл.
+        /// </summary>
         bool definitionsDirty = false;
+
+        /// <summary>(П318) Снимки линий до несохранённых правок — откат «Нет».</summary>
+        readonly List<NuclideState> unsaved = new List<NuclideState>();
     }
 }
