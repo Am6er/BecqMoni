@@ -1,2 +1,0 @@
-RC103_point50=1
-ASN16_point10=1

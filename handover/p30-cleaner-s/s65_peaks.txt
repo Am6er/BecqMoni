@@ -1,8 +1,0 @@
-== AS80_UGlass
-
-== ASN8_UGlass
-
-== GS4000_U
-
-== OBS_UGlass
-
