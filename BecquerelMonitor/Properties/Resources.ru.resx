@@ -1372,6 +1372,27 @@
   <data name="GeometryEditorTemplateLoadError" xml:space="preserve">
     <value>Файл шаблонов детекторов не прочитан: в списке только вшитые детекторы, и поверх него ничего не пишется: {0}</value>
   </data>
+  <data name="GeometryEditorSampleTemplate" xml:space="preserve">
+    <value>Шаблон образца:</value>
+  </data>
+  <data name="GeometryEditorSampleTemplateSaveTip" xml:space="preserve">
+    <value>Переписать выбранный свой шаблон текущими полями источника</value>
+  </data>
+  <data name="GeometryEditorSampleTemplateCloneTip" xml:space="preserve">
+    <value>Новый свой шаблон из текущих полей источника (детектор в него не входит)</value>
+  </data>
+  <data name="GeometryEditorSampleTemplateNameTitle" xml:space="preserve">
+    <value>Имя шаблона образца</value>
+  </data>
+  <data name="GeometryEditorSampleTemplateDeleteConfirm" xml:space="preserve">
+    <value>Удалить шаблон образца «{0}»?</value>
+  </data>
+  <data name="GeometryEditorSampleTemplateWriteError" xml:space="preserve">
+    <value>Файл шаблонов образцов не записан: {0}</value>
+  </data>
+  <data name="GeometryEditorSampleTemplateLoadError" xml:space="preserve">
+    <value>Файл шаблонов образцов не прочитан: список пуст, и поверх него ничего не пишется: {0}</value>
+  </data>
   <data name="EfficiencyMakerGridEdge" xml:space="preserve">
     <value>K-край Z={0} на {1:F2} кэВ разрешён парой узлов: ослабление «{3}» скачет в {2:F1} раза</value>
   </data>

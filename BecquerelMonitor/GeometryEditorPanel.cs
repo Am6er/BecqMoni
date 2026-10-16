@@ -92,8 +92,18 @@ namespace BecquerelMonitor
         Button templateSaveButton, templateCloneButton, templateDeleteButton;
 
         /// <summary>
-        /// Точки подмены диалогов шаблонов — для ПРОБ. Имя нового шаблона:
-        /// на входе предложенное, на выходе набранное; пустое — отказ.
+        /// Свои шаблоны образца (`AMBER230`, задача Amber 16.10.2026) — тот же
+        /// список с тремя кнопками, что у детектора, но на вкладке источника и
+        /// без вшитых строк (решение Amber «Только свои»): подсказка и свои.
+        /// </summary>
+        ComboBox sampleCombo;
+
+        Button sampleSaveButton, sampleCloneButton, sampleDeleteButton;
+
+        /// <summary>
+        /// Точки подмены диалогов шаблонов — для ПРОБ. Общие у шаблонов
+        /// детектора и образца: отвечает за человека одна и та же проба. Имя
+        /// нового шаблона: на входе предложенное, на выходе набранное; пустое — отказ.
         /// Подтверждение удаления: на входе имя, true — удалять. Пусто —
         /// штатные окна; без окон и без подмены — исключение, как у
         /// <see cref="AppUi.AskYesNo"/>: отвечать за человека некому.
@@ -215,6 +225,7 @@ namespace BecquerelMonitor
                 // про ТУ геометрию, из которой его выбрали: чужая геометрия
                 // приезжает без имени шаблона, и оставленное имя лгало бы.
                 this.SelectPresetRow(0);
+                this.SelectSampleRow(0);
             }
             finally
             {
@@ -893,16 +904,50 @@ namespace BecquerelMonitor
         {
             this.sourceSketch = this.AddSketch(tab, GeometrySketch.SketchMode.Source);
             Panel page = FieldColumn(tab);
+
+            // (`AMBER230`) Свои шаблоны образца — самым верхом, как готовые
+            // детекторы на своей вкладке, и тем же порядком: список, под ним
+            // строка кнопок. Левый край — у списка типа источника ниже, чтобы
+            // два списка вкладки стояли в одну колонку.
+            page.Controls.Add(new Label
+            {
+                AutoSize = true,
+                Location = new Point(14, 14),
+                Text = Resources.GeometryEditorSampleTemplate,
+            });
+
+            this.sampleCombo = new ComboBox
+            {
+                Location = new Point(210, 11),
+                Size = new Size(300, 21),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+            };
+            this.sampleCombo.SelectedIndexChanged += this.SampleChanged;
+            page.Controls.Add(this.sampleCombo);
+
+            ToolTip tips = new ToolTip();
+            int buttonsLeft = 210;
+            this.sampleSaveButton = this.TemplateButton(page, ref buttonsLeft,
+                Resources.GeometryEditorTemplateSave, Resources.GeometryEditorSampleTemplateSaveTip, tips);
+            this.sampleCloneButton = this.TemplateButton(page, ref buttonsLeft,
+                Resources.GeometryEditorTemplateClone, Resources.GeometryEditorSampleTemplateCloneTip, tips);
+            this.sampleDeleteButton = this.TemplateButton(page, ref buttonsLeft,
+                Resources.GeometryEditorTemplateDelete, Resources.GeometryEditorTemplateDeleteTip, tips);
+            this.sampleSaveButton.Click += (s, e) => this.SaveSampleTemplate();
+            this.sampleCloneButton.Click += (s, e) => this.CloneSampleTemplate();
+            this.sampleDeleteButton.Click += (s, e) => this.DeleteSampleTemplate();
+            this.RefreshSampleList(null);
+
             Label typeLabel = new Label
             {
                 AutoSize = true,
-                Location = new Point(14, 15),
+                Location = new Point(14, SourceTypeTop + 3),
                 Text = Resources.GeometryEditorSourceType,
             };
 
             this.sourceTypeCombo = new ComboBox
             {
-                Location = new Point(210, 12),
+                Location = new Point(210, SourceTypeTop),
                 Size = new Size(180, 21),
                 DropDownStyle = ComboBoxStyle.DropDownList,
             };
@@ -932,7 +977,7 @@ namespace BecquerelMonitor
             {
                 AutoSize = true,
                 ForeColor = Color.DimGray,
-                Location = new Point(14, 40),
+                Location = new Point(14, SourceTypeTop + 28),
                 MaximumSize = new Size(590, 0),
             };
             page.Controls.Add(this.sceneLabel);
@@ -1031,8 +1076,18 @@ namespace BecquerelMonitor
             this.ReflowSource();
         }
 
-        /// <summary>Верх полей источника: под списком форм и подсказкой сцены.</summary>
-        const int SourceFieldsTop = 76;
+        /// <summary>
+        /// Верх строки «Тип источника». Стояла на 12, под самым краем вкладки;
+        /// список своих шаблонов образца с кнопками (`AMBER230`) сдвинул её
+        /// ровно так, как `AMBER24` сдвинул форму кристалла на вкладке детектора.
+        /// </summary>
+        const int SourceTypeTop = TemplateButtonsTop + TemplateButtonHeight + 14;
+
+        /// <summary>
+        /// Верх полей источника: под списком форм и подсказкой сцены. Прежний
+        /// просвет от списка форм (76 − 12) сохранён.
+        /// </summary>
+        const int SourceFieldsTop = SourceTypeTop + 64;
 
         /// <summary>Строка «подпись — поле — см».</summary>
         void Row(Control parent, ref int y, string key, string caption)
@@ -1970,6 +2025,27 @@ namespace BecquerelMonitor
                 return;
             }
 
+            this.ApplyTemplatePart(g =>
+            {
+                if (preset != null)
+                {
+                    preset.Apply(g);
+                }
+                else
+                {
+                    own.Apply(g);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Наложить шаблон — детектора или образца — на то, что сейчас в полях,
+        /// и показать итог. Один ход на оба списка: правила «нечитаемое поле,
+        /// которого шаблон не касается, остаётся набранным» и «сцена — из
+        /// детектора» у них общие, и двумя копиями они разошлись бы.
+        /// </summary>
+        void ApplyTemplatePart(Action<GeometryModel> apply)
+        {
             // (`AMBER201`, Р4, мелочь 8.9) Нечитаемое поле, которого шаблон НЕ
             // касается, остаётся тем, что набрано. Прежде `BuildModel` читал его
             // нулём, загрузка модели писала «0» в поле, и опечатка в расстоянии
@@ -1989,21 +2065,17 @@ namespace BecquerelMonitor
 
             GeometryModel g = this.BuildModel();
             GeometryModel built = g.Clone();
-            if (preset != null)
-            {
-                preset.Apply(g);
-            }
-            else
-            {
-                own.Apply(g);
-            }
+            apply(g);
 
             this.model = g;
             this.LoadFromModel();
 
             // Сцена считается ИЗ ДЕТЕКТОРА, а пресет его целиком и подменяет
             // (E32): без пересчёта в полях остались бы размеры от прежнего
-            // прибора — молча, и это худший вид ошибки.
+            // прибора — молча, и это худший вид ошибки. (`AMBER230`) У шаблона
+            // образца с полевой сценой — то же: её размеры, снятые при другом
+            // приборе, пересчитываются по нынешнему, как при выборе строки
+            // списка типов источника.
             this.RecomputeScene();
 
             if (unread.Count > 0)
@@ -2256,21 +2328,36 @@ namespace BecquerelMonitor
         /// </summary>
         bool TemplateFileReadable()
         {
-            string error = GeometryTemplateStore.LoadError;
+            return TemplateFileReadable(GeometryTemplateStore.LoadError,
+                                        Resources.GeometryEditorTemplateLoadError);
+        }
+
+        /// <param name="error">Причина, по которой файл не прочитан; пусто — прочитан.</param>
+        /// <param name="format">Текст отказа своего списка — детектора или образца.</param>
+        static bool TemplateFileReadable(string error, string format)
+        {
             if (string.IsNullOrEmpty(error))
             {
                 return true;
             }
 
-            RefuseTemplate(string.Format(CultureInfo.InvariantCulture,
-                                         Resources.GeometryEditorTemplateLoadError, error));
+            RefuseTemplate(string.Format(CultureInfo.InvariantCulture, format, error));
             return false;
         }
 
         /// <summary>Имя не годится — назвать почему; true — годится.</summary>
         static bool TemplateNameFree(string name, GeometryTemplate except)
         {
-            switch (GeometryTemplateStore.NameConflict(name, except))
+            return TemplateNameFree(name, GeometryTemplateStore.NameConflict(name, except));
+        }
+
+        /// <summary>
+        /// То же по уже найденному разряду отказа — общее у шаблонов детектора и
+        /// образца: тексты «пустое» и «занято своим» у них одни.
+        /// </summary>
+        static bool TemplateNameFree(string name, GeometryTemplateStore.NameProblem problem)
+        {
+            switch (problem)
             {
                 case GeometryTemplateStore.NameProblem.Empty:
                     RefuseTemplate(Resources.GeometryEditorTemplateNameEmpty);
@@ -2411,6 +2498,12 @@ namespace BecquerelMonitor
 
         string AskTemplateName(string proposed)
         {
+            return this.AskTemplateName(proposed, Resources.GeometryEditorTemplateNameTitle);
+        }
+
+        /// <param name="title">Заголовок окна — шаблон детектора или образца.</param>
+        string AskTemplateName(string proposed, string title)
+        {
             if (this.TemplateNamePrompt != null)
             {
                 return this.TemplateNamePrompt(proposed);
@@ -2419,17 +2512,22 @@ namespace BecquerelMonitor
             if (!AppUi.HasWindows)
             {
                 throw new InvalidOperationException(
-                    "BecqMoni: " + Resources.GeometryEditorTemplateNameTitle
+                    "BecqMoni: " + title
                     + " — спросить имя шаблона без окон некому; проба обязана подменить TemplateNamePrompt.");
             }
 
-            return DeviceConfigForm.AskName(this, Resources.GeometryEditorTemplateNameTitle, proposed);
+            return DeviceConfigForm.AskName(this, title, proposed);
         }
 
         bool ConfirmTemplateDelete(string name)
         {
-            string question = string.Format(CultureInfo.InvariantCulture,
-                                            Resources.GeometryEditorTemplateDeleteConfirm, name);
+            return this.ConfirmTemplateDelete(name, Resources.GeometryEditorTemplateDeleteConfirm);
+        }
+
+        /// <param name="format">Вопрос — об удалении шаблона детектора или образца.</param>
+        bool ConfirmTemplateDelete(string name, string format)
+        {
+            string question = string.Format(CultureInfo.InvariantCulture, format, name);
             if (this.TemplateDeleteConfirm != null)
             {
                 return this.TemplateDeleteConfirm(name);
@@ -2445,6 +2543,272 @@ namespace BecquerelMonitor
             return MessageBox.Show(this, question, Resources.ConfirmationDialogTitle,
                                    MessageBoxButtons.OKCancel, MessageBoxIcon.Exclamation)
                    == DialogResult.OK;
+        }
+
+        // ------------------------------------------------------------------
+        // Свои шаблоны образца (`AMBER230`)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Подставить свой шаблон образца: меняется ТОЛЬКО вкладка источника,
+        /// детектор остаётся тем, что стоит, — зеркало <see cref="PresetChanged"/>.
+        /// Список, как и детекторный, помнит выбранную строку: её перепишет
+        /// «Сохранить» и снимет «Удалить».
+        /// </summary>
+        void SampleChanged(object sender, EventArgs e)
+        {
+            if (this.loading)
+            {
+                return;
+            }
+
+            this.UpdateSampleButtons();
+            SampleTemplate own = this.SelectedSampleTemplate;
+            if (own == null)
+            {
+                return;
+            }
+
+            this.ApplyTemplatePart(own.Apply);
+        }
+
+        /// <summary>Свой шаблон образца, выбранный в списке; null — подсказка.</summary>
+        public SampleTemplate SelectedSampleTemplate
+        {
+            get
+            {
+                return this.sampleCombo != null
+                    ? this.sampleCombo.SelectedItem as SampleTemplate : null;
+            }
+        }
+
+        /// <summary>Имена строк списка образцов по порядку — как их видит человек (для проб).</summary>
+        public List<string> SampleRowTexts()
+        {
+            List<string> list = new List<string>();
+            foreach (object item in this.sampleCombo.Items)
+            {
+                list.Add(item.ToString());
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// Пересобрать список: подсказка, потом свои (в порядке файла). Пометки
+        /// «(свой)» нет: вшитых образцов нет (решение Amber «Только свои»), и
+        /// отличать свой здесь не от чего. Смена строки — не действие.
+        /// </summary>
+        void RefreshSampleList(SampleTemplate select)
+        {
+            bool wasLoading = this.loading;
+            this.loading = true;
+            try
+            {
+                this.sampleCombo.Items.Clear();
+                this.sampleCombo.Items.Add(Resources.GeometryEditorPresetPrompt);
+                int selected = 0;
+                foreach (SampleTemplate t in SampleTemplateStore.Items)
+                {
+                    int i = this.sampleCombo.Items.Add(t);
+                    if (ReferenceEquals(t, select))
+                    {
+                        selected = i;
+                    }
+                }
+
+                this.sampleCombo.SelectedIndex = selected;
+            }
+            finally
+            {
+                this.loading = wasLoading;
+            }
+
+            this.UpdateSampleButtons();
+        }
+
+        /// <summary>Встать на строку списка образцов, ничего не накладывая.</summary>
+        void SelectSampleRow(int index)
+        {
+            if (this.sampleCombo == null || index < 0 || index >= this.sampleCombo.Items.Count)
+            {
+                return;
+            }
+
+            bool wasLoading = this.loading;
+            this.loading = true;
+            try
+            {
+                this.sampleCombo.SelectedIndex = index;
+            }
+            finally
+            {
+                this.loading = wasLoading;
+            }
+
+            this.UpdateSampleButtons();
+        }
+
+        /// <summary>
+        /// Выбрать свой шаблон образца ПО ИМЕНИ — и наложить его, как выбором
+        /// руками. false — такой строки нет. Для проб.
+        /// </summary>
+        public bool SelectSampleByName(string name)
+        {
+            for (int i = 1; i < this.sampleCombo.Items.Count; i++)
+            {
+                SampleTemplate t = this.sampleCombo.Items[i] as SampleTemplate;
+                if (t != null && string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (this.sampleCombo.SelectedIndex == i)
+                    {
+                        this.SampleChanged(this.sampleCombo, EventArgs.Empty);
+                    }
+                    else
+                    {
+                        this.sampleCombo.SelectedIndex = i;
+                    }
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>«Сохранить» и «Удалить» — только на своём; «Клонировать» — всегда.</summary>
+        void UpdateSampleButtons()
+        {
+            if (this.sampleSaveButton == null)
+            {
+                return;
+            }
+
+            bool own = this.SelectedSampleTemplate != null;
+            this.sampleSaveButton.Enabled = own;
+            this.sampleDeleteButton.Enabled = own;
+            this.sampleCloneButton.Enabled = true;
+        }
+
+        bool SampleFileReadable()
+        {
+            return TemplateFileReadable(SampleTemplateStore.LoadError,
+                                        Resources.GeometryEditorSampleTemplateLoadError);
+        }
+
+        /// <summary>
+        /// «Сохранить»: переписать выбранный свой шаблон текущими полями
+        /// источника. false — отказ, причина названа; на подсказке — без окна.
+        /// </summary>
+        public bool SaveSampleTemplate()
+        {
+            SampleTemplate own = this.SelectedSampleTemplate;
+            if (own == null || !this.SampleFileReadable())
+            {
+                return false;
+            }
+
+            GeometryModel g = this.CurrentForTemplate();
+            if (g == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                SampleTemplateStore.Replace(own, g);
+            }
+            catch (Exception e)
+            {
+                RefuseTemplate(string.Format(CultureInfo.InvariantCulture,
+                                             Resources.GeometryEditorSampleTemplateWriteError, e.Message));
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// «Клонировать»: новый свой шаблон из ТЕКУЩИХ полей источника с
+        /// именем из диалога; новый становится выбранным. false — отказ.
+        /// </summary>
+        public bool CloneSampleTemplate()
+        {
+            if (!this.SampleFileReadable())
+            {
+                return false;
+            }
+
+            GeometryModel g = this.CurrentForTemplate();
+            if (g == null)
+            {
+                return false;
+            }
+
+            // Подсказка имени — от выбранного своего, а без него — от типа
+            // источника («Маринелли»): имя «sample» человеку ничего не скажет.
+            SampleTemplate own = this.SelectedSampleTemplate;
+            string stem = own != null ? own.Name
+                        : this.sourceTypeCombo.SelectedItem != null ? this.sourceTypeCombo.SelectedItem.ToString() : "";
+            string name = this.AskTemplateName(SampleTemplateStore.FreeName(stem),
+                                               Resources.GeometryEditorSampleTemplateNameTitle);
+            if (string.IsNullOrEmpty(name))
+            {
+                return false;                         // отказ человека — не беда
+            }
+
+            name = name.Trim();
+            if (!TemplateNameFree(name, SampleTemplateStore.NameConflict(name, null)))
+            {
+                return false;
+            }
+
+            SampleTemplate added;
+            try
+            {
+                added = SampleTemplateStore.Add(name, g);
+            }
+            catch (Exception e)
+            {
+                RefuseTemplate(string.Format(CultureInfo.InvariantCulture,
+                                             Resources.GeometryEditorSampleTemplateWriteError, e.Message));
+                return false;
+            }
+
+            this.RefreshSampleList(added);
+            return true;
+        }
+
+        /// <summary>
+        /// «Удалить»: снять выбранный свой шаблон, с подтверждением; после —
+        /// подсказка. Поля источника не трогаются: удалён шаблон, а не геометрия.
+        /// </summary>
+        public bool DeleteSampleTemplate()
+        {
+            SampleTemplate own = this.SelectedSampleTemplate;
+            if (own == null || !this.SampleFileReadable())
+            {
+                return false;
+            }
+
+            if (!this.ConfirmTemplateDelete(own.Name, Resources.GeometryEditorSampleTemplateDeleteConfirm))
+            {
+                return false;
+            }
+
+            try
+            {
+                SampleTemplateStore.Remove(own);
+            }
+            catch (Exception e)
+            {
+                RefuseTemplate(string.Format(CultureInfo.InvariantCulture,
+                                             Resources.GeometryEditorSampleTemplateWriteError, e.Message));
+                return false;
+            }
+
+            this.RefreshSampleList(null);
+            return true;
         }
 
         /// <summary>

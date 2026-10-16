@@ -42725,6 +42725,27 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryEditorTemplateLoadError" xml:space="preserve">
     <value>The detector template file could not be read, so only built-in detectors are listed and nothing is written over it: {0}</value>
   </data>
+  <data name="GeometryEditorSampleTemplate" xml:space="preserve">
+    <value>Sample template:</value>
+  </data>
+  <data name="GeometryEditorSampleTemplateSaveTip" xml:space="preserve">
+    <value>Overwrite the selected own template with the current source fields</value>
+  </data>
+  <data name="GeometryEditorSampleTemplateCloneTip" xml:space="preserve">
+    <value>New own template from the current source fields (the detector is not included)</value>
+  </data>
+  <data name="GeometryEditorSampleTemplateNameTitle" xml:space="preserve">
+    <value>Sample template name</value>
+  </data>
+  <data name="GeometryEditorSampleTemplateDeleteConfirm" xml:space="preserve">
+    <value>Delete the sample template "{0}"?</value>
+  </data>
+  <data name="GeometryEditorSampleTemplateWriteError" xml:space="preserve">
+    <value>The sample template file was not written: {0}</value>
+  </data>
+  <data name="GeometryEditorSampleTemplateLoadError" xml:space="preserve">
+    <value>The sample template file could not be read, so the list is empty and nothing is written over it: {0}</value>
+  </data>
   <data name="EfficiencyMakerGridEdge" xml:space="preserve">
     <value>K edge of Z={0} at {1:F2} keV resolved by a pair of nodes: attenuation of "{3}" steps up {2:F1} times</value>
   </data>

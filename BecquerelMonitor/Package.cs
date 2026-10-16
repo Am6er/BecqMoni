@@ -211,6 +211,25 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Свои шаблоны образцов редактора геометрий (`AMBER230`, решение Amber
+        /// 16.10.2026 «Свой файл SampleTemplates.xml»). Рядом с шаблонами
+        /// детекторов, но СВОИМ файлом: версия приложения до этой правки,
+        /// сохраняя шаблон детектора, переписывает <c>GeometryTemplates.xml</c>
+        /// целиком — и чужой раздел в нём пропал бы молча.
+        /// </summary>
+        public string SampleTemplates
+        {
+            get
+            {
+                if (!IsStandAlone)
+                {
+                    return Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\BecqMoni\\config\\SampleTemplates.xml";
+                }
+                return Local("config\\SampleTemplates.xml");
+            }
+        }
+
         public string PackageVersion
         {
             get
