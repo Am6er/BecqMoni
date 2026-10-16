@@ -4444,6 +4444,48 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
+        public static string GeometryEditorSampleTemplate {
+            get {
+                return ResourceManager.GetString("GeometryEditorSampleTemplate", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorSampleTemplateSaveTip {
+            get {
+                return ResourceManager.GetString("GeometryEditorSampleTemplateSaveTip", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorSampleTemplateCloneTip {
+            get {
+                return ResourceManager.GetString("GeometryEditorSampleTemplateCloneTip", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorSampleTemplateNameTitle {
+            get {
+                return ResourceManager.GetString("GeometryEditorSampleTemplateNameTitle", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorSampleTemplateDeleteConfirm {
+            get {
+                return ResourceManager.GetString("GeometryEditorSampleTemplateDeleteConfirm", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorSampleTemplateWriteError {
+            get {
+                return ResourceManager.GetString("GeometryEditorSampleTemplateWriteError", resourceCulture);
+            }
+        }
+        
+        public static string GeometryEditorSampleTemplateLoadError {
+            get {
+                return ResourceManager.GetString("GeometryEditorSampleTemplateLoadError", resourceCulture);
+            }
+        }
+        
         public static string EfficiencySketchDetector {
             get {
                 return ResourceManager.GetString("EfficiencySketchDetector", resourceCulture);
