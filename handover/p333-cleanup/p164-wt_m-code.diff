@@ -1,0 +1,512 @@
+# П333 16.10.2026: незакоммиченная правка кода worktree D:\BqMoni_Claude\p164\wt_m (HEAD 3bff9866, П159 24.09.2026),
+# сохранена перед снятием по решению Amber «Снять, diff кода сохранить (Рекомендую)». Работа П158 вошла в master
+# коммитами 6ec77116, 06757e2d в другом виде; этот diff побайтно в историю не попал. Применять: git apply к 3bff9866.
+diff --git a/BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs b/BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs
+index cad7d8e4..b7b8577e 100644
+--- a/BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs
++++ b/BecquerelMonitor/FullSpectrumAnalysis/CascadeAtomicData.cs
+@@ -159,9 +159,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             public int Z;
+             public int A;
+ 
+-            /// <summary>Доля этой ветви, % (графа `perc` в `decay_chain`).</summary>
++            /// <summary>
++            /// Доля этой ветви, % — столбец <see cref="DecayParentRule.ChainPercColumn"/>
++            /// (`S190`): графа `perc` в `decay_chain`, а у канала «β⁺» — остаток
++            /// прочих ветвей, если он больше записанного.
++            /// </summary>
+             public double Perc;
+ 
++            /// <summary>
++            /// (`S190`) Графа `perc` как записана в `decay_chain` — для слов о
++            /// расхождении поставок (`S187`): у канала «β⁺» это доля позитронов.
++            /// </summary>
++            public double SupplyPerc;
++
+             /// <summary>
+             /// Канал распада (`dec_type` в `decay_chain`). Держится потому, что
+             /// В ОДИН дочерний нуклид ведут разные каналы, и это РАЗНЫЕ ветви
+@@ -826,7 +836,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+         /// `perc` такой строки — доля ПОЗИТРОНОВ, а не ветви: у `119TE` 2.06 %
+         /// при ε+β⁺ 100 % (LiveChart), у `164TM` 39 при 100.
+         /// </summary>
+-        const string BetaPlusModeDecType = "15";
++        const string BetaPlusModeDecType = DecayParentRule.BetaPlusChannel;
+ 
+         /// <summary>
+         /// Полный выход K-рентгена, % на распад. ⚠ `KB` в
+@@ -1074,9 +1084,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                 // обходу ряда они нужны как изомерный переход, — а нам они
+                 // означали бы «атом сам себе дочерний». В выборку они попадают
+                 // у 511 родителей из 2535 и у 123 из них побеждают по `perc`.
++                //
++                // (`S190`, П158 24.09.2026) Доля ветви — столбцом
++                // `DecayParentRule.ChainPercColumn`, общим со всеми читателями
++                // рядов; сырой `perc` держится рядом ради слов о расхождении.
+                 command.Parameters.Clear();
+                 command.CommandText =
+-                    "select daughter_nucid, perc, dec_type from decay_chain d"
++                    "select daughter_nucid, perc, dec_type," + DecayParentRule.ChainPercColumn
++                    + " from" + DecayParentRule.ChainTable + " d"
+                     + " where nucid = $n"
+                     + DecayParentRule.ChainLevelClause;
+                 command.Parameters.AddWithValue("$n", nucid);
+@@ -1091,11 +1106,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                             continue;
+                         }
+ 
+-                        double perc;
++                        double supplyPerc;
+                         if (string.IsNullOrEmpty(name)
+                             || !double.TryParse(reader.IsDBNull(1) ? "" : reader.GetString(1),
+                                                 NumberStyles.Float, CultureInfo.InvariantCulture,
+-                                                out perc))
++                                                out supplyPerc))
++                        {
++                            supplyPerc = 0.0;
++                        }
++
++                        double perc;
++                        if (string.IsNullOrEmpty(name)
++                            || reader.IsDBNull(3)
++                            || !DecayParentRule.TryPercent(reader.GetValue(3), out perc))
+                         {
+                             perc = 0.0;
+                         }
+@@ -1118,6 +1141,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                                 Z = branchZ,
+                                 A = branchA,
+                                 Perc = perc,
++                                SupplyPerc = supplyPerc,
+                                 DecType = reader.IsDBNull(2) ? null : reader.GetString(2)
+                             });
+                         }
+@@ -1695,28 +1719,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                 // и доля β⁺ ветви выходила 0.995 вместо 0.02. Ветвь такого
+                 // канала — всё, что оставляют ей прочие ветви родителя; строки
+                 // «ε+β⁺» своего уровня в эту дочь у всех девяти строк кода нет.
+-                if (AllOfChannel(own, BetaPlusModeDecType) && bound < 100.0)
++                //
++                // (`S190`, П158 24.09.2026) Остаток берёт уже ЗАПРОС — столбец
++                // `DecayParentRule.ChainPercColumn`, одно правило со всеми
++                // читателями рядов; здесь только слова о расхождении. Прежде
++                // остаток считался тут и лишь при β⁺-строках излучений, и у
++                // `143PM` (β⁺ 5.7·10⁻⁶ %, строк B+ нет) ветвь оставалась
++                // 5.7·10⁻⁶ %, а захватная вакансия при гамме зажималась в 1
++                // вместо 0.828.
++                double supplyBound = 0.0;
++                foreach (Branch branch in own)
+                 {
+-                    double room = 100.0 - OthersPerc(data, own);
+-                    if (room > bound)
+-                    {
+-                        notes.AppendFormat(CultureInfo.InvariantCulture,
+-                            "β⁺ канала {0}: decay_chain.perc {1:F3} % — доля позитронов, а не ветви ε+β⁺;"
+-                            + " ветвь взята остатком {2:F3} %; ",
+-                            entry.Key, bound, room);
+-                        AddDiscrepancy(data, SupplyDiscrepancyKind.BetaPlusModeWidened, nucid, own,
+-                                       entry.Key, bound, entry.Value, room,
+-                                       Math.Abs(room - bound) >= 100.0 * SupplyRounding);
+-                        foreach (Branch branch in own)
+-                        {
+-                            if (branch.Perc > 0.0)
+-                            {
+-                                branch.Perc *= room / bound;
+-                            }
+-                        }
++                    supplyBound += branch.SupplyPerc > 0.0 ? branch.SupplyPerc : 0.0;
++                }
+ 
+-                        bound = room;
+-                    }
++                if (AllOfChannel(own, BetaPlusModeDecType) && bound > supplyBound)
++                {
++                    notes.AppendFormat(CultureInfo.InvariantCulture,
++                        "β⁺ канала {0}: decay_chain.perc {1:F3} % — доля позитронов, а не ветви ε+β⁺;"
++                        + " ветвь взята остатком {2:F3} %; ",
++                        entry.Key, supplyBound, bound);
++                    AddDiscrepancy(data, SupplyDiscrepancyKind.BetaPlusModeWidened, nucid, own,
++                                   entry.Key, supplyBound, entry.Value, bound,
++                                   Math.Abs(bound - supplyBound) >= 100.0 * SupplyRounding);
+                 }
+ 
+                 if (entry.Value > bound && bound < 100.0)
+@@ -1829,21 +1854,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             return true;
+         }
+ 
+-        /// <summary>Сумма `perc` ветвей родителя вне списка <paramref name="own"/>, %.</summary>
+-        static double OthersPerc(CascadeAtomicData data, List<Branch> own)
+-        {
+-            double others = 0.0;
+-            foreach (Branch branch in data.Branches)
+-            {
+-                if (!own.Contains(branch) && branch.Perc > 0.0)
+-                {
+-                    others += branch.Perc;
+-                }
+-            }
+-
+-            return others;
+-        }
+-
+         /// <summary>
+         /// (`S187`) Положить расхождение поставок для окна отчёта — только
+         /// если оно двигает число (<paramref name="material"/>); см.
+diff --git a/BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs b/BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs
+index 0773c00d..9b0438ad 100644
+--- a/BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs
++++ b/BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs
+@@ -130,11 +130,226 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+         ///
+         /// Сводимость (второй копии в дереве нет) и цену правила поверяет
+         /// `tools/effmaker/probes/ChainRuleProbeF58.cs`.
++        ///
++        /// ⛔ (`S189`, П152 24.09.2026) НО МИНИМУМ ПО ТРОЙКЕ — ЛИШЬ ЗАПАСНОЙ
++        /// ХОД, А ПЕРВЫМ СТОИТ СВОЙ УРОВЕНЬ РОДИТЕЛЯ ДЛЯ ЭТОЙ ДОЧКИ. Изомер,
++        /// «живущий сам по себе», своего `nucid` в `decay_chain` чаще НЕ имеет:
++        /// его распад лежит под именем основного состояния на своём
++        /// `l_seqno`. И если тройка «родитель — дочь — канал» есть только на
++        /// уровне изомера, минимум по ней этот уровень и берёт — распад изомера
++        /// садится в ветви основного состояния. `164TM`: на уровне 0 — 164ER
++        /// каналом 15 (β⁺ 39 %), на уровне 1 — 164ER каналом 1 (20 %) и ИТ
++        /// 80 %; по IAEA LiveChart (ENSDF, выборка 24.09.2026) уровень 1 — это
++        /// изомер 5.1 мин с IT 80 % и ε+β⁺ 20 %, а основное состояние — ε+β⁺
++        /// 100 %. Прежнее правило давало 164TM ДВЕ ветви в 164ER, вторую —
++        /// чужую.
++        ///
++        /// Поэтому так: если у родителя есть строка СВОЕГО уровня
++        /// (<c>nuclides.l_seqno</c>) в ЭТУ ЖЕ дочь — берутся только строки
++        /// своего уровня; строки иных уровней в ту же дочь — распад другого
++        /// состояния той же пары. Замер по `nucdb` 24.09.2026: таких троек 8
++        /// (`131CE`, `164TM`, `166LU`, `174LU`, `184RE`, `202PB`, `90TC`,
++        /// `93MO`), и у ВСЕХ восьми LiveChart подтверждает, что строка — изомера
++        /// (у `90TC` ветвь в 90MO шла дважды по 100 %).
++        ///
++        /// ⛔ (`S191`, П158 24.09.2026) СТРОКИ ИНЫХ УРОВНЕЙ В ДРУГУЮ ДОЧЬ СУДИТ
++        /// `l_decays`. Одной `decay_chain` их не различить: из 28 таких троек у
++        /// родителей со своими строками часть — распад основного состояния,
++        /// записанный не на тот уровень (`184AU` α 0.016 % на уровне 3, `191PB`
++        /// ε 100 % на уровне 2), часть — изомера (`150EU` β⁻ 89 %, `176LU` ε
++        /// 0.095 %). Судья — `l_decays` (моды распада по строкам `nuclides`, с
++        /// их `l_seqno`): у СВОЕГО уровня родителя там стоят ВСЕ его моды.
++        /// Строка иного уровня в дочь, в которую свой уровень по `l_decays` не
++        /// распадается вовсе, — распад другого состояния, и в ветви родителя
++        /// она не идёт. Замер 24.09.2026: таких строк 14 (`148HO`, `150EU`,
++        /// `171AU`, `176LU`, `185PT`, `199BI`, `201BI`, `242AM`, `258MD` ×2,
++        /// `53CO`, `93RU`, `94AG` ×2), и у ВСЕХ четырнадцати IAEA LiveChart
++        /// (ENSDF, выборка 24.09.2026) отдаёт эту моду изомеру, а не основному
++        /// состоянию.
++        ///
++        /// (Остаток `S191`, решение Amber 24.09.2026 вопросником, дословно:
++        /// «Доли из l_decays кодом (Рекомендую)».) Судья снимает такую строку и
++        /// у родителя БЕЗ своих рёбер (`157LU` → 157YB, `95PD` → 94RU, `185TL` →
++        /// 181AU: под именем основного в `decay_chain` лежит только набор
++        /// изомера), а ветви такому родителю достраивает
++        /// <see cref="ChainTable"/> по `l_decays`. Долю строки иного уровня в
++        /// дочь, известную своему уровню, тоже берёт <see cref="ChainTable"/>.
++        ///
++        /// Судья молчит — строка остаётся, как была: у своего уровня в
++        /// `l_decays` нет ни одной моды (14 троек) или родителя нет в
++        /// `nuclides` (6) — судить нечем. Судья сравнивает ДОЧЬ, а не код
++        /// канала: у `94AG` ε в 94PD записан кодом 7 здесь и 1 там.
++        /// Петли `daughter = nucid` судья не трогает.
++        ///
++        /// Третий член `coalesce` — для строк, которые <see cref="ChainTable"/>
++        /// достроил из `l_decays`: в `decay_chain` их тройки нет, и они идут
++        /// своим уровнем. У строк самой `decay_chain` второй член есть всегда
++        /// (тройка — это сама строка), так что до третьего дело не доходит.
+         /// </summary>
+         public const string ChainLevelClause =
+-            " and l_seqno = (select min(l_seqno) from decay_chain x"
+-            + "               where x.nucid = d.nucid"
+-            + "                 and x.daughter_nucid = d.daughter_nucid"
+-            + "                 and x.dec_type = d.dec_type)";
++            " and l_seqno = coalesce("
++            + "   (select w.l_seqno from nuclides w where w.nucid = d.nucid"
++            + "     and exists (select 1 from decay_chain z where z.nucid = d.nucid"
++            + "                 and z.daughter_nucid = d.daughter_nucid and z.l_seqno = w.l_seqno)),"
++            + "   (select min(l_seqno) from decay_chain x"
++            + "     where x.nucid = d.nucid"
++            + "       and x.daughter_nucid = d.daughter_nucid"
++            + "       and x.dec_type = d.dec_type),"
++            + "   (select w.l_seqno from nuclides w where w.nucid = d.nucid and w.l_seqno = d.l_seqno))"
++            + " and not (d.daughter_nucid <> d.nucid"
++            + "   and not exists (select 1 from nuclides w where w.nucid = d.nucid and w.l_seqno = d.l_seqno)"
++            + "   and exists (select 1 from nuclides w, l_decays j where w.nucid = d.nucid"
++            + "               and j.nucid = d.nucid and j.l_seqno = w.l_seqno)"
++            + "   and not exists (select 1 from nuclides w, l_decays j where w.nucid = d.nucid"
++            + "               and j.nucid = d.nucid and j.l_seqno = w.l_seqno"
++            + "               and j.daughter_nucid = d.daughter_nucid))";
++
++        /// <summary>
++        /// Источник строк ряда вместо голой `decay_chain` (остаток `S191`, П158
++        /// 24.09.2026; решение Amber вопросником, дословно: «Доли из l_decays
++        /// кодом (Рекомендую)»). Ставится в `from` запроса ряда —
++        /// <c>"from" + ChainTable + " d"</c> — вместе с
++        /// <see cref="ChainLevelClause"/> и <see cref="ChainPercColumn"/>;
++        /// столбцы — те же, что у `decay_chain`.
++        ///
++        /// Судья — `l_decays` своего уровня родителя (`nuclides.l_seqno`), и
++        /// только его ЧИСЛО больше нуля (`perc_num`; «?» и «0» у поставки значат
++        /// «доля неизвестна», а не «распада нет» — `183TL` ε в 183HG записан
++        /// нулём при ε+β⁺ основного ~100 %):
++        ///
++        ///   * строка `decay_chain` ИНОГО уровня в дочь, которую свой уровень
++        ///     знает с числом, получает долю основного из `l_decays` (той же моды,
++        ///     а нет её — наибольшую в эту дочь): `197BI` α 55 % (изомер) → 10⁻⁴ %,
++        ///     `161RE` α 93 → 1.4, `90RH` εp 9.6 → 0.7, `183PT` ε 96.9 → 100;
++        ///   * родителю, у которого в `decay_chain` нет ни одного ребра своего
++        ///     уровня, недостающие дочери своего уровня достраиваются из
++        ///     `l_decays` (по одной строке на дочь — наибольшей; иначе ε+β⁺ и β⁺
++        ///     в одну дочь сложились бы): `179AU` → 179PT ε 78, `164RE` → 164W
++        ///     ε 42, `171IR` → 171OS ε 85.
++        ///
++        /// ⚠ Достраивается ТОЛЬКО родителю, который в `decay_chain` есть (у него
++        /// там лишь строки иных уровней или петли): родитель, которого
++        /// `decay_chain` не знает вовсе (изомеры под своим `nucid` — `99TCm`,
++        /// `26ALm`, … — 1192 родителя с долями в `l_decays`), идёт как прежде —
++        /// рядов у него не было, и их появление поменяло бы библиотеку разбора
++        /// таких образцов; это отдельный вопрос, а не остаток `S191`.
++        ///
++        /// Строки своего уровня и петли `daughter = nucid` — как записаны.
++        /// Родитель, которого нет в `nuclides` или у своего уровня которого в
++        /// `l_decays` доли нет, — побитово как было. Имён нуклидов здесь нет —
++        /// судит база.
++        /// </summary>
++        public const string ChainTable =
++            " (select c.nucid as nucid, c.l_seqno as l_seqno, c.daughter_nucid as daughter_nucid,"
++            + "         c.dec_type as dec_type,"
++            + "    case when c.daughter_nucid <> c.nucid"
++            + "      and not exists (select 1 from nuclides w where w.nucid = c.nucid and w.l_seqno = c.l_seqno)"
++            + "      and exists (select 1 from nuclides w, l_decays j where w.nucid = c.nucid"
++            + "                  and j.nucid = c.nucid and j.l_seqno = w.l_seqno"
++            + "                  and j.daughter_nucid = c.daughter_nucid and j.perc_num > 0)"
++            + "    then coalesce("
++            + "      (select j.perc_num from nuclides w, l_decays j where w.nucid = c.nucid"
++            + "         and j.nucid = c.nucid and j.l_seqno = w.l_seqno"
++            + "         and j.daughter_nucid = c.daughter_nucid and j.perc_num > 0"
++            + "         and j.dec_type = cast(c.dec_type as integer) limit 1),"
++            + "      (select max(j.perc_num) from nuclides w, l_decays j where w.nucid = c.nucid"
++            + "         and j.nucid = c.nucid and j.l_seqno = w.l_seqno"
++            + "         and j.daughter_nucid = c.daughter_nucid and j.perc_num > 0))"
++            + "    else c.perc end as perc"
++            + "  from decay_chain c"
++            + "  union all"
++            + "  select j.nucid, j.l_seqno, j.daughter_nucid, cast(j.dec_type as text), j.perc_num"
++            + "  from l_decays j, nuclides w"
++            + "  where w.nucid = j.nucid and w.l_seqno = j.l_seqno"
++            + "    and j.daughter_nucid is not null and j.daughter_nucid <> j.nucid and j.perc_num > 0"
++            + "    and not exists (select 1 from l_decays k where k.nucid = j.nucid and k.l_seqno = j.l_seqno"
++            + "                    and k.daughter_nucid = j.daughter_nucid and k.perc_num > 0"
++            + "                    and (k.perc_num > j.perc_num"
++            + "                         or (k.perc_num = j.perc_num and k.dec_type < j.dec_type)))"
++            + "    and exists (select 1 from decay_chain e where e.nucid = j.nucid)"
++            + "    and not exists (select 1 from decay_chain e where e.nucid = j.nucid"
++            + "                    and e.daughter_nucid = j.daughter_nucid)"
++            + "    and not exists (select 1 from nuclides v, decay_chain e where v.nucid = j.nucid"
++            + "                    and e.nucid = j.nucid and e.l_seqno = v.l_seqno"
++            + "                    and e.daughter_nucid <> e.nucid))";
++
++        /// <summary>
++        /// (`S190`, П158 24.09.2026) Код канала «β⁺» в `decay_chain.dec_type`
++        /// (подпись в `l_decays.decay_label` — «β+»). ⚠ Тот же код стоит
++        /// ЛИТЕРАЛОМ в тексте <see cref="ChainPercColumn"/> — выражение читает
++        /// питон, а склейку констант он не разбирает; согласие двух мест
++        /// держит `tools/check_parent_rule.py` (раздел 3).
++        /// </summary>
++        public const string BetaPlusChannel = "15";
++
++        /// <summary>
++        /// Столбец выборки вместо голого `perc` для обхода `decay_chain`: ДОЛЯ
++        /// ВЕТВИ, %, — одно правило для всех читателей рядов (`S190`, П158
++        /// 24.09.2026). Ставится в список `select` запроса с
++        /// <see cref="ChainLevelClause"/> (внешняя таблица — алиас `d`, строки
++        /// одного родителя), читается числом (<see cref="TryPercent"/>): у
++        /// расширенной строки это REAL, у прочих — прежний текст `perc`
++        /// побитово.
++        ///
++        /// ⛔ ЧТО ЧИНИТ. `perc` строки канала «β⁺» (<see cref="BetaPlusChannel"/>)
++        /// — доля ПОЗИТРОНОВ, а не ветви ε+β⁺: ENSDF пишет у распада два числа,
++        /// «%EC+%B+» и «%B+», и `decay_chain` местами сохранила только второе
++        /// (`l_decays` держит оба: код 1 «ec β+ 100%» и код 15 «β+ 39%»).
++        /// Читатели рядов брали его долей ветви, и ряд через такого родителя
++        /// терял дочь: `164TM` → 164ER 0.39, `131CE` → 131LA 0.11, `119TE` →
++        /// 119SB 0.0206, `117I` → 117TE 0.77, `143PM` → 143ND 5.7·10⁻⁸ при
++        /// истине 1.0 (ε+β⁺ 100 % по `l_decays` и IAEA LiveChart).
++        ///
++        /// ПРАВИЛО — то же, что у сумматора совпадений с `S189`: ветвь канала
++        /// «β⁺» — всё, что оставляют ей ПРОЧИЕ ветви родителя (петли
++        /// `daughter = nucid` — изомерный переход другого уровня — в «прочие» не
++        /// идут), если это больше записанного; несколько строк канала делят
++        /// остаток пропорционально своим `perc`. Канал, которому остатка не
++        /// хватает (`20MG`: β⁺ 100 и βp 30.3), остаётся как записан — это уже
++        /// не «доля позитронов вместо ветви», а избыток поставки.
++        ///
++        /// Окно `over ()` — строки ОДНОГО родителя, прошедшие `where` запроса,
++        /// поэтому столбец годится только там, где выборка идёт по одному
++        /// `nucid` (`where nucid = $n`), — так устроены все читатели.
++        /// </summary>
++        public const string ChainPercColumn =
++            " case when d.dec_type = '15'"
++            + "   and total(case when d.dec_type = '15' then cast(d.perc as real) end) over () > 0"
++            + "   and total(case when d.dec_type = '15' then cast(d.perc as real) end) over ()"
++            + "     < 100 - total(case when d.dec_type <> '15'"
++            + "                         and upper(d.daughter_nucid) <> upper(d.nucid)"
++            + "                        then cast(d.perc as real) end) over ()"
++            + " then (100 - total(case when d.dec_type <> '15'"
++            + "                         and upper(d.daughter_nucid) <> upper(d.nucid)"
++            + "                        then cast(d.perc as real) end) over ())"
++            + "   * (cast(d.perc as real)"
++            + "      / total(case when d.dec_type = '15' then cast(d.perc as real) end) over ())"
++            + " else d.perc end";
++
++        /// <summary>
++        /// Прочитать значение <see cref="ChainPercColumn"/> (или `perc`): REAL
++        /// у расширенной строки, текст у прочих. Текст — инвариантной
++        /// культурой (правило точки).
++        /// </summary>
++        public static bool TryPercent(object value, out double percent)
++        {
++            percent = 0.0;
++            if (value is double)
++            {
++                percent = (double)value;
++                return true;
++            }
++
++            if (value is long)
++            {
++                percent = (long)value;
++                return true;
++            }
++
++            string text = value as string;
++            return text != null
++                   && double.TryParse(text, System.Globalization.NumberStyles.Float,
++                                      System.Globalization.CultureInfo.InvariantCulture, out percent);
++        }
+     }
+ }
+diff --git a/BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs b/BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs
+index 3816b57e..34d02e70 100644
+--- a/BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs
++++ b/BecquerelMonitor/FullSpectrumAnalysis/FsaCascadeSummer.cs
+@@ -3886,7 +3886,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     using (SqliteCommand command = connection.CreateCommand())
+                     {
+                         command.CommandText =
+-                            "select distinct daughter_nucid from decay_chain d where nucid = $n"
++                            "select distinct daughter_nucid from" + DecayParentRule.ChainTable + " d where nucid = $n"
+                             + DecayParentRule.ChainLevelClause;
+                         command.Parameters.AddWithValue("$n", nucid);
+                         using (SqliteDataReader reader = command.ExecuteReader())
+diff --git a/BecquerelMonitor/FullSpectrumAnalysis/FsaEfficiency.cs b/BecquerelMonitor/FullSpectrumAnalysis/FsaEfficiency.cs
+index 7056f6da..ee528790 100644
+--- a/BecquerelMonitor/FullSpectrumAnalysis/FsaEfficiency.cs
++++ b/BecquerelMonitor/FullSpectrumAnalysis/FsaEfficiency.cs
+@@ -283,6 +283,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+             {
+                 if (this.logEfficiency[i] >= want)
+                 {
++                    // ⛔ (`AMBER95`, П147 24.09.2026) ПЕРЕСЕЧЕНИЕ, а не узел:
++                    // уровень пересекается между узлами i−1 и i, и тем же
++                    // лог-лог интерполянтом, что у `TryEval`, берётся точка
++                    // пересечения. Прежде возвращался узел i — пол вставал на
++                    // целый промежуток выше: у маринелли RC-103 на 20 кэВ при
++                    // пересечении ниже, и на RC-101 срезался L-рентген Np.
++                    if (i > 0 && this.logEfficiency[i] > this.logEfficiency[i - 1])
++                    {
++                        double t = (want - this.logEfficiency[i - 1])
++                                   / (this.logEfficiency[i] - this.logEfficiency[i - 1]);
++                        return Math.Exp(this.logEnergy[i - 1]
++                                        + t * (this.logEnergy[i] - this.logEnergy[i - 1]));
++                    }
++
+                     return Math.Exp(this.logEnergy[i]);
+                 }
+             }
+diff --git a/BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs b/BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs
+index ca36026f..2a2ef09a 100644
+--- a/BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs
++++ b/BecquerelMonitor/FullSpectrumAnalysis/FsaSampleLibrary.cs
+@@ -1264,7 +1264,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     using (SqliteCommand life = connection.CreateCommand())
+                     {
+                         command.CommandText =
+-                            "select daughter_nucid, perc from decay_chain d"
++                            "select daughter_nucid," + DecayParentRule.ChainPercColumn + " from" + DecayParentRule.ChainTable + " d"
+                             + " where nucid = $n and perc not null"
+                             + DecayParentRule.ChainLevelClause;
+                         command.Parameters.AddWithValue("$n", root);
+@@ -1501,7 +1501,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     using (SqliteCommand life = connection.CreateCommand())
+                     {
+                         edges.CommandText =
+-                            "select daughter_nucid, perc from decay_chain d"
++                            "select daughter_nucid," + DecayParentRule.ChainPercColumn + " from" + DecayParentRule.ChainTable + " d"
+                             + " where nucid = $n and perc not null"
+                             + DecayParentRule.ChainLevelClause;
+                         edges.Parameters.AddWithValue("$n", root);
+@@ -1621,7 +1621,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                     // `parent_l_seqno`: второго соглашения о том, что считать
+                     // ребром ряда, в проекте быть не должно.
+                     command.CommandText =
+-                        "select daughter_nucid, perc from decay_chain d"
++                        "select daughter_nucid," + DecayParentRule.ChainPercColumn + " from" + DecayParentRule.ChainTable + " d"
+                         + " where nucid = $n and perc not null"
+                         + DecayParentRule.ChainLevelClause;
+                     command.Parameters.AddWithValue("$n", root);
+@@ -1778,7 +1778,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
+                 using (SqliteCommand command = connection.CreateCommand())
+                 {
+                     command.CommandText =
+-                        "select daughter_nucid, perc from decay_chain d"
++                        "select daughter_nucid," + DecayParentRule.ChainPercColumn + " from" + DecayParentRule.ChainTable + " d"
+                         + " where nucid = $n and perc not null"
+                         + DecayParentRule.ChainLevelClause;
+                     command.Parameters.AddWithValue("$n", root);
+diff --git a/BecquerelMonitor/NucBase/NucBaseFramework.cs b/BecquerelMonitor/NucBase/NucBaseFramework.cs
+index ac6b5b9e..12de33b7 100644
+--- a/BecquerelMonitor/NucBase/NucBaseFramework.cs
++++ b/BecquerelMonitor/NucBase/NucBaseFramework.cs
+@@ -901,7 +901,7 @@ namespace BecquerelMonitor.NucBase
+                 {
+                     string current = queue[i].Key;
+                     double share = queue[i].Value;
+-                    List<KeyValuePair<string, string>> rows = new List<KeyValuePair<string, string>>();
++                    List<KeyValuePair<string, object>> rows = new List<KeyValuePair<string, object>>();
+                     // Строки вычитываются целиком до следующего запроса: обходу
+                     // нужен ещё один читатель на том же соединении.
+                     // Зажим по уровню — общий, из `DecayParentRule` (`A218`):
+@@ -912,22 +912,26 @@ namespace BecquerelMonitor.NucBase
+                     // возвращать его надо в само правило, всем сразу.
+                     // Имя — параметром: оно приходит из базы и из поля ввода, а
+                     // апостроф в нём закрывал литерал и ронял обход (`D45`).
++                    // (`S190`) Доля ветви — столбцом `ChainPercColumn`, а не голым
++                    // `perc`: у канала «β⁺» там доля позитронов. Число читается
++                    // значением (REAL у расширенной строки), а не текстом.
+                     SqliteDataReader reader = db.ReadData(
+-                        "select daughter_nucid, perc from decay_chain d where nucid = $n" +
++                        "select daughter_nucid," + DecayParentRule.ChainPercColumn
++                        + " from" + DecayParentRule.ChainTable + " d where nucid = $n" +
+                         " and perc not null" + DecayParentRule.ChainLevelClause,
+                         DataBase.Param("$n", current));
+                     while (reader.Read())
+                     {
+-                        rows.Add(new KeyValuePair<string, string>(reader.GetString(0), reader.GetString(1)));
++                        rows.Add(new KeyValuePair<string, object>(reader.GetString(0), reader.GetValue(1)));
+                     }
+ 
+                     reader.Close();
+ 
+-                    foreach (KeyValuePair<string, string> row in rows)
++                    foreach (KeyValuePair<string, object> row in rows)
+                     {
+                         double percent;
+                         if (string.Equals(row.Key, current, StringComparison.OrdinalIgnoreCase)
+-                            || !double.TryParse(row.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out percent))
++                            || !DecayParentRule.TryPercent(row.Value, out percent))
+                         {
+                             continue;
+                         }
