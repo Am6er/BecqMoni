@@ -44,7 +44,7 @@ from spe_import import read_spe                      # noqa: E402
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-LIB = r'C:\Users\moroz\YandexDisk\Спектры'
+LIB = r'D:\YandexDisk\Спектры'
 POVERKI = os.path.join(LIB, 'Спектры источники эталоны', 'Spe - поверки')
 
 # Имя, записанное в спектре -> оригинал серии поверки (ПОСЛЕДНИЙ файл).

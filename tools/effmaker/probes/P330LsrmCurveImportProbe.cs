@@ -63,7 +63,7 @@ static class P330LsrmCurveImportProbe
     {
         Console.OutputEncoding = Encoding.UTF8;
         CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-        string dir = @"C:\Users\moroz\YandexDisk\Спектры\Спектры источники эталоны";
+        string dir = @"D:\YandexDisk\Спектры\Спектры источники эталоны";
         string work = @"D:\BqMoni_Claude\p330\work";
         string model = null;
         foreach (string a in args)

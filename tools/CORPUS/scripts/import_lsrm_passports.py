@@ -52,7 +52,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(os.path.dirname(HERE), 'data')
-SRC = r'C:\Users\moroz\YandexDisk\Спектры\Спектры источники эталоны'
+SRC = r'D:\YandexDisk\Спектры\Спектры источники эталоны'
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')

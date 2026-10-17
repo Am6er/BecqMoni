@@ -34,7 +34,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, os.pardir, os.pardir))
 OUT = os.path.join(REPO, 'tools', 'fsa_showcase', 'spectra')
-YD = u'C:\\Users\\moroz\\YandexDisk\\Спектры'
+YD = u'D:\\YandexDisk\\Спектры'
 SRC = {
     u'ASN16_Cs137_house.xml': os.path.join(YD, u'!ASN16', u'Cs 137 в домике 24.11.2022.xml'),
     u'ASN16_Radon_filter2.xml': os.path.join(YD, u'!ASN16', u'Радон деревня 11 часов спустя.xml'),

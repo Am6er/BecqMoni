@@ -10,7 +10,7 @@ import shutil
 
 SRC = os.environ.get('SVT_ROOT') or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'svt', 'detectors')
-DEST = r'C:\Users\moroz\YandexDisk\Спектры\SpectraVibe'
+DEST = r'D:\YandexDisk\Спектры\SpectraVibe'
 
 KIT = os.path.join(SRC, 'Gamma-1S', 'reference_spectra', 'reference_kits_becqmoni')
 HANDY_HPGE = os.path.join(SRC, 'Handy_HPGe', 'reference_spectra', 'becqmoni',
