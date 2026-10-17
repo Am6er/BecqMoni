@@ -90,7 +90,7 @@ from corpus_paths import resolve                     # noqa: E402
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-LIB = r'C:\Users\moroz\YandexDisk\Спектры'
+LIB = r'D:\YandexDisk\Спектры'
 SRC_DEFAULT = os.path.join(LIB, 'Спектры источники эталоны', 'Spe - поверки')
 OUT_DEFAULT = os.path.join(LIB, 'LSRM поверки')
 

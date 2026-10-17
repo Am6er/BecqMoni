@@ -1987,3 +1987,18 @@ fwhmtopprobeamber231 --corpus=<tools\CORPUS\corpus>
 отказывает там, где считал прежний). Подробности и замеры —
 [`handover-2026-10-17-p335-amber231-fwhm-top.md`](../../../handover/handover-2026-10-17-p335-amber231-fwhm-top.md).
 Заведена 17.10.2026 (П335).
+
+## `GbsSpecUtilsProbeAmber232.cs` — дверь «SpectraLine GBS» против «Импорт через SpecUtils...» (`AMBER232`, П336)
+
+```text
+gbsspecutilsprobeamber232 --dir=<рабочий каталог> [--spe=a.spe;b.spe]
+```
+
+Одни и те же файлы — обеими дверями (`ImportDocumentGBS`, `ImportDocumentSpecUtils`):
+число каналов, отсчёты по каналам, живое и полное время, начало и конец набора, шкала в
+пяти каналах, пометка спектра. Входы — четыре варианта файла GBS-Elektronik (калибровка
+`$ENER_DATA_X` / `+ $ENER_FIT` / `$ENER_DATA`, время через один и два пробела) и SPE ЛСРМ,
+переданные `--spe=` (копируются в `--dir`, исходник только читается). Судит человек: код 0 —
+прогон дошёл до конца. Замер, по которому задача удаления двери GBS снята решением Amber, —
+[`handover-2026-10-17-p336-amber232-gbs-cancelled.md`](../../../handover/handover-2026-10-17-p336-amber232-gbs-cancelled.md).
+Заведена 17.10.2026 (П336).
