@@ -10,7 +10,7 @@ u"""Сторож поставочной GPU-библиотеки `BecquerelMonit
 Поэтому сборка (`build_gpu.cmd`) вшивает в `rm_build_info()` отпечаток исходников и
 поколение физики, а этот сторож пересчитывает отпечаток по дереву и сверяет.
 
-Три сверки, каждая — отказ:
+Пять сверок, каждая — отказ:
   1. `src=` в паспорте DLL == sha256 (16 знаков) файлов `*.cu *.cuh *.h *.inc` каталога
      `tools/effmaker/gpu`, отсортированных по имени порядково без учёта регистра и
      склеенных подряд (то же правило — `tools/effmaker/gpu/src_hash.ps1`);
@@ -22,7 +22,13 @@ u"""Сторож поставочной GPU-библиотеки `BecquerelMonit
      по исходнику (имя и вид) — то, что упаковщик `GpuPack.Settings` шлёт в `rm_cfg_set`.
      Прежде это сверял только `gen_cfg.ps1 -Check` по собранному exe, и в `check_all` его не
      было: поле, заведённое в C# мимо `gen_cfg.ps1`, проходило все сторожа, а в приложении
-     счёт на GPU отказывал у человека.
+     счёт на GPU отказывал у человека;
+  5. (`AMBER233`, П337, 18.10.2026) `cudart=` в паспорте DLL == закреплённый в `build_gpu.cmd`
+     тулкит (`set CUDA_VER=13.4` → 13040). Рантайм CUDA слинкован статически и задаёт
+     наименьший драйвер NVIDIA у каждого человека; прежде `nvcc` брался из PATH, и снос
+     CUDA 12 (18.10.2026) поднял бы это требование следующей же пересборкой молча.
+     Поставочная DLL сборки 07–14.10.2026 (CUDA 12.8) принимается по своему отпечатку
+     исходников (`LEGACY_CUDART`) — до первой пересборки.
 
 Паспорт читается из самой DLL (`ctypes`): она слинкована со статическим рантаймом CUDA и
 зависит только от KERNEL32, а `rm_build_info` устройства не трогает — сторож идёт и на
@@ -48,7 +54,11 @@ SHIPPED = os.path.join(REPO, 'BecquerelMonitor', 'rmgpu_f.dll')
 BUILT = os.path.join(GPU_DIR, 'bin', 'rmgpu_f.dll')
 PHYSICS_H = os.path.join(GPU_DIR, 'physics.h')
 RESPONSE_CS = os.path.join(REPO, 'BecquerelMonitor', 'EfficiencyMaker', 'ResponseMatrix.cs')
+BUILD_CMD = os.path.join(GPU_DIR, 'build_gpu.cmd')
 EXTS = ('.cu', '.cuh', '.h', '.inc')
+# (`AMBER233`) Поставочная DLL, собранная до закрепления тулкита: отпечаток исходников → её
+# `cudart`. Пересборка `build_gpu.cmd` даёт закреплённый рантайм, и строку можно снять.
+LEGACY_CUDART = {u'ef10f05d0fa68e36': 12080}
 
 
 def _utf8_console():
@@ -86,6 +96,13 @@ def physics_cs(path=RESPONSE_CS):
     text = io.open(path, encoding='utf-8-sig').read()
     m = re.search(r'public\s+const\s+int\s+PhysicsVersion\s*=\s*(\d+)\s*;', text)
     return int(m.group(1)) if m else None
+
+
+def pinned_cudart(path=BUILD_CMD):
+    u"""`CUDART_VERSION` закреплённого в `build_gpu.cmd` тулкита: `set CUDA_VER=13.4` → 13040."""
+    text = io.open(path, encoding='ascii', errors='replace').read()
+    m = re.search(r'^set CUDA_VER=(\d+)\.(\d+)\s*$', text, re.M)
+    return int(m.group(1)) * 1000 + int(m.group(2)) * 10 if m else None
 
 
 SIM_CS = [os.path.join(REPO, 'BecquerelMonitor', 'EfficiencyMaker', n)
@@ -175,10 +192,25 @@ def parse_info(info):
     return out
 
 
-def judge(info, src, phys_h, phys_cs):
+def cudart_problems(fields, want):
+    u"""(`AMBER233`) Пятая сверка: рантайм CUDA в паспорте == закреплённый в `build_gpu.cmd`."""
+    if want is None:
+        return [u'в build_gpu.cmd нет строки «set CUDA_VER=<major>.<minor>» — тулкит не закреплён']
+    try:
+        got = int(fields.get(u'cudart', u''))
+    except ValueError:
+        return [u'паспорт DLL без версии рантайма CUDA (cudart=%s)' % fields.get(u'cudart')]
+    if got == want or LEGACY_CUDART.get(fields.get(u'src')) == got:
+        return []
+    return [u'DLL слинкована с рантаймом CUDA %d, build_gpu.cmd закрепляет %d — собрана мимо закрепления; '
+            u'пересобрать build_gpu.cmd (рантайм задаёт наименьший драйвер у людей, README «Сборка»)' % (got, want)]
+
+
+def judge(info, src, phys_h, phys_cs, cudart_want):
     u"""Список отказов (пустой — сходится) по паспорту `info` и ожиданиям."""
     problems = []
     fields = parse_info(info)
+    problems.extend(cudart_problems(fields, cudart_want))
     got_src = fields.get(u'src')
     if not got_src or got_src == u'unknown':
         problems.append(u'паспорт DLL без отпечатка исходников (src=%s) — собрана мимо build_gpu.cmd' % got_src)
@@ -204,21 +236,31 @@ def judge(info, src, phys_h, phys_cs):
 
 def selftest():
     src, names = source_hash()
-    ph, pc = physics_h(), physics_cs()
-    if ph is None or pc is None:
-        print(u'самопроверка: не прочитаны physics.h (%s) или PhysicsVersion (%s)' % (ph, pc))
+    ph, pc, cw = physics_h(), physics_cs(), pinned_cudart()
+    if ph is None or pc is None or cw is None:
+        print(u'самопроверка: не прочитаны physics.h (%s), PhysicsVersion (%s) или CUDA_VER build_gpu.cmd (%s)'
+              % (ph, pc, cw))
         return 1
-    good = u'src=%s;phys=%d;arch=sm_86;real=float;cudart=12080;' % (src, ph)
+    good = u'src=%s;phys=%d;arch=sm_86;real=float;cudart=%d;' % (src, ph, cw)
+    legacy = sorted(LEGACY_CUDART.items())[0]
+    fake = u'a' * 16
+    # Случай — (паспорт, отпечаток дерева, ожидаемый ответ, что проверяется).
     cases = [
-        (good, 0, u'верный паспорт'),
-        (u'src=0000000000000000;phys=%d;' % ph, 1, u'чужой отпечаток'),
-        (u'src=%s;phys=%d;' % (src, ph + 1), 1, u'чужая физика'),
-        (u'src=unknown;phys=%d;' % ph, 1, u'сборка мимо скрипта'),
-        (u'', 1, u'пустой паспорт'),
+        (good, src, 0, u'верный паспорт'),
+        (u'src=0000000000000000;phys=%d;cudart=%d;' % (ph, cw), src, 1, u'чужой отпечаток'),
+        (u'src=%s;phys=%d;cudart=%d;' % (src, ph + 1, cw), src, 1, u'чужая физика'),
+        (u'src=unknown;phys=%d;cudart=%d;' % (ph, cw), src, 1, u'сборка мимо скрипта'),
+        (u'', src, 1, u'пустой паспорт'),
+        (u'src=%s;phys=%d;cudart=%d;' % (src, ph, cw - 10), src, 1, u'рантайм CUDA мимо закрепления'),
+        (u'src=%s;phys=%d;' % (src, ph), src, 1, u'паспорт без cudart'),
+        (u'src=%s;phys=%d;cudart=%d;' % (legacy[0], ph, legacy[1]), legacy[0], 0,
+         u'прежняя поставочная DLL (CUDA %d) по своему отпечатку' % legacy[1]),
+        (u'src=%s;phys=%d;cudart=%d;' % (fake, ph, legacy[1]), fake, 1,
+         u'рантайм прежней DLL у других исходников'),
     ]
     bad = 0
-    for info, want, what in cases:
-        got = 1 if judge(info, src, ph, pc) else 0
+    for info, tree, want, what in cases:
+        got = 1 if judge(info, tree, ph, pc, cw) else 0
         ok = got == want
         bad += 0 if ok else 1
         print(u'  %s %s → %s' % (u'✓' if ok else u'✗', what, u'отказ' if got else u'сходится'))
@@ -274,8 +316,9 @@ def main(argv):
         print(u'нет каталога %s — нечего сверять' % GPU_DIR)
         return 2
     src, names = source_hash()
-    ph, pc = physics_h(), physics_cs()
-    print(u'исходники ядра: %d файлов, отпечаток %s; physics.h %s, приложение %s' % (len(names), src, ph, pc))
+    ph, pc, cw = physics_h(), physics_cs(), pinned_cudart()
+    print(u'исходники ядра: %d файлов, отпечаток %s; physics.h %s, приложение %s; build_gpu.cmd закрепляет cudart %s'
+          % (len(names), src, ph, pc, cw))
     if not os.path.isfile(SHIPPED):
         print(u'⛔ нет поставочной %s — её кладёт build_gpu.cmd' % os.path.relpath(SHIPPED, REPO))
         return 1
@@ -284,7 +327,11 @@ def main(argv):
         print(u'⛔ %s: %s' % (os.path.relpath(SHIPPED, REPO), why))
         return 1
     print(u'паспорт поставочной DLL: %s' % info)
-    problems = judge(info, src, ph, pc)
+    problems = judge(info, src, ph, pc, cw)
+    got_cudart = parse_info(info).get(u'cudart')
+    if not problems and got_cudart != str(cw):
+        print(u'⚠ поставочная DLL собрана до закрепления (cudart=%s), принята по отпечатку исходников; '
+              u'следующая пересборка build_gpu.cmd даст %s' % (got_cudart, cw))
     if os.path.isfile(BUILT):
         a = io.open(SHIPPED, 'rb').read()
         b = io.open(BUILT, 'rb').read()
