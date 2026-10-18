@@ -113,7 +113,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>
         /// Наименьшая вычислительная способность карты, под которую собрано ядро
         /// (`build_gpu.cmd`: `-arch=sm_86`, RTX 30xx; решение Amber 07.10.2026 «RTX 30xx и
-        /// новее»). Карта новее исполняет PTX через JIT драйвера, старее — ядро не запустит.
+        /// новее»). Карта того же поколения новее (8.9) исполняет тот же машинный код, другого
+        /// поколения — PTX через JIT драйвера (<see cref="DriverTooOldForJit"/>), старее — ядро
+        /// не запустит.
         /// </summary>
         public const int MinComputeCapability = 86;
 
@@ -295,6 +297,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                     return r;
                 }
 
+                if (DriverTooOldForJit(major, minor, r.BuildInfo, driver, runtime))
+                {
+                    r.Reason = r.DeviceName + " runs the kernel through the driver's PTX JIT, which needs a driver not older"
+                               + " than the CUDA runtime " + Version(runtime) + " the library was built with (driver "
+                               + Version(driver) + ") — update the driver";
+                    r.ReasonCode = GpuProbeReason.DriverTooOld;
+                    return r;
+                }
+
                 r.Available = true;
                 r.Reason = "";
                 return r;
@@ -307,6 +318,40 @@ namespace BecquerelMonitor.EfficiencyMaker
                 r.ReasonCode = GpuProbeReason.RuntimeError;
                 return r;
             }
+        }
+
+        /// <summary>
+        /// (`AMBER233`, П337, 18.10.2026) Нужен ли карте драйвер не старее рантайма сборки.
+        /// Машинный код ядра собран под одну архитектуру (`arch=sm_86` паспорта), и его
+        /// исполняют карты того же поколения не младше её (RTX 30xx 8.6, RTX 40xx 8.9). Карта
+        /// другого поколения (RTX 50xx, 12.0) исполняет PTX через JIT драйвера, а JIT берёт
+        /// PTX только тулкита не новее себя; драйвер старее рантайма отказывает тогда лишь
+        /// при запуске ядра — галка выглядела бы годной, а счёт отказал бы на первом узле.
+        /// Машинный код совместимость младших версий CUDA держит (драйвер 13.0 исполняет
+        /// рантайм 13.4), поэтому для него драйвер с рантаймом не сверяется. Архитектуры в
+        /// паспорте нет — считается, что машинный код не подходит (отказ строже, не мягче).
+        /// </summary>
+        public static bool DriverTooOldForJit(int ccMajor, int ccMinor, string buildInfo, int driverVersion, int runtimeVersion)
+        {
+            int arch = BuildInfoArch(buildInfo);
+            bool nativeCode = arch > 0 && ccMajor == arch / 10 && ccMinor >= arch % 10;
+            return !nativeCode && driverVersion < runtimeVersion;
+        }
+
+        /// <summary>Архитектура машинного кода из `arch=sm_NN;` строки `rm_build_info`; нет — −1.</summary>
+        public static int BuildInfoArch(string info)
+        {
+            if (string.IsNullOrEmpty(info)) return -1;
+            foreach (string part in info.Split(';'))
+            {
+                if (part.StartsWith("arch=sm_", StringComparison.Ordinal))
+                {
+                    int v;
+                    return int.TryParse(part.Substring(8), NumberStyles.None, CultureInfo.InvariantCulture, out v) ? v : -1;
+                }
+            }
+
+            return -1;
         }
 
         static string Cc(int cc)

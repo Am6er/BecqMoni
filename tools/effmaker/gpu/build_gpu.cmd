@@ -5,7 +5,13 @@ rem AMBER219 (P245, 07.10.2026): the kernel sources are fingerprinted (sha256 ov
 rem name, concatenated) and the fingerprint plus the target arch go into rm_build_info(); the float DLL is then copied
 rem next to the application sources (BecquerelMonitor\rmgpu_f.dll, shipped by ClickOnce - decision of Amber
 rem "in git, like SpecUtilsNet.dll"). tools\check_gpu_dll.py recomputes the same fingerprint and refuses a stale copy.
+rem AMBER233 (P337, 18.10.2026): the CUDA toolkit is PINNED and nvcc is called by full path, never from PATH -
+rem the static CUDA runtime linked into the DLL sets the minimum NVIDIA driver of every user (README, "Build").
+rem check_gpu_dll.py reads CUDA_VER from this line and compares it with cudart= in the DLL passport.
 setlocal
+set CUDA_VER=13.4
+set "NVCC=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v%CUDA_VER%\bin\nvcc.exe"
+if not exist "%NVCC%" ( echo CUDA %CUDA_VER% is not installed: %NVCC% & exit /b 2 )
 call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat" >nul || exit /b 2
 cd /d "%~dp0" || exit /b 2
 if not exist bin mkdir bin
@@ -14,8 +20,8 @@ for /f "usebackq delims=" %%h in (`powershell -NoProfile -ExecutionPolicy Bypass
 if "%SRCHASH%"=="" ( echo src_hash.ps1 gave no fingerprint & exit /b 2 )
 echo sources: %SRCHASH%
 set COMMON=%RM_EXTRA% -arch=%ARCH% -std=c++17 -O3 -shared -Xcompiler "/utf-8 /EHsc" -diag-suppress 177,550 -DRM_SRC_HASH=\"%SRCHASH%\" -DRM_ARCH=\"%ARCH%\"
-nvcc %COMMON% -fmad=false -o bin\rmgpu.dll api.cu || exit /b 1
-nvcc %COMMON% -DRM_REAL_FLOAT -maxrregcount=64 -o bin\rmgpu_f.dll api.cu || exit /b 1
+"%NVCC%" %COMMON% -fmad=false -o bin\rmgpu.dll api.cu || exit /b 1
+"%NVCC%" %COMMON% -DRM_REAL_FLOAT -maxrregcount=64 -o bin\rmgpu_f.dll api.cu || exit /b 1
 cl /nologo /O2 /EHsc /utf-8 rm_replay.cpp /Fobin\rm_replay.obj /Febin\rm_replay.exe || exit /b 1
 copy /y bin\rmgpu_f.dll ..\..\..\BecquerelMonitor\rmgpu_f.dll >nul || exit /b 1
 echo rmgpu: OK
