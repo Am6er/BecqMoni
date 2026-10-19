@@ -131,7 +131,7 @@ GUIDE.onRedraw(chapters);
   function buttons() {
     box.innerHTML = STEPS.map((k, i) => '<button class="' + (i === st ? 'on' : '') + '" data-i="' + i + '"><b>' + (i + 1) + '</b><span>' + t(k) + '</span><small>' + t(k + 'd') + '</small></button>').join('');
     $$('button', box).forEach(b => b.onclick = () => go(+b.dataset.i, true));
-    const ch = GUIDE.CHAPTERS.find(c => c.id === GO[st]); const a = $('#pGo'); a.href = ch.file; a.textContent = t('p.go', ch[GUIDE.lang][0]);
+    const ch = GUIDE.CHAPTERS.find(c => c.id === GO[st]); const a = $('#pGo'); a.href = GUIDE.langHref(ch.file); a.textContent = t('p.go', ch[GUIDE.lang][0]);
   }
   function go(i, user) { st = (i + 5) % 5; t0 = performance.now(); lastSwitch = t0; if (user) { auto = false; $('#pAuto').checked = false; } buttons(); }
   $('#pPrev').onclick = () => go(st - 1, true); $('#pNext').onclick = () => go(st + 1, true);

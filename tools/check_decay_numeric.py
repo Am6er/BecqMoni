@@ -51,8 +51,10 @@ NUMERIC_PAIR = {
 SUFFIXES = (u".py", u".cs")
 
 #: Каталоги, куда не ходим.
+#: `.claude` — там worktree полос (`.claude/worktrees/*`, в `.git/info/exclude`): копия
+#: дерева со своей копией ЭТОГО сторожа, чьи образцы он принимал за находки (`AMBER243`).
 SKIP_DIRS = (u".git", u"packages", u"obj", u"bin", u"__pycache__", u"handover",
-             u"node_modules")
+             u"node_modules", u".claude")
 
 #: Имя таблицы в тексте запроса. Ищем ТОЛЬКО там, где она названа: колонка
 #: `energy` встречается ещё в десятке чужих таблиц, и без привязки к таблице

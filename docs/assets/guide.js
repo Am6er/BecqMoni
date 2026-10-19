@@ -38,9 +38,26 @@
   function tickLabel(v) { const n = Math.abs(v); if (n >= 1e6) return trimZ(sig(v / 1e6, 2)) + 'M'; if (n >= 1e4) return trimZ(sig(v / 1e3, 3)) + 'k'; return trimZ(sig(v, 3)); }
   Object.assign(G, { $, $$, clamp, lerp, fx, sig, trimZ, tickLabel });
 
-  /* ── язык: тот же ключ, что у how-it-works.html — выбор общий ── */
+  /* ── язык: тот же ключ, что у how-it-works.html — выбор общий.
+        `AMBER243`: ?lang=ru|en в адресе важнее сохранённого выбора — ссылку дают сразу на нужном языке ── */
   let LANG = 'ru';
-  try { const s = localStorage.getItem('bq-hiw-lang'); if (s === 'ru' || s === 'en') LANG = s; else if (!/^(ru|uk|be|kk)/i.test(navigator.language || '')) LANG = 'en'; } catch (e) { }
+  const urlLang = (() => { try { const v = new URLSearchParams(location.search).get('lang'); return v === 'ru' || v === 'en' ? v : null; } catch (e) { return null; } })();
+  if (urlLang) { LANG = urlLang; try { localStorage.setItem('bq-hiw-lang', LANG); } catch (e) { } }
+  else try { const s = localStorage.getItem('bq-hiw-lang'); if (s === 'ru' || s === 'en') LANG = s; else if (!/^(ru|uk|be|kk)/i.test(navigator.language || '')) LANG = 'en'; } catch (e) { }
+  // ссылка на страницу гайда («fsa.html», «geometry.html#matrix», «./») получает ?lang=; внешние, якоря и файлы — нет
+  function withLang(href) {
+    if (!href || /^([a-z][a-z0-9+.-]*:|\/\/|#)/i.test(href)) return null;
+    const m = href.match(/^([^?#]*)(\?[^#]*)?(#.*)?$/); if (!m || !/(^|\/)([\w-]+\.html)?$/.test(m[1])) return null;
+    const q = new URLSearchParams((m[2] || '').slice(1)); q.set('lang', LANG);
+    return m[1] + '?' + q.toString() + (m[3] || '');
+  }
+  // адресная строка и ссылки страницы — за переключателем RU|EN (скопированный адрес уже на нужном языке)
+  function syncLangUrl() {
+    $$('a[href]').forEach(a => { const h = withLang(a.getAttribute('href')); if (h) a.setAttribute('href', h); });
+    try { const u = new URL(location.href); if (u.searchParams.get('lang') !== LANG) { u.searchParams.set('lang', LANG); history.replaceState(history.state, '', u.href); } } catch (e) { }
+  }
+  // ссылки, построенные страницей позже (карточки, подсказки), — в момент щелчка
+  document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href]'); if (!a) return; const h = withLang(a.getAttribute('href')); if (h) a.setAttribute('href', h); }, true);
   const T = {
     ru: {
       'brand.sub': 'гайд', 'toc': 'Оглавление', 'prev': '← Назад', 'next': 'Дальше →', 'hood': 'Как это сделано в BecqMoni',
@@ -59,8 +76,10 @@
   Object.defineProperty(G, 'lang', { get: () => LANG });
   const redrawers = [];
   G.onRedraw = f => redrawers.push(f);
-  function redrawAll() { redrawers.forEach(f => { try { f(); } catch (e) { console.error(e); } }); }
+  // перерисовка пересобирает ссылки (карточки глав, листалка) — язык ставится заново после неё
+  function redrawAll() { redrawers.forEach(f => { try { f(); } catch (e) { console.error(e); } }); syncLangUrl(); }
   G.redrawAll = redrawAll;
+  G.langHref = h => withLang(h) || h;
   function applyLang() {
     document.documentElement.lang = LANG;
     $$('[data-t]').forEach(el => { el.innerHTML = t(el.dataset.t); });
