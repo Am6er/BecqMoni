@@ -1,0 +1,29 @@
+спектров: 128 / 128
+СДВИГ G1S16_K40_Mar_2              known   chi2ndf 1.0454 -> 1.0432 ; pois 1.1449 -> 1.1288 ; поля: anchor_note, chi2ndf, chi2ndf_pois, gain, inflate, matrix_images, model_residual_pct
+СДВИГ G1S24_K40_Denta120           known   chi2ndf 0.9309 -> 0.9281 ; pois 0.9422 -> 0.9390 ; поля: anchor_note, chi2ndf, chi2ndf_pois, gain, matrix_images
+СДВИГ G1S24_Zn65_P5                known   chi2ndf 1.1945 -> 1.1822 ; pois 1.6555 -> 1.6406 ; поля: anchor_note, chi2ndf, chi2ndf_pois, inflate, matrix_images, model_residual_pct
+СДВИГ RC103_Lu176                  known   chi2ndf 1.2912 -> 0.9689 ; pois 11.9950 -> 3.8013 ; поля: anchor_note, chi2ndf, chi2ndf_pois, inflate, matrix_images, model_residual_pct
+сдвинулись в runs: 4
+расхождения прочих файлов по спектрам: 4
+  G1S16_K40_Mar_2              anchors.csv, components.csv, grey.csv, limits.csv, tails.csv
+  G1S24_K40_Denta120           anchors.csv, components.csv, grey.csv, limits.csv, tails.csv
+  G1S24_Zn65_P5                anchors.csv, components.csv, grey.csv, limits.csv, tails.csv, uncovered.csv
+  RC103_Lu176                  components.csv, grey.csv, limits.csv, tails.csv, uncovered.csv
+файлы только в A: []
+файлы только в B: []
+спектров: 59 / 59
+СДВИГ G1S24_Zn65_P5                known   chi2ndf 1.1945 -> 1.1822 ; pois 1.6555 -> 1.6406 ; поля: anchor_note, chi2ndf, chi2ndf_pois, inflate, matrix_images, model_residual_pct
+сдвинулись в runs: 1
+расхождения прочих файлов по спектрам: 1
+  G1S24_Zn65_P5                anchors.csv, components.csv, grey.csv, limits.csv, tails.csv, uncovered.csv
+файлы только в A: []
+файлы только в B: []
+part=known nA=92 nB=92 общих=92 изменилось=4 лучше=4 хуже=0 побитово=88
+sumA=585.5605 sumB=585.2209 delta=-0.3396 (-0.058 %) медиана A 1.62 B 1.62
+G1S16_K40_Mar_2                 1.0454    1.0432  -0.0022   -0.21%
+G1S24_K40_Denta120              0.9309    0.9281  -0.0028   -0.30%
+G1S24_Zn65_P5                   1.1945    1.1822  -0.0123   -1.03%
+RC103_Lu176                     1.2912    0.9689  -0.3223  -24.96%
+part=known nA=45 nB=45 общих=45 изменилось=1 лучше=1 хуже=0 побитово=44
+sumA=423.3588 sumB=423.3465 delta=-0.0123 (-0.003 %) медиана A 2.73 B 2.73
+G1S24_Zn65_P5                   1.1945    1.1822  -0.0123   -1.03%
