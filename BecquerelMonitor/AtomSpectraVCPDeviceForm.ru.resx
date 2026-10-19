@@ -129,7 +129,7 @@
   </data>
   <data name="label2.Text" xml:space="preserve">
     <value>Вводите команду и нажимайте Enter. Некоторые команды - ОПАСНЫ!
-Вы должны полностью понимать, что делаете, чтобы не словить кирпич!</value>
+Вы должны быть полностью уверены в том, что делаете.</value>
   </data>
   <data name="label3.Size" type="System.Drawing.Size, System.Drawing">
     <value>108, 13</value>

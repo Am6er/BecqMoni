@@ -717,8 +717,12 @@ namespace XPTable.Renderers
                     // We need at the end the float and double without the power to 10 representation (E±XX).
                     // Default coversion double/float to string without applying a specific format has always the power.
                     // NaN and Infinity are parsed Ok (not explicit documented by Microsoft).
+                    // (AMBER242, 20.10.2026) The exponent is allowed too. Before, a double that
+                    //   prints with it ("3.82648401826484E-05": every half-life below 1e-4 years in
+                    //   the nuclide editor) failed the parse and was drawn as that raw string, so the
+                    //   column's Format never reached it and the cell showed its tail ("82648402E-05").
                     decimal decimalVal;
-                    if (decimal.TryParse(cellDataAsString, NumberStyles.Number, formatProvider, out decimalVal))
+                    if (decimal.TryParse(cellDataAsString, NumberStyles.Number | NumberStyles.AllowExponent, formatProvider, out decimalVal))
                     {
                         text = decimalVal.ToString(format, formatProvider);
                     }

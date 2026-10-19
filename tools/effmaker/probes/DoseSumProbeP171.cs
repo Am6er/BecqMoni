@@ -456,8 +456,10 @@ namespace DoseSumProbeP171
             marked.Coverage = 0.5;
             marked.SourceScene = true;
 
+            // (`AMBER242`, 20.10.2026) Доля погрешности печатается двумя значащими
+            // цифрами, если она меньше 1 % («0.034%»), — знаков после точки бывает до трёх.
             var line = new System.Text.RegularExpressions.Regex(
-                @"^(≈ )?[0-9]+\.[0-9]+ ±[0-9]+\.[0-9]+ \([0-9]+\.[0-9]%\) [^\s()]+$");
+                @"^(≈ )?[0-9]+\.[0-9]+ ±[0-9]+\.[0-9]+ \([0-9]+\.[0-9]{1,3}%\) [^\s()]+$");
             CultureInfo keep = BecquerelMonitor.Properties.Resources.Culture;
             try
             {

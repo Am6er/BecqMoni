@@ -382,7 +382,7 @@
     <value />
   </data>
   <data name="comboBox8.Items" xml:space="preserve">
-    <value>Сглаживание</value>
+    <value>Сглаживание линий</value>
   </data>
   <data name="comboBox8.Items1" xml:space="preserve">
     <value>Нормальный</value>
@@ -430,10 +430,10 @@
     <value />
   </data>
   <data name="label23.Size" type="System.Drawing.Size, System.Drawing">
-    <value>75, 13</value>
+    <value>86, 13</value>
   </data>
   <data name="label23.Text" xml:space="preserve">
-    <value>Сглаживание</value>
+    <value>Сглаж. спектра</value>
   </data>
   <data name="label23.ToolTip" xml:space="preserve">
     <value />
@@ -808,10 +808,10 @@
     <value />
   </data>
   <data name="label10.Size" type="System.Drawing.Size, System.Drawing">
-    <value>72, 13</value>
+    <value>102, 13</value>
   </data>
   <data name="label10.Text" xml:space="preserve">
-    <value>Ореол графиков калибровки</value>
+    <value>Ореол калибровки</value>
   </data>
   <data name="label10.ToolTip" xml:space="preserve">
     <value />

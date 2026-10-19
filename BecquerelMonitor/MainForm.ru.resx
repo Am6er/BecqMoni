@@ -121,7 +121,7 @@
     <value>База изотопов...</value>
   </data>
   <data name="CloseAllToolStripMenuItem.Text" xml:space="preserve">
-    <value>Закрыть &amp;Всё</value>
+    <value>Закрыть &amp;всё</value>
   </data>
   <data name="CombineSpectrasToolStripMenuItem.Text" xml:space="preserve">
     <value>О&amp;бъединение спектров</value>
@@ -302,9 +302,6 @@
   </data>
   <data name="SpecUtilsToolStripMenuItem.Text" xml:space="preserve">
     <value>Импорт через SpecUtils...</value>
-  </data>
-  <data name="EffCalcMCFileToolStripMenuItem.Text" xml:space="preserve">
-    <value>ЛСРМ EffCalcMC.txt → ROI</value>
   </data>
   <data name="GBSFileToolStripMenuItem.Text" xml:space="preserve">
     <value>SpectraLine GBS</value>

@@ -1939,6 +1939,16 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The measurement has already reached the preset time ({0} s); there is nothing to continue.
+        ///Increase the preset time or press Clear to start over..
+        /// </summary>
+        public static string MSGPresetTimeReached {
+            get {
+                return ResourceManager.GetString("MSGPresetTimeReached", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Modify values and push execution button..
         /// </summary>
         public static string MSGProceedCalibration {
@@ -1948,7 +1958,8 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Update finished. Application WILL RESTART..
+        ///   Looks up a localized string similar to Update installed. Restart the application now?
+        ///With Cancel the new version starts the next time you open the application..
         /// </summary>
         public static string MSGRestartNeeded {
             get {
@@ -2066,7 +2077,7 @@ namespace BecquerelMonitor.Properties {
         
         /// <summary>
         ///   Looks up a localized string similar to A new version is available: {0}.
-        ///Before updating save all unsaved data. Application WILL RESTART!
+        ///Before updating save all unsaved data. After the update the application offers to restart.
         ///Install update?.
         /// </summary>
         public static string MSGUpdateLong {
@@ -3236,15 +3247,6 @@ namespace BecquerelMonitor.Properties {
         public static string FSAUndetectedFoldedRow {
             get {
                 return ResourceManager.GetString("FSAUndetectedFoldedRow", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Equilibrium works only when the composition comes from the databases: turn on &quot;Enable DB lookups for FSA&quot;. The other path builds components from peak labels and knows nothing about decay chains.
-        /// </summary>
-        public static string FSAEquilibriumNeedsDbLookups {
-            get {
-                return ResourceManager.GetString("FSAEquilibriumNeedsDbLookups", resourceCulture);
             }
         }
 

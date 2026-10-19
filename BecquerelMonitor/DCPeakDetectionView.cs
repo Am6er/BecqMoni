@@ -426,7 +426,11 @@ namespace BecquerelMonitor
                     double rightEnergy = energyCalibration.ChannelToEnergy(peak.Channel + peak.FWHM / 2.0);
                     double resolution = 100.0 * (rightEnergy - leftEnergy) / energyCalibration.ChannelToEnergy((double)peak.Channel);
 
-                    row.Cells.Add(new Cell(peak.FWHM.ToString("f0", CultureInfo.InvariantCulture) + ", " + resolution.ToString("f1", CultureInfo.InvariantCulture) + "% ±" + peak.FWHM_DELTA.ToString("f1", CultureInfo.InvariantCulture)));
+                    // (`AMBER241`(16), 20.10.2026) Третье число — НЕ погрешность ширины, а модуль
+                    // разности найденной FWHM и FWHM калибровки в каналах (`PeakFinder`,
+                    // `fwhm_delta = |fwhm − fwhm0|`). Прежде перед ним стоял «±», и человек читал
+                    // «12, 7.1% ±2.3» как ширину с погрешностью; теперь знак разности — «Δ».
+                    row.Cells.Add(new Cell(peak.FWHM.ToString("f0", CultureInfo.InvariantCulture) + ", " + resolution.ToString("f1", CultureInfo.InvariantCulture) + "% Δ" + peak.FWHM_DELTA.ToString("f1", CultureInfo.InvariantCulture)));
                     // (`A255`) Строка несёт свой пик: по нему график рисует
                     // выделение, а не по разбору текста ячеек.
                     row.Tag = peak;
