@@ -1,0 +1,9 @@
+спектров: 60 / 60
+СДВИГ G1S24_Zn65_P5                known   chi2ndf 1.1945 -> 1.1822 ; pois 1.6555 -> 1.6406 ; поля: anchor_note, chi2ndf, chi2ndf_pois, inflate, matrix_images, model_residual_pct
+СДВИГ RC103_Lu176                  known   chi2ndf 1.2912 -> 0.9689 ; pois 11.9950 -> 3.8013 ; поля: anchor_note, chi2ndf, chi2ndf_pois, inflate, matrix_images, model_residual_pct
+сдвинулись в runs: 2
+расхождения прочих файлов по спектрам: 2
+  G1S24_Zn65_P5                anchors.csv, components.csv, grey.csv, limits.csv, tails.csv, uncovered.csv
+  RC103_Lu176                  components.csv, grey.csv, limits.csv, tails.csv, uncovered.csv
+файлы только в A: []
+файлы только в B: []
