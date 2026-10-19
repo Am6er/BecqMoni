@@ -669,12 +669,26 @@ function sig(x, n = 3) {                            // n значащих циф
   const d = Math.max(0, n - 1 - Math.floor(Math.log10(Math.abs(x))));
   return (+x).toFixed(Math.min(d, 6));
 }
+// `AMBER243`: ?lang=ru|en в адресе важнее сохранённого выбора; ссылки и адресная строка — за переключателем (как в assets/guide.js)
 let LANG = 'ru';
-try { const s = localStorage.getItem('bq-hiw-lang'); if (s === 'ru' || s === 'en') LANG = s; else if (!/^(ru|uk|be|kk)/i.test(navigator.language || '')) LANG = 'en'; } catch (e) { }
+const urlLang = (() => { try { const v = new URLSearchParams(location.search).get('lang'); return v === 'ru' || v === 'en' ? v : null; } catch (e) { return null; } })();
+if (urlLang) { LANG = urlLang; try { localStorage.setItem('bq-hiw-lang', LANG); } catch (e) { } }
+else try { const s = localStorage.getItem('bq-hiw-lang'); if (s === 'ru' || s === 'en') LANG = s; else if (!/^(ru|uk|be|kk)/i.test(navigator.language || '')) LANG = 'en'; } catch (e) { }
+function withLang(href) {
+  if (!href || /^([a-z][a-z0-9+.-]*:|\/\/|#)/i.test(href)) return null;
+  const m = href.match(/^([^?#]*)(\?[^#]*)?(#.*)?$/); if (!m || !/(^|\/)([\w-]+\.html)?$/.test(m[1])) return null;
+  const q = new URLSearchParams((m[2] || '').slice(1)); q.set('lang', LANG);
+  return m[1] + '?' + q.toString() + (m[3] || '');
+}
+function syncLangUrl() {
+  $$('a[href]').forEach(a => { const h = withLang(a.getAttribute('href')); if (h) a.setAttribute('href', h); });
+  try { const u = new URL(location.href); if (u.searchParams.get('lang') !== LANG) { u.searchParams.set('lang', LANG); history.replaceState(history.state, '', u.href); } } catch (e) { }
+}
+document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href]'); if (!a) return; const h = withLang(a.getAttribute('href')); if (h) a.setAttribute('href', h); }, true);
 function t(k, ...a) { let s = (T[LANG][k] !== undefined ? T[LANG][k] : T.ru[k]); if (s === undefined) return k; a.forEach((v, i) => { s = s.split('{' + i + '}').join(v); }); return s; }
 const redrawers = [];
 function onRedraw(f) { redrawers.push(f); }
-function redrawAll() { redrawers.forEach(f => { try { f(); } catch (e) { console.error(e); } }); }
+function redrawAll() { redrawers.forEach(f => { try { f(); } catch (e) { console.error(e); } }); syncLangUrl(); }
 function applyLang() {
   document.documentElement.lang = LANG;
   $$('[data-t]').forEach(el => {
