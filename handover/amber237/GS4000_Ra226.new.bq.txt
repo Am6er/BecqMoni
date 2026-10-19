@@ -1,0 +1,13 @@
+SETUP	ключи разбора: веса как в приложении; Хубер как в приложении; γ как в приложении; ξ как в приложении; зерно 20261006; надувка порога Хубера как в приложении; пол порога γ как в приложении
+BecqMoni: main config: D:\BqMoni_Claude\amber237\probes_new\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\amber237\probes_new\config\device: 10 loaded
+BecqMoni: nuclide library: D:\BqMoni_Claude\amber237\probes_new\config\NuclideDefinition.xml: 152 entries
+SETUP	сет: (все определения); матрицы: D:\BqMoni_Claude\amber237\probes_new\config\device\response
+SETUP	GS4000_Ra226.xml: прибор прибора «Gamma-Spectra 4000 (corpus)» (27cc6fd0-ec1d-457e-baf2-33fe07ff3064) в конфигурации НЕТ — настройки поиска остаются умолчанием библиотеки
+SETUP	GS4000_Ra226.xml: пиков 13, каналов 4000
+
+=== GS4000_Ra226.xml  доля отсчётов 1  отсчётов 2003210  T 43562.3 с  live 43562.3 с ===
+  кривая: нет
+  состав: из NucBase по подписям пиков; равновесие True; суммирование True; наложения True; обратное рассеяние True; рентген True; вылет/511 True
+  разбор: 476 мс, завершён; статус: Полноспектральному разложению нужна геометрия прибора: опишите кристалл в редакторе геометрии у кривой эффективности
+  результата нет

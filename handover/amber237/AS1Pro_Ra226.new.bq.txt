@@ -1,0 +1,13 @@
+SETUP	ключи разбора: веса как в приложении; Хубер как в приложении; γ как в приложении; ξ как в приложении; зерно 20261006; надувка порога Хубера как в приложении; пол порога γ как в приложении
+BecqMoni: main config: D:\BqMoni_Claude\amber237\probes_new\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\amber237\probes_new\config\device: 10 loaded
+BecqMoni: nuclide library: D:\BqMoni_Claude\amber237\probes_new\config\NuclideDefinition.xml: 152 entries
+SETUP	сет: (все определения); матрицы: D:\BqMoni_Claude\amber237\probes_new\config\device\response
+SETUP	AS1Pro_Ra226.xml: прибор прибора «Atom Spectra 1 Pro 8192 (corpus)» (9e5a1c00-0006-4a00-9000-11c0de000006) в конфигурации НЕТ — настройки поиска остаются умолчанием библиотеки
+SETUP	AS1Pro_Ra226.xml: пиков 17, каналов 8192
+
+=== AS1Pro_Ra226.xml  доля отсчётов 1  отсчётов 24567511  T 3600.0 с  live 3600.0 с ===
+  кривая: нет
+  состав: из NucBase по подписям пиков; равновесие True; суммирование True; наложения True; обратное рассеяние True; рентген True; вылет/511 True
+  разбор: 559 мс, завершён; статус: Полноспектральному разложению нужна геометрия прибора: опишите кристалл в редакторе геометрии у кривой эффективности
+  результата нет

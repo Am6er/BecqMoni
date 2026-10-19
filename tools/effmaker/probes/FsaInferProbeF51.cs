@@ -274,6 +274,14 @@ namespace FsaInferProbeF51
 
         static bool SelectSet(NuclideDefinitionManager nuclides, string name)
         {
+            // (`AMBER237`) «all» — набор «Все изотопы» окна (активного сета нет), как у `FsaBqProbe`
+            if (name == "all")
+            {
+                nuclides.ActiveSet = null;
+                Console.WriteLine("набор: все изотопы");
+                return true;
+            }
+
             var have = new List<string>();
             foreach (NuclideSet set in nuclides.NuclideSets)
             {
