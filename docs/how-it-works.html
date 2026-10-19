@@ -1,0 +1,1628 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BecqMoni — как это работает</title>
+<meta name="description" content="Геометрия, кривые эффективности, матрица отклика, режим FSA и расчёт активности в BecqMoni — наглядно и интерактивно.">
+<!--
+  Самодостаточная страница: ни шрифтов, ни библиотек из сети. Всё, что движется, считается здесь же:
+  перенос фотонов Монте-Карло в цилиндре NaI(Tl) по сечениям XCOM из matdb.sqlite приложения.
+  Настоящие разборы FSA — дамп витрины tools/fsa_showcase (FsaStackShot), 19.10.2026.
+  Числа печатаются с точкой и без группировки разрядов (правило репозитория).
+-->
+<style>
+:root{
+  --bg:#090d18;--bg2:#0e1424;--panel:#131b2f;--panel2:#1a2440;--line:#25304d;
+  --ink:#eef3ff;--soft:#cdd8f3;--muted:#93a3c4;--dim:#6a7899;
+  --gold:#ffcc33;--photo:#ff4d6d;--compton:#ffd166;--pair:#c38bff;--esc:#4dd0e1;--ok:#5be38a;--blue:#6aa8ff;
+  --r:18px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  background:radial-gradient(1200px 620px at 85% -8%,rgba(106,168,255,.13),transparent 60%),
+             radial-gradient(900px 520px at -12% 8%,rgba(255,77,109,.10),transparent 60%),var(--bg)}
+a{color:var(--blue)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+header.top{position:sticky;top:0;z-index:30;background:rgba(9,13,24,.84);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;gap:12px;height:56px}
+.brand{font-weight:800;white-space:nowrap;text-decoration:none;color:var(--ink);font-size:17px}
+.brand span{color:var(--gold)}
+.brand small{font-weight:500;color:var(--muted);margin-left:6px;font-size:13.5px}
+nav.steps{display:flex;gap:2px;margin-left:auto;overflow-x:auto;scrollbar-width:none;min-width:0}
+nav.steps::-webkit-scrollbar{display:none}
+nav.steps a{color:var(--muted);text-decoration:none;font-size:14px;padding:6px 10px;border-radius:999px;white-space:nowrap;transition:background .2s,color .2s}
+nav.steps a b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--panel2);color:var(--soft);font-size:11px;margin-right:6px}
+nav.steps a.on,nav.steps a:hover{color:var(--ink);background:var(--panel)}
+nav.steps a.on b{background:var(--gold);color:#1a1300}
+.lang{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
+.lang button{background:none;border:0;color:var(--muted);font-family:inherit;font-weight:700;font-size:12.5px;padding:7px 10px;cursor:pointer}
+.lang button.on{background:var(--gold);color:#1a1300}
+section.sec{padding:72px 0 60px;border-top:1px solid var(--line)}
+section.hero{padding:46px 0 54px}
+.kicker{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:800}
+h1{font-size:clamp(31px,5vw,56px);line-height:1.06;margin:10px 0 14px;letter-spacing:-.01em;max-width:960px}
+h1 em{font-style:normal;background:linear-gradient(90deg,#ffcc33,#ff6b8b 55%,#9c8bff);-webkit-background-clip:text;background-clip:text;color:transparent}
+h2{font-size:clamp(25px,3.3vw,40px);line-height:1.12;margin:8px 0 12px}
+h3{font-size:16.5px;margin:0 0 8px;color:var(--soft);font-weight:700}
+.lead{font-size:clamp(16.5px,1.5vw,19px);color:var(--soft);max-width:840px;margin:0}
+.lead b{color:var(--ink)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}
+.grid2.wl{grid-template-columns:1.18fr .82fr}
+.card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:var(--r);padding:14px 14px 12px;min-width:0}
+.card.full{margin-top:16px}
+canvas.cv{display:block;width:100%;height:330px;border-radius:12px;background:#060912;touch-action:pan-y}
+canvas.cv.tall{height:390px}
+canvas.cv.mid{height:290px}
+canvas.cv.short{height:210px}
+canvas.cv.strip{height:74px;margin-top:6px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px}
+.lbl{font-size:13px;color:var(--muted)}
+.val{font-variant-numeric:tabular-nums;font-weight:800;color:var(--ink)}
+.btn{background:var(--panel2);border:1px solid #34426b;color:var(--ink);border-radius:10px;padding:8px 13px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:border-color .15s,filter .15s}
+.btn:hover{border-color:var(--gold)}
+.btn.main{background:var(--gold);border-color:var(--gold);color:#1a1300}
+.btn.main:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.45;cursor:default}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:transparent;border:1px solid #34426b;color:var(--soft);border-radius:999px;padding:6px 11px;font-family:inherit;font-size:13.5px;cursor:pointer}
+.chip.on{background:var(--soft);color:#0b1020;border-color:var(--soft);font-weight:800}
+input[type=range]{accent-color:var(--gold);width:190px;max-width:100%}
+.sw{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--soft);cursor:pointer;user-select:none}
+.sw input{accent-color:var(--gold);width:16px;height:16px}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.fact{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--c,var(--gold));border-radius:12px;padding:11px 13px;font-size:15px;color:var(--soft)}
+.fact b{color:var(--ink)}
+details.hood{margin-top:14px;border:1px dashed #35446d;border-radius:12px;padding:10px 14px;background:rgba(19,27,47,.45)}
+details.hood summary{cursor:pointer;color:var(--muted);font-weight:700;font-size:14px}
+details.hood ul{margin:8px 0 2px;padding-left:18px;color:var(--soft);font-size:14.5px}
+details.hood li{margin:3px 0}
+details.hood code{font-size:13px;color:#ffe08a}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.tile{background:var(--panel2);border-radius:12px;padding:9px 12px}
+.tile .big{font-size:27px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.tile .small{font-size:12.5px;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--soft);margin-top:8px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.legend .it{cursor:pointer;user-select:none}
+.legend .it.off{opacity:.35;text-decoration:line-through}
+.legend .it small{color:var(--muted);margin-left:4px}
+.note{font-size:13px;color:var(--dim);margin-top:8px}
+.sliders{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px 18px;margin-top:10px}
+.sl{display:flex;flex-direction:column;gap:2px;min-width:0}
+.sl .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13.5px;color:var(--soft)}
+.sl .top i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:6px}
+.sl input{width:100%}
+.sl.dis{opacity:.4;pointer-events:none}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.pill{background:var(--panel2);border-radius:999px;padding:5px 11px;font-size:13.5px;color:var(--soft)}
+.pill b{color:var(--ink)}
+.pill.good{background:rgba(91,227,138,.15);color:#bff5d2}
+.pill.bad{background:rgba(255,77,109,.15);color:#ffc2cf}
+.chain{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:26px}
+.node{position:relative;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:14px 12px 12px;text-decoration:none;color:var(--ink);transition:transform .2s,border-color .2s}
+.node:hover{transform:translateY(-3px);border-color:var(--gold)}
+.node svg{width:42px;height:42px;display:block;margin-bottom:8px}
+.node b{display:block;font-size:15px}
+.node span{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
+.node:not(:last-child)::after{content:"";position:absolute;right:-9px;top:50%;width:8px;height:8px;border-top:2px solid var(--gold);border-right:2px solid var(--gold);transform:translateY(-50%) rotate(45deg);z-index:2}
+.minichain{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.minichain a{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--soft);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 13px 6px 7px;font-size:14px}
+.minichain a:hover{border-color:var(--gold);color:var(--ink)}
+.minichain a b{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--gold);color:#1a1300;font-size:12px}
+.eq{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px;font-size:15px}
+.eq .box{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;text-align:center;min-width:92px}
+.eq .box b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.eq .box small{color:var(--muted);font-size:12px}
+.eq .op{font-size:22px;color:var(--gold);font-weight:800}
+.tip{position:fixed;pointer-events:none;z-index:50;background:rgba(10,14,26,.95);border:1px solid #3a4874;border-radius:10px;padding:8px 10px;font-size:12.5px;color:var(--soft);min-width:150px;display:none;box-shadow:0 8px 28px rgba(0,0,0,.45)}
+.tip b{color:var(--ink)}
+.tip i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
+footer{padding:36px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px solid var(--line)}
+@media (max-width:980px){.chain{grid-template-columns:repeat(3,1fr)}.node:nth-child(3)::after{display:none}}
+@media (max-width:900px){
+  .grid2,.grid2.wl{grid-template-columns:1fr}.facts,.tiles{grid-template-columns:1fr}
+  canvas.cv{height:270px}canvas.cv.tall{height:430px}canvas.cv.mid{height:250px}
+  nav.steps a span{display:none}nav.steps a b{margin-right:0}
+  .brand small{display:none}
+}
+@media (max-width:560px){.chain{grid-template-columns:1fr 1fr}.node::after{display:none}.wrap{padding:0 16px}header.top .wrap{gap:6px}nav.steps a{padding:6px 3px}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="#top">Becq<span>Moni</span><small data-t="brand.sub"></small></a>
+  <nav class="steps" id="nav">
+    <a href="#photon"><b>1</b><span data-t="nav.1"></span></a>
+    <a href="#geometry"><b>2</b><span data-t="nav.2"></span></a>
+    <a href="#matrix"><b>3</b><span data-t="nav.3"></span></a>
+    <a href="#fsa"><b>4</b><span data-t="nav.4"></span></a>
+    <a href="#activity"><b>5</b><span data-t="nav.5"></span></a>
+  </nav>
+  <div class="lang"><button data-lang="ru">RU</button><button data-lang="en">EN</button></div>
+</div></header>
+
+<section class="hero" id="top"><div class="wrap">
+  <div class="kicker" data-t="hero.k"></div>
+  <h1 data-t="hero.h"></h1>
+  <p class="lead" data-t="hero.sub"></p>
+  <div class="card full">
+    <canvas id="cvHero" class="cv tall" aria-label="animation"></canvas>
+    <div class="row"><span class="pill" id="heroStat"></span><span class="note" data-t="hero.cap"></span></div>
+  </div>
+  <div class="minichain">
+    <a href="#photon"><b>1</b><span data-t="ch.1"></span></a>
+    <a href="#geometry"><b>2</b><span data-t="ch.2"></span></a>
+    <a href="#matrix"><b>3</b><span data-t="ch.3"></span></a>
+    <a href="#fsa"><b>4</b><span data-t="ch.4"></span></a>
+    <a href="#activity"><b>5</b><span data-t="ch.5"></span></a>
+  </div>
+</div></section>
+
+<!-- 1. ФОТОН -->
+<section class="sec" id="photon"><div class="wrap">
+  <div class="kicker" data-t="s1.k"></div>
+  <h2 data-t="s1.h"></h2>
+  <p class="lead" data-t="s1.lead"></p>
+  <div class="grid2 wl">
+    <div class="card">
+      <h3 data-t="s1.scene"></h3>
+      <canvas id="cvPh" class="cv"></canvas>
+      <div class="row">
+        <span class="lbl" data-t="s1.energy"></span>
+        <div class="chips" id="phChips"></div>
+      </div>
+      <div class="row">
+        <input type="range" id="phE" min="0" max="1000" value="600" aria-label="E">
+        <span class="val" id="phEv"></span>
+        <label class="sw"><input type="checkbox" id="phShield"><span data-t="s1.shield"></span></label>
+      </div>
+      <div class="row">
+        <button class="btn main" id="ph1" data-t="s1.b1"></button>
+        <button class="btn" id="ph100" data-t="s1.b100"></button>
+        <button class="btn" id="ph10k" data-t="s1.b10k"></button>
+        <button class="btn" id="phClr" data-t="s1.clr"></button>
+      </div>
+      <div class="legend" id="phLegend"></div>
+    </div>
+    <div class="card">
+      <h3 data-t="s1.spec"></h3>
+      <canvas id="cvPhS" class="cv"></canvas>
+      <div class="pills" id="phStat"></div>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--photo)" data-t="s1.f1"></div>
+    <div class="fact" style="--c:var(--compton)" data-t="s1.f2"></div>
+    <div class="fact" style="--c:var(--esc)" data-t="s1.f3"></div>
+  </div>
+  <details class="hood"><summary data-t="hood"></summary><ul data-t="hood.1"></ul></details>
+</div></section>
+
+<!-- 2. ГЕОМЕТРИЯ -->
+<section class="sec" id="geometry"><div class="wrap">
+  <div class="kicker" data-t="s2.k"></div>
+  <h2 data-t="s2.h"></h2>
+  <p class="lead" data-t="s2.lead"></p>
+  <div class="grid2">
+    <div class="card">
+      <h3 data-t="s2.scene"></h3>
+      <canvas id="cvGeo" class="cv"></canvas>
+      <div class="row"><span class="lbl" data-t="s2.src"></span><div class="chips" id="geoSrc"></div></div>
+      <div class="sliders">
+        <div class="sl"><div class="top"><span data-t="s2.size"></span><span class="val" id="geoSizeV"></span></div><input type="range" id="geoSize" min="25" max="80" step="1" value="63"></div>
+        <div class="sl" id="geoGapBox"><div class="top"><span data-t="s2.gap"></span><span class="val" id="geoGapV"></span></div><input type="range" id="geoGap" min="0" max="150" step="1" value="10"></div>
+        <div class="sl" id="geoRhoBox"><div class="top"><span data-t="s2.rho"></span><span class="val" id="geoRhoV"></span></div><input type="range" id="geoRho" min="20" max="250" step="5" value="100"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3 data-t="s2.curve"></h3>
+      <canvas id="cvEff" class="cv"></canvas>
+      <div class="row">
+        <button class="btn" id="effKeep" data-t="s2.keep"></button>
+        <span class="legend" style="margin:0"><span><i style="background:var(--gold)"></i><span data-t="s2.now"></span></span><span><i style="background:#6a7899"></i><span data-t="s2.kept"></span></span><span><i style="background:var(--blue)"></i><span data-t="s2.total"></span></span></span>
+      </div>
+    </div>
+  </div>
+  <div class="tiles" id="effTiles"></div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--blue)" data-t="s2.f1"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="s2.f2"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="s2.f3"></div>
+  </div>
+  <details class="hood"><summary data-t="hood"></summary><ul data-t="hood.2"></ul></details>
+</div></section>
+
+<!-- 3. МАТРИЦА -->
+<section class="sec" id="matrix"><div class="wrap">
+  <div class="kicker" data-t="s3.k"></div>
+  <h2 data-t="s3.h"></h2>
+  <p class="lead" data-t="s3.lead"></p>
+  <div class="grid2">
+    <div class="card">
+      <h3 data-t="s3.map"></h3>
+      <canvas id="cvMx" class="cv"></canvas>
+      <div class="row"><span class="pill" id="mxProg"></span><button class="btn" id="mxRun" data-t="s3.run"></button></div>
+    </div>
+    <div class="card">
+      <h3 id="mxSliceT"></h3>
+      <canvas id="cvMxS" class="cv"></canvas>
+      <div class="row"><span class="lbl" data-t="s3.ein"></span><input type="range" id="mxRow" min="0" max="43" value="30"><span class="val" id="mxRowV"></span></div>
+      <div class="row"><span class="lbl" data-t="s3.fwhm"></span><input type="range" id="mxFwhm" min="20" max="140" value="75"><span class="val" id="mxFwhmV"></span></div>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="s3.f1"></div>
+    <div class="fact" style="--c:var(--compton)" data-t="s3.f2"></div>
+    <div class="fact" style="--c:var(--esc)" data-t="s3.f3"></div>
+  </div>
+  <div class="card full">
+    <h3 data-t="s3.real"></h3>
+    <p class="note" style="margin-top:0" data-t="s3.realcap"></p>
+    <canvas id="cvMxR" class="cv mid"></canvas>
+    <div class="row">
+      <div class="chips" id="mxLevels"></div>
+      <span class="pill good" id="mxExpl"></span>
+    </div>
+    <div class="legend" id="mxRLegend"></div>
+  </div>
+  <details class="hood"><summary data-t="hood"></summary><ul data-t="hood.3"></ul></details>
+</div></section>
+
+<!-- 4. FSA -->
+<section class="sec" id="fsa"><div class="wrap">
+  <div class="kicker" data-t="s4.k"></div>
+  <h2 data-t="s4.h"></h2>
+  <p class="lead" data-t="s4.lead"></p>
+  <div class="card full">
+    <h3 data-t="s4.game"></h3>
+    <p class="note" style="margin-top:0" data-t="s4.hint"></p>
+    <canvas id="cvFsa" class="cv"></canvas>
+    <canvas id="cvFsaR" class="cv strip"></canvas>
+    <div class="sliders" id="fsaSliders"></div>
+    <div class="row">
+      <button class="btn main" id="fsaFit" data-t="s4.fit"></button>
+      <button class="btn" id="fsaNew" data-t="s4.new"></button>
+      <button class="btn" id="fsaShow" data-t="s4.show"></button>
+      <label class="sw"><input type="checkbox" id="fsaDrift"><span data-t="s4.drift"></span></label>
+    </div>
+    <div class="pills" id="fsaRes"></div>
+  </div>
+  <div class="grid2" id="fsaDriftRow" style="display:none">
+    <div class="card"><h3 data-t="s4.chi"></h3><canvas id="cvChi" class="cv short"></canvas></div>
+    <div class="card"><h3 data-t="s4.chiwhy"></h3><p class="lead" style="font-size:15.5px" data-t="s4.chitext"></p></div>
+  </div>
+  <div class="card full">
+    <h3 data-t="s4.real"></h3>
+    <div class="row" style="margin-top:0">
+      <div class="chips" id="realTabs"></div>
+      <div class="chips" id="realScale" style="margin-left:auto"></div>
+    </div>
+    <canvas id="cvReal" class="cv tall" style="margin-top:10px"></canvas>
+    <div class="legend" id="realLegend"></div>
+    <div class="pills" id="realStat"></div>
+    <p class="note" data-t="s4.realcap"></p>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="s4.f1"></div>
+    <div class="fact" style="--c:var(--pair)" data-t="s4.f2"></div>
+    <div class="fact" style="--c:var(--esc)" data-t="s4.f3"></div>
+  </div>
+  <details class="hood"><summary data-t="hood"></summary><ul data-t="hood.4"></ul></details>
+</div></section>
+
+<!-- 5. АКТИВНОСТЬ -->
+<section class="sec" id="activity"><div class="wrap">
+  <div class="kicker" data-t="s5.k"></div>
+  <h2 data-t="s5.h"></h2>
+  <p class="lead" data-t="s5.lead"></p>
+  <div class="card full">
+    <h3 id="funT"></h3>
+    <canvas id="cvFun" class="cv mid"></canvas>
+    <div class="eq" id="actEq"></div>
+    <p class="note" data-t="s5.fsa"></p>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h3 data-t="s5.game"></h3>
+      <div class="sliders">
+        <div class="sl"><div class="top"><span data-t="s5.a"></span><span class="val" id="mA"></span></div><input type="range" id="mAr" min="0" max="1000" value="500"></div>
+        <div class="sl"><div class="top"><span data-t="s5.t"></span><span class="val" id="mT"></span></div><input type="range" id="mTr" min="0" max="1000" value="450"></div>
+        <div class="sl"><div class="top"><span data-t="s5.m"></span><span class="val" id="mM"></span></div><input type="range" id="mMr" min="5" max="200" value="50"></div>
+      </div>
+      <div class="row">
+        <button class="btn main" id="mGo" data-t="s5.go"></button>
+        <button class="btn" id="mGo10" data-t="s5.go10"></button>
+        <button class="btn" id="mClr" data-t="s5.clr"></button>
+      </div>
+      <div class="pills" id="mRes"></div>
+    </div>
+    <div class="card">
+      <h3 data-t="s5.trumpet"></h3>
+      <canvas id="cvTr" class="cv"></canvas>
+      <div class="legend"><span><i style="background:var(--ok)"></i><span data-t="s5.true"></span></span><span><i style="background:rgba(106,168,255,.55)"></i><span data-t="s5.band"></span></span><span><i style="background:var(--photo)"></i><span data-t="s5.mda"></span></span></div>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--blue)" data-t="s5.f1"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="s5.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="s5.f3"></div>
+  </div>
+  <details class="hood"><summary data-t="hood"></summary><ul data-t="hood.5"></ul></details>
+</div></section>
+
+<!-- 6. ЦЕПОЧКА -->
+<section class="sec" id="chain"><div class="wrap">
+  <div class="kicker" data-t="s6.k"></div>
+  <h2 data-t="s6.h"></h2>
+  <div class="chain">
+    <a class="node" href="#geometry"><svg viewBox="0 0 48 48" fill="none" stroke="#ffcc33" stroke-width="2.4" stroke-linecap="round"><ellipse cx="24" cy="12" rx="12" ry="5"/><path d="M12 12v22c0 3 5 5 12 5s12-2 12-5V12"/><circle cx="24" cy="24" r="2.5" fill="#ff4d6d" stroke="none"/></svg><b data-t="s6.n1"></b><span data-t="s6.d1"></span></a>
+    <a class="node" href="#photon"><svg viewBox="0 0 48 48" fill="none" stroke="#ff4d6d" stroke-width="2.4" stroke-linecap="round"><path d="M4 30c4-8 6-8 9 0s5 8 9 0 6-8 9 0"/><path d="M33 30l11-14"/><circle cx="44" cy="16" r="2.5" fill="#ffd166" stroke="none"/><path d="M33 30l9 9" stroke="#4dd0e1"/></svg><b data-t="s6.n2"></b><span data-t="s6.d2"></span></a>
+    <a class="node" href="#matrix"><svg viewBox="0 0 48 48"><g fill="#c38bff"><rect x="6" y="6" width="8" height="8" opacity=".25"/><rect x="16" y="6" width="8" height="8" opacity=".35"/><rect x="26" y="6" width="8" height="8" opacity=".5"/><rect x="36" y="6" width="8" height="8" fill="#ffcc33"/><rect x="6" y="16" width="8" height="8" opacity=".35"/><rect x="16" y="16" width="8" height="8" opacity=".5"/><rect x="26" y="16" width="8" height="8" fill="#ffcc33"/><rect x="6" y="26" width="8" height="8" opacity=".5"/><rect x="16" y="26" width="8" height="8" fill="#ffcc33"/><rect x="6" y="36" width="8" height="8" fill="#ffcc33"/></g></svg><b data-t="s6.n3"></b><span data-t="s6.d3"></span></a>
+    <a class="node" href="#fsa"><svg viewBox="0 0 48 48"><path d="M4 40 C12 38 14 14 20 14 S28 34 34 30 40 20 44 22 V44 H4Z" fill="#FF11CC" opacity=".85"/><path d="M4 40 C12 39 16 30 22 30 S30 38 36 36 42 32 44 33 V44 H4Z" fill="#CCDD88"/><path d="M4 42 C14 41 22 39 30 40 S40 41 44 41 V44 H4Z" fill="#B0B7BD"/></svg><b data-t="s6.n4"></b><span data-t="s6.d4"></span></a>
+    <a class="node" href="#fsa"><svg viewBox="0 0 48 48" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M6 36h36" stroke="#93a3c4"/><path d="M8 34c6-1 8-22 12-22s6 18 10 18 6-8 10-8" stroke="#ffcc33"/><path d="M8 34c6-1 9-12 13-12s6 9 9 9 7-4 10-4" stroke="#6aa8ff" stroke-dasharray="3 3"/></svg><b data-t="s6.n5"></b><span data-t="s6.d5"></span></a>
+    <a class="node" href="#activity"><svg viewBox="0 0 48 48" fill="none" stroke-width="2.6" stroke-linecap="round"><path d="M8 34a16 16 0 1 1 32 0" stroke="#5be38a"/><path d="M24 34l8-11" stroke="#ffcc33"/><circle cx="24" cy="34" r="3" fill="#ffcc33"/><text x="24" y="47" fill="#eef3ff" font-size="9" text-anchor="middle" stroke="none" font-family="system-ui">Bq</text></svg><b data-t="s6.n6"></b><span data-t="s6.d6"></span></a>
+  </div>
+  <div class="facts" style="grid-template-columns:1fr">
+    <div class="fact" style="--c:var(--photo)" data-t="s6.note"></div>
+  </div>
+</div></section>
+
+<footer><div class="wrap" data-t="foot"></div></footer>
+<div class="tip" id="tip"></div>
+
+<script id="data" type="application/json">{"th":{"kev":[18.4,22.4,26.5,30.5,34.6,38.7,42.7,46.8,50.9,54.9,59.0,63.1,67.2,71.3,75.3,79.4,83.5,87.6,91.7,95.8,99.9,104.0,108.1,112.2,116.3,120.4,124.6,128.7,132.8,136.9,141.0,145.2,149.3,153.4,157.5,161.7,165.8,169.9,174.1,178.2,182.3,186.5,190.6,194.8,198.9,203.0,207.2,211.3,215.5,219.6,223.8,227.9,232.1,236.2,240.4,244.5,248.7,252.9,257.0,261.2,265.3,269.5,273.6,277.8,282.0,286.1,290.3,294.5,298.6,302.8,306.9,311.1,315.3,319.4,323.6,327.8,331.9,336.1,340.3,344.4,348.6,352.8,356.9,361.1,365.3,369.4,373.6,377.8,381.9,386.1,390.3,394.4,398.6,402.8,406.9,411.1,415.2,419.4,423.6,427.7,431.9,436.1,440.2,444.4,448.5,452.7,456.9,461.0,465.2,469.3,473.5,477.7,481.8,486.0,490.1,494.3,498.4,502.6,506.7,510.9,515.0,519.2,523.3,527.5,531.6,535.8,539.9,544.0,548.2,552.3,556.5,560.6,564.7,568.9,573.0,577.1,581.3,585.4,589.5,593.7,597.8,601.9,606.0,610.2,614.3,618.4,622.5,626.6,630.8,634.9,639.0,643.1,647.2,651.3,655.4,659.5,663.6,667.7,671.8,675.9,680.0,684.1,688.2,692.3,696.4,700.5,704.6,708.7,712.8,716.9,721.0,725.0,729.1,733.2,737.3,741.4,745.4,749.5,753.6,757.6,761.7,765.8,769.8,773.9,778.0,782.0,786.1,790.1,794.2,798.2,802.3,806.3,810.4,814.4,818.5,822.5,826.6,830.6,834.6,838.7,842.7,846.7,850.8,854.8,858.8,862.9,866.9,870.9,874.9,878.9,882.9,887.0,891.0,895.0,899.0,903.0,907.0,911.0,915.0,919.0,923.0,927.0,931.0,935.0,939.0,943.0,947.0,951.0,954.9,958.9,962.9,966.9,970.9,974.8,978.8,982.8,986.8,990.7,994.7,998.7,1002.6,1006.6,1010.5,1014.5,1018.5,1022.4,1026.4,1030.3,1034.3,1038.2,1042.2,1046.1,1050.1,1054.0,1058.0,1061.9,1065.8,1069.8,1073.7,1077.6,1081.6,1085.5,1089.4,1093.4,1097.3,1101.2,1105.2,1109.1,1113.0,1116.9,1120.8,1124.8,1128.7,1132.6,1136.5,1140.4,1144.3,1148.2,1152.2,1156.1,1160.0,1163.9,1167.8,1171.7,1175.6,1179.5,1183.4,1187.3,1191.2,1195.1,1199.0,1202.9,1206.8,1210.7,1214.6,1218.5,1222.4,1226.3,1230.1,1234.0,1237.9,1241.8,1245.7,1249.6,1253.5,1257.4,1261.2,1265.1,1269.0,1272.9,1276.8,1280.6,1284.5,1288.4,1292.3,1296.2,1300.0,1303.9,1307.8,1311.7,1315.6,1319.4,1323.3,1327.2,1331.1,1334.9,1338.8,1342.7,1346.6,1350.5,1354.3,1358.2,1362.1,1366.0,1369.8,1373.7,1377.6,1381.5,1385.3,1389.2,1393.1,1397.0,1400.8,1404.7,1408.6,1412.5,1416.4,1420.2,1424.1,1428.0,1431.9,1435.8,1439.7,1443.5,1447.4,1451.3,1455.2,1459.1,1463.0,1466.9,1470.7,1474.6,1478.5,1482.4,1486.3,1490.2,1494.1,1498.0,1501.9,1505.8,1509.7,1513.6,1517.5,1521.4,1525.3,1529.2,1533.1,1537.0,1540.9,1544.8,1548.8,1552.7,1556.6,1560.5,1564.4,1568.4,1572.3,1576.2,1580.1,1584.1,1588.0,1591.9,1595.9,1599.8,1603.8,1607.7,1611.7,1615.6,1619.6,1623.5,1627.5,1631.4,1635.4,1639.3,1643.3,1647.3,1651.3,1655.2,1659.2,1663.2,1667.2,1671.2,1675.1,1679.1,1683.1,1687.1,1691.1,1695.1,1699.1,1703.2,1707.2,1711.2,1715.2,1719.2,1723.3,1727.3,1731.3,1735.4,1739.4,1743.5,1747.5,1751.6,1755.6,1759.7,1763.8,1767.8,1771.9,1776.0,1780.1,1784.2,1788.3,1792.4,1796.5,1800.6,1804.7,1808.8,1812.9,1817.0,1821.2,1825.3,1829.5,1833.6,1837.7,1841.9,1846.1,1850.2,1854.4,1858.6,1862.8,1866.9,1871.1,1875.3,1879.5,1883.8,1888.0,1892.2,1896.4,1900.7,1904.9,1909.1,1913.4,1917.6,1921.9,1926.2,1930.5,1934.7,1939.0,1943.3,1947.6,1951.9,1956.3,1960.6,1964.9,1969.2,1973.6,1977.9,1982.3,1986.7,1991.0,1995.4,1999.8,2004.2,2008.6,2013.0,2017.4,2021.8,2026.3,2030.7,2035.2,2039.6,2044.1,2048.6,2053.0,2057.5,2062.0,2066.5,2071.0,2075.6,2080.1,2084.6,2089.2,2093.7,2098.3,2102.9,2107.5,2112.1,2116.7,2121.3,2125.9,2130.5,2135.2,2139.8,2144.5,2149.1,2153.8,2158.5,2163.2,2167.9,2172.6,2177.3,2182.1,2186.8,2191.6,2196.3,2201.1,2205.9,2210.7,2215.5,2220.3,2225.2,2230.0,2234.9,2239.7,2244.6,2249.5,2254.4,2259.3,2264.2,2269.1,2274.1,2279.0,2284.0,2289.0,2294.0,2299.0,2304.0,2309.0,2314.0,2319.1,2324.2,2329.2,2334.3,2339.4,2344.5,2349.7,2354.8,2359.9,2365.1,2370.3,2375.5,2380.7,2385.9,2391.1,2396.4,2401.6,2406.9,2412.2,2417.5,2422.8,2428.1,2433.5,2438.8,2444.2,2449.6,2455.0,2460.4,2465.8,2471.3,2476.7,2482.2,2487.7,2493.2,2498.7,2504.2,2509.8,2515.3,2520.9,2526.5,2532.1,2537.7,2543.4,2549.0,2554.7,2560.4,2566.1,2571.8,2577.5,2583.3,2589.1,2594.9,2600.7,2606.5,2612.3,2618.2,2624.0,2629.9,2635.8,2641.8,2647.7,2653.7,2659.6,2665.6,2671.6,2677.7,2683.7,2689.8,2695.9,2702.0,2708.1,2714.2,2720.4,2726.6,2732.8,2739.0,2745.2],"meas":[4618,5325,8302,9860,9313,9087,10166,9484,8839,10967,13310,15608,19945,32381,51927,46984,29863,29851,29557,21664,14742,12651,11803,10818,10228,10063,11085,11918,12251,11538,10754,10676,10641,10769,10400,10122,9997,9916,10068,10266,10355,10551,10658,10634,11029,11675,12126,12114,12018,12692,15956,21752,29110,35218,36549,32974,25348,17581,11595,8457,7270,7357,7433,7577,7550,7304,7325,7269,7283,6824,6262,6122,6129,6345,6938,7942,8774,9327,9633,9447,8976,7765,6814,5674,4717,4091,3434,3138,2995,3076,2957,3012,2995,2876,2862,2777,2686,2652,2627,2556,2516,2566,2592,2760,2668,2723,2898,3057,3008,2965,2907,2936,2758,2683,2807,2972,3008,3100,3304,3271,3322,3062,2779,2705,2520,2477,2452,2497,2653,3169,3526,4079,4662,5205,5657,6343,6519,6448,6135,5632,5151,4614,3843,3511,2900,2460,2247,2040,1784,1637,1466,1428,1503,1362,1400,1348,1354,1376,1425,1441,1441,1403,1408,1570,1555,1662,1809,1705,1959,2017,1938,1984,1861,1914,1761,1746,1678,1612,1574,1543,1522,1500,1611,1562,1515,1544,1482,1443,1321,1352,1315,1300,1281,1176,1270,1316,1247,1417,1430,1417,1472,1606,1580,1645,1816,1842,1979,2305,2449,2575,2756,2881,3106,3089,3106,2930,2988,2779,2615,2475,2441,2363,2362,2367,2230,2214,2220,2141,2150,2067,1805,1618,1431,1227,975.8,870.2,791.3,706.4,643.7,573.9,555.9,465.9,487.2,510.6,486.6,497.7,492.2,505.3,523.8,562.7,578,503.9,502.8,532.9,547.8,650.2,638.1,630.3,591.6,651.6,649.8,664.5,596.1,611.3,620.9,597.2,608.2,513,547.1,493.7,474.4,424.7,418.1,420.2,315.7,391,337.9,367.6,369.5,329.8,326,355.3,349.6,371.2,316.3,312.9,400.5,368.6,365.1,355.5,355.6,345.8,414.3,363.7,362.3,363,366,308.3,377.4,303.9,321.8,281.3,300.5,313.6,251.7,247.3,303.4,325.5,252.3,291.2,249.7,308.7,271.5,278.2,267.9,278.3,256.1,269.4,289.4,333.7,315.6,325.7,313.9,307,320.3,324,251.5,274.1,316.7,269.8,308.5,282.9,299.7,291.3,291,271.5,267.6,251.5,335.9,307.6,344.9,292.9,284.3,321.4,283.1,323.3,322.2,302.6,302,343.9,291.6,328.3,313.8,308.1,330,335.7,333.4,322.5,315.1,358.8,322.7,343.4,316.7,367.4,377.3,399,388.7,434.4,435.3,466.1,437.6,474.9,460.9,516.3,501,463.6,443.7,446,406.1,464.5,424.6,391.8,373.5,369.7,352.6,287.4,333.8,336.4,348.7,273.8,277.5,245.7,220.6,259.5,256.8,243.9,256,248.5,241,257.4,235.9,225,251,252.2,279.6,237.9,220.1,251.4,292.2,254.2,284.1,275.5,273.4,284.1,268.3,238.3,251.3,253.4,258.8,226.5,224.3,204.4,253.7,235.9,178.9,179.1,229.4,191.8,192.6,187,185.8,164.7,191.2,177.8,166.6,161.1,214.9,175.6,183,184.8,151.8,178.2,154,195.5,178.4,170.7,154.7,159.6,188.7,167.4,146.3,149.9,172.5,156.5,144.9,135.4,162.2,164.4,174.9,170.9,173.2,168.2,156.1,146.4,174.9,152.1,150.1,146.3,166.8,187.6,143.9,157,172.9,165.2,155.8,170.4,180.8,146.1,217,182.7,175.6,217.1,205.3,212.1,227.4,220.3,247.3,232.6,235.7,241.3,237.1,266.4,319.9,290.4,274.7,306.8,316.4,330.8,297,307.5,328.9,285.7,268.4,310.3,262.9,256,243.8,230.8,251.4,235.9,228.7,225.3,247.8,225.4,197.4,224.2,204.9,209.5,220.2,190.3,231.3,203.4,178.9,204.2,221.5,193.9,199.7,195.9,215.6,186.9,199.9,228.6,195.7,194.1,213.6,206.3,192.8,197.2,199.6,185.8,203.1,202.2,176.5,187.6,182.1,178.8,172.3,188.1,162.5,146.3,186.9,156.8,156.1,155,147.5,154,153.1,156.3,160.1,155.7,130.9,139.4,150,142.8,96.54,138.9,126,138.1,134.5,134.6,100.7,113.4,115.5,107.7,104.6,117.5,120.8,116.8,112.7,109.9,138.5,115.3,113.6,104.5,123.2,138.8,142.3,142.4,129.9,150,151,183.1,174.9,205.6,213.2,249.8,243.5,308.9,242.8,321.5,365.2,342.9,405.6,401.2,404.2,484.7,494.5,472.6,520.6,568.4,600.5,565.2,554.1,606.1,596,569.3,527.9,529.9,520,470.4,456.5,377.7,401.5,354.9,345.4,298.4,281.6,263.6,241.8,186.1,158.7,160.3,129,141.5,124],"layers":{"Ac-228":[3050,4068,4989,3095,1774,2261,2587,2756,2947,3167,3336,3348,3306,3375,3552,3871,4530,5672,6613,6497,5804,5300,4943,4547,4275,4327,4675,5021,5116,4995,4880,4888,4889,4882,4807,4668,4518,4403,4329,4281,4252,4255,4323,4498,4832,5309,5717,5865,5609,5046,4405,3883,3555,3395,3345,3360,3419,3523,3694,3955,4236,4428,4447,4266,3938,3566,3251,3041,2948,2966,3089,3327,3711,4267,4984,5847,6646,7152,7218,6803,5997,4985,3973,3118,2490,2083,1849,1731,1682,1671,1689,1731,1794,1858,1907,1927,1910,1860,1790,1716,1656,1626,1635,1689,1793,1922,2041,2127,2158,2123,2025,1882,1715,1551,1407,1298,1229,1188,1165,1152,1141,1129,1116,1102,1093,1090,1094,1107,1124,1144,1162,1174,1177,1170,1154,1130,1101,1071,1042,1019,1000,988.3,981.7,980,982.5,987.4,995.2,1005,1017,1031,1048,1068,1089,1117,1147,1175,1197,1209,1210,1197,1172,1135,1090,1041,992.6,947.8,909,876.4,850.6,831.3,817.3,808.8,805.2,805.2,809.3,819.1,833.2,851.4,873.5,898.7,928.3,960.3,988.8,1011,1024,1026,1017,998.3,971.2,940.2,908.2,878.7,853.2,831.4,814.1,801.9,794.4,792.1,795.5,806,826.1,858.8,908.4,979.7,1078,1210,1382,1603,1854,2113,2363,2589,2773,2906,2979,2991,2950,2866,2756,2642,2542,2462,2398,2349,2310,2272,2227,2165,2079,1967,1829,1670,1495,1312,1130,956,797.5,658.2,540.2,443.8,367.9,310,267.5,237.5,217.5,205,197.7,194,192.5,192.7,193.9,195.7,197.7,200,202.1,203.8,205,206,206.5,206.4,205.9,205.1,204.2,202.8,201.1,199.2,196.9,194.2,191.3,188,184.5,180.7,176.7,172.7,168.7,164.7,160.9,157.5,154.4,151.7,149.5,148,147,146.6,147,147.8,148.8,149.9,151.1,152.2,153,153.4,153.2,152.4,151.1,149.2,146.9,144.1,140.8,137.4,133.7,129.9,126,122.2,118.5,114.9,111.4,108.2,105.1,102.2,99.54,97.05,94.81,92.79,90.96,89.32,87.91,86.75,85.84,85.2,84.91,84.89,85.02,85.3,85.71,86.24,86.89,87.62,88.47,89.47,90.69,92.19,94.06,96.34,98.79,101.4,104.1,106.9,109.8,112.9,116,119.3,122.6,125.6,128.2,130.3,131.8,132.8,133.2,133,132.4,131.5,130.3,129.1,128.1,127.5,127.5,128.2,129.9,132.8,137.4,143.9,152,161,170.6,180.5,190.4,200,208.8,216.7,223.6,229.3,233.5,235.9,236.4,235.1,231.9,226.9,220.4,212.5,203.4,193.4,182.7,171.5,160,148.3,136.7,125.3,114.2,103.5,93.42,83.88,74.99,66.78,59.29,52.54,46.48,41.08,36.27,32.04,28.34,25.1,22.3,19.86,17.76,15.96,14.41,13.08,11.93,10.92,10.05,9.283,8.614,8.038,7.546,7.137,6.808,6.559,6.39,6.28,6.226,6.217,6.243,6.305,6.388,6.49,6.606,6.73,6.86,6.994,7.128,7.245,7.34,7.408,7.453,7.469,7.457,7.417,7.354,7.262,7.151,7.023,6.875,6.715,6.546,6.375,6.204,6.03,5.852,5.669,5.484,5.296,5.104,4.91,4.71,4.508,4.3,4.086,3.867,3.641,3.41,3.177,2.94,2.703,2.468,2.237,2.011,1.795,1.59,1.396,1.215,1.047,0.894,0.757,0.636,0.528,0.435,0.354,0.285,0.228,0.181,0.142,0.11,0.085,0.065,0.05,0.038,0.029,0.024,0.016,0.012,0.012,0.012,0.006,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"Tl-208":[318.3,380.1,749.1,1889,2129,1777,1707,1746,1830,1920,2016,2090,2174,2335,2410,2361,2386,2530,2608,2499,2388,2381,2399,2388,2384,2418,2479,2549,2625,2705,2780,2829,2779,2718,2665,2618,2577,2544,2519,2500,2480,2455,2423,2384,2339,2291,2245,2236,2229,2219,2211,2208,2211,2219,2232,2252,2275,2299,2326,2367,2445,2575,2700,2763,2720,2572,2364,2147,1966,1837,1754,1703,1667,1636,1606,1577,1549,1521,1497,1475,1456,1438,1421,1402,1380,1356,1329,1297,1259,1216,1168,1113,1056,999.2,946.3,898.9,858.3,824.1,795.7,771.4,750.2,731.6,715.2,701.3,690.1,683.1,680.7,684.7,695.9,716.9,750.1,800.2,872.3,975.1,1120,1321,1562,1794,1983,2099,2127,2065,1932,1760,1586,1447,1369,1373,1470,1670,1987,2440,3038,3685,4292,4780,5080,5144,4963,4563,4000,3349,2686,2072,1551,1138,833.9,623.2,486.1,403.4,356.6,328.4,309.3,296.6,287.4,280.6,275.1,270.7,267.1,264,261.3,258.9,256.7,255,253.4,252,250.9,249.9,249.3,249.3,249.7,250.9,253.2,256.6,261.4,266.5,271,274.9,277.5,278.3,277.4,274.7,270.3,265.2,259.7,254.7,251.1,249.3,250,253.9,261,273.1,291,314,343.3,380.6,424.8,471.2,516.1,556.2,588.8,610.9,620.5,616.5,599.5,570.9,533.2,489.6,442.9,396.5,352.8,313.4,279.5,251.4,229,211.6,198.6,189,182.2,177.6,174.3,172,170.4,169.4,168.8,168.4,168.4,168.6,168.9,169.2,169.7,170.1,170.4,170.8,171.2,171.4,171.8,172.2,172.7,173.3,174.2,175.2,176.5,178.1,179.9,181.9,184.2,186.9,189.8,193.1,196.6,200.5,204.6,209.1,214.2,219.8,226,232.4,238.3,243.7,248.2,251.7,254.1,255,254.4,252.6,249.5,245.3,240.4,235,229.4,223.8,218.5,213.8,209.7,206.3,203.6,201.6,200.1,199.2,198.7,198.7,198.9,199.3,199.9,200.7,201.4,202.2,203.1,204,204.9,205.8,205.2,204.2,203.1,202,201,199.9,198.9,197.8,196.8,195.8,194.7,193.6,192.6,191.6,190.5,189.5,188.5,187.5,186.5,185.5,184.6,183.7,182.9,182,181.1,180.3,179.5,178.6,177.6,176.7,175.6,174.5,173.3,172.1,170.9,169.6,168.2,166.9,165.6,164.3,163,161.7,160.6,159.5,158.3,157.3,156.4,155.5,154.6,153.8,153.2,152.7,152.3,151.8,151.5,151.3,151.2,151.2,151.4,151.8,152.4,153.4,155.8,158.7,162.1,166.1,170.6,175.7,181.3,187.2,192.8,198.2,203.3,207.8,211.8,214.9,217.1,218.3,218.8,218.4,217.1,214.9,212.2,209.1,205.6,202,198.2,194.6,191.3,188.2,185.4,182.9,180.9,179.3,178.1,177.1,176.4,176,175.8,175.9,176,176.2,176.6,177.1,177.6,178,178.5,179,179.5,180,180.4,180.9,181.4,181.9,182.4,182.8,183.2,183.6,184.1,184.5,184.9,185.3,185.8,186.3,186.8,187.2,187.6,188,188.6,189.1,189.5,190,190,189.9,189.8,189.6,189.4,189.1,188.9,188.7,188.3,187.9,187.4,187,186.5,185.9,185.2,184.5,183.8,183.1,182.3,181.5,180.6,179.8,179,178.3,177.5,176.8,176.1,175.5,175,174.5,174.1,173.7,173.5,173.3,173.3,173.2,173.3,173.5,173.8,174.3,174.8,175.4,176.1,177.1,178.3,179.6,181.1,182.8,184.8,187.1,189.7,192.6,196,199.7,204.1,209.1,214.8,221.3,228.7,237,245.9,255,264.1,273.1,281.7,289.9,297.4,304.2,310.3,315.4,319.2,321.8,323.1,323.2,321.9,319.3,315.7,311.1,305.9,300,293.6,286.9,280,273.2,266.7,260.4,254.5,249,243.9,239.4,235.5,232.1,229.1,226.6,224.6,223,221.8,220.9,220.2,219.7,219.4,219.3,219.4,219.4,219.4,219.4,219.3,219.1,218.9,218.5,217.9,217,215.9,214.5,212.9,210.9,208.6,205.9,202.9,199.6,196,192.2,188.2,183.9,179.4,174.7,170,165.3,160.5,155.7,150.9,146.3,141.7,137.4,133.2,129.1,125.3,121.7,118.4,115.3,112.6,110.1,107.9,105.9,104.3,103.1,102.2,101.6,101.4,101.6,102.1,103.2,104.7,106.7,109.3,112.4,116.2,120.7,125.9,131.9,138.9,146.7,155.7,165.8,177.2,190,204.4,220.4,238.3,258.3,280.5,305.2,332.5,361.5,391,420.7,450,478.6,505.9,531.6,555,575.7,593.3,607.6,618.1,624.6,627.1,625.4,619.6,609.8,596.2,579.1,558.8,535.8,510.5,483.4,454.9,425.5,395.8,366.1,336.8,308.4,281,255,230.5,207.7,186.7,167.6,150.3,134.7,120.9],"Pb-212":[480.8,321.5,530.8,1238,1800,1812,1905,1800,1717,1889,2176,2657,3789,6234,8512,8016,6447,6009,5621,4443,3361,2919,2739,2494,2235,2102,2125,2260,2438,2604,2739,2831,2830,2799,2755,2706,2661,2626,2602,2584,2568,2563,2585,2657,2801,3019,3333,3841,4668,6058,8390,12241,17470,21967,23785,22010,17354,11654,6685,3314,1476,679.2,426.5,394.2,468.5,626.9,874.5,1147,1354,1427,1337,1111,819.2,535.9,312.1,163.3,78.64,37.76,21.19,14.84,12.55,11.93,12.09,12.8,14.11,16.2,19.3,23.4,27.97,32.57,36.83,40.59,44.26,48.44,52.44,55.49,56.88,55.85,52.05,45.77,37.88,29.46,21.5,14.75,9.512,5.769,3.291,1.793,0.938,0.467,0.226,0.109,0.052,0.026,0.012,0.005,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"Bi-212":[137.5,271.7,636.4,745.4,490.4,330.7,277.5,255.8,244.4,280.1,322.9,339,343.4,352,355,354.2,365.4,394.7,417.1,407.3,392,391.2,394.2,392.7,392.6,398.7,409,420.7,433.1,445.7,457.9,466.7,460.1,450.9,441.9,433.2,424.6,415.8,407.3,399.8,394.4,390.9,388.6,386.1,382.3,377.2,371.8,372.1,373,373.4,373.4,373.1,372.9,372.8,372.8,373.2,373.6,373.5,372.9,372.5,373.7,378.6,389.9,410.6,436.3,456.6,463.6,452.1,424.8,390,356.8,332,318.3,314,314.2,314.2,310.8,302.9,291.4,278.3,265.6,254.8,246.2,239.8,234.8,230.6,226.9,223.3,220,216.9,214.3,211.9,210,208.5,207.7,207.3,207.9,209.4,212.2,216.6,223.2,232.8,245.7,258.9,269.8,276.6,277.5,272.2,261.3,246.6,230.2,214.1,199.7,187.7,177.9,170.4,165.4,161.2,156.9,151.7,145.6,138.6,130.9,122.8,115,108.1,102.1,97.05,92.93,89.68,86.99,84.72,82.73,80.83,79.06,77.31,75.66,74.12,72.74,71.57,70.59,69.9,69.46,69.3,69.47,69.93,70.76,71.93,73.53,75.63,78.3,81.38,84.96,89.72,95.94,104,114.5,128,145.3,167.3,195.3,230.8,275.9,333.1,405.8,496.7,596.6,694.3,781.4,849.3,890.9,901.7,880.6,830.3,756.9,668.6,574.1,482,399.8,331.1,276.9,236.3,207.1,186.3,170.9,158.5,146.9,134.6,121.4,107.5,93.45,80.12,68.13,57.81,49.39,42.91,38.22,35.12,33.36,32.74,33.1,34.27,36.18,38.84,41.94,45.13,48.2,50.89,52.99,54.34,54.84,54.45,53.27,51.45,49.19,46.75,44.42,42.35,40.58,39.14,38.01,37.12,36.38,35.71,34.99,34.16,33.24,32.2,31.08,29.92,28.8,27.79,26.93,26.28,25.86,25.67,25.75,26.08,26.66,27.5,28.61,30.01,31.72,33.81,36.33,39.34,42.74,46.23,49.59,52.67,55.31,57.34,58.62,59.11,58.77,57.62,55.78,53.42,50.61,47.52,44.32,41.17,38.19,35.45,33.01,30.91,29.12,27.64,26.43,25.48,24.72,24.13,23.7,23.38,23.13,22.95,22.82,22.75,22.7,22.67,22.68,22.7,22.73,22.76,22.8,22.85,22.89,22.92,22.96,23,23.03,23.05,23.01,22.95,22.88,22.81,22.74,22.66,22.58,22.51,22.43,22.35,22.25,22.16,22.07,21.95,21.82,21.67,21.51,21.32,21.11,20.86,20.58,20.27,19.91,19.5,19.06,18.59,18.07,17.53,16.97,16.39,15.81,15.23,14.66,14.11,13.58,13.09,12.63,12.21,11.85,11.53,11.27,11.06,10.91,10.83,10.81,10.86,10.99,11.2,11.5,11.91,12.45,13.13,13.96,14.93,15.97,17.06,18.17,19.27,20.33,21.35,22.29,23.14,23.9,24.55,25.07,25.49,25.83,26.12,26.44,26.84,27.31,27.92,28.75,29.87,31.32,33.19,35.55,38.45,41.77,45.24,48.74,52.15,55.36,58.24,60.64,62.48,63.66,64.12,63.82,62.77,61.01,58.59,55.61,52.15,48.34,44.29,40.13,35.97,31.91,28.03,24.4,21.06,18.04,15.36,13.01,10.97,9.243,7.784,6.573,5.575,4.766,4.132,3.64,3.263,2.981,2.781,2.647,2.578,2.57,2.612,2.707,2.838,2.99,3.163,3.347,3.536,3.722,3.902,4.07,4.214,4.327,4.406,4.446,4.447,4.407,4.33,4.215,4.066,3.887,3.682,3.456,3.215,2.964,2.709,2.453,2.201,1.958,1.726,1.508,1.305,1.12,0.951,0.798,0.67,0.552,0.452,0.368,0.296,0.237,0.187,0.147,0.115,0.089,0.067,0.052,0.039,0.029,0.024,0.015,0.012,0.012,0.012,0.003,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"Ra-224":[65.84,29.58,28.91,37.41,47.62,63.06,87.56,106.9,117,123,130.5,136.5,141.6,156.7,192.1,252.7,307.9,335.6,351,341.9,301.5,260.6,233.6,208.2,183.6,172.2,177.3,192.3,209.5,224.5,236.2,244.1,244.1,241.8,238.4,234.4,230.1,226.2,223,220.8,219.5,219.4,221.4,226.8,237.4,254.6,279.2,317.4,377,475.4,640.6,915,1343,1818,2141,2168,1878,1388,875.3,470.4,215.5,84.34,29.73,10.35,3.6,1.251,0.434,0.153,0.053,0.018,0.006,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"Th-228":[9.485,6.308,4.959,6.28,7.957,10.48,17.55,33.09,46.01,38.73,27.32,31.61,48.45,78.05,139.3,268.3,388.2,344.8,192.8,82.52,42.25,32.92,30.58,29.32,30.49,37.22,52.42,72.12,81.19,72.16,53.34,38.39,32.78,35.63,45.67,61.16,72.61,72.04,59.71,43.63,31.8,26.97,28.19,34.54,46.65,65.98,95.05,126.7,145.5,141.5,115.6,78.87,44.85,21.22,8.348,2.799,0.897,0.288,0.091,0.03,0.01,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"Rn-220":[0.366,0.522,0.677,0.836,0.993,1.122,1.243,1.365,1.488,1.612,1.74,1.805,1.804,1.84,1.942,2.159,2.65,3.588,4.541,4.872,4.834,4.839,4.853,4.78,4.712,4.731,4.815,4.931,5.062,5.193,5.304,5.374,5.29,5.2,5.13,5.083,5.064,5.074,5.118,5.173,5.205,5.207,5.181,5.14,5.087,5.021,4.946,4.913,4.874,4.822,4.763,4.702,4.645,4.594,4.549,4.515,4.48,4.438,4.379,4.303,4.22,4.14,4.069,4.007,3.951,3.903,3.864,3.827,3.792,3.757,3.726,3.697,3.67,3.644,3.616,3.589,3.56,3.525,3.482,3.425,3.35,3.246,3.108,2.931,2.729,2.514,2.304,2.111,1.95,1.815,1.712,1.627,1.56,1.5,1.445,1.394,1.349,1.304,1.264,1.227,1.192,1.163,1.136,1.111,1.089,1.072,1.055,1.044,1.044,1.051,1.078,1.121,1.192,1.296,1.444,1.653,1.949,2.35,2.871,3.56,4.471,5.677,7.278,9.409,12.21,15.36,18.38,20.84,22.4,22.8,21.96,20.01,17.25,14.07,10.85,7.91,5.457,3.559,2.196,1.28,0.71,0.385,0.205,0.111,0.061,0.032,0.017,0.012,0.003,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"Th-232":[2.654,11.45,35.19,40.3,9.663,1.367,1.265,2.716,6.076,13.95,31.49,42.73,27.48,8.352,1.561,0.659,0.779,1.254,1.764,1.903,1.786,1.732,1.727,1.614,1.519,1.655,2.188,3.317,5.491,8.65,10.61,9.668,6.467,3.159,1.125,0.295,0.067,0.016,0.001,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"Xray-Pb":[119.8,208.7,475.5,1376,2525,3361,3269,2253,2105,2607,3758,6873,14457,26093,29197,21371,14780,10531,5453,1672,293.9,38.08,4.881,0.625,0.079,0.01,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"Xray-Th":[23.33,33.16,43.16,53.5,64.42,75.64,93.67,136.6,243.8,417.2,544.3,527.8,504.5,624.9,869.8,1319,2321,4118,5556,5088,3582,2651,2115,1359,594.4,169.7,32.87,5.526,0.927,0.156,0.026,0.003,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"Xray-La":[172.2,297.4,1075,974.2,312.4,63.31,3.979,0.114,0.002,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"share":{"Ac-228":37.75,"Tl-208":25.27,"Pb-212":19.47,"Bi-212":3.94,"Ra-224":1.52,"Th-228":0.24,"Rn-220":0.04,"Th-232":0.02,"Xray-Pb":9.51,"Xray-Th":2.06,"Xray-La":0.19},"live":3546.9023526428573,"chi2":2.67,"gain":0.9963,"act":1102.4,"lim":5.59},"cs":{"kev":[16.0,19.0,22.0,25.0,28.1,31.1,34.1,37.1,40.1,43.2,46.2,49.2,52.2,55.3,58.3,61.3,64.3,67.4,70.4,73.4,76.5,79.5,82.5,85.6,88.6,91.6,94.7,97.7,100.7,103.8,106.8,109.8,112.9,115.9,119.0,122.0,125.0,128.1,131.1,134.2,137.2,140.3,143.3,146.3,149.4,152.4,155.5,158.5,161.6,164.6,167.7,170.7,173.8,176.8,179.9,182.9,186.0,189.1,192.1,195.2,198.2,201.3,204.3,207.4,210.5,213.5,216.6,219.6,222.7,225.8,228.8,231.9,235.0,238.0,241.1,244.2,247.2,250.3,253.4,256.4,259.5,262.6,265.6,268.7,271.8,274.9,277.9,281.0,284.1,287.2,290.2,293.3,296.4,299.5,302.5,305.6,308.7,311.8,314.9,317.9,321.0,324.1,327.2,330.3,333.4,336.5,339.5,342.6,345.7,348.8,351.9,355.0,358.1,361.2,364.3,367.4,370.4,373.5,376.6,379.7,382.8,385.9,389.0,392.1,395.2,398.3,401.4,404.5,407.6,410.7,413.8,416.9,420.0,423.1,426.2,429.3,432.4,435.6,438.7,441.8,444.9,448.0,451.1,454.2,457.3,460.4,463.5,466.7,469.8,472.9,476.0,479.1,482.2,485.4,488.5,491.6,494.7,497.8,500.9,504.1,507.2,510.3,513.4,516.6,519.7,522.8,525.9,529.1,532.2,535.3,538.4,541.6,544.7,547.8,551.0,554.1,557.2,560.3,563.5,566.6,569.7,572.9,576.0,579.1,582.3,585.4,588.6,591.7,594.8,598.0,601.1,604.3,607.4,610.5,613.7,616.8,620.0,623.1,626.3,629.4,632.5,635.7,638.8,642.0,645.1,648.3,651.4,654.6,657.7,660.9,664.0,667.2,670.3,673.5,676.7,679.8,683.0,686.1,689.3,692.4,695.6,698.8,701.9,705.1,708.2,711.4,714.6,717.7,720.9,724.0,727.2,730.4,733.5,736.7,739.9,743.0,746.2,749.4,752.5,755.7,758.9,762.1,765.2,768.4,771.6,774.7,777.9,781.1,784.3,787.4,790.6,793.8,797.0],"meas":[1057716,1090594,1519363,3205791,6692963,8714982,6591055,3488996,1778911,1180147,1034343,1005081,996665,994049,992347,994392,1008588,1051299,1120274,1199796,1231926,1194729,1126640,1083479,1045208,1006000,966076,936798,924722,920325,924827,931189,940349,950280,960072,967329,972870,979211,981592,981512,981382,981436,982093,982277,987621,989572,991835,998680,1003036,1013672,1031765,1060405,1112138,1191298,1299483,1428974,1559339,1669721,1741803,1772691,1762050,1720783,1664947,1600196,1533244,1467150,1408375,1351668,1300559,1255625,1210790,1176192,1141771,1113838,1084475,1063276,1061509,1054706,1026828,988721,959715,938063,925359,912560,900152,889086,881122,873719,863303,854432,850157,842085,836228,829256,824132,818041,813939,810422,804381,802254,800961,797644,794421,793819,795327,792805,791363,787453,786750,783998,783474,783858,783199,781786,783081,784463,784643,784307,785224,785797,789088,789904,793421,795291,797538,800360,802947,806471,808023,812875,815168,820801,822527,825054,824334,823093,820326,815441,804451,792519,776826,750927,720814,685195,645452,597852,549404,500746,453407,408932,367201,331978,301005,274893,252117,233963,217989,205509,194059,183703,174132,164867,158424,151029,144081,137304,132599,126770,122927,119866,115157,112698,110230,107793,105641,104134,102299,100917,99831,99329,97734,97740,98398,99148,101762,104294,109917,118444,130165,147253,171725,207613,258458,330646,433627,573692,762996,1006637,1313979,1680814,2102165,2563006,3045606,3514196,3940712,4288424,4527883,4638253,4604220,4431711,4134990,3741222,3281345,2791879,2301127,1837719,1419959,1067564,779854,555268,385214,262619,176945,118494,80004,55395,39910,30156,23595,19623,17202,15257,13748,12568,11937,11040,10360,9891,9387,9060,8665,8354,7975,7681,7299,7212,7092,6941,6797,6644,6475,6173,6089],"layers":{"Cs-137":[839238,998162,1589913,3493393,6634051,8233398,6587100,3791274,1950585,1188861,968985,929593,931011,941008,953069,963523,971196,976273,978118,976237,972342,966804,959690,950633,940432,927873,916370,910259,910727,916596,925463,935118,943876,950652,955028,957553,959283,961171,963689,966967,971114,976268,981138,980470,978921,976611,972604,967174,961031,955217,951509,952083,959875,976550,1002509,1036177,1074051,1111782,1144727,1169582,1185254,1191986,1191236,1184585,1174306,1161235,1146672,1131840,1118121,1104502,1090922,1076999,1063161,1048935,1035370,1021767,1008835,996325,984521,973232,962200,951516,941134,930944,920993,911805,903250,895538,888840,882880,877231,871840,866187,860774,855062,849252,843305,837020,832263,828629,825382,822639,820695,819668,819537,819790,820442,820979,821592,821986,821935,821498,821195,821052,821082,821590,822411,823689,825277,827659,830131,832749,835716,838541,841571,844904,848084,851512,854684,857959,860988,863711,866238,867589,867723,865900,861324,853426,840737,822709,798741,768358,731666,689311,642257,592059,540404,489256,440288,395010,354460,319126,289089,263908,243012,225702,211209,198959,188397,179142,170914,163492,156770,150580,144849,139495,134446,129716,125248,121035,117111,113471,110165,107192,104568,102293,100346,98763,97533,96696,96346,96558,97501,99385,102529,107422,114720,125262,139867,159721,186463,222300,270275,334617,421255,538444,697918,915110,1198349,1538727,1928895,2355449,2796949,3228757,3618838,3936072,4152631,4251277,4220240,4062234,3791377,3431353,3010497,2561372,2113484,1691155,1312023,987014,720284,510061,350584,233920,151479,95134,57883,34087,19420,10703,5705,2945,1473,714.3,335.7,153,67.61,29,12.21,5.134,2.158,0.906,0.382,0.16,0.069,0.029,0.012,0.006,0,0,0,0,0,0,0],"Backscatter":[66924,273280,535572,503325,251178,75444,15013,3274,2299,2523,2584,2596,2607,2619,2632,2644,2656,2668,2681,2695,2711,2726,2742,2804,2978,3159,3339,3522,3705,3891,4078,4267,4458,4652,4850,5052,5261,5482,5722,5996,6330,6771,7355,8048,9353,11834,16458,24996,40430,65959,103452,152313,208792,266299,317367,356066,379640,388908,386847,377197,363404,347777,331562,315229,298861,281761,263080,241879,217510,189871,159657,128386,98080,70769,48019,30499,18076,9971,5107,2425,1066,433,162.5,56.3,17.98,5.298,1.441,0.363,0.087,0.02,0.004,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"Xray-Pb":[6.655,46.54,184,512.4,1504,4164,9790,18859,28412,32521,28724,21663,17226,17153,20806,29351,48129,86210,144352,204195,237497,228408,187169,138342,97720,66465,41380,22216,9885,3575,1042,244,45.84,6.913,0.837,0.085,0.008,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"Xray-Pb-L":[92764,5332,73.23,0.336,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"pile-up":[0,3.622,15.21,27.38,40.28,54.42,69.64,84.96,99.89,113.2,116,116.6,117.1,117.6,118.2,118.8,119.3,119.8,120.4,121,121.7,122.4,123.1,125.9,133.7,141.8,150,158.2,166.4,174.7,183.1,191.6,200.1,208.8,217.5,226.3,235.1,244.1,253.1,262.3,271.5,280.8,287.8,283.9,278.5,273.2,267.8,262.4,256.9,251.4,245.8,240.3,234.8,229.3,223.9,218.4,213,207.6,202.1,196.6,191.1,185.4,179.5,173.5,167.5,161.2,154.8,148.9,145.2,141.6,137.8,134,130,125.9,121.8,117.5,113.1,108.7,104.2,99.56,94.87,90.1,85.27,80.35,75.35,70.28,65.12,59.87,54.56,49.17,43.68,38.12,32.47,26.73,20.91,15,8.993,2.897,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.096,0.519,0.976,1.443,150.8,241.1,324.4,405.9,433.8,607.9,703.1,769.6,831.5,839.9,915.3,961.7,979,989,957,973.7,990.5,985.7,977.2,948.1,949,964.8,959.7,954.4,937,931.6,946.1,942.7,936.7,922.3,910.7,924.3,916.8,911,898.7,880.6,891.7,886.3,879.1,866.9,841.8,848.1,836.4,820.4,799.4,738.9,716.6,669.6,589.2,445.7,305.8,119.5,25.33,25.99,26.73,27.63,28.72,30.06,31.73,33.82,36.48,39.88,44.24,49.88,57.27,66.99,79.94,97.41,121.3,154.5,201.2,268,364.9,1037,1836,2761,3821,4809,5771,6864,8029,9116,9986,10627,10980,11007,10887,10728,10562,10388,10217,10046,9893,9745,9601,9454,9306,9162,9018,8873,8727,8584,8442,8301,8161,8021,7887,7753,7620,7488]},"peak":[32001,140144,613936,2311289,5278094,6898039,5414835,2766924,1000811,261583,46912,5447,397.8,18.21,0.562,0.014,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8.535,16.16,22.21,30.54,41.99,57.74,79.38,109.1,150.1,206.3,283.7,390,536.3,737.3,1014,1394,1916,2635,3623,4981,6848,9416,12946,17800,24474,33650,46266,63613,87463,120256,165343,227335,312559,429618,590456,810596,1098247,1444399,1841409,2275512,2724910,3164559,3562181,3886450,4109417,4213766,4187755,4034130,3767060,3410278,2992183,2545378,2099419,1678682,1300862,976951,711174,501841,343278,227623,146310,91164,55064,32241,18299,10068,5370,2776,1392,676.1,318.4,145.4,64.34,27.63,11.64,4.894,2.057,0.865,0.365,0.154,0.063,0.027,0.011,0.005,0,0,0,0,0,0,0],"compton":[805774,853190,960236,1152578,1309765,1274153,1104403,956379,880224,852640,846717,848911,855397,865774,877849,888308,896012,901114,902967,901083,897127,891537,884367,874003,859440,842382,826420,815845,811857,813276,817698,822911,827231,829574,829518,827615,824921,822383,820476,819330,819054,819786,821565,823886,826070,827452,827160,825439,822993,820858,820806,825026,836396,856612,886093,923269,964648,1005862,1042289,1070652,1089848,1100127,1102950,1099898,1093208,1083768,1072858,1061399,1049972,1038564,1027217,1015547,1003981,992051,980774,969481,958869,948683,939204,930239,921538,913182,905122,897259,889636,882776,876550,871170,866795,863163,859841,856779,853456,850369,846984,843501,839883,835925,832263,828629,825382,822639,820695,819668,819537,819790,820442,820979,821592,821986,821935,821498,821195,821052,821082,821590,822411,823689,825277,827659,830131,832749,835716,838541,841571,844904,848084,851512,854684,857959,860988,863711,866238,867589,867723,865900,861324,853426,840737,822684,798609,768113,731307,688840,641673,591361,539593,488331,439251,393859,353196,317749,287599,262305,241295,223871,209265,196902,186226,176857,168516,160980,154135,147822,141970,136492,131314,126448,121837,117471,113376,109546,106018,102784,99842,97173,94726,92498,90432,88495,86675,84910,83181,81446,79672,77868,76034,74186,72290,70338,68339,66292,64197,62020,59723,57280,54699,51992,49198,46286,43272,40178,37020,33849,30669,27506,24388,21361,18445,15679,13101,10746,8637,6796,5228,3927,2877,2053,1427,964.7,634.3,405.4,251.7,151.8,88.86,50.49,27.83,14.89,7.724,3.887,1.896,0.898,0.411,0.184,0.079,0.033,0.013,0.007,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"share":{"Cs-137":95.02,"Backscatter":3.42,"Xray-Pb":0.71,"Xray-Pb-L":0.51,"pile-up":0.33},"live":356491.21293,"chi2":179.66,"gain":0.99092,"act":6709.0,"lim":2.08},"xs":{"E":[15.0,16.33,17.78,19.36,21.08,22.96,25.0,27.22,29.64,32.27,33.1,33.25,35.14,38.26,41.66,45.36,49.39,53.78,58.56,63.76,69.43,75.6,82.31,87.9,88.1,89.63,97.59,106.26,115.7,125.99,137.18,149.37,162.64,177.09,192.83,209.96,228.62,248.93,271.05,295.13,321.35,349.91,381.0,414.85,451.71,491.84,535.55,583.13,634.94,691.36,752.79,819.68,892.51,971.81,1058.16,1152.18,1254.55,1366.02,1487.4,1619.56,1763.46,1920.15,2090.76,2276.53,2478.81,2699.05,2938.87,3200.0],"NaI":{"ph":[45.7,36.13,28.55,22.56,17.79,14,11.02,8.68,6.835,5.374,5.001,29.57,25.59,20.49,16.36,13.04,10.4,8.244,6.531,5.161,4.072,3.214,2.534,2.105,2.091,1.992,1.566,1.229,0.9639,0.7557,0.5927,0.4648,0.3645,0.2858,0.2241,0.1762,0.1388,0.1093,0.08613,0.06785,0.05386,0.04282,0.03405,0.0272,0.02186,0.01757,0.01424,0.01157,0.00948,0.007802,0.006422,0.005309,0.004436,0.003708,0.003104,0.002628,0.002225,0.001904,0.001629,0.001405,0.001213,0.001047,0.0009089,0.000796,0.0006971,0.0006105,0.0005347,0.000472],"co":[0.0841,0.08708,0.09017,0.09338,0.09611,0.09855,0.1011,0.1036,0.1063,0.1083,0.1089,0.109,0.1101,0.1118,0.1132,0.1143,0.1155,0.1161,0.1167,0.1168,0.1167,0.1166,0.1162,0.1156,0.1156,0.1154,0.1146,0.1133,0.1117,0.1102,0.1087,0.1072,0.1051,0.103,0.1009,0.09858,0.0961,0.09369,0.09133,0.08903,0.08649,0.08394,0.08147,0.07898,0.07644,0.07398,0.07147,0.06902,0.06654,0.0641,0.06175,0.05944,0.05711,0.05487,0.05263,0.05046,0.04836,0.04627,0.04427,0.04226,0.04033,0.03849,0.03668,0.03488,0.03317,0.03154,0.03,0.02845],"pa":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2.592e-05,9.331e-05,0.0001685,0.0003452,0.0007073,0.001051,0.001509,0.002166,0.002895,0.003507,0.004249,0.005146,0.006233,0.007191],"tot":[47.38,37.66,29.95,23.83,18.94,15.03,11.95,9.522,7.596,6.061,5.667,30.23,26.21,21.05,16.87,13.5,10.82,8.625,6.878,5.478,4.363,3.481,2.78,2.336,2.322,2.219,1.777,1.425,1.147,0.9272,0.754,0.6172,0.5083,0.4219,0.3534,0.299,0.2555,0.2206,0.1924,0.1696,0.1512,0.136,0.1233,0.1128,0.1039,0.09632,0.08975,0.08401,0.07892,0.07435,0.07024,0.0665,0.06302,0.05983,0.05682,0.05407,0.05151,0.04916,0.04714,0.04517,0.04343,0.04202,0.04076,0.03942,0.03831,0.03746,0.0369,0.03623]},"Al":{"ph":[7.515,5.786,4.453,3.427,2.63,2.013,1.543,1.182,0.9058,0.6922,0.6386,0.6296,0.5284,0.4035,0.3077,0.2345,0.1786,0.1359,0.1034,0.07862,0.05974,0.0454,0.03451,0.02791,0.02771,0.02621,0.01991,0.01514,0.01151,0.008751,0.006655,0.005061,0.003861,0.002947,0.002248,0.001724,0.001326,0.00102,0.000785,0.000604,0.0004699,0.0003665,0.0002858,0.0002244,0.0001776,0.0001406,0.0001126,9.042e-05,7.348e-05,6.007e-05,4.91e-05,4.037e-05,3.367e-05,2.809e-05,2.327e-05,1.975e-05,1.677e-05,1.442e-05,1.241e-05,1.078e-05,9.379e-06,8.16e-06,7.142e-06,6.31e-06,5.575e-06,4.925e-06,4.351e-06,3.876e-06],"co":[0.1265,0.1295,0.1327,0.1358,0.1383,0.1402,0.1422,0.1441,0.1462,0.1472,0.1475,0.1475,0.1481,0.149,0.1495,0.1495,0.1496,0.1491,0.1485,0.1474,0.1461,0.1448,0.1432,0.1417,0.1417,0.1413,0.1393,0.1369,0.1343,0.1318,0.1293,0.1268,0.1239,0.1209,0.118,0.1149,0.1117,0.1086,0.1056,0.1026,0.09947,0.09634,0.09331,0.09029,0.08724,0.0843,0.08135,0.07848,0.07559,0.07276,0.07003,0.06736,0.06469,0.06213,0.05959,0.0571,0.05471,0.05232,0.05004,0.04776,0.04557,0.04348,0.04145,0.03941,0.03747,0.03562,0.03387,0.03212],"pa":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4.97e-06,1.789e-05,3.241e-05,7.154e-05,0.0001579,0.0002463,0.0003699,0.0005554,0.0007705,0.0009577,0.001189,0.001476,0.001832,0.002153],"tot":[7.955,6.192,4.829,3.777,2.957,2.319,1.83,1.454,1.164,0.9367,0.8794,0.8697,0.7611,0.6262,0.5211,0.4393,0.376,0.3261,0.2872,0.2563,0.2317,0.2124,0.1968,0.1864,0.1861,0.1837,0.1731,0.1638,0.1559,0.1491,0.1432,0.1381,0.1329,0.1283,0.124,0.1198,0.1157,0.1119,0.1083,0.1049,0.1013,0.09787,0.09458,0.09134,0.08812,0.08503,0.08196,0.07899,0.07602,0.07312,0.07033,0.06761,0.0649,0.06231,0.05975,0.05725,0.05485,0.05249,0.05027,0.04807,0.046,0.04409,0.04226,0.0404,0.03868,0.03712,0.03572,0.03429]},"H2O":{"ph":[1.369,1.043,0.7934,0.6037,0.4585,0.3474,0.2635,0.1999,0.1516,0.1148,0.1056,0.1041,0.08682,0.0657,0.04968,0.03755,0.02837,0.02142,0.01617,0.01221,0.009215,0.006956,0.005252,0.004228,0.004197,0.003965,0.002994,0.002264,0.001712,0.001295,0.0009796,0.0007409,0.0005628,0.0004276,0.0003248,0.0002481,0.0001903,0.000146,0.000112,8.587e-05,6.663e-05,5.183e-05,4.032e-05,3.158e-05,2.495e-05,1.971e-05,1.576e-05,1.263e-05,1.025e-05,8.375e-06,6.841e-06,5.622e-06,4.689e-06,3.912e-06,3.208e-06,2.724e-06,2.314e-06,1.992e-06,1.715e-06,1.493e-06,1.302e-06,1.135e-06,9.952e-07,8.811e-07,7.801e-07,6.906e-07,6.115e-07,5.456e-07],"co":[0.1699,0.1721,0.1743,0.1765,0.1781,0.1792,0.1804,0.1815,0.1827,0.1828,0.1828,0.1828,0.1828,0.1828,0.1823,0.1814,0.1805,0.179,0.1775,0.1755,0.1733,0.1711,0.1688,0.1667,0.1666,0.1661,0.1634,0.1602,0.157,0.1537,0.1506,0.1475,0.1439,0.1403,0.1368,0.1331,0.1293,0.1257,0.1221,0.1186,0.1149,0.1113,0.1077,0.1042,0.1007,0.09727,0.09384,0.09049,0.08715,0.08388,0.08074,0.07766,0.07458,0.07163,0.0687,0.06582,0.06306,0.0603,0.05767,0.05504,0.05253,0.05012,0.04775,0.0454,0.04316,0.04104,0.03902,0.03701],"pa":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2.818e-06,1.014e-05,1.838e-05,4.084e-05,9.073e-05,0.0001419,0.0002136,0.0003214,0.0004467,0.0005572,0.0006938,0.0008631,0.001073,0.001264],"tot":[1.672,1.333,1.072,0.873,0.7181,0.598,0.5063,0.4361,0.3821,0.3391,0.3281,0.3263,0.3055,0.2795,0.2587,0.2419,0.2286,0.2174,0.2082,0.2001,0.1931,0.1872,0.1818,0.1777,0.1776,0.1766,0.172,0.1673,0.1627,0.1585,0.1545,0.1507,0.1465,0.1425,0.1386,0.1346,0.1306,0.1267,0.1229,0.1193,0.1155,0.1118,0.1081,0.1046,0.101,0.09752,0.09405,0.09067,0.0873,0.08401,0.08084,0.07775,0.07466,0.07169,0.06876,0.06588,0.06312,0.06038,0.05779,0.05521,0.05276,0.05046,0.04821,0.04597,0.04387,0.04191,0.0401,0.03828]}}}</script>
+<script>
+'use strict';
+/* ============================== ТЕКСТЫ ============================== */
+const T = {ru:{
+'brand.sub':'как это работает',
+'nav.1':'Фотон','nav.2':'Геометрия','nav.3':'Матрица','nav.4':'FSA','nav.5':'Активность',
+'hero.k':'Гамма-спектрометрия простыми словами',
+'hero.h':'Как BecqMoni превращает <em>вспышки в кристалле</em> в беккерели',
+'hero.sub':'Пять шагов — от одного фотона до активности пробы. Всё на этой странице живое: ползунки, кнопки и графики считаются прямо в браузере.',
+'hero.cap':'Модель: банка с пробой светит, кристалл ловит, спектр растёт',
+'hero.stat':'вылетело <b>{0}</b> · поймано кристаллом <b>{1}</b> · в спектре <b>{2}</b>',
+'ch.1':'Фотон в кристалле','ch.2':'Геометрия и эффективность','ch.3':'Матрица отклика','ch.4':'Разбор FSA','ch.5':'Активность',
+'hood':'Как это сделано в BecqMoni',
+'s1.k':'Шаг 1',
+'s1.h':'Что делает фотон внутри кристалла',
+'s1.lead':'Гамма-квант влетает в кристалл, как мяч в густой лес. Он может застрять сразу и отдать всю энергию, может отскочить от «дерева» и унести часть энергии, а может пролететь насквозь. Прибор видит только то, что фотон <b>оставил</b> в кристалле.',
+'s1.scene':'Кристалл NaI(Tl) сбоку — выпускайте фотоны',
+'s1.energy':'Энергия фотона:',
+'s1.shield':'свинцовый домик вокруг',
+'s1.b1':'1 фотон','s1.b100':'×100','s1.b10k':'×100 000','s1.clr':'Очистить',
+'s1.spec':'Что записал прибор',
+'s1.lg.ph':'фотоэффект — отдал всё','s1.lg.co':'комптон — отскочил','s1.lg.pa':'рождение пары e⁺e⁻','s1.lg.esc':'улетел','s1.lg.abs':'застрял по дороге',
+'s1.st':'выпущено <b>{0}</b> · провзаимодействовали <b>{1}</b> · в пике <b>{2}</b>',
+'s1.f1':'<b>Пик полного поглощения</b> — фотон отдал всю энергию. По положению пика узнают нуклид, по его площади — сколько его.',
+'s1.f2':'<b>Комптоновское плато</b> — фотон отскочил и улетел, оставив часть энергии. Плато обрывается на «комптоновском крае».',
+'s1.f3':'<b>Горбы и пики-спутники</b> — обратное рассеяние от защиты, рентген свинца, пики вылета. Их рисует окружение, а не проба.',
+'ann.fep':'пик','ann.ce':'комптоновский край','ann.bs':'обратное рассеяние','ann.pb':'рентген Pb','ann.se':'вылет 511','ann.de':'вылет 2×511','ann.ie':'вылет йода',
+'s2.k':'Шаг 2',
+'s2.h':'Геометрия: почему важно, где и как лежит проба',
+'s2.lead':'Проба светит во все стороны, а кристалл ловит только то, что летит в него, — как ведро под дождём. Чем дальше и меньше ведро, тем меньше капель. Плотная проба к тому же «съедает» часть собственного излучения.',
+'s2.scene':'Ваша установка',
+'s2.src':'Проба:',
+'src.point':'Точечный источник','src.jar':'Банка','src.marinelli':'Маринелли',
+'s2.size':'Кристалл NaI, Ø = высота','s2.gap':'Зазор до кристалла','s2.rho':'Плотность пробы',
+'s2.curve':'Кривая эффективности — какая доля фотонов даёт пик',
+'s2.keep':'Запомнить для сравнения','s2.now':'в пик (сейчас)','s2.kept':'запомнено','s2.total':'хоть что-то оставили',
+'s2.tile':'из 1000 фотонов {0} кэВ<br>в пик попадёт',
+'s2.vol':'объём {0} мл',
+'s2.f1':'<b>Слева кривая растёт</b>: мягкие фотоны застревают в корпусе детектора и в самой пробе.',
+'s2.f2':'<b>Справа падает</b>: жёсткие фотоны всё чаще пролетают кристалл насквозь или оставляют лишь часть энергии.',
+'s2.f3':'<b>Та же проба в другой посуде</b> даёт другую кривую. Поэтому геометрию задают для каждого вида измерения.',
+'ax.e':'энергия, кэВ','ax.eff':'доля, %','ax.cnt':'отсчёты','ax.ein':'энергия фотона, кэВ','ax.eout':'записанная энергия, кэВ','ax.t':'время измерения','ax.a':'активность, Бк','ax.per':'на 1000 фотонов',
+'s3.k':'Шаг 3',
+'s3.h':'Матрица отклика — «словарь» прибора',
+'s3.lead':'Кривая эффективности отвечает на вопрос <b>сколько</b> фотонов попадёт в пик. Матрица отвечает на больший вопрос: <b>как</b> выглядит в спектре фотон каждой энергии — пик, плато, пики вылета, всё целиком. Её считают, прогоняя через модель вашей геометрии миллионы виртуальных фотонов. Матрица хранит «резкую» картинку, а ширину пиков программа добавляет потом — из калибровки ширины пиков (ПШПВ) вашего спектра.',
+'s3.map':'Матрица: строка — энергия фотона, цвет — что записал прибор',
+'s3.run':'Пересчитать',
+'s3.prog':'считаю: {0} из {1} энергий','s3.done':'готово: {0} энергий × {1} фотонов',
+'s3.slice':'Одна строка: так прибор видит фотон {0} кэВ',
+'s3.ein':'Энергия фотона','s3.fwhm':'Ширина пика при 662 кэВ (из калибровки)',
+'s3.f1':'<b>Яркая диагональ</b> — пики полного поглощения: какая энергия влетела, такая и записана.',
+'s3.f2':'<b>Треугольник слева от диагонали</b> — комптоновские плато. Чем выше энергия, тем длиннее плато.',
+'s3.f3':'<b>Тонкие линии вдоль диагонали</b> — пики вылета: у мягких фотонов улетает рентген йода (−29 кэВ), у самых жёстких — кванты аннигиляции 511 кэВ.',
+'s3.real':'Зачем это нужно: настоящий спектр Cs-137 в свинцовом домике',
+'s3.realcap':'Белая линия — измерение (ASN16, 99 часов, 250 млн отсчётов). Цветом — то, что объясняет модель BecqMoni. Добавляйте части по одной: пик, комптон из матрицы, затем всё остальное — обратное рассеяние от домика и рентген свинца, которые программа добавляет отдельными слоями.',
+'s3.l1':'Только пик','s3.l2':'+ комптон','s3.l3':'+ всё остальное',
+'s3.expl':'объяснено <b>{0} %</b> отсчётов',
+'s3.lpk':'пик Cs-137','s3.lco':'комптон Cs-137','s3.lrest':'обратное рассеяние, рентген Pb, прочее',
+'s3.mxnote':'здесь {0} фотонов на строку; в программе — до 3 млн на узел',
+'s4.k':'Шаг 4',
+'s4.h':'FSA: разобрать спектр на цветные слои',
+'s4.lead':'Обычный поиск пиков меряет каждый пик по отдельности. <b>FSA</b> (полноспектральный разбор) работает со всем спектром сразу. Сначала по найденным пикам он решает, <b>кто</b> есть в пробе, и для каждого нуклида берёт готовый «слой» — как этот нуклид со всем своим рядом распада выглядит именно в вашей геометрии. Потом подбирает, <b>сколько</b> каждого слоя нужно, чтобы сложилась измеренная картина. Как художник, который знает чистые краски и угадывает пропорции смеси.',
+'s4.game':'Попробуйте сами: соберите спектр из слоёв',
+'s4.hint':'Двигайте ползунки, пока цветная гора не ляжет на белые точки измерения. Полоса снизу — невязка: чем она спокойнее, тем лучше. Слои посчитаны тем же переносом фотонов для вашей геометрии; фон помещения считаем уже вычтенным, как в программе.',
+'s4.fit':'Подобрать, как FSA','s4.new':'Новая загадка','s4.show':'Показать ответ','s4.drift':'шкала прибора «уплыла» на несколько %',
+'s4.bg':'Подложка',
+'s4.chi2':'качество подгонки χ²/ndf = <b>{0}</b>',
+'s4.found':'<i style="background:{2}"></i>{0}: <b>{1}</b>',
+'s4.hidden':'загадано — {0}',
+'s4.none':'нет',
+'s4.gain':'усиление шкалы по {2} опорам: <b>{0}</b> (загадано {1})',
+'s4.chi':'Привязка шкалы по пикам: насколько пики измерения сдвинуты от пиков модели',
+'s4.chiwhy':'Как FSA держит шкалу',
+'s4.chitext':'Шкала прибора дрейфует, например, от температуры. Если слои поставить «как есть», пики модели разъедутся с измерением. FSA сравнивает центры пиков полного поглощения модели и измерения — это опоры — и пересчитывает усиление шкалы. <span style="color:#ff4d6d">Красные точки</span> — сдвиг до привязки: они лежат на наклонной прямой, шкала растянута. <span style="color:#5be38a">Зелёные</span> — после: сдвиг ушёл.',
+'ax.shift':'сдвиг пика, кэВ','ax.anch':'энергия опоры, кэВ',
+'s4.real':'Настоящий разбор BecqMoni',
+'s4.tab.th':'Th-232, ториевый диск (Atom Spectra 80×80)','s4.tab.cs':'Cs-137 в свинцовом домике (ASN16)',
+'s4.realcap':'Цвета — как на экране программы. Белая линия — измерение. Наведите на график; щёлкните по пункту легенды, чтобы спрятать слой.',
+'s4.rs':'живое время <b>{0}</b> · χ²/ndf <b>{1}</b> · усиление шкалы <b>{2}</b> · активность {5} <b>{3} Бк</b> · предел обнаружения <b>{4} Бк</b>',
+'s4.chainof':'ряда Th-232',
+'s4.f1':'<b>Весь спектр — улика</b>: плато и горбы работают на результат, а не мешают ему.',
+'s4.f2':'<b>Перекрытые линии разводятся сами</b>: слой нуклида двигается целиком, со всеми своими линиями сразу.',
+'s4.f3':'<b>Невязка — честный отчёт</b>: что модель не объяснила, видно сразу, обоими знаками.',
+'nm.Xray-Pb':'Рентген Pb','nm.Xray-Th':'Рентген Th','nm.Xray-La':'Рентген La','nm.Xray-Pb-L':'Рентген Pb (L)','nm.Backscatter':'Обратное рассеяние','nm.pile-up':'Наложения',
+'s5.k':'Шаг 5',
+'s5.h':'Активность: от слоя к беккерелям',
+'s5.lead':'Беккерель — один распад в секунду. Прибор замечает лишь малую долю распадов, но знает эту долю из геометрии и матрицы — и честно пересчитывает обратно.',
+'s5.fun':'Куда деваются 1000 распадов Cs-137 в секунду в вашей геометрии',
+'s5.st0':'распадов в секунду','s5.st1':'вылетел фотон 662 кэВ','s5.st2':'долетел до кристалла','s5.st3':'провзаимодействовал','s5.st4':'отдал всю энергию — в пик',
+'s5.eqN':'отсчётов в пике','s5.eqT':'секунд','s5.eqE':'доля в пике','s5.eqA':'Бк',
+'s5.fsa':'В FSA то же самое, но сразу для всего слоя: каждый слой построен «на 1 беккерель», поэтому подобранный множитель слоя и есть активность.',
+'s5.game':'Измерьте сами: Cs-137 в вашей геометрии',
+'s5.a':'Настоящая активность','s5.t':'Время измерения','s5.m':'Масса пробы',
+'s5.go':'Измерить','s5.go10':'Ещё 10 раз','s5.clr':'Очистить',
+'s5.res':'результат: <b>{0} ± {1} Бк</b> → <b>{2} ± {3} Бк/кг</b>',
+'s5.nd':'не обнаружено: меньше <b>{0} Бк</b> (<b>{1} Бк/кг</b>)',
+'s5.cnt':'в пике <b>{0}</b> отсчётов, из них фона ≈ <b>{1}</b>',
+'s5.mdaP':'предел обнаружения за это время — <b>{0} Бк</b>',
+'s5.trumpet':'Чем дольше измерение, тем уже «воронка» ошибки',
+'s5.true':'настоящая активность','s5.band':'95 % результатов попадут сюда','s5.mda':'предел обнаружения',
+'s5.f1':'<b>Ошибка тает как корень из времени</b>: мерить вчетверо дольше — вдвое точнее.',
+'s5.f2':'<b>Предел обнаружения</b> — ниже него прибор не отличит пробу от фона. Тогда честный ответ: «меньше стольких-то Бк». BecqMoni считает его по ISO 11929.',
+'s5.f3':'<b>Бк/кг</b> — активность, делённая на массу. Поэтому пробу нужно взвесить, а посуду заполнить так же, как в геометрии.',
+'s6.k':'Итог',
+'s6.h':'Вся цепочка на одной картинке',
+'s6.n1':'Геометрия','s6.d1':'кристалл, корпус, посуда, плотность пробы',
+'s6.n2':'Перенос фотонов','s6.d2':'миллионы виртуальных фотонов через модель',
+'s6.n3':'Матрица отклика','s6.d3':'как выглядит фотон каждой энергии + кривая эффективности',
+'s6.n4':'Слои нуклидов','s6.d4':'весь ряд распада: линии × выходы × матрица × ширина пиков',
+'s6.n5':'Разбор FSA','s6.d5':'кто есть — по пикам, сколько — по всему спектру; привязка шкалы, невязка',
+'s6.n6':'Активность','s6.d6':'Бк и Бк/кг, ± ошибка, предел обнаружения',
+'s6.note':'<b>Ошибка на любом шаге слева тихо переезжает в беккерели справа.</b> Не та посуда, не тот зазор, не та плотность — и спектр «объяснится» не теми числами. Поэтому геометрию задают честно, под каждое измерение.',
+'foot':'Модели на этой странице упрощены и считаются прямо в браузере: перенос фотонов методом Монте-Карло в цилиндре NaI(Tl) — фотоэффект с вылетом K-рентгена йода, комптоновское рассеяние по Клейну — Нишине, рождение пар — с сечениями поглощения из базы данных самой BecqMoni; свинцовый домик изображён грубо. Настоящие разборы — спектры, разобранные самой BecqMoni (19.10.2026); цвета слоёв — как в программе. Числа приблизительные: в программе модель подробнее.',
+},en:{
+'brand.sub':'how it works',
+'nav.1':'Photon','nav.2':'Geometry','nav.3':'Matrix','nav.4':'FSA','nav.5':'Activity',
+'hero.k':'Gamma spectrometry made simple',
+'hero.h':'How BecqMoni turns <em>flashes in a crystal</em> into becquerels',
+'hero.sub':'Five steps from a single photon to the activity of your sample. Everything on this page is live: sliders, buttons and charts are computed right in your browser.',
+'hero.cap':'Model: a jar with a sample shines, the crystal catches, the spectrum grows',
+'hero.stat':'emitted <b>{0}</b> · caught by the crystal <b>{1}</b> · in the spectrum <b>{2}</b>',
+'ch.1':'Photon in the crystal','ch.2':'Geometry and efficiency','ch.3':'Response matrix','ch.4':'FSA decomposition','ch.5':'Activity',
+'hood':'How BecqMoni does it',
+'s1.k':'Step 1',
+'s1.h':'What a photon does inside the crystal',
+'s1.lead':'A gamma photon enters the crystal like a ball flying into a dense forest. It may stop at once and give up all its energy, bounce off a "tree" and carry part of it away, or fly straight through. The instrument only sees what the photon <b>left behind</b> in the crystal.',
+'s1.scene':'NaI(Tl) crystal, side view — fire some photons',
+'s1.energy':'Photon energy:',
+'s1.shield':'lead shield around',
+'s1.b1':'1 photon','s1.b100':'×100','s1.b10k':'×100 000','s1.clr':'Clear',
+'s1.spec':'What the detector recorded',
+'s1.lg.ph':'photoeffect — gave up everything','s1.lg.co':'Compton — bounced','s1.lg.pa':'pair e⁺e⁻ created','s1.lg.esc':'escaped','s1.lg.abs':'stopped on the way',
+'s1.st':'fired <b>{0}</b> · interacted <b>{1}</b> · in the peak <b>{2}</b>',
+'s1.f1':'<b>Full-energy peak</b> — the photon gave up all its energy. The peak position tells which nuclide it is; its area tells how much.',
+'s1.f2':'<b>Compton plateau</b> — the photon bounced and escaped, leaving only part of its energy. The plateau ends at the "Compton edge".',
+'s1.f3':'<b>Bumps and satellite peaks</b> — backscatter from the shield, lead X-rays, escape peaks. They come from the surroundings, not from the sample.',
+'ann.fep':'peak','ann.ce':'Compton edge','ann.bs':'backscatter','ann.pb':'Pb X-rays','ann.se':'511 escape','ann.de':'2×511 escape','ann.ie':'iodine escape',
+'s2.k':'Step 2',
+'s2.h':'Geometry: why it matters where and how the sample sits',
+'s2.lead':'A sample shines in all directions, while the crystal catches only what flies into it — like a bucket in the rain. The farther and smaller the bucket, the fewer drops. A dense sample also "eats" part of its own radiation.',
+'s2.scene':'Your setup',
+'s2.src':'Sample:',
+'src.point':'Point source','src.jar':'Jar','src.marinelli':'Marinelli',
+'s2.size':'NaI crystal, Ø = height','s2.gap':'Gap to the crystal','s2.rho':'Sample density',
+'s2.curve':'Efficiency curve — what share of photons ends up in the peak',
+'s2.keep':'Keep for comparison','s2.now':'in the peak (now)','s2.kept':'kept','s2.total':'left anything at all',
+'s2.tile':'out of 1000 photons of {0} keV<br>the peak gets',
+'s2.vol':'volume {0} ml',
+'s2.f1':'<b>Rising on the left</b>: soft photons get stuck in the detector housing and in the sample itself.',
+'s2.f2':'<b>Falling on the right</b>: hard photons more and more often pass through the crystal or leave only part of their energy.',
+'s2.f3':'<b>The same sample in another container</b> gives another curve. That is why the geometry is set for every kind of measurement.',
+'ax.e':'energy, keV','ax.eff':'share, %','ax.cnt':'counts','ax.ein':'photon energy, keV','ax.eout':'recorded energy, keV','ax.t':'measurement time','ax.a':'activity, Bq','ax.per':'per 1000 photons',
+'s3.k':'Step 3',
+'s3.h':'The response matrix — the detector\'s dictionary',
+'s3.lead':'The efficiency curve answers <b>how many</b> photons reach the peak. The matrix answers a bigger question: <b>what</b> a photon of every energy looks like in the spectrum — peak, plateau, escape peaks, all of it. It is computed by running millions of virtual photons through a model of your geometry. The matrix keeps a "sharp" picture; the app adds the peak width later, from the peak-width (FWHM) calibration of your spectrum.',
+'s3.map':'Matrix: a row is the photon energy, colour is what the detector recorded',
+'s3.run':'Recompute',
+'s3.prog':'computing: {0} of {1} energies','s3.done':'done: {0} energies × {1} photons',
+'s3.slice':'One row: how the detector sees a {0} keV photon',
+'s3.ein':'Photon energy','s3.fwhm':'Peak width at 662 keV (from calibration)',
+'s3.f1':'<b>The bright diagonal</b> — full-energy peaks: whatever energy came in is what gets recorded.',
+'s3.f2':'<b>The triangle left of the diagonal</b> — Compton plateaus. The higher the energy, the longer the plateau.',
+'s3.f3':'<b>Thin lines along the diagonal</b> — escape peaks: soft photons lose an iodine X-ray (−29 keV), the hardest ones lose 511 keV annihilation quanta.',
+'s3.real':'Why it matters: a real Cs-137 spectrum in a lead house',
+'s3.realcap':'White line — the measurement (ASN16, 99 hours, 250 million counts). In colour — what BecqMoni\'s model explains. Add the parts one by one: the peak, the Compton part of the matrix, then everything else — backscatter from the house and lead X-rays, which the app adds as separate layers.',
+'s3.l1':'Peak only','s3.l2':'+ Compton','s3.l3':'+ everything else',
+'s3.expl':'<b>{0} %</b> of counts explained',
+'s3.lpk':'Cs-137 peak','s3.lco':'Cs-137 Compton','s3.lrest':'backscatter, Pb X-rays, other',
+'s3.mxnote':'{0} photons per row here; the app uses up to 3 million per node',
+'s4.k':'Step 4',
+'s4.h':'FSA: taking the spectrum apart into coloured layers',
+'s4.lead':'Ordinary peak search measures every peak on its own. <b>FSA</b> (full-spectrum analysis) works with the whole spectrum at once. First, from the peaks it found, it decides <b>who</b> is in the sample, and for every nuclide it takes a ready-made "layer" — what that nuclide with its whole decay chain looks like in exactly your geometry. Then it finds <b>how much</b> of each layer is needed to rebuild the measured picture. Like a painter who knows the pure paints and guesses the proportions of a mix.',
+'s4.game':'Try it: build the spectrum from layers',
+'s4.hint':'Move the sliders until the coloured hill lies on the white measurement dots. The strip below is the residual: the calmer it is, the better. The layers come from the same photon transport for your geometry; room background is taken as already subtracted, as in the app.',
+'s4.fit':'Fit like FSA','s4.new':'New puzzle','s4.show':'Reveal answer','s4.drift':'the energy scale "drifted" by a few %',
+'s4.bg':'Continuum',
+'s4.chi2':'fit quality χ²/ndf = <b>{0}</b>',
+'s4.found':'<i style="background:{2}"></i>{0}: <b>{1}</b>',
+'s4.hidden':'hidden — {0}',
+'s4.none':'none',
+'s4.gain':'scale gain from {2} anchors: <b>{0}</b> (hidden {1})',
+'s4.chi':'Anchoring the scale on peaks: how far measured peaks sit from model peaks',
+'s4.chiwhy':'How FSA holds the scale',
+'s4.chitext':'The detector scale drifts, for instance with temperature. If the layers are used as they are, model peaks slide off the measured ones. FSA compares the centres of the full-energy peaks of the model and of the measurement — the anchors — and recomputes the scale gain. <span style="color:#ff4d6d">Red dots</span> show the shift before anchoring: they lie on a slanted line, the scale is stretched. <span style="color:#5be38a">Green</span> — after: the shift is gone.',
+'ax.shift':'peak shift, keV','ax.anch':'anchor energy, keV',
+'s4.real':'A real BecqMoni decomposition',
+'s4.tab.th':'Th-232, thorium disc (Atom Spectra 80×80)','s4.tab.cs':'Cs-137 in a lead house (ASN16)',
+'s4.realcap':'Colours match the app screen. The white line is the measurement. Hover the chart; click a legend item to hide a layer.',
+'s4.rs':'live time <b>{0}</b> · χ²/ndf <b>{1}</b> · scale gain <b>{2}</b> · activity of {5} <b>{3} Bq</b> · detection limit <b>{4} Bq</b>',
+'s4.chainof':'the Th-232 chain',
+'s4.f1':'<b>The whole spectrum is evidence</b>: plateaus and bumps help the result instead of getting in the way.',
+'s4.f2':'<b>Overlapping lines separate on their own</b>: a nuclide\'s layer moves as a whole, with all its lines at once.',
+'s4.f3':'<b>The residual is an honest report</b>: whatever the model did not explain is visible at once, with both signs.',
+'nm.Xray-Pb':'Pb X-rays','nm.Xray-Th':'Th X-rays','nm.Xray-La':'La X-rays','nm.Xray-Pb-L':'Pb X-rays (L)','nm.Backscatter':'Backscatter','nm.pile-up':'Pile-up',
+'s5.k':'Step 5',
+'s5.h':'Activity: from a layer to becquerels',
+'s5.lead':'A becquerel is one decay per second. The detector notices only a small share of decays, but it knows that share from the geometry and the matrix — and honestly scales back up.',
+'s5.fun':'Where 1000 Cs-137 decays per second go in your geometry',
+'s5.st0':'decays per second','s5.st1':'a 662 keV photon emitted','s5.st2':'reached the crystal','s5.st3':'interacted','s5.st4':'gave up everything — in the peak',
+'s5.eqN':'counts in the peak','s5.eqT':'seconds','s5.eqE':'share in the peak','s5.eqA':'Bq',
+'s5.fsa':'FSA does the same for a whole layer at once: every layer is built "per 1 becquerel", so the fitted multiplier of a layer is the activity itself.',
+'s5.game':'Measure it yourself: Cs-137 in your geometry',
+'s5.a':'True activity','s5.t':'Measurement time','s5.m':'Sample mass',
+'s5.go':'Measure','s5.go10':'10 more times','s5.clr':'Clear',
+'s5.res':'result: <b>{0} ± {1} Bq</b> → <b>{2} ± {3} Bq/kg</b>',
+'s5.nd':'not detected: below <b>{0} Bq</b> (<b>{1} Bq/kg</b>)',
+'s5.cnt':'<b>{0}</b> counts in the peak, about <b>{1}</b> of them background',
+'s5.mdaP':'detection limit for this time — <b>{0} Bq</b>',
+'s5.trumpet':'The longer you measure, the narrower the error funnel',
+'s5.true':'true activity','s5.band':'95 % of results land here','s5.mda':'detection limit',
+'s5.f1':'<b>The error melts as the square root of time</b>: measure four times longer — get twice the precision.',
+'s5.f2':'<b>The detection limit</b> — below it the instrument cannot tell the sample from background. The honest answer then is "less than so many Bq". BecqMoni computes it per ISO 11929.',
+'s5.f3':'<b>Bq/kg</b> is the activity divided by the mass. So weigh the sample and fill the container exactly as in the geometry.',
+'s6.k':'Summary',
+'s6.h':'The whole chain in one picture',
+'s6.n1':'Geometry','s6.d1':'crystal, housing, container, sample density',
+'s6.n2':'Photon transport','s6.d2':'millions of virtual photons through the model',
+'s6.n3':'Response matrix','s6.d3':'what a photon of every energy looks like + efficiency curve',
+'s6.n4':'Nuclide layers','s6.d4':'the whole decay chain: lines × yields × matrix × peak width',
+'s6.n5':'FSA decomposition','s6.d5':'who is there — from peaks, how much — from the whole spectrum; scale anchoring, residual',
+'s6.n6':'Activity','s6.d6':'Bq and Bq/kg, ± error, detection limit',
+'s6.note':'<b>An error at any step on the left quietly travels into the becquerels on the right.</b> Wrong container, wrong gap, wrong density — and the spectrum gets "explained" with the wrong numbers. That is why the geometry is set honestly, for each measurement.',
+'foot':'The models on this page are simplified and run right in your browser: Monte Carlo photon transport in a NaI(Tl) cylinder — photoeffect with iodine K X-ray escape, Klein–Nishina Compton scattering, pair production — with attenuation cross sections from BecqMoni\'s own database; the lead shield is drawn roughly. The real decompositions are spectra analysed by BecqMoni itself (19.10.2026); layer colours match the app. Numbers are approximate: the app\'s model is more detailed.',
+}};
+/* Подкапотные списки — заполняются из фактов о коде приложения */
+const HOOD = {ru:{
+1:'<li>Перенос в программе подробнее, чем здесь: комптон на связанных электронах, рэлей, вылет K- и L-рентгена, пары с переносом позитрона, перенос электронов и тормозное излучение, нелинейность светового выхода.</li>'+
+  '<li>Свинцовый домик в перенос не входит. Если в геометрии стоит галка «в защите», FSA добавляет отдельные слои «Обратное рассеяние» и «Рентген Pb».</li>'+
+  '<li>Кристалл — цилиндр или брусок, NaI или CsI. Есть готовые шаблоны детекторов: RadiaCode-101 и -103, Atom Spectra Nano 16, 40×40 и 80×80, Gamma-1S 63×63, Obsidian.</li>',
+2:'<li>Геометрия задаётся в конфигурации прибора, раздел Efficiency: детектор (кристалл, отражатель, зазор, корпус), проба (точка, банка, маринелли, кювета — вещество и плотность) и расстояние.</li>'+
+  '<li>Кнопка «Calculate from geometry» считает кривую тем же переносом: 200 000 фотонов на точку, точки 40…3000 кэВ, внизу и у K-краёв гуще. Кривую можно и импортировать из ЛСРМ или ввести руками.</li>'+
+  '<li>Кривая живёт вместе со своей геометрией в конфигурации прибора, копия уезжает в файл спектра.</li>'+
+  '<li>Между точками — интерполяция в логарифмах. Линия за краем кривой из разбора выбрасывается, и отчёт её называет.</li>',
+3:'<li>Окно: Device configuration → Efficiency → «Response matrix…». 140 узлов по энергии 5…3000 кэВ плюс узлы у K-краёв, шаг 2 кэВ, до 3 млн фотонов на узел.</li>'+
+  '<li>Видеокарта Nvidia RTX 30xx и новее (галка «Use Nvidia GPU») ускоряет счёт: точечная геометрия — 19 с против 37 мин на процессоре.</li>'+
+  '<li>Между узлами строки сдвигаются к энергии линии (пик — сдвигом, пики вылета — постоянным смещением, комптон — по карте узлов) и смешиваются.</li>'+
+  '<li>Матрица своя у каждой геометрии, на ней стоит клеймо — отпечаток геометрии и версии физики. Изменили геометрию — матрица «устарела», и разбор идёт без неё, пока её не пересчитают.</li>'+
+  '<li>Без матрицы слой — только узкие пики, взвешенные кривой эффективности: нет ни плато, ни каскадного суммирования (сумм-пики Co-60 и подобных строятся поверх матрицы).</li>',
+4:'<li>Включается в выпадающем списке фона на панели спектра — «Show FSA»; подробности — в окне FSA Report. Во время набора разбор пересчитывается не чаще раза в 30 с.</li>'+
+  '<li>Состав («Из NucBase»): поиск пиков подписывает пики, нуклид принимается, если подтверждено не меньше 30 % его групп линий; затем из базы берётся весь ряд со всеми излучениями. Ряд в равновесии — одна общая амплитуда.</li>'+
+  '<li>Фон вычитается измеренный; сверху — неотрицательная кусочно-линейная подложка. Подбор — взвешенный МНК с неотрицательностью (NNLS) и защитой от выбросов (Хубер); слои со значимостью ниже 3 отбрасываются.</li>'+
+  '<li>Шкала привязывается по пикам полного поглощения самой модели: усиление, ноль и ширина пересчитываются по центрам пиков. Перебор растяжений шкалы в программе есть, но выключен.</li>'+
+  '<li>Невязка рисуется серой клетчатой лентой обоих знаков; заметный пик вне состава вызывает предупреждение.</li>',
+5:'<li>Множитель слоя сразу в беккерелях: выходы линий даны на один распад, эффективность уже внутри матрицы. Беккерели показываются при матрице или при кривой, посчитанной из геометрии либо импортированной из ЛСРМ.</li>'+
+  '<li>Бк/кг и Бк/л — деление на массу и объём из сведений об образце. Поправка на распад приводит результат к дате отбора.</li>'+
+  '<li>± — только статистика подгонки (раздутая, если подгонка хуже чистой статистики). Неточность геометрии и матрицы в ± не входит.</li>'+
+  '<li>Не обнаруженный нуклид выводится строкой с порогом решения и пределом обнаружения по ISO 11929 (α = β = 5 %).</li>'
+},en:{
+1:'<li>The app\'s transport is more detailed than here: Compton on bound electrons, Rayleigh, K and L X-ray escape, pairs with positron transport, electron transport and bremsstrahlung, non-proportional light yield.</li>'+
+  '<li>The lead house is not part of the transport. If the geometry has "in shield" ticked, FSA adds separate "Backscatter" and "Pb X-rays" layers.</li>'+
+  '<li>The crystal is a cylinder or a bar, NaI or CsI. Ready detector templates: RadiaCode-101 and -103, Atom Spectra Nano 16, 40×40 and 80×80, Gamma-1S 63×63, Obsidian.</li>',
+2:'<li>The geometry is set in the device configuration, Efficiency section: detector (crystal, reflector, gap, housing), sample (point, jar, Marinelli, cuvette — material and density) and distance.</li>'+
+  '<li>"Calculate from geometry" computes the curve with the same transport: 200 000 photons per point, points 40…3000 keV, denser at the bottom and near K-edges. A curve can also be imported from LSRM or typed in.</li>'+
+  '<li>The curve lives together with its geometry in the device configuration; a copy travels inside the spectrum file.</li>'+
+  '<li>Between points — log-log interpolation. A line beyond the end of the curve is dropped from the decomposition, and the report names it.</li>',
+3:'<li>Window: Device configuration → Efficiency → "Response matrix…". 140 energy nodes 5…3000 keV plus nodes at K-edges, 2 keV bins, up to 3 million photons per node.</li>'+
+  '<li>An Nvidia RTX 30xx or newer card ("Use Nvidia GPU") speeds it up: a point geometry takes 19 s versus 37 min on the CPU.</li>'+
+  '<li>Between nodes the rows are moved to the line energy (peak by a shift, escape peaks by a constant offset, Compton by a node map) and blended.</li>'+
+  '<li>Every geometry has its own matrix, stamped with a fingerprint of the geometry and the physics version. Change the geometry — the matrix is "stale" and the decomposition runs without it until it is recomputed.</li>'+
+  '<li>Without a matrix a layer is just narrow peaks weighted by the efficiency curve: no plateau and no cascade summing (sum peaks of Co-60 and the like are built on top of the matrix).</li>',
+4:'<li>Switched on in the background drop-down of the spectrum toolbar — "Show FSA"; details in the FSA Report window. During acquisition it is recomputed at most every 30 s.</li>'+
+  '<li>Composition ("From NucBase"): peak search labels the peaks, a nuclide is accepted if at least 30 % of its line groups are confirmed; then its whole chain with all radiations is taken from the database. A chain in equilibrium has one shared amplitude.</li>'+
+  '<li>The measured background is subtracted; a non-negative piecewise-linear continuum goes on top. The fit is weighted non-negative least squares (NNLS) with outlier protection (Huber); layers with significance below 3 are dropped.</li>'+
+  '<li>The scale is anchored on the model\'s own full-energy peaks: gain, zero and width are recomputed from peak centres. A scale-stretch search exists in the app but is switched off.</li>'+
+  '<li>The residual is drawn as a grey checkered band of both signs; a noticeable peak outside the composition raises a warning.</li>',
+5:'<li>A layer multiplier is in becquerels right away: line yields are per decay, the efficiency is already inside the matrix. Becquerels are shown with a matrix, or with a curve computed from geometry or imported from LSRM.</li>'+
+  '<li>Bq/kg and Bq/l divide by the mass and volume from the sample info. Decay correction brings the result to the sampling date.</li>'+
+  '<li>± is the fit statistics only (inflated when the fit is worse than pure statistics). Uncertainty of the geometry and matrix is not included.</li>'+
+  '<li>A nuclide that is not detected gets a row with the decision threshold and the detection limit per ISO 11929 (α = β = 5 %).</li>'
+}};
+
+/* ============================== ОБЩЕЕ ============================== */
+const DATA = JSON.parse(document.getElementById('data').textContent);
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, u) => a + (b - a) * u;
+const fx = (x, d) => (+x).toFixed(d);               // разделитель — всегда точка
+function sig(x, n = 3) {                            // n значащих цифр, без группировки
+  if (!isFinite(x)) return '—';
+  if (x === 0) return '0';
+  const d = Math.max(0, n - 1 - Math.floor(Math.log10(Math.abs(x))));
+  return (+x).toFixed(Math.min(d, 6));
+}
+let LANG = 'ru';
+try { const s = localStorage.getItem('bq-hiw-lang'); if (s === 'ru' || s === 'en') LANG = s; else if (!/^(ru|uk|be|kk)/i.test(navigator.language || '')) LANG = 'en'; } catch (e) { }
+function t(k, ...a) { let s = (T[LANG][k] !== undefined ? T[LANG][k] : T.ru[k]); if (s === undefined) return k; a.forEach((v, i) => { s = s.split('{' + i + '}').join(v); }); return s; }
+const redrawers = [];
+function onRedraw(f) { redrawers.push(f); }
+function redrawAll() { redrawers.forEach(f => { try { f(); } catch (e) { console.error(e); } }); }
+function applyLang() {
+  document.documentElement.lang = LANG;
+  $$('[data-t]').forEach(el => {
+    const k = el.dataset.t;
+    if (k.startsWith('hood.')) { el.innerHTML = HOOD[LANG][k.slice(5)] || HOOD.ru[k.slice(5)]; return; }
+    el.innerHTML = t(k);
+  });
+  $$('.lang button').forEach(b => b.classList.toggle('on', b.dataset.lang === LANG));
+  document.title = LANG === 'ru' ? 'BecqMoni — как это работает' : 'BecqMoni — how it works';
+  redrawAll();
+}
+$$('.lang button').forEach(b => b.addEventListener('click', () => { LANG = b.dataset.lang; try { localStorage.setItem('bq-hiw-lang', LANG); } catch (e) { } applyLang(); }));
+
+function setup(c) {
+  const r = c.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(20, Math.round(r.width)), h = Math.max(20, Math.round(r.height));
+  if (c.width !== Math.round(w * d) || c.height !== Math.round(h * d)) { c.width = Math.round(w * d); c.height = Math.round(h * d); }
+  const ctx = c.getContext('2d'); ctx.setTransform(d, 0, 0, d, 0, 0); ctx.clearRect(0, 0, w, h);
+  return { ctx, w, h };
+}
+function scale(kind, d0, d1, r0, r1) {
+  const f = kind === 'log' ? Math.log10 : kind === 'sqrt' ? Math.sqrt : (v => v);
+  const a = f(d0), b = f(d1);
+  const s = v => { if (kind === 'log') v = Math.max(v, d0 * 1e-4); else if (kind === 'sqrt') v = Math.max(v, 0); return r0 + (f(v) - a) / (b - a) * (r1 - r0); };
+  s.inv = p => { const u = a + (p - r0) / (r1 - r0) * (b - a); return kind === 'log' ? Math.pow(10, u) : kind === 'sqrt' ? u * u : u; };
+  s.kind = kind; s.d0 = d0; s.d1 = d1;
+  return s;
+}
+function niceTicks(a, b, n = 6) {
+  const span = b - a; if (span <= 0) return [a];
+  const st0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(st0))), e = st0 / mag;
+  const st = (e >= 7.5 ? 10 : e >= 3.5 ? 5 : e >= 1.5 ? 2 : 1) * mag; const out = [];
+  for (let v = Math.ceil(a / st) * st; v <= b + st * 1e-9; v += st) out.push(+v.toFixed(10));
+  return out;
+}
+function logTicks(a, b, mults = [1, 2, 5]) {
+  const out = []; for (let p = Math.floor(Math.log10(a)); p <= Math.ceil(Math.log10(b)); p++) for (const m of mults) { const v = m * Math.pow(10, p); if (v >= a * 0.999 && v <= b * 1.001) out.push(v); }
+  return out;
+}
+function sqrtTicks(a, b) { return niceTicks(0, b, 4).filter(v => v > 0 && v >= a); }
+function trimZ(s) { return s.indexOf('.') < 0 ? s : s.replace(/0+$/, '').replace(/\.$/, ''); }
+function tickLabel(v) { const n = Math.abs(v); if (n >= 1e6) return trimZ(sig(v / 1e6, 2)) + 'M'; if (n >= 1e4) return trimZ(sig(v / 1e3, 3)) + 'k'; return trimZ(sig(v, 3)); }
+function axes(ctx, box, X, Y, o = {}) {
+  ctx.save(); ctx.font = '11px system-ui,sans-serif'; ctx.lineWidth = 1;
+  const xt = o.xt || (X.kind === 'log' ? logTicks(X.d0, X.d1) : niceTicks(X.d0, X.d1, o.nx || 6));
+  const yt = o.yt || (Y.kind === 'log' ? logTicks(Y.d0, Y.d1, [1]) : Y.kind === 'sqrt' ? sqrtTicks(Y.d0, Y.d1) : niceTicks(Y.d0, Y.d1, 4));
+  ctx.strokeStyle = 'rgba(255,255,255,.07)'; ctx.fillStyle = '#7f8db0';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  xt.forEach(v => { const x = X(v); if (x < box.l - 1 || x > box.r + 1) return; ctx.beginPath(); ctx.moveTo(x, box.t); ctx.lineTo(x, box.b); ctx.stroke(); ctx.fillText(o.xf ? o.xf(v) : tickLabel(v), x, box.b + 4); });
+  if (!o.noY) {
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    yt.forEach(v => { const y = Y(v); if (y < box.t - 1 || y > box.b + 1) return; ctx.beginPath(); ctx.moveTo(box.l, y); ctx.lineTo(box.r, y); ctx.stroke(); ctx.fillText(o.yf ? o.yf(v) : tickLabel(v), box.l - 5, y); });
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.beginPath(); ctx.moveTo(box.l, box.t); ctx.lineTo(box.l, box.b); ctx.lineTo(box.r, box.b); ctx.stroke();
+  ctx.fillStyle = '#93a3c4'; ctx.font = '11.5px system-ui,sans-serif';
+  if (o.xl) { ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(o.xl, box.r, box.b - 4); }
+  if (o.yl) { ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(o.yl, box.l + 6, box.t + 2); }
+  ctx.restore();
+}
+function eHue(E) { return 268 - 268 * clamp(Math.log(E / 25) / Math.log(3000 / 25), 0, 1); }
+function eCol(E, a = 1) { return 'hsla(' + eHue(E).toFixed(0) + ',95%,62%,' + a + ')'; }
+function rgba(hex, a) { const n = parseInt(hex.slice(1), 16); return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; }
+const tip = $('#tip');
+function showTip(ev, html) { tip.innerHTML = html; tip.style.display = 'block'; const w = tip.offsetWidth, h = tip.offsetHeight; let x = ev.clientX + 14, y = ev.clientY + 14; if (x + w > innerWidth - 8) x = ev.clientX - w - 14; if (y + h > innerHeight - 8) y = ev.clientY - h - 14; tip.style.left = x + 'px'; tip.style.top = y + 'px'; }
+function hideTip() { tip.style.display = 'none'; }
+
+/* Очередь фоновых расчётов: кусками, чтобы страница не замирала */
+const Jobs = {
+  list: [], running: false,
+  add(name, gen) { this.list = this.list.filter(j => j.name !== name); this.list.push({ name, it: gen }); if (!this.running) { this.running = true; requestAnimationFrame(() => this.tick()); } },
+  has(name) { return this.list.some(j => j.name === name); },
+  tick() {
+    const t0 = performance.now();
+    while (this.list.length && performance.now() - t0 < 14) { const j = this.list[0]; let r; try { r = j.it.next(); } catch (e) { console.error(e); r = { done: true }; } if (r.done) this.list.shift(); }
+    if (this.list.length) requestAnimationFrame(() => this.tick()); else this.running = false;
+  }
+};
+const visible = new Map();
+const io = new IntersectionObserver(es => es.forEach(e => visible.set(e.target, e.isIntersecting)), { rootMargin: '120px' });
+
+/* ============================== СЕЧЕНИЯ ============================== */
+const XS = (() => {
+  const g = DATA.xs.E, lg = g.map(Math.log);
+  function ip(arr, E) {
+    const L = Math.log(E); let i = 0;
+    if (L >= lg[lg.length - 1]) i = lg.length - 2; else if (L > lg[0]) { while (lg[i + 1] < L) i++; }
+    const y0 = arr[i], y1 = arr[i + 1], u = (L - lg[i]) / (lg[i + 1] - lg[i]);
+    if (y0 > 0 && y1 > 0) return Math.exp(Math.log(y0) + (Math.log(y1) - Math.log(y0)) * u);
+    return Math.max(0, y0 + (y1 - y0) * u);
+  }
+  const N = 1100, L0 = Math.log(8), L1 = Math.log(3400), dL = (L1 - L0) / (N - 1);
+  const ph = new Float64Array(N), co = new Float64Array(N), pa = new Float64Array(N), al = new Float64Array(N), wa = new Float64Array(N);
+  const RN = 3.67, RA = 2.70;
+  for (let k = 0; k < N; k++) {
+    const E = Math.exp(L0 + k * dL);
+    ph[k] = ip(DATA.xs.NaI.ph, E) * RN; co[k] = ip(DATA.xs.NaI.co, E) * RN;
+    pa[k] = E > 1022.1 ? ip(DATA.xs.NaI.pa, E) * RN : 0;
+    al[k] = ip(DATA.xs.Al.tot, E) * RA; wa[k] = ip(DATA.xs.H2O.tot, E);
+  }
+  const MU = { ph: 0, co: 0, pa: 0, tot: 0 };
+  function mu(E) { let u = (Math.log(E) - L0) / dL; let k = Math.floor(u); if (k < 0) { k = 0; u = 0; } if (k > N - 2) { k = N - 2; u = N - 1; } const f = u - k; MU.ph = ph[k] + (ph[k + 1] - ph[k]) * f; MU.co = co[k] + (co[k + 1] - co[k]) * f; MU.pa = pa[k] + (pa[k + 1] - pa[k]) * f; MU.tot = MU.ph + MU.co + MU.pa; return MU; }
+  function at(arr, E) { let u = (Math.log(E) - L0) / dL; let k = clamp(Math.floor(u), 0, N - 2); const f = clamp(u - k, 0, 1); return arr[k] + (arr[k + 1] - arr[k]) * f; }
+  return { mu, al: E => at(al, E), water: E => at(wa, E) };
+})();
+
+/* ============================== ПЕРЕНОС ФОТОНОВ ============================== */
+const TWO_PI = Math.PI * 2;
+function isoDir() { const c = 2 * Math.random() - 1, s = Math.sqrt(1 - c * c), f = TWO_PI * Math.random(); return [s * Math.cos(f), s * Math.sin(f), c]; }
+function rotate(u, cost) {
+  const sint = Math.sqrt(Math.max(0, 1 - cost * cost)), f = TWO_PI * Math.random(), cp = Math.cos(f), sp = Math.sin(f);
+  const ux = u[0], uy = u[1], uz = u[2];
+  if (Math.abs(uz) > 0.99999) return [sint * cp, sint * sp, cost * Math.sign(uz)];
+  const q = Math.sqrt(1 - uz * uz);
+  return [sint * (ux * uz * cp - uy * sp) / q + ux * cost, sint * (uy * uz * cp + ux * sp) / q + uy * cost, -sint * q * cp + uz * cost];
+}
+function gauss() { let u = 0; while (u === 0) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(TWO_PI * Math.random()); }
+function poisson(l) { if (l <= 0) return 0; if (l < 40) { const L = Math.exp(-l); let k = 0, p = 1; do { k++; p *= Math.random(); } while (p > L); return k - 1; } return Math.max(0, Math.round(l + Math.sqrt(l) * gauss())); }
+function sampleKN(E) {                     // Клейн — Нишина, метод Батчера — Мессела
+  const k = E / 511, e0 = 1 / (1 + 2 * k), e02 = e0 * e0, a1 = -Math.log(e0), a2 = a1 + 0.5 * (1 - e02);
+  let eps, eps2, oc, g;
+  do {
+    if (a1 / a2 > Math.random()) { eps = Math.exp(-a1 * Math.random()); eps2 = eps * eps; }
+    else { eps2 = e02 + (1 - e02) * Math.random(); eps = Math.sqrt(eps2); }
+    oc = (1 - eps) / (eps * k); const s2 = oc * (2 - oc); g = 1 - eps * s2 / (1 + eps2);
+  } while (g < Math.random());
+  return [E * eps, 1 - oc];
+}
+function rayCyl(p, d, R, z0, z1) {         // отрезок луча внутри цилиндра [tin, tout] или null
+  let tin = -Infinity, tout = Infinity;
+  const a = d[0] * d[0] + d[1] * d[1], c = p[0] * p[0] + p[1] * p[1] - R * R;
+  if (a < 1e-14) { if (c > 0) return null; }
+  else { const b = p[0] * d[0] + p[1] * d[1], D = b * b - a * c; if (D < 0) return null; const s = Math.sqrt(D); tin = (-b - s) / a; tout = (-b + s) / a; }
+  if (Math.abs(d[2]) < 1e-14) { if (p[2] < z0 || p[2] > z1) return null; }
+  else { let ta = (z0 - p[2]) / d[2], tb = (z1 - p[2]) / d[2]; if (ta > tb) { const q = ta; ta = tb; tb = q; } if (ta > tin) tin = ta; if (tb < tout) tout = tb; }
+  if (tin > tout || tout <= 0) return null;
+  return [tin, tout];
+}
+function segLen(h, a, b) { if (!h) return 0; const x = Math.max(h[0], a), y = Math.min(h[1], b); return y > x ? y - x : 0; }
+const add = (p, d, s) => [p[0] + d[0] * s, p[1] + d[1] * s, p[2] + d[2] * s];
+
+const GEO = { size: 6.3, gap: 1.0, src: 'jar', rho: 1.0, shield: false, fwhm: 7.5, al: 0.08 };
+function dims(G) {
+  const R = G.size / 2, H = G.size, D = { R, H, al: G.al, rho: G.rho, shield: G.shield };
+  if (G.src === 'point') D.point = [0, 0, -Math.max(G.gap, 0.05)];
+  else if (G.src === 'jar') D.jar = { R: 3.6, z0: -G.gap - 5.0, z1: -G.gap };
+  else { const Ri = R + 0.35, Ro = Ri + 2.5; D.mar = { Ri, Ro, z0: -2.15, zw: -0.15, z1: H * 0.9 }; }
+  D.rb = Math.sqrt(R * R + H * H / 4) * 1.002;
+  return D;
+}
+const dimsT = () => dims(Object.assign({}, GEO, { shield: false }));   // перенос для кривых и матрицы — без домика, как в программе
+function srcVolume(D) { if (D.jar) return Math.PI * D.jar.R * D.jar.R * (D.jar.z1 - D.jar.z0); if (D.mar) { const m = D.mar; return Math.PI * (m.Ro * m.Ro * (m.z1 - m.z0) - m.Ri * m.Ri * (m.z1 - m.zw)); } return 0; }
+function emitPoint(D) {
+  if (D.point) return D.point;
+  if (D.jar) { const r = D.jar.R * Math.sqrt(Math.random()), f = TWO_PI * Math.random(); return [r * Math.cos(f), r * Math.sin(f), lerp(D.jar.z0, D.jar.z1, Math.random())]; }
+  const m = D.mar;
+  for (; ;) { const r = m.Ro * Math.sqrt(Math.random()), f = TWO_PI * Math.random(), z = lerp(m.z0, m.z1, Math.random()); if (!(r < m.Ri && z > m.zw)) return [r * Math.cos(f), r * Math.sin(f), z]; }
+}
+function coneDir(p, D) {                   // направление в конус на кристалл + вес (доля телесного угла)
+  const v = [-p[0], -p[1], D.H / 2 - p[2]], dist = Math.hypot(v[0], v[1], v[2]);
+  if (dist <= D.rb * 1.02) return [isoDir(), 1];
+  const cm = Math.sqrt(1 - (D.rb / dist) * (D.rb / dist)), cost = 1 - Math.random() * (1 - cm);
+  return [rotate([v[0] / dist, v[1] / dist, v[2] / dist], cost), (1 - cm) / 2];
+}
+function pathInSource(p, d, tc, D) {
+  if (D.point) return 0;
+  if (D.jar) return segLen(rayCyl(p, d, D.jar.R, D.jar.z0, D.jar.z1), 0, tc);
+  const m = D.mar; return Math.max(0, segLen(rayCyl(p, d, m.Ro, m.z0, m.z1), 0, tc) - segLen(rayCyl(p, d, m.Ri, m.zw, m.z1), 0, tc));
+}
+function attenuation(E, p, d, tin, entry, D) {
+  let a = 0; const Ls = pathInSource(p, d, tin, D); if (Ls > 0) a += XS.water(E) * D.rho * Ls;
+  const side = entry[2] > 1e-6 && entry[2] < D.H - 1e-6, c = side ? Math.sqrt(d[0] * d[0] + d[1] * d[1]) : Math.abs(d[2]);
+  return a + XS.al(E) * D.al / Math.max(c, 0.15);
+}
+/* Перенос внутри кристалла: возвращает выделенную энергию; track — для рисования */
+function transport(E0, p0, d0, D, track) {
+  let edep = 0; const st = [[E0, p0, d0]];
+  while (st.length) {
+    let [E, p, d] = st.pop();
+    for (let k = 0; k < 80; k++) {
+      if (E < 9) { edep += E; break; }
+      const h = rayCyl(p, d, D.R, 0, D.H), tex = h ? Math.max(h[1], 0) : 0;
+      const M = XS.mu(E), s = -Math.log(1 - Math.random()) / M.tot;
+      if (s >= tex) { if (track) track.push({ k: 'out', a: p, b: add(p, d, tex), c: add(p, d, tex + 3.5), E }); break; }
+      const q = add(p, d, s); if (track) track.push({ k: 'seg', a: p, b: q, E });
+      const u = Math.random() * M.tot;
+      if (u < M.ph) {
+        edep += E; if (track) track.push({ k: 'ph', p: q, E });
+        if (E > 33.17 && Math.random() < 0.74) { edep -= 28.6; st.push([28.6, q, isoDir()]); }
+        break;
+      } else if (u < M.ph + M.co) {
+        const kn = sampleKN(E); edep += E - kn[0]; if (track) track.push({ k: 'co', p: q, E });
+        d = rotate(d, kn[1]); E = kn[0]; p = q;
+      } else {
+        edep += E - 1022; if (track) track.push({ k: 'pa', p: q, E });
+        const dd = isoDir(); st.push([511, q, dd]); st.push([511, q, [-dd[0], -dd[1], -dd[2]]]);
+        break;
+      }
+    }
+  }
+  return edep;
+}
+/* Свинцовый домик: часть пролетевших мимо фотонов отражается назад или выбивает рентген свинца */
+function shieldReturn(E, D, wMiss, score, track) {
+  const pB = 0.12, pX = E > 88.1 ? 0.07 * Math.min(1, Math.pow(300 / E, 1.1)) : 0, u = Math.random();
+  let E2;
+  if (u < pB) { const c = -1 + 0.7 * Math.random(); E2 = E / (1 + E / 511 * (1 - c)); }
+  else if (u < pB + pX) E2 = Math.random() < 0.8 ? 74.2 : 84.9;
+  else return;
+  const a = TWO_PI * Math.random(), Rw = D.R + 6.5, p = [Rw * Math.cos(a), Rw * Math.sin(a), lerp(-6, D.H + 2.5, Math.random())];
+  const cd = coneDir(p, D);
+  if (track && Math.random() > cd[1] * 4) return;
+  const h = rayCyl(p, cd[0], D.R, 0, D.H); if (!h) return;
+  const entry = add(p, cd[0], Math.max(0, h[0]));
+  if (track) track.push({ k: 'bs', a: p, b: entry, E: E2 });
+  const ed = transport(E2, entry, cd[0], D, track);
+  score(wMiss * (track ? 1 : cd[1]), ed, 'shield');
+}
+/* Одна история с весами (для кривых и матрицы) */
+function historyW(E, D, S, score) {
+  const p = emitPoint(D), cd = coneDir(p, D), d = cd[0], wc = cd[1];
+  if (D.shield && wc < 1) shieldReturn(E, D, 1 - wc, score, null);
+  const h = rayCyl(p, d, D.R, 0, D.H);
+  if (!h) { if (D.shield) shieldReturn(E, D, wc, score, null); return; }
+  S.hit += wc;
+  const tin = Math.max(0, h[0]), entry = add(p, d, tin), w = wc * Math.exp(-attenuation(E, p, d, tin, entry, D));
+  S.arr += w;
+  score(w, transport(E, entry, d, D, null), 'main');
+}
+function runW(E, D, N, raw, bw, S) {
+  S = S || { n: 0, hit: 0, arr: 0, inter: 0, fep: 0 };
+  const score = (w, ed, kind) => {
+    if (ed > 0.5) { if (kind === 'main') S.inter += w; if (raw) { const b = Math.floor(ed / bw); if (b < raw.length) raw[b] += w; } }
+    if (kind === 'main' && ed >= E - 0.6) S.fep += w;
+  };
+  for (let i = 0; i < N; i++) historyW(E, D, S, score);
+  S.n += N; return S;
+}
+/* Одна аналоговая история с треком (для анимаций) */
+function historyA(E, D, track) {
+  const p = emitPoint(D), d = isoDir(); track.push({ k: 'src', p });
+  const h = rayCyl(p, d, D.R, 0, D.H);
+  if (!h) { track.push({ k: 'miss', a: p, b: add(p, d, 13), E }); if (D.shield) { let r = 0; shieldReturn(E, D, 1, (w, ed) => { r = ed; }, track); return { ed: r, hit: false, bs: r > 0 }; } return { ed: 0, hit: false }; }
+  const tin = Math.max(0, h[0]), entry = add(p, d, tin);
+  track.push({ k: 'seg', a: p, b: entry, E });
+  if (Math.random() > Math.exp(-attenuation(E, p, d, tin, entry, D))) { track.push({ k: 'abs', p: entry, E }); return { ed: 0, hit: true }; }
+  return { ed: transport(E, entry, d, D, track), hit: true };
+}
+function sigmaAt(E, f) { return f / 100 * 662 * Math.sqrt(Math.max(E, 10) / 662) / 2.3548; }
+function smear(ed, f) { return ed + sigmaAt(ed, f) * gauss(); }
+function blur(raw, bw, f) {
+  const n = raw.length, out = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    const v = raw[i]; if (!v) continue;
+    const s = Math.max(sigmaAt((i + 0.5) * bw, f), 0.45 * bw), r = Math.ceil(3.5 * s / bw), lo = Math.max(0, i - r), hi = Math.min(n - 1, i + r);
+    let nm = 0; for (let j = lo; j <= hi; j++) { const x = (j - i) * bw / s; nm += Math.exp(-0.5 * x * x); }
+    for (let j = lo; j <= hi; j++) { const x = (j - i) * bw / s; out[j] += v * Math.exp(-0.5 * x * x) / nm; }
+  }
+  return out;
+}
+function features(E, shield) {             // где на спектре искать особенности
+  const k = E / 511, out = [{ e: E, k: 'ann.fep', c: '#ffcc33' }];
+  if (E > 120) out.push({ e: E * 2 * k / (1 + 2 * k), k: 'ann.ce', c: '#ffd166' });
+  if (shield && E > 150) out.push({ e: E / (1 + 2 * k), k: 'ann.bs', c: '#CC55BB' });
+  if (shield && E > 100) out.push({ e: 74.2, k: 'ann.pb', c: '#FF9900' });
+  if (E > 1300) { out.push({ e: E - 511, k: 'ann.se', c: '#4dd0e1' }); out.push({ e: E - 1022, k: 'ann.de', c: '#4dd0e1' }); }
+  if (E > 34 && E < 160) out.push({ e: E - 28.6, k: 'ann.ie', c: '#4dd0e1' });
+  return out;
+}
+function drawFeatures(ctx, box, X, list) {
+  ctx.save(); ctx.font = '11px system-ui,sans-serif'; ctx.textBaseline = 'top';
+  let lastX = -1e9, row = 0;
+  list.slice().sort((a, b) => b.e - a.e).forEach(f => {
+    const x = X(f.e); if (x < box.l + 2 || x > box.r - 2) return;
+    ctx.strokeStyle = rgba(f.c.length === 7 ? f.c : '#ffcc33', .55); ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x, box.t + 16); ctx.lineTo(x, box.b); ctx.stroke(); ctx.setLineDash([]);
+    const label = t(f.k), w = ctx.measureText(label).width;
+    row = (lastX - x < w + 10) ? row + 1 : 0; lastX = x;
+    ctx.fillStyle = f.c; ctx.textAlign = x - w - 4 < box.l ? 'left' : 'right';
+    ctx.fillText(label, ctx.textAlign === 'left' ? x + 4 : x - 4, box.t + 2 + row * 13);
+  });
+  ctx.restore();
+}
+
+/* ============================== СЦЕНА СБОКУ ============================== */
+function view(w, h, z0, z1, x0, x1, pad = 10) {
+  const s = Math.min((w - 2 * pad) / (z1 - z0), (h - 2 * pad) / (x1 - x0));
+  const ox = (w - (z1 - z0) * s) / 2 - z0 * s, oy = (h - (x1 - x0) * s) / 2 + x1 * s;
+  return { s, X: z => ox + z * s, Y: x => oy - x * s };
+}
+function drawSetup(ctx, V, D, o = {}) {
+  const { X, Y, s } = V;
+  if (D.shield) {
+    const Rw = D.R + 6.5, za = Math.min(-7, (D.point ? D.point[2] : D.jar ? D.jar.z0 : D.mar.z0) - 1.5), zb = D.H * 1.9 + 2;
+    ctx.fillStyle = '#2a2f3a';
+    [[Rw, Rw + 1.6], [-Rw - 1.6, -Rw]].forEach(([a, b]) => { ctx.fillRect(X(za), Y(b), (zb - za) * s, (b - a) * s); });
+    ctx.fillRect(X(za - 1.6), Y(Rw + 1.6), 1.6 * s, (2 * Rw + 3.2) * s);
+    ctx.fillStyle = '#7f8899'; ctx.font = '11px system-ui'; ctx.textAlign = 'left'; ctx.fillText('Pb', X(za) + 4, Y(Rw) - 3);
+  }
+  // проба
+  if (D.point) {
+    const p = D.point, g = ctx.createRadialGradient(X(p[2]), Y(0), 0, X(p[2]), Y(0), 14);
+    g.addColorStop(0, 'rgba(255,230,120,1)'); g.addColorStop(.35, 'rgba(255,170,60,.55)'); g.addColorStop(1, 'rgba(255,120,40,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(X(p[2]), Y(0), 14, 0, TWO_PI); ctx.fill();
+  } else if (D.jar) {
+    const j = D.jar; ctx.fillStyle = 'rgba(80,170,255,.18)'; ctx.strokeStyle = 'rgba(120,190,255,.7)'; ctx.lineWidth = 1.5;
+    ctx.fillRect(X(j.z0), Y(j.R), (j.z1 - j.z0) * s, 2 * j.R * s); ctx.strokeRect(X(j.z0) - 2, Y(j.R) - 2, (j.z1 - j.z0) * s + 2, 2 * j.R * s + 4);
+  } else if (D.mar) {
+    const m = D.mar; ctx.fillStyle = 'rgba(80,170,255,.18)'; ctx.strokeStyle = 'rgba(120,190,255,.7)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(X(m.z1), Y(m.Ro)); ctx.lineTo(X(m.z0), Y(m.Ro)); ctx.lineTo(X(m.z0), Y(-m.Ro)); ctx.lineTo(X(m.z1), Y(-m.Ro)); ctx.lineTo(X(m.z1), Y(-m.Ri)); ctx.lineTo(X(m.zw), Y(-m.Ri)); ctx.lineTo(X(m.zw), Y(m.Ri)); ctx.lineTo(X(m.z1), Y(m.Ri)); ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  // ФЭУ
+  const pz0 = D.H + D.al, pz1 = D.H * 1.9 + 0.5, pr = D.R * 0.92;
+  const gp = ctx.createLinearGradient(X(pz0), 0, X(pz1), 0); gp.addColorStop(0, '#3b4560'); gp.addColorStop(1, '#1d2232');
+  ctx.fillStyle = gp; ctx.fillRect(X(pz0), Y(pr), (pz1 - pz0) * s, 2 * pr * s);
+  if (o.labels) { ctx.fillStyle = '#9aa7c4'; ctx.font = '11px system-ui'; ctx.textAlign = 'center'; ctx.fillText(LANG === 'ru' ? 'ФЭУ' : 'PMT', X((pz0 + pz1) / 2), Y(0) + 4); }
+  // корпус и кристалл
+  ctx.fillStyle = '#5b6474'; ctx.fillRect(X(-D.al), Y(D.R + D.al), (D.H + 2 * D.al) * s, 2 * (D.R + D.al) * s);
+  const gc = ctx.createLinearGradient(0, Y(D.R), 0, Y(-D.R)); gc.addColorStop(0, 'rgba(150,200,255,.38)'); gc.addColorStop(.5, 'rgba(110,160,255,.22)'); gc.addColorStop(1, 'rgba(150,200,255,.38)');
+  ctx.fillStyle = '#0b1222'; ctx.fillRect(X(0), Y(D.R), D.H * s, 2 * D.R * s);
+  ctx.fillStyle = gc; ctx.fillRect(X(0), Y(D.R), D.H * s, 2 * D.R * s);
+  if (o.labels) { ctx.fillStyle = '#d7e6ff'; ctx.font = '600 12px system-ui'; ctx.textAlign = 'center'; ctx.fillText('NaI(Tl)', X(D.H / 2), Y(D.R) + 16); }
+}
+function drawTrack(ctx, V, tr, alpha, prog) {    // prog: 0..1 — какая часть трека уже пролетела
+  const { X, Y } = V; let L = 0;
+  const segs = tr.filter(e => e.a);
+  segs.forEach(e => { e.len = Math.hypot(e.b[0] - e.a[0], e.b[2] - e.a[2]) + (e.c ? 3.5 : 0) + (e.k === 'miss' ? 0 : 0.01); L += e.len; });
+  let lim = prog === undefined ? Infinity : prog * L, acc = 0;
+  ctx.save(); ctx.lineCap = 'round';
+  for (const e of tr) {
+    if (e.a) {
+      if (acc >= lim) break;
+      const f = clamp((lim - acc) / e.len, 0, 1); acc += e.len;
+      ctx.strokeStyle = e.k === 'bs' ? rgba('#CC55BB', alpha) : eCol(e.E, alpha * (e.k === 'miss' ? 0.22 : 0.95)); ctx.lineWidth = e.k === 'miss' ? 1 : 1.8;
+      const b = e.k === 'out' ? e.c : e.b, bx = lerp(e.a[2], b[2], f), by = lerp(e.a[0], b[0], f);
+      ctx.beginPath(); ctx.moveTo(X(e.a[2]), Y(e.a[0])); ctx.lineTo(X(bx), Y(by)); ctx.stroke();
+      if (e.k === 'out' && f > 0.98) { ctx.fillStyle = rgba('#4dd0e1', alpha); ctx.beginPath(); ctx.arc(X(e.c[2]), Y(e.c[0]), 2.4, 0, TWO_PI); ctx.fill(); }
+    } else if (e.p && e.k !== 'src') {
+      if (acc > lim) break;
+      const col = e.k === 'ph' ? '#ff4d6d' : e.k === 'co' ? '#ffd166' : e.k === 'pa' ? '#c38bff' : '#8892a8', r = e.k === 'ph' ? 4.5 : e.k === 'pa' ? 4.5 : 3;
+      if (e.k === 'ph' || e.k === 'pa') { const g = ctx.createRadialGradient(X(e.p[2]), Y(e.p[0]), 0, X(e.p[2]), Y(e.p[0]), 13); g.addColorStop(0, rgba(col, .8 * alpha)); g.addColorStop(1, rgba(col, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(X(e.p[2]), Y(e.p[0]), 13, 0, TWO_PI); ctx.fill(); }
+      ctx.fillStyle = rgba(col, alpha); ctx.beginPath(); ctx.arc(X(e.p[2]), Y(e.p[0]), r, 0, TWO_PI); ctx.fill();
+      if (e.k === 'abs') { ctx.strokeStyle = rgba('#8892a8', alpha); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(e.p[2]) - 4, Y(e.p[0]) - 4); ctx.lineTo(X(e.p[2]) + 4, Y(e.p[0]) + 4); ctx.moveTo(X(e.p[2]) + 4, Y(e.p[0]) - 4); ctx.lineTo(X(e.p[2]) - 4, Y(e.p[0]) + 4); ctx.stroke(); }
+    }
+  }
+  ctx.restore();
+}
+
+/* ============================== ГЕРОЙ ============================== */
+(function hero() {
+  const cv = $('#cvHero'); io.observe(cv);
+  const G = { size: 6.3, gap: 0.6, src: 'jar', rho: 1.0, shield: false, al: 0.08 }, D = dims(G);
+  const LINES = [[59.54, 0.36 * 0.6], [661.66, 0.851], [1173.2, 0.45], [1332.5, 0.45], [1460.8, 0.4]];
+  const wsum = LINES.reduce((a, l) => a + l[1], 0);
+  const pick = () => { let u = Math.random() * wsum; for (const l of LINES) { u -= l[1]; if (u <= 0) return l[0]; } return LINES[1][0]; };
+  const NB = 170, EMAX = 1600, hist = new Float64Array(NB); let tracks = [], nEm = 0, nHit = 0, nSp = 0;
+  const statEl = $('#heroStat');
+  function frame() {
+    requestAnimationFrame(frame);
+    if (!visible.get(cv)) return;
+    for (let i = 0; i < 2; i++) { const tr = []; const r = historyA(pick(), D, tr); nEm++; if (r.hit) nHit++; if (r.ed > 15) { const e = smear(r.ed, 7.5), b = Math.floor(e / EMAX * NB); if (b >= 0 && b < NB) hist[b]++; nSp++; } tracks.push({ tr, age: 0 }); }
+    const S = { n: 0, hit: 0, arr: 0, inter: 0, fep: 0 };
+    for (let i = 0; i < 60; i++) { const E = pick(); historyW(E, D, S, (w, ed) => { if (ed > 15 && Math.random() < w * 2.2) { const e = smear(ed, 7.5), b = Math.floor(e / EMAX * NB); if (b >= 0 && b < NB) hist[b]++; nSp++; } }); }
+    nEm += 60; nHit += Math.round(S.hit * 2.2);
+    if (nSp > 160000) { for (let b = 0; b < NB; b++) hist[b] *= 0.5; nSp *= 0.5; }
+    draw();
+    tracks.forEach(x => x.age++); tracks = tracks.filter(x => x.age < 55);
+  }
+  function draw() {
+    const { ctx, w, h } = setup(cv);
+    const narrow = w < 760, sw = narrow ? w : w * 0.56, sh = narrow ? h * 0.52 : h;
+    const V = view(sw, sh, -6.6, D.H * 1.9 + 1.2, -6.2, 6.2, 8);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, sw, sh); ctx.clip();
+    drawSetup(ctx, V, D, { labels: true });
+    tracks.forEach(x => drawTrack(ctx, V, x.tr, Math.pow(1 - x.age / 55, 1.4), Math.min(1, (x.age + 1) / 14)));
+    ctx.restore();
+    // спектр
+    const bx = narrow ? { l: 44, t: sh + 12, r: w - 12, b: h - 22 } : { l: sw + 50, t: 18, r: w - 14, b: h - 24 };
+    let mx = 1; for (let b = 3; b < NB; b++) mx = Math.max(mx, hist[b]);
+    const X = scale('lin', 0, EMAX, bx.l, bx.r), Y = scale('sqrt', 0, mx * 1.08, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { xl: t('ax.e'), nx: 4, noY: true });
+    const bw = (bx.r - bx.l) / NB;
+    for (let b = 1; b < NB; b++) { const y = Y(hist[b]); ctx.fillStyle = eCol((b + 0.5) * EMAX / NB, 0.9); ctx.fillRect(bx.l + b * bw, y, Math.max(1, bw - 0.6), bx.b - y); }
+    ctx.fillStyle = '#cdd8f3'; ctx.font = '600 12px system-ui'; ctx.textAlign = 'left'; ctx.fillText(LANG === 'ru' ? 'Спектр' : 'Spectrum', bx.l + 4, bx.t + 4);
+    statEl.innerHTML = t('hero.stat', nEm, nHit, Math.round(nSp));
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* ============================== 1. ФОТОН ============================== */
+const PH = { E: 662, n: 0, inter: 0, fep: 0, hist: null, nb: 220, emax: 800, tracks: [], anim: null };
+(function photon() {
+  const cv = $('#cvPh'), cvS = $('#cvPhS'); io.observe(cv);
+  const chips = [[59.5, 'Am-241'], [661.7, 'Cs-137'], [1460.8, 'K-40'], [2614.5, 'Tl-208']];
+  const box = $('#phChips');
+  chips.forEach(([e, n]) => { const b = document.createElement('button'); b.className = 'chip'; b.textContent = n + ' · ' + Math.round(e); b.onclick = () => setE(e); box.appendChild(b); });
+  const sl = $('#phE');
+  const pos2E = p => 30 * Math.pow(3000 / 30, p / 1000), E2pos = e => Math.round(1000 * Math.log(e / 30) / Math.log(100));
+  function setE(e) { PH.E = e; sl.value = E2pos(e); reset(); }
+  function reset() { PH.n = PH.inter = PH.fep = 0; PH.emax = Math.max(120, PH.E * 1.13); PH.hist = new Float64Array(PH.nb); PH.tracks = []; PH.anim = null; refresh(); }
+  sl.addEventListener('input', () => { PH.E = Math.round(pos2E(+sl.value)); reset(); });
+  const sh = $('#phShield'); sh.checked = GEO.shield;
+  sh.addEventListener('change', () => { GEO.shield = sh.checked; reset(); });
+  function fire(n, keepTracks) {
+    const D = dims(GEO);
+    for (let i = 0; i < n; i++) {
+      const tr = keepTracks ? [] : null;
+      let r;
+      if (tr) r = historyA(PH.E, D, tr);
+      else { const t2 = []; r = historyA(PH.E, D, t2); if (i >= n - 6) PH.tracks.push({ tr: t2, age: 20 }); }
+      PH.n++; if (r.ed > 1) { PH.inter++; const e = smear(r.ed, GEO.fwhm), b = Math.floor(e / PH.emax * PH.nb); if (b >= 0 && b < PH.nb) PH.hist[b]++; if (r.ed >= PH.E - 0.6) PH.fep++; }
+      if (tr) PH.tracks.push({ tr, age: 0, slow: n === 1 });
+    }
+  }
+  $('#ph1').onclick = () => { fire(1, true); };
+  $('#ph100').onclick = () => { let k = 0; Jobs.add('ph100', (function* () { while (k < 100) { fire(3, true); k += 3; yield; } })()); };
+  $('#ph10k').onclick = () => { let k = 0; Jobs.add('ph10k', (function* () { while (k < 100000) { fire(4000, false); k += 4000; yield; } })()); };
+  $('#phClr').onclick = reset;
+  function legend() {
+    $('#phLegend').innerHTML = [['#ff4d6d', 's1.lg.ph'], ['#ffd166', 's1.lg.co'], ['#c38bff', 's1.lg.pa'], ['#4dd0e1', 's1.lg.esc'], ['#8892a8', 's1.lg.abs']].map(([c, k]) => '<span><i style="background:' + c + ';border-radius:50%"></i>' + t(k) + '</span>').join('');
+    $$('#phChips .chip').forEach((b, i) => b.classList.toggle('on', Math.abs(chips[i][0] - PH.E) < 2));
+    $('#phEv').textContent = Math.round(PH.E) + (LANG === 'ru' ? ' кэВ' : ' keV');
+    $('#phStat').innerHTML = '<span class="pill">' + t('s1.st', PH.n, PH.inter, PH.fep) + '</span>';
+  }
+  function drawScene() {
+    const { ctx, w, h } = setup(cv), D = dims(GEO);
+    const zmin = D.point ? D.point[2] - 2.5 : D.jar ? D.jar.z0 - 1.5 : D.mar.z0 - 1.5, ext = Math.max(D.R, D.jar ? D.jar.R : D.mar ? D.mar.Ro : D.R) + (GEO.shield ? 8.6 : 2.5);
+    const V = view(w, h, Math.min(zmin, GEO.shield ? -9 : zmin), D.H * 1.9 + 1.5, -ext, ext, 8);
+    drawSetup(ctx, V, D, { labels: true });
+    PH.tracks.forEach(x => drawTrack(ctx, V, x.tr, x.age < 60 ? 1 : Math.max(0, 1 - (x.age - 60) / 60), x.slow ? Math.min(1, x.age / 70) : Math.min(1, (x.age + 1) / 16)));
+  }
+  function drawSpec() {
+    const { ctx, w, h } = setup(cvS), bx = { l: 46, t: 14, r: w - 12, b: h - 24 };
+    let mx = 4; for (let b = 1; b < PH.nb; b++) mx = Math.max(mx, PH.hist[b]);
+    const X = scale('lin', 0, PH.emax, bx.l, bx.r), Y = scale('sqrt', 0, mx * 1.1, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { xl: t('ax.e'), yl: t('ax.cnt') });
+    drawFeatures(ctx, bx, X, features(PH.E, GEO.shield));
+    const bw = (bx.r - bx.l) / PH.nb;
+    for (let b = 0; b < PH.nb; b++) { if (!PH.hist[b]) continue; const y = Y(PH.hist[b]); ctx.fillStyle = eCol((b + 0.5) * PH.emax / PH.nb, .95); ctx.fillRect(bx.l + b * bw, y, Math.max(1, bw - 0.5), bx.b - y); }
+  }
+  function refresh() { legend(); drawScene(); drawSpec(); }
+  let lastN = -1;
+  function loop() {
+    requestAnimationFrame(loop);
+    if (!visible.get(cv) && !visible.get(cvS)) return;
+    if (PH.tracks.length || PH.n !== lastN) {
+      PH.tracks.forEach(x => x.age++); PH.tracks = PH.tracks.filter(x => x.age < 120);
+      drawScene(); if (PH.n !== lastN) { drawSpec(); legend(); lastN = PH.n; }
+    }
+  }
+  onRedraw(refresh); PH.reset = reset; PH.setE = setE;
+  setE(661.7); requestAnimationFrame(loop);
+})();
+
+/* ============================== 2. ГЕОМЕТРИЯ ============================== */
+const EFF_E = [25, 32, 40, 50, 60, 75, 90, 110, 140, 180, 240, 320, 420, 550, 662, 850, 1100, 1460, 1900, 2614];
+let EFF = null, EFF_KEEP = null;
+function effAt(E, src) { src = src || EFF; if (!src || src.fep.length < 2) return NaN; const L = Math.log(E); const xs = src.E.slice(0, src.fep.length).map(Math.log); let i = 0; if (L <= xs[0]) i = 0; else if (L >= xs[xs.length - 1]) i = xs.length - 2; else while (xs[i + 1] < L) i++; const u = (L - xs[i]) / (xs[i + 1] - xs[i]); const a = Math.max(src.fep[i], 1e-9), b = Math.max(src.fep[i + 1], 1e-9); return Math.exp(Math.log(a) + (Math.log(b) - Math.log(a)) * u); }
+function* effJob() {
+  const D = dimsT(), cur = { E: EFF_E, fep: [], tot: [], hit: [], arr: [], key: geoKey() };
+  EFF = cur;
+  for (const E of EFF_E) {
+    const S = { n: 0, hit: 0, arr: 0, inter: 0, fep: 0 };
+    for (let k = 0; k < 4; k++) { runW(E, D, 1500, null, 1, S); yield; }
+    cur.fep.push(S.fep / S.n); cur.tot.push(S.inter / S.n); cur.hit.push(S.hit / S.n); cur.arr.push(S.arr / S.n);
+    drawEff();
+  }
+  drawEff(); effTiles(); ACT.update();
+}
+function geoKey() { return [GEO.size, GEO.gap, GEO.src, GEO.rho].join('|'); }
+let geoTimer = 0;
+function geoChanged() {
+  drawGeo(); clearTimeout(geoTimer);
+  geoTimer = setTimeout(() => { Jobs.add('eff', effJob()); MX.invalidate(); FSA.invalidate(); PH.reset(); }, 160);
+}
+function drawGeo() {
+  const cv = $('#cvGeo'), { ctx, w, h } = setup(cv), D = dimsT();
+  const zmin = D.point ? -16 : D.jar ? Math.min(D.jar.z0 - 1.5, -9) : D.mar.z0 - 2.5, ext = Math.max(D.R + 2, D.jar ? D.jar.R + 1.5 : D.mar ? D.mar.Ro + 1.5 : 5) + 0.5;
+  const V = view(w, h, Math.min(zmin, -9), D.H * 1.9 + 1.5, -ext, ext, 10);
+  // конус телесного угла от точки/центра пробы
+  const sp = D.point ? D.point : D.jar ? [0, 0, (D.jar.z0 + D.jar.z1) / 2] : null;
+  if (sp) {
+    const { X, Y } = V, dz = 0 - sp[2];
+    const g = ctx.createLinearGradient(X(sp[2]), 0, X(D.H), 0); g.addColorStop(0, 'rgba(255,204,51,.30)'); g.addColorStop(1, 'rgba(255,204,51,.04)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(X(sp[2]), Y(0)); ctx.lineTo(X(0), Y(D.R)); ctx.lineTo(X(0), Y(-D.R)); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,204,51,.12)'; ctx.lineWidth = 1;
+    for (let a = 0; a < 24; a++) { const f = a / 24 * TWO_PI, inside = Math.abs(Math.tan(f)) * dz < D.R && Math.cos(f) > 0; ctx.strokeStyle = inside ? 'rgba(255,204,51,.55)' : 'rgba(150,170,210,.16)'; ctx.beginPath(); ctx.moveTo(X(sp[2]), Y(0)); ctx.lineTo(X(sp[2] + Math.cos(f) * 30), Y(Math.sin(f) * 30)); ctx.stroke(); }
+  }
+  drawSetup(ctx, V, D, { labels: true });
+  const vol = srcVolume(D);
+  ctx.fillStyle = '#cdd8f3'; ctx.font = '12px system-ui'; ctx.textAlign = 'left';
+  ctx.fillText('NaI Ø' + Math.round(GEO.size * 10) + '×' + Math.round(GEO.size * 10) + (LANG === 'ru' ? ' мм' : ' mm') + (vol ? ' · ' + t('s2.vol', Math.round(vol)) : ''), 10, h - 10);
+}
+function drawEff() {
+  const cv = $('#cvEff'), { ctx, w, h } = setup(cv), bx = { l: 48, t: 14, r: w - 12, b: h - 24 };
+  const X = scale('log', 20, 3000, bx.l, bx.r), Y = scale('log', 0.05, 100, bx.b, bx.t);
+  axes(ctx, bx, X, Y, { xl: t('ax.e'), yl: t('ax.eff'), xt: [20, 50, 100, 200, 500, 1000, 2000], yt: [0.1, 1, 10, 100], yf: v => (v < 1 ? fx(v, 1) : fx(v, 0)) });
+  function line(src, key, col, lw, dash, dots) {
+    if (!src || src[key].length < 1) return;
+    ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.setLineDash(dash || []); ctx.beginPath();
+    src[key].forEach((v, i) => { const x = X(src.E[i]), y = Y(Math.max(v * 100, 0.05)); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); ctx.setLineDash([]);
+    if (dots) { ctx.fillStyle = col; src[key].forEach((v, i) => { ctx.beginPath(); ctx.arc(X(src.E[i]), Y(Math.max(v * 100, 0.05)), 3, 0, TWO_PI); ctx.fill(); }); }
+    ctx.restore();
+  }
+  line(EFF_KEEP, 'fep', '#6a7899', 2, [5, 4], false);
+  line(EFF, 'tot', '#6aa8ff', 1.6, [2, 3], false);
+  line(EFF, 'fep', '#ffcc33', 2.6, null, true);
+  if (EFF && EFF.fep.length < EFF_E.length) { ctx.fillStyle = '#93a3c4'; ctx.font = '12px system-ui'; ctx.textAlign = 'right'; ctx.fillText((LANG === 'ru' ? 'считаю… ' : 'computing… ') + EFF.fep.length + '/' + EFF_E.length, bx.r, bx.t + 12); }
+}
+function effTiles() {
+  $('#effTiles').innerHTML = [60, 662, 1460].map(E => { const v = effAt(E) * 1000; return '<div class="tile"><div class="small">' + t('s2.tile', E) + '</div><div class="big" style="color:' + eCol(E) + '">' + (isFinite(v) ? sig(v, v < 10 ? 2 : 3) : '…') + '</div></div>'; }).join('');
+}
+(function geometry() {
+  const box = $('#geoSrc');
+  ['point', 'jar', 'marinelli'].forEach(k => { const b = document.createElement('button'); b.className = 'chip'; b.dataset.k = k; b.dataset.t = 'src.' + k; b.onclick = () => { GEO.src = k; sync(); geoChanged(); }; box.appendChild(b); });
+  const sz = $('#geoSize'), gp = $('#geoGap'), rh = $('#geoRho');
+  sz.addEventListener('input', () => { GEO.size = +sz.value / 10; sync(); geoChanged(); });
+  gp.addEventListener('input', () => { GEO.gap = +gp.value / 10; sync(); geoChanged(); });
+  rh.addEventListener('input', () => { GEO.rho = +rh.value / 100; sync(); geoChanged(); });
+  $('#effKeep').onclick = () => { EFF_KEEP = EFF ? { E: EFF.E, fep: EFF.fep.slice() } : null; drawEff(); };
+  function sync() {
+    $$('#geoSrc .chip').forEach(b => b.classList.toggle('on', b.dataset.k === GEO.src));
+    sz.value = Math.round(GEO.size * 10); gp.value = Math.round(GEO.gap * 10); rh.value = Math.round(GEO.rho * 100);
+    $('#geoSizeV').textContent = Math.round(GEO.size * 10) + (LANG === 'ru' ? ' мм' : ' mm');
+    $('#geoGapV').textContent = (GEO.src === 'marinelli' ? '—' : fx(GEO.gap * 10, 0) + (LANG === 'ru' ? ' мм' : ' mm'));
+    $('#geoRhoV').textContent = (GEO.src === 'point' ? '—' : fx(GEO.rho, 2) + (LANG === 'ru' ? ' г/см³' : ' g/cm³'));
+    $('#geoGapBox').classList.toggle('dis', GEO.src === 'marinelli');
+    $('#geoRhoBox').classList.toggle('dis', GEO.src === 'point');
+  }
+  onRedraw(() => { sync(); drawGeo(); drawEff(); effTiles(); });
+  sync();
+})();
+
+/* ============================== 3. МАТРИЦА ============================== */
+const MX = { E: [], raw: [], rows: [], fep: [], done: 0, nb: 600, bw: 5, N: 2400, sel: 30 };
+(function matrix() {
+  const NR = 44; for (let i = 0; i < NR; i++) MX.E.push(25 * Math.pow(3000 / 25, i / (NR - 1)));
+  [59.54, 661.66, 1173.23, 1460.82, 2614.5].forEach(e => { let b = 0; MX.E.forEach((x, i) => { if (Math.abs(Math.log(x / e)) < Math.abs(Math.log(MX.E[b] / e))) b = i; }); MX.E[b] = e; });
+  MX.sel = MX.E.indexOf(661.66);
+  const cv = $('#cvMx'), cs = $('#cvMxS'); io.observe(cv);
+  const rowSl = $('#mxRow'), fw = $('#mxFwhm');
+  let pending = true;
+  function* job() {
+    const D = dimsT(); MX.raw = []; MX.rows = []; MX.fep = []; MX.done = 0;
+    for (let i = 0; i < NR; i++) {
+      const raw = new Float64Array(MX.nb), S = { n: 0, hit: 0, arr: 0, inter: 0, fep: 0 };
+      for (let k = 0; k < 4; k++) { runW(MX.E[i], D, MX.N / 4, raw, MX.bw, S); yield; }
+      for (let b = 0; b < MX.nb; b++) raw[b] /= S.n;
+      MX.raw[i] = raw; MX.rows[i] = blur(raw, MX.bw, GEO.fwhm); MX.fep[i] = S.fep / S.n; MX.done = i + 1;
+      draw(); if (Math.abs(i - MX.sel) < 1) drawSlice();
+    }
+    draw(); drawSlice(); FSA.invalidate();
+  }
+  MX.run = () => { pending = false; Jobs.add('mx', job()); };
+  MX.invalidate = () => { MX.done = 0; MX.rows = []; pending = true; draw(); drawSlice(); if (visible.get(cv)) MX.run(); };
+  new IntersectionObserver(es => { if (es[0].isIntersecting && pending) MX.run(); }, { rootMargin: '200px' }).observe(cv);
+  $('#mxRun').onclick = MX.run;
+  rowSl.addEventListener('input', () => { MX.sel = +rowSl.value; drawSlice(); draw(); });
+  fw.addEventListener('input', () => { GEO.fwhm = +fw.value / 10; for (let i = 0; i < MX.done; i++) MX.rows[i] = blur(MX.raw[i], MX.bw, GEO.fwhm); $('#mxFwhmV').textContent = fx(GEO.fwhm, 1) + ' %'; draw(); drawSlice(); FSA.reblur(); });
+  const CM = [[0, 0, 4], [40, 11, 84], [101, 21, 110], [159, 42, 99], [212, 72, 66], [245, 125, 21], [250, 193, 39], [252, 255, 164]];
+  function cmap(u) { u = clamp(u, 0, 1) * (CM.length - 1); const i = Math.min(CM.length - 2, Math.floor(u)), f = u - i, a = CM[i], b = CM[i + 1]; return 'rgb(' + Math.round(lerp(a[0], b[0], f)) + ',' + Math.round(lerp(a[1], b[1], f)) + ',' + Math.round(lerp(a[2], b[2], f)) + ')'; }
+  let geom = null;
+  function draw() {
+    const { ctx, w, h } = setup(cv), bx = { l: 52, t: 10, r: w - 12, b: h - 26 };
+    const X = scale('lin', 0, 3000, bx.l, bx.r), Y = scale('log', 25, 3000, bx.b, bx.t);
+    geom = { bx, X, Y };
+    ctx.fillStyle = '#04060c'; ctx.fillRect(bx.l, bx.t, bx.r - bx.l, bx.b - bx.t);
+    const cols = Math.min(300, Math.round(bx.r - bx.l)), grp = MX.nb / cols, cw = (bx.r - bx.l) / cols;
+    for (let i = 0; i < MX.done; i++) {
+      const row = MX.rows[i], yTop = Y(MX.E[i] * Math.pow(3000 / 25, 0.5 / (NR - 1))), yBot = Y(MX.E[i] / Math.pow(3000 / 25, 0.5 / (NR - 1)));
+      for (let c = 0; c < cols; c++) {
+        let v = 0; for (let k = Math.floor(c * grp); k < Math.floor((c + 1) * grp); k++) v += row[k];
+        v /= (grp * MX.bw);                    // на 1 кэВ
+        if (v <= 1e-7) continue;
+        const u = (Math.log10(v) + 6.3) / 4.6; ctx.fillStyle = cmap(u); ctx.fillRect(bx.l + c * cw, yTop, cw + 0.6, yBot - yTop + 0.6);
+      }
+    }
+    axes(ctx, bx, X, Y, { xl: t('ax.eout'), yl: '', yt: [30, 100, 300, 1000, 3000], nx: 6 });
+    ctx.save(); ctx.translate(13, (bx.t + bx.b) / 2); ctx.rotate(-Math.PI / 2); ctx.fillStyle = '#93a3c4'; ctx.font = '11.5px system-ui'; ctx.textAlign = 'center'; ctx.fillText(t('ax.ein'), 0, 0); ctx.restore();
+    if (MX.done) { const y = Y(MX.E[MX.sel]); ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(bx.l, y); ctx.lineTo(bx.r, y); ctx.stroke(); ctx.setLineDash([]); }
+    $('#mxProg').innerHTML = MX.done < NR ? (pending && !MX.done ? '…' : t('s3.prog', MX.done, NR)) : t('s3.done', NR, MX.N) + ' · ' + t('s3.mxnote', MX.N);
+  }
+  function rowAtY(y) { const { Y } = geom; const E = Y.inv(y); let best = 0; MX.E.forEach((e, i) => { if (Math.abs(Math.log(e / E)) < Math.abs(Math.log(MX.E[best] / E))) best = i; }); return best; }
+  cv.addEventListener('mousemove', ev => { if (!geom) return; const r = cv.getBoundingClientRect(), y = ev.clientY - r.top, x = ev.clientX - r.left; if (x < geom.bx.l || y < geom.bx.t || y > geom.bx.b) return; MX.sel = rowAtY(y); rowSl.value = MX.sel; drawSlice(); draw(); });
+  cv.addEventListener('click', ev => { if (!geom) return; const r = cv.getBoundingClientRect(); MX.sel = rowAtY(ev.clientY - r.top); rowSl.value = MX.sel; drawSlice(); draw(); });
+  function drawSlice() {
+    const E = MX.E[MX.sel]; $('#mxSliceT').innerHTML = t('s3.slice', Math.round(E)); $('#mxRowV').textContent = Math.round(E) + (LANG === 'ru' ? ' кэВ' : ' keV');
+    const { ctx, w, h } = setup(cs), bx = { l: 50, t: 14, r: w - 12, b: h - 24 };
+    const emax = Math.max(120, E * 1.15), X = scale('lin', 0, emax, bx.l, bx.r);
+    const row = MX.rows[MX.sel];
+    if (!row) { axes(ctx, bx, X, scale('log', 0.001, 10, bx.b, bx.t), { xl: t('ax.e') }); ctx.fillStyle = '#93a3c4'; ctx.textAlign = 'center'; ctx.font = '13px system-ui'; ctx.fillText(LANG === 'ru' ? 'строка ещё считается…' : 'row is still being computed…', (bx.l + bx.r) / 2, (bx.t + bx.b) / 2); return; }
+    const nb = Math.min(MX.nb, Math.ceil(emax / MX.bw)); let mx = 1e-6; for (let b = 2; b < nb; b++) mx = Math.max(mx, row[b] * 1000);
+    const Y = scale('log', Math.max(mx * 3e-4, 1e-4), mx * 1.6, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { xl: t('ax.e'), yl: t('ax.per') });
+    drawFeatures(ctx, bx, X, features(E, false));
+    const grd = ctx.createLinearGradient(0, bx.t, 0, bx.b); grd.addColorStop(0, rgba('#ffcc33', .55)); grd.addColorStop(1, rgba('#ff4d6d', .08));
+    ctx.beginPath(); ctx.moveTo(X(0), bx.b);
+    for (let b = 0; b < nb; b++) ctx.lineTo(X((b + 0.5) * MX.bw), Y(Math.max(row[b] * 1000, Y.d0)));
+    ctx.lineTo(X(nb * MX.bw), bx.b); ctx.closePath(); ctx.fillStyle = grd; ctx.fill();
+    ctx.strokeStyle = '#ffcc33'; ctx.lineWidth = 1.6; ctx.beginPath();
+    for (let b = 0; b < nb; b++) { const x = X((b + 0.5) * MX.bw), y = Y(Math.max(row[b] * 1000, Y.d0)); b ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+    ctx.fillStyle = '#eef3ff'; ctx.font = '600 12px system-ui'; ctx.textAlign = 'left';
+    ctx.fillText((LANG === 'ru' ? 'в пике: ' : 'in the peak: ') + sig(MX.fep[MX.sel] * 1000, 3) + (LANG === 'ru' ? ' из 1000' : ' of 1000'), bx.l + 6, bx.t + 20);
+  }
+  onRedraw(() => { $('#mxFwhmV').textContent = fx(GEO.fwhm, 1) + ' %'; draw(); drawSlice(); });
+  fw.value = Math.round(GEO.fwhm * 10); rowSl.value = MX.sel;
+})();
+
+/* Настоящий Cs-137: части матрицы по одной */
+const PAL = { 'Ac-228': '#FF11CC', 'Tl-208': '#CCDD88', 'Pb-212': '#BB8855', 'Bi-212': '#447700', 'Ra-224': '#FF6655', 'Th-228': '#55AAAA', 'Rn-220': '#00FF00', 'Th-232': '#8844BB', 'Xray-Pb': '#FF9900', 'Xray-Th': '#7788BB', 'Xray-La': '#0044FF', 'Cs-137': '#FFCC77', 'Backscatter': '#CC55BB', 'Xray-Pb-L': '#99AA22', 'pile-up': '#00EE55' };
+const nm = k => (T[LANG]['nm.' + k] || k);
+(function realCs() {
+  const cv = $('#cvMxR'), C = DATA.cs; let level = 3;
+  const box = $('#mxLevels');
+  [1, 2, 3].forEach(l => { const b = document.createElement('button'); b.className = 'chip'; b.dataset.t = 's3.l' + l; b.onclick = () => { level = l; draw(); }; box.appendChild(b); });
+  const n = C.kev.length, model = C.kev.map((_, i) => Object.keys(C.layers).reduce((a, k) => a + C.layers[k][i], 0));
+  const rest = model.map((v, i) => Math.max(0, v - C.peak[i] - C.compton[i]));
+  function draw() {
+    $$('#mxLevels .chip').forEach((b, i) => b.classList.toggle('on', i + 1 === level));
+    const { ctx, w, h } = setup(cv), bx = { l: 50, t: 12, r: w - 12, b: h - 24 };
+    let mx = 0; C.meas.forEach(v => { if (v > mx) mx = v; });
+    const X = scale('lin', 15, 800, bx.l, bx.r), Y = scale('sqrt', 0, mx * 1.05, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { xl: t('ax.e'), yl: t('ax.cnt') });
+    const layers = [[C.peak, '#FFCC77', 's3.lpk']]; if (level >= 2) layers.push([C.compton, '#ff8a3d', 's3.lco']); if (level >= 3) layers.push([rest, '#CC55BB', 's3.lrest']);
+    const base = new Float64Array(n);
+    layers.forEach(([arr, col]) => {
+      ctx.beginPath(); for (let i = 0; i < n; i++) ctx.lineTo(X(C.kev[i]), Y(base[i] + arr[i]));
+      for (let i = n - 1; i >= 0; i--) ctx.lineTo(X(C.kev[i]), Y(base[i]));
+      ctx.closePath(); ctx.fillStyle = rgba(col, .78); ctx.fill();
+      for (let i = 0; i < n; i++) base[i] += arr[i];
+    });
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.4; ctx.beginPath(); C.meas.forEach((v, i) => { const x = X(C.kev[i]), y = Y(v); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+    let sm = 0, sb = 0; for (let i = 0; i < n; i++) { sm += C.meas[i]; sb += Math.min(base[i], C.meas[i]); }
+    $('#mxExpl').innerHTML = t('s3.expl', fx(100 * sb / sm, 0));
+    $('#mxRLegend').innerHTML = layers.map(([, c, k]) => '<span><i style="background:' + c + '"></i>' + t(k) + '</span>').join('') + '<span><i style="background:#fff"></i>' + (LANG === 'ru' ? 'измерение' : 'measurement') + '</span>';
+  }
+  onRedraw(draw);
+})();
+
+/* ============================== 4. FSA ============================== */
+const NUC = [
+  { id: 'Am-241', lines: [[59.54, 0.359], [26.34, 0.024]], col: '#5566FF', max: 600 },
+  { id: 'Cs-137', lines: [[661.66, 0.851], [32.1, 0.058], [36.4, 0.013]], col: '#FFCC77', max: 600 },
+  { id: 'Co-60', lines: [[1173.23, 0.9985], [1332.49, 0.9998]], col: '#FF0099', max: 400 },
+  { id: 'K-40', lines: [[1460.82, 0.1066]], col: '#CCDD00', max: 3000 },
+];
+const FSA = { tpl: null, raws: null, meas: null, hid: null, x: [0, 0, 0, 0, 0], gT: 1, gCur: 1, tsec: 1800, nb: 360, bw: 5, fit: null, anch: null, reveal: false };
+(function fsa() {
+  const cv = $('#cvFsa'), cr = $('#cvFsaR'), cc = $('#cvChi');
+  const BG = new Float64Array(FSA.nb); { let s = 0; for (let b = 0; b < FSA.nb; b++) { const E = (b + 0.5) * FSA.bw; BG[b] = E < 20 ? 0 : Math.exp(-E / 170) + 0.12 * Math.exp(-E / 900) + 0.002; s += BG[b]; } for (let b = 0; b < FSA.nb; b++) BG[b] /= s; }
+  const COMPS = () => NUC.map(n => n.id).concat(['bg']);
+  const colOf = i => i < NUC.length ? NUC[i].col : '#B0B7BD';
+  const nameOf = i => i < NUC.length ? NUC[i].id : t('s4.bg');
+  const maxOf = i => i < NUC.length ? NUC[i].max : 12;
+  const unitOf = () => LANG === 'ru' ? ' Бк' : ' Bq';
+  const unitBg = () => LANG === 'ru' ? ' имп/с' : ' cps';
+  let pending = true;
+  function* tplJob() {
+    const D = dimsT(), raws = [];
+    for (const n of NUC) { const r = []; for (const [E, I] of n.lines) { const raw = new Float64Array(FSA.nb); const S = { n: 0, hit: 0, arr: 0, inter: 0, fep: 0 }; for (let k = 0; k < 3; k++) { runW(E, D, 1600, raw, FSA.bw, S); yield; } for (let b = 0; b < FSA.nb; b++) raw[b] /= S.n; r.push([raw, I]); } raws.push(r); }
+    FSA.raws = raws; FSA.reblur(); newPuzzle();
+  }
+  FSA.reblur = () => { if (!FSA.raws) return; FSA.tpl = FSA.raws.map(r => { const s = new Float64Array(FSA.nb); r.forEach(([raw, I]) => { const bl = blur(raw, FSA.bw, GEO.fwhm); for (let b = 0; b < FSA.nb; b++) s[b] += I * bl[b]; }); return s; }).concat([BG]); FSA.fit = null; draw(); };
+  FSA.invalidate = () => { FSA.tpl = null; FSA.raws = null; FSA.fit = null; pending = true; draw(); if (visible.get(cv)) { pending = false; Jobs.add('tpl', tplJob()); } };
+  io.observe(cv);
+  new IntersectionObserver(es => { if (es[0].isIntersecting && pending) { pending = false; Jobs.add('tpl', tplJob()); } }, { rootMargin: '200px' }).observe(cv);
+  function stretch(arr, g) {           // шкала растянута в g раз
+    if (g === 1) return arr; const out = new Float64Array(arr.length);
+    for (let b = 0; b < arr.length; b++) { const e = (b + 0.5) / g - 0.5, i = Math.floor(e), f = e - i; if (i < 0 || i + 1 >= arr.length) continue; out[b] = (arr[i] * (1 - f) + arr[i + 1] * f) / g; }
+    return out;
+  }
+  function modelOf(x, g) { const m = new Float64Array(FSA.nb); FSA.tpl.forEach((tp, k) => { if (!x[k]) return; const s = stretch(tp, g); for (let b = 0; b < FSA.nb; b++) m[b] += x[k] * FSA.tsec * s[b]; }); return m; }
+  function newPuzzle() {
+    if (!FSA.tpl) return;
+    const hid = NUC.map(n => Math.random() < 0.72 ? Math.round(n.max * (0.12 + 0.6 * Math.random())) : 0);
+    if (!hid.some(v => v)) hid[1] = 250;
+    hid.push(+(2 + 6 * Math.random()).toFixed(1));
+    FSA.hid = hid; FSA.gT = $('#fsaDrift').checked ? +(1 + (Math.random() < .5 ? -1 : 1) * (0.025 + 0.02 * Math.random())).toFixed(4) : 1;
+    const lam = modelOf(hid, FSA.gT); FSA.meas = Array.from(lam, v => poisson(v));
+    FSA.x = hid.map((v, i) => i < NUC.length ? Math.round(NUC[i].max * 0.3) : 5); FSA.fit = null; FSA.anch = null; FSA.gCur = 1; FSA.reveal = false;
+    $('#fsaDriftRow').style.display = 'none'; buildSliders(); draw();
+  }
+  function buildSliders() {
+    const box = $('#fsaSliders'); box.innerHTML = '';
+    COMPS().forEach((id, i) => {
+      const d = document.createElement('div'); d.className = 'sl';
+      d.innerHTML = '<div class="top"><span><i style="background:' + colOf(i) + '"></i>' + nameOf(i) + '</span><span class="val"></span></div><input type="range" min="0" max="1000">';
+      const inp = d.querySelector('input'); inp.value = Math.round(FSA.x[i] / maxOf(i) * 1000);
+      inp.addEventListener('input', () => { FSA.x[i] = +inp.value / 1000 * maxOf(i); FSA.fit = null; draw(); });
+      box.appendChild(d);
+    });
+    syncSliders();
+  }
+  function syncSliders() { $$('#fsaSliders .sl').forEach((d, i) => { d.querySelector('input').value = Math.round(FSA.x[i] / maxOf(i) * 1000); d.querySelector('.val').textContent = (i < NUC.length ? fx(FSA.x[i], 0) + unitOf() : fx(FSA.x[i], 1) + unitBg()); }); }
+  const B0 = 6, B1 = 330;   // окно подгонки 30…1650 кэВ
+  function solve(g, excl) {    // взвешенный МНК с неотрицательностью (активное множество Лоусона — Хансона)
+    const A = FSA.tpl.map(tp => stretch(tp, g)), K = A.length, y = FSA.meas;
+    const M = Array.from({ length: K }, () => new Float64Array(K)), v = new Float64Array(K);
+    for (let b = B0; b < B1; b++) { const w = 1 / Math.max(y[b], 1); for (let i = 0; i < K; i++) { const ai = A[i][b] * FSA.tsec; v[i] += w * ai * y[b]; for (let j = i; j < K; j++) M[i][j] += w * ai * A[j][b] * FSA.tsec; } }
+    for (let i = 0; i < K; i++) for (let j = 0; j < i; j++) M[i][j] = M[j][i];
+    const sub = idx => { const n = idx.length, a = idx.map(i => idx.map(j => M[i][j]).concat([v[i]])); for (let c = 0; c < n; c++) { let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(a[r][c]) > Math.abs(a[p][c])) p = r; [a[c], a[p]] = [a[p], a[c]]; const d = a[c][c] || 1e-30; for (let r = 0; r < n; r++) if (r !== c) { const f = a[r][c] / d; for (let k = c; k <= n; k++) a[r][k] -= f * a[c][k]; } } const z = new Float64Array(K); idx.forEach((i, r) => z[i] = a[r][n] / (a[r][r] || 1e-30)); return z; };
+    const x = new Float64Array(K), P = new Array(K).fill(false);
+    let vmax = 0; for (let j = 0; j < K; j++) vmax = Math.max(vmax, Math.abs(v[j]));
+    for (let it = 0; it < 30; it++) {
+      let jm = -1, wm = 1e-10 * vmax; for (let j = 0; j < K; j++) if (!P[j] && !(excl && excl.has(j))) { let w = v[j]; for (let k = 0; k < K; k++) w -= M[j][k] * x[k]; if (w > wm) { wm = w; jm = j; } }
+      if (jm < 0) break; P[jm] = true;
+      for (let inner = 0; inner < 30; inner++) {
+        const idx = []; for (let j = 0; j < K; j++) if (P[j]) idx.push(j);
+        const z = sub(idx); if (idx.every(j => z[j] > 0)) { for (let j = 0; j < K; j++) x[j] = z[j]; break; }
+        let al = Infinity; idx.forEach(j => { if (z[j] <= 0) { const a = x[j] / (x[j] - z[j]); if (a < al) al = a; } });
+        for (let j = 0; j < K; j++) x[j] += al * (z[j] - x[j]);
+        idx.forEach(j => { if (x[j] <= 1e-12) { P[j] = false; x[j] = 0; } });
+      }
+    }
+    let chi = 0; for (let b = B0; b < B1; b++) { let m = 0; for (let k = 0; k < K; k++) m += x[k] * A[k][b] * FSA.tsec; chi += (y[b] - m) * (y[b] - m) / Math.max(y[b], 1); }
+    const idx = []; for (let j = 0; j < K; j++) if (P[j]) idx.push(j);
+    const ndf = Math.max(1, B1 - B0 - idx.length), inflate = Math.max(1, Math.sqrt(chi / ndf));
+    // ошибки: обратная матрица на активном множестве
+    const err = new Float64Array(K);
+    if (idx.length) { idx.forEach((jj, c) => { const save = v.slice(); for (let q = 0; q < K; q++) v[q] = q === jj ? 1 : 0; const z = sub(idx); err[jj] = Math.sqrt(Math.max(z[jj], 0)) * inflate; for (let q = 0; q < K; q++) v[q] = save[q]; }); }
+    return { x: Array.from(x), err: Array.from(err), chi2ndf: chi / ndf, g };
+  }
+  function centroid(arr, eC, half) {     // центр тяжести пика над линейной подложкой окна
+    const bw = FSA.bw, b0 = Math.max(2, Math.floor((eC - half) / bw)), b1 = Math.min(FSA.nb - 3, Math.ceil((eC + half) / bw));
+    if (b1 - b0 < 4) return null;
+    const yl = (arr[b0 - 1] + arr[b0] + arr[b0 + 1]) / 3, yr = (arr[b1 - 1] + arr[b1] + arr[b1 + 1]) / 3;
+    let s = 0, sx = 0;
+    for (let b = b0; b <= b1; b++) { const v = arr[b] - (yl + (yr - yl) * (b - b0) / (b1 - b0)); if (v > 0) { s += v; sx += v * (b + 0.5) * bw; } }
+    return s > 40 ? { c: sx / s, n: s } : null;
+  }
+  function anchorsAt(x, g) {            // опоры: пики полного поглощения модели против измерения в одном окне
+    const model = modelOf(x, g), out = [];
+    NUC.forEach((n, k) => {
+      if (!(x[k] > 0)) return;
+      const own = modelOf(x.map((v, i) => i === k ? v : 0), g);
+      n.lines.forEach(([E, I]) => {
+        if (I < 0.05 || E < 40 || E > 1600) return;
+        const half = 1.2 * 2.3548 * sigmaAt(E, GEO.fwhm), co = centroid(own, E * g, half);
+        if (!co || co.n < 150) return;   // опора — только заметный пик самого слоя
+        const cm = centroid(model, E * g, half), cy = centroid(FSA.meas, E * g, half);
+        if (cm && cy && Math.abs(cy.c - cm.c) < half) out.push({ E, cm: cm.c, cy: cy.c, n: cy.n });
+      });
+    });
+    return out;
+  }
+  function doFit() {
+    if (!FSA.tpl || !FSA.meas) return;
+    let g = 1, r = solve(g), before = null;
+    for (let it = 0; it < 6; it++) {     // привязка шкалы: усиление из центров опор, затем подгонка заново
+      const an = anchorsAt(r.x, g); if (!before) before = an; if (!an.length) break;
+      let num = 0, den = 0; an.forEach(a => { num += a.n * a.cy * a.cm; den += a.n * a.cm * a.cm; });
+      const k = num / den; g *= k; r = solve(g);
+      if (Math.abs(k - 1) < 2e-5) break;
+    }
+    const excl = new Set();              // слои со значимостью ниже 3 выбрасываются, подгонка повторяется
+    for (let pass = 0; pass < 4; pass++) {
+      const drop = []; r.x.forEach((v, i) => { if (i < NUC.length && v > 0 && v < 3 * r.err[i]) drop.push(i); });
+      if (!drop.length) break; drop.forEach(i => excl.add(i)); r = solve(g, excl);
+    }
+    const drift = $('#fsaDrift').checked;
+    FSA.anch = { before: before || [], after: anchorsAt(r.x, g) }; $('#fsaDriftRow').style.display = drift ? '' : 'none';
+    const from = FSA.x.slice(), to = r.x, g0 = FSA.gCur, t0 = performance.now(), best = r;
+    (function anim() { const u = Math.min(1, (performance.now() - t0) / 900), e = 1 - Math.pow(1 - u, 3); FSA.x = from.map((v, i) => lerp(v, to[i], e)); FSA.gCur = lerp(g0, best.g, e); syncSliders(); draw(); if (u < 1) requestAnimationFrame(anim); else { FSA.fit = best; draw(); } })();
+  }
+  $('#fsaFit').onclick = doFit; $('#fsaNew').onclick = newPuzzle; $('#fsaShow').onclick = () => { FSA.reveal = !FSA.reveal; draw(); };
+  $('#fsaDrift').addEventListener('change', newPuzzle);
+  function draw() {
+    const { ctx, w, h } = setup(cv), bx = { l: 50, t: 12, r: w - 12, b: h - 24 };
+    if (!FSA.tpl || !FSA.meas) { ctx.fillStyle = '#93a3c4'; ctx.textAlign = 'center'; ctx.font = '14px system-ui'; ctx.fillText(LANG === 'ru' ? 'строю слои из матрицы для вашей геометрии…' : 'building layers from the matrix for your geometry…', w / 2, h / 2); setup(cr); $('#fsaRes').innerHTML = ''; return; }
+    const g = FSA.gCur || 1;
+    const NB = FSA.nb, y = FSA.meas, X = scale('lin', 20, 1700, bx.l, bx.r);
+    let mx = 1; for (let b = B0; b < B1; b++) mx = Math.max(mx, y[b]);
+    const Y = scale('sqrt', 0, mx * 1.08, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { xl: t('ax.e'), yl: t('ax.cnt') });
+    const order = [4, 3, 2, 1, 0], base = new Float64Array(NB), xE = b => X((b + 0.5) * FSA.bw);
+    order.forEach(k => {
+      if (!FSA.x[k]) return; const s = stretch(FSA.tpl[k], g), top = new Float64Array(NB);
+      for (let b = 0; b < NB; b++) top[b] = base[b] + FSA.x[k] * FSA.tsec * s[b];
+      ctx.beginPath(); for (let b = 4; b < NB; b++) ctx.lineTo(xE(b), Y(top[b])); for (let b = NB - 1; b >= 4; b--) ctx.lineTo(xE(b), Y(base[b])); ctx.closePath();
+      ctx.fillStyle = rgba(colOf(k), .82); ctx.fill(); base.set(top);
+    });
+    ctx.fillStyle = '#ffffff'; for (let b = 4; b < NB; b++) { const x = xE(b); if (x > bx.r) break; ctx.fillRect(x - 1.1, Y(y[b]) - 1.1, 2.2, 2.2); }
+    // невязка
+    const R = setup(cr), rb = { l: 50, t: 4, r: R.w - 12, b: R.h - 4 }, rc = R.ctx;
+    rc.fillStyle = 'rgba(255,255,255,.04)'; rc.fillRect(rb.l, rb.t, rb.r - rb.l, rb.b - rb.t);
+    const mid = (rb.t + rb.b) / 2, hh = (rb.b - rb.t) / 2; let chi = 0, nn = 0;
+    for (let b = B0; b < B1; b++) { const m = base[b], r = (y[b] - m) / Math.sqrt(Math.max(m, 1)); chi += r * r; nn++; const v = clamp(r / 5, -1, 1) * hh, x = X((b + 0.5) * FSA.bw); rc.fillStyle = r > 0 ? 'rgba(255,77,109,.85)' : 'rgba(106,168,255,.85)'; rc.fillRect(x - 1, v > 0 ? mid - v : mid, 2.2, Math.abs(v)); }
+    rc.strokeStyle = 'rgba(255,255,255,.3)'; rc.beginPath(); rc.moveTo(rb.l, mid); rc.lineTo(rb.r, mid); rc.stroke();
+    rc.fillStyle = '#93a3c4'; rc.font = '11px system-ui'; rc.textAlign = 'right'; rc.fillText(LANG === 'ru' ? 'невязка' : 'residual', rb.l - 5, mid + 4);
+    const chi2 = chi / Math.max(1, nn - 5), good = chi2 < 1.6;
+    let html = '<span class="pill ' + (good ? 'good' : 'bad') + '">' + t('s4.chi2', fx(chi2, 2)) + '</span>';
+    const drift = $('#fsaDrift').checked;
+    if (FSA.fit) { html += FSA.fit.x.map((v, i) => '<span class="pill">' + t('s4.found', nameOf(i), v > 0 ? (i < NUC.length ? fx(v, 0) + ' ± ' + fx(FSA.fit.err[i], 0) + unitOf() : fx(v, 2) + unitBg()) : t('s4.none'), colOf(i)) + '</span>').join(''); if (FSA.anch && drift) html += '<span class="pill">' + t('s4.gain', fx(FSA.fit.g, 4), FSA.reveal ? fx(FSA.gT, 4) : '?', FSA.anch.after.length) + '</span>'; }
+    if (FSA.reveal) html += '<span class="pill">' + t('s4.hidden', FSA.hid.map((v, i) => nameOf(i) + ' ' + (v ? (i < NUC.length ? v + unitOf() : fx(v, 1) + unitBg()) : t('s4.none'))).join(', ')) + '</span>';
+    $('#fsaRes').innerHTML = html;
+    if (FSA.anch && drift) drawAnch();
+  }
+  function drawAnch() {
+    const A = FSA.anch, { ctx, w, h } = setup(cc), bx = { l: 46, t: 12, r: w - 12, b: h - 24 };
+    if (!A) return;
+    let my = 4; A.before.concat(A.after).forEach(a => { my = Math.max(my, Math.abs(a.cy - a.cm)); });
+    if (FSA.reveal) my = Math.max(my, Math.abs(FSA.gT - 1) * 1700);
+    const X = scale('lin', 0, 1700, bx.l, bx.r), Y = scale('lin', -my * 1.2, my * 1.2, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { xl: t('ax.anch'), yl: t('ax.shift'), nx: 4 });
+    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.beginPath(); ctx.moveTo(bx.l, Y(0)); ctx.lineTo(bx.r, Y(0)); ctx.stroke();
+    if (A.before.length) { let num = 0, den = 0; A.before.forEach(a => { num += a.n * (a.cy - a.cm) * a.cm; den += a.n * a.cm * a.cm; }); const s = num / den; ctx.strokeStyle = 'rgba(255,77,109,.7)'; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(1700), Y(s * 1700)); ctx.stroke(); ctx.setLineDash([]); }
+    if (FSA.reveal) { ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(1700), Y((FSA.gT - 1) * 1700)); ctx.stroke(); ctx.setLineDash([]); }
+    const dot = (a, col) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(a.cm), Y(a.cy - a.cm), 5, 0, TWO_PI); ctx.fill(); };
+    A.before.forEach(a => dot(a, '#ff4d6d')); A.after.forEach(a => dot(a, '#5be38a'));
+  }
+  onRedraw(() => { if (FSA.meas) buildSliders(); draw(); });
+})();
+
+/* Настоящий разбор */
+(function realFsa() {
+  const cv = $('#cvReal'); let which = 'th', sc = 'sqrt'; const off = new Set();
+  const tabs = $('#realTabs'), scb = $('#realScale');
+  [['th', 's4.tab.th'], ['cs', 's4.tab.cs']].forEach(([k, l]) => { const b = document.createElement('button'); b.className = 'chip'; b.dataset.k = k; b.dataset.t = l; b.onclick = () => { which = k; off.clear(); draw(); }; tabs.appendChild(b); });
+  [['lin', 'лин|lin'], ['sqrt', '√'], ['log', 'лог|log']].forEach(([k, l]) => { const b = document.createElement('button'); b.className = 'chip'; b.dataset.k = k; b.dataset.l = l; b.onclick = () => { sc = k; draw(); }; scb.appendChild(b); });
+  let G = null;
+  function draw() {
+    const R = DATA[which], keys = Object.keys(R.layers).filter(k => R.share[k] > 0.005).sort((a, b) => R.share[b] - R.share[a]);
+    $$('#realTabs .chip').forEach(b => b.classList.toggle('on', b.dataset.k === which));
+    $$('#realScale .chip').forEach(b => { b.classList.toggle('on', b.dataset.k === sc); const p = b.dataset.l.split('|'); b.textContent = LANG === 'ru' ? p[0] : (p[1] || p[0]); });
+    const { ctx, w, h } = setup(cv), bx = { l: 54, t: 12, r: w - 12, b: h - 24 }, n = R.kev.length;
+    let mx = 1; R.meas.forEach(v => { if (v > mx) mx = v; });
+    const emax = R.kev[n - 1], X = scale('lin', 0, emax, bx.l, bx.r), Y = sc === 'log' ? scale('log', Math.max(mx * 2e-5, 0.3), mx * 1.6, bx.b, bx.t) : scale(sc, 0, mx * 1.05, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { xl: t('ax.e'), yl: t('ax.cnt') });
+    const base = new Float64Array(n);
+    keys.forEach(k => {
+      if (off.has(k)) return; const arr = R.layers[k];
+      ctx.beginPath(); for (let i = 0; i < n; i++) ctx.lineTo(X(R.kev[i]), Y(base[i] + arr[i])); for (let i = n - 1; i >= 0; i--) ctx.lineTo(X(R.kev[i]), Y(Math.max(base[i], Y.d0)));
+      ctx.closePath(); ctx.fillStyle = PAL[k] || '#999'; ctx.globalAlpha = .9; ctx.fill(); ctx.globalAlpha = 1;
+      for (let i = 0; i < n; i++) base[i] += arr[i];
+    });
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2; ctx.beginPath(); R.meas.forEach((v, i) => { const x = X(R.kev[i]), y = Y(Math.max(v, Y.d0)); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+    G = { R, keys, X, bx };
+    $('#realLegend').innerHTML = keys.map(k => '<span class="it' + (off.has(k) ? ' off' : '') + '" data-k="' + k + '"><i style="background:' + (PAL[k] || '#999') + '"></i>' + nm(k) + '<small>' + fx(R.share[k], 2) + ' %</small></span>').join('');
+    $$('#realLegend .it').forEach(el => el.onclick = () => { const k = el.dataset.k; off.has(k) ? off.delete(k) : off.add(k); draw(); });
+    const hrs = R.live / 3600;
+    $('#realStat').innerHTML = '<span class="pill">' + t('s4.rs', hrs >= 2 ? fx(hrs, 1) + (LANG === 'ru' ? ' ч' : ' h') : fx(R.live / 60, 0) + (LANG === 'ru' ? ' мин' : ' min'), fx(R.chi2, 2), fx(R.gain, 4), fx(R.act, 0), fx(R.lim, 1), which === 'th' ? t('s4.chainof') : 'Cs-137') + '</span>';
+  }
+  cv.addEventListener('mousemove', ev => {
+    if (!G) return; const r = cv.getBoundingClientRect(), x = ev.clientX - r.left; if (x < G.bx.l || x > G.bx.r) { hideTip(); return; }
+    const E = G.X.inv(x), R = G.R; let i = 0; while (i < R.kev.length - 1 && R.kev[i] < E) i++;
+    const top = G.keys.filter(k => !off.has(k) && R.layers[k][i] > 0).sort((a, b) => R.layers[b][i] - R.layers[a][i]).slice(0, 5);
+    showTip(ev, '<b>' + fx(R.kev[i], 0) + (LANG === 'ru' ? ' кэВ' : ' keV') + '</b><br>' + (LANG === 'ru' ? 'измерено ' : 'measured ') + sig(R.meas[i], 3) + '<br>' + top.map(k => '<i style="background:' + PAL[k] + '"></i>' + nm(k) + ' ' + sig(R.layers[k][i], 3)).join('<br>'));
+  });
+  cv.addEventListener('mouseleave', hideTip);
+  onRedraw(draw);
+})();
+
+/* ============================== 5. АКТИВНОСТЬ ============================== */
+const ACT = { meas: [], Ig: 0.851, B: 0.25 };
+(function activity() {
+  const cv = $('#cvFun'), ct = $('#cvTr'); io.observe(cv);
+  const aR = $('#mAr'), tR = $('#mTr'), mR = $('#mMr');
+  const AV = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000], TV = [10, 30, 60, 120, 300, 600, 1200, 1800, 3600, 7200, 14400, 28800, 43200, 86400];
+  aR.min = 0; aR.max = AV.length - 1; aR.step = 1; aR.value = 5; tR.min = 0; tR.max = TV.length - 1; tR.step = 1; tR.value = 5;
+  const A = () => AV[+aR.value], Tm = () => TV[+tR.value], Mk = () => +mR.value / 100;
+  function fmtT(s) { const ru = LANG === 'ru'; if (s < 120) return fx(s, 0) + (ru ? ' с' : ' s'); if (s < 7200) return fx(s / 60, 0) + (ru ? ' мин' : ' min'); return fx(s / 3600, s < 36000 ? 1 : 0) + (ru ? ' ч' : ' h'); }
+  function eps() { const e = effAt(661.66); return isFinite(e) ? e : NaN; }
+  function stages() {
+    if (!EFF || EFF.fep.length < EFF_E.length) return null;
+    const i = EFF_E.indexOf(662), g = 1000 * ACT.Ig;
+    return [1000, g, g * EFF.hit[i], g * EFF.tot[i], g * EFF.fep[i]];
+  }
+  function sync() {
+    $('#mA').textContent = sig(A(), 3) + (LANG === 'ru' ? ' Бк' : ' Bq'); $('#mT').textContent = fmtT(Tm()); $('#mM').textContent = fx(Mk(), 2) + (LANG === 'ru' ? ' кг' : ' kg');
+    $('#funT').innerHTML = t('s5.fun');
+  }
+  [aR, tR, mR].forEach(r => r.addEventListener('input', () => { sync(); if (r !== tR) ACT.meas = []; drawTr(); eq(); }));
+  function measureOnce() {
+    const e = eps(); if (!isFinite(e)) return;
+    const t0 = Tm(), N = A() * ACT.Ig * e * t0, Bc = ACT.B * t0, G = poisson(N + Bc), Bm = poisson(Bc), net = G - Bm;
+    const sN = Math.sqrt(G + Bm), k = ACT.Ig * e * t0, LC = 2.33 * Math.sqrt(2 * Bc), LD = 2.71 + 4.65 * Math.sqrt(2 * Bc);
+    ACT.meas.push({ t: t0, a: net / k, s: sN / k, nd: net < LC, mda: LD / k, G, Bc });
+    if (ACT.meas.length > 60) ACT.meas.shift();
+  }
+  $('#mGo').onclick = () => { measureOnce(); drawTr(); res(); };
+  $('#mGo10').onclick = () => { for (let i = 0; i < 10; i++) measureOnce(); drawTr(); res(); };
+  $('#mClr').onclick = () => { ACT.meas = []; drawTr(); res(); };
+  function res() {
+    const m = ACT.meas[ACT.meas.length - 1], el = $('#mRes'), kg = Mk();
+    if (!m) { el.innerHTML = ''; return; }
+    el.innerHTML = (m.nd ? '<span class="pill bad">' + t('s5.nd', sig(m.mda, 2), sig(m.mda / kg, 2)) + '</span>' : '<span class="pill good">' + t('s5.res', sig(m.a, 3), sig(m.s, 2), sig(m.a / kg, 3), sig(m.s / kg, 2)) + '</span>') +
+      '<span class="pill">' + t('s5.cnt', m.G, Math.round(m.Bc)) + '</span><span class="pill">' + t('s5.mdaP', sig(m.mda, 2)) + '</span>';
+  }
+  function eq() {
+    const e = eps(), t0 = Tm(), N = A() * ACT.Ig * e * t0;
+    if (!isFinite(e)) { $('#actEq').innerHTML = ''; return; }
+    const b = (v, l, c) => '<div class="box"' + (c ? ' style="border-color:' + c + '"' : '') + '><b>' + v + '</b><small>' + l + '</small></div>', op = s => '<span class="op">' + s + '</span>';
+    $('#actEq').innerHTML = b(sig(N, 3), t('s5.eqN'), '#ffcc33') + op('÷') + b(fx(t0, 0), t('s5.eqT')) + op('÷') + b(sig(e * ACT.Ig * 100, 3) + ' %', t('s5.eqE'), '#6aa8ff') + op('=') + b(sig(A(), 3), t('s5.eqA'), '#5be38a');
+  }
+  // воронка распадов
+  let parts = [], caught = 0;
+  function funnel() {
+    requestAnimationFrame(funnel);
+    if (!visible.get(cv)) return;
+    const st = stages(), { ctx, w, h } = setup(cv);
+    if (!st) { ctx.fillStyle = '#93a3c4'; ctx.textAlign = 'center'; ctx.font = '14px system-ui'; ctx.fillText(LANG === 'ru' ? 'считаю эффективность вашей геометрии…' : 'computing the efficiency of your geometry…', w / 2, h / 2); return; }
+    const K = st.length, narrow = w < 640, colW = w / K, top = 46, H = h - top - 38;
+    const cols = ['#ffffff', '#ffcc33', '#ff9f43', '#ff4d6d', '#5be38a'], keys = ['s5.st0', 's5.st1', 's5.st2', 's5.st3', 's5.st4'];
+    const hgt = v => Math.max(3, H * Math.sqrt(v / 1000));
+    for (let k = 0; k < K; k++) {
+      const x = colW * k + colW * 0.18, bw = colW * 0.64, hh = hgt(st[k]), y = top + (H - hh) / 2;
+      const g = ctx.createLinearGradient(0, y, 0, y + hh); g.addColorStop(0, rgba(cols[k], .55)); g.addColorStop(1, rgba(cols[k], .18));
+      ctx.fillStyle = g; ctx.fillRect(x, y, bw, hh); ctx.strokeStyle = rgba(cols[k], .9); ctx.strokeRect(x + .5, y + .5, bw - 1, hh - 1);
+      ctx.fillStyle = cols[k]; ctx.font = '800 ' + (narrow ? 15 : 20) + 'px system-ui'; ctx.textAlign = 'center'; ctx.fillText(sig(st[k], st[k] < 10 ? 2 : 3), x + bw / 2, top - 22);
+      ctx.fillStyle = '#cdd8f3'; ctx.font = (narrow ? 10.5 : 12.5) + 'px system-ui'; wrap(ctx, t(keys[k]), x + bw / 2, h - 26, colW - 8, 13);
+      if (k < K - 1) {
+        const lab = '×' + fx(st[k + 1] / st[k], st[k + 1] / st[k] < 0.1 ? 3 : 2); ctx.font = '600 11px system-ui'; const lw = ctx.measureText(lab).width + 10;
+        ctx.fillStyle = 'rgba(9,13,24,.9)'; ctx.fillRect(colW * (k + 1) - lw / 2, top - 12, lw, 16); ctx.fillStyle = '#93a3c4'; ctx.fillText(lab, colW * (k + 1), top);
+      }
+    }
+    for (let i = 0; i < 3; i++) parts.push({ k: 0, x: colW * 0.18 + Math.random() * colW * 0.64, y: top + H / 2 + (Math.random() - .5) * hgt(st[0]) * .9, vy: 0, dead: false, a: 1 });
+    parts.forEach(p => {
+      if (p.dead) { p.vy += 0.25; p.y += p.vy; p.a -= 0.03; return; }
+      p.x += colW / 26;
+      const kk = Math.floor(p.x / colW);
+      if (kk > p.k) { if (kk >= K) { p.dead = true; p.a = 0; caught++; return; } if (Math.random() > st[kk] / st[p.k]) { p.dead = true; } else { p.k = kk; p.y = top + H / 2 + (Math.random() - .5) * hgt(st[kk]) * .9; } }
+    });
+    parts = parts.filter(p => p.a > 0 && p.y < h + 10);
+    parts.forEach(p => { ctx.fillStyle = p.dead ? rgba('#8892a8', p.a * .7) : rgba(cols[Math.min(p.k, K - 1)], 1); ctx.beginPath(); ctx.arc(p.x, p.y, 2.4, 0, TWO_PI); ctx.fill(); });
+  }
+  function wrap(ctx, text, x, y, mw, lh) { const words = text.split(' '); let line = '', lines = []; words.forEach(wd => { const tt = line ? line + ' ' + wd : wd; if (ctx.measureText(tt).width > mw && line) { lines.push(line); line = wd; } else line = tt; }); lines.push(line); lines.forEach((l, i) => ctx.fillText(l, x, y + (i - (lines.length - 1) / 2) * lh)); }
+  function drawTr() {
+    const { ctx, w, h } = setup(ct), bx = { l: 52, t: 12, r: w - 12, b: h - 24 }, e = eps();
+    const a = A(), X = scale('log', 10, 86400, bx.l, bx.r);
+    const k = t0 => ACT.Ig * e * t0, sd = t0 => Math.sqrt(a * k(t0) + 2 * ACT.B * t0) / k(t0), mda = t0 => (2.71 + 4.65 * Math.sqrt(2 * ACT.B * t0)) / k(t0);
+    const Y = scale('log', a / 12, a * 12, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { xt: [10, 60, 600, 3600, 36000, 86400], xf: fmtT, yl: t('ax.a'), yt: logTicks(a / 12, a * 12, [1, 2, 5]) });
+    if (!isFinite(e)) return;
+    ctx.beginPath(); const ts = []; for (let i = 0; i <= 80; i++) ts.push(10 * Math.pow(8640, i / 80));
+    ts.forEach((t0, i) => { const y = Y(Math.min(a + 2 * sd(t0), a * 12)); i ? ctx.lineTo(X(t0), y) : ctx.moveTo(X(t0), y); });
+    for (let i = ts.length - 1; i >= 0; i--) ctx.lineTo(X(ts[i]), Y(Math.max(a - 2 * sd(ts[i]), a / 12)));
+    ctx.closePath(); ctx.fillStyle = 'rgba(106,168,255,.28)'; ctx.fill();
+    ctx.strokeStyle = '#ff4d6d'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath(); ts.forEach((t0, i) => { const y = Y(clamp(mda(t0), a / 12, a * 12)); i ? ctx.lineTo(X(t0), y) : ctx.moveTo(X(t0), y); }); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = '#5be38a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(bx.l, Y(a)); ctx.lineTo(bx.r, Y(a)); ctx.stroke();
+    const tn = Tm(); ctx.strokeStyle = 'rgba(255,204,51,.6)'; ctx.beginPath(); ctx.moveTo(X(tn), bx.t); ctx.lineTo(X(tn), bx.b); ctx.stroke();
+    ACT.meas.forEach((m, mi) => {
+      const x = X(m.t) + ((mi % 9) - 4) * 2.2;
+      if (m.nd) { const y = Y(clamp(m.mda, a / 12, a * 12)); ctx.fillStyle = '#ff4d6d'; ctx.beginPath(); ctx.moveTo(x - 5, y); ctx.lineTo(x + 5, y); ctx.lineTo(x, y + 8); ctx.closePath(); ctx.fill(); return; }
+      const y0 = Y(clamp(m.a - m.s, a / 12, a * 12)), y1 = Y(clamp(m.a + m.s, a / 12, a * 12)), y = Y(clamp(m.a, a / 12, a * 12));
+      ctx.strokeStyle = '#ffcc33'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke(); ctx.fillStyle = '#ffcc33'; ctx.beginPath(); ctx.arc(x, y, 3.2, 0, TWO_PI); ctx.fill();
+    });
+  }
+  ACT.update = () => { sync(); eq(); drawTr(); res(); };
+  onRedraw(ACT.update);
+  sync(); requestAnimationFrame(funnel);
+})();
+
+/* ============================== НАВИГАЦИЯ ============================== */
+(function nav() {
+  const links = $$('#nav a'), secs = links.map(a => $(a.getAttribute('href')));
+  const ob = new IntersectionObserver(es => { es.forEach(e => { if (e.isIntersecting) { const i = secs.indexOf(e.target); links.forEach((l, j) => l.classList.toggle('on', j === i)); } }); }, { rootMargin: '-45% 0px -50% 0px' });
+  secs.forEach(s => ob.observe(s));
+})();
+let rz = 0; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redrawAll, 120); });
+applyLang();
+Jobs.add('eff', effJob());
+</script>
+</body>
+</html>
