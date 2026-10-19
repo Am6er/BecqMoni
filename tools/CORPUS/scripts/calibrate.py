@@ -50,24 +50,24 @@ OUT = os.path.join(HERE, 'spectra')
 
 SPECTRA = [
     dict(det='ASN16', key='ASN16_Th232', chains=['Th-232'], extra='WT',
-         path=r'C:\Users\moroz\YandexDisk\Спектры\!ASN16\Th-232 16.06.2026.xml'),
+         path=r'D:\YandexDisk\Спектры\!ASN16\Th-232 16.06.2026.xml'),
     dict(det='ASN16', key='ASN16_Charoite', chains=['Ra-226'], extra='',
-         path=r'C:\Users\moroz\YandexDisk\Спектры\!ASN16\Чароит в домике.xml'),
+         path=r'D:\YandexDisk\Спектры\!ASN16\Чароит в домике.xml'),
     dict(det='ASN16', key='ASN16_UGlass', chains=['U-238u', 'U-235'], extra='',
-         path=r'C:\Users\moroz\YandexDisk\Спектры\!ASN16\UGlass nos 12.xml'),
+         path=r'D:\YandexDisk\Спектры\!ASN16\UGlass nos 12.xml'),
     dict(det='ASN16', key='ASN16_Granite', chains=['Th-232', 'U-238', 'U-235'], extra='',
-         path=r'C:\Users\moroz\YandexDisk\Спектры\!ASN16\Гранит.xml'),
+         path=r'D:\YandexDisk\Спектры\!ASN16\Гранит.xml'),
     dict(det='AS80x80', key='AS80_Th232WT20', chains=['Th-232'], extra='WT',
-         path=r'C:\Users\moroz\YandexDisk\Спектры\!AS80x80\Th232(WT-20).xml'),
+         path=r'D:\YandexDisk\Спектры\!AS80x80\Th232(WT-20).xml'),
     # 28.08.2025 pair: same detector, far better statistics than the originals
     # (uranium glass 23 960 s / 8.6 M counts against 363 s / 127 k), and both
     # carry a measured background spectrum, which none of the older files do.
     dict(det='AS80x80', key='AS80_Th232_v2', chains=['Th-232'], extra='',
-         path=r'C:\Users\moroz\YandexDisk\Спектры\!AS80x80\28.08.2025\Th-232.xml'),
+         path=r'D:\YandexDisk\Спектры\!AS80x80\28.08.2025\Th-232.xml'),
     dict(det='AS80x80', key='AS80_UGlass', chains=['U-238u', 'U-235'], extra='',
-         path=r'C:\Users\moroz\YandexDisk\Спектры\!AS80x80\28.08.2025\UGlass.xml'),
+         path=r'D:\YandexDisk\Спектры\!AS80x80\28.08.2025\UGlass.xml'),
     dict(det='AS80x80', key='AS80_Charoite', chains=['Ra-226'], extra='',
-         path=r'C:\Users\moroz\YandexDisk\Спектры\!AS80x80\Камни\Чароит.xml'),
+         path=r'D:\YandexDisk\Спектры\!AS80x80\Камни\Чароит.xml'),
     # At 1024 channels almost every Th-232 line is part of a blend, and the
     # automatic anchor picker keeps drifting between solutions: with the
     # Ac-228 911/965/969 lump (49% pure) in, the fit goes linear and lands 13 keV
@@ -76,7 +76,7 @@ SPECTRA = [
     # are named explicitly instead of being rediscovered each run.
     dict(det='RC103', key='RC103_Th232WT20', chains=['Th-232'], extra='WT',
          wanted=[238.63, 338.32, 583.19, 2614.51],
-         path=r'C:\Users\moroz\YandexDisk\Спектры\!КОТ-103\Th-232 WT-20.xml'),
+         path=r'D:\YandexDisk\Спектры\!КОТ-103\Th-232 WT-20.xml'),
 ]
 
 # The strongest spectrum of each detector, used as the gain reference for the

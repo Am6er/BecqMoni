@@ -47,7 +47,7 @@ Lu-176 — при живой геометрии и живой матрице. В
 """
 import os
 
-LIB = r'C:\Users\moroz\YandexDisk\Спектры'
+LIB = r'D:\YandexDisk\Спектры'
 
 
 def p(*parts):
