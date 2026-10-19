@@ -49,6 +49,10 @@ ol.chk>li.done::before{content:"✓";background:var(--ok);color:#06210f;border-c
   <div class="kicker" data-t="h.k"></div>
   <h1 data-t="h.h"></h1>
   <p class="lead" data-t="h.lead"></p>
+  <div class="card full">
+    <canvas id="cvHero" class="cv tall" aria-label="animation"></canvas>
+    <div class="row"><span class="pill" id="heroStat"></span><span class="note" data-t="qn.cap"></span></div>
+  </div>
 </div></section>
 
 <section class="sec" id="types" data-nav="n.types"><div class="wrap">
@@ -69,6 +73,28 @@ ol.chk>li.done::before{content:"✓";background:var(--ok);color:#06210f;border-c
     <div class="fact" style="--c:var(--ok)" data-t="ty.f3"></div>
   </div>
 </div></section>
+
+<!-- Монте-Карло в 3D (`AMBER246`) -->
+<section class="sec" id="crystal" data-nav="mc.n"><div class="wrap">
+  <div class="kicker" data-t="mc.k"></div>
+  <h2 data-t="mc.h"></h2>
+  <p class="lead" data-t="mc.lead"></p>
+  <div class="card full">
+    <canvas id="cvMC" class="cv tall"></canvas>
+    <div class="row"><span class="lbl" data-t="mc.pick"></span><div class="chips" id="mcChips"></div></div>
+    <div class="tiles">
+      <div class="tile"><div class="big" id="mcT1">…</div><div class="small" data-t="mc.t1"></div></div>
+      <div class="tile"><div class="big" id="mcT2">…</div><div class="small" data-t="mc.t2"></div></div>
+      <div class="tile"><div class="big" id="mcT3">…</div><div class="small" data-t="mc.t3"></div></div>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="mc.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="mc.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="mc.f3"></div>
+  </div>
+</div></section>
+
 
 <section class="sec" id="window" data-nav="n.win"><div class="wrap">
   <div class="kicker" data-t="w.k"></div>
@@ -190,6 +216,28 @@ ol.chk>li.done::before{content:"✓";background:var(--ok);color:#06210f;border-c
 <footer><div class="wrap" data-t="foot"></div></footer>
 
 <script src="assets/guide.js"></script>
+<script src="assets/quanta.js"></script>
+<script>
+/* Монте-Карло-сцена главы (`AMBER246`) */
+GUIDE.texts({ ru: {"mc.n": "Кристалл", "mc.k": "Монте-Карло в 3D", "mc.h": "Кристалл решает: Ø40 против Ø76", "mc.lead": "Один и тот же источник в 2 см от торца, одни и те же фотоны. Слева кристалл Ø40 × 40 мм, справа Ø76 × 76 мм. Каждый трек сосчитан по физике взаимодействия, спектры — в общем масштабе на испущенный фотон. Крутите сцену мышью или пальцем.", "mc.pick": "Фотоны:", "mc.l1": "NaI Ø40 × 40 мм", "mc.l2": "NaI Ø76 × 76 мм", "mc.t1": "в пике у Ø40", "mc.t2": "в пике у Ø76", "mc.t3": "большой ловит в пик больше", "mc.f1": "<b>Больше кристалл — больше пик.</b> Фотону труднее проскочить насквозь, особенно на высоких энергиях: на 2614 кэВ разница в разы.", "mc.f2": "<b>Плато относительно пика ниже у большого.</b> Рассеянный фотон чаще догорает внутри и всё-таки попадает в пик.", "mc.f3": "<b>Ширину пика размер почти не меняет</b> — её задают кристалл и электроника. Здесь у обоих одна: 7.5 % при 662 кэВ."},
+ en: {"mc.n": "Crystal", "mc.k": "Monte Carlo in 3D", "mc.h": "The crystal decides: Ø40 versus Ø76", "mc.lead": "The same source 2 cm from the face, the same photons. On the left a Ø40 × 40 mm crystal, on the right Ø76 × 76 mm. Every track follows the interaction physics; the spectra share one scale per emitted photon. Rotate the scene with the mouse or a finger.", "mc.pick": "Photons:", "mc.l1": "NaI Ø40 × 40 mm", "mc.l2": "NaI Ø76 × 76 mm", "mc.t1": "in the peak, Ø40", "mc.t2": "in the peak, Ø76", "mc.t3": "the big one puts more into the peak", "mc.f1": "<b>A bigger crystal gives a bigger peak.</b> It is harder for a photon to slip through, especially at high energies: at 2614 keV the difference is several-fold.", "mc.f2": "<b>The plateau is lower relative to the peak in the big one.</b> A scattered photon more often ends up absorbed inside and lands in the peak after all.", "mc.f3": "<b>Size hardly changes the peak width</b> — the crystal and electronics set it. Both use the same here: 7.5 % at 662 keV."} });
+(function () {
+  const { $, $$, sig, fx, t, Q } = GUIDE;
+  const CH = [[59.54, 'Am-241'], [661.66, 'Cs-137'], [1460.82, 'K-40'], [2614.5, 'Tl-208']];
+  let E = 661.66;
+  const mc = Q.mcDuo($('#cvMC'), { scenes: [{ geo: { size: 4.0, gap: 2.0, src: 'point' }, label: () => t('mc.l1') }, { geo: { size: 7.6, gap: 2.0, src: 'point' }, label: () => t('mc.l2') }], lines: [[E, 1]], onStats: () => {
+    const s = mc.scenes; if (!s[0] || s[0].S.n < 800) return;
+    const e0 = s[0].S.fep / s[0].S.n, e1 = s[1].S.fep / s[1].S.n;
+    $('#mcT1').textContent = sig(100 * e0, 2) + ' %'; $('#mcT2').textContent = sig(100 * e1, 2) + ' %';
+    $('#mcT3').textContent = '× ' + fx(e1 / Math.max(e0, 1e-9), 1);
+  } });
+  function chips() {
+    $('#mcChips').innerHTML = CH.map(([e, n]) => '<button class="chip' + (Math.abs(e - E) < 1 ? ' on' : '') + '" data-e="' + e + '">' + n + ' · ' + Math.round(e) + '</button>').join('');
+    $$('#mcChips .chip').forEach(b => b.onclick = () => { E = +b.dataset.e; mc.setLines([[E, 1]]); ['#mcT1', '#mcT2', '#mcT3'].forEach(s => $(s).textContent = '…'); chips(); });
+  }
+  GUIDE.onRedraw(chips); chips();
+})();
+</script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, t, io, visible } = GUIDE;
@@ -609,6 +657,7 @@ tabset('cTabs');
   GUIDE.onRedraw(() => { chips(); stats(); sat(); drawTurn(); });
 })();
 
+GUIDE.Q.heroAnim(document.getElementById('cvHero'), document.getElementById('heroStat'));   // заставка с квантами, как на главной (`AMBER246`)
 GUIDE.init();
 </script>
 </body>

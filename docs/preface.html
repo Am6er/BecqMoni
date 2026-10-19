@@ -417,9 +417,9 @@ Q.photonLab();
   function frame(ts) {
     requestAnimationFrame(frame);
     if (!visible.get(cv) && !visible.get(cvC)) return;
-    for (let i = 0; i < 3; i++) { const tr = []; const r = Q.historyA(E, D, tr); nEm++; if (r.hit) nHit++; tracks.push({ tr, age: 0 }); }
+    for (let i = 0; i < 2; i++) { const tr = []; const r = Q.historyA(E, D, tr); nEm++; if (r.hit) nHit++; tracks.push({ tr, age: 0 }); }
     tracks.forEach(x => x.age++); tracks = tracks.filter(x => x.age < 46);
-    Q.runW(E, D, 220, null, 1, S);
+    Q.runW(E, D, 140, null, 1, S);
     if (S.n >= 600) { (curve[key()] = curve[key()] || {})[Math.round(st.gap * 10)] = S.fep / S.n; }
     if (auto && st.src !== 'mar' && ts - lastStep > 2600 && S.n >= 3000) {   // кривая строится сама: шаг расстояния каждые 2.6 с
       lastStep = ts; let g = Math.round(st.gap * 10) + dir * (st.gap < 1.5 ? 3 : st.gap < 3 ? 5 : 10);
@@ -436,7 +436,7 @@ Q.photonLab();
 const MXQ = { E: [], rows: [], blurred: [], fep: [], hits: [], N: 0, bw: 10, nb: 280, sel: 12, auto: true };
 (function matrix() {
   const cv = $('#cvMxQ'), cvR = $('#cvMxRow'); io.observe(cv); io.observe(cvR);
-  const D = Q.dims({ size: 6.3, gap: 1.0, src: 'jar' }), NR = 24, NH = 3500;
+  const D = Q.dims({ size: 6.3, gap: 1.0, src: 'jar' }), NR = 24, NH = GUIDE.lite() ? 1500 : 3500;
   for (let i = 0; i < NR; i++) MXQ.E.push(50 * Math.pow(2700 / 50, i / (NR - 1)));
   const sl = $('#mxSel');
   sl.addEventListener('input', () => { MXQ.sel = +sl.value; MXQ.auto = false; draw(); });
@@ -507,7 +507,7 @@ const MXQ = { E: [], rows: [], blurred: [], fep: [], hits: [], N: 0, bw: 10, nb:
 /* ── 4: FSA — слои из словаря, подбор шаг за шагом ── */
 (function fsa() {
   const cv = $('#cvFsaQ'), cvR = $('#cvFsaR'); io.observe(cv);
-  const D = Q.dims({ size: 6.3, gap: 1.0, src: 'jar' }), BW = 10, NB = 280, EMIN = 40, FW = 7.5, NH = 2600;
+  const D = Q.dims({ size: 6.3, gap: 1.0, src: 'jar' }), BW = 10, NB = 280, EMIN = 40, FW = 7.5, NH = GUIDE.lite() ? 1300 : 2600;
   const NUC = [
     { id: 'Cs-137', c: '#6aa8ff', L: [[661.66, 0.851]] },
     { id: 'K-40', c: '#ff9f43', L: [[1460.82, 0.1066]] },
@@ -568,14 +568,14 @@ const MXQ = { E: [], rows: [], blurred: [], fep: [], hits: [], N: 0, bw: 10, nb:
     const { ctx, w, h } = setup(cv), bx = { l: 52, t: 12, r: w - 12, b: h - 24 };
     const X = scale('lin', 0, 2800, bx.l, bx.r);
     if (!F.ready) {
-      axes(ctx, bx, X, scale('lin', 0, 1, bx.b, bx.t), { xl: t('q.ax.e'), noY: true });
+      axes(ctx, bx, X, scale('lin', 0, 1, bx.b, bx.t), { xl: t('qn.ax.e'), noY: true });
       ctx.fillStyle = '#cdd8f3'; ctx.font = '600 14px system-ui'; ctx.textAlign = 'center'; ctx.fillText(t('s4.calc', F.done, F.todo), (bx.l + bx.r) / 2, (bx.t + bx.b) / 2);
       ctx.fillStyle = 'rgba(255,204,51,.7)'; ctx.fillRect(bx.l, (bx.t + bx.b) / 2 + 14, (bx.r - bx.l) * F.done / F.todo, 4);
       return;
     }
     let mx = 10; for (let b = 0; b < NB; b++) mx = Math.max(mx, F.meas[b]);
     const Y = scale('sqrt', 0, mx * 1.08, bx.b, bx.t), bw = X(BW) - X(0);
-    axes(ctx, bx, X, Y, { xl: t('q.ax.e'), yl: t('q.ax.cnt') });
+    axes(ctx, bx, X, Y, { xl: t('qn.ax.e'), yl: t('qn.ax.cnt') });
     // слои — снизу фон, сверху нуклиды
     const order = [F.tpl.length - 1, ...NUC.map((n, i) => i)];
     const acc = new Float64Array(NB);
@@ -639,8 +639,9 @@ const MXQ = { E: [], rows: [], blurred: [], fep: [], hits: [], N: 0, bw: 10, nb:
     const nDec = poisson(st.A * dt), nPk = poisson(st.A * dt * EPS * Y_LINE);
     st.t += dt; st.dec += nDec; st.N += nPk;
     // на экране — выборка: до пяти распадов-«промахов» и до двух фотонов, дошедших до пика; счётчики — все
-    for (let i = 0; i < Math.min(nDec, 5); i++) st.flashes.push({ x: Math.random(), y: Math.random(), age: 0, hit: false });
-    for (let i = 0; i < Math.min(nPk, 2); i++) st.flashes.push({ x: Math.random(), y: Math.random(), age: 0, hit: true });
+    for (let i = 0; i < Math.min(nDec, 3); i++) st.flashes.push({ x: Math.random(), y: Math.random(), age: 0, hit: false });
+    for (let i = 0; i < Math.min(nPk, 1); i++) st.flashes.push({ x: Math.random(), y: Math.random(), age: 0, hit: true });
+    if (st.flashes.length > 80) st.flashes.splice(0, st.flashes.length - 80);   // не больше 80 вспышек на экране — иначе телефон не тянет
     st.flashes.forEach(f => f.age++); st.flashes = st.flashes.filter(f => f.age < 40);
     const e = est(); if (e) st.hist.push([st.t, e[0], e[1]]);
     if (st.t > 2e5) reset();
@@ -654,12 +655,12 @@ const MXQ = { E: [], rows: [], blurred: [], fep: [], hits: [], N: 0, bw: 10, nb:
     ctx.fillStyle = '#3b4560'; ctx.fillRect(cx + cw, cy + ch * 0.06, w * 0.12, ch * 0.88);
     st.flashes.forEach(f => {
       const px = jx + f.x * jw, py = jy + f.y * jh, a = 1 - f.age / 40;
-      const gr = ctx.createRadialGradient(px, py, 0, px, py, 10); gr.addColorStop(0, 'rgba(255,230,120,' + a + ')'); gr.addColorStop(1, 'rgba(255,170,60,0)');
-      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,190,80,' + 0.25 * a + ')'; ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI * 2); ctx.fill();   // вспышка: два круга вместо градиента — дёшево
+      ctx.fillStyle = 'rgba(255,235,140,' + a + ')'; ctx.beginPath(); ctx.arc(px, py, 2.6, 0, Math.PI * 2); ctx.fill();
       if (f.hit) {                          // фотон долетел и отдал всё — вспышка в кристалле
         const k = Math.min(1, f.age / 14), tx = cx + cw * (0.25 + 0.5 * f.y), ty = cy + ch * (0.15 + 0.7 * f.x);
         ctx.strokeStyle = eCol(662, a); ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(lerp(px, tx, k), lerp(py, ty, k)); ctx.stroke();
-        if (k >= 1) { const gg = ctx.createRadialGradient(tx, ty, 0, tx, ty, 12); gg.addColorStop(0, 'rgba(255,77,109,' + a + ')'); gg.addColorStop(1, 'rgba(255,77,109,0)'); ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(tx, ty, 12, 0, Math.PI * 2); ctx.fill(); }
+        if (k >= 1) { ctx.fillStyle = 'rgba(255,77,109,' + 0.3 * a + ')'; ctx.beginPath(); ctx.arc(tx, ty, 9, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = 'rgba(255,120,150,' + a + ')'; ctx.beginPath(); ctx.arc(tx, ty, 3, 0, Math.PI * 2); ctx.fill(); }
       } else {
         const ang = f.x * 6.283, k = Math.min(1, f.age / 22); ctx.strokeStyle = 'rgba(255,204,51,' + 0.35 * a + ')'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(ang) * 60 * k, py + Math.sin(ang) * 60 * k); ctx.stroke();
       }

@@ -159,8 +159,11 @@
   }
 
   /* ── графики ── */
+  // облегчённый режим (`AMBER246`): узкий экран или слабый процессор — меньше точек на пиксель, короче фоновые куски, 30 кадров
+  const lite = () => W.innerWidth < 760 || (navigator.hardwareConcurrency || 8) <= 4;
+  G.lite = lite;
   function setup(c) {
-    const r = c.getBoundingClientRect(), d = Math.min(W.devicePixelRatio || 1, 2);
+    const r = c.getBoundingClientRect(), d = Math.min(W.devicePixelRatio || 1, lite() ? 1.5 : 2);
     const w = Math.max(20, Math.round(r.width)), h = Math.max(20, Math.round(r.height));
     if (c.width !== Math.round(w * d) || c.height !== Math.round(h * d)) { c.width = Math.round(w * d); c.height = Math.round(h * d); }
     const ctx = c.getContext('2d'); ctx.setTransform(d, 0, 0, d, 0, 0); ctx.clearRect(0, 0, w, h);
@@ -206,7 +209,7 @@
   const Jobs = {
     list: [], running: false,
     add(name, gen) { this.list = this.list.filter(j => j.name !== name); this.list.push({ name, it: gen }); if (!this.running) { this.running = true; requestAnimationFrame(() => this.tick()); } },
-    tick() { const t0 = performance.now(); while (this.list.length && performance.now() - t0 < 14) { const j = this.list[0]; let r; try { r = j.it.next(); } catch (e) { console.error(e); r = { done: true }; } if (r.done) this.list.shift(); } if (this.list.length) requestAnimationFrame(() => this.tick()); else this.running = false; }
+    tick() { const t0 = performance.now(); while (this.list.length && performance.now() - t0 < (lite() ? 6 : 14)) { const j = this.list[0]; let r; try { r = j.it.next(); } catch (e) { console.error(e); r = { done: true }; } if (r.done) this.list.shift(); } if (this.list.length) requestAnimationFrame(() => this.tick()); else this.running = false; }
   };
   const visible = new Map();
   const io = new IntersectionObserver(es => es.forEach(e => visible.set(e.target, e.isIntersecting)), { rootMargin: '120px' });

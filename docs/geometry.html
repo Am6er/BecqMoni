@@ -42,6 +42,10 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
   <div class="kicker" data-t="h.k"></div>
   <h1 data-t="h.h"></h1>
   <p class="lead" data-t="h.lead"></p>
+  <div class="card full">
+    <canvas id="cvHero" class="cv tall" aria-label="animation"></canvas>
+    <div class="row"><span class="pill" id="heroStat"></span><span class="note" data-t="qn.cap"></span></div>
+  </div>
 </div></section>
 
 <!-- 1. СОБЕРИТЕ САМИ -->
@@ -71,6 +75,28 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
     <div class="fact" style="--c:var(--ok)" data-t="w.f3"></div>
   </div>
 </div></section>
+
+<!-- Монте-Карло в 3D (`AMBER246`) -->
+<section class="sec" id="mcgeo" data-nav="mc.n"><div class="wrap">
+  <div class="kicker" data-t="mc.k"></div>
+  <h2 data-t="mc.h"></h2>
+  <p class="lead" data-t="mc.lead"></p>
+  <div class="card full">
+    <canvas id="cvMC" class="cv tall"></canvas>
+    <div class="row"><span class="lbl" data-t="mc.pick"></span><div class="chips" id="mcChips"></div></div>
+    <div class="tiles">
+      <div class="tile"><div class="big" id="mcT1">…</div><div class="small" data-t="mc.t1"></div></div>
+      <div class="tile"><div class="big" id="mcT2">…</div><div class="small" data-t="mc.t2"></div></div>
+      <div class="tile"><div class="big" id="mcT3">…</div><div class="small" data-t="mc.t3"></div></div>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="mc.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="mc.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="mc.f3"></div>
+  </div>
+</div></section>
+
 
 <!-- 2. ВКЛАДКА «ЭФФЕКТИВНОСТЬ» -->
 <section class="sec" id="tab" data-nav="n.tab"><div class="wrap">
@@ -227,6 +253,28 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
 <footer><div class="wrap" data-t="foot"></div></footer>
 
 <script src="assets/guide.js"></script>
+<script src="assets/quanta.js"></script>
+<script>
+/* Монте-Карло-сцена главы (`AMBER246`) */
+GUIDE.texts({ ru: {"mc.n": "В 3D", "mc.k": "Монте-Карло в 3D", "mc.h": "Банка или Маринелли — в 3D", "mc.lead": "Один и тот же кристалл Ø63 × 63 мм, одна и та же вода с одним нуклидом. Слева банка 0.2 л на торце, справа сосуд Маринелли, обнимающий кристалл. Поверните сцену — видно, откуда фотоны входят в кристалл и сколько их пролетает мимо.", "mc.pick": "Фотоны:", "mc.l1": "банка на торце", "mc.l2": "Маринелли", "mc.t1": "в пике: банка", "mc.t2": "в пике: Маринелли", "mc.t3": "Маринелли ловит в пик больше", "mc.f1": "<b>Маринелли окружает кристалл</b> — больше телесного угла, больше пик на испущенный фотон.", "mc.f2": "<b>Зато путь сквозь пробу длиннее.</b> Плотная проба сильнее гасит низкие энергии — попробуйте Am-241.", "mc.f3": "<b>Обе кривые BecqMoni строит из геометрии</b> тем же переносом фотонов — в конструкторе кривой ниже на этой странице."},
+ en: {"mc.n": "In 3D", "mc.k": "Monte Carlo in 3D", "mc.h": "A jar or a Marinelli beaker — in 3D", "mc.lead": "The same Ø63 × 63 mm crystal, the same water with one nuclide. On the left a 0.2 l jar on the face, on the right a Marinelli beaker wrapped around the crystal. Rotate the scene to see where photons enter the crystal and how many fly past.", "mc.pick": "Photons:", "mc.l1": "jar on the face", "mc.l2": "Marinelli", "mc.t1": "in the peak: jar", "mc.t2": "in the peak: Marinelli", "mc.t3": "Marinelli puts more into the peak", "mc.f1": "<b>A Marinelli beaker surrounds the crystal</b> — more solid angle, a bigger peak per emitted photon.", "mc.f2": "<b>But the path through the sample is longer.</b> A dense sample absorbs low energies more — try Am-241.", "mc.f3": "<b>BecqMoni builds both curves from the geometry</b> with the same photon transport — in the curve maker further down this page."} });
+(function () {
+  const { $, $$, sig, fx, t, Q } = GUIDE;
+  const CH = [[59.54, 'Am-241'], [661.66, 'Cs-137'], [1460.82, 'K-40'], [2614.5, 'Tl-208']];
+  let E = 661.66;
+  const mc = Q.mcDuo($('#cvMC'), { scenes: [{ geo: { size: 6.3, gap: 0.5, src: 'jar' }, label: () => t('mc.l1') }, { geo: { size: 6.3, gap: 0.5, src: 'mar' }, label: () => t('mc.l2') }], lines: [[E, 1]], onStats: () => {
+    const s = mc.scenes; if (!s[0] || s[0].S.n < 800) return;
+    const e0 = s[0].S.fep / s[0].S.n, e1 = s[1].S.fep / s[1].S.n;
+    $('#mcT1').textContent = sig(100 * e0, 2) + ' %'; $('#mcT2').textContent = sig(100 * e1, 2) + ' %';
+    $('#mcT3').textContent = '× ' + fx(e1 / Math.max(e0, 1e-9), 1);
+  } });
+  function chips() {
+    $('#mcChips').innerHTML = CH.map(([e, n]) => '<button class="chip' + (Math.abs(e - E) < 1 ? ' on' : '') + '" data-e="' + e + '">' + n + ' · ' + Math.round(e) + '</button>').join('');
+    $$('#mcChips .chip').forEach(b => b.onclick = () => { E = +b.dataset.e; mc.setLines([[E, 1]]); ['#mcT1', '#mcT2', '#mcT3'].forEach(s => $(s).textContent = '…'); chips(); });
+  }
+  GUIDE.onRedraw(chips); chips();
+})();
+</script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, io, t, Jobs } = GUIDE;
@@ -662,6 +710,7 @@ $$('#mTabs .chip').forEach(b => b.onclick = () => {
   GUIDE.onRedraw(draw);
 })();
 
+GUIDE.Q.heroAnim(document.getElementById('cvHero'), document.getElementById('heroStat'));   // заставка с квантами, как на главной (`AMBER246`)
 GUIDE.init();
 </script>
 </body>

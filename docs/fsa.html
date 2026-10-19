@@ -46,6 +46,10 @@ figure.shot.side.tall>.shot-frame{max-width:330px;width:100%}
   <div class="kicker" data-t="h.k"></div>
   <h1 data-t="h.h"></h1>
   <p class="lead" data-t="h.lead"></p>
+  <div class="card full">
+    <canvas id="cvHero" class="cv tall" aria-label="animation"></canvas>
+    <div class="row"><span class="pill" id="heroStat"></span><span class="note" data-t="qn.cap"></span></div>
+  </div>
 </div></section>
 
 <!-- 1. ВКЛЮЧИТЬ -->
@@ -153,6 +157,28 @@ figure.shot.side.tall>.shot-frame{max-width:330px;width:100%}
   </div>
 </div></section>
 
+<!-- Монте-Карло в 3D (`AMBER246`) -->
+<section class="sec" id="layer" data-nav="mc.n"><div class="wrap">
+  <div class="kicker" data-t="mc.k"></div>
+  <h2 data-t="mc.h"></h2>
+  <p class="lead" data-t="mc.lead"></p>
+  <div class="card full">
+    <canvas id="cvMC" class="cv tall"></canvas>
+    <div class="row"><span class="lbl" data-t="mc.pick"></span><div class="chips" id="mcChips"></div></div>
+    <div class="tiles">
+      <div class="tile"><div class="big" id="mcT1">…</div><div class="small" data-t="mc.t1"></div></div>
+      <div class="tile"><div class="big" id="mcT2">…</div><div class="small" data-t="mc.t2"></div></div>
+      <div class="tile"><div class="big" id="mcT3">…</div><div class="small" data-t="mc.t3"></div></div>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="mc.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="mc.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="mc.f3"></div>
+  </div>
+</div></section>
+
+
 <!-- 5. ПРИ НАБОРЕ -->
 <section class="sec" id="live" data-nav="n.live"><div class="wrap">
   <div class="kicker" data-t="l.k"></div>
@@ -185,6 +211,29 @@ figure.shot.side.tall>.shot-frame{max-width:330px;width:100%}
 <footer><div class="wrap" data-t="foot"></div></footer>
 
 <script src="assets/guide.js"></script>
+<script src="assets/quanta.js"></script>
+<script>
+/* Монте-Карло-сцена главы (`AMBER246`) */
+GUIDE.texts({ ru: {"mc.n": "Слой", "mc.k": "Монте-Карло в 3D", "mc.h": "Как рождается слой", "mc.lead": "Слой — это то, как нуклид со всеми своими линиями выглядит именно в вашей геометрии. Его печатает тот же перенос фотонов: каждая линия ряда летит в кристалл со своим выходом, и из оставленной энергии складывается форма слоя — пики, плато, пики вылета вместе.", "mc.pick": "Нуклид:", "mc.chain": "(ряд)", "mc.lab": "слой {0} в банке на торце", "mc.t1": "линий в слое", "mc.t2": "фотонов прогнано", "mc.t3": "в пиках на испущенный фотон", "mc.f1": "<b>Слой — это целый нуклид</b>, а не отдельный пик. Поэтому FSA разбирает даже перекрытые линии: 583 и 609 кэВ из разных рядов не путаются.", "mc.f2": "<b>Слой зависит от геометрии.</b> Один и тот же нуклид в банке и в Маринелли даёт разные слои — потому матрица считается для вашей геометрии.", "mc.f3": "<b>В программе слои не считаются заново</b> на каждом разборе: они берутся из матрицы отклика, которую прибор считает один раз."},
+ en: {"mc.n": "Layer", "mc.k": "Monte Carlo in 3D", "mc.h": "How a layer is born", "mc.lead": "A layer is what a nuclide with all its lines looks like in exactly your geometry. The same photon transport prints it: every line of the chain flies into the crystal with its own yield, and the energy left behind builds the shape of the layer — peaks, plateaus and escape peaks together.", "mc.pick": "Nuclide:", "mc.chain": "(chain)", "mc.lab": "{0} layer, jar on the face", "mc.t1": "lines in the layer", "mc.t2": "photons run", "mc.t3": "in the peaks per emitted photon", "mc.f1": "<b>A layer is a whole nuclide</b>, not a single peak. That is why FSA separates even overlapping lines: 583 and 609 keV from different chains do not get mixed up.", "mc.f2": "<b>The layer depends on the geometry.</b> The same nuclide in a jar and in a Marinelli beaker gives different layers — so the matrix is computed for your geometry.", "mc.f3": "<b>The app does not recompute layers</b> on every analysis: it takes them from the response matrix the detector computes once."} });
+(function () {
+  const { $, $$, fx, t, Q } = GUIDE;
+  const NUC = [
+    { id: 'Cs-137', c: '#6aa8ff', L: [[661.66, 0.851]] },
+    { id: 'K-40', c: '#ff9f43', L: [[1460.82, 0.1066]] },
+    { id: 'Ra-226', c: '#5be38a', L: [[186.2, 0.036], [242.0, 0.073], [295.2, 0.184], [351.9, 0.356], [609.3, 0.455], [768.4, 0.049], [1120.3, 0.149], [1238.1, 0.058], [1764.5, 0.153]] },
+    { id: 'Th-232', c: '#c38bff', L: [[238.6, 0.436], [338.3, 0.113], [583.2, 0.304], [727.3, 0.067], [911.2, 0.258], [969.0, 0.158], [2614.5, 0.359]] },
+  ];
+  let cur = 3;
+  const mc = Q.mcDuo($('#cvMC'), { scenes: [{ geo: { size: 6.3, gap: 1.0, src: 'jar' }, label: () => t('mc.lab', NUC[cur].id) }], lines: NUC[cur].L, emax: 2900, layer: () => NUC[cur].c,
+    onStats: () => { const s = mc.scenes[0]; $('#mcT1').textContent = NUC[cur].L.length; $('#mcT2').textContent = s.S.n; $('#mcT3').textContent = s.S.n ? fx(100 * s.S.fep / s.S.n, 2) + ' %' : '…'; } });
+  function chips() {
+    $('#mcChips').innerHTML = NUC.map((n, i) => '<button class="chip' + (i === cur ? ' on' : '') + '" data-i="' + i + '">' + n.id + (n.L.length > 1 ? ' ' + t('mc.chain') : '') + '</button>').join('');
+    $$('#mcChips .chip').forEach(b => b.onclick = () => { cur = +b.dataset.i; mc.setLines(NUC[cur].L); chips(); });
+  }
+  GUIDE.onRedraw(chips); chips();
+})();
+</script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, io, t, poisson } = GUIDE;
@@ -560,6 +609,7 @@ GUIDE.texts({ru:{
   io.observe(cv); GUIDE.onRedraw(draw);
 })();
 
+GUIDE.Q.heroAnim(document.getElementById('cvHero'), document.getElementById('heroStat'));   // заставка с квантами, как на главной (`AMBER246`)
 GUIDE.init();
 </script>
 </body>
