@@ -122,6 +122,10 @@ namespace BecquerelMonitor
         // Token: 0x060000C5 RID: 197 RVA: 0x00003F34 File Offset: 0x00002134
         void LoadFormContents(NuclideDefinition nuclide)
         {
+            // (П341, `A338`) Что показано в полях справа — по нему
+            // `ShowLibraryChange` отличает поле, которое человек правил, от
+            // поля, которое осталось таким, каким его поставила загрузка.
+            this.shownValues = LineValues.Of(nuclide);
             this.contentsLoading = true;
             this.textBox1.Text = nuclide.Name;
             this.chainTextBox.Text = nuclide.Chain;
@@ -655,6 +659,132 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// ⛔ (П341, 19.10.2026, `A338`) Библиотеку изменил ДРУГОЙ — открытые окна
+        /// редактора нуклидов показывают её заново (<see cref="ShowLibraryChange"/>).
+        /// Зовут импорт из NucBase после удачной записи файла и редактор наборов —
+        /// после «Присвоить» цвета и после отката своих правок («Нет» при закрытии).
+        /// </summary>
+        internal static void ShowLibraryChangeInOpen()
+        {
+            foreach (Form form in Application.OpenForms)
+            {
+                NuclideDefinitionForm editor = form as NuclideDefinitionForm;
+                if (editor != null && !editor.IsDisposed)
+                {
+                    editor.ShowLibraryChange();
+                }
+            }
+        }
+
+        /// <summary>
+        /// ⛔ (П341, 19.10.2026, `A338`) ПОКАЗАТЬ БИБЛИОТЕКУ, ИЗМЕНЁННУЮ ВНЕ ОКНА.
+        /// Таблица окна строится только <see cref="ListupNuclideDefinitions"/>, а
+        /// зовёт его лишь само окно. Импорт из NucBase при открытом окне дописывал
+        /// линии в библиотеку и в файл, а окно показывало прежний список — замер
+        /// П341 на копии конфига Amber: импорт 133BA (пять гамма-линий), «Добавлено
+        /// - 5», в файле 47 линий, в окне 42, ни одной Ba133. Человек, ушедший на
+        /// строку, мог удалить или переписать линии, которых в окне не видел.
+        ///
+        /// Два места, оба — без вопроса и без пометки «изменено»:
+        ///  * таблица строится заново; обработчик выделения при этом НЕ работает
+        ///    (<see cref="reenter"/>): иначе перестроение звало бы
+        ///    <see cref="LoadFormContents"/> и молча стирало набранное в полях
+        ///    справа — несохранённое, которое импорт по ответу «Нет» оставляет
+        ///    окну (П328);
+        ///  * поля справа: линия без несохранённого показывается заново целиком
+        ///    (импорт с «перезаписать» мог сменить её имя, выход, период, ряд, и
+        ///    следующее «Сохранить» вернуло бы в линию прежние значения полей);
+        ///    у линии с несохранённым заменяются только поля, которых человек не
+        ///    трогал, — набранное остаётся за ним.
+        /// </summary>
+        internal void ShowLibraryChange()
+        {
+            bool wasReenter = this.reenter;
+            this.reenter = true;
+            try
+            {
+                this.ListupNuclideDefinitions();
+            }
+            finally
+            {
+                this.reenter = wasReenter;
+            }
+
+            if (this.activeNuclide == null)
+            {
+                return;
+            }
+
+            if (!this.activeNuclide.Dirty)
+            {
+                this.LoadFormContents(this.activeNuclide);
+                return;
+            }
+
+            this.ReloadUntouchedFields(this.activeNuclide);
+        }
+
+        /// <summary>
+        /// (П341, `A338`) Поля справа, которых человек не трогал (текст совпадает с
+        /// показанным загрузкой, <see cref="shownValues"/>), получают значения линии;
+        /// тронутые остаются как есть. Пометку «изменено» не трогает.
+        /// </summary>
+        void ReloadUntouchedFields(NuclideDefinition nuclide)
+        {
+            LineValues shown = this.shownValues;
+            if (shown == null)
+            {
+                return;
+            }
+
+            LineValues now = LineValues.Of(nuclide);
+            this.contentsLoading = true;
+            try
+            {
+                if (this.textBox1.Text == (shown.Name ?? ""))
+                {
+                    this.textBox1.Text = now.Name;
+                }
+                if (this.chainTextBox.Text == (shown.Chain ?? ""))
+                {
+                    this.chainTextBox.Text = now.Chain;
+                }
+                if (this.doubleTextBox1.Text == shown.Energy.ToString(CultureInfo.InvariantCulture))
+                {
+                    this.doubleTextBox1.Text = now.Energy.ToString(CultureInfo.InvariantCulture);
+                }
+                if (this.doubleTextBox2.Text == shown.HalfLife.ToString(CultureInfo.InvariantCulture))
+                {
+                    this.doubleTextBox2.Text = now.HalfLife.ToString(CultureInfo.InvariantCulture);
+                }
+                if (this.intensityTextBox.Text == shown.Intensity.ToString(CultureInfo.InvariantCulture))
+                {
+                    this.intensityTextBox.Text = now.Intensity.ToString(CultureInfo.InvariantCulture);
+                }
+                string shownNote = shown.Note == null ? "" : (string)shown.Note;
+                if (this.textBox2.Text == shownNote)
+                {
+                    this.textBox2.Text = now.Note == null ? "" : (string)now.Note;
+                }
+                if (shown.HasColor && now.HasColor && this.colorComboBox1.SelectedColor == shown.Color)
+                {
+                    this.colorComboBox1.SelectedColor = now.Color;
+                    this.colorComboBox1.Refresh();
+                }
+                if (this.checkBox1.Checked == shown.Visible)
+                {
+                    this.checkBox1.Checked = now.Visible;
+                }
+            }
+            finally
+            {
+                this.contentsLoading = false;
+            }
+
+            this.shownValues = now;
+        }
+
+        /// <summary>
         /// (П326) Ответ «Да» на вопрос редактора наборов: записать правки окна в
         /// файл вместе с остальным — ровно как кнопка «Сохранить» этого окна
         /// (поля переносятся в линию, файл пишется, окно становится «сохранено»).
@@ -931,5 +1061,12 @@ namespace BecquerelMonitor
 
         /// <summary>(П318) Снимки линий до несохранённых правок — откат «Нет».</summary>
         readonly List<NuclideState> unsaved = new List<NuclideState>();
+
+        /// <summary>
+        /// (П341, `A338`) Значения линии, поставленные в поля справа последней
+        /// загрузкой (<see cref="LoadFormContents"/>) или
+        /// <see cref="ReloadUntouchedFields"/>.
+        /// </summary>
+        LineValues shownValues;
     }
 }

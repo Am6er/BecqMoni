@@ -240,6 +240,17 @@ namespace BecquerelMonitor
             // Цветом красятся линии интенсивностей и подписи пиков — перерисовать
             // сразу, иначе действие выглядит несработавшим.
             this.RefreshActiveChart();
+            // ⛔ (П341, 19.10.2026, находка `A338`) ЦВЕТ — И В ОТКРЫТОЕ ОКНО
+            // «Редактировать изотоп». Оно держит цвет линии в поле «Цвет пика», а
+            // «Сохранить» окна переносит в линию ВСЕ поля (`SaveFormContents`):
+            // прежде цвет, присвоенный здесь, возвращался прежним молча. Замер П341
+            // на копии конфига Amber: Am-241 Red → «Присвоить» Blue → «Сохранить»
+            // наборов (в файле Blue) → в окне по-прежнему Red → заметка и
+            // «Сохранить» окна — в файле Red; путь «Да» вопроса П326 (окно с
+            // несохранённым) записывал Red сразу, через `SaveTogether`. Зовётся
+            // здесь, в момент покраски, а не после записи: «Да» переносит поля
+            // окна в линию ДО записи наборов.
+            NuclideDefinitionForm.ShowLibraryChangeInOpen();
         }
 
         private void tableNuclides_CellClick(object sender, XPTable.Events.CellMouseEventArgs e)
@@ -688,6 +699,10 @@ namespace BecquerelMonitor
             this.nuclideManager.ActiveSet = this.openedActiveSet;
             this.selectedSet = null;
             this.RefreshActiveChart();
+            // (П341) Цвета линий вернулись — открытое окно «Редактировать изотоп»
+            // показывает их заново (см. `buttonAssignColor_Click`): иначе в его
+            // поле остался бы цвет, от которого здесь только что отказались.
+            NuclideDefinitionForm.ShowLibraryChangeInOpen();
         }
 
         sealed class OpenedSet

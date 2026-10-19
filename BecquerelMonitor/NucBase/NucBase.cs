@@ -1167,6 +1167,14 @@ namespace BecquerelMonitor.NucBase
                         plan.Revert(defManager);
                         return;
                     }
+
+                    // ⛔ (П341, `A338`) Открытое окно «Редактировать изотоп» строит
+                    // таблицу только само и импортированных линий не показывало до
+                    // своего «Сохранить», «Новый» или «Удалить». Показ — после
+                    // записи и до сообщения: человек читает «Добавлено - N» при
+                    // окне, где эти N уже видны. Отказ записи и «Отмена» сюда не
+                    // доходят — библиотека та же, что в окне.
+                    NuclideDefinitionForm.ShowLibraryChangeInOpen();
                 }
 
                 string text = string.Format(CultureInfo.InvariantCulture, Resources.NuclideDefImportSuccess, plan.CreatedCount, plan.UpdatedCount);
