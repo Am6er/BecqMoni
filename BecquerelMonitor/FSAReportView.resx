@@ -5316,6 +5316,24 @@
   <data name="FSAReport_InterferenceValue" xml:space="preserve">
     <value>not counted</value>
   </data>
+  <data name="FSAReport_IsotopeRow" xml:space="preserve">
+    <value>{0} in {0}+{1}: {2} ± {3} wt% ({4}; natural {5} %)</value>
+  </data>
+  <data name="FSAReport_IsotopeSpread" xml:space="preserve">
+    <value>member spread {0}–{1} %</value>
+  </data>
+  <data name="FSAReport_IsotopeStatOnly" xml:space="preserve">
+    <value>statistics only</value>
+  </data>
+  <data name="FSAReport_IsotopeNatural" xml:space="preserve">
+    <value>natural</value>
+  </data>
+  <data name="FSAReport_IsotopeDepleted" xml:space="preserve">
+    <value>depleted</value>
+  </data>
+  <data name="FSAReport_IsotopeEnriched" xml:space="preserve">
+    <value>enriched</value>
+  </data>
   <data name="FSAReport_UncoveredRow" xml:space="preserve">
     <value>{0} keV: peak outside the composition — {1} % above the model, z {2}; library lines nearby: {3}</value>
   </data>

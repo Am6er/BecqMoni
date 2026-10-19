@@ -57,14 +57,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public int HeadMatched, HeadExpected;
 
         /// <summary>
-        /// Члены ряда, стоящие СРАЗУ НАД подцепочкой, — там она и обрывается
-        /// сверху. Пусто — подцепочка начинается с корня (случай `S65`).
+        /// Где подцепочка обрывается СВЕРХУ: головы отрезков ряда, которые её
+        /// питают и в неё не взяты (`AMBER236`, через «+»). Пусто — подцепочка
+        /// начинается с корня (урановое стекло).
         /// </summary>
         public string Cut = "";
 
         /// <summary>
-        /// (`A205`) Члены ряда, стоящие СРАЗУ ПОД подцепочкой. Пусто —
-        /// подцепочка доходит до конца ряда (случай точечного Th-228).
+        /// (`A205`) Где подцепочка обрывается СНИЗУ: головы отрезков, которые она
+        /// питает и которые в неё не взяты. Пусто — подцепочка доходит до конца
+        /// ряда (случай точечного Th-228).
         /// </summary>
         public string CutBelow = "";
 
@@ -80,6 +82,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// такое «член подтверждён».
         /// </summary>
         public readonly List<string> ByMember = new List<string>();
+
+        /// <summary>
+        /// (`AMBER236`) РАСКЛАД ПО ОТРЕЗКАМ оборванного ряда: по строке на отрезок,
+        /// «226RA[226RA+222RN+…] 1/26 нет» — голова, члены, подтверждено / ожидалось
+        /// и приговор: «есть» (держит порог), «нет» (против), «молчит» (сказать
+        /// нечего). Пусто — ряд по отрезкам не судили.
+        /// </summary>
+        public readonly List<string> BySegment = new List<string>();
 
         /// <summary>Родитель взят в состав.</summary>
         public bool Accepted;
@@ -558,7 +568,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // доли, и «новизна» кандидата проверяется против уже принятых
             // (см. Accept). Первым читается то, на чём состав держится.
             models.Sort((a, b) => Judged(b.Evidence).CompareTo(Judged(a.Evidence)));
-            Accept(models, coverage, novelty);
+            Accept(models, coverage, novelty, cut);
             Collapse(models, cut);
 
             foreach (Model model in models)
@@ -987,6 +997,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// </summary>
             public string Owner = "";
 
+            /// <summary>(`AMBER236`) Пик, подтвердивший группу; null — не подтверждена.</summary>
+            public Peak Peak;
+
+            /// <summary>
+            /// (`AMBER236`) Голова отрезка ряда, которому группа засчитана
+            /// (<see cref="Head"/>); пусто — по отрезкам не судили.
+            /// </summary>
+            public string Segment = "";
+
             public bool Matched
             {
                 get { return !double.IsNaN(this.Snr); }
@@ -1002,6 +1021,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             /// <summary>(`S65`) Глубина члена ряда от корня; пусто — не ряд.</summary>
             public Dictionary<string, int> Depths;
+
+            /// <summary>(`AMBER236`) Головы отрезков, взятых в подцепочку.</summary>
+            public readonly HashSet<string> HeadSegments =
+                new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         }
 
         static Model Build(string nucid, bool declaredRoot, FsaSampleSpec spec, ResultData resultData,
@@ -1298,6 +1321,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             foreach (Candidate taken in MinCostMatching(order, options, pairs))
             {
                 taken.Group.Snr = taken.Snr;
+                taken.Group.Peak = taken.Peak;
             }
         }
 
@@ -1593,51 +1617,60 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// правильный ответ на этот вопрос — «нет», и он же неверный ответ на
         /// вопрос, который на самом деле задан: «есть ли в пробе родитель».
         ///
-        /// ⛔ ОДНО ПРАВИЛО НА ДВА СЛУЧАЯ, и второй копии рядом быть не должно
-        /// (решение Amber 06.09.2026 по `A205`: «тем же правилом, что уже
-        /// принято для `S65`»). Случая ровно два, и они зеркальны:
+        /// ⛔ ОДНО ПРАВИЛО НА ВСЕ СЛУЧАИ ОБРЫВА (решение Amber 06.09.2026 по
+        /// `A205`: «тем же правилом, что уже принято для `S65`»; способ резать —
+        /// решение Amber 19.10.2026 по `AMBER236`, дословно: «Резать по
+        /// долгоживущим членам (рекомендую)»). Случаи:
         ///
-        ///   `S65`, ряд оборван СНИЗУ — урановое стекло. Уран попал в стекло
-        ///   химически очищенным, равновесия ниже радия нет: `Th-234` 93 кэВ и
-        ///   `Pa-234m` 1001 кэВ видны прекрасно, а `Bi-214` и `Pb-214` не видны
-        ///   вовсе, и `U-238` набирает единицы процентов при пороге 30.
+        ///   `S65`/`AMBER236`, ряд оборван СНИЗУ — урановое стекло: уран попал в
+        ///   стекло химически очищенным, Th-230 и всё ниже вымыто, и `U-238`
+        ///   целиком набирал 9 % (3/33) — 26 групп из 33 у Pb-214 и Bi-214;
+        ///   `A205`, ряд оборван СВЕРХУ — точечный Th-228: есть `Th-228` и всё
+        ///   ниже, нет `Ra-228`/`Ac-228`;
+        ///   обеднённый уран и U-235 в нём — Pa-231 и ниже не наросли.
         ///
-        ///   `A205`, ряд оборван СВЕРХУ — точечный источник Th-228. В нём есть
-        ///   `Ra-224` и всё, что ниже, и НЕТ `Ac-228`. Измерено 06.09.2026 на
-        ///   `G1S16_Th228_P5`: у `Th-232` 22 ожидаемые группы, и ЧЕТЫРНАДЦАТЬ
-        ///   из них — Ac-228, подтверждённых у него 2. Целый ряд набирает 23 %,
-        ///   подцепочка от `Th-228` вниз — 3 из 8, то есть 37.5 %.
+        /// ЧТО ЭТО ЗА КУСКИ. Ряд режется на ОТРЕЗКИ по долгоживущим членам
+        /// (<see cref="FsaSampleLibrary.ChainSegments"/>, период от
+        /// <see cref="FsaSampleLibrary.ChainBreakSeconds"/>): внутри отрезка
+        /// равновесие наступает само, между отрезками его может не быть. Группы и
+        /// их «ожидаемость» — те же, что у доли целого ряда (<see cref="Score"/>), а
+        /// засчитывается группа отрезку так:
+        ///   * подтверждённая — отрезку нуклида, КОТОРЫМ ПОДПИСАН ЕЁ ПИК (подпись
+        ///     решает, какой пик чей, — та же буква, что у сопоставления), а
+        ///     подпись не членом ряда — отрезку хозяина группы;
+        ///   * не подтверждённая — отрезку хозяина (<see cref="Group.Owner"/>).
+        /// Каждый отрезок судится отдельно той же долей с тем же порогом:
+        ///   * «есть» — попаданий не меньше двух и доля не ниже порога;
+        ///   * «нет» — порога не держит, а ожидалось столько, что одно попадание
+        ///     его бы не перешло (`have·порог &gt; 1`): отрезок ряду противоречит;
+        ///   * «молчит» — ни то, ни другое: сказать нечего, и молчание уликой не
+        ///     является.
+        /// В подцепочку идут отрезки «есть» и «молчащие» МЕЖДУ ними (питаемые одним
+        /// взятым и питающие другой): разрыв ряда посреди взятого ничем не
+        /// подтверждён.
         ///
-        /// ЧТО ЭТО ЗА ОТРЕЗОК. Ряд разложен по УРОВНЯМ ГЛУБИНЫ от корня
-        /// (<see cref="FsaSampleLibrary.ChainDepths"/>): глубина, а не порядок в
-        /// словаре, потому что ряд ветвится (212BI даёт и 208TL, и 212PO) и
-        /// «выше» у него определено только расстоянием от корня. Обрыв — ОДИН, и
-        /// стоит он на уровне, который ряду противоречит сильнее всех: у кого
-        /// больше всего групп ожидалось и не подтвердилось. Подцепочек от этого
-        /// ровно две — над обрывом и под ним; берётся БОЛЬШАЯ из держащих порог.
+        /// ⚠ Почему подтверждение — по подписи, а не по хозяину. В широкой группе
+        /// сцинтиллятора хозяин — сильнейшая линия всего ряда, а не та, что дала
+        /// пик: на `UGlass nos 12.xml` (ASN16, 22 % ПШПВ на 95 кэВ) линии Th-234
+        /// 63/92 кэВ стоят в группах с K-рентгеном висмута от Pb-214 и Ra-226, и
+        /// подписанные Th-234 пики подтверждали радиевую часть ряда, которой в
+        /// стекле нет. Отвергнутая редакция 19.10.2026 — группы ПО ОТРЕЗКАМ, своими
+        /// группировками, — ломала точечный Th-228 (`G1S24_Th228_P5`: 4/9 → 4/14):
+        /// где линии двух отрезков перекрываются, а пика нет, неподтверждённых
+        /// групп становилось две вместо одной.
         ///
-        /// ⛔ ОТРЕЗОК НЕ ПОДБИРАЕТСЯ, И ЭТО ГЛАВНАЯ ОГОВОРКА. Первая редакция
-        /// правила искала лучший связный отрезок ростом от лучшего уровня — и
-        /// была ОТВЕРГНУТА замером 06.09.2026 по всему корпусу: наибольшую долю
-        /// всегда даёт самый короткий кусок ряда, состав менялся на 72 спектрах
-        /// из 129, в чистый Co-60 приходил торий тремя членами хвоста, а из
-        /// `GS4000_Lu176` пропадал сам лютеций — принятый первым фантом отбирал
-        /// у него структуру проверкой новизны. При одном обрыве, поставленном
-        /// не поиском удобного числа, таких кусков не бывает.
+        /// ⚠ История. До 19.10.2026 обрыв ставился ОДИН — на уровне глубины, у
+        /// которого больше всего групп ожидалось и не подтвердилось, — и из двух
+        /// кусков брался больший, держащий порог. На урановом стекле худшим
+        /// уровнем выходил Bi-214 (17 из 18), Pb-214 с восемью пустыми группами
+        /// оставался в «голове», и она набирала 2/14; у U-235 тот же единственный
+        /// обрыв вставал ниже Ac-227 и вносил в состав Pa-231. Ещё раньше (первая
+        /// редакция 06.09.2026) лучший связный отрезок подбирался по доле и был
+        /// отвергнут замером: наибольшую долю всегда даёт самый короткий кусок.
+        /// Здесь кусков не подбирают — границы ставит период, а не удобное число.
         ///
-        /// ⚠ Прежнее правило (`S65` до 06.09.2026) резало ряд на ПЕРВОМ члене,
-        /// у которого нет ни одной подтверждённой группы, и оставляло голову.
-        /// На точечном Th-228 оно не работает, и измерено, почему: разбитым там
-        /// оказывается `212BI` (2 ожидаемые группы, 0 подтверждённых — его
-        /// сильную 727 кэВ забрала в свою группу соседняя линия), а `228AC`
-        /// разбитым НЕ считается, потому что 2 группы из 14 у него всё же
-        /// подтвердились. Голова выходила 3/17 = 18 %, то есть хуже целого ряда.
-        /// Счёт по уровням с ростом от зерна разводит эти два случая тем, что
-        /// смотрит на ДОЛЮ уровня, а не на наличие у него хоть одного попадания.
-        ///
-        /// ⚠ Члены, у которых ожидаемых групп нет вовсе (слишком слабы для
-        /// этого спектра), отрезку не мешают и не помогают — сказать про них
-        /// нечего, и молчание уликой против родителя не является.
+        /// ⚠ Правка строго добавочная: ряд, набравший порог целиком, по отрезкам
+        /// не судится вовсе, и равновесные ряды проходят прежним составом.
         /// </summary>
         static void Head(List<Model> models, double coverage, Report report)
         {
@@ -1651,100 +1684,137 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 // ⛔ РЯД, НАБРАВШИЙ ПОРОГ ЦЕЛИКОМ, НЕ ОБОРВАН — и подцепочка у
-                // него не ищется вовсе. Без этой оговорки правило трогало бы
-                // РАВНОВЕСНЫЕ ряды: у любого ряда найдётся отрезок с долей
-                // выше, чем у целого, и при `Only` состав равновесного тория
-                // молча сузился бы до этого отрезка. Мера правки `S65` прямо
-                // требует обратного — «поднять шесть названных спектров, НЕ
-                // ТРОНУВ равновесных рядов», — и оговорка делает правку
-                // строго добавочной: что проходило прежде, проходит тем же
-                // составом.
+                // него не ищется вовсе. Мера правки `S65` прямо требует «поднять
+                // шесть названных спектров, НЕ ТРОНУВ равновесных рядов», и
+                // оговорка делает правку строго добавочной.
                 if (evidence.Coverage >= coverage)
                 {
                     continue;
                 }
 
-                // Что известно про каждого члена: ожидалось / подтвердилось.
-                var expected = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                var matched = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                MemberCounts(model, expected, matched);
-
-                // Те же числа, сложенные ПО УРОВНЯМ ГЛУБИНЫ: ряд ветвится
-                // (212BI даёт и 208TL, и 212PO), и подцепочка режется по
-                // уровню, а не по отдельному члену.
-                var levelExpected = new Dictionary<int, int>();
-                var levelMatched = new Dictionary<int, int>();
-                int lowest = int.MaxValue, deepest = int.MinValue;
-                foreach (string member in model.Members)
+                var sample = new FsaSampleLibrary.Report();
+                FsaSampleLibrary.ChainSegmentation segments = FsaSampleLibrary.ChainSegments(evidence.Nucid, sample);
+                foreach (string note in sample.Notes)
                 {
-                    int depth;
-                    if (!model.Depths.TryGetValue(member, out depth))
+                    report.Notes.Add(note);
+                }
+
+                if (segments.Order.Count < 2)
+                {
+                    // Долгоживущих членов под корнем нет — резать не по чему.
+                    continue;
+                }
+
+                // Чьим отрезкам засчитаны группы.
+                var have = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                var hit = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (Group group in model.Groups)
+                {
+                    group.Segment = "";
+                    if (!group.Expected)
                     {
                         continue;
                     }
 
-                    lowest = Math.Min(lowest, depth);
-                    deepest = Math.Max(deepest, depth);
-                    int have, hit, sum;
-                    expected.TryGetValue(member, out have);
-                    matched.TryGetValue(member, out hit);
-                    levelExpected[depth] = (levelExpected.TryGetValue(depth, out sum) ? sum : 0) + have;
-                    levelMatched[depth] = (levelMatched.TryGetValue(depth, out sum) ? sum : 0) + hit;
-                }
+                    string segment = null;
+                    if (group.Matched && group.Peak != null && group.Peak.Nuclide != null)
+                    {
+                        string labelled = FsaSampleLibrary.NucidOf(group.Peak.Nuclide.NuclideName ?? "");
+                        if (labelled.Length > 0)
+                        {
+                            segments.SegmentOf.TryGetValue(labelled, out segment);
+                        }
+                    }
 
-                if (lowest > deepest)
-                {
-                    continue;
-                }
-
-                // МЕСТО ОБРЫВА — уровень, ПРОТИВОРЕЧАЩИЙ ряду сильнее всех:
-                // тот, у кого больше всего групп ожидалось и не подтвердилось.
-                // При равенстве берётся верхний — выбор нужен лишь затем, чтобы
-                // ход был определён.
-                int cut = int.MinValue, worst = 0;
-                for (int depth = lowest; depth <= deepest; depth++)
-                {
-                    int have, hit;
-                    if (!levelExpected.TryGetValue(depth, out have) || have == 0)
+                    if (segment == null && !segments.SegmentOf.TryGetValue(group.Owner, out segment))
                     {
                         continue;
                     }
 
-                    levelMatched.TryGetValue(depth, out hit);
-                    if (have - hit > worst)
+                    group.Segment = segment;
+                    int sum;
+                    have[segment] = (have.TryGetValue(segment, out sum) ? sum : 0) + 1;
+                    if (group.Matched)
                     {
-                        worst = have - hit;
-                        cut = depth;
+                        hit[segment] = (hit.TryGetValue(segment, out sum) ? sum : 0) + 1;
                     }
                 }
 
-                if (cut == int.MinValue)
+                // Приговор каждому отрезку.
+                var present = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var silent = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var verdicts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (string head in segments.Order)
+                {
+                    int e, m;
+                    have.TryGetValue(head, out e);
+                    hit.TryGetValue(head, out m);
+                    if (m >= 2 && e > 0 && (double)m / e >= coverage)
+                    {
+                        present.Add(head);
+                        verdicts[head] = "есть";
+                    }
+                    else if (e * coverage > 1.0)
+                    {
+                        verdicts[head] = "нет";
+                    }
+                    else
+                    {
+                        silent.Add(head);
+                        verdicts[head] = "молчит";
+                    }
+                }
+
+                foreach (string head in segments.Order)
+                {
+                    var members = new List<string>();
+                    foreach (KeyValuePair<string, string> of in segments.SegmentOf)
+                    {
+                        if (model.Members.Contains(of.Key)
+                            && string.Equals(of.Value, head, StringComparison.OrdinalIgnoreCase))
+                        {
+                            members.Add(of.Key);
+                        }
+                    }
+
+                    if (members.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    int e, m;
+                    have.TryGetValue(head, out e);
+                    hit.TryGetValue(head, out m);
+                    evidence.BySegment.Add(string.Format(CultureInfo.InvariantCulture, "{0}[{1}] {2}/{3} {4}",
+                                                         head, string.Join("+", members.ToArray()), m, e, verdicts[head]));
+                }
+
+                if (present.Count == 0)
                 {
                     continue;
                 }
 
-                // Подцепочек ровно ДВЕ — над обрывом и под ним, — и обе целые.
-                //
-                // ⛔ ОТРЕЗОК НЕ ПОДБИРАЕТСЯ, И ЭТО ГЛАВНАЯ ОГОВОРКА ПРАВИЛА.
-                // Перебор всех связных отрезков с выбором лучшего измерен
-                // 06.09.2026 на всём корпусе и ОТВЕРГНУТ: наибольшую долю
-                // всегда даёт самый короткий кусок ряда, и на 72 спектрах из
-                // 129 состав менялся — в чистый Co-60 приходил торий тремя
-                // членами хвоста, из `GS4000_Lu176` пропадал сам лютеций.
-                // Порог при таком отборе перестаёт что-либо значить. Здесь
-                // граница ОДНА, и её ставит не поиск удобного числа, а
-                // единственный член, который ряду противоречит.
-                int lo, hi;
-                if (!BestSide(levelExpected, levelMatched, lowest, deepest, cut, coverage,
-                              out lo, out hi))
+                // Взятые отрезки: «есть» и «молчащие» между ними.
+                var taken = new HashSet<string>(present, StringComparer.OrdinalIgnoreCase);
+                foreach (string head in silent)
                 {
-                    continue;
+                    bool fedByTaken = false, feedsTaken = false;
+                    foreach (string other in present)
+                    {
+                        fedByTaken |= Reaches(segments, other, head);
+                        feedsTaken |= Reaches(segments, head, other);
+                    }
+
+                    if (fedByTaken && feedsTaken)
+                    {
+                        taken.Add(head);
+                    }
                 }
 
                 foreach (string member in model.Members)
                 {
-                    int depth;
-                    if (model.Depths.TryGetValue(member, out depth) && depth >= lo && depth <= hi)
+                    string segment;
+                    if (segments.SegmentOf.TryGetValue(member, out segment) && taken.Contains(segment))
                     {
                         evidence.Head.Add(member);
                     }
@@ -1756,23 +1826,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                var head = new HashSet<string>(evidence.Head, StringComparer.OrdinalIgnoreCase);
-                foreach (Group group in model.Groups)
+                foreach (string head in taken)
                 {
-                    if (!group.Expected || !head.Contains(group.Owner))
-                    {
-                        continue;
-                    }
+                    model.HeadSegments.Add(head);
+                    int e, m;
+                    have.TryGetValue(head, out e);
+                    hit.TryGetValue(head, out m);
+                    evidence.HeadExpected += e;
+                    evidence.HeadMatched += m;
+                }
 
-                    evidence.HeadExpected++;
-                    if (group.Matched)
+                // Где оборван: отрезки, питающие взятый (сверху), и питаемые им (снизу).
+                var above = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+                var below = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (KeyValuePair<string, HashSet<string>> edge in segments.Below)
+                {
+                    foreach (string child in edge.Value)
                     {
-                        evidence.HeadMatched++;
+                        if (taken.Contains(child) && !taken.Contains(edge.Key))
+                        {
+                            above.Add(edge.Key);
+                        }
+
+                        if (taken.Contains(edge.Key) && !taken.Contains(child))
+                        {
+                            below.Add(child);
+                        }
                     }
                 }
 
-                evidence.Cut = CutAt(model, lo > lowest ? lo - 1 : int.MinValue);
-                evidence.CutBelow = CutAt(model, hi < deepest ? hi + 1 : int.MinValue);
+                evidence.Cut = string.Join("+", above.ToArray());
+                evidence.CutBelow = string.Join("+", below.ToArray());
                 evidence.HeadCoverage = evidence.HeadExpected > 0
                     ? (double)evidence.HeadMatched / evidence.HeadExpected : 0.0;
             }
@@ -1781,92 +1865,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                              + CountHeads(models) + " кандидатов");
         }
 
-        /// <summary>
-        /// Из двух подцепочек — над обрывом и под ним — та, что берётся в
-        /// расчёт: держащая порог и БОЛЬШАЯ из держащих.
-        ///
-        /// ⚠ Большая, а не с лучшей долей. Доля тем выше, чем короче кусок, и
-        /// отбор по доле выбирал бы огрызок ряда; отбор по величине оставляет
-        /// то, о чём в пробе есть что сказать. Ни одна не держит порога — ряд
-        /// оборванным не объявляется вовсе.
-        /// </summary>
-        static bool BestSide(Dictionary<int, int> levelExpected, Dictionary<int, int> levelMatched,
-                             int lowest, int deepest, int cut, double coverage,
-                             out int lo, out int hi)
+        /// <summary>(`AMBER236`) Отрезок <paramref name="to"/> питается отрезком <paramref name="from"/> (через любые промежуточные).</summary>
+        static bool Reaches(FsaSampleLibrary.ChainSegmentation segments, string from, string to)
         {
-            lo = 0;
-            hi = -1;
-            int bestExpected = 0;
-            double bestCoverage = 0.0;
-            for (int side = 0; side < 2; side++)
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var queue = new Queue<string>();
+            queue.Enqueue(from);
+            while (queue.Count > 0)
             {
-                int from = side == 0 ? lowest : cut + 1;
-                int to = side == 0 ? cut - 1 : deepest;
-                if (from > to)
+                string current = queue.Dequeue();
+                HashSet<string> children;
+                if (!segments.Below.TryGetValue(current, out children))
                 {
                     continue;
                 }
 
-                int have = 0, hit = 0;
-                for (int depth = from; depth <= to; depth++)
+                foreach (string child in children)
                 {
-                    int e, m;
-                    if (levelExpected.TryGetValue(depth, out e)) have += e;
-                    if (levelMatched.TryGetValue(depth, out m)) hit += m;
-                }
+                    if (string.Equals(child, to, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
 
-                // ⛔ ОДНОЙ СЛУЧАЙНОЙ ЛИНИИ НЕ ДОЛЖНО ХВАТАТЬ. У подцепочки с
-                // тремя ожидаемыми группами одно попадание даёт 33 % — выше
-                // порога 30 %, — то есть порог перестаёт быть порогом ровно
-                // там, где знаменатель мал. Требование `have > 1/coverage`
-                // никакого нового числа не вводит: оно ВЫВЕДЕНО из самого
-                // порога и означает «чтобы пройти, попаданий нужно не меньше
-                // двух». Измерено 06.09.2026: без него в корпус приходили
-                // `Am-243` одним членом ряда и хвост ряда `U-235` в спектрах
-                // Y-88.
-                if (have == 0 || have * coverage <= 1.0)
-                {
-                    continue;
-                }
-
-                double own = (double)hit / have;
-                if (own < coverage)
-                {
-                    continue;
-                }
-
-                if (have > bestExpected || (have == bestExpected && own > bestCoverage))
-                {
-                    bestExpected = have;
-                    bestCoverage = own;
-                    lo = from;
-                    hi = to;
+                    if (seen.Add(child))
+                    {
+                        queue.Enqueue(child);
+                    }
                 }
             }
 
-            return hi >= lo;
-        }
-
-        /// <summary>Члены ряда на этом уровне, через «+»; пусто — уровня нет.</summary>
-        static string CutAt(Model model, int depth)
-        {
-            if (depth == int.MinValue)
-            {
-                return "";
-            }
-
-            var names = new List<string>();
-            foreach (string member in model.Members)
-            {
-                int own;
-                if (model.Depths.TryGetValue(member, out own) && own == depth)
-                {
-                    names.Add(member);
-                }
-            }
-
-            names.Sort(StringComparer.OrdinalIgnoreCase);
-            return string.Join("+", names.ToArray());
+            return false;
         }
 
         static int CountHeads(List<Model> models)
@@ -1936,7 +1964,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// слабый обязан доказывать себя ОСТАТКОМ. Обратный порядок отдал бы
         /// структуру тому, кто просто оказался раньше в списке пиков.
         /// </summary>
-        static void Accept(List<Model> models, double coverage, bool novelty)
+        static void Accept(List<Model> models, double coverage, bool novelty, FsaChainCut cut)
         {
             var accepted = new List<Model>();
             foreach (Model model in models)
@@ -1954,7 +1982,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                if (novelty && !Novel(model, accepted))
+                if (novelty && !Novel(model, accepted, cut))
                 {
                     evidence.Why = "своей структуры не приносит";
                     evidence.Verdict = FsaParentVerdict.NotNovel;
@@ -1978,10 +2006,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         ///
         /// Пустой список принятых — новизна есть по определению: первому
         /// доказывать нечего, он и задаёт отсчёт.
+        ///
+        /// (`AMBER236`) Группы — те, что кандидат ОБЪЯВИТ (<see cref="DeclaredGroups"/>):
+        /// у ряда, ограниченного подцепочкой, — группы взятых отрезков. Иначе
+        /// голова урана со своим Ra-226 186 кэВ, которого в составе нет, отнимала
+        /// бы у U-235 его 185.7 кэВ.
         /// </summary>
-        static bool Novel(Model model, List<Model> accepted)
+        static bool Novel(Model model, List<Model> accepted, FsaChainCut cut)
         {
-            foreach (Group group in model.Groups)
+            foreach (Group group in DeclaredGroups(model, cut))
             {
                 if (!group.Matched)
                 {
@@ -1998,7 +2031,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    foreach (Group rival in other.Groups)
+                    foreach (Group rival in DeclaredGroups(other, cut))
                     {
                         if (rival.Expected
                             && Math.Abs(rival.Energy - group.Energy) <= group.Window)
@@ -2021,6 +2054,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// (`AMBER236`) Группы линий того, что кандидат объявит библиотеке: у ряда,
+        /// ограниченного подцепочкой (<see cref="Restricted"/>), — группы, засчитанные
+        /// ВЗЯТЫМ отрезкам (<see cref="Group.Segment"/>); иначе — все группы ряда.
+        /// </summary>
+        static IEnumerable<Group> DeclaredGroups(Model model, FsaChainCut cut)
+        {
+            if (!Restricted(model, cut) || model.HeadSegments.Count == 0)
+            {
+                return model.Groups;
+            }
+
+            return model.Groups.Where(group => model.HeadSegments.Contains(group.Segment));
         }
 
         /// <summary>Родня: корень одного входит в состав другого.</summary>

@@ -1066,6 +1066,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         // в фоне: чтение базы не должно идти в окне отчёта.
                         computed.SupplyDiscrepancies = FsaCascadeSummer.SupplyDiscrepanciesOf(computed);
 
+                        // (`AMBER236`) Изотопный состав элемента (обеднённый уран) — тоже
+                        // в фоне: читается база.
+                        computed.IsotopeRatios = FsaSampleLibrary.IsotopeRatiosOf(computed, job.Analyzer.LimitQuantileK);
+
                         // (`AMBER221`) родители сета вне состава — строкой отчёта;
                         // состав, объявленный сетом, их не теряет по построению
                         if (!declaredBySet)

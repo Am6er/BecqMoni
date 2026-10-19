@@ -394,6 +394,13 @@ namespace BecquerelMonitor
         const string KeyPileUpCapValue = "FSAReport_PileUpCapValue";
         const string KeyInterferenceRow = "FSAReport_InterferenceRow";
         const string KeyInterferenceValue = "FSAReport_InterferenceValue";
+        // (`AMBER236`) изотопный состав элемента: строка, разброс членов / только статистика, приговор
+        const string KeyIsotopeRow = "FSAReport_IsotopeRow";
+        const string KeyIsotopeSpread = "FSAReport_IsotopeSpread";
+        const string KeyIsotopeStatOnly = "FSAReport_IsotopeStatOnly";
+        const string KeyIsotopeNatural = "FSAReport_IsotopeNatural";
+        const string KeyIsotopeDepleted = "FSAReport_IsotopeDepleted";
+        const string KeyIsotopeEnriched = "FSAReport_IsotopeEnriched";
         // (`AMBER210`) пик в полосе, не покрытый составом: строка, слово состояния, «рядом ничего»
         const string KeyUncoveredRow = "FSAReport_UncoveredRow";
         const string KeyUncoveredValue = "FSAReport_UncoveredValue";
@@ -1996,6 +2003,34 @@ namespace BecquerelMonitor
                                       item.Component ?? string.Empty,
                                       item.Factor.ToString("F2", CultureInfo.InvariantCulture)),
                         OwnText(KeyInterferenceValue), false, true));
+                }
+            }
+
+            // (`AMBER236`; решение Amber 19.10.2026 вопросником, дословно: «Всегда, со
+            // словом-вердиктом», «Массовая доля, %», «σ разбора + разброс членов»)
+            // ИЗОТОПНЫЙ СОСТАВ ЭЛЕМЕНТА: доля, σ, разброс по членам (или «только
+            // статистика»), природная доля и приговор словом. Имена — данные результата,
+            // числа — инвариантной культурой (`A242`).
+            if (result.IsotopeRatios != null)
+            {
+                foreach (FsaIsotopeRatio item in result.IsotopeRatios)
+                {
+                    string spread = double.IsNaN(item.LowPercent) || double.IsNaN(item.HighPercent)
+                        ? OwnText(KeyIsotopeStatOnly)
+                        : string.Format(CultureInfo.InvariantCulture, OwnText(KeyIsotopeSpread),
+                                        Math.Min(item.LowPercent, item.HighPercent).ToString("F3", CultureInfo.InvariantCulture),
+                                        Math.Max(item.LowPercent, item.HighPercent).ToString("F3", CultureInfo.InvariantCulture));
+                    string verdict = OwnText(item.Verdict == FsaIsotopeVerdict.Depleted ? KeyIsotopeDepleted
+                                             : item.Verdict == FsaIsotopeVerdict.Enriched ? KeyIsotopeEnriched
+                                             : KeyIsotopeNatural);
+                    made.Add(this.MakeMarkRowText(
+                        string.Format(CultureInfo.InvariantCulture, OwnText(KeyIsotopeRow),
+                                      item.Isotope ?? string.Empty, item.Others ?? string.Empty,
+                                      item.MassPercent.ToString("F3", CultureInfo.InvariantCulture),
+                                      item.SigmaPercent.ToString("F3", CultureInfo.InvariantCulture),
+                                      spread,
+                                      item.NaturalPercent.ToString("F3", CultureInfo.InvariantCulture)),
+                        verdict, item.Verdict == FsaIsotopeVerdict.Natural, item.Verdict != FsaIsotopeVerdict.Natural));
                 }
             }
 

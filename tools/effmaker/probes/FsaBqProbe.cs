@@ -294,6 +294,22 @@ namespace BecquerelMonitor.Probes
                                       names.Count > 0 ? string.Join(", ", names) : "—");
                 }
             }
+            // (`AMBER236`) изотопный состав элемента — строка блока «Качество разбора»
+            Console.WriteLine("  изотопный состав: {0}", result.IsotopeRatios != null ? result.IsotopeRatios.Count.ToString(CultureInfo.InvariantCulture) : "не собирался");
+            if (result.IsotopeRatios != null)
+            {
+                foreach (FsaIsotopeRatio r in result.IsotopeRatios)
+                {
+                    Console.WriteLine("    {0} в {0}+{1}: {2} ± {3} % масс.; по членам {4}…{5} %; природная {6} %; {7}",
+                                      r.Isotope, r.Others,
+                                      r.MassPercent.ToString("F4", CultureInfo.InvariantCulture),
+                                      r.SigmaPercent.ToString("F4", CultureInfo.InvariantCulture),
+                                      r.LowPercent.ToString("F4", CultureInfo.InvariantCulture),
+                                      r.HighPercent.ToString("F4", CultureInfo.InvariantCulture),
+                                      r.NaturalPercent.ToString("F4", CultureInfo.InvariantCulture),
+                                      r.Verdict);
+                }
+            }
             // (`AMBER221`, П247) родители активного сета вне состава — по строке; текст
             // строки окна отчёта — кодом самого окна (`FSAReportView.SetOmissionReason`,
             // отражением) на en и ru: окно приложения агенту на экране недоступно
