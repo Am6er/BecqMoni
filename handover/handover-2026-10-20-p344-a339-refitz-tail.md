@@ -158,3 +158,18 @@ Z, который видит человек (строка компоненты, 
    «по съёмке» (§1). Запись факта.
 
 Новых строк реестра — 0; закрыта `A339`; баланс открытых −1.
+
+## 10. Итог сторожей и уборка
+
+* `python tools/check_all.py` после коммита объявления `4324e82a` (каталог проб полосы, как в §8): **46 из 46, код 0**
+  («ВСЕ ЗЕЛЕНЫ»); среди них `check_declared_base`, `check_corpus_readme`, `check_registry` (база в трёх местах,
+  ссылки), `check_fsa_showcase` (9 пар побитово), `check_registry_refs`. До коммита объявления был красен один
+  `check_registry` — журнал ещё не лежал в git (N8), снялось коммитом.
+* Коммиты полосы: `e3e52fad` (правка разбора и пробы), `4324e82a` (объявление rev49, строка `A339`, журнал, артефакты).
+  Чужие коммиты между ними — AMBER244 соседней сессии (`7274e261`, `eb0601fc`: `docs/`, её журнал, её строки `TODO.md`);
+  строки соседа (`AMBER244`, `AMBER245`) в коммиты полосы не попали.
+* Сняты: `BecquerelMonitor\bin\Release_a339`, `obj\Release_a339`, `tools\effmaker\probes\build_a339`, `build_a339t`,
+  `tools\CORPUS\scripts\wd_a339`, `D:\BqMoni_Claude\a339\` целиком (выборки матрицы с зёрнами 1…6, склады плеч, прогоны
+  плеч, логи). Выборки воспроизводятся за минуту каждая: `CorpusMatrixProbe --dir=<каталог с index.csv и
+  RC103_lu_front.in> --gpu=tools\effmaker\gpu\bin\rmgpu_f.dll --target=0 --n=3000000 --only=RC103_lu_front --seed=K`,
+  затем `arms.ps1` из `p344-a339/`. Каталоги базы `tools\pie\out_rev49_full` / `out_rev49_mini` — оставлены (объявлены).
