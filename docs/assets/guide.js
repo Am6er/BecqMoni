@@ -7,7 +7,9 @@
 
   /* ── главы: единственный список, из него строятся оглавление и листалка ── */
   const CHAPTERS = [
+    // главная — обложка без номера; номер главы = её место в списке (`AMBER244`: «Предисловие 1, главная без номера»)
     { id: 'index', file: 'index.html', ru: ['С чего начать', 'что такое BecqMoni и путь за пять минут'], en: ['Getting started', 'what BecqMoni is and the five-minute path'] },
+    { id: 'preface', file: 'preface.html', ru: ['Предисловие', 'как вспышки в кристалле становятся беккерелями'], en: ['Preface', 'how flashes in a crystal become becquerels'] },
     { id: 'install', file: 'install.html', ru: ['Установка и окно программы', 'установка, обновления, где что на экране'], en: ['Install and the main window', 'install, updates, what is where on screen'] },
     { id: 'devices', file: 'devices.html', ru: ['Приборы', 'подключение и конфигурация прибора'], en: ['Devices', 'connecting and configuring a detector'] },
     { id: 'acquire', file: 'acquire.html', ru: ['Набор спектра', 'старт, время, фон, сведения об образце'], en: ['Acquiring a spectrum', 'start, time, background, sample info'] },
@@ -17,7 +19,7 @@
     { id: 'geometry', file: 'geometry.html', ru: ['Геометрия и матрица', 'кривая эффективности, матрица отклика, GPU'], en: ['Geometry and matrix', 'efficiency curve, response matrix, GPU'] },
     { id: 'fsa', file: 'fsa.html', ru: ['FSA на практике', 'включить разбор и прочитать отчёт'], en: ['FSA in practice', 'run the decomposition and read the report'] },
     { id: 'result', file: 'result.html', ru: ['Активность и результат', 'Бк, Бк/кг, дата отбора, предел обнаружения'], en: ['Activity and results', 'Bq, Bq/kg, sampling date, detection limit'] },
-    { id: 'how', file: 'how-it-works.html', ru: ['Как это устроено', 'физика: геометрия, матрица, FSA, активность'], en: ['How it works', 'the physics: geometry, matrix, FSA, activity'] },
+    { id: 'how', file: 'how-it-works.html', ru: ['Как это устроено', 'для продвинутых: всё руками — геометрия, матрица, FSA, активность'], en: ['How it works', 'advanced: hands-on geometry, matrix, FSA, activity'] },
     { id: 'files', file: 'files.html', ru: ['Файлы и вопросы', 'форматы, перенос, частые вопросы'], en: ['Files and FAQ', 'formats, moving data, common questions'] },
   ];
   G.CHAPTERS = CHAPTERS;
@@ -115,7 +117,7 @@
   }
   function buildToc() {
     const g = $('#tocGrid'); if (!g) return; const c = cur();
-    g.innerHTML = CHAPTERS.map((ch, i) => '<a class="toc-item' + (c && c.id === ch.id ? ' cur' : '') + '" href="' + ch.file + '"><b>' + (i + 1) + '</b><div><span>' + ch[LANG][0] + '</span><small>' + ch[LANG][1] + '</small></div></a>').join('');
+    g.innerHTML = CHAPTERS.map((ch, i) => '<a class="toc-item' + (c && c.id === ch.id ? ' cur' : '') + '" href="' + ch.file + '"><b>' + (i ? i : '⌂') + '</b><div><span>' + ch[LANG][0] + '</span><small>' + ch[LANG][1] + '</small></div></a>').join('');
   }
   function buildPager() {
     const box = $('#pager'); const c = cur(); if (!box || !c) return;

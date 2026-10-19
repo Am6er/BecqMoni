@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Предисловие — BecqMoni гайд</title>
+<link rel="stylesheet" href="assets/guide.css">
+<style>
+.formula{font-size:17px;line-height:1.7;background:var(--panel2);border-radius:12px;padding:10px 14px;margin-top:10px;font-variant-numeric:tabular-nums;overflow-x:auto}
+.formula b{color:var(--gold)}
+.formula .eq{color:var(--muted);margin:0 6px}
+.nextcards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}
+.nextcards a{display:block;text-decoration:none;color:var(--ink);background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:var(--r);padding:16px 18px}
+.nextcards a:hover{border-color:var(--gold)}
+.nextcards a .n{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--gold);color:#1a1300;font-weight:900;margin-right:10px}
+.nextcards a b{font-size:18px}
+.nextcards a p{color:var(--soft);margin:8px 0 0;font-size:15px}
+.nextcards a.adv .n{background:var(--pair);color:#1a0b2a}
+@media (max-width:760px){.nextcards{grid-template-columns:1fr}}
+</style>
+</head>
+<body data-chapter="preface">
+
+<section class="hero" id="top"><div class="wrap">
+  <div class="kicker" data-t="h.k"></div>
+  <h1 data-t="h.h"></h1>
+  <p class="lead" data-t="h.lead"></p>
+  <div class="card full">
+    <canvas id="cvHero" class="cv tall" aria-label="animation"></canvas>
+    <div class="row"><span class="pill" id="heroStat"></span><span class="note" data-t="h.cap"></span></div>
+  </div>
+  <div class="minichain">
+    <a href="#photon"><b>1</b><span data-t="ch.1"></span></a>
+    <a href="#geometry"><b>2</b><span data-t="ch.2"></span></a>
+    <a href="#matrix"><b>3</b><span data-t="ch.3"></span></a>
+    <a href="#fsa"><b>4</b><span data-t="ch.4"></span></a>
+    <a href="#activity"><b>5</b><span data-t="ch.5"></span></a>
+  </div>
+</div></section>
+
+<!-- 1. ФОТОН -->
+<section class="sec" id="photon" data-nav="n.ph"><div class="wrap">
+  <div class="kicker" data-t="s1.k"></div>
+  <h2 data-t="s1.h"></h2>
+  <p class="lead" data-t="s1.lead"></p>
+  <div class="grid2 wl">
+    <div class="card">
+      <h3 data-t="s1.scene"></h3>
+      <canvas id="cvPh" class="cv"></canvas>
+      <div class="row">
+        <span class="lbl" data-t="s1.energy"></span>
+        <div class="chips" id="phChips"></div>
+      </div>
+      <div class="row">
+        <input type="range" id="phE" min="0" max="1000" value="600" aria-label="E">
+        <span class="val" id="phEv"></span>
+        <label class="sw"><input type="checkbox" id="phShield"><span data-t="s1.shield"></span></label>
+      </div>
+      <div class="row">
+        <button class="btn main" id="ph1" data-t="s1.b1"></button>
+        <button class="btn" id="ph100" data-t="s1.b100"></button>
+        <button class="btn" id="ph10k" data-t="s1.b10k"></button>
+        <button class="btn" id="phClr" data-t="s1.clr"></button>
+      </div>
+      <div class="legend" id="phLegend"></div>
+    </div>
+    <div class="card">
+      <h3 data-t="s1.spec"></h3>
+      <canvas id="cvPhS" class="cv"></canvas>
+      <div class="pills" id="phStat"></div>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--photo)" data-t="s1.f1"></div>
+    <div class="fact" style="--c:var(--compton)" data-t="s1.f2"></div>
+    <div class="fact" style="--c:var(--esc)" data-t="s1.f3"></div>
+  </div>
+</div></section>
+
+<!-- 2. ГЕОМЕТРИЯ -->
+<section class="sec" id="geometry" data-nav="n.geo"><div class="wrap">
+  <div class="kicker" data-t="s2.k"></div>
+  <h2 data-t="s2.h"></h2>
+  <p class="lead" data-t="s2.lead"></p>
+  <div class="grid2 wl">
+    <div class="card">
+      <h3 data-t="s2.scene"></h3>
+      <canvas id="cvGeoQ" class="cv"></canvas>
+      <div class="row"><span class="lbl" data-t="s2.src"></span><div class="chips" id="geoSrc"></div></div>
+      <div class="row"><span class="lbl" data-t="s2.gap"></span><input type="range" id="geoGap" min="2" max="80" value="10" aria-label="gap"><span class="val" id="geoGapV"></span></div>
+      <div class="row"><span class="lbl" data-t="s2.size"></span><div class="chips" id="geoSize"></div></div>
+    </div>
+    <div class="card">
+      <h3 data-t="s2.res"></h3>
+      <div class="tiles">
+        <div class="tile"><div class="big" id="geoT1">—</div><div class="small" data-t="s2.t1"></div></div>
+        <div class="tile"><div class="big" id="geoT2">—</div><div class="small" data-t="s2.t2"></div></div>
+        <div class="tile"><div class="big" id="geoT3">—</div><div class="small" data-t="s2.t3"></div></div>
+      </div>
+      <canvas id="cvGeoC" class="cv short" style="margin-top:10px"></canvas>
+      <p class="note" data-t="s2.cnote"></p>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="s2.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="s2.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="s2.f3"></div>
+  </div>
+</div></section>
+
+<!-- 3. МАТРИЦА -->
+<section class="sec" id="matrix" data-nav="n.mx"><div class="wrap">
+  <div class="kicker" data-t="s3.k"></div>
+  <h2 data-t="s3.h"></h2>
+  <p class="lead" data-t="s3.lead"></p>
+  <div class="grid2">
+    <div class="card">
+      <h3 data-t="s3.map"></h3>
+      <canvas id="cvMxQ" class="cv"></canvas>
+      <div class="pills" id="mxStat"></div>
+    </div>
+    <div class="card">
+      <h3 id="mxRowT"></h3>
+      <canvas id="cvMxRow" class="cv"></canvas>
+      <div class="row"><input type="range" id="mxSel" min="0" max="23" value="12" aria-label="row"><span class="val" id="mxSelV"></span><button class="btn" id="mxAuto" data-t="s3.auto"></button></div>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="s3.f1"></div>
+    <div class="fact" style="--c:var(--compton)" data-t="s3.f2"></div>
+    <div class="fact" style="--c:var(--esc)" data-t="s3.f3"></div>
+  </div>
+</div></section>
+
+<!-- 4. FSA -->
+<section class="sec" id="fsa" data-nav="n.fsa"><div class="wrap">
+  <div class="kicker" data-t="s4.k"></div>
+  <h2 data-t="s4.h"></h2>
+  <p class="lead" data-t="s4.lead"></p>
+  <div class="card full">
+    <h3 data-t="s4.plot"></h3>
+    <canvas id="cvFsaQ" class="cv tall"></canvas>
+    <canvas id="cvFsaR" class="cv strip"></canvas>
+    <div class="legend" id="fsaLegend"></div>
+    <div class="row">
+      <button class="btn main" id="fsaNew" data-t="s4.new"></button>
+      <button class="btn" id="fsaRe" data-t="s4.re"></button>
+    </div>
+    <div class="pills" id="fsaStat"></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--blue)" data-t="s4.f1"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="s4.f2"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="s4.f3"></div>
+  </div>
+</div></section>
+
+<!-- 5. АКТИВНОСТЬ -->
+<section class="sec" id="activity" data-nav="n.act"><div class="wrap">
+  <div class="kicker" data-t="s5.k"></div>
+  <h2 data-t="s5.h"></h2>
+  <p class="lead" data-t="s5.lead"></p>
+  <div class="grid2 wl">
+    <div class="card">
+      <h3 data-t="s5.scene"></h3>
+      <canvas id="cvActQ" class="cv"></canvas>
+      <div class="formula" id="actF"></div>
+      <div class="row">
+        <span class="lbl" data-t="s5.a"></span><input type="range" id="actA" min="0" max="1000" value="500" aria-label="A"><span class="val" id="actAv"></span>
+      </div>
+      <div class="row">
+        <button class="btn main" id="actFast" data-t="s5.fast"></button>
+        <button class="btn" id="actReset" data-t="s5.reset"></button>
+      </div>
+    </div>
+    <div class="card">
+      <h3 data-t="s5.conv"></h3>
+      <canvas id="cvActC" class="cv"></canvas>
+      <p class="note" data-t="s5.cnote"></p>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="s5.f1"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="s5.f2"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="s5.f3"></div>
+  </div>
+</div></section>
+
+<!-- ДАЛЬШЕ -->
+<section class="sec" id="next" data-nav="n.next"><div class="wrap">
+  <div class="kicker" data-t="nx.k"></div>
+  <h2 data-t="nx.h"></h2>
+  <p class="lead" data-t="nx.lead"></p>
+  <div class="nextcards">
+    <a href="install.html"><span class="n">2</span><b data-t="nx.a"></b><p data-t="nx.ad"></p></a>
+    <a class="adv" href="how-it-works.html"><span class="n">11</span><b data-t="nx.b"></b><p data-t="nx.bd"></p></a>
+  </div>
+  <div id="pager"></div>
+</div></section>
+
+<footer><div class="wrap" data-t="foot"></div></footer>
+
+<script src="assets/guide.js"></script>
+<script src="assets/quanta.js"></script>
+<script>
+'use strict';
+GUIDE.texts({
+ru: {
+'n.ph':'Фотон','n.geo':'Геометрия','n.mx':'Матрица','n.fsa':'FSA','n.act':'Активность','n.next':'Дальше',
+'h.k':'Глава 1 · Предисловие',
+'h.h':'Как BecqMoni превращает <em>вспышки в кристалле</em> в беккерели',
+'h.lead':'Перед тем как нажимать кнопки, стоит один раз увидеть, что происходит внутри. Пять шагов — от одного фотона до активности пробы. Всё на этой странице живое: фотоны летят, спектры растут, слои складываются прямо в браузере.',
+'h.cap':'Банка с пробой светит во все стороны, кристалл ловит малую часть — и из пойманного растёт спектр',
+'ch.1':'Фотон в кристалле','ch.2':'Ведро под дождём','ch.3':'Словарь прибора','ch.4':'Цветные слои','ch.5':'Беккерели',
+'s1.k':'Шаг 1',
+'s1.h':'Что делает фотон внутри кристалла',
+'s1.lead':'Гамма-квант влетает в кристалл, как мяч в густой лес. Он может застрять сразу и отдать всю энергию, может отскочить от «дерева» и унести часть энергии, а может пролететь насквозь. Прибор видит только то, что фотон <b>оставил</b> в кристалле. Выпустите один фотон и следите за его путём — а потом сто тысяч, и посмотрите, какой спектр из этого вырастет.',
+'s1.scene':'Кристалл NaI(Tl) сбоку — выпускайте фотоны',
+'s1.energy':'Энергия фотона:','s1.shield':'свинцовый домик вокруг',
+'s1.b1':'1 фотон','s1.b100':'×100','s1.b10k':'×100 000','s1.clr':'Очистить','s1.spec':'Что записал прибор',
+'s1.f1':'<b>Пик полного поглощения</b> — фотон отдал всю энергию. По положению пика узнают нуклид, по его площади — сколько его.',
+'s1.f2':'<b>Комптоновское плато</b> — фотон отскочил и улетел, оставив часть энергии. Плато обрывается на «комптоновском крае».',
+'s1.f3':'<b>Горбы и пики-спутники</b> — обратное рассеяние от защиты, рентген свинца, пики вылета. Их рисует окружение, а не проба.',
+'s2.k':'Шаг 2',
+'s2.h':'Ведро под дождём: почему важно, где лежит проба',
+'s2.lead':'Проба светит во все стороны, а кристалл ловит только то, что летит в него, — как ведро под дождём. Отодвиньте пробу — капель станет меньше, причём заметно быстрее, чем растёт расстояние. Эта доля и есть <b>эффективность</b>: без неё по числу отсчётов не узнать, сколько распадов было на самом деле.',
+'s2.scene':'Фотоны Cs-137 (662 кэВ) летят из пробы во все стороны',
+'s2.src':'Проба:','s2.gap':'До кристалла:','s2.size':'Кристалл:',
+'s2.pt':'точка','s2.jar':'банка 0.2 л','s2.mar':'Маринелли',
+'s2.res':'Сколько дождя попало в ведро',
+'s2.t1':'долетело до кристалла','s2.t2':'отдало всю энергию — попало в пик','s2.t3':'фотонов в пике из каждой тысячи',
+'s2.cnote':'Каждая точка — измеренная здесь же эффективность. Кривая строится сама, пока вы не трогаете ползунок; цвет — форма пробы.',
+'s2.ax':'расстояние до кристалла, см','s2.ay':'в пике, %',
+'s2.f1':'<b>Расстояние решает больше всего.</b> Вдвое дальше — примерно вчетверо меньше: телесный угол падает как квадрат расстояния.',
+'s2.f2':'<b>Форма пробы тоже.</b> Маринелли обнимает кристалл со всех сторон и ловит в разы больше, чем банка на торце.',
+'s2.f3':'<b>В BecqMoni это кривая эффективности</b> из геометрии прибора и пробы — её считают так же, как здесь, только намного точнее (глава 8).',
+'s3.k':'Шаг 3',
+'s3.h':'Матрица отклика — словарь прибора',
+'s3.lead':'Эффективность отвечает, <b>сколько</b> фотонов попадёт в пик. Матрица отвечает на больший вопрос: <b>как</b> выглядит в спектре фотон каждой энергии — пик, плато, пики вылета, всё целиком. Её считают, прогоняя через модель вашей геометрии множество виртуальных фотонов, — смотрите, как словарь печатается строка за строкой.',
+'s3.map':'Словарь: энергия фотона ↓ → что окажется в спектре →',
+'s3.row':'Строка словаря: фотон {0} кэВ',
+'s3.auto':'Листать сам',
+'s3.st':'строк <b>{0}</b> из 24 · прогнано фотонов <b>{1}</b>',
+'s3.pk':'в пике <b>{0} %</b> попавших',
+'s3.ax':'что выделилось в кристалле, кэВ','s3.ay':'энергия фотона, кэВ',
+'s3.f1':'<b>У каждой энергии свой «почерк».</b> У низких почти всё в пике, у высоких — длинное плато и пики вылета.',
+'s3.f2':'<b>Словарь — для конкретной геометрии.</b> Другой кристалл или другая банка — другой словарь, поэтому BecqMoni считает его из вашей геометрии.',
+'s3.f3':'<b>Ширину пиков словарь не хранит.</b> Её программа добавляет потом, из калибровки FWHM вашего спектра.',
+'s4.k':'Шаг 4',
+'s4.h':'FSA: разобрать спектр на цветные слои',
+'s4.lead':'Обычный поиск пиков меряет каждый пик отдельно. <b>FSA</b> работает со всем спектром сразу: для каждого нуклида берёт из словаря готовый «слой» — как он со всем своим рядом выглядит в вашей геометрии — и подбирает, <b>сколько</b> каждого слоя нужно, чтобы сложилась измеренная картина. Как художник, который знает чистые краски и угадывает пропорции смеси. Смотрите, как слои нарастают шаг за шагом.',
+'s4.plot':'Измеренный спектр (точки) и подобранные слои',
+'s4.new':'Новая проба','s4.re':'Разобрать заново',
+'s4.calc':'Считаю слои из словаря… {0} из {1}',
+'s4.st':'шаг подбора <b>{0}</b> · невязка χ²/ν <b>{1}</b>',
+'s4.true':'истина {0} · найдено {1}',
+'s4.bg':'фон помещения',
+'s4.f1':'<b>Слой — это целый нуклид</b>, со всеми линиями и плато сразу, а не отдельный пик. Поэтому перекрытые пики не мешают.',
+'s4.f2':'<b>Невязка под графиком</b> показывает, что осталось необъяснённым. Ровная полоса около нуля — разбор сошёлся.',
+'s4.f3':'<b>Кого искать, решает поиск пиков.</b> FSA берёт нуклиды из подписанных пиков и раскрывает их ряды распада (глава 9).',
+'s5.k':'Шаг 5',
+'s5.h':'Активность: от слоя к беккерелям',
+'s5.lead':'Беккерель — один распад в секунду. Прибор замечает лишь малую долю распадов, но знает эту долю из геометрии и словаря — и честно пересчитывает обратно. Чем дольше набор, тем уже коридор неопределённости.',
+'s5.scene':'Идёт набор: распады в пробе и отсчёты в пике',
+'s5.a':'Активность пробы:',
+'s5.fast':'Быстрее ×10','s5.slow':'Обычная скорость','s5.reset':'Сначала',
+'s5.f':'A <span class="eq">=</span> N <span class="eq">/</span> (t × ε × y) <span class="eq">=</span> {0} <span class="eq">/</span> ({1} с × {2} × {3}) <span class="eq">=</span> <b>{4}</b>',
+'s5.fnone':'ждём первых отсчётов…',
+'s5.conv':'Оценка активности со временем',
+'s5.cnote':'Полоса — коридор 2σ вокруг оценки, пунктир — настоящая активность пробы. Он сжимается как 1/√N: вчетверо дольше — вдвое уже.',
+'s5.ax':'время набора, с','s5.ay':'оценка, Бк',
+'s5.dec':'распадов','s5.pk':'в пике',
+'s5.f1':'<b>N</b> — отсчёты в пике (у FSA — площадь слоя), <b>t</b> — живое время набора, <b>ε</b> — эффективность из шага 2, <b>y</b> — выход линии на распад.',
+'s5.f2':'<b>Погрешность честная:</b> √N отсчётов плюс неточность ε. Короткий набор даёт широкий коридор, а не неверное число.',
+'s5.f3':'<b>В программе</b> активность, Бк/кг и предел обнаружения — в окне результата (глава 10).',
+'nx.k':'Дальше',
+'nx.h':'Две дороги отсюда',
+'nx.lead':'Можно сразу идти к делу — установить программу и набрать первый спектр. А можно задержаться в физике: глава 11 — то же самое, но руками и подробно.',
+'nx.a':'Установка и окно программы','nx.ad':'Скачать, установить, понять, где что на экране, — и набрать первый спектр.',
+'nx.b':'Как это устроено — для продвинутых','nx.bd':'Своя геометрия и кривая эффективности, расчёт матрицы, разбор настоящего спектра и вся цепочка до беккерелей.',
+},
+en: {
+'n.ph':'Photon','n.geo':'Geometry','n.mx':'Matrix','n.fsa':'FSA','n.act':'Activity','n.next':'Next',
+'h.k':'Chapter 1 · Preface',
+'h.h':'How BecqMoni turns <em>flashes in a crystal</em> into becquerels',
+'h.lead':'Before pressing any buttons, it is worth seeing once what happens inside. Five steps from a single photon to the activity of a sample. Everything on this page is live: photons fly, spectra grow and layers stack up right in your browser.',
+'h.cap':'A jar with a sample shines in all directions, the crystal catches a small part — and the spectrum grows from what it caught',
+'ch.1':'Photon in the crystal','ch.2':'A bucket in the rain','ch.3':'The detector’s dictionary','ch.4':'Coloured layers','ch.5':'Becquerels',
+'s1.k':'Step 1',
+'s1.h':'What a photon does inside the crystal',
+'s1.lead':'A gamma photon enters the crystal like a ball flying into a dense forest. It may stop at once and give up all its energy, bounce off a "tree" and carry part of it away, or fly straight through. The instrument only sees what the photon <b>left behind</b> in the crystal. Fire one photon and follow its path — then a hundred thousand, and watch the spectrum grow out of them.',
+'s1.scene':'NaI(Tl) crystal, side view — fire some photons',
+'s1.energy':'Photon energy:','s1.shield':'lead shield around',
+'s1.b1':'1 photon','s1.b100':'×100','s1.b10k':'×100 000','s1.clr':'Clear','s1.spec':'What the detector recorded',
+'s1.f1':'<b>Full-energy peak</b> — the photon gave up all its energy. The peak position tells which nuclide it is; its area tells how much.',
+'s1.f2':'<b>Compton plateau</b> — the photon bounced and escaped, leaving only part of its energy. The plateau ends at the "Compton edge".',
+'s1.f3':'<b>Bumps and satellite peaks</b> — backscatter from the shield, lead X-rays, escape peaks. They come from the surroundings, not from the sample.',
+'s2.k':'Step 2',
+'s2.h':'A bucket in the rain: why it matters where the sample sits',
+'s2.lead':'A sample shines in all directions, while the crystal catches only what flies into it — like a bucket in the rain. Move the sample away and fewer drops land, noticeably faster than the distance grows. That share is the <b>efficiency</b>: without it the counts cannot tell how many decays there really were.',
+'s2.scene':'Cs-137 photons (662 keV) fly out of the sample in every direction',
+'s2.src':'Sample:','s2.gap':'To the crystal:','s2.size':'Crystal:',
+'s2.pt':'point','s2.jar':'0.2 l jar','s2.mar':'Marinelli',
+'s2.res':'How much rain reached the bucket',
+'s2.t1':'reached the crystal','s2.t2':'gave up all energy — in the peak','s2.t3':'photons in the peak out of every thousand',
+'s2.cnote':'Every dot is an efficiency measured right here. The curve builds itself while you leave the slider alone; the colour is the sample shape.',
+'s2.ax':'distance to the crystal, cm','s2.ay':'in the peak, %',
+'s2.f1':'<b>Distance matters most.</b> Twice as far gives about four times less: the solid angle falls as the square of the distance.',
+'s2.f2':'<b>So does the sample shape.</b> A Marinelli beaker wraps around the crystal and catches several times more than a jar on its face.',
+'s2.f3':'<b>In BecqMoni this is the efficiency curve</b> from the detector and sample geometry — computed the same way as here, only far more precisely (chapter 8).',
+'s3.k':'Step 3',
+'s3.h':'The response matrix — the detector’s dictionary',
+'s3.lead':'Efficiency answers <b>how many</b> photons reach the peak. The matrix answers a bigger question: <b>what</b> a photon of every energy looks like in the spectrum — peak, plateau, escape peaks, all of it. It is computed by running many virtual photons through a model of your geometry — watch the dictionary being printed row by row.',
+'s3.map':'Dictionary: photon energy ↓ → what ends up in the spectrum →',
+'s3.row':'A dictionary row: a {0} keV photon',
+'s3.auto':'Flip by itself',
+'s3.st':'rows <b>{0}</b> of 24 · photons run <b>{1}</b>',
+'s3.pk':'<b>{0} %</b> of those that hit are in the peak',
+'s3.ax':'energy left in the crystal, keV','s3.ay':'photon energy, keV',
+'s3.f1':'<b>Every energy has its own handwriting.</b> Low energies land almost entirely in the peak; high ones have a long plateau and escape peaks.',
+'s3.f2':'<b>The dictionary belongs to one geometry.</b> Another crystal or jar means another dictionary — that is why BecqMoni computes it from your geometry.',
+'s3.f3':'<b>The dictionary does not store peak widths.</b> The app adds them later, from the FWHM calibration of your spectrum.',
+'s4.k':'Step 4',
+'s4.h':'FSA: taking the spectrum apart into coloured layers',
+'s4.lead':'Ordinary peak search measures every peak on its own. <b>FSA</b> works with the whole spectrum at once: for every nuclide it takes a ready-made "layer" from the dictionary — what that nuclide with its whole chain looks like in your geometry — and finds <b>how much</b> of each layer rebuilds the measured picture. Like a painter who knows the pure paints and guesses the proportions of a mix. Watch the layers grow step by step.',
+'s4.plot':'Measured spectrum (dots) and fitted layers',
+'s4.new':'New sample','s4.re':'Decompose again',
+'s4.calc':'Computing layers from the dictionary… {0} of {1}',
+'s4.st':'fit step <b>{0}</b> · residual χ²/ν <b>{1}</b>',
+'s4.true':'truth {0} · found {1}',
+'s4.bg':'room background',
+'s4.f1':'<b>A layer is a whole nuclide</b>, all lines and plateaus at once, not a single peak. That is why overlapping peaks do not get in the way.',
+'s4.f2':'<b>The residual under the chart</b> shows what is left unexplained. A flat band around zero means the decomposition converged.',
+'s4.f3':'<b>Peak search decides whom to look for.</b> FSA takes the nuclides from labelled peaks and expands their decay chains (chapter 9).',
+'s5.k':'Step 5',
+'s5.h':'Activity: from a layer to becquerels',
+'s5.lead':'A becquerel is one decay per second. The detector notices only a small share of decays, but it knows that share from the geometry and the dictionary — and honestly scales back up. The longer the acquisition, the narrower the uncertainty corridor.',
+'s5.scene':'Acquisition running: decays in the sample and counts in the peak',
+'s5.a':'Sample activity:',
+'s5.fast':'Faster ×10','s5.slow':'Normal speed','s5.reset':'Start over',
+'s5.f':'A <span class="eq">=</span> N <span class="eq">/</span> (t × ε × y) <span class="eq">=</span> {0} <span class="eq">/</span> ({1} s × {2} × {3}) <span class="eq">=</span> <b>{4}</b>',
+'s5.fnone':'waiting for the first counts…',
+'s5.conv':'Activity estimate over time',
+'s5.cnote':'The band is a 2σ corridor around the estimate, the dashed line is the true activity. It shrinks as 1/√N: four times longer — half as wide.',
+'s5.ax':'acquisition time, s','s5.ay':'estimate, Bq',
+'s5.dec':'decays','s5.pk':'in the peak',
+'s5.f1':'<b>N</b> — counts in the peak (for FSA, the layer area), <b>t</b> — live time, <b>ε</b> — efficiency from step 2, <b>y</b> — line yield per decay.',
+'s5.f2':'<b>The uncertainty is honest:</b> √N counts plus the uncertainty of ε. A short acquisition gives a wide corridor, not a wrong number.',
+'s5.f3':'<b>In the app</b> activity, Bq/kg and the detection limit are in the results window (chapter 10).',
+'nx.k':'Next',
+'nx.h':'Two roads from here',
+'nx.lead':'You can get straight to work — install the app and acquire a first spectrum. Or stay with the physics a bit longer: chapter 11 is the same story, hands-on and in depth.',
+'nx.a':'Install and the main window','nx.ad':'Download, install, learn what is where on screen — and acquire a first spectrum.',
+'nx.b':'How it works — advanced','nx.bd':'Your own geometry and efficiency curve, computing the matrix, decomposing a real spectrum and the whole chain to becquerels.',
+}});
+
+const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, eCol, rgba, gauss, poisson, Jobs, visible, io, t, Q } = GUIDE;
+const kev = () => (GUIDE.lang === 'ru' ? ' кэВ' : ' keV');
+const touchStop = (els, f) => els.forEach(el => el && ['pointerdown', 'keydown'].forEach(ev => el.addEventListener(ev, f)));
+
+/* ── 0–1: заставка и «фотон в кристалле» — общий движок квантов ── */
+Q.heroAnim($('#cvHero'), $('#heroStat'));
+Q.photonLab();
+
+/* ── 2: ведро под дождём ── */
+(function geometry() {
+  const cv = $('#cvGeoQ'), cvC = $('#cvGeoC'); io.observe(cv); io.observe(cvC);
+  const E = 661.66, SRC = [['point', 's2.pt', '#ffcc33'], ['jar', 's2.jar', '#6aa8ff'], ['mar', 's2.mar', '#5be38a']];
+  const SIZES = [[4.0, 'Ø40 × 40'], [6.3, 'Ø63 × 63'], [7.6, 'Ø76 × 76']];
+  const st = { src: 'jar', gap: 1.0, size: 6.3 };
+  let D = Q.dims(st), S = null, tracks = [], nEm = 0, nHit = 0, auto = true, dir = 1, lastStep = 0;
+  const curve = {};                          // форма|кристалл → { отступ(мм) → доля в пике }
+  const key = () => st.src + '|' + st.size;
+  const srcBox = $('#geoSrc'), sizeBox = $('#geoSize'), gapSl = $('#geoGap');
+  function chips() {
+    srcBox.innerHTML = SRC.map(([k, l]) => '<button class="chip' + (st.src === k ? ' on' : '') + '" data-k="' + k + '">' + t(l) + '</button>').join('');
+    sizeBox.innerHTML = SIZES.map(([s, l]) => '<button class="chip' + (st.size === s ? ' on' : '') + '" data-s="' + s + '">' + l + (GUIDE.lang === 'ru' ? ' мм' : ' mm') + '</button>').join('');
+    $$('button', srcBox).forEach(b => b.onclick = () => { auto = false; st.src = b.dataset.k; changed(); });
+    $$('button', sizeBox).forEach(b => b.onclick = () => { auto = false; st.size = +b.dataset.s; changed(); });
+    $('#geoGapV').textContent = st.src === 'mar' ? '—' : fx(st.gap * 10, 0) + (GUIDE.lang === 'ru' ? ' мм' : ' mm');
+    gapSl.disabled = st.src === 'mar';
+  }
+  function changed() { D = Q.dims(st); S = { n: 0, hit: 0, arr: 0, inter: 0, fep: 0 }; tracks = []; nEm = nHit = 0; chips(); }
+  gapSl.addEventListener('input', () => { auto = false; st.gap = +gapSl.value / 10; changed(); });
+  touchStop([gapSl], () => { auto = false; });
+  function tiles() {
+    const ok = S && S.n >= 600;
+    $('#geoT1').textContent = ok ? sig(100 * S.hit / S.n, 2) + ' %' : '…';
+    $('#geoT2').textContent = ok ? sig(100 * S.fep / S.n, 2) + ' %' : '…';
+    $('#geoT3').textContent = ok ? sig(1000 * S.fep / S.n, 2) : '…';
+  }
+  function drawScene() {
+    const { ctx, w, h } = setup(cv);
+    const zmin = D.point ? Math.min(D.point[2] - 2, -9) : D.jar ? Math.min(D.jar.z0 - 1.2, -9) : D.mar.z0 - 2;
+    const ext = Math.max(D.R, D.jar ? D.jar.R : D.mar ? D.mar.Ro : D.R) + 3;
+    const V = Q.view(w, h, zmin, D.H * 1.9 + 1.2, -ext, ext, 8);
+    Q.drawSetup(ctx, V, D, { labels: true });
+    tracks.forEach(x => Q.drawTrack(ctx, V, x.tr, Math.pow(1 - x.age / 46, 1.3), Math.min(1, (x.age + 1) / 12)));
+    ctx.fillStyle = '#cdd8f3'; ctx.font = '600 12px system-ui'; ctx.textAlign = 'left';
+    ctx.fillText((GUIDE.lang === 'ru' ? 'вылетело ' : 'emitted ') + nEm + (GUIDE.lang === 'ru' ? ' · в кристалл ' : ' · into the crystal ') + nHit, 10, h - 10);
+  }
+  function drawCurve() {
+    const { ctx, w, h } = setup(cvC), bx = { l: 46, t: 12, r: w - 12, b: h - 24 };
+    let mx = 1; Object.values(curve).forEach(c => Object.values(c).forEach(v => { mx = Math.max(mx, v * 100); }));
+    const X = scale('lin', 0, 8, bx.l, bx.r), Y = scale('log', 0.05, mx * 1.6, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { xl: t('s2.ax'), yl: t('s2.ay'), nx: 5 });
+    SRC.forEach(([k, , col]) => SIZES.forEach(([s]) => {
+      const c = curve[k + '|' + s]; if (!c) return;
+      const pts = Object.keys(c).map(Number).sort((a, b) => a - b);
+      const cur = k + '|' + s === key();
+      ctx.strokeStyle = rgba(col, cur ? .9 : .35); ctx.lineWidth = cur ? 2 : 1; ctx.beginPath();
+      pts.forEach((g, i) => { const x = X(k === 'mar' ? 0.2 : g / 10), y = Y(c[g] * 100); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.stroke();
+      pts.forEach(g => { ctx.fillStyle = rgba(col, cur ? 1 : .45); ctx.beginPath(); ctx.arc(X(k === 'mar' ? 0.2 : g / 10), Y(c[g] * 100), cur ? 3.2 : 2.2, 0, Math.PI * 2); ctx.fill(); });
+    }));
+    if (S && S.n >= 600) { const x = X(st.src === 'mar' ? 0.2 : st.gap), y = Y(100 * S.fep / S.n); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.stroke(); }
+  }
+  function frame(ts) {
+    requestAnimationFrame(frame);
+    if (!visible.get(cv) && !visible.get(cvC)) return;
+    for (let i = 0; i < 3; i++) { const tr = []; const r = Q.historyA(E, D, tr); nEm++; if (r.hit) nHit++; tracks.push({ tr, age: 0 }); }
+    tracks.forEach(x => x.age++); tracks = tracks.filter(x => x.age < 46);
+    Q.runW(E, D, 220, null, 1, S);
+    if (S.n >= 600) { (curve[key()] = curve[key()] || {})[Math.round(st.gap * 10)] = S.fep / S.n; }
+    if (auto && st.src !== 'mar' && ts - lastStep > 2600 && S.n >= 3000) {   // кривая строится сама: шаг расстояния каждые 2.6 с
+      lastStep = ts; let g = Math.round(st.gap * 10) + dir * (st.gap < 1.5 ? 3 : st.gap < 3 ? 5 : 10);
+      if (g > 80) { g = 80; dir = -1; } if (g < 2) { g = 2; dir = 1; st.src = st.src === 'jar' ? 'point' : 'jar'; }   // туда-обратно, затем другая форма пробы
+      st.gap = g / 10; gapSl.value = g; changed();
+    }
+    drawScene(); tiles(); drawCurve();
+  }
+  GUIDE.onRedraw(() => { chips(); tiles(); drawScene(); drawCurve(); });
+  changed(); requestAnimationFrame(frame);
+})();
+
+/* ── 3: словарь прибора — матрица печатается строка за строкой ── */
+const MXQ = { E: [], rows: [], blurred: [], fep: [], hits: [], N: 0, bw: 10, nb: 280, sel: 12, auto: true };
+(function matrix() {
+  const cv = $('#cvMxQ'), cvR = $('#cvMxRow'); io.observe(cv); io.observe(cvR);
+  const D = Q.dims({ size: 6.3, gap: 1.0, src: 'jar' }), NR = 24, NH = 3500;
+  for (let i = 0; i < NR; i++) MXQ.E.push(50 * Math.pow(2700 / 50, i / (NR - 1)));
+  const sl = $('#mxSel');
+  sl.addEventListener('input', () => { MXQ.sel = +sl.value; MXQ.auto = false; draw(); });
+  $('#mxAuto').onclick = () => { MXQ.auto = true; };
+  touchStop([sl], () => { MXQ.auto = false; });
+  Jobs.add('mxq', (function* () {
+    for (let i = 0; i < NR; i++) {
+      const raw = new Float64Array(MXQ.nb), S = { n: 0, hit: 0, arr: 0, inter: 0, fep: 0 };
+      for (let k = 0; k < NH; k += 500) { Q.runW(MXQ.E[i], D, 500, raw, MXQ.bw, S); MXQ.N += 500; yield; }
+      for (let b = 0; b < MXQ.nb; b++) raw[b] /= S.n;
+      MXQ.rows[i] = raw; MXQ.blurred[i] = Q.blur(raw, MXQ.bw, 7.5); MXQ.fep[i] = S.fep / S.n; MXQ.hits[i] = S.inter / S.n;
+      if (MXQ.auto) { MXQ.sel = i; sl.value = i; }
+      draw();
+    }
+  })());
+  function draw() {
+    // карта: строки — энергия фотона (снизу вверх), столбцы — выделенная энергия
+    { const { ctx, w, h } = setup(cv), bx = { l: 52, t: 10, r: w - 10, b: h - 26 };
+      const X = scale('lin', 0, MXQ.nb * MXQ.bw, bx.l, bx.r), Y = scale('log', MXQ.E[0] / 1.09, MXQ.E[NR - 1] * 1.09, bx.b, bx.t);
+      const rh = (bx.b - bx.t) / NR, cw = (bx.r - bx.l) / MXQ.nb;
+      for (let i = 0; i < NR; i++) {
+        const row = MXQ.blurred[i], yc = Y(MXQ.E[i]);
+        if (!row) { ctx.fillStyle = 'rgba(255,255,255,.03)'; ctx.fillRect(bx.l, yc - rh / 2, bx.r - bx.l, rh - 1); continue; }
+        let m = 1e-12; for (let b = 0; b < MXQ.nb; b++) m = Math.max(m, row[b]);
+        for (let b = 0; b < MXQ.nb; b++) {
+          const v = row[b] / m; if (v < 2e-3) continue;
+          const a = clamp(1 + Math.log10(v) / 2.7, 0, 1);
+          ctx.fillStyle = eCol((b + 0.5) * MXQ.bw, 0.15 + 0.85 * a); ctx.fillRect(bx.l + b * cw, yc - rh / 2, Math.ceil(cw), rh - 1);
+        }
+      }
+      if (MXQ.rows[MXQ.sel]) { const yc = Y(MXQ.E[MXQ.sel]); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.strokeRect(bx.l - 2, yc - rh / 2 - 1, bx.r - bx.l + 4, rh + 1); }
+      // диагональ «пик полного поглощения»
+      ctx.strokeStyle = 'rgba(255,204,51,.55)'; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(X(MXQ.E[0]), Y(MXQ.E[0])); for (let i = 1; i < NR; i++) ctx.lineTo(X(MXQ.E[i]), Y(MXQ.E[i])); ctx.stroke(); ctx.setLineDash([]);
+      axes(ctx, bx, X, Y, { xl: t('s3.ax'), yl: t('s3.ay'), nx: 5 });
+    }
+    // строка
+    { const { ctx, w, h } = setup(cvR), bx = { l: 50, t: 14, r: w - 12, b: h - 24 }, i = MXQ.sel, row = MXQ.blurred[i];
+      const E = MXQ.E[i], emax = Math.max(150, E * 1.15);
+      $('#mxRowT').textContent = t('s3.row', Math.round(E)); $('#mxSelV').textContent = Math.round(E) + kev();
+      if (!row) { ctx.fillStyle = '#93a3c4'; ctx.font = '13px system-ui'; ctx.textAlign = 'center'; ctx.fillText('…', (bx.l + bx.r) / 2, (bx.t + bx.b) / 2); }
+      else {
+        let m = 1e-9; for (let b = 1; b < MXQ.nb; b++) if ((b + 0.5) * MXQ.bw < emax) m = Math.max(m, row[b]);
+        const X = scale('lin', 0, emax, bx.l, bx.r), Y = scale('log', m * 2e-3, m * 2, bx.b, bx.t);
+        axes(ctx, bx, X, Y, { xl: t('s3.ax'), noY: true, nx: 5 });
+        Q.drawFeatures(ctx, bx, X, Q.features(E, false));
+        ctx.beginPath(); ctx.moveTo(X(0), bx.b);
+        for (let b = 0; b < MXQ.nb; b++) { const e = (b + 0.5) * MXQ.bw; if (e > emax) break; ctx.lineTo(X(e), Y(Math.max(row[b], m * 2e-3))); }
+        ctx.lineTo(X(Math.min(emax, MXQ.nb * MXQ.bw)), bx.b); ctx.closePath();
+        const g = ctx.createLinearGradient(bx.l, 0, bx.r, 0); g.addColorStop(0, eCol(60, .55)); g.addColorStop(1, eCol(Math.max(80, E), .55)); ctx.fillStyle = g; ctx.fill();
+        ctx.strokeStyle = eCol(E, 1); ctx.lineWidth = 1.6; ctx.stroke();
+      }
+    }
+    const done = MXQ.rows.filter(Boolean).length;
+    $('#mxStat').innerHTML = '<span class="pill">' + t('s3.st', done, MXQ.N) + '</span>' + (MXQ.rows[MXQ.sel] ? '<span class="pill good">' + t('s3.pk', fx(100 * MXQ.fep[MXQ.sel] / Math.max(MXQ.hits[MXQ.sel], 1e-9), 0)) + '</span>' : '');
+  }
+  let last = 0;
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    if (!visible.get(cv) && !visible.get(cvR)) return;
+    if (MXQ.auto && ts - last > 1300) {        // листает словарь сам: по строке раз в 1.3 с
+      last = ts; const done = MXQ.rows.map((r, i) => r ? i : -1).filter(i => i >= 0);
+      if (done.length) { const k = done.indexOf(MXQ.sel); MXQ.sel = done[(k + 1) % done.length]; sl.value = MXQ.sel; draw(); }
+    }
+  }
+  GUIDE.onRedraw(draw); draw(); requestAnimationFrame(loop);
+})();
+
+/* ── 4: FSA — слои из словаря, подбор шаг за шагом ── */
+(function fsa() {
+  const cv = $('#cvFsaQ'), cvR = $('#cvFsaR'); io.observe(cv);
+  const D = Q.dims({ size: 6.3, gap: 1.0, src: 'jar' }), BW = 10, NB = 280, EMIN = 40, FW = 7.5, NH = 2600;
+  const NUC = [
+    { id: 'Cs-137', c: '#6aa8ff', L: [[661.66, 0.851]] },
+    { id: 'K-40', c: '#ff9f43', L: [[1460.82, 0.1066]] },
+    { id: 'Ra-226', c: '#5be38a', L: [[186.2, 0.036], [242.0, 0.073], [295.2, 0.184], [351.9, 0.356], [609.3, 0.455], [768.4, 0.049], [1120.3, 0.149], [1238.1, 0.058], [1764.5, 0.153]] },
+    { id: 'Th-232', c: '#c38bff', L: [[238.6, 0.436], [338.3, 0.113], [583.2, 0.304], [727.3, 0.067], [911.2, 0.258], [969.0, 0.158], [2614.5, 0.359]] },
+  ];
+  const BG = { id: 'bg', c: '#55607a' };
+  const F = { tpl: [], ready: false, todo: 0, done: 0, truth: [], a: [], meas: null, it: 0, chi: NaN, run: false };
+  // фон помещения: гладкое падающее плато
+  const bgT = new Float64Array(NB); for (let b = 0; b < NB; b++) { const e = (b + 0.5) * BW; bgT[b] = e < EMIN ? 0 : Math.exp(-e / 260) + 0.08 * Math.exp(-e / 1400); }
+  { let s = 0; for (let b = 0; b < NB; b++) s += bgT[b]; for (let b = 0; b < NB; b++) bgT[b] /= s; }
+  F.todo = NUC.reduce((a, n) => a + n.L.length, 0);
+  Jobs.add('fsaq', (function* () {
+    for (const n of NUC) {
+      const T = new Float64Array(NB);
+      for (const [E, y] of n.L) {
+        const raw = new Float64Array(NB), S = { n: 0, hit: 0, arr: 0, inter: 0, fep: 0 };
+        for (let k = 0; k < NH; k += 650) { Q.runW(E, D, 650, raw, BW, S); yield; }
+        for (let b = 0; b < NB; b++) T[b] += y * raw[b] / S.n;
+        F.done++; draw();
+      }
+      const bl = Q.blur(T, BW, FW); for (let b = 0; b < NB; b++) if ((b + 0.5) * BW < EMIN) bl[b] = 0;
+      F.tpl.push(bl);
+    }
+    F.tpl.push(bgT); F.ready = true; newSample();
+  })());
+  function newSample() {
+    // «истина»: распадов на канал при условном времени; фон — заметный
+    const pick = () => Math.random() < 0.25 ? 0 : 0.3 + Math.random();
+    F.truth = [pick() * 9e5, pick() * 6e6, pick() * 1.2e6, pick() * 1.2e6, 9000 + Math.random() * 6000];
+    if (F.truth.slice(0, 4).every(v => v === 0)) F.truth[0] = 6e5;
+    F.meas = new Float64Array(NB);
+    for (let b = 0; b < NB; b++) { let mu = 0; F.tpl.forEach((T, k) => mu += F.truth[k] * T[b]); F.meas[b] = (b + 0.5) * BW < EMIN ? 0 : poisson(mu); }
+    restart();
+  }
+  function restart() {
+    let tot = 0; for (let b = 0; b < NB; b++) tot += F.meas[b];
+    F.a = F.tpl.map(T => { let s = 0; for (let b = 0; b < NB; b++) s += T[b]; return tot / F.tpl.length / Math.max(s, 1e-12); });
+    F.it = 0; F.run = true;
+  }
+  function model(k, b) { return F.a[k] * F.tpl[k][b]; }
+  function step() {                          // один шаг подбора (EM: множители, не уводящие слой в минус)
+    const f = new Float64Array(NB);
+    for (let b = 0; b < NB; b++) { let s = 1e-9; for (let k = 0; k < F.tpl.length; k++) s += model(k, b); f[b] = s; }
+    for (let k = 0; k < F.tpl.length; k++) {
+      let num = 0, den = 0; const T = F.tpl[k];
+      for (let b = 0; b < NB; b++) { if ((b + 0.5) * BW < EMIN) continue; num += T[b] * F.meas[b] / f[b]; den += T[b]; }
+      if (den > 0) F.a[k] *= num / den;
+    }
+    let chi = 0, nu = 0;
+    for (let b = 0; b < NB; b++) { if ((b + 0.5) * BW < EMIN) continue; let s = 0; for (let k = 0; k < F.tpl.length; k++) s += model(k, b); chi += (F.meas[b] - s) ** 2 / Math.max(s, 1); nu++; }
+    F.chi = chi / Math.max(1, nu - F.tpl.length); F.it++;
+  }
+  $('#fsaNew').onclick = () => { if (F.ready) newSample(); };
+  $('#fsaRe').onclick = () => { if (F.ready) restart(); };
+  const label = k => k < NUC.length ? NUC[k].id : t('s4.bg'), color = k => k < NUC.length ? NUC[k].c : BG.c;
+  function draw() {
+    const { ctx, w, h } = setup(cv), bx = { l: 52, t: 12, r: w - 12, b: h - 24 };
+    const X = scale('lin', 0, 2800, bx.l, bx.r);
+    if (!F.ready) {
+      axes(ctx, bx, X, scale('lin', 0, 1, bx.b, bx.t), { xl: t('q.ax.e'), noY: true });
+      ctx.fillStyle = '#cdd8f3'; ctx.font = '600 14px system-ui'; ctx.textAlign = 'center'; ctx.fillText(t('s4.calc', F.done, F.todo), (bx.l + bx.r) / 2, (bx.t + bx.b) / 2);
+      ctx.fillStyle = 'rgba(255,204,51,.7)'; ctx.fillRect(bx.l, (bx.t + bx.b) / 2 + 14, (bx.r - bx.l) * F.done / F.todo, 4);
+      return;
+    }
+    let mx = 10; for (let b = 0; b < NB; b++) mx = Math.max(mx, F.meas[b]);
+    const Y = scale('sqrt', 0, mx * 1.08, bx.b, bx.t), bw = X(BW) - X(0);
+    axes(ctx, bx, X, Y, { xl: t('q.ax.e'), yl: t('q.ax.cnt') });
+    // слои — снизу фон, сверху нуклиды
+    const order = [F.tpl.length - 1, ...NUC.map((n, i) => i)];
+    const acc = new Float64Array(NB);
+    order.forEach(k => {
+      ctx.beginPath(); ctx.moveTo(X(0), Y(acc[0]));
+      const top = new Float64Array(NB); for (let b = 0; b < NB; b++) top[b] = acc[b] + model(k, b);
+      for (let b = 0; b < NB; b++) ctx.lineTo(X((b + 0.5) * BW), Y(top[b]));
+      for (let b = NB - 1; b >= 0; b--) ctx.lineTo(X((b + 0.5) * BW), Y(acc[b]));
+      ctx.closePath(); ctx.fillStyle = rgba(color(k), .62); ctx.fill();
+      for (let b = 0; b < NB; b++) acc[b] = top[b];
+    });
+    ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1.2; ctx.beginPath();
+    for (let b = 0; b < NB; b++) { const x = X((b + 0.5) * BW), y = Y(acc[b]); if (b) ctx.lineTo(x, y); else ctx.moveTo(x, y); } ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    for (let b = 0; b < NB; b++) { if ((b + 0.5) * BW < EMIN) continue; ctx.beginPath(); ctx.arc(X((b + 0.5) * BW), Y(F.meas[b]), Math.max(1.2, Math.min(2.2, bw / 2.5)), 0, Math.PI * 2); ctx.fill(); }
+    // невязка
+    { const r = setup(cvR), c2 = r.ctx, bxr = { l: bx.l, t: 4, r: bx.r, b: r.h - 4 }, ym = (bxr.t + bxr.b) / 2, k = (bxr.b - bxr.t) / 2 / 4;
+      c2.fillStyle = 'rgba(255,255,255,.05)'; c2.fillRect(bxr.l, ym - 2 * k, bxr.r - bxr.l, 4 * k);
+      c2.strokeStyle = 'rgba(255,255,255,.25)'; c2.beginPath(); c2.moveTo(bxr.l, ym); c2.lineTo(bxr.r, ym); c2.stroke();
+      for (let b = 0; b < NB; b++) { if ((b + 0.5) * BW < EMIN) continue; const z = clamp((F.meas[b] - acc[b]) / Math.sqrt(Math.max(acc[b], 1)), -4, 4); c2.fillStyle = Math.abs(z) > 2 ? '#ff4d6d' : '#5be38a'; c2.fillRect(X(b * BW), ym - (z > 0 ? z * k : 0), Math.max(1, bw - .5), Math.abs(z) * k); }
+    }
+    // подписи
+    $('#fsaLegend').innerHTML = order.slice().reverse().map(k => {
+      let s = 0, s0 = 0; for (let b = 0; b < NB; b++) { s += model(k, b); s0 += F.truth[k] * F.tpl[k][b]; }
+      return '<span><i style="background:' + color(k) + '"></i><b>' + label(k) + '</b> <small>' + t('s4.true', Math.round(s0), Math.round(s)) + '</small></span>';
+    }).join('');
+    $('#fsaStat').innerHTML = '<span class="pill' + (F.chi < 1.5 ? ' good' : '') + '">' + t('s4.st', F.it, isFinite(F.chi) ? fx(F.chi, 2) : '—') + '</span>';
+  }
+  let last = 0;
+  function loop(ts) {
+    requestAnimationFrame(loop);
+    if (!visible.get(cv)) return;
+    if (F.ready && F.run && ts - last > (F.it < 40 ? 70 : 25)) {   // первые шаги медленно — видно, как растут слои
+      last = ts; step(); if (F.it >= 400) F.run = false; draw();
+    }
+  }
+  GUIDE.onRedraw(draw); draw(); requestAnimationFrame(loop);
+})();
+
+/* ── 5: активность — набор идёт, коридор сужается ── */
+(function activity() {
+  const cv = $('#cvActQ'), cvC = $('#cvActC'); io.observe(cv); io.observe(cvC);
+  const Y_LINE = 0.851, D = Q.dims({ size: 6.3, gap: 1.0, src: 'jar' });
+  const S0 = Q.runW(661.66, D, 3000, null, 1);
+  let EPS = S0.fep / S0.n;                   // эффективность пика той же банки, что в шаге 2; уточняется в фоне до 30 000 историй
+  Jobs.add('acteps', (function* () { while (S0.n < 30000) { Q.runW(661.66, D, 1500, null, 1, S0); EPS = S0.fep / S0.n; yield; } })());
+  const A_of = v => Math.round(5 * Math.pow(1000 / 5, v / 1000));
+  const st = { A: A_of(500), t: 0, N: 0, dec: 0, hist: [], fast: false, flashes: [] };
+  const aSl = $('#actA');
+  aSl.addEventListener('input', () => { st.A = A_of(+aSl.value); reset(); });
+  $('#actReset').onclick = reset;
+  $('#actFast').onclick = () => { st.fast = !st.fast; $('#actFast').textContent = t(st.fast ? 's5.slow' : 's5.fast'); };
+  function reset() { st.t = 0; st.N = 0; st.dec = 0; st.hist = []; st.flashes = []; $('#actAv').textContent = st.A + (GUIDE.lang === 'ru' ? ' Бк' : ' Bq'); formula(); }
+  function est() { if (st.N <= 0 || st.t <= 0) return null; const a = st.N / (st.t * EPS * Y_LINE), s = Math.sqrt(st.N) / (st.t * EPS * Y_LINE); return [a, s]; }
+  function formula() {
+    const e = est();
+    $('#actF').innerHTML = e ? t('s5.f', st.N, fx(st.t, 0), fx(EPS, 4), Y_LINE, fx(e[0], e[0] < 100 ? 1 : 0) + ' ± ' + fx(2 * e[1], e[1] < 50 ? 1 : 0) + (GUIDE.lang === 'ru' ? ' Бк (2σ)' : ' Bq (2σ)')) : t('s5.fnone');
+  }
+  function tick() {
+    const dt = st.fast ? 60 : 6;            // секунд набора за кадр
+    const nDec = poisson(st.A * dt), nPk = poisson(st.A * dt * EPS * Y_LINE);
+    st.t += dt; st.dec += nDec; st.N += nPk;
+    // на экране — выборка: до пяти распадов-«промахов» и до двух фотонов, дошедших до пика; счётчики — все
+    for (let i = 0; i < Math.min(nDec, 5); i++) st.flashes.push({ x: Math.random(), y: Math.random(), age: 0, hit: false });
+    for (let i = 0; i < Math.min(nPk, 2); i++) st.flashes.push({ x: Math.random(), y: Math.random(), age: 0, hit: true });
+    st.flashes.forEach(f => f.age++); st.flashes = st.flashes.filter(f => f.age < 40);
+    const e = est(); if (e) st.hist.push([st.t, e[0], e[1]]);
+    if (st.t > 2e5) reset();
+  }
+  function drawScene() {
+    const { ctx, w, h } = setup(cv);
+    const jx = w * 0.07, jw = w * 0.36, jy = h * 0.16, jh = h * 0.6, cx = w * 0.62, cw = w * 0.16, cy = h * 0.22, ch = h * 0.48;
+    ctx.fillStyle = 'rgba(80,170,255,.16)'; ctx.strokeStyle = 'rgba(120,190,255,.7)'; ctx.lineWidth = 1.5; ctx.fillRect(jx, jy, jw, jh); ctx.strokeRect(jx, jy, jw, jh);
+    const g = ctx.createLinearGradient(0, cy, 0, cy + ch); g.addColorStop(0, 'rgba(150,200,255,.45)'); g.addColorStop(1, 'rgba(110,160,255,.22)');
+    ctx.fillStyle = '#0b1222'; ctx.fillRect(cx, cy, cw, ch); ctx.fillStyle = g; ctx.fillRect(cx, cy, cw, ch);
+    ctx.fillStyle = '#3b4560'; ctx.fillRect(cx + cw, cy + ch * 0.06, w * 0.12, ch * 0.88);
+    st.flashes.forEach(f => {
+      const px = jx + f.x * jw, py = jy + f.y * jh, a = 1 - f.age / 40;
+      const gr = ctx.createRadialGradient(px, py, 0, px, py, 10); gr.addColorStop(0, 'rgba(255,230,120,' + a + ')'); gr.addColorStop(1, 'rgba(255,170,60,0)');
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2); ctx.fill();
+      if (f.hit) {                          // фотон долетел и отдал всё — вспышка в кристалле
+        const k = Math.min(1, f.age / 14), tx = cx + cw * (0.25 + 0.5 * f.y), ty = cy + ch * (0.15 + 0.7 * f.x);
+        ctx.strokeStyle = eCol(662, a); ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(lerp(px, tx, k), lerp(py, ty, k)); ctx.stroke();
+        if (k >= 1) { const gg = ctx.createRadialGradient(tx, ty, 0, tx, ty, 12); gg.addColorStop(0, 'rgba(255,77,109,' + a + ')'); gg.addColorStop(1, 'rgba(255,77,109,0)'); ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(tx, ty, 12, 0, Math.PI * 2); ctx.fill(); }
+      } else {
+        const ang = f.x * 6.283, k = Math.min(1, f.age / 22); ctx.strokeStyle = 'rgba(255,204,51,' + 0.35 * a + ')'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(ang) * 60 * k, py + Math.sin(ang) * 60 * k); ctx.stroke();
+      }
+    });
+    ctx.font = '600 13px system-ui'; ctx.fillStyle = '#cdd8f3'; ctx.textAlign = 'center';
+    ctx.fillText(t('s5.dec') + ': ' + st.dec, jx + jw / 2, jy + jh + 20);
+    ctx.fillStyle = '#ff9fb2'; ctx.fillText(t('s5.pk') + ': ' + st.N, cx + cw / 2, cy + ch + 20);
+    ctx.fillStyle = '#93a3c4'; ctx.font = '12px system-ui'; ctx.fillText('t = ' + fx(st.t, 0) + (GUIDE.lang === 'ru' ? ' с' : ' s'), w * 0.5, 16);
+  }
+  function drawConv() {
+    const { ctx, w, h } = setup(cvC), bx = { l: 52, t: 14, r: w - 12, b: h - 24 };
+    const X = scale('log', 6, 2e5, bx.l, bx.r), Y = scale('lin', 0, st.A * 2.4, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { xl: t('s5.ax'), yl: t('s5.ay'), xt: [10, 100, 1000, 1e4, 1e5] });
+    const H = st.hist;
+    if (H.length > 1) {
+      ctx.beginPath(); H.forEach(([tt, a, s], i) => { const x = X(Math.max(tt, 6)), y = Y(Math.min(a + 2 * s, st.A * 2.4)); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
+      for (let i = H.length - 1; i >= 0; i--) { const [tt, a, s] = H[i]; ctx.lineTo(X(Math.max(tt, 6)), Y(Math.max(a - 2 * s, 0))); }
+      ctx.closePath(); ctx.fillStyle = 'rgba(106,168,255,.28)'; ctx.fill();
+      ctx.strokeStyle = '#6aa8ff'; ctx.lineWidth = 1.8; ctx.beginPath(); H.forEach(([tt, a], i) => { const x = X(Math.max(tt, 6)), y = Y(Math.min(a, st.A * 2.4)); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.stroke();
+    }
+    ctx.strokeStyle = '#ffcc33'; ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(bx.l, Y(st.A)); ctx.lineTo(bx.r, Y(st.A)); ctx.stroke(); ctx.setLineDash([]);
+  }
+  function loop() {
+    requestAnimationFrame(loop);
+    if (!visible.get(cv) && !visible.get(cvC)) return;
+    tick(); drawScene(); drawConv(); formula();
+  }
+  GUIDE.onRedraw(() => { $('#actAv').textContent = st.A + (GUIDE.lang === 'ru' ? ' Бк' : ' Bq'); formula(); drawScene(); drawConv(); $('#actFast').textContent = t(st.fast ? 's5.slow' : 's5.fast'); });
+  reset(); requestAnimationFrame(loop);
+})();
+
+GUIDE.init();
+</script>
+</body>
+</html>

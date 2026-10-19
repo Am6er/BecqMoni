@@ -24,6 +24,16 @@
   <h1 data-t="h.h"></h1>
   <p class="lead" data-t="h.lead"></p>
   <div class="card full">
+    <canvas id="cvHero" class="cv tall" aria-label="animation"></canvas>
+    <div class="row"><span class="pill" id="heroStat"></span><span class="note" data-t="hq.cap"></span></div>
+    <div class="row"><a class="btn main" href="preface.html" data-t="hq.pre"></a><a class="btn" href="install.html" data-t="hq.go"></a></div>
+  </div>
+</div></section>
+
+<section class="sec" id="route" data-nav="n.path"><div class="wrap">
+  <div class="kicker" data-t="pa.k"></div>
+  <h2 data-t="pa.h"></h2>
+  <div class="card full">
     <h3 data-t="p.h"></h3>
     <canvas id="cvPath" class="cv tall"></canvas>
     <div class="path" id="path"></div>
@@ -57,11 +67,13 @@
 <footer><div class="wrap" data-t="foot"></div></footer>
 
 <script src="assets/guide.js"></script>
+<script src="assets/quanta.js"></script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, setup, scale, axes, eCol, rgba, visible, io, t } = GUIDE;
 const ICONS = {
   index: '<svg viewBox="0 0 48 48" fill="none" stroke="#ffcc33" stroke-width="2.4" stroke-linecap="round"><path d="M8 40h32"/><path d="M12 40c4 0 5-24 9-24s4 16 7 16 4-8 8-8"/><circle cx="21" cy="16" r="3" fill="#ff4d6d" stroke="none"/></svg>',
+  preface: '<svg viewBox="0 0 48 48" fill="none" stroke-width="2.4" stroke-linecap="round"><rect x="26" y="12" width="16" height="24" rx="2" stroke="#6aa8ff"/><path d="M4 20l10 4 8-2 8 6" stroke="#ffcc33"/><circle cx="30" cy="28" r="4" fill="#ff4d6d" stroke="none"/><circle cx="6" cy="34" r="3.5" fill="#ffe08a" stroke="none"/></svg>',
   install: '<svg viewBox="0 0 48 48" fill="none" stroke="#6aa8ff" stroke-width="2.4" stroke-linecap="round"><rect x="6" y="8" width="36" height="26" rx="3"/><path d="M18 40h12M24 34v6"/><path d="M24 14v12m-5-5 5 5 5-5" stroke="#ffcc33"/></svg>',
   devices: '<svg viewBox="0 0 48 48" fill="none" stroke="#5be38a" stroke-width="2.4" stroke-linecap="round"><rect x="10" y="6" width="18" height="34" rx="4"/><circle cx="19" cy="15" r="4"/><path d="M15 26h8M15 31h8"/><path d="M32 18c3 2 3 8 0 10M36 14c6 4 6 14 0 18" stroke="#ffcc33"/></svg>',
   acquire: '<svg viewBox="0 0 48 48" fill="none" stroke-width="2.4" stroke-linecap="round"><circle cx="24" cy="24" r="17" stroke="#93a3c4"/><path d="M24 12v12l8 5" stroke="#ffcc33"/><circle cx="24" cy="24" r="2.5" fill="#ff4d6d"/></svg>',
@@ -75,7 +87,10 @@ const ICONS = {
   files: '<svg viewBox="0 0 48 48" fill="none" stroke="#93a3c4" stroke-width="2.4" stroke-linecap="round"><path d="M12 6h16l8 8v28H12z"/><path d="M28 6v8h8"/><path d="M17 24h14M17 30h14M17 36h8" stroke="#ffcc33"/></svg>',
 };
 GUIDE.texts({ru:{
-'n.ch':'Главы','n.before':'Заранее',
+'n.path':'Путь','n.ch':'Главы','n.before':'Заранее',
+'hq.cap':'Банка с пробой светит во все стороны, кристалл ловит малую часть — и из пойманного растёт спектр. Как это превращается в беккерели — в предисловии.',
+'hq.pre':'Читать предисловие →','hq.go':'Сразу к делу: установка',
+'pa.k':'Путь по программе','pa.h':'Пять шагов от прибора до результата',
 'h.k':'Гайд по BecqMoni',
 'h.h':'От <em>прибора на столе</em> до беккерелей в пробе',
 'h.lead':'BecqMoni — программа для гамма-спектрометров: набирает спектр с прибора, калибрует его, узнаёт нуклиды и считает активность. Гайд проведёт по всем окнам — с настоящими снимками программы и живыми примерами, которые можно трогать.',
@@ -85,7 +100,7 @@ GUIDE.texts({ru:{
 's3':'Откалибровать','s3d':'каналы превращаются в кэВ','s4':'Разобрать FSA','s4d':'спектр раскладывается на нуклиды','s5':'Получить результат','s5d':'Бк, Бк/кг и предел обнаружения',
 'cv.ch':'канал','cv.kev':'энергия, кэВ','cv.cnt':'отсчёты','cv.res':'Результат','cv.bqkg':'Бк/кг','cv.lim':'предел обнаружения',
 'cv.dev':'прибор','cv.pc':'BecqMoni',
-'c.k':'Оглавление','c.h':'Двенадцать глав — от установки до физики',
+'c.k':'Оглавление','c.h':'Двенадцать глав — от предисловия до файлов',
 'c.lead':'Можно читать по порядку, а можно сразу открыть нужное. Вверху каждой страницы — кнопка <b>Оглавление</b>, внизу — переход к следующей главе.',
 'b.k':'Перед началом','b.h':'Что полезно знать заранее',
 'b.f1':'<b>Windows и .NET Framework 4.8.</b> BecqMoni — программа для Windows; ставится и обновляется сама, обновления приходят с сайта программы.',
@@ -95,7 +110,10 @@ GUIDE.texts({ru:{
 'b.f5':'<b>Геометрия — для беккерелей.</b> Чтобы получить активность, программе нужно знать, как проба стоит у кристалла.',
 'b.f6':'<b>Числа — с точкой.</b> Дробная часть везде отделяется точкой, разряды не группируются: 1234.5.',
 },en:{
-'n.ch':'Chapters','n.before':'Before you start',
+'n.path':'Path','n.ch':'Chapters','n.before':'Before you start',
+'hq.cap':'A jar with a sample shines in all directions, the crystal catches a small part — and the spectrum grows from what it caught. How that becomes becquerels is in the preface.',
+'hq.pre':'Read the preface →','hq.go':'Straight to work: install',
+'pa.k':'The path through the app','pa.h':'Five steps from the detector to the result',
 'h.k':'The BecqMoni guide',
 'h.h':'From <em>a detector on your desk</em> to becquerels in a sample',
 'h.lead':'BecqMoni is a program for gamma spectrometers: it acquires a spectrum from the detector, calibrates it, recognises nuclides and computes activity. This guide walks through every window — with real screenshots of the program and live examples you can play with.',
@@ -105,7 +123,7 @@ GUIDE.texts({ru:{
 's3':'Calibrate','s3d':'channels turn into keV','s4':'Run FSA','s4d':'the spectrum splits into nuclides','s5':'Get the result','s5d':'Bq, Bq/kg and the detection limit',
 'cv.ch':'channel','cv.kev':'energy, keV','cv.cnt':'counts','cv.res':'Result','cv.bqkg':'Bq/kg','cv.lim':'detection limit',
 'cv.dev':'detector','cv.pc':'BecqMoni',
-'c.k':'Contents','c.h':'Twelve chapters — from installing to the physics',
+'c.k':'Contents','c.h':'Twelve chapters — from the preface to files',
 'c.lead':'Read them in order or jump straight to what you need. Every page has a <b>Contents</b> button at the top and a link to the next chapter at the bottom.',
 'b.k':'Before you start','b.h':'Good to know in advance',
 'b.f1':'<b>Windows and .NET Framework 4.8.</b> BecqMoni is a Windows program; it installs and updates itself, updates come from the program\'s website.',
@@ -118,9 +136,12 @@ GUIDE.texts({ru:{
 
 /* ── карточки глав ── */
 function chapters() {
-  $('#chapGrid').innerHTML = GUIDE.CHAPTERS.filter(c => c.id !== 'index').map((c, i) => '<a class="chap" href="' + c.file + '"><span class="n">' + (i + 2) + '</span>' + (ICONS[c.id] || '') + '<b>' + c[GUIDE.lang][0] + '</b><span>' + c[GUIDE.lang][1] + '</span></a>').join('');
+  $('#chapGrid').innerHTML = GUIDE.CHAPTERS.filter(c => c.id !== 'index').map((c, i) => '<a class="chap" href="' + c.file + '"><span class="n">' + (i + 1) + '</span>' + (ICONS[c.id] || '') + '<b>' + c[GUIDE.lang][0] + '</b><span>' + c[GUIDE.lang][1] + '</span></a>').join('');
 }
 GUIDE.onRedraw(chapters);
+
+/* ── заставка: кванты из банки (общий движок assets/quanta.js, `AMBER244`) ── */
+GUIDE.Q.heroAnim($('#cvHero'), $('#heroStat'));
 
 /* ── путь за пять шагов: одна картинка, пять состояний ── */
 (function path() {
