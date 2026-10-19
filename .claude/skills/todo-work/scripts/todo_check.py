@@ -57,6 +57,10 @@ ROW = re.compile(r'\| (~~)?\*\*(~~)?([A-Z]+\d+)(~~)?\*\*(~~)? \|')
 # печатает «задвоено» на исправном файле — поймано 06.09.2026.
 TAIL = u'## Отложенные прогоны'
 CLOSED = ('~~открыто~~', 'ЗАКРЫТА', 'ОТМЕНЕНА')
+# 19.10.2026: серия AMBER закрывается иначе — номер вычеркнут (`~~**AMBER225**~~`),
+# а состояние начинается строчным «закрыто (П329 …)» / «снято (решение Amber …)».
+# Без этого `--tally` считал двенадцать закрытых строк AMBER открытыми (19 вместо 7).
+CLOSED_HEAD = re.compile(u'\\s*(закрыт|снят)')
 
 
 def read(path):
@@ -78,9 +82,12 @@ def rows(lines):
 
 
 def is_closed(line):
+    m = ROW.match(line)
+    if m and (m.group(1) or m.group(2)):
+        return True
     cells = line.split('|')
     st = cells[2] if len(cells) > 2 else ''
-    return any(w in st for w in CLOSED)
+    return any(w in st for w in CLOSED) or CLOSED_HEAD.match(st) is not None
 
 
 def series_of(rid):
