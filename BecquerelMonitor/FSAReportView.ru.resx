@@ -358,6 +358,24 @@
   <data name="FSAReport_InterferenceValue" xml:space="preserve">
     <value>не учтён</value>
   </data>
+  <data name="FSAReport_IsotopeRow" xml:space="preserve">
+    <value>{0} в {0}+{1}: {2} ± {3} % масс. ({4}; природная {5} %)</value>
+  </data>
+  <data name="FSAReport_IsotopeSpread" xml:space="preserve">
+    <value>разброс членов {0}–{1} %</value>
+  </data>
+  <data name="FSAReport_IsotopeStatOnly" xml:space="preserve">
+    <value>только статистика</value>
+  </data>
+  <data name="FSAReport_IsotopeNatural" xml:space="preserve">
+    <value>природный</value>
+  </data>
+  <data name="FSAReport_IsotopeDepleted" xml:space="preserve">
+    <value>обеднён</value>
+  </data>
+  <data name="FSAReport_IsotopeEnriched" xml:space="preserve">
+    <value>обогащён</value>
+  </data>
   <data name="FSAReport_UncoveredRow" xml:space="preserve">
     <value>{0} кэВ: пик вне состава — на {1} % выше модели, z {2}; линии библиотеки рядом: {3}</value>
   </data>

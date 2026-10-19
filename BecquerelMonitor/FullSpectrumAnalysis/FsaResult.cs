@@ -1453,6 +1453,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public List<CascadeAtomicData.SupplyDiscrepancy> SupplyDiscrepancies { get; set; }
 
         /// <summary>
+        /// (`AMBER236`, решение Amber 19.10.2026 вопросником, дословно: «Всегда, со
+        /// словом-вердиктом», «Массовая доля, %», «σ разбора + разброс членов»)
+        /// ИЗОТОПНЫЙ СОСТАВ ЭЛЕМЕНТА по разбору — у элемента, два первичных изотопа
+        /// которого обнаружены в составе (обеднённый уран: U-235 против U-238).
+        /// Собирает <see cref="FsaSampleLibrary.IsotopeRatiosOf"/> в фоне сеанса,
+        /// после разбора; null — не собирались (пробы, корпус), пусто — нечего.
+        /// </summary>
+        public List<FsaIsotopeRatio> IsotopeRatios { get; set; }
+
+        /// <summary>
         /// (`AMBER199`, 05.10.2026) ОТКАЗЫ ЧТЕНИЯ БАЗ за этот разбор — по
         /// строке «файл базы (что читалось): сообщение платформы»
         /// (<see cref="FsaDatabaseFailures"/>). Окно отчёта печатает их
@@ -2811,5 +2821,54 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// взвешенным эффективностью.
         /// </summary>
         public double Factor { get; set; }
+    }
+
+    /// <summary>(`AMBER236`) Как доля изотопа в разборе соотносится с природной.</summary>
+    public enum FsaIsotopeVerdict
+    {
+        /// <summary>В пределах k·σ от природной.</summary>
+        Natural,
+
+        /// <summary>Ниже природной больше чем на k·σ (обеднённый уран).</summary>
+        Depleted,
+
+        /// <summary>Выше природной больше чем на k·σ.</summary>
+        Enriched
+    }
+
+    /// <summary>
+    /// (`AMBER236`) Массовая доля первичного изотопа среди первичных изотопов его
+    /// элемента, обнаруженных в составе, — по активностям разбора и периодам
+    /// базы: N ∝ A·T½, масса ∝ N·(массовое число).
+    /// </summary>
+    public sealed class FsaIsotopeRatio
+    {
+        /// <summary>Изотоп, чья доля («U-235»).</summary>
+        public string Isotope { get; set; }
+
+        /// <summary>Остальные первичные изотопы элемента в составе, через «+» («U-238»).</summary>
+        public string Others { get; set; }
+
+        /// <summary>Массовая доля, % — по средним (вес 1/σ²) активностям изотопов.</summary>
+        public double MassPercent { get; set; }
+
+        /// <summary>σ доли от σ разбора, % (только статистика).</summary>
+        public double SigmaPercent { get; set; }
+
+        /// <summary>
+        /// Разброс по членам: доля при крайних оценках активности, когда изотоп
+        /// оценён несколькими свободными членами своего отрезка ряда (Th-234 и
+        /// Pa-234m у U-238 при выключенном равновесии); NaN — оценка одна.
+        /// </summary>
+        public double LowPercent { get; set; } = double.NaN;
+
+        /// <summary>См. <see cref="LowPercent"/>.</summary>
+        public double HighPercent { get; set; } = double.NaN;
+
+        /// <summary>Природная массовая доля среди тех же изотопов, % (из `nuclides.abundance`).</summary>
+        public double NaturalPercent { get; set; }
+
+        /// <summary>Приговор: разность с природной против k·√(σ² + (разброс/2)²).</summary>
+        public FsaIsotopeVerdict Verdict { get; set; }
     }
 }

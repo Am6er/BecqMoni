@@ -203,6 +203,12 @@ namespace FsaInferProbeF51
                 {
                     Console.WriteLine("MEMBER\t{0}\t{1}", candidate.Nucid, member);
                 }
+
+                // (`AMBER236`) расклад оборванного ряда по отрезкам — своими группами
+                foreach (string segment in candidate.BySegment)
+                {
+                    Console.WriteLine("SEGMENT\t{0}\t{1}", candidate.Nucid, segment);
+                }
             }
 
             Console.WriteLine();

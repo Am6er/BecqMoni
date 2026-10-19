@@ -1,0 +1,79 @@
+BecqMoni: main config: D:\BqMoni_Claude\uglass\probes4\config\BecquerelMonitor.xml
+BecqMoni: device configs: D:\BqMoni_Claude\uglass\probes4\config\device: 9 loaded
+BecqMoni: nuclide library: D:\BqMoni_Claude\uglass\probes4\config\NuclideDefinition.xml: 42 entries
+SETUP	прибор: Atom Spectra 80x80
+набор: UGlass
+SETUP	спектр: AS80_UGlass.xml
+SETUP	SNR=10	допуск=20	диапазон=15…2800 кэВ
+SETUP	сопоставление пика с группой: PositionOrMainLine (умолчание приложения)
+SETUP	кривая: нет
+SETUP	найдено пиков: 13
+PEAK	27.8	—
+PEAK	61.2	Th-234 (U-238)
+PEAK	92.7	Th-234 (U-238)
+PEAK	144.9	U-235
+PEAK	187.2	U-235
+PEAK	350.0	—
+PEAK	603.4	—
+PEAK	768.6	Pa-234m1 (U-238)
+PEAK	1003.0	Pa-234m1 (U-238)
+PEAK	1128.3	—
+PEAK	1459.4	—
+PEAK	1765.2	—
+PEAK	2663.8	—
+
+=== ОТЧЁТ ВЫВОДА СОСТАВА ===
+правило обрыва ряда: Only (умолчание приложения); новизна вкл
+REPORT	выведено из пиков: 6 из 13 подписаны, родителей 2 из 2, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; U-238 14 % (4/28, пиков 4), подцепочка 80 % (4/5, обрыв сверху —, снизу 234U) — доля выше порога У ПОДЦЕПОЧКИ (ряд оборван); U-235 18 % (2/11, пиков 2), подцепочка 50 % (2/4, обрыв сверху —, снизу 231PA) — доля выше порога У ПОДЦЕПОЧКИ (ряд оборван); ряд от 235U: вне равновесия с корнем (период длиннее его) — 205TL, 209BI; в подряд не взяты (T259); оборванный ряд: подцепочка разобрана у 2 кандидатов
+
+CAND	принят 	238U	U-238 14 % (4/28, пиков 4), подцепочка 80 % (4/5, обрыв сверху —, снизу 234U) — доля выше порога У ПОДЦЕПОЧКИ (ряд оборван)
+MEMBER	238U	238U@0 0/0
+MEMBER	238U	234TH@1 2/3
+MEMBER	238U	234PAm1@2 1/1
+MEMBER	238U	234PA@3 0/0
+MEMBER	238U	234U@3 0/1
+MEMBER	238U	230TH@4 0/0
+MEMBER	238U	226RA@5 0/1
+MEMBER	238U	222RN@6 0/0
+MEMBER	238U	218PO@7 0/0
+MEMBER	238U	214PB@8 0/7
+MEMBER	238U	214BI@9 1/14
+MEMBER	238U	210PB@10 0/1
+MEMBER	238U	214PO@10 0/0
+MEMBER	238U	210BI@11 0/0
+MEMBER	238U	210PO@12 0/0
+MEMBER	238U	206PB@13 0/0
+SEGMENT	238U	238U[238U+234TH+234PAm1+234PA] 4/5 есть
+SEGMENT	238U	234U[234U] 0/1 молчит
+SEGMENT	238U	230TH[230TH] 0/0 молчит
+SEGMENT	238U	226RA[226RA+222RN+218PO+214PB+214BI+214PO] 0/21 нет
+SEGMENT	238U	210PB[210PB+210BI+210PO+206PB] 0/1 молчит
+CAND	принят 	235U	U-235 18 % (2/11, пиков 2), подцепочка 50 % (2/4, обрыв сверху —, снизу 231PA) — доля выше порога У ПОДЦЕПОЧКИ (ряд оборван)
+MEMBER	235U	235U@0 2/2
+MEMBER	235U	231TH@1 0/2
+MEMBER	235U	231PA@2 0/0
+MEMBER	235U	227AC@3 0/0
+MEMBER	235U	223FR@4 0/0
+MEMBER	235U	227TH@4 0/2
+MEMBER	235U	223RA@5 0/3
+MEMBER	235U	219RN@6 0/1
+MEMBER	235U	215PO@7 0/0
+MEMBER	235U	211PB@8 0/0
+MEMBER	235U	211BI@9 0/1
+MEMBER	235U	207TL@10 0/0
+MEMBER	235U	211PO@10 0/0
+MEMBER	235U	207PB@11 0/0
+SEGMENT	235U	235U[235U+231TH] 2/4 есть
+SEGMENT	235U	231PA[231PA] 0/0 молчит
+SEGMENT	235U	227AC[227AC+223FR+227TH+223RA+219RN+215PO+211PB+211BI+207TL+211PO+207PB] 0/7 нет
+
+=== СОСТАВ (FsaSampleSpec) ===
+SPEC	рядов 2, одиночек 0, элементов пробы 0, кристалла 0
+SPEC	ряд	238U	только 234PA,234PAm1,234TH,238U
+SPEC	ряд	235U	только 231TH,235U
+
+=== БИБЛИОТЕКА ===
+LIBSIZE	2
+
+ВЕРДИКТ	разбор не пуст (компонентов 2, родителей принято 2)
+модальных окон за прогон: 0

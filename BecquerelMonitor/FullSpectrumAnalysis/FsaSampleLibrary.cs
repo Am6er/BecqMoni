@@ -811,6 +811,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static readonly Dictionary<string, HashSet<string>> EquilibriumCache =
             new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>(`AMBER236`) Кэш разбиений ряда на отрезки по корню.</summary>
+        static readonly Dictionary<string, ChainSegmentation> SegmentCache =
+            new Dictionary<string, ChainSegmentation>(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>(`AMBER55`) {корень → {член → множитель переходного равновесия}}.</summary>
         static readonly Dictionary<string, Dictionary<string, double>> FactorCache =
             new Dictionary<string, Dictionary<string, double>>(StringComparer.OrdinalIgnoreCase);
@@ -1954,6 +1958,270 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>(`AMBER118`) Первичный нуклид: nucid, Z, распространённость %, период, с.</summary>
+        /// <summary>
+        /// (`AMBER236`; Amber 19.10.2026, консоль, дословно: «Возможно ли указывать в
+        /// отчёте FSA отдельной строкой в таком случае, что U-235 обеднён и указывать
+        /// %?»; вопросником: «Всегда, со словом-вердиктом», «Массовая доля, %», «σ
+        /// разбора + разброс членов») ИЗОТОПНЫЙ СОСТАВ ЭЛЕМЕНТА ПО РАЗБОРУ.
+        ///
+        /// ⛔ ИМЁН ЗДЕСЬ НЕТ. Для каждого обнаруженного компонента ищется его
+        /// первичный предок (<see cref="PrimordialAncestors"/>), и активность предка
+        /// оценивает только компонент из ЕГО ЖЕ отрезка ряда
+        /// (<see cref="ChainSegments"/>): Th-234 и Pa-234m — оценки U-238, а Ra-226 —
+        /// нет, его отрезок может стоять оборванным. Колонка связанного ряда — одна
+        /// оценка (амплитуда в распадах корня); свободные члены — по оценке на член.
+        /// У элемента, у которого обнаружено два и больше первичных изотопов, —
+        /// строка на каждый, кроме самого распространённого в природе.
+        ///
+        /// Счёт: оценки изотопа сводятся средним с весом 1/σ² (σ = скорость / z);
+        /// N ∝ A·T½, масса ∝ N·(массовое число); доля — среди обнаруженных
+        /// первичных изотопов элемента, природная — среди них же по
+        /// `nuclides.abundance`. σ — переносом σ средних (только статистика);
+        /// разброс членов — доля при средних, сдвинутых на взвешенный разброс оценок
+        /// своих членов в противоположные стороны (у одной оценки разброса нет).
+        /// Приговор: |доля − природная| против k·√(σ² + (разброс/2)²), k — квантиль
+        /// порога решения разбора (<paramref name="k"/>).
+        ///
+        /// Отношение двух колонок не требует абсолютной шкалы — масштаб кривой
+        /// сокращается, — но требует её формы: без учтённой кривой или матрицы
+        /// строки нет.
+        /// </summary>
+        public static List<FsaIsotopeRatio> IsotopeRatiosOf(FsaResult result, double k)
+        {
+            var found = new List<FsaIsotopeRatio>();
+            if (result == null || result.Components == null
+                || !(result.ResponseMatrixUsed || result.EfficiencyUsed))
+            {
+                return found;
+            }
+
+            try
+            {
+                var report = new Report();
+                var estimates = new Dictionary<string, List<double[]>>(StringComparer.OrdinalIgnoreCase);
+                var isotopes = new Dictionary<string, Primordial>(StringComparer.OrdinalIgnoreCase);
+                var linked = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (FsaComponentResult component in result.Components)
+                {
+                    if (component == null
+                        || (component.Kind != FsaComponentKind.Single && component.Kind != FsaComponentKind.Chain)
+                        || string.IsNullOrEmpty(component.Name)
+                        || !(component.CountRate > 0.0) || !(component.Z > 0.0))
+                    {
+                        continue;
+                    }
+
+                    bool chain = !string.IsNullOrEmpty(component.ChainRoot);
+                    if (chain && !linked.Add(component.ChainRoot))
+                    {
+                        continue;
+                    }
+
+                    string unit = NucidOf(chain ? component.ChainRoot : component.Name);
+                    if (unit.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    foreach (Primordial ancestor in PrimordialAncestors(unit, report))
+                    {
+                        if (!string.Equals(ancestor.Nucid, unit, StringComparison.OrdinalIgnoreCase))
+                        {
+                            string segment;
+                            if (!ChainSegments(ancestor.Nucid, report).SegmentOf.TryGetValue(unit, out segment)
+                                || !string.Equals(segment, ancestor.Nucid, StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
+                        }
+
+                        List<double[]> list;
+                        if (!estimates.TryGetValue(ancestor.Nucid, out list))
+                        {
+                            estimates[ancestor.Nucid] = list = new List<double[]>();
+                            isotopes[ancestor.Nucid] = ancestor;
+                        }
+
+                        list.Add(new[] { component.CountRate, component.CountRate / component.Z });
+                    }
+                }
+
+                var byZ = new Dictionary<int, List<Primordial>>();
+                foreach (Primordial isotope in isotopes.Values)
+                {
+                    List<Primordial> list;
+                    if (!byZ.TryGetValue(isotope.Z, out list))
+                    {
+                        byZ[isotope.Z] = list = new List<Primordial>();
+                    }
+
+                    list.Add(isotope);
+                }
+
+                foreach (List<Primordial> element in byZ.Values)
+                {
+                    if (element.Count < 2)
+                    {
+                        continue;
+                    }
+
+                    element.Sort((a, b) => string.CompareOrdinal(a.Nucid, b.Nucid));
+                    int n = element.Count;
+                    var mean = new double[n];
+                    var sigma = new double[n];
+                    var spread = new double[n];
+                    var mass = new double[n];
+                    bool several = false;
+                    for (int i = 0; i < n; i++)
+                    {
+                        List<double[]> list = estimates[element[i].Nucid];
+                        double weights = 0.0, sum = 0.0;
+                        foreach (double[] e in list)
+                        {
+                            double w = 1.0 / (e[1] * e[1]);
+                            weights += w;
+                            sum += w * e[0];
+                        }
+
+                        mean[i] = sum / weights;
+                        sigma[i] = 1.0 / Math.Sqrt(weights);
+                        double scatter = 0.0;
+                        foreach (double[] e in list)
+                        {
+                            scatter += (e[0] - mean[i]) * (e[0] - mean[i]) / (e[1] * e[1]);
+                        }
+
+                        spread[i] = Math.Sqrt(scatter / weights);
+                        several |= list.Count > 1;
+                        mass[i] = MassNumberOf(element[i].Nucid);
+                    }
+
+                    int top = 0;
+                    for (int i = 1; i < n; i++)
+                    {
+                        if (element[i].Abundance > element[top].Abundance)
+                        {
+                            top = i;
+                        }
+                    }
+
+                    for (int i = 0; i < n; i++)
+                    {
+                        if (i == top || !(mass[i] > 0.0))
+                        {
+                            continue;
+                        }
+
+                        double share = MassShare(i, mean, element, mass, 0, null);
+                        // σ: перенос относительных σ средних всех изотопов элемента
+                        double total = 0.0;
+                        var x = new double[n];
+                        for (int j = 0; j < n; j++)
+                        {
+                            x[j] = mean[j] * element[j].Seconds * mass[j];
+                            total += x[j];
+                        }
+
+                        double variance = 0.0;
+                        for (int j = 0; j < n; j++)
+                        {
+                            double derivative = j == i ? (total - x[i]) / (total * total) : -x[i] / (total * total);
+                            double sx = x[j] * sigma[j] / mean[j];
+                            variance += derivative * derivative * sx * sx;
+                        }
+
+                        double natural = 0.0, naturalTotal = 0.0;
+                        for (int j = 0; j < n; j++)
+                        {
+                            naturalTotal += element[j].Abundance * mass[j];
+                        }
+
+                        natural = 100.0 * element[i].Abundance * mass[i] / naturalTotal;
+                        var others = new List<string>();
+                        for (int j = 0; j < n; j++)
+                        {
+                            if (j != i)
+                            {
+                                others.Add(PrettyName(element[j].Nucid));
+                            }
+                        }
+
+                        var ratio = new FsaIsotopeRatio
+                        {
+                            Isotope = PrettyName(element[i].Nucid),
+                            Others = string.Join("+", others.ToArray()),
+                            MassPercent = 100.0 * share,
+                            SigmaPercent = 100.0 * Math.Sqrt(variance),
+                            NaturalPercent = natural
+                        };
+
+                        double half = 0.0;
+                        if (several)
+                        {
+                            ratio.LowPercent = 100.0 * MassShare(i, mean, element, mass, -1, spread);
+                            ratio.HighPercent = 100.0 * MassShare(i, mean, element, mass, +1, spread);
+                            half = 0.5 * Math.Abs(ratio.HighPercent - ratio.LowPercent);
+                        }
+
+                        double band = k * Math.Sqrt(ratio.SigmaPercent * ratio.SigmaPercent + half * half);
+                        double difference = ratio.MassPercent - ratio.NaturalPercent;
+                        ratio.Verdict = Math.Abs(difference) <= band ? FsaIsotopeVerdict.Natural
+                                        : difference < 0.0 ? FsaIsotopeVerdict.Depleted
+                                        : FsaIsotopeVerdict.Enriched;
+                        found.Add(ratio);
+                    }
+                }
+            }
+            catch (Exception error)
+            {
+                // Отказ базы — строки нет; разбор от неё не зависит. Молча — нельзя (`AMBER199`).
+                FsaDatabaseFailures.Note("nucdb.sqlite", "isotope ratios", error);
+            }
+
+            return found;
+        }
+
+        /// <summary>
+        /// (`AMBER236`) Массовая доля изотопа <paramref name="i"/> при активностях
+        /// <paramref name="mean"/>; <paramref name="side"/> ≠ 0 — свой изотоп
+        /// сдвинут на <paramref name="side"/>·разброс, прочие — в обратную сторону.
+        /// </summary>
+        static double MassShare(int i, double[] mean, List<Primordial> element, double[] mass,
+                                int side, double[] spread)
+        {
+            double own = 0.0, total = 0.0;
+            for (int j = 0; j < mean.Length; j++)
+            {
+                double activity = mean[j];
+                if (side != 0)
+                {
+                    activity += (j == i ? side : -side) * spread[j];
+                }
+
+                double x = Math.Max(0.0, activity) * element[j].Seconds * mass[j];
+                total += x;
+                if (j == i)
+                {
+                    own = x;
+                }
+            }
+
+            return total > 0.0 ? own / total : double.NaN;
+        }
+
+        /// <summary>(`AMBER236`) Массовое число из `nucid` («235U» → 235); 0 — не разобрать.</summary>
+        static int MassNumberOf(string nucid)
+        {
+            int i = 0, mass = 0;
+            while (i < nucid.Length && nucid[i] >= '0' && nucid[i] <= '9')
+            {
+                mass = mass * 10 + (nucid[i] - '0');
+                i++;
+            }
+
+            return mass;
+        }
+
         sealed class Primordial
         {
             public string Nucid;
@@ -2522,6 +2790,171 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return depth;
+        }
+
+        /// <summary>
+        /// (`AMBER236`) С какого периода член ряда может СТОЯТЬ ОБОРВАННЫМ: год.
+        ///
+        /// Химия рвёт ряд на любом члене, но короткоживущий дочерний нарастает
+        /// снова за несколько своих периодов, и в пробе он через год уже в
+        /// равновесии с ближайшим долгоживущим предком; долгоживущий — нет, его
+        /// отсутствие держится годами. Поэтому места возможного обрыва — члены с
+        /// периодом не короче этого числа.
+        ///
+        /// ⚠ Число не подбирается и не двигает ни одного природного ряда: по
+        /// `nucdb` самый долгий из «коротких» членов трёх природных рядов — Po-210
+        /// (138 сут, 0.379 г), самый короткий из «долгих» — Th-228 (1.91 г), и
+        /// любой порог между ними даёт ОДНО И ТО ЖЕ разбиение: U-238 | U-234 |
+        /// Th-230 | Ra-226 … Po-214 | Pb-210 … Po-210; U-235 + Th-231 | Pa-231 |
+        /// Ac-227 …; Th-232 | Ra-228 + Ac-228 | Th-228 …. Год взят серединой этого
+        /// окна на логарифмической шкале с запасом в обе стороны.
+        /// </summary>
+        internal const double ChainBreakSeconds = 365.25 * 86400.0;
+
+        /// <summary>
+        /// (`AMBER236`) Ряд, разрезанный на ОТРЕЗКИ по долгоживущим членам
+        /// (<see cref="ChainBreakSeconds"/>): корень и каждый долгоживущий член
+        /// открывают свой отрезок, короткоживущий дочерний идёт в отрезок своего
+        /// родителя. Внутри отрезка равновесие наступает само за год; между
+        /// отрезками его может не быть вовсе — урановое стекло (Th-230 и всё ниже
+        /// вымыто химией), точечный Th-228 (нет Ra-228 и Ac-228), обеднённый уран.
+        /// </summary>
+        internal sealed class ChainSegmentation
+        {
+            /// <summary>{член → голова его отрезка}.</summary>
+            public readonly Dictionary<string, string> SegmentOf =
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>Головы отрезков в порядке обхода от корня (корень первым).</summary>
+            public readonly List<string> Order = new List<string>();
+
+            /// <summary>{голова отрезка → головы отрезков, которые он питает непосредственно}.</summary>
+            public readonly Dictionary<string, HashSet<string>> Below =
+                new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// (`AMBER236`) Разбиение ряда <paramref name="root"/> на отрезки — тем же
+        /// обходом в ширину и тем же ребром, что <see cref="ChainDepths"/>, и с
+        /// периодом из `nuclides.half_life_sec`, как у <see cref="EquilibriumMembers"/>.
+        /// Член, достижимый из двух отрезков без долгоживущего члена на стыке,
+        /// остаётся в том, через который обход пришёл первым (кратчайший путь);
+        /// в природных рядах таких нет — ветви сходятся на Pb-210 и стабильных
+        /// концах. Отказ базы — пустое разбиение (резать не по чему) и замечание.
+        /// </summary>
+        internal static ChainSegmentation ChainSegments(string root, Report report)
+        {
+            lock (Gate)
+            {
+                ChainSegmentation cached;
+                if (SegmentCache.TryGetValue(root, out cached))
+                {
+                    return cached;
+                }
+            }
+
+            var result = new ChainSegmentation();
+            int failuresBefore = FsaDatabaseFailures.ThreadCount;
+            try
+            {
+                var order = new List<string> { root };
+                result.SegmentOf[root] = root;
+                result.Order.Add(root);
+                result.Below[root] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                using (SqliteConnection connection = OpenRead(NuclideDatabasePath()))
+                using (SqliteCommand edges = connection.CreateCommand())
+                using (SqliteCommand life = connection.CreateCommand())
+                {
+                    edges.CommandText =
+                        "select daughter_nucid," + DecayParentRule.ChainPercColumn + " from" + DecayParentRule.ChainTable + " d"
+                        + " where nucid = $n and perc not null"
+                        + DecayParentRule.ChainLevelClause;
+                    edges.Parameters.AddWithValue("$n", root);
+                    life.CommandText =
+                        "select half_life_sec from nuclides where nucid = $n"
+                        + " and half_life_sec is not null order by l_seqno limit 1";
+                    life.Parameters.AddWithValue("$n", root);
+                    for (int i = 0; i < order.Count && order.Count <= MaxChainNodes; i++)
+                    {
+                        string current = order[i];
+                        string currentSegment = result.SegmentOf[current];
+                        edges.Parameters["$n"].Value = current;
+                        var daughters = new List<string>();
+                        using (SqliteDataReader reader = edges.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                string daughter = reader.IsDBNull(0) ? null : reader.GetString(0);
+                                double percent;
+                                if (string.IsNullOrEmpty(daughter)
+                                    || string.Equals(daughter, current, StringComparison.OrdinalIgnoreCase)
+                                    || !TryNumber(reader, 1, out percent) || !(percent > 0.0))
+                                {
+                                    continue;
+                                }
+
+                                daughters.Add(daughter);
+                            }
+                        }
+
+                        foreach (string daughter in daughters)
+                        {
+                            string known;
+                            if (result.SegmentOf.TryGetValue(daughter, out known))
+                            {
+                                // Второй путь в уже пройденный член: стык отрезков —
+                                // только если он открыл свой (долгоживущий).
+                                if (!string.Equals(known, currentSegment, StringComparison.OrdinalIgnoreCase)
+                                    && string.Equals(known, daughter, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    result.Below[currentSegment].Add(daughter);
+                                }
+
+                                continue;
+                            }
+
+                            life.Parameters["$n"].Value = daughter;
+                            double seconds = 0.0;
+                            bool decays;
+                            using (SqliteDataReader reader = life.ExecuteReader())
+                            {
+                                decays = reader.Read() && TryNumber(reader, 0, out seconds);
+                            }
+
+                            if (decays && seconds >= ChainBreakSeconds)
+                            {
+                                result.SegmentOf[daughter] = daughter;
+                                result.Order.Add(daughter);
+                                result.Below[daughter] = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                                result.Below[currentSegment].Add(daughter);
+                            }
+                            else
+                            {
+                                result.SegmentOf[daughter] = currentSegment;
+                            }
+
+                            order.Add(daughter);
+                        }
+                    }
+                }
+            }
+            catch (Exception error)
+            {
+                report.Notes.Add("ряд " + root + ": отказ базы при разбиении на отрезки — " + error.Message);
+                FsaDatabaseFailures.Note("nucdb.sqlite", root, error);
+                result = new ChainSegmentation();
+            }
+
+            // ⛔ (`AMBER199`) отказ — не в кэш
+            if (FsaDatabaseFailures.ThreadCount == failuresBefore)
+            {
+                lock (Gate)
+                {
+                    SegmentCache[root] = result;
+                }
+            }
+
+            return result;
         }
 
         /// <summary>Сколько членов ряда открывать, зажим против поставки-кольца.</summary>
