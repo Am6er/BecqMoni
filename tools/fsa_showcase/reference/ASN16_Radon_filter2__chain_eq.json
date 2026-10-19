@@ -156,8 +156,8 @@
    3000
   ]
  ],
- "declared": "2026-10-07 02:00",
- "head": "9117f0ca",
+ "declared": "2026-10-19 23:18",
+ "head": "e5a555eb",
  "head_lines": {
   "chi2": "chi2/ndf 1.336, невязка модели 58.8 %, суммирование да",
   "composition": "состав объявлен: ; ряды: Ra-226, Th-232; распад 2, атомных 2, линий 716; полоса сведена ПОЛОМ ПО КРИВОЙ 20.6 кэВ (10.0 % от максимума, Min_Range 5.0), фит на всём спектре (умолчание); членов ряда ниже порога ветвления 4; ряд от 226RA: переходное равновесие λ_д/(λ_д − λ_к) — 210BI ×1.0141, 210PB ×1.0141, 210PO ×1.0143 (AMBER55); вылет от линий состава: SE-2615, DE-2615, SE-1764, DE-1764, SE-2204, DE-2204",
@@ -175,18 +175,18 @@
   "matrices": {
    "b8a158da-14a3-b2e3-2511-9b3315c75da2.rmx": {
     "from": "tools/fsa_showcase/store/ASN16_rn_side.rmx",
-    "sha": "a4b6b779123ccd85"
+    "sha": "110660e0adeb9531"
    }
   },
   "probes": {
-   "app_sha": "40b1c1aea985ed82",
-   "built": "2026-10-07 01:56:00",
-   "dir": "tools/effmaker/probes/build",
+   "app_sha": "5453bd8bc56b605d",
+   "built": "2026-10-19 23:03:33",
+   "dir": "tools/effmaker/probes/build_p343",
    "freshness_checked": true,
-   "shot_sha": "7495f9c19cf22112"
+   "shot_sha": "7be5cb822934fade"
   },
   "spectrum": "spectra/ASN16_Radon_filter2.xml",
-  "spectrum_sha": "91d7bed03aab2314"
+  "spectrum_sha": "6782e0f2501232e3"
  },
  "layers": [
   "tail",
@@ -548,7 +548,7 @@
    "Пики полного поглощения, по которым привязана шкала (+ опора, - отвергнут): компонент, центр модели кэВ, остаток кэВ, доля пика, причина"
   ]
  ],
- "seconds": 20.0,
+ "seconds": 20.8,
  "spectrum": "spectra/ASN16_Radon_filter2.xml",
  "tolerance": {
   "abs": 1e-06,
