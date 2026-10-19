@@ -1,0 +1,38 @@
+BecqMoni: main config: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p342\config\BecquerelMonitor.xml
+Привязка кривой и матрицы к спектрам понятной части (B1)
+кривая: 5-3000 кэВ, 400000 историй на узел; розыгрыш точки вылета: автоматика (полевая сцена — важностный, клеймо imp=1; прочие — равномерный); порог шумной кривой (медиана узлов от 40 кэВ, `AMBER128`) 5 %
+
+== G1S_denta100_oisn10_100_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.56 % (узлы от 40 кэВ), худший узел 91.74 % на 6.2 кэВ (ESS 1 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 4.20 % (узлов 47)
+   guid     : ed033f43-ad92-39e9-1ab8-185b2ccd84a1
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; peps=fwhm; mdb=aecaa552fee25691
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p342\eff\var2\G1S_denta100_oisn10_100_p16.rmx) — сначала corpusmatrixprobe
+   спектр   : G1S16_Th232_Denta100 (1 записей ResultData)
+
+== G1S_mar1l_oisn06_057_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.50 % (узлы от 40 кэВ), худший узел 76.32 % на 6.2 кэВ (ESS 2 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 0.70 % (узлов 45)
+   guid     : 77ab0974-6f2b-47cb-c1ca-042f7150bbe2
+   кривая   : 79 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/79 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; peps=fwhm; bmscene=1; mdb=aecaa552fee25691
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p342\eff\var2\G1S_mar1l_oisn06_057_p16.rmx) — сначала corpusmatrixprobe
+   спектр   : G1S16_Cs137_Mar (1 записей ResultData)
+
+== G1S_mar1l_oisn16_166_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.59 % (узлы от 40 кэВ), худший узел 61.86 % на 7.1 кэВ (ESS 3 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 6.39 % (узлов 46)
+   guid     : 37f93a41-e560-68e3-3900-a08567ebafe4
+   кривая   : 80 точек, клеймо phys=26; hist=400000; grid=6.5-3000 keV/80 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; peps=fwhm; bmscene=1; mdb=aecaa552fee25691
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p342\eff\var2\G1S_mar1l_oisn16_166_p16.rmx) — сначала corpusmatrixprobe
+   спектр   : G1S16_Cs137_Mar_2 (1 записей ResultData)
+
+== G1S_petri60_oisn10_100_p16 ==
+   розыгрыш : равномерный
+   разброс  : медиана 0.56 % (узлы от 40 кэВ), худший узел 77.73 % на 6.2 кэВ (ESS 2 из 400000 историй), узлов выше 5 %: 0 из 34; ниже 40 кэВ — медиана 2.96 % (узлов 47)
+   guid     : 1eb5247c-3880-474b-295b-f8a61f3187fb
+   кривая   : 81 точек, клеймо phys=26; hist=400000; grid=6.2-3000 keV/81 std; kdip=1; lys=2; etr=1; e+tr=1; e+off=1; rayl2=1; ecomp=1; bpath=2; eltr=1; elmix=1; lbrem=1; lbang=1; pairth=1; peps=fwhm; mdb=aecaa552fee25691
+   МАТРИЦЫ НЕТ (D:\BqMoni_Claude\p342\eff\var2\G1S_petri60_oisn10_100_p16.rmx) — сначала corpusmatrixprobe
+   спектр   : G1S16_Th232_Petri (1 записей ResultData)
+
+геометрий в описи: 4 — посчитано 4, пропущено 0 (клеймо и геометрия сошлись); записей проставлено: 4
+ЕСТЬ НЕСОШЕДШИЕСЯ

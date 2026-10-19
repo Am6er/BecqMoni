@@ -1,0 +1,64 @@
+== сторож сцен генератора (T261): генератор → клеймо → живые .in / .rmx ==
+  каталог проб : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p342b
+  живые сцены  : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries
+  свежесть: сверено: набор приложения d71ae10cd9a6 (558 файлов); CorpusGeomProbe.cs a031757ef46a (8 файлов); MatrixStampProbe.cs cd588a568426 (8 файлов); sha трёх exe (1.4 с)
+  генератор CorpusGeomProbe.exe --out=C:\Users\moroz\AppData\Local\Temp\bq_scenes_62uifuxd\gen: код 0, 0.9 с; геометрий 51, спектров 92, ВСЕ СОШЛИСЬ; корень корпуса генератора: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS
+  сцен в корпусе 51, построено генератором 51
+  ✅ опись index.csv: побайтно равна (18905 байт, 93 строк)
+
+  сцена                          живой .in                генератор                матрица .rmx             приговор
+  AS80_lu_front                  phys=26;32cc586a87eb86c2 phys=26;32cc586a87eb86c2 phys=26;32cc586a87eb86c2 СОШЛОСЬ
+  AS80_point0                    phys=26;292d69e9e184c6f8 phys=26;292d69e9e184c6f8 phys=26;292d69e9e184c6f8 СОШЛОСЬ
+  AS80_th_disk                   phys=26;c88448f3bc678dcf phys=26;c88448f3bc678dcf phys=26;c88448f3bc678dcf СОШЛОСЬ
+  ASN16_lu_side                  phys=26;9f09bf038d13fda7 phys=26;9f09bf038d13fda7 phys=26;9f09bf038d13fda7 СОШЛОСЬ
+  ASN16_point0_house             phys=26;fdf7b2a07ac3afc8 phys=26;fdf7b2a07ac3afc8 phys=26;fdf7b2a07ac3afc8 СОШЛОСЬ
+  ASN16_point10_house            phys=26;9aa148f03395ee6a phys=26;9aa148f03395ee6a phys=26;c03dedca4cf6ab26 СОШЛОСЬ (рецепт ×2, историй 6000000)
+  G1S_denta100_oisn10_100_p16    phys=26;6e345d588213f528 phys=26;6e345d588213f528 phys=26;6e345d588213f528 СОШЛОСЬ
+  G1S_denta100_risn379_100_p16   phys=26;8c39f5069b8f9b6c phys=26;8c39f5069b8f9b6c phys=26;8c39f5069b8f9b6c СОШЛОСЬ
+  G1S_denta120_oisn06_057_p24    phys=26;778b7b2b78b584e2 phys=26;778b7b2b78b584e2 phys=26;778b7b2b78b584e2 СОШЛОСЬ
+  G1S_denta120_oisn06_062_p24    phys=26;b7c48c3d1b0cab24 phys=26;b7c48c3d1b0cab24 phys=26;b7c48c3d1b0cab24 СОШЛОСЬ
+  G1S_denta120_oisn06_064_p24    phys=26;bf772b562a82ac56 phys=26;bf772b562a82ac56 phys=26;bf772b562a82ac56 СОШЛОСЬ
+  G1S_denta120_oisn06_066_p24    phys=26;b8996a374b21b1c5 phys=26;b8996a374b21b1c5 phys=26;b8996a374b21b1c5 СОШЛОСЬ
+  G1S_denta120_oisn16_155_p24    phys=26;3faa1d10df828fc5 phys=26;3faa1d10df828fc5 phys=26;3faa1d10df828fc5 СОШЛОСЬ
+  G1S_denta120_oisn16_160_p24    phys=26;7c1442b819bb0632 phys=26;7c1442b819bb0632 phys=26;7c1442b819bb0632 СОШЛОСЬ
+  G1S_denta120_oisn16_166_p24    phys=26;6b3546f06110f1f8 phys=26;6b3546f06110f1f8 phys=26;6b3546f06110f1f8 СОШЛОСЬ
+  G1S_denta120_oisn16_167_p24    phys=26;7606d42a6754ecd7 phys=26;7606d42a6754ecd7 phys=26;7606d42a6754ecd7 СОШЛОСЬ
+  G1S_mar1l_coal_046_p24         phys=26;838771824515a15e phys=26;838771824515a15e phys=26;838771824515a15e СОШЛОСЬ
+  G1S_mar1l_oisn06_055_p16       phys=26;67d489061d568f5e phys=26;67d489061d568f5e phys=26;67d489061d568f5e СОШЛОСЬ
+  G1S_mar1l_oisn06_057_p16       phys=26;a714242d043215dc phys=26;a714242d043215dc phys=26;a714242d043215dc СОШЛОСЬ
+  G1S_mar1l_oisn06_057_p24       phys=26;3a57b9b71f3b8380 phys=26;3a57b9b71f3b8380 phys=26;3a57b9b71f3b8380 СОШЛОСЬ
+  G1S_mar1l_oisn06_062_p16       phys=26;ccbfce9df57efe1d phys=26;ccbfce9df57efe1d phys=26;ccbfce9df57efe1d СОШЛОСЬ
+  G1S_mar1l_oisn06_062_p24       phys=26;2f1fca53c8156def phys=26;2f1fca53c8156def phys=26;2f1fca53c8156def СОШЛОСЬ
+  G1S_mar1l_oisn06_064_p24       phys=26;e2edd5f5424310e0 phys=26;e2edd5f5424310e0 phys=26;e2edd5f5424310e0 СОШЛОСЬ
+  G1S_mar1l_oisn06_066_p16       phys=26;63975122aaa79e84 phys=26;63975122aaa79e84 phys=26;63975122aaa79e84 СОШЛОСЬ
+  G1S_mar1l_oisn06_066_p24       phys=26;2fc96e8b26e3f12e phys=26;2fc96e8b26e3f12e phys=26;2fc96e8b26e3f12e СОШЛОСЬ
+  G1S_mar1l_oisn16_155_p16       phys=26;08943825e20aa5a0 phys=26;08943825e20aa5a0 phys=26;08943825e20aa5a0 СОШЛОСЬ
+  G1S_mar1l_oisn16_155_p24       phys=26;d7f197dd7ff202e5 phys=26;d7f197dd7ff202e5 phys=26;d7f197dd7ff202e5 СОШЛОСЬ
+  G1S_mar1l_oisn16_160_p16       phys=26;93f66a24bda18f27 phys=26;93f66a24bda18f27 phys=26;93f66a24bda18f27 СОШЛОСЬ
+  G1S_mar1l_oisn16_160_p24       phys=26;e312a30283e16d48 phys=26;e312a30283e16d48 phys=26;e312a30283e16d48 СОШЛОСЬ
+  G1S_mar1l_oisn16_166_p16       phys=26;f5e3eb2c43d991f9 phys=26;f5e3eb2c43d991f9 phys=26;f5e3eb2c43d991f9 СОШЛОСЬ
+  G1S_mar1l_oisn16_166_p24       phys=26;30072d0127b6a61c phys=26;30072d0127b6a61c phys=26;30072d0127b6a61c СОШЛОСЬ
+  G1S_mar1l_oisn16_167_p16       phys=26;7a97d78730fe7783 phys=26;7a97d78730fe7783 phys=26;7a97d78730fe7783 СОШЛОСЬ
+  G1S_mar1l_oisn16_167_p24       phys=26;00a3701d68d7c89c phys=26;00a3701d68d7c89c phys=26;00a3701d68d7c89c СОШЛОСЬ
+  G1S_mar1l_risn379_100_p16      phys=26;3df3f3e52214f756 phys=26;3df3f3e52214f756 phys=26;3df3f3e52214f756 СОШЛОСЬ
+  G1S_petri60_oisn06_057_p24     phys=26;ad48b3d96172a56f phys=26;ad48b3d96172a56f phys=26;ad48b3d96172a56f СОШЛОСЬ
+  G1S_petri60_oisn06_062_p24     phys=26;51efc50044131ae0 phys=26;51efc50044131ae0 phys=26;51efc50044131ae0 СОШЛОСЬ
+  G1S_petri60_oisn06_064_p24     phys=26;61ee6b195fefe190 phys=26;61ee6b195fefe190 phys=26;61ee6b195fefe190 СОШЛОСЬ
+  G1S_petri60_oisn06_067_p24     phys=26;63c4933df208b1f7 phys=26;63c4933df208b1f7 phys=26;63c4933df208b1f7 СОШЛОСЬ
+  G1S_petri60_oisn10_100_p16     phys=26;d93b81f1f029a57d phys=26;d93b81f1f029a57d phys=26;d93b81f1f029a57d СОШЛОСЬ
+  G1S_petri60_oisn16_155_p24     phys=26;405ebe06369227ce phys=26;405ebe06369227ce phys=26;405ebe06369227ce СОШЛОСЬ
+  G1S_petri60_oisn16_160_p24     phys=26;64a327acaaf9e087 phys=26;64a327acaaf9e087 phys=26;64a327acaaf9e087 СОШЛОСЬ
+  G1S_petri60_oisn16_167_p24     phys=26;3f52fe0f8a72345c phys=26;3f52fe0f8a72345c phys=26;3f52fe0f8a72345c СОШЛОСЬ
+  G1S_petri60_risn379_100_p16    phys=26;43fb43535bf1ab3b phys=26;43fb43535bf1ab3b phys=26;43fb43535bf1ab3b СОШЛОСЬ
+  G1S_point25                    phys=26;c7629ac04ee4d997 phys=26;c7629ac04ee4d997 phys=26;e8ded349812375d9 СОШЛОСЬ (рецепт ×2, историй 6000000)
+  G1S_point25_p24                phys=26;1d8ff8598499f3b1 phys=26;1d8ff8598499f3b1 phys=26;0f028fbc90358817 СОШЛОСЬ (рецепт ×2, историй 6000000)
+  G1S_point5_p16                 phys=26;f226f3f5717d078c phys=26;f226f3f5717d078c phys=26;f226f3f5717d078c СОШЛОСЬ
+  G1S_point5_p24                 phys=26;2664adffac59eb3c phys=26;2664adffac59eb3c phys=26;2664adffac59eb3c СОШЛОСЬ
+  RC103_lu_front                 phys=26;3a86f88f0702159e phys=26;3a86f88f0702159e phys=26;3a86f88f0702159e СОШЛОСЬ
+  RC103_marinelli05_kcl          phys=26;5619b24229e3359c phys=26;5619b24229e3359c phys=26;5619b24229e3359c СОШЛОСЬ
+  RC103_point0                   phys=26;00b3525b615c150c phys=26;00b3525b615c150c phys=26;00b3525b615c150c СОШЛОСЬ
+  RC103_point50                  phys=26;e8befa5e702f1c9d phys=26;e8befa5e702f1c9d phys=26;056b8e71c86cc58f СОШЛОСЬ (рецепт ×2, историй 6000000)
+
+  сцен 51: сошлось 51, разошлось 0; клейма сняты у 51; матриц на месте 51 из 51, на своей сцене и рецепте 51 (из них густых ×K по правилу Amber 18.09.2026: 4)
+  время 104.4 с: генератор 0.9, клейма 102.0 на 8 потоках (102 запусков), свежесть 1.4
+  ✅ СОШЛОСЬ: генератор воспроизводит корпус с точностью до клейма, опись побайтно, матрицы склада — на своих сценах штатным рецептом (густые сцены — ×K историй по реестру DENSE_SCENES)

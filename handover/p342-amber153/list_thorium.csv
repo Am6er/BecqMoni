@@ -1,0 +1,15 @@
+spectrum,det,part,geometry,why
+G1S16_Th228_P25,G1S16,known,G1S_point25,П342 AMBER153 (в): ряд тория — плечо --no-equilibrium
+G1S16_Th228_P5,G1S16,known,G1S_point5_p16,П342 AMBER153 (в): ряд тория — плечо --no-equilibrium
+G1S16_Th232_Denta100,G1S16,known,G1S_denta100_oisn10_100_p16,П342 AMBER153 (в): ряд тория — плечо --no-equilibrium
+G1S16_Th232_Mar_2,G1S16,known,G1S_mar1l_oisn06_055_p16,П342 AMBER153 (в): ряд тория — плечо --no-equilibrium
+G1S16_Th232_Mar_3,G1S16,known,G1S_mar1l_oisn16_160_p16,П342 AMBER153 (в): ряд тория — плечо --no-equilibrium
+G1S16_Th232_Petri,G1S16,known,G1S_petri60_oisn10_100_p16,П342 AMBER153 (в): ряд тория — плечо --no-equilibrium
+G1S24_Th228_P25,G1S24,known,G1S_point25_p24,П342 AMBER153 (в): ряд тория — плечо --no-equilibrium
+G1S24_Th228_P5,G1S24,known,G1S_point5_p24,П342 AMBER153 (в): ряд тория — плечо --no-equilibrium
+G1S24_Th232_Denta120,G1S24,known,G1S_denta120_oisn06_064_p24,П342 AMBER153 (в): ряд тория — плечо --no-equilibrium
+G1S24_Th232_Denta120_2,G1S24,known,G1S_denta120_oisn16_160_p24,П342 AMBER153 (в): ряд тория — плечо --no-equilibrium
+G1S24_Th232_Mar,G1S24,known,G1S_mar1l_oisn06_064_p24,П342 AMBER153 (в): ряд тория — плечо --no-equilibrium
+G1S24_Th232_Mar_2,G1S24,known,G1S_mar1l_oisn16_160_p24,П342 AMBER153 (в): ряд тория — плечо --no-equilibrium
+G1S24_Th232_Petri,G1S24,known,G1S_petri60_oisn06_064_p24,П342 AMBER153 (в): ряд тория — плечо --no-equilibrium
+G1S24_Th232_Petri_2,G1S24,known,G1S_petri60_oisn16_160_p24,П342 AMBER153 (в): ряд тория — плечо --no-equilibrium

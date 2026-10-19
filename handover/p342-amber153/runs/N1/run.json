@@ -1,0 +1,23 @@
+{
+ "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
+ "corpus": "ba4478f937793e0269936bc3636cadc633b2816610928bfa7d1f20fd79929ad2",
+ "corpus_dir": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\CORPUS\\corpus",
+ "corpus_files": 217,
+ "dirty": [
+  "BecquerelMonitor/NucBase/NucBase.cs",
+  "BecquerelMonitor/NuclideDefinitionForm.cs"
+ ],
+ "fields": {
+  "app_sha": "4977c970838676ac668ceda0ed98ec0ec8e7ebc447cc921e16e81eed570f82e4",
+  "bin": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\BecquerelMonitor\\bin\\Release_p342",
+  "keys": "--only=G1S16_Th228_P25,G1S16_Th228_P5,G1S16_Th232_Denta100,G1S16_Th232_Mar_2,G1S16_Th232_Mar_3,G1S16_Th232_Petri,G1S24_Th228_P25,G1S24_Th228_P5,G1S24_Th232_Denta120,G1S24_Th232_Denta120_2,G1S24_Th232_Mar,G1S24_Th232_Mar_2,G1S24_Th232_Petri,G1S24_Th232_Petri_2 --no-equilibrium --fit-floor-by=C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\pie\\out_p342_N1\\xray_rule.csv --audit",
+  "probe_sha": "2f95975deffe34afa9b3709d20896087ff7e91a2921ce6e4ca20e2fccdc58c90",
+  "probes": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\effmaker\\probes\\build_p342",
+  "store": "D:\\BqMoni_Claude\\p342\\store",
+  "wd": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\CORPUS\\scripts\\wd_p342"
+ },
+ "head": "bbd8d00069e196bd97e68ebaea95edff6c4ee07d",
+ "sources": "d7f75304f7eebfc4bca63892a8c0b2bd983a9f1277e51478aaa4ad80c5d02f3a",
+ "sources_files": 569,
+ "written": "2026-10-19 20:26:44"
+}

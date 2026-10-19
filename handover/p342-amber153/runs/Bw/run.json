@@ -1,0 +1,23 @@
+{
+ "algo": "sha256(путь+содержимое, CRLF->LF)/v1",
+ "corpus": "8df72a6ab35eabdc6402dd99bb6967a066a4a333f94f15562d5e0e0117e586cb",
+ "corpus_dir": "D:\\BqMoni_Claude\\p342\\corpus_Bw",
+ "corpus_files": 165,
+ "dirty": [
+  "BecquerelMonitor/NucBase/NucBase.cs",
+  "BecquerelMonitor/NuclideDefinitionForm.cs"
+ ],
+ "fields": {
+  "app_sha": "4977c970838676ac668ceda0ed98ec0ec8e7ebc447cc921e16e81eed570f82e4",
+  "bin": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\BecquerelMonitor\\bin\\Release_p342",
+  "keys": "--only=G1S16_Cs137_Mar,G1S16_Cs137_Mar_2,G1S16_K40_Mar,G1S16_K40_Mar_2,G1S16_Mix_Denta100,G1S16_Mix_Mar,G1S16_Mix_Petri,G1S16_Ra226_Mar,G1S16_Ra226_Mar_2,G1S16_Th232_Denta100,G1S16_Th232_Mar_2,G1S16_Th232_Mar_3,G1S16_Th232_Petri,G1S24_Cs137_Denta120,G1S24_Cs137_Denta120_2,G1S24_Cs137_Mar,G1S24_Cs137_Mar_2,G1S24_Cs137_Petri,G1S24_Cs137_Petri_2,G1S24_K40_Denta120,G1S24_K40_Denta120_2,G1S24_K40_Mar,G1S24_K40_Mar_2,G1S24_K40_Petri,G1S24_K40_Petri_2,G1S24_Ra226_Denta120,G1S24_Ra226_Denta120_2,G1S24_Ra226_Mar,G1S24_Ra226_Mar_2,G1S24_Ra226_Petri,G1S24_Ra226_Petri_2,G1S24_Th232_Denta120,G1S24_Th232_Denta120_2,G1S24_Th232_Mar,G1S24_Th232_Mar_2,G1S24_Th232_Petri,G1S24_Th232_Petri_2,G1S16_Cs137_P5,G1S24_Cs137_P5 --fit-floor-by=C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\pie\\out_p342_Bw\\xray_rule.csv --audit",
+  "probe_sha": "2f95975deffe34afa9b3709d20896087ff7e91a2921ce6e4ca20e2fccdc58c90",
+  "probes": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\effmaker\\probes\\build_p342",
+  "store": "D:\\BqMoni_Claude\\p342\\store",
+  "wd": "C:\\Users\\moroz\\source\\repos\\BQ Eng res .NET 4.8\\tools\\CORPUS\\scripts\\wd_p342"
+ },
+ "head": "bbd8d00069e196bd97e68ebaea95edff6c4ee07d",
+ "sources": "d7f75304f7eebfc4bca63892a8c0b2bd983a9f1277e51478aaa4ad80c5d02f3a",
+ "sources_files": 569,
+ "written": "2026-10-19 20:22:02"
+}
