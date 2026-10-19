@@ -48,6 +48,10 @@ figure.shot[data-shot=panel-sample] .shot-frame{max-width:440px;margin:0 auto}
   <div class="kicker" data-t="h.k"></div>
   <h1 data-t="h.h"></h1>
   <p class="lead" data-t="h.lead"></p>
+  <div class="card full">
+    <canvas id="cvHero" class="cv tall" aria-label="animation"></canvas>
+    <div class="row"><span class="pill" id="heroStat"></span><span class="note" data-t="qn.cap"></span></div>
+  </div>
 </div></section>
 
 <section class="sec" id="sim" data-nav="n.sim"><div class="wrap">
@@ -185,6 +189,7 @@ figure.shot[data-shot=panel-sample] .shot-frame{max-width:440px;margin:0 auto}
 <footer><div class="wrap" data-t="foot"></div></footer>
 
 <script src="assets/guide.js"></script>
+<script src="assets/quanta.js"></script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, t, io, visible, poisson } = GUIDE;
@@ -518,6 +523,7 @@ function pdf(f, nch, emax) { const p = new Float64Array(nch); let s = 0; for (le
   GUIDE.onRedraw(() => { chips(); calc(); });
 })();
 
+GUIDE.Q.heroAnim(document.getElementById('cvHero'), document.getElementById('heroStat'));   // заставка с квантами, как на главной (`AMBER246`)
 GUIDE.init();
 </script>
 </body>

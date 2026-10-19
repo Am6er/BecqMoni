@@ -41,6 +41,10 @@ figure.shot.wide{margin-top:22px}
   <div class="kicker" data-t="h.k"></div>
   <h1 data-t="h.h"></h1>
   <p class="lead" data-t="h.lead"></p>
+  <div class="card full">
+    <canvas id="cvHero" class="cv tall" aria-label="animation"></canvas>
+    <div class="row"><span class="pill" id="heroStat"></span><span class="note" data-t="qn.cap"></span></div>
+  </div>
 </div></section>
 
 <!-- 1. ОКНО РЕЗУЛЬТАТА -->
@@ -68,6 +72,27 @@ figure.shot.wide{margin-top:22px}
     <div class="fact" style="--c:var(--ok)" data-t="w.f3"></div>
   </div>
 </div></section>
+
+<!-- Монте-Карло в 3D (`AMBER246`) -->
+<section class="sec" id="funnel" data-nav="mc.n"><div class="wrap">
+  <div class="kicker" data-t="mc.k"></div>
+  <h2 data-t="mc.h"></h2>
+  <p class="lead" data-t="mc.lead"></p>
+  <div class="grid2 wl">
+    <div class="card"><canvas id="cvMC" class="cv tall"></canvas></div>
+    <div class="card">
+      <h3 data-t="mc.fh"></h3>
+      <div id="mcFunnel"></div>
+      <div class="formula" id="mcF" style="font-size:16px;line-height:1.7;background:var(--panel2);border-radius:12px;padding:10px 14px;margin-top:12px;font-variant-numeric:tabular-nums;overflow-x:auto"></div>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="mc.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="mc.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="mc.f3"></div>
+  </div>
+</div></section>
+
 
 <!-- 2. КАЛЬКУЛЯТОР -->
 <section class="sec" id="calc" data-nav="n.calc"><div class="wrap">
@@ -178,6 +203,29 @@ figure.shot.wide{margin-top:22px}
 <footer><div class="wrap" data-t="foot"></div></footer>
 
 <script src="assets/guide.js"></script>
+<script src="assets/quanta.js"></script>
+<script>
+/* Монте-Карло-сцена главы (`AMBER246`) */
+GUIDE.texts({ ru: {"mc.n": "Распады", "mc.k": "Монте-Карло в 3D", "mc.h": "От распадов к отсчётам", "mc.lead": "Почему отсчётов в пике так мало по сравнению с распадами? Каждая ступень отнимает свою долю: не каждый распад даёт фотон, не каждый фотон летит в кристалл, не каждый попавший отдаёт всю энергию. Смотрите, как это складывается на распадах Cs-137 в банке.", "mc.lab": "Cs-137 в банке на торце, Ø63 × 63 мм", "mc.fh": "Воронка счёта", "mc.r1": "распадов", "mc.r2": "дали фотон 662 кэВ", "mc.r3": "долетели до кристалла", "mc.r4": "отдали всю энергию — в пике", "mc.form": "y = <b>{0}</b> · ε = в пике / фотонов = <b>{1}</b><br>из 1000 распадов в пике ≈ <b>{2}</b><br>A = N / (t × ε × y)", "mc.wait": "считаю распады…", "mc.f1": "<b>ε × y</b> — доля распадов, дающих отсчёт в пике. Её BecqMoni берёт из кривой эффективности или матрицы отклика.", "mc.f2": "<b>Ступени перемножаются:</b> 85 % × десяток процентов × доля пика — поэтому из тысячи распадов в пике лишь десятки.", "mc.f3": "<b>Отсюда формула окна результата:</b> A = N / (t · ε · y) — отсчёты делятся на время и на эту долю."},
+ en: {"mc.n": "Decays", "mc.k": "Monte Carlo in 3D", "mc.h": "From decays to counts", "mc.lead": "Why are there so few counts in the peak compared with decays? Every step takes its share: not every decay gives a photon, not every photon flies into the crystal, not every one that hits gives up all its energy. Watch it add up for Cs-137 decays in a jar.", "mc.lab": "Cs-137 in a jar on the face, Ø63 × 63 mm", "mc.fh": "The counting funnel", "mc.r1": "decays", "mc.r2": "gave a 662 keV photon", "mc.r3": "reached the crystal", "mc.r4": "gave up all energy — in the peak", "mc.form": "y = <b>{0}</b> · ε = in the peak / photons = <b>{1}</b><br>out of 1000 decays, in the peak ≈ <b>{2}</b><br>A = N / (t × ε × y)", "mc.wait": "counting decays…", "mc.f1": "<b>ε × y</b> is the share of decays that give a count in the peak. BecqMoni takes it from the efficiency curve or the response matrix.", "mc.f2": "<b>The steps multiply:</b> 85 % × some ten percent × the peak share — that is why only tens out of a thousand decays end up in the peak.", "mc.f3": "<b>Hence the results-window formula:</b> A = N / (t · ε · y) — counts divided by time and by that share."} });
+(function () {
+  const { $, fx, t, Q } = GUIDE;
+  const Y = 0.851;
+  const ROWS = [['mc.r1', '#93a3c4'], ['mc.r2', '#ffcc33'], ['mc.r3', '#6aa8ff'], ['mc.r4', '#ff4d6d']];
+  const mc = Q.mcDuo($('#cvMC'), { scenes: [{ geo: { size: 6.3, gap: 1.0, src: 'jar' }, label: () => t('mc.lab') }], lines: [[661.66, Y]], analog: 220, emax: 800, onStats: show });
+  function show() {
+    const s = mc.scenes[0]; if (!s) return; const A = s.A, v = [A.dec, A.ph, A.hit, A.pk];
+    $('#mcFunnel').innerHTML = ROWS.map(([k, c], i) => {
+      const p = A.dec ? 100 * v[i] / A.dec : 0;
+      return '<div style="margin:8px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><span>' + t(k) + '</span><b style="font-variant-numeric:tabular-nums">' + v[i] + ' · ' + (p >= 10 ? fx(p, 0) : fx(p, 1)) + ' %</b></div>' +
+        '<div style="height:12px;border-radius:6px;background:var(--panel2);overflow:hidden;margin-top:4px"><i style="display:block;height:100%;width:' + Math.max(p, 0.6) + '%;background:' + c + ';transition:width .3s"></i></div></div>';
+    }).join('');
+    const eps = A.ph ? A.pk / A.ph : 0;
+    $('#mcF').innerHTML = A.ph > 200 ? t('mc.form', fx(Y, 3), fx(eps, 4), fx(Y * eps * 1000, 1)) : t('mc.wait');
+  }
+  GUIDE.onRedraw(show);
+})();
+</script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, io, t } = GUIDE;
@@ -481,6 +529,7 @@ GUIDE.texts({ru:{
   GUIDE.onRedraw(() => { ui(); draw(); });
 })();
 
+GUIDE.Q.heroAnim(document.getElementById('cvHero'), document.getElementById('heroStat'));   // заставка с квантами, как на главной (`AMBER246`)
 GUIDE.init();
 </script>
 </body>

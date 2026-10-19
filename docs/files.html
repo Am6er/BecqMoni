@@ -62,6 +62,10 @@ details.faq .a q{color:#ffd8b0;quotes:"«" "»"}
   <div class="kicker" data-t="h.k"></div>
   <h1 data-t="h.h"></h1>
   <p class="lead" data-t="h.lead"></p>
+  <div class="card full">
+    <canvas id="cvHero" class="cv tall" aria-label="animation"></canvas>
+    <div class="row"><span class="pill" id="heroStat"></span><span class="note" data-t="qn.cap"></span></div>
+  </div>
 </div></section>
 
 <section class="sec" id="xml" data-nav="n.xml"><div class="wrap">
@@ -190,6 +194,7 @@ details.faq .a q{color:#ffd8b0;quotes:"«" "»"}
 <footer><div class="wrap" data-t="foot"></div></footer>
 
 <script src="assets/guide.js"></script>
+<script src="assets/quanta.js"></script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, io, t, poisson } = GUIDE;
@@ -493,6 +498,7 @@ const MODEL = (() => {
   acquire(); io.observe(cv); GUIDE.onRedraw(() => { modeChips(); draw(); });
 })();
 
+GUIDE.Q.heroAnim(document.getElementById('cvHero'), document.getElementById('heroStat'));   // заставка с квантами, как на главной (`AMBER246`)
 GUIDE.init();
 </script>
 </body>

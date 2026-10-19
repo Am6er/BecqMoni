@@ -40,6 +40,10 @@ table.cand tr.riv td{background:rgba(255,160,60,.08)}
   <div class="kicker" data-t="h.k"></div>
   <h1 data-t="h.h"></h1>
   <p class="lead" data-t="h.lead"></p>
+  <div class="card full">
+    <canvas id="cvHero" class="cv tall" aria-label="animation"></canvas>
+    <div class="row"><span class="pill" id="heroStat"></span><span class="note" data-t="qn.cap"></span></div>
+  </div>
 </div></section>
 
 <section class="sec" id="search" data-nav="n.search"><div class="wrap">
@@ -189,6 +193,7 @@ table.cand tr.riv td{background:rgba(255,160,60,.08)}
 <footer><div class="wrap" data-t="foot"></div></footer>
 
 <script src="assets/guide.js"></script>
+<script src="assets/quanta.js"></script>
 <script>
 'use strict';
 const { $, $$, clamp, fx, sig, setup, scale, axes, rgba, io, t, poisson, niceTicks, tickLabel } = GUIDE;
@@ -606,6 +611,7 @@ function matchNames(Ep, fwKeV, tol, set) {
   io.observe($('#cvQ')); GUIDE.onRedraw(render);
 })();
 
+GUIDE.Q.heroAnim(document.getElementById('cvHero'), document.getElementById('heroStat'));   // заставка с квантами, как на главной (`AMBER246`)
 GUIDE.init();
 </script>
 </body>
