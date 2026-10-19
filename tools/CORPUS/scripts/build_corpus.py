@@ -80,7 +80,7 @@ import sqlite3                                       # noqa: E402
 # на «Device config not found».
 # ---------------------------------------------------------------------------
 APPDATA_DEV = os.path.join(os.environ.get('APPDATA', ''), 'BecqMoni', 'config', 'device')
-ASN8_DEV = r'C:\Users\moroz\YandexDisk\Спектры\ASN8_Configs'
+ASN8_DEV = r'D:\YandexDisk\Спектры\ASN8_Configs'
 
 #: Личность прибора — guid, имя, тип, — ЗАКРЕПЛЁННАЯ В РЕПОЗИТОРИИ (`B8`).
 #:
