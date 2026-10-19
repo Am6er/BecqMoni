@@ -1,0 +1,12 @@
+{
+ "header": [],
+ "eol": [],
+ "content": [
+  "tools/CORPUS/corpus/generator.json",
+  "tools/CORPUS/scripts/build_corpus.py",
+  "tools/CORPUS/scripts/calibrate.py",
+  "tools/CORPUS/scripts/corpus_def.py"
+ ],
+ "gone": [],
+ "new": []
+}

@@ -139,8 +139,8 @@
    3000
   ]
  ],
- "declared": "2026-10-14 06:20",
- "head": "2aeacdcd",
+ "declared": "2026-10-19 23:18",
+ "head": "e5a555eb",
  "head_lines": {
   "chi2": "chi2/ndf 19.895, невязка модели 7.2 %, суммирование да",
   "composition": "состав: выведено из пиков: 3 из 3 подписаны, родителей 2 из 2, порог доли 30 %, оборванный ряд: подцепочка судит и идёт в состав; K-40 100 % (1/1, пиков 1) — доля выше порога; Cs-137 50 % (1/2, пиков 1) — доля выше порога; оборванный ряд: подцепочка разобрана у 0 кандидатов",
@@ -158,15 +158,15 @@
   "matrices": {
    "c482e3bc-e2a8-491f-8759-5df93827eaef.rmx": {
     "from": "tools/fsa_showcase/store/ASN16_point_house.rmx",
-    "sha": "28c56d059ff47c5f"
+    "sha": "17d3485541abb3e8"
    }
   },
   "probes": {
-   "app_sha": "a7ddf33b5b8939ab",
-   "built": "2026-10-14 06:18:28",
-   "dir": "tools/effmaker/probes/build_p275",
+   "app_sha": "5453bd8bc56b605d",
+   "built": "2026-10-19 23:03:33",
+   "dir": "tools/effmaker/probes/build_p343",
    "freshness_checked": true,
-   "shot_sha": "9ac93341f35ae28d"
+   "shot_sha": "7be5cb822934fade"
   },
   "spectrum": "spectra/ASN16_Cs137_house.xml",
   "spectrum_sha": "2f61ee769c97c345"
@@ -422,7 +422,7 @@
    "Пики полного поглощения, по которым привязана шкала (+ опора, - отвергнут): компонент, центр модели кэВ, остаток кэВ, доля пика, причина"
   ]
  ],
- "seconds": 5.9,
+ "seconds": 12.5,
  "spectrum": "spectra/ASN16_Cs137_house.xml",
  "tolerance": {
   "abs": 1e-06,

@@ -1,0 +1,25 @@
+=== BoundProbeF59: A222 (граница эффективности), A183 (кодировка записи), A120 (умолчания OPTF) ===
+дерево: D:\BqMoni_Claude\p343\wt\tools\effmaker\probes\build_p343
+
+-- A222.1 и A222.2 НЕ ГОНЯЮТСЯ: экспорты ЛСРМ сняты из дерева 15.09.2026 (решение Amber: «Удалить вместе с каталогом»); дать --lsrm=<каталог с восемью экспортами>. Отказом не считается. --
+
+-- A222.3: поставочная кривая, попадающая в дозиметр напрямую --
+⛔ ПРОБА УПАЛА: System.IO.DirectoryNotFoundException: Не удалось найти часть пути "D:\BqMoni_Claude\p343\wt\tools\effmaker\probes\build_p343\BecquerelMonitor\config\ROI\Obsidian Marinelli 0.5.xml".
+   в System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath)
+   в System.IO.FileStream.Init(String path, FileMode mode, FileAccess access, Int32 rights, Boolean useRights, FileShare share, Int32 bufferSize, FileOptions options, SECURITY_ATTRIBUTES secAttrs, String msgPath, Boolean bFromProxy, Boolean useLongPath, Boolean checkHost)
+   в System.IO.FileStream..ctor(String path, FileMode mode, FileAccess access, FileShare share, Int32 bufferSize)
+   в System.Xml.XmlDownloadManager.GetStream(Uri uri, ICredentials credentials, IWebProxy proxy, RequestCachePolicy cachePolicy)
+   в System.Xml.XmlUrlResolver.GetEntity(Uri absoluteUri, String role, Type ofObjectToReturn)
+   в System.Xml.XmlTextReaderImpl.OpenUrlDelegate(Object xmlResolver)
+   в System.Runtime.CompilerServices.RuntimeHelpers.ExecuteCodeWithGuaranteedCleanup(TryCode code, CleanupCode backoutCode, Object userData)
+   в System.Threading.CompressedStack.Run(CompressedStack compressedStack, ContextCallback callback, Object state)
+   в System.Xml.XmlTextReaderImpl.OpenUrl()
+   в System.Xml.XmlTextReaderImpl.Read()
+   в System.Xml.XmlLoader.Load(XmlDocument doc, XmlReader reader, Boolean preserveWhitespace)
+   в System.Xml.XmlDocument.Load(XmlReader reader)
+   в System.Xml.XmlDocument.Load(String filename)
+   в BoundProbeF59.Program.RoiCurve(String path)
+   в BoundProbeF59.Program.A222_ShippedCurve()
+   в BoundProbeF59.Program.Main(String[] args)
+
+=== проверок 1, отказов 1 ===
