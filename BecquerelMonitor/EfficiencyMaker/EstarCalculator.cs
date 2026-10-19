@@ -107,7 +107,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             potentialEv = compound.PotentialEv
-                ?? TabulatedPotential(fractions)
+                ?? TabulatedPotential(fractions, compound.DensityGCm3)
                 ?? BraggPotential(fractions, weights);
             double potl = Math.Log(potentialEv * 1.0e-06);
 
@@ -446,13 +446,31 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// выходило 523.5 — кислороду шёл элементный потенциал 95 эВ вместо
         /// 106, см. <see cref="BraggPotential"/>).
         ///
-        /// ⚠ Порядок по `id` значащий: у воды состав совпадает у ДВУХ строк —
-        /// жидкой (I = 75.0 эВ, id 276) и пара (71.6 эВ, id 277). Берётся
-        /// первая, то есть жидкая.
+        /// ⛔ (П317, 15.10.2026) СОСТАВ ВЕЩЕСТВО НЕ ОПРЕДЕЛЯЕТ. У воды состав
+        /// совпадает у двух строк — жидкой (I 75.0 эВ, id 276) и пара (71.6, id
+        /// 277), у (CH₂)n — у ПЯТИ: циклогексан 56.4 (id 145), этилен-газ 50.7,
+        /// полиэтилен 57.4, полипропилен 56.5, бутилкаучук 56.5; у (CH)n —
+        /// ацетилен-газ 58.2 (id 101), бензол 63.4, полистирол 68.7; у углерода
+        /// — аморфный 81 (ρ 2.0) и графит 78 (ρ 1.7). Прежде бралась ПЕРВАЯ по
+        /// `id`, и стенка-полиэтилен считалась с I циклогексана, полистирол — с I
+        /// газа ацетилена (−15 %), графит 1.7 — с I аморфного углерода. Теперь
+        /// из совпавших по составу берётся БЛИЖАЙШАЯ ПО ПЛОТНОСТИ (по |ln ρ/ρᵢ|),
+        /// но только если она в пределах ×1.25 от заданной: плотность пробы —
+        /// часто НАСЫПНАЯ (активированный уголь корпуса 0.461 г/см³ ничьей
+        /// плотности не равен, и выбор «по ближайшей» дал бы ему графит вместо
+        /// аморфного углерода). Вне окна, при равенстве и без плотности — первая
+        /// по `id`, как было. Жидкая вода (ρ 1) остаётся жидкой. Замер —
+        /// `P317EstarProbe`, раздел 4. В дерево правка вошла с ФИЗИКОЙ 27
+        /// (`M14`, П343 19.10.2026): клеймо матрицы код ESTAR не видит, и без
+        /// подъёма `ResponseMatrix.PhysicsVersion` склад, посчитанный со старым
+        /// I, принимался бы новым кодом молча. То же правило — у второго счёта
+        /// того же алгоритма, `tools/estar/estar.py` (`tabulated_potential`).
         /// </summary>
-        static double? TabulatedPotential(Dictionary<int, double> fractions)
+        static double? TabulatedPotential(Dictionary<int, double> fractions, double density)
         {
             LoadStarMaterials();
+            StarMaterial first = null, best = null;
+            double bestDistance = Math.Log(1.25);
             foreach (StarMaterial material in starMaterials)
             {
                 if (material.Composition.Count != fractions.Count)
@@ -472,13 +490,29 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
                 }
 
-                if (same)
+                if (!same)
                 {
-                    return material.PotentialEv;
+                    continue;
+                }
+
+                if (first == null)
+                {
+                    first = material;
+                }
+
+                if (density > 0.0 && material.DensityGCm3 > 0.0)
+                {
+                    double distance = Math.Abs(Math.Log(material.DensityGCm3 / density));
+                    if (distance < bestDistance)
+                    {
+                        bestDistance = distance;
+                        best = material;
+                    }
                 }
             }
 
-            return null;
+            StarMaterial chosen = best ?? first;
+            return chosen != null ? chosen.PotentialEv : (double?)null;
         }
 
         /// <summary>
@@ -546,6 +580,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         sealed class StarMaterial
         {
             public double PotentialEv;
+            public double DensityGCm3;
             public Dictionary<int, double> Composition;
         }
 
@@ -662,7 +697,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 using (SqliteConnection connection = Open())
                 using (SqliteCommand command = connection.CreateCommand())
                 {
-                    command.CommandText = "select id, potential_ev from star_materials order by id";
+                    command.CommandText = "select id, potential_ev, density_g_cm3 from star_materials order by id";
                     using (SqliteDataReader reader = command.ExecuteReader())
                     {
                         while (reader.Read())
@@ -671,6 +706,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                             byId[id] = new StarMaterial
                             {
                                 PotentialEv = reader.GetDouble(1),
+                                DensityGCm3 = reader.GetDouble(2),
                                 Composition = new Dictionary<int, double>(),
                             };
                             order.Add(id);
