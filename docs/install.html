@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Установка и окно программы — BecqMoni гайд</title>
+<link rel="stylesheet" href="assets/guide.css">
+<style>
+/* длинные пути меню переносятся, иначе на телефоне они распирают страницу вбок */
+.ui{white-space:normal}
+/* снимок со своей легендой рядом (легенда внутри figure — тогда номер и строка подсвечивают друг друга) */
+figure.shot.side{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:16px;align-items:start}
+figure.shot.side .shot-legend{margin-top:0}
+figure.shot.side.sm .shot-frame{width:100%;max-width:340px;justify-self:center}
+figure.shot.side.md .shot-frame{width:100%;max-width:470px;justify-self:center}
+.shot-legend.cols2{grid-template-columns:1fr 1fr}
+.pane{display:none}.pane.on{display:block}
+.tabbar{margin:2px 0 14px}
+/* макет окна «Помощь → Проверить обновление» */
+.upd{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:14px;margin-top:12px}
+.desk{position:relative;border:1px solid #3a4a78;border-radius:10px;overflow:hidden;background:#273350;min-height:318px;font:13px/1.35 "Segoe UI",system-ui,sans-serif;user-select:none}
+.desk .tb{background:#fff;color:#111;padding:6px 10px;font-size:12.5px;display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden}
+.desk .tb i{width:14px;height:14px;border-radius:3px;background:linear-gradient(135deg,#ffcc33,#ff4d6d);flex:none}
+.desk .mb{background:#f3f3f3;color:#111;display:flex;gap:1px;padding:2px 4px;border-bottom:1px solid #d6d6d6;flex-wrap:wrap}
+.desk .mb span{padding:3px 8px;border:1px solid transparent}
+.desk .mb span.act{cursor:pointer}
+.desk .mb span.act:hover,.desk .mb span.on{background:#cce4f7;border-color:#99c9ef}
+.desk .mb span.pulse{animation:pulse 1.6s infinite}
+@keyframes pulse{50%{background:#ffe48a;border-color:#ffcc33}}
+.desk svg.ws{display:block;width:100%;height:250px}
+.desk .dd{position:absolute;top:56px;background:#f9f9f9;color:#111;border:1px solid #ccc;box-shadow:2px 4px 12px rgba(0,0,0,.35);min-width:200px;padding:3px 0;z-index:3}
+.desk .dd div{padding:5px 24px 5px 30px;cursor:pointer;white-space:nowrap}
+.desk .dd div:hover{background:#cce4f7}
+.desk .dd hr{border:0;border-top:1px solid #ddd;margin:3px 2px 3px 28px}
+.mbox{position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);width:min(350px,92%);background:#fff;color:#111;border:1px solid #777;box-shadow:0 12px 40px rgba(0,0,0,.6);z-index:5}
+.mbox.anim{animation:mb .18s ease-out}
+@keyframes mb{from{transform:translate(-50%,-44%)}}
+.mbox code{color:#7a3e00;word-break:break-all}
+.mbox .t{padding:7px 10px;font-size:12px;border-bottom:1px solid #eee}
+.mbox .m{padding:14px 12px;display:flex;gap:10px;align-items:flex-start;font-size:13px}
+.mbox .ic{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#fff;font:700 15px Georgia,serif;background:#1f6fd1}
+.mbox .ic.q{background:#1f6fd1;font-family:system-ui}.mbox .ic.x{background:#d33}
+.mbox .b{background:#f0f0f0;padding:8px 10px;display:flex;justify-content:flex-end;gap:8px}
+.mbox button{min-width:74px;padding:3px 10px;border:1px solid #adadad;background:#e1e1e1;font:inherit;color:#111;cursor:pointer}
+.mbox button:first-child{border-color:#0078d7}
+.mbox button:hover{background:#e5f1fb}
+.mbox .bar{height:14px;border:1px solid #bcbcbc;background:#e6e6e6;margin-top:8px}
+.mbox .bar i{display:block;height:100%;width:0;background:#06b025;transition:width .25s linear}
+.tree{font:13px/1.55 ui-monospace,Consolas,monospace;background:#060912;border:1px solid var(--line);border-radius:10px;padding:10px 10px;color:var(--soft);overflow-x:auto;min-height:318px}
+.tree .n{display:flex;align-items:center;gap:6px;white-space:nowrap;padding:1px 6px;border-radius:6px;cursor:default}
+.tree .n:hover,.tree .n.on{background:rgba(255,204,51,.12)}
+.tree .n .ic{width:15px;flex:none;text-align:center}
+.tree .d{color:var(--gold)}.tree .f{color:#cfe0ff}
+.tree .n small{margin-left:auto;padding-left:10px;font:600 11px system-ui;color:var(--ok)}
+.tree .n.flash{animation:flash 1s 3}
+@keyframes flash{50%{background:rgba(91,227,138,.32)}}
+.tnote{min-height:42px;margin-top:8px;font-size:13.5px;color:var(--soft)}
+/* игра «найдите на экране» */
+.qbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 10px}
+.qbar .q{font-size:17px;font-weight:700;color:var(--ink)}
+.qbar .q b{display:inline-grid;place-items:center;min-width:26px;height:26px;border-radius:50%;background:var(--gold);color:#1a1300;font-size:13px;margin-right:8px;padding:0 5px}
+.qdots{display:flex;gap:5px;margin-left:auto}
+.qdots i{width:12px;height:12px;border-radius:50%;background:var(--panel2);border:1px solid #34426b}
+.qdots i.cur{border-color:var(--gold);box-shadow:0 0 0 2px rgba(255,204,51,.35)}
+.qdots i.g{background:var(--ok);border-color:var(--ok)}.qdots i.y{background:var(--gold);border-color:var(--gold)}.qdots i.r{background:var(--photo);border-color:var(--photo)}
+.qscroll{overflow-x:auto;border-radius:10px}
+.qframe{position:relative;border:1px solid #3a4a78;border-radius:10px;overflow:hidden;cursor:crosshair;background:#0b1020}
+.qframe img{display:block;width:100%;height:auto;pointer-events:none}
+.qmark{position:absolute;border:3px solid var(--ok);border-radius:6px;background:rgba(91,227,138,.18);pointer-events:none;animation:qm .5s ease-out}
+.qmark.rv{border-color:var(--gold);background:rgba(255,204,51,.18)}
+.qmark.hint{border-style:dashed;border-color:var(--gold);background:transparent;animation:blink 1s 3}
+@keyframes qm{from{transform:scale(1.6)}}
+@keyframes blink{50%{opacity:.15}}
+.qdot{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;pointer-events:none;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.5);animation:qm .35s ease-out}
+.qdot.ok{background:var(--ok)}.qdot.no{background:var(--photo)}
+@media (max-width:900px){.upd{grid-template-columns:1fr}figure.shot.side{grid-template-columns:1fr}.shot-legend.cols2{grid-template-columns:1fr}}
+@media (max-width:900px){.qframe{width:880px}}
+.mobonly{display:none}@media (max-width:900px){.mobonly{display:inline}}
+</style>
+</head>
+<body data-chapter="install">
+
+<section class="hero" id="top"><div class="wrap">
+  <div class="kicker" data-t="h.k"></div>
+  <h1 data-t="h.h"></h1>
+  <p class="lead" data-t="h.lead"></p>
+</div></section>
+
+<section class="sec" id="install" data-nav="n.inst"><div class="wrap">
+  <div class="kicker" data-t="i.k"></div>
+  <h2 data-t="i.h"></h2>
+  <p class="lead" data-t="i.lead"></p>
+  <div class="card full">
+    <h3 data-t="u.h"></h3>
+    <p class="note" style="margin-top:0" data-t="u.hint"></p>
+    <div class="row" style="margin-top:4px"><div class="chips" id="uMode"></div><label class="sw"><input type="checkbox" id="uNew" checked><span data-t="u.new"></span></label></div>
+    <div class="upd">
+      <div class="desk" id="uDesk"></div>
+      <div><div class="tree" id="uTree"></div><div class="tnote" id="uNote"></div></div>
+    </div>
+    <div class="pills" id="uRes"></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="i.f1"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="i.f2"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="i.f3"></div>
+  </div>
+  <h3 style="margin-top:26px" data-t="i.steps"></h3>
+  <ol class="howto">
+    <li data-t="i.s1"></li><li data-t="i.s2"></li><li data-t="i.s3"></li><li data-t="i.s4"></li><li data-t="i.s5"></li>
+  </ol>
+  <div class="callout warn" data-t="i.warn"></div>
+</div></section>
+
+<section class="sec" id="tour" data-nav="n.tour"><div class="wrap">
+  <div class="kicker" data-t="t.k"></div>
+  <h2 data-t="t.h"></h2>
+  <p class="lead" data-t="t.lead"></p>
+  <div class="card full">
+    <figure class="shot" data-shot="main" data-hot='[[0.0038,0.0319,0.1650,0.0194],[0.1720,0.0591,0.1680,0.0203],[0.1760,0.0800,0.5600,0.8420],[0.1736,0.9458,0.4620,0.0242],[0.0043,0.0640,0.1635,0.9060],[0.7497,0.0640,0.2465,0.4870],[0.7497,0.5800,0.2465,0.3700],[0.8596,0.9768,0.1380,0.0223]]'>
+      <figcaption data-t="t.cap"></figcaption>
+      <ol class="shot-legend cols2">
+        <li data-t="t.l1"></li><li data-t="t.l2"></li><li data-t="t.l3"></li><li data-t="t.l4"></li>
+        <li data-t="t.l5"></li><li data-t="t.l6"></li><li data-t="t.l7"></li><li data-t="t.l8"></li>
+      </ol>
+    </figure>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--blue)" data-t="t.f1"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="t.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="t.f3"></div>
+  </div>
+</div></section>
+
+<section class="sec" id="quiz" data-nav="n.quiz"><div class="wrap">
+  <div class="kicker" data-t="q.k"></div>
+  <h2 data-t="q.h"></h2>
+  <p class="lead" data-t="q.lead"></p>
+  <div class="card full">
+    <div class="qbar"><div class="q" id="qText"></div><div class="qdots" id="qDots"></div></div>
+    <div class="qscroll"><div class="qframe" id="qFrame"><img id="qImg" alt=""><div id="qMarks"></div></div></div>
+    <div class="row">
+      <button class="btn" id="qHint" data-t="q.hint"></button>
+      <button class="btn main" id="qNext" data-t="q.next"></button>
+      <button class="btn" id="qAgain" data-t="q.again"></button>
+      <span class="note mobonly" style="margin:0" data-t="q.mob"></span>
+    </div>
+    <div class="pills" id="qRes"></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--ok)" data-t="q.f1"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="q.f2"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="q.f3"></div>
+  </div>
+</div></section>
+
+<section class="sec" id="menu" data-nav="n.menu"><div class="wrap">
+  <div class="kicker" data-t="mn.k"></div>
+  <h2 data-t="mn.h"></h2>
+  <p class="lead" data-t="mn.lead"></p>
+  <div class="card full">
+    <div class="chips tabbar" id="mnTabs"></div>
+    <div class="pane on" data-tab="mt.file">
+      <figure class="shot side sm" data-shot="menu-file" data-hot='[[0.055,0.1055,0.87,0.16],[0.055,0.2655,0.87,0.16],[0.055,0.4255,0.87,0.08],[0.055,0.5055,0.87,0.08],[0.055,0.5855,0.87,0.08],[0.055,0.6873,0.87,0.08],[0.055,0.7673,0.87,0.08]]'>
+        <ol class="shot-legend"><li data-t="mf1"></li><li data-t="mf2"></li><li data-t="mf3"></li><li data-t="mf4"></li><li data-t="mf5"></li><li data-t="mf6"></li><li data-t="mf7"></li></ol>
+      </figure>
+    </div>
+    <div class="pane" data-tab="mt.imp">
+      <figure class="shot side md" data-shot="menu-file-import" data-hot='[[0.37,0.5320,0.60,0.0613],[0.37,0.5933,0.60,0.0613],[0.37,0.6546,0.60,0.1226],[0.37,0.7772,0.60,0.0613],[0.37,0.8384,0.60,0.0613],[0.37,0.8997,0.60,0.0613]]'>
+        <ol class="shot-legend"><li data-t="mi1"></li><li data-t="mi2"></li><li data-t="mi3"></li><li data-t="mi4"></li><li data-t="mi5"></li><li data-t="mi6"></li></ol>
+      </figure>
+    </div>
+    <div class="pane" data-tab="mt.spec">
+      <figure class="shot side sm" data-shot="menu-spectrum" data-hot='[[0.038,0.0812,0.91,0.1233],[0.038,0.2045,0.91,0.0616],[0.038,0.2661,0.91,0.1849],[0.038,0.4510,0.91,0.1232],[0.038,0.5742,0.91,0.0616],[0.038,0.6359,0.91,0.0616],[0.038,0.6975,0.91,0.0616],[0.038,0.7759,0.91,0.1849]]'>
+        <ol class="shot-legend"><li data-t="ms1"></li><li data-t="ms2"></li><li data-t="ms3"></li><li data-t="ms4"></li><li data-t="ms5"></li><li data-t="ms6"></li><li data-t="ms7"></li><li data-t="ms8"></li></ol>
+      </figure>
+    </div>
+    <div class="pane" data-tab="mt.view">
+      <figure class="shot side sm" data-shot="menu-view" data-hot='[[0.052,0.0997,0.88,0.2268],[0.052,0.3265,0.88,0.0756],[0.052,0.4021,0.88,0.0756],[0.052,0.4777,0.88,0.1512],[0.052,0.6289,0.88,0.0756],[0.052,0.7045,0.88,0.1512],[0.052,0.8763,0.88,0.0756]]'>
+        <ol class="shot-legend"><li data-t="mv1"></li><li data-t="mv2"></li><li data-t="mv3"></li><li data-t="mv4"></li><li data-t="mv5"></li><li data-t="mv6"></li><li data-t="mv7"></li></ol>
+      </figure>
+    </div>
+    <div class="pane" data-tab="mt.tool">
+      <figure class="shot side md" data-shot="menu-tool" data-hot='[[0.035,0.1602,0.92,0.1215],[0.035,0.2818,0.92,0.1215],[0.035,0.4033,0.92,0.1215],[0.035,0.5249,0.92,0.1215],[0.035,0.6464,0.92,0.1215],[0.035,0.8011,0.92,0.1215]]'>
+        <ol class="shot-legend"><li data-t="mtl1"></li><li data-t="mtl2"></li><li data-t="mtl3"></li><li data-t="mtl4"></li><li data-t="mtl5"></li><li data-t="mtl6"></li></ol>
+      </figure>
+    </div>
+    <div class="pane" data-tab="mt.help">
+      <figure class="shot side sm" data-shot="menu-help" data-hot='[[0.052,0.2117,0.875,0.1606],[0.052,0.4161,0.875,0.1606],[0.052,0.5766,0.875,0.1606],[0.052,0.7372,0.875,0.1606]]'>
+        <ol class="shot-legend"><li data-t="mh1"></li><li data-t="mh2"></li><li data-t="mh3"></li><li data-t="mh4"></li></ol>
+      </figure>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="mn.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="mn.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="mn.f3"></div>
+  </div>
+</div></section>
+
+<section class="sec" id="prefs" data-nav="n.prefs"><div class="wrap">
+  <div class="kicker" data-t="p.k"></div>
+  <h2 data-t="p.h"></h2>
+  <p class="lead" data-t="p.lead"></p>
+  <div class="card full">
+    <div class="chips tabbar" id="pTabs"></div>
+    <div class="pane on" data-tab="pt.chart">
+      <figure class="shot side" data-shot="prefs-chart" data-hot='[[0.0354,0.1381,0.2883,0.1869],[0.3814,0.1381,0.4030,0.1869],[0.0354,0.4100,0.2400,0.0700],[0.3814,0.4100,0.3700,0.1000],[0.3814,0.5100,0.4470,0.1000],[0.3814,0.6230,0.3420,0.0350],[0.0275,0.5188,0.2739,0.1506],[0.6737,0.9498,0.3093,0.0349]]'>
+        <ol class="shot-legend"><li data-t="pc1"></li><li data-t="pc2"></li><li data-t="pc3"></li><li data-t="pc4"></li><li data-t="pc5"></li><li data-t="pc6"></li><li data-t="pc7"></li><li data-t="pc8"></li></ol>
+      </figure>
+    </div>
+    <div class="pane" data-tab="pt.color">
+      <figure class="shot side" data-shot="prefs-color" data-hot='[[0.0300,0.1185,0.4050,0.0720],[0.0300,0.1953,0.3800,0.0350],[0.0300,0.2441,0.3050,0.0360],[0.4500,0.1185,0.5150,0.3070],[0.0170,0.4575,0.9659,0.3975],[0.0262,0.8856,0.1000,0.0349]]'>
+        <ol class="shot-legend"><li data-t="pk1"></li><li data-t="pk2"></li><li data-t="pk3"></li><li data-t="pk4"></li><li data-t="pk5"></li><li data-t="pk6"></li></ol>
+      </figure>
+    </div>
+    <div class="pane" data-tab="pt.sound">
+      <figure class="shot side" data-shot="prefs-sound" data-hot='[[0.0341,0.1381,0.5806,0.0349],[0.6225,0.1381,0.0983,0.0349],[0.7287,0.1381,0.0983,0.0349]]'>
+        <ol class="shot-legend"><li data-t="pd1"></li><li data-t="pd2"></li><li data-t="pd3"></li></ol>
+      </figure>
+    </div>
+    <div class="pane" data-tab="pt.sys">
+      <figure class="shot side" data-shot="prefs-system" data-hot='[[0.0446,0.1395,0.2770,0.0700],[0.0446,0.2420,0.4720,0.1100],[0.5518,0.3236,0.3277,0.0237],[0.0472,0.4351,0.5662,0.0950],[0.0459,0.5640,0.3237,0.0290],[0.0472,0.6248,0.6173,0.0237],[0.0472,0.7085,0.6553,0.0558],[0.0472,0.7800,0.7942,0.0290]]'>
+        <ol class="shot-legend"><li data-t="py1"></li><li data-t="py2"></li><li data-t="py3"></li><li data-t="py4"></li><li data-t="py5"></li><li data-t="py6"></li><li data-t="py7"></li><li data-t="py8"></li></ol>
+      </figure>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--blue)" data-t="p.f1"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="p.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="p.f3"></div>
+  </div>
+  <div class="grid2" style="margin-top:22px">
+    <div>
+      <h3 data-t="p.lang"></h3>
+      <ol class="howto"><li data-t="p.l1"></li><li data-t="p.l2"></li><li data-t="p.l3"></li></ol>
+      <div class="callout info" data-t="p.info"></div>
+    </div>
+    <div>
+      <h3 data-t="p.ah"></h3>
+      <figure class="shot" data-shot="about" data-hot='[[0.5663,0.1115,0.2300,0.0967],[0.5663,0.2621,0.2278,0.0242],[0.5663,0.3400,0.3700,0.2200],[0.0203,0.6933,0.9594,0.2417]]'>
+        <figcaption data-t="p.acap"></figcaption>
+        <ol class="shot-legend"><li data-t="pa1"></li><li data-t="pa2"></li><li data-t="pa3"></li><li data-t="pa4"></li></ol>
+      </figure>
+    </div>
+  </div>
+  <details class="hood"><summary data-t="hood"></summary><ul data-t="hoodtxt"></ul></details>
+  <div id="pager"></div>
+</div></section>
+
+<footer><div class="wrap" data-t="foot"></div></footer>
+
+<script src="assets/guide.js"></script>
+<script>
+'use strict';
+const { $, $$, fx, t } = GUIDE;
+GUIDE.texts({ru:{
+'n.inst':'Установка','n.tour':'Главное окно','n.quiz':'Найдите сами','n.menu':'Меню','n.prefs':'Настройки',
+'h.k':'Глава 2 · Установка и окно программы',
+'h.h':'Поставить, обновить и <em>освоиться в окне</em>',
+'h.lead':'BecqMoni ставится один раз и обновляется по вашей кнопке. Дальше — одно окно: спектр в центре, панели по краям. Пять минут экскурсии — и вы знаете, где что лежит.',
+'i.k':'Установка','i.h':'ClickOnce: программа по подписке',
+'i.lead':'Установщик <code>setup.exe</code> ставит программу и запоминает, откуда её взял. Новый выпуск он принесёт, только когда вы сами заглянете в почтовый ящик — <span class="ui m">Помощь → Проверить обновление...</span> Сама программа обновлений не ищет.',
+'u.h':'Попробуйте сами: проверьте обновление',
+'u.hint':'Выберите, как установлена копия, откройте меню «Помощь» в макете окна и нажмите «Проверить обновление...». Дерево папок показывает, где лежат ваши файлы; наведите на строку.',
+'u.co':'через setup.exe (ClickOnce)','u.pt':'портативная (exe из архива)','u.new':'на сайте вышла новая версия',
+'m.file':'Файл','m.spec':'Спектр','m.view':'Вид','m.tool':'Инструменты','m.help':'Помощь',
+'m.manual':'Инструкция','m.upd':'Проверить обновление...','m.log':'Показать журнал','m.about':'О BecqMoni...',
+'d.msg':'Сообщение','d.updShort':'Доступно обновление','d.updLong':'Доступна новая версия: {0}.',
+'d.restart':'Обновление приложения завершено успешно. Сейчас приложение БУДЕТ ПЕРЕЗАГРУЖЕНО.',
+'d.none':'Новой версии нет. Ваша версия приложения: {0}',
+'d.std':'Этот экземпляр приложения работает в ограниченном режиме. Такое приложение не будет обновляться. Необходимо установить приложение через setup.exe.',
+'d.ok':'OK','d.cancel':'Отмена','d.loading':'Скачивание и установка выпуска {0}…','d.restarting':'Перезапуск BecqMoni…',
+'d.manual':'Откроется Telegram-канал программы: t.me/software_kbradar',
+'d.log':'Откроется Проводник с выделенным файлом:<br><code>{0}</code>','d.about':'BecqMoni Nuclear Edition<br>Версия {0}<br>Свободное использование.',
+'u.ptnote':'портативная копия не обновляется','d.aboutT':'О приложении BecqMoni Nuclear Edition','u.where':'настройки: <b>{0}</b>','u.ver':'версия: <b>{0}</b>','u.later':'новая версия заработает при следующем запуске','u.kept':'настройки не тронуты',
+'tr.appdata':'Ваши данные. Обновление их не трогает.','tr.cfg':'Все настройки программы.',
+'tr.main':'Общие настройки: всё из «Настроек», язык, вид графика.','tr.dev':'По файлу на каждую конфигурацию прибора — например, RC-103.xml.',
+'tr.lay':'Раскладка окна: где какие панели стоят.','tr.nuc':'Библиотека изотопов: линии, цвета, наборы.',
+'tr.geo':'Вещества и шаблоны конструктора геометрии: GeometryMaterials.xml, GeometryTemplates.xml, SampleTemplates.xml.',
+'tr.log':'Журнал. Дорос до 2 МБ — становится becqmoni.log.1, и запись идёт заново.',
+'tr.prog':'Папка самой программы. ClickOnce прячет её у себя и целиком меняет при обновлении.',
+'tr.progname':'папка программы (её ведёт ClickOnce)',
+'tr.exe':'Сама программа.','tr.db':'Справочные базы: нуклиды и совпадения, вещества, схемы распада.',
+'tr.spec':'Библиотека чтения чужих форматов (Импорт через SpecUtils).',
+'tr.port':'Портативная копия: всё лежит рядом с exe, настройки — тоже.','tr.portname':'D:\\BecqMoni\\ (куда распаковали)',
+'tr.hover':'наведите на строку — что в ней лежит',
+'i.f1':'<b>Обновление — только по кнопке.</b> Проверки при запуске нет: время от времени заглядывайте в «Помощь».',
+'i.f2':'<b>Настройки живут отдельно.</b> Обновление меняет программу, а приборы, библиотеку и раскладку окна не трогает.',
+'i.f3':'<b>Портативная копия не обновляется.</b> Exe из архива работает, но «Проверить обновление» попросит поставить через setup.exe.',
+'i.steps':'Пошагово',
+'i.s1':'Скачайте <b>setup.exe</b> со страницы программы <code>amba.cloud/becqmoni</code> и запустите — установщик поставит BecqMoni и добавит её в меню «Пуск».',
+'i.s2':'При первом запуске программа создаст папку настроек и положит туда поставочные: конфигурацию прибора по умолчанию и библиотеку изотопов. Свой прибор заводится в главе 3.',
+'i.s3':'Обновиться: <span class="ui m">Помощь → Проверить обновление...</span> → <span class="ui">OK</span> в окне «Доступно обновление» → после установки ещё раз <span class="ui">OK</span> — программа перезапустится.',
+'i.s4':'Найти свои файлы: <span class="ui m">Инструменты → Открыть папку конфигурации приложения в Windows Explorer...</span>',
+'i.s5':'Что-то пошло не так — <span class="ui m">Помощь → Показать журнал</span> откроет папку с выделенным <code>becqmoni.log</code>. Его и прикладывайте к вопросу.',
+'i.warn':'<b>Второе окно не откроется.</b> Если BecqMoni уже запущена, новый запуск отменится с сообщением «Приложение BecqMoni уже запущено!» — так программа бережёт файлы раскладки. Не видите окна — проверьте Диспетчер задач: процесс <code>BecquerelMonitor.exe</code>.',
+'t.k':'Экскурсия','t.h':'Одно окно — пять зон',
+'t.lead':'Окно BecqMoni устроено как стол лаборанта: в центре лист со спектром, по краям пульт и журналы. Наведите на номер или строку — место подсветится; щелчок по снимку увеличит его.',
+'t.cap':'Главное окно: открыт спектр Cs-137, слева отчёт FSA, справа набор и найденные пики',
+'t.l1':'<b>Меню</b> — Файл, Спектр, Вид, Инструменты, Помощь. Своей панели кнопок у окна нет',
+'t.l2':'<b>Вкладки документов</b> — по одной на открытый файл; щелчок переключает, крестик закрывает',
+'t.l3':'<b>График спектра</b> — кэВ или каналы по X, отсчёты по Y; подписи пиков сверху, подсказка у курсора',
+'t.l4':'<b>Полоса под графиком</b> — Ось Y, Ось X, Просмотр (фон, FSA, сглаживание) и Изменить',
+'t.l5':'<b>Отчёт FSA</b> — из чего сложен спектр по полноспектральному разбору и насколько разбор надёжен',
+'t.l6':'<b>Управление измерением</b> — прибор, кривая, фон, Старт/Стоп/Сброс, время и счёт. Под ней — вкладки соседних панелей',
+'t.l7':'<b>Обнаружение пиков</b> — таблица найденных пиков: нуклид, энергия, канал, SNR, FWHM',
+'t.l8':'<b>Строка состояния</b> — слева сообщения, в центре состояние прибора, справа мощность дозы',
+'t.f1':'<b>Панели — как листы на доске.</b> Их можно сложить стопкой (вкладки внизу), перетащить к другому краю или закрыть; <span class="ui m">Вид</span> вернёт любую.',
+'t.f2':'<b>Документ — вкладка сверху.</b> Каждый файл спектра — свой документ, а в документе до 16 спектров.',
+'t.f3':'<b>Панели говорят об активном документе.</b> Переключили вкладку — набор, пики и FSA сразу показывают другой спектр.',
+'q.k':'Игра','q.h':'Найдите на экране',
+'q.lead':'Проверим, что запомнилось. Вопрос — сверху, отвечать — щелчком по снимку. Промах подскажет, куда вы попали; со второго промаха программа покажет место сама.',
+'q.hint':'Подсказка','q.next':'Следующий →','q.again':'Сначала','q.mob':'Снимок прокручивается вбок.',
+'q.ok':'Верно! {0}','q.miss':'Мимо: это {0}. Попробуйте ещё.','q.miss2':'Вот где: {0}','q.score':'с первого раза: <b>{0} из {1}</b>',
+'q.done':'Готово! С первого раза — <b>{0} из {1}</b>. {2}','q.great':'Окно освоено.','q.good':'Загляните ещё раз в экскурсию выше — и сыграйте снова.','q.nothing':'пустое место','q.start':'Щёлкните по снимку там, где, по-вашему, ответ.',
+'q1':'Запустите набор спектра.','e1':'Кнопка «Старт» на панели «Управление измерением» (или Спектр → Начало измерения, Ctrl+M).',
+'q2':'Покажите мощность дозы.','e2':'Справа в строке состояния; считается по спектру и выбранной кривой эффективности.',
+'q3':'Где видно, какую долю времени прибор был «слеп»?','e3':'«Мерт. Время %»: до 20 % — норма, дальше цифры темнеют до оранжевого и красного.',
+'q4':'Переключитесь на спектр ториевого диска.','e4':'Вкладка документа AS80_Th232_disk над графиком.',
+'q5':'Где выбрать прибор, которым пишется этот спектр?','e5':'Список «Устройство»; «Редак.» откроет конфигурацию прибора.',
+'q6':'Сделайте вертикальную шкалу логарифмической.','e6':'Группа «Ось Y» на полосе под графиком: шкала ходит по кругу «линейная → степень → логарифм».',
+'q7':'Откройте настройки программы.','e7':'Меню «Инструменты» → «Настройки».',
+'q8':'Откройте панель «Калибровка энергии» — она спрятана в стопке.','e8':'Вкладки под панелью «Управление измерением»: панели сложены стопкой.',
+'q9':'Какой нуклид дал самый высокий пик? Найдите строку с ответом.','e9':'Cs-137 — в таблице «Обнаружение пиков» и первой строкой отчёта FSA.',
+'z.menu':'главное меню','z.tabs':'вкладки документов','z.chart':'график спектра','z.bar':'полоса под графиком','z.fsa':'отчёт FSA',
+'z.ctrl':'панель «Управление измерением»','z.ptabs':'вкладки панелей','z.peaks':'панель «Обнаружение пиков»','z.status':'строка состояния','z.title':'заголовок окна',
+'q.f1':'<b>Всё для набора — справа вверху.</b> Прибор, время, Старт и счётчики собраны на одной панели.',
+'q.f2':'<b>Цифры — по краям, картинка — в центре.</b> Таблицы пиков и FSA подписывают то, что видно на графике.',
+'q.f3':'<b>Потерялась панель?</b> Ищите вкладку внизу стопки или верните её через <span class="ui m">Вид</span>.',
+'mn.k':'Меню','mn.h':'Пять меню — пять вопросов',
+'mn.lead':'«Файл» — что открыть и куда сохранить, «Спектр» — что сделать с данными, «Вид» — какие панели показать, «Инструменты» — справочники и настройки, «Помощь» — обновления и журнал. Выберите меню и наведите на номер.',
+'mt.file':'Файл','mt.imp':'Файл → Импорт','mt.spec':'Спектр','mt.view':'Вид','mt.tool':'Инструменты','mt.help':'Помощь',
+'mf1':'<b>Новый / Открыть...</b> — пустой документ (Ctrl+N) или файл спектра .xml (Ctrl+O); файлы можно просто перетащить на окно',
+'mf2':'<b>Сохранить / Сохранить как...</b> — в свой формат XML; «Сохранить» горит, когда есть несохранённое',
+'mf3':'<b>Закрыть</b> — текущий документ (Ctrl+W)','mf4':'<b>Объединение спектров</b> — прибавить к спектру другой файл с тем же числом каналов',
+'mf5':'<b>Закрыть всё</b> — все документы разом','mf6':'<b>Импорт</b> — чужие форматы; каждый файл открывается новым документом',
+'mf7':'<b>Экспорт</b> — N42, Atom Spectra v3, CSV и расширенный CSV',
+'mi1':'<b>Формат Atom Spectra v3</b> — файлы *.txt программы Atom Spectra','mi2':'<b>Файл формата N42</b> — международный формат ANSI N42.42',
+'mi3':'<b>Файл CSV</b> — столбцы «канал, отсчёты» или «энергия, отсчёты»','mi4':'<b>SpectraLine GBS</b> — файлы *.spe',
+'mi5':'<b>Импорт через SpecUtils...</b> — ещё два десятка форматов: SPC, CNF, CHN, IAEA SPE, PCF…','mi6':'<b>Старый формат BecqMoni</b> — файлы версий 0.93Beta и раньше',
+'ms1':'<b>Новый / Удалить</b> — спектр внутри текущего документа','ms2':'<b>Импорт из файла</b> — добавить спектры из файлов в этот документ',
+'ms3':'<b>Экспорт спектра, экспорт фона, жёсткий вычет</b> — в файл; вычет пишет «спектр минус фон»',
+'ms4':'<b>Изменить число каналов, ограничить энергию или канал</b> — результат открывается новым документом',
+'ms5':'<b>Нормализовать спектр по эффективности</b> — тоже новым документом','ms6':'<b>Применить коррекцию мёртвого времени</b>',
+'ms7':'<b>Автосохранение спектра</b> — флажок для этого документа','ms8':'<b>Начало / Остановить измерение, Очистить спектр</b> — то же, что Старт, Стоп и Сброс на панели (Ctrl+M, Ctrl+P)',
+'mv1':'<b>Управление измерением, Информация об образце, Список спектров</b> — всё для набора','mv2':'<b>Калибровка энергии</b> — шкала «канал → кэВ»',
+'mv3':'<b>Обнаружение пиков</b> — таблица пиков','mv4':'<b>Монитор импульсов, Скорость счёта</b> — форма импульса и скорость во времени',
+'mv5':'<b>Калибровка по FWHM</b> — ширина пиков','mv6':'<b>Отчёт FSA, Результат измерений</b> — состав и активности','mv7':'<b>Язык</b> — как в системе, English, Русский; нужен перезапуск',
+'mtl1':'<b>Конфигурация устройства...</b> — приборы: тип, каналы, калибровки, кривые эффективности','mtl2':'<b>Редактировать библиотеку изотопов...</b> — линии и цвета',
+'mtl3':'<b>Редактировать наборы изотопов...</b> — какие нуклиды искать в спектре','mtl4':'<b>База изотопов...</b> — справочник NucBase: поиск по имени и энергии',
+'mtl5':'<b>Открыть папку конфигурации...</b> — Проводник с вашими настройками','mtl6':'<b>Настройки</b> — график, цвета, звук, системные',
+'mh1':'<b>Инструкция</b> — открывает Telegram-канал программы','mh2':'<b>Проверить обновление...</b> — единственный способ обновиться',
+'mh3':'<b>Показать журнал</b> — Проводник с выделенным becqmoni.log','mh4':'<b>О BecqMoni...</b> — версия, ссылки, благодарности',
+'mn.f1':'<b>Без документа «Спектр» погашен.</b> Его пункты оживают, когда открыт хотя бы один спектр.',
+'mn.f2':'<b>Импорт бывает двух видов.</b> «Файл → Импорт» открывает чужой файл новой вкладкой, «Спектр → Импорт из файла» добавляет в текущий документ.',
+'mn.f3':'<b>Закрыли панель — откройте через «Вид».</b> Каждый пункт «Вида» показывает свою панель.',
+'p.k':'Настройки','p.h':'Настройки, язык и «О программе»',
+'p.lead':'Настройки — как пульт телевизора: выставили один раз и забыли. <span class="ui m">Инструменты → Настройки</span>, четыре вкладки; <span class="ui">Применить</span> меняет сразу, <span class="ui">OK</span> — применяет и закрывает.',
+'pt.chart':'График','pt.color':'Цвет','pt.sound':'Звук','pt.sys':'Системные',
+'pc1':'<b>Вид нового графика</b> — фон, режим отрисовки, тип (столбцы или линия), сглаживание, флажки пиков',
+'pc2':'<b>Оси по умолчанию</b> — единицы Y и X, шкала (линейная, степень, логарифм), автомасштаб',
+'pc3':'<b>Окна сглаживания</b> — ширина СКС и СКВС в каналах','pc4':'<b>Цикл обновления графика, привязка масштаба, лимит счёта</b>',
+'pc5':'<b>Подпись пика под курсором</b> — в каком окне вокруг курсора искать линию библиотеки','pc6':'<b>Доверительный интервал</b> — 84, 90, 95 или 99 % для статистических пределов',
+'pc7':'<b>Шаг подстройки калибровки</b> — на сколько двигают коэффициенты стрелки','pc8':'<b>Применить / OK / Отмена</b>',
+'pk1':'<b>Активный спектр и фон</b> — цвет и непрозрачность','pk2':'<b>Порядок отображения</b> — кто рисуется поверх','pk3':'<b>Вычтенный спектр</b> — цвет «спектр минус фон»',
+'pk4':'<b>Спектры 1–16</b> — цвета остальных спектров документа','pk5':'<b>Другие цвета</b> — поле, сетка, выделение, курсор, флажки и линии пиков','pk6':'<b>Сбросить всё</b> — вернуть цвета по умолчанию',
+'pd1':'<b>При завершении измерения</b> — звук, который играет, когда набор дошёл до предела времени','pd2':'<b>Выбор...</b> — найти файл .wav','pd3':'<b>Запуск</b> — прослушать',
+'py1':'<b>Ед. веса и объёма</b> — граммы или килограммы, миллилитры или литры для карточки образца','py2':'<b>Уровни неопределённости и обнаружения</b> — сколько σ и какое условие считать «обнаружен»',
+'py3':'<b>Показать значения не обнаруженных</b> — печатать число или только «&lt; предел»','py4':'<b>Данные по импульсам в файл</b> — файл станет очень большим; нужно, чтобы менять каналы после набора',
+'py5':'<b>Сохранять документы каждые N минут</b> — период автосохранения, по умолчанию 15','py6':'<b>Автосохранение по умолчанию</b> — включать его новым и открытым спектрам',
+'py7':'<b>Пустая конфигурация импортируемым; матрица отклика в файл спектра</b>','py8':'<b>FSA во время набора</b> — пересчёт не чаще раза в N секунд',
+'p.f1':'<b>Настройки — общие для всех документов.</b> Вид графика, цвета, единицы; прибор настраивается отдельно — в главе 3.',
+'p.f2':'<b>Язык — с перезапуском.</b> Выбор запоминается и действует со следующего запуска.',
+'p.f3':'<b>Версия — в «О программе».</b> Её же называет «Проверить обновление», когда новой нет.',
+'p.lang':'Язык интерфейса',
+'p.l1':'<span class="ui m">Вид → Язык</span> → <span class="ui">(Как в системе)</span>, <span class="ui">English</span> или <span class="ui">Русский</span>.',
+'p.l2':'Программа скажет: «Перезагрузите приложение для применения настроек.» Закройте BecqMoni и откройте снова.',
+'p.l3':'Меняются подписи окон и сообщений; спектры, приборы и библиотека остаются прежними.',
+'p.info':'<b>Числа — всегда с точкой</b>, на любом языке: 661.66, а не 661,66. Разрядов программа не группирует: 250770505.',
+'p.ah':'О программе','p.acap':'Помощь → О BecqMoni...',
+'pa1':'<b>Название и версия</b> — первое, что спросят, если что-то не работает','pa2':'<b>Свободное использование</b> — программа бесплатна',
+'pa3':'<b>Ссылки</b> — исходный код на GitHub, видео на YouTube и RuTube','pa4':'<b>Благодарности</b> — авторы значков, алгоритмов и библиотек, на которых стоит программа',
+'hoodtxt':'<li>Как установлена копия, программа узнаёт сама — по наличию развёртывания ClickOnce. Есть — настройки в <code>%AppData%\\BecqMoni\\config</code>, нет — в <code>config</code> рядом с exe.</li><li>«Проверить обновление» спрашивает сервер ClickOnce (<code>CheckForDetailedUpdate</code>), после «OK» ставит выпуск (<code>Update</code>), а перезапуск делает только по второму «OK».</li><li>Журнал <code>becqmoni.log</code> подрезается на 2 МБ: прежний становится <code>becqmoni.log.1</code>, на диске не больше двух файлов.</li><li>Автосохранение проверяет документы раз в N минут (по умолчанию 15) и пишет только изменённые — и только те, у которых оно включено.</li><li>Мощность дозы в строке состояния считается по спектру и кривой эффективности, выбранной на панели «Управление измерением»; без матрицы отклика число идёт со знаком «≈».</li>',
+},en:{
+'n.inst':'Install','n.tour':'Main window','n.quiz':'Find it','n.menu':'Menus','n.prefs':'Preferences',
+'h.k':'Chapter 2 · Install and the main window',
+'h.h':'Install, update and <em>find your way around</em>',
+'h.lead':'BecqMoni is installed once and updated when you press the button. After that it is one window: the spectrum in the middle, panels along the edges. A five-minute tour — and you know where everything is.',
+'i.k':'Install','i.h':'ClickOnce: the program by subscription',
+'i.lead':'The <code>setup.exe</code> installer puts the program on your PC and remembers where it came from. It brings a new release only when you check the mailbox yourself — <span class="ui m">Help → Check for updates...</span> The program does not look for updates on its own.',
+'u.h':'Try it: check for updates',
+'u.hint':'Choose how the copy is installed, open the “Help” menu in the mock window and press “Check for updates...”. The folder tree shows where your files live; hover a line.',
+'u.co':'via setup.exe (ClickOnce)','u.pt':'portable (exe from an archive)','u.new':'a new version is on the site',
+'m.file':'File','m.spec':'Spectrum','m.view':'View','m.tool':'Tool','m.help':'Help',
+'m.manual':'Manual','m.upd':'Check for updates...','m.log':'Show log','m.about':'About...',
+'d.msg':'Message','d.updShort':'Update available','d.updLong':'A new version is available: {0}.',
+'d.restart':'Update finished. Application WILL RESTART.',
+'d.none':'No new version available. Current version: {0}',
+'d.std':'This application works in standalone mode. If you want to use update re-install it.',
+'d.ok':'OK','d.cancel':'Cancel','d.loading':'Downloading and installing {0}…','d.restarting':'Restarting BecqMoni…',
+'d.manual':'The program’s Telegram channel opens: t.me/software_kbradar',
+'d.log':'Explorer opens with the file selected:<br><code>{0}</code>','d.about':'BecqMoni Nuclear Edition<br>Version {0}<br>Free to use.',
+'u.ptnote':'a portable copy is not updated','d.aboutT':'About BecqMoni Nuclear Edition','u.where':'settings: <b>{0}</b>','u.ver':'version: <b>{0}</b>','u.later':'the new version starts with the next launch','u.kept':'settings untouched',
+'tr.appdata':'Your data. Updates do not touch it.','tr.cfg':'All program settings.',
+'tr.main':'General settings: everything from “Preferences”, the language, the chart look.','tr.dev':'One file per device configuration — e.g. RC-103.xml.',
+'tr.lay':'Window layout: which panel sits where.','tr.nuc':'Nuclide library: lines, colours, sets.',
+'tr.geo':'Materials and templates of the geometry editor: GeometryMaterials.xml, GeometryTemplates.xml, SampleTemplates.xml.',
+'tr.log':'The log. At 2 MB it becomes becqmoni.log.1 and writing starts over.',
+'tr.prog':'The program folder itself. ClickOnce keeps it hidden and replaces it as a whole on update.',
+'tr.progname':'program folder (managed by ClickOnce)',
+'tr.exe':'The program itself.','tr.db':'Reference databases: nuclides and coincidences, materials, decay schemes.',
+'tr.spec':'The library that reads foreign formats (Import using SpecUtils).',
+'tr.port':'Portable copy: everything sits next to the exe, settings too.','tr.portname':'D:\\BecqMoni\\ (where you unpacked it)',
+'tr.hover':'hover a line — see what it holds',
+'i.f1':'<b>Updates only on request.</b> Nothing is checked at start-up: look into “Help” now and then.',
+'i.f2':'<b>Settings live separately.</b> An update replaces the program but leaves devices, the library and the window layout alone.',
+'i.f3':'<b>A portable copy is not updated.</b> The exe from an archive runs, but “Check for updates” asks you to install via setup.exe.',
+'i.steps':'Step by step',
+'i.s1':'Download <b>setup.exe</b> from the program page <code>amba.cloud/becqmoni</code> and run it — the installer sets up BecqMoni and adds it to the Start menu.',
+'i.s2':'On first start the program creates its settings folder and puts the shipped defaults there: a default device configuration and the nuclide library. Your own device is set up in chapter 3.',
+'i.s3':'To update: <span class="ui m">Help → Check for updates...</span> → <span class="ui">OK</span> in the “Update available” box → <span class="ui">OK</span> once more after installing — the program restarts.',
+'i.s4':'To find your files: <span class="ui m">Tool → Open config dir in Explorer...</span>',
+'i.s5':'Something went wrong — <span class="ui m">Help → Show log</span> opens the folder with <code>becqmoni.log</code> selected. Attach it to your question.',
+'i.warn':'<b>A second window will not open.</b> If BecqMoni is already running, a new start is cancelled with “BecqMoni already running!” — the program protects its layout files. No window in sight? Check Task Manager for <code>BecquerelMonitor.exe</code>.',
+'t.k':'Tour','t.h':'One window — five zones',
+'t.lead':'The BecqMoni window is laid out like a lab bench: the spectrum sheet in the middle, controls and logs around it. Hover a number or a line — the spot lights up; click the picture to enlarge it.',
+'t.cap':'The main window: a Cs-137 spectrum is open, the FSA report on the left, acquisition and detected peaks on the right',
+'t.l1':'<b>Menu</b> — File, Spectrum, View, Tool, Help. The window has no toolbar of its own',
+'t.l2':'<b>Document tabs</b> — one per open file; click to switch, the cross closes it',
+'t.l3':'<b>Spectrum chart</b> — keV or channels along X, counts along Y; peak labels on top, a tooltip at the cursor',
+'t.l4':'<b>Bar under the chart</b> — Y-Axis, X-Axis, View (background, FSA, smoothing) and Modify',
+'t.l5':'<b>FSA Report</b> — what the spectrum is made of by full-spectrum analysis, and how reliable that is',
+'t.l6':'<b>Measurement Control</b> — device, curve, background, Start/Stop/Clear, time and counts. Below it — tabs of neighbouring panels',
+'t.l7':'<b>Peak Detection</b> — the table of found peaks: nuclide, energy, channel, SNR, FWHM',
+'t.l8':'<b>Status bar</b> — messages on the left, device state in the middle, dose rate on the right',
+'t.f1':'<b>Panels are sheets on a board.</b> Stack them (tabs at the bottom), drag them to another edge or close them; <span class="ui m">View</span> brings any back.',
+'t.f2':'<b>A document is a tab on top.</b> Each spectrum file is its own document, and a document holds up to 16 spectra.',
+'t.f3':'<b>Panels describe the active document.</b> Switch the tab — acquisition, peaks and FSA show the other spectrum at once.',
+'q.k':'Game','q.h':'Find it on screen',
+'q.lead':'Let us check what stuck. The question is on top; answer by clicking the screenshot. A miss tells you where you landed; after the second miss the program shows the place itself.',
+'q.hint':'Hint','q.next':'Next →','q.again':'Start over','q.mob':'The screenshot scrolls sideways.',
+'q.ok':'Right! {0}','q.miss':'Missed: that is {0}. Try again.','q.miss2':'Here it is: {0}','q.score':'first try: <b>{0} of {1}</b>',
+'q.done':'Done! First try — <b>{0} of {1}</b>. {2}','q.great':'You know the window.','q.good':'Look at the tour above once more — and play again.','q.nothing':'empty space','q.start':'Click the screenshot where you think the answer is.',
+'q1':'Start acquiring a spectrum.','e1':'The “Start” button on the Measurement Control panel (or Spectrum → Start Measurement, Ctrl+M).',
+'q2':'Show the dose rate.','e2':'On the right of the status bar; computed from the spectrum and the selected efficiency curve.',
+'q3':'Where can you see what share of time the detector was “blind”?','e3':'“Dead Time %”: up to 20 % is normal; above that the digits turn orange, then red.',
+'q4':'Switch to the thorium disc spectrum.','e4':'The AS80_Th232_disk document tab above the chart.',
+'q5':'Where do you choose the device this spectrum is recorded with?','e5':'The “Device Config.” list; “Edit...” opens the device configuration.',
+'q6':'Make the vertical scale logarithmic.','e6':'The “Y-Axis” group on the bar under the chart: the scale cycles “linear → power → logarithmic”.',
+'q7':'Open the program preferences.','e7':'Menu “Tool” → “Preferences”.',
+'q8':'Open the “Energy Calibration” panel — it is hidden in a stack.','e8':'The tabs below the Measurement Control panel: panels are stacked.',
+'q9':'Which nuclide made the tallest peak? Find the line with the answer.','e9':'Cs-137 — in the “Peak Detection” table and the first line of the FSA report.',
+'z.menu':'the main menu','z.tabs':'the document tabs','z.chart':'the spectrum chart','z.bar':'the bar under the chart','z.fsa':'the FSA report',
+'z.ctrl':'the Measurement Control panel','z.ptabs':'the panel tabs','z.peaks':'the Peak Detection panel','z.status':'the status bar','z.title':'the window title',
+'q.f1':'<b>Everything for acquisition is top right.</b> Device, time, Start and counters sit on one panel.',
+'q.f2':'<b>Numbers at the edges, the picture in the middle.</b> The peak and FSA tables label what the chart shows.',
+'q.f3':'<b>Lost a panel?</b> Look for its tab at the bottom of a stack, or bring it back via <span class="ui m">View</span>.',
+'mn.k':'Menus','mn.h':'Five menus — five questions',
+'mn.lead':'“File” — what to open and where to save, “Spectrum” — what to do with the data, “View” — which panels to show, “Tool” — references and settings, “Help” — updates and the log. Pick a menu and hover a number.',
+'mt.file':'File','mt.imp':'File → Import','mt.spec':'Spectrum','mt.view':'View','mt.tool':'Tool','mt.help':'Help',
+'mf1':'<b>New / Open...</b> — an empty document (Ctrl+N) or a spectrum .xml file (Ctrl+O); you can also drop files onto the window',
+'mf2':'<b>Save / Save As...</b> — in the own XML format; “Save” is lit when there are unsaved changes',
+'mf3':'<b>Close</b> — the current document (Ctrl+W)','mf4':'<b>Combine Spectra</b> — add another file with the same channel count to the spectrum',
+'mf5':'<b>Close All</b> — all documents at once','mf6':'<b>Import</b> — foreign formats; each file opens as a new document',
+'mf7':'<b>Export</b> — N42, Atom Spectra v3, CSV and Extended CSV',
+'mi1':'<b>Atom Spectra v3 format</b> — *.txt files of the Atom Spectra program','mi2':'<b>N42 file format</b> — the international ANSI N42.42 format',
+'mi3':'<b>CSV</b> — columns “channel, counts” or “energy, counts”','mi4':'<b>SpectraLine GBS</b> — *.spe files',
+'mi5':'<b>Import using SpecUtils...</b> — two dozen more formats: SPC, CNF, CHN, IAEA SPE, PCF…','mi6':'<b>BecqMoni old format</b> — files of version 0.93Beta or earlier',
+'ms1':'<b>New / Delete</b> — a spectrum inside the current document','ms2':'<b>Import from File</b> — add spectra from files to this document',
+'ms3':'<b>Export Spectrum, Export Background, Hard subtract</b> — to a file; the subtraction writes “spectrum minus background”',
+'ms4':'<b>Change channel number, Cutoff energy or channel</b> — the result opens as a new document',
+'ms5':'<b>Normalize spectrum by efficiency</b> — also as a new document','ms6':'<b>Apply dead time correction</b>',
+'ms7':'<b>Autosave spectrum</b> — a check mark for this document','ms8':'<b>Start / Stop Measurement, Clear Spectrum</b> — same as Start, Stop and Clear on the panel (Ctrl+M, Ctrl+P)',
+'mv1':'<b>Measurement Control, Sample Information, Spectrum List</b> — everything for acquisition','mv2':'<b>Energy Calibration</b> — the “channel → keV” scale',
+'mv3':'<b>Peak Detection</b> — the peak table','mv4':'<b>Pulse Monitor, Counts Rate</b> — the pulse shape and the rate over time',
+'mv5':'<b>FWHM Calibration</b> — peak width','mv6':'<b>FSA Report, Measurement Result</b> — composition and activities','mv7':'<b>Language</b> — OS default, English, Russian; needs a restart',
+'mtl1':'<b>Edit Device Configurations...</b> — devices: type, channels, calibrations, efficiency curves','mtl2':'<b>Edit Nuclide Definitions...</b> — lines and colours',
+'mtl3':'<b>Edit Nuclide Sets...</b> — which nuclides to look for in a spectrum','mtl4':'<b>Isotope base...</b> — the NucBase reference: search by name and energy',
+'mtl5':'<b>Open config dir in Explorer...</b> — Explorer with your settings','mtl6':'<b>Preferences</b> — chart, colours, sound, system',
+'mh1':'<b>Manual</b> — opens the program’s Telegram channel','mh2':'<b>Check for updates...</b> — the only way to update',
+'mh3':'<b>Show log</b> — Explorer with becqmoni.log selected','mh4':'<b>About...</b> — version, links, acknowledgements',
+'mn.f1':'<b>Without a document “Spectrum” is greyed out.</b> Its items come alive once a spectrum is open.',
+'mn.f2':'<b>There are two kinds of import.</b> “File → Import” opens a foreign file as a new tab, “Spectrum → Import from File” adds it to the current document.',
+'mn.f3':'<b>Closed a panel — reopen it via “View”.</b> Each “View” item shows its own panel.',
+'p.k':'Preferences','p.h':'Preferences, language and “About”',
+'p.lead':'Preferences are like a TV remote: set once and forget. <span class="ui m">Tool → Preferences</span>, four tabs; <span class="ui">Apply</span> changes things at once, <span class="ui">OK</span> applies and closes.',
+'pt.chart':'Chart','pt.color':'Color','pt.sound':'Sound','pt.sys':'System',
+'pc1':'<b>Look of a new chart</b> — background, drawing mode, type (bars or line), smoothing, peak flags',
+'pc2':'<b>Default axes</b> — Y and X units, scale (linear, power, logarithmic), auto fitting',
+'pc3':'<b>Smoothing windows</b> — SMA and WMA width in channels','pc4':'<b>Chart refresh cycle, magnification origin, count limit</b>',
+'pc5':'<b>Peak label under the cursor</b> — the window around the cursor where a library line is looked up','pc6':'<b>Confidence level</b> — 84, 90, 95 or 99 % for statistical limits',
+'pc7':'<b>Calibration adjustment step</b> — how far the arrows move the coefficients','pc8':'<b>Apply / OK / Cancel</b>',
+'pk1':'<b>Active spectrum and background</b> — colour and opacity','pk2':'<b>Drawing order</b> — which one is drawn on top','pk3':'<b>Subtracted spectrum</b> — the colour of “spectrum minus background”',
+'pk4':'<b>Spectrum 1–16</b> — colours of the other spectra in a document','pk5':'<b>Other colours</b> — field, grid, selection, cursor, peak flags and lines','pk6':'<b>Initialize All</b> — back to default colours',
+'pd1':'<b>When measurement finished</b> — the sound played when acquisition reaches its time limit','pd2':'<b>Select...</b> — pick a .wav file','pd3':'<b>Play</b> — listen to it',
+'py1':'<b>Weight and volume units</b> — grams or kilograms, millilitres or litres for the sample card','py2':'<b>Uncertainty and detection levels</b> — how many σ and which condition counts as “detected”',
+'py3':'<b>Show values for not detected nuclides</b> — print a number or only “&lt; limit”','py4':'<b>Include pulse data in spectrum file</b> — the file gets very large; needed to change channels after acquisition',
+'py5':'<b>AutoSave documents every N minutes</b> — the autosave period, 15 by default','py6':'<b>Enable AutoSave by default</b> — switch it on for new and opened spectra',
+'py7':'<b>Empty configuration for imported spectra; response matrix into the spectrum file</b>','py8':'<b>FSA while acquiring</b> — recomputed no more often than every N seconds',
+'p.f1':'<b>Preferences are shared by all documents.</b> Chart look, colours, units; a device is configured separately — in chapter 3.',
+'p.f2':'<b>Language needs a restart.</b> The choice is remembered and takes effect from the next start.',
+'p.f3':'<b>The version is in “About”.</b> “Check for updates” names it too when there is nothing newer.',
+'p.lang':'Interface language',
+'p.l1':'<span class="ui m">View → Language</span> → <span class="ui">(OS Default)</span>, <span class="ui">English</span> or <span class="ui">Russian</span>.',
+'p.l2':'The program says “Restart application to apply settings.” Close BecqMoni and start it again.',
+'p.l3':'Window and message captions change; spectra, devices and the library stay as they were.',
+'p.info':'<b>Numbers always use a dot</b>, in any language: 661.66, not 661,66. Digits are never grouped: 250770505.',
+'p.ah':'About the program','p.acap':'Help → About...',
+'pa1':'<b>Name and version</b> — the first thing you will be asked if something does not work','pa2':'<b>Free to use</b> — the program costs nothing',
+'pa3':'<b>Links</b> — source code on GitHub, videos on YouTube and RuTube','pa4':'<b>Acknowledgements</b> — authors of icons, algorithms and libraries the program stands on',
+'hoodtxt':'<li>The program detects how it was installed by itself — by whether it has a ClickOnce deployment. If yes, settings live in <code>%AppData%\\BecqMoni\\config</code>; if not, in <code>config</code> next to the exe.</li><li>“Check for updates” asks the ClickOnce server (<code>CheckForDetailedUpdate</code>), installs the release after “OK” (<code>Update</code>) and restarts only after the second “OK”.</li><li>The log <code>becqmoni.log</code> is trimmed at 2 MB: the old one becomes <code>becqmoni.log.1</code>; there are never more than two files on disk.</li><li>Autosave looks at documents every N minutes (15 by default) and writes only changed ones — and only those that have it switched on.</li><li>The dose rate in the status bar is computed from the spectrum and the efficiency curve chosen on the Measurement Control panel; without a response matrix the number carries a “≈” sign.</li>',
+}});
+
+/* ── вкладки: chips над стопкой .pane ── */
+function tabset(barId, card) {
+  const panes = $$('.pane', card), bar = $('#' + barId);
+  bar.innerHTML = panes.map((p, i) => '<button class="chip' + (i ? '' : ' on') + '" data-i="' + i + '" data-t="' + p.dataset.tab + '"></button>').join('');
+  $$('button', bar).forEach(b => b.onclick = () => { $$('button', bar).forEach(x => x.classList.toggle('on', x === b)); panes.forEach((p, i) => p.classList.toggle('on', i === +b.dataset.i)); });
+}
+tabset('mnTabs', $('#mnTabs').parentNode);
+tabset('pTabs', $('#pTabs').parentNode);
+
+/* ── 1. установка: проверка обновления на макете окна ── */
+(function upd() {
+  const OLD = '2026.10.12.01', NEW = '2026.10.19.01';
+  const S = { mode: 'co', ver: OLD, menu: false, dlg: null, flash: false, later: false, sel: -1 };
+  const desk = $('#uDesk'), tree = $('#uTree'), note = $('#uNote'), cbNew = $('#uNew');
+  // спектр-заставка в рабочей области макета: детерминированный, без случайностей
+  const WS = (() => {
+    const n = 220, pts = []; let mx = 0; const v = [];
+    for (let i = 0; i < n; i++) { const e = i / n * 1600; let y = 900 * Math.exp(-e / 180) + 140 * Math.exp(-e / 700) + 1400 * Math.exp(-0.5 * ((e - 662) / 22) ** 2) + 260 * Math.exp(-0.5 * ((e - 32) / 6) ** 2) + 70 * Math.exp(-0.5 * ((e - 1461) / 38) ** 2) + (e < 477 && e > 200 ? 110 : 0); v.push(y); mx = Math.max(mx, y); }
+    v.forEach((y, i) => pts.push((i / (n - 1) * 400).toFixed(1) + ',' + (240 - Math.sqrt(y / mx) * 215).toFixed(1)));
+    return '<svg class="ws" viewBox="0 0 400 250" preserveAspectRatio="none"><defs><linearGradient id="wsg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5be38a" stop-opacity=".9"/><stop offset="1" stop-color="#5be38a" stop-opacity=".15"/></linearGradient></defs>' +
+      [50, 100, 150, 200].map(y => '<line x1="0" x2="400" y1="' + y + '" y2="' + y + '" stroke="rgba(255,255,255,.08)"/>').join('') +
+      '<polygon fill="url(#wsg)" points="0,240 ' + pts.join(' ') + ' 400,240"/></svg>';
+  })();
+  const TREE = {
+    co: [[0, 'd', '%AppData%\\BecqMoni\\', 'tr.appdata', 'keep'], [1, 'd', 'config\\', 'tr.cfg', 'keep'], [2, 'f', 'BecquerelMonitor.xml', 'tr.main', 'keep'], [2, 'd', 'device\\', 'tr.dev', 'keep'], [2, 'd', 'layout\\', 'tr.lay', 'keep'], [2, 'f', 'NuclideDefinition.xml', 'tr.nuc', 'keep'], [2, 'f', 'Geometry… · SampleTemplates.xml', 'tr.geo', 'keep'], [1, 'f', 'becqmoni.log', 'tr.log', 'keep'],
+      [0, 'd', '@tr.progname', 'tr.prog', 'prog'], [1, 'f', 'BecquerelMonitor.exe', 'tr.exe', 'prog'], [1, 'f', 'nucdb · matdb · schemedb .sqlite', 'tr.db', 'prog'], [1, 'f', 'SpecUtilsNet.dll', 'tr.spec', 'prog']],
+    pt: [[0, 'd', '@tr.portname', 'tr.port', ''], [1, 'f', 'BecquerelMonitor.exe', 'tr.exe', ''], [1, 'f', 'nucdb · matdb · schemedb .sqlite', 'tr.db', ''], [1, 'f', 'SpecUtilsNet.dll', 'tr.spec', ''], [1, 'd', 'config\\', 'tr.cfg', ''], [2, 'f', 'BecquerelMonitor.xml', 'tr.main', ''], [2, 'd', 'device\\', 'tr.dev', ''], [2, 'd', 'layout\\', 'tr.lay', ''], [2, 'f', 'NuclideDefinition.xml', 'tr.nuc', ''], [2, 'f', 'Geometry… · SampleTemplates.xml', 'tr.geo', ''], [1, 'f', 'becqmoni.log', 'tr.log', '']],
+  };
+  const cfgPath = () => S.mode === 'co' ? '%AppData%\\BecqMoni\\config' : 'D:\\BecqMoni\\config';
+  const logPath = () => S.mode === 'co' ? '%AppData%\\BecqMoni\\becqmoni.log' : 'D:\\BecqMoni\\becqmoni.log';
+  $('#uMode').innerHTML = '<button class="chip on" data-m="co" data-t="u.co"></button><button class="chip" data-m="pt" data-t="u.pt"></button>';
+  $$('#uMode .chip').forEach(b => b.onclick = () => { S.mode = b.dataset.m; S.dlg = null; S.menu = false; S.flash = false; S.later = false; S.sel = -1; $$('#uMode .chip').forEach(x => x.classList.toggle('on', x === b)); render(); });
+  let lastDlg = null;
+  function box(title, html, icon, btns) {
+    const an = S.dlg !== lastDlg; lastDlg = S.dlg;
+    return '<div class="mbox' + (an ? ' anim' : '') + '"><div class="t">' + title + '</div><div class="m"><span class="ic ' + (icon || '') + '">' + (icon === 'q' ? '?' : icon === 'x' ? '×' : 'i') + '</span><div>' + html + '</div></div>' +
+      (btns && btns.length ? '<div class="b">' + btns.map(([k, act]) => '<button data-act="' + act + '">' + t(k) + '</button>').join('') + '</div>' : '') + '</div>';
+  }
+  function dialog() {
+    const d = S.dlg; if (!d) { lastDlg = null; return ''; }
+    if (d === 'avail') return box(t('d.updShort'), t('d.updLong', NEW), 'q', [['d.ok', 'install'], ['d.cancel', 'close']]);
+    if (d === 'loading') return box(t('d.updShort'), t('d.loading', NEW) + '<div class="bar"><i id="uBar"></i></div>', 'i', []);
+    if (d === 'done') return box(t('d.updShort'), t('d.restart'), 'q', [['d.ok', 'restart'], ['d.cancel', 'later']]);
+    if (d === 'restarting') return box('BecqMoni', t('d.restarting') + '<div class="bar"><i id="uBar"></i></div>', 'i', []);
+    if (d === 'none') return box(t('d.msg'), t('d.none', S.ver), 'i', [['d.ok', 'close']]);
+    if (d === 'std') return box(t('d.msg'), t('d.std'), 'i', [['d.ok', 'close']]);
+    if (d === 'manual') return box(t('d.msg'), t('d.manual'), 'i', [['d.ok', 'close']]);
+    if (d === 'log') return box(t('d.msg'), t('d.log', logPath()), 'i', [['d.ok', 'close']]);
+    if (d === 'about') return box(t('d.aboutT'), t('d.about', S.ver), 'i', [['d.ok', 'close']]);
+    return '';
+  }
+  function render() {
+    const idle = !S.menu && !S.dlg;
+    desk.innerHTML = '<div class="tb"><i></i>BecqMoni Nuclear Edition ' + S.ver + '</div>' +
+      '<div class="mb"><span>' + t('m.file') + '</span><span>' + t('m.spec') + '</span><span>' + t('m.view') + '</span><span>' + t('m.tool') + '</span><span class="act' + (S.menu ? ' on' : '') + (idle ? ' pulse' : '') + '" data-act="menu" id="uHelp">' + t('m.help') + '</span></div>' + WS +
+      (S.menu ? '<div class="dd" id="uDD"><div data-act="manual">' + t('m.manual') + '</div><hr><div data-act="check">' + t('m.upd') + '</div><div data-act="log">' + t('m.log') + '</div><div data-act="about">' + t('m.about') + '</div></div>' : '') + dialog();
+    if (S.menu) { const h = $('#uHelp'), dd = $('#uDD'); dd.style.left = Math.min(h.offsetLeft, desk.clientWidth - dd.offsetWidth - 4) + 'px'; dd.style.top = (h.offsetTop + h.offsetHeight) + 'px'; }
+    tree.innerHTML = TREE[S.mode].map((r, i) => {
+      const name = r[2][0] === '@' ? t(r[2].slice(1)) : r[2];
+      const tag = S.flash && r[4] === 'prog' ? '<small>✓ ' + S.ver + '</small>' : S.flash && r[4] === 'keep' && r[0] === 0 ? '<small>✓ ' + t('u.kept') + '</small>' : '';
+      return '<div class="n' + (S.sel === i ? ' on' : '') + (S.flash && r[4] === 'prog' ? ' flash' : '') + '" data-i="' + i + '" style="padding-left:' + (6 + r[0] * 18) + 'px"><span class="ic ' + r[1] + '">' + (r[1] === 'd' ? '▸' : '·') + '</span><span class="' + r[1] + '">' + name + '</span>' + tag + '</div>';
+    }).join('');
+    $$('.n', tree).forEach(n => { n.onmouseenter = () => { S.sel = +n.dataset.i; note.textContent = t(TREE[S.mode][S.sel][3]); $$('.n', tree).forEach(x => x.classList.toggle('on', x === n)); }; n.onclick = n.onmouseenter; });
+    note.textContent = S.sel >= 0 ? t(TREE[S.mode][S.sel][3]) : t('tr.hover');
+    const pills = ['<span class="pill">' + t('u.ver', S.ver) + '</span>', '<span class="pill">' + t('u.where', cfgPath()) + '</span>'];
+    if (S.later) pills.push('<span class="pill">' + t('u.later') + '</span>');
+    if (S.mode === 'pt') pills.push('<span class="pill bad">' + t('u.ptnote') + '</span>');
+    $('#uRes').innerHTML = pills.join('');
+  }
+  function bar(ms, then) { const t0 = performance.now(); const step = () => { const u = Math.min(1, (performance.now() - t0) / ms), b = $('#uBar'); if (b) b.style.width = (u * 100).toFixed(0) + '%'; if (u < 1) setTimeout(step, 60); else then(); }; setTimeout(step, 30); }
+  desk.addEventListener('click', ev => {
+    const a = ev.target.closest('[data-act]'); const act = a ? a.dataset.act : '';
+    if (!act) { if (S.menu) { S.menu = false; render(); } return; }
+    if (S.dlg && !a.closest('.mbox')) return;   // окно сообщения модально: пока оно открыто, меню не отвечает
+    S.menu = act === 'menu' ? !S.menu : false;
+    if (act === 'check') S.dlg = S.mode === 'pt' ? 'std' : (cbNew.checked && S.ver !== NEW) ? 'avail' : 'none';
+    else if (act === 'manual' || act === 'log' || act === 'about') S.dlg = act;
+    else if (act === 'close') S.dlg = null;
+    else if (act === 'install') { S.dlg = 'loading'; render(); bar(1600, () => { S.dlg = 'done'; render(); }); return; }
+    else if (act === 'later') { S.dlg = null; S.later = true; }
+    else if (act === 'restart') { S.dlg = 'restarting'; S.later = false; render(); bar(900, () => { S.ver = NEW; S.dlg = null; S.flash = true; cbNew.checked = false; render(); }); return; }
+    render();
+  });
+  cbNew.addEventListener('change', () => { S.dlg = null; if (cbNew.checked && S.ver === NEW) { S.ver = OLD; S.flash = false; } render(); });
+  GUIDE.onRedraw(render);
+})();
+
+/* ── 3. игра «найдите на экране» по снимку main ── */
+(function quiz() {
+  const PAD = 0.008;
+  const Q = [
+    ['q1', 'e1', [[0.8119, 0.2488, 0.0450, 0.0232], [0.0295, 0.0319, 0.0311, 0.0194]]],
+    ['q2', 'e2', [[0.8596, 0.9768, 0.1380, 0.0223]]],
+    ['q3', 'e3', [[0.7621, 0.3262, 0.0932, 0.0194]]],
+    ['q4', 'e4', [[0.1720, 0.0591, 0.0780, 0.0203]]],
+    ['q5', 'e5', [[0.7572, 0.1326, 0.2190, 0.0250]]],
+    ['q6', 'e6', [[0.1736, 0.9458, 0.1115, 0.0242]]],
+    ['q7', 'e7', [[0.0815, 0.0319, 0.0509, 0.0194]]],
+    ['q8', 'e8', [[0.7497, 0.5518, 0.2465, 0.0194]]],
+    ['q9', 'e9', [[0.7503, 0.7920, 0.2454, 0.0150], [0.0043, 0.4960, 0.1600, 0.0150]]],
+  ];
+  const ZONES = [['z.ptabs', [0.7497, 0.5518, 0.2465, 0.0194]], ['z.ptabs', [0.7497, 0.9516, 0.2465, 0.0194]], ['z.status', [0, 0.9768, 1, 0.0232]], ['z.menu', [0, 0.0300, 1, 0.0232]],
+    ['z.tabs', [0.1715, 0.0591, 0.5750, 0.0203]], ['z.bar', [0.1720, 0.9264, 0.5740, 0.0480]], ['z.chart', [0.1720, 0.0794, 0.5740, 0.8470]], ['z.fsa', [0, 0.0591, 0.1715, 0.9177]],
+    ['z.ctrl', [0.7465, 0.0591, 0.2535, 0.4927]], ['z.peaks', [0.7465, 0.5712, 0.2535, 0.3804]], ['z.title', [0, 0, 1, 0.0300]]];
+  const inside = (R, x, y, p) => x >= R[0] - p && x <= R[0] + R[2] + p && y >= R[1] - p && y <= R[1] + R[3] + p;
+  const img = $('#qImg'), frame = $('#qFrame'), marks = $('#qMarks');
+  let i = 0, tries = 0, answered = false, msg = '', cls = '', res = Q.map(() => '');
+  img.onerror = () => { if (!img.dataset.tried) { img.dataset.tried = '1'; img.src = 'img/' + (GUIDE.lang === 'ru' ? 'en' : 'ru') + '/main.png'; } };
+  function setImg() { const s = 'img/' + GUIDE.lang + '/main.png'; if (!img.src.endsWith(s)) { delete img.dataset.tried; img.src = s; } }
+  const pct = v => (v * 100).toFixed(3) + '%';
+  function rect(R, c) { const d = document.createElement('div'); d.className = 'qmark ' + c; d.style.left = pct(R[0]); d.style.top = pct(R[1]); d.style.width = pct(R[2]); d.style.height = pct(R[3]); marks.appendChild(d); }
+  function show(R) { const sc = $('.qscroll'); if (sc.scrollWidth > sc.clientWidth + 2) sc.scrollLeft = (R[0] + R[2] / 2) * frame.offsetWidth - sc.clientWidth / 2; }
+  function dot(x, y, ok) { const d = document.createElement('div'); d.className = 'qdot ' + (ok ? 'ok' : 'no'); d.style.left = pct(x); d.style.top = pct(y); marks.appendChild(d); }
+  function ui() {
+    const fin = i >= Q.length, first = res.filter(r => r === 'g').length;
+    $('#qText').innerHTML = fin ? t('q.done', first, Q.length, t(first >= 7 ? 'q.great' : 'q.good')) : '<b>' + (i + 1) + '</b>' + t(Q[i][0]);
+    $('#qDots').innerHTML = Q.map((_, k) => '<i class="' + (res[k] || (k === i ? 'cur' : '')) + '"></i>').join('');
+    $('#qRes').innerHTML = (msg ? '<span class="pill ' + cls + '">' + msg + '</span>' : (fin ? '' : '<span class="pill">' + t('q.start') + '</span>')) + '<span class="pill">' + t('q.score', first, Q.length) + '</span>';
+    $('#qNext').disabled = fin; $('#qHint').disabled = fin || answered;
+  }
+  frame.addEventListener('click', ev => {
+    if (i >= Q.length || answered) return;
+    const r = img.getBoundingClientRect(); if (!r.width) return;
+    const x = (ev.clientX - r.left) / r.width, y = (ev.clientY - r.top) / r.height, q = Q[i];
+    const hit = q[2].some(R => inside(R, x, y, PAD));
+    $$('.qdot', marks).forEach(d => d.remove()); dot(x, y, hit);
+    if (hit) { answered = true; res[i] = tries === 0 ? 'g' : 'y'; q[2].forEach(R => rect(R, '')); msg = t('q.ok', t(q[1])); cls = 'good'; }
+    else {
+      tries++; const z = ZONES.find(Z => inside(Z[1], x, y, 0));
+      if (tries >= 2) { answered = true; res[i] = 'r'; q[2].forEach(R => rect(R, 'rv')); show(q[2][0]); msg = t('q.miss2', t(q[1])); cls = ''; }
+      else { msg = t('q.miss', z ? t(z[0]) : t('q.nothing')); cls = 'bad'; }
+    }
+    ui();
+  });
+  $('#qHint').onclick = () => { if (answered || i >= Q.length) return; tries = Math.max(tries, 1); $$('.qmark.hint', marks).forEach(d => d.remove()); Q[i][2].forEach(R => rect(R, 'hint')); show(Q[i][2][0]); ui(); };
+  $('#qNext').onclick = () => { if (i < Q.length) { if (!res[i]) res[i] = 'r'; i++; } tries = 0; answered = false; msg = ''; marks.innerHTML = ''; ui(); };
+  $('#qAgain').onclick = () => { i = 0; tries = 0; answered = false; msg = ''; res = Q.map(() => ''); marks.innerHTML = ''; ui(); };
+  GUIDE.onRedraw(() => { setImg(); ui(); });
+})();
+
+GUIDE.init();
+</script>
+</body>
+</html>

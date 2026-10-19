@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Набор спектра — BecqMoni гайд</title>
+<link rel="stylesheet" href="assets/guide.css">
+<style>
+.ui{white-space:normal}
+figure.shot.side{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+figure.shot.side .shot-legend{margin-top:0}
+figure.shot.side .shot-frame{width:100%;max-width:480px;justify-self:center}
+/* симулятор: график слева, макет панели справа */
+.sim{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:14px;align-items:start;margin-top:4px}
+.wp{position:relative;background:#f0f0f0;color:#111;border:1px solid #3a4a78;border-radius:8px;overflow:hidden;font:12.5px/1.3 "Segoe UI",system-ui,sans-serif}
+.wp .tt{background:#2b3c6b;color:#fff;padding:5px 8px;font-size:12.5px}
+.wp .r{display:grid;grid-template-columns:84px minmax(0,1fr) auto;gap:6px;align-items:center;padding:3px 8px}
+.wp .r.cb{grid-template-columns:84px 1fr}
+.wp label.c{display:flex;gap:5px;align-items:center;cursor:pointer}
+.wp input[type=text],.wp select{font:inherit;color:#111;background:#fff;border:1px solid #adadad;border-radius:2px;padding:2px 4px;min-width:0;width:100%}
+.wp input[readonly]{background:#f7f7f7}
+.wp input[type=checkbox]{accent-color:#0078d7}
+.wp button{font:inherit;color:#111;background:#e1e1e1;border:1px solid #adadad;border-radius:2px;padding:3px 8px;cursor:pointer;white-space:nowrap}
+.wp button:hover:not(:disabled){background:#e5f1fb;border-color:#0078d7}
+.wp button:disabled{color:#9a9a9a;cursor:default}
+.wp .box{margin:6px 8px 8px;border:1px solid #d4d4d4;padding:7px}
+.wp .pr{display:grid;grid-template-columns:62px minmax(0,1fr) 74px;gap:6px;align-items:center}
+.pbar{position:relative;height:21px;background:#e6e6e6;border:1px solid #bcbcbc;cursor:pointer}
+.pbar i{position:absolute;left:0;top:0;bottom:0;background:#06b025}
+.pbar span{position:absolute;inset:0;display:grid;place-items:center;font-size:12px;white-space:nowrap}
+.wp .btns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:7px}
+.wp .btns b{display:inline-block;width:9px;height:9px;border-radius:50%;background:#e00;margin-right:5px}
+.wp .grid{display:grid;grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr);gap:5px 6px;align-items:center;margin-top:9px}
+.wp output{display:block;background:#f7f7f7;border:1px solid #d4d4d4;text-align:right;padding:1px 4px;font-variant-numeric:tabular-nums;min-height:18px}
+.wp .dlg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:88%;background:#fff;border:1px solid #777;box-shadow:0 10px 30px rgba(0,0,0,.5);z-index:3}
+.wp .dlg .t{padding:6px 9px;font-size:12px;border-bottom:1px solid #eee}
+.wp .dlg .m{padding:12px 10px;display:flex;gap:9px;align-items:center}
+.wp .dlg .m i{flex:none;width:26px;height:26px;border-radius:50%;background:#f0b400;color:#111;font:800 15px system-ui;display:grid;place-items:center;font-style:normal}
+.wp .dlg .b{background:#f0f0f0;padding:7px 9px;display:flex;justify-content:flex-end;gap:7px}
+.speed{display:flex;gap:6px;flex-wrap:wrap}
+figure.shot[data-shot=panel-sample] .shot-frame{max-width:440px;margin:0 auto}
+@media (max-width:900px){.sim{grid-template-columns:1fr}figure.shot.side{grid-template-columns:1fr}}
+</style>
+</head>
+<body data-chapter="acquire">
+
+<section class="hero" id="top"><div class="wrap">
+  <div class="kicker" data-t="h.k"></div>
+  <h1 data-t="h.h"></h1>
+  <p class="lead" data-t="h.lead"></p>
+</div></section>
+
+<section class="sec" id="sim" data-nav="n.sim"><div class="wrap">
+  <div class="kicker" data-t="s.k"></div>
+  <h2 data-t="s.h"></h2>
+  <p class="lead" data-t="s.lead"></p>
+  <div class="card full">
+    <h3 data-t="s.card"></h3>
+    <p class="note" style="margin-top:0" data-t="s.hint"></p>
+    <div class="sim">
+      <canvas id="cvSim" class="cv tall"></canvas>
+      <div class="wp" id="wp">
+        <div class="tt" data-t="p.title"></div>
+        <div class="r"><span data-t="p.save"></span><input type="text" id="pFile" readonly><button id="pSel" data-t="p.sel"></button></div>
+        <div class="r cb"><span></span><label class="c"><input type="checkbox" id="pAuto"><span data-t="p.auto"></span></label></div>
+        <div class="r"><span data-t="p.dev"></span><select id="pDev"></select><span></span></div>
+        <div class="box">
+          <div class="pr"><span data-t="p.rt"></span><div class="pbar" id="pBar" data-tt="p.bartip"><i></i><span></span></div><input type="text" id="pPreset" value="600" data-tt="p.presettip"></div>
+          <div class="btns"><button id="pStart"><b></b><span data-t="p.start"></span></button><button id="pStop" data-t="p.stop"></button><button id="pClear" data-t="p.clear"></button></div>
+          <div class="grid">
+            <span data-t="p.tot"></span><output id="oTot"></output><span data-t="p.val"></span><output id="oVal"></output>
+            <span data-t="p.cps"></span><output id="oCps"></output><span data-t="p.inv"></span><output id="oInv"></output>
+            <span data-t="p.dt"></span><output id="oDt"></output><span data-t="p.lt"></span><output id="oLt"></output>
+          </div>
+        </div>
+        <div id="pDlg"></div>
+      </div>
+    </div>
+    <div class="row"><span class="lbl" data-t="s.src"></span><input type="range" id="sSrc" min="0" max="5.3" step="0.01" value="2.5"><span class="val" id="sSrcV"></span></div>
+    <div class="row"><span class="lbl" data-t="s.speed"></span><div class="chips speed" id="sSpeed"></div></div>
+    <div class="pills" id="sRes"></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="s.f1"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="s.f2"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="s.f3"></div>
+  </div>
+</div></section>
+
+<section class="sec" id="panel" data-nav="n.panel"><div class="wrap">
+  <div class="kicker" data-t="c.k"></div>
+  <h2 data-t="c.h"></h2>
+  <p class="lead" data-t="c.lead"></p>
+  <div class="card full">
+    <figure class="shot side" data-shot="panel-control" data-hot='[[0.0340,0.0524,0.8657,0.0826],[0.0340,0.1404,0.9254,0.0449],[0.0340,0.1892,0.8184,0.0449],[0.0340,0.2379,0.9254,0.0449],[0.0535,0.3184,0.8741,0.0375],[0.0535,0.3652,0.8741,0.0449],[0.0535,0.4232,0.7718,0.0843],[0.0535,0.5149,0.7718,0.0375]]'>
+      <ol class="shot-legend"><li data-t="c.l1"></li><li data-t="c.l2"></li><li data-t="c.l3"></li><li data-t="c.l4"></li><li data-t="c.l5"></li><li data-t="c.l6"></li><li data-t="c.l7"></li><li data-t="c.l8"></li></ol>
+      <figcaption data-t="c.cap"></figcaption>
+    </figure>
+  </div>
+  <h3 style="margin-top:26px" data-t="c.steps"></h3>
+  <ol class="howto"><li data-t="c.s1"></li><li data-t="c.s2"></li><li data-t="c.s3"></li><li data-t="c.s4"></li><li data-t="c.s5"></li><li data-t="c.s6"></li></ol>
+  <div class="callout warn" data-t="c.warn"></div>
+  <div class="callout info" data-t="c.info"></div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--photo)" data-t="c.f1"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="c.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="c.f3"></div>
+  </div>
+</div></section>
+
+<section class="sec" id="bg" data-nav="n.bg"><div class="wrap">
+  <div class="kicker" data-t="b.k"></div>
+  <h2 data-t="b.h"></h2>
+  <p class="lead" data-t="b.lead"></p>
+  <div class="card full">
+    <h3 data-t="b.card"></h3>
+    <p class="note" style="margin-top:0" data-t="b.hint"></p>
+    <canvas id="cvBg" class="cv"></canvas>
+    <div class="row"><span class="lbl" data-t="b.view"></span><div class="chips" id="bView"></div></div>
+    <div class="row"><span class="lbl" data-t="b.tb"></span><input type="range" id="bT" min="2" max="5" step="0.01" value="2.7"><span class="val" id="bTv"></span><button class="btn" id="bAgain" data-t="b.again"></button></div>
+    <div class="pills" id="bRes"></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--esc)" data-t="b.f1"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="b.f2"></div>
+    <div class="fact" style="--c:var(--pair)" data-t="b.f3"></div>
+  </div>
+  <h3 style="margin-top:26px" data-t="b.steps"></h3>
+  <ol class="howto"><li data-t="b.s1"></li><li data-t="b.s2"></li><li data-t="b.s3"></li><li data-t="b.s4"></li><li data-t="b.s5"></li></ol>
+</div></section>
+
+<section class="sec" id="sample" data-nav="n.sample"><div class="wrap">
+  <div class="kicker" data-t="i.k"></div>
+  <h2 data-t="i.h"></h2>
+  <p class="lead" data-t="i.lead"></p>
+  <div class="grid2 wr">
+    <div class="card">
+      <figure class="shot" data-shot="panel-sample" data-hot='[[0.0320,0.0619,0.9254,0.0843],[0.0320,0.1536,0.6119,0.0375],[0.0320,0.2023,0.6119,0.0375],[0.0320,0.2565,0.4400,0.0375],[0.0320,0.3033,0.4400,0.0375],[0.0320,0.3501,0.9254,0.5430]]'>
+        <ol class="shot-legend"><li data-t="i.l1"></li><li data-t="i.l2"></li><li data-t="i.l3"></li><li data-t="i.l4"></li><li data-t="i.l5"></li><li data-t="i.l6"></li></ol>
+      </figure>
+    </div>
+    <div class="card">
+      <h3 data-t="k.h"></h3>
+      <p class="note" style="margin-top:0" data-t="k.hint"></p>
+      <div class="sliders" style="grid-template-columns:1fr">
+        <div class="sl"><div class="top"><span data-t="k.a"></span><b class="val" id="kAv"></b></div><input type="range" id="kA" min="1" max="500" value="40"></div>
+        <div class="sl"><div class="top"><span data-t="k.w"></span><b class="val" id="kWv"></b></div><input type="range" id="kW" min="0" max="2000" step="10" value="500"></div>
+        <div class="sl"><div class="top"><span data-t="k.v"></span><b class="val" id="kVv"></b></div><input type="range" id="kV" min="0" max="2000" step="10" value="450"></div>
+        <div class="sl"><div class="top"><span data-t="k.d"></span><b class="val" id="kDv"></b></div><input type="range" id="kD" min="0" max="60" value="10"></div>
+      </div>
+      <div class="row"><span class="lbl" data-t="k.nuc"></span><div class="chips" id="kNuc"></div></div>
+      <div class="row"><span class="lbl" data-t="k.u"></span><div class="chips" id="kUnit"></div></div>
+      <div class="tiles" id="kTiles"></div>
+      <div class="pills" id="kRes"></div>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="i.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="i.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="i.f3"></div>
+  </div>
+</div></section>
+
+<section class="sec" id="docs" data-nav="n.docs"><div class="wrap">
+  <div class="kicker" data-t="l.k"></div>
+  <h2 data-t="l.h"></h2>
+  <p class="lead" data-t="l.lead"></p>
+  <div class="card full">
+    <figure class="shot side" data-shot="panel-speclist" data-hot='[[0.0149,0.0585,0.2857,0.0562],[0.3069,0.0585,0.1002,0.0562],[0.6459,0.0585,0.3199,0.0562],[0.0085,0.1250,0.1700,0.0900],[0.1800,0.1250,0.3850,0.0900],[0.0041,0.9390,0.9807,0.0489]]'>
+      <ol class="shot-legend"><li data-t="l.l1"></li><li data-t="l.l2"></li><li data-t="l.l3"></li><li data-t="l.l4"></li><li data-t="l.l5"></li><li data-t="l.l6"></li></ol>
+      <figcaption data-t="l.cap"></figcaption>
+    </figure>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--blue)" data-t="l.f1"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="l.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="l.f3"></div>
+  </div>
+  <div class="callout info" data-t="l.dose"></div>
+  <div class="callout tip" data-t="l.auto"></div>
+  <details class="hood"><summary data-t="hood"></summary><ul data-t="hoodtxt"></ul></details>
+  <div id="pager"></div>
+</div></section>
+
+<footer><div class="wrap" data-t="foot"></div></footer>
+
+<script src="assets/guide.js"></script>
+<script>
+'use strict';
+const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, t, io, visible, poisson } = GUIDE;
+const UI = s => '<span class="ui">' + s + '</span>', UM = s => '<span class="ui m">' + s + '</span>';
+GUIDE.texts({ru:{
+'n.sim':'Симулятор','n.panel':'Панель набора','n.bg':'Фон','n.sample':'Образец','n.docs':'Документы',
+'h.k':'Глава 4 · Набор спектра',
+'h.h':'Старт, стоп и <em>честное время</em>',
+'h.lead':'Набор спектра — как фото с длинной выдержкой: чем дольше прибор смотрит, тем чётче проступают пики. Здесь — как запустить и остановить набор, не потерять набранное и что значат цифры на панели.',
+'s.k':'Попробуйте сами','s.h':'Каждый импульс — капля в ведро своего канала',
+'s.lead':'Спектр — это ряд вёдер-каналов, по одному на каждую энергию. Импульс падает в ведро своей энергии; сначала видна только «морось», потом из неё проступают пики. Запустите набор и посмотрите, как растёт спектр и как расходятся два времени.',
+'s.card':'Симулятор набора: панель — как в программе',
+'s.hint':'Кнопки работают как настоящие: «Старт» — набор, «Стоп» — пауза, «Сброс» — с вопросом. Поле справа от «Тек. время» — лимит в секундах (Enter). Щелчок по полосе меняет вид времени. Прибавьте источник — и следите за «Мерт. Время %».',
+'s.src':'источник Cs-137 у прибора','s.speed':'ускорение времени','s.cps':'имп/с','s.none':'нет источника','s.audio':'Звуковой вход','s.us':'мкс','s.empty':'спектр пуст — нажмите «Старт» на панели',
+'p.title':'Управление измерением','p.save':'Сохранить в','p.sel':'Выбр.','p.auto':'Автоматическое сохранение в конце измерения','p.dev':'Устройство',
+'p.rt':'Тек. время','p.start':'Старт','p.stop':'Стоп','p.clear':'Сброс','p.tot':'Всего импульсов','p.val':'Корректн. имп.','p.cps':'Скор. счёта имп/с','p.inv':'Некорр. имп.','p.dt':'Мерт. Время %','p.lt':'Время без МВ',
+'p.bartip':'Нажмите, чтобы изменить формат отображаемого времени','p.presettip':'Лимит измерения спектра','p.days':'д',
+'p.q':'Подтверждение','p.qtext':'Очистить спектр?','p.yes':'Да','p.no':'Нет','p.saveas':'Сохранить как',
+'r.done':'Набор остановлен: реальное время дошло до лимита {0} с','r.saved':'файл записан: <b>{0}</b>','r.sound':'♪ звук окончания (Настройки → Звук)',
+'r.nostart':'«Старт» ничего не сделал: спектр уже набран до лимита. Поднимите лимит или нажмите «Сброс».','r.cleared':'спектр очищен — и накопитель в приборе тоже',
+'r.named':'без имени файла галка не встанет — программа сначала откроет «Сохранить как»; здесь имя придумано за вас','r.bad':'Некорректное предустановленное время.',
+'r.peak':'проступил пик {0}','r.dt0':'Мерт. Время до 20 % — норма','r.dt1':'20–50 % — цифры тёмно-оранжевые: FWHM и спектр деградируют','r.dt2':'больше 50 % — тёмно-красные: спектр разрушен',
+'ax.e':'энергия, кэВ','ax.c':'отсчёты',
+'s.f1':'<b>Лимит — по реальному времени.</b> Набор идёт, пока часы не отсчитают лимит, даже если прибор часть времени был «слеп».',
+'s.f2':'<b>Живое время меньше реального.</b> Разница — мёртвое время; скорость счёта для активности считается по живому.',
+'s.f3':'<b>«Стоп» — это пауза.</b> «Старт» после него дописывает в тот же спектр; начать с нуля — «Сброс».',
+'c.k':'В программе','c.h':'Панель «Управление измерением»',
+'c.lead':'Это пульт набора: что пишем, чем, сколько и куда сохранить. Открывается через '+UM('Вид → Управление измерением')+'. Наведите на номер — подсветится место.',
+'c.cap':'Панель после четырёх суток набора: 250 миллионов импульсов, мёртвое время меньше 1 %',
+'c.l1':'<b>Сохранить в</b> — файл спектра и галка «Автоматическое сохранение в конце измерения»',
+'c.l2':'<b>Устройство</b> — конфигурация прибора; <b>Редак.</b> открывает её, ⟳ переносит её изменения в спектр',
+'c.l3':'<b>Эффективн.</b> — кривая эффективности: по ней считаются активность и мощность дозы; ✕ сбрасывает',
+'c.l4':'<b>Фон</b> — спектр фона для вычитания: <b>Выбр.</b> и ✕',
+'c.l5':'<b>Тек. время</b> — ход набора; поле справа — лимит в секундах. Щелчок по полосе: секунды ↔ дни и часы',
+'c.l6':'<b>Подкл., Старт, Стоп, Сброс</b> — «Подкл.» видна только у Atom Spectra',
+'c.l7':'<b>Счётчики</b> — всего, корректных и некорректных импульсов, скорость счёта',
+'c.l8':'<b>Мерт. Время % и Время без МВ</b> — доля «слепого» времени и живое время, с',
+'c.steps':'Пошагово: часовой набор',
+'c.s1':UM('Файл → Новый')+' (Ctrl+N) — новый документ возьмёт верхнюю конфигурацию прибора (глава 3).',
+'c.s2':UM('Вид → Управление измерением')+' → проверьте '+UI('Устройство')+'; в '+UI('Эффективн.')+' выберите кривую — для активности и дозы.',
+'c.s3':'Впишите лимит в поле справа от '+UI('Тек. время')+' — <b>3600</b> — и нажмите Enter.',
+'c.s4':'Нужен файл в конце — '+UI('Сохранить в')+' → '+UI('Выбр.')+' и галка '+UI('Автоматическое сохранение в конце измерения')+'.',
+'c.s5':UI('Старт')+' (Ctrl+M). Следите за '+UI('Мерт. Время %')+': до 20 — норма.',
+'c.s6':UI('Стоп')+' (Ctrl+P) — пауза, «Старт» продолжит тот же спектр; '+UI('Сброс')+' — начать заново.',
+'c.warn':'<b>«Сброс» стирает и прибор.</b> У Atom Spectra, RadiaCode и Obsidian вместе со спектром обнуляется накопитель в самом приборе — набранное там тоже пропадёт. Программа спросит «Очистить спектр?»: подумайте, прежде чем ответить «Да».',
+'c.info':'<b>Кнопка ⟳ у «Устройства»</b> применяет изменения конфигурации прибора к текущему спектру: калибровки спектра заменятся приборными, а при другом числе каналов спектр будет стёрт — программа предупредит.',
+'c.f1':'<b>Старт молчит, если лимит набран.</b> Кнопка ничего не делает, когда реальное время уже не меньше лимита: поднимите лимит или нажмите «Сброс».',
+'c.f2':'<b>Atom Spectra можно подхватить на ходу.</b> «Подкл.» присоединяется к набору, уже идущему в Atom Spectra Pro, без сброса.',
+'c.f3':'<b>Связь потерялась — набор живёт.</b> Atom Spectra продолжает считать время и ждёт, пока порт вернётся.',
+'b.k':'Фон','b.h':'Вычесть фон — как убрать шум кафе с записи голоса',
+'b.lead':'Фон есть всегда: калий в бетоне, радон в воздухе, уран и торий в земле. Запишите «тишину» тем же прибором отдельно и вычтите — останется голос образца. Чем дольше записана тишина, тем меньше шума добавит вычитание.',
+'b.card':'Попробуйте сами: сколько набирать фон',
+'b.hint':'Образец набран за 3600 с: слабый Cs-137 поверх фона. Фон вычитается с масштабом по живым временам. Двигайте время набора фона и смотрите, как «дрожит» спектр после вычитания.',
+'b.view':'Просмотр:','b.tb':'время набора фона','b.again':'Набрать заново',
+'b.v1':'Скрыть фоновый спектр','b.v2':'Показать фоновый спектр','b.v3':'Показать спектр за вычетом фона',
+'b.ratio':'масштаб фона: <b>× {0}</b>','b.net':'Cs-137 после вычитания: <b>{0} ± {1}</b> отсчётов','b.k40':'K-40 после вычитания: <b>{0}</b> (должно быть около 0)','b.zero':'обнулено отрицательных каналов: <b>{0}</b>','b.s':'с','b.h1':'ч',
+'b.gross':'образец','b.bgl':'фон × масштаб','b.netl':'за вычетом фона',
+'b.f1':'<b>Тот же прибор, та же геометрия.</b> Фон чужим прибором или без защиты, в которой стоял образец, вычтет не то.',
+'b.f2':'<b>Фон — не короче образца.</b> Короткий фон, умноженный на большой масштаб, добавляет в разность свой шум.',
+'b.f3':'<b>Вычитание видят и пики.</b> Тот же вычтенный спектр идёт в поиск пиков, расширенный CSV и «Жёсткий вычет в файл».',
+'b.steps':'Пошагово: фон',
+'b.s1':'Наберите фон: тот же прибор, то же место, без образца — чем дольше, тем лучше. Сохраните как обычный спектр.',
+'b.s2':'В документе образца на панели набора: '+UI('Фон')+' → '+UI('Выбр.')+' → файл фона.',
+'b.s3':'Число каналов должно совпадать — иначе программа ответит «Несовместимые параметры каналов.»',
+'b.s4':'На полосе под графиком '+UI('Просмотр:')+' → '+UI('Показать спектр за вычетом фона')+'.',
+'b.s5':'Чтобы фон получал каждый новый спектр прибора — '+UM('Инструменты → Конфигурация устройства...')+' → '+UI('Ссылки')+'.',
+'i.k':'Образец','i.h':'Карточка образца: что, откуда, сколько весит',
+'i.lead':'Прибор меряет беккерели во всей пробе. Чтобы сказать «сколько на килограмм», программе нужен вес, «на литр» — объём, а чтобы пересчитать на день отбора — дата. Это паспорт пробы: '+UM('Вид → Информация об образце')+'.',
+'i.l1':'<b>Имя и Место отбора</b> — подписи пробы, хранятся в файле','i.l2':'<b>Дата отбора</b> — к ней приводится активность, если включена поправка на распад',
+'i.l3':'<b>Дата измерения</b> — начало набора; только для чтения','i.l4':'<b>Вес</b> — для Бк/кг; единицы (г или кг) — в Настройках, вкладка «Системные»',
+'i.l5':'<b>Объём</b> — для Бк/л; мл или л','i.l6':'<b>Заметки</b> — свободный текст',
+'k.h':'Калькулятор: зачем вес и дата','k.hint':'Активность пробы в день измерения пересчитывается в Бк/кг, Бк/л и на день отбора. Ноль в весе или объёме — «не указано».',
+'k.a':'активность в пробе, Бк','k.w':'вес','k.v':'объём','k.d':'от отбора до измерения','k.nuc':'нуклид','k.u':'единицы (Настройки)','k.ug':'г, мл','k.ukg':'кг, л','k.days':'сут',
+'k.bqkg':'Бк/кг','k.bql':'Бк/л','k.samp':'на день отбора, Бк','k.none':'не указано','k.f':'поправка на распад: <b>× {0}</b>',
+'k.short':'для короткоживущего нуклида дата отбора меняет ответ в разы','k.long':'для долгоживущего нуклида дата почти ничего не меняет',
+'i.f1':'<b>Ноль = «не указано».</b> Пока вес ноль, Бк/кг программа не печатает.',
+'i.f2':'<b>Единицы — в Настройках.</b> Граммы или килограммы, миллилитры или литры: '+UM('Инструменты → Настройки')+' → '+UI('Системные')+'.',
+'i.f3':'<b>Поправка на распад — по выбору.</b> В «Результате измерений» переключатель «Корр. пер. полураспада» приводит активность к дате отбора.',
+'l.k':'Документы','l.h':'Несколько документов и спектров',
+'l.lead':'Документ — папка, спектры — листы в ней. Каждый файл — вкладка над графиком, в документе до 16 спектров: образец, фон, повторы. Разные приборы пишут одновременно, каждый в свой документ.',
+'l.cap':'Панель «Список спектров» — спектры текущего документа',
+'l.l1':'<b>Новый / Удалить</b> — спектр в этом документе','l.l2':'<b>Стрелки</b> — порядок спектров',
+'l.l3':'<b>Импорт... / Экспорт...</b> — спектры из файлов и в файл','l.l4':'<b>Легенда</b> — галка рисует спектр поверх активного; цвета — в Настройках, вкладка «Цвет»',
+'l.l5':'<b>Имя</b> — правится прямо в ячейке','l.l6':'<b>Вкладки панелей</b> — рядом «Обнаружение пиков» и «Результат измерений»',
+'l.f1':'<b>До 16 спектров в документе.</b> Импорт сверх этого программа не примет и скажет, сколько не поместилось.',
+'l.f2':'<b>Один прибор — один спектр.</b> Пока прибор пишет в один спектр, в другой он писать не станет.',
+'l.f3':'<b>Спектры сравнивают наложением.</b> Галка «Легенда» — и два набора видны на одном графике.',
+'l.dose':'<b>Мощность дозы</b> — справа в строке состояния. Её считает программа по набранному спектру и кривой из '+UI('Эффективн.')+'; без матрицы отклика число идёт со знаком «≈», без кривой строка пуста. Скорость счёта во времени — '+UM('Вид → Скорость счёта')+'.',
+'l.auto':'<b>Автосохранение.</b> '+UM('Инструменты → Настройки')+' → '+UI('Системные')+': «Сохранять документы каждые N минут» (по умолчанию 15) и «Включить автосохранение по умолчанию…». Для одного документа — '+UM('Спектр → Автосохранение спектра')+'; нужно имя файла.',
+'hoodtxt':'<li>«Старт» не начинает набор, если реальное время уже не меньше лимита, — молча: поднимите лимит или нажмите «Сброс». Отрицательный лимит даёт «Некорректное предустановленное время.»</li><li><code>Мерт. Время % = 100·(T − LT)/T</code>; цифры до 20 % обычные, 20–50 % тёмно-оранжевые, больше 50 % тёмно-красные. Живое время <code>LT = T·(1 − n·τ)</code>, n — все импульсы за реальное время.</li><li>«Скор. счёта имп/с» на панели — корректные импульсы, делённые на реальное время; активность и FSA делят на живое.</li><li>Фон вычитается с масштабом по живым временам (<code>фон × LT образца / LT фона</code>), отрицательные каналы обнуляются, при разной калибровке фон переводится по энергии.</li><li>Автосохранение раз в N минут пишет только изменённые документы, у которых оно включено; «Стоп» тоже сохраняет такой документ. «Сброс» у Atom Spectra, RadiaCode и Obsidian очищает и накопитель прибора — если этот прибор не пишет в этот миг другой спектр.</li>',
+},en:{
+'n.sim':'Simulator','n.panel':'Acquisition panel','n.bg':'Background','n.sample':'Sample','n.docs':'Documents',
+'h.k':'Chapter 4 · Acquiring a spectrum',
+'h.h':'Start, stop and <em>honest time</em>',
+'h.lead':'Acquiring a spectrum is like a long-exposure photo: the longer the detector looks, the sharper the peaks come out. Here: how to start and stop, how not to lose what you collected, and what the panel numbers mean.',
+'s.k':'Try it','s.h':'Each pulse is a drop in its channel’s bucket',
+'s.lead':'A spectrum is a row of channel buckets, one per energy. A pulse drops into the bucket of its energy; at first you see only “drizzle”, then peaks emerge from it. Start acquisition and watch the spectrum grow and the two times drift apart.',
+'s.card':'Acquisition simulator: the panel works like the real one',
+'s.hint':'The buttons behave like the real ones: “Start” acquires, “Stop” pauses, “Clear” asks first. The field right of “Real Time” is the limit in seconds (Enter). Click the bar to change the time format. Add source strength — and watch “Dead Time %”.',
+'s.src':'Cs-137 source at the detector','s.speed':'time acceleration','s.cps':'cps','s.none':'no source','s.audio':'Audio Input Device','s.us':'µs','s.empty':'the spectrum is empty — press “Start” on the panel',
+'p.title':'Measurement Control','p.save':'Save to','p.sel':'Select.','p.auto':'Save Automatically When Finished','p.dev':'Device Config.',
+'p.rt':'Real Time','p.start':'Start','p.stop':'Stop','p.clear':'Clear','p.tot':'Total Counts','p.val':'Valid Counts','p.cps':'Count Rate (cps)','p.inv':'Invalid Counts','p.dt':'Dead Time %','p.lt':'Live Time',
+'p.bartip':'Click to change display time format','p.presettip':'Preset Measurement Time','p.days':'d',
+'p.q':'Confirmation','p.qtext':'Clear spectrum?','p.yes':'Yes','p.no':'No','p.saveas':'Save As',
+'r.done':'Acquisition stopped: real time reached the {0} s limit','r.saved':'file written: <b>{0}</b>','r.sound':'♪ end-of-measurement sound (Preferences → Sound)',
+'r.nostart':'“Start” did nothing: the spectrum already reached its limit. Raise the limit or press “Clear”.','r.cleared':'spectrum cleared — and the device’s own buffer too',
+'r.named':'without a file name the check mark will not stay — the program first opens “Save As”; here a name is made up for you','r.bad':'Invalid preset time.',
+'r.peak':'a {0} peak emerged','r.dt0':'Dead Time up to 20 % — normal','r.dt1':'20–50 % — dark orange digits: FWHM and spectrum degrade','r.dt2':'above 50 % — dark red: the spectrum is destroyed',
+'ax.e':'energy, keV','ax.c':'counts',
+'s.f1':'<b>The limit runs on real time.</b> Acquisition goes on until the clock reaches the limit, even if the detector was “blind” part of the time.',
+'s.f2':'<b>Live time is shorter than real time.</b> The difference is dead time; the count rate behind activity uses live time.',
+'s.f3':'<b>“Stop” is a pause.</b> “Start” after it adds to the same spectrum; to start from zero — “Clear”.',
+'c.k':'In the program','c.h':'The “Measurement Control” panel',
+'c.lead':'This is the acquisition console: what to record, with what, for how long and where to save it. Open it via '+UM('View → Measurement Control')+'. Hover a number to light up the spot.',
+'c.cap':'The panel after four days of acquisition: 250 million pulses, dead time under 1 %',
+'c.l1':'<b>Save to</b> — the spectrum file and the “Save Automatically When Finished” check box',
+'c.l2':'<b>Device Config.</b> — the device configuration; <b>Edit...</b> opens it, ⟳ applies its changes to the spectrum',
+'c.l3':'<b>Efficiency</b> — the efficiency curve behind activity and dose rate; ✕ resets it',
+'c.l4':'<b>Background</b> — the background spectrum to subtract: <b>Select.</b> and ✕',
+'c.l5':'<b>Real Time</b> — acquisition progress; the field on the right is the limit in seconds. Click the bar: seconds ↔ days and hours',
+'c.l6':'<b>Attach, Start, Stop, Clear</b> — “Attach” is shown for Atom Spectra only',
+'c.l7':'<b>Counters</b> — total, valid and invalid pulses, count rate',
+'c.l8':'<b>Dead Time % and Live Time</b> — the “blind” share of time and the live time, s',
+'c.steps':'Step by step: a one-hour acquisition',
+'c.s1':UM('File → New')+' (Ctrl+N) — the new document takes the top device configuration (chapter 3).',
+'c.s2':UM('View → Measurement Control')+' → check '+UI('Device Config.')+'; pick a curve in '+UI('Efficiency')+' — for activity and dose.',
+'c.s3':'Type the limit into the field right of '+UI('Real Time')+' — <b>3600</b> — and press Enter.',
+'c.s4':'Want a file at the end — '+UI('Save to')+' → '+UI('Select.')+' and tick '+UI('Save Automatically When Finished')+'.',
+'c.s5':UI('Start')+' (Ctrl+M). Watch '+UI('Dead Time %')+': up to 20 is normal.',
+'c.s6':UI('Stop')+' (Ctrl+P) pauses, “Start” continues the same spectrum; '+UI('Clear')+' starts over.',
+'c.warn':'<b>“Clear” wipes the device too.</b> For Atom Spectra, RadiaCode and Obsidian the buffer inside the device is reset along with the spectrum — whatever it collected is lost as well. The program asks “Clear spectrum?”: think before answering “Yes”.',
+'c.info':'<b>The ⟳ button next to “Device Config.”</b> applies device configuration changes to the current spectrum: its calibrations are replaced by the device’s, and with a different channel count the spectrum is erased — the program warns you.',
+'c.f1':'<b>Start is silent when the limit is reached.</b> The button does nothing once real time is not below the limit: raise the limit or press “Clear”.',
+'c.f2':'<b>Atom Spectra can be joined on the fly.</b> “Attach” joins an acquisition already running in Atom Spectra Pro, without a reset.',
+'c.f3':'<b>Link lost — acquisition lives on.</b> Atom Spectra keeps counting time and waits for the port to come back.',
+'b.k':'Background','b.h':'Subtracting background — like removing café noise from a voice recording',
+'b.lead':'Background is always there: potassium in concrete, radon in the air, uranium and thorium in the ground. Record the “silence” with the same detector separately and subtract it — the sample’s voice remains. The longer the silence, the less noise the subtraction adds.',
+'b.card':'Try it: how long to acquire background',
+'b.hint':'The sample was acquired for 3600 s: weak Cs-137 on top of background. Background is subtracted scaled by live times. Move the background time and watch how the subtracted spectrum “shivers”.',
+'b.view':'View:','b.tb':'background acquisition time','b.again':'Acquire again',
+'b.v1':'Hide Background Spectrum','b.v2':'Show Background Spectrum','b.v3':'Show Spectrum with Background Subtracted',
+'b.ratio':'background scale: <b>× {0}</b>','b.net':'Cs-137 after subtraction: <b>{0} ± {1}</b> counts','b.k40':'K-40 after subtraction: <b>{0}</b> (should be near 0)','b.zero':'negative channels zeroed: <b>{0}</b>','b.s':'s','b.h1':'h',
+'b.gross':'sample','b.bgl':'background × scale','b.netl':'background subtracted',
+'b.f1':'<b>Same detector, same geometry.</b> Background from another detector, or without the shielding the sample stood in, subtracts the wrong thing.',
+'b.f2':'<b>Background no shorter than the sample.</b> A short background multiplied by a big scale adds its own noise to the difference.',
+'b.f3':'<b>Peaks see the subtraction too.</b> The same subtracted spectrum goes into peak search, Extended CSV and “Hard subtract to File”.',
+'b.steps':'Step by step: background',
+'b.s1':'Acquire background: same detector, same place, no sample — the longer the better. Save it as an ordinary spectrum.',
+'b.s2':'In the sample document, on the acquisition panel: '+UI('Background')+' → '+UI('Select.')+' → the background file.',
+'b.s3':'The channel count must match — otherwise the program answers “Incompatible channel parameters.”',
+'b.s4':'On the bar under the chart '+UI('View:')+' → '+UI('Show Spectrum with Background Subtracted')+'.',
+'b.s5':'To give every new spectrum of the device this background — '+UM('Tool → Edit Device Configurations...')+' → '+UI('References')+'.',
+'i.k':'Sample','i.h':'The sample card: what, from where, how heavy',
+'i.lead':'The detector measures becquerels in the whole sample. To say “per kilogram” the program needs the weight, “per litre” the volume, and to recalculate to the sampling day — the date. This is the sample passport: '+UM('View → Sample Information')+'.',
+'i.l1':'<b>Name and Location</b> — sample labels, stored in the file','i.l2':'<b>Sampling Date</b> — activity is brought back to it when decay correction is on',
+'i.l3':'<b>Measuring Date</b> — start of acquisition; read-only','i.l4':'<b>Weight</b> — for Bq/kg; units (g or kg) in Preferences, “System” tab',
+'i.l5':'<b>Volume</b> — for Bq/l; ml or l','i.l6':'<b>Notes</b> — free text',
+'k.h':'Calculator: why weight and date matter','k.hint':'The sample activity on the measuring day is converted to Bq/kg, Bq/l and to the sampling day. Zero weight or volume means “not specified”.',
+'k.a':'activity in the sample, Bq','k.w':'weight','k.v':'volume','k.d':'from sampling to measuring','k.nuc':'nuclide','k.u':'units (Preferences)','k.ug':'g, ml','k.ukg':'kg, l','k.days':'d',
+'k.bqkg':'Bq/kg','k.bql':'Bq/l','k.samp':'on the sampling day, Bq','k.none':'not specified','k.f':'decay correction: <b>× {0}</b>',
+'k.short':'for a short-lived nuclide the sampling date changes the answer many times over','k.long':'for a long-lived nuclide the date hardly changes anything',
+'i.f1':'<b>Zero = “not specified”.</b> While the weight is zero, the program prints no Bq/kg.',
+'i.f2':'<b>Units are in Preferences.</b> Grams or kilograms, millilitres or litres: '+UM('Tool → Preferences')+' → '+UI('System')+'.',
+'i.f3':'<b>Decay correction is optional.</b> In “Measurement Result” the “Half Lifetime Correction” switch brings activity back to the sampling date.',
+'l.k':'Documents','l.h':'Several documents and spectra',
+'l.lead':'A document is a folder, spectra are sheets in it. Each file is a tab above the chart, and a document holds up to 16 spectra: sample, background, repeats. Different devices record at the same time, each into its own document.',
+'l.cap':'The “Spectrum List” panel — spectra of the current document',
+'l.l1':'<b>New / Delete</b> — a spectrum in this document','l.l2':'<b>Arrows</b> — order of spectra',
+'l.l3':'<b>Import... / Export...</b> — spectra from files and to a file','l.l4':'<b>Legend</b> — the check box draws a spectrum over the active one; colours in Preferences, “Color” tab',
+'l.l5':'<b>Name</b> — edited right in the cell','l.l6':'<b>Panel tabs</b> — “Peak Detection” and “Measurement Result” next door',
+'l.f1':'<b>Up to 16 spectra per document.</b> Import beyond that is refused, and the program says how many did not fit.',
+'l.f2':'<b>One device — one spectrum.</b> While a device writes into one spectrum, it will not write into another.',
+'l.f3':'<b>Compare spectra by overlaying.</b> Tick “Legend” — and two acquisitions share one chart.',
+'l.dose':'<b>Dose rate</b> — on the right of the status bar. The program computes it from the acquired spectrum and the curve in '+UI('Efficiency')+'; without a response matrix the number carries “≈”, without a curve the field is empty. Count rate over time — '+UM('View → Counts Rate')+'.',
+'l.auto':'<b>Autosave.</b> '+UM('Tool → Preferences')+' → '+UI('System')+': “AutoSave documents every N minutes” (15 by default) and “Enable AutoSave by default…”. For one document — '+UM('Spectrum → Autosave spectrum')+'; a file name is required.',
+'hoodtxt':'<li>“Start” does not begin acquisition when real time is already not below the limit — silently: raise the limit or press “Clear”. A negative limit gives “Invalid preset time.”</li><li><code>Dead Time % = 100·(T − LT)/T</code>; digits are normal up to 20 %, dark orange at 20–50 %, dark red above 50 %. Live time <code>LT = T·(1 − n·τ)</code>, n — all pulses over real time.</li><li>“Count Rate (cps)” on the panel is valid pulses divided by real time; activity and FSA divide by live time.</li><li>Background is subtracted scaled by live times (<code>background × LT sample / LT background</code>), negative channels are zeroed, and with a different calibration the background is mapped by energy.</li><li>Autosave every N minutes writes only changed documents that have it on; “Stop” saves such a document too. “Clear” for Atom Spectra, RadiaCode and Obsidian also resets the device buffer — unless that device is recording another spectrum at the moment.</li>',
+}});
+
+/* ── общие спектральные формы: Cs-137 и фон, сцинтиллятор ~7 % при 662 кэВ ── */
+const SIG = E => 0.07 * 662 * Math.sqrt(Math.max(E, 20) / 662) / 2.355;
+const gs = (e, E, a) => a * Math.exp(-0.5 * ((e - E) / SIG(E)) ** 2) / (SIG(E) * 2.5066);
+function shapeCs(e) {   // на 1 распознанный импульс источника
+  const ce = 477.3, s = SIG(ce);
+  return gs(e, 661.66, 0.36) + 0.5 / 470 * (1 / (1 + Math.exp((e - ce) / (0.6 * s)))) * (0.55 + 0.45 * e / ce) * (e > 15 ? 1 : 0) + gs(e, 190, 0.045) + gs(e, 32, 0.07);
+}
+function shapeBg(e) {
+  return 0.55 * Math.exp(-e / 160) / 160 + 0.25 * Math.exp(-e / 700) / 700 + gs(e, 1460.8, 0.035) + gs(e, 609.3, 0.03) + gs(e, 351.9, 0.022) + gs(e, 295.2, 0.012) + gs(e, 2614.5, 0.012) + gs(e, 1764.5, 0.008) + gs(e, 1120.3, 0.006) + gs(e, 75, 0.03) + gs(e, 238.6, 0.012);
+}
+function pdf(f, nch, emax) { const p = new Float64Array(nch); let s = 0; for (let c = 0; c < nch; c++) { const e = (c + 0.5) * emax / nch; p[c] = Math.max(0, f(e)); s += p[c]; } for (let c = 0; c < nch; c++) p[c] /= s; return p; }
+
+/* ── 1. симулятор набора ── */
+(function sim() {
+  const NCH = 512, EMAX = 3000, PS = pdf(shapeCs, NCH, EMAX), PB = pdf(shapeBg, NCH, EMAX), BG = 30;   // фон 30 имп/с
+  const DEVS = [['RC-103', 5e-6], ['1.Atom Spectra Nano 16 Pro', 1.357e-6], ['@s.audio', 363e-6]];
+  const S = { hist: new Float64Array(NCH), T: 0, val: 0, inv: 0, run: false, preset: 600, file: '', auto: false, dev: 0, speed: 100, dateFmt: true, msgs: [], dlg: false, last: 0 };
+  const cv = $('#cvSim'); io.observe(cv);
+  const src = () => +$('#sSrc').value === 0 ? 0 : Math.pow(10, +$('#sSrc').value);
+  function devs() { $('#pDev').innerHTML = DEVS.map((d, i) => '<option value="' + i + '">' + (d[0][0] === '@' ? t(d[0].slice(1)) : d[0]) + ' · τ ' + sig(d[1] * 1e6, 3) + ' ' + t('s.us') + '</option>').join(''); $('#pDev').value = S.dev; }
+  $('#pDev').onchange = () => { S.dev = +$('#pDev').value; ui(); };
+  function speeds() { $('#sSpeed').innerHTML = [1, 10, 100, 1000].map(v => '<button class="chip' + (v === S.speed ? ' on' : '') + '" data-v="' + v + '">× ' + v + '</button>').join(''); $$('#sSpeed .chip').forEach(b => b.onclick = () => { S.speed = +b.dataset.v; speeds(); }); }
+  speeds();
+  const tau = () => DEVS[S.dev][1];
+  function times() { const tot = S.val + S.inv, lt = S.T > 0 ? Math.max(0, S.T * (1 - (tot / S.T) * tau())) : 0; return { tot, lt, dt: S.T > 0 && lt > 0 ? 100 * (S.T - lt) / S.T : 0 }; }
+  function fmtT(sec) { const s = Math.floor(sec), d = Math.floor(s / 86400), p2 = v => String(v).padStart(2, '0'), hms = p2(Math.floor(s % 86400 / 3600)) + ':' + p2(Math.floor(s % 3600 / 60)) + ':' + p2(s % 60); return d > 0 ? d + t('p.days') + ' ' + hms : hms; }
+  function msg(k, cls, ...a) { S.msgs = S.msgs.filter(m => m.k !== k); S.msgs.unshift({ k, cls, a }); S.msgs = S.msgs.slice(0, 4); }
+  function step(dt) {
+    if (!S.run) return;
+    let d = dt * S.speed; if (S.T + d >= S.preset) d = S.preset - S.T;
+    if (d > 0) {
+      const m = BG + src(), n = m / (1 + m * tau()), lamV = n * d * 0.9994;
+      for (let c = 0; c < NCH; c++) { const k = poisson(lamV * (BG * PB[c] + src() * PS[c]) / m); S.hist[c] += k; S.val += k; }
+      S.inv += poisson(n * d * 0.0006); S.T += d;
+    }
+    if (S.T >= S.preset - 1e-9) {
+      S.run = false; msg('done', '', S.preset);
+      if (S.auto && S.file) msg('saved', 'good', S.file);
+      msg('sound', '');
+    }
+  }
+  function peakSnr(E) {   // окно пика против соседних окон — «проступил ли пик»
+    const ch = e => Math.round(e / EMAX * NCH), w = 2.2 * SIG(E), a = ch(E - w), b = ch(E + w), L = ch(E - 2 * w), R = ch(E + 2 * w);
+    let P = 0, side = 0; for (let c = a; c <= b; c++) P += S.hist[c]; for (let c = L; c < a; c++) side += S.hist[c]; for (let c = b + 1; c <= R; c++) side += S.hist[c];
+    const bk = side * (b - a + 1) / Math.max(1, (a - L) + (R - b)); return P > 0 ? (P - bk) / Math.sqrt(P + bk) : 0;
+  }
+  function draw() {
+    const { ctx, w, h } = setup(cv), bx = { l: 46, t: 18, r: w - 12, b: h - 26 };
+    const X = scale('lin', 0, EMAX, bx.l, bx.r); let mx = 10; for (let c = 3; c < NCH; c++) mx = Math.max(mx, S.hist[c]);
+    const Y = scale('sqrt', 0, mx * 1.12, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { xl: t('ax.e'), yl: t('ax.c') });
+    ctx.beginPath(); ctx.moveTo(X(0), bx.b); for (let c = 0; c < NCH; c++) { const x0 = X(c * EMAX / NCH), x1 = X((c + 1) * EMAX / NCH), y = Y(S.hist[c]); ctx.lineTo(x0, y); ctx.lineTo(x1, y); } ctx.lineTo(X(EMAX), bx.b); ctx.closePath();
+    const g = ctx.createLinearGradient(0, bx.t, 0, bx.b); g.addColorStop(0, 'rgba(32,200,64,.95)'); g.addColorStop(1, 'rgba(32,200,64,.35)'); ctx.fillStyle = g; ctx.fill();
+    if (S.val === 0) { ctx.fillStyle = '#93a3c4'; ctx.font = '600 15px system-ui'; ctx.textAlign = 'center'; ctx.fillText(t('s.empty'), (bx.l + bx.r) / 2, (bx.t + bx.b) / 2); }
+    ctx.font = '700 11.5px system-ui'; ctx.textAlign = 'center';
+    [[661.66, 'Cs-137', '#FFCC77'], [1460.8, 'K-40', '#CCDD00'], [609.3, 'Bi-214', '#7fbf3f']].forEach(([E, nm, col]) => {
+      const z = peakSnr(E); if (z < 5) return; const c = Math.round(E / EMAX * NCH); let top = 0; for (let k = c - 3; k <= c + 3; k++) top = Math.max(top, S.hist[k]);
+      const x = X(E), y = Math.max(bx.t + 14, Y(top) - 10); ctx.strokeStyle = rgba(col, .7); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x, y + 3); ctx.lineTo(x, bx.b); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = col; ctx.fillText(nm, x, y);
+      if (!S.msgs.some(m => m.k === 'peak' + nm)) { S.msgs.push({ k: 'peak' + nm, cls: 'good', a: [nm], peak: true }); }
+    });
+  }
+  function ui() {
+    const tm = times(), pct = S.preset > 0 ? clamp(S.T / S.preset * 100, 0, 100) : (S.T > 0 ? 100 : 0);
+    $('#pBar i').style.width = pct.toFixed(1) + '%';
+    $('#pBar span').textContent = (S.dateFmt ? fmtT(S.T) : Math.floor(S.T)) + ' (' + fx(pct, 1) + '%)';
+    $('#pFile').value = S.file; $('#pAuto').checked = S.auto; $('#pDev').value = S.dev; $('#pDev').disabled = S.run;
+    $('#pStart').disabled = S.run; $('#pStop').disabled = !S.run; $('#pPreset').disabled = S.run;
+    $('#oTot').textContent = tm.tot.toFixed(0); $('#oVal').textContent = S.val.toFixed(0); $('#oInv').textContent = S.inv.toFixed(0);
+    $('#oCps').textContent = fx(S.T > 0 ? S.val / S.T : 0, 2); $('#oLt').textContent = fx(tm.lt, 2); $('#oDt').textContent = fx(tm.dt, 4);
+    $('#oDt').style.color = tm.dt <= 20 ? '#000' : tm.dt <= 50 ? '#ff8c00' : '#8b0000'; $('#oDt').style.fontWeight = tm.dt > 20 ? '700' : '400';
+    const sv = src(); $('#sSrcV').textContent = sv ? fx(sv, sv < 100 ? 1 : 0) + ' ' + t('s.cps') : t('s.none');
+    const dtk = tm.dt <= 20 ? ['good', 'r.dt0'] : tm.dt <= 50 ? ['', 'r.dt1'] : ['bad', 'r.dt2'];
+    $('#sRes').innerHTML = S.msgs.map(m => '<span class="pill ' + m.cls + '">' + (m.peak ? t('r.peak', m.a[0]) : t('r.' + m.k, ...m.a)) + '</span>').join('') + (S.T > 0 ? '<span class="pill ' + dtk[0] + '">' + t(dtk[1]) + '</span>' : '');
+    $('#pDlg').innerHTML = S.dlg ? '<div class="dlg"><div class="t">' + t('p.q') + '</div><div class="m"><i>!</i><span>' + t('p.qtext') + '</span></div><div class="b"><button data-a="yes">' + t('p.yes') + '</button><button data-a="no">' + t('p.no') + '</button></div></div>' : '';
+    $$('#pDlg button').forEach(b => b.onclick = () => { S.dlg = false; if (b.dataset.a === 'yes') { S.run = false; S.hist.fill(0); S.T = 0; S.val = 0; S.inv = 0; S.msgs = []; msg('cleared', 'bad'); } ui(); draw(); });
+  }
+  $('#pStart').onclick = () => { if (S.preset < 0) { msg('bad', 'bad'); ui(); return; } if (S.T >= S.preset) { msg('nostart', 'bad'); ui(); return; } S.run = true; S.msgs = S.msgs.filter(m => m.k !== 'done' && m.k !== 'saved' && m.k !== 'sound' && m.k !== 'nostart'); S.last = performance.now(); ui(); };
+  $('#pStop').onclick = () => { S.run = false; ui(); };
+  $('#pClear').onclick = () => { S.dlg = true; ui(); };
+  $('#pSel').onclick = () => { if (!S.run) { S.file = 'Cs137_' + S.preset + 's.xml'; ui(); } };
+  $('#pAuto').onchange = () => { S.auto = $('#pAuto').checked; if (S.auto && !S.file) { S.file = 'spectrum_1.xml'; msg('named', ''); } ui(); };
+  $('#pBar').onclick = () => { S.dateFmt = !S.dateFmt; ui(); };
+  $('#pPreset').addEventListener('keydown', e => { if (e.key !== 'Enter') return; const v = Number($('#pPreset').value.trim()); S.preset = isFinite(v) ? Math.round(v) : 0; $('#pPreset').value = S.preset; ui(); });   // нечисло программа меняет на 0;   // отрицательный лимит программа принимает, а отказывает на «Старте»
+  $('#sSrc').addEventListener('input', ui);
+  let lastUi = 0;
+  function loop(now) {
+    const dt = Math.min(0.25, (now - (S.last || now)) / 1000); S.last = now;
+    if (visible.get(cv) !== false || S.run) { step(dt); if (visible.get(cv) !== false) draw(); if (now - lastUi > 90 || !S.run) { lastUi = now; ui(); } }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+  GUIDE.onRedraw(() => { devs(); ui(); draw(); });
+})();
+
+/* ── 3. фон: масштаб по живым временам и шум вычитания ── */
+(function bgsub() {
+  const NCH = 512, EMAX = 3000, TS = 3600, PS = pdf(shapeCs, NCH, EMAX), PB = pdf(shapeBg, NCH, EMAX), RB = 30, RS = 3;   // фон 30 имп/с, источник 3 имп/с
+  let view = 2, gross, bgc, TB;
+  const cv = $('#cvBg'), r = $('#bT');
+  function acquire() { TB = Math.round(Math.pow(10, +r.value)); gross = Float64Array.from(PB, (p, c) => poisson(TS * (RB * p + RS * PS[c]))); bgc = Float64Array.from(PB, p => poisson(TB * RB * p)); }
+  function chips() { $('#bView').innerHTML = ['b.v1', 'b.v2', 'b.v3'].map((k, i) => '<button class="chip' + (i === view ? ' on' : '') + '" data-i="' + i + '">' + t(k) + '</button>').join(''); $$('#bView .chip').forEach(b => b.onclick = () => { view = +b.dataset.i; chips(); draw(); }); }
+  const fmtT = s => s >= 3600 ? fx(s / 3600, s >= 36000 ? 0 : 1) + ' ' + t('b.h1') : s + ' ' + t('b.s');
+  function draw() {
+    const k = TS / TB, net = new Float64Array(NCH); let zeroed = 0;
+    for (let c = 0; c < NCH; c++) { const v = gross[c] - bgc[c] * k; if (v < 0) zeroed++; net[c] = Math.max(0, v); }
+    const { ctx, w, h } = setup(cv), bx = { l: 46, t: 16, r: w - 12, b: h - 26 }, X = scale('lin', 0, EMAX, bx.l, bx.r);
+    let mx = 10; for (let c = 4; c < NCH; c++) mx = Math.max(mx, view === 2 ? net[c] : gross[c]);
+    const Y = scale('sqrt', 0, mx * 1.1, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { xl: t('ax.e'), yl: t('ax.c') });
+    const path = (arr, mul, fill, stroke) => { ctx.beginPath(); ctx.moveTo(X(0), bx.b); for (let c = 0; c < NCH; c++) { const y = Y(arr[c] * mul); ctx.lineTo(X(c * EMAX / NCH), y); ctx.lineTo(X((c + 1) * EMAX / NCH), y); } ctx.lineTo(X(EMAX), bx.b); ctx.closePath(); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.2; ctx.stroke(); ctx.lineWidth = 1; } };
+    // цвета — как в Настройках → Цвет: образец зелёный, фон бирюзовый, вычтенный фиолетовый
+    if (view === 2) path(net, 1, 'rgba(140,60,255,.75)');
+    else { path(gross, 1, 'rgba(32,200,64,.85)'); if (view === 1) path(bgc, k, 'rgba(0,150,150,.85)'); }
+    ctx.font = '600 11.5px system-ui'; ctx.textAlign = 'left';
+    const leg = view === 2 ? [['#8c3cff', 'b.netl']] : view === 1 ? [['#20c840', 'b.gross'], ['#009696', 'b.bgl']] : [['#20c840', 'b.gross']];
+    leg.forEach(([col, key], i) => { ctx.fillStyle = col; ctx.fillRect(bx.r - 160, bx.t + 4 + i * 16, 10, 10); ctx.fillStyle = '#cdd8f3'; ctx.fillText(t(key), bx.r - 145, bx.t + 13 + i * 16); });
+    ctx.fillStyle = '#FFCC77'; ctx.textAlign = 'center'; ctx.fillText('Cs-137', X(661.66), bx.t + 10); ctx.fillStyle = '#CCDD00'; ctx.fillText('K-40', X(1460.8), bx.t + 10);
+    // окна: Cs-137 и K-40 — сумма разности и её σ
+    const win = E => { const a = Math.floor((E - 2.2 * SIG(E)) / EMAX * NCH), b = Math.ceil((E + 2.2 * SIG(E)) / EMAX * NCH); let G = 0, B = 0; for (let c = a; c <= b; c++) { G += gross[c]; B += bgc[c]; } return { n: G - k * B, s: Math.sqrt(G + k * k * B) }; };
+    const cs = win(661.66), kk = win(1460.8);
+    $('#bTv').textContent = fmtT(TB);
+    $('#bRes').innerHTML = '<span class="pill">' + t('b.ratio', fx(k, k < 10 ? 2 : 1)) + '</span><span class="pill good">' + t('b.net', fx(cs.n, 0), fx(cs.s, 0)) + '</span><span class="pill ' + (Math.abs(kk.n) > 2 * kk.s ? 'bad' : '') + '">' + t('b.k40', fx(kk.n, 0) + ' ± ' + fx(kk.s, 0)) + '</span><span class="pill">' + t('b.zero', zeroed) + '</span>';
+  }
+  r.addEventListener('input', () => { acquire(); draw(); });
+  $('#bAgain').onclick = () => { acquire(); draw(); };
+  acquire(); io.observe(cv);
+  GUIDE.onRedraw(() => { chips(); draw(); });
+})();
+
+/* ── 4. калькулятор: вес, объём, дата отбора ── */
+(function calc() {
+  const NUC = [['I-131', 8.0252], ['Cs-134', 754.3], ['Cs-137', 10983]];   // периоды полураспада, сут
+  let nuc = 2, unit = 'g';
+  function chips() {
+    $('#kNuc').innerHTML = NUC.map((n, i) => '<button class="chip' + (i === nuc ? ' on' : '') + '" data-i="' + i + '">' + n[0] + '</button>').join('');
+    $('#kUnit').innerHTML = [['g', t('k.ug')], ['kg', t('k.ukg')]].map(([u, l]) => '<button class="chip' + (u === unit ? ' on' : '') + '" data-u="' + u + '">' + l + '</button>').join('');
+    $$('#kNuc .chip').forEach(b => b.onclick = () => { nuc = +b.dataset.i; chips(); calc(); });
+    $$('#kUnit .chip').forEach(b => b.onclick = () => { unit = b.dataset.u; chips(); calc(); });
+  }
+  function calc() {
+    const A = +$('#kA').value, wv = +$('#kW').value, vv = +$('#kV').value, d = +$('#kD').value, en = GUIDE.lang === 'en';
+    const wkg = wv / 1000;   // ползунок всегда в граммах; единицы из Настроек меняют только вид числа
+    $('#kAv').textContent = A + (en ? ' Bq' : ' Бк');
+    $('#kWv').textContent = wv === 0 ? t('k.none') : unit === 'g' ? wv + (en ? ' g' : ' г') : fx(wv / 1000, 3) + (en ? ' kg' : ' кг');
+    $('#kVv').textContent = vv === 0 ? t('k.none') : unit === 'g' ? vv + (en ? ' ml' : ' мл') : fx(vv / 1000, 3) + (en ? ' l' : ' л');
+    $('#kDv').textContent = d + ' ' + t('k.days');
+    const f = Math.pow(2, d / NUC[nuc][1]);
+    const tile = (k, v) => '<div class="tile"><div class="small">' + t(k) + '</div><div class="big">' + v + '</div></div>';
+    $('#kTiles').innerHTML = tile('k.bqkg', wv ? sig(A / wkg, 3) : '—') + tile('k.bql', vv ? sig(A / (vv / 1000), 3) : '—') + tile('k.samp', sig(A * f, 3));
+    $('#kRes').innerHTML = '<span class="pill">' + t('k.f', fx(f, f < 10 ? 3 : 1)) + '</span><span class="pill ' + (f > 1.5 ? 'bad' : 'good') + '">' + t(f > 1.5 ? 'k.short' : 'k.long') + '</span>';
+  }
+  ['#kA', '#kW', '#kV', '#kD'].forEach(s => $(s).addEventListener('input', calc));
+  GUIDE.onRedraw(() => { chips(); calc(); });
+})();
+
+GUIDE.init();
+</script>
+</body>
+</html>

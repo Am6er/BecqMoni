@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Пики и нуклиды — BecqMoni гайд</title>
+<link rel="stylesheet" href="assets/guide.css">
+<style>
+/* только для этой главы */
+@media (max-width:560px){.ui{white-space:normal}}
+.shot-legend.cols2{grid-template-columns:1fr 1fr}
+@media (max-width:900px){.shot-legend.cols2{grid-template-columns:1fr}}
+.gates{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px}
+.gate{position:relative;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:13px;color:var(--soft);min-width:0}
+.gate b{display:block;color:var(--ink);font-size:13.5px}
+.gate .n{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ok)}
+.gate:not(:last-child)::after{content:"";position:absolute;right:-7px;top:50%;width:8px;height:8px;border-top:2px solid var(--gold);border-right:2px solid var(--gold);transform:translateY(-50%) rotate(45deg);z-index:2}
+@media (max-width:900px){.gates{grid-template-columns:1fr 1fr}.gate::after{display:none}}
+.tblw{overflow-x:auto;margin-top:10px;border-radius:10px;border:1px solid var(--line)}
+table.cand{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums;min-width:640px}
+table.cand th,table.cand td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+table.cand th{color:var(--muted);font-weight:700;background:var(--panel)}
+table.cand td:first-child,table.cand th:first-child{text-align:left}
+table.cand tr.win td{background:rgba(255,204,51,.12)}
+table.cand tr.riv td{background:rgba(255,160,60,.08)}
+.ok{color:var(--ok);font-weight:800}.no{color:var(--photo);font-weight:800}.na{color:var(--dim)}
+.flagbox{display:inline-block;background:#fffbd0;color:#111;border:1px solid #000;padding:1px 8px 1px 12px;font:13px "Segoe UI",system-ui,sans-serif;clip-path:polygon(0 100%,7px 0,100% 0,100% 100%)}
+.quiz{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:6px}
+@media (max-width:900px){.quiz{grid-template-columns:1fr}}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.answers .btn{width:100%;text-align:left}
+.answers .btn.right{background:rgba(91,227,138,.2);border-color:var(--ok)}
+.answers .btn.wrong{background:rgba(255,77,109,.18);border-color:var(--photo)}
+.score{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body data-chapter="peaks">
+
+<section class="hero" id="top"><div class="wrap">
+  <div class="kicker" data-t="h.k"></div>
+  <h1 data-t="h.h"></h1>
+  <p class="lead" data-t="h.lead"></p>
+</div></section>
+
+<section class="sec" id="search" data-nav="n.search"><div class="wrap">
+  <div class="kicker" data-t="s.k"></div>
+  <h2 data-t="s.h"></h2>
+  <p class="lead" data-t="s.lead"></p>
+  <div class="card full">
+    <h3 data-t="g.h"></h3>
+    <p class="note" style="margin-top:0" data-t="g.hint"></p>
+    <canvas id="cvF" class="cv"></canvas>
+    <canvas id="cvSnr" class="cv strip" style="height:96px"></canvas>
+    <div class="row">
+      <span class="lbl" data-t="g.snr"></span><input type="range" id="rSnr" min="1" max="30" step="1" value="10"><span class="val" id="vSnr"></span>
+      <span class="lbl" data-t="g.time"></span><div class="chips" id="cTime"></div>
+      <button class="btn" id="bNoise" data-t="g.noise"></button>
+    </div>
+    <div class="pills" id="gRes"></div>
+    <div class="legend"><span><i style="background:#5be38a"></i><span data-t="g.lgT"></span></span><span><i style="background:#ff4d6d"></i><span data-t="g.lgF"></span></span><span><i style="background:#6a7899"></i><span data-t="g.lgM"></span></span></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--photo)" data-t="s.f1"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="s.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="s.f3"></div>
+  </div>
+</div></section>
+
+<section class="sec" id="panel" data-nav="n.panel"><div class="wrap">
+  <div class="kicker" data-t="p.k"></div>
+  <h2 data-t="p.h"></h2>
+  <p class="lead" data-t="p.lead"></p>
+  <div class="grid2 wr">
+    <figure class="shot" data-shot="panel-peaks" data-legend="lgPk" data-hot='[[0.019,0.062,0.21,0.056],[0.652,0.062,0.252,0.056],[0.019,0.125,0.47,0.06],[0.776,0.1267,0.1918,0.0562],[0.011,0.24,0.213,0.55],[0.224,0.24,0.309,0.55],[0.533,0.24,0.183,0.55],[0.716,0.24,0.2,0.55]]'>
+      <figcaption data-t="p.cap"></figcaption>
+    </figure>
+    <div>
+      <ol class="shot-legend" id="lgPk">
+        <li data-t="p.l1"></li><li data-t="p.l2"></li><li data-t="p.l3"></li><li data-t="p.l4"></li>
+        <li data-t="p.l5"></li><li data-t="p.l6"></li><li data-t="p.l7"></li><li data-t="p.l8"></li>
+      </ol>
+    </div>
+  </div>
+  <h3 style="margin-top:26px" data-t="p.steps"></h3>
+  <ol class="howto">
+    <li data-t="p.s1"></li><li data-t="p.s2"></li><li data-t="p.s3"></li><li data-t="p.s4"></li><li data-t="p.s5"></li>
+  </ol>
+  <div class="callout info" data-t="p.info"></div>
+</div></section>
+
+<section class="sec" id="naming" data-nav="n.naming"><div class="wrap">
+  <div class="kicker" data-t="m.k"></div>
+  <h2 data-t="m.h"></h2>
+  <p class="lead" data-t="m.lead"></p>
+  <div class="card full">
+    <h3 data-t="l.h"></h3>
+    <p class="note" style="margin-top:0" data-t="l.hint"></p>
+    <div class="row"><span class="lbl" data-t="l.pre"></span><div class="chips" id="lPre"></div></div>
+    <canvas id="cvL" class="cv mid"></canvas>
+    <div class="sliders">
+      <div class="sl"><div class="top"><span data-t="l.e"></span><span class="val" id="vLE"></span></div><input type="range" id="rLE" min="30" max="2700" step="0.5" value="609"></div>
+      <div class="sl"><div class="top"><span data-t="l.fw"></span><span class="val" id="vLF"></span></div><input type="range" id="rLF" min="3" max="12" step="0.1" value="7.5"></div>
+      <div class="sl"><div class="top"><span data-t="l.tol"></span><span class="val" id="vLT"></span></div><input type="range" id="rLT" min="1" max="20" step="0.5" value="10"></div>
+    </div>
+    <div class="row"><span class="lbl" data-t="l.set"></span><div class="chips" id="lSet"></div><label class="sw"><input type="checkbox" id="kHide"><span data-t="l.hide"></span></label></div>
+    <div class="gates" id="lGates"></div>
+    <div class="pills" id="lRes"></div>
+    <div class="tblw"><table class="cand" id="lTbl"></table></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="m.f1"></div>
+    <div class="fact" style="--c:var(--esc)" data-t="m.f2"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="m.f3"></div>
+  </div>
+</div></section>
+
+<section class="sec" id="library" data-nav="n.lib"><div class="wrap">
+  <div class="kicker" data-t="b.k"></div>
+  <h2 data-t="b.h"></h2>
+  <p class="lead" data-t="b.lead"></p>
+  <div class="grid2 wl">
+    <figure class="shot" data-shot="nucdef" data-legend="lgDef" data-hot='[[0.0015,0.1411,0.483,0.7705],[0.2533,0.08,0.2311,0.0484],[0.5244,0.1811,0.435,0.094],[0.5244,0.2863,0.37,0.096],[0.5244,0.3916,0.255,0.0463],[0.5244,0.4505,0.27,0.0421],[0.6489,0.7642,0.1304,0.0358],[0.7496,0.9326,0.23,0.0484]]'>
+      <figcaption data-t="b.cap1"></figcaption>
+    </figure>
+    <div>
+      <ol class="shot-legend" id="lgDef">
+        <li data-t="b.d1"></li><li data-t="b.d2"></li><li data-t="b.d3"></li><li data-t="b.d4"></li>
+        <li data-t="b.d5"></li><li data-t="b.d6"></li><li data-t="b.d7"></li><li data-t="b.d8"></li>
+      </ol>
+    </div>
+  </div>
+  <div class="grid2 wl" style="margin-top:26px">
+    <figure class="shot" data-shot="nucsets" data-legend="lgSet" data-hot='[[0.032,0.147,0.17,0.22],[0.205,0.147,0.167,0.22],[0.375,0.147,0.145,0.22],[0.029,0.767,0.498,0.047],[0.154,0.84,0.315,0.047],[0.646,0.143,0.318,0.041],[0.557,0.194,0.407,0.697],[0.727,0.932,0.127,0.047]]'>
+      <figcaption data-t="b.cap2"></figcaption>
+    </figure>
+    <div>
+      <ol class="shot-legend" id="lgSet">
+        <li data-t="b.e1"></li><li data-t="b.e2"></li><li data-t="b.e3"></li><li data-t="b.e4"></li>
+        <li data-t="b.e5"></li><li data-t="b.e6"></li><li data-t="b.e7"></li><li data-t="b.e8"></li>
+      </ol>
+    </div>
+  </div>
+  <h3 style="margin-top:26px" data-t="b.steps"></h3>
+  <ol class="howto">
+    <li data-t="b.s1"></li><li data-t="b.s2"></li><li data-t="b.s3"></li><li data-t="b.s4"></li><li data-t="b.s5"></li>
+  </ol>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="b.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="b.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="b.f3"></div>
+  </div>
+</div></section>
+
+<section class="sec" id="nucbase" data-nav="n.nb"><div class="wrap">
+  <div class="kicker" data-t="n.k"></div>
+  <h2 data-t="n.h"></h2>
+  <p class="lead" data-t="n.lead"></p>
+  <figure class="shot" style="margin-top:22px" data-shot="nucbase" data-legend="lgNb" data-hot='[[0.0091,0.0886,0.142,0.042],[0.1566,0.0886,0.104,0.042],[0.2909,0.0886,0.555,0.042],[0.8697,0.0886,0.1091,0.0416],[0.0091,0.1646,0.4384,0.6835],[0.4535,0.17,0.5212,0.1374],[0.4535,0.3291,0.5212,0.5195],[0.0091,0.8626,0.4867,0.1247]]'>
+    <figcaption data-t="n.cap"></figcaption>
+  </figure>
+  <ol class="shot-legend cols2" id="lgNb">
+    <li data-t="n.l1"></li><li data-t="n.l2"></li><li data-t="n.l3"></li><li data-t="n.l4"></li>
+    <li data-t="n.l5"></li><li data-t="n.l6"></li><li data-t="n.l7"></li><li data-t="n.l8"></li>
+  </ol>
+  <h3 style="margin-top:26px" data-t="n.steps"></h3>
+  <ol class="howto">
+    <li data-t="n.s1"></li><li data-t="n.s2"></li><li data-t="n.s3"></li><li data-t="n.s4"></li><li data-t="n.s5"></li><li data-t="n.s6"></li>
+  </ol>
+  <div class="callout warn" data-t="n.warn"></div>
+  <div class="card full">
+    <h3 data-t="q.h"></h3>
+    <div class="quiz">
+      <div>
+        <canvas id="cvQ" class="cv short"></canvas>
+        <div class="pills" id="qLines"></div>
+      </div>
+      <div>
+        <div class="row" style="margin-top:0"><span class="lbl" data-t="q.ask"></span></div>
+        <div class="answers" id="qAns"></div>
+        <div class="pills" id="qMsg"></div>
+        <div class="row"><span class="score" id="qScore"></span><button class="btn main" id="qNext" data-t="q.next"></button></div>
+      </div>
+    </div>
+  </div>
+  <details class="hood"><summary data-t="hood"></summary><ul data-t="hoodtxt"></ul></details>
+  <div id="pager"></div>
+</div></section>
+
+<footer><div class="wrap" data-t="foot"></div></footer>
+
+<script src="assets/guide.js"></script>
+<script>
+'use strict';
+const { $, $$, clamp, fx, sig, setup, scale, axes, rgba, io, t, poisson, niceTicks, tickLabel } = GUIDE;
+GUIDE.texts({ru:{
+'n.search':'Поиск пиков','n.panel':'Панель','n.naming':'Имя пика','n.lib':'Библиотека и наборы','n.nb':'База NucBase',
+'h.k':'Глава 7 · Пики и нуклиды',
+'h.h':'Найти пик и <em>дать ему имя</em>',
+'h.lead':'Поиск пиков — как поиск огоньков в тумане: чем ниже порог, тем больше видно, но тем больше и ложных огней. Найденному пику программа ищет имя в библиотеке — по энергии, ширине и выбранному набору нуклидов.',
+'s.k':'Попробуйте сами','s.h':'Порог «Мин SNR» — сито для пиков',
+'s.lead':'SNR — во сколько раз горбик выше случайного дрожания фона. Порог — как сито: крупное сито пропустит слабые настоящие пики, мелкое — наловит шума. Двигайте порог и время набора и смотрите, кого поймали.',
+'g.h':'Ловец пиков: проба почвы с радием, цезием и калием',
+'g.hint':'Сверху — спектр (корень по высоте), снизу — SNR каждого канала и порог пунктиром. Зелёный флажок — пик на настоящей линии, красный — не линия (шум или край Комптона), серая метка — линия, которую сито пропустило.',
+'g.snr':'Мин SNR','g.time':'время набора','g.noise':'Новый набор',
+'g.t1':'10 мин','g.t2':'1 час','g.t3':'10 часов',
+'g.found':'найдено пиков: <b>{0}</b>','g.true':'на линиях: <b>{0}</b>','g.false':'не линии: <b>{0}</b>','g.miss':'пропущено линий: <b>{0}</b>',
+'g.lgT':'пик на линии нуклида','g.lgF':'не линия: шум, край Комптона','g.lgM':'пропущенная линия',
+'ax.e':'энергия, кэВ','ax.c':'отсчёты','ax.snr':'SNR','unk':'(неизвестный)',
+'s.f1':'<b>Низкий порог — ложные пики.</b> При «Мин SNR» 1–2 шум сам рисует горбики; программа их честно находит и даже подписывает, если рядом есть линия.',
+'s.f2':'<b>Высокий порог — теряются слабые линии.</b> По умолчанию 10: надёжно, но слабый пик на коротком наборе не пройдёт.',
+'s.f3':'<b>Лучшее лекарство — время.</b> В 10 раз дольше набор — SNR каждого пика растёт в √10 ≈ 3.2 раза, а шум остаётся шумом.',
+'p.k':'В программе','p.h':'Панель «Обнаружение пиков»',
+'p.lead':'Открывается через <span class="ui m">Вид → Обнаружение пиков</span>. Любое изменение порога, допуска или набора сразу перезапускает поиск. Наведите на номер — подсветится место.',
+'p.cap':'Панель «Обнаружение пиков»: спектр Cs-137 в домике',
+'p.l1':'<b>Мин SNR</b> — порог: ниже него пик не считается найденным (целое число)',
+'p.l2':'<b>Допуск</b> — насколько энергия пика может отличаться от линии, в процентах',
+'p.l3':'<b>Набор</b> — какими нуклидами подписывать; «--- Все изотопы ---» — вся библиотека',
+'p.l4':'<b>Ред. изотоп...</b> — открыть библиотеку «Редактировать изотоп»',
+'p.l5':'<b>Изотоп</b> — имя победителя; если линий несколько — имена столбиком; «(неизвестный)» — нет подходящей',
+'p.l6':'<b>Энергия, Ошибка</b> — где пик и насколько он мимо линии: кэВ и %',
+'p.l7':'<b>Канал, SNR</b> — номер канала вершины и сила пика',
+'p.l8':'<b>FWHM</b> — ширина: в каналах, в % от энергии и ± отличие от ожидаемой ширины (в каналах)',
+'p.steps':'Пошагово: настроить поиск',
+'p.s1':'Сначала калибровки: энергия и <b>FWHM</b> (глава 6) — без калибровки FWHM поиск не идёт.',
+'p.s2':'<span class="ui m">Вид → Обнаружение пиков</span>; в поле <span class="ui">Набор:</span> выберите нуклиды пробы.',
+'p.s3':'<span class="ui">Мин SNR</span>: начните с 10; для длинного набора можно ниже, для короткого — выше.',
+'p.s4':'<span class="ui">Допуск</span>: 5–10 % для сцинтиллятора. Слишком широкий — подписи достаются чужим пикам.',
+'p.s5':'Правой кнопкой по строке: <span class="ui">Добавить в калибровку</span> или <span class="ui">Поиск в Базе Изотопов</span> (линии ±10 кэВ).',
+'p.info':'<b>Остальные настройки поиска</b> живут в конфигурации прибора, вкладка <span class="ui m">Инструменты → Конфигурация устройства → Анализ</span>: число пиков, диапазон кэВ, допуск ширины, центр по центру масс. В файл спектра они не пишутся — берутся у прибора. Режим <span class="ui">Показать спектр за вычетом фона</span> заставляет искать по вычтенному спектру.',
+'m.k':'Имя пика','m.h':'Как пик получает подпись',
+'m.lead':'Опознать пик — как узнать человека по росту: «примерно 180 см» подходит многим, поэтому программа проверяет кандидатов через несколько ворот подряд. Кто прошёл все и промахнулся меньше всех — тот и подписан; близкие соперники встают рядом через «/».',
+'l.h':'Подписыватель: проведите пик через ворота',
+'l.hint':'Двигайте энергию пика, ширину и допуск, меняйте набор. Синяя полоса — ±1.5 FWHM, золотая — допуск; линии библиотеки — палочки, их высота — выход. Таблица ниже — какие ворота прошла каждая линия.',
+'l.pre':'примеры:','l.e':'энергия пика, кэВ','l.fw':'FWHM при 662 кэВ, %','l.tol':'Допуск, %','l.set':'Набор:','l.hide':'Скрыть неизв. пики',
+'l.all':'--- Все изотопы ---',
+'l.g1':'видима','l.g2':'в наборе','l.g3':'выход ≥ 0.1 %','l.g4':'промах ≤ 1.5 FWHM','l.g5':'промах < допуска',
+'l.flag':'подпись над пиком:','l.hidden':'пик скрыт: нет имени, а в наборе «Скрыть неизв. пики»','l.win':'победитель — наименьший относительный промах','l.riv':'соперников (хуже не больше чем на 0.10 FWHM): <b>{0}</b>',
+'l.c0':'Линия','l.c1':'кэВ','l.c2':'выход, %','l.c3':'промах, кэВ','l.c4':'промах, %','l.c5':'видима','l.c6':'в наборе','l.c7':'выход','l.c8':'≤ 1.5 FWHM','l.c9':'< допуска','l.none':'рядом нет линий библиотеки',
+'m.f1':'<b>Ворота по порядку:</b> линия видима, входит в набор, выход не меньше 0.1 %, промах не больше 1.5 FWHM и меньше допуска.',
+'m.f2':'<b>Победителя решает относительный промах</b>, соперников — разница промахов: до 0.10 FWHM. Имён на флажке не больше трёх.',
+'m.f3':'<b>Число берётся по первому имени.</b> Активность, ряд и состав FSA считаются по победителю; соперники — подсказка глазу.',
+'b.k':'Библиотека','b.h':'Библиотека линий и наборы',
+'b.lead':'Библиотека — телефонная книга: каждая строка — одна линия нуклида с энергией и выходом. Набор — список «избранных» из этой книги для конкретной пробы: только им программа подписывает пики.',
+'b.cap1':'«Редактировать изотоп»: выбран Am-241 (59.5409 кэВ, 35.9 %)',
+'b.d1':'<b>Список изотопов</b> — все линии: имя, энергия, полураспад',
+'b.d2':'<b>Новый / Удалить</b> — завести или убрать линию',
+'b.d3':'<b>Имя и Цепочка</b> — имя линии и ряд, к которому она относится',
+'b.d4':'<b>Энергия и Полураспад</b> — кэВ и годы',
+'b.d5':'<b>Цвет пика</b> — цвет флажка и линий на графике',
+'b.d6':'<b>Интенсивность</b> — выход линии, %; ниже 0.1 % пик ей не подписывается',
+'b.d7':'<b>Отображать</b> — без галки линия не участвует в подписях',
+'b.d8':'<b>Сохранить / Закрыть</b> — библиотека и наборы лежат в одном файле',
+'b.cap2':'«Редактировать наборы изотопов»: набор «Cs-137 + K-40»',
+'b.e1':'<b>Имя набора</b> — то, что видно в поле «Набор:»',
+'b.e2':'<b>Скрыть неизв. пики</b> — пики без имени не показываются',
+'b.e3':'<b>Линии интенс.</b> — рисовать линии набора поверх спектра: высота — выход, цвет — цвет нуклида',
+'b.e4':'<b>Цвет пиков набора + Присвоить</b> — один цвет всем отмеченным нуклидам',
+'b.e5':'<b>Добавить набор / Удалить набор</b>',
+'b.e6':'<b>Фильтр</b> — найти линию по имени или энергии',
+'b.e7':'<b>Отметить изотопы, входящие в набор</b> — галки по строкам библиотеки',
+'b.e8':'<b>Сохранить</b> — записать библиотеку и наборы',
+'b.steps':'Пошагово: свой набор для пробы с цезием',
+'b.s1':'<span class="ui m">Инструменты → Редактировать наборы изотопов...</span>',
+'b.s2':'<span class="ui">Добавить набор</span> → впишите имя, например «Грибы Cs».',
+'b.s3':'Справа в <span class="ui">Фильтр:</span> наберите «Cs-137», отметьте линию; так же K-40 и Pb x-ray (свинец домика).',
+'b.s4':'Если нужен свой цвет — выберите его в <span class="ui">Цвет пиков набора:</span> и нажмите <span class="ui">Присвоить</span>.',
+'b.s5':'<span class="ui">Сохранить</span> → на панели «Обнаружение пиков» выберите набор в поле <span class="ui">Набор:</span>.',
+'b.f1':'<b>Набор — первый постулат точности.</b> Чем точнее набор описывает пробу, тем меньше чужих имён на её пиках.',
+'b.f2':'<b>Цвет хранится у нуклида, а не у набора.</b> «Присвоить» перекрашивает отмеченные нуклиды во всей библиотеке.',
+'b.f3':'<b>Фон и калий — тоже в набор.</b> K-40, ряды радия и тория и свинец домика есть почти в любом спектре.',
+'n.k':'База','n.h':'База изотопов NucBase',
+'n.lead':'NucBase — справочник-энциклопедия: в нём линии тысяч нуклидов с выходами, полураспадом и цепочками распада. Отсюда линии <b>импортируются</b> в вашу библиотеку. Открывается <span class="ui m">Инструменты → База изотопов...</span>.',
+'n.cap':'«База изотопов»: поиск Cs-137',
+'n.l1':'<b>Изотоп</b> — имя для поиска: Cs-137, Cs137 или 137CS',
+'n.l2':'<b>Добавить ДПР</b> — вместе с дочерними продуктами распада (весь ряд)',
+'n.l3':'<b>% Интенс. &gt;, T½ &gt;, Энергия между</b> — отсеять слабые линии, короткоживущих и чужой диапазон',
+'n.l4':'<b>Поиск</b> — заполнить таблицу линий',
+'n.l5':'<b>Таблица линий</b> — галка X, имя, тип, энергия, выход, распад, полураспад',
+'n.l6':'<b>Информация об изотопе</b> — Z, N, T½, удельная активность, распространённость',
+'n.l7':'<b>Родительские изотопы и ДПР</b> — откуда нуклид берётся и во что распадается',
+'n.l8':'<b>Импортировать выбранные элементы в список изотопов</b> + замена при совпадении энергии, имя родителя, формат имени',
+'n.steps':'Пошагово: импорт ряда радия',
+'n.s1':'<span class="ui m">Инструменты → База изотопов...</span>; в поле <span class="ui">Изотоп</span> — Ra-226.',
+'n.s2':'Галка <span class="ui">Добавить ДПР</span>, в <span class="ui">% Интенс. &gt;</span> — например 1, чтобы не тащить слабые линии → <span class="ui">Поиск</span>.',
+'n.s3':'Отметьте галкой X нужные линии: Pb-214 295 и 352, Bi-214 609, 1120, 1764…',
+'n.s4':'Галка <span class="ui">Добавлять имя основного изотопа к дочернему</span> даст имена вида «Pb214 (Ra226)».',
+'n.s5':'<span class="ui">Импортировать выбранные элементы в список изотопов</span>.',
+'n.s6':'<span class="ui m">Инструменты → Редактировать наборы изотопов...</span> → отметьте новые линии в нужном наборе → <span class="ui">Сохранить</span>.',
+'n.warn':'<b>Импортированные линии — зелёные и ни в один набор не входят.</b> Пока их не отметить в наборе, они подписывают пики только при «--- Все изотопы ---». Окно «Редактировать изотоп», если открыто, видит импорт сразу.',
+'q.h':'Опознайте нуклид по линиям',
+'q.ask':'Чьи это линии?','q.next':'Следующий','q.score':'{0} из {1}','q.right':'Верно! ','q.wrong':'Нет — это {0}. ','q.done':'Готово: {0} из {1}. «Следующий» — новая серия.',
+'q.e.cs':'Одна сильная линия 662 и рентген бария 32 — визитная карточка Cs-137.','q.e.co':'Две линии 1173 и 1332 почти равной высоты — Co-60.','q.e.am':'Одна низкая линия 59.5 кэВ — Am-241 из датчика дыма.',
+'q.e.ra':'295, 352, 609, 1764 — свинец-214 и висмут-214: ряд радия-226.','q.e.th':'239, 583, 911, 2614 — свинец-212, актиний-228, таллий-208: ряд тория-232.','q.e.k':'Одинокая линия 1461 — K-40, калий есть в бетоне, удобрениях и бананах.',
+'q.e.na':'511 (аннигиляция) и 1275 — Na-22.','q.e.ba':'81, 303 и 356 — Ba-133; 356 легко спутать с Pb-214 352.',
+'hoodtxt':'<li><b>Поиск</b> — согласованный фильтр: каждый канал свёртывается с ядром «мексиканская шляпа» шириной из калибровки FWHM (сумма ядра — ноль), SNR = сигнал / √(Σ отсчёт·вес²). Пик — локальный максимум SNR не ниже порога; ширина по кривизне SNR проверяется допуском ширины из вкладки «Анализ».</li><li><b>По умолчанию</b> Мин SNR 10, Допуск 10 %, не больше 40 пиков, диапазон 30–2800 кэВ; для поиска спектр сводится к 1024 каналам (настройка во вкладке «Анализ»), и соседние пики не ближе 5 таких каналов.</li><li><b>При вычете фона</b> шум считается честно: дисперсия разности n<sub>с</sub> + k²·n<sub>ф</sub>, а не сама разность — иначе на пустом спектре вставали фантомы.</li><li><b>Подпись</b>: линия видима, в наборе, выход ≥ 0.1 % (0 — «не проставлен», проходит), промах ≤ 1.5 FWHM пика и промах/энергия &lt; Допуск; победитель — наименьший относительный промах, соперники — разница промахов ≤ 0.10 FWHM, всего не больше 3 имён.</li><li><b>Поверх подписей</b> — правила всего спектра: пик 1022 кэВ (две аннигиляции) получает приборную подпись раньше нуклидной, слабая линия требует подтверждения другой линией того же имени.</li>',
+},en:{
+'n.search':'Peak search','n.panel':'The panel','n.naming':'Peak name','n.lib':'Library and sets','n.nb':'NucBase',
+'h.k':'Chapter 7 · Peaks and nuclides',
+'h.h':'Find a peak and <em>give it a name</em>',
+'h.lead':'Peak search is like spotting lights in fog: the lower the threshold, the more you see, but the more false lights too. For every peak found the program looks up a name in the library — by energy, width and the chosen nuclide set.',
+'s.k':'Try it yourself','s.h':'The “Min SNR” threshold is a sieve for peaks',
+'s.lead':'SNR tells how many times a bump stands above the random jitter of the background. The threshold is a sieve: a coarse one lets weak real peaks slip through, a fine one catches noise. Move the threshold and the acquisition time and see what gets caught.',
+'g.h':'Peak catcher: a soil sample with radium, caesium and potassium',
+'g.hint':'Top — the spectrum (square-root height), bottom — the SNR of every channel with the threshold dashed. A green flag is a peak on a real line, red is not a line (noise or a Compton edge), a grey mark is a line the sieve missed.',
+'g.snr':'Min SNR','g.time':'acquisition time','g.noise':'New acquisition',
+'g.t1':'10 min','g.t2':'1 hour','g.t3':'10 hours',
+'g.found':'peaks found: <b>{0}</b>','g.true':'on lines: <b>{0}</b>','g.false':'not lines: <b>{0}</b>','g.miss':'lines missed: <b>{0}</b>',
+'g.lgT':'peak on a nuclide line','g.lgF':'not a line: noise, Compton edge','g.lgM':'missed line',
+'ax.e':'energy, keV','ax.c':'counts','ax.snr':'SNR','unk':'(unknown)',
+'s.f1':'<b>A low threshold means false peaks.</b> At “Min SNR” 1–2 the noise draws bumps by itself; the program honestly finds them and even labels them if a line is nearby.',
+'s.f2':'<b>A high threshold loses weak lines.</b> The default is 10: reliable, but a weak peak in a short acquisition will not pass.',
+'s.f3':'<b>Time is the best cure.</b> Ten times longer — the SNR of every peak grows √10 ≈ 3.2 times, while noise stays noise.',
+'p.k':'In the program','p.h':'The “Peak Detection” panel',
+'p.lead':'Open it via <span class="ui m">View → Peak Detection</span>. Any change of threshold, tolerance or set restarts the search at once. Hover a number — the spot lights up.',
+'p.cap':'The “Peak Detection” panel: a Cs-137 spectrum in a shield',
+'p.l1':'<b>Min SNR</b> — the threshold: below it a peak is not counted as found (an integer)',
+'p.l2':'<b>Tolerance</b> — how far a peak energy may be from a line, in percent',
+'p.l3':'<b>Use set</b> — which nuclides label peaks; “--- All Nuclides ---” is the whole library',
+'p.l4':'<b>Edit Nuclide...</b> — open the library, “Edit Nuclide Definition”',
+'p.l5':'<b>Nuclide</b> — the winner’s name; several lines give names in a column; “(unknown)” — no matching line',
+'p.l6':'<b>Energy, Error</b> — where the peak is and how far from the line: keV and %',
+'p.l7':'<b>Channel, SNR</b> — the channel of the top and the peak’s strength',
+'p.l8':'<b>FWHM</b> — width: in channels, in % of the energy and ± the difference from the expected width (in channels)',
+'p.steps':'Step by step: set up the search',
+'p.s1':'Calibrations first: energy and <b>FWHM</b> (chapter 6) — without an FWHM calibration the search does not run.',
+'p.s2':'<span class="ui m">View → Peak Detection</span>; in <span class="ui">Use set:</span> choose the sample’s nuclides.',
+'p.s3':'<span class="ui">Min SNR</span>: start at 10; lower for a long acquisition, higher for a short one.',
+'p.s4':'<span class="ui">Tolerance</span>: 5–10 % for a scintillator. Too wide, and labels go to someone else’s peaks.',
+'p.s5':'Right-click a row: <span class="ui">Add in calibration</span> or <span class="ui">Search Isotope Base</span> (lines ±10 keV).',
+'p.info':'<b>Other search settings</b> live in the device configuration, tab <span class="ui m">Tool → Edit Device Configurations → Analysis</span>: number of peaks, keV range, width tolerance, centroid by centre of mass. They are not written into the spectrum file — they come from the device. The <span class="ui">Show Spectrum with Background Subtracted</span> mode makes the search use the subtracted spectrum.',
+'m.k':'Peak name','m.h':'How a peak gets its label',
+'m.lead':'Identifying a peak is like recognising a person by height: “about 180 cm” fits many, so the program walks candidates through several gates in a row. Whoever passes them all with the smallest miss gets the label; close rivals stand next to it after a “/”.',
+'l.h':'The labeller: walk a peak through the gates',
+'l.hint':'Move the peak energy, width and tolerance, change the set. The blue band is ±1.5 FWHM, the gold one is the tolerance; library lines are sticks, their height is the yield. The table below shows which gates every line passed.',
+'l.pre':'examples:','l.e':'peak energy, keV','l.fw':'FWHM at 662 keV, %','l.tol':'Tolerance, %','l.set':'Use set:','l.hide':'Hide unknown peaks',
+'l.all':'--- All Nuclides ---',
+'l.g1':'visible','l.g2':'in the set','l.g3':'yield ≥ 0.1 %','l.g4':'miss ≤ 1.5 FWHM','l.g5':'miss < tolerance',
+'l.flag':'label above the peak:','l.hidden':'peak hidden: no name, and the set has “Hide unknown peaks”','l.win':'winner — the smallest relative miss','l.riv':'rivals (worse by at most 0.10 FWHM): <b>{0}</b>',
+'l.c0':'Line','l.c1':'keV','l.c2':'yield, %','l.c3':'miss, keV','l.c4':'miss, %','l.c5':'visible','l.c6':'in set','l.c7':'yield','l.c8':'≤ 1.5 FWHM','l.c9':'< tolerance','l.none':'no library lines nearby',
+'m.f1':'<b>Gates in order:</b> the line is visible, in the set, its yield is at least 0.1 %, the miss is at most 1.5 FWHM and below the tolerance.',
+'m.f2':'<b>The winner is decided by relative miss</b>, rivals by the difference of misses: up to 0.10 FWHM. A flag carries at most three names.',
+'m.f3':'<b>Numbers use the first name.</b> Activity, chain and the FSA composition follow the winner; rivals are a hint for the eye.',
+'b.k':'Library','b.h':'The line library and nuclide sets',
+'b.lead':'The library is a phone book: every row is one nuclide line with energy and yield. A set is a list of “favourites” from that book for a particular sample: only they label peaks.',
+'b.cap1':'“Edit Nuclide Definition”: Am-241 selected (59.5409 keV, 35.9 %)',
+'b.d1':'<b>Nuclide List</b> — all lines: name, energy, half-life',
+'b.d2':'<b>New / Delete</b> — add or remove a line',
+'b.d3':'<b>Name and Chain</b> — the line name and the chain it belongs to',
+'b.d4':'<b>Energy and Half-life</b> — keV and years',
+'b.d5':'<b>Peak Color</b> — colour of the flag and lines on the chart',
+'b.d6':'<b>Intensity</b> — line yield, %; below 0.1 % it labels no peaks',
+'b.d7':'<b>Visible</b> — unchecked, the line takes no part in labels',
+'b.d8':'<b>Save / Close</b> — the library and the sets live in one file',
+'b.cap2':'“Edit Nuclide Sets”: the “Ra-226” set',
+'b.e1':'<b>Set name</b> — what you see in “Use set:”',
+'b.e2':'<b>Hide unknown peaks</b> — peaks without a name are not shown',
+'b.e3':'<b>Intensity lines</b> — draw the set’s lines over the spectrum: height is yield, colour is the nuclide colour',
+'b.e4':'<b>Assign peak color + Assign</b> — one colour for all ticked nuclides',
+'b.e5':'<b>Add new set / Delete set</b>',
+'b.e6':'<b>Filter</b> — find a line by name or energy',
+'b.e7':'<b>Mark nuclides included in set</b> — ticks on library rows',
+'b.e8':'<b>Save</b> — write the library and the sets',
+'b.steps':'Step by step: your own set for a caesium sample',
+'b.s1':'<span class="ui m">Tool → Edit Nuclide Sets...</span>',
+'b.s2':'<span class="ui">Add new set</span> → type a name, e.g. “Mushrooms Cs”.',
+'b.s3':'On the right type “Cs-137” into <span class="ui">Filter:</span>, tick the line; the same for K-40 and Pb x-ray (the shield’s lead).',
+'b.s4':'For a colour of your own pick it in <span class="ui">Assign peak color:</span> and press <span class="ui">Assign</span>.',
+'b.s5':'<span class="ui">Save</span> → on the “Peak Detection” panel choose the set in <span class="ui">Use set:</span>.',
+'b.f1':'<b>The set is the first rule of accuracy.</b> The closer the set describes the sample, the fewer strangers’ names on its peaks.',
+'b.f2':'<b>The colour belongs to the nuclide, not the set.</b> “Assign” recolours the ticked nuclides in the whole library.',
+'b.f3':'<b>Background and potassium belong in the set too.</b> K-40, the radium and thorium chains and the shield’s lead are in almost any spectrum.',
+'n.k':'Database','n.h':'The NucBase isotope database',
+'n.lead':'NucBase is an encyclopedia: lines of thousands of nuclides with yields, half-lives and decay chains. From here lines are <b>imported</b> into your library. Open it via <span class="ui m">Tool → Isotope base...</span>.',
+'n.cap':'“Isotope Database”: searching for Cs-137',
+'n.l1':'<b>Isotope Name</b> — the name to search: Cs-137, Cs137 or 137CS',
+'n.l2':'<b>Include decay chain</b> — with the decay products (the whole chain)',
+'n.l3':'<b>% Intensity &gt;, T½ &gt;, Energy between</b> — drop weak lines, short-lived nuclides and other ranges',
+'n.l4':'<b>Search</b> — fill the line table',
+'n.l5':'<b>Line table</b> — tick X, name, type, energy, yield, decay, half-life',
+'n.l6':'<b>Isotope Info</b> — Z, N, T½, specific activity, abundance',
+'n.l7':'<b>Decay Parents and Decay Daughters</b> — where the nuclide comes from and what it decays to',
+'n.l8':'<b>Import selected items to nuclide definition list</b> + overwrite on equal energy, parent name, name format',
+'n.steps':'Step by step: import the radium chain',
+'n.s1':'<span class="ui m">Tool → Isotope base...</span>; type Ra-226 into <span class="ui">Isotope Name</span>.',
+'n.s2':'Tick <span class="ui">Include decay chain</span>, put e.g. 1 into <span class="ui">% Intensity &gt;</span> to skip weak lines → <span class="ui">Search</span>.',
+'n.s3':'Tick X for the lines you need: Pb-214 295 and 352, Bi-214 609, 1120, 1764…',
+'n.s4':'<span class="ui">Append main isotope to decay product</span> gives names like “Pb214 (Ra226)”.',
+'n.s5':'<span class="ui">Import selected items to nuclide definition list</span>.',
+'n.s6':'<span class="ui m">Tool → Edit Nuclide Sets...</span> → tick the new lines in the right set → <span class="ui">Save</span>.',
+'n.warn':'<b>Imported lines are green and belong to no set.</b> Until you tick them in a set they label peaks only with “--- All Nuclides ---”. An open “Edit Nuclide Definition” window sees the import at once.',
+'q.h':'Identify the nuclide by its lines',
+'q.ask':'Whose lines are these?','q.next':'Next','q.score':'{0} of {1}','q.right':'Right! ','q.wrong':'No — it is {0}. ','q.done':'Done: {0} of {1}. “Next” starts a new round.',
+'q.e.cs':'One strong 662 line and the barium X-ray at 32 — the calling card of Cs-137.','q.e.co':'Two lines, 1173 and 1332, of almost equal height — Co-60.','q.e.am':'A single low line at 59.5 keV — Am-241 from a smoke detector.',
+'q.e.ra':'295, 352, 609, 1764 — lead-214 and bismuth-214: the radium-226 chain.','q.e.th':'239, 583, 911, 2614 — lead-212, actinium-228, thallium-208: the thorium-232 chain.','q.e.k':'A lone 1461 line — K-40, potassium is in concrete, fertiliser and bananas.',
+'q.e.na':'511 (annihilation) and 1275 — Na-22.','q.e.ba':'81, 303 and 356 — Ba-133; 356 is easy to mix up with Pb-214 352.',
+'hoodtxt':'<li><b>Search</b> is a matched filter: every channel is convolved with a “Mexican hat” kernel whose width comes from the FWHM calibration (the kernel sums to zero), SNR = signal / √(Σ count·weight²). A peak is a local SNR maximum not below the threshold; its width from the SNR curvature is checked against the width tolerance of the “Analysis” tab.</li><li><b>Defaults</b>: Min SNR 10, Tolerance 10 %, at most 40 peaks, range 30–2800 keV; for the search the spectrum is merged down to 1024 channels (a setting on the “Analysis” tab), and neighbouring peaks are no closer than 5 of those channels.</li><li><b>With background subtracted</b> the noise is honest: the variance of the difference is n<sub>s</sub> + k²·n<sub>b</sub>, not the difference itself — otherwise phantoms rose on an empty spectrum.</li><li><b>Label</b>: the line is visible, in the set, yield ≥ 0.1 % (0 means “not set” and passes), miss ≤ 1.5 FWHM of the peak and miss/energy &lt; Tolerance; the winner has the smallest relative miss, rivals differ in miss by ≤ 0.10 FWHM, at most 3 names in all.</li><li><b>On top of labels</b> — whole-spectrum rules: the 1022 keV peak (two annihilation quanta) gets an instrument label before any nuclide one, and a weak line needs confirmation by another line of the same name.</li>',
+}});
+
+/* ── учебная библиотека: [имя, кэВ, выход %, видима] ── */
+const LIB = [
+  ['W x-ray', 57.981, 0, 1], ['W x-ray', 59.318, 0, 1], ['Am-241', 59.5409, 35.9, 1], ['Th-234 (U-238)', 63.29, 3.7, 1], ['Pb x-ray', 74.969, 0, 1], ['Ba-133', 80.998, 33.3, 1],
+  ['Lu-176', 88.34, 14.5, 1], ['Th-234 (U-238)', 92.38, 2.13, 1], ['U-235', 143.76, 10.96, 1], ['Pu-238', 152.72, 0.00094, 1], ['U-235', 163.356, 5.08, 1], ['U-235', 185.715, 57.0, 1],
+  ['Ra-226', 186.211, 3.64, 1], ['Lu-176', 201.83, 78.0, 1], ['U-235', 205.316, 5.01, 1], ['Pb-212 (Th-232)', 238.632, 43.6, 1], ['Pb-214 (Ra-226)', 241.995, 7.27, 1],
+  ['Ra-223', 269.46, 13.9, 0], ['Pb-214 (Ra-226)', 295.224, 18.42, 1], ['Ba-133', 302.851, 18.3, 1], ['Lu-176', 306.78, 93.6, 1], ['Ac-228 (Th-232)', 338.32, 11.27, 1],
+  ['Pb-214 (Ra-226)', 351.932, 35.6, 1], ['Ba-133', 356.013, 62.05, 1], ['I-131', 364.49, 81.5, 1], ['Tl-208 (Th-232)', 583.187, 30.4, 1], ['Cs-134', 604.721, 97.6, 1],
+  ['Bi-214 (Ra-226)', 609.312, 45.49, 1], ['Cs-137', 661.657, 85.1, 1], ['Bi-214 (Ra-226)', 768.356, 4.89, 1], ['Cs-134', 795.864, 85.5, 1], ['Tl-208 (Th-232)', 860.56, 4.5, 1],
+  ['Ac-228 (Th-232)', 911.204, 25.8, 1], ['Ac-228 (Th-232)', 968.971, 15.8, 1], ['Pa-234m (U-238)', 1001.03, 0.842, 1], ['Bi-214 (Ra-226)', 1120.287, 14.91, 1],
+  ['Co-60', 1173.228, 99.85, 1], ['Bi-214 (Ra-226)', 1238.11, 5.83, 1], ['Na-22', 1274.537, 99.94, 1], ['Co-60', 1332.492, 99.98, 1], ['K-40', 1460.82, 10.66, 1],
+  ['Bi-214 (Ra-226)', 1764.494, 15.31, 1], ['Bi-214 (Ra-226)', 2204.21, 4.91, 1], ['Tl-208 (Th-232)', 2614.511, 35.8, 1]];
+const SETS = [
+  ['all', 'l.all', null],
+  ['ra', 'Ra-226', ['Ra-226', 'Pb-214 (Ra-226)', 'Bi-214 (Ra-226)', 'Pb x-ray']],
+  ['cs', 'Cs-137 + K-40', ['Cs-137', 'K-40', 'Pb x-ray']],
+  ['th', 'Th-232 + K-40', ['Pb-212 (Th-232)', 'Ac-228 (Th-232)', 'Tl-208 (Th-232)', 'K-40', 'Pb x-ray']]];
+const inSet = (L, set) => !set || set.includes(L[0]);
+/* подбор имени — правило MatchNuclides: ворота, победитель по относительному промаху, соперники ≤ 0.10 FWHM, до 3 имён */
+function matchNames(Ep, fwKeV, tol, set) {
+  const acc = []; let best = null, minD = Infinity;
+  LIB.forEach(L => {
+    if (!L[3] || !inSet(L, set)) return; if (L[2] > 0 && L[2] < 0.1) return;
+    const miss = Math.abs(Ep - L[1]); if (miss > 1.5 * fwKeV) return; const d = miss / L[1]; if (d >= tol / 100) return;
+    acc.push(L); if (d < minD) { minD = d; best = L; }
+  });
+  if (!best) return [];
+  const out = [best], bm = Math.abs(Ep - best[1]), riv = [];
+  acc.forEach(L => { if (L === best) return; const m = Math.abs(Ep - L[1]); if (Math.abs(m - bm) > 0.10 * fwKeV) return; let at = riv.length; while (at > 0 && Math.abs(Ep - riv[at - 1][1]) > m) at--; riv.splice(at, 0, L); });
+  riv.forEach(L => { if (out.length >= 3) return; if (!out.some(o => o[0] === L[0])) out.push(L); });
+  return out;
+}
+
+/* ── 1. ловец пиков: модель, согласованный фильтр, порог ── */
+(function catcher() {
+  const NCH = 1024, A0 = 3.0, A1 = 2.93, F662 = 0.075;
+  const En = c => A0 + A1 * c, chE = E => (E - A0) / A1, fwk = E => F662 * 662 * Math.sqrt(Math.max(E, 20) / 662), fwc = c => fwk(En(c)) / A1;
+  // настоящие линии пробы, имп/с в пике
+  const LINES = [[74.97, 'Pb x-ray', 4.5], [238.63, 'Pb-212 (Th-232)', 1.08], [295.22, 'Pb-214 (Ra-226)', 1.8], [351.93, 'Pb-214 (Ra-226)', 3.15], [583.19, 'Tl-208 (Th-232)', 0.6], [609.31, 'Bi-214 (Ra-226)', 3.15],
+    [661.66, 'Cs-137', 1.8], [768.36, 'Bi-214 (Ra-226)', 0.36], [911.2, 'Ac-228 (Th-232)', 0.45], [1120.29, 'Bi-214 (Ra-226)', 0.9], [1238.11, 'Bi-214 (Ra-226)', 0.36], [1460.82, 'K-40', 2.1], [1764.49, 'Bi-214 (Ra-226)', 0.81], [2614.5, 'Tl-208 (Th-232)', 0.45]];
+  const RATE = new Float64Array(NCH);
+  for (let c = 0; c < NCH; c++) { const E = En(c); RATE[c] = (1.2 * Math.exp(-E / 150) + .12 * Math.exp(-E / 600) + .004) / (1 + Math.exp(-(E - 22) / 2.5)); }
+  LINES.forEach(([E0, , a]) => { const sg = fwk(E0) / 2.355, ce = E0 * (2 * E0 / 511) / (1 + 2 * E0 / 511);
+    for (let c = 0; c < NCH; c++) { const E = En(c); RATE[c] += a * A1 / (sg * 2.5066) * Math.exp(-0.5 * ((E - E0) / sg) ** 2) + (E0 > 150 ? 1.9 * a * A1 / ce * (0.55 + 0.45 * E / ce) / (1 + Math.exp((E - ce) / (0.7 * sg))) : 0); } });
+  // ядро «мексиканская шляпа» (минус вторая производная гаусса, по бинам), отрицательная часть уравновешена
+  const KER = [];
+  for (let c = 0; c < NCH; c++) {
+    const sg = fwc(c) / 2.35482, lo = Math.max(0, Math.floor(c - 8 * sg)), hi = Math.min(NCH - 1, Math.ceil(c + 8 * sg)), w = new Float64Array(hi - lo + 1);
+    const g1 = x => { const z = x - (c + 0.5); return -z * Math.exp(-0.5 * (z / sg) ** 2) / (sg * sg); };
+    let pos = 0, neg = 0; for (let j = lo; j <= hi; j++) { const v = g1(j) - g1(j + 1); w[j - lo] = v; if (v >= 0) pos += v; else neg -= v; }
+    const ns = neg > 0 ? pos / neg : 1; for (let j = 0; j < w.length; j++) if (w[j] < 0) w[j] *= ns;
+    KER.push([lo, w]);
+  }
+  const TIMES = [600, 3600, 36000]; let ti = 1, SPEC = null, SNR = null;
+  function acquire() {
+    SPEC = Float64Array.from(RATE, r => poisson(r * TIMES[ti])); SNR = new Float64Array(NCH);
+    for (let c = 0; c < NCH; c++) { const [lo, w] = KER[c]; let s = 0, n = 0; for (let j = 0; j < w.length; j++) { const d = SPEC[lo + j]; s += d * w[j]; n += d * w[j] * w[j]; } SNR[c] = n > 0 ? Math.max(0, s / Math.sqrt(n)) : 0; }
+  }
+  function find(minSnr) {
+    const out = [];
+    for (let i = 1; i < NCH - 1; i++) {
+      if (!(SNR[i - 1] < SNR[i] && SNR[i] >= SNR[i + 1]) || SNR[i] < minSnr) continue; const E = En(i); if (E < 30 || E > 2800) continue;
+      const f0 = fwc(i), h = Math.max(1, Math.floor(0.2 * f0)); if (i - h < 0 || i + h > NCH - 1) continue;
+      const d2 = (SNR[i - h] - 2 * SNR[i] + SNR[i + h]) / (h * h); if (d2 >= 0) continue;
+      const f = 2 * Math.sqrt(2 * SNR[i] / -d2); if (f < 0.01 * f0 || f > 1.99 * f0) continue;
+      if (out.some(p => Math.abs(p.c - i) <= 5)) continue;
+      out.push({ c: i, E, snr: SNR[i] });
+    }
+    out.sort((a, b) => b.snr - a.snr); return out.slice(0, 40).sort((a, b) => a.c - b.c);
+  }
+  const cv = $('#cvF'), cs = $('#cvSnr'), r = $('#rSnr');
+  function draw() {
+    const minSnr = +r.value; $('#vSnr').textContent = minSnr;
+    const P = find(minSnr);
+    P.forEach(p => { p.line = LINES.find(L => Math.abs(L[0] - p.E) <= fwk(L[0])); p.names = matchNames(p.E, fwk(p.E), 10, null); });
+    const missed = LINES.filter(L => L[0] >= 30 && L[0] <= 2800 && !P.some(p => Math.abs(L[0] - p.E) <= fwk(L[0])));
+    // спектр
+    let { ctx, w, h } = setup(cv); let bx = { l: 50, t: 44, r: w - 10, b: h - 24 };
+    const X = scale('lin', 0, 3000, bx.l, bx.r); let mx = 0; for (let c = 10; c < NCH; c++) mx = Math.max(mx, SPEC[c]);
+    const Y = scale('sqrt', 0, mx * 1.05, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { yl: t('ax.c') });
+    ctx.beginPath(); ctx.moveTo(X(En(0)), bx.b); for (let c = 0; c < NCH; c++) ctx.lineTo(X(En(c)), Y(SPEC[c])); ctx.lineTo(X(En(NCH - 1)), bx.b); ctx.closePath();
+    const gr = ctx.createLinearGradient(0, bx.t, 0, bx.b); gr.addColorStop(0, 'rgba(91,227,138,.75)'); gr.addColorStop(1, 'rgba(91,227,138,.12)'); ctx.fillStyle = gr; ctx.fill();
+    ctx.font = '600 10.5px system-ui'; ctx.textAlign = 'center';
+    missed.forEach(L => { const x = X(L[0]); ctx.strokeStyle = 'rgba(106,120,153,.9)'; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x, bx.t + 6); ctx.lineTo(x, bx.b); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = '#6a7899'; ctx.beginPath(); ctx.arc(x, bx.b - 4, 4, 0, 7); ctx.fill(); });
+    const rowEnd = [-1e9, -1e9, -1e9];
+    P.forEach(p => {
+      const x = X(p.E), y = Math.max(bx.t + 8, Y(SPEC[p.c]) - 6), col = p.line ? '#5be38a' : '#ff4d6d';
+      const lab = p.names.length ? p.names.map(n => n[0].replace(/ \(.*\)/, '')).join(' / ') : t('unk'), tw = ctx.measureText(lab).width;
+      const row = rowEnd.findIndex(e => e < x - tw / 2 - 4);
+      ctx.strokeStyle = rgba(col, .8); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, row >= 0 ? bx.t - 14 + row * 12 : y - 10); ctx.stroke();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 3.5, 0, 7); ctx.fill();
+      if (row >= 0) { rowEnd[row] = x + tw / 2; ctx.fillText(lab, x, bx.t - 18 + row * 12); }
+    });
+    ctx.fillStyle = '#93a3c4'; ctx.textAlign = 'right'; ctx.font = '11.5px system-ui'; ctx.fillText(t('ax.e'), bx.r, bx.b - 6);
+    // полоса SNR
+    ({ ctx, w, h } = setup(cs)); bx = { l: 50, t: 8, r: w - 10, b: h - 8 };
+    const X2 = scale('lin', 0, 3000, bx.l, bx.r); let sm = minSnr * 1.3; for (let c = 10; c < NCH; c++) sm = Math.max(sm, SNR[c]);
+    const Y2 = scale('sqrt', 0, sm, bx.b, bx.t);
+    axes(ctx, bx, X2, Y2, { xt: [], yt: [minSnr], yf: v => v, yl: t('ax.snr') });
+    ctx.beginPath(); for (let c = 0; c < NCH; c++) { const x = X2(En(c)), y = Y2(SNR[c]); c ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.strokeStyle = '#6aa8ff'; ctx.lineWidth = 1.2; ctx.stroke(); ctx.lineWidth = 1;
+    ctx.strokeStyle = '#ffcc33'; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(bx.l, Y2(minSnr)); ctx.lineTo(bx.r, Y2(minSnr)); ctx.stroke(); ctx.setLineDash([]);
+    P.forEach(p => { ctx.fillStyle = p.line ? '#5be38a' : '#ff4d6d'; ctx.beginPath(); ctx.arc(X2(p.E), Y2(p.snr), 3, 0, 7); ctx.fill(); });
+    const nt = P.filter(p => p.line).length;
+    $('#gRes').innerHTML = '<span class="pill">' + t('g.found', P.length) + '</span><span class="pill good">' + t('g.true', nt) + '</span><span class="pill ' + (P.length - nt ? 'bad' : '') + '">' + t('g.false', P.length - nt) + '</span><span class="pill ' + (missed.length ? 'bad' : 'good') + '">' + t('g.miss', missed.length) + '</span>';
+  }
+  $('#cTime').innerHTML = ['g.t1', 'g.t2', 'g.t3'].map((k, i) => '<button class="chip' + (i === ti ? ' on' : '') + '" data-i="' + i + '" data-t="' + k + '">' + t(k) + '</button>').join('');
+  $$('#cTime .chip').forEach(b => b.onclick = () => { ti = +b.dataset.i; $$('#cTime .chip').forEach(x => x.classList.toggle('on', x === b)); acquire(); draw(); });
+  r.addEventListener('input', draw); $('#bNoise').onclick = () => { acquire(); draw(); };
+  acquire(); io.observe(cv); GUIDE.onRedraw(draw);
+})();
+
+/* ── 2. подписыватель ── */
+(function labeller() {
+  const rE = $('#rLE'), rF = $('#rLF'), rT = $('#rLT'), cv = $('#cvL'); let setId = 'all';
+  const PRE = [[59.6, 'Am-241'], [186, 'U-235 / Ra-226'], [353.5, 'Pb-214 / Ba-133'], [607, 'Bi-214 / Cs-134'], [152.7, 'Pu-238?'], [1001, 'Pa-234m'], [1458, 'K-40']];
+  $('#lPre').innerHTML = PRE.map(([e, n]) => '<button class="chip" data-e="' + e + '">' + fx(e, 1) + ' · ' + n + '</button>').join('');
+  $$('#lPre .chip').forEach(b => b.onclick = () => { rE.value = b.dataset.e; draw(); });
+  function setChips() {
+    $('#lSet').innerHTML = SETS.map(([id, nm]) => '<button class="chip' + (id === setId ? ' on' : '') + '" data-id="' + id + '">' + (nm.indexOf('l.') === 0 ? t(nm) : nm) + '</button>').join('');
+    $$('#lSet .chip').forEach(b => b.onclick = () => { setId = b.dataset.id; setChips(); draw(); });
+  }
+  const ok = v => v === null ? '<span class="na">—</span>' : v ? '<span class="ok">✓</span>' : '<span class="no">✗</span>';
+  function draw() {
+    const Ep = +rE.value, f = +rF.value, tol = +rT.value, fwK = f / 100 * 662 * Math.sqrt(Ep / 662), set = SETS.find(s => s[0] === setId)[2];
+    $('#vLE').textContent = fx(Ep, 1); $('#vLF').textContent = fx(f, 1) + ' %'; $('#vLT').textContent = fx(tol, 1) + ' %';
+    const half = Math.max(4 * fwK, 25), e0 = Math.max(0, Ep - half), e1 = Ep + half;
+    const names = matchNames(Ep, fwK, tol, set), win = names[0];
+    // таблица кандидатов в окне
+    const rows = LIB.filter(L => L[1] >= e0 && L[1] <= e1).map(L => {
+      const miss = Math.abs(Ep - L[1]), g = [!!L[3], inSet(L, set), !(L[2] > 0 && L[2] < 0.1), miss <= 1.5 * fwK, miss / L[1] < tol / 100];
+      return { L, miss, g, pass: g.every(Boolean) };
+    });
+    // ворота: сколько линий окна дошло до каждого шага
+    let alive = rows.slice(); const gates = [];
+    for (let k = 0; k < 5; k++) { alive = alive.filter(r => r.g[k]); gates.push(alive.length); }
+    $('#lGates').innerHTML = ['l.g1', 'l.g2', 'l.g3', 'l.g4', 'l.g5'].map((k, i) => '<div class="gate"><b>' + (i + 1) + '. ' + t(k) + '</b><span class="n" style="color:' + (gates[i] ? 'var(--ok)' : 'var(--photo)') + '">' + gates[i] + '</span> / ' + rows.length + '</div>').join('');
+    // холст
+    const { ctx, w, h } = setup(cv), bx = { l: 14, t: 46, r: w - 14, b: h - 24 }, X = scale('lin', e0, e1, bx.l, bx.r);
+    axes(ctx, bx, X, scale('lin', 0, 1, bx.b, bx.t), { noY: true, xl: t('ax.e') });
+    const lo = Ep / (1 + tol / 100), hi = Ep / (1 - tol / 100);
+    ctx.fillStyle = 'rgba(255,204,51,.10)'; ctx.fillRect(X(lo), bx.t, X(hi) - X(lo), bx.b - bx.t);
+    ctx.fillStyle = 'rgba(106,168,255,.16)'; ctx.fillRect(X(Ep - 1.5 * fwK), bx.t, X(Ep + 1.5 * fwK) - X(Ep - 1.5 * fwK), bx.b - bx.t);
+    // пик
+    const sg = fwK / 2.355; ctx.beginPath(); for (let i = 0; i <= 200; i++) { const e = e0 + (e1 - e0) * i / 200, y = bx.b - (bx.b - bx.t) * 0.78 * Math.exp(-0.5 * ((e - Ep) / sg) ** 2); i ? ctx.lineTo(X(e), y) : ctx.moveTo(X(e), y); }
+    ctx.lineTo(X(e1), bx.b); ctx.lineTo(X(e0), bx.b); ctx.closePath(); ctx.fillStyle = 'rgba(91,227,138,.28)'; ctx.fill(); ctx.strokeStyle = '#5be38a'; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1;
+    // линии библиотеки
+    ctx.font = '600 10.5px system-ui'; ctx.textAlign = 'center';
+    rows.forEach((rw, i) => {
+      const x = X(rw.L[1]), hh = rw.L[2] > 0 ? 0.15 + 0.6 * clamp(Math.log10(rw.L[2] * 10) / 3, 0, 1) : 0.4, y = bx.b - (bx.b - bx.t) * hh;
+      const isW = win && rw.L === win, isR = names.indexOf(rw.L) > 0;
+      const col = isW ? '#ffcc33' : isR ? '#ff9f43' : rw.pass ? '#5be38a' : '#6a7899';
+      ctx.strokeStyle = col; ctx.lineWidth = isW || isR ? 3 : 2; if (!rw.g[0] || !rw.g[1] || !rw.g[2]) ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(x, bx.b); ctx.lineTo(x, y); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1;
+      ctx.fillStyle = col; ctx.fillText(rw.L[0].replace(/ \(.*\)/, '') + (isW ? ' ★' : ''), x, y - 6 - (i % 2) * 11);
+    });
+    // флажок над пиком
+    let flag = names.length ? names.map(n => n[0]).join(' / ') : t('unk'); const hidden = !names.length && set && $('#kHide').checked;
+    if (!hidden) { ctx.font = '12px "Segoe UI",system-ui'; const tw = ctx.measureText(flag).width + 16, x = clamp(X(Ep), bx.l, bx.r - tw), y = 8;
+      ctx.fillStyle = '#fffbd0'; ctx.strokeStyle = '#000'; ctx.beginPath(); ctx.moveTo(x, y + 16); ctx.lineTo(x + 6, y); ctx.lineTo(x + tw, y); ctx.lineTo(x + tw, y + 16); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#111'; ctx.textAlign = 'left'; ctx.fillText(flag, x + 10, y + 12); ctx.strokeStyle = 'rgba(255,120,200,.7)'; ctx.beginPath(); ctx.moveTo(X(Ep), y + 16); ctx.lineTo(X(Ep), bx.b); ctx.stroke(); }
+    // итог
+    const pills = ['<span class="pill">' + t('l.flag') + ' ' + (hidden ? '—' : '<span class="flagbox">' + flag + '</span>') + '</span>'];
+    if (hidden) pills.push('<span class="pill bad">' + t('l.hidden') + '</span>');
+    if (win) { pills.push('<span class="pill good">' + t('l.win') + ': <b>' + win[0] + ' ' + fx(win[1], 2) + '</b></span>'); pills.push('<span class="pill">' + t('l.riv', names.length - 1) + '</span>'); }
+    $('#lRes').innerHTML = pills.join('');
+    $('#lTbl').innerHTML = '<tr>' + ['l.c0', 'l.c1', 'l.c2', 'l.c3', 'l.c4', 'l.c5', 'l.c6', 'l.c7', 'l.c8', 'l.c9'].map(k => '<th>' + t(k) + '</th>').join('') + '</tr>' +
+      (rows.length ? rows.map(rw => '<tr class="' + (win && rw.L === win ? 'win' : names.indexOf(rw.L) > 0 ? 'riv' : '') + '"><td>' + rw.L[0] + '</td><td>' + fx(rw.L[1], 2) + '</td><td>' + (rw.L[2] > 0 ? sig(rw.L[2], 3) : '—') + '</td><td>' + fx(rw.miss, 2) + '</td><td>' + fx(rw.miss / rw.L[1] * 100, 2) + '</td>' + rw.g.map(ok).join('') + '</tr>').join('')
+        : '<tr><td colspan="10">' + t('l.none') + '</td></tr>');
+  }
+  [rE, rF, rT].forEach(x => x.addEventListener('input', draw)); $('#kHide').onchange = draw;
+  setChips(); io.observe(cv); GUIDE.onRedraw(() => { setChips(); draw(); });
+})();
+
+/* ── 3. квиз ── */
+(function quiz() {
+  const Q = [
+    ['Cs-137', [[661.66, 1], [32.1, .25]], 'q.e.cs'], ['Co-60', [[1173.23, 1], [1332.49, .9]], 'q.e.co'], ['Am-241', [[59.54, 1]], 'q.e.am'],
+    ['Ra-226', [[295.22, .5], [351.93, .9], [609.31, 1], [1120.29, .3], [1764.49, .3]], 'q.e.ra'], ['Th-232', [[238.63, 1], [583.19, .6], [911.2, .4], [2614.51, .35]], 'q.e.th'],
+    ['K-40', [[1460.82, 1]], 'q.e.k'], ['Na-22', [[511, 1], [1274.54, .45]], 'q.e.na'], ['Ba-133', [[81, .7], [302.85, .35], [356.01, 1]], 'q.e.ba']];
+  const ALL = Q.map(q => q[0]);
+  let order = [], k = 0, score = 0, chosen = null, cur = null, opts = [];
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  function round() { order = shuffle(Q.slice()).slice(0, 5); k = 0; score = 0; ask(); }
+  function ask() { cur = order[k]; chosen = null; opts = shuffle([cur[0]].concat(shuffle(ALL.filter(n => n !== cur[0])).slice(0, 3))); render(); }
+  function render() {
+    const { ctx, w, h } = setup($('#cvQ')), bx = { l: 12, t: 10, r: w - 12, b: h - 22 }, X = scale('log', 25, 3000, bx.l, bx.r);
+    axes(ctx, bx, X, scale('lin', 0, 1, bx.b, bx.t), { noY: true, xt: [30, 50, 100, 200, 500, 1000, 2000], xl: GUIDE.lang === 'ru' ? 'кэВ' : 'keV' });
+    ctx.beginPath(); for (let i = 0; i <= 400; i++) { const E = 25 * Math.pow(120, i / 400); let y = 0.18 * Math.exp(-E / 300) + 0.03; cur[1].forEach(([E0, a]) => { const s = 0.07 * 662 * Math.sqrt(E0 / 662) / 2.355; y += 0.72 * a * Math.exp(-0.5 * ((E - E0) / s) ** 2); }); const px = X(E), py = bx.b - (bx.b - bx.t) * y; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+    ctx.lineTo(bx.r, bx.b); ctx.lineTo(bx.l, bx.b); ctx.closePath(); ctx.fillStyle = 'rgba(195,139,255,.3)'; ctx.fill(); ctx.strokeStyle = '#c38bff'; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1;
+    $('#qLines').innerHTML = cur[1].map(([E]) => '<span class="pill"><b>' + fx(E, 1) + '</b> ' + (GUIDE.lang === 'ru' ? 'кэВ' : 'keV') + '</span>').join('');
+    $('#qAns').innerHTML = opts.map(n => '<button class="btn" data-n="' + n + '">' + n + '</button>').join('');
+    $$('#qAns .btn').forEach(b => b.onclick = () => pick(b.dataset.n));
+    $('#qScore').textContent = t('q.score', score, k + (chosen ? 1 : 0));
+    $('#qMsg').innerHTML = '';
+    if (chosen) marks();
+  }
+  function marks() {
+    const right = chosen === cur[0];
+    $$('#qAns .btn').forEach(x => { x.disabled = true; if (x.dataset.n === cur[0]) x.classList.add('right'); else if (x.dataset.n === chosen) x.classList.add('wrong'); });
+    $('#qMsg').innerHTML = '<span class="pill ' + (right ? 'good' : 'bad') + '">' + (right ? t('q.right') : t('q.wrong', cur[0])) + t(cur[2]) + '</span>' + (k === order.length - 1 ? '<span class="pill">' + t('q.done', score, order.length) + '</span>' : '');
+  }
+  function pick(n) {
+    if (chosen) return; chosen = n; if (n === cur[0]) score++;
+    marks(); $('#qScore').textContent = t('q.score', score, k + 1);
+  }
+  $('#qNext').onclick = () => { if (!chosen) return; if (k < order.length - 1) { k++; ask(); } else round(); };
+  order = shuffle(Q.slice()).slice(0, 5); cur = order[0]; opts = shuffle([cur[0]].concat(shuffle(ALL.filter(n => n !== cur[0])).slice(0, 3)));
+  io.observe($('#cvQ')); GUIDE.onRedraw(render);
+})();
+
+GUIDE.init();
+</script>
+</body>
+</html>

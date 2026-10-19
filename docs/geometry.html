@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Геометрия и матрица — BecqMoni гайд</title>
+<link rel="stylesheet" href="assets/guide.css">
+<style>
+/* только эта глава: вкладки снимков, конвейер «где лежит кривая» */
+.tabsel{display:flex;flex-wrap:wrap;gap:6px;margin-top:18px}
+.pane{display:none}.pane.on{display:block}
+.pipe{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}
+.pipe button{position:relative;text-align:left;background:var(--panel2);border:1px solid #34426b;color:var(--soft);border-radius:12px;padding:9px 10px 9px 38px;font:inherit;font-size:13.5px;cursor:pointer;min-height:58px;transition:border-color .15s,background .15s}
+.pipe button b{position:absolute;left:9px;top:9px;width:22px;height:22px;border-radius:50%;background:#2a3658;color:var(--soft);display:grid;place-items:center;font-size:12px}
+.pipe button.done b{background:var(--ok);color:#06210f}
+.pipe button.on{border-color:var(--gold);background:linear-gradient(180deg,rgba(255,204,51,.14),var(--panel2))}
+.pipe button.on b{background:var(--gold);color:#1a1300}
+.where{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.place{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-height:118px;transition:border-color .25s,box-shadow .25s}
+.place.hit{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,204,51,.12)}
+.place h4{margin:0 0 6px;font-size:14px;color:var(--ink)}
+.place h4 small{display:block;color:var(--muted);font-weight:500;font-size:12px}
+.tag{display:inline-block;margin:3px 4px 0 0;border-radius:999px;padding:2px 9px;font-size:12.5px;font-weight:700}
+.tag.new{background:rgba(255,204,51,.18);color:#ffe08a}
+.tag.ok{background:rgba(91,227,138,.16);color:#bff5d2}
+.tag.wait{background:rgba(106,168,255,.16);color:#cfe1ff}
+.tag.none{background:transparent;border:1px dashed #3a4a78;color:var(--dim);font-weight:500}
+/* снимок и его легенда — в одной фигуре: подсветка точка ↔ пункт работает только внутри figure */
+figure.shot.side{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:6px 16px;align-items:start;margin-top:22px}
+figure.shot.side.nr{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)}
+figure.shot.side>.shot-frame{grid-column:1;grid-row:1}
+figure.shot.side>figcaption{grid-column:1;grid-row:2}
+figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
+@media (max-width:900px){.pipe{grid-template-columns:1fr 1fr}.where{grid-template-columns:1fr 1fr}
+  figure.shot.side,figure.shot.side.nr{grid-template-columns:1fr}figure.shot.side>ol.shot-legend{grid-column:1;grid-row:3}}
+@media (max-width:560px){.pipe,.where{grid-template-columns:1fr}}
+</style>
+</head>
+<body data-chapter="geometry">
+
+<section class="hero" id="top"><div class="wrap">
+  <div class="kicker" data-t="h.k"></div>
+  <h1 data-t="h.h"></h1>
+  <p class="lead" data-t="h.lead"></p>
+</div></section>
+
+<!-- 1. СОБЕРИТЕ САМИ -->
+<section class="sec" id="why" data-nav="n.why"><div class="wrap">
+  <div class="kicker" data-t="w.k"></div>
+  <h2 data-t="w.h"></h2>
+  <p class="lead" data-t="w.lead"></p>
+  <div class="card full">
+    <h3 data-t="g.h"></h3>
+    <p class="note" style="margin-top:0" data-t="g.hint"></p>
+    <canvas id="cvGeo" class="cv tall"></canvas>
+    <div class="row"><span class="lbl" data-t="g.det"></span><div class="chips" id="gDet"></div></div>
+    <div class="row"><span class="lbl" data-t="g.src"></span><div class="chips" id="gSrc"></div></div>
+    <div class="sliders">
+      <div class="sl" id="slDist"><div class="top"><span data-t="g.dist"></span><span class="val" id="vDist"></span></div><input type="range" id="rDist" min="0" max="150" step="1" value="0"></div>
+      <div class="sl" id="slDiam"><div class="top"><span data-t="g.diam"></span><span class="val" id="vDiam"></span></div><input type="range" id="rDiam" min="20" max="120" step="1" value="40"></div>
+      <div class="sl" id="slHgt"><div class="top"><span data-t="g.hgt"></span><span class="val" id="vHgt"></span></div><input type="range" id="rHgt" min="2" max="80" step="1" value="14"></div>
+      <div class="sl" id="slMd"><div class="top"><span data-t="g.mdiam"></span><span class="val" id="vMd"></span></div><input type="range" id="rMd" min="90" max="200" step="1" value="130"></div>
+      <div class="sl" id="slMf"><div class="top"><span data-t="g.mfill"></span><span class="val" id="vMf"></span></div><input type="range" id="rMf" min="40" max="200" step="1" value="120"></div>
+    </div>
+    <div class="tiles" id="gTiles"></div>
+    <div class="row"><button class="btn" id="gKeep" data-t="g.keep"></button><span class="pill" id="gKept"></span></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="w.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="w.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="w.f3"></div>
+  </div>
+</div></section>
+
+<!-- 2. ВКЛАДКА «ЭФФЕКТИВНОСТЬ» -->
+<section class="sec" id="tab" data-nav="n.tab"><div class="wrap">
+  <div class="kicker" data-t="t.k"></div>
+  <h2 data-t="t.h"></h2>
+  <p class="lead" data-t="t.lead"></p>
+  <div class="grid2 wl">
+    <figure class="shot" data-shot="devcfg-eff" data-hot='[[0.4502,0.0960,0.1697,0.0347],[0.6290,0.0960,0.1697,0.0347],[0.4502,0.1387,0.3485,0.0347],[0.8077,0.1387,0.1697,0.0347],[0.4502,0.2133,0.5271,0.0280],[0.4502,0.2507,0.5271,0.0520],[0.4502,0.3133,0.5204,0.6080],[0.8088,0.9560,0.0848,0.0333]]'>
+      <figcaption data-t="t.cap"></figcaption>
+      <ol class="shot-legend">
+        <li data-t="t.l1"></li><li data-t="t.l2"></li><li data-t="t.l3"></li><li data-t="t.l4"></li>
+        <li data-t="t.l5"></li><li data-t="t.l6"></li><li data-t="t.l7"></li><li data-t="t.l8"></li>
+      </ol>
+    </figure>
+    <div>
+      <h3 data-t="t.steps"></h3>
+      <ol class="howto">
+        <li data-t="t.s1"></li><li data-t="t.s2"></li><li data-t="t.s3"></li><li data-t="t.s4"></li><li data-t="t.s5"></li><li data-t="t.s6"></li>
+      </ol>
+      <div class="callout warn" data-t="t.warn"></div>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="t.f1"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="t.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="t.f3"></div>
+  </div>
+</div></section>
+
+<!-- 3. КОНСТРУКТОР КРИВОЙ -->
+<section class="sec" id="maker" data-nav="n.maker"><div class="wrap">
+  <div class="kicker" data-t="m.k"></div>
+  <h2 data-t="m.h"></h2>
+  <p class="lead" data-t="m.lead"></p>
+  <div class="tabsel chips" id="mTabs">
+    <button class="chip on" data-p="pDet" data-t="m.tab1"></button>
+    <button class="chip" data-p="pSrc" data-t="m.tab2"></button>
+    <button class="chip" data-p="pCalc" data-t="m.tab3"></button>
+  </div>
+  <div class="pane on" id="pDet">
+    <div class="grid2 wl">
+      <figure class="shot" data-shot="effmaker-detector" data-hot='[[0.1901,0.1623,0.3099,0.0590],[0.0393,0.2356,0.6094,0.0276],[0.0393,0.2668,0.4180,0.0577],[0.0393,0.3413,0.4180,0.1923],[0.0393,0.5421,0.5847,0.0276],[0.0393,0.5853,0.5537,0.2120],[0.0207,0.0865,0.2066,0.0312],[0.6860,0.1490,0.2893,0.7764]]'>
+        <figcaption data-t="m.cap1"></figcaption>
+        <ol class="shot-legend">
+          <li data-t="m.d1"></li><li data-t="m.d2"></li><li data-t="m.d3"></li><li data-t="m.d4"></li>
+          <li data-t="m.d5"></li><li data-t="m.d6"></li><li data-t="m.d7"></li><li data-t="m.d8"></li>
+        </ol>
+      </figure>
+      <div>
+        <div class="callout tip" data-t="m.tipDet"></div>
+        <div class="callout info" data-t="m.infoLsrm"></div>
+      </div>
+    </div>
+  </div>
+  <div class="pane" id="pSrc">
+    <div class="grid2 wl">
+      <figure class="shot" data-shot="effmaker-source" data-hot='[[0.2417,0.1623,0.3099,0.0590],[0.0393,0.2356,0.5940,0.0700],[0.0393,0.3149,0.4180,0.1950],[0.0393,0.5349,0.5537,0.1000],[0.0393,0.6671,0.5971,0.0733],[0.6860,0.1490,0.2893,0.7764],[0.0134,0.9531,0.1240,0.0312]]'>
+        <figcaption data-t="m.cap2"></figcaption>
+        <ol class="shot-legend">
+          <li data-t="m.s1"></li><li data-t="m.s2"></li><li data-t="m.s3"></li><li data-t="m.s4"></li>
+          <li data-t="m.s5"></li><li data-t="m.s6"></li><li data-t="m.s7"></li>
+        </ol>
+      </figure>
+      <div>
+        <div class="callout warn" data-t="m.air"></div>
+        <div class="callout info" data-t="m.field"></div>
+      </div>
+    </div>
+  </div>
+  <div class="pane" id="pCalc">
+    <div class="grid2 wl">
+      <figure class="shot" data-shot="effmaker-calc" data-hot='[[0.0434,0.1190,0.4783,0.0252],[0.5475,0.1190,0.2851,0.0252],[0.0434,0.1526,0.7860,0.0240],[0.0310,0.2079,0.2066,0.0312],[0.0134,0.2728,0.9731,0.3558],[0.0134,0.6334,0.9731,0.3053],[0.0134,0.9531,0.2542,0.0312]]'>
+        <figcaption data-t="m.cap3"></figcaption>
+        <ol class="shot-legend">
+          <li data-t="m.c1"></li><li data-t="m.c2"></li><li data-t="m.c3"></li><li data-t="m.c4"></li>
+          <li data-t="m.c5"></li><li data-t="m.c6"></li><li data-t="m.c7"></li>
+        </ol>
+      </figure>
+      <div>
+        <div class="callout tip" data-t="m.tipCalc"></div>
+      </div>
+    </div>
+  </div>
+  <h3 style="margin-top:26px" data-t="m.steps"></h3>
+  <ol class="howto">
+    <li data-t="m.st1"></li><li data-t="m.st2"></li><li data-t="m.st3"></li><li data-t="m.st4"></li><li data-t="m.st5"></li>
+  </ol>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="m.f1"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="m.f2"></div>
+    <div class="fact" style="--c:var(--esc)" data-t="m.f3"></div>
+  </div>
+</div></section>
+
+<!-- 4. МАТРИЦА ОТКЛИКА -->
+<section class="sec" id="matrix" data-nav="n.mx"><div class="wrap">
+  <div class="kicker" data-t="x.k"></div>
+  <h2 data-t="x.h"></h2>
+  <p class="lead" data-t="x.lead"></p>
+  <figure class="shot side nr" data-shot="respmatrix" data-hot='[[0.0231,0.0671,0.9537,0.2293],[0.0231,0.3089,0.9537,0.0530],[0.0231,0.3651,0.9537,0.1905],[0.0231,0.5803,0.2491,0.0265],[0.0231,0.6240,0.9537,0.1810],[0.0231,0.8128,0.9537,0.0390],[0.0231,0.9392,0.2135,0.0406],[0.2509,0.9392,0.4270,0.0406]]'>
+    <figcaption data-t="x.cap"></figcaption>
+    <ol class="shot-legend">
+      <li data-t="x.l1"></li><li data-t="x.l2"></li><li data-t="x.l3"></li><li data-t="x.l4"></li>
+      <li data-t="x.l5"></li><li data-t="x.l6"></li><li data-t="x.l7"></li><li data-t="x.l8"></li>
+    </ol>
+  </figure>
+  <div class="card full">
+    <h3 data-t="r.h"></h3>
+    <p class="note" style="margin-top:0" data-t="r.hint"></p>
+    <canvas id="cvRace" class="cv short"></canvas>
+    <div class="row">
+      <button class="btn main" id="rRun" data-t="r.run"></button>
+      <button class="btn" id="rReset" data-t="r.reset"></button>
+      <span class="lbl" data-t="r.speed"></span><div class="chips" id="rSpeed"></div>
+    </div>
+    <div class="pills" id="rRes"></div>
+  </div>
+  <div class="callout info" data-t="x.gpu"></div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--pair)" data-t="x.f1"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="x.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="x.f3"></div>
+  </div>
+</div></section>
+
+<!-- 5. КРИВАЯ ДЛЯ СПЕКТРА -->
+<section class="sec" id="use" data-nav="n.use"><div class="wrap">
+  <div class="kicker" data-t="u.k"></div>
+  <h2 data-t="u.h"></h2>
+  <p class="lead" data-t="u.lead"></p>
+  <div class="card full">
+    <h3 data-t="p.h"></h3>
+    <p class="note" style="margin-top:0" data-t="p.hint"></p>
+    <div class="pipe" id="pSteps"></div>
+    <div class="where" id="pWhere"></div>
+    <div class="pills" id="pSay"></div>
+  </div>
+  <figure class="shot side nr" data-shot="panel-control" data-hot='[[0.2090,0.1404,0.7504,0.0449],[0.2090,0.1928,0.5713,0.0393],[0.7931,0.1892,0.0553,0.0449],[0.2090,0.2379,0.7504,0.0449]]'>
+    <figcaption data-t="u.cap"></figcaption>
+    <ol class="shot-legend">
+      <li data-t="u.l1"></li><li data-t="u.l2"></li><li data-t="u.l3"></li><li data-t="u.l4"></li>
+    </ol>
+  </figure>
+  <div class="callout tip" data-t="u.tip"></div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="u.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="u.f2"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="u.f3"></div>
+  </div>
+  <details class="hood"><summary data-t="hood"></summary><ul data-t="hoodtxt"></ul></details>
+  <div id="pager"></div>
+</div></section>
+
+<footer><div class="wrap" data-t="foot"></div></footer>
+
+<script src="assets/guide.js"></script>
+<script>
+'use strict';
+const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, io, t, Jobs } = GUIDE;
+GUIDE.texts({ru:{
+'n.why':'Соберите сами','n.tab':'Вкладка «Эффективность»','n.maker':'Конструктор кривой','n.mx':'Матрица отклика','n.use':'Кривая для спектра',
+'h.k':'Глава 8 · Геометрия и матрица',
+'h.h':'Рассказать программе, <em>как стоит проба</em>',
+'h.lead':'Пик в спектре — это ещё не беккерели. Чтобы пересчитать отсчёты в распады, программе нужно знать, какой у вас кристалл и где стоит банка. Это описание называется геометрией; по ней BecqMoni сама считает кривую эффективности и матрицу отклика. Почему так — в главе <a href="how-it-works.html#geometry">«Как это устроено»</a>; здесь — где что нажимать.',
+'w.k':'Зачем','w.h':'Геометрия — как курс обмена «отсчёты → распады»',
+'w.lead':'Одна и та же проба даёт разный счёт, если банку отодвинуть или поставить на другой прибор: часть квантов просто летит мимо кристалла. Попробуйте — соберите сцену и посмотрите, какая доля квантов вообще летит в кристалл.',
+'g.h':'Соберите геометрию сами',
+'g.hint':'Выберите детектор и сосуд, двигайте размеры. Чертёж — разрез сбоку, как в окне программы. Ниже — доля квантов, чей путь проходит через кристалл: её считает сам браузер, «выстреливая» лучи из случайных точек пробы (золотые — попали, тёмные — мимо).',
+'g.det':'Детектор:','g.src':'Сосуд:',
+'g.s.point':'Точечный','g.s.cyl':'Цилиндр','g.s.mar':'Маринелли',
+'g.dist':'От сосуда до торца детектора','g.diam':'Диаметр сосуда','g.hgt':'Высота пробы','g.mdiam':'Диаметр стакана Маринелли','g.mfill':'Высота налива от дна',
+'g.keep':'Запомнить для сравнения','g.kept':'запомнено: <b>{0}</b> → сейчас <b>×{1}</b>','g.kept0':'запомните сцену, чтобы сравнить',
+'g.t.frac':'летит в кристалл','g.t.fracS':'±{0} % · лучей {1}','g.t.cr':'объём кристалла','g.t.sm':'объём пробы','g.t.pt':'точка','cm3':'см³','ml':'мл','mm':'мм',
+'g.cap.det':'Детектор','g.cap.cyl':'Цилиндр','g.cap.pt':'Точечный источник, дистанция','g.cap.mar':'Стакан Маринелли','g.cap.dist':'До детектора',
+'w.f1':'<b>Ближе — больше.</b> Банка вплотную к торцу видит кристалл под большим углом; отодвиньте на 5 см — доля падает в разы. Поэтому геометрия описывается в миллиметрах.',
+'w.f2':'<b>Маринелли обнимает детектор.</b> Проба стоит и сверху, и вокруг: литр в Маринелли даёт в полтора-два раза больше, чем тот же объём в высокой банке. Для слабых проб это лучший сосуд.',
+'w.f3':'<b>Это только начало.</b> Кроме угла, кванты гасит сама проба, стенки и корпус. Всё это BecqMoni считает моделированием по той же геометрии — см. <a href="how-it-works.html#geometry">«Как это устроено» → Геометрия</a>.',
+'t.k':'В программе','t.h':'Вкладка «Эффективность» конфигурации прибора',
+'t.lead':'Кривые живут у прибора: <span class="ui m">Инструменты → Конфигурация устройства...</span> → вкладка <span class="ui">Эффективность</span>. На одну конфигурацию — сколько угодно кривых: «банка 250 мл», «Маринелли 1 л», «точка 5 см». Наведите на номер — подсветится место в окне.',
+'t.cap':'Вкладка «Эффективность»: список кривых, сводка и чертёж выбранной геометрии',
+'t.l1':'<b>Создать…</b> — открыть конструктор с пустой геометрией',
+'t.l2':'<b>Изменить…</b> — открыть выбранную кривую в конструкторе: поправить геометрию и пересчитать',
+'t.l3':'<b>Дублировать</b> и <b>Удалить</b>; над ними — <b>Переименовать…</b>. Дубль удобен, чтобы сделать «ту же банку, но 100 мл»',
+'t.l4':'<b>Матрица отклика...</b> — окно матрицы этой геометрии (раздел 4)',
+'t.l5':'<b>Конфигурация эффективности</b> — список кривых прибора; устаревшие помечены <b>«!»</b> на красном',
+'t.l6':'<b>Сводка</b>: сколько точек, от и до скольких кэВ, чем посчитана',
+'t.l7':'<b>Чертёж</b> — разрез детектора и сосуда с размерами',
+'t.l8':'<b>Сохранить</b> — только эта кнопка пишет кривые и матрицы на диск',
+'t.steps':'Пошагово: новая кривая',
+'t.s1':'<span class="ui m">Инструменты → Конфигурация устройства...</span> → выберите прибор слева → вкладка <span class="ui">Эффективность</span>.',
+'t.s2':'<span class="ui">Создать…</span> — откроется конструктор (раздел 3).',
+'t.s3':'Опишите детектор и сосуд, нажмите <span class="ui">Посчитать из геометрии</span>, затем <span class="ui">Сохранить кривую</span>.',
+'t.s4':'Новая кривая появилась в списке <span class="ui">Конфигурация эффективности:</span> — проверьте сводку и чертёж.',
+'t.s5':'Для FSA посчитайте ещё и <span class="ui">Матрица отклика...</span> (раздел 4).',
+'t.s6':'<span class="ui">Сохранить</span> внизу окна. Без этого шага всё сделанное пропадёт при закрытии.',
+'t.warn':'<b>«!» на красном перед именем</b> — кривая или её матрица устарели: поменялась физика программы, определение пика, сцена сосуда, либо геометрию правили после расчёта. Под сводкой красным написано, что именно. Лечится так: <span class="ui">Изменить…</span> → <span class="ui">Посчитать из геометрии</span> → <span class="ui">Сохранить кривую</span>, и матрицу — <span class="ui">Пересчитать</span>.',
+'t.f1':'<b>Кривая без геометрии</b> (снятая по измерениям или введённая руками) годится для оценок, но FSA её не примет: «нет геометрии — нет FSA».',
+'t.f2':'<b>Одна сцена — одна кривая.</b> Другая банка, другая высота налива, другое расстояние — это новая кривая. Делайте их дублем и правкой.',
+'t.f3':'<b>Кривая едет и в файл спектра</b> — полной копией с геометрией, так что спектр можно разобрать и на другом компьютере.',
+'m.k':'Конструктор','m.h':'Конструктор кривой: детектор, источник, расчёт',
+'m.lead':'Окно открывается кнопками <span class="ui">Создать…</span> и <span class="ui">Изменить…</span>. Это как анкета: сперва паспорт кристалла, потом описание сосуда, потом «посчитать». Переключайте вкладки:',
+'m.tab1':'Детектор','m.tab2':'Источник','m.tab3':'Расчёт из геометрии',
+'m.cap1':'«Редактор геометрии» → «Детектор»: Atom Spectra 80x80',
+'m.d1':'<b>Готовый детектор:</b> — выберите свой прибор, и все поля заполнятся. Рядом <b>Сохранить</b> / <b>Клонировать...</b> / <b>Удалить</b> для своих заготовок',
+'m.d2':'<b>Форма кристалла</b>: цилиндр или параллелепипед; у бруска — какой гранью он смотрит на пробу',
+'m.d3':'<b>Размеры кристалла</b> в миллиметрах',
+'m.d4':'<b>Обвязка</b>: отражатель, зазор и корпус с торца и сбоку, оправа за кристаллом',
+'m.d5':'<b>FWHM на 662 кэВ</b> — кнопка <b>Из калибровки прибора</b> возьмёт её из калибровки FWHM',
+'m.d6':'<b>Вещества</b> кристалла, отражателя, зазора и корпуса с плотностями; «…» — свои смеси',
+'m.d7':'<b>Импорт из LSRM…</b> — взять геометрию из файла .in или кривую из .txt/.efa/.efr',
+'m.d8':'<b>Чертёж</b> обновляется на каждой правке; вверху — объём кристалла',
+'m.tipDet':'<b>Начинайте с «Готового детектора».</b> Для RadiaCode-101/103, Atom Spectra Nano 16, Obsidian, Atom Spectra Pro 80x80 и 40x40, Gamma-1S UDS-GC 63x63 размеры и обвязка уже выверены. Свой прибор сохраните заготовкой — он появится в списке с пометкой «(свой)».',
+'m.infoLsrm':'<b>Кривая из чужой программы</b> (ЛСРМ) пригодна для беккерелей по одной линии, но FSA нужна геометрия — импортируйте её из .in, а не только кривую.',
+'m.cap2':'«Редактор геометрии» → «Источник»: банка-цилиндр ⌀40 мм, проба 14 мм',
+'m.s1':'<b>Шаблон образца:</b> — свои заготовки сосудов: сохранили раз — подставляете в один щелчок',
+'m.s2':'<b>Тип источника</b>: Точечный, Цилиндр, Маринелли, Прямоугольная кювета и сцены в поле. Под списком — подсказка, для чего годится доза по этой кривой',
+'m.s3':'<b>Размеры</b> сосуда и пробы, толщины стенок, расстояние до торца детектора',
+'m.s4':'<b>Стенка сосуда</b> и <b>Проба</b> — вещество и плотность. Почва, вода, грибы — выберите или заведите своё',
+'m.s5':'<b>Измерение в защите (свинцовый домик)</b> — сцену не меняет, но говорит FSA, что вокруг есть обстановка и будет обратное рассеяние',
+'m.s6':'<b>Чертёж</b> пробы над детектором и её объём',
+'m.s7':'<b>Сохранить кривую</b> — загорается после расчёта',
+'m.air':'<b>Проба «из воздуха».</b> Если оставить веществом пробы воздух, а высоту — сантиметры, самопоглощение не учтётся, и кривая может ошибаться в разы. Журнал расчёта предупредит словом «ВНИМАНИЕ».',
+'m.field':'<b>Сцены в поле</b> — «Детектор на земле», «Детектор в лунке», «Изотропное поле (ISO)» — нужны для мощности дозы фона. Беккерели по таким кривым не выводятся (в окне результата будет «Бк скрыты»).',
+'m.cap3':'«Расчёт из геометрии»: параметры, график кривой и журнал',
+'m.c1':'<b>От, кэВ</b> / <b>до, кэВ</b> — диапазон кривой',
+'m.c2':'<b>Сетка:</b> Штатная (34 точки) или Логарифмическая — тогда можно задать число точек',
+'m.c3':'<b>Точек</b>, <b>Историй на точку</b> (больше — точнее и дольше), <b>Потоков</b> (ядер процессора)',
+'m.c4':'<b>Посчитать из геометрии</b> — во время счёта превращается в <b>Стоп</b>',
+'m.c5':'<b>График</b> кривой: доля квантов, давших пик, в логарифмическом масштабе',
+'m.c6':'<b>Журнал</b>: какие параметры взяты, разброс на точку, предупреждения',
+'m.c7':'<b>Сохранить кривую</b> в конфигурацию эффективности и <b>Экспорт CSV…</b> — выгрузить точки',
+'m.tipCalc':'<b>Сколько историй?</b> Умолчание 200000 на точку даёт гладкую кривую за минуты. Для финального результата поднимите до миллиона — разброс на точку покажет журнал.',
+'m.steps':'Пошагово: Маринелли для почвы',
+'m.st1':'<span class="ui">Создать…</span> → вкладка <span class="ui">Детектор</span> → <span class="ui">Готовый детектор:</span> — ваш прибор.',
+'m.st2':'Вкладка <span class="ui">Источник</span> → <span class="ui">Тип источника</span> — <span class="ui">Маринелли</span>; размеры стакана по линейке.',
+'m.st3':'<span class="ui">Проба</span> — вещество (например, почва) и плотность: масса пробы, делённая на её объём.',
+'m.st4':'<span class="ui">Расчёт из геометрии</span> → <span class="ui">Посчитать из геометрии</span> → дождитесь графика → <span class="ui">Сохранить кривую</span>.',
+'m.st5':'Вернувшись в окно конфигурации: <span class="ui">Матрица отклика...</span> → <span class="ui">Посчитать</span> → <span class="ui">Сохранить в текущую геометрию</span> → <span class="ui">Сохранить</span>.',
+'m.f1':'<b>Плотность важна.</b> Та же банка с водой и с песком даёт разные кривые внизу шкалы: плотная проба сама глотает мягкие кванты.',
+'m.f2':'<b>Миллиметры — не украшение.</b> У Atom Spectra Pro 80x80 кристалл утоплен за торцом на 26.7 мм, и точка «вплотную» видит его вдвое хуже, чем без зазора.',
+'m.f3':'<b>Кривая знает, чем посчитана.</b> Её клеймо хранит параметры; открыв «Изменить…», вы получите те же поля, что были в прошлый раз.',
+'x.k':'Матрица','x.h':'Окно «Матрица отклика»',
+'x.lead':'Кривая отвечает «сколько квантов дали пик». Матрица — «как выглядит весь след кванта»: пик, комптоновское плато, вылеты. По ней FSA строит отклик каждого нуклида целиком. Подробно — <a href="how-it-works.html#matrix">«Как это устроено» → Матрица</a>.',
+'x.cap':'Окно «Матрица отклика»: матрица годна, посчитана на видеокарте',
+'x.l1':'<b>Пояснение</b>: зачем матрица и где хранится',
+'x.l2':'<b>Состояние</b>: «Годна для текущей геометрии», «Для этой геометрии не посчитана» или «Устарела… Нужно пересчитать»',
+'x.l3':'<b>Подробности</b>: поколение физики, узлы, бин, историй, размер, когда и сколько считалась',
+'x.l4':'<b>Считать на GPU Nvidia</b> — галка; если видеокарта не годится, рядом сказано почему',
+'x.l5':'<b>Параметры</b>: от и до кэВ, узлов, бин, историй на узел, потоков',
+'x.l6':'<b>Ход счёта</b> и <b>Отмена</b>',
+'x.l7':'<b>Посчитать</b> / <b>Пересчитать</b>',
+'x.l8':'<b>Сохранить в текущую геометрию</b> — матрица ляжет на склад при сохранении конфигурации',
+'r.h':'Гонка: процессор против видеокарты',
+'r.hint':'Одна и та же матрица — 143 узла по 3 млн историй — на машине разработчика: процессор 2203 с, видеокарта 19 с. Время ниже ускорено; ход узлов показан равномерным.',
+'r.run':'Посчитать','r.reset':'Сброс','r.speed':'Ускорение показа:',
+'r.cpu':'Процессор','r.gpu':'Видеокарта Nvidia','r.node':'узел {0} из {1}','r.done':'готово за {0}',
+'r.x':'видеокарта быстрее в <b>{0}</b> раз','r.real':'прошло «настоящих» <b>{0}</b>',
+'x.gpu':'<b>Что нужно видеокарте:</b> Nvidia RTX 30xx или новее и свежий драйвер; CUDA Toolkit ставить не нужно. Галка выключена по умолчанию. Сцена «Изотропное поле (ISO)» на видеокарте не считается — матрица пойдёт на процессоре. Если видеокарта не досчитала, снимите галку: подробности — в <span class="ui m">Помощь → Показать журнал</span>.',
+'x.f1':'<b>Матрица — отдельный файл на геометрию</b> на этом компьютере. «Устарела» — значит геометрию или параметры меняли после расчёта.',
+'x.f2':'<b>Без матрицы FSA работает</b>, но каскадное суммирование не учтено, и в отчёте будут красные строки (глава <a href="fsa.html#quality">FSA на практике</a>).',
+'x.f3':'<b>Матрица едет в файл спектра</b> (настройка «Сохранять матрицу отклика в файл спектра», включена). Получатель без своей матрицы разберёт спектр ею, ничего не пересчитывая.',
+'u.k':'Спектр','u.h':'Что на диске и какую кривую берёт спектр',
+'u.lead':'Конструктор, окно матрицы и окно конфигурации — это черновики. Пройдите конвейер ниже и посмотрите, где на каждом шаге лежат кривая и матрица.',
+'p.h':'Где сейчас лежат кривая и матрица','p.hint':'Нажимайте шаги по порядку — подсвечивается место, куда попали данные.',
+'p.s1':'Посчитать из геометрии','p.s2':'Сохранить кривую','p.s3':'Матрица: Посчитать → Сохранить в текущую геометрию','p.s4':'Сохранить (окно конфигурации)','p.s5':'Эффективн. → сохранить спектр',
+'p.w1':'Конструктор','p.w1s':'окно, пока открыто','p.w2':'Конфигурация','p.w2s':'в памяти программы','p.w3':'Диск','p.w3s':'конфигурация прибора и склад матриц','p.w4':'Файл спектра','p.w4s':'*.xml',
+'p.curve':'кривая','p.mat':'матрица','p.nothing':'пусто','p.wait':'ждёт «Сохранить»',
+'p.say0':'Начните с шага 1.',
+'p.say1':'Кривая посчитана, но существует только в окне конструктора. Закроете окно — пропадёт.',
+'p.say2':'Кривая в конфигурации, но в памяти: кнопка «Сохранить» окна конфигурации загорелась.',
+'p.say3':'Матрица посчитана и «сохранена в текущую геометрию» — то есть ждёт: «на склад уйдёт при сохранении конфигурации прибора».',
+'p.say4':'Теперь всё на диске: кривая — в конфигурации прибора, матрица — файлом на складе.',
+'p.say5':'Спектр, сохранённый с этой кривой, несёт её копию с геометрией и матрицу — его можно разобрать на другом компьютере.',
+'u.cap':'Панель «Управление измерением»: какая кривая у этого спектра',
+'u.l1':'<b>Устройство</b> — конфигурация прибора; <b>Редак.</b> открывает её окно',
+'u.l2':'<b>Эффективн.</b> — кривая этого спектра: «(нет)», кривые прибора или «… — из файла спектра»',
+'u.l3':'<b>✕</b> — сбросить кривую эффективности у спектра',
+'u.l4':'<b>Фон</b> — спектр фона (нужен для активности по выделению)',
+'u.tip':'<b>Кривую выбирают у каждого спектра.</b> Сменили кривую в списке — FSA, активность и мощность дозы пересчитаются по ней. Если FSA включён без кривой, программа сама спросит, какую взять.',
+'u.f1':'<b>«— из файла спектра»</b> — кривая, приехавшая вместе со спектром. Она может отличаться от кривой прибора с тем же именем.',
+'u.f2':'<b>Мощность дозы</b> справа в строке состояния тоже считается по выбранной кривой; для фона нужна сцена «Изотропное поле (ISO)».',
+'u.f3':'<b>«Сохранить» — обязательно.</b> Закрыть окно конфигурации без него — потерять и кривые, и посчитанные матрицы.',
+'hoodtxt':'<li>Умолчания расчёта кривой: от 5 до 3000 кэВ, штатная сетка 34 точки (поле «Точек» при ней заперто), 200000 историй на точку, потоков — число ядер минус один. Логарифмическая сетка сама добавляет узлы ниже 40 кэВ и у K-краёв веществ.</li><li>Окно матрицы по умолчанию: 5–3000 кэВ, 140 узлов, бин 2 кэВ, 3000000 историй на узел. На видеокарте счёт плоский — ровно столько историй, сколько в поле; таблица пар (κ) после узлов считается на процессоре.</li><li>«!» на красном ставится кривой, о которой вкладка говорит «пересчитайте» (другое поколение переноса, прежнее определение пика — окно ±FWHM/2, прежняя сцена сосуда), и кривой, чью матрицу окно зовёт «устарела».</li><li>Видеокарту обслуживает библиотека rmgpu_f.dll рядом с программой; без неё, со старым драйвером или картой старше RTX 30xx галка честно пишет «Недоступно: …».</li><li>Чертёж и «доля, летящая в кристалл» на этой странице — геометрия без поглощения; настоящая кривая в программе считается переносом квантов через все вещества сцены.</li>',
+},en:{
+'n.why':'Build it yourself','n.tab':'The “Efficiency” tab','n.maker':'Curve maker','n.mx':'Response matrix','n.use':'Curve for a spectrum',
+'h.k':'Chapter 8 · Geometry and matrix',
+'h.h':'Telling the program <em>how the sample sits</em>',
+'h.lead':'A peak in the spectrum is not yet becquerels. To turn counts into decays the program must know your crystal and where the jar stands. That description is the geometry; from it BecqMoni computes the efficiency curve and the response matrix itself. The why is in <a href="how-it-works.html#geometry">“How it works”</a>; here is where to click.',
+'w.k':'Why','w.h':'Geometry is the exchange rate “counts → decays”',
+'w.lead':'The same sample gives a different count if the jar is moved or put on another detector: some photons simply fly past the crystal. Try it — build a scene and see what share of photons even heads into the crystal.',
+'g.h':'Build a geometry yourself',
+'g.hint':'Pick a detector and a vessel, move the sizes. The drawing is a side cut, as in the program window. Below is the share of photons whose path crosses the crystal: the browser counts it itself by “firing” rays from random points of the sample (gold — hit, dark — missed).',
+'g.det':'Detector:','g.src':'Vessel:',
+'g.s.point':'Point','g.s.cyl':'Cylinder','g.s.mar':'Marinelli',
+'g.dist':'Beaker to detector front distance','g.diam':'Beaker diameter','g.hgt':'Source height','g.mdiam':'Marinelli beaker diameter','g.mfill':'Fill height from the bottom',
+'g.keep':'Keep for comparison','g.kept':'kept: <b>{0}</b> → now <b>×{1}</b>','g.kept0':'keep a scene to compare',
+'g.t.frac':'heads into the crystal','g.t.fracS':'±{0} % · rays {1}','g.t.cr':'crystal volume','g.t.sm':'sample volume','g.t.pt':'point','cm3':'cm³','ml':'ml','mm':'mm',
+'g.cap.det':'Detector','g.cap.cyl':'Cylinder','g.cap.pt':'Point source, distance','g.cap.mar':'Marinelli beaker','g.cap.dist':'Distance to detector',
+'w.f1':'<b>Closer means more.</b> A jar right on the front face sees the crystal at a wide angle; move it 5 cm away and the share drops several times. That is why geometry is given in millimetres.',
+'w.f2':'<b>A Marinelli hugs the detector.</b> The sample sits above and around it: a litre in a Marinelli gives one and a half to two times more than the same volume in a tall jar. For weak samples it is the best vessel.',
+'w.f3':'<b>This is only the start.</b> Besides the angle, photons are absorbed by the sample itself, the walls and the housing. BecqMoni simulates all of that from the same geometry — see <a href="how-it-works.html#geometry">“How it works” → Geometry</a>.',
+'t.k':'In the program','t.h':'The “Efficiency” tab of a device configuration',
+'t.lead':'Curves belong to the detector: <span class="ui m">Tool → Edit Device Configurations...</span> → the <span class="ui">Efficiency</span> tab. One configuration holds any number of curves: “jar 250 ml”, “Marinelli 1 l”, “point 5 cm”. Hover a number — the spot in the window lights up.',
+'t.cap':'The “Efficiency” tab: the curve list, the summary and the drawing of the chosen geometry',
+'t.l1':'<b>New...</b> — open the curve maker with an empty geometry',
+'t.l2':'<b>Edit...</b> — open the chosen curve in the maker: fix the geometry and recompute',
+'t.l3':'<b>Duplicate</b> and <b>Delete</b>; above them — <b>Rename...</b>. A duplicate is handy for “the same jar, but 100 ml”',
+'t.l4':'<b>Response matrix...</b> — the matrix window of this geometry (section 4)',
+'t.l5':'<b>Efficiency configuration</b> — the curve list of the detector; outdated ones carry a <b>“!”</b> on red',
+'t.l6':'<b>Summary</b>: how many points, from and to what keV, what it was computed with',
+'t.l7':'<b>Drawing</b> — a cut of the detector and the vessel with sizes',
+'t.l8':'<b>Save</b> — only this button writes curves and matrices to disk',
+'t.steps':'Step by step: a new curve',
+'t.s1':'<span class="ui m">Tool → Edit Device Configurations...</span> → pick the detector on the left → the <span class="ui">Efficiency</span> tab.',
+'t.s2':'<span class="ui">New...</span> — the curve maker opens (section 3).',
+'t.s3':'Describe the detector and the vessel, press <span class="ui">Calculate from geometry</span>, then <span class="ui">Save curve</span>.',
+'t.s4':'The new curve appears in the <span class="ui">Efficiency configuration:</span> list — check the summary and the drawing.',
+'t.s5':'For FSA also compute the <span class="ui">Response matrix...</span> (section 4).',
+'t.s6':'<span class="ui">Save</span> at the bottom of the window. Without this step everything is lost when the window closes.',
+'t.warn':'<b>A “!” on red before the name</b> — the curve or its matrix is out of date: the program physics, the peak definition or the vessel scene changed, or the geometry was edited after the calculation. The red line under the summary says what exactly. The cure: <span class="ui">Edit...</span> → <span class="ui">Calculate from geometry</span> → <span class="ui">Save curve</span>, and for the matrix — <span class="ui">Recompute</span>.',
+'t.f1':'<b>A curve without geometry</b> (from measurements or typed by hand) is fine for estimates, but FSA does not accept it: “no geometry — no FSA”.',
+'t.f2':'<b>One scene — one curve.</b> Another jar, another fill height, another distance is a new curve. Make them by duplicating and editing.',
+'t.f3':'<b>The curve also travels into the spectrum file</b> — a full copy with its geometry, so the spectrum can be analysed on another computer.',
+'m.k':'Curve maker','m.h':'The curve maker: detector, source, calculation',
+'m.lead':'The window opens with <span class="ui">New...</span> and <span class="ui">Edit...</span>. It is like a form: first the crystal’s passport, then the vessel, then “compute”. Switch the tabs:',
+'m.tab1':'Detector','m.tab2':'Source','m.tab3':'Calculate from geometry',
+'m.cap1':'“Geometry editor” → “Detector”: Atom Spectra 80x80',
+'m.d1':'<b>Known detector:</b> — pick your detector and all fields fill in. Next to it <b>Save</b> / <b>Clone...</b> / <b>Delete</b> for your own presets',
+'m.d2':'<b>Crystal shape</b>: cylindrical or rectangular; for a bar — which face looks at the sample',
+'m.d3':'<b>Crystal size</b> in millimetres',
+'m.d4':'<b>Wrapping</b>: reflector, gap and cladding at the front and the side, the mounting behind the crystal',
+'m.d5':'<b>FWHM at 662 keV</b> — the <b>From device calibration</b> button takes it from the FWHM calibration',
+'m.d6':'<b>Materials</b> of the crystal, reflector, gap and cladding with densities; “…” — your own mixtures',
+'m.d7':'<b>Import from LSRM...</b> — take the geometry from an .in file or a curve from .txt/.efa/.efr',
+'m.d8':'<b>The drawing</b> updates on every edit; at the top — the crystal volume',
+'m.tipDet':'<b>Start with “Known detector”.</b> For RadiaCode-101/103, Atom Spectra Nano 16, Obsidian, Atom Spectra Pro 80x80 and 40x40, Gamma-1S UDS-GC 63x63 the sizes and wrapping are already checked. Save your own detector as a preset — it appears in the list marked “(own)”.',
+'m.infoLsrm':'<b>A curve from another program</b> (LSRM) is fine for becquerels from a single line, but FSA needs the geometry — import it from the .in file, not just the curve.',
+'m.cap2':'“Geometry editor” → “Source”: a cylinder jar ⌀40 mm, sample 14 mm',
+'m.s1':'<b>Sample template:</b> — your own vessel presets: save once, fill in with one click',
+'m.s2':'<b>Source type</b>: Point, Cylinder, Marinelli, Rectangular box and field scenes. Under the list — a hint on what the dose rate from this curve is for',
+'m.s3':'<b>Sizes</b> of the beaker and the sample, wall thicknesses, distance to the detector front',
+'m.s4':'<b>Beaker wall</b> and <b>Sample</b> — material and density. Soil, water, mushrooms — pick one or add your own',
+'m.s5':'<b>Measured inside a shield (lead castle)</b> — does not change the scene, but tells FSA there are surroundings and backscatter',
+'m.s6':'<b>The drawing</b> of the sample above the detector and its volume',
+'m.s7':'<b>Save curve</b> — lights up after the calculation',
+'m.air':'<b>A sample “made of air”.</b> If the sample material stays air while its height is centimetres, self-absorption is not accounted for and the curve can be off by a factor. The calculation log warns with “WARNING”.',
+'m.field':'<b>Field scenes</b> — “Detector on the ground”, “Detector in a borehole”, “Isotropic field (ISO)” — are for the background dose rate. Becquerels are not derived from such curves (the result window shows “Bq hidden”).',
+'m.cap3':'“Calculate from geometry”: parameters, the curve plot and the log',
+'m.c1':'<b>From, keV</b> / <b>to, keV</b> — the curve range',
+'m.c2':'<b>Grid:</b> Standard (34 points) or Logarithmic — then the number of points can be set',
+'m.c3':'<b>Points</b>, <b>Histories per point</b> (more — smoother and slower), <b>Threads</b> (CPU cores)',
+'m.c4':'<b>Calculate from geometry</b> — turns into <b>Stop</b> while computing',
+'m.c5':'<b>The curve plot</b>: the share of photons giving a peak, on a log scale',
+'m.c6':'<b>The log</b>: which parameters were taken, spread per point, warnings',
+'m.c7':'<b>Save curve</b> into the efficiency configuration and <b>Export CSV...</b> — dump the points',
+'m.tipCalc':'<b>How many histories?</b> The default 200000 per point gives a smooth curve in minutes. For the final result raise it to a million — the log shows the spread per point.',
+'m.steps':'Step by step: a Marinelli for soil',
+'m.st1':'<span class="ui">New...</span> → the <span class="ui">Detector</span> tab → <span class="ui">Known detector:</span> — your detector.',
+'m.st2':'The <span class="ui">Source</span> tab → <span class="ui">Source type</span> — <span class="ui">Marinelli</span>; beaker sizes from a ruler.',
+'m.st3':'<span class="ui">Sample</span> — material (soil, for instance) and density: sample mass divided by its volume.',
+'m.st4':'<span class="ui">Calculate from geometry</span> → <span class="ui">Calculate from geometry</span> → wait for the plot → <span class="ui">Save curve</span>.',
+'m.st5':'Back in the configuration window: <span class="ui">Response matrix...</span> → <span class="ui">Compute</span> → <span class="ui">Save to the current geometry</span> → <span class="ui">Save</span>.',
+'m.f1':'<b>Density matters.</b> The same jar with water and with sand gives different curves at the low end: a dense sample swallows soft photons itself.',
+'m.f2':'<b>Millimetres are not decoration.</b> In Atom Spectra Pro 80x80 the crystal sits 26.7 mm behind the front face, and a point “right on it” sees the crystal half as well as without the gap.',
+'m.f3':'<b>A curve knows how it was computed.</b> Its stamp keeps the parameters; open “Edit...” and you get the same fields as last time.',
+'x.k':'Matrix','x.h':'The “Response matrix” window',
+'x.lead':'The curve answers “how many photons gave a peak”. The matrix answers “what the whole trace of a photon looks like”: the peak, the Compton plateau, the escapes. From it FSA builds the whole response of each nuclide. Details — <a href="how-it-works.html#matrix">“How it works” → Matrix</a>.',
+'x.cap':'The “Response matrix” window: the matrix is valid, computed on the graphics card',
+'x.l1':'<b>Explanation</b>: what the matrix is for and where it is stored',
+'x.l2':'<b>State</b>: “Valid for the current geometry”, “Not computed for this geometry” or “Out of date… Recompute it”',
+'x.l3':'<b>Details</b>: physics generation, nodes, bin, histories, size, when and how long it took',
+'x.l4':'<b>Use Nvidia GPU</b> — a check box; if the card does not qualify, the reason is shown',
+'x.l5':'<b>Parameters</b>: from and to keV, nodes, bin, histories per node, threads',
+'x.l6':'<b>Progress</b> and <b>Cancel</b>',
+'x.l7':'<b>Compute</b> / <b>Recompute</b>',
+'x.l8':'<b>Save to the current geometry</b> — the matrix goes into the store when the configuration is saved',
+'r.h':'A race: CPU against GPU',
+'r.hint':'The same matrix — 143 nodes of 3 million histories — on the developer’s machine: CPU 2203 s, GPU 19 s. The time below is sped up; nodes are shown advancing evenly.',
+'r.run':'Compute','r.reset':'Reset','r.speed':'Playback speed:',
+'r.cpu':'CPU','r.gpu':'Nvidia GPU','r.node':'node {0} of {1}','r.done':'done in {0}',
+'r.x':'the GPU is <b>{0}</b> times faster','r.real':'“real” time passed <b>{0}</b>',
+'x.gpu':'<b>What the GPU needs:</b> an Nvidia RTX 30xx or newer and a fresh driver; the CUDA Toolkit is not needed. The box is off by default. The “Isotropic field (ISO)” scene is not computed on the GPU — the matrix goes to the CPU. If the card could not finish, uncheck the box: details are in <span class="ui m">Help → Show log</span>.',
+'x.f1':'<b>The matrix is a separate file per geometry</b> on this computer. “Out of date” means the geometry or the settings changed after it was computed.',
+'x.f2':'<b>FSA works without a matrix</b>, but cascade summing is not applied and the report shows red lines (chapter <a href="fsa.html#quality">FSA in practice</a>).',
+'x.f3':'<b>The matrix travels into the spectrum file</b> (setting “Save response matrix into spectrum file”, on). A recipient without their own matrix analyses the spectrum with it, recomputing nothing.',
+'u.k':'Spectrum','u.h':'What is on disk and which curve a spectrum takes',
+'u.lead':'The curve maker, the matrix window and the configuration window are drafts. Walk the pipeline below and see where the curve and the matrix live at each step.',
+'p.h':'Where the curve and the matrix live right now','p.hint':'Press the steps in order — the place the data went to lights up.',
+'p.s1':'Calculate from geometry','p.s2':'Save curve','p.s3':'Matrix: Compute → Save to the current geometry','p.s4':'Save (configuration window)','p.s5':'Efficiency → save the spectrum',
+'p.w1':'Curve maker','p.w1s':'the window, while open','p.w2':'Configuration','p.w2s':'in the program’s memory','p.w3':'Disk','p.w3s':'device configuration and the matrix store','p.w4':'Spectrum file','p.w4s':'*.xml',
+'p.curve':'curve','p.mat':'matrix','p.nothing':'empty','p.wait':'waits for “Save”',
+'p.say0':'Start with step 1.',
+'p.say1':'The curve is computed, but exists only in the maker window. Close the window — it is gone.',
+'p.say2':'The curve is in the configuration, but in memory: the “Save” button of the configuration window has lit up.',
+'p.say3':'The matrix is computed and “saved to the current geometry” — that is, it waits: “it goes into the store when the device configuration is saved”.',
+'p.say4':'Now everything is on disk: the curve in the device configuration, the matrix as a file in the store.',
+'p.say5':'A spectrum saved with this curve carries a copy of it with the geometry and the matrix — it can be analysed on another computer.',
+'u.cap':'The “Measurement Control” panel: which curve this spectrum uses',
+'u.l1':'<b>Device Config.</b> — the device configuration; <b>Edit...</b> opens its window',
+'u.l2':'<b>Efficiency</b> — this spectrum’s curve: “(none)”, the device curves or “… - from the spectrum file”',
+'u.l3':'<b>✕</b> — reset the efficiency curve of the spectrum',
+'u.l4':'<b>Background</b> — the background spectrum (needed for activity from a selection)',
+'u.tip':'<b>A curve is chosen per spectrum.</b> Change it in the list and FSA, activity and dose rate are recomputed with it. If FSA is turned on without a curve, the program asks which one to take.',
+'u.f1':'<b>“- from the spectrum file”</b> — the curve that came with the spectrum. It may differ from the device curve of the same name.',
+'u.f2':'<b>The dose rate</b> on the right of the status bar is also computed from the chosen curve; for background you need the “Isotropic field (ISO)” scene.',
+'u.f3':'<b>“Save” is a must.</b> Closing the configuration window without it loses both the curves and the computed matrices.',
+'hoodtxt':'<li>Curve defaults: 5 to 3000 keV, the standard grid of 34 points (the “Points” field is locked with it), 200000 histories per point, threads — the core count minus one. The logarithmic grid adds nodes below 40 keV and at the K edges of the materials by itself.</li><li>Matrix window defaults: 5–3000 keV, 140 nodes, 2 keV bin, 3000000 histories per node. On the GPU the count is flat — exactly as many histories as in the field; the pair table (κ) is computed on the CPU after the nodes.</li><li>A “!” on red marks a curve the tab says to “recompute” (another transport generation, the previous peak definition — the ±FWHM/2 window, the previous vessel scene) and a curve whose matrix the window calls “out of date”.</li><li>The GPU is served by the rmgpu_f.dll library next to the program; without it, with an old driver or a card older than RTX 30xx the box honestly says “Not available: …”.</li><li>The drawing and the “share heading into the crystal” on this page are geometry without absorption; the real curve in the program is computed by transporting photons through all materials of the scene.</li>',
+}});
+
+/* ── 1. «Соберите геометрию»: чертёж как в программе + доля лучей, попавших в кристалл ── */
+const DET = [
+  { id: 'rc103', nm: 'RadiaCode-103', box: [10, 10, 10], front: 5.5, clad: 1.5, side: 2, tail: 2 },
+  { id: 'nano16', nm: 'Atom Spectra Nano 16', box: [15, 18, 60], front: 3.1, clad: 1.8, side: 3, tail: 2 },
+  { id: 'g63', nm: 'Gamma-1S UDS-GC 63x63', cyl: [63, 63], front: 3.1, clad: 1.8, side: 3, tail: 2 },
+  { id: 'as80', nm: 'Atom Spectra Pro 80x80', cyl: [80, 80], front: 26.7, clad: 3, side: 5, tail: 2 },
+];
+const SRC = ['point', 'cyl', 'mar'];
+const st = { det: 3, src: 1, dist: 0, diam: 40, hgt: 14, md: 130, mf: 120 };
+let mc = { n: 0, hit: 0, rays: [] }, kept = null;
+function detGeo(d) {
+  const L = d.cyl ? d.cyl[1] : d.box[2], hx = d.cyl ? d.cyl[0] / 2 : d.box[0] / 2, hy = d.cyl ? d.cyl[0] / 2 : d.box[1] / 2;
+  const Rh = Math.max(hx, hy) + d.side, z1 = -d.front, z0 = -d.front - L, Hl = d.front + L + d.tail;
+  const vol = d.cyl ? Math.PI * hx * hx * L : d.box[0] * d.box[1] * d.box[2];
+  return { L, hx, hy, Rh, z0, z1, Hl, vol: vol / 1000 };
+}
+function srcGeo(G) {
+  if (SRC[st.src] === 'point') return { kind: 'point', z: st.dist, vol: 0 };
+  if (SRC[st.src] === 'cyl') { const Ri = st.diam / 2 - 1, zb = st.dist + 1, zt = zb + st.hgt; return { kind: 'cyl', Ri, zb, zt, Ro: st.diam / 2, vol: Math.PI * Ri * Ri * st.hgt / 1000 }; }
+  const Rw = G.Rh + 0.5, Wd = Math.min(G.Hl - 2, 80), Ri = st.md / 2 - 1, zb = -Wd, zt = Math.max(zb + st.mf, 6), Rx = Rw + 1;
+  const vol = Math.PI * Ri * Ri * (zt - zb) - Math.PI * Rx * Rx * (Math.min(zt, 1) - zb);
+  return { kind: 'mar', Ri, zb, zt, Rw, Rx, Wd, Ro: st.md / 2, vol: vol / 1000 };
+}
+function samplePoint(S) {
+  if (S.kind === 'point') return [0, 0, S.z];
+  for (;;) {
+    const r = S.Ri * Math.sqrt(Math.random()), f = 2 * Math.PI * Math.random(), z = S.zb + (S.zt - S.zb) * Math.random();
+    if (S.kind === 'mar' && r < S.Rx && z < 1) continue;
+    return [r * Math.cos(f), r * Math.sin(f), z];
+  }
+}
+function hitT(P, u, D, G) {   // расстояние до входа луча в кристалл или -1
+  let lo = 0, hi = Infinity;
+  const slab = (p, v, a, b) => { if (Math.abs(v) < 1e-12) return p >= a && p <= b; let t1 = (a - p) / v, t2 = (b - p) / v; if (t1 > t2) [t1, t2] = [t2, t1]; lo = Math.max(lo, t1); hi = Math.min(hi, t2); return lo <= hi; };
+  if (!slab(P[2], u[2], G.z0, G.z1)) return -1;
+  if (D.cyl) {
+    const a = u[0] * u[0] + u[1] * u[1], b = 2 * (P[0] * u[0] + P[1] * u[1]), c = P[0] * P[0] + P[1] * P[1] - G.hx * G.hx;
+    if (a < 1e-12) { if (c > 0) return -1; } else { const q = b * b - 4 * a * c; if (q < 0) return -1; const s = Math.sqrt(q); lo = Math.max(lo, (-b - s) / (2 * a)); hi = Math.min(hi, (-b + s) / (2 * a)); }
+  } else {
+    if (!slab(P[0], u[0], -G.hx, G.hx) || !slab(P[1], u[1], -G.hy, G.hy)) return -1;
+  }
+  return lo <= hi && hi > 0 ? Math.max(lo, 0) : -1;
+}
+function restart() {
+  mc = { n: 0, hit: 0, rays: [] };
+  const D = DET[st.det], G = detGeo(D), S = srcGeo(G), target = 300000;
+  Jobs.add('geo', (function* () {
+    while (mc.n < target) {
+      for (let i = 0; i < 2500; i++) {
+        const P = samplePoint(S), uz = 2 * Math.random() - 1, f = 2 * Math.PI * Math.random(), s = Math.sqrt(1 - uz * uz), u = [s * Math.cos(f), s * Math.sin(f), uz];
+        const th = hitT(P, u, D, G); mc.n++; if (th >= 0) mc.hit++;
+        if (i < 6) { mc.rays.push({ P, u, th }); if (mc.rays.length > 90) mc.rays.shift(); }
+      }
+      drawGeo(); yield;
+    }
+  })());
+  drawGeo();
+}
+function fmtV(v, k) { return v >= 100 ? fx(v, 0) : v >= 10 ? fx(v, 1) : fx(v, 2); }
+function drawGeo() {
+  const cv = $('#cvGeo'), { ctx, w, h } = setup(cv), D = DET[st.det], G = detGeo(D), S = srcGeo(G), mm = t('mm');
+  ctx.fillStyle = '#d6d2c4'; ctx.fillRect(0, 0, w, h);
+  const top = S.kind === 'point' ? S.z + 10 : S.zt + 8, bot = -G.Hl - 6;
+  const xr = Math.max(G.Rh, S.Ro || 0, 14) + 8;
+  const sc = Math.min((w - 24) / (2 * xr), (h - 24) / (top - bot)), cx = w / 2 + (w > 560 ? 60 : 0), X = x => cx + x * sc, Z = z => 12 + (top - z) * sc;
+  const rect = (x0, z0, x1, z1, fill, line) => { ctx.fillStyle = fill; ctx.fillRect(X(x0), Z(z1), (x1 - x0) * sc, (z1 - z0) * sc); if (line) { ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.strokeRect(X(x0) + .5, Z(z1) + .5, (x1 - x0) * sc - 1, (z1 - z0) * sc - 1); } };
+  // сосуд
+  if (S.kind === 'cyl') { rect(-S.Ro, S.zb - 1, S.Ro, S.zt + 1, '#b9bec8', '#5d6372'); rect(-S.Ri, S.zb, S.Ri, S.zt, '#7b818c', '#9fe7ec'); }
+  if (S.kind === 'mar') {
+    rect(-S.Ro, S.zb - 1, S.Ro, S.zt + 1, '#b9bec8', '#5d6372'); rect(-S.Ri, S.zb, S.Ri, S.zt, '#7b818c', '#9fe7ec');
+    rect(-S.Rx, S.zb - 1.2, S.Rx, 1, '#b9bec8', '#5d6372'); rect(-S.Rw, S.zb - 1.2, S.Rw, 0, '#d6d2c4');
+  }
+  // детектор: корпус, зазор, кристалл
+  rect(-G.Rh, -G.Hl, G.Rh, 0, '#8a96b6', '#3b4256');
+  rect(-G.hx - 1, G.z0, G.hx + 1, -D.clad, '#e3e9f2');
+  rect(-G.hx, G.z0, G.hx, G.z1, '#35a6ab', '#1d5e62');
+  ctx.strokeStyle = '#8ee6ea'; ctx.lineWidth = 2; ctx.strokeRect(X(-G.hx) - 1, Z(G.z1) - 1, 2 * G.hx * sc + 2, (G.z1 - G.z0) * sc + 2); ctx.lineWidth = 1;
+  // лучи
+  mc.rays.forEach(r => {
+    const L = r.th >= 0 ? r.th : 22, ex = r.P[0] + L * r.u[0], ez = r.P[2] + L * r.u[2];
+    ctx.strokeStyle = r.th >= 0 ? 'rgba(255,170,0,.95)' : 'rgba(40,48,70,.28)'; ctx.lineWidth = r.th >= 0 ? 1.6 : 1;
+    ctx.beginPath(); ctx.moveTo(X(r.P[0]), Z(r.P[2])); ctx.lineTo(X(ex), Z(ez)); ctx.stroke();
+  });
+  ctx.lineWidth = 1;
+  if (S.kind === 'point') { ctx.fillStyle = '#ff4d6d'; ctx.beginPath(); ctx.arc(X(0), Z(S.z), 5, 0, 7); ctx.fill(); ctx.strokeStyle = '#7a1022'; ctx.stroke(); }
+  // размеры кристалла
+  ctx.fillStyle = '#ffffff'; ctx.font = '700 12px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const wtxt = (D.cyl ? '⌀' : '') + fx(2 * G.hx, 0) + ' × ' + fx(G.L, 0);
+  if ((G.z1 - G.z0) * sc > 18 && 2 * G.hx * sc > 50) ctx.fillText(wtxt, X(0), Z((G.z0 + G.z1) / 2));
+  // подпись в углу, как у программы
+  const lines = [t('g.cap.det') + ': ' + (D.cyl ? '⌀' + fx(D.cyl[0], 0) + ' × ' + fx(D.cyl[1], 0) : fx(D.box[0], 0) + ' × ' + fx(D.box[1], 0) + ' × ' + fx(D.box[2], 0)) + ' ' + mm];
+  if (S.kind === 'point') lines.push(t('g.cap.pt') + ': ' + fx(st.dist, 0) + ' ' + mm);
+  if (S.kind === 'cyl') { lines.push(t('g.cap.cyl') + ': ⌀' + fx(st.diam, 0) + ' × ' + fx(st.hgt, 0) + ' ' + mm); lines.push(t('g.cap.dist') + ': ' + fx(st.dist, 0) + ' ' + mm); }
+  if (S.kind === 'mar') lines.push(t('g.cap.mar') + ': ⌀' + fx(st.md, 0) + ' × ' + fx(S.zt - S.zb + 2, 0) + ' ' + mm);
+  ctx.font = '12px system-ui'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  const bw = Math.max(...lines.map(s => ctx.measureText(s).width)) + 14;
+  ctx.fillStyle = 'rgba(244,242,234,.92)'; ctx.fillRect(8, 8, bw, lines.length * 16 + 8); ctx.fillStyle = '#1b1f2a';
+  lines.forEach((s, i) => ctx.fillText(s, 15, 13 + i * 16));
+  // плитки
+  const f = mc.n ? mc.hit / mc.n : 0, e = mc.n ? Math.sqrt(f * (1 - f) / mc.n) : 0;
+  $('#gTiles').innerHTML =
+    '<div class="tile"><div class="big" style="color:var(--gold)">' + fx(100 * f, 2) + ' %</div><div class="small">' + t('g.t.frac') + ' · ' + t('g.t.fracS', fx(100 * e, 2), mc.n) + '</div></div>' +
+    '<div class="tile"><div class="big">' + fmtV(G.vol) + ' ' + t('cm3') + '</div><div class="small">' + t('g.t.cr') + ' · ' + D.nm + '</div></div>' +
+    '<div class="tile"><div class="big">' + (S.kind === 'point' ? t('g.t.pt') : fmtV(S.vol) + ' ' + t('ml')) + '</div><div class="small">' + t('g.t.sm') + '</div></div>';
+  $('#gKept').innerHTML = kept && f > 0 ? t('g.kept', kept.lbl + ' · ' + fx(100 * kept.f, 2) + ' %', fx(f / kept.f, 2)) : t('g.kept0');
+}
+function geoUI() {
+  $('#gDet').innerHTML = DET.map((d, i) => '<button class="chip' + (i === st.det ? ' on' : '') + '" data-i="' + i + '">' + d.nm + '</button>').join('');
+  $('#gSrc').innerHTML = SRC.map((s, i) => '<button class="chip' + (i === st.src ? ' on' : '') + '" data-i="' + i + '">' + t('g.s.' + s) + '</button>').join('');
+  $$('#gDet .chip').forEach(b => b.onclick = () => { st.det = +b.dataset.i; geoUI(); restart(); });
+  $$('#gSrc .chip').forEach(b => b.onclick = () => { st.src = +b.dataset.i; geoUI(); restart(); });
+  const k = SRC[st.src];
+  $('#slDist').style.display = k === 'mar' ? 'none' : ''; $('#slDiam').style.display = k === 'cyl' ? '' : 'none'; $('#slHgt').style.display = k === 'cyl' ? '' : 'none';
+  $('#slMd').style.display = k === 'mar' ? '' : 'none'; $('#slMf').style.display = k === 'mar' ? '' : 'none';
+  const mm = ' ' + t('mm');
+  $('#vDist').textContent = st.dist + mm; $('#vDiam').textContent = st.diam + mm; $('#vHgt').textContent = st.hgt + mm; $('#vMd').textContent = st.md + mm; $('#vMf').textContent = st.mf + mm;
+}
+[['#rDist', 'dist'], ['#rDiam', 'diam'], ['#rHgt', 'hgt'], ['#rMd', 'md'], ['#rMf', 'mf']].forEach(([id, key]) => {
+  const el = $(id); el.value = st[key]; el.addEventListener('input', () => { st[key] = +el.value; geoUI(); restart(); });
+});
+$('#gKeep').onclick = () => { if (!mc.n) return; const D = DET[st.det]; kept = { f: mc.hit / mc.n, lbl: D.nm + ', ' + t('g.s.' + SRC[st.src]) }; drawGeo(); };
+GUIDE.onRedraw(() => { geoUI(); drawGeo(); });
+restart();
+
+/* ── 3. вкладки конструктора ── */
+$$('#mTabs .chip').forEach(b => b.onclick = () => {
+  $$('#mTabs .chip').forEach(c => c.classList.toggle('on', c === b));
+  $$('#maker .pane').forEach(p => p.classList.toggle('on', p.id === b.dataset.p));
+});
+
+/* ── 4. гонка процессор / видеокарта (замер: 143 узла × 3 млн, CPU 2203 с, GPU 19 с) ── */
+(function race() {
+  const cv = $('#cvRace'), NODES = 143, T = { cpu: 2203, gpu: 19 }, SP = [20, 100, 600];
+  let speed = 100, sim = 0, run = false, last = 0;
+  $('#rSpeed').innerHTML = SP.map(v => '<button class="chip' + (v === speed ? ' on' : '') + '" data-v="' + v + '">×' + v + '</button>').join('');
+  $$('#rSpeed .chip').forEach(b => b.onclick = () => { speed = +b.dataset.v; $$('#rSpeed .chip').forEach(c => c.classList.toggle('on', c === b)); });
+  const mmss = s => { s = Math.round(s); const m = Math.floor(s / 60), r = s % 60; return m + ':' + (r < 10 ? '0' : '') + r; };
+  function draw() {
+    const { ctx, w, h } = setup(cv), narrow = w < 520, lab = narrow ? 6 : 150;
+    const cols = narrow ? Math.max(10, Math.floor((w - 12) / 10)) : Math.min(72, Math.max(20, Math.floor((w - lab - 80) / 12))), cell = narrow ? (w - 12) / cols : 12;
+    const rows = Math.ceil(NODES / cols), gh = rows * cell, head = narrow ? 36 : 0, gap = (h - 2 * (gh + head)) / 3;
+    [['cpu', '#6aa8ff'], ['gpu', '#5be38a']].forEach(([k, col], li) => {
+      const y0 = gap * (li + 1) + (gh + head) * li, gy = y0 + head, done = Math.min(NODES, Math.floor(NODES * sim / T[k])), fin = sim >= T[k];
+      ctx.fillStyle = col; ctx.font = '700 13px system-ui'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(t('r.' + k), 6, y0);
+      ctx.fillStyle = '#93a3c4'; ctx.font = '12px system-ui'; ctx.fillText(fin ? t('r.done', mmss(T[k])) : t('r.node', done, NODES), 6, y0 + 17);
+      for (let i = 0; i < NODES; i++) { const cx = lab + (i % cols) * cell, cy = gy + Math.floor(i / cols) * cell; ctx.fillStyle = i < done ? col : 'rgba(255,255,255,.07)'; ctx.fillRect(cx, cy, cell - 1.5, cell - 1.5); }
+      ctx.fillStyle = fin ? col : '#eef3ff'; ctx.font = '800 15px system-ui'; ctx.textAlign = 'right'; ctx.fillText(mmss(Math.min(sim, T[k])), w - 6, y0 + 2);
+    });
+    $('#rRes').innerHTML = '<span class="pill">' + t('r.real', mmss(sim)) + '</span><span class="pill good">' + t('r.x', fx(T.cpu / T.gpu, 0)) + '</span>';
+  }
+  function tick(now) { if (!run) return; const dt = (now - last) / 1000; last = now; sim = Math.min(T.cpu, sim + dt * speed); draw(); if (sim >= T.cpu) { run = false; $('#rRun').disabled = false; return; } requestAnimationFrame(tick); }
+  $('#rRun').onclick = () => { if (sim >= T.cpu) sim = 0; run = true; $('#rRun').disabled = true; last = performance.now(); requestAnimationFrame(tick); };
+  $('#rReset').onclick = () => { run = false; sim = 0; $('#rRun').disabled = false; draw(); };
+  io.observe(cv); GUIDE.onRedraw(draw);
+})();
+
+/* ── 5. конвейер «где лежит кривая» ── */
+(function pipe() {
+  // на каждом шаге: [конструктор, конфигурация, диск, файл спектра] → список меток [ключ, вид]
+  const S = [
+    [[], [], [], []],
+    [[['p.curve', 'new']], [], [], []],
+    [[['p.curve', 'ok']], [['p.curve', 'new']], [], []],
+    [[], [['p.curve', 'new'], ['p.mat', 'wait']], [], []],
+    [[], [['p.curve', 'ok'], ['p.mat', 'ok']], [['p.curve', 'new'], ['p.mat', 'new']], []],
+    [[], [['p.curve', 'ok'], ['p.mat', 'ok']], [['p.curve', 'ok'], ['p.mat', 'ok']], [['p.curve', 'new'], ['p.mat', 'new']]],
+  ];
+  const HIT = [[], [0], [1], [1], [2], [3]];
+  let step = 0;
+  function draw() {
+    $('#pSteps').innerHTML = [1, 2, 3, 4, 5].map(i => '<button class="' + (i === step ? 'on' : i < step ? 'done' : '') + '" data-s="' + i + '"><b>' + i + '</b>' + t('p.s' + i) + '</button>').join('');
+    $$('#pSteps button').forEach(b => b.onclick = () => { step = +b.dataset.s; draw(); });
+    $('#pWhere').innerHTML = [1, 2, 3, 4].map((w, i) => {
+      const tags = S[step][i];
+      return '<div class="place' + (HIT[step].indexOf(i) >= 0 ? ' hit' : '') + '"><h4>' + t('p.w' + w) + '<small>' + t('p.w' + w + 's') + '</small></h4>' +
+        (tags.length ? tags.map(([k, v]) => '<span class="tag ' + v + '">' + t(k) + (v === 'wait' ? ' · ' + t('p.wait') : '') + '</span>').join('') : '<span class="tag none">' + t('p.nothing') + '</span>') + '</div>';
+    }).join('');
+    $('#pSay').innerHTML = '<span class="pill ' + (step >= 1 && step <= 3 ? 'bad' : step >= 4 ? 'good' : '') + '">' + t('p.say' + step) + '</span>';
+  }
+  GUIDE.onRedraw(draw);
+})();
+
+GUIDE.init();
+</script>
+</body>
+</html>

@@ -380,7 +380,7 @@
     <value>57, 13</value>
   </data>
   <data name="label40.Text" xml:space="preserve">
-    <value>Мин. SNR</value>
+    <value>Мин SNR</value>
   </data>
   <data name="label41.Size" type="System.Drawing.Size, System.Drawing">
     <value>45, 13</value>
@@ -392,7 +392,7 @@
     <value>69, 13</value>
   </data>
   <data name="label39.Text" xml:space="preserve">
-    <value>Макс № пик</value>
+    <value>Макс. пиков</value>
   </data>
   <data name="label47.Size" type="System.Drawing.Size, System.Drawing">
     <value>113, 13</value>
@@ -431,7 +431,7 @@
     <value>362, 13</value>
   </data>
   <data name="label31.Text" xml:space="preserve">
-    <value>(должны включать идентичные параметры канала что и у устройства)</value>
+    <value>(с теми же параметрами каналов, что и у устройства)</value>
   </data>
   <data name="label16.Size" type="System.Drawing.Size, System.Drawing">
     <value>192, 13</value>
@@ -4748,6 +4748,6 @@
     <value>Расширение пика</value>
   </data>
   <data name="centroidComCheckBox.Text" xml:space="preserve">
-    <value>Центроида по центру масс</value>
+    <value>Центроид по центру масс</value>
   </data>
 </root>
