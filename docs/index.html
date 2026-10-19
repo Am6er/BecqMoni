@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BecqMoni гайд</title>
+<meta name="description" content="Гайд по BecqMoni: установка, приборы, набор спектра, калибровка, нуклиды, геометрия, FSA и активность — наглядно и интерактивно.">
+<link rel="stylesheet" href="assets/guide.css">
+<style>
+.path{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px}
+.path button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 11px;color:var(--soft);font-family:inherit;cursor:pointer;transition:border-color .15s}
+.path button b{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--panel2);color:var(--soft);font-size:12px}
+.path button span{font-weight:700;font-size:14px;color:var(--ink)}
+.path button small{font-size:12px;color:var(--muted);line-height:1.3}
+.path button.on{border-color:var(--gold);background:linear-gradient(180deg,rgba(255,204,51,.10),var(--panel))}
+.path button.on b{background:var(--gold);color:#1a1300}
+@media (max-width:900px){.path{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body data-chapter="index">
+
+<section class="hero" id="top"><div class="wrap">
+  <div class="kicker" data-t="h.k"></div>
+  <h1 data-t="h.h"></h1>
+  <p class="lead" data-t="h.lead"></p>
+  <div class="card full">
+    <h3 data-t="p.h"></h3>
+    <canvas id="cvPath" class="cv tall"></canvas>
+    <div class="path" id="path"></div>
+    <div class="row"><button class="btn" id="pPrev" data-t="p.prev"></button><button class="btn main" id="pNext" data-t="p.next"></button><label class="sw"><input type="checkbox" id="pAuto" checked><span data-t="p.auto"></span></label><a class="btn" id="pGo" href="devices.html"></a></div>
+  </div>
+</div></section>
+
+<section class="sec" id="chapters" data-nav="n.ch"><div class="wrap">
+  <div class="kicker" data-t="c.k"></div>
+  <h2 data-t="c.h"></h2>
+  <p class="lead" data-t="c.lead"></p>
+  <div class="chapters" id="chapGrid"></div>
+</div></section>
+
+<section class="sec" id="before" data-nav="n.before"><div class="wrap">
+  <div class="kicker" data-t="b.k"></div>
+  <h2 data-t="b.h"></h2>
+  <div class="facts">
+    <div class="fact" style="--c:var(--blue)" data-t="b.f1"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="b.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="b.f3"></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--pair)" data-t="b.f4"></div>
+    <div class="fact" style="--c:var(--esc)" data-t="b.f5"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="b.f6"></div>
+  </div>
+  <div id="pager"></div>
+</div></section>
+
+<footer><div class="wrap" data-t="foot"></div></footer>
+
+<script src="assets/guide.js"></script>
+<script>
+'use strict';
+const { $, $$, clamp, lerp, fx, setup, scale, axes, eCol, rgba, visible, io, t } = GUIDE;
+const ICONS = {
+  index: '<svg viewBox="0 0 48 48" fill="none" stroke="#ffcc33" stroke-width="2.4" stroke-linecap="round"><path d="M8 40h32"/><path d="M12 40c4 0 5-24 9-24s4 16 7 16 4-8 8-8"/><circle cx="21" cy="16" r="3" fill="#ff4d6d" stroke="none"/></svg>',
+  install: '<svg viewBox="0 0 48 48" fill="none" stroke="#6aa8ff" stroke-width="2.4" stroke-linecap="round"><rect x="6" y="8" width="36" height="26" rx="3"/><path d="M18 40h12M24 34v6"/><path d="M24 14v12m-5-5 5 5 5-5" stroke="#ffcc33"/></svg>',
+  devices: '<svg viewBox="0 0 48 48" fill="none" stroke="#5be38a" stroke-width="2.4" stroke-linecap="round"><rect x="10" y="6" width="18" height="34" rx="4"/><circle cx="19" cy="15" r="4"/><path d="M15 26h8M15 31h8"/><path d="M32 18c3 2 3 8 0 10M36 14c6 4 6 14 0 18" stroke="#ffcc33"/></svg>',
+  acquire: '<svg viewBox="0 0 48 48" fill="none" stroke-width="2.4" stroke-linecap="round"><circle cx="24" cy="24" r="17" stroke="#93a3c4"/><path d="M24 12v12l8 5" stroke="#ffcc33"/><circle cx="24" cy="24" r="2.5" fill="#ff4d6d"/></svg>',
+  view: '<svg viewBox="0 0 48 48" fill="none" stroke-width="2.4" stroke-linecap="round"><rect x="5" y="8" width="38" height="30" rx="3" stroke="#93a3c4"/><path d="M10 33c5-1 6-18 10-18s4 12 8 12 5-6 10-6" stroke="#ffcc33"/><circle cx="34" cy="17" r="5" stroke="#6aa8ff"/><path d="M38 21l4 4" stroke="#6aa8ff"/></svg>',
+  calibration: '<svg viewBox="0 0 48 48" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M6 40h36M6 40V8" stroke="#93a3c4"/><path d="M8 36 40 10" stroke="#ffcc33"/><circle cx="16" cy="29.5" r="3" fill="#ff4d6d" stroke="none"/><circle cx="32" cy="16.5" r="3" fill="#ff4d6d" stroke="none"/></svg>',
+  peaks: '<svg viewBox="0 0 48 48" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M5 40c6 0 7-26 11-26s4 26 9 26 5-14 8-14 4 14 10 14" stroke="#ffcc33"/><text x="12" y="10" fill="#c38bff" stroke="none" font-size="9" font-family="system-ui">Cs</text><text x="29" y="22" fill="#5be38a" stroke="none" font-size="9" font-family="system-ui">K</text></svg>',
+  geometry: '<svg viewBox="0 0 48 48" fill="none" stroke-width="2.4" stroke-linecap="round"><ellipse cx="24" cy="12" rx="12" ry="5" stroke="#ffcc33"/><path d="M12 12v22c0 3 5 5 12 5s12-2 12-5V12" stroke="#ffcc33"/><g fill="#c38bff"><rect x="18" y="20" width="4" height="4"/><rect x="24" y="24" width="4" height="4" opacity=".6"/><rect x="18" y="28" width="4" height="4" opacity=".4"/></g></svg>',
+  fsa: '<svg viewBox="0 0 48 48"><path d="M4 40 C12 38 14 14 20 14 S28 34 34 30 40 20 44 22 V44 H4Z" fill="#FF11CC" opacity=".85"/><path d="M4 40 C12 39 16 30 22 30 S30 38 36 36 42 32 44 33 V44 H4Z" fill="#CCDD88"/><path d="M4 42 C14 41 22 39 30 40 S40 41 44 41 V44 H4Z" fill="#B0B7BD"/></svg>',
+  result: '<svg viewBox="0 0 48 48" fill="none" stroke-width="2.6" stroke-linecap="round"><path d="M8 34a16 16 0 1 1 32 0" stroke="#5be38a"/><path d="M24 34l8-11" stroke="#ffcc33"/><circle cx="24" cy="34" r="3" fill="#ffcc33"/><text x="24" y="47" fill="#eef3ff" font-size="9" text-anchor="middle" stroke="none" font-family="system-ui">Bq/kg</text></svg>',
+  how: '<svg viewBox="0 0 48 48" fill="none" stroke-width="2.4" stroke-linecap="round"><path d="M4 30c4-8 6-8 9 0s5 8 9 0 6-8 9 0" stroke="#ff4d6d"/><path d="M31 30l11-14" stroke="#ffd166"/><circle cx="42" cy="16" r="2.5" fill="#ffd166"/><path d="M31 30l9 9" stroke="#4dd0e1"/></svg>',
+  files: '<svg viewBox="0 0 48 48" fill="none" stroke="#93a3c4" stroke-width="2.4" stroke-linecap="round"><path d="M12 6h16l8 8v28H12z"/><path d="M28 6v8h8"/><path d="M17 24h14M17 30h14M17 36h8" stroke="#ffcc33"/></svg>',
+};
+GUIDE.texts({ru:{
+'n.ch':'Главы','n.before':'Заранее',
+'h.k':'Гайд по BecqMoni',
+'h.h':'От <em>прибора на столе</em> до беккерелей в пробе',
+'h.lead':'BecqMoni — программа для гамма-спектрометров: набирает спектр с прибора, калибрует его, узнаёт нуклиды и считает активность. Гайд проведёт по всем окнам — с настоящими снимками программы и живыми примерами, которые можно трогать.',
+'p.h':'Путь за пять шагов — щёлкайте по шагам',
+'p.prev':'← Шаг назад','p.next':'Следующий шаг →','p.auto':'сам по кругу','p.go':'Открыть главу «{0}» →',
+'s1':'Подключить прибор','s1d':'кристалл ловит гамма-кванты','s2':'Набрать спектр','s2d':'вспышки складываются в гистограмму',
+'s3':'Откалибровать','s3d':'каналы превращаются в кэВ','s4':'Разобрать FSA','s4d':'спектр раскладывается на нуклиды','s5':'Получить результат','s5d':'Бк, Бк/кг и предел обнаружения',
+'cv.ch':'канал','cv.kev':'энергия, кэВ','cv.cnt':'отсчёты','cv.res':'Результат','cv.bqkg':'Бк/кг','cv.lim':'предел обнаружения',
+'cv.dev':'прибор','cv.pc':'BecqMoni',
+'c.k':'Оглавление','c.h':'Двенадцать глав — от установки до физики',
+'c.lead':'Можно читать по порядку, а можно сразу открыть нужное. Вверху каждой страницы — кнопка <b>Оглавление</b>, внизу — переход к следующей главе.',
+'b.k':'Перед началом','b.h':'Что полезно знать заранее',
+'b.f1':'<b>Windows и .NET Framework 4.8.</b> BecqMoni — программа для Windows; ставится и обновляется сама, обновления приходят с сайта программы.',
+'b.f2':'<b>Прибор — сцинтилляционный.</b> NaI или CsI: Atom Spectra, RadiaCode, Obsidian и другие. Подробности — в главе «Приборы».',
+'b.f3':'<b>Без прибора тоже можно.</b> Готовые спектры открываются из файлов — свои и чужие, в разных форматах.',
+'b.f4':'<b>Калибровка — первым делом.</b> Пока шкала энергий не настроена, программа не узнает ни одного нуклида.',
+'b.f5':'<b>Геометрия — для беккерелей.</b> Чтобы получить активность, программе нужно знать, как проба стоит у кристалла.',
+'b.f6':'<b>Числа — с точкой.</b> Дробная часть везде отделяется точкой, разряды не группируются: 1234.5.',
+},en:{
+'n.ch':'Chapters','n.before':'Before you start',
+'h.k':'The BecqMoni guide',
+'h.h':'From <em>a detector on your desk</em> to becquerels in a sample',
+'h.lead':'BecqMoni is a program for gamma spectrometers: it acquires a spectrum from the detector, calibrates it, recognises nuclides and computes activity. This guide walks through every window — with real screenshots of the program and live examples you can play with.',
+'p.h':'The path in five steps — click the steps',
+'p.prev':'← Previous step','p.next':'Next step →','p.auto':'loop on its own','p.go':'Open “{0}” →',
+'s1':'Connect a detector','s1d':'the crystal catches gamma photons','s2':'Acquire a spectrum','s2d':'flashes add up into a histogram',
+'s3':'Calibrate','s3d':'channels turn into keV','s4':'Run FSA','s4d':'the spectrum splits into nuclides','s5':'Get the result','s5d':'Bq, Bq/kg and the detection limit',
+'cv.ch':'channel','cv.kev':'energy, keV','cv.cnt':'counts','cv.res':'Result','cv.bqkg':'Bq/kg','cv.lim':'detection limit',
+'cv.dev':'detector','cv.pc':'BecqMoni',
+'c.k':'Contents','c.h':'Twelve chapters — from installing to the physics',
+'c.lead':'Read them in order or jump straight to what you need. Every page has a <b>Contents</b> button at the top and a link to the next chapter at the bottom.',
+'b.k':'Before you start','b.h':'Good to know in advance',
+'b.f1':'<b>Windows and .NET Framework 4.8.</b> BecqMoni is a Windows program; it installs and updates itself, updates come from the program\'s website.',
+'b.f2':'<b>A scintillation detector.</b> NaI or CsI: Atom Spectra, RadiaCode, Obsidian and others. Details are in the “Devices” chapter.',
+'b.f3':'<b>No detector? Still fine.</b> Ready-made spectra open from files — your own and others\', in several formats.',
+'b.f4':'<b>Calibrate first.</b> Until the energy scale is set, the program cannot recognise a single nuclide.',
+'b.f5':'<b>Geometry gives becquerels.</b> To get activity, the program needs to know how the sample sits at the crystal.',
+'b.f6':'<b>Numbers use a dot.</b> The decimal separator is always a dot and digits are not grouped: 1234.5.',
+}});
+
+/* ── карточки глав ── */
+function chapters() {
+  $('#chapGrid').innerHTML = GUIDE.CHAPTERS.filter(c => c.id !== 'index').map((c, i) => '<a class="chap" href="' + c.file + '"><span class="n">' + (i + 2) + '</span>' + (ICONS[c.id] || '') + '<b>' + c[GUIDE.lang][0] + '</b><span>' + c[GUIDE.lang][1] + '</span></a>').join('');
+}
+GUIDE.onRedraw(chapters);
+
+/* ── путь за пять шагов: одна картинка, пять состояний ── */
+(function path() {
+  const cv = $('#cvPath'); io.observe(cv);
+  const STEPS = ['s1', 's2', 's3', 's4', 's5'], GO = ['devices', 'acquire', 'calibration', 'fsa', 'result'];
+  let st = 0, t0 = performance.now(), auto = true, lastSwitch = performance.now();
+  const box = $('#path');
+  function buttons() {
+    box.innerHTML = STEPS.map((k, i) => '<button class="' + (i === st ? 'on' : '') + '" data-i="' + i + '"><b>' + (i + 1) + '</b><span>' + t(k) + '</span><small>' + t(k + 'd') + '</small></button>').join('');
+    $$('button', box).forEach(b => b.onclick = () => go(+b.dataset.i, true));
+    const ch = GUIDE.CHAPTERS.find(c => c.id === GO[st]); const a = $('#pGo'); a.href = ch.file; a.textContent = t('p.go', ch[GUIDE.lang][0]);
+  }
+  function go(i, user) { st = (i + 5) % 5; t0 = performance.now(); lastSwitch = t0; if (user) { auto = false; $('#pAuto').checked = false; } buttons(); }
+  $('#pPrev').onclick = () => go(st - 1, true); $('#pNext').onclick = () => go(st + 1, true);
+  $('#pAuto').onchange = e => { auto = e.target.checked; lastSwitch = performance.now(); };
+  GUIDE.onRedraw(buttons);
+  // синтетический спектр: Cs-137 + K-40 + континуум, 1024 канала, 3 кэВ на канал с небольшим нулём
+  const NCH = 600, KEV = c => 2.6 * c + 8, CH = e => (e - 8) / 2.6;
+  const LINES = [[661.7, 1.0, '#FFCC77', 'Cs-137'], [1460.8, 0.32, '#CCDD00', 'K-40'], [32, 0.25, '#FFCC77', ''], [186, 0.12, '#FF6655', 'Ra-226']];
+  function shape(e, E, a) { const s = 0.075 * 662 * Math.sqrt(E / 662) / 2.355; const peak = Math.exp(-0.5 * ((e - E) / s) ** 2); const ce = E * (2 * E / 511) / (1 + 2 * E / 511); const comp = e < ce ? 0.11 * (0.6 + 0.4 * e / ce) / (1 + Math.exp((e - ce) / (s * 0.7))) : 0.11 * Math.exp(-0.5 * ((e - ce) / s) ** 2) * 0.4; const bs = 0.03 * Math.exp(-0.5 * ((e - E / (1 + 2 * E / 511)) / (s * 1.6)) ** 2); return a * (peak + comp + bs); }
+  const comp = LINES.map(([E, a]) => Float64Array.from({ length: NCH }, (_, c) => shape(KEV(c), E, a)));
+  const cont = Float64Array.from({ length: NCH }, (_, c) => { const e = KEV(c); return 0.5 * Math.exp(-e / 160) + 0.03 * Math.exp(-e / 900); });
+  const total = Float64Array.from({ length: NCH }, (_, c) => comp.reduce((s, a) => s + a[c], 0) + cont[c]);
+  const noisy = Float64Array.from(total, v => Math.max(0, v + Math.sqrt(v / 900) * GUIDE.gauss()));
+  function draw(now) {
+    const { ctx, w, h } = setup(cv), u = clamp((now - t0) / 1600, 0, 1), e = 1 - Math.pow(1 - u, 3);
+    const narrow = w < 640, bx = { l: 52, t: 18, r: w - 14, b: h - 28 };
+    if (st === 0) {   // прибор → провод → компьютер, кванты летят
+      const cx = narrow ? w * 0.28 : w * 0.3, cy = h * 0.5, R = Math.min(h * 0.22, 70);
+      ctx.fillStyle = '#1d2232'; ctx.fillRect(cx - R * 0.7, cy - R * 1.6, R * 1.4, R * 3.2);
+      const g = ctx.createLinearGradient(0, cy - R, 0, cy + R); g.addColorStop(0, 'rgba(150,200,255,.45)'); g.addColorStop(1, 'rgba(110,160,255,.18)');
+      ctx.fillStyle = g; ctx.fillRect(cx - R * 0.55, cy - R * 1.45, R * 1.1, R * 1.3);
+      ctx.fillStyle = '#cdd8f3'; ctx.font = '600 12px system-ui'; ctx.textAlign = 'center'; ctx.fillText(t('cv.dev'), cx, cy + R * 1.95);
+      for (let k = 0; k < 9; k++) { const ph = ((now / 900) + k / 9) % 1, ang = -2.2 + k * 0.5, x0 = cx + Math.cos(ang) * R * 4, y0 = cy - R * 0.8 + Math.sin(ang) * R * 4; const x = lerp(x0, cx, ph), y = lerp(y0, cy - R * 0.8, ph); ctx.strokeStyle = eCol(80 + k * 300, 0.8); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(lerp(x0, cx, Math.max(0, ph - 0.15)), lerp(y0, cy - R * 0.8, Math.max(0, ph - 0.15))); ctx.lineTo(x, y); ctx.stroke(); if (ph > 0.93) { ctx.fillStyle = 'rgba(255,230,120,.9)'; ctx.beginPath(); ctx.arc(cx, cy - R * 0.8, 6, 0, 7); ctx.fill(); } }
+      const px = narrow ? w * 0.72 : w * 0.7; ctx.strokeStyle = '#6a7899'; ctx.lineWidth = 2; ctx.setLineDash([6, 6]); ctx.lineDashOffset = -now / 40; ctx.beginPath(); ctx.moveTo(cx + R * 0.7, cy + R); ctx.bezierCurveTo(cx + R * 2, cy + R * 2, px - R * 2, cy + R * 1.5, px - R * 1.2, cy); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = '#1a2440'; ctx.strokeStyle = '#3a4a78'; ctx.fillRect(px - R * 1.2, cy - R * 1.1, R * 2.4, R * 1.6); ctx.strokeRect(px - R * 1.2, cy - R * 1.1, R * 2.4, R * 1.6);
+      ctx.fillStyle = '#eef3ff'; ctx.font = '800 15px system-ui'; ctx.fillText('Becq', px - 14, cy - R * 0.2); ctx.fillStyle = '#ffcc33'; ctx.fillText('Moni', px + 22, cy - R * 0.2);
+      return;
+    }
+    const kev = st >= 2, X = kev ? scale('lin', 0, 1600, bx.l, bx.r) : scale('lin', 0, NCH, bx.l, bx.r);
+    let mx = 0; for (let c = 5; c < NCH; c++) mx = Math.max(mx, total[c]);
+    const Y = scale('sqrt', 0, mx * 1.1, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { xl: kev ? t('cv.kev') : t('cv.ch'), yl: t('cv.cnt'), noY: true });
+    const fill = st === 1 ? e : 1, xOf = c => kev ? X(lerp(c * 2.6, KEV(c), st === 2 ? e : 1)) : X(c);
+    if (st >= 3) {   // слои FSA
+      const base = Float64Array.from(cont), grow = st === 3 ? e : 1;
+      ctx.beginPath(); for (let c = 3; c < NCH; c++) ctx.lineTo(xOf(c), Y(base[c])); ctx.lineTo(xOf(NCH - 1), bx.b); ctx.lineTo(xOf(3), bx.b); ctx.closePath(); ctx.fillStyle = 'rgba(176,183,189,.75)'; ctx.fill();
+      LINES.forEach(([, , col], k) => { ctx.beginPath(); for (let c = 3; c < NCH; c++) ctx.lineTo(xOf(c), Y(base[c] + comp[k][c] * grow)); for (let c = NCH - 1; c >= 3; c--) ctx.lineTo(xOf(c), Y(base[c])); ctx.closePath(); ctx.fillStyle = rgba(col, .85); ctx.fill(); for (let c = 0; c < NCH; c++) base[c] += comp[k][c] * grow; });
+    }
+    const nShow = Math.floor(NCH * fill); ctx.fillStyle = '#ffffff';
+    for (let c = 3; c < nShow; c++) { const v = st === 1 ? noisy[c] * clamp(e * 1.4 - c / NCH * 0.4, 0, 1) : noisy[c]; ctx.fillRect(xOf(c) - 0.9, Y(v) - 0.9, 1.8, 1.8); }
+    if (st === 2) {  // калибровка: две точки
+      [[661.7, '#ff4d6d'], [1460.8, '#ff4d6d']].forEach(([E]) => { const x = xOf(Math.round(CH(E))); ctx.strokeStyle = 'rgba(255,77,109,.8)'; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x, bx.t + 14); ctx.lineTo(x, bx.b); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = '#ff4d6d'; ctx.font = '600 12px system-ui'; ctx.textAlign = 'center'; ctx.fillText(fx(E, 1) + (GUIDE.lang === 'ru' ? ' кэВ' : ' keV'), x, bx.t + 10); });
+    }
+    if (st >= 3) { ctx.font = '700 12px system-ui'; ctx.textAlign = 'center'; LINES.forEach(([E, , col, nm]) => { if (!nm) return; const c = Math.round(CH(E)); ctx.fillStyle = col; ctx.fillText(nm, xOf(c), Y(total[c]) - 10); }); }
+    if (st === 4) {  // карточка результата
+      const cw = Math.min(260, w * 0.42), ch = 112, x = bx.r - cw - 6, y = bx.t + 30, a = e;
+      ctx.globalAlpha = a; ctx.fillStyle = 'rgba(19,27,47,.95)'; ctx.strokeStyle = '#5be38a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.rect(x, y, cw, ch); ctx.fill(); ctx.stroke();
+      ctx.textAlign = 'left'; ctx.fillStyle = '#93a3c4'; ctx.font = '12px system-ui'; ctx.fillText(t('cv.res'), x + 12, y + 20);
+      ctx.fillStyle = '#FFCC77'; ctx.font = '800 20px system-ui'; ctx.fillText('Cs-137  ' + fx(48.2 * a, 1) + ' ± 2.1', x + 12, y + 50);
+      ctx.fillStyle = '#eef3ff'; ctx.font = '12px system-ui'; ctx.fillText(t('cv.bqkg'), x + cw - 50, y + 50);
+      ctx.fillStyle = '#CCDD00'; ctx.font = '700 15px system-ui'; ctx.fillText('K-40  ' + fx(410 * a, 0) + ' ± 25', x + 12, y + 76);
+      ctx.fillStyle = '#93a3c4'; ctx.font = '12px system-ui'; ctx.fillText('Ra-226 < 6.5 — ' + t('cv.lim'), x + 12, y + 98);
+      ctx.globalAlpha = 1;
+    }
+  }
+  function loop(now) {
+    requestAnimationFrame(loop);
+    if (!visible.get(cv)) return;
+    if (auto && now - lastSwitch > 4200) go(st + 1, false);
+    draw(now);
+  }
+  requestAnimationFrame(loop);
+})();
+
+GUIDE.init();
+</script>
+</body>
+</html>

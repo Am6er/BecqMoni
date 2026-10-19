@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Окно спектра — BecqMoni гайд</title>
+<link rel="stylesheet" href="assets/guide.css">
+<style>
+/* только для этой главы */
+@media (max-width:560px){.ui{white-space:normal}}
+.tb{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:8px}
+.tb .grp{font-size:12.5px;font-weight:800;color:var(--gold);letter-spacing:.04em;min-width:74px}
+.tb .sep{width:1px;height:22px;background:var(--line)}
+.tb .chip{padding:5px 10px;font-size:13px}
+.tb .btn{padding:5px 10px;font-size:13px}
+.tb .chip:disabled{opacity:.4;cursor:default}
+@media (max-width:560px){.tb .sep{display:none}.tb .grp{min-width:0;width:100%}}
+.sbx{position:relative;margin-top:10px}
+.sbx canvas{outline:none}
+.winp{position:absolute;background:#fff;color:#111;border:1px solid #000;box-shadow:3px 3px 0 #8a8a8a;font:12px/1.35 "Segoe UI",system-ui,sans-serif;padding:4px 8px 5px;pointer-events:none;font-variant-numeric:tabular-nums}
+.winp .h{margin:0 0 3px;font-weight:600}
+.winp table{border-collapse:collapse;width:100%}
+.winp td{padding:0 0 0 0;white-space:nowrap}
+.winp td+td{text-align:right;padding-left:12px}
+.winp tr.sep td{border-top:1px solid #ccc;height:5px;padding:0}
+.winp .vd{text-align:center;font-weight:600}
+.selp{right:12px;top:40px;width:250px;display:none}
+.curp{left:64px;top:40px;width:200px;display:none}
+@media (max-width:700px){.selp{position:static;width:auto;margin-top:8px;box-shadow:none}.curp{display:none!important}}
+.crop{position:relative;overflow:hidden;margin-top:16px;background:#0b1020;border:1px solid #3a4a78;border-radius:10px;box-shadow:0 14px 40px rgba(0,0,0,.45)}
+.crop figure.shot{width:calc(100% / var(--w));margin-left:calc(-100% * var(--x0) / var(--w))}
+.crop .shot-frame{overflow:visible;border:0;border-radius:0;box-shadow:none;background:transparent}
+.crop.main .shot-frame{overflow:hidden}
+.slice{padding-top:22px}
+.slice .hot b{top:-21px;left:50%;margin-left:-9px;width:18px;height:18px;font-size:11px;box-shadow:0 0 0 2px rgba(9,13,24,.85)}
+.sbx canvas:focus-visible{box-shadow:0 0 0 1px rgba(255,204,51,.35)}
+.slice-cap{font-size:13px;color:var(--dim);margin-top:6px}
+.shot-legend.cols2{grid-template-columns:1fr 1fr}
+@media (max-width:900px){.shot-legend.cols2{grid-template-columns:1fr}}
+.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+.key{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;color:var(--soft)}
+.key .k{display:block;margin-bottom:5px}
+.key b{color:var(--ink)}
+@media (max-width:900px){.keys{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.keys{grid-template-columns:1fr}}
+</style>
+</head>
+<body data-chapter="view">
+
+<section class="hero" id="top"><div class="wrap">
+  <div class="kicker" data-t="h.k"></div>
+  <h1 data-t="h.h"></h1>
+  <p class="lead" data-t="h.lead"></p>
+</div></section>
+
+<section class="sec" id="sandbox" data-nav="n.sbx"><div class="wrap">
+  <div class="kicker" data-t="sb.kk"></div>
+  <h2 data-t="sb.h"></h2>
+  <p class="lead" data-t="sb.lead"></p>
+  <div class="card full">
+    <div class="tb">
+      <span class="grp" data-t="sb.y"></span>
+      <div class="chips" id="cUnit"></div><span class="sep"></span>
+      <div class="chips" id="cScale"></div>
+      <span class="lbl" data-t="sb.powl"></span><input type="range" id="rPow" min="1" max="10" step="0.1" value="4"><span class="val" id="vPow"></span><button class="chip" id="bE">e</button>
+    </div>
+    <div class="tb">
+      <span class="grp" data-t="sb.x"></span>
+      <div class="chips" id="cX"></div><span class="sep"></span>
+      <button class="btn" id="bM" data-t="sb.M"></button><button class="btn" id="bA" data-t="sb.A"></button><button class="btn" id="b11">1:1</button>
+      <button class="btn" id="bZi">+</button><button class="btn" id="bZo">−</button><button class="btn" id="bL">◀</button><button class="btn" id="bR">▶</button>
+    </div>
+    <div class="tb">
+      <span class="grp" data-t="sb.v"></span>
+      <div class="chips" id="cBg"></div><span class="sep"></span>
+      <div class="chips" id="cType"></div><span class="sep"></span>
+      <div class="chips" id="cSm"></div><span class="sep"></span>
+      <label class="sw"><input type="checkbox" id="kFlags" checked><span data-t="sb.flags"></span></label>
+    </div>
+    <div class="sbx" id="sbx">
+      <canvas id="cvS" class="cv tall" tabindex="0"></canvas>
+      <div class="winp curp" id="curp"></div>
+      <div class="winp selp" id="selp"></div>
+    </div>
+    <p class="note" data-t="sb.hint"></p>
+    <div class="pills" id="sbInfo"></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="sb.f1"></div>
+    <div class="fact" style="--c:var(--esc)" data-t="sb.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="sb.f3"></div>
+  </div>
+</div></section>
+
+<section class="sec" id="bar" data-nav="n.bar"><div class="wrap">
+  <div class="kicker" data-t="bar.k"></div>
+  <h2 data-t="bar.h"></h2>
+  <p class="lead" data-t="bar.lead"></p>
+  <div class="crop slice" style="--x0:0;--w:0.43">
+    <figure class="shot" data-shot="spectrum-bar" data-legend="lgBarL" data-hot='[[0.0517,0.10,0.0285,0.74],[0.0818,0.10,0.0316,0.74],[0.1135,0.13,0.0521,0.67],[0.1656,0.10,0.0316,0.74],[0.2409,0.10,0.0316,0.74],[0.2725,0.10,0.0643,0.74],[0.3368,0.13,0.0521,0.67],[0.3888,0.10,0.0316,0.74]]'></figure>
+  </div>
+  <p class="slice-cap" data-t="bar.capL"></p>
+  <ol class="shot-legend cols2" id="lgBarL">
+    <li data-t="bar.l1"></li><li data-t="bar.l2"></li><li data-t="bar.l3"></li><li data-t="bar.l4"></li>
+    <li data-t="bar.l5"></li><li data-t="bar.l6"></li><li data-t="bar.l7"></li><li data-t="bar.l8"></li>
+  </ol>
+  <div class="crop slice" style="--x0:0.425;--w:0.385">
+    <figure class="shot" data-shot="spectrum-bar" data-legend="lgBarR" data-hot='[[0.4936,0.10,0.0300,0.74],[0.5256,0.10,0.0300,0.74],[0.5572,0.10,0.0300,0.74],[0.5888,0.10,0.0300,0.74],[0.6204,0.10,0.0280,0.74],[0.6535,0.10,0.0180,0.74],[0.7390,0.10,0.0605,0.74]]'></figure>
+  </div>
+  <p class="slice-cap" data-t="bar.capR"></p>
+  <ol class="shot-legend cols2" id="lgBarR">
+    <li data-t="bar.r1"></li><li data-t="bar.r2"></li><li data-t="bar.r3"></li><li data-t="bar.r4"></li>
+    <li data-t="bar.r5"></li><li data-t="bar.r6"></li><li data-t="bar.r7"></li>
+  </ol>
+  <h3 style="margin-top:26px" data-t="bar.steps"></h3>
+  <ol class="howto">
+    <li data-t="bar.s1"></li><li data-t="bar.s2"></li><li data-t="bar.s3"></li><li data-t="bar.s4"></li><li data-t="bar.s5"></li>
+  </ol>
+  <div class="callout tip" data-t="bar.tip"></div>
+</div></section>
+
+<section class="sec" id="modes" data-nav="n.modes"><div class="wrap">
+  <div class="kicker" data-t="md.k"></div>
+  <h2 data-t="md.h"></h2>
+  <p class="lead" data-t="md.lead"></p>
+  <div class="grid2 wr">
+    <figure class="shot" data-shot="view-modes" data-legend="lgModes" data-hot='[[0.181,0.058,0.787,0.116],[0.181,0.186,0.787,0.116],[0.181,0.308,0.787,0.116],[0.181,0.436,0.787,0.116],[0.181,0.564,0.787,0.116],[0.181,0.686,0.787,0.116],[0.168,0.852,0.048,0.11]]'>
+      <figcaption data-t="md.cap"></figcaption>
+    </figure>
+    <div>
+      <ol class="shot-legend" id="lgModes">
+        <li data-t="md.l1"></li><li data-t="md.l2"></li><li data-t="md.l3"></li><li data-t="md.l4"></li><li data-t="md.l5"></li><li data-t="md.l6"></li><li data-t="md.l7"></li>
+      </ol>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--esc)" data-t="md.f1"></div>
+    <div class="fact" style="--c:var(--pair)" data-t="md.f2"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="md.f3"></div>
+  </div>
+  <div class="callout info" data-t="md.info"></div>
+</div></section>
+
+<section class="sec" id="mouse" data-nav="n.mouse"><div class="wrap">
+  <div class="kicker" data-t="ms.k"></div>
+  <h2 data-t="ms.h"></h2>
+  <p class="lead" data-t="ms.lead"></p>
+  <div class="grid2 wl">
+    <figure class="shot" data-shot="select-panel" data-legend="lgSel" data-hot='[[0.200,0.025,0.042,0.955],[0.757,0.034,0.222,0.064],[0.757,0.104,0.222,0.088],[0.757,0.199,0.222,0.057],[0.757,0.259,0.222,0.054],[0.209,0.322,0.022,0.022],[0.199,0.668,0.044,0.135],[0.034,0.023,0.594,0.021]]'>
+      <figcaption data-t="ms.cap"></figcaption>
+    </figure>
+    <div>
+      <ol class="shot-legend" id="lgSel">
+        <li data-t="ms.l1"></li><li data-t="ms.l2"></li><li data-t="ms.l3"></li><li data-t="ms.l4"></li>
+        <li data-t="ms.l5"></li><li data-t="ms.l6"></li><li data-t="ms.l7"></li><li data-t="ms.l8"></li>
+      </ol>
+    </div>
+  </div>
+  <div class="keys">
+    <div class="key"><span class="k"><kbd data-t="ms.kd"></kbd></span><span data-t="ms.kdt"></span></div>
+    <div class="key"><span class="k"><kbd>Shift</kbd> + <kbd data-t="ms.kc"></kbd></span><span data-t="ms.kst"></span></div>
+    <div class="key"><span class="k"><kbd>A</kbd> · <kbd>M</kbd></span><span data-t="ms.kam"></span></div>
+    <div class="key"><span class="k"><kbd>Ctrl</kbd> + <kbd data-t="ms.kw"></kbd></span><span data-t="ms.kcw"></span></div>
+    <div class="key"><span class="k"><kbd data-t="ms.kw"></kbd></span><span data-t="ms.kwt"></span></div>
+    <div class="key"><span class="k"><kbd>+</kbd> · <kbd>−</kbd></span><span data-t="ms.kpm"></span></div>
+    <div class="key"><span class="k"><kbd data-t="ms.kr"></kbd></span><span data-t="ms.krt"></span></div>
+    <div class="key"><span class="k"><kbd>E</kbd></span><span data-t="ms.ket"></span></div>
+  </div>
+  <h3 style="margin-top:26px" data-t="ms.steps"></h3>
+  <ol class="howto">
+    <li data-t="ms.s1"></li><li data-t="ms.s2"></li><li data-t="ms.s3"></li><li data-t="ms.s4"></li><li data-t="ms.s5"></li>
+  </ol>
+  <div class="callout warn" data-t="ms.warn"></div>
+</div></section>
+
+<section class="sec" id="labels" data-nav="n.labels"><div class="wrap">
+  <div class="kicker" data-t="lb.k"></div>
+  <h2 data-t="lb.h"></h2>
+  <p class="lead" data-t="lb.lead"></p>
+  <div class="crop main" style="--x0:0.16;--w:0.59">
+    <figure class="shot" data-shot="main" data-legend="lgMain" data-hot='[[0.2490,0.0600,0.0880,0.0180],[0.3300,0.0813,0.3370,0.0150],[0.1983,0.0890,0.1222,0.0881],[0.7370,0.0804,0.0090,0.0358],[0.1726,0.4000,0.0204,0.5200],[0.3000,0.9100,0.4200,0.0165],[0.2000,0.9468,0.5450,0.0213]]'></figure>
+  </div>
+  <p class="slice-cap" data-t="lb.cap"></p>
+  <ol class="shot-legend cols2" id="lgMain">
+    <li data-t="lb.l1"></li><li data-t="lb.l2"></li><li data-t="lb.l3"></li><li data-t="lb.l4"></li>
+    <li data-t="lb.l5"></li><li data-t="lb.l6"></li><li data-t="lb.l7"></li>
+  </ol>
+  <div class="facts">
+    <div class="fact" style="--c:var(--photo)" data-t="lb.f1"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="lb.f2"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="lb.f3"></div>
+  </div>
+  <details class="hood"><summary data-t="hood"></summary><ul data-t="hoodtxt"></ul></details>
+  <div id="pager"></div>
+</div></section>
+
+<footer><div class="wrap" data-t="foot"></div></footer>
+
+<script src="assets/guide.js"></script>
+<script>
+'use strict';
+const { $, $$, clamp, lerp, fx, sig, trimZ, setup, rgba, io, t, poisson, niceTicks, tickLabel, axes } = GUIDE;
+GUIDE.texts({ru:{
+'n.sbx':'Песочница','n.bar':'Полоса под графиком','n.modes':'Режимы фона и FSA','n.mouse':'Мышь и выделение','n.labels':'Подписи и курсор',
+'h.k':'Глава 5 · Окно спектра',
+'h.h':'Как <em>читать и вертеть</em> спектр',
+'h.lead':'Окно спектра — это и карта, и лупа, и весы. Шкалы показывают то яркую вершину, то слабый хвост; режимы фона убирают «шум комнаты»; протянули мышью по пику — и программа сразу говорит, сколько в нём отсчётов и есть ли он вообще.',
+'sb.kk':'Попробуйте сами','sb.h':'Песочница графика',
+'sb.lead':'Спектр — как горный пейзаж: на линейной шкале видна одна вершина, на логарифмической — и вершины, и предгорья. Ниже — модель спектра Cs-137 в комнате (сцинтиллятор, 1024 канала, полчаса набора) и фона за 10 часов. Переключайте шкалы и режимы, протяните мышью по пику.',
+'sb.y':'Ось Y:','sb.x':'Ось X:','sb.v':'Просмотр:',
+'sb.cnt':'Имп.','sb.cps':'Имп. в сек. (имп/с)','sb.lin':'Линейный Y','sb.pow':'Степень Y','sb.log':'Логарифм. Y','sb.powl':'степень POW',
+'sb.ch':'Канал','sb.kev':'Энергия (кэВ)',
+'sb.show':'Показать фоновый спектр','sb.hide':'Скрыть фоновый спектр','sb.sub':'Показать спектр за вычетом фона',
+'sb.bar':'Столбцы','sb.line':'Линии','sb.sm0':'Нет','sb.sma':'Скользящее среднее','sb.wma':'Скользящее среднее с весом','sb.flags':'Показать обнаруженные пики',
+'sb.M':'M · Увеличение масштаба','sb.A':'A · Показать все каналы',
+'sb.hint':'Протяните мышью (или пальцем) по пику 662 кэВ — появится «Выбранная область». <kbd>A</kbd> — все каналы, <kbd>M</kbd> — увеличить выделенное, <kbd>Ctrl</kbd>+колесо — масштаб по X, <kbd>Shift</kbd>+колесо — прокрутка (в программе — просто колесо), <kbd>Shift</kbd>+щелчок — продлить выделение.',
+'sb.info':'масштаб по оси X: <b>{0}</b> точки экрана на канал','sb.range':'видны каналы <b>{0}–{1}</b>','sb.kf':'фон × <b>{0}</b> — живое время {1} с / {2} с',
+'ax.cnt':'отсчёты','ax.cps':'имп/с','ax.ch':'канал','ax.kev':'энергия, кэВ','unk':'(неизвестный)',
+'cp.ch':'Канал:','cp.e':'Энергия[кэВ]:','cp.g':'Всего импульсов:','cp.b':'Фоновых имп:','cp.r':'Соотн. фона:',
+'sp.h':'Выбранная область','sp.g':'Всего импульсов:','sp.b':'Фоновых имп:','sp.r':'Соотн. фона:','sp.ncps':'Имп/с над фоном:','sp.n':'Имп. над фоном:',
+'sp.cps':'Имп/с:','sp.det':'Обнаружено','sp.unc':'Неопределённость','sp.nd':'Не обнаружено','sp.lc':'Отсчёты Lc:','sp.lu':'Отсчёты Lu:','sp.ld':'Отсчёты Ld: (95%)','sp.pk':'Имп. в пике:','sp.fw':'FWHM:','sp.c':'Центр','sp.kev':'кэВ','sp.chs':'кан',
+'sb.f1':'<b>Логарифм — для обзора, линейный — для формы пика.</b> <span class="ui">Степень Y</span> — середина: высота берётся под корень степени POW, по умолчанию 4.',
+'sb.f2':'<b>Фон приводится по живому времени.</b> Фон набран за 10 часов, спектр — за полчаса: перед вычитанием фон уменьшается в 20 раз.',
+'sb.f3':'<b>Выделение считает само.</b> Отсчёты над фоном, пороги обнаружения, FWHM и центр пика — по исходным отсчётам, сглаживание на них не влияет.',
+'bar.k':'В программе','bar.h':'Полоса под графиком',
+'bar.lead':'Под каждым спектром — пульт из четырёх групп: <span class="ui">Ось Y:</span>, <span class="ui">Ось X:</span>, <span class="ui">Просмотр:</span>, <span class="ui">Изменить:</span>. Левая половина — про шкалы, правая — про то, <b>что</b> рисуется. Наведите на номер или пункт — подсветится кнопка.',
+'bar.capL':'Левая половина полосы: оси','bar.capR':'Правая половина: просмотр и правка',
+'bar.l1':'<b>Имп. / Имп. в сек.</b> — отсчёты или скорость счёта (делится на живое время)',
+'bar.l2':'<b>Шкала Y</b> — по кругу: <span class="ui">Линейный Y</span> → <span class="ui">Степень Y</span> → <span class="ui">Логарифм. Y</span>',
+'bar.l3':'<b>Степень POW</b> — от 1 до 10, по умолчанию 4; работает только при «Степень Y»',
+'bar.l4':'<b>Автомасштаб</b> — <span class="ui">Авто масштаб</span>, <span class="ui">Авто масштаб по фону</span> или <span class="ui">Без авто масштабирования</span>',
+'bar.l5':'<b>Канал / Энергия (кэВ)</b> — подписи оси X',
+'bar.l6':'<b>Увеличение масштаба · Показать все каналы · Масштаб 1:1</b> — то же, что <kbd>M</kbd> и <kbd>A</kbd>; 1:1 — один канал на точку экрана',
+'bar.l7':'<b>Масштаб по оси X</b> — от 0.1 до 10 точек экрана на канал; можно вписать число',
+'bar.l8':'<b>Вкл/Выкл калибровку по энергиям</b> — инструмент калибровки (глава 6)',
+'bar.r1':'<b>Режим отображения</b> — фон, вычет, континуум, FSA, нормировка (раздел ниже)',
+'bar.r2':'<b>Сглаживание / Обычное отображение</b> — сглаженные края линий; меняет только рисунок',
+'bar.r3':'<b>Столбцы / Линии</b> — каналы прямоугольниками или ломаной',
+'bar.r4':'<b>Нет · Скользящее среднее · Скользящее среднее с весом</b> — сглаживание спектра на экране и для поиска пиков',
+'bar.r5':'<b>Показать / Скрыть обнаруженные пики</b> — флажки с именами нуклидов',
+'bar.r6':'<b>Снять скрин спектра в файл</b> — картинка графика в PNG',
+'bar.r7':'<b>Изменить:</b> сохранить документ · перезагрузить фон из файла · отделить фон в отдельный спектр списка',
+'bar.steps':'Пошагово: рассмотреть слабый пик',
+'bar.s1':'Кнопка шкалы Y → <span class="ui">Логарифм. Y</span>: теперь видно и пик, и хвост спектра.',
+'bar.s2':'Режим отображения → <span class="ui">Показать спектр за вычетом фона</span>, если фон выбран (глава 4).',
+'bar.s3':'Протяните мышью по горбику — появится панель «Выбранная область».',
+'bar.s4':'Нажмите <kbd>M</kbd> (или <span class="ui">Увеличение масштаба</span>) — выделение растянется на весь экран.',
+'bar.s5':'Для формы пика переключите на <span class="ui">Линейный Y</span>; вернуть весь спектр — <kbd>A</kbd>.',
+'bar.tip':'<b>Степень Y с числом e.</b> Встаньте в поле POW и нажмите латинскую <kbd>E</kbd> (в русской раскладке — клавиша «У»): степень станет 2.718.',
+'md.k':'Режимы','md.h':'Что рисовать: фон, вычет, FSA',
+'md.lead':'Режим — как слои на кальке: можно положить фон рядом, убрать его, вычесть или разложить спектр на составные части. Кнопка <span class="ui">BG</span> на полосе листает режимы по кругу, стрелка рядом открывает список.',
+'md.cap':'Список режимов отображения (кнопка BG)',
+'md.l1':'<b>Показать фоновый спектр</b> — фон (бирюзовый) рисуется под спектром, приведённый к его времени',
+'md.l2':'<b>Скрыть фоновый спектр</b> — только спектр; панель выделения фон по-прежнему учитывает',
+'md.l3':'<b>Показать спектр за вычетом фона</b> — спектр минус фон; по нему же ищутся пики',
+'md.l4':'<b>Показать континуум с пиками</b> — подложка под найденными пиками и сами пики поверх',
+'md.l5':'<b>Показать FSA</b> — разбор спектра на слои нуклидов и фона; открывает «Отчёт FSA» (глава 9)',
+'md.l6':'<b>Показать нормализованный по эффективности спектр</b> — спектр, делённый на кривую эффективности',
+'md.l7':'<b>Кнопка BG</b> — щелчок листает режимы по кругу, стрелка открывает этот список',
+'md.f1':'<b>Вычет — честный, а не «на глаз».</b> Фон умножается на отношение живых времён, каналы ниже нуля обнуляются.',
+'md.f2':'<b>FSA — режим, а не отдельное окно.</b> Пока выбран «Показать FSA», разбор пересчитывается сам; отчёт и результат — в своих панелях.',
+'md.f3':'<b>Нормировка нужна кривая эффективности.</b> Без кривой у спектра режим показывает спектр как есть.',
+'md.info':'<b>Режим влияет на поиск пиков.</b> «Показать спектр за вычетом фона» — пики ищутся по вычтенному спектру; в остальных режимах — по исходному. Тот же вычтенный спектр уходит в «Расширенный CSV файл» и «Жёсткий вычет в файл» (глава 12).',
+'ms.k':'Мышь','ms.h':'Выделение мышью и панель «Выбранная область»',
+'ms.lead':'Выделение — как прикинуть на весах: протянули левой кнопкой по пику, и программа взвешивает, сколько в этой полосе отсчётов, сколько из них фон и превышает ли остаток порог обнаружения.',
+'ms.cap':'Выделен пик Cs-137 (662 кэВ), справа — панель «Выбранная область»',
+'ms.l1':'<b>Полоса выделения</b> — протянуть левой кнопкой; внутри пик закрашен',
+'ms.l2':'<b>Канал / Энергия</b> — границы выделения',
+'ms.l3':'<b>Отсчёты</b> — всего, фоновых (приведённых по живому времени), их отношение, над фоном в имп/с и в отсчётах ± погрешность',
+'ms.l4':'<b>Обнаружено / Неопределённость / Не обнаружено</b> и пороги <b>Lc</b>, <b>Ld</b> — по фону в этой же полосе',
+'ms.l5':'<b>Имп. в пике, FWHM, Центр</b> — площадь над подложкой, ширина пика (%, кэВ, каналы) и его центр',
+'ms.l6':'<b>Жёлтая черта</b> — уровень половины высоты: по ней меряется FWHM',
+'ms.l7':'<b>Жёлтая кривая</b> — подложка под пиком: прямая между краями выделения (на логарифме выглядит изогнутой)',
+'ms.l8':'<b>Флажки пиков</b> — подписи найденных пиков (глава 7)',
+'ms.kd':'протянуть','ms.kdt':'выделить полосу каналов','ms.kc':'щелчок','ms.kst':'продлить выделение до этой точки',
+'ms.kam':'A — все каналы; M — увеличить выделенное','ms.kw':'колесо','ms.kcw':'масштаб по X, в 1.1 раза за щелчок (до 10)','ms.kwt':'прокрутка по X',
+'ms.kpm':'кнопки у вертикальной полосы — масштаб по Y','ms.kr':'правая кнопка','ms.krt':'меню: увеличить, все каналы, пороги прибора по курсору (L/H), сохранить, закрыть',
+'ms.ket':'в поле POW — степень e = 2.718',
+'ms.steps':'Пошагово: оценить пик выделением',
+'ms.s1':'Выберите фон для спектра (<span class="ui">Управление измерением → Фон → Выбр.</span>) — без него панель покажет только отсчёты.',
+'ms.s2':'Протяните левой кнопкой от «подножия» до «подножия» пика: чуть шире самого холма, примерно 3 FWHM.',
+'ms.s3':'Читайте сверху вниз: <b>Имп. над фоном</b> — сколько своего, <b>Обнаружено</b> — превышен ли порог Ld.',
+'ms.s4':'<b>FWHM</b> и <b>Центр</b> подскажут, тот ли это пик: сравните центр с линией нуклида.',
+'ms.s5':'Щелчок левее оси Y снимает выделение.',
+'ms.warn':'<b>Беккерелей на этой панели нет.</b> Активность считает FSA и показывает окно <span class="ui m">Вид → Результат измерений</span> (главы 9 и 10).',
+'lb.k':'Подписи','lb.h':'Флажки пиков, панель курсора и шкалы',
+'lb.lead':'Главное окно со спектром Cs-137. Флажки над графиком — как бирки на образцах: имя нуклида у каждого найденного пика. Курсор ведёт с собой маленькую панель — что лежит в этом канале.',
+'lb.cap':'Середина главного окна: спектр Cs-137, флажки пиков, панель курсора',
+'lb.l1':'<b>Вкладки документов</b> — каждый открытый файл; звёздочка — есть несохранённые изменения',
+'lb.l2':'<b>Флажки пиков</b> — имя нуклида над найденным пиком; «(неизвестный)» — пик без подходящей линии',
+'lb.l3':'<b>Панель курсора</b> — канал, энергия, отсчёты в канале; при фоне — фоновые и их отношение',
+'lb.l4':'<b>+ / −</b> у вертикальной полосы — масштаб по Y',
+'lb.l5':'<b>Шкала Y</b> — здесь логарифмическая: 1·10⁶, 1·10⁵…',
+'lb.l6':'<b>Шкала X</b> — кэВ или каналы',
+'lb.l7':'<b>Полоса под графиком</b> — оси, просмотр, правка (раздел выше)',
+'lb.f1':'<b>Имя на флажке — из набора.</b> Какие нуклиды подписывать, решает поле <span class="ui">Набор:</span> на панели «Обнаружение пиков».',
+'lb.f2':'<b>«(неизвестный)» — не ошибка.</b> Это пик без линии в наборе: край Комптона, обратное рассеяние или нуклид вне набора.',
+'lb.f3':'<b>Скрыть флажки — кнопкой с флажком</b> на полосе: <span class="ui">Скрыть обнаруженные пики</span>. Пики остаются в списке.',
+'hoodtxt':'<li><b>Степень Y</b> рисует высоту как y<sup>1/POW</sup>: POW = 1 — та же линейная шкала, POW = 4 — по умолчанию. Логарифм начинается с 0.7 отсчёта, чтобы пустые каналы не уходили в минус бесконечность.</li><li><b>Фон к спектру</b> приводится отношением живых времён: фон × t<sub>спектр</sub>/t<sub>фон</sub>; вычтенные каналы ниже нуля обнуляются; фон в другой калибровке раскладывается по энергии.</li><li><b>Lc и Ld</b> — пороги Карри по фону полосы: Lc = k·√(B·(1 + t<sub>ф</sub>/t<sub>с</sub>))·t<sub>с</sub>/t<sub>ф</sub>, Ld = k² + 2·Lc, k = 1.645 для 95 % (уровень доверия — <span class="ui m">Инструменты → Настройки → График</span>).</li><li><b>Имп. в пике</b> — сумма над подложкой: прямая между краями выделения, но не ниже приведённого фона. <b>FWHM</b> — полувысота над этой прямой, вершина уточняется параболой по логарифму отсчётов; <b>центр</b> — центр масс ядра пика.</li><li><b>Ctrl+колесо</b> меняет масштаб X в 1.1 раза за щелчок, до 10 точек на канал; <b>1:1</b> — одна точка экрана на канал.</li>',
+},en:{
+'n.sbx':'Sandbox','n.bar':'The bar under the chart','n.modes':'Background and FSA modes','n.mouse':'Mouse and selection','n.labels':'Labels and cursor',
+'h.k':'Chapter 5 · The spectrum view',
+'h.h':'How to <em>read and turn</em> a spectrum',
+'h.lead':'The spectrum view is a map, a magnifier and a scale at once. Scales show either the bright top or the faint tail; background modes remove the “room noise”; drag the mouse across a peak and the program tells you at once how many counts it holds and whether it is there at all.',
+'sb.kk':'Try it yourself','sb.h':'Chart sandbox',
+'sb.lead':'A spectrum is a mountain landscape: a linear scale shows one summit, a logarithmic one shows summits and foothills alike. Below is a model of a Cs-137 spectrum in a room (scintillator, 1024 channels, half an hour) and a 10-hour background. Switch scales and modes, drag the mouse across a peak.',
+'sb.y':'Y-Axis:','sb.x':'X-Axis:','sb.v':'View:',
+'sb.cnt':'Counts','sb.cps':'Counts per Second (CPS)','sb.lin':'Linear Scale','sb.pow':'Power Scale','sb.log':'Logarithmic Scale','sb.powl':'POW degree',
+'sb.ch':'Channel','sb.kev':'Energy (keV)',
+'sb.show':'Show Background Spectrum','sb.hide':'Hide Background Spectrum','sb.sub':'Show Spectrum with Background Subtracted',
+'sb.bar':'Bar Chart','sb.line':'Line Chart','sb.sm0':'None','sb.sma':'Simple Moving Average','sb.wma':'Weight Moving Average','sb.flags':'Show Detected Peak',
+'sb.M':'M · Magnify Selection','sb.A':'A · Show All Channels',
+'sb.hint':'Drag the mouse (or a finger) across the 662 keV peak — “Selected Region” appears. <kbd>A</kbd> — all channels, <kbd>M</kbd> — magnify the selection, <kbd>Ctrl</kbd>+wheel — X zoom, <kbd>Shift</kbd>+wheel — scroll (in the program, the plain wheel), <kbd>Shift</kbd>+click — extend the selection.',
+'sb.info':'X scale: <b>{0}</b> screen pixels per channel','sb.range':'channels <b>{0}–{1}</b> in view','sb.kf':'background × <b>{0}</b> — live time {1} s / {2} s',
+'ax.cnt':'counts','ax.cps':'cps','ax.ch':'channel','ax.kev':'energy, keV','unk':'(unknown)',
+'cp.ch':'Channel:','cp.e':'Energy[keV]:','cp.g':'Gross Counts:','cp.b':'Background Counts:','cp.r':'BG Ratio:',
+'sp.h':'Selected Region','sp.g':'Gross Counts:','sp.b':'Background Counts:','sp.r':'BG Ratio:','sp.ncps':'Net CPS:','sp.n':'Net Counts:',
+'sp.cps':'CPS:','sp.det':'Detected','sp.unc':'Uncertain','sp.nd':'Not detected','sp.lc':'Lc Counts:','sp.lu':'Lu Counts:','sp.ld':'Ld Counts: (95%)','sp.pk':'Peak Counts:','sp.fw':'FWHM:','sp.c':'Centroid','sp.kev':'keV','sp.chs':'ch',
+'sb.f1':'<b>Logarithmic for the overview, linear for the peak shape.</b> <span class="ui">Power Scale</span> sits between: the height goes under a root of degree POW, 4 by default.',
+'sb.f2':'<b>Background is scaled by live time.</b> The background took 10 hours, the spectrum half an hour: before subtraction the background is made 20 times smaller.',
+'sb.f3':'<b>The selection does the arithmetic.</b> Net counts, detection limits, FWHM and centroid use the raw counts; smoothing does not touch them.',
+'bar.k':'In the program','bar.h':'The bar under the chart',
+'bar.lead':'Under every spectrum sits a console of four groups: <span class="ui">Y-Axis:</span>, <span class="ui">X-Axis:</span>, <span class="ui">View:</span>, <span class="ui">Modify:</span>. The left half is about scales, the right half about <b>what</b> is drawn. Hover a number or an item — the button lights up.',
+'bar.capL':'Left half of the bar: the axes','bar.capR':'Right half: view and modify',
+'bar.l1':'<b>Counts / Counts per Second</b> — counts or count rate (divided by live time)',
+'bar.l2':'<b>Y scale</b> — cycles: <span class="ui">Linear Scale</span> → <span class="ui">Power Scale</span> → <span class="ui">Logarithmic Scale</span>',
+'bar.l3':'<b>POW degree</b> — 1 to 10, 4 by default; used only with “Power Scale”',
+'bar.l4':'<b>Auto fitting</b> — <span class="ui">Auto Fitting</span>, <span class="ui">Auto Fitting to Background</span> or <span class="ui">No Auto Fitting</span>',
+'bar.l5':'<b>Channel / Energy (keV)</b> — X axis labels',
+'bar.l6':'<b>Magnify Selection · Show All Channels · Scale 1:1</b> — same as <kbd>M</kbd> and <kbd>A</kbd>; 1:1 is one channel per screen pixel',
+'bar.l7':'<b>Change X scale</b> — 0.1 to 10 screen pixels per channel; a number can be typed in',
+'bar.l8':'<b>Activate/Inactivate Energy Calibration Tool</b> — the calibration tool (chapter 6)',
+'bar.r1':'<b>View mode</b> — background, subtraction, continuum, FSA, normalisation (section below)',
+'bar.r2':'<b>Antialias Drawing / Normal Drawing</b> — smooth line edges; changes only the picture',
+'bar.r3':'<b>Bar Chart / Line Chart</b> — channels as bars or as a polyline',
+'bar.r4':'<b>None · Simple Moving Average · Weight Moving Average</b> — smoothing of the spectrum on screen and for peak search',
+'bar.r5':'<b>Show / Hide Detected Peak</b> — flags with nuclide names',
+'bar.r6':'<b>Take Screenshot to file</b> — the chart as a PNG picture',
+'bar.r7':'<b>Modify:</b> save the document · reload background from file · split the background into its own spectrum in the list',
+'bar.steps':'Step by step: look at a weak peak',
+'bar.s1':'Y scale button → <span class="ui">Logarithmic Scale</span>: now both the peak and the tail are visible.',
+'bar.s2':'View mode → <span class="ui">Show Spectrum with Background Subtracted</span>, if a background is selected (chapter 4).',
+'bar.s3':'Drag the mouse across the bump — the “Selected Region” panel appears.',
+'bar.s4':'Press <kbd>M</kbd> (or <span class="ui">Magnify Selection</span>) — the selection fills the screen.',
+'bar.s5':'For the peak shape switch to <span class="ui">Linear Scale</span>; <kbd>A</kbd> brings back the whole spectrum.',
+'bar.tip':'<b>Power scale with e.</b> Click into the POW field and press the <kbd>E</kbd> key: the degree becomes 2.718.',
+'md.k':'Modes','md.h':'What to draw: background, subtraction, FSA',
+'md.lead':'A mode is like a layer of tracing paper: put the background beside the spectrum, hide it, subtract it, or decompose the spectrum into its parts. The <span class="ui">BG</span> button on the bar cycles the modes, the arrow next to it opens the list.',
+'md.cap':'The list of view modes (the BG button)',
+'md.l1':'<b>Show Background Spectrum</b> — the background (teal) is drawn under the spectrum, scaled to its time',
+'md.l2':'<b>Hide Background Spectrum</b> — only the spectrum; the selection panel still accounts for the background',
+'md.l3':'<b>Show Spectrum with Background Subtracted</b> — spectrum minus background; peaks are searched on it too',
+'md.l4':'<b>Show Continuum with peaks</b> — the continuum under the detected peaks with the peaks on top',
+'md.l5':'<b>Show FSA</b> — the spectrum split into nuclide and background layers; opens the “FSA Report” (chapter 9)',
+'md.l6':'<b>Show Normalized by Efficiency Spectrum</b> — the spectrum divided by the efficiency curve',
+'md.l7':'<b>The BG button</b> — a click cycles the modes, the arrow opens this list',
+'md.f1':'<b>Subtraction is honest, not “by eye”.</b> The background is multiplied by the ratio of live times; channels below zero are set to zero.',
+'md.f2':'<b>FSA is a mode, not a separate window.</b> While “Show FSA” is selected the decomposition refreshes itself; the report and the result live in their own panels.',
+'md.f3':'<b>Normalisation needs an efficiency curve.</b> Without a curve the mode shows the spectrum as it is.',
+'md.info':'<b>The mode affects peak search.</b> With “Show Spectrum with Background Subtracted” peaks are searched on the subtracted spectrum; in the other modes, on the raw one. The same subtracted spectrum goes into the “Extended CSV File” and “Hard subtract to File” (chapter 12).',
+'ms.k':'Mouse','ms.h':'Mouse selection and the “Selected Region” panel',
+'ms.lead':'A selection is a quick weighing: drag the left button across a peak and the program weighs how many counts are in that band, how many of them are background, and whether the rest passes the detection limit.',
+'ms.cap':'The Cs-137 peak (662 keV) selected, the “Selected Region” panel on the right',
+'ms.l1':'<b>Selection band</b> — drag with the left button; the peak inside is filled',
+'ms.l2':'<b>Channel / Energy</b> — the selection boundaries',
+'ms.l3':'<b>Counts</b> — gross, background (scaled by live time), their ratio, net in cps and in counts ± uncertainty',
+'ms.l4':'<b>Detected / Uncertain / Not detected</b> and the limits <b>Lc</b>, <b>Ld</b> — from the background in the same band',
+'ms.l5':'<b>Peak Counts, FWHM, Centroid</b> — area above the baseline, peak width (%, keV, channels) and its centre',
+'ms.l6':'<b>Yellow dash</b> — the half-height level: FWHM is measured on it',
+'ms.l7':'<b>Yellow curve</b> — the baseline under the peak: a straight line between the selection edges (curved on a log scale)',
+'ms.l8':'<b>Peak flags</b> — labels of detected peaks (chapter 7)',
+'ms.kd':'drag','ms.kdt':'select a band of channels','ms.kc':'click','ms.kst':'extend the selection to this point',
+'ms.kam':'A — all channels; M — magnify the selection','ms.kw':'wheel','ms.kcw':'X zoom, 1.1 times per notch (up to 10)','ms.kwt':'scroll along X',
+'ms.kpm':'buttons by the vertical scroll bar — Y zoom','ms.kr':'right button','ms.krt':'menu: magnify, all channels, device thresholds at the cursor (L/H), save, close',
+'ms.ket':'in the POW field — degree e = 2.718',
+'ms.steps':'Step by step: estimate a peak by selection',
+'ms.s1':'Pick a background for the spectrum (<span class="ui">Measurement Control → Background → Select...</span>) — without it the panel shows only counts.',
+'ms.s2':'Drag the left button from “foot” to “foot” of the peak: a bit wider than the hill itself, about 3 FWHM.',
+'ms.s3':'Read top down: <b>Net Counts</b> — how much is the source’s own, <b>Detected</b> — whether the Ld limit is passed.',
+'ms.s4':'<b>FWHM</b> and <b>Centroid</b> tell whether it is the right peak: compare the centroid with the nuclide line.',
+'ms.s5':'A click left of the Y axis removes the selection.',
+'ms.warn':'<b>There are no becquerels on this panel.</b> Activity is computed by FSA and shown in <span class="ui m">View → Measurement Result</span> (chapters 9 and 10).',
+'lb.k':'Labels','lb.h':'Peak flags, the cursor panel and the scales',
+'lb.lead':'The main window with a Cs-137 spectrum. Flags above the chart are like tags on samples: a nuclide name for every detected peak. The cursor carries a small panel — what sits in this channel.',
+'lb.cap':'The middle of the main window: Cs-137 spectrum, peak flags, the cursor panel',
+'lb.l1':'<b>Document tabs</b> — every open file; an asterisk means unsaved changes',
+'lb.l2':'<b>Peak flags</b> — a nuclide name above a detected peak; “(unknown)” — a peak without a matching line',
+'lb.l3':'<b>Cursor panel</b> — channel, energy, counts in the channel; with a background, background counts and their ratio',
+'lb.l4':'<b>+ / −</b> by the vertical scroll bar — Y zoom',
+'lb.l5':'<b>Y scale</b> — logarithmic here: 1·10⁶, 1·10⁵…',
+'lb.l6':'<b>X scale</b> — keV or channels',
+'lb.l7':'<b>The bar under the chart</b> — axes, view, modify (section above)',
+'lb.f1':'<b>The name on a flag comes from the set.</b> Which nuclides to label is decided by <span class="ui">Use set:</span> on the “Peak Detection” panel.',
+'lb.f2':'<b>“(unknown)” is not an error.</b> It is a peak without a line in the set: a Compton edge, backscatter, or a nuclide outside the set.',
+'lb.f3':'<b>Hide the flags with the flag button</b> on the bar: <span class="ui">Hide Detected Peak</span>. The peaks stay in the list.',
+'hoodtxt':'<li><b>Power Scale</b> draws the height as y<sup>1/POW</sup>: POW = 1 is the linear scale again, POW = 4 is the default. The log scale starts at 0.7 counts, so empty channels do not fall to minus infinity.</li><li><b>Background to spectrum</b> is scaled by the ratio of live times: background × t<sub>spectrum</sub>/t<sub>background</sub>; subtracted channels below zero are set to zero; a background in another calibration is re-binned by energy.</li><li><b>Lc and Ld</b> are Currie limits from the band’s background: Lc = k·√(B·(1 + t<sub>b</sub>/t<sub>s</sub>))·t<sub>s</sub>/t<sub>b</sub>, Ld = k² + 2·Lc, k = 1.645 for 95 % (confidence level — <span class="ui m">Tool → Preferences → Chart</span>).</li><li><b>Peak Counts</b> is the sum above the baseline: a straight line between the selection edges, but not below the scaled background. <b>FWHM</b> is the half height above that line, the top refined by a parabola on the log of counts; the <b>centroid</b> is the centre of mass of the peak core.</li><li><b>Ctrl+wheel</b> changes the X scale 1.1 times per notch, up to 10 pixels per channel; <b>1:1</b> is one screen pixel per channel.</li>',
+}});
+
+/* ── песочница графика ── */
+(function sandbox() {
+  // модель: сцинтиллятор, 1024 канала, E = 3 + 2.93·канал; FWHM 7.2 % при 662 кэВ
+  const NCH = 1024, A0 = 3.0, A1 = 2.93, TS = 1800, TB = 36000, K = TS / TB, KCONF = 1.645;
+  const En = c => A0 + A1 * c, chE = E => (E - A0) / A1;
+  const fw = E => 0.072 * 662 * Math.sqrt(Math.max(E, 20) / 662);
+  const BGL = [[74.97, .5], [238.63, .12], [295.22, .2], [351.93, .35], [583.19, .08], [609.31, .35], [911.2, .07], [1120.29, .1], [1460.82, .3], [1764.49, .08], [2614.5, .1]];
+  const SRCL = [[661.66, 10], [32.06, .7]];
+  function rates(lines, cont) {
+    const r = new Float64Array(NCH);
+    if (cont) for (let c = 0; c < NCH; c++) { const E = En(c); r[c] = 1.2 * Math.exp(-E / 150) + .12 * Math.exp(-E / 600) + .004; }
+    lines.forEach(([E0, a]) => {
+      const sg = fw(E0) / 2.355, ce = E0 * (2 * E0 / 511) / (1 + 2 * E0 / 511), bs = E0 - ce, sb = fw(bs) / 2.355 * 1.4;
+      for (let c = 0; c < NCH; c++) {
+        const E = En(c); let v = a * A1 / (sg * 2.5066) * Math.exp(-0.5 * ((E - E0) / sg) ** 2);
+        if (E0 > 150) {
+          v += 1.9 * a * A1 / ce * (0.55 + 0.45 * E / ce) / (1 + Math.exp((E - ce) / (0.7 * sg)));
+          v += 0.1 * a * A1 / (sb * 2.5066) * Math.exp(-0.5 * ((E - bs) / sb) ** 2);
+        }
+        r[c] += v;
+      }
+    });
+    return r;
+  }
+  const RB = rates(BGL, true), RS = rates(SRCL, false);
+  const FG = new Float64Array(NCH), BG = new Float64Array(NCH), SUB = new Float64Array(NCH), ADJ = new Float64Array(NCH);
+  for (let c = 0; c < NCH; c++) {
+    const thr = 1 / (1 + Math.exp(-(En(c) - 22) / 2.5));
+    FG[c] = poisson(TS * (RB[c] + RS[c]) * thr); BG[c] = poisson(TB * RB[c] * thr);
+    ADJ[c] = BG[c] * K; SUB[c] = Math.max(0, Math.round(FG[c] - K * BG[c]));
+  }
+  // флажки: линии, что есть в модели; горб обратного рассеяния — «(неизвестный)»
+  const FLAGS = [[74.97, 'Pb x-ray'], [184.3, null], [351.93, 'Pb-214 (Ra-226)'], [609.31, 'Bi-214 (Ra-226)'], [661.66, 'Cs-137'], [1460.82, 'K-40'], [1764.49, 'Bi-214 (Ra-226)'], [2614.5, 'Tl-208 (Th-232)']];
+
+  const S = { unit: 'cnt', sc: 'log', pw: 4, xu: 'kev', bg: 'show', type: 'bar', sm: 'none', flags: true, v0: 0, v1: NCH - 1, s0: -1, s1: -1, cur: -1, drag: false };
+  const cv = $('#cvS'), curp = $('#curp'), selp = $('#selp');
+  let G = null, pend = false;
+  const req = () => { if (!pend) { pend = true; requestAnimationFrame(() => { pend = false; draw(); }); } };
+
+  function smooth(a, kind) {
+    if (kind === 'none') return a; const h = 3, o = new Float64Array(a.length);
+    for (let i = 0; i < a.length; i++) { let s = 0, w = 0; for (let j = -h; j <= h; j++) { const k = i + j; if (k < 0 || k >= a.length) continue; const wt = kind === 'sma' ? 1 : h + 1 - Math.abs(j); s += a[k] * wt; w += wt; } o[i] = s / w; }
+    return o;
+  }
+  function series() {
+    let main = S.bg === 'sub' ? SUB : FG, bgl = S.bg === 'show' ? ADJ : null;
+    main = smooth(main, S.sm); if (bgl) bgl = smooth(bgl, S.sm);
+    if (S.unit === 'cps') { main = Float64Array.from(main, v => v / TS); if (bgl) bgl = Float64Array.from(bgl, v => v / TS); }
+    return { main, bgl };
+  }
+  const ymin = () => S.unit === 'cnt' ? 0.7 : 0.7 / TS;
+  function tf(v) { if (S.sc === 'lin') return v; if (S.sc === 'pow') return v > 0 ? Math.pow(v, 1 / S.pw) : 0; return Math.log10(Math.max(v, ymin())); }
+
+  /* расчёт панели «Выбранная область» — те же формулы, что у программы */
+  function fwhmCalc(cnt, s, e) {
+    if (e <= s) return null;
+    const c0 = cnt[s], c1 = cnt[e], slope = (c1 - c0) / (e - s), base = i => c0 + slope * (i - s), net = i => cnt[i] - base(i);
+    let cen = s; for (let i = s; i <= e; i++) if (net(i) > net(cen)) cen = i;
+    let top = net(cen); if (!(top > 0)) return null;
+    function cross(half) {
+      let L = -1, R = -1;
+      for (let j = s + 1; j <= cen; j++) { const nj = net(j); if (nj > half) { const np = net(j - 1); if (!(nj > np)) return null; L = j - 1 + (half - np) / (nj - np); break; } }
+      if (L < 0) return null;
+      for (let k = e - 1; k >= cen; k--) { const nk = net(k); if (nk > half) { const nn = net(k + 1); if (!(nk > nn)) return null; R = k + 1 - (half - nn) / (nk - nn); break; } }
+      return R >= 0 ? [L, R] : null;
+    }
+    let lr = cross(top / 2); if (!lr) return null;
+    const h = Math.max(1, Math.round(0.35 * (lr[1] - lr[0])));
+    if (cen - h >= s && cen + h <= e) {
+      let s0 = 0, s2 = 0, s4 = 0, v0 = 0, v1 = 0, v2 = 0, ok = true;
+      for (let q = -h; q <= h; q++) { const v = net(cen + q); if (!(v > 0)) { ok = false; break; } const y = Math.log(v), q2 = q * q; s0 += 1; s2 += q2; s4 += q2 * q2; v0 += y; v1 += y * q; v2 += y * q2; }
+      if (ok) { const det = s0 * s4 - s2 * s2, p1 = v1 / s2, p0 = (v0 * s4 - v2 * s2) / det, p2 = (s0 * v2 - s2 * v0) / det;
+        if (p2 < 0 && Math.abs(-p1 / (2 * p2)) <= h) { const ft = Math.exp(p0 - p1 * p1 / (4 * p2)), lr2 = cross(ft / 2); if (lr2) { top = ft; lr = lr2; } } }
+    }
+    const Lk = En(lr[0]), Rk = En(lr[1]);
+    return { L: lr[0], R: lr[1], cen, top, base, kev: Rk - Lk, res: (Rk - Lk) / En(cen) };
+  }
+  function centroid(cnt, s, e) {
+    if (e - s < 3) { let b = s; for (let i = s + 1; i <= e; i++) if (cnt[i] > cnt[b]) b = i; return b; }
+    let ap = s, apc = cnt[s], bg = cnt[s];
+    for (let i = s; i <= e; i++) { if (cnt[i] > apc) { apc = cnt[i]; ap = i; } if (cnt[i] < bg) bg = cnt[i]; }
+    const thr = bg + 0.5 * (apc - bg); let L = ap, R = ap;
+    while (L > s && cnt[L - 1] > thr) L--; while (R < e && cnt[R + 1] > thr) R++;
+    let ws = 0, wp = 0; for (let i = L; i <= R; i++) { const w = cnt[i] - bg; if (w > 0) { ws += w; wp += i * w; } }
+    return ws > 0 ? wp / ws : ap;
+  }
+  function analytics() {
+    const s = Math.min(S.s0, S.s1), e = Math.max(S.s0, S.s1), sub = S.bg === 'sub', ps = sub ? SUB : FG;
+    const a = { s, e };
+    let gross = 0, bgc = 0, peak = 0; const p0 = ps[s], p1 = ps[e];
+    for (let i = s; i <= e; i++) {
+      gross += FG[i]; bgc += BG[i];
+      let cont = e > s ? p0 + (p1 - p0) * (i - s) / (e - s) : p0; if (!sub) cont = Math.max(BG[i] * K, cont);
+      if (ps[i] > cont) peak += ps[i] - cont;
+    }
+    a.gross = gross; a.adj = bgc * K; a.peak = peak;
+    a.net = gross - a.adj; a.err = Math.sqrt(gross + (Math.sqrt(bgc) * K) ** 2);
+    if (a.net > 0) { const bc = bgc / TB, q = Math.sqrt(bc / TB * (1 + TB / TS)); a.Lc = KCONF * q * TS; a.Ld = (KCONF * KCONF / TS + 2 * KCONF * q) * TS; a.Lu = (gross / TS - bc + KCONF * Math.sqrt(gross / TS / TS + bc / TB)) * TS; }
+    a.fw = fwhmCalc(ps, s, e); if (a.fw) a.cent = centroid(ps, s, e);
+    return a;
+  }
+  const rowHTML = (l, v) => '<tr><td>' + l + '</td><td>' + v + '</td></tr>', SEP = '<tr class="sep"><td colspan="2"></td></tr>';
+  function panelSel(a) {
+    if (!a) { selp.style.display = 'none'; return; }
+    let h = '<div class="h">' + t('sp.h') + '</div><table>' + SEP;
+    h += rowHTML(t('cp.ch'), a.s + ' - ' + a.e) + rowHTML(t('cp.e'), fx(En(a.s), 2) + ' - ' + fx(En(a.e), 2)) + SEP;
+    h += rowHTML(t('sp.g'), fx(a.gross, 2));
+    if (a.adj !== 0) h += rowHTML(t('sp.b'), fx(a.adj, 2)) + rowHTML(t('sp.r'), fx(a.gross / a.adj * 100, 2) + '%') + rowHTML(t('sp.ncps'), fx(a.net / TS, 4) + ' ±' + fx(a.err / TS, 4)) + rowHTML(t('sp.n'), fx(a.net, 2) + ' ±' + fx(a.err, 2));
+    else h += rowHTML(t('sp.cps'), fx(a.net / TS, 4));
+    if (a.Lc > 0) {
+      const vd = a.net <= a.Lc ? ['sp.nd', '#8b0000'] : a.net < a.Ld ? ['sp.unc', '#ff8c00'] : ['sp.det', '#006400'];
+      h += SEP + '<tr><td colspan="2" class="vd" style="color:' + vd[1] + '">' + t(vd[0]) + '</td></tr>' + rowHTML(t('sp.lc'), fx(a.Lc, 2));
+      if (a.net < a.Lc) h += rowHTML(t('sp.lu'), fx(a.Lu, 2));
+      h += rowHTML(t('sp.ld'), fx(a.Ld, 2));
+      if (a.fw) h += SEP + rowHTML(t('sp.pk'), fx(a.peak, 2)) + rowHTML(t('sp.fw'), fx(a.fw.res * 100, 2) + '% (' + fx(a.fw.kev, 2) + ' ' + t('sp.kev') + ', ' + fx(a.fw.R - a.fw.L, 2) + ' ' + t('sp.chs') + ')') + rowHTML(t('sp.c'), fx(En(a.cent), 2) + ' ' + t('sp.kev') + ' (' + Math.round(a.cent) + ' ' + t('sp.chs') + ')');
+    }
+    selp.innerHTML = h + '</table>'; selp.style.display = 'block';
+  }
+  function panelCur(c) {
+    if (c < 0) { curp.style.display = 'none'; return; }
+    curp.innerHTML = '<table>' + rowHTML(t('cp.ch'), c) + rowHTML(t('cp.e'), fx(En(c), 2)) + SEP + rowHTML(t('cp.g'), fx(FG[c], 2)) + rowHTML(t('cp.b'), fx(ADJ[c], 2)) + (ADJ[c] > 0 ? rowHTML(t('cp.r'), fx(FG[c] / ADJ[c] * 100, 2) + '%') : '') + '</table>';
+    curp.style.display = 'block';
+  }
+
+  function draw() {
+    const { ctx, w, h } = setup(cv), bx = { l: 56, t: 40, r: w - 10, b: h - 24 };
+    const span = S.v1 - S.v0 + 1, X = ch => bx.l + (ch - S.v0 + 0.5) / span * (bx.r - bx.l);
+    X.inv = px => S.v0 - 0.5 + (px - bx.l) / (bx.r - bx.l) * span; X.kind = 'lin'; X.d0 = S.v0; X.d1 = S.v1;
+    const { main, bgl } = series(), c0 = Math.max(0, Math.floor(S.v0)), c1 = Math.min(NCH - 1, Math.ceil(S.v1));
+    let top = -Infinity; for (let c = Math.max(c0, 6); c <= c1; c++) { top = Math.max(top, tf(main[c])); if (bgl) top = Math.max(top, tf(bgl[c])); }
+    const bot = S.sc === 'log' ? Math.log10(ymin()) : 0; if (!(top > bot)) top = bot + 1; top = bot + (top - bot) * 1.06;
+    const Y = v => bx.b - (tf(v) - bot) / (top - bot) * (bx.b - bx.t); Y.kind = 'lin'; Y.d0 = 0; Y.d1 = 1;
+    // деления Y
+    const vmax = S.sc === 'lin' ? top : S.sc === 'pow' ? Math.pow(top, S.pw) : Math.pow(10, top);
+    let yt = [];
+    if (S.sc === 'lin') yt = niceTicks(0, vmax, 4);
+    else { const cand = []; for (let p = Math.floor(Math.log10(ymin())); p <= Math.ceil(Math.log10(vmax)); p++) (S.sc === 'log' ? [1] : [1, 2, 5]).forEach(m => { const v = m * Math.pow(10, p); if (v >= ymin() && v <= vmax) cand.push(v); });
+      let last = Infinity; cand.sort((a, b) => b - a).forEach(v => { const y = Y(v); if (Math.abs(y - last) >= 17 && y <= bx.b - 6) { yt.push(v); last = y; } }); if (S.sc === 'pow') yt.push(0); }
+    // деления X
+    let xt, xf;
+    if (S.xu === 'kev') { xt = niceTicks(En(S.v0), En(S.v1), Math.max(3, Math.round((bx.r - bx.l) / 90))).map(chE); xf = c => tickLabel(Math.round(En(c) * 100) / 100); }
+    else { xt = niceTicks(S.v0, S.v1, Math.max(3, Math.round((bx.r - bx.l) / 90))); xf = c => tickLabel(c); }
+    axes(ctx, bx, X, Y, { xt, xf, yt, yf: v => tickLabel(v) });
+    G = { X, Y, bx };
+    ctx.save(); ctx.beginPath(); ctx.rect(bx.l, 0, bx.r - bx.l, bx.b); ctx.clip();
+    const hasSel = S.s0 >= 0, s = Math.min(S.s0, S.s1), e = Math.max(S.s0, S.s1);
+    if (hasSel) { ctx.fillStyle = 'rgba(173,216,230,.22)'; ctx.fillRect(X(s - 0.5), bx.t, X(e + 0.5) - X(s - 0.5), bx.b - bx.t); }
+    function path(arr) {
+      ctx.beginPath();
+      if (S.type === 'bar') { ctx.moveTo(X(c0 - 0.5), bx.b); for (let c = c0; c <= c1; c++) { const y = Math.min(bx.b, Y(arr[c])); ctx.lineTo(X(c - 0.5), y); ctx.lineTo(X(c + 0.5), y); } ctx.lineTo(X(c1 + 0.5), bx.b); ctx.closePath(); }
+      else { for (let c = c0; c <= c1; c++) { const y = Math.min(bx.b, Y(arr[c])); c === c0 ? ctx.moveTo(X(c), y) : ctx.lineTo(X(c), y); } }
+    }
+    function paint(arr, col, selCol) {
+      path(arr);
+      if (S.type === 'bar') { ctx.fillStyle = col; ctx.fill(); } else { ctx.strokeStyle = col; ctx.lineWidth = 1.3; ctx.stroke(); ctx.lineWidth = 1; }
+      if (hasSel && selCol) { ctx.save(); ctx.beginPath(); ctx.rect(X(s - 0.5), bx.t - 30, X(e + 0.5) - X(s - 0.5), bx.b - bx.t + 30); ctx.clip(); path(arr); if (S.type === 'bar') { ctx.fillStyle = selCol; ctx.fill(); } else { ctx.strokeStyle = selCol; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1; } ctx.restore(); }
+    }
+    paint(main, S.type === 'bar' ? '#00b400' : '#2be05a', '#ff4500');
+    if (bgl) paint(bgl, S.type === 'bar' ? 'rgba(0,128,128,.95)' : '#29c4c4', null);
+    // подложка, полувысота и центр выделенного пика
+    if (hasSel) {
+      const a = analytics(), ps = S.bg === 'sub' ? SUB : FG, un = S.unit === 'cps' ? 1 / TS : 1;
+      ctx.strokeStyle = '#ffff00'; ctx.lineWidth = 1.4; ctx.beginPath();
+      for (let i = 0; i <= 40; i++) { const c = s + (e - s) * i / 40, v = (ps[s] + (ps[e] - ps[s]) * (e > s ? (c - s) / (e - s) : 0)) * un; i ? ctx.lineTo(X(c), Y(v)) : ctx.moveTo(X(c), Y(v)); } ctx.stroke();
+      if (a.fw) { const f = a.fw; ctx.beginPath(); ctx.moveTo(X(f.L), Y((f.base(f.L) + f.top / 2) * un)); ctx.lineTo(X(f.R), Y((f.base(f.R) + f.top / 2) * un)); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(X(a.cent), Y(f.base(a.cent) * un)); ctx.lineTo(X(a.cent), Y((f.base(f.cen) + f.top) * un)); ctx.stroke(); }
+      ctx.lineWidth = 1; panelSel(a);
+    } else panelSel(null);
+    // флажки пиков
+    if (S.flags) {
+      // как в программе: флажок не шире места до соседа, имя обрезается; ряды чередуются
+      ctx.font = '11px "Segoe UI",system-ui,sans-serif'; ctx.textBaseline = 'middle';
+      const fl = FLAGS.map(([E, nm]) => ({ x: X(chE(E)), label: nm || t('unk') })).filter(f => f.x >= bx.l - 2 && f.x <= bx.r);
+      fl.forEach((f, i) => {
+        const row = i % 2, nx = fl[i + 2] ? fl[i + 2].x : bx.r + 200, y = bx.t - 34 + row * 16;
+        const tw = Math.max(14, Math.min(ctx.measureText(f.label).width + 12, nx - f.x - 2));
+        ctx.strokeStyle = 'rgba(255,120,200,.55)'; ctx.beginPath(); ctx.moveTo(f.x + .5, y + 14); ctx.lineTo(f.x + .5, bx.b); ctx.stroke();
+        ctx.fillStyle = '#fffbd0'; ctx.strokeStyle = '#000'; ctx.beginPath(); ctx.moveTo(f.x, y + 14); ctx.lineTo(f.x + 5, y); ctx.lineTo(f.x + tw, y); ctx.lineTo(f.x + tw, y + 14); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.save(); ctx.beginPath(); ctx.rect(f.x + 5, y, tw - 6, 14); ctx.clip(); ctx.fillStyle = '#111'; ctx.textAlign = 'left'; ctx.fillText(f.label, f.x + 8, y + 7.5); ctx.restore();
+      });
+    }
+    // подписи осей — поверх спектра
+    ctx.font = '11.5px system-ui,sans-serif'; ctx.textBaseline = 'middle';
+    [[t(S.xu === 'kev' ? 'ax.kev' : 'ax.ch'), bx.r - 4, bx.b - 10, 'right'], [t(S.unit === 'cnt' ? 'ax.cnt' : 'ax.cps'), bx.l + 6, bx.t + 10, 'left']].forEach(([s2, x, y, al]) => {
+      ctx.textAlign = al; const tw = ctx.measureText(s2).width; ctx.fillStyle = 'rgba(6,9,18,.75)'; ctx.fillRect(al === 'right' ? x - tw - 4 : x - 4, y - 8, tw + 8, 16); ctx.fillStyle = '#93a3c4'; ctx.fillText(s2, x, y);
+    });
+    // курсор
+    if (S.cur >= 0) { const x = X(S.cur); ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x, bx.t); ctx.lineTo(x, bx.b); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.restore();
+    panelCur(S.cur);
+    $('#sbInfo').innerHTML = '<span class="pill">' + t('sb.info', fx((bx.r - bx.l) / span, 3)) + '</span><span class="pill">' + t('sb.range', Math.round(S.v0), Math.round(S.v1)) + '</span><span class="pill">' + t('sb.kf', fx(K, 2), TS, TB) + '</span>';
+  }
+
+  /* управление */
+  function chips(id, list, key) {
+    const box = $('#' + id);
+    box.innerHTML = list.map(([v, k]) => '<button class="chip" data-v="' + v + '" data-t="' + k + '">' + t(k) + '</button>').join('');
+    $$('.chip', box).forEach(b => b.onclick = () => { S[key] = b.dataset.v; sync(); draw(); });
+  }
+  chips('cUnit', [['cnt', 'sb.cnt'], ['cps', 'sb.cps']], 'unit');
+  chips('cScale', [['lin', 'sb.lin'], ['pow', 'sb.pow'], ['log', 'sb.log']], 'sc');
+  chips('cX', [['ch', 'sb.ch'], ['kev', 'sb.kev']], 'xu');
+  chips('cBg', [['show', 'sb.show'], ['hide', 'sb.hide'], ['sub', 'sb.sub']], 'bg');
+  chips('cType', [['bar', 'sb.bar'], ['line', 'sb.line']], 'type');
+  chips('cSm', [['none', 'sb.sm0'], ['sma', 'sb.sma'], ['wma', 'sb.wma']], 'sm');
+  function sync() {
+    [['cUnit', 'unit'], ['cScale', 'sc'], ['cX', 'xu'], ['cBg', 'bg'], ['cType', 'type'], ['cSm', 'sm']].forEach(([id, k]) => $$('#' + id + ' .chip').forEach(b => b.classList.toggle('on', b.dataset.v === S[k])));
+    const p = S.sc === 'pow'; $('#rPow').disabled = !p; $('#bE').disabled = !p; $('#vPow').textContent = fx(S.pw, 3); $('#rPow').value = S.pw;
+  }
+  $('#rPow').addEventListener('input', () => { S.pw = +$('#rPow').value; sync(); draw(); });
+  $('#bE').onclick = () => { S.pw = Math.E; sync(); draw(); };
+  $('#kFlags').onchange = () => { S.flags = $('#kFlags').checked; draw(); };
+  const setView = (a, b) => { let wd = clamp(b - a, 8, NCH - 1); a = clamp(a, 0, NCH - 1 - wd); S.v0 = a; S.v1 = a + wd; draw(); };
+  const all = () => setView(0, NCH - 1);
+  const magnify = () => { if (S.s0 < 0) return; const s = Math.min(S.s0, S.s1), e = Math.max(S.s0, S.s1), pad = Math.max(2, (e - s) * 0.08); setView(s - pad, e + pad); };
+  const zoom = f => { const mid = (S.v0 + S.v1) / 2, wd = (S.v1 - S.v0) / f; setView(mid - wd / 2, mid + wd / 2); };
+  const pan = d => { const wd = S.v1 - S.v0; setView(S.v0 + d * wd * 0.1, S.v0 + d * wd * 0.1 + wd); };
+  $('#bA').onclick = all; $('#bM').onclick = magnify; $('#bZi').onclick = () => zoom(1.1); $('#bZo').onclick = () => zoom(1 / 1.1);
+  $('#bL').onclick = () => pan(-1); $('#bR').onclick = () => pan(1);
+  $('#b11').onclick = () => { if (!G) return; const wd = G.bx.r - G.bx.l; setView(0, Math.min(NCH - 1, wd)); };
+  const chAt = ev => { const r = cv.getBoundingClientRect(), x = ev.clientX - r.left; return { x, c: clamp(Math.round(G.X.inv(x)), 0, NCH - 1) }; };
+  cv.addEventListener('pointerdown', ev => {
+    if (!G || ev.button !== 0) return; cv.focus({ preventScroll: true }); const { x, c } = chAt(ev);
+    if (x < G.bx.l) { S.s0 = S.s1 = -1; draw(); return; }
+    if (ev.shiftKey && S.s0 >= 0) S.s1 = c; else { S.s0 = S.s1 = c; }
+    S.drag = true; try { cv.setPointerCapture(ev.pointerId); } catch (e) { } draw();
+  });
+  cv.addEventListener('pointermove', ev => {
+    if (!G) return; const { x, c } = chAt(ev);
+    S.cur = (x >= G.bx.l && x <= G.bx.r && ev.pointerType === 'mouse') ? c : -1;
+    if (S.drag) S.s1 = c; req();
+  });
+  const end = () => { S.drag = false; };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  cv.addEventListener('pointerleave', () => { S.cur = -1; req(); });
+  let over = false; cv.addEventListener('mouseenter', () => over = true); cv.addEventListener('mouseleave', () => over = false);
+  function onKey(ev) {
+    if (ev.ctrlKey || ev.altKey || ev.metaKey) return;
+    if (ev.code === 'KeyA') { all(); ev.preventDefault(); } else if (ev.code === 'KeyM') { magnify(); ev.preventDefault(); }
+  }
+  cv.addEventListener('keydown', onKey);
+  document.addEventListener('keydown', ev => { if (over && document.activeElement !== cv && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) onKey(ev); });
+  cv.addEventListener('wheel', ev => {
+    if (ev.ctrlKey) { ev.preventDefault(); zoom(ev.deltaY < 0 ? 1.1 : 1 / 1.1); }
+    else if (ev.shiftKey || Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) { ev.preventDefault(); pan((ev.deltaY || ev.deltaX) > 0 ? 1 : -1); }
+  }, { passive: false });
+  sync();
+  // начальное выделение не ставится: человек протягивает сам
+  io.observe(cv); GUIDE.onRedraw(() => { sync(); draw(); });
+})();
+
+GUIDE.init();
+</script>
+</body>
+</html>

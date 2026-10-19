@@ -4484,10 +4484,10 @@
     <value>Правый перекос</value>
   </data>
   <data name="curveFormulaLabel.Text" xml:space="preserve">
-    <value>ПШПВ = √(a * ch² + b * ch + c)</value>
+    <value>FWHM = √(a * ch² + b * ch + c)</value>
   </data>
   <data name="fwhmColumn.Text" xml:space="preserve">
-    <value>ПШПВ</value>
+    <value>FWHM</value>
   </data>
   <data name="peakShapeTypeValueLabel.Text" xml:space="preserve">
     <value>Гауссиана</value>

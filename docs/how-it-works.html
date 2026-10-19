@@ -120,6 +120,15 @@ details.hood code{font-size:13px;color:#ffe08a}
 .tip b{color:var(--ink)}
 .tip i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
 footer{padding:36px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px solid var(--line)}
+.tocl{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:14px;font-weight:700;text-decoration:none;white-space:nowrap}
+.tocl:hover{border-color:var(--gold)}
+.tocl b{color:var(--gold)}
+.gpager{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:30px 0 0}
+.gpager a{display:block;text-decoration:none;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 16px}
+.gpager a:hover{border-color:var(--gold)}
+.gpager a small{display:block;color:var(--muted);font-size:12.5px}
+.gpager a.next{text-align:right}
+@media (max-width:560px){.gpager{grid-template-columns:1fr}.tocl span{display:none}}
 @media (max-width:980px){.chain{grid-template-columns:repeat(3,1fr)}.node:nth-child(3)::after{display:none}}
 @media (max-width:900px){
   .grid2,.grid2.wl{grid-template-columns:1fr}.facts,.tiles{grid-template-columns:1fr}
@@ -133,7 +142,8 @@ footer{padding:36px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
 </head>
 <body>
 <header class="top"><div class="wrap">
-  <a class="brand" href="#top">Becq<span>Moni</span><small data-t="brand.sub"></small></a>
+  <a class="brand" href="index.html">Becq<span>Moni</span><small data-t="brand.sub"></small></a>
+  <a class="tocl" href="index.html#chapters"><b>☰</b><span data-t="toc"></span></a>
   <nav class="steps" id="nav">
     <a href="#photon"><b>1</b><span data-t="nav.1"></span></a>
     <a href="#geometry"><b>2</b><span data-t="nav.2"></span></a>
@@ -370,6 +380,7 @@ footer{padding:36px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
   </div>
 </div></section>
 
+<div class="wrap"><div class="gpager"><a class="prev" href="result.html"><small data-t="g.prev"></small><b data-t="g.prevT"></b></a><a class="next" href="files.html"><small data-t="g.next"></small><b data-t="g.nextT"></b></a></div></div>
 <footer><div class="wrap" data-t="foot"></div></footer>
 <div class="tip" id="tip"></div>
 
@@ -378,7 +389,7 @@ footer{padding:36px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
 'use strict';
 /* ============================== ТЕКСТЫ ============================== */
 const T = {ru:{
-'brand.sub':'как это работает',
+'brand.sub':'как это работает','toc':'Оглавление','g.prev':'← Назад','g.prevT':'Активность и результат','g.next':'Дальше →','g.nextT':'Файлы и вопросы',
 'nav.1':'Фотон','nav.2':'Геометрия','nav.3':'Матрица','nav.4':'FSA','nav.5':'Активность',
 'hero.k':'Гамма-спектрометрия простыми словами',
 'hero.h':'Как BecqMoni превращает <em>вспышки в кристалле</em> в беккерели',
@@ -418,7 +429,7 @@ const T = {ru:{
 'ax.e':'энергия, кэВ','ax.eff':'доля, %','ax.cnt':'отсчёты','ax.ein':'энергия фотона, кэВ','ax.eout':'записанная энергия, кэВ','ax.t':'время измерения','ax.a':'активность, Бк','ax.per':'на 1000 фотонов',
 's3.k':'Шаг 3',
 's3.h':'Матрица отклика — «словарь» прибора',
-'s3.lead':'Кривая эффективности отвечает на вопрос <b>сколько</b> фотонов попадёт в пик. Матрица отвечает на больший вопрос: <b>как</b> выглядит в спектре фотон каждой энергии — пик, плато, пики вылета, всё целиком. Её считают, прогоняя через модель вашей геометрии миллионы виртуальных фотонов. Матрица хранит «резкую» картинку, а ширину пиков программа добавляет потом — из калибровки ширины пиков (ПШПВ) вашего спектра.',
+'s3.lead':'Кривая эффективности отвечает на вопрос <b>сколько</b> фотонов попадёт в пик. Матрица отвечает на больший вопрос: <b>как</b> выглядит в спектре фотон каждой энергии — пик, плато, пики вылета, всё целиком. Её считают, прогоняя через модель вашей геометрии миллионы виртуальных фотонов. Матрица хранит «резкую» картинку, а ширину пиков программа добавляет потом — из калибровки ширины пиков (FWHM) вашего спектра.',
 's3.map':'Матрица: строка — энергия фотона, цвет — что записал прибор',
 's3.run':'Пересчитать',
 's3.prog':'считаю: {0} из {1} энергий','s3.done':'готово: {0} энергий × {1} фотонов',
@@ -488,7 +499,7 @@ const T = {ru:{
 's6.note':'<b>Ошибка на любом шаге слева тихо переезжает в беккерели справа.</b> Не та посуда, не тот зазор, не та плотность — и спектр «объяснится» не теми числами. Поэтому геометрию задают честно, под каждое измерение.',
 'foot':'Модели на этой странице упрощены и считаются прямо в браузере: перенос фотонов методом Монте-Карло в цилиндре NaI(Tl) — фотоэффект с вылетом K-рентгена йода, комптоновское рассеяние по Клейну — Нишине, рождение пар — с сечениями поглощения из базы данных самой BecqMoni; свинцовый домик изображён грубо. Настоящие разборы — спектры, разобранные самой BecqMoni (19.10.2026); цвета слоёв — как в программе. Числа приблизительные: в программе модель подробнее.',
 },en:{
-'brand.sub':'how it works',
+'brand.sub':'how it works','toc':'Contents','g.prev':'← Back','g.prevT':'Activity and results','g.next':'Next →','g.nextT':'Files and FAQ',
 'nav.1':'Photon','nav.2':'Geometry','nav.3':'Matrix','nav.4':'FSA','nav.5':'Activity',
 'hero.k':'Gamma spectrometry made simple',
 'hero.h':'How BecqMoni turns <em>flashes in a crystal</em> into becquerels',

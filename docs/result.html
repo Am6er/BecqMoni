@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Активность и результат — BecqMoni гайд</title>
+<link rel="stylesheet" href="assets/guide.css">
+<style>
+/* только эта глава */
+figure.shot.side{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:6px 16px;align-items:start;margin-top:22px}
+figure.shot.side.nr{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}
+figure.shot.side>.shot-frame{grid-column:1;grid-row:1}
+figure.shot.side>figcaption{grid-column:1;grid-row:2}
+figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
+figure.shot.wide{margin-top:22px}
+.shot-legend.cols2{grid-template-columns:1fr 1fr}
+.win{margin-top:12px;overflow-x:auto;background:#fff;color:#111;border:1px solid #9aa0aa;border-radius:8px;font:13px "Segoe UI",system-ui,sans-serif;overflow:hidden}
+.win .bar{display:flex;gap:8px;padding:6px 8px;background:#f3f3f3;border-bottom:1px solid #ccc}
+.win .bar span{border:1px solid #aaa;background:#fff;border-radius:3px;padding:1px 8px}
+.win table{width:100%;border-collapse:collapse}
+.win th{font-weight:400;text-align:left;padding:4px 8px;border-bottom:1px solid #ddd;border-right:1px solid #eee;white-space:nowrap}
+.win td{padding:3px 8px;border-right:1px solid #eee;white-space:nowrap}
+.win td.n{text-align:right;font-variant-numeric:tabular-nums}
+.win td.span{white-space:normal;color:#333}
+.nd{display:inline-block;font:700 9px system-ui;color:#fff;background:#c0262d;border-radius:3px;padding:0 3px;margin-right:6px;vertical-align:1px}
+.calc{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 14px;margin-top:8px}
+.calc label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+.calc input,.calc select{width:100%;min-width:0}
+.formula{margin-top:10px;font:600 14px/1.6 ui-monospace,Consolas,monospace;color:#ffe08a;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;overflow-x:auto;white-space:nowrap}
+.hdtxt{margin-top:10px;color:var(--soft);font-size:15px}
+@media (max-width:900px){
+  figure.shot.side,figure.shot.side.nr{grid-template-columns:1fr}figure.shot.side>ol.shot-legend{grid-column:1;grid-row:3}
+  .calc{grid-template-columns:1fr 1fr}.shot-legend.cols2{grid-template-columns:1fr}
+}
+@media (max-width:560px){.calc{grid-template-columns:1fr}}
+</style>
+</head>
+<body data-chapter="result">
+
+<section class="hero" id="top"><div class="wrap">
+  <div class="kicker" data-t="h.k"></div>
+  <h1 data-t="h.h"></h1>
+  <p class="lead" data-t="h.lead"></p>
+</div></section>
+
+<!-- 1. ОКНО РЕЗУЛЬТАТА -->
+<section class="sec" id="window" data-nav="n.win"><div class="wrap">
+  <div class="kicker" data-t="w.k"></div>
+  <h2 data-t="w.h"></h2>
+  <p class="lead" data-t="w.lead"></p>
+  <figure class="shot side nr" data-shot="panel-result" data-hot='[[0.0149,0.0635,0.1747,0.0511],[0.2027,0.0635,0.3263,0.0511],[0.0149,0.1260,0.3550,0.0420],[0.3740,0.1260,0.2080,0.0420],[0.5860,0.1260,0.2400,0.0420],[0.8300,0.1260,0.1560,0.0420],[0.0149,0.1700,0.9700,0.0760]]'>
+    <figcaption data-t="w.cap"></figcaption>
+    <ol class="shot-legend">
+      <li data-t="w.l1"></li><li data-t="w.l2"></li><li data-t="w.l3"></li><li data-t="w.l4"></li>
+      <li data-t="w.l5"></li><li data-t="w.l6"></li><li data-t="w.l7"></li>
+    </ol>
+  </figure>
+  <div class="card full">
+    <h3 data-t="d.h"></h3>
+    <p class="note" style="margin-top:0" data-t="d.hint"></p>
+    <div class="chips" id="dStates"></div>
+    <div class="win" id="dWin"></div>
+    <div class="hdtxt" id="dTxt"></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="w.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="w.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="w.f3"></div>
+  </div>
+</div></section>
+
+<!-- 2. КАЛЬКУЛЯТОР -->
+<section class="sec" id="calc" data-nav="n.calc"><div class="wrap">
+  <div class="kicker" data-t="c.k"></div>
+  <h2 data-t="c.h"></h2>
+  <p class="lead" data-t="c.lead"></p>
+  <div class="card full">
+    <h3 data-t="k.h"></h3>
+    <div class="row" style="margin-top:0"><span class="lbl" data-t="k.ex"></span><div class="chips" id="kEx"></div></div>
+    <div class="calc">
+      <label><span data-t="k.nuc"></span><select id="kNuc"></select></label>
+      <label><span data-t="k.a"></span><input type="text" inputmode="decimal" id="kA"></label>
+      <label><span data-t="k.u"></span><input type="text" inputmode="decimal" id="kU"></label>
+      <label><span id="kMassL"></span><input type="text" inputmode="decimal" id="kM"></label>
+      <label><span data-t="k.ts"></span><input type="datetime-local" id="kTs"></label>
+      <label><span data-t="k.t0"></span><input type="datetime-local" id="kT0"></label>
+      <label><span data-t="k.dur"></span><input type="text" inputmode="decimal" id="kDur"></label>
+      <label><span data-t="k.unit"></span><select id="kUnit"></select></label>
+    </div>
+    <div class="row"><span class="lbl" data-t="k.corr"></span><div class="chips" id="kCorr"></div></div>
+    <canvas id="cvDecay" class="cv mid"></canvas>
+    <div class="formula" id="kF"></div>
+    <div class="tiles" id="kTiles"></div>
+    <div class="pills" id="kMsg"></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="c.f1"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="c.f2"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="c.f3"></div>
+  </div>
+</div></section>
+
+<!-- 3. ПОРОГ И НЕОПРЕДЕЛЁННОСТЬ -->
+<section class="sec" id="limit" data-nav="n.lim"><div class="wrap">
+  <div class="kicker" data-t="l.k"></div>
+  <h2 data-t="l.h"></h2>
+  <p class="lead" data-t="l.lead"></p>
+  <figure class="shot side" data-shot="prefs-system" data-hot='[[0.0446,0.1395,0.2766,0.0683],[0.0446,0.2427,0.2607,0.0293],[0.0446,0.2803,0.2607,0.0293],[0.0446,0.3208,0.4730,0.0293],[0.5518,0.3236,0.3277,0.0237]]'>
+    <figcaption data-t="l.cap"></figcaption>
+    <ol class="shot-legend"><li data-t="l.l1"></li><li data-t="l.l2"></li><li data-t="l.l3"></li><li data-t="l.l4"></li><li data-t="l.l5"></li></ol>
+  </figure>
+  <div class="card full">
+    <h3 data-t="s.h"></h3>
+    <p class="note" style="margin-top:0" data-t="s.hint"></p>
+    <div class="row" style="margin-top:0"><div class="chips" id="sPre"></div></div>
+    <div class="sliders">
+      <div class="sl"><div class="top"><span data-t="s.lev"></span><span class="val" id="sLevV"></span></div><input type="range" id="sLev" min="1" max="3" step="0.5" value="1"></div>
+      <div class="sl"><div class="top"><span data-t="s.k"></span><span class="val" id="sKV"></span></div><input type="range" id="sK" min="1" max="5" step="0.5" value="3"></div>
+    </div>
+    <div class="row">
+      <span class="lbl" data-t="s.cond"></span><select id="sCond"></select>
+      <label class="sw"><input type="checkbox" id="sNd"><span data-t="s.nd"></span></label>
+    </div>
+    <div class="win" id="sWin"></div>
+    <div class="pills" id="sMsg"></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--blue)" data-t="l.f1"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="l.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="l.f3"></div>
+  </div>
+</div></section>
+
+<!-- 4. МАССА И ДАТА -->
+<section class="sec" id="sample" data-nav="n.smp"><div class="wrap">
+  <div class="kicker" data-t="p.k"></div>
+  <h2 data-t="p.h"></h2>
+  <p class="lead" data-t="p.lead"></p>
+  <div class="grid2 wr">
+    <figure class="shot" data-shot="panel-sample" data-hot='[[0.0320,0.0619,0.9254,0.0843],[0.0320,0.1536,0.6119,0.0375],[0.0320,0.2023,0.6119,0.0375],[0.0320,0.2565,0.4226,0.0375],[0.0320,0.3033,0.4226,0.0375]]'>
+      <figcaption data-t="p.cap"></figcaption>
+      <ol class="shot-legend"><li data-t="p.l1"></li><li data-t="p.l2"></li><li data-t="p.l3"></li><li data-t="p.l4"></li><li data-t="p.l5"></li></ol>
+    </figure>
+    <div>
+      <h3 data-t="p.steps"></h3>
+      <ol class="howto">
+        <li data-t="p.s1"></li><li data-t="p.s2"></li><li data-t="p.s3"></li><li data-t="p.s4"></li><li data-t="p.s5"></li><li data-t="p.s6"></li><li data-t="p.s7"></li>
+      </ol>
+      <div class="callout warn" data-t="p.warn"></div>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="p.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="p.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="p.f3"></div>
+  </div>
+</div></section>
+
+<!-- 5. ВЫБРАННАЯ ОБЛАСТЬ -->
+<section class="sec" id="select" data-nav="n.sel"><div class="wrap">
+  <div class="kicker" data-t="r.k"></div>
+  <h2 data-t="r.h"></h2>
+  <p class="lead" data-t="r.lead"></p>
+  <figure class="shot wide" data-shot="select-panel" data-hot='[[0.2000,0.0250,0.0420,0.9550],[0.7590,0.0600,0.2170,0.0420],[0.7590,0.1030,0.2170,0.0560],[0.7590,0.1580,0.2170,0.0380],[0.7590,0.1980,0.2170,0.0620],[0.7590,0.2620,0.2170,0.0520]]'>
+    <figcaption data-t="r.cap"></figcaption>
+    <ol class="shot-legend cols2"><li data-t="r.l1"></li><li data-t="r.l2"></li><li data-t="r.l3"></li><li data-t="r.l4"></li><li data-t="r.l5"></li><li data-t="r.l6"></li></ol>
+  </figure>
+  <div class="callout info" data-t="r.info"></div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="r.f1"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="r.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="r.f3"></div>
+  </div>
+  <details class="hood"><summary data-t="hood"></summary><ul data-t="hoodtxt"></ul></details>
+  <div id="pager"></div>
+</div></section>
+
+<footer><div class="wrap" data-t="foot"></div></footer>
+
+<script src="assets/guide.js"></script>
+<script>
+'use strict';
+const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, io, t } = GUIDE;
+GUIDE.texts({ru:{
+'n.win':'Окно результата','n.calc':'Калькулятор','n.lim':'Порог обнаружения','n.smp':'Масса и дата','n.sel':'Выбранная область',
+'h.k':'Глава 10 · Активность и результат',
+'h.h':'От разбора — к <em>беккерелям на килограмм</em>',
+'h.lead':'FSA сказал, сколько чего в спектре. Окно «Результат измерений» переводит это в беккерели, делит на массу или объём и приводит к дню, когда пробу взяли. Почему числа такие и откуда предел обнаружения — в главе <a href="how-it-works.html#activity">«Как это устроено» → Активность</a>.',
+'w.k':'В программе','w.h':'Окно «Результат измерений»',
+'w.lead':'Это как кассовый чек после разбора: строка на нуклид, сумма, «плюс-минус» и порог, ниже которого ничего не утверждается. <span class="ui m">Вид → Результат измерений</span> (можно открыть до четырёх окон с разными единицами).',
+'w.cap':'«Результат измерений»: диск Th-232, беккерели по матрице отклика',
+'w.l1':'<b>Единицы</b>: Бк, Бк/кг, Бк/л',
+'w.l2':'<b>Коррекция</b>: «Нет коррекции» или «Корр. пер. полураспада» — привести к дате отбора',
+'w.l3':'<b>Заголовок первой колонки</b> — откуда беккерели: «FSA: Бк по матрице отклика», «по кривой», «Бк скрыты — причина»',
+'w.l4':'<b>«Ср. за набор»</b> или <b>«На дату отбора»</b> — к какому моменту отнесено число',
+'w.l5':'<b>«Неопред. 2σ»</b> — погрешность с выбранным в настройках уровнем, в скобках — в процентах',
+'w.l6':'<b>«МДА»</b> — предел обнаружения разбора (ISO 11929); колонка видна прокруткой',
+'w.l7':'<b>Строки</b> — нуклиды из FSA; член связанного ряда даёт строку родителя (здесь Th-232)',
+'d.h':'Что говорит заголовок',
+'d.hint':'Щёлкайте состояния — ниже макет окна с тем, что вы увидите. Числа строк — со снимков с матрицей и без неё; колонку «МДА» там срезал край окна, поэтому видны только первые цифры.',
+'d.s1':'по матрице','d.s2':'по кривой','d.s3':'Бк скрыты: поле','d.s4':'Бк скрыты: измерение','d.s5':'ошибка','d.s6':'идёт расчёт','d.s7':'Бк/кг без массы',
+'d.h1':'FSA: Бк по матрице отклика','d.h2':'FSA: Бк по кривой (расчёт)','d.h3':'FSA: Бк скрыты — кривая сцены поля (см² на единичный флюенс)','d.h4':'FSA: Бк скрыты — кривая без абсолютного уровня (измерение)','d.h5':'FSA: ошибка','d.h6':'FSA: идёт расчёт…','d.h7':'FSA: Бк по матрице отклика',
+'d.t1':'Лучший случай: кривая с геометрией и годная матрица. Каскадное суммирование учтено.',
+'d.t2':'Матрицы нет или она устарела: беккерели — по кривой, суммирование не учтено. На снимке без матрицы Th-232 вышел 1085.09 вместо 965.18 Бк — разница 12 %. Посчитайте матрицу (глава <a href="geometry.html#matrix">8</a>).',
+'d.t3':'Кривая сцены «Детектор на земле», «в лунке» или «Изотропное поле (ISO)» меряет флюенс, а не долю квантов: для дозы — да, для беккерелей — нет. Строки пишут «нет K».',
+'d.t4':'Кривая снята по измерениям или введена руками: её форма годится разбору, но абсолютного уровня у неё нет — беккерели скрыты.',
+'d.t5':'Разбор отказал: вместо строк — одна строка «FSA» с причиной, той же, что в строке состояния «Отчёта FSA». Здесь — нет геометрии у кривой (глава <a href="geometry.html">8</a>).',
+'d.t6':'Разбор ещё идёт. Если прошлый результат уже есть, строки остаются от него, а к заголовку добавляется «(пересчёт…)»; при наборе пересчёт — не чаще раза в 30 с.',
+'d.t7':'Выбраны Бк/кг, а в «Информации об образце» вес равен нулю: строки пишут «нет массы». Впишите вес — и числа появятся.',
+'c.nok':'нет K','c.nom':'нет массы','c.comp':'FSA: идёт расчёт…','c.geo':'Полноспектральному разложению нужна геометрия прибора: опишите кристалл в редакторе геометрии у кривой эффективности',
+'col.n':'Нуклид','col.mean':'Ср. за набор','col.samp':'На дату отбора','col.u':'Неопред.','col.mda':'МДА','u.bq':'Бк','u.bqkg':'Бк/кг','u.bql':'Бк/л','corr.no':'Нет коррекции','corr.hl':'Корр. пер. полураспада',
+'w.f1':'<b>Строки — только из FSA.</b> Зон ROI больше нет: окно показывает ровно тот состав, что в отчёте FSA.',
+'w.f2':'<b>Ряд — одной строкой.</b> Ac-228, Pb-212, Tl-208 при «Равновесии ряда» дают строку Th-232 — активность родителя.',
+'w.f3':'<b>Не обнаружено — тоже ответ.</b> Такие строки остаются с пределом в «МДА» и значком ND.',
+'c.k':'Калькулятор','c.h':'Бк → Бк/кг → на дату отбора',
+'c.lead':'Пока проба ехала до прибора и пока шёл набор, короткоживущие нуклиды распадались. «Корр. пер. полураспада» возвращает число к дню отбора — как пересчёт цены на дату покупки. Посчитайте сами, той же формулой, что у программы.',
+'k.h':'Калькулятор активности',
+'k.ex':'Примеры:','k.ex1':'грибы, Cs-137','k.ex2':'молоко, I-131 через 10 суток','k.ex3':'I-131: набор длиной в период',
+'k.nuc':'Нуклид (T½)','k.a':'«Ср. за набор», Бк','k.u':'Неопределённость, Бк','k.mass':'Вес, г','k.vol':'Объём, мл','k.ts':'Дата отбора','k.t0':'Начало набора','k.dur':'Длительность набора, ч','k.unit':'Единицы','k.corr':'Коррекция:',
+'k.none':'без T½','k.y':'лет','k.d':'сут',
+'k.t.mean':'среднее за набор','k.t.samp':'на дату отбора','k.t.f':'множитель','k.t.fs':'Δt от отбора до начала: {0} сут',
+'k.ax.t':'сутки от отбора','k.ax.a':'Бк','k.lab.samp':'на дату отбора','k.lab.mean':'среднее за набор','k.lab.acq':'набор',
+'k.bad':'проверьте числа: нужен вес (объём) больше нуля и начало набора не раньше отбора','k.noT':'у строки нет периода полураспада — остаётся средним за набор',
+'c.f1':'<b>Долгоживущим поправка не нужна.</b> Cs-137 за полтора месяца теряет 0.3 % — множитель 1.003.',
+'c.f2':'<b>Короткоживущим — обязательно.</b> I-131 через 10 суток после отбора — уже 42 % от исходного. Без коррекции вы занизите его в 2.4 раза.',
+'c.f3':'<b>Длинный набор — тоже поправка.</b> Если набор длится сутки, а T½ — восемь, «среднее за набор» ниже активности в начале: множитель λT/(1 − e^(−λT)).',
+'l.k':'Настройки','l.h':'Порог обнаружения и «плюс-минус»',
+'l.lead':'Обнаружено или нет — решает правило, которое вы выбираете сами, как планку на прыжках в высоту. Правило живёт в <span class="ui m">Инструменты → Настройки</span> → <span class="ui">Системные</span> → «Конфигурация измерения».',
+'l.cap':'«Настройки приложения» → «Системные»',
+'l.l1':'<b>Ед. веса</b> и <b>Ед. объёма</b> — в чём вводятся вес и объём в «Информации об образце» (по умолчанию грамм и миллилитр)',
+'l.l2':'<b>Ур. неопред.</b> — сколько сигм показывать в колонке «Неопред.» (по умолчанию 1)',
+'l.l3':'<b>Ур. детектир. (k)</b> — во сколько сигм должен быть результат, чтобы считаться обнаруженным (по умолчанию 3)',
+'l.l4':'<b>Сост. обнаружения</b>: «Результат &gt; k раз стандартного отклонения» или «Результат &gt; MDA»',
+'l.l5':'<b>Показать значения не обнаруженных нуклидов</b> — печатать число и у необнаруженного (с ND)',
+'s.h':'Настройте окно сами',
+'s.hint':'Двигайте ползунки — макет окна ведёт себя как программа. K-40 и Th-232 — значения и погрешности со снимка (МДА — первые цифры, остальное срезано краем окна); третья строка — пример.',
+'s.def':'как по умолчанию','s.shot':'как на снимке',
+'s.lev':'Ур. неопред.','s.k':'Ур. детектир. (k)','s.cond':'Сост. обнаружения','s.nd':'Показать значения не обнаруженных нуклидов',
+'s.c0':'Результат > k раз стандартного отклонения','s.c1':'Результат > MDA',
+'s.ex':'Cs-137 (пример)','s.msg':'обнаружено <b>{0} из {1}</b>','s.why0':'K-40: {0} ≥ {1}·σ = {2}?','s.why1':'K-40: {0} ≥ МДА {1}?',
+'l.f1':'<b>МДА у FSA — не «по зоне».</b> Это предел обнаружения разбора по ISO 11929, и он честно раздут на √(χ²/ndf), если подгонка хуже статистики.',
+'l.f2':'<b>Уровень неопределённости — только показ.</b> 1σ или 2σ меняют колонку «Неопред.», но не само решение «обнаружено».',
+'l.f3':'<b>Порог растёт вместе с фоном.</b> Длиннее набор — ниже МДА. Как сужается «трубка» — в <a href="how-it-works.html#activity">«Как это устроено»</a>.',
+'p.k':'Образец','p.h':'Масса и дата отбора',
+'p.lead':'Бк/кг и «на дату отбора» берут данные из панели <span class="ui m">Вид → Информация об образце</span>. Это паспорт пробы: заполняется у каждого спектра и сохраняется с ним.',
+'p.cap':'«Информация об образце»',
+'p.l1':'<b>Имя</b> и <b>Место отбора</b> — для себя и для отчёта',
+'p.l2':'<b>Дата отбора</b> — к ней приводит «Корр. пер. полураспада»',
+'p.l3':'<b>Дата измерения</b> — только показ: берётся из набора',
+'p.l4':'<b>Вес</b> — для Бк/кг (0 — не указан)',
+'p.l5':'<b>Объём</b> — для Бк/л (0 — не указан)',
+'p.steps':'Пошагово: Cs-137 в грибах, Бк/кг',
+'p.s1':'Снимите фон с пустым сосудом и назначьте его: <span class="ui">Фон</span> → <span class="ui">Выбр.</span> в «Управлении измерением».',
+'p.s2':'Наберите пробу. В <span class="ui">Информация об образце</span> впишите <span class="ui">Вес</span> и <span class="ui">Дата отбора</span>.',
+'p.s3':'<span class="ui">Эффективн.</span> — кривая этого сосуда с геометрией (глава <a href="geometry.html">8</a>).',
+'p.s4':'<span class="ui m">Вид → Обнаружение пиков</span> → <span class="ui">Набор:</span> — с Cs-137.',
+'p.s5':'<span class="ui">Просмотр:</span> → <span class="ui">Показать FSA (полноспектральное разложение)</span>.',
+'p.s6':'<span class="ui m">Вид → Результат измерений</span> → единицы <span class="ui">Бк/кг</span>, коррекция <span class="ui">Корр. пер. полураспада</span>.',
+'p.s7':'Заголовок должен быть <span class="ui">FSA: Бк по матрице отклика</span>; второй столбец — <span class="ui">На дату отбора</span>.',
+'p.warn':'<b>Вес вводится в граммах</b> (если в настройках не выбраны килограммы), а Бк/кг считаются на килограмм. 250 г грибов — пишите 250, программа сама переведёт.',
+'p.f1':'<b>Вес 0 — Бк/кг не будет.</b> Строки напишут «нет массы»; то же с объёмом и Бк/л.',
+'p.f2':'<b>Дата отбора — не дата измерения.</b> Для I-131 разница в неделю — это почти вдвое.',
+'p.f3':'<b>Всё сохраняется в файл спектра</b> — и вес, и даты, и заметки.',
+'r.k':'Быстро','r.h':'«Выбранная область»: оценка по одной линии',
+'r.lead':'Нужно быстро прикинуть одну линию, не включая FSA? Протяните мышью выделение через пик — справа появится панель с площадью, порогами и, если можно, активностью. Это как взвесить один фрукт, не разбирая всю корзину.',
+'r.cap':'Выделение через пик Cs-137 и панель «Выбранная область»',
+'r.l1':'<b>Выделение</b> — протяните левой кнопкой мыши через пик',
+'r.l2':'<b>Канал</b> и <b>Энергия</b> — границы выделения',
+'r.l3':'<b>Всего импульсов</b>, <b>Фоновых имп.</b> и их соотношение',
+'r.l4':'<b>Имп/с над фоном</b> и <b>Имп. над фоном</b> — чистый счёт с погрешностью',
+'r.l5':'<b>Обнаружено</b>, пороги <b>Lc</b> и <b>Ld</b>',
+'r.l6':'<b>Имп. в пике</b>, <b>FWHM</b> и <b>Центр</b> — подогнанный пик',
+'r.info':'<b>Когда появится активность «по линии»:</b> в выделении ровно один найденный пик, он подписан линией с выходом на распад, у спектра есть фон и кривая эффективности. Не так — панель словами скажет почему: «фонового спектра нет», «вне кривой эффективности», «выход линии ниже …», «нетто не выше нуля».',
+'r.f1':'<b>Это оценка, не замена FSA.</b> Одна линия не знает о соседях, комптоне и суммировании — для отчёта берите окно результата.',
+'r.f2':'<b>Без фона — без беккерелей.</b> Панель посчитает площадь, но активность покажет только с фоновым спектром.',
+'r.f3':'<b>Коррекция общая.</b> «Корр. пер. полураспада» в окне результата решает и за беккерели панели выделения.',
+'hoodtxt':'<li>Бк = (амплитуда разбора / живое время) × K; K = 1 при абсолютной шкале (матрица или кривая из геометрии / ЛСРМ) и 0, когда беккерели скрыты — тогда строка пишет «нет K», а не молчаливый ноль.</li><li>Погрешность — в абсолютной форме: σ²(Бк) = (σ имп/с · K)² + (имп/с · σK)²; колонка «Неопред.» умножает её на уровень из настроек.</li><li>«На дату отбора» = среднее за набор × 2^((начало − отбор)/T½) × λT/(1 − e^(−λT)), T — полное время набора (распад идёт и в мёртвое время). МДА умножается тем же множителем. Год в T½ — 365 суток, как у импорта из NucBase; у члена ряда T½ — корня ряда.</li><li>МДА — предел обнаружения разбора a# по ISO 11929 (Xu 2022), раздутый на √(χ²/ndf); это не MDA Карри по зоне. При «Результат &gt; MDA» строка без МДА считается не обнаруженной.</li><li>Вес хранится в килограммах: поле «Вес» в граммах делится на 1000; Бк/кг = Бк / вес, Бк/л = Бк / объём.</li>',
+},en:{
+'n.win':'Result window','n.calc':'Calculator','n.lim':'Detection limit','n.smp':'Mass and date','n.sel':'Selected region',
+'h.k':'Chapter 10 · Activity and results',
+'h.h':'From the decomposition to <em>becquerels per kilogram</em>',
+'h.lead':'FSA has said how much of what is in the spectrum. The “Measurement Result” window turns it into becquerels, divides by mass or volume and refers it to the day the sample was taken. Why the numbers are what they are and where the detection limit comes from — <a href="how-it-works.html#activity">“How it works” → Activity</a>.',
+'w.k':'In the program','w.h':'The “Measurement Result” window',
+'w.lead':'It is like a receipt after the decomposition: a row per nuclide, the amount, the “plus-minus” and the threshold below which nothing is claimed. <span class="ui m">View → Measurement Result</span> (up to four windows with different units).',
+'w.cap':'“Measurement Result”: a Th-232 disk, becquerels by the response matrix',
+'w.l1':'<b>Units</b>: Bq, Bq/kg, Bq/l',
+'w.l2':'<b>Correction</b>: “No Correction” or “Half Lifetime Correction” — refer to the sampling date',
+'w.l3':'<b>The first column header</b> — where the becquerels come from: “FSA: Bq by response matrix”, “by … curve”, “Bq hidden — reason”',
+'w.l4':'<b>“Acq. mean”</b> or <b>“At sampling”</b> — which moment the number refers to',
+'w.l5':'<b>“Uncertainty 2σ”</b> — the uncertainty at the level chosen in the preferences, in brackets — in percent',
+'w.l6':'<b>“MDA”</b> — the detection limit of the decomposition (ISO 11929); the column is reached by scrolling',
+'w.l7':'<b>Rows</b> — nuclides from FSA; a tied chain member gives the row of the parent (Th-232 here)',
+'d.h':'What the header says',
+'d.hint':'Click the states — below is a mock-up of the window with what you will see. Row numbers are from the shots with and without a matrix; the “MDA” column there is cut by the window edge, so only its first digits are visible.',
+'d.s1':'by matrix','d.s2':'by curve','d.s3':'Bq hidden: field','d.s4':'Bq hidden: measurement','d.s5':'error','d.s6':'computing','d.s7':'Bq/kg without weight',
+'d.h1':'FSA: Bq by response matrix','d.h2':'FSA: Bq by simulation curve','d.h3':'FSA: Bq hidden — field-scene curve (cm² per unit fluence)','d.h4':'FSA: Bq hidden — curve without absolute scale (measurement)','d.h5':'FSA: error','d.h6':'FSA: computing…','d.h7':'FSA: Bq by response matrix',
+'d.t1':'The best case: a curve with a geometry and a valid matrix. Cascade summing is applied.',
+'d.t2':'No matrix or a stale one: becquerels by the curve, summing not applied. In the shot without a matrix Th-232 came out 1085.09 instead of 965.18 Bq — a 12 % difference. Compute the matrix (chapter <a href="geometry.html#matrix">8</a>).',
+'d.t3':'A curve of the “Detector on the ground”, “in a borehole” or “Isotropic field (ISO)” scene measures fluence, not a share of photons: fine for dose, not for becquerels. Rows say “no K”.',
+'d.t4':'The curve comes from measurements or was typed by hand: its shape suits the decomposition, but it has no absolute scale — becquerels are hidden.',
+'d.t5':'The decomposition refused: instead of rows there is one “FSA” row with the reason, the same as in the status line of the “FSA Report”. Here — the curve has no geometry (chapter <a href="geometry.html">8</a>).',
+'d.t6':'The decomposition is still running. If an earlier result exists, its rows stay and the header gets “(recomputing…)”; while recording it recomputes no more often than every 30 s.',
+'d.t7':'Bq/kg is chosen while the weight in “Sample Information” is zero: rows say “no weight”. Type the weight — and the numbers appear.',
+'c.nok':'no K','c.nom':'no weight','c.comp':'FSA: computing…','c.geo':'Full-spectrum decomposition needs a detector geometry: describe the crystal in the geometry editor of the efficiency curve',
+'col.n':'Nuclide','col.mean':'Acq. mean','col.samp':'At sampling','col.u':'Uncertainty','col.mda':'MDA','u.bq':'Bq','u.bqkg':'Bq/kg','u.bql':'Bq/l','corr.no':'No Correction','corr.hl':'Half Lifetime Correction',
+'w.f1':'<b>Rows come from FSA only.</b> ROI zones are gone: the window shows exactly the composition in the FSA report.',
+'w.f2':'<b>A chain is one row.</b> With “Chain equilibrium” Ac-228, Pb-212, Tl-208 give a Th-232 row — the activity of the parent.',
+'w.f3':'<b>Not detected is an answer too.</b> Such rows stay with the limit in “MDA” and an ND mark.',
+'c.k':'Calculator','c.h':'Bq → Bq/kg → at the sampling date',
+'c.lead':'While the sample travelled to the detector and while it was counted, short-lived nuclides decayed. “Half Lifetime Correction” brings the number back to the sampling day — like converting a price to the purchase date. Compute it yourself, with the same formula as the program.',
+'k.h':'Activity calculator',
+'k.ex':'Examples:','k.ex1':'mushrooms, Cs-137','k.ex2':'milk, I-131 after 10 days','k.ex3':'I-131: counting as long as T½',
+'k.nuc':'Nuclide (T½)','k.a':'“Acq. mean”, Bq','k.u':'Uncertainty, Bq','k.mass':'Weight, g','k.vol':'Volume, ml','k.ts':'Sampling date','k.t0':'Acquisition start','k.dur':'Acquisition length, h','k.unit':'Units','k.corr':'Correction:',
+'k.none':'no T½','k.y':'y','k.d':'d',
+'k.t.mean':'acquisition mean','k.t.samp':'at sampling','k.t.f':'factor','k.t.fs':'Δt from sampling to start: {0} d',
+'k.ax.t':'days from sampling','k.ax.a':'Bq','k.lab.samp':'at sampling','k.lab.mean':'acquisition mean','k.lab.acq':'acquisition',
+'k.bad':'check the numbers: the weight (volume) must be above zero and the start not before sampling','k.noT':'the row has no half-life — it stays the acquisition mean',
+'c.f1':'<b>Long-lived nuclides need no correction.</b> Cs-137 loses 0.3 % in a month and a half — a factor of 1.003.',
+'c.f2':'<b>Short-lived ones do.</b> I-131 ten days after sampling is down to 42 %. Without the correction you understate it 2.4 times.',
+'c.f3':'<b>A long count is a correction too.</b> If the count lasts a day and T½ is eight, the “acquisition mean” is below the activity at the start: the factor λT/(1 − e^(−λT)).',
+'l.k':'Settings','l.h':'Detection limit and the “plus-minus”',
+'l.lead':'Detected or not is decided by a rule you choose yourself, like the bar in the high jump. The rule lives in <span class="ui m">Tool → Preferences</span> → <span class="ui">System</span> → “Measurement Configuration”.',
+'l.cap':'“Application Preferences” → “System”',
+'l.l1':'<b>Weight Unit</b> and <b>Volume Unit</b> — how weight and volume are typed in “Sample Information” (gram and millilitre by default)',
+'l.l2':'<b>Uncertainty Level</b> — how many sigmas the “Uncertainty” column shows (1 by default)',
+'l.l3':'<b>Detection Level (k)</b> — how many sigmas a result must reach to count as detected (3 by default)',
+'l.l4':'<b>Detection Condition</b>: “Result &gt; k Times of Standard Uncertainty” or “Result &gt; MDA”',
+'l.l5':'<b>Show Values for Not Detected Nuclides</b> — print the number for a not-detected one too (with ND)',
+'s.h':'Set up the window yourself',
+'s.hint':'Move the sliders — the mock-up behaves like the program. K-40 and Th-232 are the values and uncertainties from the shot (MDA — the first digits, the rest is cut by the window edge); the third row is an example.',
+'s.def':'as by default','s.shot':'as in the shot',
+'s.lev':'Uncertainty Level','s.k':'Detection Level (k)','s.cond':'Detection Condition','s.nd':'Show Values for Not Detected Nuclides',
+'s.c0':'Result > k Times of Standard Uncertainty','s.c1':'Result > MDA',
+'s.ex':'Cs-137 (example)','s.msg':'detected <b>{0} of {1}</b>','s.why0':'K-40: {0} ≥ {1}·σ = {2}?','s.why1':'K-40: {0} ≥ MDA {1}?',
+'l.f1':'<b>The FSA MDA is not “per zone”.</b> It is the detection limit of the decomposition by ISO 11929, honestly inflated by √(χ²/ndf) when the fit is worse than statistics.',
+'l.f2':'<b>The uncertainty level is display only.</b> 1σ or 2σ change the “Uncertainty” column, not the “detected” decision itself.',
+'l.f3':'<b>The limit grows with the background.</b> A longer count gives a lower MDA. How the “trumpet” narrows — in <a href="how-it-works.html#activity">“How it works”</a>.',
+'p.k':'Sample','p.h':'Mass and sampling date',
+'p.lead':'Bq/kg and “at sampling” take their data from the <span class="ui m">View → Sample Information</span> panel. It is the sample’s passport: filled per spectrum and saved with it.',
+'p.cap':'“Sample Information”',
+'p.l1':'<b>Name</b> and <b>Location</b> — for you and the report',
+'p.l2':'<b>Sampling Date</b> — “Half Lifetime Correction” refers to it',
+'p.l3':'<b>Measuring Date</b> — display only: taken from the acquisition',
+'p.l4':'<b>Weight</b> — for Bq/kg (0 — not given)',
+'p.l5':'<b>Volume</b> — for Bq/l (0 — not given)',
+'p.steps':'Step by step: Cs-137 in mushrooms, Bq/kg',
+'p.s1':'Record a background with an empty vessel and assign it: <span class="ui">Background</span> → <span class="ui">Select...</span> in “Measurement Control”.',
+'p.s2':'Count the sample. In <span class="ui">Sample Information</span> type the <span class="ui">Weight</span> and the <span class="ui">Sampling Date</span>.',
+'p.s3':'<span class="ui">Efficiency</span> — the curve of this vessel with a geometry (chapter <a href="geometry.html">8</a>).',
+'p.s4':'<span class="ui m">View → Peak Detection</span> → <span class="ui">Use set:</span> — one with Cs-137.',
+'p.s5':'<span class="ui">View:</span> → <span class="ui">Show FSA (full-spectrum decomposition)</span>.',
+'p.s6':'<span class="ui m">View → Measurement Result</span> → units <span class="ui">Bq/kg</span>, correction <span class="ui">Half Lifetime Correction</span>.',
+'p.s7':'The header must read <span class="ui">FSA: Bq by response matrix</span>; the second column — <span class="ui">At sampling</span>.',
+'p.warn':'<b>Weight is typed in grams</b> (unless kilograms are chosen in the preferences), while Bq/kg is per kilogram. 250 g of mushrooms — type 250, the program converts it.',
+'p.f1':'<b>Weight 0 — no Bq/kg.</b> Rows say “no weight”; the same with volume and Bq/l.',
+'p.f2':'<b>Sampling date is not the measuring date.</b> For I-131 a week’s difference is almost a factor of two.',
+'p.f3':'<b>Everything is saved into the spectrum file</b> — weight, dates and notes.',
+'r.k':'Quick','r.h':'“Selected Region”: an estimate from one line',
+'r.lead':'Need a quick look at one line without FSA? Drag a selection across the peak — a panel appears on the right with the area, thresholds and, when possible, the activity. Like weighing one fruit without unpacking the whole basket.',
+'r.cap':'A selection across the Cs-137 peak and the “Selected Region” panel',
+'r.l1':'<b>Selection</b> — drag the left mouse button across the peak',
+'r.l2':'<b>Channel</b> and <b>Energy</b> — the selection bounds',
+'r.l3':'<b>Gross counts</b>, <b>background counts</b> and their ratio',
+'r.l4':'<b>Net cps</b> and <b>net counts</b> with uncertainty',
+'r.l5':'<b>Detected</b>, thresholds <b>Lc</b> and <b>Ld</b>',
+'r.l6':'<b>Peak counts</b>, <b>FWHM</b> and <b>Centroid</b> — the fitted peak',
+'r.info':'<b>When the activity “from line:” appears:</b> exactly one detected peak lies in the selection, it is labelled with a line that has a yield per decay, and the spectrum has a background and an efficiency curve. Otherwise the panel says why in words: “no background spectrum”, “outside the efficiency curve”, “line yield below …”, “net count is not above zero”.',
+'r.f1':'<b>An estimate, not a replacement for FSA.</b> One line knows nothing of its neighbours, Compton and summing — for a report use the result window.',
+'r.f2':'<b>No background — no becquerels.</b> The panel computes the area, but shows the activity only with a background spectrum.',
+'r.f3':'<b>The correction is shared.</b> “Half Lifetime Correction” in the result window also decides for the selection panel’s becquerels.',
+'hoodtxt':'<li>Bq = (decomposition amplitude / live time) × K; K = 1 with an absolute scale (matrix, or a curve from geometry / LSRM) and 0 when becquerels are hidden — the row then says “no K” rather than a silent zero.</li><li>The uncertainty is in absolute form: σ²(Bq) = (σ cps · K)² + (cps · σK)²; the “Uncertainty” column multiplies it by the level from the preferences.</li><li>“At sampling” = acquisition mean × 2^((start − sampling)/T½) × λT/(1 − e^(−λT)), T being the full acquisition time (decay goes on in dead time too). The MDA is multiplied by the same factor. A year in T½ is 365 days, as in the NucBase import; a chain member takes the T½ of the chain root.</li><li>MDA is the decomposition detection limit a# by ISO 11929 (Xu 2022), inflated by √(χ²/ndf); it is not the Currie MDA of a zone. With “Result &gt; MDA” a row without an MDA counts as not detected.</li><li>Weight is stored in kilograms: the “Weight” field in grams is divided by 1000; Bq/kg = Bq / weight, Bq/l = Bq / volume.</li>',
+}});
+
+/* ── 1. заголовок окна результата: что значит каждое состояние ── */
+(function states() {
+  const ROWS = [['K-40', '106.37', '±56.36 (52.98%)', '90.3…'], ['Th-232', '965.18', '±9.87 (1.02%)', '5.1…']];
+  const ROWS2 = [['K-40', '215.19', '±77.04 (35.80%)', '118.7…'], ['Th-232', '1085.09', '±16.54 (1.52%)', '10.6…']];
+  let s = 1;
+  function draw() {
+    $('#dStates').innerHTML = [1, 2, 3, 4, 5, 6, 7].map(i => '<button class="chip' + (i === s ? ' on' : '') + '" data-i="' + i + '">' + t('d.s' + i) + '</button>').join('');
+    $$('#dStates .chip').forEach(b => b.onclick = () => { s = +b.dataset.i; draw(); });
+    const unit = s === 7 ? t('u.bqkg') : t('u.bq');
+    let body;
+    if (s === 1) body = ROWS.map(r => '<tr><td>' + r[0] + '</td><td class="n">' + r[1] + '</td><td class="n">' + r[2] + '</td><td class="n">' + r[3] + '</td></tr>').join('');
+    else if (s === 2) body = ROWS2.map(r => '<tr><td>' + r[0] + '</td><td class="n">' + r[1] + '</td><td class="n">' + r[2] + '</td><td class="n">' + r[3] + '</td></tr>').join('');
+    else if (s === 6) body = '<tr><td>FSA</td><td colspan="3" class="span">' + t('c.comp') + '</td></tr>';
+    else if (s === 5) body = '<tr><td>FSA</td><td colspan="3" class="span">' + t('c.geo') + '</td></tr>';
+    else body = ROWS.map(r => '<tr><td>' + r[0] + '</td><td colspan="3" class="span">' + t(s === 7 ? 'c.nom' : 'c.nok') + '</td></tr>').join('');
+    $('#dWin').innerHTML = '<div class="bar"><span>' + unit + ' ▾</span><span>' + t('corr.no') + ' ▾</span></div><table><tr><th>' + t('d.h' + s) + '</th><th>' + t('col.mean') + '</th><th>' + t('col.u') + ' 2σ</th><th>' + t('col.mda') + '</th></tr>' + body + '</table>';
+    $('#dTxt').innerHTML = t('d.t' + s);
+  }
+  GUIDE.onRedraw(draw);
+})();
+
+/* ── 2. калькулятор: та же формула, что у программы (MeasurementResultManager.DecayToSamplingFactor) ── */
+(function calc() {
+  const Y = 365;                                   // год в T½ — 365 суток, как у программы
+  const NUC = [['Cs-137', 30.08 * Y], ['Cs-134', 2.0652 * Y], ['I-131', 8.0252], ['Be-7', 53.22], ['K-40', 1.248e9 * Y], ['Ra-226', 1600 * Y], ['Am-241', 432.6 * Y], ['none', 0]];
+  const EX = [
+    { nuc: 0, a: '85', u: '9.4', unit: 1, m: '250', ts: '2026-09-01T10:00', t0: '2026-10-15T09:00', dur: '24' },
+    { nuc: 2, a: '40', u: '6', unit: 2, m: '1000', ts: '2026-10-01T08:00', t0: '2026-10-11T08:00', dur: '12' },
+    { nuc: 2, a: '40', u: '6', unit: 0, m: '1000', ts: '2026-10-01T08:00', t0: '2026-10-01T09:00', dur: '192.6' },
+  ];
+  let corr = 1;
+  const num = v => { const x = parseFloat(String(v).replace(',', '.')); return isFinite(x) ? x : NaN; };
+  function load(e) {
+    $('#kNuc').value = e.nuc; $('#kA').value = e.a; $('#kU').value = e.u; $('#kUnit').value = e.unit; $('#kM').value = e.m;
+    $('#kTs').value = e.ts; $('#kT0').value = e.t0; $('#kDur').value = e.dur; corr = 1; draw();
+  }
+  function halfTxt(d) { return d <= 0 ? t('k.none') : d >= Y ? sig(d / Y, 4) + ' ' + t('k.y') : sig(d, 4) + ' ' + t('k.d'); }
+  function ui() {
+    const nv = $('#kNuc').value, uv = $('#kUnit').value;
+    $('#kNuc').innerHTML = NUC.map((n, i) => '<option value="' + i + '">' + (n[0] === 'none' ? t('k.none') : n[0] + ' (' + halfTxt(n[1]) + ')') + '</option>').join('');
+    $('#kUnit').innerHTML = ['u.bq', 'u.bqkg', 'u.bql'].map((k, i) => '<option value="' + i + '">' + t(k) + '</option>').join('');
+    if (nv !== '') $('#kNuc').value = nv; if (uv !== '') $('#kUnit').value = uv;
+    $('#kEx').innerHTML = [1, 2, 3].map(i => '<button class="chip" data-i="' + i + '">' + t('k.ex' + i) + '</button>').join('');
+    $$('#kEx .chip').forEach(b => b.onclick = () => load(EX[+b.dataset.i - 1]));
+  }
+  function draw() {
+    $('#kCorr').innerHTML = ['corr.no', 'corr.hl'].map((k, i) => '<button class="chip' + (i === corr ? ' on' : '') + '" data-i="' + i + '">' + t(k) + '</button>').join('');
+    $$('#kCorr .chip').forEach(b => b.onclick = () => { corr = +b.dataset.i; draw(); });
+    const unit = +$('#kUnit').value; $('#kMassL').textContent = t(unit === 2 ? 'k.vol' : 'k.mass'); $('#kM').disabled = unit === 0;
+    const T = NUC[+$('#kNuc').value][1], A = num($('#kA').value), U = num($('#kU').value), m = num($('#kM').value);
+    const ts = new Date($('#kTs').value).getTime(), t0 = new Date($('#kT0').value).getTime(), dur = num($('#kDur').value) / 24;
+    const dt = (t0 - ts) / 864e5, ok = isFinite(A) && isFinite(dt) && dt >= 0 && dur >= 0 && (unit === 0 || m > 0);
+    if (!ok) { $('#kTiles').innerHTML = ''; $('#kF').textContent = ''; $('#kMsg').innerHTML = '<span class="pill bad">' + t('k.bad') + '</span>'; setup($('#cvDecay')); return; }
+    let f = 1, toStart = 1, mean = 1;
+    if (T > 0) { toStart = Math.pow(2, dt / T); const x = Math.LN2 * dur / T; mean = x > 0 ? (x < 1e-4 ? 1 + x / 2 + x * x / 12 : x / (1 - Math.exp(-x))) : 1; f = toStart * mean; }
+    const div = unit === 0 ? 1 : m / 1000, uname = t(['u.bq', 'u.bqkg', 'u.bql'][unit]);
+    const Am = A / div, As = A * f / div, Um = isFinite(U) ? U / div : NaN;
+    $('#kF').textContent = T > 0 ? fx(A, 2) + ' × 2^(' + fx(dt, 3) + ' / ' + sig(T, 5) + ') × ' + fx(mean, 4) + ' = ' + fx(A * f, 2) + ' ' + t('u.bq') + (unit ? '  →  / ' + fx(div, 3) + ' = ' + fx(As, 2) + ' ' + uname : '') : t('k.noT');
+    const show = corr ? As : Am;
+    $('#kTiles').innerHTML =
+      '<div class="tile"><div class="big"' + (corr ? '' : ' style="color:var(--gold)"') + '>' + fx(Am, 2) + '</div><div class="small">' + uname + ' · ' + t('k.t.mean') + (isFinite(Um) ? ' · ±' + fx(Um, 2) : '') + '</div></div>' +
+      '<div class="tile"><div class="big"' + (corr ? ' style="color:var(--gold)"' : '') + '>' + fx(As, 2) + '</div><div class="small">' + uname + ' · ' + t('k.t.samp') + (isFinite(Um) ? ' · ±' + fx(Um * f, 2) : '') + '</div></div>' +
+      '<div class="tile"><div class="big">×' + fx(f, 3) + '</div><div class="small">' + t('k.t.f') + ' · ' + t('k.t.fs', fx(dt, 2)) + '</div></div>';
+    $('#kMsg').innerHTML = '<span class="pill good">' + (corr ? t('col.samp') : t('col.mean')) + ': <b>' + fx(show, 2) + ' ' + uname + '</b></span>';
+    // график: активность пробы от даты отбора до конца набора
+    const cv = $('#cvDecay'), { ctx, w, h } = setup(cv), bx = { l: 52, t: 16, r: w - 14, b: h - 26 };
+    const tEnd = dt + dur, X = scale('lin', 0, Math.max(tEnd * 1.12, 1), bx.l, bx.r), A0 = A * f;
+    const At = d => T > 0 ? A0 * Math.pow(2, -d / T) : A0;
+    const Y2 = scale('lin', 0, A0 * 1.15, bx.b, bx.t);
+    axes(ctx, bx, X, Y2, { xl: t('k.ax.t'), yl: t('k.ax.a') });
+    ctx.fillStyle = 'rgba(106,168,255,.16)'; ctx.fillRect(X(dt), bx.t, Math.max(2, X(tEnd) - X(dt)), bx.b - bx.t);
+    ctx.fillStyle = '#6aa8ff'; ctx.font = '600 11px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(t('k.lab.acq'), (X(dt) + X(tEnd)) / 2, bx.t + 2);
+    ctx.beginPath(); for (let i = 0; i <= 200; i++) { const d = X.d1 * i / 200; ctx.lineTo(X(d), Y2(At(d))); } ctx.strokeStyle = '#5be38a'; ctx.lineWidth = 2.2; ctx.stroke(); ctx.lineWidth = 1;
+    ctx.strokeStyle = '#ffcc33'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(X(dt), Y2(A)); ctx.lineTo(X(tEnd) + (tEnd === dt ? 4 : 0), Y2(A)); ctx.stroke(); ctx.lineWidth = 1;
+    ctx.fillStyle = '#ffcc33'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(t('k.lab.mean') + ' ' + fx(A, 2), Math.min(X(dt) + 4, bx.r - 150), Y2(A) - 4);
+    ctx.fillStyle = '#5be38a'; ctx.beginPath(); ctx.arc(X(0), Y2(A0), 5, 0, 7); ctx.fill(); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(t('k.lab.samp') + ' ' + fx(A0, 2), X(0) + 8, Y2(A0) + 4);
+  }
+  ['#kNuc', '#kA', '#kU', '#kM', '#kTs', '#kT0', '#kDur', '#kUnit'].forEach(id => $(id).addEventListener('input', draw));
+  GUIDE.onRedraw(() => { ui(); draw(); });
+  ui(); load(EX[0]);
+  io.observe($('#cvDecay'));
+})();
+
+/* ── 3. «настройте окно»: та же логика, что у DCResultView (обнаружено, ND, уровень σ) ── */
+(function settings() {
+  // [имя, значение, σ (1σ), МДА]; K-40 и Th-232 — со снимка (2σ: ±56.36 и ±9.87)
+  const R = [['K-40', 106.37, 28.18, 90.3, '90.3…'], ['Th-232', 965.18, 4.935, 5.1, '5.1…'], ['ex', 3.10, 2.40, 7.90, '7.90']];
+  function preset(i) { $('#sLev').value = i ? 2 : 1; $('#sK').value = i ? 2 : 3; $('#sCond').value = 0; $('#sNd').checked = !!i; draw(); }
+  function ui() {
+    $('#sPre').innerHTML = ['s.def', 's.shot'].map((k, i) => '<button class="chip" data-i="' + i + '">' + t(k) + '</button>').join('');
+    $$('#sPre .chip').forEach(b => b.onclick = () => preset(+b.dataset.i));
+    const v = $('#sCond').value; $('#sCond').innerHTML = '<option value="0">' + t('s.c0') + '</option><option value="1">' + t('s.c1') + '</option>'; if (v !== '') $('#sCond').value = v;
+  }
+  function draw() {
+    const lev = +$('#sLev').value, k = +$('#sK').value, cond = +$('#sCond').value, nd = $('#sNd').checked;
+    $('#sLevV').textContent = fx(lev, 2) + ' σ'; $('#sKV').textContent = fx(k, 2) + ' σ';
+    let det = 0;
+    const rows = R.map(([n, v, s, mda, mdaTxt]) => {
+      const d = cond === 0 ? (s > 0 && v >= s * k) : (mda > 0 && v >= mda); if (d) det++;
+      const e = s * lev, val = (nd || d) ? fx(v, 2) : '0', unc = (nd || d) ? '±' + fx(e, 2) + (v !== 0 ? ' (' + fx(100 * e / Math.abs(v), 2) + '%)' : '') : '-';
+      return '<tr><td>' + (n === 'ex' ? t('s.ex') : n) + '</td><td class="n">' + (d ? '' : '<span class="nd">ND</span>') + val + '</td><td class="n">' + unc + '</td><td class="n">' + mdaTxt + '</td></tr>';
+    }).join('');
+    $('#sWin').innerHTML = '<div class="bar"><span>' + t('u.bq') + ' ▾</span><span>' + t('corr.no') + ' ▾</span></div><table><tr><th>' + t('d.h1') + '</th><th>' + t('col.mean') + '</th><th>' + t('col.u') + ' ' + (lev === 1 ? '' : fx(lev, 2).replace(/\.?0+$/, '')) + 'σ</th><th>' + t('col.mda') + '</th></tr>' + rows + '</table>';
+    const why = cond === 0 ? t('s.why0', fx(R[0][1], 2), fx(k, 2), fx(R[0][2] * k, 2)) : t('s.why1', fx(R[0][1], 2), R[0][4]);
+    $('#sMsg').innerHTML = '<span class="pill">' + t('s.msg', det, R.length) + '</span><span class="pill">' + why + '</span>';
+  }
+  ['#sLev', '#sK', '#sCond', '#sNd'].forEach(id => $(id).addEventListener('input', draw));
+  GUIDE.onRedraw(() => { ui(); draw(); });
+})();
+
+GUIDE.init();
+</script>
+</body>
+</html>

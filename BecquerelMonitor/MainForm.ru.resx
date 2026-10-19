@@ -190,7 +190,7 @@
     <value>&amp;Сохранить</value>
   </data>
   <data name="saveDataAsRToolStripMenuItem.Text" xml:space="preserve">
-    <value>Сохранить &amp;как</value>
+    <value>Сохранить &amp;как...</value>
   </data>
   <data name="closeDataCToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Закрыть</value>
@@ -202,7 +202,7 @@
     <value>&amp;Очистить спектр</value>
   </data>
   <data name="versionInfoAToolStripMenuItem.Text" xml:space="preserve">
-    <value>&amp;О BQMoni...</value>
+    <value>&amp;О BecqMoni...</value>
   </data>
   <data name="pulseViewPToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Монитор импульсов</value>
@@ -274,7 +274,7 @@
     <value>Нормализовать спектр по эффективности</value>
   </data>
   <data name="exportBgToolStripMenuItem.Text" xml:space="preserve">
-    <value>Экспортировать спектр фона в файл</value>
+    <value>Экспорт спектра фона в файл</value>
   </data>
   <data name="hardSubtractToolStripMenuItem.Text" xml:space="preserve">
     <value>Жёсткий вычет в файл</value>

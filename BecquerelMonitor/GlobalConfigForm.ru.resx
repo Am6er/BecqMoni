@@ -122,7 +122,7 @@
     <value>280, 17</value>
   </data>
   <data name="checkBox1.Text" xml:space="preserve">
-    <value>Добавить данные по импульсами в файл спектра</value>
+    <value>Добавить данные по импульсам в файл спектра</value>
   </data>
   <data name="checkBox1.ToolTip" xml:space="preserve">
     <value />
@@ -991,7 +991,7 @@
     <value>250, 17</value>
   </data>
   <data name="checkBox2.Text" xml:space="preserve">
-    <value>Показать значения не обнаруженных пиков</value>
+    <value>Показать значения не обнаруженных нуклидов</value>
   </data>
   <data name="checkBox2.ToolTip" xml:space="preserve">
     <value />

@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Файлы и вопросы — BecqMoni гайд</title>
+<link rel="stylesheet" href="assets/guide.css">
+<style>
+/* только для этой главы */
+@media (max-width:560px){.ui{white-space:normal}}
+.shot-legend.cols2{grid-template-columns:1fr 1fr}
+@media (max-width:900px){.shot-legend.cols2{grid-template-columns:1fr}}
+.anat{display:grid;grid-template-columns:.95fr 1.05fr;gap:16px;margin-top:12px}
+@media (max-width:900px){.anat{grid-template-columns:1fr}}
+.sizebar{display:flex;height:22px;border-radius:8px;overflow:hidden;background:var(--bg2);border:1px solid var(--line);margin-top:10px}
+.sizebar i{display:block;height:100%;min-width:2px;transition:flex-grow .5s}
+.blks{display:grid;gap:6px;margin-top:10px}
+.blk{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:10px;padding:7px 10px;cursor:pointer;font-size:14px;color:var(--soft);text-align:left;font-family:inherit;width:100%;transition:border-color .15s,background .15s}
+.blk:hover{border-color:var(--gold)}
+.blk.on{background:rgba(255,204,51,.10);border-color:var(--gold)}
+.blk b{color:var(--ink);font-weight:700}
+.blk .sz{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px;white-space:nowrap}
+.blk .tag{font-size:11.5px;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.tag.go{background:rgba(91,227,138,.16);color:#bff5d2}.tag.ref{background:rgba(255,159,67,.18);color:#ffd8b0}.tag.no{background:rgba(147,163,196,.14);color:var(--muted)}
+.blk.absent{border-style:dashed;opacity:.8}
+.blk.dim{opacity:.35}
+.detail{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:14px;padding:12px 14px;min-width:0}
+.detail h4{margin:0 0 6px;font-size:17px}
+.detail dl{margin:8px 0 0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
+.detail dt{color:var(--muted);font-weight:700}
+.detail dd{margin:0;color:var(--soft)}
+pre.xml{margin:10px 0 0;background:#060912;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:12.5px/1.45 Consolas,"Cascadia Mono",monospace;color:#cfe3ff;overflow-x:auto;white-space:pre}
+pre.xml .tg{color:#7fb6ff}pre.xml .vl{color:#ffe08a}pre.xml .cm{color:#6a7899}
+.fmt{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+@media (max-width:900px){.fmt{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.fmt{grid-template-columns:1fr}}
+.fcard{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:12px;padding:10px 12px}
+.fcard h4{margin:0 0 2px;font-size:16px}
+.fcard small{color:var(--muted);font-size:12.5px}
+.fcard ul{list-style:none;margin:8px 0 0;padding:0;font-size:13.5px;color:var(--soft)}
+.fcard li{margin:2px 0}
+.fcard li::before{display:inline-block;width:18px;font-weight:800}
+.fcard li.y::before{content:"✓";color:var(--ok)}.fcard li.n::before{content:"✗";color:var(--photo)}.fcard li.w::before{content:"!";color:var(--gold)}
+.csvw{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:700px){.csvw{grid-template-columns:1fr}}
+.csvw .lbl{display:block;margin-top:8px}
+details.faq{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-top:8px;transition:border-color .15s}
+details.faq[open]{border-color:rgba(255,204,51,.55)}
+details.faq summary{cursor:pointer;list-style:none;position:relative;padding:11px 14px 11px 44px;font-weight:700;color:var(--ink);font-size:15.5px}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::before{content:"+";position:absolute;left:14px;top:9px;width:22px;height:22px;border-radius:50%;background:var(--gold);color:#1a1300;font-weight:900;display:grid;place-items:center;font-size:15px}
+details.faq[open] summary::before{content:"−"}
+details.faq .a{padding:0 14px 12px 44px;color:var(--soft);font-size:15px}
+details.faq .a p{margin:4px 0}
+details.faq .a q{color:#ffd8b0;quotes:"«" "»"}
+.faqs{margin-top:16px}
+</style>
+</head>
+<body data-chapter="files">
+
+<section class="hero" id="top"><div class="wrap">
+  <div class="kicker" data-t="h.k"></div>
+  <h1 data-t="h.h"></h1>
+  <p class="lead" data-t="h.lead"></p>
+</div></section>
+
+<section class="sec" id="xml" data-nav="n.xml"><div class="wrap">
+  <div class="kicker" data-t="x.k"></div>
+  <h2 data-t="x.h"></h2>
+  <p class="lead" data-t="x.lead"></p>
+  <div class="card full">
+    <h3 data-t="a.h"></h3>
+    <p class="note" style="margin-top:0" data-t="a.hint"></p>
+    <div class="row"><span class="lbl" data-t="a.ch"></span><div class="chips" id="aCh"></div></div>
+    <div class="row">
+      <label class="sw"><input type="checkbox" id="aBg" checked><span data-t="a.bg"></span></label>
+      <label class="sw"><input type="checkbox" id="aMx" checked><span data-t="a.mx"></span></label>
+      <span class="lbl" data-t="a.n"></span><input type="range" id="aN" min="1" max="16" step="1" value="1"><span class="val" id="aNv"></span>
+    </div>
+    <div class="row"><div class="chips" id="aMode"></div></div>
+    <div class="sizebar" id="aBar"></div>
+    <div class="pills" id="aSize"></div>
+    <div class="anat">
+      <div class="blks" id="aBlks"></div>
+      <div class="detail" id="aDet"></div>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--ok)" data-t="x.f1"></div>
+    <div class="fact" style="--c:var(--compton)" data-t="x.f2"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="x.f3"></div>
+  </div>
+</div></section>
+
+<section class="sec" id="import" data-nav="n.imp"><div class="wrap">
+  <div class="kicker" data-t="i.k"></div>
+  <h2 data-t="i.h"></h2>
+  <p class="lead" data-t="i.lead"></p>
+  <div class="grid2 wl">
+    <figure class="shot" data-shot="menu-file-import" data-legend="lgImp"
+      data-hot-ru='[[0.0211,0.1421,0.355,0.0613],[0.0211,0.2033,0.355,0.1226],[0.0211,0.3872,0.355,0.0613],[0.0211,0.5265,0.355,0.0613],[0.3761,0.532,0.5958,0.1226],[0.3761,0.6546,0.5958,0.1839],[0.3761,0.8384,0.5958,0.1226],[0.0211,0.5877,0.355,0.0613]]'
+      data-hot-en='[[0.0245,0.1421,0.3367,0.0613],[0.0245,0.2033,0.3367,0.1226],[0.0245,0.3872,0.3367,0.0613],[0.0245,0.5265,0.3367,0.0613],[0.3612,0.532,0.6061,0.1226],[0.3612,0.6546,0.6061,0.1839],[0.3612,0.8384,0.6061,0.1226],[0.0245,0.5877,0.3367,0.0613]]'>
+      <figcaption data-t="i.cap"></figcaption>
+    </figure>
+    <div>
+      <ol class="shot-legend" id="lgImp">
+        <li data-t="i.l1"></li><li data-t="i.l2"></li><li data-t="i.l3"></li><li data-t="i.l4"></li>
+        <li data-t="i.l5"></li><li data-t="i.l6"></li><li data-t="i.l7"></li><li data-t="i.l8"></li>
+      </ol>
+    </div>
+  </div>
+  <h3 style="margin-top:22px" data-t="i.su"></h3>
+  <div class="chips" id="iFmts" style="margin-top:8px"></div>
+  <h3 style="margin-top:22px" data-t="i.steps"></h3>
+  <ol class="howto">
+    <li data-t="i.s1"></li><li data-t="i.s2"></li><li data-t="i.s3"></li><li data-t="i.s4"></li><li data-t="i.s5"></li>
+  </ol>
+  <div class="callout info" data-t="i.info"></div>
+</div></section>
+
+<section class="sec" id="export" data-nav="n.exp"><div class="wrap">
+  <div class="kicker" data-t="e.k"></div>
+  <h2 data-t="e.h"></h2>
+  <p class="lead" data-t="e.lead"></p>
+  <div class="fmt" id="eFmt"></div>
+  <div class="card full">
+    <h3 data-t="c.h"></h3>
+    <p class="note" style="margin-top:0" data-t="c.hint"></p>
+    <div class="row"><span class="lbl" data-t="c.mode"></span><div class="chips" id="cMode"></div></div>
+    <div class="row"><span class="lbl" data-t="c.sm"></span><div class="chips" id="cSm"></div></div>
+    <div class="csvw">
+      <div><span class="lbl" data-t="c.ext"></span><pre class="xml" id="cExt"></pre></div>
+      <div><span class="lbl" data-t="c.raw"></span><pre class="xml" id="cRaw"></pre></div>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--photo)" data-t="e.f1"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="e.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="e.f3"></div>
+  </div>
+</div></section>
+
+<section class="sec" id="spectrum" data-nav="n.sp"><div class="wrap">
+  <div class="kicker" data-t="s.k"></div>
+  <h2 data-t="s.h"></h2>
+  <p class="lead" data-t="s.lead"></p>
+  <div class="grid2 wr">
+    <figure class="shot" data-shot="menu-spectrum" data-legend="lgSp"
+      data-hot-ru='[[0.0356,0.2045,0.9169,0.0616],[0.0356,0.2661,0.9169,0.1232],[0.0356,0.3894,0.9169,0.0616],[0.0356,0.4510,0.9169,0.0616],[0.0356,0.5126,0.9169,0.0616],[0.0356,0.5742,0.9169,0.0616],[0.0356,0.6359,0.9169,0.0616],[0.0356,0.6975,0.9169,0.0616]]'
+      data-hot-en='[[0.0412,0.2045,0.9038,0.0616],[0.0412,0.2661,0.9038,0.1232],[0.0412,0.3894,0.9038,0.0616],[0.0412,0.4510,0.9038,0.0616],[0.0412,0.5126,0.9038,0.0616],[0.0412,0.5742,0.9038,0.0616],[0.0412,0.6359,0.9038,0.0616],[0.0412,0.6975,0.9038,0.0616]]'>
+      <figcaption data-t="s.cap"></figcaption>
+    </figure>
+    <div>
+      <ol class="shot-legend" id="lgSp">
+        <li data-t="s.l1"></li><li data-t="s.l2"></li><li data-t="s.l3"></li><li data-t="s.l4"></li>
+        <li data-t="s.l5"></li><li data-t="s.l6"></li><li data-t="s.l7"></li><li data-t="s.l8"></li>
+      </ol>
+    </div>
+  </div>
+  <div class="card full" style="margin-top:22px">
+    <h3 data-t="b.h"></h3>
+    <p class="note" style="margin-top:0" data-t="b.hint"></p>
+    <canvas id="cvB" class="cv"></canvas>
+    <div class="row">
+      <button class="btn main" id="bPlay" data-t="b.play"></button><button class="btn" id="bReset" data-t="b.reset"></button>
+      <div class="chips" id="bMode"></div>
+    </div>
+    <div class="sliders">
+      <div class="sl"><div class="top"><span data-t="b.dt"></span><span class="val" id="vDt"></span></div><input type="range" id="rDt" min="0" max="40" step="1" value="20"></div>
+      <div class="sl"><div class="top"><span data-t="b.tb"></span><span class="val" id="vTb"></span></div><input type="range" id="rTb" min="1" max="24" step="1" value="10"></div>
+    </div>
+    <div class="pills" id="bRes"></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--esc)" data-t="s.f1"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="s.f2"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="s.f3"></div>
+  </div>
+</div></section>
+
+<section class="sec" id="faq" data-nav="n.faq"><div class="wrap">
+  <div class="kicker" data-t="q.k"></div>
+  <h2 data-t="q.h"></h2>
+  <p class="lead" data-t="q.lead"></p>
+  <div class="faqs" id="faqs"></div>
+  <details class="hood"><summary data-t="hood"></summary><ul data-t="hoodtxt"></ul></details>
+  <div id="pager"></div>
+</div></section>
+
+<footer><div class="wrap" data-t="foot"></div></footer>
+
+<script src="assets/guide.js"></script>
+<script>
+'use strict';
+const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, io, t, poisson } = GUIDE;
+GUIDE.texts({ru:{
+'n.xml':'Свой файл','n.imp':'Импорт','n.exp':'Экспорт','n.sp':'Спектр и фон','n.faq':'Вопросы',
+'h.k':'Глава 12 · Файлы и вопросы',
+'h.h':'Что лежит <em>в файле спектра</em>',
+'h.lead':'Файл спектра BecqMoni — как папка с делом: сам спектр, калибровки, кривая с геометрией, фон и карточка пробы. Кое-чего в папке нет нарочно — например, настроек поиска пиков: их программа берёт у вашего прибора. Отсюда и почти все «почему у друга не так».',
+'x.k':'Свой формат','x.h':'Файл .xml изнутри',
+'x.lead':'Своё BecqMoni хранит в XML: <span class="ui m">Файл → Открыть...</span> (<kbd>Ctrl</kbd>+<kbd>O</kbd>), <span class="ui">Сохранить</span> (<kbd>Ctrl</kbd>+<kbd>S</kbd>), <span class="ui">Сохранить как...</span>; можно просто перетащить файл в окно. Одни вещи едут в файле целиком, другие — только ссылкой.',
+'a.h':'Что поедет в файл: разберите папку',
+'a.hint':'Щёлкните блок — справа откроется, что в нём и откуда. Переключатели меняют размер файла, «Отправить другу» показывает, что доедет до чужого компьютера.',
+'a.ch':'каналов:','a.bg':'фон выбран','a.mx':'матрица отклика в файле (Настройки → Системные)','a.n':'спектров в документе','a.home':'Открыть у себя','a.friend':'Отправить другу без моего прибора',
+'a.total':'размер файла ≈ <b>{0}</b>','a.per':'на один спектр ≈ <b>{0}</b>','a.kb':'КБ','a.mb':'МБ',
+'a.go':'едет целиком','a.ref':'только ссылка','a.no':'не пишется',
+'a.what':'Что внутри','a.from':'Откуда','a.miss':'Если нет','a.friendS':'У друга',
+'x.f1':'<b>Кривая и фон едут целиком.</b> Кривая — с геометрией, фон — сам спектр, а не только имя файла. Друг увидит то же, что и вы.',
+'x.f2':'<b>Прибор едет ссылкой.</b> В файле — имя и GUID конфигурации, а не она сама. Нет у друга такой — спектр откроется без прибора.',
+'x.f3':'<b>Матрица отклика — по настройке.</b> <span class="ui m">Инструменты → Настройки → Системные</span>, по умолчанию включено: файл тяжелее на ≈ 0.3 МБ, зато у друга FSA с каскадами.',
+'i.k':'Импорт','i.h':'Чужие форматы: Файл → Импорт',
+'i.lead':'Импорт — как перевод с иностранного: каждый пункт меню читает свой формат и открывает спектр <b>новым документом</b>. Что не нашлось в файле (калибровка, дата, прибор), программа скажет словами — читайте эти сообщения.',
+'i.cap':'Меню «Файл» с раскрытым «Импорт»',
+'i.l1':'<b>Открыть...</b> — свой XML; несколько файлов разом или перетаскиванием',
+'i.l2':'<b>Сохранить / Сохранить как...</b> — записать документ в XML',
+'i.l3':'<b>Объединение спектров</b> — прибавить к активному спектру спектр из файла; каналов должно быть столько же',
+'i.l4':'<b>Импорт</b> — подменю чужих форматов, каждый пункт — новый документ',
+'i.l5':'<b>Формат Atom Spectra v3 · Файл формата N42</b> — родные форматы Atom Spectra и международный N42',
+'i.l6':'<b>Файл CSV (канал, отсчёты) · (энергия, отсчёты) · SpectraLine GBS</b> — простые таблицы и файлы *.spe',
+'i.l7':'<b>Импорт через SpecUtils... · Старый формат BecqMoni</b> — 23 формата через библиотеку SpecUtils и файлы v0.93Beta',
+'i.l8':'<b>Экспорт</b> — обратный путь: N42, Atom Spectra v3, CSV, Расширенный CSV (раздел ниже)',
+'i.su':'Импорт через SpecUtils читает 23 формата',
+'i.steps':'Пошагово: открыть чужой N42',
+'i.s1':'<span class="ui m">Файл → Импорт → Файл формата N42</span> (или <span class="ui">Импорт через SpecUtils...</span> для экзотики).',
+'i.s2':'Прочитайте сообщения: нет калибровки, нет даты, другое число каналов — каждое значит, что вам придётся поправить.',
+'i.s3':'Спектр снят таким же прибором, как ваш? <span class="ui m">Вид → Управление измерением</span> → <span class="ui">Устройство</span>: калибровки, FWHM и фон станут приборными. Чужим — оставьте калибровку файла и проверьте её по известным пикам. Кривую выберите в <span class="ui">Эффективн.</span>',
+'i.s4':'<span class="ui m">Вид → Информация об образце</span>: дата отбора, вес или объём.',
+'i.s5':'<span class="ui m">Файл → Сохранить как...</span> — теперь это ваш XML со всем, что нужно.',
+'i.info':'<b>Фоновое измерение внутри файла</b> (так бывает в N42 и форматах SpecUtils) ложится фоном спектра — вычитать его можно сразу. В документ попадает не больше 16 спектров.',
+'e.k':'Экспорт','e.h':'Отдать спектр: Файл → Экспорт',
+'e.lead':'Экспорт — как упаковать посылку: в одну коробку влезает всё (N42), в другую — только самое нужное (CSV). Выбирайте по тому, что будет делать получатель.',
+'e.n42':'N42','e.n42s':'международный, для любой программы','e.as':'Atom Spectra v3','e.ass':'для Atom Spectra и ей подобных','e.csv':'CSV','e.csvs':'«Channel,Counts», для таблиц','e.ecsv':'Расширенный CSV','e.ecsvs':'«Channel,Energy,Counts» — как на экране',
+'e.ch':'отсчёты по каналам','e.cal':'калибровка энергии','e.live':'живое время','e.real':'только реальное время','e.date':'дата начала набора','e.bgm':'фон — отдельным измерением','e.nobg':'фона нет','e.view':'с вычетом фона и сглаживанием, если они включены',
+'c.h':'Что уйдёт в Расширенный CSV',
+'c.hint':'Пик Cs-137, каналы 106–115. Слева — «Расширенный CSV файл»: он пишет то, что на экране. Справа — обычный «Файл CSV»: всегда сырые отсчёты.',
+'c.mode':'режим просмотра:','c.sm':'сглаживание:','c.show':'Показать фоновый спектр','c.sub':'Показать спектр за вычетом фона','c.none':'Нет','c.sma':'Скользящее среднее',
+'c.ext':'Расширенный CSV файл','c.raw':'Файл CSV',
+'e.f1':'<b>Расширенный CSV — «как на экране».</b> Включён вычет фона или сглаживание — они уедут в файл. Для сырых данных сначала выключите их.',
+'e.f2':'<b>CSV не знает живого времени.</b> В шапке только реальное время; у спектра с мёртвым временем скорость счёта у получателя выйдет другой.',
+'e.f3':'<b>Полнее всего — N42 или свой XML.</b> Калибровка, живое время, дата и фон доезжают целыми.',
+'s.k':'Меню «Спектр»','s.h':'Правка спектра и фон',
+'s.lead':'Меню <span class="ui m">Спектр</span> — мастерская: обрезать, пересобрать каналы, вычесть фон насовсем. Большинство пунктов не портит исходник, а открывает результат <b>новым документом</b>.',
+'s.cap':'Меню «Спектр»',
+'s.l1':'<b>Импорт из файла</b> — добавить спектры из файлов в текущий документ (до 16)',
+'s.l2':'<b>Экспорт спектра в файл · Экспорт спектра фона в файл</b> — активный спектр или его фон отдельным XML',
+'s.l3':'<b>Жёсткий вычет в файл</b> — «спектр минус фон» в новый XML, без фона; файл сразу открывается',
+'s.l4':'<b>Изменить число каналов</b> — от 64 до 65536, результат — новый документ',
+'s.l5':'<b>Ограничить энергию или канал</b> — обрезать спектр, новый документ',
+'s.l6':'<b>Нормализовать спектр по эффективности</b> — поделить на кривую, новый документ',
+'s.l7':'<b>Применить коррекцию мёртвого времени</b> — пересчитать живое время по мёртвому времени прибора',
+'s.l8':'<b>Автосохранение спектра</b> — галка для этого документа (нужно имя файла)',
+'b.h':'Как вычитается фон: по живому времени',
+'b.hint':'Спектр Cs-137 набран за 1 час, фон — за много часов. Нажмите «Вычесть»: фон сжимается до времени спектра, затем вычитается. Красные метки снизу — каналы, ушедшие ниже нуля (их программа обнуляет). В верном режиме ниже нуля уходит примерно половина каналов без пиков — это шум вокруг нуля. Переключите на «по реальному» и добавьте мёртвого времени: ниже нуля уйдёт почти всё, а K-40 станет «отрицательным».',
+'b.play':'▶ Вычесть','b.reset':'Сброс','b.live':'по живому времени (как в BecqMoni)','b.real':'по реальному времени (так нельзя)',
+'b.dt':'мёртвое время спектра','b.tb':'время набора фона, ч',
+'b.k':'коэффициент фона k = <b>{0}</b>','b.kl':'живое: {0} с / {1} с','b.kr':'реальное: {0} с / {1} с',
+'b.k40':'K-40 после вычета: <b>{0}</b> отсчётов (должно быть ≈ 0)','b.cs':'Cs-137 после вычета: <b>{0}</b> (истинно ≈ {1})','b.neg':'каналов ниже нуля: <b>{0}</b>',
+'ax.e':'энергия, кэВ','ax.c':'отсчёты','b.sp':'спектр','b.bg0':'фон, как набран','b.bg':'фон × k','b.res':'спектр − фон',
+'s.f1':'<b>k — отношение живых времён.</b> Полчаса спектра и десять часов фона — фон делится на 20 перед вычитанием.',
+'s.f2':'<b>Ниже нуля — ноль.</b> Отрицательных отсчётов не бывает: такие каналы вычтенного спектра обнуляются.',
+'s.f3':'<b>Другая калибровка — не беда.</b> Фон с другой шкалой энергий раскладывается по энергии; с другим числом каналов фон не выбирается вовсе.',
+'q.k':'Частые вопросы','q.h':'Подводные камни',
+'q.lead':'Почти все «странности» с файлами — из-за того, что в файле лежит ссылка, а не вещь, или из-за того, чего в чужом формате просто нет. Откройте нужный вопрос.',
+'faq':[
+ ['Открыл чужой файл — «Старт» пишет «Не выбрана конфигурация устройства.»','<p>В файле спектра лежит только <b>ссылка</b> на прибор — имя и GUID. У вас такой конфигурации нет, и спектр открылся без прибора.</p><p><b>Что делать:</b> для разбора прибор не нужен — калибровки, FWHM, кривая и фон уже в файле. Выбор своей конфигурации в <span class="ui m">Вид → Управление измерением</span> → <span class="ui">Устройство</span> <b>сразу заменит</b> калибровку энергии, FWHM и фон спектра приборными, а при другом числе каналов спектр будет удалён (программа спросит). Так делают, только если спектр снят таким же прибором.</p>'],
+ ['Импорт пишет «Несоответствие числа каналов между выбранным устройством и импортируемым спектром»','<p>В файле, скажем, 1024 канала, а у выбранного прибора 8192. Спектр открывается, но у него снимаются прибор, фон, модель FWHM и найденные пики — они были для другого числа каналов.</p><p><b>Что делать:</b> выберите конфигурацию с тем же числом каналов или пересоберите спектр: <span class="ui m">Спектр → Изменить число каналов</span>.</p>'],
+ ['Вопрос «Сбросить калибровку спектра в y = x?»','<p>В файле нет калибровки энергии (или она негодная). Без ответа «Да» спектр не откроется.</p><p><b>Что делать:</b> «Да», а затем откалибровать по известным пикам (глава 6) или выбрать конфигурацию прибора с калибровкой.</p>'],
+ ['Дата набора — 1970-01-01','<p>В файле нет времени начала набора: так бывает у CSV и части N42. Программа ставит 1970-01-01 нарочно, чтобы выдуманную дату не приняли за измеренную.</p><p><b>Что делать:</b> <span class="ui m">Вид → Информация об образце</span> → <span class="ui">Дата отбора</span>. К ней приводится активность при коррекции на полураспад.</p>'],
+ ['Не добавляется ещё один спектр в документ','<p>В одном документе — не больше <b>16 спектров</b>. При импорте файла с множеством измерений лишние не читаются.</p><p><b>Что делать:</b> откройте остальное отдельным документом или удалите ненужные спектры в <span class="ui m">Вид → Список спектров</span>.</p>'],
+ ['Фон не выбирается: «Несовместимые параметры каналов.»','<p>Фон обязан иметь столько же каналов, сколько спектр. Другая калибровка — можно (фон разложится по энергии), другое число каналов — нельзя.</p><p><b>Что делать:</b> наберите фон тем же прибором с тем же числом каналов или пересоберите его через <span class="ui m">Спектр → Изменить число каналов</span>.</p>'],
+ ['Друг открыл мой файл — а пики у него другие','<p>Настройки поиска пиков (Мин SNR, Допуск, диапазон, число пиков) <b>не пишутся в файл</b> — они берутся из конфигурации прибора того, кто открыл. Набор нуклидов и библиотека тоже свои у каждого.</p><p><b>Что делать:</b> сверить <span class="ui">Мин SNR</span>, <span class="ui">Допуск</span> и <span class="ui">Набор:</span> на панели «Обнаружение пиков».</p>'],
+ ['Отправил CSV — у получателя другая скорость счёта','<p>CSV хранит только отсчёты и <b>реальное</b> время. Живого времени и калибровки в нём нет, и при мёртвом времени 10 % скорость у получателя будет на 10 % ниже.</p><p><b>Что делать:</b> отдавать N42 или свой XML; CSV — только для таблиц.</p>'],
+ ['Расширенный CSV «не сырой»','<p>Он пишет то, что на экране: включён <span class="ui">Показать спектр за вычетом фона</span> — в файле вычтенный спектр; включено сглаживание — сглаженный.</p><p><b>Что делать:</b> на полосе под графиком выберите <span class="ui">Показать фоновый спектр</span> и сглаживание <span class="ui">Нет</span>, потом экспортируйте.</p>'],
+ ['Где лежат мои конфигурации и библиотека?','<p>В папке <code>%AppData%\\BecqMoni\\config</code>: приборы — <code>device\\*.xml</code>, матрицы — <code>device\\response\\*.rmx</code>, библиотека и наборы — <code>NuclideDefinition.xml</code>. Обновление программы их не трогает.</p><p><b>Открыть:</b> <span class="ui m">Инструменты → Открыть папку конфигурации приложения в Windows Explorer...</span></p>'],
+],
+'hoodtxt':'<li><b>Файл</b> — сериализованный <code>ResultDataFile</code>: список <code>ResultData</code> (до 16), в каждом карточка образца, ссылка на прибор (имя + GUID), кривая с геометрией, по настройке матрица отклика (байты <code>.rmx</code>, GZip + base64, ≈ 0.3 МБ), время начала и конца, предел времени, спектр, фон, модель FWHM.</li><li><b>Спектр</b> в файле — по строке на канал, ≈ 37 байт: 8192 канала дают ≈ 0.3 МБ; фон — столько же.</li><li><b>Матрица из файла</b> живёт только в памяти: на склад получателя (<code>device\\response</code>) она не кладётся.</li><li><b>Вычет фона</b>: k = t<sub>живое спектра</sub>/t<sub>живое фона</sub> (нет живого — берётся реальное); каждый канал n<sub>с</sub> − k·n<sub>ф</sub>, ниже нуля — 0. Тот же вычтенный спектр идёт на график, в поиск пиков, в «Расширенный CSV файл» и в «Жёсткий вычет в файл».</li><li><b>CSV</b> пишется с шапкой <code>Channel,Counts (TotalTime=3600.0s)</code>, время — до 8 знаков после точки; свой импорт CSV читает это время обратно.</li>',
+},en:{
+'n.xml':'Own file','n.imp':'Import','n.exp':'Export','n.sp':'Spectrum and background','n.faq':'FAQ',
+'h.k':'Chapter 12 · Files and FAQ',
+'h.h':'What lies <em>in a spectrum file</em>',
+'h.lead':'A BecqMoni spectrum file is like a case folder: the spectrum, its calibrations, the curve with its geometry, the background and the sample card. Some things are left out on purpose — the peak search settings, for one: the program takes them from your device. That is where almost every “why is it different at my friend’s” comes from.',
+'x.k':'Own format','x.h':'The .xml file from the inside',
+'x.lead':'BecqMoni keeps its own files in XML: <span class="ui m">File → Open...</span> (<kbd>Ctrl</kbd>+<kbd>O</kbd>), <span class="ui">Save</span> (<kbd>Ctrl</kbd>+<kbd>S</kbd>), <span class="ui">Save As...</span>; or just drag a file into the window. Some things travel in the file whole, others only as a reference.',
+'a.h':'What goes into the file: take the folder apart',
+'a.hint':'Click a block — its contents and origin open on the right. The switches change the file size, “Send to a friend” shows what reaches another computer.',
+'a.ch':'channels:','a.bg':'background selected','a.mx':'response matrix in the file (Preferences → System)','a.n':'spectra in the document','a.home':'Open at home','a.friend':'Send to a friend without my device',
+'a.total':'file size ≈ <b>{0}</b>','a.per':'per spectrum ≈ <b>{0}</b>','a.kb':'KB','a.mb':'MB',
+'a.go':'travels whole','a.ref':'reference only','a.no':'not written',
+'a.what':'Inside','a.from':'From','a.miss':'If missing','a.friendS':'At a friend’s',
+'x.f1':'<b>The curve and the background travel whole.</b> The curve with its geometry, the background as a spectrum, not just a file name. Your friend sees what you see.',
+'x.f2':'<b>The device travels as a reference.</b> The file holds the configuration’s name and GUID, not the configuration. If your friend has none, the spectrum opens without a device.',
+'x.f3':'<b>The response matrix is a setting.</b> <span class="ui m">Tool → Preferences → System</span>, on by default: the file grows by ≈ 0.3 MB, but your friend’s FSA gets cascade summing.',
+'i.k':'Import','i.h':'Other formats: File → Import',
+'i.lead':'Import is translation from a foreign language: each menu item reads its own format and opens the spectrum as a <b>new document</b>. Whatever the file lacks (calibration, date, device) the program tells you in words — read those messages.',
+'i.cap':'The “File” menu with “Import” open',
+'i.l1':'<b>Open...</b> — your own XML; several files at once or by dragging',
+'i.l2':'<b>Save / Save As...</b> — write the document to XML',
+'i.l3':'<b>Combine Spectra</b> — add a spectrum from a file to the active one; the channel count must match',
+'i.l4':'<b>Import</b> — the submenu of other formats, each item opens a new document',
+'i.l5':'<b>Atom Spectra v3 format · N42 file format</b> — Atom Spectra’s native format and the international N42',
+'i.l6':'<b>CSV (Channel,Counts) · CSV (Energy,Counts) · SpectraLine GBS</b> — plain tables and *.spe files',
+'i.l7':'<b>Import using SpecUtils... · BecqMoni old format</b> — 23 formats via the SpecUtils library and v0.93Beta files',
+'i.l8':'<b>Export</b> — the way back: N42, Atom Spectra v3, CSV, Extended CSV (section below)',
+'i.su':'Import using SpecUtils reads 23 formats',
+'i.steps':'Step by step: open someone else’s N42',
+'i.s1':'<span class="ui m">File → Import → N42 file format</span> (or <span class="ui">Import using SpecUtils...</span> for anything exotic).',
+'i.s2':'Read the messages: no calibration, no date, a different channel count — each means something to fix.',
+'i.s3':'Taken with the same kind of device as yours? <span class="ui m">View → Measurement Control</span> → <span class="ui">Device Config.</span>: calibrations, FWHM and background become the device’s. With another one — keep the file’s calibration and check it on known peaks. Pick a curve in <span class="ui">Efficiency</span>.',
+'i.s4':'<span class="ui m">View → Sample Information</span>: sampling date, weight or volume.',
+'i.s5':'<span class="ui m">File → Save As...</span> — now it is your XML with everything it needs.',
+'i.info':'<b>A background measurement inside the file</b> (common in N42 and SpecUtils formats) becomes the spectrum’s background — ready to subtract. A document holds at most 16 spectra.',
+'e.k':'Export','e.h':'Hand a spectrum over: File → Export',
+'e.lead':'Export is packing a parcel: one box takes everything (N42), another only the essentials (CSV). Choose by what the recipient will do with it.',
+'e.n42':'N42','e.n42s':'international, for any program','e.as':'Atom Spectra v3','e.ass':'for Atom Spectra and its kin','e.csv':'CSV','e.csvs':'“Channel,Counts”, for spreadsheets','e.ecsv':'Extended CSV','e.ecsvs':'“Channel,Energy,Counts” — as on screen',
+'e.ch':'counts per channel','e.cal':'energy calibration','e.live':'live time','e.real':'real time only','e.date':'acquisition start date','e.bgm':'background as its own measurement','e.nobg':'no background','e.view':'with background subtracted and smoothing, if they are on',
+'c.h':'What goes into the Extended CSV',
+'c.hint':'The Cs-137 peak, channels 106–115. Left — the “Extended CSV File”: it writes what is on screen. Right — the plain “CSV File”: always raw counts.',
+'c.mode':'view mode:','c.sm':'smoothing:','c.show':'Show Background Spectrum','c.sub':'Show Spectrum with Background Subtracted','c.none':'None','c.sma':'Simple Moving Average',
+'c.ext':'Extended CSV File','c.raw':'CSV File',
+'e.f1':'<b>Extended CSV is “as on screen”.</b> If background subtraction or smoothing is on, it goes into the file. For raw data switch them off first.',
+'e.f2':'<b>CSV knows no live time.</b> The header carries only the real time; for a spectrum with dead time the recipient gets a different count rate.',
+'e.f3':'<b>N42 or your own XML is the fullest.</b> Calibration, live time, date and background arrive intact.',
+'s.k':'The “Spectrum” menu','s.h':'Editing a spectrum and the background',
+'s.lead':'The <span class="ui m">Spectrum</span> menu is a workshop: cut, re-bin channels, subtract the background for good. Most items do not touch the original but open the result as a <b>new document</b>.',
+'s.cap':'The “Spectrum” menu',
+'s.l1':'<b>Import from File</b> — add spectra from files to the current document (up to 16)',
+'s.l2':'<b>Export Spectrum to File · Export Background Spectrum to File</b> — the active spectrum or its background as a separate XML',
+'s.l3':'<b>Hard subtract to File</b> — “spectrum minus background” into a new XML without background; the file opens at once',
+'s.l4':'<b>Change channel number</b> — from 64 to 65536, the result is a new document',
+'s.l5':'<b>Cutoff energy or channel</b> — trim the spectrum, new document',
+'s.l6':'<b>Normalize spectrum by efficiency</b> — divide by the curve, new document',
+'s.l7':'<b>Apply dead time correction</b> — recompute live time from the device’s dead time',
+'s.l8':'<b>Autosave spectrum</b> — a tick for this document (a file name is needed)',
+'b.h':'How the background is subtracted: by live time',
+'b.hint':'The Cs-137 spectrum took 1 hour, the background many hours. Press “Subtract”: the background shrinks to the spectrum’s time, then it is subtracted. Red marks at the bottom are channels that went below zero (the program sets them to zero). In the right mode about half of the peak-free channels dip below zero — that is noise around zero. Switch to “by real time” and add dead time: almost everything goes below zero and K-40 turns “negative”.',
+'b.play':'▶ Subtract','b.reset':'Reset','b.live':'by live time (as BecqMoni does)','b.real':'by real time (do not)',
+'b.dt':'spectrum dead time','b.tb':'background acquisition, h',
+'b.k':'background factor k = <b>{0}</b>','b.kl':'live: {0} s / {1} s','b.kr':'real: {0} s / {1} s',
+'b.k40':'K-40 after subtraction: <b>{0}</b> counts (should be ≈ 0)','b.cs':'Cs-137 after subtraction: <b>{0}</b> (true ≈ {1})','b.neg':'channels below zero: <b>{0}</b>',
+'ax.e':'energy, keV','ax.c':'counts','b.sp':'spectrum','b.bg0':'background as acquired','b.bg':'background × k','b.res':'spectrum − background',
+'s.f1':'<b>k is the ratio of live times.</b> Half an hour of spectrum and ten hours of background — the background is divided by 20 before subtraction.',
+'s.f2':'<b>Below zero becomes zero.</b> There are no negative counts: such channels of the subtracted spectrum are set to zero.',
+'s.f3':'<b>A different calibration is fine.</b> A background on another energy scale is re-binned by energy; one with another channel count cannot be selected at all.',
+'q.k':'FAQ','q.h':'Pitfalls',
+'q.lead':'Almost every file “oddity” comes from the file holding a reference rather than the thing itself, or from what a foreign format simply does not have. Open the question you need.',
+'faq':[
+ ['I opened someone’s file — “Start” says “Device configuration is not selected.”','<p>A spectrum file holds only a <b>reference</b> to the device — a name and a GUID. You have no such configuration, so the spectrum opened without a device.</p><p><b>What to do:</b> analysis needs no device — the calibrations, FWHM, curve and background are already in the file. Choosing your configuration in <span class="ui m">View → Measurement Control</span> → <span class="ui">Device Config.</span> <b>at once replaces</b> the spectrum’s energy calibration, FWHM and background with the device’s, and with another channel count the spectrum is erased (the program asks). Do it only if the spectrum was taken with the same kind of device.</p>'],
+ ['Import says “Channel mismatch between device and imported spectra file”','<p>The file has, say, 1024 channels while the selected device has 8192. The spectrum opens, but its device, background, FWHM model and detected peaks are removed — they were for another channel count.</p><p><b>What to do:</b> choose a configuration with the same channel count or re-bin the spectrum: <span class="ui m">Spectrum → Change channel number</span>.</p>'],
+ ['The question “Do you want to reset spectrum to default calibration y = x?”','<p>The file has no energy calibration (or a broken one). Without “Yes” the spectrum will not open.</p><p><b>What to do:</b> “Yes”, then calibrate on known peaks (chapter 6) or choose a device configuration with a calibration.</p>'],
+ ['The acquisition date is 1970-01-01','<p>The file has no start time: this happens with CSV and some N42. The program sets 1970-01-01 on purpose, so that a made-up date is not taken for a measured one.</p><p><b>What to do:</b> <span class="ui m">View → Sample Information</span> → <span class="ui">Sampling Date</span>. Half-life correction of activity refers to it.</p>'],
+ ['I cannot add one more spectrum to the document','<p>A document holds at most <b>16 spectra</b>. When a file with many measurements is imported, the extra ones are not read.</p><p><b>What to do:</b> open the rest as another document or delete unneeded spectra in <span class="ui m">View → Spectrum List</span>.</p>'],
+ ['The background cannot be selected: “Incompatible channel parameters.”','<p>The background must have as many channels as the spectrum. Another calibration is fine (the background is re-binned by energy), another channel count is not.</p><p><b>What to do:</b> acquire the background with the same device and channel count, or re-bin it via <span class="ui m">Spectrum → Change channel number</span>.</p>'],
+ ['My friend opened my file — and found other peaks','<p>Peak search settings (Min SNR, Tolerance, range, number of peaks) are <b>not written into the file</b> — they come from the device configuration of whoever opens it. The nuclide set and the library are also everyone’s own.</p><p><b>What to do:</b> compare <span class="ui">Min SNR</span>, <span class="ui">Tolerance</span> and <span class="ui">Use set:</span> on the “Peak Detection” panel.</p>'],
+ ['I sent a CSV — the recipient gets another count rate','<p>A CSV holds only counts and the <b>real</b> time. It has no live time and no calibration, and with 10 % dead time the recipient’s rate comes out 10 % lower.</p><p><b>What to do:</b> hand over N42 or your own XML; use CSV only for spreadsheets.</p>'],
+ ['The Extended CSV is “not raw”','<p>It writes what is on screen: with <span class="ui">Show Spectrum with Background Subtracted</span> on, the file holds the subtracted spectrum; with smoothing on, the smoothed one.</p><p><b>What to do:</b> on the bar under the chart choose <span class="ui">Show Background Spectrum</span> and smoothing <span class="ui">None</span>, then export.</p>'],
+ ['Where are my configurations and library?','<p>In <code>%AppData%\\BecqMoni\\config</code>: devices — <code>device\\*.xml</code>, matrices — <code>device\\response\\*.rmx</code>, the library and sets — <code>NuclideDefinition.xml</code>. Program updates do not touch them.</p><p><b>Open it:</b> <span class="ui m">Tool → Open config dir in Explorer...</span></p>'],
+],
+'hoodtxt':'<li><b>The file</b> is a serialised <code>ResultDataFile</code>: a list of <code>ResultData</code> (up to 16), each with the sample card, a device reference (name + GUID), the curve with its geometry, the response matrix if enabled (the <code>.rmx</code> bytes, GZip + base64, ≈ 0.3 MB), start and end time, preset time, the spectrum, the background, the FWHM model.</li><li><b>A spectrum</b> takes one line per channel in the file, ≈ 37 bytes: 8192 channels make ≈ 0.3 MB; the background as much again.</li><li><b>A matrix from a file</b> lives only in memory: it is not put into the recipient’s store (<code>device\\response</code>).</li><li><b>Background subtraction</b>: k = t<sub>live spectrum</sub>/t<sub>live background</sub> (real time if live is absent); every channel n<sub>s</sub> − k·n<sub>b</sub>, below zero → 0. The same subtracted spectrum goes to the chart, the peak search, the “Extended CSV File” and “Hard subtract to File”.</li><li><b>CSV</b> is written with the header <code>Channel,Counts (TotalTime=3600.0s)</code>, the time with up to 8 decimals; the program’s own CSV import reads that time back.</li>',
+}});
+
+/* ── 1. раскладка файла ── */
+(function anatomy() {
+  // блоки одного спектра (ResultData); размер — байты в XML
+  const B = [
+    { id: 'head', c: '#93a3c4', st: 'go', sz: () => 400, ru: ['Шапка файла', '<span class="tg">&lt;FormatVersion&gt;</span><span class="vl">120920</span><span class="tg">&lt;/FormatVersion&gt;</span>', 'Версия формата и список спектров документа (до 16).', 'Пишется сама.', '—', 'Читается.'], en: ['File header', '<span class="tg">&lt;FormatVersion&gt;</span><span class="vl">120920</span><span class="tg">&lt;/FormatVersion&gt;</span>', 'The format version and the list of the document’s spectra (up to 16).', 'Written automatically.', '—', 'Read as is.'], once: true },
+    { id: 'sample', c: '#c38bff', st: 'go', sz: () => 450, ru: ['Карточка образца', '<span class="tg">&lt;SampleInfo&gt;</span>\n  <span class="tg">&lt;Name&gt;</span><span class="vl">Грибы, лес</span><span class="tg">&lt;/Name&gt;</span>\n  <span class="tg">&lt;Time&gt;</span><span class="vl">2026-08-14T09:00:00</span><span class="tg">&lt;/Time&gt;</span>\n  <span class="tg">&lt;Weight&gt;</span><span class="vl">0.45</span><span class="tg">&lt;/Weight&gt;</span>\n<span class="tg">&lt;/SampleInfo&gt;</span>', 'Имя, место отбора, дата отбора, вес, объём, заметки.', '<span class="ui m">Вид → Информация об образце</span>', 'Бк/кг и Бк/л не считаются; коррекция на полураспад — к дате 1970-01-01.', 'Те же вес, объём и дата.'], en: ['Sample card', '<span class="tg">&lt;SampleInfo&gt;</span>\n  <span class="tg">&lt;Name&gt;</span><span class="vl">Mushrooms, forest</span><span class="tg">&lt;/Name&gt;</span>\n  <span class="tg">&lt;Time&gt;</span><span class="vl">2026-08-14T09:00:00</span><span class="tg">&lt;/Time&gt;</span>\n  <span class="tg">&lt;Weight&gt;</span><span class="vl">0.45</span><span class="tg">&lt;/Weight&gt;</span>\n<span class="tg">&lt;/SampleInfo&gt;</span>', 'Name, location, sampling date, weight, volume, notes.', '<span class="ui m">View → Sample Information</span>', 'No Bq/kg or Bq/l; half-life correction refers to 1970-01-01.', 'The same weight, volume and date.'] },
+    { id: 'dev', c: '#ff9f43', st: 'ref', sz: () => 160, ru: ['Ссылка на прибор', '<span class="tg">&lt;DeviceConfigReference&gt;</span>\n  <span class="tg">&lt;Name&gt;</span><span class="vl">RadiaCode-103</span><span class="tg">&lt;/Name&gt;</span>\n  <span class="tg">&lt;Guid&gt;</span><span class="vl">1a0651a2-…-c2d286eb82eb</span><span class="tg">&lt;/Guid&gt;</span>\n<span class="tg">&lt;/DeviceConfigReference&gt;</span>', 'Только имя и GUID конфигурации прибора — не она сама.', '<span class="ui m">Вид → Управление измерением → Устройство</span>', 'Спектр без прибора: «Старт» откажет, а поиск пиков возьмёт настройки последней сохранённой конфигурации прибора.', 'Такой конфигурации нет — спектр без прибора; для разбора он не нужен. Выбор своей конфигурации заменит калибровки и фон приборными.'], en: ['Device reference', '<span class="tg">&lt;DeviceConfigReference&gt;</span>\n  <span class="tg">&lt;Name&gt;</span><span class="vl">RadiaCode-103</span><span class="tg">&lt;/Name&gt;</span>\n  <span class="tg">&lt;Guid&gt;</span><span class="vl">1a0651a2-…-c2d286eb82eb</span><span class="tg">&lt;/Guid&gt;</span>\n<span class="tg">&lt;/DeviceConfigReference&gt;</span>', 'Only the name and GUID of the device configuration — not the configuration.', '<span class="ui m">View → Measurement Control → Device Config.</span>', 'A spectrum without a device: “Start” refuses, and peak search takes the settings of the most recently saved device configuration.', 'No such configuration — the spectrum has no device; analysis does not need one. Choosing their own configuration replaces the calibrations and background with the device’s.'] },
+    { id: 'eff', c: '#5be38a', st: 'go', sz: () => 30000, ru: ['Кривая эффективности с геометрией', '<span class="tg">&lt;Efficiency&gt;</span>\n  <span class="tg">&lt;Name&gt;</span><span class="vl">Маринелли 0.5 л</span><span class="tg">&lt;/Name&gt;</span>\n  <span class="tg">&lt;Origin&gt;</span><span class="vl">Simulation</span><span class="tg">&lt;/Origin&gt;</span>\n  <span class="tg">&lt;Curve&gt;</span><span class="cm">… 34–100 точек …</span><span class="tg">&lt;/Curve&gt;</span>\n  <span class="tg">&lt;Geometry&gt;</span><span class="cm">… кристалл, материалы, источник …</span><span class="tg">&lt;/Geometry&gt;</span>\n<span class="tg">&lt;/Efficiency&gt;</span>', 'Полная копия кривой: точки, геометрия кристалла и пробы, материалы, клеймо расчёта.', '<span class="ui m">Управление измерением → Эффективн.</span>; в списке видна как «… - из файла спектра».', 'Ни FSA с беккерелями, ни мощности дозы.', 'Та же кривая, даже если у друга такой нет в приборе.'], en: ['Efficiency curve with geometry', '<span class="tg">&lt;Efficiency&gt;</span>\n  <span class="tg">&lt;Name&gt;</span><span class="vl">Marinelli 0.5 l</span><span class="tg">&lt;/Name&gt;</span>\n  <span class="tg">&lt;Origin&gt;</span><span class="vl">Simulation</span><span class="tg">&lt;/Origin&gt;</span>\n  <span class="tg">&lt;Curve&gt;</span><span class="cm">… 34–100 points …</span><span class="tg">&lt;/Curve&gt;</span>\n  <span class="tg">&lt;Geometry&gt;</span><span class="cm">… crystal, materials, source …</span><span class="tg">&lt;/Geometry&gt;</span>\n<span class="tg">&lt;/Efficiency&gt;</span>', 'A full copy of the curve: points, crystal and sample geometry, materials, the computation stamp.', '<span class="ui m">Measurement Control → Efficiency</span>; listed as “… - from the spectrum file”.', 'No FSA becquerels, no dose rate.', 'The same curve, even if the friend’s device has none.'] },
+    { id: 'mx', c: '#4dd0e1', st: 'go', opt: 'mx', sz: () => 320000, ru: ['Матрица отклика', '<span class="tg">&lt;EmbeddedResponseMatrix&gt;</span>\n  <span class="tg">&lt;Stamp&gt;</span><span class="vl">phys=24; nodes=140 …</span><span class="tg">&lt;/Stamp&gt;</span>\n  <span class="tg">&lt;Data&gt;</span><span class="cm">H4sIAAAAAAAE… (GZip + base64)</span><span class="tg">&lt;/Data&gt;</span>\n<span class="tg">&lt;/EmbeddedResponseMatrix&gt;</span>', 'Матрица для геометрии кривой: сжатая, с клеймом и контрольной суммой.', 'Склад матриц прибора; в файл — по галке <span class="ui m">Настройки → Системные</span> (по умолчанию включено).', 'FSA без каскадного суммирования — красное предупреждение в отчёте.', 'FSA с матрицей, хотя у друга её никогда не считали. На его склад она не кладётся.'], en: ['Response matrix', '<span class="tg">&lt;EmbeddedResponseMatrix&gt;</span>\n  <span class="tg">&lt;Stamp&gt;</span><span class="vl">phys=24; nodes=140 …</span><span class="tg">&lt;/Stamp&gt;</span>\n  <span class="tg">&lt;Data&gt;</span><span class="cm">H4sIAAAAAAAE… (GZip + base64)</span><span class="tg">&lt;/Data&gt;</span>\n<span class="tg">&lt;/EmbeddedResponseMatrix&gt;</span>', 'The matrix for the curve’s geometry: compressed, with a stamp and a checksum.', 'The device’s matrix store; into the file by the tick in <span class="ui m">Preferences → System</span> (on by default).', 'FSA without cascade summing — a red warning in the report.', 'FSA with the matrix, though the friend never computed it. It is not put into their store.'] },
+    { id: 'time', c: '#ffd166', st: 'go', sz: () => 200, ru: ['Время набора', '<span class="tg">&lt;StartTime&gt;</span><span class="vl">2026-08-14T10:07:57</span><span class="tg">&lt;/StartTime&gt;</span>\n<span class="tg">&lt;EndTime&gt;</span><span class="vl">2026-08-14T12:14:42</span><span class="tg">&lt;/EndTime&gt;</span>\n<span class="tg">&lt;PresetTime&gt;</span><span class="vl">3600</span><span class="tg">&lt;/PresetTime&gt;</span>', 'Начало и конец набора, предел времени.', 'Набор (глава 4).', 'Дата 1970-01-01 как «неизвестно».', 'То же.'], en: ['Acquisition time', '<span class="tg">&lt;StartTime&gt;</span><span class="vl">2026-08-14T10:07:57</span><span class="tg">&lt;/StartTime&gt;</span>\n<span class="tg">&lt;EndTime&gt;</span><span class="vl">2026-08-14T12:14:42</span><span class="tg">&lt;/EndTime&gt;</span>\n<span class="tg">&lt;PresetTime&gt;</span><span class="vl">3600</span><span class="tg">&lt;/PresetTime&gt;</span>', 'Start and end of acquisition, the preset time.', 'Acquisition (chapter 4).', 'The date 1970-01-01 as “unknown”.', 'The same.'] },
+    { id: 'spec', c: '#00b400', st: 'go', sz: n => 900 + 37 * n, ru: ['Спектр', '<span class="tg">&lt;EnergySpectrum&gt;</span>\n  <span class="tg">&lt;NumberOfChannels&gt;</span><span class="vl">8192</span><span class="tg">&lt;/NumberOfChannels&gt;</span>\n  <span class="tg">&lt;EnergyCalibration&gt;</span><span class="cm">… полином до 4-й степени …</span><span class="tg">&lt;/EnergyCalibration&gt;</span>\n  <span class="tg">&lt;MeasurementTime&gt;</span><span class="vl">3600</span><span class="tg">&lt;/MeasurementTime&gt;</span>\n  <span class="tg">&lt;LiveTime&gt;</span><span class="vl">3564.2</span><span class="tg">&lt;/LiveTime&gt;</span>\n  <span class="tg">&lt;Spectrum&gt;</span><span class="tg">&lt;DataPoint&gt;</span><span class="vl">412</span><span class="tg">&lt;/DataPoint&gt;</span><span class="cm"> … по строке на канал</span>\n<span class="tg">&lt;/EnergySpectrum&gt;</span>', 'Отсчёты по каналам, калибровка энергии, реальное и живое время, число импульсов.', 'Прибор во время набора; калибровка — «Выполнить калибровку» (глава 6).', 'Без калибровки — вопрос о сбросе в y = x.', 'То же.'], en: ['Spectrum', '<span class="tg">&lt;EnergySpectrum&gt;</span>\n  <span class="tg">&lt;NumberOfChannels&gt;</span><span class="vl">8192</span><span class="tg">&lt;/NumberOfChannels&gt;</span>\n  <span class="tg">&lt;EnergyCalibration&gt;</span><span class="cm">… polynomial up to 4th degree …</span><span class="tg">&lt;/EnergyCalibration&gt;</span>\n  <span class="tg">&lt;MeasurementTime&gt;</span><span class="vl">3600</span><span class="tg">&lt;/MeasurementTime&gt;</span>\n  <span class="tg">&lt;LiveTime&gt;</span><span class="vl">3564.2</span><span class="tg">&lt;/LiveTime&gt;</span>\n  <span class="tg">&lt;Spectrum&gt;</span><span class="tg">&lt;DataPoint&gt;</span><span class="vl">412</span><span class="tg">&lt;/DataPoint&gt;</span><span class="cm"> … one line per channel</span>\n<span class="tg">&lt;/EnergySpectrum&gt;</span>', 'Counts per channel, energy calibration, real and live time, pulse counts.', 'The device during acquisition; calibration — “Execute Calibration” (chapter 6).', 'Without a calibration — the question about resetting to y = x.', 'The same.'] },
+    { id: 'bg', c: '#008080', st: 'go', opt: 'bg', sz: n => 950 + 37 * n, ru: ['Фон', '<span class="tg">&lt;BackgroundSpectrumFile&gt;</span><span class="vl">Фон 10 ч.xml</span><span class="tg">&lt;/BackgroundSpectrumFile&gt;</span>\n<span class="tg">&lt;BackgroundEnergySpectrum&gt;</span><span class="cm">… весь спектр фона …</span><span class="tg">&lt;/BackgroundEnergySpectrum&gt;</span>', 'Имя файла фона и сам спектр фона с его калибровкой и временем.', '<span class="ui m">Управление измерением → Фон → Выбр.</span> или фон по умолчанию прибора.', 'Нет вычета фона, панель выделения без Lc/Ld.', 'Тот же фон — файл фона пересылать не нужно.'], en: ['Background', '<span class="tg">&lt;BackgroundSpectrumFile&gt;</span><span class="vl">Background 10 h.xml</span><span class="tg">&lt;/BackgroundSpectrumFile&gt;</span>\n<span class="tg">&lt;BackgroundEnergySpectrum&gt;</span><span class="cm">… the whole background spectrum …</span><span class="tg">&lt;/BackgroundEnergySpectrum&gt;</span>', 'The background file name and the background spectrum itself with its calibration and time.', '<span class="ui m">Measurement Control → Background → Select...</span> or the device’s default background.', 'No background subtraction, no Lc/Ld on the selection panel.', 'The same background — no need to send its file.'] },
+    { id: 'fwhm', c: '#ff4d6d', st: 'go', sz: () => 1300, ru: ['Модель FWHM', '<span class="tg">&lt;SimpleSqrtFwhmCalibration&gt;</span>\n  <span class="tg">&lt;CalibrationPeaks&gt;</span><span class="cm">… опорные пики …</span><span class="tg">&lt;/CalibrationPeaks&gt;</span>\n  <span class="tg">&lt;Coefficients&gt;</span><span class="cm">… a, b …</span><span class="tg">&lt;/Coefficients&gt;</span>\n  <span class="tg">&lt;PeakType&gt;</span><span class="vl">1</span><span class="tg">&lt;/PeakType&gt;</span>\n<span class="tg">&lt;/SimpleSqrtFwhmCalibration&gt;</span>', 'Кривая ширины пика, её опорные пики и выбранная форма пика.', '<span class="ui m">Вид → Калибровка по FWHM</span> (глава 6).', 'Поиск пиков не идёт; FSA спросит, у какого прибора взять ширину.', 'Та же ширина.'], en: ['FWHM model', '<span class="tg">&lt;SimpleSqrtFwhmCalibration&gt;</span>\n  <span class="tg">&lt;CalibrationPeaks&gt;</span><span class="cm">… anchor peaks …</span><span class="tg">&lt;/CalibrationPeaks&gt;</span>\n  <span class="tg">&lt;Coefficients&gt;</span><span class="cm">… a, b …</span><span class="tg">&lt;/Coefficients&gt;</span>\n  <span class="tg">&lt;PeakType&gt;</span><span class="vl">1</span><span class="tg">&lt;/PeakType&gt;</span>\n<span class="tg">&lt;/SimpleSqrtFwhmCalibration&gt;</span>', 'The peak width curve, its anchor peaks and the chosen peak shape.', '<span class="ui m">View → FWHM Calibration</span> (chapter 6).', 'Peak search does not run; FSA asks which device to take the width from.', 'The same width.'] },
+    { id: 'none', c: '#6a7899', st: 'no', sz: () => 0, ru: ['Чего в файле нет', '<span class="cm">&lt;!-- нет: настроек поиска пиков, найденных пиков,\n     результата FSA, библиотеки и наборов нуклидов --&gt;</span>', 'Настройки поиска пиков (Мин SNR, Допуск, диапазон…), найденные пики, результат FSA, библиотека и наборы.', 'Конфигурация прибора (вкладка «Анализ») и библиотека того, кто открыл файл; пики и FSA пересчитываются.', '—', 'Пики и FSA — по настройкам и набору друга: могут отличаться.'], en: ['What the file lacks', '<span class="cm">&lt;!-- absent: peak search settings, detected peaks,\n     the FSA result, the nuclide library and sets --&gt;</span>', 'Peak search settings (Min SNR, Tolerance, range…), detected peaks, the FSA result, the library and sets.', 'The device configuration (“Analysis” tab) and the library of whoever opens the file; peaks and FSA are recomputed.', '—', 'Peaks and FSA follow the friend’s settings and set: they may differ.'] },
+  ];
+  const S = { ch: 8192, bg: true, mx: true, n: 1, mode: 'home', sel: 'eff' };
+  const fmtSize = b => b >= 1e6 ? fx(b / 1048576, 2) + ' ' + t('a.mb') : b < 1024 ? '&lt; 1 ' + t('a.kb') : fx(b / 1024, 0) + ' ' + t('a.kb');
+  const active = b => !(b.opt && !S[b.opt]);
+  function render() {
+    $('#aCh').innerHTML = [1024, 4096, 8192, 16384].map(c => '<button class="chip' + (c === S.ch ? ' on' : '') + '" data-c="' + c + '">' + c + '</button>').join('');
+    $$('#aCh .chip').forEach(b => b.onclick = () => { S.ch = +b.dataset.c; render(); });
+    $('#aMode').innerHTML = [['home', 'a.home'], ['friend', 'a.friend']].map(([m, k]) => '<button class="chip' + (m === S.mode ? ' on' : '') + '" data-m="' + m + '">' + t(k) + '</button>').join('');
+    $$('#aMode .chip').forEach(b => b.onclick = () => { S.mode = b.dataset.m; render(); });
+    $('#aNv').textContent = S.n;
+    let per = 0, total = 0; const parts = [];
+    B.forEach(b => { if (!active(b)) return; const s = b.sz(S.ch); if (b.once) total += s; else { per += s; } parts.push([b, b.once ? s : s * S.n]); });
+    total += per * S.n;
+    $('#aBar').innerHTML = parts.filter(p => p[1] > 0).map(([b, s]) => '<i style="background:' + b.c + ';flex-grow:' + s + '" title="' + b[GUIDE.lang][0] + '"></i>').join('');
+    $('#aSize').innerHTML = '<span class="pill">' + t('a.total', fmtSize(total)) + '</span>' + (S.n > 1 ? '<span class="pill">' + t('a.per', fmtSize(per)) + '</span>' : '');
+    $('#aBlks').innerHTML = B.map(b => {
+      const L = b[GUIDE.lang], on = active(b), friendDim = S.mode === 'friend' && (b.st !== 'go');
+      const tag = b.st === 'go' ? '<span class="tag go">' + t('a.go') + '</span>' : b.st === 'ref' ? '<span class="tag ref">' + t('a.ref') + '</span>' : '<span class="tag no">' + t('a.no') + '</span>';
+      return '<button class="blk' + (b.id === S.sel ? ' on' : '') + (b.st === 'no' ? ' absent' : '') + (!on || friendDim ? ' dim' : '') + '" style="--c:' + b.c + '" data-id="' + b.id + '"><b>' + L[0] + '</b>' + tag + '<span class="sz">' + (on && b.st !== 'no' ? fmtSize(b.sz(S.ch)) : '—') + '</span></button>';
+    }).join('');
+    $$('#aBlks .blk').forEach(x => x.onclick = () => { S.sel = x.dataset.id; render(); });
+    const b = B.find(x => x.id === S.sel), L = b[GUIDE.lang];
+    $('#aDet').innerHTML = '<h4 style="color:' + b.c + '">' + L[0] + '</h4><dl><dt>' + t('a.what') + '</dt><dd>' + L[2] + '</dd><dt>' + t('a.from') + '</dt><dd>' + L[3] + '</dd><dt>' + t('a.miss') + '</dt><dd>' + L[4] + '</dd><dt>' + t('a.friendS') + '</dt><dd>' + L[5] + '</dd></dl><pre class="xml">' + L[1] + '</pre>';
+  }
+  $('#aBg').onchange = () => { S.bg = $('#aBg').checked; render(); };
+  $('#aMx').onchange = () => { S.mx = $('#aMx').checked; render(); };
+  $('#aN').addEventListener('input', () => { S.n = +$('#aN').value; render(); });
+  GUIDE.onRedraw(render);
+})();
+
+/* ── форматы SpecUtils и карточки экспорта ── */
+GUIDE.onRedraw(() => {
+  $('#iFmts').innerHTML = ['N42 2006', 'N42 2012', 'SPC', 'Exploranium GR-130', 'Exploranium GR-135', 'PCF', 'ORTEC CHN', 'ORTEC LIS', 'IAEA SPE', 'CSV / TSV / TXT', 'Canberra CNF', 'MPS', 'Aram', 'Amptek MCA', 'Microraider', 'RadiaCode / BecqMoni XML', 'LSRM', 'TKA', 'MultiAct', 'PHD', 'LabZY', 'Scan Data', 'Bridgeport JSON', 'CAEN gxml']
+    .map(f => '<span class="chip" style="cursor:default">' + f + '</span>').join('');
+  const F = [['e.n42', 'e.n42s', '#6aa8ff', [['y', 'e.ch'], ['y', 'e.cal'], ['y', 'e.live'], ['y', 'e.date'], ['y', 'e.bgm']]],
+    ['e.as', 'e.ass', '#ffcc33', [['y', 'e.ch'], ['y', 'e.cal'], ['n', 'e.real'], ['y', 'e.date'], ['n', 'e.nobg']]],
+    ['e.csv', 'e.csvs', '#93a3c4', [['y', 'e.ch'], ['n', 'e.cal'], ['n', 'e.real'], ['n', 'e.date'], ['n', 'e.nobg']]],
+    ['e.ecsv', 'e.ecsvs', '#5be38a', [['y', 'e.ch'], ['y', 'e.cal'], ['n', 'e.real'], ['n', 'e.date'], ['w', 'e.view']]]];
+  $('#eFmt').innerHTML = F.map(([h, s, c, L]) => '<div class="fcard" style="--c:' + c + '"><h4>' + t(h) + '</h4><small>' + t(s) + '</small><ul>' + L.map(([k, x]) => '<li class="' + k + '">' + t(x) + '</li>').join('') + '</ul></div>').join('');
+  const faqs = GUIDE.t('faq');
+  $('#faqs').innerHTML = (Array.isArray(faqs) ? faqs : []).map(([q, a], i) => '<details class="faq"' + (i === 0 ? ' open' : '') + '><summary>' + q + '</summary><div class="a">' + a + '</div></details>').join('');
+});
+
+/* ── общая модель: спектр Cs-137 и фон комнаты, 512 каналов по 6 кэВ ── */
+const MODEL = (() => {
+  const NCH = 512, A1 = 6, En = c => A1 * (c + 0.5), fw = E => 0.075 * 662 * Math.sqrt(Math.max(E, 20) / 662);
+  const room = new Float64Array(NCH), src = new Float64Array(NCH);
+  const lines = (arr, L) => L.forEach(([E0, a]) => { const sg = fw(E0) / 2.355, ce = E0 * (2 * E0 / 511) / (1 + 2 * E0 / 511);
+    for (let c = 0; c < NCH; c++) { const E = En(c); arr[c] += a * A1 / (sg * 2.5066) * Math.exp(-0.5 * ((E - E0) / sg) ** 2) + (E0 > 150 ? 1.9 * a * A1 / ce * (0.55 + 0.45 * E / ce) / (1 + Math.exp((E - ce) / (0.7 * sg))) : 0); } });
+  for (let c = 0; c < NCH; c++) { const E = En(c); room[c] = (2.4 * Math.exp(-E / 150) + .25 * Math.exp(-E / 600) + .008) / (1 + Math.exp(-(E - 22) / 2.5)); }
+  lines(room, [[74.97, .6], [351.93, .5], [609.31, .5], [1120.29, .15], [1460.82, .7], [1764.49, .15], [2614.5, .15]]);
+  lines(src, [[661.66, 4]]);
+  return { NCH, A1, En, room, src };
+})();
+
+/* ── 2. Расширенный CSV ── */
+(function ecsv() {
+  const { NCH, A1, En, room, src } = MODEL, T = 3600, TB = 36000, k = T / TB;
+  const SP = Float64Array.from(room, (r, c) => poisson((r + src[c]) * T)), BG = Float64Array.from(room, r => poisson(r * TB));
+  const S = { mode: 'show', sm: 'none' };
+  const sma = (a, i, h) => { let s = 0, n = 0; for (let j = -h; j <= h; j++) { const q = i + j; if (q < 0 || q >= a.length) continue; s += a[q]; n++; } return s / n; };
+  const num = v => String(Math.round(v * 1e6) / 1e6);
+  function render() {
+    [['cMode', [['show', 'c.show'], ['sub', 'c.sub']], 'mode'], ['cSm', [['none', 'c.none'], ['sma', 'c.sma']], 'sm']].forEach(([id, L, key]) => {
+      $('#' + id).innerHTML = L.map(([v, kk]) => '<button class="chip' + (S[key] === v ? ' on' : '') + '" data-v="' + v + '">' + t(kk) + '</button>').join('');
+      $$('#' + id + ' .chip').forEach(b => b.onclick = () => { S[key] = b.dataset.v; render(); });
+    });
+    const base = S.mode === 'sub' ? Float64Array.from(SP, (v, c) => Math.max(0, Math.round(v - k * BG[c]))) : SP;
+    const rows = [], raw = [];
+    for (let c = 106; c <= 115; c++) { const v = S.sm === 'sma' ? sma(base, c, 2) : base[c]; rows.push('<span class="vl">' + c + ',' + num(En(c) - A1 / 2) + ',' + num(v) + '</span>'); raw.push('<span class="vl">' + c + ',' + SP[c] + '</span>'); }
+    $('#cExt').innerHTML = '<span class="tg">Channel,Energy,Counts (TotalTime=' + fx(T, 1) + 's)</span>\n<span class="cm">…</span>\n' + rows.join('\n') + '\n<span class="cm">…</span>';
+    $('#cRaw').innerHTML = '<span class="tg">Channel,Counts (TotalTime=' + fx(T, 1) + 's)</span>\n<span class="cm">…</span>\n' + raw.join('\n') + '\n<span class="cm">…</span>';
+  }
+  GUIDE.onRedraw(render);
+})();
+
+/* ── 3. вычет фона по живому времени ── */
+(function subtract() {
+  const { NCH, A1, En, room, src } = MODEL, TS = 3600, DB = 0.01;
+  const cv = $('#cvB'); let SP = null, BG = null, mode = 'live', phase = 0, u = 1, anim = null;
+  const S = () => ({ d: +$('#rDt').value / 100, tb: +$('#rTb').value * 3600 });
+  function acquire() { const { d, tb } = S(); SP = Float64Array.from(room, (r, c) => poisson((r + src[c]) * TS * (1 - d))); BG = Float64Array.from(room, r => poisson(r * tb * (1 - DB))); }
+  function kk() { const { d, tb } = S(); const Ls = TS * (1 - d), Lb = tb * (1 - DB); return { Ls, Lb, tb, kl: Ls / Lb, kr: TS / tb, k: mode === 'live' ? Ls / Lb : TS / tb }; }
+  function draw() {
+    const K = kk(), { ctx, w, h } = setup(cv), bx = { l: 50, t: 16, r: w - 10, b: h - 24 }, X = scale('lin', 0, 3000, bx.l, bx.r);
+    // фаза 1 — фон сжимается (u: 0→1), фаза 2 — вычитается (u: 0→1)
+    const kNow = phase === 0 ? 1 : phase === 1 ? lerp(1, K.k, u) : K.k, subU = phase === 2 ? u : 0;
+    let mx = 0; for (let c = 3; c < NCH; c++) mx = Math.max(mx, SP[c], phase === 0 ? BG[c] : BG[c] * kNow);
+    const Y = scale('sqrt', 0, mx * 1.05, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { xl: t('ax.e'), yl: t('ax.c') });
+    const area = (arr, col, fill) => { ctx.beginPath(); ctx.moveTo(X(0), bx.b); for (let c = 0; c < NCH; c++) { ctx.lineTo(X(En(c) - A1 / 2), Y(arr(c))); ctx.lineTo(X(En(c) + A1 / 2), Y(arr(c))); } ctx.lineTo(X(3000), bx.b); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.stroke(); };
+    let neg = 0;
+    const res = c => { const v = SP[c] - kNow * BG[c] * subU; return Math.max(0, v); };
+    if (phase < 2 || subU < 1) area(c => SP[c], '#00b400', 'rgba(0,180,0,.35)');
+    area(c => phase === 2 ? BG[c] * kNow * (1 - subU) : BG[c] * kNow, '#29c4c4', 'rgba(0,128,128,.45)');
+    if (phase === 2) { area(res, '#ffcc33', 'rgba(255,204,51,.35)');
+      for (let c = 0; c < NCH; c++) if (SP[c] - K.k * BG[c] < 0 && subU > 0.95) { neg++; ctx.fillStyle = '#ff4d6d'; ctx.fillRect(X(En(c)) - 1, bx.b - 5, 2, 5); } }
+    // подписи слоёв
+    ctx.font = '700 12px system-ui'; ctx.textAlign = 'left'; let lx = bx.r - 170, ly = bx.t + 14;
+    [['#00b400', t('b.sp'), phase < 2 || subU < 1], ['#29c4c4', t(phase === 0 ? 'b.bg0' : 'b.bg'), true], ['#ffcc33', t('b.res'), phase === 2]].forEach(([c, s, on]) => { if (!on) return; ctx.fillStyle = c; ctx.fillRect(lx, ly - 8, 10, 10); ctx.fillStyle = '#cdd8f3'; ctx.fillText(s, lx + 15, ly + 1); ly += 17; });
+    // числа: K-40 и Cs-137 после полного вычета, без обнуления
+    const win = (e0, e1) => { let s = 0, v = 0; for (let c = 0; c < NCH; c++) { const E = En(c); if (E >= e0 && E <= e1) { s += SP[c] - K.k * BG[c]; v += SP[c] + K.k * K.k * BG[c]; } } return { s, sd: Math.sqrt(v) }; };
+    const K40 = win(1380, 1540), k40 = K40.s, cs = win(600, 720).s; let csTrue = 0; for (let c = 0; c < NCH; c++) { const E = En(c); if (E >= 600 && E <= 720) csTrue += src[c] * K.Ls; }
+    $('#vDt').textContent = fx(S().d * 100, 0) + ' %'; $('#vTb').textContent = $('#rTb').value;
+    $('#bRes').innerHTML = '<span class="pill">' + t('b.k', fx(K.k, 4)) + ' · ' + (mode === 'live' ? t('b.kl', fx(K.Ls, 0), fx(K.Lb, 0)) : t('b.kr', TS, K.tb)) + '</span>' +
+      '<span class="pill ' + (Math.abs(k40) < 3 * K40.sd ? 'good' : 'bad') + '">' + t('b.k40', fx(k40, 0) + ' ± ' + fx(K40.sd, 0)) + '</span>' +
+      '<span class="pill">' + t('b.cs', fx(cs, 0), fx(csTrue, 0)) + '</span>' + (phase === 2 && subU > 0.95 ? '<span class="pill">' + t('b.neg', neg) + '</span>' : '');
+  }
+  function play() {
+    if (anim) return; phase = 1; u = 0; const t0 = performance.now();
+    anim = () => { const q = (performance.now() - t0) / 900; if (q < 1) { u = 1 - Math.pow(1 - q, 3); phase = 1; } else if (q < 1.25) { u = 1; phase = 1; } else if (q < 2.25) { phase = 2; u = 1 - Math.pow(1 - (q - 1.25), 3); } else { phase = 2; u = 1; draw(); anim = null; return; } draw(); requestAnimationFrame(anim); };
+    requestAnimationFrame(anim);
+  }
+  function modeChips() { $('#bMode').innerHTML = [['live', 'b.live'], ['real', 'b.real']].map(([m, kk2]) => '<button class="chip' + (m === mode ? ' on' : '') + '" data-m="' + m + '">' + t(kk2) + '</button>').join(''); $$('#bMode .chip').forEach(b => b.onclick = () => { mode = b.dataset.m; modeChips(); draw(); }); }
+  $('#bPlay').onclick = () => { if (phase === 2 && u === 1) { phase = 0; u = 1; } play(); };
+  $('#bReset').onclick = () => { anim = null; phase = 0; u = 1; draw(); };
+  ['#rDt', '#rTb'].forEach(s => $(s).addEventListener('input', () => { acquire(); draw(); }));
+  acquire(); io.observe(cv); GUIDE.onRedraw(() => { modeChips(); draw(); });
+})();
+
+GUIDE.init();
+</script>
+</body>
+</html>

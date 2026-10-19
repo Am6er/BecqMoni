@@ -4899,7 +4899,8 @@ namespace BecquerelMonitor
                 if (Lc > 0)
                 {
                     g.DrawLine(Pens.LightGray, r2.Left, r2.Top - 6, r2.Right, r2.Top - 6);
-                    if (net_counts < Lc)
+                    // `AMBER241`(14): по Карри «обнаружено» — только СТРОГО выше Lc; равенство — нет.
+                    if (net_counts <= Lc)
                     {
                         g.DrawString(Resources.NotDetected, this.Font, Brushes.DarkRed, r2, this.centerFormat);
                     } else if (net_counts > Lc && net_counts < Ld)

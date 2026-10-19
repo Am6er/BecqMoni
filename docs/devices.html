@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Приборы — BecqMoni гайд</title>
+<link rel="stylesheet" href="assets/guide.css">
+<style>
+.ui{white-space:normal}
+figure.shot.side{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:16px;align-items:start}
+figure.shot.side .shot-legend{margin-top:0}
+.pane{display:none}.pane.on{display:block}
+.tabbar{margin:2px 0 14px}
+.devs{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:2px 0 12px}
+.devs button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;color:var(--soft);font-family:inherit;cursor:pointer;transition:border-color .15s}
+.devs button b{font-size:14px;color:var(--ink)}
+.devs button small{font-size:12px;color:var(--muted);line-height:1.25}
+.devs button.on{border-color:var(--gold);background:linear-gradient(180deg,rgba(255,204,51,.12),var(--panel))}
+.tiles.four{grid-template-columns:repeat(4,1fr)}
+.tile .big.mid{font-size:19px}
+ol.chk{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:7px;counter-reset:ck}
+ol.chk>li{counter-increment:ck;position:relative;padding:8px 12px 8px 50px;background:var(--panel);border:1px solid var(--line);border-radius:12px;color:var(--soft);cursor:pointer;transition:border-color .15s,opacity .15s;user-select:none}
+ol.chk>li::before{content:counter(ck);position:absolute;left:12px;top:8px;width:26px;height:26px;border-radius:50%;background:var(--panel2);color:var(--soft);font-weight:800;font-size:13px;display:grid;place-items:center;border:1px solid #34426b}
+ol.chk>li:hover{border-color:var(--gold)}
+ol.chk>li.done{opacity:.6}
+ol.chk>li.done::before{content:"✓";background:var(--ok);color:#06210f;border-color:var(--ok)}
+.cfgt{width:100%;border-collapse:collapse;font:13.5px system-ui;color:var(--soft)}
+.cfgt th{font-weight:600;color:var(--muted);text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}
+.cfgt td{padding:5px 8px;border-bottom:1px solid rgba(37,48,77,.6);font-variant-numeric:tabular-nums}
+.cfgt tr.top td{background:rgba(255,204,51,.10)}
+.cfgt tr.top td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
+.cfgt tr.moved td{animation:mv 1s}
+@keyframes mv{0%{background:rgba(91,227,138,.35)}}
+.cfgt td .btn{padding:3px 9px;font-size:12.5px}
+.cfgwrap{overflow-x:auto}
+.docs{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-height:32px}
+.docs span{background:#fffbe5;color:#1a1300;border-radius:6px 6px 0 0;padding:4px 10px;font:600 12.5px system-ui;border-bottom:3px solid var(--gold)}
+.docs span.bad{border-bottom-color:var(--photo)}.docs span.good{border-bottom-color:var(--ok)}
+.goal{font-size:16px;font-weight:700;color:var(--ink);margin:2px 0 10px}
+.goal b{color:var(--gold)}
+@media (max-width:1000px){.devs{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:900px){figure.shot.side{grid-template-columns:1fr}.tiles.four{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.devs{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body data-chapter="devices">
+
+<section class="hero" id="top"><div class="wrap">
+  <div class="kicker" data-t="h.k"></div>
+  <h1 data-t="h.h"></h1>
+  <p class="lead" data-t="h.lead"></p>
+</div></section>
+
+<section class="sec" id="types" data-nav="n.types"><div class="wrap">
+  <div class="kicker" data-t="ty.k"></div>
+  <h2 data-t="ty.h"></h2>
+  <p class="lead" data-t="ty.lead"></p>
+  <div class="card full">
+    <h3 data-t="ty.card"></h3>
+    <div class="devs" id="devs"></div>
+    <canvas id="cvLink" class="cv mid"></canvas>
+    <div class="tiles four" id="devTiles"></div>
+    <ol class="chk" id="devSteps"></ol>
+    <div class="pills" id="devRes"></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="ty.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="ty.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="ty.f3"></div>
+  </div>
+</div></section>
+
+<section class="sec" id="window" data-nav="n.win"><div class="wrap">
+  <div class="kicker" data-t="w.k"></div>
+  <h2 data-t="w.h"></h2>
+  <p class="lead" data-t="w.lead"></p>
+  <div class="card full">
+    <figure class="shot side" data-shot="devcfg-general"
+      data-hot='[[0.0045,0.0960,0.4150,0.2050],[0.1538,0.0467,0.2681,0.0333],[0.4320,0.0500,0.5010,0.0290],[0.4400,0.1000,0.4537,0.1013],[0.4400,0.2573,0.3801,0.0280],[0.4400,0.3120,0.2400,0.0267],[0.4400,0.3747,0.4100,0.0960],[0.8088,0.9560,0.1765,0.0333]]'
+      data-hot-en='[[0.0045,0.0960,0.4150,0.2050],[0.1538,0.0467,0.2681,0.0333],[0.4320,0.0500,0.4590,0.0290],[0.4400,0.1000,0.4537,0.1013],[0.4400,0.2573,0.3801,0.0280],[0.4400,0.3120,0.2400,0.0267],[0.4400,0.3747,0.4100,0.0960],[0.8088,0.9560,0.1765,0.0333]]'>
+      <ol class="shot-legend"><li data-t="w.l1"></li><li data-t="w.l2"></li><li data-t="w.l3"></li><li data-t="w.l4"></li><li data-t="w.l5"></li><li data-t="w.l6"></li><li data-t="w.l7"></li><li data-t="w.l8"></li></ol>
+      <figcaption data-t="w.cap"></figcaption>
+    </figure>
+  </div>
+  <div class="card full">
+    <h3 data-t="g.h"></h3>
+    <p class="note" style="margin-top:0" data-t="g.hint"></p>
+    <div class="goal" id="gGoal"></div>
+    <div class="cfgwrap"><table class="cfgt" id="gTable"></table></div>
+    <div class="row"><button class="btn main" id="gNew" data-t="g.new"></button><button class="btn" id="gReset" data-t="g.reset"></button></div>
+    <div class="docs" id="gDocs"></div>
+    <div class="pills" id="gRes"></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--ok)" data-t="w.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="w.f2"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="w.f3"></div>
+  </div>
+  <h3 style="margin-top:26px" data-t="w.steps"></h3>
+  <ol class="howto"><li data-t="w.s1"></li><li data-t="w.s2"></li><li data-t="w.s3"></li><li data-t="w.s4"></li><li data-t="w.s5"></li></ol>
+  <div class="callout warn" data-t="w.warn"></div>
+</div></section>
+
+<section class="sec" id="connect" data-nav="n.conn"><div class="wrap">
+  <div class="kicker" data-t="c.k"></div>
+  <h2 data-t="c.h"></h2>
+  <p class="lead" data-t="c.lead"></p>
+  <div class="card full">
+    <div class="chips tabbar" id="cTabs"></div>
+    <div class="pane on" data-tab="c.trc">
+      <figure class="shot side" data-shot="devcfg-device-rc" data-hot='[[0.4525,0.0960,0.3937,0.0267],[0.4525,0.1720,0.2700,0.0320],[0.7387,0.1720,0.1199,0.0307],[0.6414,0.2360,0.1131,0.0307],[0.4559,0.2867,0.4796,0.4760]]'>
+        <ol class="shot-legend"><li data-t="c.r1"></li><li data-t="c.r2"></li><li data-t="c.r3"></li><li data-t="c.r4"></li><li data-t="c.r5"></li></ol>
+        <figcaption data-t="c.rcap"></figcaption>
+      </figure>
+    </div>
+    <div class="pane" data-tab="c.tas">
+      <figure class="shot side" data-shot="devcfg-device-as" data-hot='[[0.4525,0.0960,0.3937,0.0267],[0.4525,0.1720,0.2758,0.0320],[0.7387,0.1720,0.0747,0.0307],[0.8179,0.1720,0.1176,0.0400],[0.4525,0.2307,0.4876,0.0653],[0.4559,0.8093,0.4389,0.0307]]'>
+        <ol class="shot-legend"><li data-t="c.a1"></li><li data-t="c.a2"></li><li data-t="c.a3"></li><li data-t="c.a4"></li><li data-t="c.a5"></li><li data-t="c.a6"></li></ol>
+        <figcaption data-t="c.acap"></figcaption>
+      </figure>
+    </div>
+    <div class="pane" data-tab="c.tobs">
+      <figure class="shot side" data-shot="devcfg-device-obs" data-hot='[[0.4525,0.0960,0.3937,0.0267],[0.4525,0.1720,0.2700,0.0320],[0.7387,0.1720,0.1199,0.0307],[0.6414,0.2360,0.1131,0.0307],[0.4559,0.2867,0.4796,0.4760]]'>
+        <ol class="shot-legend"><li data-t="c.o1"></li><li data-t="c.r2"></li><li data-t="c.r3"></li><li data-t="c.r4"></li><li data-t="c.r5"></li></ol>
+        <figcaption data-t="c.ocap"></figcaption>
+      </figure>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--blue)" data-t="c.f1"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="c.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="c.f3"></div>
+  </div>
+  <div class="callout info" data-t="c.info"></div>
+</div></section>
+
+<section class="sec" id="more" data-nav="n.more"><div class="wrap">
+  <div class="kicker" data-t="m.k"></div>
+  <h2 data-t="m.h"></h2>
+  <p class="lead" data-t="m.lead"></p>
+  <div class="grid2">
+    <div class="card">
+      <h3 data-t="m.ah"></h3>
+      <figure class="shot" data-shot="devcfg-analysis" data-hot='[[0.4729,0.1507,0.2200,0.1027],[0.4729,0.2600,0.2200,0.0627],[0.7070,0.1533,0.2195,0.0654],[0.7070,0.2253,0.2195,0.0627],[0.7070,0.2987,0.1833,0.0227],[0.4525,0.3493,0.4977,0.1253]]'>
+        <ol class="shot-legend"><li data-t="m.a1"></li><li data-t="m.a2"></li><li data-t="m.a3"></li><li data-t="m.a4"></li><li data-t="m.a5"></li><li data-t="m.a6"></li></ol>
+      </figure>
+    </div>
+    <div class="card">
+      <h3 data-t="m.rh"></h3>
+      <figure class="shot" data-shot="devcfg-refs" data-hot='[[0.4502,0.1027,0.4095,0.0466],[0.4502,0.1773,0.3677,0.0267],[0.8247,0.1747,0.0679,0.0333]]'>
+        <ol class="shot-legend"><li data-t="m.r1"></li><li data-t="m.r2"></li><li data-t="m.r3"></li></ol>
+      </figure>
+      <div class="callout tip" data-t="m.tip"></div>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="m.f1"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="m.f2"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="m.f3"></div>
+  </div>
+</div></section>
+
+<section class="sec" id="dead" data-nav="n.dead"><div class="wrap">
+  <div class="kicker" data-t="d.k"></div>
+  <h2 data-t="d.h"></h2>
+  <p class="lead" data-t="d.lead"></p>
+  <div class="card full">
+    <h3 data-t="dt.h"></h3>
+    <p class="note" style="margin-top:0" data-t="dt.hint"></p>
+    <canvas id="cvTurn" class="cv short"></canvas>
+    <div class="row"><span class="lbl" data-t="dt.dev"></span><div class="chips" id="dtDev"></div></div>
+    <div class="row"><span class="lbl" data-t="dt.rate"></span><input type="range" id="dtR" min="1" max="6" step="0.01" value="3.3"><span class="val" id="dtRv"></span></div>
+    <div class="grid2" style="margin-top:12px">
+      <canvas id="cvSat" class="cv short"></canvas>
+      <div>
+        <div class="tiles" style="grid-template-columns:1fr 1fr;margin-top:0" id="dtTiles"></div>
+        <div class="pills" id="dtRes"></div>
+      </div>
+    </div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="d.f1"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="d.f2"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="d.f3"></div>
+  </div>
+  <details class="hood"><summary data-t="hood"></summary><ul data-t="hoodtxt"></ul></details>
+  <div id="pager"></div>
+</div></section>
+
+<footer><div class="wrap" data-t="foot"></div></footer>
+
+<script src="assets/guide.js"></script>
+<script>
+'use strict';
+const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, t, io, visible } = GUIDE;
+const UI = s => '<span class="ui">' + s + '</span>', UM = s => '<span class="ui m">' + s + '</span>';
+GUIDE.texts({ru:{
+'n.types':'Шесть типов','n.win':'Конфигурация','n.conn':'Страница прибора','n.more':'Анализ и фон','n.dead':'Мёртвое время',
+'h.k':'Глава 3 · Приборы',
+'h.h':'Познакомить программу <em>с вашим прибором</em>',
+'h.lead':'Для BecqMoni прибор — это конфигурация: тип, каналы, калибровка, настройки поиска пиков и фон. Один раз заполнили — и каждый новый спектр знает, с кем говорит и как его понимать.',
+'ty.k':'Подключение','ty.h':'Шесть типов — шесть «вилок»',
+'ty.lead':'Тип устройства — как вилка у электроприбора: у одного USB, у другого Bluetooth, у третьего кабель в звуковую карту. Выберите свой — схема покажет, как бегут импульсы, а список — что нажать. Отмечайте шаги щелчком.',
+'ty.card':'Выберите прибор',
+'tl.link':'связь','tl.ch':'каналы','tl.tau':'мёртвое время τ','tl.cal':'калибровка в приборе',
+'cal.yes':'читать и писать','cal.no':'нет','ch.any':'любое','ch.amp':'4096 … 256','ch.blk':'как у блока, ×512',
+'tau.audio':'≈ 363 мкс','tau.atom':'из прибора','tau.fix':'5 мкс','tau.ausb':'поле, 14 мкс','tau.aser':'живое время — от блока',
+'dv.audio':'Звуковой вход','dv.audio.s':'кабель в звуковую карту','dv.atom':'AtomSpectraVCP','dv.atom.s':'USB, виден как COM-порт',
+'dv.rc':'RadiaCode','dv.rc.s':'Bluetooth LE','dv.obs':'Obsidian','dv.obs.s':'Bluetooth LE','dv.ausb':'AmplitudaUSB','dv.ausb.s':'USB HID','dv.aser':'AmplitudaSerial','dv.aser.s':'RS-232, 19200 бод',
+'lk.audio':'линейный вход','lk.usb':'USB → COM4 · 600000','lk.ble':'Bluetooth LE','lk.hid':'USB HID','lk.rs':'RS-232 · 19200 бод','lk.req':'запрос',
+'pc':'BecqMoni','det':'детектор',
+'s0':'Откройте '+UM('Инструменты → Конфигурация устройства...')+' и нажмите '+UI('Новый')+' (или '+UI('Дубль')+' похожей конфигурации).',
+'audio.s2':UI('Основное')+': '+UI('Тип устройства')+' → '+UI('Звуковой вход')+', задайте '+UI('Имя')+' и '+UI('Кол-во каналов')+'.',
+'audio.s3':UI('Устройство')+': '+UI('Аудио устройство')+', '+UI('Частота дискр.')+', '+UI('Разрядность бит')+' и '+UI('Полярность')+' импульсов.',
+'audio.s4':UI('Настройка образцовой формы импульса')+' → '+UI('Старт')+', дождитесь ровной формы → '+UI('Стоп')+'.',
+'audio.s5':UI('НПП')+' — выше уровня шума, '+UI('ВПП')+' — по верхнему краю; '+UI('Ширина имп. (8-64)')+' — чтобы импульс помещался целиком.',
+'audio.s6':UI('Сохранить')+'. Живые импульсы видны в '+UM('Вид → Монитор импульсов')+'.',
+'atom.s2':UI('Основное')+': '+UI('Тип устройства')+' → '+UI('AtomSpectraVCP')+', '+UI('Имя')+', '+UI('Кол-во каналов')+'.',
+'atom.s3':UI('Устройство')+': '+UI('COM Порт:')+' и скорость <b>600000</b> → '+UI('Обновить')+'.',
+'atom.s4':'Справа должно загореться зелёное '+UI('Статус: Подключён')+' и серийный номер.',
+'atom.s5':UI('Обновить Мёртвое Время')+' — программа прочитает τ из прибора.',
+'atom.s6':UI('Калибровка энергии')+' → '+UI('Читать с устройства')+' → '+UI('Сохранить')+'.',
+'rc.s2':'Включите Bluetooth в Windows. '+UI('Основное')+': '+UI('Тип устройства')+' → '+UI('RadiaCode')+' — каналов станет ровно 1024.',
+'rc.s3':UI('Устройство')+' → '+UI('Сканировать BLE')+' → в списке '+UI('Серийный номер:')+' выберите свой прибор.',
+'rc.s4':'На вопрос «Загрузить настройки поиска пиков, оптимизированные для устройства серии …?» ответьте '+UI('Да')+'.',
+'rc.s5':UI('Калибровка энергии')+' → '+UI('Читать с устройства')+'.',
+'rc.s6':UI('Сохранить')+'. Связи нет — '+UI('Диагностика')+' покажет, на каком шаге она рвётся.',
+'obs.s2':'Включите Bluetooth в Windows. '+UI('Основное')+': '+UI('Тип устройства')+' → '+UI('Obsidian')+' — каналов станет ровно 1024.',
+'ausb.s2':UI('Основное')+': '+UI('Тип устройства')+' → '+UI('AmplitudaUSB')+', '+UI('Кол-во каналов')+' — 4096, 2048, 1024, 512 или 256.',
+'ausb.s3':UI('Устройство')+': '+UI('Блок :')+' → '+UI('(первый найденный)')+' или серийный номер → '+UI('Обновить')+'.',
+'ausb.s4':UI('Нижний порог, код АЦП :')+' и '+UI('Верхний порог, код АЦП :')+' — окно амплитуд.',
+'ausb.s5':UI('Мёртвое время на импульс, мкс :')+' — по умолчанию 14.',
+'ausb.s6':UI('Проверка')+' → '+UI('Сохранить')+'.',
+'aser.s2':UI('Основное')+': '+UI('Тип устройства')+' → '+UI('AmplitudaSerial')+', '+UI('Кол-во каналов')+' — ровно как у блока (БДЭГ-3-2 — 1024).',
+'aser.s3':UI('Устройство')+': '+UI('Порт :')+' → '+UI('Обновить')+'.',
+'aser.s4':UI('Найти блоки')+' → впишите отвечающий '+UI('Адрес блока :')+'.',
+'aser.s5':UI('Проверка')+'; один раз прочтите '+UI('Инструкция')+' — что у блока нормально, а что похоже на зависание.',
+'aser.s6':UI('Сохранить')+'. После включения блока подождите минуту до «Старт»: он настраивает высокое напряжение.',
+'atom.note':'Набор уже идёт в Atom Spectra Pro? Кнопка '+UI('Подкл.')+' на панели «Управление измерением» подключится к нему без сброса.',
+'st.n':'отмечено шагов: <b>{0} из {1}</b>','st.ok':'прибор готов к набору — дальше глава 4',
+'ty.f1':'<b>Тип решает, что можно менять.</b> От него зависят страница «Устройство», число каналов и откуда берётся мёртвое время.',
+'ty.f2':'<b>Калибровку можно взять из прибора.</b> У Atom Spectra, RadiaCode и Obsidian — «Читать с устройства» на вкладке «Калибровка энергии».',
+'ty.f3':'<b>Разные приборы — одновременно.</b> Каждый пишет в свой документ; один прибор — только в один спектр.',
+'w.k':'Окно','w.h':'Конфигурация прибора — его паспорт',
+'w.lead':'Всё о приборе живёт в одном окне: '+UM('Инструменты → Конфигурация устройства...')+' Слева — список паспортов, справа — вкладки одного из них. Наведите на номер — подсветится место.',
+'w.cap':'Конфигурация RC-103, вкладка «Основное»',
+'w.l1':'<b>Список конфигураций</b> — имя и время последнего сохранения; свежая наверху',
+'w.l2':'<b>Новый / Дубль / Удалить</b> — завести, скопировать, убрать',
+'w.l3':'<b>Вкладки</b> — Основное, Устройство, Калибровка энергии, Эффективность, Анализ, Ссылки',
+'w.l4':'<b>Имя, имя файла, тип устройства</b> — тип выбирает страницу «Устройство»',
+'w.l5':'<b>Вещество кристалла</b> — NaI, CsI…; нужно для расчёта эффективности',
+'w.l6':'<b>Лимит времени</b> — предел набора по умолчанию для новых спектров, в секундах',
+'w.l7':'<b>Кол-во каналов, шаг канала, кривизна тракта</b> — серое поле задаёт сам прибор; кривизну оставьте 0, пока не измерена',
+'w.l8':'<b>Сохранить / Закрыть</b> — «Сохранить» горит, когда есть правки',
+'g.h':'Игра: какую конфигурацию возьмёт новый документ?',
+'g.hint':'Новый документ (Файл → Новый) берёт ВЕРХНЮЮ строку списка — ту, что сохранили последней. Справьтесь с задачей: «Сохранить» поднимает строку наверх, «Файл → Новый» создаёт документ.',
+'g.new':'Файл → Новый','g.reset':'Сначала','g.save':'Сохранить','g.name':'Имя конфигурации','g.upd':'Обновлён',
+'g.goal':'Задача {0} из {1}: нужен новый спектр с прибором <b>{2}</b>','g.win':'Все задачи решены! Правило: перед «Новым» сохраните нужную конфигурацию — или выберите прибор в списке «Устройство» на панели.',
+'g.doc':'Документ {0} · {1}','g.ok':'Верно: документ получил «{0}».','g.bad':'Документ получил «{0}» — верхнюю строку. Сначала сохраните «{1}», чтобы она поднялась.',
+'g.saved':'«{0}» сохранена ({1}) и поднялась наверх',
+'w.f1':'<b>Дубль — самый быстрый путь.</b> Скопируйте похожую конфигурацию и поменяйте имя, тип и порт.',
+'w.f2':'<b>Серое поле решает прибор.</b> У RadiaCode и Obsidian ровно 1024 канала, у AmplitudaUSB — из списка, у Atom Spectra и звукового входа — свободно.',
+'w.f3':'<b>Свежая — сверху.</b> Новый документ берёт верхнюю строку списка; перед стартом проверьте «Устройство» на панели.',
+'w.steps':'Пошагово: своя конфигурация',
+'w.s1':UM('Инструменты → Конфигурация устройства...')+' → выберите похожую → '+UI('Дубль')+'.',
+'w.s2':UI('Основное')+': '+UI('Имя')+' (так прибор будет называться в списках), '+UI('Тип устройства')+', '+UI('Вещество кристалла')+'.',
+'w.s3':UI('Лимит времени')+' — например, <b>3600</b> сек.: столько будет длиться набор нового спектра, пока не поменяете.',
+'w.s4':UI('Устройство')+' — подключение (раздел выше), '+UI('Калибровка энергии')+' — '+UI('Читать с устройства')+' или своя.',
+'w.s5':UI('Сохранить')+' → '+UI('Закрыть')+'. Конфигурация ляжет файлом в папку <code>config\\device</code>.',
+'w.warn':'<b>Удаление не спрашивает дважды.</b> Конфигурация — это и калибровки, и кривые эффективности прибора. Перед большими правками сделайте '+UI('Дубль')+'.',
+'c.k':'Страница «Устройство»','c.h':'Как прибор находит компьютер',
+'c.lead':'Вкладка «Устройство» — как пульт сопряжения: у Bluetooth-приборов кнопка поиска, у USB — выбор порта. Переключайте приборы и наводите на номера.',
+'c.trc':'RadiaCode (BLE)','c.tas':'Atom Spectra (COM)','c.tobs':'Obsidian (BLE)',
+'c.r1':'<b>Тип устройства</b> — только для чтения, меняется на вкладке «Основное»','c.r2':'<b>Серийный номер:</b> — найденные приборы; номер на снимке скрыт',
+'c.r3':'<b>Сканировать BLE</b> — поиск приборов по Bluetooth Low Energy','c.r4':'<b>Диагностика</b> — пошаговая проверка связи с прибором',
+'c.r5':'<b>Журнал</b> — сюда «Диагностика» пишет, что получилось','c.o1':'<b>Тип устройства</b> — Obsidian; страница устроена как у RadiaCode',
+'c.a1':'<b>Тип устройства</b> — AtomSpectraVCP','c.a2':'<b>COM Порт:</b> и скорость — по умолчанию 600000',
+'c.a3':'<b>Обновить</b> — перечитать список портов и подключиться','c.a4':'<b>Статус: Подключён</b> и серийный номер прибора',
+'c.a5':'<b>Командная строка</b> — для знающих: некоторые команды опасны для прибора','c.a6':'<b>Обновить Мёртвое Время</b> — τ, прочитанное из прибора',
+'c.rcap':'RadiaCode-103: связь только по Bluetooth LE','c.acap':'Atom Spectra на COM4 — «Статус: Подключён»','c.ocap':'Obsidian — тоже Bluetooth LE',
+'c.f1':'<b>BLE — без проводов, но с Bluetooth.</b> Выключен Bluetooth — программа скажет: «Устройство Bluetooth не обнаружено».',
+'c.f2':'<b>COM-порт — это USB.</b> Atom Spectra виден в Windows как виртуальный COM-порт; переставили кабель в другое гнездо — номер может смениться.',
+'c.f3':'<b>Обрыв связи не рвёт набор.</b> У Atom Spectra строка состояния скажет «ПОРТ ПОТЕРЯН… Набор не остановлен, ждём возвращения прибора».',
+'c.info':'<b>Доза — по спектру, не из прибора.</b> Дозиметр RadiaCode программа не читает: мощность дозы в строке состояния считается по набранному спектру и кривой эффективности.',
+'m.k':'Ещё две вкладки','m.h':'Поиск пиков и фон — тоже у прибора',
+'m.lead':'Настройки поиска пиков и фон по умолчанию — как очки и наушники, подобранные под конкретного человека: у каждого прибора свои. Поэтому они хранятся в конфигурации, а не в спектре.',
+'m.ah':'Вкладка «Анализ»','m.rh':'Вкладка «Ссылки»',
+'m.a1':'<b>Мин SNR, Макс. пиков, Допуск</b> — порог значимости, сколько пиков показать, допуск совпадения с линией, %',
+'m.a2':'<b>Мин. и Макс. Δ FWHM %</b> — насколько пик может быть уже или шире ожидаемой ширины',
+'m.a3':'<b>Мин. и Макс. поиск пика кэВ</b> — диапазон энергий для поиска','m.a4':'<b>Сжатие каналов, расширение пика</b> — для спектров с большим числом каналов',
+'m.a5':'<b>Центроид по центру масс</b> — центр пика по «центру тяжести», а не по максимуму','m.a6':'<b>Описание пика</b> — форма пика: Gaussian и другие',
+'m.r1':'<b>Фон по умолчанию</b> — спектр фона с теми же каналами, что у прибора','m.r2':'<b>Фоновый спектр</b> — путь к файлу',
+'m.r3':'<b>Выбрать...</b> — указать файл .xml с фоном',
+'m.tip':'<b>Как завести фон:</b> наберите фон тем же прибором без источника (чем дольше, тем лучше), сохраните, затем '+UI('Ссылки')+' → '+UI('Выбрать...')+'. Подробнее о фоне — в главе 4.',
+'m.f1':'<b>Поиск пиков настраивается у прибора.</b> В файл спектра эти настройки не пишутся — всегда берутся из конфигурации.',
+'m.f2':'<b>Фон по умолчанию получит каждый новый спектр.</b> На панели набора его можно сменить для одного спектра.',
+'m.f3':'<b>Фон — с тем же числом каналов.</b> Иначе программа ответит «Несовместимые параметры каналов.»',
+'d.k':'Мёртвое время','d.h':'Турникет на входе',
+'d.lead':'Каждый импульс прибор «переваривает» какое-то время τ — как турникет, который после прохода ещё мгновение закрыт. Кто подошёл в это мгновение, проходит незамеченным. Пока очередь редкая, потерь нет; в толпе турникет пропускает всё меньшую долю.',
+'dt.h':'Попробуйте сами: поток импульсов через турникет',
+'dt.hint':'Каждая палочка — импульс. Зелёная — прибор его посчитал и закрылся на τ (жёлтая полоса); красная пришла, пока было закрыто, и потеряна. Двигайте скорость счёта и меняйте прибор.',
+'dt.dev':'прибор','dt.rate':'истинная скорость счёта',
+'dt.m':'истинная скорость','dt.n':'посчитано','dt.dt':'Мерт. Время %','dt.lt':'живое время за час набора',
+'dt.sim':'в анимации потеряно {0} из {1}: <b>{2} %</b>','dt.ok':'до 20 % — норма','dt.warn':'20–50 % — предупреждение: FWHM и спектр деградируют','dt.bad':'больше 50 % — критично: спектр разрушен',
+'dt.ax.m':'истинная, имп/с','dt.ax.n':'посчитано, имп/с','dt.lim':'потолок 1/τ','dt.ideal':'без потерь','dt.t':'время →','dt.cps':'имп/с','dt.s':'с','dt.ms':'мс','dt.us':'мкс',
+'d.f1':'<b>У каждого прибора свой τ.</b> RadiaCode и Obsidian — 5 мкс, Atom Spectra сообщает свой сам, у звукового входа — сотни микросекунд.',
+'d.f2':'<b>Живое время — честный знаменатель.</b> Скорость счёта для активности считается по нему, а не по часам.',
+'d.f3':'<b>Больше 20 % — повод отодвинуть источник.</b> Выше 50 % пики расплываются и наползают друг на друга.',
+'hoodtxt':'<li>Тип устройства — запись в реестре типов: на каждый тип своя тройка «страница настроек / контроллер / конфигурация». Типов шесть: Звуковой вход, AtomSpectraVCP, RadiaCode, Obsidian, AmplitudaUSB, AmplitudaSerial.</li><li>Живое время — модель без продления: <code>LT = T·(1 − n·τ)</code>, где n — посчитанная скорость; при n·τ ≥ 1 живое время — ноль (прибор насыщен). Отсюда и «Мерт. Время %» = 100·(T − LT)/T.</li><li>τ по типам: RadiaCode и Obsidian — 5 мкс; Atom Spectra — из ответа прибора; AmplitudaUSB — поле, 14 мкс по умолчанию; звуковой вход — ширина импульса / частота дискретизации (16 / 44100 = 363 мкс); AmplitudaSerial — живое время присылает сам блок.</li><li>Список конфигураций отсортирован по времени сохранения, свежая сверху; новый спектр берёт первую строку — с её каналами, калибровкой и лимитом времени.</li><li>Каждая конфигурация — отдельный XML в <code>config\\device</code>; файл спектра хранит ссылку на неё (имя и GUID), а не копию. Один прибор в каждый момент пишет только в один спектр.</li>',
+},en:{
+'n.types':'Six types','n.win':'Configuration','n.conn':'Device page','n.more':'Analysis and background','n.dead':'Dead time',
+'h.k':'Chapter 3 · Devices',
+'h.h':'Introduce the program <em>to your detector</em>',
+'h.lead':'To BecqMoni a detector is a configuration: type, channels, calibration, peak search settings and background. Fill it in once — and every new spectrum knows what it talks to and how to read it.',
+'ty.k':'Connecting','ty.h':'Six types — six “plugs”',
+'ty.lead':'The device type is like the plug of an appliance: one has USB, another Bluetooth, a third a cable into the sound card. Pick yours — the diagram shows how pulses travel, and the list shows what to press. Click steps to tick them.',
+'ty.card':'Choose a device',
+'tl.link':'link','tl.ch':'channels','tl.tau':'dead time τ','tl.cal':'calibration in device',
+'cal.yes':'read and write','cal.no':'no','ch.any':'any','ch.amp':'4096 … 256','ch.blk':'as the block, ×512',
+'tau.audio':'≈ 363 µs','tau.atom':'from the device','tau.fix':'5 µs','tau.ausb':'field, 14 µs','tau.aser':'live time from the block',
+'dv.audio':'Audio Input Device','dv.audio.s':'cable into the sound card','dv.atom':'AtomSpectraVCP','dv.atom.s':'USB, seen as a COM port',
+'dv.rc':'RadiaCode','dv.rc.s':'Bluetooth LE','dv.obs':'Obsidian','dv.obs.s':'Bluetooth LE','dv.ausb':'AmplitudaUSB','dv.ausb.s':'USB HID','dv.aser':'AmplitudaSerial','dv.aser.s':'RS-232, 19200 baud',
+'lk.audio':'line-in','lk.usb':'USB → COM4 · 600000','lk.ble':'Bluetooth LE','lk.hid':'USB HID','lk.rs':'RS-232 · 19200 baud','lk.req':'request',
+'pc':'BecqMoni','det':'detector',
+'s0':'Open '+UM('Tool → Edit Device Configurations...')+' and press '+UI('New')+' (or '+UI('Duplicate')+' a similar configuration).',
+'audio.s2':UI('General')+': '+UI('Input Device Type')+' → '+UI('Audio Input Device')+', set '+UI('Name')+' and '+UI('# of Channels')+'.',
+'audio.s3':UI('Device Specific')+': '+UI('Audio Input Device')+', '+UI('Sampling Rate')+', '+UI('Bits per Sample')+' and '+UI('Device Polarity')+'.',
+'audio.s4':UI('Standard Pulse Acquisition')+' → '+UI('Start')+', wait for a clean shape → '+UI('Stop')+'.',
+'audio.s5':UI('LLD')+' above the noise level, '+UI('ULD')+' at the top edge; '+UI('Sample Width (8-64)')+' so the whole pulse fits.',
+'audio.s6':UI('Save')+'. Live pulses are shown in '+UM('View → Pulse Monitor')+'.',
+'atom.s2':UI('General')+': '+UI('Input Device Type')+' → '+UI('AtomSpectraVCP')+', '+UI('Name')+', '+UI('# of Channels')+'.',
+'atom.s3':UI('Device Specific')+': '+UI('COM Port:')+' and speed <b>600000</b> → '+UI('Refresh')+'.',
+'atom.s4':'A green '+UI('Status: Connected')+' and the serial number must appear on the right.',
+'atom.s5':UI('Update Dead Time')+' — the program reads τ from the device.',
+'atom.s6':UI('Energy Calibration')+' → '+UI('Read from device')+' → '+UI('Save')+'.',
+'rc.s2':'Turn Bluetooth on in Windows. '+UI('General')+': '+UI('Input Device Type')+' → '+UI('RadiaCode')+' — channels become exactly 1024.',
+'rc.s3':UI('Device Specific')+' → '+UI('Scan BLE')+' → pick your device in '+UI('Serial Number:')+'.',
+'rc.s4':'Answer '+UI('Yes')+' to “Load default peak search settings optimised for device series …?”.',
+'rc.s5':UI('Energy Calibration')+' → '+UI('Read from device')+'.',
+'rc.s6':UI('Save')+'. No connection — '+UI('Troubleshoot')+' shows at which step it breaks.',
+'obs.s2':'Turn Bluetooth on in Windows. '+UI('General')+': '+UI('Input Device Type')+' → '+UI('Obsidian')+' — channels become exactly 1024.',
+'ausb.s2':UI('General')+': '+UI('Input Device Type')+' → '+UI('AmplitudaUSB')+', '+UI('# of Channels')+' — 4096, 2048, 1024, 512 or 256.',
+'ausb.s3':UI('Device Specific')+': '+UI('Device :')+' → '+UI('(first found)')+' or a serial number → '+UI('Refresh')+'.',
+'ausb.s4':UI('Lower threshold, ADC code :')+' and '+UI('Upper threshold, ADC code :')+' — the amplitude window.',
+'ausb.s5':UI('Dead time per pulse, us :')+' — 14 by default.',
+'ausb.s6':UI('Test')+' → '+UI('Save')+'.',
+'aser.s2':UI('General')+': '+UI('Input Device Type')+' → '+UI('AmplitudaSerial')+', '+UI('# of Channels')+' — exactly as the block has (BDEG-3-2: 1024).',
+'aser.s3':UI('Device Specific')+': '+UI('Port :')+' → '+UI('Refresh')+'.',
+'aser.s4':UI('Find blocks')+' → enter the answering '+UI('Block address :')+'.',
+'aser.s5':UI('Test')+'; read '+UI('Instruction')+' once — what is normal for the block and what only looks like a freeze.',
+'aser.s6':UI('Save')+'. After powering the block wait a minute before “Start”: it is setting its high voltage.',
+'atom.note':'Acquisition already running in Atom Spectra Pro? The '+UI('Attach')+' button on the Measurement Control panel joins it without a reset.',
+'st.n':'steps ticked: <b>{0} of {1}</b>','st.ok':'the device is ready to acquire — on to chapter 4',
+'ty.f1':'<b>The type decides what can be changed.</b> It sets the “Device Specific” page, the channel count and where the dead time comes from.',
+'ty.f2':'<b>The calibration can come from the device.</b> Atom Spectra, RadiaCode and Obsidian have “Read from device” on the “Energy Calibration” tab.',
+'ty.f3':'<b>Several devices at once.</b> Each writes into its own document; one device feeds only one spectrum.',
+'w.k':'Window','w.h':'A device configuration is its passport',
+'w.lead':'Everything about a device lives in one window: '+UM('Tool → Edit Device Configurations...')+' On the left — the list of passports, on the right — the tabs of one of them. Hover a number to light up the spot.',
+'w.cap':'The RC-103 configuration, “General” tab',
+'w.l1':'<b>Configuration list</b> — name and time of the last save; the newest on top',
+'w.l2':'<b>New / Duplicate / Delete</b> — create, copy, remove',
+'w.l3':'<b>Tabs</b> — General, Device Specific, Energy Calibration, Efficiency, Analysis, References',
+'w.l4':'<b>Name, file name, input device type</b> — the type picks the “Device Specific” page',
+'w.l5':'<b>Crystal Material</b> — NaI, CsI…; needed for efficiency calculations',
+'w.l6':'<b>Preset Time</b> — the default acquisition limit for new spectra, in seconds',
+'w.l7':'<b># of Channels, Channel Pitch, Tract Curvature</b> — a grey field is set by the device; keep curvature at 0 until measured',
+'w.l8':'<b>Save / Close</b> — “Save” lights up when there are changes',
+'g.h':'Game: which configuration will a new document get?',
+'g.hint':'A new document (File → New) takes the TOP line of the list — the one saved last. Solve the tasks: “Save” lifts a line to the top, “File → New” creates a document.',
+'g.new':'File → New','g.reset':'Start over','g.save':'Save','g.name':'Configuration Name','g.upd':'Last Updated',
+'g.goal':'Task {0} of {1}: you need a new spectrum with <b>{2}</b>','g.win':'All tasks solved! The rule: save the configuration you need before “New” — or pick the device in the “Device Config.” list on the panel.',
+'g.doc':'Document {0} · {1}','g.ok':'Right: the document got “{0}”.','g.bad':'The document got “{0}” — the top line. Save “{1}” first so it moves up.',
+'g.saved':'“{0}” saved ({1}) and moved to the top',
+'w.f1':'<b>Duplicate is the fastest way.</b> Copy a similar configuration and change the name, type and port.',
+'w.f2':'<b>A grey field is the device’s call.</b> RadiaCode and Obsidian have exactly 1024 channels, AmplitudaUSB a fixed list, Atom Spectra and audio input are free.',
+'w.f3':'<b>The newest is on top.</b> A new document takes the top line of the list; check “Device Config.” on the panel before starting.',
+'w.steps':'Step by step: your own configuration',
+'w.s1':UM('Tool → Edit Device Configurations...')+' → pick a similar one → '+UI('Duplicate')+'.',
+'w.s2':UI('General')+': '+UI('Name')+' (how the device will appear in lists), '+UI('Input Device Type')+', '+UI('Crystal Material')+'.',
+'w.s3':UI('Preset Time')+' — e.g. <b>3600</b> sec.: that is how long a new spectrum will be acquired until you change it.',
+'w.s4':UI('Device Specific')+' — the connection (section above), '+UI('Energy Calibration')+' — '+UI('Read from device')+' or your own.',
+'w.s5':UI('Save')+' → '+UI('Close')+'. The configuration is stored as a file in <code>config\\device</code>.',
+'w.warn':'<b>Delete does not ask twice.</b> A configuration holds the device’s calibrations and efficiency curves. Make a '+UI('Duplicate')+' before big changes.',
+'c.k':'“Device Specific” page','c.h':'How the device finds the computer',
+'c.lead':'The “Device Specific” tab is a pairing remote: Bluetooth devices get a search button, USB ones a port choice. Switch devices and hover the numbers.',
+'c.trc':'RadiaCode (BLE)','c.tas':'Atom Spectra (COM)','c.tobs':'Obsidian (BLE)',
+'c.r1':'<b>Device Type</b> — read-only, changed on the “General” tab','c.r2':'<b>Serial Number:</b> — devices found; the number is hidden in the screenshot',
+'c.r3':'<b>Scan BLE</b> — search for devices over Bluetooth Low Energy','c.r4':'<b>Troubleshoot</b> — a step-by-step check of the link',
+'c.r5':'<b>Log</b> — “Troubleshoot” writes what happened here','c.o1':'<b>Device Type</b> — Obsidian; the page works like RadiaCode’s',
+'c.a1':'<b>Device Type</b> — AtomSpectraVCP','c.a2':'<b>COM Port:</b> and speed — 600000 by default',
+'c.a3':'<b>Refresh</b> — re-read the port list and connect','c.a4':'<b>Status: Connected</b> and the device serial number',
+'c.a5':'<b>Command line</b> — for experts: some commands are hazardous to the device','c.a6':'<b>Update Dead Time</b> — τ read from the device',
+'c.rcap':'RadiaCode-103: Bluetooth LE only','c.acap':'Atom Spectra on COM4 — “Status: Connected”','c.ocap':'Obsidian — Bluetooth LE too',
+'c.f1':'<b>BLE — no wires, but Bluetooth.</b> With Bluetooth off the program says “Bluetooth device not found”.',
+'c.f2':'<b>A COM port is USB.</b> Windows sees Atom Spectra as a virtual COM port; plug the cable into another socket and the number may change.',
+'c.f3':'<b>A lost link does not stop acquisition.</b> For Atom Spectra the status bar says “PORT LOST… The measurement is not stopped; waiting for the device to come back”.',
+'c.info':'<b>Dose from the spectrum, not the device.</b> The program does not read the RadiaCode dosimeter: the dose rate in the status bar comes from the acquired spectrum and the efficiency curve.',
+'m.k':'Two more tabs','m.h':'Peak search and background belong to the device too',
+'m.lead':'Peak search settings and the default background are like glasses and headphones fitted to one person: every device has its own. That is why they are stored in the configuration, not in the spectrum.',
+'m.ah':'The “Analysis” tab','m.rh':'The “References” tab',
+'m.a1':'<b>Min SNR, Max Items, Tolerance</b> — significance threshold, how many peaks to show, line match tolerance, %',
+'m.a2':'<b>Min and Max Δ FWHM %</b> — how much narrower or wider than expected a peak may be',
+'m.a3':'<b>Min and Max range keV</b> — the energy range to search','m.a4':'<b>Concat channels, peak width widen factor</b> — for spectra with many channels',
+'m.a5':'<b>Centroid by center of mass</b> — peak centre by “centre of gravity”, not by the maximum','m.a6':'<b>Peak specification</b> — the peak shape: Gaussian and others',
+'m.r1':'<b>Default background</b> — a background spectrum with the device’s channel layout','m.r2':'<b>Background spectrum</b> — path to the file',
+'m.r3':'<b>Select...</b> — point to the background .xml file',
+'m.tip':'<b>Making a background:</b> acquire with the same device and no source (the longer the better), save it, then '+UI('References')+' → '+UI('Select...')+'. More on background in chapter 4.',
+'m.f1':'<b>Peak search is set per device.</b> These settings are not written to the spectrum file — they always come from the configuration.',
+'m.f2':'<b>Every new spectrum gets the default background.</b> On the acquisition panel it can be changed for one spectrum.',
+'m.f3':'<b>Same channel count for the background.</b> Otherwise the program answers “Incompatible channel parameters.”',
+'d.k':'Dead time','d.h':'A turnstile at the entrance',
+'d.lead':'The device needs some time τ to “digest” each pulse — like a turnstile that stays shut for a moment after each pass. Whoever arrives in that moment goes through unseen. With a thin queue nothing is lost; in a crowd the turnstile lets an ever smaller share through.',
+'dt.h':'Try it: a pulse stream through the turnstile',
+'dt.hint':'Each tick is a pulse. Green — counted, and the device closed for τ (yellow band); red arrived while closed and was lost. Move the count rate and switch devices.',
+'dt.dev':'device','dt.rate':'true count rate',
+'dt.m':'true rate','dt.n':'counted','dt.dt':'Dead Time %','dt.lt':'live time per hour of acquisition',
+'dt.sim':'lost in the animation {0} of {1}: <b>{2} %</b>','dt.ok':'up to 20 % — normal','dt.warn':'20–50 % — warning: FWHM and spectrum degrade','dt.bad':'above 50 % — critical: the spectrum is destroyed',
+'dt.ax.m':'true, cps','dt.ax.n':'counted, cps','dt.lim':'ceiling 1/τ','dt.ideal':'no losses','dt.t':'time →','dt.cps':'cps','dt.s':'s','dt.ms':'ms','dt.us':'µs',
+'d.f1':'<b>Each device has its own τ.</b> RadiaCode and Obsidian 5 µs, Atom Spectra reports its own, audio input hundreds of microseconds.',
+'d.f2':'<b>Live time is the honest denominator.</b> The count rate behind activity is computed from it, not from the clock.',
+'d.f3':'<b>Above 20 % — move the source away.</b> Above 50 % peaks smear and run into each other.',
+'hoodtxt':'<li>The device type is an entry in a type registry: each type has its triple “settings page / controller / configuration”. There are six: Audio Input Device, AtomSpectraVCP, RadiaCode, Obsidian, AmplitudaUSB, AmplitudaSerial.</li><li>Live time uses the non-paralyzable model: <code>LT = T·(1 − n·τ)</code>, where n is the counted rate; at n·τ ≥ 1 live time is zero (the device is saturated). Hence “Dead Time %” = 100·(T − LT)/T.</li><li>τ by type: RadiaCode and Obsidian 5 µs; Atom Spectra from the device’s answer; AmplitudaUSB a field, 14 µs by default; audio input pulse width / sampling rate (16 / 44100 = 363 µs); AmplitudaSerial — the block sends its own live time.</li><li>The configuration list is sorted by save time, newest on top; a new spectrum takes the first line — with its channels, calibration and preset time.</li><li>Each configuration is a separate XML in <code>config\\device</code>; a spectrum file stores a reference to it (name and GUID), not a copy. At any moment one device writes into only one spectrum.</li>',
+}});
+
+/* ── вкладки ── */
+function tabset(barId) {
+  const bar = $('#' + barId), panes = $$('.pane', bar.parentNode);
+  bar.innerHTML = panes.map((p, i) => '<button class="chip' + (i ? '' : ' on') + '" data-i="' + i + '" data-t="' + p.dataset.tab + '"></button>').join('');
+  $$('button', bar).forEach(b => b.onclick = () => { $$('button', bar).forEach(x => x.classList.toggle('on', x === b)); panes.forEach((p, i) => p.classList.toggle('on', i === +b.dataset.i)); });
+}
+tabset('cTabs');
+
+/* ── 1. выбор прибора: схема подключения и шаги ── */
+(function chooser() {
+  const DEV = [
+    { id: 'audio', link: 'audio', body: 'probe', ch: 'ch.any', tau: 'tau.audio', cal: false },
+    { id: 'atom', link: 'usb', body: 'probe', ch: 'ch.any', tau: 'tau.atom', cal: true },
+    { id: 'rc', link: 'ble', body: 'hand', ch: '1024', tau: 'tau.fix', cal: true },
+    { id: 'obs', link: 'ble', body: 'hand', ch: '1024', tau: 'tau.fix', cal: true },
+    { id: 'ausb', link: 'hid', body: 'block', ch: 'ch.amp', tau: 'tau.ausb', cal: false },
+    { id: 'aser', link: 'rs', body: 'block', ch: 'ch.blk', tau: 'tau.aser', cal: false },
+  ];
+  const LINK = { audio: 'lk.audio', usb: 'lk.usb', ble: 'lk.ble', hid: 'lk.hid', rs: 'lk.rs' };
+  let cur = 1; const done = DEV.map(() => new Set());
+  $('#devs').innerHTML = DEV.map((d, i) => '<button data-i="' + i + '"><b data-t="dv.' + d.id + '"></b><small data-t="dv.' + d.id + '.s"></small></button>').join('');
+  $$('#devs button').forEach(b => b.onclick = () => { cur = +b.dataset.i; resetSim(); ui(); });
+  const steps = d => ['s0', d.id + '.s2', d.id + '.s3', (d.id === 'obs' ? 'rc' : d.id) + '.s4', (d.id === 'obs' ? 'rc' : d.id) + '.s5', (d.id === 'obs' ? 'rc' : d.id) + '.s6'];
+  function ui() {
+    const d = DEV[cur];
+    $$('#devs button').forEach((b, i) => b.classList.toggle('on', i === cur));
+    const tile = (k, v) => '<div class="tile"><div class="small">' + t(k) + '</div><div class="big mid">' + v + '</div></div>';
+    $('#devTiles').innerHTML = tile('tl.link', t(LINK[d.link])) + tile('tl.ch', d.ch[0] === 'c' ? t(d.ch) : d.ch) + tile('tl.tau', t(d.tau)) + tile('tl.cal', t(d.cal ? 'cal.yes' : 'cal.no'));
+    const st = steps(d);
+    $('#devSteps').innerHTML = st.map((k, i) => '<li data-i="' + i + '" class="' + (done[cur].has(i) ? 'done' : '') + '">' + t(k) + '</li>').join('');
+    $$('#devSteps li').forEach(li => li.onclick = () => { const i = +li.dataset.i; done[cur].has(i) ? done[cur].delete(i) : done[cur].add(i); ui(); });
+    const n = done[cur].size, all = n === st.length;
+    $('#devRes').innerHTML = '<span class="pill ' + (all ? 'good' : '') + '">' + t('st.n', n, st.length) + (all ? ' · ' + t('st.ok') : '') + '</span>' + (d.id === 'atom' ? '<span class="pill">' + t('atom.note') + '</span>' : '');
+  }
+  /* анимация: источник → кристалл → связь → BecqMoni */
+  const cv = $('#cvLink'); io.observe(cv);
+  const NB = 44; let hist, buf, flying, flashes, photons, lastEv, lastPk, lastReq, T0;
+  function resetSim() { hist = new Float64Array(NB); buf = new Float64Array(NB); flying = []; flashes = []; photons = []; lastEv = 0; lastPk = 0; lastReq = 0; T0 = performance.now(); }
+  resetSim();
+  function sampleBin() { const u = Math.random(); if (u < 0.42) return clamp(Math.round(30 + 1.2 * GUIDE.gauss()), 0, NB - 1); if (u < 0.5) return clamp(Math.round(3 + GUIDE.gauss()), 0, NB - 1); return Math.floor(Math.random() * 25); }
+  function pathPt(L, u) {   // точка на линии связи, u: 0 у прибора → 1 у ПК
+    const x = lerp(L.x0, L.x1, u), y = L.y + (L.bow ? -Math.sin(Math.PI * u) * L.bow : 0); return [x, y];
+  }
+  function draw(now) {
+    const d = DEV[cur], { ctx, w, h } = setup(cv), s = (now - T0) / 1000;
+    const det = { x: w * 0.06, y: h * 0.42, w: Math.max(80, w * 0.2), h: h * 0.3 };
+    const pc = { x: w * 0.68, y: h * 0.14, w: w * 0.29, h: h * 0.56 };
+    const L = { x0: det.x + det.w, x1: pc.x, y: h * 0.58, bow: d.link === 'ble' ? h * 0.22 : 0 };
+    // события: фотон из источника → вспышка в кристалле
+    if (s - lastEv > 1.5) { lastEv = s - 0.05; lastPk = Math.max(lastPk, s - 1); lastReq = Math.max(lastReq, s - 1.6); flying = flying.filter(f => s - f.t < f.dur); }   // вкладка спала: не догонять пропущенное
+    while (lastEv < s) { lastEv += -Math.log(1 - Math.random()) / 9; photons.push({ t: lastEv, bin: sampleBin() }); }
+    photons = photons.filter(p => { if (s - p.t > 0.35) { flashes.push({ t: p.t + 0.35, bin: p.bin }); if (d.link === 'audio') flying.push({ t: p.t + 0.35, kind: 'pulse', bins: [p.bin], dur: 0.9 }); else buf[p.bin]++; return false; } return true; });
+    // посылки: гистограмма раз в секунду; у RS-232 — по запросу ПК
+    if (d.link === 'rs') { if (s - lastReq > 1.6) { lastReq = s; flying.push({ t: s, kind: 'req', dur: 0.8 }); } }
+    else if (d.link !== 'audio' && s - lastPk > 1.0) { lastPk = s; flying.push({ t: s, kind: 'pkt', b: Float64Array.from(buf), dur: d.link === 'ble' ? 1.0 : 0.8 }); buf.fill(0); }
+    flying = flying.filter(f => { if ((s - f.t) / f.dur >= 1) { if (f.kind === 'req') { flying.push({ t: s, kind: 'pkt', b: Float64Array.from(buf), dur: 0.8 }); buf.fill(0); } else if (f.kind === 'pkt') f.b.forEach((v, i) => hist[i] += v); else f.bins.forEach(i => hist[i]++); return false; } return true; });
+    // источник
+    const src = { x: det.x + det.w * 0.18, y: h * 0.13 };
+    ctx.save(); ctx.translate(src.x, src.y); ctx.fillStyle = '#ffcc33'; ctx.beginPath(); ctx.arc(0, 0, 4, 0, 7); ctx.fill();
+    for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 13, k * 2.094 - 0.5, k * 2.094 + 0.5); ctx.closePath(); ctx.fill(); }
+    ctx.restore();
+    photons.forEach(p => { const u = (s - p.t) / 0.35, x0 = src.x, y0 = src.y + 14, x1 = det.x + det.w * 0.3 + (p.bin % 7) * 4, y1 = det.y + det.h * 0.5; ctx.strokeStyle = 'rgba(255,204,51,.95)'; ctx.lineWidth = 1.8; ctx.beginPath(); const v0 = Math.max(0, u - 0.4); for (let k = 0; k <= 10; k++) { const v = lerp(v0, u, k / 10), x = lerp(x0, x1, v) + Math.sin(v * 38) * 4, y = lerp(y0, y1, v); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke(); ctx.lineWidth = 1; });
+    // прибор
+    ctx.fillStyle = '#1d2744'; ctx.strokeStyle = '#3a4a78';
+    if (d.body === 'hand') { ctx.beginPath(); ctx.roundRect(det.x, det.y - det.h * 0.25, det.w, det.h * 1.45, 14); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#0b1020'; ctx.fillRect(det.x + det.w * 0.55, det.y - det.h * 0.1, det.w * 0.36, det.h * 0.5); ctx.fillStyle = '#5be38a'; ctx.font = '700 10px system-ui'; ctx.textAlign = 'center'; ctx.fillText('0.12', det.x + det.w * 0.73, det.y + det.h * 0.2); }
+    else if (d.body === 'block') { ctx.beginPath(); ctx.roundRect(det.x, det.y - det.h * 0.1, det.w, det.h * 1.2, 8); ctx.fill(); ctx.stroke(); }
+    else { ctx.beginPath(); ctx.roundRect(det.x, det.y, det.w, det.h, 10); ctx.fill(); ctx.stroke(); }
+    const cr = { x: det.x + det.w * 0.08, y: det.y + det.h * 0.15, w: det.w * 0.42, h: det.h * 0.7 };
+    const g = ctx.createLinearGradient(cr.x, 0, cr.x + cr.w, 0); g.addColorStop(0, 'rgba(106,168,255,.55)'); g.addColorStop(1, 'rgba(106,168,255,.25)'); ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(cr.x, cr.y, cr.w, cr.h, 5); ctx.fill();
+    flashes = flashes.filter(f => s - f.t < 0.3); flashes.forEach(f => { const a = 1 - (s - f.t) / 0.3; ctx.fillStyle = 'rgba(255,255,255,' + (0.85 * a) + ')'; ctx.beginPath(); ctx.arc(cr.x + cr.w * (0.25 + (f.bin % 5) * 0.12), cr.y + cr.h * 0.5, 4 + 8 * (1 - a), 0, 7); ctx.fill(); });
+    ctx.fillStyle = '#cdd8f3'; ctx.font = '700 12px system-ui'; ctx.textAlign = 'center'; ctx.fillText(t('dv.' + d.id), det.x + det.w / 2, det.y + det.h * (d.body === 'hand' ? 1.45 : 1.3) + 6);
+    // связь
+    ctx.strokeStyle = d.link === 'ble' ? 'rgba(106,168,255,.55)' : '#56648a'; ctx.lineWidth = d.link === 'ble' ? 1.5 : 4; if (d.link === 'ble') ctx.setLineDash([5, 6]);
+    ctx.beginPath(); for (let k = 0; k <= 30; k++) { const [x, y] = pathPt(L, k / 30); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1;
+    if (d.link === 'ble') { for (let k = 0; k < 3; k++) { const r = 10 + ((s * 30 + k * 14) % 42); ctx.strokeStyle = 'rgba(106,168,255,' + (0.6 * (1 - r / 52)) + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(L.x0, L.y - 6, r, -1.1, 1.1); ctx.stroke(); } ctx.lineWidth = 1; }
+    ctx.fillStyle = '#93a3c4'; ctx.font = '600 11.5px system-ui'; ctx.textAlign = 'center'; const [lx, ly] = pathPt(L, 0.5); ctx.fillText(t(LINK[d.link]), lx, ly + (d.link === 'ble' ? -10 : 22));
+    flying.forEach(f => {
+      const u = (s - f.t) / f.dur; let [x, y] = pathPt(L, f.kind === 'req' ? 1 - u : u);
+      if (f.kind === 'pulse') { ctx.strokeStyle = '#ff6b8b'; ctx.lineWidth = 2; ctx.beginPath(); for (let k = -10; k <= 14; k++) { const v = k < 0 ? 0 : -Math.exp(-k / 4) * (1 - Math.exp(-k * 1.5)) * 16; k === -10 ? ctx.moveTo(x + k, y + v) : ctx.lineTo(x + k, y + v); } ctx.stroke(); ctx.lineWidth = 1; }
+      else if (f.kind === 'req') { ctx.fillStyle = '#6aa8ff'; ctx.beginPath(); ctx.moveTo(x - 7, y); ctx.lineTo(x + 3, y - 6); ctx.lineTo(x + 3, y + 6); ctx.fill(); ctx.font = '600 10px system-ui'; ctx.fillText(t('lk.req'), x, y - 9); }
+      else { const sum = f.b.reduce((a, v) => a + v, 0); ctx.fillStyle = '#5be38a'; ctx.beginPath(); ctx.roundRect(x - 13, y - 9, 26, 18, 4); ctx.fill(); ctx.fillStyle = '#06210f'; ctx.font = '800 10px system-ui'; ctx.fillText('+' + sum, x, y + 4); }
+    });
+    // ПК с BecqMoni
+    ctx.fillStyle = '#e9edf5'; ctx.beginPath(); ctx.roundRect(pc.x, pc.y, pc.w, pc.h, 6); ctx.fill();
+    ctx.fillStyle = '#5a6684'; ctx.fillRect(pc.x + pc.w * 0.42, pc.y + pc.h, pc.w * 0.16, h * 0.06); ctx.fillRect(pc.x + pc.w * 0.3, pc.y + pc.h + h * 0.06, pc.w * 0.4, 4);
+    ctx.fillStyle = '#273350'; const sx = pc.x + 5, sy = pc.y + 18, sw = pc.w - 10, sh = pc.h - 23; ctx.fillRect(sx, sy, sw, sh);
+    ctx.fillStyle = '#111'; ctx.font = '600 10.5px system-ui'; ctx.textAlign = 'left'; ctx.fillText(t('pc'), pc.x + 7, pc.y + 13);
+    const mx = Math.max(4, ...hist); const bw = sw / NB; ctx.fillStyle = '#20c040';
+    for (let i = 0; i < NB; i++) { const bh = Math.sqrt(hist[i] / mx) * (sh - 6); ctx.fillRect(sx + i * bw, sy + sh - bh, Math.max(1, bw - 0.6), bh); }
+    ctx.fillStyle = '#cdd8f3'; ctx.textAlign = 'right'; ctx.font = '600 10px system-ui'; ctx.fillText(hist.reduce((a, v) => a + v, 0).toFixed(0), sx + sw - 4, sy + 12);
+  }
+  function loop(now) { if (visible.get(cv) !== false) draw(now); requestAnimationFrame(loop); }
+  requestAnimationFrame(loop);
+  GUIDE.onRedraw(ui);
+})();
+
+/* ── 2. игра «какую конфигурацию возьмёт новый документ» ── */
+(function order() {
+  const D = (y, mo, d, hh, mm, ss) => new Date(y, mo - 1, d, hh, mm, ss);
+  const START = [['RC-103', D(2026, 10, 7, 22, 30, 15)], ['Atom Spectra 80x80', D(2026, 10, 7, 22, 18, 2)], ['1.Atom Spectra Nano 16 Pro RadiaScan 701A', D(2026, 10, 7, 21, 50, 57)], ['Obsidian', D(2026, 7, 7, 16, 8, 39)], ['RC-101', D(2024, 10, 7, 18, 19, 53)]];
+  const GOALS = ['Obsidian', 'RC-101', 'Atom Spectra 80x80'];
+  let cfg, clock, docs, goal, moved, msg;
+  const p2 = v => String(v).padStart(2, '0');
+  const fmt = d => p2(d.getDate()) + '.' + p2(d.getMonth() + 1) + '.' + d.getFullYear() + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds());
+  function reset() { cfg = START.map(([n, d]) => ({ n, d })); clock = D(2026, 10, 19, 10, 0, 0); docs = []; goal = 0; moved = ''; msg = ''; }
+  reset();
+  function ui() {
+    cfg.sort((a, b) => b.d - a.d);
+    $('#gGoal').innerHTML = goal < GOALS.length ? t('g.goal', goal + 1, GOALS.length, GOALS[goal]) : t('g.win');
+    $('#gTable').innerHTML = '<tr><th>' + t('g.name') + '</th><th>' + t('g.upd') + '</th><th></th></tr>' + cfg.map((c, i) => '<tr class="' + (i ? '' : 'top ') + (c.n === moved ? 'moved' : '') + '"><td>' + c.n + '</td><td>' + fmt(c.d) + '</td><td><button class="btn" data-n="' + c.n + '">' + t('g.save') + '</button></td></tr>').join('');
+    $$('#gTable button').forEach(b => b.onclick = () => { clock = new Date(clock.getTime() + 60000 + Math.floor(Math.random() * 90000)); const c = cfg.find(x => x.n === b.dataset.n); c.d = new Date(clock); moved = c.n; msg = '<span class="pill">' + t('g.saved', c.n, fmt(clock)) + '</span>'; ui(); });
+    $('#gDocs').innerHTML = docs.map((d, i) => '<span class="' + d.cls + '">' + t('g.doc', i + 1, d.n) + '</span>').join('');
+    $('#gRes').innerHTML = msg; $('#gNew').disabled = goal >= GOALS.length;
+  }
+  $('#gNew').onclick = () => {
+    const got = cfg[0].n, want = GOALS[goal], ok = got === want;
+    docs.push({ n: got, cls: ok ? 'good' : 'bad' }); if (docs.length > 6) docs.shift();
+    msg = '<span class="pill ' + (ok ? 'good' : 'bad') + '">' + (ok ? t('g.ok', got) : t('g.bad', got, want)) + '</span>';
+    if (ok) goal++; moved = ''; ui();
+  };
+  $('#gReset').onclick = () => { reset(); ui(); };
+  GUIDE.onRedraw(ui);
+})();
+
+/* ── 5. мёртвое время: турникет и кривая насыщения ── */
+(function dead() {
+  const DEVS = [['RadiaCode / Obsidian', 5e-6], ['Atom Spectra', 1.357e-6], ['AmplitudaUSB', 14e-6], ['@dv.audio', 363e-6]];
+  let tau = 5e-6, m = Math.pow(10, 3.3);
+  const r = $('#dtR'), cv = $('#cvTurn'), cs = $('#cvSat'); io.observe(cv);
+  let di = 0;
+  function chips() {
+    $('#dtDev').innerHTML = DEVS.map(([n, v], i) => '<button class="chip' + (i === di ? ' on' : '') + '" data-i="' + i + '">' + (n[0] === '@' ? t(n.slice(1)) : n) + ' · ' + fx(v * 1e6, v * 1e6 < 2 ? 2 : 0) + ' ' + t('dt.us') + '</button>').join('');
+    $$('#dtDev .chip').forEach(b => b.onclick = () => { di = +b.dataset.i; tau = DEVS[di][1]; chips(); restart(); stats(); sat(); });
+  }
+  r.addEventListener('input', () => { m = Math.pow(10, +r.value); restart(); stats(); sat(); });
+  // имитация: события Пуассона, после засчитанного прибор закрыт на τ (модель без продления)
+  let ev, now, nextT, busy, cntAll, cntLost, last;
+  function win() { return Math.max(28 / m, 7 * tau); }
+  function restart() { ev = []; now = 0; nextT = -Math.log(1 - Math.random()) / m; busy = -1; cntAll = 0; cntLost = 0; last = performance.now(); }
+  restart();
+  const fmtRate = v => v >= 1e4 ? fx(v / 1e3, v >= 1e5 ? 0 : 1) + 'k' : fx(v, v < 100 ? 1 : 0);
+  function step(dt) {
+    const W = win(); now += W / 4.5 * dt;
+    let guard = 0;
+    while (nextT < now && guard++ < 5000) { const lost = nextT < busy; if (!lost) busy = nextT + tau; ev.push({ t: nextT, lost }); cntAll++; if (lost) cntLost++; nextT += -Math.log(1 - Math.random()) / m; }
+    while (ev.length && ev[0].t < now - W * 1.05) ev.shift();
+  }
+  function drawTurn() {
+    const { ctx, w, h } = setup(cv), W = win(), bx = { l: 12, r: w - 12, t: 26, b: h - 30 };
+    const X = tt => bx.r - (now - tt) / W * (bx.r - bx.l);
+    ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.beginPath(); ctx.moveTo(bx.l, bx.b); ctx.lineTo(bx.r, bx.b); ctx.stroke();
+    ev.forEach(e => { if (!e.lost) { const x0 = X(e.t), x1 = X(e.t + tau); ctx.fillStyle = 'rgba(255,204,51,.28)'; ctx.fillRect(x0, bx.t + 8, Math.max(2, x1 - x0), bx.b - bx.t - 8); } });
+    ev.forEach(e => { const x = X(e.t); if (x < bx.l) return; if (e.lost) { ctx.strokeStyle = '#ff4d6d'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, bx.b); ctx.lineTo(x, bx.b - (bx.b - bx.t) * 0.45); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x - 4, bx.t + 30); ctx.lineTo(x + 4, bx.t + 38); ctx.moveTo(x + 4, bx.t + 30); ctx.lineTo(x - 4, bx.t + 38); ctx.stroke(); } else { ctx.strokeStyle = '#5be38a'; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(x, bx.b); ctx.lineTo(x, bx.t + 8); ctx.stroke(); } ctx.lineWidth = 1; });
+    ctx.fillStyle = '#93a3c4'; ctx.font = '11.5px system-ui'; ctx.textAlign = 'left';
+    const span = W >= 1 ? fx(W, 1) + ' ' + t('dt.s') : W >= 1e-3 ? fx(W * 1e3, 1) + ' ' + t('dt.ms') : fx(W * 1e6, 0) + ' ' + t('dt.us');
+    ctx.fillText('← ' + span + ' →', bx.l, h - 10); ctx.textAlign = 'right'; ctx.fillText(t('dt.t'), bx.r, h - 10);
+    ctx.textAlign = 'left'; ctx.fillStyle = '#ffcc33'; ctx.fillText('τ = ' + sig(tau * 1e6, 3) + ' ' + t('dt.us'), bx.l, 16);
+  }
+  function stats() {
+    const n = m / (1 + m * tau), dtp = 100 * n * tau, lt = 3600 * (1 - n * tau);
+    const col = dtp <= 20 ? 'var(--ink)' : dtp <= 50 ? '#ff9a3c' : '#ff4d6d';
+    const tile = (k, v, c) => '<div class="tile"><div class="small">' + t(k) + '</div><div class="big" style="' + (c ? 'color:' + c : '') + '">' + v + '</div></div>';
+    $('#dtRv').textContent = fmtRate(m) + ' ' + t('dt.cps');
+    $('#dtTiles').innerHTML = tile('dt.m', fmtRate(m)) + tile('dt.n', fmtRate(n)) + tile('dt.dt', fx(dtp, dtp < 10 ? 2 : 1), col) + tile('dt.lt', fx(lt, 0) + ' ' + t('dt.s'));
+    const st = dtp <= 20 ? ['good', 'dt.ok'] : dtp <= 50 ? ['', 'dt.warn'] : ['bad', 'dt.bad'];
+    $('#dtRes').innerHTML = '<span class="pill ' + st[0] + '">' + t(st[1]) + '</span>' + (cntAll > 20 ? '<span class="pill">' + t('dt.sim', cntLost, cntAll, fx(100 * cntLost / cntAll, 1)) + '</span>' : '');
+  }
+  function sat() {
+    const { ctx, w, h } = setup(cs), bx = { l: 46, t: 12, r: w - 10, b: h - 24 };
+    const X = scale('log', 10, 1e6, bx.l, bx.r), Y = scale('log', 10, 1e6, bx.b, bx.t);
+    // полосы 20 % и 50 %: m·τ > 0.25 и m·τ > 1
+    const x20 = X(clamp(0.25 / tau, 10, 1e6)), x50 = X(clamp(1 / tau, 10, 1e6));
+    ctx.fillStyle = 'rgba(255,154,60,.10)'; ctx.fillRect(x20, bx.t, x50 - x20, bx.b - bx.t); ctx.fillStyle = 'rgba(255,77,109,.12)'; ctx.fillRect(x50, bx.t, bx.r - x50, bx.b - bx.t);
+    axes(ctx, bx, X, Y, { xl: t('dt.ax.m'), yl: t('dt.ax.n') });
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.beginPath(); ctx.moveTo(X(10), Y(10)); ctx.lineTo(X(1e6), Y(1e6)); ctx.stroke();
+    const yl = Y(1 / tau); if (yl > bx.t) { ctx.strokeStyle = 'rgba(255,77,109,.6)'; ctx.beginPath(); ctx.moveTo(bx.l, yl); ctx.lineTo(bx.r, yl); ctx.stroke(); ctx.fillStyle = '#ff8fa6'; ctx.font = '11px system-ui'; ctx.textAlign = 'right'; ctx.fillText(t('dt.lim'), X(Math.min(1e6, 0.05 / tau)), yl + 13); }
+    ctx.setLineDash([]); ctx.strokeStyle = '#ffcc33'; ctx.lineWidth = 2.2; ctx.beginPath();
+    for (let k = 0; k <= 120; k++) { const mm = Math.pow(10, 1 + 5 * k / 120), n = mm / (1 + mm * tau); k ? ctx.lineTo(X(mm), Y(n)) : ctx.moveTo(X(mm), Y(n)); } ctx.stroke(); ctx.lineWidth = 1;
+    const n = m / (1 + m * tau); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(X(m), Y(n), 5, 0, 7); ctx.fill(); ctx.strokeStyle = '#ffcc33'; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1;
+    ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = '11px system-ui'; ctx.textAlign = 'right'; ctx.fillText(t('dt.ideal'), X(3e5), Y(3e5) - 6);
+  }
+  let tick = 0;
+  function loop(nw) { const dt = Math.min(0.1, (nw - last) / 1000); last = nw; if (visible.get(cv) !== false) { step(dt); drawTurn(); if (++tick % 20 === 0) stats(); } requestAnimationFrame(loop); }
+  requestAnimationFrame(loop);
+  GUIDE.onRedraw(() => { chips(); stats(); sat(); drawTurn(); });
+})();
+
+GUIDE.init();
+</script>
+</body>
+</html>

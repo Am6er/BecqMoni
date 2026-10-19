@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FSA на практике — BecqMoni гайд</title>
+<link rel="stylesheet" href="assets/guide.css">
+<style>
+/* только эта глава */
+figure.shot.side{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:6px 16px;align-items:start;margin-top:22px}
+figure.shot.side.nr{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)}
+figure.shot.side.tall{grid-template-columns:minmax(0,330px) minmax(0,1fr)}
+figure.shot.side>.shot-frame{grid-column:1;grid-row:1}
+figure.shot.side>figcaption{grid-column:1;grid-row:2}
+figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
+.shot-legend.cols2{grid-template-columns:1fr 1fr}
+figure.shot.wide{margin-top:22px}
+.checks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 14px;margin-top:6px}
+.checks .sw.off{opacity:.4;pointer-events:none}
+.statusbar{margin-top:12px;border-radius:10px;background:#f0f0f0;color:#222;font:13px "Segoe UI",system-ui,sans-serif;padding:6px 10px;border:1px solid #c9c9c9}
+.statusbar b{font-weight:600}
+.dlg{margin-top:10px;border-radius:10px;background:#fafafa;color:#1c1c1c;border:1px solid #b9b9b9;font:13px "Segoe UI",system-ui,sans-serif;overflow:hidden}
+.dlg .ttl{background:#fff;border-bottom:1px solid #ddd;padding:6px 10px;font-weight:600}
+.dlg .bd{padding:8px 10px}
+.rep{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:10px}
+.qtab{background:#fff;color:#111;border:1px solid #9aa0aa;border-radius:8px;font:13px "Segoe UI",system-ui,sans-serif;overflow:hidden}
+.qtab .hd{font-weight:700;padding:5px 8px;border-bottom:2px solid #888}
+.qtab .r{display:grid;grid-template-columns:1fr auto;gap:10px;padding:4px 8px;cursor:pointer;border-left:3px solid transparent}
+.qtab .r:hover{background:#eef4ff}
+.qtab .r.on{background:#fff3c4;border-left-color:#e0a800}
+.qtab .r i{font-style:normal;text-align:right;white-space:nowrap}
+.qtab .g{color:#1a8a1a}.qtab .bad{color:#c0262d}
+.explain{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;color:var(--soft);font-size:15px;min-height:160px}
+.explain h4{margin:0 0 6px;color:var(--ink);font-size:15.5px}
+@media (max-width:900px){
+  figure.shot.side,figure.shot.side.nr,figure.shot.side.tall{grid-template-columns:1fr}figure.shot.side>ol.shot-legend{grid-column:1;grid-row:3}
+  .checks{grid-template-columns:1fr 1fr}.rep{grid-template-columns:1fr}.shot-legend.cols2{grid-template-columns:1fr}
+}
+@media (max-width:560px){.checks{grid-template-columns:1fr}}
+figure.shot.side.tall>.shot-frame{max-width:330px;width:100%}
+</style>
+</head>
+<body data-chapter="fsa">
+
+<section class="hero" id="top"><div class="wrap">
+  <div class="kicker" data-t="h.k"></div>
+  <h1 data-t="h.h"></h1>
+  <p class="lead" data-t="h.lead"></p>
+</div></section>
+
+<!-- 1. ВКЛЮЧИТЬ -->
+<section class="sec" id="on" data-nav="n.on"><div class="wrap">
+  <div class="kicker" data-t="o.k"></div>
+  <h2 data-t="o.h"></h2>
+  <p class="lead" data-t="o.lead"></p>
+  <figure class="shot side" data-shot="view-modes"
+    data-hot-ru='[[0.166,0.845,0.062,0.125],[0.166,0.035,0.812,0.115],[0.166,0.558,0.812,0.118]]'
+    data-hot-en='[[0.106,0.845,0.062,0.125],[0.106,0.035,0.663,0.115],[0.106,0.558,0.663,0.118]]'>
+    <figcaption data-t="o.cap"></figcaption>
+    <ol class="shot-legend"><li data-t="o.l1"></li><li data-t="o.l2"></li><li data-t="o.l3"></li></ol>
+  </figure>
+  <div class="card full">
+    <h3 data-t="c.h"></h3>
+    <p class="note" style="margin-top:0" data-t="c.hint"></p>
+    <div class="checks" id="cChecks"></div>
+    <div id="cOut"></div>
+  </div>
+  <h3 style="margin-top:26px" data-t="o.steps"></h3>
+  <ol class="howto">
+    <li data-t="o.s1"></li><li data-t="o.s2"></li><li data-t="o.s3"></li><li data-t="o.s4"></li><li data-t="o.s5"></li>
+  </ol>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="o.f1"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="o.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="o.f3"></div>
+  </div>
+</div></section>
+
+<!-- 2. ОКНО ОТЧЁТА -->
+<section class="sec" id="report" data-nav="n.rep"><div class="wrap">
+  <div class="kicker" data-t="r.k"></div>
+  <h2 data-t="r.h"></h2>
+  <p class="lead" data-t="r.lead"></p>
+  <figure class="shot side tall" data-shot="panel-fsa" data-hot='[[0.0129,0.0222,0.9779,0.0455],[0.0129,0.0678,0.9779,0.0455],[0.0129,0.1133,0.9779,0.1430],[0.0129,0.2564,0.9779,0.1270],[0.0416,0.3845,0.7691,0.0392],[0.0129,0.4311,0.9779,0.0233],[0.0129,0.4544,0.9779,0.2290],[0.0129,0.6870,0.9779,0.3080]]'>
+    <figcaption data-t="r.cap"></figcaption>
+    <ol class="shot-legend">
+      <li data-t="r.l1"></li><li data-t="r.l2"></li><li data-t="r.l3"></li><li data-t="r.l4"></li>
+      <li data-t="r.l5"></li><li data-t="r.l6"></li><li data-t="r.l7"></li><li data-t="r.l8"></li>
+    </ol>
+  </figure>
+  <div class="callout tip" data-t="r.tip"></div>
+  <figure class="shot wide" data-shot="main-fsa" data-hot='[[0.0043,0.0803,0.1635,0.8896],[0.1980,0.1200,0.5370,0.7900],[0.1990,0.0810,0.5140,0.0170],[0.4202,0.9458,0.1270,0.0242],[0.7572,0.1597,0.2060,0.0203],[0.7503,0.5983,0.2454,0.3533],[0.8596,0.9768,0.1324,0.0223]]'>
+    <figcaption data-t="r.cap2"></figcaption>
+    <ol class="shot-legend cols2">
+      <li data-t="r.m1"></li><li data-t="r.m2"></li><li data-t="r.m3"></li><li data-t="r.m4"></li>
+      <li data-t="r.m5"></li><li data-t="r.m6"></li><li data-t="r.m7"></li>
+    </ol>
+  </figure>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="r.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="r.f2"></div>
+    <div class="fact" style="--c:var(--pair)" data-t="r.f3"></div>
+  </div>
+</div></section>
+
+<!-- 3. КАЧЕСТВО РАЗБОРА -->
+<section class="sec" id="quality" data-nav="n.q"><div class="wrap">
+  <div class="kicker" data-t="q.k"></div>
+  <h2 data-t="q.h"></h2>
+  <p class="lead" data-t="q.lead"></p>
+  <div class="card full">
+    <h3 data-t="q.game"></h3>
+    <div class="row" style="margin-top:0"><div class="chips" id="qMode"></div></div>
+    <div class="rep">
+      <div class="qtab" id="qTab"></div>
+      <div class="explain" id="qExp"></div>
+    </div>
+  </div>
+  <figure class="shot wide" data-shot="main-fsa-nomatrix" data-hot='[[0.0050,0.6270,0.1550,0.0730],[0.0050,0.8030,0.1550,0.0170],[0.0050,0.8320,0.1550,0.0400],[0.0050,0.8700,0.1550,0.0960],[0.7510,0.6310,0.0920,0.0170]]'>
+    <figcaption data-t="q.cap"></figcaption>
+    <ol class="shot-legend cols2"><li data-t="q.l1"></li><li data-t="q.l2"></li><li data-t="q.l3"></li><li data-t="q.l4"></li><li data-t="q.l5"></li></ol>
+  </figure>
+  <div class="facts">
+    <div class="fact" style="--c:var(--ok)" data-t="q.f1"></div>
+    <div class="fact" style="--c:var(--gold)" data-t="q.f2"></div>
+    <div class="fact" style="--c:var(--photo)" data-t="q.f3"></div>
+  </div>
+</div></section>
+
+<!-- 4. КОМПОНЕНТЫ МОДЕЛИ -->
+<section class="sec" id="model" data-nav="n.mod"><div class="wrap">
+  <div class="kicker" data-t="m.k"></div>
+  <h2 data-t="m.h"></h2>
+  <p class="lead" data-t="m.lead"></p>
+  <div class="card full">
+    <h3 data-t="g.h"></h3>
+    <p class="note" style="margin-top:0" data-t="g.hint"></p>
+    <canvas id="cvFit" class="cv tall"></canvas>
+    <canvas id="cvRes" class="cv strip"></canvas>
+    <div class="row">
+      <label class="sw"><input type="checkbox" id="kX" checked><span data-t="g.x"></span></label>
+      <label class="sw"><input type="checkbox" id="kS" checked><span data-t="g.s"></span></label>
+      <label class="sw"><input type="checkbox" id="kB" checked><span data-t="g.b"></span></label>
+      <button class="btn" id="gNew" data-t="g.new"></button>
+    </div>
+    <div class="legend" id="gLeg"></div>
+    <div class="pills" id="gRes"></div>
+  </div>
+  <div class="facts">
+    <div class="fact" style="--c:var(--pair)" data-t="m.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="m.f2"></div>
+    <div class="fact" style="--c:var(--esc)" data-t="m.f3"></div>
+  </div>
+</div></section>
+
+<!-- 5. ПРИ НАБОРЕ -->
+<section class="sec" id="live" data-nav="n.live"><div class="wrap">
+  <div class="kicker" data-t="l.k"></div>
+  <h2 data-t="l.h"></h2>
+  <p class="lead" data-t="l.lead"></p>
+  <div class="card full">
+    <h3 data-t="lv.h"></h3>
+    <canvas id="cvLive" class="cv short"></canvas>
+    <div class="sliders">
+      <div class="sl"><div class="top"><span data-t="lv.int"></span><span class="val" id="lvIntV"></span></div><input type="range" id="lvInt" min="0" max="120" step="5" value="30"></div>
+      <div class="sl"><div class="top"><span data-t="lv.dur"></span><span class="val" id="lvDurV"></span></div><input type="range" id="lvDur" min="1" max="60" step="1" value="8"></div>
+    </div>
+    <div class="row"><button class="btn main" id="lvRun" data-t="lv.run"></button><button class="btn" id="lvReset" data-t="lv.reset"></button></div>
+    <div class="statusbar" id="lvStatus"></div>
+    <div class="pills" id="lvRes"></div>
+  </div>
+  <figure class="shot side" data-shot="prefs-system" data-hot='[[0.0472,0.7810,0.7942,0.0300],[0.0472,0.7406,0.6553,0.0237]]'>
+    <figcaption data-t="l.cap"></figcaption>
+    <ol class="shot-legend"><li data-t="l.l1"></li><li data-t="l.l2"></li></ol>
+  </figure>
+  <div class="facts">
+    <div class="fact" style="--c:var(--gold)" data-t="l.f1"></div>
+    <div class="fact" style="--c:var(--blue)" data-t="l.f2"></div>
+    <div class="fact" style="--c:var(--ok)" data-t="l.f3"></div>
+  </div>
+  <details class="hood"><summary data-t="hood"></summary><ul data-t="hoodtxt"></ul></details>
+  <div id="pager"></div>
+</div></section>
+
+<footer><div class="wrap" data-t="foot"></div></footer>
+
+<script src="assets/guide.js"></script>
+<script>
+'use strict';
+const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, io, t, poisson } = GUIDE;
+GUIDE.texts({ru:{
+'n.on':'Включить','n.rep':'Окно отчёта','n.q':'Качество разбора','n.mod':'Компоненты модели','n.live':'Во время набора',
+'h.k':'Глава 9 · FSA на практике',
+'h.h':'Разобрать <em>весь спектр</em>, а не отдельные пики',
+'h.lead':'FSA (полноспектральное разложение) складывает спектр из «образов» нуклидов — каждый со своими пиками, комптоном и вылетами — и подбирает, сколько какого нужно. Как он устроен внутри — в главе <a href="how-it-works.html#fsa">«Как это устроено» → FSA</a>; здесь — как его включить и как читать отчёт.',
+'o.k':'Шаг 1','o.h':'Включить FSA — один пункт в списке режимов',
+'o.lead':'FSA — это режим показа спектра, как «фон» или «за вычетом фона». Включили — программа разбирает спектр и раскрашивает его по нуклидам. Но, как повару, ей нужны все ингредиенты: без них она вежливо откажет и скажет, чего не хватает.',
+'o.cap':'Полоса под графиком: раскрытый список режимов «Просмотр:»',
+'o.l1':'<b>Просмотр:</b> — кнопка со значком BG; её стрелка раскрывает список режимов',
+'o.l2':'Текущий режим отмечен галкой',
+'o.l3':'<b>Показать FSA (полноспектральное разложение)</b> — включить разбор',
+'c.h':'Проверьте сами: что скажет программа',
+'c.hint':'Снимайте и ставьте галки — ниже появится то, что вы увидите в программе: окно-вопрос, строка состояния отчёта и заголовок окна результата. Тексты — дословно из программы.',
+'c.ecal':'Калибровка энергии','c.fwhm':'Калибровка FWHM','c.curve':'Кривая эффективности выбрана','c.geo':'У кривой есть геометрия','c.peaks':'Пики найдены и подписаны','c.mx':'Матрица отклика посчитана',
+'c.dlg':'Окно-вопрос','c.status':'Строка состояния отчёта:','c.head':'Окно «Результат измерений»:','c.qual':'В «Качестве разбора»:',
+'s.done':'FSA: расчёт завершён','s.err':'FSA: ошибка',
+'d.fwhmT':'Полноспектральное разложение: нет калибровки FWHM','d.fwhmQ':'У этого спектра нет калибровки FWHM, а разложению она нужна — по ней строится форма линий. Взять калибровку из конфигурации прибора:',
+'d.effT':'Полноспектральное разложение: нет кривой эффективности','d.effQ':'У этого спектра не выбрана кривая эффективности. Без неё относительные веса линий внутри образа неверны и низкоэнергетическая часть перекашивается. Выберите кривую — или откажитесь от неё осознанно:',
+'d.after':'Выбрали — FSA продолжит. Отказались от кривой — дальше сработает проверка геометрии.',
+'e.cal':'Полноспектральному разложению нужны энергетическая калибровка и калибровка FWHM спектра',
+'e.geo':'Полноспектральному разложению нужна геометрия прибора: опишите кристалл в редакторе геометрии у кривой эффективности',
+'e.peaks':'Полноспектральное разложение: нет опознанных пиков — сначала поиск пиков',
+'h.mx':'FSA: Бк по матрице отклика','h.curve':'FSA: Бк по кривой (расчёт)','h.err':'FSA: ошибка',
+'q.mxOk':'Матрица отклика — <b style="color:#1a8a1a">учтена</b>; Каскадное суммирование — <b style="color:#1a8a1a">учтено</b>',
+'q.mxNo':'Матрица отклика — <b style="color:#c0262d">не учтена</b>; Каскадное суммирование — <b style="color:#c0262d">не учтено: нет матрицы отклика</b>; красное предупреждение «до −11 %»',
+'o.steps':'Пошагово',
+'o.s1':'Откройте спектр. Калибровка энергии и FWHM должны быть (глава <a href="calibration.html">6</a>).',
+'o.s2':'<span class="ui m">Вид → Управление измерением</span> → <span class="ui">Эффективн.</span> — кривая с геометрией (глава <a href="geometry.html">8</a>).',
+'o.s3':'<span class="ui m">Вид → Обнаружение пиков</span> → <span class="ui">Набор:</span> — ваш набор нуклидов. Пики должны получить подписи.',
+'o.s4':'Полоса под графиком: <span class="ui">Просмотр:</span> → <span class="ui">Показать FSA (полноспектральное разложение)</span>.',
+'o.s5':'Окно <span class="ui">Отчёт FSA</span> откроется само (иначе <span class="ui m">Вид → Отчёт FSA</span>). Дождитесь зелёного <span class="ui">FSA: расчёт завершён</span>.',
+'o.f1':'<b>Нет геометрии — нет FSA.</b> Кривая из измерений или введённая руками не подойдёт: разбору нужен кристалл, а не только числа.',
+'o.f2':'<b>Без матрицы — работает, но хуже.</b> Каскадные нуклиды занижаются, и отчёт честно пишет это красным.',
+'o.f3':'<b>Пики нужны как подсказка состава.</b> FSA берёт нуклиды из подписанных пиков; не найдено ни одного — разбирать нечего.',
+'r.k':'Шаг 2','r.h':'Окно «Отчёт FSA»',
+'r.lead':'Слева — настройки: что считать и как показывать. Справа внизу — итог: доли нуклидов и оценка качества. Наведите на номер — подсветится блок.',
+'r.cap':'«Отчёт FSA»: диск Th-232, разбор с матрицей',
+'r.l1':'<b>Источник состава</b>: «По меткам найденных пиков» — только подписанные пики; «Из NucBase» — состав по пикам, линии и ряды распада — из базы',
+'r.l2':'<b>Модель цепочек</b>: «Равновесие ряда» связывает членов ряда одной активностью (только при NucBase)',
+'r.l3':'<b>Дополнительные компоненты модели</b>: атомный рентген, каскадное суммирование, обратное рассеяние, пики вылета и 511 кэВ, наложение импульсов. По умолчанию всё включено',
+'r.l4':'<b>Отрисовка</b>: группировка (родительские / дочерние нуклиды), «Невязка модели» — лента расхождений, «Данные спектра»',
+'r.l5':'<b>Слой матрицы</b>: показать только пик, комптон, вылеты… (живо только при матрице)',
+'r.l6':'<b>Строка состояния</b>: зелёная «расчёт завершён», жёлтая «идёт расчёт», красная «ошибка» с причиной, серая «расчёта не было»',
+'r.l7':'<b>Таблица</b>: доля каждого компонента в %, «— ряд Th-232», «— сумм-пик». Щелчок по строке подсвечивает её слой на графике',
+'r.l8':'<b>Качество разбора</b> — разберём в разделе 3',
+'r.tip':'<b>Блоки 1–3 меняют расчёт</b> — после щелчка разбор пересчитывается. <b>Блоки 4–5 меняют только картинку</b> — ничего не пересчитывается. Подсказка у каждой галки говорит то же самое.',
+'r.cap2':'Главное окно в режиме FSA: Th-232, слои по нуклидам, справа внизу — беккерели',
+'r.m1':'<b>Отчёт FSA</b> — пристыкован слева',
+'r.m2':'<b>Стопка цветных слоёв</b>: каждый нуклид своим цветом, вместе они складываются в спектр',
+'r.m3':'<b>Флажки подписей</b> найденных пиков',
+'r.m4':'<b>Просмотр:</b> — режим FSA на полосе под графиком',
+'r.m5':'<b>Эффективн.</b> — кривая с геометрией, по ней идёт разбор',
+'r.m6':'<b>Результат измерений</b> — беккерели из этого же разбора (глава <a href="result.html">10</a>)',
+'r.m7':'<b>Мощность дозы</b> в строке состояния',
+'r.f1':'<b>Один расчёт на спектр.</b> График, отчёт и окно результата показывают одно и то же — переключили галку, обновилось всё.',
+'r.f2':'<b>Настройки — общие на все спектры.</b> Галки отчёта не хранятся в файле спектра: поменяли — поменялось для всех.',
+'r.f3':'<b>Ряды читаются по-человечески.</b> «Ac-228 — ряд Th-232» значит: это член ряда тория, а не отдельная находка.',
+'q.k':'Шаг 3','q.h':'«Качество разбора»: как понять, можно ли верить',
+'q.lead':'Это как отзыв о работе: сначала смотрите, всё ли зелёное, потом — насколько невязка выше шумового пола. Щёлкайте строки макета — справа появится объяснение.',
+'q.game':'Прочитайте отчёт: щёлкните строку',
+'q.with':'С матрицей','q.without':'Без матрицы',
+'q.hd':'Качество разбора',
+'q.r1':'Невязка: + лишнее / − нехватка — шумовой пол 2.4 %, показ подрезан на 13 каналах','q.r2':'χ²/ndf, качество подгонки (по статистике Пуассона)','q.r3':'σ×, во сколько раз раздута погрешность',
+'q.r4':'Матрица отклика','q.r5':'Кривая эффективности','q.r6':'Каскадное суммирование','q.r7':'Привязка шкалы, опор','q.r8':'Усиление по опорам, %','q.r9':'Ноль по опорам, кэВ',
+'q.r10':'353.6 кэВ: пик вне состава — на 12 % выше модели, z 21.6; линии библиотеки рядом: Pb-214 (Ra-226) 351.9',
+'q.r11':'Нет матрицы отклика: каскадное суммирование не учтено — каскадные нуклиды занижены на CF − 1 (корпус: −3…−11 % на 5 см, −4…−7 % в маринелли и Петри); в образах нет комптона и вылетов; шкала привязана по голым пикам. Постройте матрицу из геометрии.',
+'q.v.used':'учтена','q.v.notUsed':'не учтена','q.v.applied':'учтено','q.v.noMx':'не учтено: нет матрицы отклика','q.v.notInSet':'нет в сете','q.v.upTo':'до −11 %',
+'q.e1h':'Невязка и шумовой пол','q.e1':'Какая доля измеренных отсчётов не описана моделью: «+» — в спектре больше, чем в модели; «−» — модель выше спектра. Сравнивайте с шумовым полом: даже идеальная модель даёт около него из-за статистики. Здесь 4.8 % при поле 2.4 % — кое-что не описано (см. последнюю строку). «Показ подрезан» значит только, что на графике лента обрезана у нуля.',
+'q.e2h':'χ²/ndf','q.e2':'Около 1 — модель согласна со статистикой. 2–3 — есть заметные расхождения: не хватает компонента или нуклида. Десятки — что-то всерьёз не так: калибровка, кривая, состав.',
+'q.e3h':'σ× — раздутие погрешности','q.e3':'Подгонка хуже чистой статистики — и программа честно раздувает погрешности во столько раз. 1.000 — раздутия нет. Неопределённость в окне результата уже включает этот множитель.',
+'q.e4h':'Матрица отклика','q.e4':'Зелёное «учтена»: образы нуклидов построены из матрицы — с комптоном и вылетами. Красное «не учтена» или «устарела» — посчитайте или пересчитайте матрицу (глава <a href="geometry.html#matrix">8</a>).',
+'q.e5h':'Кривая эффективности','q.e5':'«учтена»: веса линий внутри образа и беккерели берутся по ней. «не учтена» — низ спектра перекошен, а беккерели окно результата скроет.',
+'q.e6h':'Каскадное суммирование','q.e6':'Учитывается только при матрице. Без неё нуклиды с каскадами (Co-60, Bi-214, Tl-208 и др.) занижаются — по корпусу до 11 %.',
+'q.e7h':'Привязка шкалы','q.e7':'По скольким опорным пикам FSA сверил шкалу энергий и какую поправку нашёл. Доли процента и нули — норма; проценты и килоэлектронвольты — повод перекалибровать (глава <a href="calibration.html">6</a>).',
+'q.e10h':'Пик вне состава','q.e10':'В спектре есть пик, которого нет в модели: на 353.6 кэВ счёт на 12 % выше модели, значимость z 21.6. Рядом линия Pb-214 из ряда Ra-226, а этого нуклида нет в наборе — «нет в сете». Добавьте его в набор или включите «Из NucBase».',
+'q.e11h':'Нет матрицы отклика','q.e11':'Красное предупреждение со ценой: каскадные нуклиды могут быть занижены до 11 %. Лечится одним действием — матрицей из геометрии.',
+'q.cap':'Тот же диск без матрицы: красные строки (снимок русского интерфейса)',
+'q.l1':'<b>Отдельные компоненты</b> — рентген Pb и Th, пик вылета SE-1588, обратное рассеяние: без матрицы они живут в таблице сами по себе',
+'q.l2':'<b>Матрица отклика — не учтена</b>',
+'q.l3':'<b>Каскадное суммирование — не учтено: нет матрицы отклика</b>',
+'q.l4':'<b>Предупреждение</b> с ценой «до −11 %»',
+'q.l5':'Окно результата пишет <b>«FSA: Бк по кривой (расчёт)»</b> вместо «по матрице отклика»',
+'q.f1':'<b>Зелёные «учтена» — первое, что смотреть.</b> Красное в этих трёх строках важнее любых процентов.',
+'q.f2':'<b>Невязка сравнивается с полом, а не с нулём.</b> 3 % при поле 2.5 % — отлично; 15 % при поле 2 % — модель что-то упускает.',
+'q.f3':'<b>Красная строка с энергией</b> — подсказка, какой нуклид забыт. Чаще всего это член ряда радия или тория, не попавший в набор.',
+'m.k':'Шаг 4','m.h':'Галки модели: зачем каждая',
+'m.lead':'Каждая галка «Дополнительных компонентов» добавляет в модель кусок физики. Выключите — и посмотрите, где появится невязка. Модель ниже упрощена, но считается честно: подгонка с неотрицательными долями, прямо в браузере.',
+'g.h':'Выключайте компоненты и смотрите на невязку',
+'g.hint':'Проба: Cs-137 и Co-60 в свинцовом домике. Точки — «измеренный» спектр, цветные слои — модель, полоса снизу — невязка по каналам в сигмах (золото — лишнее, красное — нехватка).',
+'g.x':'Атомный рентген','g.s':'Каскадное суммирование','g.b':'Обратное рассеяние','g.new':'Новый спектр',
+'g.c.cs':'Cs-137','g.c.co':'Co-60','g.c.x':'рентген Pb','g.c.b':'обратное рассеяние','g.c.bg':'подложка',
+'g.res':'невязка <b>+{0} / −{1} %</b>','g.floor':'шумовой пол <b>{0} %</b>','g.chi':'χ²/ndf <b>{0}</b>','g.co':'Co-60: найдено <b>{0} %</b> от истинного',
+'ax.e':'энергия, кэВ','ax.c':'отсчёты',
+'m.f1':'<b>Атомный рентген</b> — пики 75–85 кэВ от свинца домика и рентген самих нуклидов. Без него низ спектра «лишний».',
+'m.f2':'<b>Каскадное суммирование</b> — два кванта одного распада пойманы разом: их пики проседают, а на сумме энергий вырастает пик. Без компонента Co-60 занижен.',
+'m.f3':'<b>Обратное рассеяние</b> — горб около 200 кэВ от квантов, отразившихся от стен и домика. В геометрии это галка «Измерение в защите».',
+'l.k':'Шаг 5','l.h':'FSA во время набора',
+'l.lead':'Пока спектр пишется, FSA пересчитывается сам — но не чаще заданного: как прогноз погоды, который обновляют раз в полчаса, а не каждую секунду. Двигайте ползунки и посмотрите на ленту счётов.',
+'lv.h':'Лента набора: когда FSA пересчитывается','lv.int':'Пересчёт не чаще, чем раз в','lv.dur':'Длительность одного счёта','lv.run':'Пуск','lv.pause':'Пауза','lv.reset':'Сброс','lv.s':'с',
+'lv.runs':'счётов за 10 минут набора: <b>{0}</b>','lv.busy':'FSA занят <b>{0} %</b> времени','lv.time':'набор: <b>{0}</b>',
+'lv.running':'FSA: идёт расчёт','lv.done':'FSA: расчёт завершён','lv.idle':'FSA: расчёта не было',
+'lv.axis':'время набора, с',
+'l.cap':'<span class="ui m">Инструменты → Настройки</span> → вкладка «Системные», блок «Прочее»',
+'l.l1':'<b>Полноспектральный разбор при записи спектра: пересчёт не чаще, чем раз в 30 с</b>. 0 — счёт за счётом',
+'l.l2':'<b>Сохранять матрицу отклика в файл спектра</b> — чтобы спектр разбирался и на другом компьютере',
+'l.f1':'<b>Отсчёт — от начала прошлого счёта.</b> Если счёт длиннее паузы, следующий начнётся сразу после него.',
+'l.f2':'<b>Только для видимых спектров.</b> Спектр на скрытой вкладке не нагружает процессор.',
+'l.f3':'<b>Остановили набор — посчитано набело.</b> Окончательный результат смотрите после «Стоп».',
+'hoodtxt':'<li>«По меткам найденных пиков» строит состав только из подписанных пиков; «Из NucBase» выводит его по пикам и собирает из всех излучений распада, включая рентген и дочерних. «Равновесие ряда» работает только с NucBase, «Родительские нуклиды» — только при NucBase и равновесии.</li><li>При матрице галки «Обратное рассеяние» и «Пики вылета» управляют лишь отдельной добавкой — вклад, заложенный в матрицу, остаётся. Галка геометрии «Измерение в защите» сохраняет образ обратного рассеяния и при матрице.</li><li>Невязка считается от нижней границы диапазона прибора (вкладка «Анализ» конфигурации), шумовой пол — ожидаемое пуассоново отклонение идеальной модели в той же полосе.</li><li>σ× — корень из χ²/ndf самого решателя с робастными весами (Хубер), поэтому он не равен корню из пуассоновского χ²/ndf строкой выше.</li><li>Один сеанс FSA на документ: график, отчёт и окно результата читают один расчёт. Пауза при записи — «Полноспектральный разбор при записи спектра» в «Системных», по умолчанию 30 с.</li>',
+},en:{
+'n.on':'Turn it on','n.rep':'Report window','n.q':'Analysis quality','n.mod':'Model components','n.live':'During acquisition',
+'h.k':'Chapter 9 · FSA in practice',
+'h.h':'Decompose <em>the whole spectrum</em>, not single peaks',
+'h.lead':'FSA (full-spectrum decomposition) builds the spectrum from nuclide “images” — each with its peaks, Compton and escapes — and finds how much of each is needed. How it works inside is in <a href="how-it-works.html#fsa">“How it works” → FSA</a>; here is how to turn it on and read the report.',
+'o.k':'Step 1','o.h':'Turn FSA on — one item in the list of modes',
+'o.lead':'FSA is a display mode of the spectrum, like “background” or “background subtracted”. Turn it on and the program decomposes the spectrum and colours it by nuclide. But like a cook it needs all the ingredients: without them it politely refuses and says what is missing.',
+'o.cap':'The bar under the chart: the “View:” list of modes, opened',
+'o.l1':'<b>View:</b> — the button with the BG icon; its arrow opens the list of modes',
+'o.l2':'The current mode carries a check mark',
+'o.l3':'<b>Show FSA (full-spectrum decomposition)</b> — turn the decomposition on',
+'c.h':'Check it yourself: what the program will say',
+'c.hint':'Tick and untick the boxes — below appears what you will see in the program: a question window, the status line of the report and the header of the result window. The texts are word for word from the program.',
+'c.ecal':'Energy calibration','c.fwhm':'FWHM calibration','c.curve':'Efficiency curve chosen','c.geo':'The curve has a geometry','c.peaks':'Peaks found and labelled','c.mx':'Response matrix computed',
+'c.dlg':'Question window','c.status':'Report status line:','c.head':'The “Measurement Result” window:','c.qual':'In “Analysis quality”:',
+'s.done':'FSA completed','s.err':'FSA error',
+'d.fwhmT':'Full-spectrum analysis: no FWHM calibration','d.fwhmQ':'This spectrum carries no FWHM calibration, and the decomposition needs it to build line shapes. Take the calibration from a device configuration:',
+'d.effT':'Full-spectrum analysis: no efficiency curve','d.effQ':'No efficiency curve is chosen for this spectrum. Without one the relative weights of lines inside a template are wrong and the low-energy part gets skewed. Choose a curve, or leave it out deliberately:',
+'d.after':'Pick one and FSA goes on. Leave the curve out and the geometry check comes next.',
+'e.cal':'Full-spectrum decomposition needs an energy calibration and an FWHM calibration of the spectrum',
+'e.geo':'Full-spectrum decomposition needs a detector geometry: describe the crystal in the geometry editor of the efficiency curve',
+'e.peaks':'Full-spectrum decomposition: no identified peaks to build the library from — run peak detection first',
+'h.mx':'FSA: Bq by response matrix','h.curve':'FSA: Bq by simulation curve','h.err':'FSA: error',
+'q.mxOk':'Response matrix — <b style="color:#1a8a1a">used</b>; Cascade summing — <b style="color:#1a8a1a">applied</b>',
+'q.mxNo':'Response matrix — <b style="color:#c0262d">not used</b>; Cascade summing — <b style="color:#c0262d">not applied: no response matrix</b>; a red warning “up to −11 %”',
+'o.steps':'Step by step',
+'o.s1':'Open a spectrum. It must have an energy and an FWHM calibration (chapter <a href="calibration.html">6</a>).',
+'o.s2':'<span class="ui m">View → Measurement Control</span> → <span class="ui">Efficiency</span> — a curve with a geometry (chapter <a href="geometry.html">8</a>).',
+'o.s3':'<span class="ui m">View → Peak Detection</span> → <span class="ui">Use set:</span> — your nuclide set. Peaks must get labels.',
+'o.s4':'The bar under the chart: <span class="ui">View:</span> → <span class="ui">Show FSA (full-spectrum decomposition)</span>.',
+'o.s5':'The <span class="ui">FSA Report</span> window opens by itself (otherwise <span class="ui m">View → FSA Report</span>). Wait for the green <span class="ui">FSA completed</span>.',
+'o.f1':'<b>No geometry — no FSA.</b> A curve from measurements or typed by hand will not do: the decomposition needs a crystal, not just numbers.',
+'o.f2':'<b>Without a matrix it works, but worse.</b> Cascade nuclides read low, and the report honestly says so in red.',
+'o.f3':'<b>Peaks serve as a hint of the composition.</b> FSA takes nuclides from labelled peaks; none found — nothing to decompose.',
+'r.k':'Step 2','r.h':'The “FSA Report” window',
+'r.lead':'On the left — settings: what to compute and how to show it. Lower right — the outcome: nuclide shares and a quality check. Hover a number — the block lights up.',
+'r.cap':'“FSA Report”: a Th-232 disk, decomposition with a matrix',
+'r.l1':'<b>Composition source</b>: “From labels of detected peaks” — labelled peaks only; “From NucBase” — the composition from the peaks, lines and decay chains from the database',
+'r.l2':'<b>Chain model</b>: “Chain equilibrium” ties chain members to one activity (NucBase only)',
+'r.l3':'<b>Additional model components</b>: atomic X-rays, cascade summing, backscatter, escape peaks and 511 keV, pulse pile-up. All on by default',
+'r.l4':'<b>Display</b>: grouping (parent / daughter nuclides), “Model residual” — the band of differences, “Spectral data”',
+'r.l5':'<b>Matrix layer</b>: show only the peak, Compton, escapes… (live only with a matrix)',
+'r.l6':'<b>Status line</b>: green “completed”, yellow “in progress”, red “error” with the reason, grey “idle”',
+'r.l7':'<b>The table</b>: the share of each component in %, “— Th-232 chain”, “— sum peak”. A click on a row highlights its layer on the chart',
+'r.l8':'<b>Analysis quality</b> — see section 3',
+'r.tip':'<b>Blocks 1–3 change the calculation</b> — after a click the decomposition is recomputed. <b>Blocks 4–5 change only the picture</b> — nothing is recomputed. Each box’s tooltip says the same.',
+'r.cap2':'The main window in FSA mode: Th-232, layers by nuclide, becquerels lower right',
+'r.m1':'<b>FSA Report</b> — docked on the left',
+'r.m2':'<b>A stack of coloured layers</b>: each nuclide in its colour, together they add up to the spectrum',
+'r.m3':'<b>Label flags</b> of the detected peaks',
+'r.m4':'<b>View:</b> — the FSA mode on the bar under the chart',
+'r.m5':'<b>Efficiency</b> — a curve with a geometry; the decomposition uses it',
+'r.m6':'<b>Measurement Result</b> — becquerels from the same decomposition (chapter <a href="result.html">10</a>)',
+'r.m7':'<b>Dose rate</b> in the status bar',
+'r.f1':'<b>One calculation per spectrum.</b> The chart, the report and the result window show the same thing — flip a box and everything updates.',
+'r.f2':'<b>The settings are shared by all spectra.</b> The report boxes are not stored in the spectrum file: change them and they change for all.',
+'r.f3':'<b>Chains read like plain words.</b> “Ac-228 — Th-232 chain” means a member of the thorium chain, not a separate find.',
+'q.k':'Step 3','q.h':'“Analysis quality”: can I trust it',
+'q.lead':'It is like a work review: first see whether everything is green, then how far the residual is above the noise floor. Click the rows of the mock-up — an explanation appears on the right.',
+'q.game':'Read the report: click a row',
+'q.with':'With a matrix','q.without':'Without a matrix',
+'q.hd':'Analysis quality',
+'q.r1':'Residual: + excess / − missing — noise floor 2.4 %, display clipped on 13 channels','q.r2':'χ²/ndf, goodness of fit (Poisson statistics)','q.r3':'σ×, uncertainty inflation',
+'q.r4':'Response matrix','q.r5':'Efficiency curve','q.r6':'Cascade summing','q.r7':'Scale anchoring, anchors','q.r8':'Gain from anchors, %','q.r9':'Zero from anchors, keV',
+'q.r10':'353.6 keV: peak outside the composition — 12 % above the model, z 21.6; library lines nearby: Pb-214 (Ra-226) 351.9',
+'q.r11':'No response matrix: cascade summing is not applied — cascade nuclides read low by CF − 1 (corpus: −3…−11 % at 5 cm, −4…−7 % in Marinelli and Petri); the images carry no Compton continuum and no escape peaks; the scale is anchored on bare peaks. Build the matrix from the geometry.',
+'q.v.used':'used','q.v.notUsed':'not used','q.v.applied':'applied','q.v.noMx':'not applied: no response matrix','q.v.notInSet':'not in set','q.v.upTo':'up to −11 %',
+'q.e1h':'Residual and the noise floor','q.e1':'What share of the measured counts the model does not describe: “+” — the spectrum has more than the model; “−” — the model is above the spectrum. Compare with the noise floor: even a perfect model shows about that much from statistics. Here 4.8 % against a floor of 2.4 % — something is undescribed (see the last row). “Display clipped” only means the band on the chart is cut at zero.',
+'q.e2h':'χ²/ndf','q.e2':'About 1 — the model agrees with the statistics. 2–3 — visible differences: a component or a nuclide is missing. Tens — something is seriously off: calibration, curve, composition.',
+'q.e3h':'σ× — uncertainty inflation','q.e3':'The fit is worse than pure statistics, and the program honestly inflates the uncertainties by this factor. 1.000 — no inflation. The uncertainty in the result window already includes it.',
+'q.e4h':'Response matrix','q.e4':'Green “used”: the nuclide images are built from the matrix — with Compton and escapes. Red “not used” or “stale” — compute or recompute the matrix (chapter <a href="geometry.html#matrix">8</a>).',
+'q.e5h':'Efficiency curve','q.e5':'“used”: line weights inside an image and the becquerels follow it. “not used” — the low end is skewed, and the result window hides the becquerels.',
+'q.e6h':'Cascade summing','q.e6':'Applied only with a matrix. Without it, nuclides with cascades (Co-60, Bi-214, Tl-208 and others) read low — up to 11 % in the corpus.',
+'q.e7h':'Scale anchoring','q.e7':'How many anchor peaks FSA checked the energy scale on, and what correction it found. Fractions of a percent and zeros are normal; percents and kilo-electronvolts are a reason to recalibrate (chapter <a href="calibration.html">6</a>).',
+'q.e10h':'Peak outside the composition','q.e10':'The spectrum has a peak the model lacks: at 353.6 keV the count is 12 % above the model, significance z 21.6. Nearby is the Pb-214 line of the Ra-226 chain, and that nuclide is not in the set — “not in set”. Add it to the set or switch to “From NucBase”.',
+'q.e11h':'No response matrix','q.e11':'A red warning with a price: cascade nuclides may read up to 11 % low. One action cures it — a matrix from the geometry.',
+'q.cap':'The same disk without a matrix: red lines (a shot of the Russian interface)',
+'q.l1':'<b>Separate components</b> — Pb and Th X-rays, the SE-1588 escape peak, backscatter: without a matrix they live in the table on their own',
+'q.l2':'<b>Response matrix — not used</b>',
+'q.l3':'<b>Cascade summing — not applied: no response matrix</b>',
+'q.l4':'<b>The warning</b> with the price “up to −11 %”',
+'q.l5':'The result window says <b>“FSA: Bq by … curve”</b> instead of “by response matrix”',
+'q.f1':'<b>Green “used” comes first.</b> Red in these three rows matters more than any percentage.',
+'q.f2':'<b>The residual is compared with the floor, not with zero.</b> 3 % with a floor of 2.5 % is excellent; 15 % with a floor of 2 % — the model misses something.',
+'q.f3':'<b>A red row with an energy</b> hints at a forgotten nuclide. Most often it is a radium or thorium chain member missing from the set.',
+'m.k':'Step 4','m.h':'Model boxes: what each one is for',
+'m.lead':'Each box of “Additional model components” adds a piece of physics to the model. Turn one off and see where the residual appears. The model below is simplified but honest: a fit with non-negative shares, right in the browser.',
+'g.h':'Turn components off and watch the residual',
+'g.hint':'Sample: Cs-137 and Co-60 in a lead castle. Dots — the “measured” spectrum, coloured layers — the model, the strip below — the residual per channel in sigmas (gold — excess, red — missing).',
+'g.x':'Atomic X-rays','g.s':'Cascade summing','g.b':'Backscatter','g.new':'New spectrum',
+'g.c.cs':'Cs-137','g.c.co':'Co-60','g.c.x':'Pb X-rays','g.c.b':'backscatter','g.c.bg':'baseline',
+'g.res':'residual <b>+{0} / −{1} %</b>','g.floor':'noise floor <b>{0} %</b>','g.chi':'χ²/ndf <b>{0}</b>','g.co':'Co-60: found <b>{0} %</b> of the truth',
+'ax.e':'energy, keV','ax.c':'counts',
+'m.f1':'<b>Atomic X-rays</b> — 75–85 keV peaks from the castle lead and the nuclides’ own X-rays. Without it the low end is “in excess”.',
+'m.f2':'<b>Cascade summing</b> — two photons of one decay caught at once: their peaks sag and a peak grows at the sum of energies. Without the component Co-60 reads low.',
+'m.f3':'<b>Backscatter</b> — a hump near 200 keV from photons bounced off the walls and the castle. In the geometry it is the “Measured inside a shield” box.',
+'l.k':'Step 5','l.h':'FSA during acquisition',
+'l.lead':'While a spectrum is being recorded, FSA recomputes itself — but no more often than set: like a weather forecast updated every half hour, not every second. Move the sliders and watch the strip of runs.',
+'lv.h':'Acquisition strip: when FSA recomputes','lv.int':'Recompute no more often than every','lv.dur':'Duration of one run','lv.run':'Play','lv.pause':'Pause','lv.reset':'Reset','lv.s':'s',
+'lv.runs':'runs per 10 minutes of acquisition: <b>{0}</b>','lv.busy':'FSA busy <b>{0} %</b> of the time','lv.time':'acquisition: <b>{0}</b>',
+'lv.running':'FSA in progress','lv.done':'FSA completed','lv.idle':'FSA idle',
+'lv.axis':'acquisition time, s',
+'l.cap':'<span class="ui m">Tool → Preferences</span> → the “System” tab, the “Misc” block',
+'l.l1':'<b>Full-spectrum analysis while a spectrum is being recorded: recompute no more often than every 30 s</b>. 0 — one run after another',
+'l.l2':'<b>Save response matrix into spectrum file</b> — so the spectrum can be analysed on another computer too',
+'l.f1':'<b>The pause counts from the start of the previous run.</b> If a run is longer than the pause, the next one starts right after it.',
+'l.f2':'<b>Only for visible spectra.</b> A spectrum on a hidden tab does not load the CPU.',
+'l.f3':'<b>Stop the acquisition — get the final count.</b> Read the final result after “Stop”.',
+'hoodtxt':'<li>“From labels of detected peaks” builds the composition from labelled peaks only; “From NucBase” infers it from the peaks and assembles it from all decay radiations, X-rays and daughters included. “Chain equilibrium” works only with NucBase, “Parent nuclides” only with NucBase and equilibrium.</li><li>With a matrix the “Backscatter” and “Escape peaks” boxes control only a separate add-on — the contribution built into the matrix stays. The geometry box “Measured inside a shield” keeps the backscatter image even with a matrix.</li><li>The residual is counted from the lower edge of the detector range (the “Analysis” tab of the configuration); the noise floor is the expected Poisson deviation of a perfect model in the same band.</li><li>σ× is the square root of the solver’s own χ²/ndf with robust (Huber) weights, so it does not equal the square root of the Poisson χ²/ndf above it.</li><li>One FSA session per document: the chart, the report and the result window read one calculation. The pause while recording is “Full-spectrum analysis while a spectrum is being recorded” on the “System” tab, 30 s by default.</li>',
+}});
+
+/* ── 1. проверка готовности: какие тексты покажет программа ── */
+(function ready() {
+  const KEYS = ['ecal', 'fwhm', 'curve', 'geo', 'peaks', 'mx'];
+  const on = { ecal: true, fwhm: true, curve: true, geo: true, peaks: true, mx: true };
+  function draw() {
+    $('#cChecks').innerHTML = KEYS.map(k => {
+      const dis = (k === 'geo' || k === 'mx') && !on.curve || k === 'mx' && !on.geo;
+      return '<label class="sw' + (dis ? ' off' : '') + '"><input type="checkbox" data-k="' + k + '"' + (on[k] && !dis ? ' checked' : '') + '><span>' + t('c.' + k) + '</span></label>';
+    }).join('');
+    $$('#cChecks input').forEach(c => c.onchange = () => { on[c.dataset.k] = c.checked; draw(); });
+    const geo = on.curve && on.geo, mx = geo && on.mx;
+    let dlg = '', status, head, qual = '';
+    if (!on.fwhm) dlg = '<div class="dlg"><div class="ttl">' + t('d.fwhmT') + '</div><div class="bd">' + t('d.fwhmQ') + '</div></div>';
+    else if (!on.curve) dlg = '<div class="dlg"><div class="ttl">' + t('d.effT') + '</div><div class="bd">' + t('d.effQ') + '<br><i style="color:#555">' + t('d.after') + '</i></div></div>';
+    if (!on.ecal) status = ['#c0262d', t('s.err') + ': ' + t('e.cal')];
+    else if (!geo) status = ['#c0262d', t('s.err') + ': ' + t('e.geo')];
+    else if (!on.peaks) status = ['#c0262d', t('s.err') + ': ' + t('e.peaks')];
+    else { status = ['#1a8a1a', t('s.done')]; qual = t(mx ? 'q.mxOk' : 'q.mxNo'); }
+    head = status[0] === '#1a8a1a' ? t(mx ? 'h.mx' : 'h.curve') : t('h.err');
+    $('#cOut').innerHTML = dlg +
+      '<div class="statusbar"><span style="color:#555">' + t('c.status') + '</span> <b style="color:' + status[0] + '">' + status[1] + '</b></div>' +
+      (qual ? '<div class="statusbar"><span style="color:#555">' + t('c.qual') + '</span> ' + qual + '</div>' : '') +
+      '<div class="statusbar"><span style="color:#555">' + t('c.head') + '</span> <b>' + head + '</b></div>';
+  }
+  GUIDE.onRedraw(draw);
+})();
+
+/* ── 3. «прочитайте отчёт»: макет блока «Качество разбора» ── */
+(function quality() {
+  // строки: [ключ подписи, значение (ключ или число), цвет, ключ объяснения]
+  const WITH = [['q.r1', '+4.8 / −4.6 %', '', 1], ['q.r2', '2.33', '', 2], ['q.r3', '1.402', '', 3], ['q.r4', 'q.v.used', 'g', 4], ['q.r5', 'q.v.used', 'g', 5], ['q.r6', 'q.v.applied', 'g', 6], ['q.r7', '3', '', 7], ['q.r8', '-0.24', '', 7], ['q.r9', '+0.00', '', 7], ['q.r10', 'q.v.notInSet', 'bad', 10]];
+  const WITHOUT = [['q.r1', '+5.0 / −5.7 %', '', 1], ['q.r2', '3.22', '', 2], ['q.r3', '1.648', '', 3], ['q.r4', 'q.v.notUsed', 'bad', 4], ['q.r5', 'q.v.used', 'g', 5], ['q.r6', 'q.v.noMx', 'bad', 6], ['q.r11', 'q.v.upTo', 'bad', 11]];
+  let mode = 0, sel = 0;
+  function draw() {
+    $('#qMode').innerHTML = ['q.with', 'q.without'].map((k, i) => '<button class="chip' + (i === mode ? ' on' : '') + '" data-i="' + i + '">' + t(k) + '</button>').join('');
+    $$('#qMode .chip').forEach(b => b.onclick = () => { mode = +b.dataset.i; sel = 0; draw(); });
+    const rows = mode ? WITHOUT : WITH;
+    $('#qTab').innerHTML = '<div class="hd">' + t('q.hd') + '</div>' + rows.map((r, i) => '<div class="r' + (i === sel ? ' on' : '') + '" data-i="' + i + '"><span>' + t(r[0]) + '</span><i class="' + r[2] + '">' + (/^q\./.test(r[1]) ? t(r[1]) : r[1]) + '</i></div>').join('');
+    $$('#qTab .r').forEach(d => d.onclick = () => { sel = +d.dataset.i; draw(); });
+    const e = rows[sel][3];
+    $('#qExp').innerHTML = '<h4>' + t('q.e' + e + 'h') + '</h4>' + t('q.e' + e);
+  }
+  GUIDE.onRedraw(draw);
+})();
+
+/* ── 4. игрушечный FSA: Cs-137 + Co-60 в свинцовом домике, подгонка с неотрицательными долями ── */
+(function toyFsa() {
+  const E0 = 20, DE = 4, N = 700, EN = Array.from({ length: N }, (_, i) => E0 + DE * (i + .5));
+  const sg = E => 0.07 * 662 * Math.sqrt(E / 662) / 2.355;
+  const gaussA = (E, area) => EN.map(e => area * DE * Math.exp(-0.5 * ((e - E) / sg(E)) ** 2) / (sg(E) * 2.5066));
+  const compton = (E, area) => { const ec = E * (2 * E / 511) / (1 + 2 * E / 511), s = sg(ec); return EN.map(e => area * DE / ec * (0.7 + 0.3 * e / ec) / (1 + Math.exp((e - ec) / s)) * 0.95); };
+  const add = (a, b, k = 1) => a.map((v, i) => v + k * b[i]);
+  const line = (E, area, ctr) => add(gaussA(E, area), compton(E, area * ctr));
+  const SUM = 0.08;                                              // доля потерь пика на суммирование
+  const cs = line(661.66, 1, 1.6), co0 = add(line(1173.2, 1, 1.9), line(1332.5, 1, 1.9));
+  const coS = add(add(line(1173.2, 1 - SUM, 1.9), line(1332.5, 1 - SUM, 1.9)), gaussA(2505.7, 0.035));
+  const xr = add(gaussA(74.2, 1), gaussA(84.9, 0.32));
+  const bs = EN.map(e => DE * Math.exp(-0.5 * ((e - 200) / 26) ** 2) / (26 * 2.5066));
+  const bg = [EN.map(e => Math.exp(-e / 120)), EN.map(e => Math.exp(-e / 450)), EN.map(e => Math.exp(-e / 1400)), EN.map(() => 1)];
+  const TRUE = { cs: 60000, co: 22000, x: 9000, b: 14000, bg: [4000, 1200, 160, 2.5] };
+  let data = null;
+  function makeData() {
+    const m = EN.map((_, i) => TRUE.cs * cs[i] + TRUE.co * coS[i] + TRUE.x * xr[i] + TRUE.b * bs[i] + bg.reduce((s, b, k) => s + TRUE.bg[k] * b[i], 0));
+    data = m.map(v => poisson(v));
+  }
+  function fit() {
+    const useX = $('#kX').checked, useS = $('#kS').checked, useB = $('#kB').checked;
+    const comps = [['cs', cs], ['co', useS ? coS : co0]];
+    if (useX) comps.push(['x', xr]); if (useB) comps.push(['b', bs]);
+    bg.forEach((b, k) => comps.push(['bg' + k, b]));
+    const K = comps.length, lo = Math.round((40 - E0) / DE), w = data.map(y => 1 / Math.max(y, 1));
+    const Gm = Array.from({ length: K }, () => new Float64Array(K)), bv = new Float64Array(K);
+    for (let i = lo; i < N; i++) for (let a = 0; a < K; a++) { const fa = comps[a][1][i] * w[i]; bv[a] += fa * data[i]; for (let b = a; b < K; b++) Gm[a][b] += fa * comps[b][1][i]; }
+    for (let a = 0; a < K; a++) for (let b = 0; b < a; b++) Gm[a][b] = Gm[b][a];
+    const x = new Float64Array(K).fill(0);
+    for (let a = 0; a < K; a++) x[a] = Math.max(0, bv[a] / Gm[a][a]) * 0.5;
+    for (let it = 0; it < 3000; it++) for (let a = 0; a < K; a++) { let r = bv[a]; for (let b = 0; b < K; b++) r -= Gm[a][b] * x[b]; x[a] = Math.max(0, x[a] + r / Gm[a][a]); }
+    const model = EN.map((_, i) => comps.reduce((s, c, k) => s + x[k] * c[1][i], 0));
+    let tot = 0, pos = 0, neg = 0, chi = 0, flo = 0;
+    for (let i = lo; i < N; i++) { const d = data[i] - model[i]; tot += data[i]; if (d > 0) pos += d; else neg -= d; chi += d * d / Math.max(model[i], 1); flo += Math.sqrt(Math.max(model[i], 1)) / 2.5066; }
+    return { comps, x, model, lo, pos: 100 * pos / tot, neg: 100 * neg / tot, floor: 100 * flo / tot, chi: chi / (N - lo - K), co: 100 * x[1] / TRUE.co };
+  }
+  const COL = { cs: '#FFCC77', co: '#6aa8ff', x: '#c38bff', b: '#4dd0e1', bg: '#6a7899' };
+  function draw() {
+    if (!data) makeData();
+    const R = fit(), cv = $('#cvFit'), { ctx, w, h } = setup(cv), bx = { l: 48, t: 12, r: w - 10, b: h - 24 };
+    const X = scale('lin', 0, 2800, bx.l, bx.r); let mx = 0; data.forEach(v => mx = Math.max(mx, v));
+    const Y = scale('log', 3, mx * 1.6, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { xl: t('ax.e'), yl: t('ax.c') });
+    // слои модели стопкой: подложка, обр. рассеяние, рентген, Co-60, Cs-137
+    const order = [];
+    R.comps.forEach((c, k) => { if (/^bg/.test(c[0])) order.unshift([k, 'bg']); });
+    ['b', 'x', 'co', 'cs'].forEach(id => R.comps.forEach((c, k) => { if (c[0] === id) order.push([k, id]); }));
+    let base = new Float64Array(N);
+    order.forEach(([k, id]) => {
+      const top = base.map((v, i) => v + R.x[k] * R.comps[k][1][i]);
+      ctx.beginPath(); for (let i = 0; i < N; i++) ctx.lineTo(X(EN[i]), Y(Math.max(top[i], 3))); for (let i = N - 1; i >= 0; i--) ctx.lineTo(X(EN[i]), Y(Math.max(base[i], 3)));
+      ctx.closePath(); ctx.fillStyle = rgba(COL[id], id === 'bg' ? .35 : .62); ctx.fill(); base = top;
+    });
+    ctx.fillStyle = '#eef3ff'; for (let i = 0; i < N; i++) { if (data[i] > 0) ctx.fillRect(X(EN[i]) - 1, Y(data[i]) - 1, 2, 2); }
+    // полоса невязки
+    const cr = $('#cvRes'), r2 = setup(cr), c2 = r2.ctx, Xr = scale('lin', 0, 2800, bx.l, r2.w - 10), mid = r2.h / 2;
+    c2.strokeStyle = 'rgba(255,255,255,.2)'; c2.beginPath(); c2.moveTo(bx.l, mid); c2.lineTo(r2.w - 10, mid); c2.stroke();
+    for (let i = R.lo; i < N; i++) { const z = clamp((data[i] - R.model[i]) / Math.sqrt(Math.max(R.model[i], 1)), -6, 6); c2.fillStyle = z > 0 ? 'rgba(255,204,51,.85)' : 'rgba(255,77,109,.85)'; const bw = Math.max(1, (r2.w - 10 - bx.l) / N); c2.fillRect(Xr(EN[i]) - bw / 2, mid, bw, -z * (mid - 3) / 6); }
+    c2.fillStyle = '#7f8db0'; c2.font = '11px system-ui'; c2.textAlign = 'left'; c2.textBaseline = 'top'; c2.fillText('±6σ', 4, 3);
+    // легенда и числа
+    const legIds = ['cs', 'co'].concat($('#kX').checked ? ['x'] : [], $('#kB').checked ? ['b'] : [], ['bg']);
+    $('#gLeg').innerHTML = legIds.map(id => '<span><i style="background:' + COL[id] + '"></i>' + t('g.c.' + id) + '</span>').join('');
+    const good = R.pos < 1.6 * R.floor && R.neg < 1.6 * R.floor;
+    $('#gRes').innerHTML = '<span class="pill ' + (good ? 'good' : 'bad') + '">' + t('g.res', fx(R.pos, 1), fx(R.neg, 1)) + '</span><span class="pill">' + t('g.floor', fx(R.floor, 1)) + '</span><span class="pill ' + (R.chi < 1.5 ? 'good' : 'bad') + '">' + t('g.chi', fx(R.chi, 2)) + '</span><span class="pill ' + (Math.abs(R.co - 100) < 3 ? 'good' : 'bad') + '">' + t('g.co', fx(R.co, 1)) + '</span>';
+  }
+  ['#kX', '#kS', '#kB'].forEach(id => $(id).addEventListener('change', draw));
+  $('#gNew').onclick = () => { makeData(); draw(); };
+  io.observe($('#cvFit')); GUIDE.onRedraw(draw);
+})();
+
+/* ── 5. лента набора: пересчёт FSA не чаще раза в N с от начала прошлого счёта ── */
+(function live() {
+  const cv = $('#cvLive'), SPAN = 600, SPEED = 20;
+  let sim = 0, run = false, last = 0;
+  function runs() {
+    const iv = +$('#lvInt').value, du = +$('#lvDur').value, out = []; let s = 0;
+    while (s < SPAN) { out.push([s, s + du]); s = Math.max(s + iv, s + du); }
+    return out;
+  }
+  function draw() {
+    const iv = +$('#lvInt').value, du = +$('#lvDur').value;
+    $('#lvIntV').textContent = iv + ' ' + t('lv.s'); $('#lvDurV').textContent = du + ' ' + t('lv.s');
+    const { ctx, w, h } = setup(cv), bx = { l: 14, t: 18, r: w - 14, b: h - 26 }, X = scale('lin', 0, SPAN, bx.l, bx.r);
+    axes(ctx, bx, X, scale('lin', 0, 1, bx.b, bx.t), { noY: true, xl: t('lv.axis') });
+    const R = runs(), yb = bx.t + (bx.b - bx.t) * 0.25, hb = (bx.b - bx.t) * 0.5;
+    let busy = 0, nDone = 0, cur = null;
+    R.forEach(([a, b]) => {
+      busy += Math.min(b, SPAN) - a;
+      if (a > sim) { ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(X(a), yb, Math.max(2, X(Math.min(b, SPAN)) - X(a)), hb); return; }
+      const e = Math.min(b, sim); ctx.fillStyle = b <= sim ? 'rgba(91,227,138,.75)' : 'rgba(255,204,51,.9)';
+      ctx.fillRect(X(a), yb, Math.max(2, X(e) - X(a)), hb); if (b <= sim) nDone++; else cur = [a, b];
+    });
+    ctx.strokeStyle = '#ff4d6d'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(sim), bx.t - 6); ctx.lineTo(X(sim), bx.b); ctx.stroke(); ctx.lineWidth = 1;
+    const mmss = s => { s = Math.round(s); const m = Math.floor(s / 60), r = s % 60; return m + ':' + (r < 10 ? '0' : '') + r; };
+    const st = cur ? ['#b38600', t('lv.running')] : nDone ? ['#1a8a1a', t('lv.done')] : ['#777', t('lv.idle')];
+    $('#lvStatus').innerHTML = '<b style="color:' + st[0] + '">' + st[1] + '</b>';
+    $('#lvRes').innerHTML = '<span class="pill">' + t('lv.time', mmss(sim)) + '</span><span class="pill">' + t('lv.runs', R.length) + '</span><span class="pill ' + (busy / SPAN > 0.6 ? 'bad' : 'good') + '">' + t('lv.busy', fx(100 * busy / SPAN, 0)) + '</span>';
+    $('#lvRun').textContent = run ? t('lv.pause') : t('lv.run');
+  }
+  function tick(now) { if (!run) return; sim = Math.min(SPAN, sim + (now - last) / 1000 * SPEED); last = now; if (sim >= SPAN) run = false; draw(); if (run) requestAnimationFrame(tick); }
+  $('#lvRun').onclick = () => { if (run) { run = false; draw(); return; } if (sim >= SPAN) sim = 0; run = true; last = performance.now(); draw(); requestAnimationFrame(tick); };
+  $('#lvReset').onclick = () => { run = false; sim = 0; draw(); };
+  ['#lvInt', '#lvDur'].forEach(id => $(id).addEventListener('input', draw));
+  io.observe(cv); GUIDE.onRedraw(draw);
+})();
+
+GUIDE.init();
+</script>
+</body>
+</html>

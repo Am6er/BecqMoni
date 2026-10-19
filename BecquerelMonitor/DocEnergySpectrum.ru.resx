@@ -142,7 +142,7 @@
     <value>Выбрать вертикальный масштаб</value>
   </data>
   <data name="toolStripNumericUpdown.ToolTipText" xml:space="preserve">
-    <value>Степень корня POW. Нажмите кнопку е для вовода константы Эйлера.</value>
+    <value>Степень корня POW. Клавиша E (в русской раскладке — У) вводит число e.</value>
   </data>
   <data name="noneToolStripMenuItem.Text" xml:space="preserve">
     <value>Без авто масштабирования</value>
