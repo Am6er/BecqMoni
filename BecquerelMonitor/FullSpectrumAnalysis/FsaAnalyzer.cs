@@ -3311,6 +3311,50 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double RefitZRelative { get; set; }
 
         /// <summary>
+        /// ⛔ (`A339`, П344 20.10.2026) ОБРАЗ С ОТВЯЗАННЫМ ХВОСТОМ СУДИТСЯ ОТСЕВОМ
+        /// ЦЕЛИКОМ — пик вместе с хвостом, а не одна колонка пика.
+        ///
+        /// Подпороговый хвост матричного образа — своя колонка со свободной
+        /// амплитудой (<see cref="FitColumn.TailOf"/>), и отсев её не судит, но
+        /// снимает вместе с компонентом: subset выкидывает обоих. Значимость
+        /// колонки пика при свободном хвосте — это значимость пика ПОВЕРХ хвоста;
+        /// у образа, чьи хвост и пик лежат на одних каналах, она мала, хотя
+        /// снимается образ, без которого фит не обходится. Судится то, что
+        /// снимается: z блока «пик + хвост» по той же ковариации активного
+        /// множества, из которой берётся z колонки, — √(x_Bᵀ·C_BB⁻¹·x_B) с той же
+        /// надувкой. Статистика блока не меньше статистики любой его части,
+        /// поэтому правило может только СОХРАНИТЬ колонку, которую прежний
+        /// отсев снимал, и никогда — снять лишнюю. Судится только живой образ:
+        /// колонка пика активна и положительна, хвост активен; иначе z прежний.
+        ///
+        /// Замер (журнал П344): `RC103_Lu176`, самовозбуждённый K-рентген
+        /// лютеция `Xray-Lu` — z колонки 2.94 при пороге 3, а снятие образа с
+        /// хвостом поднимает χ² решателя при тех же весах 973.8 → 1816.7; на
+        /// семи независимых выборках одной матрицы z колонки ходил вокруг
+        /// порога (2.67 и 2.94 — снята, у пяти — оставлена), и разбор прыгал
+        /// между χ²/ndf 0.95…0.97 и 1.29…1.30 (Пуассон 3.6…3.8 и 12.0…12.1).
+        /// Обратное плечо — `--refit-z-tails=0` у `CorpusFsaProbe`; умолчание — в
+        /// конструкторе.
+        /// </summary>
+        public bool RefitZJudgeTails { get; set; }
+
+        /// <summary>
+        /// (`A339`) Сколько компонентов отсев СОХРАНИЛ на последнем
+        /// <see cref="Analyze"/> только потому, что судил образ вместе с хвостом
+        /// (<see cref="RefitZJudgeTails"/>): z колонки пика ниже порога, z блока —
+        /// не ниже. Ноль — правило не меняло ни одного бита. Читатель — сводка
+        /// отсева у `CorpusFsaProbe`.
+        /// </summary>
+        public int RefitZTailKept { get; private set; }
+
+        /// <summary>
+        /// (`A339`) Кого сохранило правило <see cref="RefitZJudgeTails"/> на
+        /// последнем <see cref="Analyze"/>: «имя z колонки → z блока» через
+        /// запятую; null — никого.
+        /// </summary>
+        public string RefitZTailKeptNote { get; private set; }
+
+        /// <summary>
         /// (`T240`) Что СЛУЧИЛОСЬ с отсевом по значимости на последнем разборе.
         ///
         /// ⛔ Заведено потому, что «отсев заказан» и «отсев применён» — разные
@@ -8963,6 +9007,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // контроль — разряд `AllBelow` 0 → 0; числа плеча — в журнале и в
             // README корпуса. Обратное плечо — `--refit-z-rel=0` у `CorpusFsaProbe`.
             this.RefitZRelative = 0.3;
+            // (`A339`, П344 20.10.2026) образ с хвостом судится отсевом целиком —
+            // ВКЛ; довод и замер — у свойства, обратное плечо `--refit-z-tails=0`.
+            this.RefitZJudgeTails = true;
             // S47: умолчание выставлено по A/B корпуса, см. описание свойства
             // и §13с журнала матрицы. Выключатель для A/B — `--no-escape-gate`.
             this.EscapeGate = true;
@@ -10277,6 +10324,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.RefitZKept = 0;
             this.RefitZNuclidesJudged = 0;
             this.RefitZNuclidesRescued = 0;
+            this.RefitZTailKept = 0;
+            this.RefitZTailKeptNote = null;
             this.GateNuclidesJudged = 0;
             this.GateNuclidesRescued = 0;
             this.GateNuclidesSpared = 0;
@@ -12004,6 +12053,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // мешающего образа — законный ответ, и класс мешающих
                 // самоотключения не получает. Возвращаются ровно нуклидные
                 // колонки и ровно тогда, когда иначе не осталось бы ни одной.
+                // ⛔ (`A339`) приговор — значимостью ТОГО, что снимается: у живого
+                // образа с отвязанным хвостом это блок «пик + хвост»
+                // (<see cref="RefitJudgedZ"/>); прочим — z колонки, как прежде
+                double[] judgedZ = new double[best.Columns.Count];
+                var tailKept = new List<string>();
+                for (int k = 0; k < best.Columns.Count; k++)
+                {
+                    judgedZ[k] = best.Columns[k].Component != null ? this.RefitJudgedZ(best, k) : best.Z[k];
+                    if (best.Columns[k].Component != null && best.Z[k] < threshold && judgedZ[k] >= threshold)
+                    {
+                        tailKept.Add(string.Format(CultureInfo.InvariantCulture, "{0} z {1:F2} → {2:F2}",
+                                                   best.Columns[k].Component.Name, best.Z[k], judgedZ[k]));
+                    }
+                }
+
                 int nuclidesJudged = 0;
                 int nuclidesPassed = 0;
                 int passed = 0;
@@ -12021,7 +12085,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         nuclidesJudged++;
                     }
 
-                    if (best.Z[k] >= threshold)
+                    if (judgedZ[k] >= threshold)
                     {
                         passed++;
                         if (nuclide)
@@ -12050,7 +12114,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    if (best.Z[k] >= threshold)
+                    if (judgedZ[k] >= threshold)
                     {
                         keep.Add(component);
                         continue;
@@ -12071,6 +12135,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 this.RefitZNuclidesJudged = nuclidesJudged;
                 this.RefitZNuclidesRescued = rescued;
+                this.RefitZTailKept = tailKept.Count;
+                this.RefitZTailKeptNote = tailKept.Count > 0 ? string.Join(", ", tailKept) : null;
                 this.RefitZJudged = total;
                 this.RefitZKept = keep.Count;
                 if (keep.Count > 0 && keep.Count < total)
@@ -13802,6 +13868,88 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return threshold;
+        }
+
+        /// <summary>
+        /// (`A339`) Значимость, которой отсев судит колонку <paramref name="k"/>
+        /// фита <paramref name="fit"/>: z колонки, а у живого образа с
+        /// отвязанным хвостом (<see cref="RefitZJudgeTails"/>) — z блока «пик +
+        /// хвост», √(x_Bᵀ·C_BB⁻¹·x_B) / надувка, где C — обратная Грам активного
+        /// множества (та же, из которой взята σ колонки). Не меньше z колонки:
+        /// при отказе обращения блока или неживом образе — z колонки как есть.
+        /// </summary>
+        double RefitJudgedZ(FitResult fit, int k)
+        {
+            double z = fit.Z[k];
+            FsaComponent component = fit.Columns[k].Component;
+            if (!this.RefitZJudgeTails || component == null || fit.ActiveInverse == null
+                || fit.ActiveIndices == null || !fit.Active[k] || !(fit.Amplitude[k] > 0.0))
+            {
+                return z;
+            }
+
+            // места блока в активном множестве: колонка пика первой, за ней живые хвосты
+            var at = new List<int>();
+            var columns = new List<int>();
+            for (int j = 0; j < fit.Columns.Count; j++)
+            {
+                if (j != k && !(ReferenceEquals(fit.Columns[j].TailOf, component)
+                                && fit.Active[j] && fit.Amplitude[j] > 0.0))
+                {
+                    continue;
+                }
+
+                int position = fit.ActiveIndices.IndexOf(j);
+                if (position < 0)
+                {
+                    return z;
+                }
+
+                if (j == k)
+                {
+                    at.Insert(0, position);
+                    columns.Insert(0, j);
+                }
+                else
+                {
+                    at.Add(position);
+                    columns.Add(j);
+                }
+            }
+
+            int n = at.Count;
+            if (n < 2)
+            {
+                return z;
+            }
+
+            var block = new double[n, n];
+            for (int a = 0; a < n; a++)
+            {
+                for (int b = 0; b < n; b++)
+                {
+                    block[a, b] = fit.ActiveInverse[at[a], at[b]];
+                }
+            }
+
+            double[,] inverse = InvertSymmetric(block, n);
+            if (inverse == null)
+            {
+                return z;
+            }
+
+            double chi2 = 0.0;
+            for (int a = 0; a < n; a++)
+            {
+                for (int b = 0; b < n; b++)
+                {
+                    chi2 += fit.Amplitude[columns[a]] * inverse[a, b] * fit.Amplitude[columns[b]];
+                }
+            }
+
+            double inflate = fit.SigmaInflation > 0.0 ? fit.SigmaInflation : 1.0;
+            double joint = chi2 > 0.0 ? Math.Sqrt(chi2) / inflate : 0.0;
+            return Finite(joint) && joint > z ? joint : z;
         }
 
         /// <summary>
