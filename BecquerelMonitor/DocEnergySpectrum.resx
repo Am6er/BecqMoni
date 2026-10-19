@@ -499,7 +499,7 @@
     <value>202, 22</value>
   </data>
   <data name="weightedMovingAverageToolStripMenuItem.Text" xml:space="preserve">
-    <value>Weight Moving Average</value>
+    <value>Weighted Moving Average</value>
   </data>
   <data name="toolStripSplitButton6.ImageScaling" type="System.Windows.Forms.ToolStripItemImageScaling, System.Windows.Forms">
     <value>None</value>
@@ -520,13 +520,13 @@
     <value>181, 22</value>
   </data>
   <data name="showPeaksToolStripMenuItem.Text" xml:space="preserve">
-    <value>Show Detected Peak</value>
+    <value>Show Detected Peaks</value>
   </data>
   <data name="hidePeaksToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>181, 22</value>
   </data>
   <data name="hidePeaksToolStripMenuItem.Text" xml:space="preserve">
-    <value>Hide Detected Peak</value>
+    <value>Hide Detected Peaks</value>
   </data>
   <data name="toolStripSplitButton9.ImageScaling" type="System.Windows.Forms.ToolStripItemImageScaling, System.Windows.Forms">
     <value>None</value>

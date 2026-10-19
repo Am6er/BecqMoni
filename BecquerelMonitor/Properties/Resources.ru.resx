@@ -321,6 +321,10 @@
   <data name="ERRInvalidPresetTime" xml:space="preserve">
     <value>Некорректное предустановленное время.</value>
   </data>
+  <data name="MSGPresetTimeReached" xml:space="preserve">
+    <value>Измерение уже достигло лимита времени ({0} с), продолжать нечего.
+Увеличьте лимит или нажмите «Сброс», чтобы начать заново.</value>
+  </data>
   <data name="ErrorString" xml:space="preserve">
     <value>Ошибка</value>
   </data>
@@ -340,7 +344,7 @@
     <value>Новый файл</value>
   </data>
   <data name="MultipointCalibrationString" xml:space="preserve">
-    <value>Калибровка</value>
+    <value>Многоточечная калибровка</value>
   </data>
   <data name="CsvImportDialogTitle" xml:space="preserve">
     <value>Импорт из CSV файла</value>
@@ -513,9 +517,6 @@
   <data name="FSATiedMemberRow" xml:space="preserve">
     <value>{0} — по {1}</value>
   </data>
-  <data name="FSAEquilibriumNeedsDbLookups" xml:space="preserve">
-    <value>Равновесие работает только при выводе состава из баз: включите «Enable DB lookups for FSA». На прежнем пути компоненты строятся по подписям пиков, и структуры ряда там нет вовсе.</value>
-  </data>
   <data name="FSAPileUpName" xml:space="preserve">
     <value>Наложения</value>
   </data>
@@ -673,14 +674,15 @@
     <value>Новой версии нет. Ваша версия приложения: {0}</value>
   </data>
   <data name="MSGRestartNeeded" xml:space="preserve">
-    <value>Обновление приложения завершено успешно. Сейчас приложение БУДЕТ ПЕРЕЗАГРУЖЕНО.</value>
+    <value>Обновление установлено. Перезапустить приложение сейчас?
+Если нажать «Отмена», новая версия запустится при следующем открытии приложения.</value>
   </data>
   <data name="MSGSaveBeforeWritingData" xml:space="preserve">
     <value>Сохраните конфигурацию устройства перед тем, как записывать изменения в устройство.</value>
   </data>
   <data name="MSGAtomSpectraWarning" xml:space="preserve">
     <value>Вводите команду и нажимайте Enter. Некоторые команды - ОПАСНЫ!
-Вы должны полностью понимать, что делаете, чтобы не словить кирпич!</value>
+Вы должны быть полностью уверены в том, что делаете.</value>
   </data>
   <data name="MSGComPort" xml:space="preserve">
     <value>COM порт:</value>
@@ -691,8 +693,8 @@
   </data>
   <data name="MSGUpdateLong" xml:space="preserve">
     <value>Доступна новая версия: {0}.
-Перед обновлением сохраните все не сохранённые данные.
-После обновления приложения БУДЕТ ПЕРЕЗАГРУЖЕНО!
+Перед обновлением сохраните все несохранённые данные.
+После установки приложение предложит перезапуск.
 Установить обновление?</value>
   </data>
   <data name="MSGUpdateShort" xml:space="preserve">

@@ -470,6 +470,23 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// (`AMBER241`(6), 20.10.2026) Строка габарита таблички: «подпись: ⌀80 × 80 мм».
+        /// Размеры — четыре значащие цифры, как и были; между ними знак «×», единица — на
+        /// языке интерфейса (`GeometryEditorUnitMm`, та же, что у полей редактора
+        /// геометрии). Прежде «x» и «mm» были зашиты в формат, и русский интерфейс писал
+        /// «⌀80 x 80 mm».
+        /// </summary>
+        static string Dims(string caption, string prefix, params double[] sizes)
+        {
+            string[] numbers = new string[sizes.Length];
+            for (int i = 0; i < sizes.Length; i++)
+            {
+                numbers[i] = sizes[i].ToString("G4", CultureInfo.InvariantCulture);
+            }
+            return caption + ": " + prefix + string.Join(" × ", numbers) + " " + Resources.GeometryEditorUnitMm;
+        }
+
+        /// <summary>
         /// Подписи миниатюры: габариты детектора с названием формы и привязка
         /// образца. Всё словами, в левом верхнем углу, на подложке — иначе
         /// текст теряется на цветной заливке.
@@ -481,12 +498,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             // по-разному нарочно: раньше обе начинались с формы («Box», «Box»),
             // и по подписи нельзя было понять, где кристалл, а где проба.
             lines.Add(m.Shape == CrystalShape.Box
-                ? string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} x {2:G4} x {3:G4} mm",
-                                Resources.EfficiencySketchDetector,
-                                m.CrystalBoxX, m.CrystalBoxY, m.CrystalBoxZ)
-                : string.Format(CultureInfo.InvariantCulture, "{0}: {1}{2:G4} x {3:G4} mm",
-                                Resources.EfficiencySketchDetector, "⌀",
-                                m.CrystalDiameter, m.CrystalHeight));
+                ? Dims(Resources.EfficiencySketchDetector, "",
+                       m.CrystalBoxX, m.CrystalBoxY, m.CrystalBoxZ)
+                : Dims(Resources.EfficiencySketchDetector, "⌀",
+                       m.CrystalDiameter, m.CrystalHeight));
 
             // E21: развёрнутый брусок на разрезе выглядит как другой кристалл —
             // размеры в первой строке те же, а пропорции иные. Без этой строки
@@ -502,47 +517,37 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // (`AMBER13` (б)) У поля форма точечная, но строка своя:
                     // расстояния у поля нет, есть радиус сферы.
                     lines.Add(m.Scene == GeometrySceneKind.Iso
-                        ? string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} mm",
-                                        Resources.EfficiencySketchIso,
-                                        Math.Max(m.FieldRadius, 0.0))
-                        : string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} mm",
-                                        Resources.EfficiencySketchPoint,
-                                        Math.Max(m.PointDistance, 0.0)));
+                        ? Dims(Resources.EfficiencySketchIso, "", Math.Max(m.FieldRadius, 0.0))
+                        : Dims(Resources.EfficiencySketchPoint, "", Math.Max(m.PointDistance, 0.0)));
                     break;
 
                 case GeometrySourceType.Box:
-                    lines.Add(string.Format(CultureInfo.InvariantCulture,
-                                            "{0}: {1:G4} x {2:G4} x {3:G4} mm",
-                                            Resources.EfficiencySketchBox,
-                                            Math.Max(m.BoxSourceX, 0.0),
-                                            Math.Max(m.BoxSourceY, 0.0),
-                                            Math.Max(m.BoxSourceHeight, 0.0)));
-                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} mm",
-                                            Resources.EfficiencySketchDistance,
-                                            Math.Max(m.BoxToDetectorDistance, 0.0)));
+                    lines.Add(Dims(Resources.EfficiencySketchBox, "",
+                                   Math.Max(m.BoxSourceX, 0.0),
+                                   Math.Max(m.BoxSourceY, 0.0),
+                                   Math.Max(m.BoxSourceHeight, 0.0)));
+                    lines.Add(Dims(Resources.EfficiencySketchDistance, "",
+                                   Math.Max(m.BoxToDetectorDistance, 0.0)));
                     break;
 
                 case GeometrySourceType.Cylinder:
-                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1}{2:G4} x {3:G4} mm",
-                                            Resources.EfficiencySketchCylinder, "⌀",
-                                            Math.Max(m.BeakerDiameter, 0.0),
-                                            Math.Max(m.SourceHeight, 0.0)));
-                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1:G4} mm",
-                                            Resources.EfficiencySketchDistance,
-                                            Math.Max(m.BeakerToDetectorDistance, 0.0)));
+                    lines.Add(Dims(Resources.EfficiencySketchCylinder, "⌀",
+                                   Math.Max(m.BeakerDiameter, 0.0),
+                                   Math.Max(m.SourceHeight, 0.0)));
+                    lines.Add(Dims(Resources.EfficiencySketchDistance, "",
+                                   Math.Max(m.BeakerToDetectorDistance, 0.0)));
                     break;
 
                 default:
-                    lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}: {1}{2:G4} x {3:G4} mm",
-                                            Resources.EfficiencySketchMarinelli, "⌀",
-                                            Math.Max(m.MarinelliBeakerDiameter, 0.0),
-                                            Math.Max(m.MarinelliBeakerHeight, 0.0)));
+                    lines.Add(Dims(Resources.EfficiencySketchMarinelli, "⌀",
+                                   Math.Max(m.MarinelliBeakerDiameter, 0.0),
+                                   Math.Max(m.MarinelliBeakerHeight, 0.0)));
                     break;
             }
 
             // Табличка обязана поместиться в отведённое ей поле, а поле у
             // миниатюры чужое: её ширину задаёт окно конфигурации прибора.
-            // Строка «Точечный источник, дистанция: 100 mm» на 220 точках
+            // Строка «Точечный источник, дистанция: 100 мм» на 220 точках
             // вылезала за правый край НЕЗАМЕТНО — обрезанный текст выглядит как
             // короткий (мерено 05.09.2026 приёмкой `EditorShot --check`).
             // Поэтому шрифт таблички ужимается ровно настолько, чтобы влезть, и
@@ -1306,7 +1311,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         void Note(Graphics g, Brush ink, double value, double x, double z,
                   float dy, string key, float dx = 0f)
         {
-            string text = string.Format(CultureInfo.InvariantCulture, "Y = {0:G4} mm", value);
+            string text = "Y = " + value.ToString("G4", CultureInfo.InvariantCulture)
+                          + " " + Resources.GeometryEditorUnitMm;
             SizeF size = g.MeasureString(text, this.Font);
             // dx = 0 — по центру над точкой, отрицательное — надпись КОНЧАЕТСЯ
             // левее её, положительное — начинается правее. Так подпись уводится

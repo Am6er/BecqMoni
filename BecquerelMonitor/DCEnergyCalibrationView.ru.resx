@@ -218,7 +218,7 @@
     <value />
   </data>
   <data name="button6.Text" xml:space="preserve">
-    <value>Калибровка &gt;&gt;</value>
+    <value>Многоточечная калибровка &gt;&gt;</value>
   </data>
   <data name="button6.ToolTip" xml:space="preserve">
     <value>Выполнить многоточечную калибровку</value>
