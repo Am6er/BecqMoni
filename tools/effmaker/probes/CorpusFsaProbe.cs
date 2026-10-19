@@ -845,6 +845,7 @@ namespace CorpusFsaProbe
     ///                  [--limits-mc=N [--mc-component=Имя]] [--huber=M] [--refit-z=Z]
     ///                  [--weights=data|model]   (`A310`, П47: веса решателя по данным 1/max(N,1) или по модели, Пирсон)
     ///                  [--refit-z-rel=&lt;ДОЛЯ вершины: 0 = чисто абсолютный порог&gt;]
+    ///                  [--refit-z-tails=0|1]   (`A339`: образ с отвязанным хвостом судится отсевом целиком; 0 — одна колонка пика)
     ///                  [--no-escape-gate]
     ///                  [--partial] [--no-pr-gate] [--gamma=G] [--beta=B] [--gamma-map=<каталог прогона>]
     ///                  [--huber-gamma=G]   (`AMBER209`, П237: относительный пол порога Хубера — γ только в ноже, не в весах)
@@ -1881,6 +1882,13 @@ namespace CorpusFsaProbe
                     // что молчит: разбор просто взял бы не тот кусок строки.
                     o.RefitZRelative = double.Parse(a.Substring(14), CultureInfo.InvariantCulture);
                 }
+                else if (a.StartsWith("--refit-z-tails=", StringComparison.Ordinal))
+                {
+                    // (`A339`) Образ с отвязанным хвостом судится отсевом
+                    // целиком (`FsaAnalyzer.RefitZJudgeTails`); `0` — обратное
+                    // плечо «судить одну колонку пика», как до П344.
+                    o.RefitZTails = int.Parse(a.Substring(16), CultureInfo.InvariantCulture);
+                }
                 else if (a.StartsWith("--refit-z=", StringComparison.Ordinal))
                 {
                     // S9 «б»: которая из двух ступеней занижает МДА слабого
@@ -2475,6 +2483,12 @@ namespace CorpusFsaProbe
             if (o.RefitZRelative >= 0.0)
             {
                 analyzer.RefitZRelative = o.RefitZRelative;
+            }
+
+            // (`A339`) тот же довод, что у доли: ключ обязан доехать до анализатора
+            if (o.RefitZTails >= 0)
+            {
+                analyzer.RefitZJudgeTails = o.RefitZTails != 0;
             }
 
             analyzer.EscapeGate = o.EscapeGate;
@@ -3599,6 +3613,7 @@ namespace CorpusFsaProbe
                 row.RefitZState = analyzer.RefitZState;
                 row.RefitZUsed = analyzer.RefitZUsed;
                 row.RefitZTopZ = analyzer.RefitZTopZ;
+                row.RefitZTailKept = analyzer.RefitZTailKeptNote;
                 row.RefitZAbs = analyzer.RefitZ;
                 // ⛔ `T105`. `FsaAnalyzer.BandNote` — заверение анализатора о
                 // полосе, которую фит взял НА ДЕЛЕ (режим, каналы, кэВ), — до
@@ -5577,6 +5592,25 @@ namespace CorpusFsaProbe
                                            ? string.Format(CultureInfo.InvariantCulture, " … и ещё {0}", bound.Count - 10)
                                            : ""));
 
+            // (`A339`) образ с хвостом судился целиком — кого это сохранило
+            var tailKept = new List<string>();
+            foreach (Row r in rows)
+            {
+                if (r.RefitZTailKept != null)
+                {
+                    tailKept.Add(r.Key + " (" + r.RefitZTailKept + ")");
+                }
+            }
+
+            Console.WriteLine("  образ с хвостом судился целиком (A339) — сохранён у {0}{1}",
+                              tailKept.Count,
+                              tailKept.Count == 0
+                                  ? ""
+                                  : ": " + string.Join(", ", tailKept.GetRange(0, Math.Min(10, tailKept.Count)).ToArray())
+                                    + (tailKept.Count > 10
+                                           ? string.Format(CultureInfo.InvariantCulture, " … и ещё {0}", tailKept.Count - 10)
+                                           : ""));
+
             if (below.Count > 0)
             {
                 below.Sort(StringComparer.Ordinal);
@@ -6431,6 +6465,12 @@ namespace CorpusFsaProbe
             /// </summary>
             public double RefitZRelative = -1.0;
 
+            /// <summary>
+            /// (`A339`) `--refit-z-tails=0|1` — судить ли образ с отвязанным
+            /// хвостом отсевом целиком; −1 — ключ не задан, умолчание анализатора.
+            /// </summary>
+            public int RefitZTails = -1;
+
             /// <summary>(S47) Гейт образов вылета при матрице; A-сторона — `--no-escape-gate`.</summary>
             public bool EscapeGate = true;
 
@@ -6779,6 +6819,9 @@ namespace CorpusFsaProbe
 
             public double RefitZUsed = double.NaN;
             public double RefitZTopZ = double.NaN;
+
+            /// <summary>(`A339`) Кого отсев сохранил, судя образ вместе с хвостом; null — никого.</summary>
+            public string RefitZTailKept;
 
             /// <summary>
             /// (`A266`, П24 12.09.2026) Абсолютный порог отсева анализатора на
