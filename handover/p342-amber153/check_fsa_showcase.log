@@ -1,0 +1,25 @@
+каталог проб: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p342b (заверен 2026-10-19 20:43:43 из C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p342b)
+  ⚠ сверено: набор приложения d71ae10cd9a6 (558 файлов), набор FsaStackShot c029f41522c5 (8 файлов), sha двух exe
+свежесть каталога проб: сошлась с деревом (T226, 2.6 с)
+рабочий каталог: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\fsa_showcase\wd (скопировано 731, снято 0; приборов 3, матриц 4)
+прогон FsaStackShot (5 спектров, 9 пар):
+  ASN16_Cs137_house / infer_eq: 12.2 с
+  ASN16_Cs137_house / infer_eq_peak: 12.5 с
+  ASN16_Cs137_house / infer_eq_compton: 12.5 с
+  AS80_Th232_disk / infer_eq: 47.5 с
+  ASN16_Radon_filter2 / chain_eq: 30.5 с
+  ASN16_Radon_filter2 / chain_noeq: 31.2 с
+  G1S24_Rn222Coal_eq01 / sample_eq: 11.2 с
+  G1S24_Rn222Coal_eq01 / sample_noeq: 17.9 с
+  ASN16_Cs137_10cm / sample_nomatrix: 3.5 с
+  ✅ ASN16_Cs137_house / infer_eq: совпало с эталоном (2026-10-14 06:20)
+  ✅ ASN16_Cs137_house / infer_eq_peak: совпало с эталоном (2026-10-14 06:20)
+  ✅ ASN16_Cs137_house / infer_eq_compton: совпало с эталоном (2026-10-14 06:20)
+  ✅ AS80_Th232_disk / infer_eq: совпало с эталоном (2026-10-07 02:00)
+  ✅ ASN16_Radon_filter2 / chain_eq: совпало с эталоном (2026-10-07 02:00)
+  ✅ ASN16_Radon_filter2 / chain_noeq: совпало с эталоном (2026-10-07 02:00)
+  ✅ G1S24_Rn222Coal_eq01 / sample_eq: совпало с эталоном (2026-10-07 02:00)
+  ✅ G1S24_Rn222Coal_eq01 / sample_noeq: совпало с эталоном (2026-10-07 02:00)
+  ✅ ASN16_Cs137_10cm / sample_nomatrix: совпало с эталоном (2026-10-14 06:20)
+
+ВИТРИНА СОШЛАСЬ С ЭТАЛОНОМ: 9 пар, 184 с.
