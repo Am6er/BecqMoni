@@ -81,7 +81,7 @@ def from_formula(db, name, formula, density, potential_ev=None):
                     density, potential_ev)
 
 
-def tabulated_potential(db, fractions):
+def tabulated_potential(db, fractions, density=0.0):
     """I готового вещества из `star_materials`, если состав с ним совпал.
 
     ESTAR берёт I ИЗ ТАБЛИЦЫ, когда вещество выбрано из списка, и считает по
@@ -90,17 +90,38 @@ def tabulated_potential(db, fractions):
     таблицы: CsI 553.10, NaI 452.01, BGO 534.14 против 553.1, 452.0 и 534.1
     (`AMBER56`; до 22.09.2026 у BGO выходило 523.5 — кислороду шёл элементный
     потенциал 95 эВ вместо 106, см. `bragg_potential`).
+
+    ⛔ (`M14`, П317 → П343, физика 27) СОСТАВ ВЕЩЕСТВО НЕ ОПРЕДЕЛЯЕТ: (CH₂)n
+    делят циклогексан (id 145, I 56.4), этилен-газ, полиэтилен (57.4),
+    полипропилен, бутилкаучук; (CH)n — ацетилен-газ (id 101, 58.2), бензол,
+    полистирол (68.7); углерод — аморфный (81, ρ 2.0) и графит (78, ρ 1.7);
+    вода — жидкая и пар. Прежде бралось ПЕРВОЕ по `id`. Теперь из совпавших по
+    составу — ближайшее по плотности (|ln ρ/ρᵢ|), но только в окне ×1.25 от
+    заданной (насыпная плотность пробы — уголь 0.461 — ничьей не равна и
+    остаётся при первом по `id`); вне окна, при равенстве и без плотности —
+    первое по `id`, как было. То же правило — `EstarCalculator.TabulatedPotential`
+    (правку алгоритма носить в ОБА места).
     """
-    rows = db.execute("select id, potential_ev from star_materials").fetchall()
-    for material_id, potential in rows:
+    rows = db.execute("select id, potential_ev, density_g_cm3 from star_materials"
+                      " order by id").fetchall()
+    first = best = None
+    best_distance = math.log(1.25)
+    for material_id, potential, material_density in rows:
         comp = dict(db.execute("select z, weight_fraction from"
                                " star_material_composition where material_id=?",
                                (material_id,)))
         if set(comp) != set(fractions):
             continue
-        if all(abs(comp[z] - fractions[z]) < 1.0e-3 for z in comp):
-            return potential
-    return None
+        if not all(abs(comp[z] - fractions[z]) < 1.0e-3 for z in comp):
+            continue
+        if first is None:
+            first = potential
+        if density and density > 0.0 and material_density and material_density > 0.0:
+            distance = abs(math.log(material_density / density))
+            if distance < best_distance:
+                best_distance = distance
+                best = potential
+    return best if best is not None else first
 
 
 def bragg_potential(db, fractions):
@@ -202,7 +223,7 @@ def stopping(db, material):
     zav = sum(w * z / weights[z] for z, w in material.fractions.items())
 
     potential = (material.potential_ev
-                 or tabulated_potential(db, material.fractions)
+                 or tabulated_potential(db, material.fractions, material.density)
                  or bragg_potential(db, material.fractions))
     material.potential_used = potential
     potl = math.log(potential * 1.0e-06)
