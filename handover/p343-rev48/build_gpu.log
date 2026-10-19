@@ -1,0 +1,9 @@
+'vswhere.exe' is not recognized as an internal or external command,
+operable program or batch file.
+sources: f824804ff015b4af
+api.cu
+   Creating library bin\rmgpu.lib and object bin\rmgpu.exp
+api.cu
+   Creating library bin\rmgpu_f.lib and object bin\rmgpu_f.exp
+rm_replay.cpp
+rmgpu: OK

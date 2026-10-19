@@ -1,0 +1,9 @@
+Polyethylene           rho 0.94      I 57.4 eV
+Polystyrene            rho 1.06      I 68.7 eV
+Carbon, graphite       rho 1.7       I 78.0 eV
+Activated coal (bulk)  rho 0.461     I 81.0 eV
+Amorphous carbon       rho 2         I 81.0 eV
+Water                  rho 1         I 75.0 eV
+Water vapor            rho 0.000756  I 71.6 eV
+Polypropylene          rho 0.905     I 56.5 eV
+Benzene                rho 0.8787    I 63.4 eV
