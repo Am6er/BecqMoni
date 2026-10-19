@@ -1,0 +1,1525 @@
+читатель сторожей: 46 к вызову (заведомо красных по строкам реестра пропущено 0 — см. --all)
+
+→ зову: python tools/check_registry_refs.py
+    реестры: DONE.md — 1284 строк, TODO.md — 27 строк
+    известных номеров всего: 1309, буквы: ABCDEFMNPRSTVWX
+    обойдено файлов: 2086 (из них журналов-записей 337), строгих ссылок проверено: 12184
+    исключено по правилу: 60 ссылок (A200 ×4, C12 ×4, F0 ×7, F36 ×5, F42, F76, F77, N0 ×8, N42, P0, P1 ×8, P25 ×4, R662 ×3, T0, T1, T39 ×3, T51, T998, T999, T9999, V0, W0, X12)
+      правило «удалена решением Amber; ссылка в журнале историчная»: A200 ×4, T1, T39 ×3, T51
+        A200 — удалена приказом Amber 05.09.2026 вместе с A231–A233, T224 (TODO.md, «Чего делать НЕ надо», вопросник по A231)
+        T1 — удалена приказом Amber 05.09.2026 (TODO.md, «Чего делать НЕ надо»: «Удалить задачу T1»)
+        T39 — убрана решением Amber 18.08.2026 (handover/handover-2026-08-18-small-rows.md:18)
+        T51 — убрана решением Amber 18.08.2026 (handover/handover-2026-08-18-small-rows.md:18)
+      правило «приоритет строки P0–P3, а не её номер»: P0, P1 ×8
+      правило «формат числа .NET (номер 0 или буква DEFGNX на строке о печати чисел)»: F0 ×7, N0 ×8, N42, T0, V0, W0, X12
+      правило «имя полосы захода на строке о полосе/журнале/обрыве»: C12 ×4, F36 ×3, F42, F76, F77, P25, R662 ×3
+      правило «цитата положительного контроля (строка сама так себя называет)»: T998, T999, T9999
+      правило «поимённо, NOT_A_REF с причиной»: F36 ×2, P25 ×3
+        F36 — полоса захода 05.09.2026, оборвана (журнал handover-2026-09-05-f37-s132.md), а не строка
+        P25 — 25-й процентиль в записи статистики (handover-2026-09-05-f5-v18-v19.md), а не строка
+    битых строгих ссылок: 0
+✅ tools/check_registry_refs.py: код 0, 1.7 с
+
+→ зову: python tools/check_build_recipe.py
+    обойдено файлов: 3618 (из них журналов-записей 1716, вне git 127)
+    копий рецепта найдено: 62; судимых 40 (с ключом 40, БЕЗ ключа 0)
+    не судим по правилу «журнал — запись» (T219): 17 копий, из них без ключа — историчных 14
+        запись: handover/g2-guard-readers/00-recipe-baseline-tree.txt:7
+        запись: handover/g2-guard-readers/00-recipe-baseline-tree.txt:15
+        запись: handover/g2-guard-readers/05-control-bad-recipe.txt:7
+        запись: handover/g2-guard-readers/05-control-reader-stops.txt:32
+        запись: handover/handover-2026-08-13.md:200
+        запись: handover/handover-2026-08-14.md:256
+        запись: handover/handover-2026-08-15-evening.md:202
+        запись: handover/handover-2026-08-15.md:274
+        запись: handover/handover-2026-08-16-night.md:193
+        запись: handover/handover-2026-08-16.md:132
+        запись: handover/handover-2026-08-17-fluorescence.md:202
+        запись: handover/handover-2026-08-17-matrix-speed.md:447
+        запись: handover/handover-2026-08-17.md:190
+        запись: handover/handover-2026-08-18-cascade-xray.md:228
+    не судим по правилу «вне git — за Amber»: 5 копий, из них без ключа 1
+        ⚠ ПРЕДУПРЕЖДЕНИЕ (за Amber): .claude/settings.local.json:6 — без ключа
+    копий без ключа среди судимых: 0
+    
+    с ключом (для сверки):
+      handover/2026-09-11-root-scripts/bqp11_arm.ps1:16
+      handover/2026-09-11-root-scripts/bqp12_arm.ps1:11
+      handover/2026-09-11-root-scripts/bqp14_build.ps1:9
+      handover/2026-09-11-root-scripts/bqp9_arm.ps1:10
+      handover/f4-a185/build_f4.ps1:7
+      handover/f49-a190-a228/build_f49.ps1:31
+      handover/p100-m13/build_wt.ps1:15
+      handover/p103-physics20/build_main.ps1:9
+      handover/p103-physics20/build_staple.ps1:8
+      handover/p103-physics20/build_wt.ps1:12
+      handover/p103-physics20/build_wt.ps1:20
+      handover/p103-physics20/build_wt_b31.ps1:12
+      handover/p103-physics20/build_wt_b31.ps1:20
+      handover/p106-m13/build_wt.ps1:15
+      handover/p111-m13/build_wt.ps1:15
+      handover/p123-materials/build_wt.ps1:10
+      handover/p142-rev33/build_p142.ps1:11
+      handover/p164-rev34/build.ps1:9
+      handover/p164-rev34/build.ps1:18
+      handover/p173-rev34/build.ps1:9
+      handover/p173-rev34/build.ps1:19
+      handover/p176-rev34/build_p176.ps1:12
+      handover/p179/build_p179.ps1:8
+      handover/p181/build_p181.ps1:8
+      handover/p188/build_p188.ps1:8
+      handover/p188/build_p188_debug.ps1:6
+      handover/p188/build_p188_src36.ps1:8
+      handover/p189/build_p189.ps1:9
+      handover/p31-a308-nnls/build_wt.ps1:20
+      handover/p338-amber234/run_all.ps1:9
+      handover/p343-rev48/build_p343.ps1:9
+      handover/p37-store/build_wt.ps1:11
+      handover/p38-rev21/build_p38.ps1:11
+      handover/p50-physics18/build_wt.ps1:12
+      handover/p51-rev22/build_p51.ps1:10
+      handover/p55-a72/build_wt.ps1:9
+      handover/p66-rev23/build_p66.ps1:12
+      handover/p66-rev23/build_p66c.ps1:12
+      handover/p72-t258-t259/build_p72.ps1:10
+      handover/p74-t260/finalize_main.ps1:15
+✅ tools/check_build_recipe.py: код 0, 2.2 с
+
+→ зову: python tools/check_resx.py
+    
+    русских resx просмотрено: 31, из них с английской парой: 31
+    файлов с расхождением: 0
+    непереведённых осмысленных строк: 0
+      из них ключ есть, а значение пусто: 0
+    ключей, которых нет в английской паре: 0
+    файлов чужого формата (не BOM+CRLF): 0
+    СОШЛОСЬ
+✅ tools/check_resx.py: код 0, 0.5 с
+
+→ зову: python tools/check_resx_designer.py
+    
+    обращений с литеральным именем проверено: 1032
+      из них через ОДИН шаг (обёртка или член): 94
+    ключей, которых нет в нейтральном resx: 0
+    обращений с вычисляемым именем: 9, из них разобрано одним шагом: 6
+    обращений с вычисляемым именем (проверке недоступны): 3
+          обёртки: DCFwhmCalibrationView.GetResourceText(аргумент 1), DeviceConfigForm.ResourceText(аргумент 1), DoseRateCoefficients.Text(аргумент 1), EfficiencyMakerForm.ResourceText(аргумент 1), RawZones.Text(аргумент 1)
+          члены:   Resource
+    вызовов с именем обёртки, но не её самой (чужой получатель либо другой класс): 101
+    файлов чужого формата (не BOM+CRLF): 0
+    СОШЛОСЬ
+✅ tools/check_resx_designer.py: код 0, 5.4 с
+
+→ зову: python tools/check_resx_letters.py
+    
+    английских resx просмотрено: 40, русских: 31
+    генерируемых *.Designer.cs: 43, значений в них: 3715
+    находок: 0
+    файлов чужого формата (не BOM+CRLF): 0
+    СОШЛОСЬ
+✅ tools/check_resx_letters.py: код 0, 0.5 с
+
+→ зову: python tools/check_resx_zorder.py
+    пар Foo.Designer.cs / Foo.resx: 38
+    контейнеров проверено: 73, с расхождением: 0
+    файлов чужого формата (не BOM+CRLF): 0
+    ==========================================================================
+    расхождений нет
+✅ tools/check_resx_zorder.py: код 0, 0.3 с
+
+→ зову: python tools/check_headless.py
+    Сторож безоконного пути (S100). Дверь: AppUi.Report — BecquerelMonitor/GlobalConfigManager.cs:37
+      файлов приложения: 514, типов: 854, проб: 368
+      оконных типов по наследованию: 82; засев от проб: 371 типов
+      достижимо БЕЗ окон: 683 типов; барьер (оконные): 19
+      оконных типов, которые пробы СТРОЯТ (`new T(...)`): 41 — их конструкторы ALLOW не обеляет
+      живых MessageBox.Show: 139
+    
+    
+    итого: безоконный путь 0, оконные 139, вне разряда 0
+    ЧИСТО: в безоконном пути модальных окон нет.
+✅ tools/check_headless.py: код 0, 5.2 с
+
+→ зову: python tools/check_menu_accelerators.py
+    
+      DCPeakDetectionView              корней 1, узлов 1, пунктов en/ru 2/2, с ускорителем 0/0, столкновений 0/0
+      DocEnergySpectrum                корней 3, узлов 14, пунктов en/ru 52/52, с ускорителем 7/7, столкновений 0/0
+      MainForm                         корней 1, узлов 10, пунктов en/ru 68/68, с ускорителем 40/40, столкновений 0/0; пропущено не-меню: statusStrip1 (StatusStrip)
+          подпись кодом: showLogToolStripMenuItem <- Resources.MenuShowLog (MainForm.cs:2100): en 'Show log' / ru 'Показать журнал'
+      ToolWindow                       корней 1, узлов 1, пунктов en/ru 3/3, с ускорителем 3/3, столкновений 0/0
+      Utils/CalibrationGraph           корней 1, узлов 1, пунктов en/ru 2/2, с ускорителем 0/0, столкновений 0/0
+      Utils/FWHMCalibrationGraph       корней 1, узлов 1, пунктов en/ru 2/2, с ускорителем 0/0, столкновений 0/0
+    ФОРМ судится 6, корней меню 8, узлов 28
+    АНГЛИЙСКИЙ: пунктов 129, с ускорителем 50, столкновений 0
+    РУССКИЙ:    пунктов 129, с ускорителем 50, столкновений 0
+    подписей, заданных кодом: 1
+    пунктов, добавляемых в меню кодом (разбору недоступны): 0
+    СОШЛОСЬ
+✅ tools/check_menu_accelerators.py: код 0, 0.2 с
+
+→ зову: python tools/check_numeric_updown.py
+    самопроверка: подброшенных образцов 5, заведомо чистых 5
+      САМОПРОВЕРКА ПРОШЛА
+    обойдено файлов: 557 (из них с общим полем 13; не судится сам InvariantNumericUpDown.cs — 1)
+    мест мимо общего приёма: 0
+✅ tools/check_numeric_updown.py: код 0, 0.4 с
+
+→ зову: python tools/check_fsa_docs.py
+    FsaAnalyzer.cs: описаний 664, умолчаний 169 (из них конструктор ставит 110)
+    ОПИСАНИЯ СОШЛИСЬ С КОНСТРУКТОРОМ: копий значений в описаниях нет.
+✅ tools/check_fsa_docs.py: код 0, 0.1 с
+
+→ зову: python tools/nucdb/check_ensdf_numbers.py
+      ✓ schemedb.ensdf_datasets           наборов ENSDF                            документ     3484, в базе     3484
+      ✓ schemedb.ensdf_datasets           разных дочерних нуклидов                 документ     1919, в базе     1919
+      ✓ schemedb.ensdf_datasets           наборов с номером уровня родителя        документ      662, в базе      662
+      ✓ schemedb.ensdf_levels             уровней                                  документ    35220, в базе    35220
+      ✓ schemedb.ensdf_gammas             переходов                                документ    79613, в базе    79613
+      ✓ schemedb.ensdf_gammas             гамм с полным коэффициентом конверсии    документ    19954, в базе    19954
+      ✓ schemedb.ensdf_gammas             гамм с мультипольностью                  документ    25906, в базе    25906
+      ✓ schemedb.ensdf_gammas             гамм без конечного уровня                документ     5282, в базе     5282
+      ✓ schemedb.ensdf_feedings           записей питания уровня                   документ    23498, в базе    23498
+      ✓ nucdb.gamma_coincidence        пар совпадений                           документ   128429, в базе   128429
+      ✓ nucdb.gamma_coincidence        пар с долей > 1                          документ     1820, в базе     1820
+      ✓ nucdb.gamma_coincidence        родителей с долей > 1                    документ       99, в базе       99
+      ✓ nucdb.gamma_coincidence_line   линий, участвующих в парах               документ    43231, в базе    43231
+      ✓ nucdb.gamma_coincidence_parent родителей                                документ     1643, в базе     1643
+    ✓ все 14 чисел §7/§8 сходятся с базами
+✅ tools/nucdb/check_ensdf_numbers.py: код 0, 0.1 с
+
+→ зову: python tools/nucdb/check_db_marks.py
+    # Колонки-признаки в базах против правила (`D36`, `D38`)
+    
+    ## Сверка: колонка против механического правила
+       в колонке 81, по правилу 81
+       СОШЛОСЬ до единицы
+    
+    1. `nuclides.half_life_is_limit` (`D36`): по правилу 81, разрешено 81
+    
+    ## Контроль правила: четыре набора `110AG`
+    
+       1103  110AG EC DECAY (24.6 S)      ждём пусто  вышло пусто   СОШЛОСЬ
+       1104  110AG IT DECAY (249.76 D)    ждём 2      вышло 2       СОШЛОСЬ
+       1105  110AG B- DECAY (24.6 S)      ждём пусто  вышло пусто   СОШЛОСЬ
+       1106  110AG B- DECAY (249.76 D)    ждём 2      вышло 2       СОШЛОСЬ
+    
+    ## Сверка: колонка `parent_l_seqno` против правила
+    
+      в колонке непустых 662, по правилу 662
+      СОШЛОСЬ до единицы
+    
+    2. `ensdf_datasets.parent_l_seqno` (`D38`): по правилу 662, разрешено 662
+    
+    ОБЕ КОЛОНКИ СОШЛИСЬ с правилом и с разрешёнными числами (81 и 662).
+✅ tools/nucdb/check_db_marks.py: код 0, 0.1 с
+
+→ зову: python tools/nucdb/check_isomer_levels.py
+    # Изомерная разметка `nucdb`: имя против уровня (`D40`, `D41`, `D47`)
+    база: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\nucdb.sqlite
+    
+    1. `D41` дубли имени в `nuclides`: в базе 1, ожидалось 1
+       ✔ 144TBm: уровни 4/6/7
+    
+    2. `D40` свой уровень отсутствует в `decay_radiations`: в базе 1, ожидалось 1
+       ✔ 123CSm2: в таблице 5, в nuclides 8
+    
+    3. `D40` свой уровень отсутствует в `l_decays`: в базе 2, ожидалось 2
+       ✔ 123CSm2: в таблице 5, в nuclides 8
+       ✔ 179AUm: в таблице 2, в nuclides 7
+    
+    4. `D47` строки более чем на одном уровне в `decay_radiations`: в базе 4, ожидалось 4
+       ✔ 116AGm2: уровни 1/4, свой 4
+       ✔ 118INm2: уровни 1/3, свой 3
+       ✔ 190Wm2: уровни 6/7, свой 7
+       ✔ 70CUm2: уровни 1/3, свой 3
+    
+    5. `D47` строки более чем на одном уровне в `l_decays`: в базе 5, ожидалось 5
+       ✔ 116AGm2: уровни 1/4, свой 4
+       ✔ 118INm2: уровни 1/3, свой 3
+       ✔ 190Wm2: уровни 6/7, свой 7
+       ✔ 198BIm2: уровни 1/3, свой 3
+       ✔ 70CUm2: уровни 1/3, свой 3
+    
+    6. `D40` набор `123CSm2` против строк `123CSm1`
+       строк под `123CSm2`: 9; строк под `123CSm1`: 9; ожидалось по 9
+       ✔ совпали побитово по всем шести колонкам
+    
+    7. запасная ветвь `DecayParentRule.LevelClause`
+       ✔ найдено `coalesce`
+       ✔ найдено `min(y.parent_l_seqno)`
+    
+    8. числа `database/scheme.md` против базы
+       в базе: строк 4429, различных имён 4427
+       ✔ таблица §0: 4429
+       ✔ §2, заголовок таблицы: 4429
+       ✔ §2, различных имён: 4427
+    
+    ИЗОМЕРНАЯ РАЗМЕТКА СОШЛАСЬ: 1 дубль имени, 1 сирота в `decay_radiations`, 2 в `l_decays`, 4 и 5 имён на двух уровнях.
+✅ tools/nucdb/check_isomer_levels.py: код 0, 1.2 с
+
+→ зову: python tools/check_decay_numeric.py
+    самопроверка: 6 плохих поймано, 7 добрых пропущено
+    текстовых колонок `decay_radiations` под арифметикой не найдено
+✅ tools/check_decay_numeric.py: код 0, 1.8 с
+
+→ зову: python tools/check_parent_rule.py
+    === 1. КОПИИ ПРАВИЛА «РОДИТЕЛЬ» В КОДЕ ===
+      разрешён BecquerelMonitor/FullSpectrumAnalysis/DecayParentRule.cs вхождений 4 (ожидалось 4) — само правило — единственный носитель текста (три строки LevelClause, одна ChainLevelClause)
+      разрешён tools/CORPUS/scripts/chains.py                       вхождений 1 (ожидалось 1) — `fallbacks()`: диагностика «кому достался чужой уровень» тем же `exists`, что у правила; текст правила читается из .cs (`_level_clause`)
+      разрешён tools/check_parent_rule.py                           вхождений 0 (ожидалось 0) — этот сторож: образцы в его тексте — не SQL
+      разрешён tools/effmaker/probes/ChainRuleProbeF58.cs           вхождений 1 (ожидалось 1) — мера снятого варианта B (`perc not null` внутри минимума) — плечо «было», копией нарочно, как и RetiredClauseC
+      разрешён tools/effmaker/probes/DecayReadersProbe.cs           вхождений 1 (ожидалось 1) — `Fallbacks()`: та же диагностика в пробе, сверяющей обоих читателей (`S89`)
+      разрешён tools/nucdb/check_isomer_levels.py                   вхождений 1 (ожидалось 1) — сторож ищет текст запасной ветви правила — проверка, что она жива
+      файлов просмотрено: 1142; копий вне правила: 0
+    
+    === 2. ТРИ НОСИТЕЛЯ НОМЕРА УРОВНЯ РОДИТЕЛЯ ===
+      2а gamma_coincidence_parent: основных 1225 (l_seqno = 0 у всех: да), изомеров с привязкой 236, расхождений 0
+      2б ensdf_datasets.parent_l_seqno: заполнено 662, расхождений с nuclides/периодом 0
+      2в крест с decay_radiations: имён проверено 1645 (без строк излучений 132), расхождений с LevelClause 0
+    
+    === 3. ВЕТВИ РЯДОВ: ChainPercColumn и судья уровня (S190, S191) ===
+      разрешён tools/nucdb/fill_intensity.py: голым perc 1 (ожидалось 1) — пишет поставочный NuclideDefinition.xml — по приказу Amber 05.09.2026 такое не трогаем; его четыре корня (232TH, 226RA, 238U, 235U) родителей канала «β⁺» не проходят, доля ветви там одна и та же (замер П158)
+      3а читателей рядов через ChainTable: 16; с голым perc / голой decay_chain вне разрешённых: 0 (детектор на подложенном образце — ловит)
+      3б код канала «β⁺»: BetaPlusChannel '15', в тексте столбца ['15']
+      3в питон читает те же тексты ChainPercColumn, ChainLevelClause и ChainTable: да
+      3г строк канала «β⁺» расширено столбцом: 5, сошлись с ε+β⁺ l_decays: 5; сырой perc с судьёй расходится у 5 (положительный контроль)
+      3д судья уровня: строк иного уровня в чужую своему уровню дочь снято 17, оставлено вопреки судье 0
+      3е ChainTable (строки до правила уровня): долей из l_decays 524 (сошлось 524), сырая доля с судьёй расходится у 339 (положительный контроль); достроено ветвей 23 у 23 родителей (сошлось 23)
+      3е родителей, которым правило что-то достроило: 23, из них не ожидал разбор: 0; со своими рёбрами (ветвь петлёй под дочерью, AMBER108): 1 [('234PAm1', [('234PA', 0.16)])]
+      3е строк ChainTable у родителей, которых decay_chain не знает: 0 (ждём 0)
+    
+    === сводка ===
+      копий правила вне DecayParentRule: 0
+      расхождений между носителями: 0
+      находок по ветвям рядов (S190, S191): 0
+    ПРАВИЛО «РОДИТЕЛЬ» ОДНО: копий нет, три носителя согласны с nuclides и LevelClause; ветви рядов у C# и питона — одним текстом, судьи согласны.
+✅ tools/check_parent_rule.py: код 0, 7.9 с
+
+→ зову: python tools/check_corpus_readme.py
+    === сторож журнала корпуса (T113) ===
+    действующие базы (из таблицы объявления): out_rev48_full, out_rev48_mini
+    R1 «действующая база X» с чужим X: 0
+    R2 раздел на снятой базе без пометки: 0
+    R3 шапка против дерева: 0
+    R4 состав частей против parts.csv: 0
+    СОШЛОСЬ: снятое подаётся снятым, шапка сходится с деревом
+✅ tools/check_corpus_readme.py: код 0, 0.1 с
+
+→ зову: python tools/check_scheme_gaps.py
+    # §9а: строки и владельцы
+    
+    строк в таблицах: 34
+    
+    # Открытые строки, которые не называют задачи
+    
+      нет
+    
+    # Ссылки в пустоту
+    
+      нет
+    
+    # Открытые строки, чья задача уже в DONE.md
+    
+      К глазам: либо дыра закрыта и здесь не отмечена, либо
+      закрыто другое. Прогон этим не валится.
+      B-1   строка 1822  -> N4 (в DONE.md)
+      B-1   строка 1822  -> N9 (в DONE.md)
+      B-2   строка 1823  -> M2 (в DONE.md)
+      C-2   строка 1831  -> N16 (в DONE.md)
+      C-3   строка 1832  -> M5 (в DONE.md)
+      D-4   строка 1844  -> W8 (в DONE.md)
+      D-10  строка 1845  -> W8 (в DONE.md)
+      D-5   строка 1846  -> D9 (в DONE.md)
+      E-1   строка 1856  -> D7 (в DONE.md)
+      E-2   строка 1857  -> N6 (в DONE.md)
+      E-3   строка 1858  -> D10 (в DONE.md)
+      F-2   строка 1869  -> T27 (в DONE.md)
+    
+    §9а СОШЁЛСЯ С РЕЕСТРОМ
+✅ tools/check_scheme_gaps.py: код 0, 0.1 с
+
+→ зову: python tools/check_corpus_library.py
+    ⛔ поставочный NuclideDefinition.xml на корпусе не используется (правило Amber 01.09.2026; гейт AMBER19 12.09.2026)
+      ЧИСТО   tools/effmaker/probes/FsaChannelSplitProbe.cs (проба оснастки: тождества каналов отклика — матрица из склада (`ResponseMatrixStore.Load`))
+      ЧИСТО   tools/effmaker/probes/FsaDoubleCountProbe.cs (проба оснастки: клетки A168 {матрица есть/нет} — матрица из склада по Guid кривой)
+      ЧИСТО   tools/effmaker/probes/ResponseRowDumpProbe.cs (проба оснастки: строки матрицы отклика — из склада; состава у пробы нет вовсе)
+      ЧИСТО   tools/effmaker/probes/FsaChannelShot.cs (проба оснастки: картинки каналов отклика — матрица из склада, без неё каналов нет)
+      ЧИСТО   tools/effmaker/probes/FsaComponentDumpProbe.cs (проба оснастки: ленты компонентов по каналам — матрица из склада)
+      ЧИСТО   tools/effmaker/probes/FsaSumPeakAccountProbe.cs (проба оснастки: сумм-пики строятся только с матрицей — из склада)
+      ЧИСТО   tools/effmaker/probes/FsaCascadeProbe.cs (проба оснастки: три прогона с матрицей из склада; `--rebuild` пишет туда же)
+      ЧИСТО   tools/effmaker/probes/CrystalXrayGateProbe.cs (проба оснастки: раздел 1 — вылет K-рентгена по строкам матрицы из склада)
+      ЧИСТО   tools/effmaker/probes/PeakOriginProbe.cs (проба оснастки: обход всего корпуса: состав каждого спектра из manifest.csv (`P5`, П19))
+      ЧИСТО   BecquerelMonitor/PeakDetector.cs (менеджер только лениво, внутри метода)
+      ЧИСТО   tools/effmaker/probes/CorpusFsaProbe.cs
+      ЧИСТО   tools/CORPUS/scripts/mkconfig.py
+    НАХОДОК: 0
+✅ tools/check_corpus_library.py: код 0, 0.1 с
+
+→ зову: python tools/check_corpus_truth.py
+    ⛔ истина корпуса: corpus_def ↔ manifest.csv, поля chains, nuclides
+    манифест: tools\CORPUS\corpus\manifest.csv (136 строк), corpus_def: 136 записей
+    РАСХОЖДЕНИЙ: 0
+✅ tools/check_corpus_truth.py: код 0, 0.1 с
+
+→ зову: python tools/check_done_headers.py
+    === счёт ===
+    строк таблицы в DONE.md: 1285
+    разобрано (заголовок выделен): 1279
+    заголовков со словами незнания: 20
+    ПРОТИВОРЕЧИЙ (незнание в заголовке + ответ в теле): 0
+    порядок: противоречий не найдено
+✅ tools/check_done_headers.py: код 0, 0.2 с
+
+→ зову: python tools/check_corpus_coverage.py
+    === 1. КОДЫ ВОЗВРАТА МЕРОК ОХВАТА ===
+    → зову: python tools/CORPUS/scripts/gaussfit_check.py --coverage-only
+        в _corpus_raw спектров сверх corpus_def.ALL: 28 — AS1Pro_UGlass, AS21_PuAm, AS80_Background, ASN16_Background, ASN8_Background, CZTTeCd_Mix, CZT_Cs137, CZT_Th232, …
+        ASN16_Th232              НЕТ своей копии в _corpus_raw
+        ASN16_Charoite           НЕТ своей копии в _corpus_raw
+        ASN16_UGlass             НЕТ своей копии в _corpus_raw
+        ASN16_Granite            НЕТ своей копии в _corpus_raw
+        AS80_Th232_v2            НЕТ своей копии в _corpus_raw
+        AS80_UGlass              НЕТ своей копии в _corpus_raw
+        AS80_Charoite            НЕТ своей копии в _corpus_raw
+        
+        === ОХВАТ МЕРКИ: ПОСЧИТАНО / ОБЪЯВЛЕНО В corpus/parts.csv ===
+        заморожено (отсутствие ОЖИДАЕМО): AS80_Charoite, AS80_Th232_v2, AS80_UGlass, ASN16_Charoite, ASN16_Granite, ASN16_Th232, ASN16_UGlass
+        стадия                                       known     unknown    excluded       ВСЕГО
+        прочитано из _corpus_raw                     92/92     29/36 !         8/8   129/136 !
+        
+          «прочитано из _corpus_raw»: вне мерки 7 из 136
+            ОЖИДАЕМО — семёрка corpus_def.LEGACY, стадий 1 и 2 у неё в корпусе нет (7): AS80_Charoite, AS80_Th232_v2, AS80_UGlass, ASN16_Charoite, ASN16_Granite, ASN16_Th232, ASN16_UGlass
+        
+        --coverage-only: считана ТОЛЬКО стадия чтения; чисел мерки нет.
+    ✅ tools/CORPUS/scripts/gaussfit_check.py: код 0
+    
+      пропущена gate_blind_check.py — долгая (~мин); звать ключом --deep
+      пропущена ecal_accept_check.py — долгая (~мин); звать ключом --deep
+      пропущена ecal_extrapolation.py — долгая (~мин); звать ключом --deep
+    ⚠ коды 4 (`V16`) и 5 (`V17`) у gate_blind_check.py этим сторожем НЕ читаются: их даёт только полный прогон мерки, без --coverage-only.
+    
+    === 2. МЕРКИ НА СЫРЬЕ БЕЗ ОХВАТА ===
+      освобождён build_corpus.py          — не мерка: стадия 1, которая _corpus_raw и СОЗДАЁТ
+      нарушителей: 0
+    
+    === сводка ===
+      ✅ gaussfit_check.py        код 0
+    ОХВАТ ЦЕЛ: позвано мерок 1, все дали 0; мерок на сырье без охвата нет.
+✅ tools/check_corpus_coverage.py: код 0, 0.7 с
+
+→ зову: python tools/check_declared_base.py
+    ОБЪЯВЛЕНИЕ: tools\CORPUS\README.md, раздел «ДЕЙСТВУЮЩАЯ БАЗА»
+    ИЗМЕРЕНИЕ:  tools/pie/score.py по файлам самого каталога
+    строк объявления взято: 4
+    
+    [ ОК ] полная `out_rev48_full` / понятная
+          каталог: tools\pie\out_rev48_full (назван объявлением)
+          счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev48_full --part=known --members
+          сошлось: спектров 92, sum chi2/ndf 585.6, медиана 1.62, recall, % 100, фантомов 0, подавлен 0
+    
+    [ ОК ] полная `out_rev48_full` / непонятная
+          каталог: tools\pie\out_rev48_full (назван объявлением)
+          счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev48_full --part=unknown --members
+          сошлось: sum chi2/ndf 213.8, медиана 106.88, recall, % 4, фантомов 0, подавлен 0
+    
+    [ ОК ] малая `out_rev48_mini` / понятная
+          каталог: tools\pie\out_rev48_mini (назван объявлением)
+          счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev48_mini --part=known --members --only=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\mini.csv
+          сошлось: спектров 45, sum chi2/ndf 423.4, медиана 2.73, recall, % 100, фантомов 0, подавлен 0
+    
+    [ ОК ] малая `out_rev48_mini` / непонятная
+          каталог: tools\pie\out_rev48_mini (назван объявлением)
+          счёт:    python C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\score.py --mode=spline --out-dir=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\pie\out_rev48_mini --part=unknown --members --only=C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\mini.csv
+          сошлось: sum chi2/ndf 89.1, медиана 89.08, recall, % 4, фантомов 0, подавлен 0
+    
+    ОТПЕЧАТОК ОБЪЯВЛЕНИЯ (T249):
+      [ ОК ] корпус: объявлено 90772ebbb0b3 = 90772ebbb0b3 (217 файлов, дерево)
+      [ ОК ] сборка: объявлено ed5fd6297cf2 = ed5fd6297cf2 (569 файлов, коммит head=6817333d)
+      [ ОК ] полная `out_rev48_full`: клеймо прогона сошлось (снято 2026-10-20 00:02:46, HEAD 6817333d, ключи: --fit-floor-by=D:\BqMoni_Claude\p343\wt\tools\pie\out_rev48_full\xray_rule.csv --audit)
+      [ ОК ] малая `out_rev48_mini`: клеймо прогона сошлось (снято 2026-10-20 00:03:17, HEAD 6817333d, ключи: --only=ASN16_Th232,ASN16_Charoite,ASN16_UGlass,ASN16_Granite,AS80_Th232_v2,AS80_UGlass,AS80_Charoite,ASN16_Charoite_v2,ASN16_Th232_Am241,ASN16_Am241,ASN16_Cs137,ASN16_Cs137_10cm,ASN16_BrazilNuts,AS80_Th232Medal,AS80_Onyx,AS80_K40,AS80_Th232WT20,AS80_Cs137_0cm,ASN16_Lu176,ASN16_Lu176_P0,AS80_Lu176,G1S16_Am241_P25,G1S16_Ba133_P25,G1S16_Cd109_P25,G1S16_Ce139_P25,G1S16_Co60_P25,G1S16_Cs137_P25,G1S16_Eu152_P25,G1S16_Mn54_P25,G1S16_Na22_P25,G1S16_Th228_P25,G1S16_Y88_P25,G1S16_Am241_P5,G1S16_Ba133_P5,G1S16_Cd109_P5,G1S16_Ce139_P5,G1S16_Co57_P5,G1S16_Co60_P5,G1S16_Cs137_P5,G1S16_Eu152_P5,G1S16_Mn54_P5,G1S16_Na22_P5,G1S16_Th228_P5,G1S16_Y88_P5,G1S24_Cs137_P25,G1S24_Na22_P25,G1S24_Th228_P25,G1S24_Y88_P25,G1S24_Am241_P5,G1S24_Ba133_P5,G1S24_Bi207_P5,G1S24_Cd109_P5,G1S24_Co60_P5,G1S24_Cs137_P5,G1S24_Eu152_P5,G1S24_Na22_P5,G1S24_Th228_P5,G1S24_Y88_P5,G1S24_Zn65_P5 --fit-floor-by=D:\BqMoni_Claude\p343\wt\tools\pie\out_rev48_mini\xray_rule.csv --audit)
+    
+    ИТОГО: строк сверено 4, расхождений 0, без каталога 0; отпечатки: отказов 0
+✅ tools/check_declared_base.py: код 0, 2.1 с
+
+→ зову: python tools/check_pending_runs.py
+    сверяю: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\TODO.md
+      строк реестра вне раздела: 27; с признаком «ЖДЁТ СЧЁТНОГО ЗАХОДА»: 2
+      строк в разделе «Отложенные прогоны» (файл:370): 2
+      разряды ожидания: пересборка файлов корпуса | пересчёт склада матриц | один прогон FSA на готовых матрицах
+    
+    СХОДИТСЯ: 2 строк ждут счётного захода, все названы в разделе и разряд у каждой один.
+✅ tools/check_pending_runs.py: код 0, 0.1 с
+
+→ зову: python tools/check_probe_tuning.py
+    сторож отчёта о настройках (`T243`): правило живёт ОДНИМ местом — FsaTuningReport.cs; судятся довесок и 47 проб, считающих FSA
+      FsaTuningReport.cs         ЦЕЛ — единственное место, где живёт правило
+      проб, считающих FSA: 47; о настройках молчат 0 — таких нет
+      самопроверка: девять подставленных порч пойманы, целые довесок и проба чисты
+    ОТЧЁТ О НАСТРОЙКАХ ЦЕЛ: правило одно, зовут его все 47 проб, молчащих нет.
+✅ tools/check_probe_tuning.py: код 0, 0.3 с
+
+→ зову: python tools/check_matrix_keys.py
+    сторож состава ключей обоих путей (T242): реестр -- 48 настроек матрицы, 6 кривой, 69 полей симулятора
+      самопроверка: 10 подставленных порч пойманы, целое дерево чисто
+      путь матрицы: 48 настроек, в клейме 43, рычаг пробы у 46, поле формы у 6
+      путь кривой: 6 настроек; симулятору он ставит РОВНО 18 полей (BremAlongPath, ElectronAnyMaterial, ElectronLayerBremAlongPath, ElectronLayerBremAngular2BS, ElectronLayerMixedScattering, ElectronLayerTransport, ElectronTransport, Histories, ImportanceSampling, LYieldSupply, LightCascadeSplit, LightSubKevCurve, PeakHalfWidthKev, PositronOffset, PositronTransport, RayleighToCrystal, Seed, XcomPairThreshold), остальное -- умолчания симулятора
+      одно место истины (правило I): 18 полей симулятора берут умолчание склада (LightBinUnified, ImportanceSampling, PeakChannelByTolerance, LYieldSupply, ElectronTransport, PositronTransport, PositronOffset, RayleighToCrystal, LightSubKevCurve <- KDipCurveHalf(KDipLight), LightCascadeSplit <- KDipCascadeHalf(KDipLight), SplitXrayShells, ElectronAnyMaterial, BremAlongPath, ElectronLayerTransport, ElectronLayerMixedScattering, ElectronLayerBremAlongPath, ElectronLayerBremAngular2BS, XcomPairThreshold)
+      односторонних ключей: намеренно 62, неприменимо 33, забыто 0
+    СОСТАВ КЛЮЧЕЙ СОШЁЛСЯ: у каждой настройки есть потребитель, всё, что в клейме, лежит в файле, и у каждого одностороннего ключа названа причина.
+✅ tools/check_matrix_keys.py: код 0, 1.5 с
+
+→ зову: python tools/check_geometry_names.py
+    спектров всего 136, из них сверено с .in 92
+    расхождений нет, знаков замены нет
+✅ tools/check_geometry_names.py: код 0, 0.2 с
+
+→ зову: python tools/check_fsa_view_groups.py
+    === переключатели окна отчёта FSA: род против группы (A265) ===
+      поле                     группа             род
+      atomicXrayCheckBox       extrasGroupBox     РАСЧЁТНЫЙ
+      backscatterCheckBox      extrasGroupBox     РАСЧЁТНЫЙ
+      cascadeSummingCheckBox   extrasGroupBox     РАСЧЁТНЫЙ
+      daughtersRadio           displayGroupBox    отрисовочный
+      equilibriumCheckBox      chainGroupBox      РАСЧЁТНЫЙ
+      escapeCheckBox           extrasGroupBox     РАСЧЁТНЫЙ
+      matrixLayerComboBox      displayGroupBox    отрисовочный
+      parentsRadio             displayGroupBox    отрисовочный
+      pileUpCheckBox           extrasGroupBox     РАСЧЁТНЫЙ
+      residualBandCheckBox     displayGroupBox    отрисовочный
+      sourceNucBaseRadio       sourceGroupBox     РАСЧЁТНЫЙ
+      sourcePeaksRadio         sourceGroupBox     РАСЧЁТНЫЙ
+      spectralDataCheckBox     displayGroupBox    отрисовочный
+      всего 13: расчётных 8, отрисовочных 5
+    
+    === подписи группы показа ===
+      английская   displayGroupBox.Text: есть
+      русская      displayGroupBox.Text: есть
+    
+    === САМОПРОВЕРКА: порченая копия обязана быть названа ===
+      подставлено: residualBandCheckBox → extrasFlow; названо поимённо, лишнего нет
+      подставлено: matrixLayerComboBox → extrasFlow; названо поимённо, лишнего нет
+      подставлено: обработчик matrixLayerComboBox зовёт ApplyCalculationChange; назван РАСЧЁТНЫМ в группе показа, лишнего нет
+    
+    СОШЛОСЬ: каждый переключатель в группе своего рода
+✅ tools/check_fsa_view_groups.py: код 0, 0.1 с
+
+→ зову: python tools/check_fsa_report_view.py
+        == сторож окна отчёта FSA: 4 проб окна на спектрах корпуса ==
+          каталог проб : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p343m
+          report : FsaReportViewProbe.exe — блок качества, привязка шкалы (AMBER17), состав строк, родители/дочерние, снимки
+          f16    : FsaSelectionProbeF16.exe — выделение компонента на графике (A246), подписи блока целиком (A247/AMBER214)
+          f21    : FsaResidualProbeF21.exe — галочка ленты невязки (A248): проводка, пиксели, числа, место в «Отрисовке» (A265/AMBER222)
+          p195   : FsaInputCheckProbeP195.exe — заверение входа: плотность пробы (AMBER159), кривая (AMBER157), без матрицы (AMBER156)
+          свежесть: сверено: набор приложения fae6f2b52905 (558 файлов); FsaReportViewProbe.cs 84bf72ad68b3 (8 файлов); FsaSelectionProbeF16.cs 8fb809f01ff9 (8 файлов); FsaResidualProbeF21.cs 9a23aaf05209 (8 файлов); FsaInputCheckProbeP195.cs e2e9faf66f83 (8 файлов); sha exe (0.8 с)
+          report: код 0, строк ok 346, строк отказа 0, последняя строка «ВСЕ СОШЛИСЬ»
+          f16   : код 0, строк ok 49, строк отказа 0, последняя строка «ВСЕ СОШЛИСЬ»
+          f21   : код 0, строк ok 54, строк отказа 0, последняя строка «ВСЕ СОШЛИСЬ»
+          p195  : код 0, строк ok 27, строк отказа 0, последняя строка «ВСЕ СОШЛИСЬ»
+          пробы шли разом 57.9 с
+        СОШЛОСЬ: окно отчёта FSA — 4 из 4 проб прошли (ВСЕ СОШЛИСЬ)
+✅ tools/check_fsa_report_view.py: код 0, 58.8 с
+
+→ зову: python tools/check_selection_panel_height.py
+      самопроверка «слагаемое без клейма»: код 1 
+      самопроверка «слагаемое отрисовки без пары в пробе»: код 1 
+      самопроверка «слагаемое пробы без пары в отрисовке»: код 1 
+      САМОПРОВЕРКА ПРОШЛА: все три порчи названы
+    отрисовка: слагаемых высоты 3, из них с клеймом 3 — подпись, спор, момент
+    мерка пробы: клейм 4 — спор, подпись, момент, спор
+    СОШЛОСЬ: 3 слагаемых высоты, у каждого клеймо и пара в мерке пробы
+✅ tools/check_selection_panel_height.py: код 0, 0.0 с
+
+→ зову: python tools/check_escape_parents.py
+    === ОТСЕВ РОДИТЕЛЕЙ ОБРАЗОВ ВЫЛЕТА (`A271`) ===
+      запас над порогом пар: 124.0 кэВ
+      все шесть правил сошлись
+    
+    === САМОПРОВЕРКА: две порченые копии обязаны быть названы ===
+      подставлено: запас снят из условия отбора — названо поимённо
+      подставлено: возвращена форма !double.IsNaN(x) && !(…) — названо поимённо
+    
+    СОШЛОСЬ: отсев родителей вылета работает и без вещества кристалла
+✅ tools/check_escape_parents.py: код 0, 0.1 с
+
+→ зову: python tools/check_crystal_material.py
+    === вещество кристалла у прибора: геометрия первична (A276) ===
+      1. свойство CrystalMaterialName объявлено
+      1. умолчание поля — пустая строка (старый конфиг читается)
+      2. глубокая копия переносит поле
+      3. FsaSampleSpec.CrystalMaterialName объявлено
+      4. порядок источников: геометрия -> поле прибора -> элементы
+      5. вывод состава берёт имя у конфигурации прибора (общим входом FsaSampleSpec.OfSpectrum)
+      6. путь по пикам берёт поле только там, где геометрии нет
+      7. форма связана с обоих концов: показ и запись
+      8. подписи поля и пункта «не задано» есть в обоих resx
+      9. имён веществ в коде разбора нет (сверено 37 имён засева)
+      10. проба CrystalMaterialProbe.cs на месте
+      11. графа «Кривизна тракта»: показ, запись, копия, подписи в обоих resx, проба
+    
+    --- САМОПРОВЕРКА: три порченые копии ---
+      (а) источники переставлены  -> 4. ПОРЯДОК ИСТОЧНИКОВ НАРУШЕН: геометрия на 779, поле на 177, элементы на 926 — геометрия обязана быть первой
+      (б) умолчание не пусто      -> 1. поле crystalMaterialName не инициализировано пустой строкой — старая конфигурация без этого элемента получит не «пусто»
+      (в) графа κ не пишется      -> 11. SaveFormContents не пишет config.TractCurvature из графы — набранная κ не доедет до разбора
+    
+    СОШЛОСЬ: поле прибора читается запасным источником, геометрия первична
+✅ tools/check_crystal_material.py: код 0, 0.1 с
+
+→ зову: python tools/check_refit_z_class.py
+    === ОТСЕВ ПО ЗНАЧИМОСТИ И КЛАСС КОМПОНЕНТА (`A275`) ===
+      кусок приговора отсева: 2188 знаков
+      все шесть правил сошлись
+    
+    === САМОПРОВЕРКА: три порченые копии обязаны быть названы ===
+      подставлено: возврат распространён на мешающие образы — названо поимённо
+      подставлено: условие возврата переписано на общий счётчик — названо поимённо
+      подставлено: снят сброс счётчика возвращённых — названо поимённо
+    
+    СОШЛОСЬ: отсев не может оставить разбор без единого объявленного нуклида
+✅ tools/check_refit_z_class.py: код 0, 0.1 с
+
+→ зову: python tools/nucdb/check_edges.py
+    # Края поглощения: правило старшинства (D18)
+    
+    1. Порог и линии вылета (`xray_fluorescence`) против `xcom_edges`:
+       расходится 0 из 71 — ХОРОШО
+    2. Группа EADL (`eadl_binding` против `compton_profile_shell`):
+       элементов 100, макс 0.0000 %, медиана 0.0000 % — одна поставка
+    3. Группа EPICS/ESTAR (`epics_photo_subshell` против `estar_shells`):
+       элементов 100, макс 0.0040 %, медиана 0.0000 %
+    
+    Остаточное смешение, единственное: `MaterialDatabase` берёт полное
+    сечение из XCOM, а долю K-оболочки — из EPICS (`epics_photo_fit`).
+       элементов 90, макс 0.788 % (143090.0 против 141962.0 эВ), медиана 0.0148 %
+       Максимум приходится на Z = 98…100, которых в наших веществах не
+       бывает; на реальных составах расхождение ≤ 0.28 %.
+    
+    Правило соблюдается: каждая величина берёт край своей поставки.
+✅ tools/nucdb/check_edges.py: код 0, 0.1 с
+
+→ зову: python tools/check_probe_numbers.py
+    сторож печати чисел в оснастке (T245, T247): разделитель — только инвариантом, формат P — не применяется, у каждого числа — поставщик культуры; судятся 370 файлов tools/effmaker
+      законных подмен, помеченных «T245: НАРОЧНО»: 6
+      самопроверка: семь подставленных порч пойманы, целые файлы чисты (в том числе имя «P3» и проба, у которой культура — ПРЕДМЕТ замера)
+    ПЕЧАТЬ ЧИСЕЛ ЦЕЛА: подмен разделителя без метки нет, форматов P нет ни одного, числа печатаются только с поставщиком культуры.
+✅ tools/check_probe_numbers.py: код 0, 0.6 с
+
+→ зову: python tools/check_curve_generation.py
+    === поколение кривой против поколения матрицы и сборки (A119) ===
+      поколение сборки: 27
+      1. клеймо кривой печатается версией сборки
+      2. решение статическое, клеймо разбирается общим приёмом
+      3. литерального номера поколения в решении нет
+      4. вкладка зовёт решение и даёт ему версию сборки
+      5. вкладка спрашивает склад о поколении матрицы
+      6. обёртка склада делегирует общему чтению заголовка
+      7. обе подписи в обоих resx, по два места подстановки
+      8. обе подписи объявлены в Designer
+      9. замер на месте: CurveGenerationProbe.cs
+      10. сообщения идут своей подписью, а не хвостом к сводке
+      11. высота подписи считается по настоящему тексту
+      12. решение опознаёт кривую без куска пика окном (S208)
+      13. вкладка даёт довод «кривая обязана нести кусок» от геометрии
+      14. клеймо кривой печатает кусок пика окном одной константой
+      15. подпись про пик в обоих resx и в Designer
+    
+    --- САМОПРОВЕРКА: десять порченых копий и три сцены склада ---
+      (а) вызов решения снят                 -> 4. `UpdateEfficiencyView` не зовёт `GenerationNotes` — вкладка молчит
+      (б) поколение сборки числом            -> 4. `GenerationNotes` зовётся НЕ с `ResponseMatrix.PhysicsVersion`
+      (в) склад не спрашивается              -> 5. `UpdateEfficiencyView` не спрашивает склад (`ResponseMatrixStore.PeekVersions`) — поколение матрицы всегда 0
+      (г) клеймо кривой числом               -> 1. клеймо кривой не берёт `ResponseMatrix.PhysicsVersion` — поколение окаменеет
+      (д) сообщения хвостом к сводке         -> 10. сообщения дописываются в сводку (`parts`) — подпись 466×30 обрежет их МОЛЧА
+      (е) высота подписи числом              -> 11. `GenerationLabelHeight` не меряет текст `TextRenderer.MeasureText` — высота числом устареет на первом же переводе
+      (ё) русской подписи нет                -> 7. `EfficiencyTabCurveVsMatrix` нет в русской поставке ресурсов
+      (и) довод пика снят у вкладки          -> 13. `UpdateEfficiencyView` не передаёт `EfficiencyCalculation.PeakWindowExpected(` — довод мёртв, подпись про пик молчит всегда
+      (й) решение не ищет кусок пика         -> 12. `GenerationNotes` не ищет кусок пика окном `EfficiencyCalculation.PeakWindowStamp` — старая кривая того же поколения выглядит нынешней (S208)
+      (к) русской подписи про пик нет        -> 15. `EfficiencyTabCurveOldPeak` нет в русской поставке ресурсов
+      (ж) склад с расхождением               -> кривая «Цилиндр» (дежурный.xml): поколение 11, сборка 16; кривая «Цилиндр» (дежурный.xml): поколение 11, а её матрица — 16
+      (л) склад: прежнее определение пика    -> кривая «Старая» (дежурный.xml): поколение 16 без «peps=fwhm» — прежнее определение пика (S208)
+      (з) склад согласный (контроль)         -> молчит
+    
+    СОШЛОСЬ: расхождение поколений названо словами и сравнение не обездвижено
+✅ tools/check_curve_generation.py: код 0, 0.1 с
+
+→ зову: python tools/check_dump_readers.py
+    сторож читателей дампа (T254, A284): столбец `net` (показная кривая) рядом с `model` — только у названных по пути; судятся 175 файлов tools/**/*.py, разрешённых 3
+      разрешён: tools/CORPUS/scripts/wave_owner.py (есть) — `S88`: читает дамп через `wave_shape.load` (сам ключей не берёт; назван, потому что назван строкой `T254`)
+      разрешён: tools/CORPUS/scripts/wave_shape.py (есть) — `S88`: волна отношения модель/измерение — мерится ФОРМА, а не χ²; тот же формат без `fit` пишет `FsaStackShot --dump=`
+      разрешён: tools/check_fsa_showcase.py (есть) — `T260`: сторож КАРТИНКИ — сворачивает по полосам энергии ОБЕ кривые порознь: `fit` (число невязки строки отчёта: `missing_fit`/`excess_fit`) и `net` (лента на графике: `missing_net`/`excess_net`); χ² не считает, показную кривую с моделью не смешивает — сравнивает свёртку с эталоном
+      самопроверка: плохой читатель и чужой wave_shape.py пойманы; читатель по `fit`, читатель одного `net` и комментарий чисты
+    ЧИТАТЕЛИ ДАМПА ЧИСТЫ: столбец `net` рядом с `model` берут только разрешённые.
+✅ tools/check_dump_readers.py: код 0, 0.3 с
+
+→ зову: python tools/check_corpus_generator.py
+    корпус: tools\CORPUS\corpus
+    
+    == клеймо генератора корпуса (T244) ==
+      набор генератора в дереве: 14 файлов, отпечаток e52b3f96dc248121
+      клеймо: собрано на HEAD bbd8d000 (генератор был ГРЯЗНЫМ: tools/CORPUS/data/res_hint.csv, tools/CORPUS/scripts/build_corpus.py, tools/CORPUS/scripts/calibrate.py, tools/CORPUS/scripts/corpus_def.py), отпечаток e52b3f96dc248121
+      СОШЛОСЬ: корпус собран ТЕМ генератором, что лежит в дереве (14 файлов)
+    
+    == сводка корпуса — пересборкой в памяти (T244, доля П6) ==
+      manifest.csv: 136 спектров; пересобрано строк сводки: 136
+      summary.csv СОШЛОСЬ побайтно (56847 байт)
+      SUMMARY.md  СОШЛОСЬ побайтно (46210 байт)
+    
+    СОШЛОСЬ: корпус собран нынешним генератором, сводка — этим корпусом.
+✅ tools/check_corpus_generator.py: код 0, 0.7 с
+
+→ зову: python tools/check_corpus_scenes.py
+    == сторож сцен генератора (T261): генератор → клеймо → живые .in / .rmx ==
+      каталог проб : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p343m
+      живые сцены  : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus\geometries
+      свежесть: сверено: набор приложения fae6f2b52905 (558 файлов); CorpusGeomProbe.cs cf549084db06 (8 файлов); MatrixStampProbe.cs cd588a568426 (8 файлов); sha трёх exe (0.8 с)
+      генератор CorpusGeomProbe.exe --out=C:\Users\moroz\AppData\Local\Temp\bq_scenes_c4q70s1p\gen: код 0, 0.3 с; геометрий 51, спектров 92, ВСЕ СОШЛИСЬ; корень корпуса генератора: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS
+      сцен в корпусе 51, построено генератором 51
+      ✅ опись index.csv: побайтно равна (21232 байт, 93 строк)
+    
+      сцена                          живой .in                генератор                матрица .rmx             приговор
+      AS80_lu_front                  phys=27;bd0edd890afd32b4 phys=27;bd0edd890afd32b4 phys=27;bd0edd890afd32b4 СОШЛОСЬ
+      AS80_point0                    phys=27;d82825e7379a1ec7 phys=27;d82825e7379a1ec7 phys=27;d82825e7379a1ec7 СОШЛОСЬ
+      AS80_th_disk                   phys=27;54c24d764bfab30d phys=27;54c24d764bfab30d phys=27;54c24d764bfab30d СОШЛОСЬ
+      ASN16_lu_side                  phys=27;532bd9250a186306 phys=27;532bd9250a186306 phys=27;532bd9250a186306 СОШЛОСЬ
+      ASN16_point0_house             phys=27;b40ef463e1c0dde2 phys=27;b40ef463e1c0dde2 phys=27;b40ef463e1c0dde2 СОШЛОСЬ
+      ASN16_point10_house            phys=27;be0f8cb9aa0c6b01 phys=27;be0f8cb9aa0c6b01 phys=27;2209783c77d3046d СОШЛОСЬ (рецепт ×2, историй 6000000)
+      G1S_denta100_oisn10_100_p16    phys=27;e48ae97f70fac89c phys=27;e48ae97f70fac89c phys=27;e48ae97f70fac89c СОШЛОСЬ
+      G1S_denta100_risn379_100_p16   phys=27;1470fe993e2b4441 phys=27;1470fe993e2b4441 phys=27;1470fe993e2b4441 СОШЛОСЬ
+      G1S_denta120_oisn06_057_p24    phys=27;ea70bd4eb8cb29c7 phys=27;ea70bd4eb8cb29c7 phys=27;ea70bd4eb8cb29c7 СОШЛОСЬ
+      G1S_denta120_oisn06_062_p24    phys=27;9eaa987c97089099 phys=27;9eaa987c97089099 phys=27;9eaa987c97089099 СОШЛОСЬ
+      G1S_denta120_oisn06_064_p24    phys=27;a3094695d911065a phys=27;a3094695d911065a phys=27;a3094695d911065a СОШЛОСЬ
+      G1S_denta120_oisn06_066_p24    phys=27;ad4a4842b8234600 phys=27;ad4a4842b8234600 phys=27;ad4a4842b8234600 СОШЛОСЬ
+      G1S_denta120_oisn16_155_p24    phys=27;d00277187e669455 phys=27;d00277187e669455 phys=27;d00277187e669455 СОШЛОСЬ
+      G1S_denta120_oisn16_160_p24    phys=27;ca1fe9da9f349297 phys=27;ca1fe9da9f349297 phys=27;ca1fe9da9f349297 СОШЛОСЬ
+      G1S_denta120_oisn16_166_p24    phys=27;f22f1102c4cc42de phys=27;f22f1102c4cc42de phys=27;f22f1102c4cc42de СОШЛОСЬ
+      G1S_denta120_oisn16_167_p24    phys=27;b1833b638fb940c7 phys=27;b1833b638fb940c7 phys=27;b1833b638fb940c7 СОШЛОСЬ
+      G1S_mar1l_coal_046_p24         phys=27;e8ebbeb55e325c63 phys=27;e8ebbeb55e325c63 phys=27;e8ebbeb55e325c63 СОШЛОСЬ
+      G1S_mar1l_oisn06_055_p16       phys=27;9531890df3232474 phys=27;9531890df3232474 phys=27;9531890df3232474 СОШЛОСЬ
+      G1S_mar1l_oisn06_057_p16       phys=27;7bdad3c6bb40ee4c phys=27;7bdad3c6bb40ee4c phys=27;7bdad3c6bb40ee4c СОШЛОСЬ
+      G1S_mar1l_oisn06_057_p24       phys=27;3f11eb4fbe9faa37 phys=27;3f11eb4fbe9faa37 phys=27;3f11eb4fbe9faa37 СОШЛОСЬ
+      G1S_mar1l_oisn06_062_p16       phys=27;8b7776d3bbde136c phys=27;8b7776d3bbde136c phys=27;8b7776d3bbde136c СОШЛОСЬ
+      G1S_mar1l_oisn06_062_p24       phys=27;abc055e61e23c47a phys=27;abc055e61e23c47a phys=27;abc055e61e23c47a СОШЛОСЬ
+      G1S_mar1l_oisn06_064_p24       phys=27;d6d871b672cb1af5 phys=27;d6d871b672cb1af5 phys=27;d6d871b672cb1af5 СОШЛОСЬ
+      G1S_mar1l_oisn06_066_p16       phys=27;ef87f8e5a48bcc8b phys=27;ef87f8e5a48bcc8b phys=27;ef87f8e5a48bcc8b СОШЛОСЬ
+      G1S_mar1l_oisn06_066_p24       phys=27;ae02a3461d618f07 phys=27;ae02a3461d618f07 phys=27;ae02a3461d618f07 СОШЛОСЬ
+      G1S_mar1l_oisn16_155_p16       phys=27;e7e3ebab9953e1ab phys=27;e7e3ebab9953e1ab phys=27;e7e3ebab9953e1ab СОШЛОСЬ
+      G1S_mar1l_oisn16_155_p24       phys=27;48a8da21a5ff3a01 phys=27;48a8da21a5ff3a01 phys=27;48a8da21a5ff3a01 СОШЛОСЬ
+      G1S_mar1l_oisn16_160_p16       phys=27;240c6b71170728e4 phys=27;240c6b71170728e4 phys=27;240c6b71170728e4 СОШЛОСЬ
+      G1S_mar1l_oisn16_160_p24       phys=27;6583516fadd43b30 phys=27;6583516fadd43b30 phys=27;6583516fadd43b30 СОШЛОСЬ
+      G1S_mar1l_oisn16_166_p16       phys=27;a1be9de452e0b4d5 phys=27;a1be9de452e0b4d5 phys=27;a1be9de452e0b4d5 СОШЛОСЬ
+      G1S_mar1l_oisn16_166_p24       phys=27;902afad12f52922d phys=27;902afad12f52922d phys=27;902afad12f52922d СОШЛОСЬ
+      G1S_mar1l_oisn16_167_p16       phys=27;40b91796b85d8dc1 phys=27;40b91796b85d8dc1 phys=27;40b91796b85d8dc1 СОШЛОСЬ
+      G1S_mar1l_oisn16_167_p24       phys=27;5531ebe9a10aa265 phys=27;5531ebe9a10aa265 phys=27;5531ebe9a10aa265 СОШЛОСЬ
+      G1S_mar1l_risn379_100_p16      phys=27;c8dee00912bac438 phys=27;c8dee00912bac438 phys=27;c8dee00912bac438 СОШЛОСЬ
+      G1S_petri60_oisn06_057_p24     phys=27;f579cfa4c3e3cd5d phys=27;f579cfa4c3e3cd5d phys=27;f579cfa4c3e3cd5d СОШЛОСЬ
+      G1S_petri60_oisn06_062_p24     phys=27;df16998fe84df908 phys=27;df16998fe84df908 phys=27;df16998fe84df908 СОШЛОСЬ
+      G1S_petri60_oisn06_064_p24     phys=27;c71d92bcec485996 phys=27;c71d92bcec485996 phys=27;c71d92bcec485996 СОШЛОСЬ
+      G1S_petri60_oisn06_067_p24     phys=27;6f70cce8e005af3e phys=27;6f70cce8e005af3e phys=27;6f70cce8e005af3e СОШЛОСЬ
+      G1S_petri60_oisn10_100_p16     phys=27;b83d266fde115f51 phys=27;b83d266fde115f51 phys=27;b83d266fde115f51 СОШЛОСЬ
+      G1S_petri60_oisn16_155_p24     phys=27;105dd128e7481081 phys=27;105dd128e7481081 phys=27;105dd128e7481081 СОШЛОСЬ
+      G1S_petri60_oisn16_160_p24     phys=27;d4502016c73fbb53 phys=27;d4502016c73fbb53 phys=27;d4502016c73fbb53 СОШЛОСЬ
+      G1S_petri60_oisn16_167_p24     phys=27;dc177625d756b78c phys=27;dc177625d756b78c phys=27;dc177625d756b78c СОШЛОСЬ
+      G1S_petri60_risn379_100_p16    phys=27;eaef887f4176437a phys=27;eaef887f4176437a phys=27;eaef887f4176437a СОШЛОСЬ
+      G1S_point25                    phys=27;5584f21df46955df phys=27;5584f21df46955df phys=27;fa52f891f37e407d СОШЛОСЬ (рецепт ×2, историй 6000000)
+      G1S_point25_p24                phys=27;71bc5e00aee77506 phys=27;71bc5e00aee77506 phys=27;85d37cff74d86f2b СОШЛОСЬ (рецепт ×2, историй 6000000)
+      G1S_point5_p16                 phys=27;e209bc4dfd01a305 phys=27;e209bc4dfd01a305 phys=27;e209bc4dfd01a305 СОШЛОСЬ
+      G1S_point5_p24                 phys=27;feb97987a99a5210 phys=27;feb97987a99a5210 phys=27;feb97987a99a5210 СОШЛОСЬ
+      RC103_lu_front                 phys=27;247ea41c4c9b49b0 phys=27;247ea41c4c9b49b0 phys=27;247ea41c4c9b49b0 СОШЛОСЬ
+      RC103_marinelli05_kcl          phys=27;3176dc264ddab480 phys=27;3176dc264ddab480 phys=27;3176dc264ddab480 СОШЛОСЬ
+      RC103_point0                   phys=27;465495fff3c2591b phys=27;465495fff3c2591b phys=27;465495fff3c2591b СОШЛОСЬ
+      RC103_point50                  phys=27;8ab29023ce11ca26 phys=27;8ab29023ce11ca26 phys=27;ac0934af3a1ab4ad СОШЛОСЬ (рецепт ×2, историй 6000000)
+    
+      сцен 51: сошлось 51, разошлось 0; клейма сняты у 51; матриц на месте 51 из 51, на своей сцене и рецепте 51 (из них густых ×K по правилу Amber 18.09.2026: 4)
+      время 33.1 с: генератор 0.3, клейма 32.0 на 8 потоках (102 запусков), свежесть 0.8
+      ✅ СОШЛОСЬ: генератор воспроизводит корпус с точностью до клейма, опись побайтно, матрицы склада — на своих сценах штатным рецептом (густые сцены — ×K историй по реестру DENSE_SCENES)
+✅ tools/check_corpus_scenes.py: код 0, 33.2 с
+
+→ зову: python tools/check_no_images.py
+    картинок под handover/, tools/ в индексе git нет
+✅ tools/check_no_images.py: код 0, 0.1 с
+
+→ зову: python tools/check_registry.py
+    # Номера
+    
+    TODO.md  строк  27, столкновений внутри файла: нет
+    DONE.md  строк 1284, столкновений внутри файла: нет
+    переиспользовано между файлами: N12, N13
+      (T25: оставлено сознательно, новых так заводить нельзя —
+       номер берётся максимальным по обоим файлам)
+    следующий свободный номер: A340, AMBER243, B32, C5, D51, E44, F31, M15, N19, P7, R10, S211, T271, V29, W31, X3
+    
+    # Ссылки на файлы, которых нет в дереве
+    
+      TODO.md  AMBER153 строка 225  run_band100.ps1
+      TODO.md  AMBER230 строка 231  GeometryTemplates.xml, config\SampleTemplates.xml
+      TODO.md  AMBER240 строка 241  *.ru.resx
+      TODO.md  AMBER241 строка 242  .ru.resx
+      DONE.md  E20   строка 121  config\GeometryMaterials.xml, tools/effmaker/probes/MaterialLibraryProbe.cs
+      DONE.md  B15   строка 124  !AS80x80\Lu-176.xml, !AS80x80\Th232(WT-20).xml
+      DONE.md  B9    строка 125  !AS80x80\Lu-176.xml, !ASN16\Lu176.xml
+      DONE.md  S81   строка 135  Th232_29.07.2022.xml
+      DONE.md  S80   строка 136  Th232_29.07.2022.xml
+      DONE.md  S69   строка 137  Th232_29.07.2022.xml, limits.csv
+      DONE.md  S68   строка 138  .ru.resx, Th232_29.07.2022.xml, limits.csv
+      DONE.md  S71   строка 139  Th232_29.07.2022.xml
+      DONE.md  S70   строка 140  .ru.resx, Th232_29.07.2022.xml
+      DONE.md  B12   строка 143  .xml, …_Точечная-5см_5cm.xml
+      DONE.md  B10   строка 146  !AS80x80\Lu-176.xml, !AS80x80\Th232(WT-20).xml
+      DONE.md  S60   строка 152  lines_<режим>.csv
+      DONE.md  S72   строка 154  Th232_29.07.2022.xml
+      DONE.md  S78   строка 155  Th232_29.07.2022.xml, components.csv
+      DONE.md  S79   строка 156  Th232_29.07.2022.xml
+      DONE.md  S85   строка 157  Th232_29.07.2022.xml
+      DONE.md  S61   строка 162  handover/handover-2026-09-12-p9-cleaner-s.md
+      DONE.md  B25   строка 163  handover/handover-2026-09-10-b25-low-anchor.md, handover/handover-2026-09-10-p9-pogreshnosti.md
+      DONE.md  B17   строка 164  handover/handover-2026-09-10-p13-th-steklo.md, handover/handover-2026-09-12-p19-light-line.md, handover/handover-2026-09-12-p22-th-disk.md, handover/handover-2026-09-12-p4-am241-escape.md
+      DONE.md  B29   строка 165  handover/handover-2026-09-11-p14-anchor-poly.md, handover/handover-2026-09-12-p19-cheap-rows.md, handover/p19-cheap-rows/b29_kedge_shift.py
+      DONE.md  A104  строка 180  handover/handover-2026-09-05-b3-matrix-stores.md, handover/handover-2026-09-06-p15-reproducibility.md
+      DONE.md  AMBER1 строка 189  config/device/*.xml, handover/handover-2026-09-08-amber1-amber2.md
+      DONE.md  AMBER2 строка 190  handover/handover-2026-09-08-amber1-amber2.md, handover/handover-2026-09-10-p1-podpisi.md
+      DONE.md  AMBER3 строка 191  *.sqlite, config\GeometryMaterials.xml, handover/handover-2026-09-10-p13-th-steklo.md, handover/handover-2026-09-10-p5-geity.md
+      DONE.md  AMBER13 строка 193  *.xml, config/device/*.xml, handover/handover-2026-09-10-p19-doserate.md, handover/handover-2026-09-10-p21-doserate-chistka.md, handover/handover-2026-09-12-p2-iso-field.md, handover/handover-2026-09-12-p6-iso-dose.md, tools/p21_view/DoseRateCleanupP21Probe.cs
+      DONE.md  AMBER14 строка 194  handover/handover-2026-09-10-p19-doserate.md, handover/handover-2026-09-10-p26-zazhim-i-n42.md, tools/p19_view/DoseRateTabP19Probe.cs, tools/p23_view/N42ExportWarningP23Probe.cs
+      DONE.md  AMBER15 строка 195  handover/handover-2026-09-10-p25-priyomka-p22.md, handover/handover-2026-09-12-p3-channel-probes.md
+      DONE.md  AMBER16 строка 196  C:/Users/moroz/bqp9_*.py, handover/handover-2026-09-11-p11-gain-after-anchor.md, handover/handover-2026-09-11-p12-asimov.md, handover/handover-2026-09-11-p8-stretch.md, handover/handover-2026-09-11-review-answer.md, handover/handover-2026-09-12-p20-store-count.md, handover/handover-2026-09-12-p3-channel-probes.md, handover/handover-2026-09-12-p4-am241-escape.md, handover/response-channels-cascade-2026-09-11.md, handover/response-channels-review-answer-2026-09-11.md
+      DONE.md  AMBER17 строка 197  handover/handover-2026-09-11-p11-gain-after-anchor.md, handover/handover-2026-09-11-p13-out-rev16.md, handover/handover-2026-09-11-p14-anchor-poly.md, handover/handover-2026-09-11-p16-light-anchor.md, handover/handover-2026-09-11-p18-light-anchor-full.md, handover/handover-2026-09-11-review-answer.md, handover/handover-2026-09-12-p19-light-line.md, handover/handover-2026-09-12-p4-am241-escape.md
+      DONE.md  AMBER18 строка 198  .ru.resx, BecquerelMonitor/DeviceConfigForm.cs:2534, BecquerelMonitor/DoseRateConfig.cs, BecquerelMonitor/MainForm.cs:685, DosePointsProbeF9.cs, DoseRateCalibrationPoint.cs, DoseRateConfig.cs, config/device/*.xml, handover/handover-2026-09-12-p1-doserate.md, handover/handover-2026-09-12-p6-iso-dose.md, handover/handover-2026-09-12-p7-lsrm-geometry.md, tools/p19_view/DoseRateTabP19Probe.cs, tools/p21_view/DoseRateCleanupP21Probe.cs
+      DONE.md  AMBER20 строка 200  handover/2026-09-12-mix-stack/, handover/handover-2026-09-12-p14-anchor-glyph.md
+      DONE.md  AMBER21 строка 201  handover/handover-2026-09-06-f49-a190-a228.md, labels_*.csv
+      DONE.md  AMBER23 строка 202  BecquerelMonitor/EnergySpectrumView.cs:2596, handover/handover-2026-09-12-p25-amber23-fwhm-overflow.md
+      DONE.md  AMBER24 строка 203  *.xml, .ru.resx, config\GeometryTemplates.xml, handover/handover-2026-09-13-p53-amber24-geometry-templates.md
+      DONE.md  AMBER25 строка 204  .Designer.cs, .resx, .ru.resx, EfficiencyMaker/EfficiencyFitter.cs, EtlCheck.cs, Utils/SpectrumScout.cs, compare_scratch.py, plot_curves.py, run.ps1
+      DONE.md  AMBER26 строка 205  .ru.resx, handover/handover-2026-09-14-p57-amber26-row-height.md
+      DONE.md  AMBER27 строка 206  handover/handover-2026-09-14-p59-amber27-radon.md
+      DONE.md  AMBER28 строка 207  handover/handover-2026-09-14-p61-amber28-readme.md
+      DONE.md  AMBER36 строка 209  handover/handover-2026-09-15-p78-amber36-calibration.md
+      DONE.md  AMBER22 строка 210  Th-232_after.xml, glass.py, handover/handover-2026-09-12-p22-th-disk.md, handover/handover-2026-09-12-p26-amber22-th-disk-peak.md, handover/handover-2026-09-12-p29-huber-amber-scene.md, handover/handover-2026-09-13-p42-amber22-rev21.md, handover/handover-2026-09-14-p56-amber22-uranium.md, handover/handover-2026-09-14-p67-amber22-three-geometries.md, handover/handover-2026-09-17-p88-amber22-bg-recal-edge90.md, handover/p67-amber22/pipeline.ps1, tracer.py
+      DONE.md  AMBER30 строка 211  handover/handover-2026-09-14-p70-amber30-xray-pb.md, handover/handover-2026-09-17-p95-amber-screen-check.md
+      DONE.md  AMBER34 строка 212  handover/handover-2026-09-15-p79-amber34-iso-curve.md, tools/effmaker/probes/IsoCurveActivityProbeP79.cs
+      DONE.md  AMBER35 строка 213  handover/handover-2026-09-15-p80-amber35-live-time.md
+      DONE.md  AMBER37 строка 214  handover/handover-2026-09-15-amber37-efficiency-graph.md, handover/handover-2026-09-17-p95-amber-screen-check.md
+      DONE.md  AMBER38 строка 215  handover/handover-2026-09-17-p95-amber-screen-check.md
+      DONE.md  AMBER41 строка 218  handover/handover-2026-09-15-p82-cleanup.md
+      DONE.md  AMBER42 строка 219  handover/handover-2026-09-14-p71-s170-sum-peak.md, handover/handover-2026-09-15-p83-amber42-qk-corpus.md, handover/handover-2026-09-15-p84-amber42-sumpeak-d7.md, handover/handover-2026-09-15-p85-amber42-arbiters.md
+      DONE.md  AMBER43 строка 220  .csproj, handover/handover-2026-09-15-amber43-layout-file.md, handover/handover-2026-09-17-p95-amber-screen-check.md, handover/handover-2026-09-17-p96-amber43-supply-layout.md
+      DONE.md  AMBER44 строка 221  handover/handover-2026-09-15-amber44-electron-return.md, handover/handover-2026-09-17-p92-m12-cladding-continuum.md
+      DONE.md  AMBER45 строка 222  handover/handover-2026-09-15-amber45-channel-view.md, handover/handover-2026-09-18-p104-amber45-matrix-layer.md, handover/handover-2026-09-19-p109-gui-check-amber45-48.md, handover/handover-2026-09-19-p112-compton-layer-tail.md
+      DONE.md  AMBER48 строка 223  handover/handover-2026-09-18-amber48-efficiency-tab-refresh.md, handover/handover-2026-09-19-p109-gui-check-amber45-48.md
+      DONE.md  AMBER46 строка 224  !AS80x80\Lu-176.xml, Lu-176.xml, Th232(WT-20).xml, ab_*.md, handover/handover-2026-09-17-p95-amber-screen-check.md, handover/handover-2026-09-19-p110-amber46-47-store-audit.md, handover/handover-2026-09-19-p113-amber-store-recompute.md, handover/handover-2026-09-21-p115-amber-store-phys22.md, handover/handover-2026-09-21-p117-amber-config-apply.md, qk_G1S_point5_format9.csv, run_out_*.json, tools/fsa_showcase/reference/*.json
+      DONE.md  AMBER47 строка 225  gap_to_air.py, handover/handover-2026-09-17-p98-amber47-gap-default-air.md, handover/handover-2026-09-19-p110-amber46-47-store-audit.md, handover/handover-2026-09-19-p113-amber-store-recompute.md
+      DONE.md  AMBER206 строка 226  handover/amber206-measure-2026-10-05.md, handover/amber206-rc-reflector-developer-2026-10-05.md
+      DONE.md  AMBER204 строка 227  handover/amber204-inner-housing-2026-10-05.md, handover/amber204-measure-2026-10-05.md
+      DONE.md  AMBER203 строка 228  .resx, .ru.resx, handover/app-fix-2026-10-05-fix203.md
+      DONE.md  AMBER202 строка 229  config/device/*.xml, handover/amber202-matrix-portability-2026-10-05.md
+      DONE.md  AMBER201 строка 230  .xml, handover/app-fix-2026-10-05-fix201.md, handover/app-fix-2026-10-05-fix201ef.md, handover/app-fix-2026-10-05-fix201pk.md, handover/app-fix-2026-10-05-fix201tz.md, handover/app-fix-2026-10-05-fixcent.md, handover/app-fix-2026-10-05-fixconn.md
+      DONE.md  AMBER200 строка 231  handover/app-fix-2026-10-05-fixeff.md
+      DONE.md  AMBER199 строка 232  handover/app-fix-2026-10-05-fixfsa.md, handover/app-fix-2026-10-05-fixkser.md
+      DONE.md  AMBER198 строка 233  handover/app-fix-2026-10-05-fixroi.md
+      DONE.md  AMBER197 строка 234  handover/app-fix-2026-10-05-fixnuc.md
+      DONE.md  AMBER196 строка 235  handover/app-fix-2026-10-05-fixnuc.md
+      DONE.md  AMBER195 строка 236  handover/app-fix-2026-10-05-fixnuc.md
+      DONE.md  AMBER194 строка 237  handover/app-fix-2026-10-05-fixroi.md
+      DONE.md  AMBER193 строка 238  handover/app-fix-2026-10-05-fixroi.md
+      DONE.md  AMBER192 строка 239  handover/app-fix-2026-10-05-fixroi.md
+      DONE.md  AMBER191 строка 240  handover/app-fix-2026-10-05-fixroi.md
+      DONE.md  AMBER190 строка 241  handover/app-fix-2026-10-05-fixcal.md
+      DONE.md  AMBER189 строка 242  handover/app-fix-2026-10-05-fixfwhm.md
+      DONE.md  AMBER188 строка 243  handover/app-fix-2026-10-05-fixcal.md
+      DONE.md  AMBER187 строка 244  handover/app-fix-2026-10-05-fixeff.md
+      DONE.md  AMBER186 строка 245  handover/app-fix-2026-10-05-fixeff.md
+      DONE.md  AMBER185 строка 246  handover/app-fix-2026-10-05-fixeff.md
+      DONE.md  AMBER184 строка 247  handover/app-fix-2026-10-05-fix184b.md, handover/app-fix-2026-10-05-fixshell.md
+      DONE.md  AMBER183 строка 248  handover/app-fix-2026-10-05-fixshell.md
+      DONE.md  AMBER182 строка 249  handover/app-fix-2026-10-05-fixdraw.md
+      DONE.md  AMBER181 строка 250  handover/app-fix-2026-10-05-fixfwhm.md
+      DONE.md  AMBER180 строка 251  handover/app-fix-2026-10-05-fixfsa.md
+      DONE.md  AMBER179 строка 252  handover/app-fix-2026-10-05-fixdraw.md
+      DONE.md  AMBER178 строка 253  handover/app-fix-2026-10-05-fixshell.md
+      DONE.md  AMBER177 строка 254  handover/app-fix-2026-10-05-fixshell.md
+      DONE.md  AMBER176 строка 255  handover/app-fix-2026-10-05-fixcal.md
+      DONE.md  AMBER175 строка 256  handover/app-fix-2026-10-05-fiximp.md
+      DONE.md  AMBER174 строка 257  handover/app-fix-2026-10-05-fixmain.md
+      DONE.md  AMBER173 строка 258  handover/app-fix-2026-10-05-fixdev2.md
+      DONE.md  AMBER172 строка 259  handover/app-fix-2026-10-05-fixdraw.md, handover/app-fix-2026-10-05-fiximp.md
+      DONE.md  AMBER171 строка 260  handover/app-fix-2026-10-05-fixfwhm.md, handover/app-fix-2026-10-05-fixmain.md
+      DONE.md  AMBER170 строка 261  handover/app-fix-2026-10-05-fixmain.md
+      DONE.md  AMBER169 строка 262  handover/app-fix-2026-10-05-fiximp.md
+      DONE.md  AMBER168 строка 263  handover/app-fix-2026-10-05-fixmain.md
+      DONE.md  AMBER167 строка 264  handover/app-fix-2026-10-05-fiximp.md
+      DONE.md  AMBER166 строка 265  handover/app-fix-2026-10-05-fixdev2.md
+      DONE.md  AMBER165 строка 266  handover/app-fix-2026-10-05-fixdev.md
+      DONE.md  AMBER164 строка 267  handover/app-fix-2026-10-05-fixdev.md
+      DONE.md  AMBER163 строка 268  handover/app-fix-2026-10-05-fixdev.md
+      DONE.md  AMBER159 строка 271  handover/handover-2026-10-01-p195-fsa-input-checks.md, out/fill_*.csv, out/rho3_*.csv, rho_table.py
+      DONE.md  AMBER158 строка 272  handover/handover-2026-10-01-p198-fsa-width.md
+      DONE.md  AMBER155 строка 275  .resx, handover/amber206-rc-reflector-developer-2026-10-05.md, handover/handover-2026-10-02-p220-amber155-lightmap.md, handover/handover-2026-10-04-p229-nomatrix-t7.md, handover/handover-2026-10-04-p230-tract-field.md, handover/handover-2026-10-04-p231-compton-edge.md, se_fit.py, se_shift.py
+      DONE.md  AMBER154 строка 277  bg_peak.py
+      DONE.md  AMBER150 строка 280  fwhm_audit.py, fwhm_forms.py
+      DONE.md  AMBER147 строка 283  handover/handover-2026-10-01-p199-matrix-kappa-peak.md
+      DONE.md  AMBER145 строка 285  handover/handover-2026-10-01-p199-matrix-kappa-peak.md
+      DONE.md  AMBER142 строка 288  handover/handover-2026-10-01-p201-scale-anchor.md, handover/handover-2026-10-01-p204-anchor-speed.md, handover/handover-2026-10-01-p207-anchor-passes-carry.md, handover/handover-2026-10-02-p212-s210-curve-light.md, handover/handover-2026-10-02-p215-anchor-one-zero.md, handover/handover-2026-10-02-p226-share.md
+      DONE.md  AMBER104 строка 297  GeometryMaterials.xml
+      DONE.md  AMBER63 строка 355  config/device/*.xml, handover/handover-2026-09-22-p130-fsa-library-defaults.md
+      DONE.md  AMBER64 строка 356  handover/handover-2026-09-22-p131-scenes-dose.md
+      DONE.md  AMBER66 строка 358  handover/handover-2026-09-22-p132-cone-and-attenuation.md
+      DONE.md  AMBER67 строка 359  handover/handover-2026-09-22-p133-material-migration-line-audit.md
+      DONE.md  AMBER68 строка 360  handover/handover-2026-09-22-p130-fsa-library-defaults.md
+      DONE.md  AMBER69 строка 361  handover/handover-2026-09-22-p130-fsa-library-defaults.md
+      DONE.md  AMBER70 строка 362  handover/handover-2026-09-22-p135-peak-position.md
+      DONE.md  AMBER71 строка 363  handover/handover-2026-09-22-p131-scenes-dose.md
+      DONE.md  AMBER73 строка 365  .xml, handover/handover-2026-09-22-p137-n42-channel-edges.md, handover/handover-2026-09-22-p138-specutils-path-and-poly.md, handover/handover-2026-09-22-p139-n42-reexport.md
+      DONE.md  AMBER74 строка 366  handover/handover-2026-09-22-p132-cone-and-attenuation.md
+      DONE.md  AMBER75 строка 367  handover/handover-2026-09-22-p137-n42-channel-edges.md, handover/handover-2026-09-22-p138-specutils-path-and-poly.md
+      DONE.md  AMBER49 строка 368  handover/handover-2026-09-22-p126-line-audit-tooling.md
+      DONE.md  AMBER50 строка 369  handover/handover-2026-09-22-p122-physics23-matrix.md
+      DONE.md  AMBER52 строка 374  handover/handover-2026-09-22-p122-physics23-matrix.md, handover/handover-2026-09-22-p125-constant-energy-channel.md
+      DONE.md  AMBER53 строка 375  config\GeometryMaterials.xml
+      DONE.md  AMBER54 строка 376  handover/handover-2026-09-22-p124-fsa-library-beta-plus-chains.md, handover/handover-2026-09-22-p127-annihilation-gate.md
+      DONE.md  AMBER55 строка 377  handover/handover-2026-09-22-p124-fsa-library-beta-plus-chains.md
+      DONE.md  AMBER57 строка 379  handover/handover-2026-09-22-p122-physics23-matrix.md
+      DONE.md  AMBER62 строка 384  handover/handover-2026-09-22-p127-annihilation-gate.md, handover/handover-2026-09-22-p128-peak-window-limits.md
+      DONE.md  AMBER205 строка 385  handover/amber205-beaker-marinelli-scene-2026-10-05.md, handover/app-fix-2026-10-05-fix201ef.md
+      DONE.md  AMBER207 строка 386  handover/amber207-selection-panel-summing-2026-10-06.md
+      DONE.md  AMBER212 строка 388  handover/handover-2026-10-07-p240-amber212-214.md
+      DONE.md  AMBER213 строка 389  handover/handover-2026-10-07-p241-amber213-fsa-speed.md
+      DONE.md  AMBER214 строка 390  handover/handover-2026-10-07-p240-amber212-214.md
+      DONE.md  AMBER215 строка 391  handover/handover-2026-10-07-p242-amber215.md
+      DONE.md  AMBER216 строка 392  handover/handover-2026-10-07-amber216-dose-line.md
+      DONE.md  AMBER217 строка 393  handover/handover-2026-10-07-amber217-swatch-column.md
+      DONE.md  AMBER218 строка 394  handover/handover-2026-10-07-p244-amber218-stale-mark.md
+      DONE.md  AMBER220 строка 396  handover/handover-2026-10-07-p246-amber220-joint-progress.md
+      DONE.md  AMBER210 строка 400  *_uncovered.csv, Th232_29.07.2022.xml
+      DONE.md  AMBER208 строка 401  check_roi_listup.py
+      DONE.md  A6    строка 416  BecquerelMonitor/ROIConfigForm.cs
+      DONE.md  A7    строка 417  BecquerelMonitor/ROIConfigForm.cs
+      DONE.md  A10   строка 420  ru.resx
+      DONE.md  A11   строка 421  .ru.resx
+      DONE.md  A12   строка 422  *.ru.resx, BecquerelMonitor/ROIConfigForm.cs, PulseView.ru.resx, ROIConfigForm.cs
+      DONE.md  A15   строка 425  *.cs, app-silent-failures.md
+      DONE.md  A22   строка 432  BecquerelMonitor/ROIConfigManager.cs, tools/effmaker/probes/RoiLoadProbe.cs
+      DONE.md  A23   строка 433  *.ru.resx
+      DONE.md  A35   строка 444  Lu176.xml
+      DONE.md  A39   строка 447  handover/f39-triage-as/rmx-headers-f39.csv
+      DONE.md  A48   строка 453  app-silent-failures.md
+      DONE.md  A50   строка 455  *.xml, .resx, handover/handover-2026-09-02-chain-zeroed.md, handover/handover-2026-09-04-a50-store.md, handover/handover-2026-09-05-f18-p8a.md
+      DONE.md  A75   строка 476  corpus/spectra/<ключ>.xml
+      DONE.md  A77   строка 478  handover/handover-2026-09-06-f70-a77.md
+      DONE.md  A84   строка 485  --map=<ключ,guid>.csv
+      DONE.md  A86   строка 487  ROIConfigForm.ru.resx
+      DONE.md  A87   строка 488  handover/handover-2026-09-04-a99-a87.md
+      DONE.md  A88   строка 489  *.resx, .ru.resx
+      DONE.md  A89   строка 490  handover/handover-2026-09-04-a89-a95.md
+      DONE.md  A90   строка 491  BecquerelMonitor/ROIConfigManager.cs, handover/handover-2026-09-04-a90-a92.md
+      DONE.md  A91   строка 492  *.Designer.cs, ru.resx
+      DONE.md  A92   строка 493  handover/handover-2026-09-04-a90-a92.md
+      DONE.md  A93   строка 494  handover/handover-2026-09-04-a93-a107.md
+      DONE.md  A94   строка 495  handover/handover-2026-09-04-a94.md
+      DONE.md  A95   строка 496  BecquerelMonitor/FullSpectrumAnalysis/FsaOverlay.cs
+      DONE.md  A98   строка 499  *.cs, .resx, Designer.cs
+      DONE.md  A99   строка 500  *.ru.resx, handover/handover-2026-09-04-a99-a87.md
+      DONE.md  A105  строка 504  handover/handover-2026-09-04-a105.md
+      DONE.md  A107  строка 506  BecquerelMonitor/**/*.resx, handover/handover-2026-09-04-a93-a107.md, ru.resx
+      DONE.md  A112  строка 511  handover/handover-2026-09-04-a93-a107.md
+      DONE.md  A115  строка 514  Designer.cs, handover/handover-2026-09-04-a93-a107.md
+      DONE.md  A118  строка 517  .resx, .ru.resx, Foo.Designer.cs, Foo.cs, Foo.resx
+      DONE.md  A120  строка 518  handover/handover-2026-09-06-f59-effmaker.md
+      DONE.md  A121  строка 519  handover/handover-2026-09-04-a50-store.md, handover/handover-2026-09-05-b3-matrix-stores.md, handover/handover-2026-09-05-b6-matrix-fingerprint.md
+      DONE.md  A122  строка 520  handover/handover-2026-09-04-a50-store.md, handover/handover-2026-09-05-b3-matrix-stores.md
+      DONE.md  A124  строка 522  *.Designer.cs, *.resx, handover/handover-2026-09-04-a126.md
+      DONE.md  A126  строка 524  Designer.cs, ru.resx
+      DONE.md  A129  строка 526  handover/handover-2026-09-04-a129.md
+      DONE.md  A134  строка 531  handover/handover-2026-09-04-a134.md
+      DONE.md  A135  строка 532  handover/handover-2026-09-04-a135.md
+      DONE.md  A136  строка 533  .resx, Designer.cs, Properties/Resources*.resx
+      DONE.md  A139  строка 536  handover/handover-2026-09-04-a139.md
+      DONE.md  A143  строка 540  handover/handover-2026-09-05-n42.md
+      DONE.md  A144  строка 541  handover/handover-2026-09-05-a144-a118.md
+      DONE.md  A145  строка 542  .cs/.Designer.cs/.resx/.ru.resx, .csproj, FsaOverlay.cs, handover/handover-2026-09-05-b15-a145-stage3.md, handover/handover-2026-09-05-b4-a145-stage1.md, handover/handover-2026-09-05-b8-a145-stage2.md
+      DONE.md  A165  строка 562  handover/handover-2026-09-05-b5-a165-aggregate.md
+      DONE.md  A167  строка 564  BecquerelMonitor/ROIConfigManager.cs, config/ROI/*.xml, config\ROI\*.xml, handover/handover-2026-09-05-roi.md
+      DONE.md  A168  строка 565  .csproj, handover/handover-2026-09-05-b4-a145-stage1.md
+      DONE.md  A169  строка 566  handover/handover-2026-09-05-b4-a145-stage1.md
+      DONE.md  A170  строка 567  handover/handover-2026-09-05-b4-a145-stage1.md
+      DONE.md  A171  строка 568  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A172  строка 569  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A173  строка 570  *.cs, handover/handover-2026-09-05-b7-small-rows.md
+      DONE.md  A174  строка 571  handover/handover-2026-09-05-b7-small-rows.md
+      DONE.md  A175  строка 572  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A176  строка 573  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A177  строка 574  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A178  строка 575  handover/handover-2026-09-05-b7-small-rows.md
+      DONE.md  A181  строка 578  %AppData%\BecqMoni\config\GeometryMaterials.xml, *.sqlite, handover/handover-2026-09-06-f67-a181.md, handover/handover-2026-09-06-f69-oisn.md
+      DONE.md  A183  строка 580  handover/handover-2026-09-06-f59-effmaker.md
+      DONE.md  A184  строка 581  handover/handover-2026-09-06-f55-strings.md
+      DONE.md  A185  строка 582  handover/handover-2026-09-05-f4-a185.md
+      DONE.md  A186  строка 583  handover/handover-2026-09-05-b6-matrix-fingerprint.md
+      DONE.md  A187  строка 584  .ru.resx, check_resx*.py, handover/handover-2026-09-06-f55-strings.md
+      DONE.md  A188  строка 585  .resx, .ru.resx, Designer.cs, handover/handover-2026-09-05-c3-c4-doserate.md
+      DONE.md  A189  строка 586  check_resx*.py, handover/handover-2026-09-05-b9-activity-refusals.md
+      DONE.md  A190  строка 587  handover/handover-2026-09-06-f49-a190-a228.md
+      DONE.md  A192  строка 589  handover/handover-2026-09-05-b9-activity-refusals.md
+      DONE.md  A196  строка 593  handover/handover-2026-09-05-o1-labels.md
+      DONE.md  A197  строка 594  handover/handover-2026-09-05-o1-labels.md
+      DONE.md  A201  строка 597  .ru.resx, Resources*.resx
+      DONE.md  A202  строка 598  Designer.cs, handover/handover-2026-09-05-o8-doserate-tab.md
+      DONE.md  A203  строка 599  handover/handover-2026-09-05-o3-doserate-lsrm.md
+      DONE.md  A204  строка 600  handover/handover-2026-09-05-b15-a145-stage3.md
+      DONE.md  A206  строка 601  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A207  строка 602  .xml, check_resx*.py, handover/handover-2026-09-05-c4-n42-volna.md, handover/handover-2026-09-06-f52-a207.md
+      DONE.md  A208  строка 603  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A209  строка 604  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A210  строка 605  handover/handover-2026-09-05-c4-n42-volna.md
+      DONE.md  A212  строка 607  handover/handover-2026-09-05-f23-a212.md, handover/handover-2026-09-05-o7-import-nre.md
+      DONE.md  A213  строка 608  handover/handover-2026-09-06-f54-doors.md
+      DONE.md  A214  строка 609  handover/handover-2026-09-06-f54-doors.md
+      DONE.md  A216  строка 611  handover/handover-2026-09-06-f54-doors.md
+      DONE.md  A217  строка 612  handover/handover-2026-09-06-f54-doors.md
+      DONE.md  A218  строка 613  handover/handover-2026-09-05-f2-t78-t93.md, handover/handover-2026-09-06-f58-parentrule.md
+      DONE.md  A219  строка 614  handover/handover-2026-09-05-f8-a219.md
+      DONE.md  A220  строка 615  handover/handover-2026-09-05-o9-last-channel.md
+      DONE.md  A221  строка 616  config/device/*.xml
+      DONE.md  A222  строка 617  check_resx*.py, handover/handover-2026-09-06-f59-effmaker.md
+      DONE.md  A227  строка 620  handover/handover-2026-09-05-f24-a227.md
+      DONE.md  A228  строка 621  handover/handover-2026-09-06-f49-a190-a228.md
+      DONE.md  A229  строка 622  *.resx, .ru.resx, handover/handover-2026-09-05-o10-annih-sum-name.md
+      DONE.md  A230  строка 623  handover/handover-2026-09-05-f11-a230.md
+      DONE.md  A236  строка 626  handover/handover-2026-09-05-o13v-fwhmview-reach.md
+      DONE.md  A237  строка 627  add_keys.py, handover/handover-2026-09-05-o11-refusal-words.md
+      DONE.md  A238  строка 628  handover/handover-2026-09-05-o14-culture.md
+      DONE.md  A239  строка 629  handover/handover-2026-09-06-g8-a254-a239.md
+      DONE.md  A240  строка 630  handover/handover-2026-09-06-f54-doors.md, handover/handover-2026-09-06-f62-a240.md
+      DONE.md  A241  строка 631  handover/handover-2026-09-05-o25-modal.md
+      DONE.md  A242  строка 632  count-by-api.tsv, handover/handover-2026-09-05-o17-decimal-dot.md, handover/o17-decimal-dot/count-by-file.tsv, hits-raw.tsv
+      DONE.md  A243  строка 633  handover/handover-2026-09-05-o22-fwhmgraph.md
+      DONE.md  A245  строка 634  handover/f44-headless/near_miss.py, handover/handover-2026-09-05-f25-f22-finish.md, handover/handover-2026-09-05-f44-headless.md
+      DONE.md  A246  строка 635  handover/handover-2026-09-05-f16-a246-a247.md
+      DONE.md  A247  строка 636  .resx, .ru.resx, handover/handover-2026-09-05-f16-a246-a247.md
+      DONE.md  A248  строка 637  .resx, .ru.resx, handover/handover-2026-09-05-f21-a248.md
+      DONE.md  A249  строка 638  .resx, handover/handover-2026-09-05-f26-a249.md
+      DONE.md  A250  строка 639  handover/handover-2026-09-05-f29-a250.md
+      DONE.md  A253  строка 641  handover/handover-2026-09-06-f54-doors.md, handover/handover-2026-09-06-g6-a253.md
+      DONE.md  A254  строка 642  Properties/Resources*.resx, handover/handover-2026-09-06-g6-a253.md, handover/handover-2026-09-06-g8-a254-a239.md
+      DONE.md  A255  строка 643  handover/handover-2026-09-06-g9-a255.md
+      DONE.md  A257  строка 644  handover/handover-2026-09-06-f62-a240.md
+      DONE.md  A258  строка 645  handover/handover-2026-09-06-f63-air.md, handover/handover-2026-09-06-f65-icrp.md
+      DONE.md  A259  строка 646  BecquerelMonitor/Properties/Resources*.resx, handover/handover-2026-09-06-f66-a259.md, handover/handover-2026-09-06-g10-a193-a195.md
+      DONE.md  A260  строка 647  handover/handover-2026-09-06-f66-a259.md, handover/handover-2026-09-06-f71-a260.md, handover/handover-2026-09-06-f74-a260-rest.md
+      DONE.md  A261  строка 648  *.Designer.cs, .resx, BecquerelMonitor/*.cs, handover/handover-2026-09-06-f65-icrp.md, handover/handover-2026-09-06-f68-a261.md
+      DONE.md  A262  строка 649  handover/handover-2026-09-06-f67-a181.md, handover/handover-2026-09-06-f69-oisn.md
+      DONE.md  A40   строка 650  handover/f37-s132/rmx_stamps.py, handover/handover-2026-09-06-p1-e34-store.md
+      DONE.md  A205  строка 653  .resx, handover/handover-2026-09-05-b8-a145-stage2.md, handover/handover-2026-09-06-f51-a205.md
+      DONE.md  A224  строка 654  *.sqlite, handover/handover-2026-09-06-f63-air.md, handover/handover-2026-09-06-f65-icrp.md
+      DONE.md  A244  строка 656  .Designer.cs, .resx, .ru.resx, DC*.cs, FSAReportView*.cs, Properties/Resources*.resx, ROI*.cs, XPTable/*.cs, count-by-file.tsv, handover-2026-09-05-p1-devicein-culture.md, handover/f18-p8a/census_f18.py, handover/f20-f17-accept/watch_run.ps1, handover/f50-final/a244-closing-text.md, handover/handover-2026-09-05-f18-p8a.md, handover/handover-2026-09-05-f20-f17-accept.md, handover/handover-2026-09-05-f27-p4.md, handover/handover-2026-09-05-f34-p8-finish.md, handover/handover-2026-09-05-f35-p9.md, handover/handover-2026-09-05-o17-decimal-dot.md, handover/handover-2026-09-05-p2-xptable-culture.md, handover/handover-2026-09-05-p7-fsa-culture.md, handover/handover-2026-09-06-f47-p8-tail.md, handover/handover-2026-09-06-f50-final.md, handover/o17-decimal-dot/scan_culture.py, scan_culture.py, tools/check_resx*.py
+      DONE.md  A252  строка 657  handover/handover-2026-09-06-f53-a252.md
+      DONE.md  A263  строка 658  handover/f44-headless/HeadlessButton1ProbeF44.cs, handover/handover-2026-09-06-f70-a77.md, handover/handover-2026-09-06-f72-a263.md
+      DONE.md  A264  строка 659  handover/handover-2026-09-06-p10-sumpeak-counts.md
+      DONE.md  A265  строка 660  .resx, handover/handover-2026-09-06-p19-fsa-view-groups.md
+      DONE.md  A268  строка 661  _limits.csv, handover/handover-2026-09-06-p14-corpus-refitz-rel.md, spline_components.csv
+      DONE.md  A269  строка 662  handover/handover-2026-09-06-p13-new-base.md, handover/handover-2026-09-06-p17-efficiency-node-names.md
+      DONE.md  A270  строка 663  handover/handover-2026-09-06-p13-new-base.md, handover/handover-2026-09-06-p18-unknown-recall.md
+      DONE.md  A271  строка 664  handover/handover-2026-09-06-p20-escape-gate.md
+      DONE.md  A272  строка 665  *.cs, *.md, *.ps1, *.py, handover-2026-09-06-p13-new-base.md, handover/handover-2026-09-06-p13-new-base.md, handover/handover-2026-09-06-p21-cleanup.md
+      DONE.md  A273  строка 666  handover/handover-2026-09-06-p22-refusal-height.md
+      DONE.md  A274  строка 667  handover/handover-2026-09-06-p20-escape-gate.md, handover/handover-2026-09-06-p24-recall-three-points.md
+      DONE.md  A275  строка 668  handover/handover-2026-09-07-p26-xray-pb.md
+      DONE.md  A276  строка 669  .resx, BecquerelMonitor/DeviceConfig.cs, config/device/*.xml, handover/handover-2026-09-06-p25-crystal-material.md
+      DONE.md  A278  строка 670  corpus/spectra/*.xml
+      DONE.md  A279  строка 671  handover/handover-2026-09-07-p28-z-threshold.md, handover/handover-2026-09-07-p30-below-detection.md
+      DONE.md  A290  строка 675  handover/review-da8d8519-2026-09-07.md
+      DONE.md  A291  строка 676  handover/full-spectrum-analysis-review-2026-09-07-second-pass.md
+      DONE.md  A292  строка 677  handover/full-spectrum-analysis-review-2026-09-07-second-pass.md
+      DONE.md  A293  строка 678  handover/full-spectrum-analysis-latest-commits-review-2026-09-07.md, handover/handover-2026-09-07-fsa-review-third-pass-fixes.md
+      DONE.md  A294  строка 679  handover/full-spectrum-analysis-latest-commits-review-2026-09-07.md, handover/handover-2026-09-07-fsa-review-third-pass-fixes.md
+      DONE.md  A296  строка 681  BecquerelMonitor/ROIConfigForm.cs, tools/check_roi_listup.py
+      DONE.md  A297  строка 684  handover/full-spectrum-analysis-fourth-pass-review-2026-09-07.md
+      DONE.md  A51   строка 685  handover/handover-2026-09-02-chain-zeroed.md
+      DONE.md  A68   строка 686  handover/handover-2026-09-10-p1-bin-rule.md
+      DONE.md  A119  строка 687  config/device/*.xml, handover/handover-2026-09-04-a50-store.md, handover/handover-2026-09-10-p3-curve-generation.md
+      DONE.md  A277  строка 688  handover/handover-2026-09-10-p5-geity.md
+      DONE.md  A280  строка 689  Th-232.xml, handover/handover-2026-09-10-p5-geity.md
+      DONE.md  A281  строка 690  *_components.csv, *_runs.csv, .ru.resx, handover/handover-2026-09-07-p31-inflate.md, handover/handover-2026-09-10-p12-hvosty.md, handover/handover-2026-09-10-p17-polosa-fita.md, handover/handover-2026-09-10-p9-pogreshnosti.md
+      DONE.md  A282  строка 691  handover/handover-2026-09-10-p2-chitateli.md
+      DONE.md  A283  строка 692  handover/handover-2026-09-10-p9-pogreshnosti.md
+      DONE.md  A285  строка 693  handover/handover-2026-09-10-p9-pogreshnosti.md
+      DONE.md  A300  строка 694  handover/handover-2026-09-10-p10-ekran.md, handover/handover-2026-09-10-p2-chitateli.md, tools/p10_view/ResidualP10Probe.cs
+      DONE.md  A302  строка 695  *_runs.csv, handover/handover-2026-09-10-p17-polosa-fita.md, handover/handover-2026-09-10-p9-pogreshnosti.md, handover/p17-polosa-fita/band_floor_arms.csv
+      DONE.md  A303  строка 696  handover/handover-2026-09-10-p10-ekran.md, handover/handover-2026-09-10-p14-pokaz.md, tools/p10_view/EditorDriftP10Probe.cs, tools/p14_view/GapCarryP14Probe.cs
+      DONE.md  A304  строка 697  handover/handover-2026-09-10-p11-zapis-bazy.md, handover/handover-2026-09-10-p14-pokaz.md, handover/handover-2026-09-10-p16-odno-imya.md, tools/p14_view/HalfLifeLimitP14Probe.cs, tools/p16_view/SpecActivityLimitP16Probe.cs
+      DONE.md  A305  строка 698  handover/handover-2026-09-10-p25-priyomka-p22.md
+      DONE.md  A30   строка 699  components.csv, handover/handover-2026-09-12-p21-crystal-shield.md
+      DONE.md  A43   строка 702  handover/handover-2026-09-13-p45-a43-speed.md, handover/p45-a43/rmx_bytes.py
+      DONE.md  A64   строка 703  handover/handover-2026-09-10-p1-bin-rule.md, handover/handover-2026-09-12-p32-g4-f16-a64.md
+      DONE.md  A266  строка 704  handover/handover-2026-09-06-p11-relative-refitz.md
+      DONE.md  A267  строка 705  handover/handover-2026-09-10-p1-bin-rule.md, handover/handover-2026-09-12-p20-response-measures.md, handover/handover-2026-09-12-p23-physics17-keys.md
+      DONE.md  A284  строка 706  handover/handover-2026-09-10-p2-chitateli.md
+      DONE.md  A286  строка 707  screen_gain.py, tools/CORPUS/scripts/screen_gain.py
+      DONE.md  A306  строка 708  handover/handover-2026-09-12-p20-response-measures.md, handover/handover-2026-09-12-p23-physics17-keys.md
+      DONE.md  A307  строка 709  handover/handover-2026-09-11-p11-gain-after-anchor.md, handover/handover-2026-09-11-p12-asimov.md, handover/handover-2026-09-11-p15-a307-threshold.md, handover/handover-2026-09-12-p4-am241-escape.md
+      DONE.md  A308  строка 710  Th-232_after.xml, handover/handover-2026-09-12-p29-huber-amber-scene.md, handover/handover-2026-09-12-p31-a308-nnls.md
+      DONE.md  A309  строка 711  handover/handover-2026-09-12-p31-a308-nnls.md
+      DONE.md  A72   строка 713  handover/handover-2026-09-12-p20-response-measures.md, handover/handover-2026-09-12-p27-electron-transport.md
+      DONE.md  F30   строка 768  -transport-a55-a62.md
+      DONE.md  F11   строка 769  -p21-out-rev17.md, handover/handover-2026-09-11-p14-anchor-poly.md, handover/handover-2026-09-11-p16-light-anchor.md, handover/handover-2026-09-11-p17-kdip.md, handover/handover-2026-09-11-p18-light-anchor-full.md, handover/handover-2026-09-12-p18-fsa-measures.md, handover/handover-2026-09-12-p19-light-line.md, handover/handover-2026-09-13-p40-sim-defaults-phys16.md
+      DONE.md  S49   строка 774  components.csv
+      DONE.md  S47   строка 775  !AS80x80\Lu-176.xml
+      DONE.md  S46   строка 779  !AS80x80\Lu-176.xml, Lu176.xml
+      DONE.md  S77   строка 788  BecquerelMonitor/FullSpectrumAnalysis/FsaOverlay.cs
+      DONE.md  S32   строка 809  gainscan.py, xray_widths.xml
+      DONE.md  S51   строка 816  runs.csv
+      DONE.md  S67   строка 819  BecquerelMonitor/FullSpectrumAnalysis/FsaOverlay.cs
+      DONE.md  S36   строка 824  out_v5/*_spline_components.csv
+      DONE.md  S102  строка 826  .ps1
+      DONE.md  S9    строка 828  components.csv, limits.csv
+      DONE.md  S98   строка 830  *_runs.csv, runs.csv
+      DONE.md  S99   строка 831  .resx
+      DONE.md  S103  строка 833  runs.csv
+      DONE.md  S104  строка 834  DC*.cs, EnergySpectrumView*.cs, MainForm*.cs, components.csv
+      DONE.md  S110  строка 836  runs.csv
+      DONE.md  S111  строка 837  --dump=curves.csv, BecquerelMonitor/FWHMPeakDetector.cs, runs.csv
+      DONE.md  S101  строка 840  *_runs.csv
+      DONE.md  S64   строка 841  handover/handover-2026-09-05-c1-s134-s64-podpisi.md, handover/handover-2026-09-05-o21-multiname.md, tools/CORPUS/scripts/c1/s64_candidates.py
+      DONE.md  S96   строка 842  bqactivity_c2.csv, handover/handover-2026-09-05-c2-s96-aktivnost.md, s109_c2.csv
+      DONE.md  S19   строка 847  handover/handover-2026-09-05-f19-cleanup.md
+      DONE.md  S30   строка 848  handover/handover-2026-09-05-f19-cleanup.md
+      DONE.md  S44   строка 849  BecquerelMonitor/**/*.cs, check_resx*.py, handover/handover-2026-09-06-f48-s44-nan.md
+      DONE.md  E19   строка 850  !AS80x80\Lu-176.xml, !ASN16\Lu176.xml, handover/handover-2026-09-05-f45-e17-e19.md
+      DONE.md  S52   строка 852  !AS80x80\Lu-176.xml
+      DONE.md  S109  строка 854  tools/pie/out_s109/s109_peaks_m*.csv
+      DONE.md  S114  строка 855  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S115  строка 856  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S116  строка 857  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S117  строка 858  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S118  строка 859  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S119  строка 860  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S120  строка 861  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S121  строка 862  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S122  строка 863  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S123  строка 864  handover/full-spectrum-analysis-review-2026-09-02.md
+      DONE.md  S129  строка 868  handover/f33-cleanup/eol_bytes.py
+      DONE.md  S132  строка 871  handover/f37-s132/rmx_stamps.py
+      DONE.md  S42   строка 872  BecquerelMonitor/**/*.cs
+      DONE.md  S144  строка 873  handover/full-spectrum-analysis-review-2026-09-07-second-pass.md
+      DONE.md  S145  строка 874  handover/full-spectrum-analysis-review-2026-09-07-second-pass.md
+      DONE.md  S147  строка 875  handover/full-spectrum-analysis-latest-commits-review-2026-09-07.md, handover/handover-2026-09-07-fsa-review-third-pass-fixes.md
+      DONE.md  S148  строка 876  handover/full-spectrum-analysis-latest-commits-review-2026-09-07.md, handover/handover-2026-09-07-fsa-review-third-pass-fixes.md
+      DONE.md  S149  строка 877  handover/full-spectrum-analysis-latest-commits-review-2026-09-07.md, handover/handover-2026-09-07-fsa-review-third-pass-fixes.md
+      DONE.md  S150  строка 878  handover/full-spectrum-analysis-fourth-pass-review-2026-09-07.md
+      DONE.md  S151  строка 879  handover/full-spectrum-analysis-fourth-pass-review-2026-09-07.md
+      DONE.md  S152  строка 880  handover/full-spectrum-analysis-fourth-pass-review-2026-09-07.md
+      DONE.md  S153  строка 881  handover/full-spectrum-analysis-fourth-pass-review-2026-09-07.md
+      DONE.md  S156  строка 883  handover/full-spectrum-analysis-sixth-pass-review-2026-09-07.md
+      DONE.md  S157  строка 884  handover/full-spectrum-analysis-sixth-pass-review-2026-09-07.md
+      DONE.md  S158  строка 885  handover/full-spectrum-analysis-sixth-pass-review-2026-09-07.md
+      DONE.md  S75   строка 892  handover/handover-2026-09-12-p9-cleaner-s.md
+      DONE.md  S55   строка 893  handover/handover-2026-09-12-p9-cleaner-s.md
+      DONE.md  S3    строка 894  FullSpectrumAnalysis/*.cs
+      DONE.md  S112  строка 896  Lu176.xml, handover/handover-2026-09-12-p9-cleaner-s.md
+      DONE.md  S113  строка 897  handover/handover-2026-09-10-s165-s113.md
+      DONE.md  S146  строка 899  handover/handover-2026-09-12-p9-cleaner-s.md
+      DONE.md  S66   строка 901  handover/handover-2026-09-12-p30-cleaner-s.md, handover/handover-2026-09-12-p35-s66-anchor.md, s66_diff.py
+      DONE.md  S65   строка 902  handover/handover-2026-09-12-p30-cleaner-s.md
+      DONE.md  S91   строка 903  handover/handover-2026-09-12-p30-cleaner-s.md
+      DONE.md  S43   строка 904  handover/handover-2026-09-12-p30-cleaner-s.md
+      DONE.md  S105  строка 905  bandaudit_*.csv, handover/handover-2026-09-12-p30-cleaner-s.md
+      DONE.md  S106  строка 906  handover/handover-2026-09-12-p30-cleaner-s.md
+      DONE.md  S166  строка 908  handover/handover-2026-09-12-p18-fsa-measures.md
+      DONE.md  S167  строка 909  Lu176.xml, handover/handover-2026-09-12-p18-fsa-measures.md
+      DONE.md  S154  строка 910  handover/handover-2026-09-12-p30-cleaner-s.md
+      DONE.md  S126  строка 911  handover/handover-2026-09-12-p30-cleaner-s.md
+      DONE.md  S127  строка 912  handover/handover-2026-09-12-p30-cleaner-s.md
+      DONE.md  S169  строка 913  handover/handover-2026-09-12-p12-anchor-zero-full.md, handover/handover-2026-09-12-p4-am241-escape.md
+      DONE.md  S171  строка 914  handover/handover-2026-09-14-p60-s171-degenerate.md, handover/handover-2026-09-14-p63-s171-limit.md
+      DONE.md  S172  строка 915  handover/handover-2026-09-14-p65-s172-escape.md
+      DONE.md  S173  строка 916  handover/handover-2026-09-14-p68-s173-untied-tail.md
+      DONE.md  S174  строка 917  handover/handover-2026-09-14-p69-s174-grey-continuum.md
+      DONE.md  S170  строка 918  handover/handover-2026-09-14-p71-s170-sum-peak.md
+      DONE.md  S176  строка 919  handover/handover-2026-09-15-p85-amber42-arbiters.md
+      DONE.md  S177  строка 920  handover/handover-2026-09-18-p101-s177-pair-survival.md
+      DONE.md  S178  строка 921  handover/handover-2026-09-18-p101-s177-pair-survival.md, handover/handover-2026-09-18-p102-s178-cascade-paths.md, handover/p101-s177/g4_sums_eu152_off_60M.md
+      DONE.md  P5    строка 931  handover/handover-2026-09-12-p19-cheap-rows.md
+      DONE.md  T33   строка 935  config\device\*.xml
+      DONE.md  T34   строка 936  !ASN16\Lu176.xml
+      DONE.md  B23   строка 944  tools/CORPUS/corpus/spectra/*.xml
+      DONE.md  B8    строка 950  !AS80x80\Lu-176.xml
+      DONE.md  V12   строка 951  handover/handover-2026-09-05-f7-v12-v13.md
+      DONE.md  V13   строка 952  handover/handover-2026-09-05-f7-v12-v13.md
+      DONE.md  V14   строка 953  handover/handover-2026-09-05-c7-proverki-korpusa.md
+      DONE.md  V16   строка 954  handover/handover-2026-09-05-c7-proverki-korpusa.md
+      DONE.md  V17   строка 955  handover/handover-2026-09-05-c7-proverki-korpusa.md
+      DONE.md  V22   строка 957  handover/handover-2026-09-05-c7-proverki-korpusa.md
+      DONE.md  V24   строка 958  handover/handover-2026-09-05-f12-v24-v26-v27.md, handover/handover-2026-09-05-f7-v12-v13.md
+      DONE.md  V26   строка 959  reverse_arm.py
+      DONE.md  V11   строка 964  corpus/devices/*.xml, handover/handover-2026-09-06-p7-resolution-corpus.md
+      DONE.md  V18   строка 966  *.sqlite
+      DONE.md  V15   строка 970  handover/handover-2026-09-12-p19-cheap-rows.md
+      DONE.md  V23   строка 973  handover/handover-2026-09-05-c7-proverki-korpusa.md
+      DONE.md  V10   строка 975  handover/handover-2026-09-14-p73-v10-rc103-50mm.md
+      DONE.md  A312  строка 977  Am-241.xml, handover/handover-2026-09-21-p117-amber-config-apply.md, handover/handover-2026-09-21-p118-a312-fsa-refusal-reason.md
+      DONE.md  T268  строка 978  handover/amber207-selection-panel-summing-2026-10-06.md, handover/p167/22-roi_mc2.py, tools/effmaker/probes/RoiSummingProbeP167.cs
+      DONE.md  T269  строка 979  handover/handover-2026-10-07-amber217-swatch-column.md
+      DONE.md  W21   строка 986  .resx
+      DONE.md  W10   строка 1008 BecquerelMonitor/**/*.cs
+      DONE.md  W5    строка 1009 runs.csv
+      DONE.md  E6    строка 1023 tools/effmaker/probes/PackGeometryProbe.cs
+      DONE.md  E3    строка 1034 EfficiencyFitter.cs
+      DONE.md  E31   строка 1038 tools/pie/out_v5/*_spline_runs.csv
+      DONE.md  E28   строка 1041 handover/handover-2026-09-05-c5-e28-chertyozh-gost.md
+      DONE.md  E34   строка 1043 handover/handover-2026-09-06-f76-e34.md, handover/handover-2026-09-06-p1-e34-store.md
+      DONE.md  E17   строка 1044 .resx, handover/handover-2026-09-05-f45-e17-e19.md
+      DONE.md  E41   строка 1045 handover/handover-2026-09-05-c5-e28-chertyozh-gost.md
+      DONE.md  E35   строка 1047 handover/handover-2026-09-10-p18-krivye.md
+      DONE.md  E37   строка 1048 handover/f33-cleanup/e37_first_point.py, handover/handover-2026-09-10-p18-krivye.md, tools/check_*.py
+      DONE.md  E39   строка 1049 handover/handover-2026-09-05-c5-e28-chertyozh-gost.md, handover/handover-2026-09-10-p1-podpisi.md
+      DONE.md  E40   строка 1050 handover/handover-2026-09-05-c5-e28-chertyozh-gost.md, handover/handover-2026-09-10-p1-podpisi.md
+      DONE.md  E42   строка 1051 handover/handover-2026-09-10-p1-podpisi.md, handover/handover-2026-09-10-p10-ekran.md, tools/p10_view/SketchP10Probe.cs
+      DONE.md  E7    строка 1052 EfficiencyFitter.cs
+      DONE.md  E10   строка 1053 handover/handover-2026-09-12-p36-e10-marinelli-selfabs.md
+      DONE.md  E29   строка 1054 handover/handover-2026-09-10-p18-krivye.md, handover/handover-2026-09-13-p41-e29-importance.md, handover/handover-2026-09-13-p43-e29-field-auto.md
+      DONE.md  R3    строка 1066 gainscan.py, gainscan_stub.py
+      DONE.md  R1    строка 1067 BecquerelMonitor/LibraryPeakFitter.cs, LineSetBuilder.cs
+      DONE.md  R2    строка 1068 handover/handover-2026-09-05-f33-cleanup.md
+      DONE.md  R4    строка 1070 RoiWizard/nuclides.xml
+      DONE.md  C3    строка 1077 Designer.cs
+      DONE.md  C2    строка 1078 *.resx, BecquerelMonitor/**/*.cs, ROIConfigForm.Designer.cs
+      DONE.md  C4    строка 1079 config/ROI/*.xml, handover/handover-2026-09-05-c3-c4-doserate.md
+      DONE.md  N15   строка 1095 xraydb.sqlite
+      DONE.md  N17   строка 1097 xray_widths.xml, xraydb.sqlite
+      DONE.md  N16   строка 1100 handover/handover-2026-09-12-p19-cheap-rows.md
+      DONE.md  N18   строка 1138 *_components.csv, *_limits.csv, *_runs.csv, runs.csv
+      DONE.md  D35   строка 1145 BecquerelMonitor/**/*.cs, handover/handover-2026-09-10-p7-baza-chitatel.md
+      DONE.md  D36   строка 1146 handover/handover-2026-09-10-p11-zapis-bazy.md
+      DONE.md  D37   строка 1147 handover/handover-2026-09-10-p7-baza-chitatel.md
+      DONE.md  D38   строка 1148 handover/handover-2026-09-10-p11-zapis-bazy.md, handover/handover-2026-09-10-p7-baza-chitatel.md
+      DONE.md  D49   строка 1151 handover/handover-2026-09-10-p26-zazhim-i-n42.md, sandia.decay.xml
+      DONE.md  D4    строка 1152 handover/handover-2026-09-12-p19-cheap-rows.md
+      DONE.md  D7    строка 1153 xray_widths.xml
+      DONE.md  D23   строка 1154 handover/handover-2026-09-10-p8-osnastka.md, tools/check_%s.py, tools/check_*.py
+      DONE.md  D40   строка 1155 .cs, handover/handover-2026-09-11-p5-isomer-levels.md
+      DONE.md  D48   строка 1156 handover/handover-2026-09-12-p19-cheap-rows.md
+      DONE.md  D50   строка 1157 d50_import_cut.py, d50_missing_lines.md, handover/handover-2026-09-18-p101-s177-pair-survival.md, handover/p102-s178-d50/d50_import_cut.md, sandia.decay.xml
+      DONE.md  M9    строка 1171 handover/handover-2026-09-12-p23-physics17-keys.md
+      DONE.md  M12   строка 1174 handover/handover-2026-09-13-p42-amber22-rev21.md, handover/handover-2026-09-17-p92-m12-cladding-continuum.md
+      DONE.md  T57   строка 1187 *.cs
+      DONE.md  T38   строка 1212 runs.csv
+      DONE.md  T40   строка 1215 .md
+      DONE.md  T45   строка 1222 *.sqlite
+      DONE.md  T41   строка 1224 **/*.cs, BecquerelMonitor/**/*.cs
+      DONE.md  T75   строка 1227 *.sqlite, memory/msbuild-through-powershell-only.md
+      DONE.md  T60   строка 1233 BecquerelMonitor/ROIConfigManager.cs, Nano.xml, RoiLoadProbe.cs, config\ROI\Nano.xml, tools/effmaker/probes/BqCoeffProbe.cs
+      DONE.md  T65   строка 1234 *_components.csv, *_limits.csv, *_runs.csv
+      DONE.md  T88   строка 1236 .cs, config\ROI\*.xml, config\chuzhoy.xml
+      DONE.md  T72   строка 1242 bin\Debug\config\*.xml
+      DONE.md  T83   строка 1243 .cs
+      DONE.md  T105  строка 1246 *.cs, runs.csv
+      DONE.md  T2    строка 1249 docs/rules.md
+      DONE.md  T62   строка 1250 BecquerelMonitor/EfficiencyMakerForm*.cs, tools/effmaker/probes/PackGeometryProbe.cs
+      DONE.md  T27   строка 1252 xray_widths.xml
+      DONE.md  T43   строка 1254 data.perfView.csv
+      DONE.md  S134  строка 1259 handover/handover-2026-09-05-c1-s134-s64-podpisi.md
+      DONE.md  S137  строка 1261 components.csv
+      DONE.md  S143  строка 1265 corpus-base-out-mini.md, handover/handover-2026-09-05-o9-last-channel.md
+      DONE.md  T5    строка 1266 handover/handover-2026-09-05-f19-cleanup.md
+      DONE.md  T64   строка 1267 handover/handover-2026-09-05-o5-spe-import.md
+      DONE.md  T67   строка 1268 runs.csv
+      DONE.md  T71   строка 1269 handover/handover-2026-09-05-o6-pie-grid.md
+      DONE.md  T78   строка 1271 handover/handover-2026-09-05-f2-t78-t93.md
+      DONE.md  T84   строка 1273 handover/handover-2026-09-05-f3-t84-t91-t68.md
+      DONE.md  T86   строка 1274 handover/handover-2026-09-05-o18-fsa-docs.md
+      DONE.md  T89   строка 1276 .cs, handover/handover-2026-09-05-f1-t149-t89.md, tools\effmaker\*.cs, tools\effmaker\probes\*.cs
+      DONE.md  T91   строка 1277 corpus-base-out-v5.md, handover/handover-2026-09-05-f3-t84-t91-t68.md, memory/corpus-base-out-v5.md
+      DONE.md  T93   строка 1278 handover/handover-2026-09-05-f2-t78-t93.md
+      DONE.md  T95   строка 1280 handover/handover-2026-09-05-c7-proverki-korpusa.md
+      DONE.md  T97   строка 1281 *.ru.resx
+      DONE.md  T119  строка 1287 .ps1, config\GeometryMaterials.xml
+      DONE.md  T128  строка 1290 corpus-base-<база>.md
+      DONE.md  T135  строка 1294 handover/handover-2026-09-06-f64-cheap.md
+      DONE.md  T137  строка 1295 *.py, handover/handover-2026-09-06-g5-cp1251.md, handover/handover-2026-09-06-g7-utf8-three.md, tools/**/*.py, tools/check_*.py
+      DONE.md  T139  строка 1297 .resx, .ru.resx, handover/handover-2026-09-05-b2-resx-and-accelerators.md
+      DONE.md  T143  строка 1298 handover/handover-2026-09-05-b1-probes-toolkit.md
+      DONE.md  T145  строка 1300 *.sqlite
+      DONE.md  T149  строка 1303 config\ROI\*.xml, config\device\*.xml, handover/handover-2026-09-05-f1-t149-t89.md
+      DONE.md  T150  строка 1304 handover/handover-2026-09-05-b1-probes-toolkit.md
+      DONE.md  T155  строка 1307 .ps1, .py, handover-2026-09-05-tooling.md, handover/handover-2026-09-05-b1-probes-toolkit.md
+      DONE.md  T156  строка 1308 .resx, Foo.resx, check_resx*.py, handover/handover-2026-09-05-b2-resx-and-accelerators.md
+      DONE.md  T157  строка 1309 Designer.cs, handover/handover-2026-09-05-c4-n42-volna.md, handover/handover-2026-09-05-n42-third.md, ru.resx
+      DONE.md  T158  строка 1310 *.resx, .resx, .ru.resx, handover/handover-2026-09-05-b15-a145-stage3.md, handover/handover-2026-09-05-b2-resx-and-accelerators.md
+      DONE.md  T161  строка 1311 handover/handover-2026-09-06-f64-cheap.md
+      DONE.md  T162  строка 1312 ROIConfigManager.cs
+      DONE.md  T163  строка 1313 handover/handover-2026-09-06-f64-cheap.md
+      DONE.md  T164  строка 1314 handover/handover-2026-09-05-f13-t164.md, handover/handover-2026-09-05-f19-cleanup.md
+      DONE.md  T166  строка 1316 .resx
+      DONE.md  T169  строка 1318 handover/handover-2026-09-05-b9-activity-refusals.md
+      DONE.md  T174  строка 1320 config/ROI/*.xml, handover/handover-2026-09-05-o3-doserate-lsrm.md
+      DONE.md  T177  строка 1321 FsaOverlay.cs, handover/handover-2026-09-05-b15-a145-stage3.md, handover/handover-2026-09-05-b8-a145-stage2.md
+      DONE.md  T178  строка 1322 *.cs, FullSpectrumAnalysis\*.cs, handover/handover-2026-09-05-b8-a145-stage2.md, handover/handover-2026-09-06-f64-cheap.md
+      DONE.md  T180  строка 1323 handover/f61-stale/b6-journal-before.md, handover/handover-2026-09-05-b6-matrix-fingerprint.md
+      DONE.md  T182  строка 1325 .cs
+      DONE.md  T187  строка 1326 handover/handover-2026-09-05-c6-osnastka-appwd.md
+      DONE.md  T188  строка 1327 *.md, handover/handover-2026-09-06-f64-cheap.md, tools/**/*.ps1
+      DONE.md  T190  строка 1329 config\ROI\*.xml, config\device\*.xml
+      DONE.md  T194  строка 1333 .cs, handover/handover-2026-09-05-c6-osnastka-appwd.md
+      DONE.md  T200  строка 1336 *.cs, *.py, handover/handover-2026-09-05-o4-recipe-refs.md, tools/**/*.ps1
+      DONE.md  T203  строка 1339 *.resx, <ключ>.xml, Designer.cs, config/ROI/*.xml, handover/*-2026-09-05-*.md
+      DONE.md  T210  строка 1344 handover/handover-2026-09-05-o16-readme-drift.md
+      DONE.md  T218  строка 1349 handover/handover-2026-09-05-o4-recipe-refs.md
+      DONE.md  T219  строка 1350 .cs, .ps1, .py, handover-*.md, handover/f61-stale/handover-ctl-recipe.md, tools/_f61_ctl.ps1
+      DONE.md  T220  строка 1351 .ps1, handover/handover-2026-09-06-g2-guard-readers.md, tools/check_*.py
+      DONE.md  T223  строка 1353 !AS80x80\Lu-176.xml, *.resx, --map=<ключ,guid>.csv, .ru.resx, Designer.cs, Foo.Designer.cs, FsaOverlay.cs, check_resx*.py, config/ROI/*.xml, corpus/spectra/<ключ>.xml, handover/handover-2026-09-06-g3-registry-check2.md
+      DONE.md  T226  строка 1354 .cs, .csproj, handover/handover-2026-09-05-f46-stamp.md
+      DONE.md  T229  строка 1357 *.ru.resx
+      DONE.md  T230  строка 1358 .resx, .ru.resx, handover/handover-2026-09-05-o12-resx-guards.md
+      DONE.md  T232  строка 1360 handover/handover-2026-09-05-o10-runs/o10_check.py
+      DONE.md  T233  строка 1361 .csproj, handover/handover-2026-09-05-f46-stamp.md
+      DONE.md  T234  строка 1362 *.ru.resx, Foo.Designer.cs, handover/handover-2026-09-05-o15-guard-scope.md
+      DONE.md  T235  строка 1363 *.resx, .resx
+      DONE.md  T238  строка 1366 *.Designer.cs, *.resx, add_keys*.py, collect_fallbacks.py, handover/handover-2026-09-05-o23-guard-root.md, handover/handover-2026-09-05-o24-zorder-empty.md, tools/**/*.py
+      DONE.md  S141  строка 1367 handover/handover-2026-09-06-p5-escape.md
+      DONE.md  T243  строка 1369 handover/handover-2026-09-06-p16-probe-tuning.md
+      DONE.md  T246  строка 1370 EtlCheck.cs, handover/handover-2026-09-06-p21-cleanup.md, tools/effmaker/**/*.cs
+      DONE.md  T250  строка 1371 corpus-base-<база>.md, corpus-base-current.md
+      DONE.md  T63   строка 1372 *_spline_components.csv, *_spline_limits.csv, *_spline_runs.csv, config\NuclideDefinition.OLD.xml
+      DONE.md  T76   строка 1373 *.md, handover/handover-2026-09-05-c7-proverki-korpusa.md, handover/handover-2026-09-06-p3-coverage.md
+      DONE.md  T81   строка 1374 *.sqlite, handover/handover-2026-09-05-o4-recipe-refs.md, handover/handover-2026-09-06-p6-registry-sweep.md, run.ps1, tools/effmaker/run.ps1
+      DONE.md  T85   строка 1375 handover/handover-2026-09-06-p3-coverage.md, runs.csv
+      DONE.md  T240  строка 1376 handover/handover-2026-09-06-p9-refitz-stackshot.md
+      DONE.md  T123  строка 1379 handover/handover-2026-09-06-p2-summary.md
+      DONE.md  T125  строка 1380 handover/handover-2026-09-06-p2-summary.md
+      DONE.md  T239  строка 1381 handover/handover-2026-09-06-p4-legacy-truth.md
+      DONE.md  T127  строка 1382 handover/handover-2026-09-06-p6-registry-sweep.md
+      DONE.md  T141  строка 1383 BecquerelMonitor/ROIConfigManager.cs
+      DONE.md  T252  строка 1386 handover/full-spectrum-analysis-review-2026-09-07-second-pass.md
+      DONE.md  T248  строка 1387 handover/handover-2026-09-07-p27-declared-run-dir.md
+      DONE.md  S140  строка 1388 handover/handover-2026-09-12-p9-cleaner-s.md
+      DONE.md  T245  строка 1390 handover/handover-2026-09-06-p16-probe-tuning.md, handover/handover-2026-09-10-p3-pechat-prob.md
+      DONE.md  T247  строка 1391 handover/handover-2026-09-10-p3-pechat-prob.md, handover/handover-2026-09-10-p8-osnastka.md, tools/effmaker/**/*.cs
+      DONE.md  T21   строка 1393 t21_co60_off.json, t21_sc_cyl_off.json, t21_sc_mar_off.json
+      DONE.md  T79   строка 1394 .sqlite, .xml
+      DONE.md  T113  строка 1395 handover-*.md, handover/handover-2026-09-10-p6-dokumentaciya.md, handover/handover-2026-09-10-p6-verdicts.tsv, scratchpad/f10/t113_scan.py
+      DONE.md  T118  строка 1396 handover/handover-2026-09-10-p2-chitateli.md
+      DONE.md  T132  строка 1397 *.Designer.cs, handover/handover-2026-09-11-p4-guard-blind-spots.md
+      DONE.md  T134  строка 1398 handover/handover-2026-09-10-p3-pechat-prob.md
+      DONE.md  T154  строка 1399 handover/handover-2026-09-10-p10-ekran.md
+      DONE.md  T167  строка 1401 handover/handover-2026-09-11-p4-guard-blind-spots.md
+      DONE.md  T172  строка 1402 handover/handover-2026-09-10-p16-odno-imya.md
+      DONE.md  T176  строка 1403 handover/handover-2026-09-05-b8-a145-stage2.md
+      DONE.md  T179  строка 1404 handover/handover-2026-09-10-p3-pechat-prob.md
+      DONE.md  T185  строка 1405 handover/handover-2026-09-10-p6-dokumentaciya.md
+      DONE.md  T255  строка 1406 handover/handover-2026-09-10-p12-hvosty.md, handover/handover-2026-09-10-p3-pechat-prob.md
+      DONE.md  T256  строка 1407 Th-232.xml, handover/handover-2026-09-10-p5-geity.md, handover/handover-2026-09-10-p8-osnastka.md, runs.csv
+      DONE.md  S135  строка 1408 RoiLoadProbe.cs, handover/handover-2026-09-12-p18-fsa-measures.md
+      DONE.md  T244  строка 1409 corpus/devices/*.xml, handover/handover-2026-09-12-p33-t249-t244-stamps.md
+      DONE.md  T249  строка 1410 .csproj, devices/*.xml, handover/handover-2026-09-12-p33-t249-t244-stamps.md
+      DONE.md  T66   строка 1413 handover/handover-2026-09-10-p16-odno-imya.md
+      DONE.md  T68   строка 1414 corpus-run-with-matrix.md, handover/handover-2026-09-05-f3-t84-t91-t68.md, handover/handover-2026-09-13-p39-probe-truth.md, scripts/*.ps1
+      DONE.md  T80   строка 1415 .xml, Ghost.xml, config\NuclideDefinition.OLD.xml, config\device\*.xml, handover/handover-2026-09-12-p28-t-rig.md
+      DONE.md  T115  строка 1416 handover/handover-2026-09-13-p39-probe-truth.md
+      DONE.md  T117  строка 1417 config\*.xml, handover/handover-2026-09-12-p28-t-rig.md
+      DONE.md  T133  строка 1419 handover/handover-2026-09-10-p6-dokumentaciya.md
+      DONE.md  T136  строка 1420 handover/handover-2026-09-12-p28-t-rig.md
+      DONE.md  T175  строка 1428 config\ROI\*.xml, handover/handover-2026-09-05-b15-a145-stage3.md, handover/handover-2026-09-12-p28-t-rig.md
+      DONE.md  T186  строка 1431 handover/handover-2026-09-05-c7-proverki-korpusa.md
+      DONE.md  T199  строка 1434 .cs, handover/f18-p8a/build_f18.ps1, tools/effmaker/**/*.cs
+      DONE.md  T209  строка 1436 *.sqlite
+      DONE.md  T225  строка 1440 handover/handover-2026-09-12-p28-t-rig.md
+      DONE.md  T254  строка 1442 handover/handover-2026-09-10-p2-chitateli.md, handover/handover-2026-09-12-p28-t-rig.md, tools/**/*.py, tools/check_*.py, tools/pie/p28_bad_reader_tmp.py
+      DONE.md  T257  строка 1443 handover/handover-2026-09-12-mix-stack.md, handover/handover-2026-09-13-p48-t257-stackshot.md, handover/p14-anchor-glyph/G1S16_Mix_Mar_wd_without_NuclideDefinition.log
+      DONE.md  T258  строка 1444 handover/handover-2026-09-14-p72-t258-t259.md
+      DONE.md  T259  строка 1445 handover/handover-2026-09-14-p72-t258-t259.md
+      DONE.md  T260  строка 1446 Th-232.xml
+      DONE.md  T261  строка 1447 handover/handover-2026-09-17-p91-t261-scenes-guard.md
+      DONE.md  T264  строка 1450 handover/handover-2026-10-01-p197-cascade-speed.md
+      DONE.md  T265  строка 1451 handover/handover-2026-10-01-p197-cascade-speed.md, handover/handover-2026-10-01-p203-sumpeaks-speed.md, handover/handover-2026-10-01-p207-anchor-passes-carry.md
+      DONE.md  T267  строка 1453 handover/handover-2026-10-02-p211-t265-transfer-cache.md
+      DONE.md  S181  строка 1455 handover/handover-2026-09-22-p133-material-migration-line-audit.md
+      DONE.md  S182  строка 1456 runs.csv
+      DONE.md  S183  строка 1457 handover/handover-2026-09-22-p139-n42-reexport.md
+      DONE.md  S184  строка 1458 EnergySpectrumView*.cs, handover/handover-2026-09-24-p144-fsa-line-position.md
+      DONE.md  S187  строка 1461 handover/handover-2026-09-24-p149-fsa-library-betaplus.md
+      DONE.md  S188  строка 1462 handover/handover-2026-09-24-p149-fsa-library-betaplus.md
+      DONE.md  S189  строка 1463 handover/handover-2026-09-24-p149-fsa-library-betaplus.md
+      DONE.md  S190  строка 1464 handover/handover-2026-09-24-p152-cascade-notes.md
+      DONE.md  S191  строка 1465 handover/handover-2026-09-24-p152-cascade-notes.md
+      DONE.md  S192  строка 1466 handover/handover-2026-09-24-p153-dose-joint.md
+      DONE.md  S196  строка 1470 handover/handover-2026-09-24-p161-night-rev34-launch.md
+      DONE.md  S197  строка 1471 handover/handover-2026-09-28-p164-rev34-acceptance.md, handover/handover-2026-09-28-p175-g4-60kev.md
+      DONE.md  S198  строка 1472 handover/handover-2026-09-28-p168-fsa-composition-residual.md
+      DONE.md  S199  строка 1473 handover/handover-2026-09-28-p168-fsa-composition-residual.md
+      DONE.md  S200  строка 1474 handover/handover-2026-09-28-p170-calibration-peaks.md
+      DONE.md  S201  строка 1475 handover/handover-2026-09-28-p174-kbeta-roi186-csv.md
+      DONE.md  S203  строка 1477 handover/handover-2026-09-28-p178-g4-rayleigh.md, handover/handover-2026-09-30-p184-s197-coherent.md
+      DONE.md  S204  строка 1478 handover/handover-2026-09-30-p187-s204-xray-activity.md
+      DONE.md  S207  строка 1481 handover/handover-2026-10-01-p198-fsa-width.md
+      DONE.md  S208  строка 1482 handover/handover-2026-10-01-p199-matrix-kappa-peak.md
+      DONE.md  S209  строка 1483 .cs
+      DONE.md  S179  строка 1485 handover/handover-2026-09-22-p126-line-audit-tooling.md
+      DONE.md  S175  строка 1486 handover/handover-2026-09-14-p75-s175-tail-to-layer.md
+      DONE.md  T262  строка 1487 handover/handover-2026-09-21-p116-t262-detached-run.md
+    
+    # Ссылки на файлы, которых НЕТ В РЕПОЗИТОРИИ (лежат только на диске)
+    
+      Это случай N8: реестр ссылается на работу, которой из
+      репозитория не видно. Либо закоммитить, либо не ссылаться.
+      TODO.md  AMBER239 строка 240  handover/handover-2026-10-19-amber239-guide.md
+      TODO.md  AMBER240 строка 241  handover/handover-2026-10-19-amber239-guide.md
+      TODO.md  AMBER241 строка 242  handover/handover-2026-10-19-amber239-guide.md
+      TODO.md  AMBER242 строка 243  handover/handover-2026-10-19-amber239-guide.md
+    
+    # Вне репозитория НАРОЧНО
+    
+      .appwd.json          отметка оснастки корпуса, которую пишет сам appwd_plan.ps1 в каждый рабочий каталог tools/CORPUS/scripts/wd_*/ (каталоги в .gitignore); реестр ссылается на неё как на признак, а не на файл проекта (T63, T66, T68, T80, T84)
+      .run.json            клеймо прогона, которое run_appwd.ps1 пишет в каждый каталог прогона tools/pie/out_*/ (каталоги в .gitignore); реестр ссылается на него как на признак (T249)
+      agents.md            личные указания сборки у сопровождающего, в .gitignore (CLAUDE.md, «Build»)
+      claude.md            личные указания агенту, в .gitignore; T2 как раз про то, что правила «для всех» так хранить нельзя
+      effprobe.xml         конфигурация прибора, которую пробы EffMaker кладут в свой рабочий каталог <wd>\config\device\ (tools/effmaker/probes/build_*/, в .gitignore); в реестре стоит шаблоном пути `<wd>\…` (T153)
+      settings.local.json  личный файл настроек агента Amber .claude/settings.local.json, в .gitignore (T218)
+    
+    # Имена из кода, которых нет в дереве
+    
+      нет
+      (проб 4657 уникальных, слов в коде 194036 из 3280 файлов, двоичных пропущено 0, запасным путём подстрокой 0)
+    
+    # Две копии `config/` (T66)
+    
+      config                   13 файлов в git, на диске нет: 0
+      BecquerelMonitor/config  13 файлов в git, на диске нет: 0
+      совпадают побайтно: 12, расходятся: 1, есть только в одной: 0
+    
+      известно (T66): NuclideDefinition.xml
+    
+    # Действующая база корпуса — объявлена ли в ТРЁХ местах
+    
+      TODO.md                  14.10.2026 (день), вершина в заголовке не названа, базы: мал out_rev47_mini, полн out_rev47_full (строка 119)
+      tools/CORPUS/README.md   19.10.2026 (ночь), вершина в заголовке не названа, базы: мал out_rev48_mini, полн out_rev48_full (строка 509)
+      вершина по отпечатку «🔏» `head=6817333d`
+      ⛔ РАЗНЫЕ БАЗЫ: мал out_rev47_mini, полн out_rev47_full против мал out_rev48_mini, полн out_rev48_full. Объявить в двух местах значит НЕ
+          объявить: читатель сверяет свежий прогон со снятой
+          моделью и расходится заведомо.
+      память агента            corpus-base-current.md, базы: мал out_rev47_mini, полн out_rev47_full
+          рядом лежат памятки СНЯТЫХ баз (corpus-base-out-b13.md, corpus-base-out-k128.md, corpus-base-out-mini.md, corpus-base-out-v10.md, corpus-base-out-v2.md, corpus-base-out-v5.md) — они не
+          сверяются, действующая одна: corpus-base-current
+    
+    # Форма графы состояния (T100)
+    
+      TODO.md  строк  27, графа слита с задачей: 0, состояния не называют: 0
+      DONE.md  строк 1284, графа слита с задачей: 6, состояния не называют: 0
+    
+      положительный контроль этой проверки: python tools/check_registry.py --selftest
+    # Заголовки DONE.md против их тел (T102)
+    
+      DONE.md  строк 1285, заголовков со словами незнания: 20, противоречий: 0
+      положительный контроль этой проверки: python tools/check_done_headers.py --selftest
+    
+    
+    НАХОДОК: 5
+⛔ tools/check_registry.py: код 1, 2.1 с
+
+→ зову: python tools/check_fsa_showcase.py
+    каталог проб: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p343m (заверен 2026-10-20 00:06:00 из C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\bin\Release_p343m)
+      ⚠ сверено: набор приложения fae6f2b52905 (558 файлов), набор FsaStackShot c029f41522c5 (8 файлов), sha двух exe
+    свежесть каталога проб: сошлась с деревом (T226, 0.8 с)
+    рабочий каталог: C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\fsa_showcase\wd (скопировано 732, снято 4; приборов 3, матриц 4)
+    прогон FsaStackShot (5 спектров, 9 пар):
+      ASN16_Cs137_house / infer_eq: 3.8 с
+      ASN16_Cs137_house / infer_eq_peak: 3.8 с
+      ASN16_Cs137_house / infer_eq_compton: 3.8 с
+      AS80_Th232_disk / infer_eq: 15.8 с
+      ASN16_Radon_filter2 / chain_eq: 9.7 с
+      ASN16_Radon_filter2 / chain_noeq: 10.5 с
+      G1S24_Rn222Coal_eq01 / sample_eq: 4.0 с
+      G1S24_Rn222Coal_eq01 / sample_noeq: 6.3 с
+      ASN16_Cs137_10cm / sample_nomatrix: 1.5 с
+      ✅ ASN16_Cs137_house / infer_eq: совпало с эталоном (2026-10-19 23:18)
+      ✅ ASN16_Cs137_house / infer_eq_peak: совпало с эталоном (2026-10-19 23:18)
+      ✅ ASN16_Cs137_house / infer_eq_compton: совпало с эталоном (2026-10-19 23:18)
+      ✅ AS80_Th232_disk / infer_eq: совпало с эталоном (2026-10-19 23:18)
+      ✅ ASN16_Radon_filter2 / chain_eq: совпало с эталоном (2026-10-19 23:18)
+      ✅ ASN16_Radon_filter2 / chain_noeq: совпало с эталоном (2026-10-19 23:18)
+      ✅ G1S24_Rn222Coal_eq01 / sample_eq: совпало с эталоном (2026-10-19 23:18)
+      ✅ G1S24_Rn222Coal_eq01 / sample_noeq: совпало с эталоном (2026-10-19 23:18)
+      ✅ ASN16_Cs137_10cm / sample_nomatrix: совпало с эталоном (2026-10-19 23:18)
+    
+    ВИТРИНА СОШЛАСЬ С ЭТАЛОНОМ: 9 пар, 61 с.
+✅ tools/check_fsa_showcase.py: код 0, 60.8 с
+
+→ зову: python tools/check_matdb_fingerprint.py
+    отпечаток matdb (S202): таблиц в SimulatorTables 27, в базе 30
+      согласовано: всё, что читает код переноса, входит в отпечаток; оба клейма его несут
+✅ tools/check_matdb_fingerprint.py: код 0, 0.5 с
+
+→ зову: python tools/check_matrix_bind.py
+    положительный контроль: подсаженных форм 4, поймано 4; законных 5, ложных 0 — СОШЛОСЬ
+    прямых присваиваний ResponseMatrix нет (файлов .cs просмотрено 949; разрешено одно место — FsaMatrixBinding.cs)
+✅ tools/check_matrix_bind.py: код 0, 0.6 с
+
+→ зову: python tools/check_gpu_dll.py
+    исходники ядра: 22 файлов, отпечаток f824804ff015b4af; physics.h 27, приложение 27; build_gpu.cmd закрепляет cudart 13040
+    паспорт поставочной DLL: src=f824804ff015b4af;phys=27;arch=sm_86;real=float;cudart=13040;
+    копия в gpu/bin — та же, байт в байт
+    настройки ядра (cfg.h) = открытые простые поля EfficiencySimulator: 69
+    положительный контроль этой проверки: python tools/check_gpu_dll.py --selftest
+    GPU-библиотека: СХОДИТСЯ
+✅ tools/check_gpu_dll.py: код 0, 0.1 с
+
+→ зову: python tools/check_gpu_joint_copy.py
+    BuildJoint пишет полей Joint*: 9; GpuBuild.Build переносит: 9
+    положительный контроль этой проверки: python tools/check_gpu_joint_copy.py --selftest
+    копия Joint*: СХОДИТСЯ
+✅ tools/check_gpu_joint_copy.py: код 0, 0.1 с
+
+→ зову: python tools/check_bq_summing.py
+        == сторож множителя каскадного суммирования панели выделения (BqSummingProbeP256) ==
+          каталог проб : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\effmaker\probes\build_p343m
+          корпус       : C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\CORPUS\corpus
+          свежесть: сверено: набор приложения fae6f2b52905 (558 файлов); BqSummingProbeP256.cs 83bbecd0ab24 (8 файлов); sha exe (0.9 с)
+          BqSummingProbeP256.exe: код 0, 3.6 с; разделов А 4, строк А 36, К1 9, П 7; последняя строка «ИТОГ: СОШЛОСЬ»; строк отказа 0
+          контроль судьи на настоящем выводе: нетронутый принят, 4 порчи отвергнуты
+          худшая линия раздела А: RC103_point0 302.9 кэВ, -5.84 % от арбитра
+        СОШЛОСЬ: множитель суммирования панели выделения — 36 линий против арбитра, К1 побитово, панель сходится с Summing
+✅ tools/check_bq_summing.py: код 0, 4.7 с
+
+=== сводка ===
+  ✅ tools/check_registry_refs.py — код 0, 1.7 с — ссылки `T<n>` в оснастке, приложении и журналах против TODO.md/DONE.md
+  ✅ tools/check_build_recipe.py — код 0, 2.2 с — копии рецепта MSBuild без /p:GenerateManifests=false
+  ✅ tools/check_resx.py — код 0, 0.5 с — пары Foo.resx / Foo.ru.resx: непереведённое
+  ✅ tools/check_resx_designer.py — код 0, 5.4 с — GetString("X") без X в парном resx
+  ✅ tools/check_resx_letters.py — код 0, 0.5 с — кириллица в английских resx и наоборот; ускоритель в скобках не латиницей (`T132`)
+  ✅ tools/check_resx_zorder.py — код 0, 0.3 с — >>X.Parent / >>X.ZOrder против designer-кода
+  ✅ tools/check_headless.py — код 0, 5.2 с — окна на безоконном пути
+  ✅ tools/check_menu_accelerators.py — код 0, 0.2 с — столкновения ускорителей ВСЕХ меню дерева (`T167`)
+  ✅ tools/check_numeric_updown.py — код 0, 0.4 с — поля со стрелками мимо общего InvariantNumericUpDown; группировка разрядов
+  ✅ tools/check_fsa_docs.py — код 0, 0.1 с — XML-описания настроек разбора против конструктора
+  ✅ tools/nucdb/check_ensdf_numbers.py — код 0, 0.1 с — числа §7/§8 scheme.md против schemedb/nucdb (`W8`, `D10`)
+  ✅ tools/nucdb/check_db_marks.py — код 0, 0.1 с — колонки-признаки в базах против правила (`D36`, `D38`)
+  ✅ tools/nucdb/check_isomer_levels.py — код 0, 1.2 с — изомерная разметка nucdb: имя против уровня (`D40`, `D41`, `D47`)
+  ✅ tools/check_decay_numeric.py — код 0, 1.8 с — текстовые колонки decay_radiations под сравнением/порядком (`D35`)
+  ✅ tools/check_parent_rule.py — код 0, 7.9 с — правило «родитель» одно: копии зажима по уровню в коде; три носителя уровня против nuclides/LevelClause (`D48`)
+  ✅ tools/check_corpus_readme.py — код 0, 0.1 с — журнал корпуса: снятое помечено снятым; шапка и состав частей — против дерева
+  ✅ tools/check_scheme_gaps.py — код 0, 0.1 с — раздел «чего не хватает» scheme.md против реестра
+  ✅ tools/check_corpus_library.py — код 0, 0.1 с — корпус не читает поставочную библиотеку
+  ✅ tools/check_corpus_truth.py — код 0, 0.1 с — поля истины корпуса (chains, nuclides): corpus_def против manifest.csv
+  ✅ tools/check_done_headers.py — код 0, 0.2 с — заголовок строки DONE.md против её тела
+  ✅ tools/check_corpus_coverage.py — код 0, 0.7 с — охват корпусных мерок: коды возврата и мерки на сырье без Coverage
+  ✅ tools/check_declared_base.py — код 0, 2.1 с — объявление базы: числа каталога, отпечаток корпуса и сборки, клеймо прогона
+  ✅ tools/check_pending_runs.py — код 0, 0.1 с — признак «ЖДЁТ СЧЁТНОГО ЗАХОДА» против раздела «Отложенные прогоны»
+  ✅ tools/check_probe_tuning.py — код 0, 0.3 с — отчёт проб FSA о настройках: вызов, эталон, снимок полосы, порядок
+  ✅ tools/check_matrix_keys.py — код 0, 1.5 с — состав ключей обоих путей: матрица отклика против расчёта в UI
+  ✅ tools/check_geometry_names.py — код 0, 0.2 с — имена веществ в узле <Efficiency> против corpus/geometries/*.in
+  ✅ tools/check_fsa_view_groups.py — код 0, 0.1 с — переключатели окна отчёта FSA: расчётные и отрисовочные по своим группам
+  ✅ tools/check_fsa_report_view.py — код 0, 58.8 с — окно отчёта FSA: четыре пробы окна на спектрах корпуса — блок качества и привязка (AMBER17), выделение и подписи (F16), лента невязки (F21), заверение входа (P195)
+  ✅ tools/check_selection_panel_height.py — код 0, 0.0 с — слагаемые высоты панели выделения: отрисовка против мерки пробы
+  ✅ tools/check_escape_parents.py — код 0, 0.1 с — отсев родителей образов вылета SE/DE не выключается сам при NaN
+  ✅ tools/check_crystal_material.py — код 0, 0.1 с — вещество кристалла у прибора: геометрия первична, поле — запасной источник
+  ✅ tools/check_refit_z_class.py — код 0, 0.1 с — отсев по значимости не оставляет разбор без единого нуклида
+  ✅ tools/nucdb/check_edges.py — код 0, 0.1 с — края поглощения: каждая величина берёт край своей поставки (D18)
+  ✅ tools/check_probe_numbers.py — код 0, 0.6 с — печать чисел в оснастке: подмена разделителя без метки, форматы P, число без поставщика культуры
+  ✅ tools/check_curve_generation.py — код 0, 0.1 с — поколение кривой эффективности против поколения матрицы и сборки
+  ✅ tools/check_dump_readers.py — код 0, 0.3 с — читатели дампа разбора: показная кривая рядом с моделью — только у разрешённых (`T254`)
+  ✅ tools/check_corpus_generator.py — код 0, 0.7 с — корпус собран нынешним генератором (клеймо T244); сводка — этим корпусом
+  ✅ tools/check_corpus_scenes.py — код 0, 33.2 с — генератор сцен воспроизводит корпус с точностью до клейма; матрицы склада — на своих сценах (`T261`)
+  ✅ tools/check_no_images.py — код 0, 0.1 с — картинок (png/jpg/gif/…) под handover/ и tools/ в индексе git нет — распоряжение Amber 17.09.2026
+  ⛔ tools/check_registry.py — код 1, 2.1 с — реестр: номера, ссылки на файлы, имена из кода, копии config/, объявление базы в трёх местах, графа состояния, заголовки DONE.md
+  ✅ tools/check_fsa_showcase.py — код 0, 60.8 с — витрина FSA: картинка разбора на спектрах Amber против эталона (`T260`)
+  ✅ tools/check_matdb_fingerprint.py — код 0, 0.5 с — отпечаток matdb в клейме: список таблиц переноса против кода (`S202`)
+  ✅ tools/check_matrix_bind.py — код 0, 0.6 с — матрица в анализатор — только через FsaMatrixBinding.Bind (`T263`)
+  ✅ tools/check_gpu_dll.py — код 0, 0.1 с — поставочная rmgpu_f.dll: отпечаток исходников ядра и поколение физики (`AMBER219`)
+  ✅ tools/check_gpu_joint_copy.py — код 0, 0.1 с — GpuBuild.Build переносит все Joint*, что пишет BuildJoint (`AMBER219`)
+  ✅ tools/check_bq_summing.py — код 0, 4.7 с — множитель каскадного суммирования панели выделения: проба BqSummingProbeP256 против арбитра (36 линий), К1, панель (`П256`)
+ОСТАНОВ: отказали 1 из 46 — tools/check_registry.py (код 1). Приёмка НЕ пройдена; читать вывод отказавшего выше.
