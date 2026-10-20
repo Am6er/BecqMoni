@@ -1766,6 +1766,9 @@
   <data name="ResponseMatrixInheritedHistories" xml:space="preserve">
     <value>Посчитана {0:F0} историями на узел при штатных {1:F0}; поле поднято до штатного</value>
   </data>
+  <data name="ResponseMatrixGpuSpentHistories" xml:space="preserve">
+    <value>Прежняя матрица набрала {0:F0} историй на узел (ЦП, останов по шуму); GPU считает плоско — поле поднято до {1:F0}</value>
+  </data>
   <data name="ResponseMatrixFingerprint" xml:space="preserve">
     <value>Отпечаток тела: {0}</value>
   </data>

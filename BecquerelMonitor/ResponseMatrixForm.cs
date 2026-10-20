@@ -50,6 +50,28 @@ namespace BecquerelMonitor
         GpuProbe gpuProbe;
 
         /// <summary>
+        /// (П345) Сколько историй на узел НАБРАЛА прежняя матрица, вверх до миллиона и не
+        /// выше поля; 0 — прежней нет или набрала не больше поля. Поле поднимается до него,
+        /// пока стоит галка GPU (<see cref="ApplyGpuHistoriesFloor"/>).
+        /// </summary>
+        decimal gpuHistoriesFloor;
+
+        /// <summary>Набранное прежней матрицей на узел, как есть, — для строки подробностей.</summary>
+        double gpuSpentPerNode;
+
+        /// <summary>Значение поля историй до подъёма под GPU; −1 — поле не поднималось.</summary>
+        decimal historiesBeforeGpuFloor = -1;
+
+        /// <summary>До чего поле поднято под GPU — чтобы снять подъём, только если его не трогали руками.</summary>
+        decimal historiesRaisedForGpu;
+
+        /// <summary>
+        /// Подробности прежней матрицы, как их собрал <see cref="LoadExisting"/>; null — в
+        /// подробностях уже другая матрица (посчитанная), и строку подъёма к ним не клеить.
+        /// </summary>
+        string existingDetails;
+
+        /// <summary>
         /// С какой ошибки интеграла континуума строки предупреждать, %.
         ///
         /// Считается по ВЗВЕШЕННОЙ величине
@@ -245,6 +267,8 @@ namespace BecquerelMonitor
                 this.gpuCheck.Checked = manager != null && manager.GlobalConfig != null
                                         && manager.GlobalConfig.UseGpuForResponseMatrix;
             }
+
+            this.ApplyGpuHistoriesFloor();
         }
 
         /// <summary>«8.6» из 86 — как печатает `nvidia-smi`.</summary>
@@ -267,6 +291,7 @@ namespace BecquerelMonitor
         /// </summary>
         void GpuCheckChanged(object sender, EventArgs e)
         {
+            this.ApplyGpuHistoriesFloor();
             if (!this.GpuUsable)
             {
                 return;
@@ -372,6 +397,20 @@ namespace BecquerelMonitor
                 // правило `T36` «посчитана гуще штатной — не понижать».
                 SetClamped(this.historiesBox,
                            Math.Max(existing.Options.Histories, nominalHistories));
+
+                // ⛔ (П345, 20.10.2026) ПОД GPU — НЕ НИЖЕ НАБРАННОГО. Матрица ЦП с
+                // остановом по шуму набирает на узел больше заказанного (на складе
+                // Amber — до 20.4 млн при заказанных 3), а GPU считает только плоско
+                // (`AMBER219`), и «Пересчитать» с галкой давало 3 млн: шум 2.9 → ~7.6 %,
+                // молча. Решение Amber 20.10.2026 вопросником, дословно: «Да, не ниже
+                // набранного (Рекомендую)». Сам подъём — по галке, ниже.
+                if (existing.NodeCount > 0 && existing.HistoriesSpent > 0)
+                {
+                    this.gpuSpentPerNode = (double)existing.HistoriesSpent / existing.NodeCount;
+                    decimal floor = Math.Min(this.historiesBox.Maximum,
+                                             (decimal)(Math.Ceiling(this.gpuSpentPerNode / 1e6) * 1e6));
+                    this.gpuHistoriesFloor = floor > this.historiesBox.Value ? floor : 0;
+                }
             }
 
             // E18 (б). Матрица есть — она и выигрывает: поля обязаны повторять
@@ -379,9 +418,58 @@ namespace BecquerelMonitor
             // Но кривую с тех пор могли пересчитать в другом диапазоне, и это
             // расхождение надо НАЗЫВАТЬ, а не прятать: молчащее несогласие
             // ровно того сорта, из-за которого и заведена эта правка.
-            this.SetDetails(this.Describe(existing) + this.DescribeRangeMismatch(existing)
-                            + DescribeInheritedHistories(existing, nominalHistories)
-                            + this.DescribePending());
+            this.existingDetails = this.Describe(existing) + this.DescribeRangeMismatch(existing)
+                                   + DescribeInheritedHistories(existing, nominalHistories)
+                                   + this.DescribePending();
+            this.SetDetails(this.existingDetails);
+        }
+
+        /// <summary>
+        /// (П345) Поле историй под галку GPU: стоит галка и годна — поле не ниже набранного
+        /// прежней матрицей на узел (<see cref="gpuHistoriesFloor"/>); галку сняли — поле
+        /// возвращается к прежнему значению, если после подъёма его не трогали руками (ЦП
+        /// сам доберёт останов по шуму). Подъём называется строкой подробностей прежней
+        /// матрицы. Зовут <see cref="ProbeGpu"/> (галка ставится из общих настроек) и
+        /// <see cref="GpuCheckChanged"/>; занятая форма галку не переключает.
+        ///
+        /// Клеймо от числа историй не зависит (`ComputeStamp`: усилие, а не содержание),
+        /// так что подъём меняет только набранную статистику.
+        /// </summary>
+        void ApplyGpuHistoriesFloor()
+        {
+            if (this.busy || this.historiesBox == null)
+            {
+                return;
+            }
+
+            if (this.UseGpu)
+            {
+                if (this.gpuHistoriesFloor > this.historiesBox.Value)
+                {
+                    this.historiesBeforeGpuFloor = this.historiesBox.Value;
+                    SetClamped(this.historiesBox, this.gpuHistoriesFloor);
+                    this.historiesRaisedForGpu = this.historiesBox.Value;
+                }
+            }
+            else if (this.historiesBeforeGpuFloor >= 0)
+            {
+                if (this.historiesBox.Value == this.historiesRaisedForGpu)
+                {
+                    SetClamped(this.historiesBox, this.historiesBeforeGpuFloor);
+                }
+
+                this.historiesBeforeGpuFloor = -1;
+            }
+
+            if (this.existingDetails != null)
+            {
+                this.SetDetails(this.existingDetails
+                                + (this.historiesBeforeGpuFloor >= 0
+                                    ? Environment.NewLine + string.Format(CultureInfo.InvariantCulture,
+                                          Resources.ResponseMatrixGpuSpentHistories,
+                                          this.gpuSpentPerNode, this.historiesRaisedForGpu)
+                                    : ""));
+            }
         }
 
         /// <summary>

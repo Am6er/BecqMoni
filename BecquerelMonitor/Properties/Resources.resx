@@ -43119,6 +43119,9 @@ The matrix is stored on this computer, one file per geometry; a computed one tak
   <data name="ResponseMatrixInheritedHistories" xml:space="preserve">
     <value>Computed with {0:F0} histories per node, nominal is {1:F0}; field raised to nominal</value>
   </data>
+  <data name="ResponseMatrixGpuSpentHistories" xml:space="preserve">
+    <value>The previous matrix spent {0:F0} histories per node (CPU, stop on noise); the GPU computes flat — field raised to {1:F0}</value>
+  </data>
   <data name="ResponseMatrixFingerprint" xml:space="preserve">
     <value>Body fingerprint: {0}</value>
   </data>
