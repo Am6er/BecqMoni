@@ -301,3 +301,23 @@ Amber со снимком экрана: «кое-где слова Гайд ос
 * `tools/docs_stamp.py`: ссылкам на `assets/*.js|css` в страницах — `?v=<8 знаков sha256 файла>`, снимкам —
   общая версия `IMGV` в `guide.js` (хэш каталога `img/`); `--check` — код 1, если штампы устарели. Запускать
   перед каждой заливкой.
+
+## 15. Пункт меню «Гид по BecqMoni» (`AMBER249`, 20.10.2026)
+
+Amber, консоль, со снимком меню, дословно: «Над полем Инструкция добавь пункт меню "Гид по Бекмони". При
+клике будет открываться браузер дефолтный с ссылкой на https://amba.cloud/becqmoni/help/ В русской версии -
+https://amba.cloud/becqmoni/help/?lang=ru В английской версии https://amba.cloud/becqmoni/help/?lang=en».
+Вопросником того же дня, дословно: «"Гид по BecqMoni" / "BecqMoni Guide" (Рекомендую)»; «Текст и новый
+снимок меню (Рекомендую)».
+
+* Приложение: `MainForm.Designer.cs` — `guideGToolStripMenuItem` первым в «Помощь»; `MainForm.cs` —
+  `guideGToolStripMenuItem_Click`: `Process.Start` по адресу с `?lang=ru`, если язык интерфейса
+  (`CurrentUICulture`, его ставит `Program.ApplyLanguage` из настройки «Язык») русский, иначе `?lang=en`;
+  подписи — `MainForm.resx` «BecqMoni &Guide», `MainForm.ru.resx` «&Гид по BecqMoni».
+* Проверено экраном на своей Release-сборке в копии `D:\BqMoni_Claude\amber239\app` (заменены только exe,
+  pdb и русский спутник, конфиг копии не тронут): пункт стоит над «Инструкцией» в обоих языках; щелчок в
+  английском интерфейсе открыл Firefox на странице «BecqMoni guide», в русском — «BecqMoni гид», то есть
+  `?lang=` доходит.
+* Гид: снимки `img/ru|en/menu-help.png` пересняты, точки — по прямоугольникам съёмки (5 пунктов), в легенду
+  главы «Установка» добавлен пункт; штампы версий — `tools/docs_stamp.py`.
+* В выпуск у пользователей пункт попадёт со следующей публикацией программы (ClickOnce).

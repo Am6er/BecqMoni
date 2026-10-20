@@ -219,6 +219,9 @@
   <data name="legacyFormatV093bToolStripMenuItem.Text" xml:space="preserve">
     <value>Старый формат BecqMoni (v0.93Beta или ранее)</value>
   </data>
+  <data name="guideGToolStripMenuItem.Text" xml:space="preserve">
+    <value>&amp;Гид по BecqMoni</value>
+  </data>
   <data name="manualMToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Инструкция</value>
   </data>
