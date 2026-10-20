@@ -74,6 +74,19 @@
     <div class="row"><span class="lbl" data-t="fw.sl"></span><input type="range" id="fwR" min="20" max="130" value="75"><span class="val" id="fwV"></span><div class="chips" id="fwChips"></div></div>
     <div class="pills" id="fwRes"></div>
   </div>
+  <div class="card full" style="margin-top:22px">
+    <h3 data-t="fq.h"></h3>
+    <p class="note" style="margin-top:0" data-t="fq.hint"></p>
+    <canvas id="cvFq" class="cv tall"></canvas>
+    <div class="row">
+      <button class="btn" id="qAdd" data-t="fq.add"></button>
+      <button class="btn main" id="qRun" data-t="fq.run"></button>
+      <button class="btn" id="qHelp" data-t="g.help"></button>
+      <button class="btn" id="qReset" data-t="g.reset"></button>
+    </div>
+    <div class="row" id="qPts"></div>
+    <div class="pills" id="qRes"></div>
+  </div>
   <div class="grid2 wr" style="margin-top:22px">
     <figure class="shot" data-shot="panel-fwhm" data-hot='[[0.0340,0.4269,0.1599,0.0431],[0.0320,0.1331,0.9254,0.2809],[0.0682,0.5581,0.3839,0.0393],[0.7227,0.5000,0.2280,0.0431],[0.0575,0.7977,0.6481,0.1199],[0.7227,0.5505,0.2280,0.0673]]'>
       <figcaption data-t="f.cap"></figcaption>
@@ -84,6 +97,11 @@
       </ol>
     </div>
   </div>
+  <h3 style="margin-top:26px" data-t="fs.steps"></h3>
+  <ol class="howto">
+    <li data-t="fs.s1"></li><li data-t="fs.s2"></li><li data-t="fs.s3"></li><li data-t="fs.s4"></li><li data-t="fs.s5"></li><li data-t="fs.s6"></li>
+  </ol>
+  <div class="callout warn" data-t="fs.warn"></div>
   <div class="callout info" data-t="f.info"></div>
 </div></section>
 
@@ -106,7 +124,7 @@
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=19672d23"></script>
+<script src="assets/guide.js?v=a431dac9"></script>
 <script src="assets/quanta.js?v=05579488"></script>
 <script>
 'use strict';
@@ -154,9 +172,27 @@ GUIDE.texts({ru:{
 'fw.sep':'Tl-208 583 и Bi-214 609 кэВ: <b>{0}</b>','fw.ok':'видны раздельно','fw.merge':'слились в один горб','fw.w':'FWHM у 662 кэВ: <b>{0} кэВ</b>',
 'f.cap':'Панель «Калибровка по FWHM»',
 'f.l1':'<b>Добавить</b> — затем протяните мышью выделение через пик на графике','f.l2':'<b>Таблица пиков</b> — канал, энергия и измеренная ширина',
-'f.l3':'<b>Кривая</b> — простой корень (≥2 пиков), корень полинома (≥3), степенная (≥2)','f.l4':'<b>Калибровать</b> — подогнать кривую; заодно подбирается форма пика',
+'fq.h':'Калибровка по FWHM — откалибруйте сами',
+'fq.hint':'1) Нажмите «Добавить» и щёлкните по пику — его ширина измерится на половине высоты, как в программе. 2) Два пика или больше — например, Cs-137 и K-40 — и «Калибровать». Полоски на пиках — ширина, которую ждёт кривая: золотая совпала с настоящей в пределах 10 %, красная — нет; белый пунктир — ширина, измеренная по выделению. В программе пик выделяют, протянув мышью через него от подножия до подножия, и кривых три; здесь одна — «Простой квадратный корень».',
+'fq.add':'Добавить','fq.addOn':'Щёлкните по пику…','fq.run':'Калибровать',
+'fq.pt':'<b>№{0}</b> {1} · канал <b>{2}</b> · FWHM <b>{3} кан.</b> ({4} кэВ)',
+'fq.res':'кривая: <b>FWHM = √({0}·ch {1})</b>, каналы','fq.def':'по умолчанию из конфигурации прибора',
+'fq.ok':'ширина совпала у <b>{0} из {1}</b> пиков (±10 %)',
+'fq.zero':'ниже <b>{0} кэВ</b> ширина по кривой — ноль: программа такую кривую не примет. Добавьте пик у нижнего края шкалы.',
+'fq.need':'нужно хотя бы два пика','fq.dup':'этот пик уже есть в таблице — выберите другой','fq.nopk':'рядом нет пика — щёлкните по его вершине',
+'fq.win':'кривая верна по всей шкале: поиск пиков ждёт настоящую ширину',
+'fq.help1':'Cs-137 — второй по высоте пик, на пятой части шкалы (662 кэВ); K-40 — пик около середины (1461 кэВ). Если полоска у левого края покраснеет, добавьте третьим рентген свинца (75 кэВ): по двум пикам кривая внизу шкалы угадывается плохо.',
+'fs.steps':'Пошагово: Cs-137 и K-40',
+'fs.s1':'Откройте спектр, где видны пики Cs-137 (662 кэВ) и K-40 (1461 кэВ); энергия уже откалибрована.',
+'fs.s2':'<span class="ui m">Вид → Калибровка по FWHM</span>. В таблице могут уже стоять опоры из конфигурации прибора; лишние уберите кнопкой <span class="ui">Удалить</span>.',
+'fs.s3':'<span class="ui">Добавить</span> → протяните мышью выделение через пик 662 от подножия до подножия. В таблице появится строка: канал, энергия и FWHM в каналах.',
+'fs.s4':'Повторите для K-40. Третьей опорой у нижнего края шкалы годится рентген свинца (~75 кэВ), если он виден.',
+'fs.s5':'Выберите кривую: «Простой квадратный корень» — от двух пиков, «Квадратный корень полинома» — от трёх, «Степенная» — от двух. <span class="ui">Калибровать</span>.',
+'fs.s6':'<span class="ui">Сохр. в конф. устр.</span> → «Да» — кривую получат новые спектры этого прибора.',
+'fs.warn':'<b>«Кривая FWHM даёт нулевую ширину на каналах 0…N»</b> — простой корень по двум пикам ушёл в ноль внизу шкалы. Добавьте пик у нижнего края или выберите «Степенная»: её ширина положительна на всех каналах выше нуля.',
+'f.l3':'<b>Кривая</b> — «Простой квадратный корень» (от 2 пиков), «Квадратный корень полинома» (от 3), «Степенная» (от 2)','f.l4':'<b>Калибровать</b> — подогнать кривую; заодно подбирается форма пика',
 'f.l5':'<b>Выбранная функция пика</b> — Гауссиана, Эксп-Гаусс-Эксп («хвосты»: левый и правый перекос) или Фойгт (отн. σ и отн. γ)','f.l6':'<b>Сохр. в конф. устр.</b> — передать калибровку прибору',
-'f.info':'<b>Как быстро:</b> <span class="ui m">Вид → Калибровка по FWHM</span> → <span class="ui">Все пики</span> возьмёт пики из всех открытых спектров с тем же числом каналов → <span class="ui">Калибровать</span> → <span class="ui">Сохр. в конф. устр.</span>. Без FWHM поиск пиков не идёт, а FSA спросит, у какого прибора её взять.',
+'f.info':'<b>Как быстро:</b> <span class="ui m">Вид → Калибровка по FWHM</span> → <span class="ui">Все пики</span> соберёт опоры FWHM всех открытых спектров с тем же числом каналов → <span class="ui">Калибровать</span> → <span class="ui">Сохр. в конф. устр.</span>. Без FWHM поиск пиков не идёт, а FSA спросит, у какого прибора её взять.',
 'd.k':'Прибор','d.h':'Калибровка в конфигурации прибора',
 'd.lead':'То же самое живёт во вкладке <span class="ui m">Инструменты → Конфигурация устройства → Калибровка энергии</span>. Отсюда калибровку получают новые спектры прибора, и здесь же её можно прочитать из прибора или записать в него.',
 'd.cap':'Вкладка «Калибровка энергии» конфигурации прибора (RadiaCode-103)',
@@ -207,9 +243,27 @@ GUIDE.texts({ru:{
 'fw.sep':'Tl-208 583 and Bi-214 609 keV: <b>{0}</b>','fw.ok':'resolved','fw.merge':'merged into one hump','fw.w':'FWHM at 662 keV: <b>{0} keV</b>',
 'f.cap':'The “FWHM Calibration” panel',
 'f.l1':'<b>Add peak</b> — then drag a selection across a peak on the chart','f.l2':'<b>Peak table</b> — channel, energy and the measured width',
-'f.l3':'<b>Curve</b> — simple square root (≥2 peaks), square-root polynomial (≥3), power law (≥2)','f.l4':'<b>Execute calibration</b> — fit the curve; the peak shape is chosen too',
+'fq.h':'FWHM calibration — calibrate it yourself',
+'fq.hint':'1) Press “Add peak” and click a peak — its width is measured at half height, as in the program. 2) Two peaks or more — for instance Cs-137 and K-40 — then “Execute calibration”. Bars on the peaks show the width the curve expects: gold matches the real one within 10 %, red does not; the white dashes are the width measured from the selection. In the program you select a peak by dragging the mouse across it from foot to foot, and there are three curves; here there is one, “Simple Square root”.',
+'fq.add':'Add peak','fq.addOn':'Click a peak…','fq.run':'Execute calibration',
+'fq.pt':'<b>#{0}</b> {1} · channel <b>{2}</b> · FWHM <b>{3} ch</b> ({4} keV)',
+'fq.res':'curve: <b>FWHM = √({0}·ch {1})</b>, channels','fq.def':'the default from the device configuration',
+'fq.ok':'width matches at <b>{0} of {1}</b> peaks (±10 %)',
+'fq.zero':'below <b>{0} keV</b> the curve gives zero width: the program will not accept such a curve. Add a peak at the low end of the scale.',
+'fq.need':'at least two peaks are needed','fq.dup':'this peak is already in the table — pick another','fq.nopk':'no peak nearby — click its top',
+'fq.win':'the curve is right across the whole scale: peak search expects the real width',
+'fq.help1':'Cs-137 is the second-tallest peak, about a fifth of the way along the axis (662 keV); K-40 is the peak near the middle (1461 keV). If the bar at the left edge turns red, add the lead X-ray (75 keV) as a third: from two peaks the curve guesses the bottom of the scale poorly.',
+'fs.steps':'Step by step: Cs-137 and K-40',
+'fs.s1':'Open a spectrum with visible Cs-137 (662 keV) and K-40 (1461 keV) peaks; the energy is already calibrated.',
+'fs.s2':'<span class="ui m">View → FWHM Calibration</span>. The table may already hold points from the device configuration; remove unwanted ones with <span class="ui">Remove</span>.',
+'fs.s3':'<span class="ui">Add peak</span> → drag a selection across the 662 peak from foot to foot. A row appears in the table: channel, energy and FWHM in channels.',
+'fs.s4':'Repeat for K-40. For a third point at the low end the lead X-ray (~75 keV) will do, if it is visible.',
+'fs.s5':'Choose the curve: “Simple Square root” takes two peaks, “Square root polynomial” three, “Power law” two. <span class="ui">Execute calibration</span>.',
+'fs.s6':'<span class="ui">Save to device config</span> → “Yes” — new spectra of this detector get the curve.',
+'fs.warn':'<b>“The FWHM curve gives zero width on channels 0…N”</b> — a simple square root through two peaks went to zero at the bottom of the scale. Add a peak near the low end or choose “Power law”: its width is positive at every channel above zero.',
+'f.l3':'<b>Curve</b> — “Simple Square root” (2+ peaks), “Square root polynomial” (3+), “Power law” (2+)','f.l4':'<b>Execute calibration</b> — fit the curve; the peak shape is chosen too',
 'f.l5':'<b>Selected peak function</b> — Gaussian, Exp-Gaussian-Exp (“tails”: left and right skew) or Voigt (relative σ and relative γ)','f.l6':'<b>Save to device config</b> — hand the calibration to the detector',
-'f.info':'<b>The quick way:</b> <span class="ui m">View → FWHM Calibration</span> → <span class="ui">Get All peaks</span> takes peaks from all open spectra with the same channel count → <span class="ui">Execute calibration</span> → <span class="ui">Save to device config</span>. Without FWHM peak search does not run, and FSA asks which device to take it from.',
+'f.info':'<b>The quick way:</b> <span class="ui m">View → FWHM Calibration</span> → <span class="ui">Get All peaks</span> collects the FWHM points of all open spectra with the same channel count → <span class="ui">Execute calibration</span> → <span class="ui">Save to device config</span>. Without FWHM peak search does not run, and FSA asks which device to take it from.',
 'd.k':'Device','d.h':'Calibration in the device configuration',
 'd.lead':'The same lives in <span class="ui m">Tool → Edit Device Configurations → Energy Calibration</span>. New spectra of the detector take their calibration from here, and here you can read it from the device or write it back.',
 'd.cap':'The “Energy Calibration” tab of a device configuration (RadiaCode-103)',
@@ -321,6 +375,116 @@ GUIDE.onRedraw(() => { ptsUI(); draw(); });
     $('#fwRes').innerHTML = '<span class="pill ' + (sep ? 'good' : 'bad') + '">' + t('fw.sep', t(sep ? 'fw.ok' : 'fw.merge')) + '</span><span class="pill">' + t('fw.w', fx(fw, 1)) + '</span>';
   }
   io.observe(cvf); GUIDE.onRedraw(draw);
+})();
+
+/* ── игра «калибровка по FWHM» (`AMBER257`): щелчок по пику, ширина — ходом EnergyResolutionCalculator, кривая — простой квадратный корень ── */
+(function fwhmGame() {
+  // настоящая ширина прибора: FWHM² = W0² + KF·E, кэВ (7 % у 662); шкала энергий уже верна (Etrue)
+  const cvq = $('#cvFq'), W0 = 15, KF = (0.07 * 661.66) ** 2 / 661.66 - W0 * W0 / 661.66;
+  const fwKev = E => Math.sqrt(W0 * W0 + KF * E), gain = ch => TRUE[1] + 2 * TRUE[2] * ch, fwCh = ch => fwKev(Etrue(ch)) / gain(ch);
+  const MEAN = new Float64Array(NCH);
+  for (let c = 0; c < NCH; c++) { const e = Etrue(c); MEAN[c] = 3 * (900 * Math.exp(-e / 210) + 60 * Math.exp(-e / 900) + 4); }
+  PEAKS.forEach(([E, a]) => { const sg = fwKev(E) / 2.355, ce = E * (2 * E / 511) / (1 + 2 * E / 511); for (let c = 0; c < NCH; c++) { const e = Etrue(c); MEAN[c] += 3 * (a * 400 * Math.exp(-0.5 * ((e - E) / sg) ** 2) + (e < ce ? a * 22 : 0) / (1 + Math.exp((e - ce) / sg))); } });
+  const SPQ = Float64Array.from(MEAN, v => poisson(v));
+  // пики: полувысота над подложкой — по гладкому спектру; Bi-214 609 сидит на плече Cs-137, отдельно не выделяется и в счёт не идёт
+  const PKS = PEAKS.filter(([E]) => E !== 609.31).map(([E]) => { const l = LIB.find(x => x[0] === E), ch = chOf(E), c = Math.round(ch), hw = Math.round(1.5 * fwCh(ch)), base = (MEAN[c - hw] + MEAN[c + hw]) / 2; return { E, ch, nm: l[1], col: l[2], top: MEAN[c], half: base + (MEAN[c] - base) / 2 }; }).sort((p, q) => p.E - q.E);
+  const DEF = [4, 0.30];                                     // кривая «по умолчанию»: FWHM² = b + k·ch, каналы — заведомо узкая
+  let CQ = DEF.slice(), pq = [], pickQ = false, fitted = false, helpQ = false, msgQ = '', GQ = null, animQ = null;
+  const fwCurve = ch => { const v = CQ[0] + CQ[1] * ch; return v > 0 ? Math.sqrt(v) : 0; };
+  // EnergyResolutionCalculator.CalculateFWHM: база — прямая между крайними каналами выделения, полувысота над ней,
+  // вершина — парабола по ln чистых отсчётов в ±0.35 ширины первого прохода (`AMBER231`); центр строки — центр тяжести
+  function calcFwhm(s, a, b) {
+    const sl = (s[b] - s[a]) / (b - a), net = c => s[c] - (s[a] + sl * (c - a));
+    let cen = a; for (let i = a; i <= b; i++) if (net(i) > net(cen)) cen = i;
+    let top = net(cen); if (!(top > 0)) return null;
+    const cross = h => {
+      let L = -1, R = -1;
+      for (let j = a + 1; j <= cen; j++) { const nj = net(j); if (nj > h) { const np = net(j - 1); if (!(nj > np)) return null; L = j - 1 + (h - np) / (nj - np); break; } }
+      if (L < 0) return null;
+      for (let k = b - 1; k >= cen; k--) { const nk = net(k); if (nk > h) { const nn = net(k + 1); if (!(nk > nn)) return null; R = k + 1 - (h - nn) / (nk - nn); break; } }
+      return R >= 0 ? [L, R] : null;
+    };
+    let lr = cross(top / 2); if (!lr) return null;
+    const hh = Math.max(1, Math.round(0.35 * (lr[1] - lr[0])));
+    if (cen - hh >= a && cen + hh <= b) {
+      let s0 = 0, s2 = 0, s4 = 0, v0 = 0, v1 = 0, v2 = 0, ok = true;
+      for (let u = -hh; u <= hh; u++) { const v = net(cen + u); if (!(v > 0)) { ok = false; break; } const y = Math.log(v); s0++; s2 += u * u; s4 += u ** 4; v0 += y; v1 += y * u; v2 += y * u * u; }
+      if (ok) {
+        const det = s0 * s4 - s2 * s2, p1 = v1 / s2, p0 = (v0 * s4 - v2 * s2) / det, p2 = (s0 * v2 - s2 * v0) / det;
+        if (p2 < 0 && Math.abs(-p1 / (2 * p2)) <= hh) { const tp = Math.exp(p0 - p1 * p1 / (4 * p2)), lr2 = cross(tp / 2); if (lr2) { top = tp; lr = lr2; } }
+      }
+    }
+    let sw = 0, sx = 0; for (let c = a; c <= b; c++) { const v = net(c); if (v > 0) { sw += v; sx += v * c; } }
+    return { fw: lr[1] - lr[0], L: lr[0], R: lr[1], ch: Math.round(sw > 0 ? sx / sw : cen), half: s[a] + sl * (cen - a) + top / 2, a, b };
+  }
+  function fitQ() {   // простой квадратный корень: МНК по FWHM² = b + k·ch, как CalibrationSolver.Solve(peaks, 1)
+    msgQ = '';
+    if (new Set(pq.map(p => p.ch)).size < 2) { msgQ = t('fq.need'); drawQ(); return; }
+    const n = pq.length; let sx = 0, sy = 0, sxx = 0, sxy = 0;
+    pq.forEach(p => { const y = p.fw * p.fw; sx += p.ch; sy += y; sxx += p.ch * p.ch; sxy += p.ch * y; });
+    const k = (n * sxy - sx * sy) / (n * sxx - sx * sx), b = (sy - k * sx) / n, from = CQ.slice(), t0 = performance.now();
+    fitted = true;
+    const step = () => { if (animQ !== step) return; const u = Math.min(1, (performance.now() - t0) / 700), e = 1 - Math.pow(1 - u, 3); CQ = [lerp(from[0], b, e), lerp(from[1], k, e)]; if (u >= 1) animQ = null; drawQ(); if (u < 1) requestAnimationFrame(step); };
+    animQ = step; requestAnimationFrame(step);
+  }
+  function ptsQ() {
+    const box = $('#qPts');
+    box.innerHTML = pq.map((p, i) => '<span class="pill">' + t('fq.pt', i + 1, p.nm, p.ch, fx(p.fw, 1), fx(p.fw * gain(p.ch), 1)) + ' <a href="#" data-del="' + i + '">' + t('g.del') + '</a></span>').join('');
+    $$('a[data-del]', box).forEach(a => a.onclick = e => { e.preventDefault(); pq.splice(+a.dataset.del, 1); ptsQ(); drawQ(); });
+  }
+  function drawQ() {
+    const { ctx, w, h } = setup(cvq), bx = { l: 50, t: 30, r: w - 12, b: h - 26 };
+    const X = scale('lin', 0, 3000, bx.l, bx.r); let mx = 0; for (let c = 5; c < NCH; c++) mx = Math.max(mx, SPQ[c]);
+    const Y = scale('sqrt', 0, mx * 1.08, bx.b, bx.t); GQ = { X };
+    axes(ctx, bx, X, Y, { xl: GUIDE.lang === 'ru' ? 'энергия, кэВ' : 'energy, keV', yl: t('ax.c') });
+    pq.forEach(p => { const x0 = X(Etrue(p.a)); ctx.fillStyle = 'rgba(255,204,51,.10)'; ctx.fillRect(x0, bx.t, X(Etrue(p.b)) - x0, bx.b - bx.t); });   // выделения
+    ctx.beginPath(); for (let c = 2; c < NCH; c++) ctx.lineTo(X(Etrue(c)), Y(SPQ[c])); ctx.lineTo(X(Etrue(NCH - 1)), bx.b); ctx.lineTo(X(Etrue(2)), bx.b); ctx.closePath();
+    const g = ctx.createLinearGradient(0, bx.t, 0, bx.b); g.addColorStop(0, 'rgba(91,227,138,.85)'); g.addColorStop(1, 'rgba(91,227,138,.15)'); ctx.fillStyle = g; ctx.fill();
+    // ширина, которую ждёт кривая, — полоской на полувысоте каждого пика
+    let ok = 0; ctx.textAlign = 'center';
+    PKS.forEach(p => {
+      const f = fwCurve(p.ch), good = Math.abs(f / fwCh(p.ch) - 1) <= 0.10, y = Y(p.half); if (good) ok++;
+      ctx.strokeStyle = good ? '#ffcc33' : '#ff4d6d'; ctx.lineWidth = 3; ctx.beginPath();
+      if (f > 0) { const x0 = X(Etrue(p.ch - f / 2)), x1 = X(Etrue(p.ch + f / 2)); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.moveTo(x0, y - 5); ctx.lineTo(x0, y + 5); ctx.moveTo(x1, y - 5); ctx.lineTo(x1, y + 5); }
+      else { const x = X(p.E); ctx.moveTo(x - 5, y - 5); ctx.lineTo(x + 5, y + 5); ctx.moveTo(x + 5, y - 5); ctx.lineTo(x - 5, y + 5); }
+      ctx.stroke(); ctx.lineWidth = 1;
+      ctx.fillStyle = p.col; ctx.font = '700 11px system-ui';
+      const ly = Y(p.top) - 10; if (ly < bx.t + 22) { ctx.textAlign = 'left'; ctx.fillText(p.nm, X(p.E) + 10, bx.t + 22); ctx.textAlign = 'center'; } else ctx.fillText(p.nm, X(p.E), ly);
+    });
+    // измеренные опоры: ширина по выделению — белым пунктиром, номер строки — красной меткой
+    pq.forEach((p, i) => {
+      const x = X(Etrue(p.ch)), yh = Y(p.half);
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(X(Etrue(p.L)), yh); ctx.lineTo(X(Etrue(p.R)), yh); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1;
+      ctx.fillStyle = '#ff4d6d'; ctx.beginPath(); ctx.arc(x, bx.t + 30, 9, 0, 7); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = '800 11px system-ui'; ctx.fillText(i + 1, x, bx.t + 34);
+    });
+    if (helpQ) [661.66, 1460.82].forEach(E => { const p = PKS.find(q => q.E === E); ctx.strokeStyle = 'rgba(255,204,51,.9)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(X(E), Y(p.top) + 10, 18, 0, 7); ctx.stroke(); ctx.lineWidth = 1; });
+    const rows = [], b = CQ[0] >= 0 ? '+ ' + fx(CQ[0], 1) : '− ' + fx(-CQ[0], 1);
+    rows.push('<span class="pill">' + t('fq.res', fx(CQ[1], 3), b) + (fitted ? '' : ' — ' + t('fq.def')) + '</span>');
+    rows.push('<span class="pill ' + (ok === PKS.length ? 'good' : ok ? '' : 'bad') + '">' + t('fq.ok', ok, PKS.length) + '</span>');
+    if (CQ[0] < 0 && CQ[1] > 0) rows.push('<span class="pill bad">' + t('fq.zero', fx(Etrue(-CQ[0] / CQ[1]), 0)) + '</span>');
+    if (fitted && ok === PKS.length && !animQ) rows.push('<span class="pill good">' + t('fq.win') + '</span>');
+    if (msgQ) rows.push('<span class="pill bad">' + msgQ + '</span>');
+    if (helpQ) rows.push('<span class="pill">' + t('fq.help1') + '</span>');
+    $('#qRes').innerHTML = rows.join('');
+    $('#qAdd').textContent = pickQ ? t('fq.addOn') : t('fq.add'); $('#qAdd').classList.toggle('main', pickQ);
+  }
+  cvq.addEventListener('click', ev => {
+    if (!pickQ || !GQ) return;
+    const r = cvq.getBoundingClientRect(), E = GQ.X.inv(ev.clientX - r.left);
+    let best = null; PKS.forEach(p => { if (Math.abs(p.E - E) < 2 * fwKev(p.E) && (!best || Math.abs(p.E - E) < Math.abs(best.E - E))) best = p; });
+    pickQ = false; cvq.style.cursor = ''; msgQ = '';
+    const c0 = best ? Math.round(best.ch) : 0, hw = best ? Math.max(3, Math.round(1.5 * fwCh(best.ch))) : 0;
+    const m = best ? calcFwhm(SPQ, Math.max(1, c0 - hw), Math.min(NCH - 2, c0 + hw)) : null;
+    if (!m) msgQ = t('fq.nopk');
+    else if (pq.some(p => p.ch === m.ch && p.fw === m.fw)) msgQ = t('fq.dup');
+    else { pq.push(Object.assign(m, { nm: best.nm })); ptsQ(); }
+    drawQ();
+  });
+  $('#qAdd').onclick = () => { pickQ = !pickQ; cvq.style.cursor = pickQ ? 'crosshair' : ''; drawQ(); };
+  $('#qRun').onclick = fitQ;
+  $('#qHelp').onclick = () => { helpQ = !helpQ; drawQ(); };
+  $('#qReset').onclick = () => { animQ = null; CQ = DEF.slice(); pq = []; pickQ = false; fitted = false; helpQ = false; msgQ = ''; cvq.style.cursor = ''; ptsQ(); drawQ(); };
+  GUIDE.onRedraw(() => { ptsQ(); drawQ(); });
 })();
 
 GUIDE.Q.heroAnim(document.getElementById('cvHero'), document.getElementById('heroStat'));   // заставка с квантами, как на главной (`AMBER246`)
