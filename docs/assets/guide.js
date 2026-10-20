@@ -1,4 +1,4 @@
-/* Гайд BecqMoni — общий скрипт всех страниц (AMBER239).
+/* Гид BecqMoni — общий скрипт всех страниц (AMBER239).
    Шапка с оглавлением, RU/EN, снимки окон с пронумерованными точками, листалка глав,
    помощники для графиков на canvas. Числа — с точкой и без группировки разрядов. */
 'use strict';
@@ -46,7 +46,7 @@
   const urlLang = (() => { try { const v = new URLSearchParams(location.search).get('lang'); return v === 'ru' || v === 'en' ? v : null; } catch (e) { return null; } })();
   if (urlLang) { LANG = urlLang; try { localStorage.setItem('bq-hiw-lang', LANG); } catch (e) { } }
   else try { const s = localStorage.getItem('bq-hiw-lang'); if (s === 'ru' || s === 'en') LANG = s; else if (!/^(ru|uk|be|kk)/i.test(navigator.language || '')) LANG = 'en'; } catch (e) { }
-  // ссылка на страницу гайда («fsa.html», «geometry.html#matrix», «./») получает ?lang=; внешние, якоря и файлы — нет
+  // ссылка на страницу гида («fsa.html», «geometry.html#matrix», «./») получает ?lang=; внешние, якоря и файлы — нет
   function withLang(href) {
     if (!href || /^([a-z][a-z0-9+.-]*:|\/\/|#)/i.test(href)) return null;
     const m = href.match(/^([^?#]*)(\?[^#]*)?(#.*)?$/); if (!m || !/(^|\/)([\w-]+\.html)?$/.test(m[1])) return null;
@@ -62,9 +62,9 @@
   document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href]'); if (!a) return; const h = withLang(a.getAttribute('href')); if (h) a.setAttribute('href', h); }, true);
   const T = {
     ru: {
-      'brand.sub': 'гайд', 'toc': 'Оглавление', 'prev': '← Назад', 'next': 'Дальше →', 'hood': 'Как это сделано в BecqMoni',
+      'brand.sub': 'гид', 'toc': 'Оглавление', 'prev': '← Назад', 'next': 'Дальше →', 'hood': 'Как это сделано в BecqMoni',
       'shot.miss': 'снимок окна появится здесь', 'shot.zoom': 'щёлкните, чтобы увеличить',
-      'foot': 'Гайд по BecqMoni. Снимки окон — настоящей программы; модели на графиках упрощены и считаются прямо в браузере. Числа печатаются с точкой.',
+      'foot': 'Гид по BecqMoni. Снимки окон — настоящей программы; модели на графиках упрощены и считаются прямо в браузере. Числа печатаются с точкой.',
     },
     en: {
       'brand.sub': 'guide', 'toc': 'Contents', 'prev': '← Back', 'next': 'Next →', 'hood': 'How BecqMoni does it',

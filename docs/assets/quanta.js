@@ -1,4 +1,4 @@
-/* BecqMoni гайд — кванты: перенос фотонов Монте-Карло для живых анимаций.
+/* BecqMoni гид — кванты: перенос фотонов Монте-Карло для живых анимаций.
    Движок перенесён из how-it-works.html без изменения физики (`AMBER244`): сечения NaI / Al / вода,
    фотоэффект с вылетом K-рентгена йода, комптон по Клейну — Нишине, рождение пар, домик из свинца.
    Подключать ПОСЛЕ guide.js. Даёт GUIDE.Q: heroAnim (банка → кристалл → спектр), photonLab
@@ -17,7 +17,7 @@
     ru: {
       'qn.stat': 'вылетело <b>{0}</b> · поймано кристаллом <b>{1}</b> · в спектре <b>{2}</b>',
       'qn.cap': 'Банка с пробой светит во все стороны, кристалл ловит малую часть — и из пойманного растёт спектр',
-      'qn.ax.e': 'энергия, кэВ', 'qn.ax.cnt': 'отсчёты', 'qn.spec': 'Спектр', 'qn.pmt': 'ФЭУ', 'qn.drag': '3D: потяните, чтобы повернуть',
+      'qn.ax.e': 'энергия, кэВ', 'qn.ax.cnt': 'отсчёты', 'qn.spec': 'Спектр', 'qn.pmt': 'ФЭУ',
       'qn.ann.fep': 'пик', 'qn.ann.ce': 'комптоновский край', 'qn.ann.bs': 'обратное рассеяние', 'qn.ann.pb': 'рентген Pb',
       'qn.ann.se': 'вылет 511', 'qn.ann.de': 'вылет 2×511', 'qn.ann.ie': 'вылет йода',
       'qn.st': 'выпущено <b>{0}</b> · провзаимодействовали <b>{1}</b> · в пике <b>{2}</b>',
@@ -27,7 +27,7 @@
     en: {
       'qn.stat': 'emitted <b>{0}</b> · caught by the crystal <b>{1}</b> · in the spectrum <b>{2}</b>',
       'qn.cap': 'A jar with a sample shines in all directions, the crystal catches a small part — and the spectrum grows from what it caught',
-      'qn.ax.e': 'energy, keV', 'qn.ax.cnt': 'counts', 'qn.spec': 'Spectrum', 'qn.pmt': 'PMT', 'qn.drag': '3D: drag to rotate',
+      'qn.ax.e': 'energy, keV', 'qn.ax.cnt': 'counts', 'qn.spec': 'Spectrum', 'qn.pmt': 'PMT',
       'qn.ann.fep': 'peak', 'qn.ann.ce': 'Compton edge', 'qn.ann.bs': 'backscatter', 'qn.ann.pb': 'Pb X-rays',
       'qn.ann.se': '511 escape', 'qn.ann.de': '2×511 escape', 'qn.ann.ie': 'iodine escape',
       'qn.st': 'fired <b>{0}</b> · interacted <b>{1}</b> · in the peak <b>{2}</b>',
@@ -290,7 +290,7 @@
       } else if (e.p && e.k !== 'src') {
         if (acc > lim) break;
         const col = e.k === 'ph' ? '#ff4d6d' : e.k === 'co' ? '#ffd166' : e.k === 'pa' ? '#c38bff' : '#8892a8', r = e.k === 'ph' ? 4.5 : e.k === 'pa' ? 4.5 : 3;
-        if (e.k === 'ph' || e.k === 'pa') { const g = ctx.createRadialGradient(X(e.p[2]), Y(e.p[0]), 0, X(e.p[2]), Y(e.p[0]), 13); g.addColorStop(0, rgba(col, .8 * alpha)); g.addColorStop(1, rgba(col, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(X(e.p[2]), Y(e.p[0]), 13, 0, TWO_PI); ctx.fill(); }
+        if ((e.k === 'ph' || e.k === 'pa') && !G.lite()) { const g = ctx.createRadialGradient(X(e.p[2]), Y(e.p[0]), 0, X(e.p[2]), Y(e.p[0]), 13); g.addColorStop(0, rgba(col, .8 * alpha)); g.addColorStop(1, rgba(col, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(X(e.p[2]), Y(e.p[0]), 13, 0, TWO_PI); ctx.fill(); }
         ctx.fillStyle = rgba(col, alpha); ctx.beginPath(); ctx.arc(X(e.p[2]), Y(e.p[0]), r, 0, TWO_PI); ctx.fill();
         if (e.k === 'abs') { ctx.strokeStyle = rgba('#8892a8', alpha); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(e.p[2]) - 4, Y(e.p[0]) - 4); ctx.lineTo(X(e.p[2]) + 4, Y(e.p[0]) + 4); ctx.moveTo(X(e.p[2]) + 4, Y(e.p[0]) - 4); ctx.lineTo(X(e.p[2]) - 4, Y(e.p[0]) + 4); ctx.stroke(); }
       }
@@ -298,108 +298,10 @@
     ctx.restore();
   }
 
-  /* ============================== 3D: камера, цилиндры, треки (`AMBER246`) ==============================
-     Треки движка и так трёхмерные; здесь — перспектива и полупрозрачные тела, отсортированные по глубине. */
-  function cam3(o) {                         // o: { psi — поворот вокруг вертикали, tau — наклон, phi — вращение вокруг оси кристалла, zc, s, cx, cy, F }
-    const cp = Math.cos(o.phi), sp = Math.sin(o.phi), cs = Math.cos(o.psi), ss = Math.sin(o.psi), ct = Math.cos(o.tau), st = Math.sin(o.tau);
-    const P = p => {
-      const x1 = p[0] * cp - p[1] * sp, y1 = p[0] * sp + p[1] * cp, z1 = p[2] - o.zc;
-      const X = z1 * cs + x1 * ss, Dd = -z1 * ss + x1 * cs;
-      const Y = y1 * ct - Dd * st, D2 = y1 * st + Dd * ct;
-      const f = o.F / (o.F + D2);
-      return [o.cx + X * o.s * f, o.cy - Y * o.s * f, D2, f];
-    };
-    P.dir = n => {                           // направление (нормаль) в координатах камеры: [вправо, вверх, вглубь]
-      const x1 = n[0] * cp - n[1] * sp, y1 = n[0] * sp + n[1] * cp, z1 = n[2];
-      const X = z1 * cs + x1 * ss, Dd = -z1 * ss + x1 * cs;
-      return [X, y1 * ct - Dd * st, y1 * st + Dd * ct];
-    };
-    return P;
-  }
-  /* грани цилиндра для общей сортировки: side — боковая, caps — торцы */
-  function cylFaces(P, R, z0, z1, col, alpha, o = {}) {
-    const n = o.n || (G.lite() ? 18 : 32), out = [], r0 = [], r1 = [];
-    for (let i = 0; i < n; i++) { const a = i / n * TWO_PI, c = Math.cos(a), s = Math.sin(a); r0.push(P([R * c, R * s, z0])); r1.push(P([R * c, R * s, z1])); }
-    for (let i = 0; i < n; i++) {
-      const j = (i + 1) % n, a = (i + 0.5) / n * TWO_PI, nd = P.dir([Math.cos(a), Math.sin(a), 0]);
-      out.push({ pts: [r0[i], r0[j], r1[j], r1[i]], d: (r0[i][2] + r0[j][2] + r1[i][2] + r1[j][2]) / 4, col, alpha, lit: 0.35 + 0.65 * Math.max(0, -nd[2] * 0.8 + nd[1] * 0.35), inner: o.inner });
-    }
-    if (o.caps !== false) [[r0, -1], [r1, 1]].forEach(([r, sg]) => {
-      const nd = P.dir([0, 0, sg]); let d = 0; r.forEach(p => d += p[2]);
-      out.push({ pts: r, d: d / n, col, alpha: alpha * 0.9, lit: 0.45 + 0.55 * Math.max(0, -nd[2]), cap: true });
-    });
-    out.rings = [r0, r1];
-    return out;
-  }
-  function sceneFaces(P, D) {
-    const F = [], rings = [];
-    const add = (fs, ringCol) => { fs.forEach(f => F.push(f)); if (ringCol) rings.push([fs.rings, ringCol]); };
-    if (D.point) { const q = P(D.point); F.push({ glow: q, d: q[2] }); }
-    if (D.jar) add(cylFaces(P, D.jar.R, D.jar.z0, D.jar.z1, '#3f8fe0', 0.13), 'rgba(110,170,240,.40)');
-    if (D.mar) { const m = D.mar; add(cylFaces(P, m.Ro, m.z0, m.z1, '#50aaff', 0.13), 'rgba(120,190,255,.5)'); add(cylFaces(P, m.Ri, m.zw, m.z1, '#50aaff', 0.10, { caps: false, inner: true }), 'rgba(120,190,255,.35)'); }
-    add(cylFaces(P, D.R, 0, D.H, '#9fd4ff', 0.26), 'rgba(200,232,255,.85)');
-    add(cylFaces(P, D.R * 0.92, D.H + D.al, D.H * 1.9 + 0.5, '#3b4560', 0.88), null);
-    F.sort((a, b) => b.d - a.d);
-    return { F, rings };
-  }
-  function drawFaces(ctx, faces) {
-    for (const f of faces) {
-      if (f.glow) { const q = f.glow, g = ctx.createRadialGradient(q[0], q[1], 0, q[0], q[1], 16 * q[3]); g.addColorStop(0, 'rgba(255,230,120,1)'); g.addColorStop(.35, 'rgba(255,170,60,.55)'); g.addColorStop(1, 'rgba(255,120,40,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(q[0], q[1], 16 * q[3], 0, TWO_PI); ctx.fill(); continue; }
-      const n = parseInt(f.col.slice(1), 16), k = f.lit;
-      ctx.fillStyle = 'rgba(' + Math.round(((n >> 16) & 255) * k) + ',' + Math.round(((n >> 8) & 255) * k) + ',' + Math.round((n & 255) * k) + ',' + f.alpha + ')';
-      ctx.beginPath(); f.pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fill();
-    }
-  }
-  function drawRings(ctx, rings) {
-    ctx.lineWidth = 1.1;
-    rings.forEach(([rr, col]) => { ctx.strokeStyle = col; rr.forEach(r => { ctx.beginPath(); r.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.stroke(); }); });
-  }
-  function drawTrack3(ctx, P, tr, alpha, prog) {
-    let L = 0;
-    tr.forEach(e => { if (e.a) { const b = e.k === 'out' ? e.c : e.b; e.len = Math.hypot(b[0] - e.a[0], b[1] - e.a[1], b[2] - e.a[2]) + 0.01; L += e.len; } });
-    let lim = prog === undefined ? Infinity : prog * L, acc = 0;
-    ctx.save(); ctx.lineCap = 'round';
-    for (const e of tr) {
-      if (e.a) {
-        if (acc >= lim) break;
-        const f = clamp((lim - acc) / e.len, 0, 1); acc += e.len;
-        const b = e.k === 'out' ? e.c : e.b, A = P(e.a), B = P([lerp(e.a[0], b[0], f), lerp(e.a[1], b[1], f), lerp(e.a[2], b[2], f)]);
-        ctx.strokeStyle = e.k === 'bs' ? rgba('#CC55BB', alpha) : eCol(e.E, alpha * (e.k === 'miss' ? 0.22 : 0.95)); ctx.lineWidth = e.k === 'miss' ? 1 : 1.3 + 1.1 * (A[3] + B[3]) / 2;
-        ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
-        if (e.k === 'out' && f > 0.98) { ctx.fillStyle = rgba('#4dd0e1', alpha); ctx.beginPath(); ctx.arc(B[0], B[1], 2.4, 0, TWO_PI); ctx.fill(); }
-      } else if (e.p && e.k !== 'src') {
-        if (acc > lim) break;
-        const Q = P(e.p), col = e.k === 'ph' ? '#ff4d6d' : e.k === 'co' ? '#ffd166' : e.k === 'pa' ? '#c38bff' : '#8892a8', r = (e.k === 'ph' || e.k === 'pa' ? 4.5 : 3) * Q[3];
-        if ((e.k === 'ph' || e.k === 'pa') && !G.lite()) { const g = ctx.createRadialGradient(Q[0], Q[1], 0, Q[0], Q[1], 14 * Q[3]); g.addColorStop(0, rgba(col, .85 * alpha)); g.addColorStop(1, rgba(col, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(Q[0], Q[1], 14 * Q[3], 0, TWO_PI); ctx.fill(); }
-        ctx.fillStyle = rgba(col, alpha); ctx.beginPath(); ctx.arc(Q[0], Q[1], r, 0, TWO_PI); ctx.fill();
-      }
-    }
-    ctx.restore();
-  }
-  /* живая 3D-сцена: камера качается сама, мышью или пальцем — поворот; после отпускания через 3 с снова сама */
-  function orbit(cv, o) {
-    const st = { psi: o.psi0 === undefined ? 0.62 : o.psi0, tau: 0.32, phi: 0, idle: -1e9, drag: null, t0: performance.now() };
-    cv.style.cursor = 'grab';
-    cv.addEventListener('pointerdown', e => { st.drag = { x: e.clientX, y: e.clientY, psi: st.psi, tau: st.tau }; cv.style.cursor = 'grabbing'; try { cv.setPointerCapture(e.pointerId); } catch (x) { } });
-    cv.addEventListener('pointermove', e => { if (!st.drag) return; st.psi = st.drag.psi + (e.clientX - st.drag.x) * 0.009; st.tau = clamp(st.drag.tau + (e.clientY - st.drag.y) * 0.007, -1.1, 1.1); st.idle = performance.now(); });
-    const up = () => { st.drag = null; cv.style.cursor = 'grab'; st.idle = performance.now(); };
-    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
-    st.step = () => {
-      const now = performance.now(), tt = (now - st.t0) / 1000;
-      if (!st.drag && now - st.idle > 3000) {   // сама: мягкое покачивание и вращение треков вокруг оси
-        st.psi += ((o.psi0 === undefined ? 0.62 : o.psi0) + 0.42 * Math.sin(tt * 0.23) - st.psi) * 0.02;
-        st.tau += (0.30 + 0.16 * Math.sin(tt * 0.17) - st.tau) * 0.02;
-      }
-      st.phi += 0.0035;
-    };
-    return st;
-  }
-
-  /* ============================== ЗАСТАВКА: банка → кристалл → спектр, в 3D ============================== */
+  /* ============================== ЗАСТАВКА: банка → кристалл → спектр (вид сбоку; 3D снято — `AMBER247`) ============================== */
   function heroAnim(cv, statEl) {
     io.observe(cv);
     const D = dims({ size: 6.3, gap: 0.6, src: 'jar', rho: 1.0, shield: false, al: 0.08 });
-    const OR = orbit(cv, {});
     const LINES = [[59.54, 0.36 * 0.6], [661.66, 0.851], [1173.2, 0.45], [1332.5, 0.45], [1460.8, 0.4]];
     const wsum = LINES.reduce((a, l) => a + l[1], 0);
     const pick = () => { let u = Math.random() * wsum; for (const l of LINES) { u -= l[1]; if (u <= 0) return l[0]; } return LINES[1][0]; };
@@ -420,17 +322,10 @@
     function draw() {
       const { ctx, w, h } = setup(cv);
       const narrow = w < 760, sw = narrow ? w : w * 0.56, sh = narrow ? h * 0.52 : h;
-      OR.step();
-      const z0 = -6.6, z1 = D.H * 1.9 + 1.2, P = cam3({ psi: OR.psi, tau: OR.tau, phi: OR.phi, zc: (z0 + z1) / 2, s: Math.min(sw / (z1 - z0) * 0.92, sh / 15), cx: sw / 2, cy: sh / 2, F: 40 });
+      const V = view(sw, sh, -6.6, D.H * 1.9 + 1.2, -6.2, 6.2, 8);
       ctx.save(); ctx.beginPath(); ctx.rect(0, 0, sw, sh); ctx.clip();
-      const S3 = sceneFaces(P, D);
-      drawFaces(ctx, S3.F);
-      tracks.forEach(x => drawTrack3(ctx, P, x.tr, Math.pow(1 - x.age / 46, 1.4), Math.min(1, (x.age + 1) / 14)));
-      drawRings(ctx, S3.rings);
-      const lc = P([0, -D.R - 0.6, D.H / 2]), lp = P([0, 0, D.H * 1.45 + 0.25]);
-      ctx.fillStyle = '#d7e6ff'; ctx.font = '600 12px system-ui'; ctx.textAlign = 'center'; ctx.fillText('NaI(Tl)', lc[0], lc[1] + 14);
-      ctx.fillStyle = '#9aa7c4'; ctx.font = '11px system-ui'; ctx.fillText(t('qn.pmt'), lp[0], lp[1] + 4);
-      ctx.fillStyle = 'rgba(147,163,196,.75)'; ctx.font = '11.5px system-ui'; ctx.textAlign = 'left'; ctx.fillText(t('qn.drag'), 10, sh - 10);
+      drawSetup(ctx, V, D, { labels: true });
+      tracks.forEach(x => drawTrack(ctx, V, x.tr, Math.pow(1 - x.age / 46, 1.4), Math.min(1, (x.age + 1) / 14)));
       ctx.restore();
       const bx = narrow ? { l: 44, t: sh + 12, r: w - 12, b: h - 22 } : { l: sw + 50, t: 18, r: w - 14, b: h - 24 };
       let mx = 1; for (let b = 3; b < NB; b++) mx = Math.max(mx, hist[b]);
@@ -444,14 +339,14 @@
     requestAnimationFrame(frame);
   }
 
-  /* ============================== МОНТЕ-КАРЛО-СЦЕНА: 1–2 геометрии рядом (`AMBER246`) ==============================
+  /* ============================== МОНТЕ-КАРЛО-СЦЕНА: 1–2 геометрии рядом, вид сбоку (`AMBER246`; 3D снято — `AMBER247`) ==============================
      o.scenes: [{ geo: {size, gap, src}, label: () => текст }]; o.lines: [[E, выход на распад], …];
      o.layer: цвет — спектр рисуется слоем (FSA), иначе столбиками по энергии;
      o.analog: сколько аналоговых распадов на кадр считать для «воронки» (o.onStats получает s.A);
      o.onStats(i, s) — раз в 8 кадров: s.S (взвешенные истории: n, hit, fep), s.A (аналог: dec, ph, hit, pk). */
   function mcDuo(cv, o) {
     io.observe(cv);
-    const OR = orbit(cv, { psi0: 0.72 }), NB = 200;
+    const NB = 200;
     let lines = o.lines, sc = [], fr = 0;
     const emax = () => o.emax || Math.max(...lines.map(l => l[0])) * 1.15;
     const pick = () => { const ws = lines.reduce((a, l) => a + l[1], 0); let u = Math.random() * ws; for (const l of lines) { u -= l[1]; if (u <= 0) return l[0]; } return lines[0][0]; };
@@ -488,18 +383,18 @@
       const want = vert ? '640px' : ''; if (cv.style.height !== want) cv.style.height = want;
       const { ctx, w, h } = setup(cv), EM = emax();
       const box = i => vert ? { x0: 0, y0: i * h / n, cw: w, rh: h / n } : { x0: i * w / n, y0: 0, cw: w / n, rh: h };
-      OR.step();
-      let mx = 1e-12, sCom = Infinity;
+      let mx = 1e-12, zMin = Infinity, zMax = -Infinity, xExt = 0;
       sc.forEach(s => { if (s.S.n) for (let b = 2; b < NB; b++) mx = Math.max(mx, s.hist[b] / s.S.n); });
-      sc.forEach((s, i) => { const B = box(i), D = s.D, zA = D.point ? D.point[2] - 1.5 : D.jar ? D.jar.z0 - 1 : D.mar.z0 - 1, zB = D.H * 1.9 + 1; sCom = Math.min(sCom, B.cw / (zB - zA) * 0.86, B.rh * 0.6 / 15.5); });   // общий масштаб: размеры сравнимы
+      sc.forEach(s => {                       // общие границы вида сбоку: у сцен «рядом» один масштаб, размеры сравнимы
+        const D = s.D; zMin = Math.min(zMin, D.point ? D.point[2] - 2 : D.jar ? D.jar.z0 - 1.2 : D.mar.z0 - 1.2); zMax = Math.max(zMax, D.H * 1.9 + 1.2);
+        xExt = Math.max(xExt, D.R + 1.5, D.jar ? D.jar.R + 1.2 : 0, D.mar ? D.mar.Ro + 1.2 : 0);
+      });
       sc.forEach((s, i) => {
         const B = box(i), x0 = B.x0, y0 = B.y0, cw = B.cw, sh = B.rh * 0.6, D = s.D;
-        const zA = D.point ? D.point[2] - 1.5 : D.jar ? D.jar.z0 - 1 : D.mar.z0 - 1, zB = D.H * 1.9 + 1;
-        const P = cam3({ psi: OR.psi, tau: OR.tau, phi: OR.phi, zc: (zA + zB) / 2, s: sCom, cx: x0 + cw / 2, cy: y0 + sh / 2 + 6, F: 40 });
+        const V0 = view(cw, sh, zMin, zMax, -xExt, xExt, 8), V = { s: V0.s, X: z => x0 + V0.X(z), Y: x => y0 + V0.Y(x) };
         ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, cw, sh); ctx.clip();
-        const S3 = sceneFaces(P, D); drawFaces(ctx, S3.F);
-        s.tracks.forEach(x => drawTrack3(ctx, P, x.tr, Math.pow(1 - x.age / 42, 1.4), Math.min(1, (x.age + 1) / 12)));
-        drawRings(ctx, S3.rings);
+        drawSetup(ctx, V, D, { labels: true });
+        s.tracks.forEach(x => drawTrack(ctx, V, x.tr, Math.pow(1 - x.age / 42, 1.4), Math.min(1, (x.age + 1) / 12)));
         ctx.fillStyle = '#e8eefc'; ctx.font = '700 13px system-ui'; ctx.textAlign = 'left'; ctx.fillText(s.label(), x0 + 10, y0 + 18);
         ctx.restore();
         const bx = { l: x0 + (i && !vert ? 14 : 40), t: y0 + sh + 10, r: x0 + cw - 10, b: y0 + B.rh - 22 };
@@ -516,7 +411,6 @@
         }
         if (n > 1 && i) { ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.beginPath(); if (vert) { ctx.moveTo(8, y0); ctx.lineTo(w - 8, y0); } else { ctx.moveTo(x0, 8); ctx.lineTo(x0, h - 8); } ctx.stroke(); }
       });
-      ctx.fillStyle = 'rgba(147,163,196,.75)'; ctx.font = '11.5px system-ui'; ctx.textAlign = 'right'; ctx.fillText(t('qn.drag'), w - 10, (vert ? h / n : h) * 0.6 - 8);
     }
     reset(); requestAnimationFrame(frame);
     return { reset, setLines(l) { lines = l; reset(); }, get scenes() { return sc; } };
@@ -594,5 +488,5 @@
     setInterval(() => { if (!touched && visible.get(cv) && PH.n < 400) fire(1, true); }, 900);
   }
 
-  G.Q = { mcDuo, cam3, cylFaces, sceneFaces, drawFaces, drawRings, drawTrack3, orbit, XS, dims, emitPoint, historyA, historyW, runW, smear, blur, sigmaAt, features, drawFeatures, view, drawSetup, drawTrack, heroAnim, photonLab };
+  G.Q = { mcDuo, XS, dims, emitPoint, historyA, historyW, runW, smear, blur, sigmaAt, features, drawFeatures, view, drawSetup, drawTrack, heroAnim, photonLab };
 })(window.GUIDE);

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FSA на практике — BecqMoni гайд</title>
+<title>FSA на практике — BecqMoni гид</title>
 <link rel="stylesheet" href="assets/guide.css">
 <style>
 /* только эта глава */
@@ -157,7 +157,7 @@ figure.shot.side.tall>.shot-frame{max-width:330px;width:100%}
   </div>
 </div></section>
 
-<!-- Монте-Карло в 3D (`AMBER246`) -->
+<!-- Монте-Карло (`AMBER246`; вид сбоку — `AMBER247`) -->
 <section class="sec" id="layer" data-nav="mc.n"><div class="wrap">
   <div class="kicker" data-t="mc.k"></div>
   <h2 data-t="mc.h"></h2>
@@ -214,8 +214,8 @@ figure.shot.side.tall>.shot-frame{max-width:330px;width:100%}
 <script src="assets/quanta.js"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
-GUIDE.texts({ ru: {"mc.n": "Слой", "mc.k": "Монте-Карло в 3D", "mc.h": "Как рождается слой", "mc.lead": "Слой — это то, как нуклид со всеми своими линиями выглядит именно в вашей геометрии. Его печатает тот же перенос фотонов: каждая линия ряда летит в кристалл со своим выходом, и из оставленной энергии складывается форма слоя — пики, плато, пики вылета вместе.", "mc.pick": "Нуклид:", "mc.chain": "(ряд)", "mc.lab": "слой {0} в банке на торце", "mc.t1": "линий в слое", "mc.t2": "фотонов прогнано", "mc.t3": "в пиках на испущенный фотон", "mc.f1": "<b>Слой — это целый нуклид</b>, а не отдельный пик. Поэтому FSA разбирает даже перекрытые линии: 583 и 609 кэВ из разных рядов не путаются.", "mc.f2": "<b>Слой зависит от геометрии.</b> Один и тот же нуклид в банке и в Маринелли даёт разные слои — потому матрица считается для вашей геометрии.", "mc.f3": "<b>В программе слои не считаются заново</b> на каждом разборе: они берутся из матрицы отклика, которую прибор считает один раз."},
- en: {"mc.n": "Layer", "mc.k": "Monte Carlo in 3D", "mc.h": "How a layer is born", "mc.lead": "A layer is what a nuclide with all its lines looks like in exactly your geometry. The same photon transport prints it: every line of the chain flies into the crystal with its own yield, and the energy left behind builds the shape of the layer — peaks, plateaus and escape peaks together.", "mc.pick": "Nuclide:", "mc.chain": "(chain)", "mc.lab": "{0} layer, jar on the face", "mc.t1": "lines in the layer", "mc.t2": "photons run", "mc.t3": "in the peaks per emitted photon", "mc.f1": "<b>A layer is a whole nuclide</b>, not a single peak. That is why FSA separates even overlapping lines: 583 and 609 keV from different chains do not get mixed up.", "mc.f2": "<b>The layer depends on the geometry.</b> The same nuclide in a jar and in a Marinelli beaker gives different layers — so the matrix is computed for your geometry.", "mc.f3": "<b>The app does not recompute layers</b> on every analysis: it takes them from the response matrix the detector computes once."} });
+GUIDE.texts({ ru: {"mc.n": "Слой", "mc.k": "Монте-Карло", "mc.h": "Как рождается слой", "mc.lead": "Слой — это то, как нуклид со всеми своими линиями выглядит именно в вашей геометрии. Его печатает тот же перенос фотонов: каждая линия ряда летит в кристалл со своим выходом, и из оставленной энергии складывается форма слоя — пики, плато, пики вылета вместе.", "mc.pick": "Нуклид:", "mc.chain": "(ряд)", "mc.lab": "слой {0} в банке на торце", "mc.t1": "линий в слое", "mc.t2": "фотонов прогнано", "mc.t3": "в пиках на испущенный фотон", "mc.f1": "<b>Слой — это целый нуклид</b>, а не отдельный пик. Поэтому FSA разбирает даже перекрытые линии: 583 и 609 кэВ из разных рядов не путаются.", "mc.f2": "<b>Слой зависит от геометрии.</b> Один и тот же нуклид в банке и в Маринелли даёт разные слои — потому матрица считается для вашей геометрии.", "mc.f3": "<b>В программе слои не считаются заново</b> на каждом разборе: они берутся из матрицы отклика, которую прибор считает один раз."},
+ en: {"mc.n": "Layer", "mc.k": "Monte Carlo", "mc.h": "How a layer is born", "mc.lead": "A layer is what a nuclide with all its lines looks like in exactly your geometry. The same photon transport prints it: every line of the chain flies into the crystal with its own yield, and the energy left behind builds the shape of the layer — peaks, plateaus and escape peaks together.", "mc.pick": "Nuclide:", "mc.chain": "(chain)", "mc.lab": "{0} layer, jar on the face", "mc.t1": "lines in the layer", "mc.t2": "photons run", "mc.t3": "in the peaks per emitted photon", "mc.f1": "<b>A layer is a whole nuclide</b>, not a single peak. That is why FSA separates even overlapping lines: 583 and 609 keV from different chains do not get mixed up.", "mc.f2": "<b>The layer depends on the geometry.</b> The same nuclide in a jar and in a Marinelli beaker gives different layers — so the matrix is computed for your geometry.", "mc.f3": "<b>The app does not recompute layers</b> on every analysis: it takes them from the response matrix the detector computes once."} });
 (function () {
   const { $, $$, fx, t, Q } = GUIDE;
   const NUC = [
