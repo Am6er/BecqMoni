@@ -719,14 +719,11 @@ namespace BecquerelMonitor
             this.textBox1.Text = Path.GetFileName(openFileDialog.FileName);
             activeResultData.BackgroundSpectrumFile = Path.GetFileName(openFileDialog.FileName);
             activeResultData.BackgroundSpectrumPathname = openFileDialog.FileName;
+            // (`AMBER256`, решение Amber 20.10.2026 «Принимать везде») Отказа
+            // «Несовместимые параметры каналов.» здесь больше нет: фон с другим
+            // числом каналов `LoadBackgroundSpectrum` перекладывает по энергии
+            // в шкалу спектра (`DocumentManager.AlignBackgroundChannels`).
             this.documentManager.LoadBackgroundSpectrum(activeResultData);
-            if (activeResultData.BackgroundEnergySpectrum != null && activeResultData.EnergySpectrum.NumberOfChannels != activeResultData.BackgroundEnergySpectrum.NumberOfChannels)
-            {
-                MessageBox.Show(Resources.ERRIncompatibleChannelParameters, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
-                activeResultData.BackgroundEnergySpectrum = null;
-                activeResultData.BackgroundSpectrumFile = "";
-                activeResultData.BackgroundSpectrumPathname = "";
-            }
             activeDocument.Dirty = true;
             this.ShowDocumentStatus();
             this.mainForm.ShowMeasurementResult(true);
@@ -831,13 +828,10 @@ namespace BecquerelMonitor
             activeResultData.BackgroundSpectrumFile = fileName;
             activeResultData.BackgroundSpectrumPathname = activeResultData.DeviceConfig.BackgroundSpectrumPathname;
             activeResultData.BackgroundEnergySpectrum = null;
+            // (`AMBER256`, решение Amber 20.10.2026 «Принимать везде») Фон с
+            // другим числом каналов здесь прежде МОЛЧА снимался; теперь его
+            // перекладывает по энергии сам `LoadBackgroundSpectrum`.
             this.documentManager.LoadBackgroundSpectrum(activeResultData);
-            if (activeResultData.BackgroundEnergySpectrum != null && activeResultData.DeviceConfig.NumberOfChannels != activeResultData.BackgroundEnergySpectrum.NumberOfChannels)
-            {
-                activeResultData.BackgroundEnergySpectrum = null;
-                activeResultData.BackgroundSpectrumFile = "";
-                activeResultData.BackgroundSpectrumPathname = "";
-            }
             this.ShowDocumentStatus();
             this.mainForm.UpdateDetectedPeakView();
             activeDocument.UpdateEnergySpectrum();
