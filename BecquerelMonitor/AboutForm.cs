@@ -41,6 +41,13 @@ namespace BecquerelMonitor
             OpenLink("https://rutube.ru/channel/30585350/");
         }
 
+        // `AMBER250` (Amber 20.10.2026, вопросником: «Адрес сайта, как GitHub»): гид на сайте,
+        // на языке интерфейса — ?lang=ru или ?lang=en.
+        private void label10_Click(object sender, EventArgs e)
+        {
+            OpenLink(GuideLinks.SiteWithLang);
+        }
+
         /// <summary>
         /// Открыть ссылку внешним обработчиком и НАЗВАТЬ ПРИЧИНУ, если не
         /// вышло.
