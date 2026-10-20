@@ -77,7 +77,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>
         /// (`AMBER52`, П125 22.09.2026, формат 10) Аннигиляция вне кристалла —
-        /// содержимое постоянной энергии: 511, 1022, их комптон. Строкой в
+        /// содержимое постоянной энергии: 511 и её комптон (линии 1022 нет —
+        /// `AMBER256`). Строкой в
         /// существующем списке, седьмым пунктом комбо, как принято.
         /// </summary>
         AnnihilationOutside = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.AnnihilationOutside

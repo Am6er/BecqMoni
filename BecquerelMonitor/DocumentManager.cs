@@ -282,6 +282,11 @@ namespace BecquerelMonitor
                                 return false;
                             }
                         }
+
+                        // (`AMBER256`) Обе калибровки проверены — фон с другим
+                        // числом каналов перекладывается в шкалу спектра. Дверь
+                        // открытия и всех импортов; см. AlignBackgroundChannels.
+                        AlignBackgroundChannels(data);
                     }
                     // Add fwhm calibration if it doesn't exist
                     if (data.FwhmCalibration == null && data.DeviceConfigWiped)
@@ -3362,7 +3367,49 @@ namespace BecquerelMonitor
                     resultDataFile.ResultDataList[0].EnergySpectrum.ValidPulseCount = resultDataFile.ResultDataList[0].EnergySpectrum.TotalPulseCount;
                 }
                 resultData.BackgroundEnergySpectrum = resultDataFile.ResultDataList[0].EnergySpectrum;
+                AlignBackgroundChannels(resultData);
             }
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER256`, 20.10.2026) ФОН С ДРУГИМ ЧИСЛОМ КАНАЛОВ ПРИНИМАЕТСЯ
+        /// ВЕЗДЕ — переложенным по энергии в шкалу спектра
+        /// (<see cref="SpectrumAriphmetics.BackgroundInScaleOf"/>: раскладка по
+        /// перекрытию энергий, интеграл сохранён, калибровка — копия калибровки
+        /// спектра, времена фона прежние). Решение Amber 20.10.2026
+        /// вопросником, дословно: «Принимать везде (Рекомендую)».
+        ///
+        /// Было шесть поведений одного и того же фона: вкладка «Ссылки» брала
+        /// его молча; новый спектр и новый документ грузили без проверки, и
+        /// график, поиск пиков и вычитание клали его по энергии (`AMBER109`);
+        /// ⟳ на панели молча снимал; «Выбрать...» и «Обновить фон» отказывали
+        /// «Несовместимые параметры каналов.»; FSA его не брал («Фон не взят»)
+        /// и считал без фона — то есть график показывал вычтенный фон, которого
+        /// разбор не видел. Теперь у документа фон всегда в числе каналов
+        /// спектра, и три отказа сняты.
+        ///
+        /// Зовётся из двух дверей: <see cref="LoadBackgroundSpectrum"/> (новый
+        /// спектр и документ, панель, ⟳, «Обновить фон») и
+        /// <see cref="CheckDocument"/> (открытие файла и все импорты — фон,
+        /// встроенный в файл). Фон с тем же числом каналов не трогается вовсе,
+        /// даже при другой калибровке: его кладут по энергии сами читатели, как
+        /// и прежде, — у корпуса (0 из 136 спектров с другим числом каналов
+        /// фона) числа побитово прежние.
+        /// </summary>
+        static void AlignBackgroundChannels(ResultData data)
+        {
+            EnergySpectrum background = data.BackgroundEnergySpectrum;
+            EnergySpectrum spectrum = data.EnergySpectrum;
+            // Меньше двух каналов у любой стороны — раскладке не из чего строить
+            // границы (`RebinByEnergy` вернул бы нули): такой фон остаётся как был.
+            if (background == null || spectrum == null || background.Spectrum == null
+                || background.NumberOfChannels == spectrum.NumberOfChannels
+                || spectrum.NumberOfChannels < 2 || background.Spectrum.Length < 2)
+            {
+                return;
+            }
+
+            data.BackgroundEnergySpectrum = SpectrumAriphmetics.BackgroundInScaleOf(background, spectrum);
         }
 
         public void SplitDocEnergySpectrum(DocEnergySpectrum doc)
