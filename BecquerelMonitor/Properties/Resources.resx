@@ -43878,7 +43878,7 @@ Close the window and discard it?</value>
     <value>Upper threshold, ADC code :</value>
   </data>
   <data name="AmplitudaUsbDeadTime" xml:space="preserve">
-    <value>Dead time per pulse, us :</value>
+    <value>Dead time per pulse, µs :</value>
   </data>
   <data name="AmplitudaUsbChannelsHint" xml:space="preserve">
     <value>Channels: 4096, 2048, 1024, 512 or 256 - set on the common tab. The 12-bit ADC code is divided evenly; channel pitch is fixed at 1.</value>

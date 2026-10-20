@@ -112,7 +112,7 @@
             this.labelDeadTime.Name = "labelDeadTime";
             this.labelDeadTime.Size = new System.Drawing.Size(130, 13);
             this.labelDeadTime.TabIndex = 17;
-            this.labelDeadTime.Text = "Dead time per pulse, us :";
+            this.labelDeadTime.Text = "Dead time per pulse, µs :";
             //
             // numericDeadTime
             //

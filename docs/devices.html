@@ -11,6 +11,8 @@ figure.shot.side{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8f
 figure.shot.side .shot-legend{margin-top:0}
 .pane{display:none}.pane.on{display:block}
 .tabbar{margin:2px 0 14px}
+.plab{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.plab h3{margin:0 0 4px}
 .devs{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:2px 0 12px}
 .devs button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;color:var(--soft);font-family:inherit;cursor:pointer;transition:border-color .15s}
 .devs button b{font-size:14px;color:var(--ink)}
@@ -151,6 +153,39 @@ ol.chk>li.done::before{content:"✓";background:var(--ok);color:#06210f;border-c
         <figcaption data-t="c.ocap"></figcaption>
       </figure>
     </div>
+    <div class="pane" data-tab="c.taud">
+      <figure class="shot side" data-shot="devcfg-device-audio" data-hot='[[0.4525,0.0960,0.3937,0.0267],[0.4525,0.1293,0.3948,0.0280],[0.4514,0.1640,0.2715,0.0627],[0.4525,0.2333,0.4774,0.0540],[0.4525,0.2893,0.2522,0.0227],[0.4536,0.3280,0.2217,0.0600],[0.4570,0.4000,0.3292,0.0450],[0.4570,0.5053,0.2003,0.0627],[0.4570,0.5787,0.2172,0.0587],[0.6968,0.5040,0.2357,0.2187],[0.7557,0.7307,0.1764,0.0307]]'>
+        <ol class="shot-legend"><li data-t="c.u1"></li><li data-t="c.u2"></li><li data-t="c.u3"></li><li data-t="c.u4"></li><li data-t="c.u5"></li><li data-t="c.u6"></li><li data-t="c.u7"></li><li data-t="c.u8"></li><li data-t="c.u9"></li><li data-t="c.u10"></li><li data-t="c.u11"></li></ol>
+        <figcaption data-t="c.ucap"></figcaption>
+      </figure>
+      <div class="plab">
+        <h3 data-t="pl.h"></h3>
+        <p class="note" style="margin-top:0" data-t="pl.hint"></p>
+        <canvas id="cvPulse" class="cv tall" aria-label="pulse selection"></canvas>
+        <div class="row"><span class="lbl" data-t="pl.lld"></span><input type="range" id="plL" min="0.5" max="30" step="0.5" value="4"><span class="val" id="plLv"></span>
+          <span class="lbl" data-t="pl.uld"></span><input type="range" id="plU" min="20" max="100" step="1" value="90"><span class="val" id="plUv"></span></div>
+        <div class="row"><span class="lbl" data-t="pl.thr"></span><input type="range" id="plT" min="0" max="95" step="1" value="60"><span class="val" id="plTv"></span></div>
+        <div class="row"><span class="lbl" data-t="pl.w"></span><input type="range" id="plW" min="8" max="64" step="1" value="16"><span class="val" id="plWv"></span>
+          <span class="lbl" data-t="pl.p"></span><input type="range" id="plP" min="1" max="15" step="1" value="8"><span class="val" id="plPv"></span>
+          <button class="btn" id="plR" data-t="pl.reset"></button></div>
+        <div class="row"><span class="lbl" data-t="pl.speed"></span><input type="range" id="plS" min="1" max="30" step="1" value="1"><span class="val" id="plSv"></span></div>
+        <div class="tiles four" id="plTiles"></div>
+        <div class="pills" id="plRes"></div>
+        <p class="note" data-t="pl.note"></p>
+      </div>
+    </div>
+    <div class="pane" data-tab="c.tausb">
+      <figure class="shot side" data-shot="devcfg-device-ausb" data-hot='[[0.4525,0.0960,0.3937,0.0267],[0.4525,0.1720,0.4955,0.0307],[0.4525,0.2187,0.3133,0.0667],[0.4525,0.2987,0.3133,0.0267],[0.4525,0.3467,0.4955,0.0600],[0.4525,0.4187,0.1131,0.0307]]'>
+        <ol class="shot-legend"><li data-t="c.b1"></li><li data-t="c.b2"></li><li data-t="c.b3"></li><li data-t="c.b4"></li><li data-t="c.b5"></li><li data-t="c.b6"></li></ol>
+        <figcaption data-t="c.bcap"></figcaption>
+      </figure>
+    </div>
+    <div class="pane" data-tab="c.taser">
+      <figure class="shot side" data-shot="devcfg-device-aser" data-hot='[[0.4525,0.0960,0.3937,0.0267],[0.4525,0.1720,0.4955,0.0307],[0.4525,0.2187,0.3133,0.0267],[0.4525,0.2587,0.3133,0.0667],[0.4525,0.3387,0.3133,0.0267],[0.4525,0.3840,0.4955,0.0773],[0.4525,0.4720,0.3620,0.0307]]'>
+        <ol class="shot-legend"><li data-t="c.s1"></li><li data-t="c.s2"></li><li data-t="c.s3"></li><li data-t="c.s4"></li><li data-t="c.s5"></li><li data-t="c.s6"></li><li data-t="c.s7"></li></ol>
+        <figcaption data-t="c.scap"></figcaption>
+      </figure>
+    </div>
   </div>
   <div class="facts">
     <div class="fact" style="--c:var(--blue)" data-t="c.f1"></div>
@@ -215,7 +250,7 @@ ol.chk>li.done::before{content:"✓";background:var(--ok);color:#06210f;border-c
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=098903e9"></script>
+<script src="assets/guide.js?v=2094f2ee"></script>
 <script src="assets/quanta.js?v=98c4ced5"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
@@ -317,7 +352,7 @@ GUIDE.texts({ru:{
 'w.s5':UI('Сохранить')+' → '+UI('Закрыть')+'. Конфигурация ляжет файлом в папку <code>config\\device</code>.',
 'w.warn':'<b>Удаление не спрашивает дважды.</b> Конфигурация — это и калибровки, и кривые эффективности прибора. Перед большими правками сделайте '+UI('Дубль')+'.',
 'c.k':'Страница «Устройство»','c.h':'Как прибор находит компьютер',
-'c.lead':'Вкладка «Устройство» — как пульт сопряжения: у Bluetooth-приборов кнопка поиска, у USB — выбор порта. Переключайте приборы и наводите на номера.',
+'c.lead':'Вкладка «Устройство» — как пульт сопряжения: у Bluetooth-приборов кнопка поиска, у USB и RS-232 — выбор порта или блока, у звукового входа — звуковая карта и образец импульса. Переключайте приборы и наводите на номера.',
 'c.trc':'RadiaCode (BLE)','c.tas':'Atom Spectra (COM)','c.tobs':'Obsidian (BLE)',
 'c.r1':'<b>Тип устройства</b> — только для чтения, меняется на вкладке «Основное»','c.r2':'<b>Серийный номер:</b> — найденные приборы; номер на снимке скрыт',
 'c.r3':'<b>Сканировать BLE</b> — поиск приборов по Bluetooth Low Energy','c.r4':'<b>Диагностика</b> — пошаговая проверка связи с прибором',
@@ -330,6 +365,44 @@ GUIDE.texts({ru:{
 'c.f2':'<b>COM-порт — это USB.</b> Atom Spectra виден в Windows как виртуальный COM-порт; переставили кабель в другое гнездо — номер может смениться.',
 'c.f3':'<b>Обрыв связи не рвёт набор.</b> У Atom Spectra строка состояния скажет «ПОРТ ПОТЕРЯН… Набор не остановлен, ждём возвращения прибора».',
 'c.info':'<b>Доза — по спектру, не из прибора.</b> Дозиметр RadiaCode программа не читает: мощность дозы в строке состояния считается по набранному спектру и кривой эффективности.',
+'c.taud':'Звуковой вход','c.tausb':'AmplitudaUSB (HID)','c.taser':'AmplitudaSerial (RS-232)',
+'c.u1':'<b>Тип устройства</b> — Звуковой вход. На снимке — преднастроенная Atom Spectra Nano 8: в этом режиме компьютер видит её как USB-звуковую карту',
+'c.u2':'<b>Аудио устройство</b> — вход, на который приходят импульсы; поле пустое, если карта не подключена, как здесь',
+'c.u3':'<b>Частота дискр.</b> и <b>Разрядность бит</b> — как часто и как точно карта меряет сигнал; обычно 44100 Гц и 16 бит',
+'c.u4':'<b>Уровень сигнала</b> — громкость входа; с флажком <b>Изменить в Windows</b> программа ставит её на время набора, а потом возвращает прежнюю',
+'c.u5':'<b>Полярность</b>: <b>Отрицательная</b> — если импульсы прибора идут вниз; программа их перевернёт',
+'c.u6':'<b>НПП / ВПП</b> — нижний и верхний пороги высоты импульса при наборе (шкала 0–100): ниже НПП — шум, выше ВПП — в спектр не идёт',
+'c.u7':'<b>Порог формы имп.</b> — насколько импульс должен быть похож на образец; непохожие — наложения, помехи — отбрасываются',
+'c.u8':'<b>Ширина имп.</b> — окно в отсчётах, куда должен войти импульс; <b>Позиция пика</b> — где в окне вершина. Ширина задаёт и мёртвое время: 16 отсчётов / 44100 Гц = 363 мкс',
+'c.u9':'<b>НПП / ВПП</b> образца — какие импульсы брать при записи образца, в % полной шкалы карты',
+'c.u10':'<b>Форма импульса</b> — записанный образец, среднее по импульсам; <b>Имп.</b> — сколько их вошло (здесь 10028)',
+'c.u11':'<b>Старт</b> — записать образец: источник у детектора, кривая выравнивается; на 10 000 импульсов запись останавливается сама, <b>Стоп</b> — раньше. Сменили ширину — образец стёрт, запишите заново',
+'c.ucap':'Atom Spectra Nano 8 как звуковая карта: образец уже записан',
+'c.b1':'<b>Тип устройства</b> — AmplitudaUSB: блок с 12-битным АЦП, Windows видит его как USB HID',
+'c.b2':'<b>Блок</b> — какой блок читать: «(первый найденный)», если он один; <b>Обновить</b> — перечитать список',
+'c.b3':'<b>Нижний / Верхний порог, код АЦП</b> — окно амплитуд 0–4095: импульсы вне окна в спектр не идут, но в живом времени учтены',
+'c.b4':'<b>Мёртвое время на импульс, мкс</b> — τ блока для живого времени; по умолчанию 14',
+'c.b5':'Число каналов — 4096, 2048, 1024, 512 или 256 — задаётся на вкладке «Основное»; шаг канала всегда 1',
+'c.b6':'<b>Проверка</b> — три секунды чтения блока: кадров/с, имп/с, пропуски и негодные кадры',
+'c.bcap':'AmplitudaUSB: окно амплитуд и τ блока',
+'c.s1':'<b>Тип устройства</b> — AmplitudaSerial: блок (например, БДЭГ-3-2) копит спектр сам, BecqMoni опрашивает его по COM-порту',
+'c.s2':'<b>Порт</b> — COM-порт адаптера RS-232; <b>Обновить</b> — перечитать список портов',
+'c.s3':'<b>Адрес блока</b> — номер блока на линии; не знаете — нажмите «Найти блоки»',
+'c.s4':'<b>Период опроса</b> — как часто читать спектр, по умолчанию 3 с; <b>Пауза перед адресным байтом</b> — тишина на линии перед запросом, мс',
+'c.s5':'<b>Выход на режим после сбоя</b> — сколько секунд после перезапуска блока не начинать набор: около минуты блок настраивает высокое напряжение; 0 — не ждать',
+'c.s6':'Число каналов — ровно как в спектре блока (БДЭГ-3-2 — 1024), задаётся на вкладке «Основное»; живое время присылает блок',
+'c.s7':'<b>Проверка</b> — спросить блок по адресу; <b>Найти блоки</b> — опросить адреса 0–15; <b>Инструкция</b> — памятка о поведении блока, при первом заходе открывается сама',
+'c.scap':'AmplitudaSerial на COM4',
+'pl.h':'Как звуковой вход отбирает импульсы',
+'pl.hint':'Сигнал карты бежит справа налево. Окно шириной в несколько отсчётов ловит импульс, программа накладывает на него образец и решает: в спектр, выше ВПП или «не похож». Импульсы ниже НПП окно не замечает. Двигайте ползунки — образец справа и спектр внизу ответят сразу.',
+'pl.lld':'НПП','pl.uld':'ВПП','pl.thr':'Порог формы, %','pl.w':'Ширина, отсч.','pl.p':'Позиция пика','pl.reset':'Сбросить',
+'pl.sig':'сигнал карты, % шкалы','pl.tpl':'образец в окне','pl.last':'последний импульс','pl.spec':'спектр: принятые импульсы по высоте',
+'pl.v.ok':'в спектр','pl.v.high':'выше ВПП','pl.v.shape':'не похож','pl.v.noise':'шум',
+'pl.t.ok':'в спектре','pl.t.low':'ниже НПП, не замечены','pl.t.high':'выше ВПП','pl.t.shape':'отброшены по форме',
+'pl.tau':'мёртвое время = {0} / 44100 Гц = {1} мкс','pl.frac':'в окне {0} % площади импульса',
+'pl.cut':'окно режет хвост импульса — расширьте окно или сдвиньте позицию пика левее','pl.rise':'окно начинается уже на фронте импульса — сдвиньте позицию пика правее','pl.noise':'НПП у самого шума: в спектр попало {0} шумовых срабатываний',
+'pl.r':'сходство {0} %',
+'pl.speed':'Ускорение времени','pl.note':'Сигнал показан в замедлении: при ×1 через экран проходит 220 отсчётов за 3 с, а настоящая карта даёт 44100 в секунду. Ускорьте время, чтобы спектр копился быстрее. В программе после смены ширины образец стирается и записывается заново кнопкой «Старт»; схема «перезаписывает» его сразу.',
 'm.k':'Ещё две вкладки','m.h':'Поиск пиков и фон — тоже у прибора',
 'm.lead':'Настройки поиска пиков и фон по умолчанию — как очки и наушники, подобранные под конкретного человека: у каждого прибора свои. Поэтому они хранятся в конфигурации, а не в спектре.',
 'm.ah':'Вкладка «Анализ»','m.rh':'Вкладка «Ссылки»',
@@ -430,7 +503,7 @@ GUIDE.texts({ru:{
 'w.s5':UI('Save')+' → '+UI('Close')+'. The configuration is stored as a file in <code>config\\device</code>.',
 'w.warn':'<b>Delete does not ask twice.</b> A configuration holds the device’s calibrations and efficiency curves. Make a '+UI('Duplicate')+' before big changes.',
 'c.k':'“Device Specific” page','c.h':'How the device finds the computer',
-'c.lead':'The “Device Specific” tab is a pairing remote: Bluetooth devices get a search button, USB ones a port choice. Switch devices and hover the numbers.',
+'c.lead':'The “Device Specific” tab is a pairing remote: Bluetooth devices get a search button, USB and RS-232 ones a port or block choice, audio input a sound card and a pulse template. Switch devices and hover the numbers.',
 'c.trc':'RadiaCode (BLE)','c.tas':'Atom Spectra (COM)','c.tobs':'Obsidian (BLE)',
 'c.r1':'<b>Device Type</b> — read-only, changed on the “General” tab','c.r2':'<b>Serial Number:</b> — devices found; the number is hidden in the screenshot',
 'c.r3':'<b>Scan BLE</b> — search for devices over Bluetooth Low Energy','c.r4':'<b>Troubleshoot</b> — a step-by-step check of the link',
@@ -443,6 +516,44 @@ GUIDE.texts({ru:{
 'c.f2':'<b>A COM port is USB.</b> Windows sees Atom Spectra as a virtual COM port; plug the cable into another socket and the number may change.',
 'c.f3':'<b>A lost link does not stop acquisition.</b> For Atom Spectra the status bar says “PORT LOST… The measurement is not stopped; waiting for the device to come back”.',
 'c.info':'<b>Dose from the spectrum, not the device.</b> The program does not read the RadiaCode dosimeter: the dose rate in the status bar comes from the acquired spectrum and the efficiency curve.',
+'c.taud':'Audio input','c.tausb':'AmplitudaUSB (HID)','c.taser':'AmplitudaSerial (RS-232)',
+'c.u1':'<b>Device Type</b> — Audio Input Device. The screenshot shows a preconfigured Atom Spectra Nano 8: in this mode the computer sees it as a USB sound card',
+'c.u2':'<b>Audio Input Device</b> — the input the pulses arrive at; the field is empty when the card is not connected, as here',
+'c.u3':'<b>Sampling Rate</b> and <b>Bits per Sample</b> — how often and how finely the card measures the signal; usually 44100 Hz and 16 bits',
+'c.u4':'<b>Input Level</b> — the input volume; with <b>Override Windows Volume</b> the program sets it for the acquisition and restores the old one afterwards',
+'c.u5':'<b>Device Polarity</b>: <b>Negative</b> — if the device’s pulses go down; the program flips them',
+'c.u6':'<b>LLD / ULD</b> — lower and upper pulse-height thresholds during acquisition (scale 0–100): below LLD is noise, above ULD does not enter the spectrum',
+'c.u7':'<b>Shape Threshold</b> — how closely a pulse must resemble the template; dissimilar ones — pile-ups, interference — are rejected',
+'c.u8':'<b>Sample Width</b> — the window in samples the pulse must fit in; <b>Peak Position</b> — where the top sits in it. The width also sets the dead time: 16 samples / 44100 Hz = 363 µs',
+'c.u9':'Template <b>LLD / ULD</b> — which pulses go into the template while it is recorded, in % of the card’s full scale',
+'c.u10':'<b>Pulse Shape</b> — the recorded template, an average over pulses; <b>Counts</b> — how many went in (10028 here)',
+'c.u11':'<b>Start</b> — record the template: source next to the detector, the curve settles; recording stops by itself at 10 000 pulses, <b>Stop</b> ends it earlier. Changing the width erases the template — record it again',
+'c.ucap':'Atom Spectra Nano 8 as a sound card: the template is already recorded',
+'c.b1':'<b>Device Type</b> — AmplitudaUSB: a block with a 12-bit ADC, seen by Windows as a USB HID device',
+'c.b2':'<b>Device</b> — which block to read: “(first found)” if there is one; <b>Refresh</b> — re-read the list',
+'c.b3':'<b>Lower / Upper threshold, ADC code</b> — the amplitude window 0–4095: pulses outside it do not enter the spectrum but are counted in live time',
+'c.b4':'<b>Dead time per pulse, µs</b> — the block’s τ for live time; 14 by default',
+'c.b5':'The number of channels — 4096, 2048, 1024, 512 or 256 — is set on the “General” tab; the channel pitch is always 1',
+'c.b6':'<b>Test</b> — three seconds of reading the block: frames/s, cps, lost and bad frames',
+'c.bcap':'AmplitudaUSB: amplitude window and the block’s τ',
+'c.s1':'<b>Device Type</b> — AmplitudaSerial: the block (e.g. BDEG-3-2) accumulates the spectrum itself, BecqMoni polls it over a COM port',
+'c.s2':'<b>Port</b> — the COM port of the RS-232 adapter; <b>Refresh</b> — re-read the port list',
+'c.s3':'<b>Block address</b> — the block’s number on the line; not sure — press “Find blocks”',
+'c.s4':'<b>Polling period</b> — how often the spectrum is read, 3 s by default; <b>Pause before the address byte</b> — line silence before a request, ms',
+'c.s5':'<b>Settling time after a block restart</b> — how many seconds after a block restart not to start an acquisition: the block re-tunes its high voltage for about a minute; 0 — do not wait',
+'c.s6':'The number of channels — exactly as in the block’s spectrum (BDEG-3-2: 1024), set on the “General” tab; live time comes from the block',
+'c.s7':'<b>Test</b> — ask the block at the address; <b>Find blocks</b> — poll addresses 0–15; <b>Instruction</b> — a note on how the block behaves, opens by itself the first time',
+'c.scap':'AmplitudaSerial on COM4',
+'pl.h':'How audio input picks pulses',
+'pl.hint':'The card’s signal runs right to left. A window a few samples wide catches a pulse, the program lays the template over it and decides: into the spectrum, above ULD or “not alike”. Pulses below LLD the window does not notice. Move the sliders — the template on the right and the spectrum below respond at once.',
+'pl.lld':'LLD','pl.uld':'ULD','pl.thr':'Shape threshold, %','pl.w':'Width, samples','pl.p':'Peak position','pl.reset':'Reset',
+'pl.sig':'card signal, % of scale','pl.tpl':'template in the window','pl.last':'last pulse','pl.spec':'spectrum: accepted pulses by height',
+'pl.v.ok':'to spectrum','pl.v.high':'above ULD','pl.v.shape':'not alike','pl.v.noise':'noise',
+'pl.t.ok':'in the spectrum','pl.t.low':'below LLD, unnoticed','pl.t.high':'above ULD','pl.t.shape':'rejected by shape',
+'pl.tau':'dead time = {0} / 44100 Hz = {1} µs','pl.frac':'the window holds {0} % of the pulse area',
+'pl.cut':'the window cuts the pulse tail — widen the window or move the peak position left','pl.rise':'the window starts already on the pulse’s rising edge — move the peak position right','pl.noise':'LLD sits in the noise: {0} noise triggers got into the spectrum',
+'pl.r':'likeness {0} %',
+'pl.speed':'Time acceleration','pl.note':'The signal is shown in slow motion: at ×1, 220 samples cross the screen in 3 s, while a real card gives 44100 a second. Speed time up to fill the spectrum faster. In the program, changing the width erases the template, and it is recorded again with “Start”; the diagram “re-records” it at once.',
 'm.k':'Two more tabs','m.h':'Peak search and background belong to the device too',
 'm.lead':'Peak search settings and the default background are like glasses and headphones fitted to one person: every device has its own. That is why they are stored in the configuration, not in the spectrum.',
 'm.ah':'The “Analysis” tab','m.rh':'The “References” tab',
@@ -477,6 +588,159 @@ function tabset(barId) {
   $$('button', bar).forEach(b => b.onclick = () => { $$('button', bar).forEach(x => x.classList.toggle('on', x === b)); panes.forEach((p, i) => p.classList.toggle('on', i === +b.dataset.i)); });
 }
 tabset('cTabs');
+
+/* ── 1а. звуковой вход: окно, образец и пороги (`AMBER251`) ──
+   Детектор — как в CorrelativePulseDetector: высота — наложение образца на окно
+   (свёртка с нулевым средним, здесь в % шкалы), срабатывание от НПП, вершина — наибольшая
+   высота, импульс выше ВПП в спектр не идёт, остальные проходят по сходству формы
+   (коэффициент Пирсона) с порогом. */
+(function pulseLab() {
+  // образец Atom Spectra Nano 8 из конфигурации Amber: 16 отсчётов, вершина в 8, среднее по 10028 импульсам
+  const STD = [-0.2391, -0.2406, -0.2407, -0.2318, -0.1409, 0.0121, 0.1372, 0.2106, 0.2318, 0.2156, 0.1752, 0.1240, 0.0693, 0.0172, -0.0299, -0.0700];
+  const G = STD.map(v => Math.max(0, (v - STD[0]) / (STD[8] - STD[0])));   // подложка 0, вершина 1; отсчёт k = i − 8
+  const TAIL = 0.81;   // за окном Nano 8 хвост спадает с тем же шагом, что последние отсчёты образца
+  function g(k) {
+    if (k <= -8) return 0;
+    if (k >= 7) return G[15] * Math.pow(TAIL, k - 7);
+    const i = k + 8, i0 = Math.floor(i); return lerp(G[i0], G[i0 + 1], i - i0);
+  }
+  let AREA = 0; for (let k = -8; k < 90; k++) AREA += g(k);
+  // По умолчанию экран идёт медленно (×1 — экран за ~3 с), чтобы глаз успевал за решением окна;
+  // ползунок «Ускорение времени» (Amber 20.10.2026) разгоняет до ×30 — так быстрее копится спектр.
+  const SPAN = 220, NOISE = 1.1, RATE = 1 / 38, SPEED = 70;   // отсчётов на экране; шум, % шкалы; импульсов на отсчёт; отсчётов в секунду при ×1
+  const VC = { ok: '#5be38a', high: '#ff4d6d', shape: '#ff9a3c', noise: '#93a3c4' };
+  const el = id => $('#' + id), cv = el('cvPulse'); io.observe(cv);
+  let L = 4, U = 90, THR = 60, W = 16, P = 8, K = 1, T, TT;
+  let vis, marks, cnt, hist, histN, last;
+  function template() {   // образец, «записанный» под текущие ширину и позицию пика
+    const s = []; for (let i = 0; i < W; i++) s.push(g(i - P));
+    const m = s.reduce((a, v) => a + v, 0) / W; T = s.map(v => v - m); TT = T.reduce((a, v) => a + v * v, 0);
+  }
+  function clearCounts() {
+    cnt = { ok: 0, low: 0, high: 0, shape: 0, noise: 0 }; hist = new Float64Array(50); histN = new Float64Array(50); marks = []; last = null;
+    if (vis) { vis.state = 0; vis.best = null; vis.pulses.forEach(p => p.seen = true); }
+  }
+  function newPulse(at) {
+    const u = Math.random(); let a, kind = 'one';
+    if (u < 0.34) a = 46 + 2.2 * GUIDE.gauss();             // фотопик
+    else if (u < 0.70) a = 4 + Math.random() * 32;           // комптоновское плато
+    else if (u < 0.82) a = 1.2 + Math.random() * 4;          // у самого шума
+    else if (u < 0.90) a = 92 + Math.random() * 50;          // зашкал карты
+    else { a = 10 + Math.random() * 40; kind = Math.random() < 0.55 ? 'pile' : 'spike'; }   // наложение или помеха
+    return { at, a, kind, dn: 3 + Math.random() * 5, a2: a * (0.5 + 0.5 * Math.random()), seen: false };
+  }
+  function sample(pulses, k) {
+    let v = NOISE * GUIDE.gauss();
+    for (const p of pulses) {
+      const d = k - p.at; if (d < -10 || d > 90) continue;
+      if (p.kind === 'spike') v += d >= 0 && d < 1 ? p.a : d >= 1 && d < 2 ? -0.6 * p.a : 0;
+      else { v += p.a * g(d); if (p.kind === 'pile') v += p.a2 * g(d - p.dn); }
+    }
+    return clamp(v, -100, 100);   // карта упирается в полную шкалу
+  }
+  function makeSim() {
+    const s = { x: [], n: 0, pulses: [], nextAt: 5, state: 0, best: null };
+    function finish(ev) {
+      const from = ev.end - W + 1; let real = false;
+      s.pulses.forEach(p => { if (p.at > from - 3 && p.at < ev.end + 2) { p.seen = true; real = true; } });
+      const pass = ev.H < U && 100 * ev.r > THR, v = ev.H >= U ? 'high' : pass && real ? 'ok' : real ? 'shape' : 'noise';
+      marks.push({ from, end: ev.end, v }); if (marks.length > 40) marks.shift(); last = { win: ev.win, H: ev.H, r: ev.r, v };
+      const b = clamp(Math.floor(ev.H / 2), 0, 49);
+      if (v === 'high') cnt.high++;
+      else if (!pass) cnt.shape++;
+      else if (real) { cnt.ok++; hist[b]++; } else { cnt.noise++; histN[b]++; }
+    }
+    s.step = () => {
+      while (s.nextAt < s.n + 1) { s.pulses.push(newPulse(s.nextAt)); s.nextAt += -Math.log(1 - Math.random()) / RATE; }
+      const x = s.x; x.push(sample(s.pulses, s.n)); s.n++; if (x.length > SPAN + 140) x.shift();
+      if (x.length >= W) {   // окно — последние W отсчётов
+        const off = x.length - W; let m = 0; for (let i = 0; i < W; i++) m += x[off + i]; m /= W;
+        let sxy = 0, sxx = 0; for (let i = 0; i < W; i++) { const d = x[off + i] - m; sxy += d * T[i]; sxx += d * d; }
+        const H = sxy / TT, r = sxy / Math.sqrt(sxx * TT || 1);
+        if (H >= L) { if (!s.state || H > s.best.H) s.best = { H, r, end: s.n - 1, win: x.slice(off) }; s.state = 1; }
+        else if (s.state) { finish(s.best); s.state = 0; }
+      }
+      while (s.pulses.length && s.pulses[0].at < s.n - SPAN - 100) { const p = s.pulses.shift(); if (!p.seen) cnt.low++; }
+    };
+    return s;
+  }
+  function draw() {
+    const { ctx, w, h } = setup(cv), narrow = w < 620, n = vis.n, x = vis.x;
+    const S = narrow ? { l: 34, t: 24, r: w - 10, b: h * 0.47 } : { l: 40, t: 24, r: w * 0.64, b: h * 0.62 };
+    const R = narrow ? { l: 12, t: h * 0.56, r: w * 0.5 - 8, b: h - 22 } : { l: w * 0.68, t: 24, r: w - 12, b: h * 0.62 };
+    const B = narrow ? { l: w * 0.5 + 10, t: h * 0.56, r: w - 10, b: h - 22 } : { l: 40, t: h * 0.73, r: w - 12, b: h - 20 };
+    ctx.font = '11px system-ui'; ctx.textBaseline = 'alphabetic';
+    // ── осциллограф ──
+    const X = k => S.r - (n - 1 - k) / SPAN * (S.r - S.l), Y = v => S.b - (v + 10) / 120 * (S.b - S.t);
+    ctx.strokeStyle = 'rgba(255,255,255,.12)'; [0, 50, 100].forEach(v => { ctx.beginPath(); ctx.moveTo(S.l, Y(v)); ctx.lineTo(S.r, Y(v)); ctx.stroke(); });
+    ctx.fillStyle = '#93a3c4'; ctx.textAlign = 'right'; [0, 50, 100].forEach(v => ctx.fillText(v, S.l - 5, Y(v) + 4));
+    ctx.textAlign = 'left'; ctx.fillText(t('pl.sig'), S.l, S.t - 9);
+    let lbl = -1e9;   // подпись соседнего события не наезжает на прежнюю
+    marks.forEach(m => { const x0 = X(m.from), x1 = X(m.end), xc = (x0 + x1) / 2; if (x1 < S.l) return; ctx.fillStyle = rgba(VC[m.v], 0.16); ctx.fillRect(Math.max(S.l, x0), S.t, x1 - Math.max(S.l, x0), S.b - S.t); const s = t('pl.v.' + m.v), sw = ctx.measureText(s).width; if (x0 > S.l && xc - sw / 2 > lbl + 6) { ctx.fillStyle = VC[m.v]; ctx.textAlign = 'center'; ctx.fillText(s, xc, S.t + 11); lbl = xc + sw / 2; } });
+    [[L, VC.ok, 'pl.lld'], [U, VC.high, 'pl.uld']].forEach(([v, c, k]) => { ctx.strokeStyle = c; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(S.l, Y(v)); ctx.lineTo(S.r, Y(v)); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = c; ctx.textAlign = 'left'; ctx.fillText(t(k), S.l + 3, Y(v) - 3); });
+    ctx.strokeStyle = '#9fd0ff'; ctx.lineWidth = 1.4; ctx.beginPath();
+    const k0 = n - x.length; for (let j = 0; j < x.length; j++) { const k = k0 + j; if (X(k) < S.l) continue; const yy = Y(x[j]); ctx.lineTo(X(k), yy); } ctx.stroke(); ctx.lineWidth = 1;
+    const wx0 = X(n - W), wx1 = X(n - 1); ctx.strokeStyle = '#ffcc33'; ctx.strokeRect(wx0, S.t + 14, wx1 - wx0, S.b - S.t - 14);
+    ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(X(n - W + P), S.t + 14); ctx.lineTo(X(n - W + P), S.b); ctx.stroke(); ctx.setLineDash([]);
+    // ── образец в окне и последний импульс ──
+    const kmin = -P - 5, kmax = W - P + 12, RX = k => R.l + (k - kmin) / (kmax - kmin) * (R.r - R.l), RY = v => R.b - 14 - (v + 0.15) / 1.35 * (R.b - R.t - 30);
+    ctx.fillStyle = '#93a3c4'; ctx.textAlign = 'left'; ctx.fillText(t('pl.tpl'), R.l, R.t - 9);
+    ctx.fillStyle = 'rgba(255,204,51,.07)'; ctx.fillRect(RX(-P), R.t, RX(W - 1 - P) - RX(-P), R.b - R.t - 14);
+    ctx.strokeStyle = 'rgba(255,204,51,.5)'; ctx.strokeRect(RX(-P), R.t, RX(W - 1 - P) - RX(-P), R.b - R.t - 14);
+    ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.setLineDash([4, 4]); ctx.beginPath(); for (let k = kmin; k <= kmax; k += 0.25) ctx.lineTo(RX(k), RY(g(k))); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = '#ffcc33'; ctx.lineWidth = 2.2; ctx.beginPath(); for (let i = 0; i < W; i++) ctx.lineTo(RX(i - P), RY(g(i - P))); ctx.stroke(); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(RX(0), R.t); ctx.lineTo(RX(0), R.b - 14); ctx.stroke();
+    ctx.fillStyle = '#ffcc33'; ctx.textAlign = 'center'; ctx.fillText(t('pl.p') + ' ' + P, RX(0), R.b - 2);
+    if (last && last.win.length === W) {
+      const m = last.win.reduce((a, v) => a + v, 0) / W; let gm = 0; for (let i = 0; i < W; i++) gm += g(i - P); gm /= W;
+      ctx.strokeStyle = VC[last.v]; ctx.lineWidth = 1.6; ctx.beginPath(); for (let i = 0; i < W; i++) ctx.lineTo(RX(i - P), RY(clamp((last.win[i] - m) / Math.max(last.H, 0.5) + gm, -0.15, 1.2))); ctx.stroke(); ctx.lineWidth = 1;
+      ctx.fillStyle = VC[last.v]; ctx.textAlign = 'right'; ctx.fillText(t('pl.last') + ': ' + t('pl.r', fx(100 * last.r, 0)) + ' → ' + t('pl.v.' + last.v), R.r, R.t + 12);
+    }
+    // ── спектр принятых ──
+    const BX = v => B.l + v / 100 * (B.r - B.l), mx = Math.max(4, ...hist.map((v, i) => v + histN[i])), bw = (B.r - B.l) / 50;
+    ctx.fillStyle = '#93a3c4'; ctx.textAlign = 'left'; ctx.fillText(t('pl.spec'), B.l, B.t - 6);
+    ctx.strokeStyle = 'rgba(255,255,255,.2)'; ctx.beginPath(); ctx.moveTo(B.l, B.b); ctx.lineTo(B.r, B.b); ctx.stroke();
+    for (let i = 0; i < 50; i++) { const h1 = hist[i] / mx * (B.b - B.t), h2 = histN[i] / mx * (B.b - B.t); ctx.fillStyle = '#20c040'; ctx.fillRect(B.l + i * bw, B.b - h1, Math.max(1, bw - 1), h1); ctx.fillStyle = '#93a3c4'; ctx.fillRect(B.l + i * bw, B.b - h1 - h2, Math.max(1, bw - 1), h2); }
+    [[L, VC.ok], [U, VC.high]].forEach(([v, c]) => { ctx.strokeStyle = c; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(BX(v), B.t); ctx.lineTo(BX(v), B.b); ctx.stroke(); ctx.setLineDash([]); });
+    ctx.fillStyle = '#93a3c4'; ctx.textAlign = 'center'; [0, 50, 100].forEach(v => ctx.fillText(v, BX(v), B.b + 13));
+  }
+  function stats() {
+    const tile = (k, v, c) => '<div class="tile"><div class="small">' + t(k) + '</div><div class="big" style="' + (c ? 'color:' + c : '') + '">' + v + '</div></div>';
+    el('plTiles').innerHTML = tile('pl.t.ok', cnt.ok, VC.ok) + tile('pl.t.low', cnt.low) + tile('pl.t.high', cnt.high, '#ff8fa6') + tile('pl.t.shape', cnt.shape, VC.shape);
+    let inWin = 0; for (let i = 0; i < W; i++) inWin += g(i - P);
+    const frac = 100 * inWin / AREA, rise = g(-P) > 0.05, cut = frac < 70;   // фронт: первый отсчёт окна уже на подъёме; хвост: в окне меньше 70 % площади
+    const pills = ['<span class="pill">' + t('pl.tau', W, fx(1e6 * W / 44100, 0)) + '</span>', '<span class="pill ' + (cut || rise ? 'bad' : 'good') + '">' + t('pl.frac', fx(frac, 0)) + '</span>'];
+    if (rise) pills.push('<span class="pill bad">' + t('pl.rise') + '</span>');
+    if (cut) pills.push('<span class="pill bad">' + t('pl.cut') + '</span>');
+    if (cnt.noise > 0) pills.push('<span class="pill bad">' + t('pl.noise', cnt.noise) + '</span>');
+    el('plRes').innerHTML = pills.join('');
+  }
+  function sync() {
+    L = +el('plL').value; U = +el('plU').value; THR = +el('plT').value; W = +el('plW').value;
+    const pe = el('plP'); pe.max = W - 1; P = Math.min(+pe.value, W - 1); pe.value = P;
+    K = +el('plS').value; el('plSv').textContent = '×' + K;
+    el('plLv').textContent = fx(L, 1); el('plUv').textContent = fx(U, 0); el('plTv').textContent = fx(THR, 0) + ' %'; el('plWv').textContent = W; el('plPv').textContent = P;
+    template();
+  }
+  ['plL', 'plU', 'plT', 'plW', 'plP'].forEach(id => el(id).addEventListener('input', () => { sync(); clearCounts(); stats(); }));
+  el('plR').onclick = () => { el('plP').max = 63;   // иначе позиция пика упрётся в предел прежнего узкого окна
+    [['plL', 4], ['plU', 90], ['plT', 60], ['plW', 16], ['plP', 8], ['plS', 1]].forEach(([id, v]) => el(id).value = v); sync(); clearCounts(); stats(); };
+  el('plS').addEventListener('input', sync);   // ускорение времени счёт не сбрасывает
+  sync(); vis = makeSim(); clearCounts();
+  for (let i = 0; i < SPAN + 60; i++) vis.step();   // экран не пустой с первого кадра
+  clearCounts();
+  let acc = 0, frame = 0, tPrev = 0;
+  function loop(now) {
+    const dt = tPrev ? Math.min(0.1, (now - tPrev) / 1000) : 0; tPrev = now;
+    if (visible.get(cv) !== false) {
+      acc += dt * SPEED * K; while (acc >= 1) { vis.step(); acc--; }
+      draw(); if (++frame % 12 === 0) stats();
+    }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+  GUIDE.onRedraw(() => { sync(); stats(); });
+})();
 
 /* ── 1. выбор прибора: схема подключения и шаги ── */
 (function chooser() {

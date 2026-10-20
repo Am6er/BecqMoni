@@ -6922,7 +6922,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Dead time per pulse, us :.
+        ///   Looks up a localized string similar to Dead time per pulse, µs :.
         /// </summary>
         public static string AmplitudaUsbDeadTime {
             get {
