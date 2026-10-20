@@ -619,7 +619,7 @@
     <value>29</value>
   </data>
   <data name="textBox7.Text" xml:space="preserve">
-    <value>- LDL value must be sufficiently above noise level.</value>
+    <value>- LLD value must be sufficiently above noise level.</value>
   </data>
   <data name="&gt;&gt;textBox7.Name" xml:space="preserve">
     <value>textBox7</value>
