@@ -1897,11 +1897,10 @@ namespace BecquerelMonitor
         {
             if (!IsBackgroundExists()) return;
             // (`AMBER201`, мелочь 2.15, 05.10.2026) Прежний фон запоминается: файл,
-            // отвергнутый ниже, больше не снимает вместе с собой и тот фон, что
-            // уже был в документе (встроенный в файл спектра — второго его
+            // который не загрузился, больше не снимает вместе с собой и тот фон,
+            // что уже был в документе (встроенный в файл спектра — второго его
             // источника нет нигде).
             EnergySpectrum previousBackground = this.ActiveResultData.BackgroundEnergySpectrum;
-            string previousFile = this.ActiveResultData.BackgroundSpectrumFile;
             string previousPath = this.ActiveResultData.BackgroundSpectrumPathname;
             if (this.ActiveResultData.BackgroundSpectrumPathname == "")
             {
@@ -1924,19 +1923,10 @@ namespace BecquerelMonitor
                 this.ActiveResultData.BackgroundSpectrumPathname = previousPath;
                 return;
             }
-            if (this.ActiveResultData.BackgroundEnergySpectrum != null && this.ActiveResultData.EnergySpectrum.NumberOfChannels != this.ActiveResultData.BackgroundEnergySpectrum.NumberOfChannels)
-            {
-                // УВЕДОМЛЕНИЕ, а не отказ: обработчик щелчка, у него нет
-                // вызывающего, которому вернуть код. (`AMBER201`, 2.15) Несовпавший
-                // файл НЕ принимается, а документ возвращается к ПРЕЖНЕМУ фону —
-                // прежде вместе с отвергнутым файлом снимался и он. Бросок отсюда
-                // в окнах поднял бы диалог необработанного исключения.
-                AppUi.Report(Properties.Resources.ERRIncompatibleChannelParameters, Properties.Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
-                this.ActiveResultData.BackgroundEnergySpectrum = previousBackground;
-                this.ActiveResultData.BackgroundSpectrumFile = previousFile;
-                this.ActiveResultData.BackgroundSpectrumPathname = previousPath;
-                return;
-            }
+            // (`AMBER256`, решение Amber 20.10.2026 «Принимать везде») Отказа
+            // «Несовместимые параметры каналов.» здесь больше нет: фон с другим
+            // числом каналов `LoadBackgroundSpectrum` перекладывает по энергии
+            // в шкалу спектра (`DocumentManager.AlignBackgroundChannels`).
             this.Dirty = true;
             this.UpdateEnergySpectrum();
         }
