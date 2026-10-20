@@ -124,7 +124,7 @@
     <value>Показать</value>
   </data>
   <data name="checkBox2.Text" xml:space="preserve">
-    <value>Сглаживание</value>
+    <value>Сглаживание линий</value>
   </data>
   <data name="label1.Text" xml:space="preserve">
     <value>Корректная форма импульса</value>

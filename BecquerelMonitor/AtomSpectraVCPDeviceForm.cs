@@ -33,6 +33,17 @@ namespace BecquerelMonitor
             TestConnection((string)comPortsBox.SelectedItem, int.Parse((string)baudratesBox.SelectedItem, CultureInfo.InvariantCulture));
         }
 
+        /// <summary>
+        /// (`AMBER242`, 20.10.2026) Подпись мёртвого времени: микросекунды до тысячных, то есть до
+        /// наносекунды. Прежде число шло в подпись полным double — «1.35714285714286 мкс»: прибор
+        /// отдаёт RISE + FALL отсчётов и частоту, и частное печаталось всеми пятнадцатью знаками.
+        /// </summary>
+        static string DeadTimeCaption(double tau)
+        {
+            return String.Format(CultureInfo.InvariantCulture, Resources.DeadTimeLblText,
+                                 (tau * 1.0E+06).ToString("0.###", CultureInfo.InvariantCulture));
+        }
+
         // ⛔ `AMBER127` (П170, 28.09.2026): ОТКАЗ КНОПКИ — СЛОВАМИ. Здесь стоял
         //    пустой `catch`: нет порта, прибор молчит, ответ не того вида — и
         //    человек видел прежнее «Мёртвое время: 0 мкс» без единого слова, а
@@ -59,7 +70,7 @@ namespace BecquerelMonitor
                 if (!double.IsNaN(tau))
                 {
                     this.deadTime = tau;
-                    this.deadTimeLbl.Text = String.Format(CultureInfo.InvariantCulture, Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
+                    this.deadTimeLbl.Text = DeadTimeCaption(this.deadTime);
                     SetActiveDeviceConfigDirty();
                 }
             }
@@ -196,7 +207,7 @@ namespace BecquerelMonitor
             this.BaudRate = atomSpectraVCPInputDevice.BaudRate;
             fillPorts();
             this.deadTime = atomSpectraVCPInputDevice.DeadTimeValue;
-            this.deadTimeLbl.Text = String.Format(CultureInfo.InvariantCulture, Resources.DeadTimeLblText, this.deadTime * 1.0E+06);
+            this.deadTimeLbl.Text = DeadTimeCaption(this.deadTime);
             this.formLoading = false;
             TestConnection(this.ComPort, this.BaudRate);
         }

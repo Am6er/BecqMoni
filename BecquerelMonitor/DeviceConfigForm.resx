@@ -382,7 +382,7 @@
     <value>NoControl</value>
   </data>
   <data name="label18.Location" type="System.Drawing.Point, System.Drawing">
-    <value>6, 228</value>
+    <value>6, 193</value>
   </data>
   <data name="label18.Size" type="System.Drawing.Size, System.Drawing">
     <value>73, 13</value>
@@ -415,7 +415,7 @@
     <value>NoControl</value>
   </data>
   <data name="label2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>191, 255</value>
+    <value>191, 220</value>
   </data>
   <data name="label2.Size" type="System.Drawing.Size, System.Drawing">
     <value>140, 13</value>
@@ -502,7 +502,7 @@
     <value>NoControl</value>
   </data>
   <data name="label21.Location" type="System.Drawing.Point, System.Drawing">
-    <value>6, 255</value>
+    <value>6, 220</value>
   </data>
   <data name="label21.Size" type="System.Drawing.Size, System.Drawing">
     <value>73, 13</value>
@@ -526,7 +526,7 @@
     <value>3</value>
   </data>
   <data name="doubleTextBox6.Location" type="System.Drawing.Point, System.Drawing">
-    <value>110, 251</value>
+    <value>110, 216</value>
   </data>
   <data name="doubleTextBox6.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 20</value>
@@ -550,7 +550,7 @@
     <value>4</value>
   </data>
   <data name="integerTextBox1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>110, 224</value>
+    <value>110, 189</value>
   </data>
   <data name="integerTextBox1.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 20</value>
@@ -574,7 +574,7 @@
     <value>5</value>
   </data>
   <data name="doubleTextBox5.Location" type="System.Drawing.Point, System.Drawing">
-    <value>109, 177</value>
+    <value>109, 142</value>
   </data>
   <data name="doubleTextBox5.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 20</value>
@@ -604,7 +604,7 @@
     <value>NoControl</value>
   </data>
   <data name="label28.Location" type="System.Drawing.Point, System.Drawing">
-    <value>190, 180</value>
+    <value>190, 145</value>
   </data>
   <data name="label28.Size" type="System.Drawing.Size, System.Drawing">
     <value>27, 13</value>
@@ -634,7 +634,7 @@
     <value>NoControl</value>
   </data>
   <data name="label27.Location" type="System.Drawing.Point, System.Drawing">
-    <value>6, 180</value>
+    <value>6, 145</value>
   </data>
   <data name="label27.Size" type="System.Drawing.Size, System.Drawing">
     <value>63, 13</value>
@@ -664,7 +664,7 @@
     <value>NoControl</value>
   </data>
   <data name="label26.Location" type="System.Drawing.Point, System.Drawing">
-    <value>2, 335</value>
+    <value>2, 300</value>
   </data>
   <data name="label26.Size" type="System.Drawing.Size, System.Drawing">
     <value>35, 13</value>
@@ -688,7 +688,7 @@
     <value>9</value>
   </data>
   <data name="textBox19.Location" type="System.Drawing.Point, System.Drawing">
-    <value>110, 331</value>
+    <value>110, 296</value>
   </data>
   <data name="textBox19.Multiline" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -820,7 +820,7 @@
     <value>NoControl</value>
   </data>
   <data name="crystalMaterialLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>6, 139</value>
+    <value>6, 104</value>
   </data>
   <data name="crystalMaterialLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>82, 13</value>
@@ -847,7 +847,7 @@
     <value>18</value>
   </data>
   <data name="crystalMaterialCombo.Location" type="System.Drawing.Point, System.Drawing">
-    <value>140, 136</value>
+    <value>140, 101</value>
   </data>
   <data name="crystalMaterialCombo.Size" type="System.Drawing.Size, System.Drawing">
     <value>202, 21</value>
@@ -874,7 +874,7 @@
     <value>NoControl</value>
   </data>
   <data name="tractCurvatureLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>6, 282</value>
+    <value>6, 247</value>
   </data>
   <data name="tractCurvatureLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>83, 13</value>
@@ -907,7 +907,7 @@ Read only by the full-spectrum decomposition (Show FSA) with a response matrix.<
     <value>20</value>
   </data>
   <data name="tractCurvatureTextBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>110, 278</value>
+    <value>110, 243</value>
   </data>
   <data name="tractCurvatureTextBox.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 20</value>
@@ -946,7 +946,7 @@ Read only by the full-spectrum decomposition (Show FSA) with a response matrix.<
     <value>NoControl</value>
   </data>
   <data name="tractCurvatureUnitLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>191, 282</value>
+    <value>191, 247</value>
   </data>
   <data name="tractCurvatureUnitLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>35, 13</value>

@@ -185,12 +185,6 @@
   <data name="cSVFileToolStripMenuItem.Text" xml:space="preserve">
     <value>CSV (Channel,Counts) File</value>
   </data>
-  <data name="EffCalcMCFileToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>297, 22</value>
-  </data>
-  <data name="EffCalcMCFileToolStripMenuItem.Text" xml:space="preserve">
-    <value>LSRM EffCalcMC.txt -&gt; ROI</value>
-  </data>
   <data name="cSVEnFileToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>297, 22</value>
   </data>
@@ -5040,12 +5034,6 @@
     <value>cSVFileToolStripMenuItem</value>
   </data>
   <data name="&gt;&gt;cSVFileToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;EffCalcMCFileToolStripMenuItem.Name" xml:space="preserve">
-    <value>EffCalcMCFileToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;EffCalcMCFileToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;cSVEnFileToolStripMenuItem.Name" xml:space="preserve">
