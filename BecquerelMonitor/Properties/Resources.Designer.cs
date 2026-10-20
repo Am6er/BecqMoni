@@ -5139,6 +5139,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The previous matrix spent {0:F0} histories per node (CPU, stop on noise); the GPU computes flat — field raised to {1:F0}.
+        /// </summary>
+        public static string ResponseMatrixGpuSpentHistories {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuSpentHistories", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Body fingerprint: {0}.
         /// </summary>
         public static string ResponseMatrixFingerprint {
