@@ -4439,7 +4439,7 @@
     <value>FWHM в каналах</value>
   </data>
   <data name="selectCurveComboBox.Items" xml:space="preserve">
-    <value>Простой корень квадратный</value>
+    <value>Простой квадратный корень</value>
   </data>
   <data name="energyColumn.Text" xml:space="preserve">
     <value>Энергия</value>

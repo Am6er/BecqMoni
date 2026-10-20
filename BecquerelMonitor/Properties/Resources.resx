@@ -42263,7 +42263,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Save FWHM calibration to current device configuration?</value>
   </data>
   <data name="ERRPeakExist" xml:space="preserve">
-    <value>Selected peak FWHM already exist in calibration peaks table! Try to select other peak. FWHM = {0} ch, Channel = {1} ch</value>
+    <value>This peak is already in the calibration peaks table! Select another peak. FWHM = {0:f2} ch, Channel = {1} ch</value>
   </data>
   <data name="MSGFwhmPeaksOtherGridSkipped" xml:space="preserve">
     <value>{0} calibration peaks from spectra with a different number of channels were not taken: their channels and widths are in other units.</value>
