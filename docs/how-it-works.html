@@ -57,6 +57,11 @@ canvas.cv.tall{height:390px}
 canvas.cv.mid{height:290px}
 canvas.cv.short{height:210px}
 canvas.cv.strip{height:74px;margin-top:6px}
+.cv.oxc{height:440px;margin-top:10px}
+.oxrow{margin-top:6px}.oxrow .lbl{min-width:170px}
+.oxtxt h4{margin:12px 0 4px;font-size:17px}
+.oxtxt p{margin:5px 0;color:var(--soft);max-width:900px}
+.oxtxt p b{color:var(--ink)}
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px}
 .lbl{font-size:13px;color:var(--muted)}
 .val{font-variant-numeric:tabular-nums;font-weight:800;color:var(--ink)}
@@ -132,7 +137,7 @@ footer{padding:36px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
 @media (max-width:980px){.chain{grid-template-columns:repeat(3,1fr)}.node:nth-child(3)::after{display:none}}
 @media (max-width:900px){
   .grid2,.grid2.wl{grid-template-columns:1fr}.facts,.tiles{grid-template-columns:1fr}
-  canvas.cv{height:270px}canvas.cv.tall{height:430px}canvas.cv.mid{height:250px}
+  canvas.cv{height:270px}canvas.cv.tall{height:430px}canvas.cv.mid{height:250px}canvas.cv.oxc{height:640px}.oxrow .lbl{min-width:0;width:100%}
   nav.steps a span{display:none}nav.steps a b{margin-right:0}
   .brand small{display:none}
 }
@@ -207,6 +212,16 @@ footer{padding:36px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
     <div class="fact" style="--c:var(--photo)" data-t="s1.f1"></div>
     <div class="fact" style="--c:var(--compton)" data-t="s1.f2"></div>
     <div class="fact" style="--c:var(--esc)" data-t="s1.f3"></div>
+  </div>
+  <div class="card full ox" id="outcomes">
+    <h3 data-t="ox.h"></h3>
+    <p class="note" style="margin-top:0" data-t="ox.lead"></p>
+    <div id="oxSel"></div>
+    <canvas id="cvOx" class="cv oxc" aria-label="photon outcome"></canvas>
+    <div class="row"><button class="btn main" id="oxAgain" data-t="ox.again"></button>
+      <span class="lbl" data-t="ox.speed"></span><input type="range" id="oxSp" min="0.5" max="3" step="0.25" value="1" aria-label="speed"><span class="val" id="oxSpv"></span></div>
+    <div class="pills" id="oxLed"></div>
+    <div class="oxtxt" id="oxTxt"></div>
   </div>
   <details class="hood"><summary data-t="hood"></summary><ul data-t="hood.1"></ul></details>
 </div></section>
@@ -1139,6 +1154,272 @@ const PH = { E: 662, n: 0, inter: 0, fep: 0, hist: null, nb: 220, emax: 800, tra
   }
   onRedraw(refresh); PH.reset = reset; PH.setE = setE;
   setE(661.7); requestAnimationFrame(loop);
+})();
+
+/* ============================== 1а. ВСЕ ИСХОДЫ ФОТОНА (`AMBER252`) ==============================
+   Постановка по шагам: одна типичная история каждого исхода — замедленно, со «счётом энергии» и местом
+   в спектре. Перечень — по матрице отклика BecqMoni (7 каналов, перенос в EfficiencySimulator) и
+   компонентам FSA сверх неё; чего программа не считает, здесь нет (решения Amber 20.10.2026, вопросником).
+   Точки сцены — [z, x] в см: z вдоль оси кристалла (0…6.3), x поперёк; источник — точка перед торцом. */
+Object.assign(T.ru, {
+'ox.h':'Все исходы фотона — по одному',
+'ox.lead':'Выберите исход — сцена разыграет одну типичную историю, замедленно, а справа отметит, куда она ляжет в спектре. Перечень — по матрице отклика BecqMoni и компонентам FSA сверх неё; у каждой сцены свой нуклид, на котором исход виден лучше всего. Каналы матрицы по отдельности показывает отчёт FSA, список «Слой матрицы».',
+'ox.g.in':'В кристалле','ox.g.out':'Вокруг кристалла','ox.g.multi':'Несколько фотонов сразу',
+'ox.again':'▶ Ещё раз','ox.speed':'Скорость','ox.where':'Где в спектре:','ox.inbq':'В BecqMoni:',
+'ox.in':'влетело в кристалл: <b>{0} кэВ</b>','ox.dep':'осталось в кристалле: <b>{0} кэВ</b>','ox.away':'унёс {1}: <b>{0} кэВ</b>','ox.zero':'в кристалле ничего не осталось — отсчёта нет',
+'ox.k.g':'рассеянный квант','ox.k.x':'рентгеновский квант','ox.k.ann':'квант 511','ox.k.ann2':'два кванта 511','ox.k.e':'электрон','ox.k.br':'тормозной квант','ox.k.thr':'сам фотон',
+'ox.l.ph':'фотоэффект','ox.l.co':'комптон: {0} кэВ электрону','ox.l.pa':'рождение пары e⁻e⁺','ox.l.an':'аннигиляция e⁺ → 2 × 511','ox.l.ry':'рэлей: поворот без потери','ox.l.abs':'поглощён в корпусе','ox.l.pbph':'фотоэффект в свинце','ox.l.pbpa':'пара в свинце','ox.l.bs':'рассеяние назад','ox.l.dec':'распад {0}','ox.l.dec2':'ещё распад, независимый','ox.l.xin':'K-рентген поглощён рядом','ox.l.br':'тормозной квант','ox.l.eout':'электрон вылетел','ox.l.cohou':'комптон в корпусе','ox.l.thr':'прошёл насквозь','ox.l.surf':'поглощён у поверхности','ox.l.one':'одна вспышка: {0} кэВ',
+'ox.sp':'Спектр: {0}','ox.sp.here':'сюда: {0} кэВ','ox.sp.edge':'край комптона','ox.sp.fep':'пик','ox.sp.loss':'−1 отсчёт','ox.sp.none':'отсчёта нет',
+'ox.fep.t':'Полное поглощение','ox.fep.d':'Фотон целиком отдаёт энергию электрону атома (фотоэффект). Атом тут же испускает K-рентген йода, но тот поглощается рядом — из кристалла не уходит ничего.','ox.fep.s':'пик полного поглощения на энергии линии — 662 кэВ у Cs-137. По нему узнают нуклид и считают активность.','ox.fep.b':'матрица, канал «Пик полного поглощения».',
+'ox.multi.t':'Несколько рассеяний — и всё же в пик','ox.multi.d':'Фотон дважды отскакивает от электронов, отдавая энергию по частям, и в конце поглощается. Сумма вкладов — та же энергия линии.','ox.multi.s':'тоже пик полного поглощения: прибор видит одну вспышку, сколько бы шагов ни было внутри — всё длится наносекунды.','ox.multi.b':'матрица, канал «Пик полного поглощения» — неважно, сколько было рассеяний.',
+'ox.comp.t':'Комптон: квант улетел','ox.comp.d':'Фотон отскакивает от электрона и вылетает из кристалла. В кристалле остаётся только энергия электрона отдачи.','ox.comp.s':'комптоновское плато от нуля до края: у 662 кэВ край — 477 кэВ. Рассеяние на 90° оставляет 373 кэВ.','ox.comp.b':'матрица, канал «Комптон (неполное поглощение)».',
+'ox.kesc.t':'Вылет K-рентгена','ox.kesc.d':'Фотон поглощён у самой поверхности. Атом йода отвечает K-рентгеном 28.6 кэВ, и тот вылетает наружу, унося свою долю.','ox.kesc.s':'пик вылета на 28–36 кэВ ниже линии (йод и цезий): у Am-241 59.5 → 30.9 кэВ. Заметен у линий примерно от 40 до 200 кэВ.','ox.kesc.b':'матрица, канал «Вылет K-рентгена кристалла»; без матрицы — компонент FSA «Вылет …» (флажок «Атомный рентген»).',
+'ox.lesc.t':'Вылет L-рентгена','ox.lesc.d':'То же, но из L-оболочки: квант всего 3–5 кэВ, и вылетает он только с самой поверхности.','ox.lesc.s':'на 2.7–5 кэВ ниже линии — почти под пиком, утолщает его низкий склон.','ox.lesc.b':'матрица, канал «Вылет L-рентгена кристалла».',
+'ox.pair.t':'Пара: оба кванта 511 поглощены','ox.pair.d':'Выше 1022 кэВ фотон может превратиться в электрон и позитрон. Позитрон тормозится и аннигилирует в два встречных кванта по 511 кэВ — здесь оба поглощены.','ox.pair.s':'пик полного поглощения: 2614 кэВ у Tl-208.','ox.pair.b':'матрица, канал «Пик полного поглощения».',
+'ox.se.t':'Одиночный вылет (SE)','ox.se.d':'Пара родилась, один квант 511 вылетел из кристалла, второй поглощён.','ox.se.s':'пик E − 511: у Tl-208 — 2103.5 кэВ.','ox.se.b':'матрица, канал «Одиночный вылет аннигиляции (511 кэВ)»; без матрицы — компонент FSA SE-… (флажок «Пики вылета и аннигиляция 511 кэВ»).',
+'ox.de.t':'Двойной вылет (DE)','ox.de.d':'Оба кванта 511 вылетели; в кристалле осталась только энергия электрона и позитрона.','ox.de.s':'пик E − 1022: у Tl-208 — 1592.5 кэВ.','ox.de.b':'матрица, канал «Двойной вылет аннигиляции (1022 кэВ)»; без матрицы — компонент FSA DE-….',
+'ox.eesc.t':'Вылет электрона','ox.eesc.d':'Быстрый электрон рождён у края и пробивает поверхность, унося часть энергии. Чем выше энергия и меньше кристалл, тем чаще.','ox.eesc.s':'отсчёт уходит из пика в плато; заметно на высоких энергиях и в малых кристаллах.','ox.eesc.b':'матрица, канал «Комптон (неполное поглощение)» — перенос электронов.',
+'ox.brem.t':'Тормозное излучение','ox.brem.d':'Быстрый электрон, тормозясь в кристалле, излучает фотон. Если тормозной квант вылетает, его энергия потеряна.','ox.brem.s':'отсчёт уходит из пика в плато; недобор растёт с энергией.','ox.brem.b':'матрица, канал «Комптон (неполное поглощение)» — тормозное электронов.',
+'ox.rayl.t':'Рэлеевское рассеяние','ox.rayl.d':'Фотон меняет направление, не теряя энергии, и летит дальше — здесь затем поглощается.','ox.rayl.s':'своего места в спектре нет: рэлей лишь меняет, куда фотон полетит и поглотится ли.','ox.rayl.b':'матрица — в переносе (рассеяние без потери энергии); своего канала нет.',
+'ox.thr.t':'Прошёл насквозь','ox.thr.d':'Фотон пролетел кристалл, ни с чем не столкнувшись.','ox.thr.s':'нигде — отсчёта нет. Такие фотоны снижают эффективность, сильнее всего на высоких энергиях и в тонких кристаллах.','ox.thr.b':'матрица — снижает эффективность.',
+'ox.att.t':'Поглощён по дороге','ox.att.d':'Фотон застрял в корпусе детектора, не долетев до кристалла; так же бывает в самой пробе и стенке сосуда. Корпус нарисован толще, чтобы было видно.','ox.att.s':'нигде — отсчёта нет. Сильнее всего страдают низкие энергии.','ox.att.b':'матрица — ослабление в пробе, окне и корпусе.',
+'ox.bs.t':'Обратное рассеяние','ox.bs.d':'Фотон пролетел мимо кристалла, отразился почти назад от свинца или корпуса и вернулся в кристалл уже ослабленным.','ox.bs.s':'горб около E / (1 + 2E/511): у 662 кэВ — 184 кэВ; в свинцовом домике — полоса 180–250 кэВ.','ox.bs.b':'от своей обвязки и пробы — матрица, канал «Комптон»; от домика и обстановки — компонент FSA «Обратное рассеяние» (флажок «Обратное рассеяние»).',
+'ox.pbk.t':'K-рентген свинца','ox.pbk.d':'Фотон поглощён в свинце защиты; атом свинца испускает K-рентген, и тот влетает в кристалл.','ox.pbk.s':'линии 72–88 кэВ (Kα 75.0, Kβ ≈85 кэВ) — даже если в пробе на этих энергиях ничего нет.','ox.pbk.b':'компонент FSA «Рентген Pb» (флажок «Атомный рентген»); рентген пробы и обвязки матрица несёт сама, в канале «Комптон».',
+'ox.pbl.t':'L-рентген свинца','ox.pbl.d':'То же из L-оболочки: квант 10.5–12.6 кэВ, едва пробивающий корпус.','ox.pbl.s':'линии около 10.5 и 12.6 кэВ, у самого порога.','ox.pbl.b':'компонент FSA «Рентген Pb-L» (флажок «Атомный рентген»).',
+'ox.ann.t':'Аннигиляция вне кристалла','ox.ann.d':'Пара рождается в свинце или корпусе; позитрон аннигилирует там же, и один квант 511 влетает в кристалл.','ox.ann.s':'линия 511 кэВ (и 1022, если влетели оба) — при любой исходной линии выше 1022 кэВ.','ox.ann.b':'пары в пробе и обвязке — матрица, канал «Аннигиляция вне кристалла»; в домике — компонент FSA Ann-511 (флажок «Пики вылета и аннигиляция 511 кэВ»).',
+'ox.eout.t':'Электрон из корпуса','ox.eout.d':'Фотон рассеивается в корпусе, а электрон отдачи влетает в кристалл и оставляет там немного энергии. Корпус нарисован толще, чтобы было видно.','ox.eout.s':'низ спектра, 0–100 кэВ.','ox.eout.b':'матрица, канал «Комптон» — занос электронов из обвязки.',
+'ox.sum.t':'Суммарный пик','ox.sum.d':'Co-60 за один распад испускает сразу два кванта. Оба поглотились — кристалл вспыхнул один раз, и прибор записал их сумму.','ox.sum.s':'пик E1 + E2: 1173 + 1332 = 2505 кэВ, хотя такой линии у Co-60 нет.','ox.sum.b':'FSA, «Каскадное суммирование» (флажок «Каскадное суммирование») — работает только с матрицей отклика.',
+'ox.casc.t':'Каскадное суммирование: вынос из пика','ox.casc.d':'Один квант поглощён целиком, второй — лишь частично (комптон). Импульс — их сумма, и пик 1332 кэВ недосчитался своего отсчёта.','ox.casc.s':'сумм-континуум между пиками и выше; сами пики меньше — тем сильнее, чем ближе проба к кристаллу.','ox.casc.b':'FSA, «Каскадное суммирование»: вынос из пиков, суммы, угловые корреляции — по матрице отклика.',
+'ox.xsum.t':'Рентген + гамма','ox.xsum.d':'Ba-133 распадается захватом электрона: вместе с гамма-квантом 356 кэВ вылетает K-рентген цезия 31 кэВ. Оба поглотились — записана сумма.','ox.xsum.s':'пик 387 кэВ (356 + 31) и меньше отсчётов в самих линиях.','ox.xsum.b':'FSA, «Каскадное суммирование»: партнёры — K-рентген после захвата и конверсии.',
+'ox.pile.t':'Наложение импульсов','ox.pile.d':'Два независимых распада почти одновременно — за время одного импульса, микросекунды. Электроника видит одну вспышку.','ox.pile.s':'около 2E: у Cs-137 662 + 662 → ≈1328 кэВ (по свету чуть выше 1324) и размытый хвост; растёт с загрузкой.','ox.pile.b':'компонент FSA «Наложения» (флажок «Наложение импульсов (pile-up)»).'
+});
+Object.assign(T.en, {
+'ox.h':'Every photon outcome, one by one',
+'ox.lead':'Pick an outcome — the scene plays one typical history in slow motion, and the panel on the right marks where it lands in the spectrum. The list follows the BecqMoni response matrix and the FSA components on top of it; each scene has its own nuclide, the one where the outcome shows best. The FSA report shows the matrix channels one at a time in its “Matrix layer” list.',
+'ox.g.in':'In the crystal','ox.g.out':'Around the crystal','ox.g.multi':'Several photons at once',
+'ox.again':'▶ Again','ox.speed':'Speed','ox.where':'Where in the spectrum:','ox.inbq':'In BecqMoni:',
+'ox.in':'entered the crystal: <b>{0} keV</b>','ox.dep':'left in the crystal: <b>{0} keV</b>','ox.away':'carried away by {1}: <b>{0} keV</b>','ox.zero':'nothing left in the crystal — no count',
+'ox.k.g':'the scattered photon','ox.k.x':'the X-ray','ox.k.ann':'a 511 photon','ox.k.ann2':'two 511 photons','ox.k.e':'the electron','ox.k.br':'the bremsstrahlung photon','ox.k.thr':'the photon itself',
+'ox.l.ph':'photoeffect','ox.l.co':'Compton: {0} keV to the electron','ox.l.pa':'pair e⁻e⁺ created','ox.l.an':'e⁺ annihilation → 2 × 511','ox.l.ry':'Rayleigh: turn, no loss','ox.l.abs':'absorbed in the housing','ox.l.pbph':'photoeffect in lead','ox.l.pbpa':'pair in lead','ox.l.bs':'scattered back','ox.l.dec':'{0} decay','ox.l.dec2':'another, independent decay','ox.l.xin':'K X-ray absorbed nearby','ox.l.br':'bremsstrahlung photon','ox.l.eout':'electron escaped','ox.l.cohou':'Compton in the housing','ox.l.thr':'went straight through','ox.l.surf':'absorbed at the surface','ox.l.one':'one flash: {0} keV',
+'ox.sp':'Spectrum: {0}','ox.sp.here':'here: {0} keV','ox.sp.edge':'Compton edge','ox.sp.fep':'peak','ox.sp.loss':'−1 count','ox.sp.none':'no count',
+'ox.fep.t':'Full absorption','ox.fep.d':'The photon gives all its energy to an atomic electron (photoeffect). The atom immediately emits an iodine K X-ray, but it is absorbed nearby — nothing leaves the crystal.','ox.fep.s':'the full-energy peak at the line energy — 662 keV for Cs-137. It tells the nuclide and gives the activity.','ox.fep.b':'matrix, channel “Full-energy peak”.',
+'ox.multi.t':'Several scatterings, still in the peak','ox.multi.d':'The photon bounces off electrons twice, giving its energy away in parts, and is absorbed at the end. The deposits add up to the line energy.','ox.multi.s':'the full-energy peak too: the detector sees one flash however many steps happen inside — it all takes nanoseconds.','ox.multi.b':'matrix, channel “Full-energy peak” — the number of scatterings does not matter.',
+'ox.comp.t':'Compton: the photon escaped','ox.comp.d':'The photon bounces off an electron and leaves the crystal. Only the recoil electron’s energy stays.','ox.comp.s':'the Compton plateau from zero up to the edge: 477 keV for 662 keV. A 90° scatter leaves 373 keV.','ox.comp.b':'matrix, channel “Compton (partial deposit)”.',
+'ox.kesc.t':'K X-ray escape','ox.kesc.d':'The photon is absorbed right at the surface. The iodine atom answers with a 28.6 keV K X-ray, which flies out and takes its share.','ox.kesc.s':'an escape peak 28–36 keV below the line (iodine and caesium): 59.5 → 30.9 keV for Am-241. Visible for lines from about 40 to 200 keV.','ox.kesc.b':'matrix, channel “K X-ray escape”; without a matrix — FSA component “Escape …” (“Atomic X-rays” box).',
+'ox.lesc.t':'L X-ray escape','ox.lesc.d':'The same from the L shell: a 3–5 keV quantum that escapes only from the very surface.','ox.lesc.s':'2.7–5 keV below the line — almost under the peak, thickening its low side.','ox.lesc.b':'matrix, channel “L X-ray escape”.',
+'ox.pair.t':'Pair: both 511 photons absorbed','ox.pair.d':'Above 1022 keV a photon can turn into an electron and a positron. The positron slows down and annihilates into two back-to-back 511 keV photons — here both are absorbed.','ox.pair.s':'the full-energy peak: 2614 keV for Tl-208.','ox.pair.b':'matrix, channel “Full-energy peak”.',
+'ox.se.t':'Single escape (SE)','ox.se.d':'A pair is created; one 511 photon leaves the crystal, the other is absorbed.','ox.se.s':'a peak at E − 511: 2103.5 keV for Tl-208.','ox.se.b':'matrix, channel “Single escape (511 keV)”; without a matrix — FSA component SE-… (“Escape peaks and 511 keV annihilation” box).',
+'ox.de.t':'Double escape (DE)','ox.de.d':'Both 511 photons escape; only the electron and positron energy stays.','ox.de.s':'a peak at E − 1022: 1592.5 keV for Tl-208.','ox.de.b':'matrix, channel “Double escape (1022 keV)”; without a matrix — FSA component DE-….',
+'ox.eesc.t':'Electron escape','ox.eesc.d':'A fast electron is born near the edge and punches through the surface, taking part of the energy. The higher the energy and the smaller the crystal, the more often.','ox.eesc.s':'the count leaves the peak for the plateau; noticeable at high energies and in small crystals.','ox.eesc.b':'matrix, channel “Compton (partial deposit)” — electron transport.',
+'ox.brem.t':'Bremsstrahlung','ox.brem.d':'A fast electron slowing down in the crystal emits a photon. If that photon escapes, its energy is lost.','ox.brem.s':'the count leaves the peak for the plateau; the deficit grows with energy.','ox.brem.b':'matrix, channel “Compton (partial deposit)” — electron bremsstrahlung.',
+'ox.rayl.t':'Rayleigh scattering','ox.rayl.d':'The photon changes direction without losing energy and flies on — here it is absorbed afterwards.','ox.rayl.s':'no place of its own: Rayleigh only changes where the photon goes and whether it is absorbed.','ox.rayl.b':'matrix — in the transport (scattering without energy loss); no channel of its own.',
+'ox.thr.t':'Went straight through','ox.thr.d':'The photon crossed the crystal without hitting anything.','ox.thr.s':'nowhere — no count. Such photons lower the efficiency, most of all at high energies and in thin crystals.','ox.thr.b':'matrix — lowers the efficiency.',
+'ox.att.t':'Absorbed on the way','ox.att.d':'The photon got stuck in the detector housing before reaching the crystal; it also happens in the sample itself and the container wall. The housing is drawn thicker so it can be seen.','ox.att.s':'nowhere — no count. Low energies suffer most.','ox.att.b':'matrix — attenuation in the sample, window and housing.',
+'ox.bs.t':'Backscatter','ox.bs.d':'The photon flew past the crystal, bounced almost straight back from lead or the housing and returned weakened.','ox.bs.s':'a hump near E / (1 + 2E/511): 184 keV for 662 keV; in a lead house — a band at 180–250 keV.','ox.bs.b':'from its own housing and sample — matrix, channel “Compton”; from the lead house and surroundings — FSA component “Backscatter” (“Backscatter” box).',
+'ox.pbk.t':'Lead K X-rays','ox.pbk.d':'The photon is absorbed in the lead shield; the lead atom emits a K X-ray, which enters the crystal.','ox.pbk.s':'lines at 72–88 keV (Kα 75.0, Kβ ≈85 keV) — even if the sample has nothing there.','ox.pbk.b':'FSA component “X-ray Pb” (“Atomic X-rays” box); X-rays of the sample and housing are carried by the matrix itself, in the “Compton” channel.',
+'ox.pbl.t':'Lead L X-rays','ox.pbl.d':'The same from the L shell: a 10.5–12.6 keV quantum that barely gets through the housing.','ox.pbl.s':'lines near 10.5 and 12.6 keV, right at the threshold.','ox.pbl.b':'FSA component “X-ray Pb-L” (“Atomic X-rays” box).',
+'ox.ann.t':'Annihilation outside the crystal','ox.ann.d':'A pair is created in lead or the housing; the positron annihilates there, and one 511 photon enters the crystal.','ox.ann.s':'a 511 keV line (and 1022 if both enter) — for any source line above 1022 keV.','ox.ann.b':'pairs in the sample and housing — matrix, channel “Annihilation outside the crystal”; in the lead house — FSA component Ann-511 (“Escape peaks and 511 keV annihilation” box).',
+'ox.eout.t':'Electron from the housing','ox.eout.d':'The photon scatters in the housing, and the recoil electron enters the crystal and leaves a little energy there. The housing is drawn thicker so it can be seen.','ox.eout.s':'the bottom of the spectrum, 0–100 keV.','ox.eout.b':'matrix, channel “Compton” — electrons carried in from the housing.',
+'ox.sum.t':'Sum peak','ox.sum.d':'Co-60 emits two photons in one decay. Both were absorbed — the crystal flashed once, and the detector recorded their sum.','ox.sum.s':'a peak at E1 + E2: 1173 + 1332 = 2505 keV, though Co-60 has no such line.','ox.sum.b':'FSA, “Cascade summing” box — works only with a response matrix.',
+'ox.casc.t':'Cascade summing: loss from the peak','ox.casc.d':'One photon is absorbed fully, the other only in part (Compton). The pulse is their sum, and the 1332 keV peak lost a count.','ox.casc.s':'a sum continuum between and above the peaks; the peaks themselves shrink — the more, the closer the sample.','ox.casc.b':'FSA, “Cascade summing”: losses from peaks, sums, angular correlations — from the response matrix.',
+'ox.xsum.t':'X-ray + gamma','ox.xsum.d':'Ba-133 decays by electron capture: a 31 keV caesium K X-ray comes out together with the 356 keV gamma. Both were absorbed — their sum is recorded.','ox.xsum.s':'a peak at 387 keV (356 + 31) and fewer counts in the lines themselves.','ox.xsum.b':'FSA, “Cascade summing”: partners include K X-rays after capture and conversion.',
+'ox.pile.t':'Pulse pile-up','ox.pile.d':'Two independent decays almost at once — within one pulse, microseconds. The electronics sees one flash.','ox.pile.s':'near 2E: 662 + 662 → ≈1328 keV for Cs-137 (a bit above 1324 by light) and a smeared tail; grows with the count rate.','ox.pile.b':'FSA component “Pile-up” (“Pulse pile-up” box).'
+});
+(function outcomes() {
+  const cv = $('#cvOx'); io.observe(cv);
+  const S0 = [-1.2, 0], XR = '#4dd0e1', AN = '#c38bff', BR = '#ff9a3c', EL = '#b6ff9c';
+  // шаги: g — полёт кванта, e — трек электрона, f — вспышка с подписью, d — вклад в кристалл, a — унесено
+  const g = (t0, t1, a, b, E, o = {}) => Object.assign({ k: 'g', t0, t1, a, b, E }, o);
+  const e = (t0, t1, pts, o = {}) => Object.assign({ k: 'e', t0, t1, pts }, o);
+  const f = (t, p, kind, lbl, o = {}) => Object.assign({ k: 'f', t, p, kind, lbl }, o);
+  const d = (t, v) => ({ k: 'd', t, v }), a = (t, v, kind) => ({ k: 'a', t, v, kind });
+  const PAIR = (dep2) => [g(0, 1.5, S0, [3.0, 0.2], 2614.5, { lbl: 1 }), f(1.5, [3.0, 0.2], 'pa', ['ox.l.pa'], { lo: [-12, -16] }), d(1.5, 1592.5),
+    e(1.5, 2.1, [[3.0, 0.2], [3.2, -0.05], [3.1, -0.25], [3.3, -0.4]]), e(1.5, 2.1, [[3.0, 0.2], [3.15, 0.45], [3.35, 0.4], [3.45, 0.6]], { c: '#ff8fd0' }),
+    f(2.15, [3.45, 0.6], 'an', ['ox.l.an'], { lo: [12, 18] })].concat(dep2);
+  const SC = [
+    { id: 'fep', grp: 'in', nuc: 'Cs-137', hl: ['fep'], acts: [g(0, 1.4, S0, [2.6, 0.7], 661.7, { lbl: 1 }), f(1.4, [2.6, 0.7], 'ph', ['ox.l.ph']), d(1.4, 633.1),
+      e(1.45, 2.0, [[2.6, 0.7], [2.75, 0.95], [2.68, 1.12], [2.85, 1.3]]), g(1.6, 2.1, [2.6, 0.7], [2.25, 1.25], 28.6, { c: XR }), f(2.1, [2.25, 1.25], 'x', ['ox.l.xin'], { lo: [-8, -12] }), d(2.1, 28.6)] },
+    { id: 'multi', grp: 'in', nuc: 'Cs-137', hl: ['fep'], acts: [g(0, 1.2, S0, [1.5, -0.4], 661.7, { lbl: 1 }), f(1.2, [1.5, -0.4], 'co', ['ox.l.co', 262], { lo: [8, 16] }), d(1.2, 261.7),
+      e(1.2, 1.6, [[1.5, -0.4], [1.58, -0.55], [1.5, -0.72]]), g(1.5, 2.6, [1.5, -0.4], [4.0, 1.4], 400, { lbl: 1 }), f(2.6, [4.0, 1.4], 'co', ['ox.l.co', 150]), d(2.6, 150),
+      e(2.6, 2.9, [[4.0, 1.4], [4.12, 1.3], [4.2, 1.42]]), g(2.9, 3.7, [4.0, 1.4], [3.1, 2.7], 250, { lbl: 1 }), f(3.7, [3.1, 2.7], 'ph', ['ox.l.ph'], { lo: [-12, -12] }), d(3.7, 250)] },
+    { id: 'comp', grp: 'in', nuc: 'Cs-137', hl: ['comp'], feat: [[477.3, 'ox.sp.edge']], acts: [g(0, 1.3, S0, [2.3, 0.3], 661.7, { lbl: 1 }), f(1.3, [2.3, 0.3], 'co', ['ox.l.co', 373], { lo: [8, 16] }), d(1.3, 373.1),
+      e(1.3, 1.8, [[2.3, 0.3], [2.45, 0.15], [2.55, 0.3], [2.7, 0.2]]), g(1.6, 3.0, [2.3, 0.3], [2.85, 5.1], 288.6, { lbl: 1, out: 1 }), a(2.3, 288.6, 'g')] },
+    { id: 'kesc', grp: 'in', nuc: 'Am-241', hl: ['kesc'], feat: [[59.5, 'ox.sp.fep']], acts: [g(0, 1.0, S0, [0.25, 0.5], 59.5, { lbl: 1 }), f(1.0, [0.25, 0.5], 'ph', ['ox.l.ph'], { lo: [10, 16] }), d(1.0, 30.9),
+      e(1.0, 1.3, [[0.25, 0.5], [0.33, 0.56]]), g(1.3, 2.5, [0.25, 0.5], [-1.7, 2.3], 28.6, { c: XR, lbl: 1, out: 1 }), a(2.0, 28.6, 'x')] },
+    { id: 'lesc', grp: 'in', nuc: 'Am-241', hl: ['lesc'], acts: [g(0, 1.0, S0, [0.2, -0.6], 59.5, { lbl: 1 }), f(1.0, [0.2, -0.6], 'ph', ['ox.l.ph'], { lo: [10, 16] }), d(1.0, 55.6),
+      g(1.3, 2.3, [0.2, -0.6], [-1.1, -1.7], 3.9, { c: XR, lbl: 1, out: 1 }), a(1.9, 3.9, 'x')] },
+    { id: 'pair', grp: 'in', nuc: 'Tl-208', hl: ['fep'], acts: PAIR([g(2.3, 3.1, [3.45, 0.6], [4.6, 2.2], 511, { c: AN, lbl: 1 }), f(3.1, [4.6, 2.2], 'ph', ['ox.l.ph']), d(3.1, 511),
+      g(2.3, 3.1, [3.45, 0.6], [2.3, -1.0], 511, { c: AN }), f(3.1, [2.3, -1.0], 'ph', null), d(3.1, 511)]) },
+    { id: 'se', grp: 'in', nuc: 'Tl-208', hl: ['se'], acts: PAIR([g(2.3, 3.7, [3.45, 0.6], [5.3, 4.4], 511, { c: AN, lbl: 1, out: 1 }), a(3.0, 511, 'ann'),
+      g(2.3, 3.1, [3.45, 0.6], [2.3, -1.0], 511, { c: AN }), f(3.1, [2.3, -1.0], 'ph', ['ox.l.ph'], { lo: [-12, 16] }), d(3.1, 511)]) },
+    { id: 'de', grp: 'in', nuc: 'Tl-208', hl: ['de'], acts: PAIR([g(2.3, 3.6, [3.45, 0.6], [3.95, 4.9], 511, { c: AN, lbl: 1, out: 1 }), g(2.3, 3.6, [3.45, 0.6], [2.95, -3.7], 511, { c: AN, out: 1 }), a(3.0, 1022, 'ann2')]) },
+    { id: 'eesc', grp: 'in', nuc: 'Tl-208', hl: ['comp'], acts: [g(0, 1.5, S0, [4.3, 2.55], 2614.5, { lbl: 1 }), f(1.5, [4.3, 2.55], 'ph', ['ox.l.ph'], { lo: [-12, 0] }),
+      e(1.5, 2.5, [[4.3, 2.55], [4.45, 2.8], [4.38, 3.0], [4.6, 3.25], [4.72, 3.7], [4.85, 4.2]], { out: 1 }), f(2.5, [4.85, 4.2], 'eo', ['ox.l.eout']), d(2.5, 1914.5), a(2.5, 700, 'e')] },
+    { id: 'brem', grp: 'in', nuc: 'Tl-208', hl: ['comp'], acts: [g(0, 1.5, S0, [2.8, -0.5], 2614.5, { lbl: 1 }), f(1.5, [2.8, -0.5], 'ph', ['ox.l.ph'], { lo: [-12, -12] }),
+      e(1.5, 2.4, [[2.8, -0.5], [2.95, -0.7], [3.1, -0.6], [3.25, -0.85], [3.4, -0.8], [3.5, -1.0]]), f(1.9, [3.1, -0.6], 'br', ['ox.l.br'], { lo: [10, -4] }),
+      g(1.9, 3.3, [3.1, -0.6], [3.9, -5.1], 300, { c: BR, lbl: 1, out: 1 }), a(2.7, 300, 'br'), d(2.4, 2314.5)] },
+    { id: 'rayl', grp: 'in', nuc: 'Am-241', hl: ['fep'], acts: [g(0, 1.0, S0, [0.5, 0.15], 59.5, { lbl: 1 }), f(1.0, [0.5, 0.15], 'ry', ['ox.l.ry'], { lo: [10, 16] }),
+      g(1.2, 2.0, [0.5, 0.15], [1.0, 1.5], 59.5), f(2.0, [1.0, 1.5], 'ph', ['ox.l.ph']), d(2.0, 59.5)] },
+    { id: 'thr', grp: 'in', nuc: 'Cs-137', hl: [], acts: [g(0, 3.2, S0, [14, 1.05], 661.7, { lbl: 1, out: 1 }), f(1.9, [6.3, 0.63], 'thr', ['ox.l.thr'], { lo: [8, -14] }), a(2.0, 661.7, 'thr')] },
+    { id: 'att', grp: 'in', nuc: 'Am-241', al: 0.3, hl: [], acts: [g(0, 0.9, S0, [-0.15, 0.3], 59.5, { lbl: 1 }), f(0.9, [-0.15, 0.3], 'abs', ['ox.l.abs'], { lo: [10, -14] })] },
+    { id: 'bs', grp: 'out', nuc: 'Cs-137', shield: 1, hl: ['bs'], acts: [g(0, 1.6, S0, [-7.0, -3.6], 661.7, { lbl: 1 }), f(1.6, [-7.0, -3.6], 'bs', ['ox.l.bs'], { lo: [10, 18] }),
+      g(1.8, 3.4, [-7.0, -3.6], [1.6, -1.6], 184.3, { lbl: 1 }), f(3.4, [1.6, -1.6], 'ph', ['ox.l.ph']), d(3.4, 184.3)] },
+    { id: 'pbk', grp: 'out', nuc: 'Cs-137', shield: 1, hl: ['pbk'], acts: [g(0, 1.6, S0, [4.0, 9.65], 661.7, { lbl: 1 }), f(1.6, [4.0, 9.65], 'pb', ['ox.l.pbph'], { lo: [10, 18] }),
+      g(1.8, 3.0, [4.0, 9.65], [3.2, 2.6], 75.0, { c: XR, lbl: 1 }), f(3.0, [3.2, 2.6], 'ph', ['ox.l.ph']), d(3.0, 75)] },
+    { id: 'pbl', grp: 'out', nuc: 'Cs-137', shield: 1, emax: 130, hl: ['pbl'], acts: [g(0, 1.6, S0, [2.5, 9.65], 661.7, { lbl: 1 }), f(1.6, [2.5, 9.65], 'pb', ['ox.l.pbph'], { lo: [10, 18] }),
+      g(1.8, 3.0, [2.5, 9.65], [2.3, 3.05], 10.5, { c: XR, lbl: 1 }), f(3.0, [2.3, 3.05], 'ph', ['ox.l.surf'], { lo: [10, 18] }), d(3.0, 10.5)] },
+    { id: 'ann', grp: 'out', nuc: 'Tl-208', shield: 1, hl: ['ann'], acts: [g(0, 1.8, S0, [6.0, -9.65], 2614.5, { lbl: 1 }), f(1.8, [6.0, -9.65], 'pa', ['ox.l.pbpa'], { lo: [10, -16] }), f(2.1, [6.0, -9.5], 'an', ['ox.l.an'], { lo: [10, 16] }),
+      g(2.2, 3.4, [6.0, -9.5], [4.2, -2.4], 511, { c: AN, lbl: 1 }), f(3.4, [4.2, -2.4], 'ph', ['ox.l.ph']), d(3.4, 511), g(2.2, 2.7, [6.0, -9.5], [6.6, -11.2], 511, { c: AN })] },
+    { id: 'eout', grp: 'out', nuc: 'Cs-137', al: 0.3, emax: 760, hl: ['elow'], acts: [g(0, 1.1, S0, [0.5, 3.3], 661.7, { lbl: 1 }), f(1.1, [0.5, 3.3], 'co', ['ox.l.cohou'], { lo: [10, -14] }),
+      g(1.3, 2.5, [0.5, 3.3], [2.0, 5.3], 601.7, { lbl: 1, out: 1 }), a(2.0, 601.7, 'g'), e(1.1, 1.8, [[0.5, 3.3], [0.58, 3.12], [0.52, 2.98], [0.64, 2.85]]), d(1.8, 60)] },
+    { id: 'sum', grp: 'multi', nuc: 'Co-60', hl: ['sum'], acts: [f(0.1, S0, 'dec', ['ox.l.dec', 'Co-60'], { lo: [-30, -22] }), g(0.2, 1.5, S0, [2.0, 0.9], 1173.2, { lbl: 1 }), g(0.2, 1.5, S0, [3.3, -1.0], 1332.5, { lbl: 1 }),
+      f(1.5, [2.0, 0.9], 'ph', ['ox.l.ph']), f(1.5, [3.3, -1.0], 'ph', ['ox.l.one', 2505.7], { lo: [10, 18] }), d(1.5, 2505.7)] },
+    { id: 'casc', grp: 'multi', nuc: 'Co-60', hl: ['sumc'], feat: [[1332.5, 'ox.sp.loss']], acts: [f(0.1, S0, 'dec', ['ox.l.dec', 'Co-60'], { lo: [-30, -22] }), g(0.2, 1.5, S0, [2.6, 1.0], 1332.5, { lbl: 1 }), g(0.2, 1.5, S0, [3.5, -1.2], 1173.2, { lbl: 1 }),
+      f(1.5, [2.6, 1.0], 'ph', ['ox.l.ph']), f(1.5, [3.5, -1.2], 'co', ['ox.l.co', 400], { lo: [10, 18] }), d(1.5, 1732.5),
+      g(1.7, 3.0, [3.5, -1.2], [6.9, -4.6], 773.2, { lbl: 1, out: 1 }), a(2.3, 773.2, 'g')] },
+    { id: 'xsum', grp: 'multi', nuc: 'Ba-133', hl: ['sum'], acts: [f(0.1, S0, 'dec', ['ox.l.dec', 'Ba-133'], { lo: [-30, -22] }), g(0.2, 1.4, S0, [2.4, 0.6], 356.0, { lbl: 1 }), g(0.2, 0.9, S0, [0.35, -0.7], 31.0, { c: XR, lbl: 1 }),
+      f(0.9, [0.35, -0.7], 'ph', null), f(1.4, [2.4, 0.6], 'ph', ['ox.l.one', 387]), d(1.4, 387)] },
+    { id: 'pile', grp: 'multi', nuc: 'Cs-137', emax: 1450, hl: ['pile'], acts: [f(0.1, S0, 'dec', ['ox.l.dec', 'Cs-137'], { lo: [-30, -22] }), g(0.2, 1.3, S0, [2.5, 0.8], 661.7, { lbl: 1 }), f(1.3, [2.5, 0.8], 'ph', null),
+      f(0.6, S0, 'dec', ['ox.l.dec2'], { lo: [-30, 30] }), g(0.7, 1.8, S0, [3.6, -0.9], 661.7, { lbl: 1 }), f(1.8, [3.6, -0.9], 'ph', ['ox.l.one', 1328], { lo: [10, 18] }), d(1.8, 1328)] }
+  ];
+  const NUC = {
+    'Cs-137': { L: [[661.7, 1]], hd: [661.7], emax: 760 }, 'Am-241': { L: [[59.5, 1]], hd: [59.5], emax: 72 }, 'Tl-208': { L: [[2614.5, 1]], hd: [2614.5], emax: 2780 },
+    'Co-60': { L: [[1173.2, 1], [1332.5, 1]], hd: [1173.2, 1332.5], emax: 2700 }, 'Ba-133': { L: [[356.0, 1], [81.0, 0.55], [31.0, 1.1]], hd: [356, 31], emax: 440 }
+  };
+  SC.forEach(s => {   // итоги сцены: что влетело, что осталось, когда всё кончилось
+    s.dep = s.acts.filter(x => x.k === 'd').reduce((u, x) => u + x.v, 0);
+    s.away = s.acts.filter(x => x.k === 'a').reduce((u, x) => u + x.v, 0);
+    s.T = Math.max(...s.acts.map(x => x.t1 || x.t || 0)) + 0.6;
+    s.tDep = Math.max(0, ...s.acts.filter(x => x.k === 'd').map(x => x.t));
+    s.ein = s.id === 'att' ? 0 : s.id === 'eout' ? s.dep : s.dep + s.away;   // в «электроне из корпуса» в кристалл влетел только электрон
+  });
+  // ── спектр-схема: части по нуклиду, подсветка частей исхода ──
+  function parts(s) {
+    const P = [];
+    NUC[s.nuc].L.forEach(([E, w]) => {
+      P.push({ tag: 'fep', gs: E, a: w });
+      const k = E / 511, ce = E * 2 * k / (1 + 2 * k);
+      if (E > 45) { P.push({ tag: 'comp', c1: ce, a: w * 0.16 }); P.push({ tag: 'comp', fill: [ce, E], a: w * 0.05 }); }
+      if (E > 33.2 && E < 200) { P.push({ tag: 'kesc', gs: E - 28.6, a: w * 0.3 }); P.push({ tag: 'lesc', gs: E - 3.9, a: w * 0.08 }); }
+      if (E > 1022) { P.push({ tag: 'se', gs: E - 511, a: w * 0.16 }); P.push({ tag: 'de', gs: E - 1022, a: w * 0.1 }); }
+      if (E > 150) { const eb = E / (1 + 2 * k); P.push({ tag: 'bs', hump: eb, wd: eb * 0.13, a: w * (s.shield ? 0.13 : 0.035) }); }
+    });
+    if (s.shield) { P.push({ tag: 'pbk', gs: 75.0, a: 0.16 }, { tag: 'pbk', gs: 85.0, a: 0.05 }, { tag: 'pbl', gs: 10.5, a: 0.07 }, { tag: 'pbl', gs: 12.6, a: 0.04 }); }
+    if (s.id === 'ann') P.push({ tag: 'ann', gs: 511, a: 0.12 });
+    if (s.nuc === 'Co-60') { P.push({ tag: 'sum', gs: 2505.7, a: 0.05 }, { tag: 'sumc', fill: [1350, 2480], a: 0.012 }, { tag: 'sumc', fill: [1180, 1320], a: 0.012 }); }
+    if (s.nuc === 'Ba-133') P.push({ tag: 'sum', gs: 387, a: 0.07 });
+    if (s.id === 'pile') P.push({ tag: 'pile', gs: 1328, a: 0.035 }, { tag: 'pile', fill: [680, 1310], a: 0.004 });
+    if (s.id === 'eout') P.push({ tag: 'elow', expo: 30, a: 0.09 });
+    return P;
+  }
+  function partY(p, E) {
+    if (p.gs !== undefined) { const sg = Math.max(sigmaAt(p.gs, 7.5), 0.35); const z = (E - p.gs) / sg; return p.a * Math.exp(-0.5 * z * z); }
+    if (p.c1 !== undefined) { const sg = sigmaAt(p.c1, 7.5) * 0.7; return p.a * (1 + 0.6 * Math.pow(Math.min(E / p.c1, 1.2), 3)) / (1 + Math.exp((E - p.c1) / sg)); }
+    if (p.fill) { const sg = sigmaAt(p.fill[1], 7.5); return p.a / ((1 + Math.exp((p.fill[0] - E) / sg)) * (1 + Math.exp((E - p.fill[1]) / sg))); }
+    if (p.hump !== undefined) { const z = (E - p.hump) / p.wd; return p.a * Math.exp(-0.5 * z * z); }
+    if (p.expo) return E > 2 && E < 130 ? p.a * Math.exp(-E / p.expo) : 0;
+    return 0;
+  }
+  // ── рисование ──
+  function wave(ctx, x0, y0, x1, y1, amp, wl) {
+    const L = Math.hypot(x1 - x0, y1 - y0); if (L < 0.5) return;
+    const ux = (x1 - x0) / L, uy = (y1 - y0) / L; ctx.beginPath();
+    for (let s = 0; s <= L; s += 1.5) { const o = amp * Math.sin(s / wl * TWO_PI); const x = x0 + ux * s - uy * o, y = y0 + uy * s + ux * o; s ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke();
+  }
+  const kev = v => fx(v, Math.abs(v - Math.round(v)) > 0.04 ? 1 : 0);   // 661.7, 2614.5, 75 — без лишних нулей
+  const FC = { ph: '#ff4d6d', co: '#ffd166', pa: AN, an: AN, ry: '#9fd0ff', abs: '#8892a8', pb: '#ff9900', bs: '#CC55BB', dec: '#ffcc33', x: XR, br: BR, eo: EL, thr: '#4dd0e1' };
+  let cur = 0, tS = 0, last = 0, ledKey = '';
+  function drawAll(s, ts) {
+    const { ctx, w, h } = setup(cv), narrow = w < 760;
+    const sw = narrow ? w : w * 0.6, sh = narrow ? h * 0.56 : h;
+    const D = dims(Object.assign({}, GEO, { size: 6.3, gap: 1.2, src: 'point', shield: !!s.shield, al: s.al || 0.08 }));
+    const V = s.shield ? view(sw, sh, -9.8, 14.8, -12, 12, 8) : view(sw, sh, -3.4, 13.2, -5.6, 5.6, 10);
+    const P = q => [V.X(q[0]), V.Y(q[1])];
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, sw, sh); ctx.clip();
+    drawSetup(ctx, V, D, { labels: true });
+    ctx.font = '600 12px system-ui'; ctx.fillStyle = '#cdd8f3'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText(s.nuc + ' · ' + NUC[s.nuc].hd.map(kev).join(' + ') + (LANG === 'ru' ? ' кэВ' : ' keV'), 10, 18);
+    const labels = [];
+    for (const x of s.acts) {
+      if (x.k === 'g' && ts >= x.t0) {
+        const u = clamp((ts - x.t0) / (x.t1 - x.t0), 0, 1), [ax, ay] = P(x.a), [bx, by] = P(x.b), hx = lerp(ax, bx, u), hy = lerp(ay, by, u);
+        const col = x.c || eCol(x.E), fade = x.out && u >= 1 ? Math.max(0.35, 1 - (ts - x.t1) / 1.5) : 1;
+        ctx.globalAlpha = fade; ctx.strokeStyle = col; ctx.lineWidth = x.c === XR ? 1.5 : 1.9;
+        wave(ctx, ax, ay, hx, hy, x.c === XR ? 1.6 : 2.3, x.c === XR ? 5 : 9);
+        if (u < 1) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(hx, hy, 3, 0, TWO_PI); ctx.fill(); }
+        else if (x.out) { const an = Math.atan2(by - ay, bx - ax); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - 9 * Math.cos(an - 0.4), by - 9 * Math.sin(an - 0.4)); ctx.lineTo(bx - 9 * Math.cos(an + 0.4), by - 9 * Math.sin(an + 0.4)); ctx.fill(); }
+        if (x.lbl && u > 0.25) labels.push({ x: lerp(ax, bx, Math.min(u, 0.55)), y: lerp(ay, by, Math.min(u, 0.55)) - 8, s: kev(x.E) + (LANG === 'ru' ? ' кэВ' : ' keV'), c: col });
+        ctx.globalAlpha = 1;
+      } else if (x.k === 'e' && ts >= x.t0) {
+        const u = clamp((ts - x.t0) / (x.t1 - x.t0), 0, 1), pts = x.pts.map(P), n = (pts.length - 1) * u;
+        ctx.strokeStyle = x.c || EL; ctx.lineWidth = 1.7; ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i <= Math.ceil(n); i++) { const fr = Math.min(1, n - (i - 1)); ctx.lineTo(lerp(pts[i - 1][0], pts[i][0], fr), lerp(pts[i - 1][1], pts[i][1], fr)); }
+        ctx.stroke();
+      } else if (x.k === 'f' && ts >= x.t) {
+        const [px, py] = P(x.p), age = ts - x.t, col = FC[x.kind] || '#fff', r = 5 + 12 * Math.min(1, age / 0.35);
+        const gr = ctx.createRadialGradient(px, py, 0, px, py, r); gr.addColorStop(0, rgba(col, age < 0.6 ? 0.95 : 0.55)); gr.addColorStop(1, rgba(col, 0));
+        ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(px, py, r, 0, TWO_PI); ctx.fill();
+        ctx.fillStyle = col; ctx.beginPath(); ctx.arc(px, py, 3.2, 0, TWO_PI); ctx.fill();
+        if (x.lbl) { const lo = x.lo || [10, -10]; labels.push({ x: px + lo[0], y: py + lo[1], s: t(...x.lbl), c: col, al: lo[0] < 0 ? 'right' : 'left' }); }
+      }
+    }
+    ctx.font = '600 11.5px system-ui'; ctx.textBaseline = 'middle';
+    labels.forEach(l => { ctx.textAlign = l.al || 'center'; const wd = ctx.measureText(l.s).width, x0 = l.al === 'right' ? l.x - wd : l.al === 'left' ? l.x : l.x - wd / 2; ctx.fillStyle = 'rgba(6,9,18,.72)'; ctx.fillRect(x0 - 3, l.y - 8, wd + 6, 16); ctx.fillStyle = l.c; ctx.fillText(l.s, l.x, l.y); });
+    ctx.restore();
+    // спектр
+    const emax = s.emax || NUC[s.nuc].emax, bx = narrow ? { l: 16, t: sh + 26, r: w - 14, b: h - 24 } : { l: sw + 18, t: 34, r: w - 14, b: h - 26 };
+    const X = scale('lin', 0, emax, bx.l, bx.r), NB = 260, P2 = parts(s), tot = new Float64Array(NB), hl = new Float64Array(NB);
+    for (let i = 0; i < NB; i++) { const E = (i + 0.5) * emax / NB; for (const p of P2) { const y = partY(p, E); tot[i] += y; if (s.hl.indexOf(p.tag) >= 0) hl[i] += y; } }
+    const mx = Math.max(...tot) * 1.12, Y = scale('sqrt', 0, mx, bx.b, bx.t);
+    axes(ctx, bx, X, Y, { xl: t('ax.e'), nx: 4, noY: true });
+    ctx.fillStyle = '#cdd8f3'; ctx.font = '600 12px system-ui'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(t('ox.sp', s.nuc), bx.l, bx.t - 12);
+    const area = (arr, fill) => { ctx.beginPath(); ctx.moveTo(bx.l, bx.b); for (let i = 0; i < NB; i++) ctx.lineTo(X((i + 0.5) * emax / NB), Y(arr[i])); ctx.lineTo(bx.r, bx.b); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); };
+    area(tot, 'rgba(120,140,190,.28)');
+    const done = ts >= s.tDep && s.dep > 0, hc = '#ffcc33';
+    if (s.hl.length) area(hl, rgba(hc, done ? 0.75 : 0.35));
+    ctx.font = '11px system-ui'; ctx.textBaseline = 'top';
+    (s.feat || []).forEach(([E, k]) => { const x = X(E); ctx.strokeStyle = 'rgba(205,216,243,.45)'; ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(x, bx.t + 14); ctx.lineTo(x, bx.b); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = '#cdd8f3'; ctx.textAlign = x > bx.r - 60 ? 'right' : 'left'; ctx.fillText(t(k), x + (ctx.textAlign === 'right' ? -4 : 4), bx.t + 2); });
+    if (done) {
+      const x = X(Math.min(s.dep, emax)), pulse = 0.5 + 0.5 * Math.sin(ts * 5);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, bx.t + 30); ctx.lineTo(x, bx.b); ctx.stroke(); ctx.lineWidth = 1;
+      ctx.fillStyle = rgba('#ffffff', 0.4 + 0.5 * pulse); ctx.beginPath(); ctx.arc(x, bx.b - 4, 6 + 3 * pulse, 0, TWO_PI); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = '700 12px system-ui'; ctx.textAlign = x > (bx.l + bx.r) / 2 ? 'right' : 'left'; ctx.fillText(t('ox.sp.here', kev(s.dep)), x + (ctx.textAlign === 'right' ? -6 : 6), bx.t + 18);
+    } else if (ts >= s.T - 0.5 && s.dep === 0) {
+      ctx.fillStyle = '#ff8fa6'; ctx.font = '700 13px system-ui'; ctx.textAlign = 'center'; ctx.fillText(t('ox.sp.none'), (bx.l + bx.r) / 2, bx.t + 20);
+    }
+  }
+  function ledger(s, ts) {
+    const dep = s.acts.filter(x => x.k === 'd' && ts >= x.t).reduce((u, x) => u + x.v, 0), outs = s.acts.filter(x => x.k === 'a' && ts >= x.t);
+    const n = kev, key = LANG + s.id + '|' + n(dep) + '|' + outs.length + '|' + (ts >= s.T ? 1 : 0);
+    if (key === ledKey) return; ledKey = key;
+    const ein = s.ein > 0 ? '<span class="pill">' + t('ox.in', n(s.ein)) + '</span>' : '';
+    const dp = dep > 0 ? '<span class="pill good">' + t('ox.dep', n(dep)) + '</span>' : ts >= s.T ? '<span class="pill bad">' + t('ox.zero') + '</span>' : '';
+    $('#oxLed').innerHTML = ein + dp + outs.map(x => '<span class="pill bad">' + t('ox.away', n(x.v), t('ox.k.' + x.kind)) + '</span>').join('');
+  }
+  function text() {
+    const s = SC[cur], k = 'ox.' + s.id + '.';
+    $('#oxTxt').innerHTML = '<h4>' + t(k + 't') + '</h4><p>' + t(k + 'd') + '</p><p><b>' + t('ox.where') + '</b> ' + t(k + 's') + '</p><p><b>' + t('ox.inbq') + '</b> ' + t(k + 'b') + '</p>';
+  }
+  function chips() {
+    $('#oxSel').innerHTML = ['in', 'out', 'multi'].map(gr => '<div class="row oxrow"><span class="lbl">' + t('ox.g.' + gr) + '</span><div class="chips">' +
+      SC.map((s, i) => s.grp === gr ? '<button class="chip' + (i === cur ? ' on' : '') + '" data-i="' + i + '">' + t('ox.' + s.id + '.t') + '</button>' : '').join('') + '</div></div>').join('');
+    $$('#oxSel .chip').forEach(b => b.onclick = () => { cur = +b.dataset.i; tS = 0; ledKey = ''; chips(); text(); });
+  }
+  const sp = $('#oxSp'); let speed = 1;
+  function spd() { speed = +sp.value; $('#oxSpv').textContent = '×' + fx(speed, speed % 1 ? 2 : 0).replace(/0$/, ''); }
+  sp.addEventListener('input', spd); spd();
+  $('#oxAgain').onclick = () => { tS = 0; ledKey = ''; };
+  function loop(now) {
+    requestAnimationFrame(loop);
+    const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; last = now;
+    if (!visible.get(cv)) return;
+    const s = SC[cur]; tS += dt * speed * 0.8;   // ×1 — примерно в 1.25 раза медленнее разметки сцены
+    if (tS > s.T + 3.5) { tS = 0; ledKey = ''; }
+    drawAll(s, tS); ledger(s, tS);
+  }
+  onRedraw(() => { chips(); text(); ledKey = ''; spd(); });
+  requestAnimationFrame(loop);
 })();
 
 /* ============================== 2. ГЕОМЕТРИЯ ============================== */
