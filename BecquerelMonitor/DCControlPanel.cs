@@ -121,6 +121,12 @@ namespace BecquerelMonitor
             resultDataStatus.PresetTime = this.PresetTime;
             if ((int)resultDataStatus.ElapsedTime.TotalSeconds >= this.PresetTime)
             {
+                // (`AMBER241`(10), 20.10.2026) Отказ — словами. Прежде «Старт» здесь молча
+                // возвращался: время спектра уже не меньше лимита, мерить дальше нечего, а
+                // человек жал кнопку и не видел ни ответа, ни причины. Зовут сюда только
+                // кнопка «Старт» и пункт меню — оба руками человека.
+                MessageBox.Show(String.Format(CultureInfo.InvariantCulture, Resources.MSGPresetTimeReached, this.PresetTime),
+                                Resources.NotificationDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
             activeDocument.Dirty = true;

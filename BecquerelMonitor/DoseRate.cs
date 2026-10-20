@@ -151,20 +151,15 @@ namespace BecquerelMonitor
             {
                 rate_str = rate.ToString("f1", CultureInfo.InvariantCulture);
             }
-            string error_str;
-            string epsilon_str = epsilon.ToString("f1", CultureInfo.InvariantCulture);
-            if (error < 10.0)
-            {
-                error_str = error.ToString("f3", CultureInfo.InvariantCulture);
-            }
-            else if (error < 100.0)
-            {
-                error_str = error.ToString("f2", CultureInfo.InvariantCulture);
-            }
-            else
-            {
-                error_str = error.ToString("f1", CultureInfo.InvariantCulture);
-            }
+            // (`AMBER242`, 20.10.2026) Погрешность и её доля — не меньше ДВУХ ЗНАЧАЩИХ ЦИФР.
+            // Прежде число знаков шло только от величины (до 10 — три знака, процент — один),
+            // и у фона в строке состояния стояло «0.619 ±0.000 (0.0%)»: погрешность была, а
+            // печаталась нулём. Теперь прежние знаки — нижняя граница, и знаков добавляется
+            // ровно столько, чтобы стали видны две значащие цифры: «±0.00021 (0.034%)».
+            // Погрешность от 0.01 и доля от 1 % печатаются побайтно как прежде.
+            int errorDecimals = error < 10.0 ? 3 : error < 100.0 ? 2 : 1;
+            string error_str = error.ToString("f" + SignificantDecimals(error, errorDecimals, 6), CultureInfo.InvariantCulture);
+            string epsilon_str = epsilon.ToString("f" + SignificantDecimals(epsilon, 1, 3), CultureInfo.InvariantCulture);
 
             string text = String.Format(CultureInfo.InvariantCulture, "{0} ±{1} ({2}%) {3}", rate_str, error_str, epsilon_str, uom);
 
@@ -180,6 +175,22 @@ namespace BecquerelMonitor
             // покрытии (`C4(в)`) и о сцене с источником (`AMBER102`) со строки
             // сняты; оговорки живут в подсказке строки состояния (`MainForm`).
             return text;
+        }
+
+        /// <summary>
+        /// (`AMBER242`) Число знаков после точки, при котором у положительного
+        /// <paramref name="value"/> видны две значащие цифры, — но не меньше
+        /// <paramref name="min"/> (прежнего числа знаков) и не больше <paramref name="max"/>.
+        /// Ноль, NaN и бесконечность получают <paramref name="min"/>: значащих цифр у них нет.
+        /// </summary>
+        public static int SignificantDecimals(double value, int min, int max)
+        {
+            if (!(value > 0.0) || double.IsInfinity(value))
+            {
+                return min;
+            }
+            int need = 1 - (int)Math.Floor(Math.Log10(value));
+            return Math.Max(min, Math.Min(max, need));
         }
 
         /// <summary>

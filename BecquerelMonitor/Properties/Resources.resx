@@ -8336,6 +8336,10 @@ It is probably open in another program or write-protected.</value>
   <data name="ERRInvalidPresetTime" xml:space="preserve">
     <value>Invalid preset time.</value>
   </data>
+  <data name="MSGPresetTimeReached" xml:space="preserve">
+    <value>The measurement has already reached the preset time ({0} s); there is nothing to continue.
+Increase the preset time or press Clear to start over.</value>
+  </data>
   <data name="ErrorString" xml:space="preserve">
     <value>Error</value>
   </data>
@@ -8550,9 +8554,6 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   </data>
   <data name="FSATiedMemberRow" xml:space="preserve">
     <value>{0} — by {1}</value>
-  </data>
-  <data name="FSAEquilibriumNeedsDbLookups" xml:space="preserve">
-    <value>Equilibrium works only when the composition comes from the databases: turn on "Enable DB lookups for FSA". The other path builds components from peak labels and knows nothing about decay chains.</value>
   </data>
   <data name="FSAPileUpName" xml:space="preserve">
     <value>Pile-up</value>
@@ -41913,7 +41914,8 @@ A file re-imported into a NEW document therefore has no activity of the selectio
     <value>No new version available. Current version: {0}</value>
   </data>
   <data name="MSGRestartNeeded" xml:space="preserve">
-    <value>Update finished. Application WILL RESTART.</value>
+    <value>Update installed. Restart the application now?
+With Cancel the new version starts the next time you open the application.</value>
   </data>
   <data name="MSGSaveBeforeWritingData" xml:space="preserve">
     <value>Save configuration before writing config to device.</value>
@@ -41931,7 +41933,7 @@ You must be completely sure, what you are doing.</value>
   </data>
   <data name="MSGUpdateLong" xml:space="preserve">
     <value>A new version is available: {0}.
-Before updating save all unsaved data. Application WILL RESTART!
+Before updating save all unsaved data. After the update the application offers to restart.
 Install update?</value>
   </data>
   <data name="MSGUpdateShort" xml:space="preserve">

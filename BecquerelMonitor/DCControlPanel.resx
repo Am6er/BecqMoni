@@ -249,7 +249,7 @@
     <value>2</value>
   </data>
   <data name="spectrumSaveBtn.Text" xml:space="preserve">
-    <value>Select...</value>
+    <value>Select</value>
   </data>
   <data name="spectrumSaveBtn.ToolTip" xml:space="preserve">
     <value>Select File</value>
@@ -1032,7 +1032,7 @@
     <value>11</value>
   </data>
   <data name="selectBgBtn.Text" xml:space="preserve">
-    <value>Select...</value>
+    <value>Select</value>
   </data>
   <data name="&gt;&gt;selectBgBtn.Name" xml:space="preserve">
     <value>selectBgBtn</value>

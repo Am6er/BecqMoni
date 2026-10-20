@@ -214,7 +214,7 @@
     <value>Выбрать режим отображения</value>
   </data>
   <data name="highDefinitionViewToolStripMenuItem.Text" xml:space="preserve">
-    <value>Сглаживание</value>
+    <value>Сглаживание линий</value>
   </data>
   <data name="normalViewToolStripMenuItem.Text" xml:space="preserve">
     <value>Обычное отображение</value>

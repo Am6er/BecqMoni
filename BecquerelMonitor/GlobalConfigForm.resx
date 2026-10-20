@@ -4609,7 +4609,7 @@
     <value>True</value>
   </data>
   <data name="comboBox6.Size" type="System.Drawing.Size, System.Drawing">
-    <value>121, 21</value>
+    <value>160, 21</value>
   </data>
   <data name="label57.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -4669,7 +4669,7 @@
     <value>Spectrum5</value>
   </data>
   <data name="comboBox9.Size" type="System.Drawing.Size, System.Drawing">
-    <value>121, 21</value>
+    <value>160, 21</value>
   </data>
   <data name="colorComboBox35.Size" type="System.Drawing.Size, System.Drawing">
     <value>103, 24</value>
@@ -5860,7 +5860,7 @@
     <value>10</value>
   </data>
   <data name="comboBox7.Size" type="System.Drawing.Size, System.Drawing">
-    <value>121, 21</value>
+    <value>160, 21</value>
   </data>
   <data name="colorComboBox25.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>2, 2, 2, 2</value>
@@ -6277,7 +6277,7 @@
     <value>Counts</value>
   </data>
   <data name="comboBox3.Size" type="System.Drawing.Size, System.Drawing">
-    <value>121, 21</value>
+    <value>160, 21</value>
   </data>
   <data name="label87.Location" type="System.Drawing.Point, System.Drawing">
     <value>276, 156</value>
@@ -8233,7 +8233,7 @@
     <value>groupBox5</value>
   </data>
   <data name="button4.Size" type="System.Drawing.Size, System.Drawing">
-    <value>75, 25</value>
+    <value>95, 25</value>
   </data>
   <data name="label40.TabIndex" type="System.Int32, mscorlib">
     <value>47</value>
@@ -8464,7 +8464,7 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="comboBox8.Size" type="System.Drawing.Size, System.Drawing">
-    <value>121, 21</value>
+    <value>160, 21</value>
   </data>
   <data name="colorComboBox34.Size" type="System.Drawing.Size, System.Drawing">
     <value>103, 24</value>

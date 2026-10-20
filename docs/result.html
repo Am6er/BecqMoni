@@ -392,7 +392,7 @@ GUIDE.texts({ru:{
 'p.l4':'<b>Weight</b> — for Bq/kg (0 — not given)',
 'p.l5':'<b>Volume</b> — for Bq/l (0 — not given)',
 'p.steps':'Step by step: Cs-137 in mushrooms, Bq/kg',
-'p.s1':'Record a background with an empty vessel and assign it: <span class="ui">Background</span> → <span class="ui">Select...</span> in “Measurement Control”.',
+'p.s1':'Record a background with an empty vessel and assign it: <span class="ui">Background</span> → <span class="ui">Select</span> in “Measurement Control”.',
 'p.s2':'Count the sample. In <span class="ui">Sample Information</span> type the <span class="ui">Weight</span> and the <span class="ui">Sampling Date</span>.',
 'p.s3':'<span class="ui">Efficiency</span> — the curve of this vessel with a geometry (chapter <a href="geometry.html">8</a>).',
 'p.s4':'<span class="ui m">View → Peak Detection</span> → <span class="ui">Use set:</span> — one with Cs-137.',
@@ -421,7 +421,7 @@ GUIDE.texts({ru:{
 
 /* ── 1. заголовок окна результата: что значит каждое состояние ── */
 (function states() {
-  const ROWS = [['K-40', '106.37', '±56.36 (52.98%)', '90.3…'], ['Th-232', '965.18', '±9.87 (1.02%)', '5.1…']];
+  const ROWS = [['K-40', '106.36', '±56.36 (52.99%)', '90.3…'], ['Th-232', '965.18', '±9.87 (1.02%)', '5.1…']];
   const ROWS2 = [['K-40', '215.19', '±77.04 (35.80%)', '118.7…'], ['Th-232', '1085.09', '±16.54 (1.52%)', '10.6…']];
   let s = 1;
   function draw() {
@@ -505,7 +505,7 @@ GUIDE.texts({ru:{
 /* ── 3. «настройте окно»: та же логика, что у DCResultView (обнаружено, ND, уровень σ) ── */
 (function settings() {
   // [имя, значение, σ (1σ), МДА]; K-40 и Th-232 — со снимка (2σ: ±56.36 и ±9.87)
-  const R = [['K-40', 106.37, 28.18, 90.3, '90.3…'], ['Th-232', 965.18, 4.935, 5.1, '5.1…'], ['ex', 3.10, 2.40, 7.90, '7.90']];
+  const R = [['K-40', 106.36, 28.18, 90.3, '90.3…'], ['Th-232', 965.18, 4.935, 5.1, '5.1…'], ['ex', 3.10, 2.40, 7.90, '7.90']];
   function preset(i) { $('#sLev').value = i ? 2 : 1; $('#sK').value = i ? 2 : 3; $('#sCond').value = 0; $('#sNd').checked = !!i; draw(); }
   function ui() {
     $('#sPre').innerHTML = ['s.def', 's.shot'].map((k, i) => '<button class="chip" data-i="' + i + '">' + t(k) + '</button>').join('');
