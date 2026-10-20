@@ -38,6 +38,7 @@ namespace BecquerelMonitor
             this.iconPanel1 = new BecquerelMonitor.IconPanel();
             this.label8 = new System.Windows.Forms.Label();
             this.label9 = new System.Windows.Forms.Label();
+            this.label10 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // label1
@@ -112,11 +113,20 @@ namespace BecquerelMonitor
             this.label9.Name = "label9";
             this.label9.Click += new System.EventHandler(this.label9_Click);
             // 
+            // label10 — `AMBER250`: ссылка на гид
+            // 
+            resources.ApplyResources(this.label10, "label10");
+            this.label10.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.label10.ForeColor = System.Drawing.Color.MidnightBlue;
+            this.label10.Name = "label10";
+            this.label10.Click += new System.EventHandler(this.label10_Click);
+            // 
             // AboutForm
             // 
             resources.ApplyResources(this, "$this");
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.AliceBlue;
+            this.Controls.Add(this.label10);
             this.Controls.Add(this.label9);
             this.Controls.Add(this.label8);
             this.Controls.Add(this.label7);
@@ -154,5 +164,6 @@ namespace BecquerelMonitor
         private Label label7;
         private Label label8;
         private Label label9;
+        private Label label10;
     }
 }

@@ -242,7 +242,7 @@ figure.shot.side.md .shot-frame{width:100%;max-width:470px;justify-self:center}
     </div>
     <div>
       <h3 data-t="p.ah"></h3>
-      <figure class="shot" data-shot="about" data-hot='[[0.5663,0.1115,0.2300,0.0967],[0.5663,0.2621,0.2278,0.0242],[0.5663,0.3400,0.3700,0.2200],[0.0203,0.6933,0.9594,0.2417]]'>
+      <figure class="shot" data-shot="about" data-hot='[[0.5663,0.1115,0.2300,0.0967],[0.5663,0.2621,0.2278,0.0242],[0.5603,0.3356,0.3724,0.3270],[0.0203,0.6933,0.9594,0.2417]]'>
         <figcaption data-t="p.acap"></figcaption>
         <ol class="shot-legend"><li data-t="pa1"></li><li data-t="pa2"></li><li data-t="pa3"></li><li data-t="pa4"></li></ol>
       </figure>
@@ -254,7 +254,7 @@ figure.shot.side.md .shot-frame{width:100%;max-width:470px;justify-self:center}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=cdf25f3e"></script>
+<script src="assets/guide.js?v=098903e9"></script>
 <script src="assets/quanta.js?v=98c4ced5"></script>
 <script>
 'use strict';
@@ -355,7 +355,7 @@ GUIDE.texts({ru:{
 'mtl1':'<b>Конфигурация устройства...</b> — приборы: тип, каналы, калибровки, кривые эффективности','mtl2':'<b>Редактировать библиотеку изотопов...</b> — линии и цвета',
 'mtl3':'<b>Редактировать наборы изотопов...</b> — какие нуклиды искать в спектре','mtl4':'<b>База изотопов...</b> — справочник NucBase: поиск по имени и энергии',
 'mtl5':'<b>Открыть папку конфигурации...</b> — Проводник с вашими настройками','mtl6':'<b>Настройки</b> — график, цвета, звук, системные',
-'mhg':'<b>Гид по BecqMoni</b> — этот гид в браузере, на языке программы',
+'mhg':'<b>Гид по BecqMoni</b> — этот гид из файлов программы: в браузере, без интернета, на языке программы',
 'mh1':'<b>Инструкция</b> — открывает Telegram-канал программы','mh2':'<b>Проверить обновление...</b> — единственный способ обновиться',
 'mh3':'<b>Показать журнал</b> — Проводник с выделенным becqmoni.log','mh4':'<b>О BecqMoni...</b> — версия, ссылки, благодарности',
 'mn.f1':'<b>Без документа «Спектр» погашен.</b> Его пункты оживают, когда открыт хотя бы один спектр.',
@@ -386,7 +386,7 @@ GUIDE.texts({ru:{
 'p.info':'<b>Числа — всегда с точкой</b>, на любом языке: 661.66, а не 661,66. Разрядов программа не группирует: 250770505.',
 'p.ah':'О программе','p.acap':'Помощь → О BecqMoni...',
 'pa1':'<b>Название и версия</b> — первое, что спросят, если что-то не работает','pa2':'<b>Свободное использование</b> — программа бесплатна',
-'pa3':'<b>Ссылки</b> — исходный код на GitHub, видео на YouTube и RuTube','pa4':'<b>Благодарности</b> — авторы значков, алгоритмов и библиотек, на которых стоит программа',
+'pa3':'<b>Ссылки</b> — исходный код на GitHub, видео на YouTube и RuTube, этот гид на сайте','pa4':'<b>Благодарности</b> — авторы значков, алгоритмов и библиотек, на которых стоит программа',
 'hoodtxt':'<li>Как установлена копия, программа узнаёт сама — по наличию развёртывания ClickOnce. Есть — настройки в <code>%AppData%\\BecqMoni\\config</code>, нет — в <code>config</code> рядом с exe.</li><li>«Проверить обновление» спрашивает сервер ClickOnce (<code>CheckForDetailedUpdate</code>), после «OK» ставит выпуск (<code>Update</code>), а перезапуск делает только по второму «OK».</li><li>Журнал <code>becqmoni.log</code> подрезается на 2 МБ: прежний становится <code>becqmoni.log.1</code>, на диске не больше двух файлов.</li><li>Автосохранение проверяет документы раз в N минут (по умолчанию 15) и пишет только изменённые — и только те, у которых оно включено.</li><li>Мощность дозы в строке состояния считается по спектру и кривой эффективности, выбранной на панели «Управление измерением»; без матрицы отклика число идёт со знаком «≈».</li>',
 },en:{
 'n.inst':'Install','n.tour':'Main window','n.quiz':'Find it','n.menu':'Menus','n.prefs':'Preferences',
@@ -484,7 +484,7 @@ GUIDE.texts({ru:{
 'mtl1':'<b>Edit Device Configurations...</b> — devices: type, channels, calibrations, efficiency curves','mtl2':'<b>Edit Nuclide Definitions...</b> — lines and colours',
 'mtl3':'<b>Edit Nuclide Sets...</b> — which nuclides to look for in a spectrum','mtl4':'<b>Isotope base...</b> — the NucBase reference: search by name and energy',
 'mtl5':'<b>Open config dir in Explorer...</b> — Explorer with your settings','mtl6':'<b>Preferences</b> — chart, colours, sound, system',
-'mhg':'<b>BecqMoni Guide</b> — this guide in your browser, in the program’s language',
+'mhg':'<b>BecqMoni Guide</b> — this guide from the program’s own files: in your browser, offline, in the program’s language',
 'mh1':'<b>Manual</b> — opens the program’s Telegram channel','mh2':'<b>Check for updates...</b> — the only way to update',
 'mh3':'<b>Show log</b> — Explorer with becqmoni.log selected','mh4':'<b>About...</b> — version, links, acknowledgements',
 'mn.f1':'<b>Without a document “Spectrum” is greyed out.</b> Its items come alive once a spectrum is open.',
@@ -515,7 +515,7 @@ GUIDE.texts({ru:{
 'p.info':'<b>Numbers always use a dot</b>, in any language: 661.66, not 661,66. Digits are never grouped: 250770505.',
 'p.ah':'About the program','p.acap':'Help → About...',
 'pa1':'<b>Name and version</b> — the first thing you will be asked if something does not work','pa2':'<b>Free to use</b> — the program costs nothing',
-'pa3':'<b>Links</b> — source code on GitHub, videos on YouTube and RuTube','pa4':'<b>Acknowledgements</b> — authors of icons, algorithms and libraries the program stands on',
+'pa3':'<b>Links</b> — source code on GitHub, videos on YouTube and RuTube, this guide on the website','pa4':'<b>Acknowledgements</b> — authors of icons, algorithms and libraries the program stands on',
 'hoodtxt':'<li>The program detects how it was installed by itself — by whether it has a ClickOnce deployment. If yes, settings live in <code>%AppData%\\BecqMoni\\config</code>; if not, in <code>config</code> next to the exe.</li><li>“Check for updates” asks the ClickOnce server (<code>CheckForDetailedUpdate</code>), installs the release after “OK” (<code>Update</code>) and restarts only after the second “OK”.</li><li>The log <code>becqmoni.log</code> is trimmed at 2 MB: the old one becomes <code>becqmoni.log.1</code>; there are never more than two files on disk.</li><li>Autosave looks at documents every N minutes (15 by default) and writes only changed ones — and only those that have it switched on.</li><li>The dose rate in the status bar is computed from the spectrum and the efficiency curve chosen on the Measurement Control panel; without a response matrix the number carries a “≈” sign.</li>',
 }});
 

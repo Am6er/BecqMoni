@@ -3470,13 +3470,20 @@ namespace BecquerelMonitor
             Process.Start("https://t.me/software_kbradar");
         }
 
-        // (`AMBER249`, Amber 20.10.2026) «Помощь» → «Гид по BecqMoni»: сайт гида в браузере по умолчанию,
-        // на языке интерфейса — русском (?lang=ru) или английском (?lang=en). Язык интерфейса задаёт
-        // Program.ApplyLanguage из настройки «Язык» (ОС / English / Русский) через CurrentUICulture.
+        // (`AMBER249`, `AMBER250`, Amber 20.10.2026) «Помощь» → «Гид по BecqMoni»: гид из дистрибутива
+        // (docs\ рядом с exe) в браузере по умолчанию, на языке интерфейса — ?lang=ru или ?lang=en;
+        // без копии — сайт. Отказ называется словами, а не глотается (как OpenLink в AboutForm, `A14`).
         void guideGToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string lang = Thread.CurrentThread.CurrentUICulture.TwoLetterISOLanguageName == "ru" ? "ru" : "en";
-            Process.Start("https://amba.cloud/becqmoni/help/?lang=" + lang);
+            try
+            {
+                GuideLinks.OpenLocal();
+            }
+            catch (Exception ex)
+            {
+                AppUi.Report(string.Format(Resources.ERROpenLinkFailure, GuideLinks.LocalIndex, ex.Message),
+                    Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
+            }
         }
 
         // Token: 0x06000A9D RID: 2717 RVA: 0x0003F764 File Offset: 0x0003D964
