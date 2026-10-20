@@ -91,6 +91,7 @@ namespace BecquerelMonitor
             this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
             this.basicSettingsBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpHToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.guideGToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.manualMToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showLogToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
@@ -610,6 +611,7 @@ namespace BecquerelMonitor
             // helpHToolStripMenuItem
             // 
             this.helpHToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.guideGToolStripMenuItem,
             this.manualMToolStripMenuItem,
             this.toolStripSeparator3,
             this.UpdatesAToolStripMenuItem,
@@ -617,9 +619,15 @@ namespace BecquerelMonitor
             this.versionInfoAToolStripMenuItem});
             this.helpHToolStripMenuItem.Name = "helpHToolStripMenuItem";
             resources.ApplyResources(this.helpHToolStripMenuItem, "helpHToolStripMenuItem");
-            // 
+            //
+            // guideGToolStripMenuItem
+            //
+            this.guideGToolStripMenuItem.Name = "guideGToolStripMenuItem";
+            resources.ApplyResources(this.guideGToolStripMenuItem, "guideGToolStripMenuItem");
+            this.guideGToolStripMenuItem.Click += new System.EventHandler(this.guideGToolStripMenuItem_Click);
+            //
             // manualMToolStripMenuItem
-            // 
+            //
             this.manualMToolStripMenuItem.Name = "manualMToolStripMenuItem";
             resources.ApplyResources(this.manualMToolStripMenuItem, "manualMToolStripMenuItem");
             this.manualMToolStripMenuItem.Click += new System.EventHandler(this.manualMToolStripMenuItem_Click);
@@ -778,6 +786,9 @@ namespace BecquerelMonitor
 
 		// Token: 0x0400059C RID: 1436
 		global::System.Windows.Forms.ToolStripMenuItem manualMToolStripMenuItem;
+
+		// `AMBER249`: «Помощь» → «Гид по BecqMoni»
+		global::System.Windows.Forms.ToolStripMenuItem guideGToolStripMenuItem;
 
 		// ⛔ `A15`. Читатель журнала приложения. Подпись и доступность ставит
 		//    `MainForm.InitializeAppLogMenuItem()` — не `resources.ApplyResources`:
