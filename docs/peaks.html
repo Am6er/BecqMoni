@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Пики и нуклиды — BecqMoni гид</title>
-<link rel="stylesheet" href="assets/guide.css?v=c6846273">
+<link rel="stylesheet" href="assets/guide.css?v=1b26651d">
 <style>
 /* только для этой главы */
 @media (max-width:560px){.ui{white-space:normal}}
@@ -192,8 +192,8 @@ table.cand tr.riv td{background:rgba(255,160,60,.08)}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=2094f2ee"></script>
-<script src="assets/quanta.js?v=98c4ced5"></script>
+<script src="assets/guide.js?v=19672d23"></script>
+<script src="assets/quanta.js?v=05579488"></script>
 <script>
 'use strict';
 const { $, $$, clamp, fx, sig, setup, scale, axes, rgba, io, t, poisson, niceTicks, tickLabel } = GUIDE;
@@ -204,7 +204,7 @@ GUIDE.texts({ru:{
 'h.lead':'Поиск пиков — как поиск огоньков в тумане: чем ниже порог, тем больше видно, но тем больше и ложных огней. Найденному пику программа ищет имя в библиотеке — по энергии, ширине и выбранному набору нуклидов.',
 's.k':'Попробуйте сами','s.h':'Порог «Мин SNR» — сито для пиков',
 's.lead':'SNR — во сколько раз горбик выше случайного дрожания фона. Порог — как сито: крупное сито пропустит слабые настоящие пики, мелкое — наловит шума. Двигайте порог и время набора и смотрите, кого поймали.',
-'g.h':'Ловец пиков: проба почвы с радием, цезием и калием',
+'g.h':'Ловец пиков: проба почвы с радием, торием, цезием и калием',
 'g.hint':'Сверху — спектр (корень по высоте), снизу — SNR каждого канала и порог пунктиром. Зелёный флажок — пик на настоящей линии, красный — не линия (шум или край Комптона), серая метка — линия, которую сито пропустило.',
 'g.snr':'Мин SNR','g.time':'время набора','g.noise':'Новый набор',
 'g.t1':'10 мин','g.t2':'1 час','g.t3':'10 часов',
@@ -251,7 +251,7 @@ GUIDE.texts({ru:{
 'b.d2':'<b>Новый / Удалить</b> — завести или убрать линию',
 'b.d3':'<b>Имя и Цепочка</b> — имя линии и ряд, к которому она относится',
 'b.d4':'<b>Энергия и Полураспад</b> — кэВ и годы',
-'b.d5':'<b>Цвет пика</b> — цвет флажка и линий на графике',
+'b.d5':'<b>Цвет пика</b> — цвет контура пика в режиме «Показать континуум с пиками» и линий интенсивностей набора; флажки красятся общими цветами (Инструменты → Настройки → Цвет)',
 'b.d6':'<b>Интенсивность</b> — выход линии, %; ниже 0.1 % пик ей не подписывается',
 'b.d7':'<b>Отображать</b> — без галки линия не участвует в подписях',
 'b.d8':'<b>Сохранить / Закрыть</b> — библиотека и наборы лежат в одном файле',
@@ -291,7 +291,7 @@ GUIDE.texts({ru:{
 'n.s4':'Галка <span class="ui">Добавлять имя основного изотопа к дочернему</span> даст имена вида «Pb214 (Ra226)».',
 'n.s5':'<span class="ui">Импортировать выбранные элементы в список изотопов</span>.',
 'n.s6':'<span class="ui m">Инструменты → Редактировать наборы изотопов...</span> → отметьте новые линии в нужном наборе → <span class="ui">Сохранить</span>.',
-'n.warn':'<b>Импортированные линии — зелёные и ни в один набор не входят.</b> Пока их не отметить в наборе, они подписывают пики только при «--- Все изотопы ---». Окно «Редактировать изотоп», если открыто, видит импорт сразу.',
+'n.warn':'<b>Импортированные линии — зелёные и ни в один набор не входят.</b> Пока вы не отметите их в наборе, они подписывают пики только при «--- Все изотопы ---». Окно «Редактировать изотоп», если открыто, видит импорт сразу.',
 'q.h':'Опознайте нуклид по линиям',
 'q.ask':'Чьи это линии?','q.next':'Следующий','q.score':'{0} из {1}','q.right':'Верно! ','q.wrong':'Нет — это {0}. ','q.done':'Готово: {0} из {1}. «Следующий» — новая серия.',
 'q.e.cs':'Одна сильная линия 662 и рентген бария 32 — визитная карточка Cs-137.','q.e.co':'Две линии 1173 и 1332 почти равной высоты — Co-60.','q.e.am':'Одна низкая линия 59.5 кэВ — Am-241 из датчика дыма.',
@@ -305,7 +305,7 @@ GUIDE.texts({ru:{
 'h.lead':'Peak search is like spotting lights in fog: the lower the threshold, the more you see, but the more false lights too. For every peak found the program looks up a name in the library — by energy, width and the chosen nuclide set.',
 's.k':'Try it yourself','s.h':'The “Min SNR” threshold is a sieve for peaks',
 's.lead':'SNR tells how many times a bump stands above the random jitter of the background. The threshold is a sieve: a coarse one lets weak real peaks slip through, a fine one catches noise. Move the threshold and the acquisition time and see what gets caught.',
-'g.h':'Peak catcher: a soil sample with radium, caesium and potassium',
+'g.h':'Peak catcher: a soil sample with radium, thorium, caesium and potassium',
 'g.hint':'Top — the spectrum (square-root height), bottom — the SNR of every channel with the threshold dashed. A green flag is a peak on a real line, red is not a line (noise or a Compton edge), a grey mark is a line the sieve missed.',
 'g.snr':'Min SNR','g.time':'acquisition time','g.noise':'New acquisition',
 'g.t1':'10 min','g.t2':'1 hour','g.t3':'10 hours',
@@ -352,7 +352,7 @@ GUIDE.texts({ru:{
 'b.d2':'<b>New / Delete</b> — add or remove a line',
 'b.d3':'<b>Name and Chain</b> — the line name and the chain it belongs to',
 'b.d4':'<b>Energy and Half-life</b> — keV and years',
-'b.d5':'<b>Peak Color</b> — colour of the flag and lines on the chart',
+'b.d5':'<b>Peak Color</b> — colour of the peak outline in “Show Continuum with peaks” and of the set’s intensity lines; flags use the common colours (Tool → Preferences → Color)',
 'b.d6':'<b>Intensity</b> — line yield, %; below 0.1 % it labels no peaks',
 'b.d7':'<b>Visible</b> — unchecked, the line takes no part in labels',
 'b.d8':'<b>Save / Close</b> — the library and the sets live in one file',

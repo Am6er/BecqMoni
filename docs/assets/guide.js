@@ -19,7 +19,7 @@
     { id: 'geometry', file: 'geometry.html', ru: ['Геометрия и матрица', 'кривая эффективности, матрица отклика, GPU'], en: ['Geometry and matrix', 'efficiency curve, response matrix, GPU'] },
     { id: 'fsa', file: 'fsa.html', ru: ['FSA на практике', 'включить разбор и прочитать отчёт'], en: ['FSA in practice', 'run the decomposition and read the report'] },
     { id: 'result', file: 'result.html', ru: ['Активность и результат', 'Бк, Бк/кг, дата отбора, предел обнаружения'], en: ['Activity and results', 'Bq, Bq/kg, sampling date, detection limit'] },
-    { id: 'how', file: 'how-it-works.html', ru: ['Как это устроено', 'для продвинутых: всё руками — геометрия, матрица, FSA, активность'], en: ['How it works', 'advanced: hands-on geometry, matrix, FSA, activity'] },
+    { id: 'how', file: 'how-it-works.html', ru: ['Как это работает', 'для продвинутых: всё руками — геометрия, матрица, FSA, активность'], en: ['How it works', 'advanced: hands-on geometry, matrix, FSA, activity'] },
     { id: 'files', file: 'files.html', ru: ['Файлы и вопросы', 'форматы, перенос, частые вопросы'], en: ['Files and FAQ', 'formats, moving data, common questions'] },
   ];
   G.CHAPTERS = CHAPTERS;
@@ -69,7 +69,7 @@
     en: {
       'brand.sub': 'guide', 'toc': 'Contents', 'prev': '← Back', 'next': 'Next →', 'hood': 'How BecqMoni does it',
       'shot.miss': 'the window screenshot goes here', 'shot.zoom': 'click to enlarge',
-      'foot': 'The BecqMoni guide. Window screenshots are of the real app; models in the charts are simplified and run right in your browser.',
+      'foot': 'The BecqMoni guide. Window screenshots are of the real app; models in the charts are simplified and run right in your browser. Numbers are printed with a decimal point.',
     },
   };
   G.texts = d => { ['ru', 'en'].forEach(l => Object.assign(T[l], d[l] || {})); };
@@ -129,7 +129,7 @@
 
   /* ── снимки окон: img/<язык>/<id>.png, точки из data-hot (доли ширины/высоты) ── */
   // версия снимков: её ставит tools/docs_stamp.py перед заливкой — новый снимок под старым именем не берётся из кэша (`AMBER248`)
-  const IMGV = '91d523a1';
+  const IMGV = '276ba73d';
   function buildShots() {
     $$('figure.shot[data-shot]').forEach(fig => {
       const id = fig.dataset.shot;
@@ -162,13 +162,16 @@
 
   /* ── графики ── */
   // облегчённый режим (`AMBER246`): узкий экран или слабый процессор — меньше точек на пиксель, короче фоновые куски, 30 кадров
-  const lite = () => W.innerWidth < 760 || (navigator.hardwareConcurrency || 8) <= 4;
+  // признак считается один раз и заново — только при смене размера окна: его зовут сотни раз за кадр (`AMBER254`)
+  let liteV = null;
+  const lite = () => liteV !== null ? liteV : (liteV = W.innerWidth < 760 || (navigator.hardwareConcurrency || 8) <= 4);
+  W.addEventListener('resize', () => { liteV = null; });
   G.lite = lite;
   function setup(c) {
     const r = c.getBoundingClientRect(), d = Math.min(W.devicePixelRatio || 1, lite() ? 1.5 : 2);
     const w = Math.max(20, Math.round(r.width)), h = Math.max(20, Math.round(r.height));
     if (c.width !== Math.round(w * d) || c.height !== Math.round(h * d)) { c.width = Math.round(w * d); c.height = Math.round(h * d); }
-    const ctx = c.getContext('2d'); ctx.setTransform(d, 0, 0, d, 0, 0); ctx.clearRect(0, 0, w, h);
+    const ctx = c.getContext('2d'); ctx.setTransform(d, 0, 0, d, 0, 0); ctx.clearRect(0, 0, w, h); c._d = d;
     return { ctx, w, h };
   }
   function scale(kind, d0, d1, r0, r1) {

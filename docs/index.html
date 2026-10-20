@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BecqMoni гид</title>
 <meta name="description" content="Гид по BecqMoni: установка, приборы, набор спектра, калибровка, нуклиды, геометрия, FSA и активность — наглядно и интерактивно.">
-<link rel="stylesheet" href="assets/guide.css?v=c6846273">
+<link rel="stylesheet" href="assets/guide.css?v=1b26651d">
 <style>
 .path{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px}
 .path button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 11px;color:var(--soft);font-family:inherit;cursor:pointer;transition:border-color .15s}
@@ -66,8 +66,8 @@
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=2094f2ee"></script>
-<script src="assets/quanta.js?v=98c4ced5"></script>
+<script src="assets/guide.js?v=19672d23"></script>
+<script src="assets/quanta.js?v=05579488"></script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, setup, scale, axes, eCol, rgba, visible, io, t } = GUIDE;
@@ -103,7 +103,7 @@ GUIDE.texts({ru:{
 'c.k':'Оглавление','c.h':'Двенадцать глав — от предисловия до файлов',
 'c.lead':'Можно читать по порядку, а можно сразу открыть нужное. Вверху каждой страницы — кнопка <b>Оглавление</b>, внизу — переход к следующей главе.',
 'b.k':'Перед началом','b.h':'Что полезно знать заранее',
-'b.f1':'<b>Windows и .NET Framework 4.8.</b> BecqMoni — программа для Windows; ставится и обновляется сама, обновления приходят с сайта программы.',
+'b.f1':'<b>Windows и .NET Framework 4.8.</b> BecqMoni — программа для Windows; ставится установщиком с сайта программы и обновляется оттуда же — по пункту «Помощь → Проверить обновление...».',
 'b.f2':'<b>Прибор — сцинтилляционный.</b> NaI или CsI: Atom Spectra, RadiaCode, Obsidian и другие. Подробности — в главе «Приборы».',
 'b.f3':'<b>Без прибора тоже можно.</b> Готовые спектры открываются из файлов — свои и чужие, в разных форматах.',
 'b.f4':'<b>Калибровка — первым делом.</b> Пока шкала энергий не настроена, программа не узнает ни одного нуклида.',
@@ -126,7 +126,7 @@ GUIDE.texts({ru:{
 'c.k':'Contents','c.h':'Twelve chapters — from the preface to files',
 'c.lead':'Read them in order or jump straight to what you need. Every page has a <b>Contents</b> button at the top and a link to the next chapter at the bottom.',
 'b.k':'Before you start','b.h':'Good to know in advance',
-'b.f1':'<b>Windows and .NET Framework 4.8.</b> BecqMoni is a Windows program; it installs and updates itself, updates come from the program\'s website.',
+'b.f1':'<b>Windows and .NET Framework 4.8.</b> BecqMoni is a Windows program; it installs from the program\'s website and updates from there too — via Help → Check for updates....',
 'b.f2':'<b>A scintillation detector.</b> NaI or CsI: Atom Spectra, RadiaCode, Obsidian and others. Details are in the “Devices” chapter.',
 'b.f3':'<b>No detector? Still fine.</b> Ready-made spectra open from files — your own and others\', in several formats.',
 'b.f4':'<b>Calibrate first.</b> Until the energy scale is set, the program cannot recognise a single nuclide.',

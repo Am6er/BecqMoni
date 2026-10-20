@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Активность и результат — BecqMoni гид</title>
-<link rel="stylesheet" href="assets/guide.css?v=c6846273">
+<link rel="stylesheet" href="assets/guide.css?v=1b26651d">
 <style>
 /* только эта глава */
 figure.shot.side{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:6px 16px;align-items:start;margin-top:22px}
@@ -202,8 +202,8 @@ figure.shot.wide{margin-top:22px}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=2094f2ee"></script>
-<script src="assets/quanta.js?v=98c4ced5"></script>
+<script src="assets/guide.js?v=19672d23"></script>
+<script src="assets/quanta.js?v=05579488"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
 GUIDE.texts({ ru: {"mc.n": "Распады", "mc.k": "Монте-Карло", "mc.h": "От распадов к отсчётам", "mc.lead": "Почему отсчётов в пике так мало по сравнению с распадами? Каждая ступень отнимает свою долю: не каждый распад даёт фотон, не каждый фотон летит в кристалл, не каждый попавший отдаёт всю энергию. Смотрите, как это складывается на распадах Cs-137 в банке.", "mc.lab": "Cs-137 в банке на торце, Ø63 × 63 мм", "mc.fh": "Воронка счёта", "mc.r1": "распадов", "mc.r2": "дали фотон 662 кэВ", "mc.r3": "долетели до кристалла", "mc.r4": "отдали всю энергию — в пике", "mc.form": "y = <b>{0}</b> · ε = в пике / фотонов = <b>{1}</b><br>из 1000 распадов в пике ≈ <b>{2}</b><br>A = N / (t × ε × y)", "mc.wait": "считаю распады…", "mc.f1": "<b>ε × y</b> — доля распадов, дающих отсчёт в пике. Её BecqMoni берёт из кривой эффективности или матрицы отклика.", "mc.f2": "<b>Ступени перемножаются:</b> 85 % × десяток процентов × доля пика — поэтому из тысячи распадов в пике лишь десятки.", "mc.f3": "<b>Отсюда формула окна результата:</b> A = N / (t · ε · y) — отсчёты делятся на время и на эту долю."},
@@ -233,7 +233,7 @@ GUIDE.texts({ru:{
 'n.win':'Окно результата','n.calc':'Калькулятор','n.lim':'Порог обнаружения','n.smp':'Масса и дата','n.sel':'Выбранная область',
 'h.k':'Глава 10 · Активность и результат',
 'h.h':'От разбора — к <em>беккерелям на килограмм</em>',
-'h.lead':'FSA сказал, сколько чего в спектре. Окно «Результат измерений» переводит это в беккерели, делит на массу или объём и приводит к дню, когда пробу взяли. Почему числа такие и откуда предел обнаружения — в главе <a href="how-it-works.html#activity">«Как это устроено» → Активность</a>.',
+'h.lead':'FSA сказал, сколько чего в спектре. Окно «Результат измерений» переводит это в беккерели, делит на массу или объём и приводит к дню, когда пробу взяли. Почему числа такие и откуда предел обнаружения — в главе <a href="how-it-works.html#activity">«Как это работает» → Активность</a>.',
 'w.k':'В программе','w.h':'Окно «Результат измерений»',
 'w.lead':'Это как кассовый чек после разбора: строка на нуклид, сумма, «плюс-минус» и порог, ниже которого ничего не утверждается. <span class="ui m">Вид → Результат измерений</span> (можно открыть до четырёх окон с разными единицами).',
 'w.cap':'«Результат измерений»: диск Th-232, беккерели по матрице отклика',
@@ -250,8 +250,8 @@ GUIDE.texts({ru:{
 'd.h1':'FSA: Бк по матрице отклика','d.h2':'FSA: Бк по кривой (расчёт)','d.h3':'FSA: Бк скрыты — кривая сцены поля (см² на единичный флюенс)','d.h4':'FSA: Бк скрыты — кривая без абсолютного уровня (измерение)','d.h5':'FSA: ошибка','d.h6':'FSA: идёт расчёт…','d.h7':'FSA: Бк по матрице отклика',
 'd.t1':'Лучший случай: кривая с геометрией и годная матрица. Каскадное суммирование учтено.',
 'd.t2':'Матрицы нет или она устарела: беккерели — по кривой, суммирование не учтено. На снимке без матрицы Th-232 вышел 1085.09 вместо 965.18 Бк — разница 12 %. Посчитайте матрицу (глава <a href="geometry.html#matrix">8</a>).',
-'d.t3':'Кривая сцены «Детектор на земле», «в лунке» или «Изотропное поле (ISO)» меряет флюенс, а не долю квантов: для дозы — да, для беккерелей — нет. Строки пишут «нет K».',
-'d.t4':'Кривая снята по измерениям или введена руками: её форма годится разбору, но абсолютного уровня у неё нет — беккерели скрыты.',
+'d.t3':'Кривая сцены «Изотропное поле (ISO)» меряет отклик на единичный флюенс (см²), а не долю квантов: для дозы — да, для беккерелей — нет. Строки пишут «нет K». Сцены «Детектор на земле» и «в лунке» беккерели дают.',
+'d.t4':'Кривая снята по измерениям или введена руками, а геометрию к ней дописали через «Изменить…»: разбор идёт, но абсолютного уровня у самой кривой нет — без матрицы беккерели скрыты. Посчитайте матрицу (тогда Бк — по ней) или кривую из геометрии.',
 'd.t5':'Разбор отказал: вместо строк — одна строка «FSA» с причиной, той же, что в строке состояния «Отчёта FSA». Здесь — нет геометрии у кривой (глава <a href="geometry.html">8</a>).',
 'd.t6':'Разбор ещё идёт. Если прошлый результат уже есть, строки остаются от него, а к заголовку добавляется «(пересчёт…)»; при наборе пересчёт — не чаще раза в 30 с.',
 'd.t7':'Выбраны Бк/кг, а в «Информации об образце» вес равен нулю: строки пишут «нет массы». Впишите вес — и числа появятся.',
@@ -288,7 +288,7 @@ GUIDE.texts({ru:{
 's.ex':'Cs-137 (пример)','s.msg':'обнаружено <b>{0} из {1}</b>','s.why0':'K-40: {0} ≥ {1}·σ = {2}?','s.why1':'K-40: {0} ≥ МДА {1}?',
 'l.f1':'<b>МДА у FSA — не «по зоне».</b> Это предел обнаружения разбора по ISO 11929, и он честно раздут на √(χ²/ndf), если подгонка хуже статистики.',
 'l.f2':'<b>Уровень неопределённости — только показ.</b> 1σ или 2σ меняют колонку «Неопред.», но не само решение «обнаружено».',
-'l.f3':'<b>Порог растёт вместе с фоном.</b> Длиннее набор — ниже МДА. Как сужается «трубка» — в <a href="how-it-works.html#activity">«Как это устроено»</a>.',
+'l.f3':'<b>Порог растёт вместе с фоном.</b> Длиннее набор — ниже МДА. Как сужается «трубка» — в <a href="how-it-works.html#activity">«Как это работает»</a>.',
 'p.k':'Образец','p.h':'Масса и дата отбора',
 'p.lead':'Бк/кг и «на дату отбора» берут данные из панели <span class="ui m">Вид → Информация об образце</span>. Это паспорт пробы: заполняется у каждого спектра и сохраняется с ним.',
 'p.cap':'«Информация об образце»',
@@ -344,8 +344,8 @@ GUIDE.texts({ru:{
 'd.h1':'FSA: Bq by response matrix','d.h2':'FSA: Bq by simulation curve','d.h3':'FSA: Bq hidden — field-scene curve (cm² per unit fluence)','d.h4':'FSA: Bq hidden — curve without absolute scale (measurement)','d.h5':'FSA: error','d.h6':'FSA: computing…','d.h7':'FSA: Bq by response matrix',
 'd.t1':'The best case: a curve with a geometry and a valid matrix. Cascade summing is applied.',
 'd.t2':'No matrix or a stale one: becquerels by the curve, summing not applied. In the shot without a matrix Th-232 came out 1085.09 instead of 965.18 Bq — a 12 % difference. Compute the matrix (chapter <a href="geometry.html#matrix">8</a>).',
-'d.t3':'A curve of the “Detector on the ground”, “in a borehole” or “Isotropic field (ISO)” scene measures fluence, not a share of photons: fine for dose, not for becquerels. Rows say “no K”.',
-'d.t4':'The curve comes from measurements or was typed by hand: its shape suits the decomposition, but it has no absolute scale — becquerels are hidden.',
+'d.t3':'A curve of the “Isotropic field (ISO)” scene measures the response per unit fluence (cm²), not a share of photons: fine for dose, not for becquerels. Rows say “no K”. The “Detector on the ground” and “in a borehole” scenes do give becquerels.',
+'d.t4':'The curve comes from measurements or was typed by hand, and a geometry was added with “Edit...”: the decomposition runs, but the curve has no absolute scale — without a matrix becquerels are hidden. Compute the matrix (then Bq come from it) or a curve from the geometry.',
 'd.t5':'The decomposition refused: instead of rows there is one “FSA” row with the reason, the same as in the status line of the “FSA Report”. Here — the curve has no geometry (chapter <a href="geometry.html">8</a>).',
 'd.t6':'The decomposition is still running. If an earlier result exists, its rows stay and the header gets “(recomputing…)”; while recording it recomputes no more often than every 30 s.',
 'd.t7':'Bq/kg is chosen while the weight in “Sample Information” is zero: rows say “no weight”. Type the weight — and the numbers appear.',

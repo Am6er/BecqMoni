@@ -357,7 +357,14 @@ namespace BecquerelMonitor
                     deadTime = (double)100.0 * (totalSeconds - activeResultData.EnergySpectrum.LiveTime) / totalSeconds;
                 } else
                 {
-                    deadTime = 0;
+                    // (`AMBER254`, 20.10.2026) Живое время 0 — двух родов. Не задано (файл без живого
+                    // времени: счёт идёт по полному) — мёртвого времени не показываем, как прежде.
+                    // Прибор насыщен: n·τ ≥ 1, и LiveTime.Calculate зажимает живое время в 0 — тогда
+                    // мёртвое время 100 %, а не «0.0000» чёрным. Признак — то же правило, что в Calculate.
+                    double tau = activeResultData.DeviceConfig?.InputDeviceConfig?.DeadTime() ?? 0.0;
+                    double measured = activeResultData.EnergySpectrum.MeasurementTime;
+                    long total = activeResultData.EnergySpectrum.TotalPulseCount;
+                    deadTime = (tau > 0.0 && measured > 0.0 && total > 0 && total / measured * tau >= 1.0) ? 100.0 : 0.0;
                 }
             }
             this.countRateTextBox.Text = cps.ToString("f2", CultureInfo.InvariantCulture);

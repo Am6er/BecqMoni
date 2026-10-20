@@ -419,13 +419,13 @@ const T = {ru:{
 's1.scene':'Кристалл NaI(Tl) сбоку — выпускайте фотоны',
 's1.energy':'Энергия фотона:',
 's1.shield':'свинцовый домик вокруг',
-'s1.b1':'1 фотон','s1.b100':'×100','s1.b10k':'×100 000','s1.clr':'Очистить',
+'s1.b1':'1 фотон','s1.b100':'×100','s1.b10k':'×100000','s1.clr':'Очистить',
 's1.spec':'Что записал прибор',
 's1.lg.ph':'фотоэффект — отдал всё','s1.lg.co':'комптон — отскочил','s1.lg.pa':'рождение пары e⁺e⁻','s1.lg.esc':'улетел','s1.lg.abs':'застрял по дороге',
 's1.st':'выпущено <b>{0}</b> · провзаимодействовали <b>{1}</b> · в пике <b>{2}</b>',
 's1.f1':'<b>Пик полного поглощения</b> — фотон отдал всю энергию. По положению пика узнают нуклид, по его площади — сколько его.',
 's1.f2':'<b>Комптоновское плато</b> — фотон отскочил и улетел, оставив часть энергии. Плато обрывается на «комптоновском крае».',
-'s1.f3':'<b>Горбы и пики-спутники</b> — обратное рассеяние от защиты, рентген свинца, пики вылета. Их рисует окружение, а не проба.',
+'s1.f3':'<b>Горбы и пики-спутники</b> — обратное рассеяние от защиты и рентген свинца (их рисует окружение) и пики вылета (их рисует сам кристалл). Нового нуклида за ними нет.',
 'ann.fep':'пик','ann.ce':'комптоновский край','ann.bs':'обратное рассеяние','ann.pb':'рентген Pb','ann.se':'вылет 511','ann.de':'вылет 2×511','ann.ie':'вылет йода',
 's2.k':'Шаг 2',
 's2.h':'Геометрия: почему важно, где и как лежит проба',
@@ -458,7 +458,7 @@ const T = {ru:{
 's3.l1':'Только пик','s3.l2':'+ комптон','s3.l3':'+ всё остальное',
 's3.expl':'объяснено <b>{0} %</b> отсчётов',
 's3.lpk':'пик Cs-137','s3.lco':'комптон Cs-137','s3.lrest':'обратное рассеяние, рентген Pb, прочее',
-'s3.mxnote':'здесь {0} фотонов на строку; в программе — до 3 млн на узел',
+'s3.mxnote':'здесь {0} фотонов на строку; в программе — около 3 млн на узел (шумному — до 24 млн)',
 's4.k':'Шаг 4',
 's4.h':'FSA: разобрать спектр на цветные слои',
 's4.lead':'Обычный поиск пиков меряет каждый пик по отдельности. <b>FSA</b> (полноспектральный разбор) работает со всем спектром сразу. Сначала по найденным пикам он решает, <b>кто</b> есть в пробе, и для каждого нуклида берёт готовый «слой» — как этот нуклид со всем своим рядом распада выглядит именно в вашей геометрии. Потом подбирает, <b>сколько</b> каждого слоя нужно, чтобы сложилась измеренная картина. Как художник, который знает чистые краски и угадывает пропорции смеси.',
@@ -483,7 +483,7 @@ const T = {ru:{
 's4.f1':'<b>Весь спектр — улика</b>: плато и горбы работают на результат, а не мешают ему.',
 's4.f2':'<b>Перекрытые линии разводятся сами</b>: слой нуклида двигается целиком, со всеми своими линиями сразу.',
 's4.f3':'<b>Невязка — честный отчёт</b>: что модель не объяснила, видно сразу, обоими знаками.',
-'nm.Xray-Pb':'Рентген Pb','nm.Xray-Th':'Рентген Th','nm.Xray-La':'Рентген La','nm.Xray-Pb-L':'Рентген Pb (L)','nm.Backscatter':'Обратное рассеяние','nm.pile-up':'Наложения',
+'nm.Xray-Pb':'Рентген Pb','nm.Xray-Th':'Рентген Th','nm.Xray-La':'Рентген La','nm.Xray-Pb-L':'Рентген Pb-L','nm.Backscatter':'Обратное рассеяние','nm.pile-up':'Наложения',
 's5.k':'Шаг 5',
 's5.h':'Активность: от слоя к беккерелям',
 's5.lead':'Беккерель — один распад в секунду. Прибор замечает лишь малую долю распадов, но знает эту долю из геометрии и матрицы — и честно пересчитывает обратно.',
@@ -529,13 +529,13 @@ const T = {ru:{
 's1.scene':'NaI(Tl) crystal, side view — fire some photons',
 's1.energy':'Photon energy:',
 's1.shield':'lead shield around',
-'s1.b1':'1 photon','s1.b100':'×100','s1.b10k':'×100 000','s1.clr':'Clear',
+'s1.b1':'1 photon','s1.b100':'×100','s1.b10k':'×100000','s1.clr':'Clear',
 's1.spec':'What the detector recorded',
 's1.lg.ph':'photoeffect — gave up everything','s1.lg.co':'Compton — bounced','s1.lg.pa':'pair e⁺e⁻ created','s1.lg.esc':'escaped','s1.lg.abs':'stopped on the way',
 's1.st':'fired <b>{0}</b> · interacted <b>{1}</b> · in the peak <b>{2}</b>',
 's1.f1':'<b>Full-energy peak</b> — the photon gave up all its energy. The peak position tells which nuclide it is; its area tells how much.',
 's1.f2':'<b>Compton plateau</b> — the photon bounced and escaped, leaving only part of its energy. The plateau ends at the "Compton edge".',
-'s1.f3':'<b>Bumps and satellite peaks</b> — backscatter from the shield, lead X-rays, escape peaks. They come from the surroundings, not from the sample.',
+'s1.f3':'<b>Bumps and satellite peaks</b> — backscatter from the shield and lead X-rays (made by the surroundings) and escape peaks (made by the crystal itself). No new nuclide stands behind them.',
 'ann.fep':'peak','ann.ce':'Compton edge','ann.bs':'backscatter','ann.pb':'Pb X-rays','ann.se':'511 escape','ann.de':'2×511 escape','ann.ie':'iodine escape',
 's2.k':'Step 2',
 's2.h':'Geometry: why it matters where and how the sample sits',
@@ -568,7 +568,7 @@ const T = {ru:{
 's3.l1':'Peak only','s3.l2':'+ Compton','s3.l3':'+ everything else',
 's3.expl':'<b>{0} %</b> of counts explained',
 's3.lpk':'Cs-137 peak','s3.lco':'Cs-137 Compton','s3.lrest':'backscatter, Pb X-rays, other',
-'s3.mxnote':'{0} photons per row here; the app uses up to 3 million per node',
+'s3.mxnote':'{0} photons per row here; the app uses about 3 million per node (up to 24 million for a noisy one)',
 's4.k':'Step 4',
 's4.h':'FSA: taking the spectrum apart into coloured layers',
 's4.lead':'Ordinary peak search measures every peak on its own. <b>FSA</b> (full-spectrum analysis) works with the whole spectrum at once. First, from the peaks it found, it decides <b>who</b> is in the sample, and for every nuclide it takes a ready-made "layer" — what that nuclide with its whole decay chain looks like in exactly your geometry. Then it finds <b>how much</b> of each layer is needed to rebuild the measured picture. Like a painter who knows the pure paints and guesses the proportions of a mix.',
@@ -593,7 +593,7 @@ const T = {ru:{
 's4.f1':'<b>The whole spectrum is evidence</b>: plateaus and bumps help the result instead of getting in the way.',
 's4.f2':'<b>Overlapping lines separate on their own</b>: a nuclide\'s layer moves as a whole, with all its lines at once.',
 's4.f3':'<b>The residual is an honest report</b>: whatever the model did not explain is visible at once, with both signs.',
-'nm.Xray-Pb':'Pb X-rays','nm.Xray-Th':'Th X-rays','nm.Xray-La':'La X-rays','nm.Xray-Pb-L':'Pb X-rays (L)','nm.Backscatter':'Backscatter','nm.pile-up':'Pile-up',
+'nm.Xray-Pb':'X-ray Pb','nm.Xray-Th':'X-ray Th','nm.Xray-La':'X-ray La','nm.Xray-Pb-L':'X-ray Pb-L','nm.Backscatter':'Backscatter','nm.pile-up':'Pile-up',
 's5.k':'Step 5',
 's5.h':'Activity: from a layer to becquerels',
 's5.lead':'A becquerel is one decay per second. The detector notices only a small share of decays, but it knows that share from the geometry and the matrix — and honestly scales back up.',
@@ -627,18 +627,18 @@ const T = {ru:{
 /* Подкапотные списки — заполняются из фактов о коде приложения */
 const HOOD = {ru:{
 1:'<li>Перенос в программе подробнее, чем здесь: комптон на связанных электронах, рэлей, вылет K- и L-рентгена, пары с переносом позитрона, перенос электронов и тормозное излучение, нелинейность светового выхода.</li>'+
-  '<li>Свинцовый домик в перенос не входит. Если в геометрии стоит галка «в защите», FSA добавляет отдельные слои «Обратное рассеяние» и «Рентген Pb».</li>'+
-  '<li>Кристалл — цилиндр или брусок, NaI или CsI. Есть готовые шаблоны детекторов: RadiaCode-101 и -103, Atom Spectra Nano 16, 40×40 и 80×80, Gamma-1S 63×63, Obsidian.</li>',
-2:'<li>Геометрия задаётся в конфигурации прибора, раздел Efficiency: детектор (кристалл, отражатель, зазор, корпус), проба (точка, банка, маринелли, кювета — вещество и плотность) и расстояние.</li>'+
-  '<li>Кнопка «Calculate from geometry» считает кривую тем же переносом: 200 000 фотонов на точку, точки 40…3000 кэВ, внизу и у K-краёв гуще. Кривую можно и импортировать из ЛСРМ или ввести руками.</li>'+
+  '<li>Свинцовый домик в перенос не входит. Слой «Обратное рассеяние» FSA строит без матрицы всегда, а при матрице — только если в геометрии отмечено «Измерение в защите (свинцовый домик)». Слой «Рентген Pb» появляется, когда поиск пиков подписал линии рентгена свинца (флажок «Атомный рентген»).</li>'+
+  '<li>Кристалл — цилиндр или брусок, NaI, CsI, LaBr3 или BGO. Есть готовые шаблоны детекторов: RadiaCode-101 и -103, Atom Spectra Nano 16, 40×40 и 80×80, Gamma-1S 63×63, Obsidian.</li>',
+2:'<li>Геометрия задаётся в конфигурации прибора, вкладка «Эффективность»: детектор (кристалл, отражатель, зазор, корпус), проба (точка, банка, маринелли, кювета — вещество и плотность) и расстояние.</li>'+
+  '<li>Кнопка «Посчитать из геометрии» считает кривую тем же переносом: 200000 фотонов на точку, точки 5…3000 кэВ, внизу и у K-краёв гуще. Кривую можно и импортировать из ЛСРМ — кнопкой «Импорт из LSRM…» конструктора кривой.</li>'+
   '<li>Кривая живёт вместе со своей геометрией в конфигурации прибора, копия уезжает в файл спектра.</li>'+
   '<li>Между точками — интерполяция в логарифмах. Линия за краем кривой из разбора выбрасывается, и отчёт её называет.</li>',
-3:'<li>Окно: Device configuration → Efficiency → «Response matrix…». 140 узлов по энергии 5…3000 кэВ плюс узлы у K-краёв, шаг 2 кэВ, до 3 млн фотонов на узел.</li>'+
-  '<li>Видеокарта Nvidia RTX 30xx и новее (галка «Use Nvidia GPU») ускоряет счёт: точечная геометрия — 19 с против 37 мин на процессоре.</li>'+
+3:'<li>Окно: «Конфигурация устройства» → «Эффективность» → «Матрица отклика...». 140 узлов по энергии 5…3000 кэВ плюс узлы у K-краёв, шаг 2 кэВ; 3 млн фотонов на узел — на видеокарте ровно, на процессоре по цели шума 3 %: тихому узлу меньше, шумному до 24 млн.</li>'+
+  '<li>Видеокарта Nvidia RTX 30xx и новее (галка «Считать на GPU Nvidia») ускоряет счёт: точечная геометрия — 19 с против 37 мин на процессоре.</li>'+
   '<li>Между узлами строки сдвигаются к энергии линии (пик — сдвигом, пики вылета — постоянным смещением, комптон — по карте узлов) и смешиваются.</li>'+
   '<li>Матрица своя у каждой геометрии, на ней стоит клеймо — отпечаток геометрии и версии физики. Изменили геометрию — матрица «устарела», и разбор идёт без неё, пока её не пересчитают.</li>'+
   '<li>Без матрицы слой — только узкие пики, взвешенные кривой эффективности: нет ни плато, ни каскадного суммирования (сумм-пики Co-60 и подобных строятся поверх матрицы).</li>',
-4:'<li>Включается в выпадающем списке фона на панели спектра — «Show FSA»; подробности — в окне FSA Report. Во время набора разбор пересчитывается не чаще раза в 30 с.</li>'+
+4:'<li>Включается в выпадающем списке фона на панели спектра — «Показать FSA (полноспектральное разложение)»; подробности — в окне «Отчёт FSA». Во время набора разбор пересчитывается не чаще раза в 30 с.</li>'+
   '<li>Состав («Из NucBase»): поиск пиков подписывает пики, нуклид принимается, если подтверждено не меньше 30 % его групп линий; затем из базы берётся весь ряд со всеми излучениями. Ряд в равновесии — одна общая амплитуда.</li>'+
   '<li>Фон вычитается измеренный; сверху — неотрицательная кусочно-линейная подложка. Подбор — взвешенный МНК с неотрицательностью (NNLS) и защитой от выбросов (Хубер); слои со значимостью ниже 3 отбрасываются.</li>'+
   '<li>Шкала привязывается по пикам полного поглощения самой модели: усиление, ноль и ширина пересчитываются по центрам пиков. Перебор растяжений шкалы в программе есть, но выключен.</li>'+
@@ -649,13 +649,13 @@ const HOOD = {ru:{
   '<li>Не обнаруженный нуклид выводится строкой с порогом решения и пределом обнаружения по ISO 11929 (α = β = 5 %).</li>'
 },en:{
 1:'<li>The app\'s transport is more detailed than here: Compton on bound electrons, Rayleigh, K and L X-ray escape, pairs with positron transport, electron transport and bremsstrahlung, non-proportional light yield.</li>'+
-  '<li>The lead house is not part of the transport. If the geometry has "in shield" ticked, FSA adds separate "Backscatter" and "Pb X-rays" layers.</li>'+
-  '<li>The crystal is a cylinder or a bar, NaI or CsI. Ready detector templates: RadiaCode-101 and -103, Atom Spectra Nano 16, 40×40 and 80×80, Gamma-1S 63×63, Obsidian.</li>',
+  '<li>The lead house is not part of the transport. Without a matrix FSA always builds the "Backscatter" layer; with a matrix only if the geometry has "Measured inside a shield (lead castle)" ticked. The "X-ray Pb" layer appears when the peak search has labelled lead X-ray lines ("Atomic X-rays" box).</li>'+
+  '<li>The crystal is a cylinder or a bar, NaI, CsI, LaBr3 or BGO. Ready detector templates: RadiaCode-101 and -103, Atom Spectra Nano 16, 40×40 and 80×80, Gamma-1S 63×63, Obsidian.</li>',
 2:'<li>The geometry is set in the device configuration, Efficiency section: detector (crystal, reflector, gap, housing), sample (point, jar, Marinelli, cuvette — material and density) and distance.</li>'+
-  '<li>"Calculate from geometry" computes the curve with the same transport: 200 000 photons per point, points 40…3000 keV, denser at the bottom and near K-edges. A curve can also be imported from LSRM or typed in.</li>'+
+  '<li>"Calculate from geometry" computes the curve with the same transport: 200000 photons per point, points 5…3000 keV, denser at the bottom and near K-edges. A curve can also be imported from LSRM with "Import from LSRM..." in the curve editor.</li>'+
   '<li>The curve lives together with its geometry in the device configuration; a copy travels inside the spectrum file.</li>'+
   '<li>Between points — log-log interpolation. A line beyond the end of the curve is dropped from the decomposition, and the report names it.</li>',
-3:'<li>Window: Device configuration → Efficiency → "Response matrix…". 140 energy nodes 5…3000 keV plus nodes at K-edges, 2 keV bins, up to 3 million photons per node.</li>'+
+3:'<li>Window: Device configuration → Efficiency → "Response matrix...". 140 energy nodes 5…3000 keV plus nodes at K-edges, 2 keV bins; 3 million photons per node — exactly on the GPU, on the CPU by a 3 % noise target: a quiet node gets fewer, a noisy one up to 24 million.</li>'+
   '<li>An Nvidia RTX 30xx or newer card ("Use Nvidia GPU") speeds it up: a point geometry takes 19 s versus 37 min on the CPU.</li>'+
   '<li>Between nodes the rows are moved to the line energy (peak by a shift, escape peaks by a constant offset, Compton by a node map) and blended.</li>'+
   '<li>Every geometry has its own matrix, stamped with a fingerprint of the geometry and the physics version. Change the geometry — the matrix is "stale" and the decomposition runs without it until it is recomputed.</li>'+
@@ -721,7 +721,7 @@ function setup(c) {
   const r = c.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2);
   const w = Math.max(20, Math.round(r.width)), h = Math.max(20, Math.round(r.height));
   if (c.width !== Math.round(w * d) || c.height !== Math.round(h * d)) { c.width = Math.round(w * d); c.height = Math.round(h * d); }
-  const ctx = c.getContext('2d'); ctx.setTransform(d, 0, 0, d, 0, 0); ctx.clearRect(0, 0, w, h);
+  const ctx = c.getContext('2d'); ctx.setTransform(d, 0, 0, d, 0, 0); ctx.clearRect(0, 0, w, h); c._d = d;
   return { ctx, w, h };
 }
 function scale(kind, d0, d1, r0, r1) {
@@ -1025,29 +1025,49 @@ function drawSetup(ctx, V, D, o = {}) {
   ctx.fillStyle = gc; ctx.fillRect(X(0), Y(D.R), D.H * s, 2 * D.R * s);
   if (o.labels) { ctx.fillStyle = '#d7e6ff'; ctx.font = '600 12px system-ui'; ctx.textAlign = 'center'; ctx.fillText('NaI(Tl)', X(D.H / 2), Y(D.R) + 16); }
 }
+/* свечение точки взаимодействия: градиент рисуется один раз в маленький холст на цвет и масштаб,
+   дальше — drawImage с прозрачностью; раньше градиент строился у каждой точки в каждом кадре (`AMBER254`) */
+const glowCache = new Map();
+function glowSprite(col, d) {
+  const key = col + '|' + d; let c = glowCache.get(key);
+  if (!c) {
+    const R = 13, n = Math.ceil(2 * R * d); c = document.createElement('canvas'); c.width = c.height = n;
+    const g = c.getContext('2d'); g.scale(n / (2 * R), n / (2 * R));
+    const gr = g.createRadialGradient(R, R, 0, R, R, R); gr.addColorStop(0, rgba(col, .8)); gr.addColorStop(1, rgba(col, 0));
+    g.fillStyle = gr; g.beginPath(); g.arc(R, R, R, 0, TWO_PI); g.fill(); glowCache.set(key, c);
+  }
+  return c;
+}
+const PT_COL = { ph: '#ff4d6d', co: '#ffd166', pa: '#c38bff' };
 function drawTrack(ctx, V, tr, alpha, prog) {    // prog: 0..1 — какая часть трека уже пролетела
-  const { X, Y } = V; let L = 0;
-  const segs = tr.filter(e => e.a);
-  segs.forEach(e => { e.len = Math.hypot(e.b[0] - e.a[0], e.b[2] - e.a[2]) + (e.c ? 3.5 : 0) + (e.k === 'miss' ? 0 : 0.01); L += e.len; });
-  let lim = prog === undefined ? Infinity : prog * L, acc = 0;
-  ctx.save(); ctx.lineCap = 'round';
+  const { X, Y } = V;
+  if (tr.L === undefined) {   // трек после рождения не меняется: длины и цвета отрезков — один раз, а не в каждом кадре (`AMBER254`)
+    let L = 0;
+    for (const e of tr) if (e.a) { e.len = Math.hypot(e.b[0] - e.a[0], e.b[2] - e.a[2]) + (e.c ? 3.5 : 0) + (e.k === 'miss' ? 0 : 0.01); L += e.len; e.col = e.k === 'bs' ? '#CC55BB' : eCol(e.E, e.k === 'miss' ? 0.22 : 0.95); }
+    tr.L = L;
+  }
+  let lim = prog === undefined ? Infinity : prog * tr.L, acc = 0;
+  const d = ctx.canvas._d || ctx.getTransform().a;   // масштаб холста запоминает setup()
+  // без ctx.save(): у сотни треков в кадре он стоил заметно; прозрачность — общей альфой, цвета — готовыми строками
+  const a0 = ctx.globalAlpha, lc0 = ctx.lineCap, lw0 = ctx.lineWidth;
+  ctx.lineCap = 'round'; ctx.globalAlpha = a0 * alpha;
   for (const e of tr) {
     if (e.a) {
       if (acc >= lim) break;
       const f = clamp((lim - acc) / e.len, 0, 1); acc += e.len;
-      ctx.strokeStyle = e.k === 'bs' ? rgba('#CC55BB', alpha) : eCol(e.E, alpha * (e.k === 'miss' ? 0.22 : 0.95)); ctx.lineWidth = e.k === 'miss' ? 1 : 1.8;
+      ctx.strokeStyle = e.col; ctx.lineWidth = e.k === 'miss' ? 1 : 1.8;
       const b = e.k === 'out' ? e.c : e.b, bx = lerp(e.a[2], b[2], f), by = lerp(e.a[0], b[0], f);
       ctx.beginPath(); ctx.moveTo(X(e.a[2]), Y(e.a[0])); ctx.lineTo(X(bx), Y(by)); ctx.stroke();
-      if (e.k === 'out' && f > 0.98) { ctx.fillStyle = rgba('#4dd0e1', alpha); ctx.beginPath(); ctx.arc(X(e.c[2]), Y(e.c[0]), 2.4, 0, TWO_PI); ctx.fill(); }
+      if (e.k === 'out' && f > 0.98) { ctx.fillStyle = '#4dd0e1'; ctx.beginPath(); ctx.arc(X(e.c[2]), Y(e.c[0]), 2.4, 0, TWO_PI); ctx.fill(); }
     } else if (e.p && e.k !== 'src') {
       if (acc > lim) break;
-      const col = e.k === 'ph' ? '#ff4d6d' : e.k === 'co' ? '#ffd166' : e.k === 'pa' ? '#c38bff' : '#8892a8', r = e.k === 'ph' ? 4.5 : e.k === 'pa' ? 4.5 : 3;
-      if (e.k === 'ph' || e.k === 'pa') { const g = ctx.createRadialGradient(X(e.p[2]), Y(e.p[0]), 0, X(e.p[2]), Y(e.p[0]), 13); g.addColorStop(0, rgba(col, .8 * alpha)); g.addColorStop(1, rgba(col, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(X(e.p[2]), Y(e.p[0]), 13, 0, TWO_PI); ctx.fill(); }
-      ctx.fillStyle = rgba(col, alpha); ctx.beginPath(); ctx.arc(X(e.p[2]), Y(e.p[0]), r, 0, TWO_PI); ctx.fill();
-      if (e.k === 'abs') { ctx.strokeStyle = rgba('#8892a8', alpha); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(e.p[2]) - 4, Y(e.p[0]) - 4); ctx.lineTo(X(e.p[2]) + 4, Y(e.p[0]) + 4); ctx.moveTo(X(e.p[2]) + 4, Y(e.p[0]) - 4); ctx.lineTo(X(e.p[2]) - 4, Y(e.p[0]) + 4); ctx.stroke(); }
+      const col = PT_COL[e.k] || '#8892a8', r = e.k === 'ph' ? 4.5 : e.k === 'pa' ? 4.5 : 3, px = X(e.p[2]), py = Y(e.p[0]);
+      if (e.k === 'ph' || e.k === 'pa') ctx.drawImage(glowSprite(col, d), px - 13, py - 13, 26, 26);
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(px, py, r, 0, TWO_PI); ctx.fill();
+      if (e.k === 'abs') { ctx.strokeStyle = '#8892a8'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(px - 4, py - 4); ctx.lineTo(px + 4, py + 4); ctx.moveTo(px + 4, py - 4); ctx.lineTo(px - 4, py + 4); ctx.stroke(); }
     }
   }
-  ctx.restore();
+  ctx.globalAlpha = a0; ctx.lineCap = lc0; ctx.lineWidth = lw0;
 }
 
 /* ============================== ГЕРОЙ ============================== */
@@ -1057,7 +1077,8 @@ function drawTrack(ctx, V, tr, alpha, prog) {    // prog: 0..1 — какая ч
   const LINES = [[59.54, 0.36 * 0.6], [661.66, 0.851], [1173.2, 0.45], [1332.5, 0.45], [1460.8, 0.4]];
   const wsum = LINES.reduce((a, l) => a + l[1], 0);
   const pick = () => { let u = Math.random() * wsum; for (const l of LINES) { u -= l[1]; if (u <= 0) return l[0]; } return LINES[1][0]; };
-  const NB = 170, EMAX = 1600, hist = new Float64Array(NB); let tracks = [], nEm = 0, nHit = 0, nSp = 0;
+  const NB = 170, EMAX = 1600, hist = new Float64Array(NB); let tracks = [], nEm = 0, nHit = 0, nSp = 0, fr = 0, statTxt = '';
+  const BC = Array.from({ length: NB }, (_, b) => eCol((b + 0.5) * EMAX / NB, 0.9));   // цвет столбца от кадра не зависит (`AMBER254`)
   const statEl = $('#heroStat');
   function frame() {
     requestAnimationFrame(frame);
@@ -1084,9 +1105,10 @@ function drawTrack(ctx, V, tr, alpha, prog) {    // prog: 0..1 — какая ч
     const X = scale('lin', 0, EMAX, bx.l, bx.r), Y = scale('sqrt', 0, mx * 1.08, bx.b, bx.t);
     axes(ctx, bx, X, Y, { xl: t('ax.e'), nx: 4, noY: true });
     const bw = (bx.r - bx.l) / NB;
-    for (let b = 1; b < NB; b++) { const y = Y(hist[b]); ctx.fillStyle = eCol((b + 0.5) * EMAX / NB, 0.9); ctx.fillRect(bx.l + b * bw, y, Math.max(1, bw - 0.6), bx.b - y); }
+    for (let b = 1; b < NB; b++) { const y = Y(hist[b]); ctx.fillStyle = BC[b]; ctx.fillRect(bx.l + b * bw, y, Math.max(1, bw - 0.6), bx.b - y); }
     ctx.fillStyle = '#cdd8f3'; ctx.font = '600 12px system-ui'; ctx.textAlign = 'left'; ctx.fillText(LANG === 'ru' ? 'Спектр' : 'Spectrum', bx.l + 4, bx.t + 4);
-    statEl.innerHTML = t('hero.stat', nEm, nHit, Math.round(nSp));
+    // счётчики — раз в 6 кадров: запись в DOM в каждом кадре заставляла браузер каждый кадр пересчитывать вёрстку (`AMBER254`)
+    if (++fr % 6 === 1) { const s = t('hero.stat', nEm, nHit, Math.round(nSp)); if (s !== statTxt) statEl.innerHTML = statTxt = s; }
   }
   requestAnimationFrame(frame);
 })();
@@ -1184,9 +1206,9 @@ Object.assign(T.ru, {
 'ox.thr.t':'Прошёл насквозь','ox.thr.d':'Фотон пролетел кристалл, ни с чем не столкнувшись.','ox.thr.s':'нигде — отсчёта нет. Такие фотоны снижают эффективность, сильнее всего на высоких энергиях и в тонких кристаллах.','ox.thr.b':'матрица — снижает эффективность.',
 'ox.att.t':'Поглощён по дороге','ox.att.d':'Фотон застрял в корпусе детектора, не долетев до кристалла; так же бывает в самой пробе и стенке сосуда. Корпус нарисован толще, чтобы было видно.','ox.att.s':'нигде — отсчёта нет. Сильнее всего страдают низкие энергии.','ox.att.b':'матрица — ослабление в пробе, окне и корпусе.',
 'ox.bs.t':'Обратное рассеяние','ox.bs.d':'Фотон пролетел мимо кристалла, отразился почти назад от свинца или корпуса и вернулся в кристалл уже ослабленным.','ox.bs.s':'горб около E / (1 + 2E/511): у 662 кэВ — 184 кэВ; в свинцовом домике — полоса 180–250 кэВ.','ox.bs.b':'от своей обвязки и пробы — матрица, канал «Комптон»; от домика и обстановки — компонент FSA «Обратное рассеяние» (флажок «Обратное рассеяние»).',
-'ox.pbk.t':'K-рентген свинца','ox.pbk.d':'Фотон поглощён в свинце защиты; атом свинца испускает K-рентген, и тот влетает в кристалл.','ox.pbk.s':'линии 72–88 кэВ (Kα 75.0, Kβ ≈85 кэВ) — даже если в пробе на этих энергиях ничего нет.','ox.pbk.b':'компонент FSA «Рентген Pb» (флажок «Атомный рентген»); рентген пробы и обвязки матрица несёт сама, в канале «Комптон».',
+'ox.pbk.t':'K-рентген свинца','ox.pbk.d':'Фотон поглощён в свинце защиты; атом свинца испускает K-рентген, и тот влетает в кристалл.','ox.pbk.s':'линии 72–88 кэВ (Kα 75.0, Kβ ≈85 кэВ) — даже если в пробе на этих энергиях ничего нет.','ox.pbk.b':'компонент FSA «Рентген Pb» (флажок «Атомный рентген»). Рентген, выбитый в пробе и обвязке, матрица несёт и сама (канал «Комптон»), а тяжёлым элементам пробы FSA держит ещё свой слой «Рентген <элемент>» — у ториевого диска «Рентген Th».',
 'ox.pbl.t':'L-рентген свинца','ox.pbl.d':'То же из L-оболочки: квант 10.5–12.6 кэВ, едва пробивающий корпус.','ox.pbl.s':'линии около 10.5 и 12.6 кэВ, у самого порога.','ox.pbl.b':'компонент FSA «Рентген Pb-L» (флажок «Атомный рентген»).',
-'ox.ann.t':'Аннигиляция вне кристалла','ox.ann.d':'Пара рождается в свинце или корпусе; позитрон аннигилирует там же, и один квант 511 влетает в кристалл.','ox.ann.s':'линия 511 кэВ (и 1022, если влетели оба) — при любой исходной линии выше 1022 кэВ.','ox.ann.b':'пары в пробе и обвязке — матрица, канал «Аннигиляция вне кристалла»; в домике — компонент FSA Ann-511 (флажок «Пики вылета и аннигиляция 511 кэВ»).',
+'ox.ann.t':'Аннигиляция вне кристалла','ox.ann.d':'Пара рождается в свинце или корпусе; позитрон аннигилирует там же, и один квант 511 влетает в кристалл.','ox.ann.s':'линия 511 кэВ — при любой исходной линии выше 1022 кэВ; из одной аннигиляции в кристалл попадает не больше одного кванта: они разлетаются в противоположные стороны.','ox.ann.b':'пары в пробе и обвязке — матрица, канал «Аннигиляция вне кристалла»; в домике — компонент FSA Ann-511 (флажок «Пики вылета и аннигиляция 511 кэВ»).',
 'ox.eout.t':'Электрон из корпуса','ox.eout.d':'Фотон рассеивается в корпусе, а электрон отдачи влетает в кристалл и оставляет там немного энергии. Корпус нарисован толще, чтобы было видно.','ox.eout.s':'низ спектра, 0–100 кэВ.','ox.eout.b':'матрица, канал «Комптон» — занос электронов из обвязки.',
 'ox.sum.t':'Суммарный пик','ox.sum.d':'Co-60 за один распад испускает сразу два кванта. Оба поглотились — кристалл вспыхнул один раз, и прибор записал их сумму.','ox.sum.s':'пик E1 + E2: 1173 + 1332 = 2505 кэВ, хотя такой линии у Co-60 нет.','ox.sum.b':'FSA, «Каскадное суммирование» (флажок «Каскадное суммирование») — работает только с матрицей отклика.',
 'ox.casc.t':'Каскадное суммирование: вынос из пика','ox.casc.d':'Один квант поглощён целиком, второй — лишь частично (комптон). Импульс — их сумма, и пик 1332 кэВ недосчитался своего отсчёта.','ox.casc.s':'сумм-континуум между пиками и выше; сами пики меньше — тем сильнее, чем ближе проба к кристаллу.','ox.casc.b':'FSA, «Каскадное суммирование»: вынос из пиков, суммы, угловые корреляции — по матрице отклика.',
@@ -1216,9 +1238,9 @@ Object.assign(T.en, {
 'ox.thr.t':'Went straight through','ox.thr.d':'The photon crossed the crystal without hitting anything.','ox.thr.s':'nowhere — no count. Such photons lower the efficiency, most of all at high energies and in thin crystals.','ox.thr.b':'matrix — lowers the efficiency.',
 'ox.att.t':'Absorbed on the way','ox.att.d':'The photon got stuck in the detector housing before reaching the crystal; it also happens in the sample itself and the container wall. The housing is drawn thicker so it can be seen.','ox.att.s':'nowhere — no count. Low energies suffer most.','ox.att.b':'matrix — attenuation in the sample, window and housing.',
 'ox.bs.t':'Backscatter','ox.bs.d':'The photon flew past the crystal, bounced almost straight back from lead or the housing and returned weakened.','ox.bs.s':'a hump near E / (1 + 2E/511): 184 keV for 662 keV; in a lead house — a band at 180–250 keV.','ox.bs.b':'from its own housing and sample — matrix, channel “Compton”; from the lead house and surroundings — FSA component “Backscatter” (“Backscatter” box).',
-'ox.pbk.t':'Lead K X-rays','ox.pbk.d':'The photon is absorbed in the lead shield; the lead atom emits a K X-ray, which enters the crystal.','ox.pbk.s':'lines at 72–88 keV (Kα 75.0, Kβ ≈85 keV) — even if the sample has nothing there.','ox.pbk.b':'FSA component “X-ray Pb” (“Atomic X-rays” box); X-rays of the sample and housing are carried by the matrix itself, in the “Compton” channel.',
+'ox.pbk.t':'Lead K X-rays','ox.pbk.d':'The photon is absorbed in the lead shield; the lead atom emits a K X-ray, which enters the crystal.','ox.pbk.s':'lines at 72–88 keV (Kα 75.0, Kβ ≈85 keV) — even if the sample has nothing there.','ox.pbk.b':'FSA component “X-ray Pb” (“Atomic X-rays” box). X-rays knocked out in the sample and housing are carried by the matrix itself (“Compton” channel), and for heavy elements of the sample FSA also keeps its own “X-ray <element>” layer — “X-ray Th” for the thorium disc.',
 'ox.pbl.t':'Lead L X-rays','ox.pbl.d':'The same from the L shell: a 10.5–12.6 keV quantum that barely gets through the housing.','ox.pbl.s':'lines near 10.5 and 12.6 keV, right at the threshold.','ox.pbl.b':'FSA component “X-ray Pb-L” (“Atomic X-rays” box).',
-'ox.ann.t':'Annihilation outside the crystal','ox.ann.d':'A pair is created in lead or the housing; the positron annihilates there, and one 511 photon enters the crystal.','ox.ann.s':'a 511 keV line (and 1022 if both enter) — for any source line above 1022 keV.','ox.ann.b':'pairs in the sample and housing — matrix, channel “Annihilation outside the crystal”; in the lead house — FSA component Ann-511 (“Escape peaks and 511 keV annihilation” box).',
+'ox.ann.t':'Annihilation outside the crystal','ox.ann.d':'A pair is created in lead or the housing; the positron annihilates there, and one 511 photon enters the crystal.','ox.ann.s':'a 511 keV line — for any source line above 1022 keV; at most one quantum of an annihilation reaches the crystal: the two fly in opposite directions.','ox.ann.b':'pairs in the sample and housing — matrix, channel “Annihilation outside the crystal”; in the lead house — FSA component Ann-511 (“Escape peaks and 511 keV annihilation” box).',
 'ox.eout.t':'Electron from the housing','ox.eout.d':'The photon scatters in the housing, and the recoil electron enters the crystal and leaves a little energy there. The housing is drawn thicker so it can be seen.','ox.eout.s':'the bottom of the spectrum, 0–100 keV.','ox.eout.b':'matrix, channel “Compton” — electrons carried in from the housing.',
 'ox.sum.t':'Sum peak','ox.sum.d':'Co-60 emits two photons in one decay. Both were absorbed — the crystal flashed once, and the detector recorded their sum.','ox.sum.s':'a peak at E1 + E2: 1173 + 1332 = 2505 keV, though Co-60 has no such line.','ox.sum.b':'FSA, “Cascade summing” box — works only with a response matrix.',
 'ox.casc.t':'Cascade summing: loss from the peak','ox.casc.d':'One photon is absorbed fully, the other only in part (Compton). The pulse is their sum, and the 1332 keV peak lost a count.','ox.casc.s':'a sum continuum between and above the peaks; the peaks themselves shrink — the more, the closer the sample.','ox.casc.b':'FSA, “Cascade summing”: losses from peaks, sums, angular correlations — from the response matrix.',

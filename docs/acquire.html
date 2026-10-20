@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Набор спектра — BecqMoni гид</title>
-<link rel="stylesheet" href="assets/guide.css?v=c6846273">
+<link rel="stylesheet" href="assets/guide.css?v=1b26651d">
 <style>
 .ui{white-space:normal}
 figure.shot.side{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
@@ -188,8 +188,8 @@ figure.shot[data-shot=panel-sample] .shot-frame{max-width:440px;margin:0 auto}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=2094f2ee"></script>
-<script src="assets/quanta.js?v=98c4ced5"></script>
+<script src="assets/guide.js?v=19672d23"></script>
+<script src="assets/quanta.js?v=05579488"></script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, t, io, visible, poisson } = GUIDE;
@@ -209,7 +209,7 @@ GUIDE.texts({ru:{
 'p.bartip':'Нажмите, чтобы изменить формат отображаемого времени','p.presettip':'Лимит измерения спектра','p.days':'д',
 'p.q':'Подтверждение','p.qtext':'Очистить спектр?','p.yes':'Да','p.no':'Нет','p.saveas':'Сохранить как',
 'r.done':'Набор остановлен: реальное время дошло до лимита {0} с','r.saved':'файл записан: <b>{0}</b>','r.sound':'♪ звук окончания (Настройки → Звук)',
-'r.nostart':'«Старт» ничего не сделал: спектр уже набран до лимита. Поднимите лимит или нажмите «Сброс».','r.cleared':'спектр очищен — и накопитель в приборе тоже',
+'r.nostart':'«Старт» отказал: «Измерение уже достигло лимита времени ({0} с), продолжать нечего». Поднимите лимит или нажмите «Сброс».','r.cleared':'спектр очищен — и накопитель в приборе тоже',
 'r.named':'без имени файла галка не встанет — программа сначала откроет «Сохранить как»; здесь имя придумано за вас','r.bad':'Некорректное предустановленное время.',
 'r.peak':'проступил пик {0}','r.dt0':'Мерт. Время до 20 % — норма','r.dt1':'20–50 % — цифры тёмно-оранжевые: FWHM и спектр деградируют','r.dt2':'больше 50 % — тёмно-красные: спектр разрушен',
 'ax.e':'энергия, кэВ','ax.c':'отсчёты',
@@ -235,8 +235,8 @@ GUIDE.texts({ru:{
 'c.s5':UI('Старт')+' (Ctrl+M). Следите за '+UI('Мерт. Время %')+': до 20 — норма.',
 'c.s6':UI('Стоп')+' (Ctrl+P) — пауза, «Старт» продолжит тот же спектр; '+UI('Сброс')+' — начать заново.',
 'c.warn':'<b>«Сброс» стирает и прибор.</b> У Atom Spectra, RadiaCode и Obsidian вместе со спектром обнуляется накопитель в самом приборе — набранное там тоже пропадёт. Программа спросит «Очистить спектр?»: подумайте, прежде чем ответить «Да».',
-'c.info':'<b>Кнопка ⟳ у «Устройства»</b> применяет изменения конфигурации прибора к текущему спектру: калибровки спектра заменятся приборными, а при другом числе каналов спектр будет стёрт — программа предупредит.',
-'c.f1':'<b>Старт молчит, если лимит набран.</b> Кнопка ничего не делает, когда реальное время уже не меньше лимита: поднимите лимит или нажмите «Сброс».',
+'c.info':'<b>Кнопка ⟳ у «Устройства»</b> применяет конфигурацию прибора к текущему спектру: калибровки и настройки поиска пиков заменятся приборными, фон — фоном по умолчанию со вкладки «Ссылки» (выбранный на панели пропадёт), а при другом числе каналов спектр будет стёрт — программа предупредит. То же — при выборе другого прибора в списке «Устройство».',
+'c.f1':'<b>Старт скажет, если лимит набран.</b> Когда реальное время уже не меньше лимита, набор не начнётся, а программа ответит «Измерение уже достигло лимита времени…, продолжать нечего»: поднимите лимит или нажмите «Сброс».',
 'c.f2':'<b>Atom Spectra можно подхватить на ходу.</b> «Подкл.» присоединяется к набору, уже идущему в Atom Spectra Pro, без сброса.',
 'c.f3':'<b>Связь потерялась — набор живёт.</b> Atom Spectra продолжает считать время и ждёт, пока порт вернётся.',
 'b.k':'Фон','b.h':'Вычесть фон — как убрать шум кафе с записи голоса',
@@ -279,7 +279,7 @@ GUIDE.texts({ru:{
 'l.f3':'<b>Спектры сравнивают наложением.</b> Галка «Легенда» — и два набора видны на одном графике.',
 'l.dose':'<b>Мощность дозы</b> — справа в строке состояния. Её считает программа по набранному спектру и кривой из '+UI('Эффективн.')+'; без матрицы отклика число идёт со знаком «≈», без кривой строка пуста. Скорость счёта во времени — '+UM('Вид → Скорость счёта')+'.',
 'l.auto':'<b>Автосохранение.</b> '+UM('Инструменты → Настройки')+' → '+UI('Системные')+': «Сохранять документы каждые N минут» (по умолчанию 15) и «Включить автосохранение по умолчанию…». Для одного документа — '+UM('Спектр → Автосохранение спектра')+'; нужно имя файла.',
-'hoodtxt':'<li>«Старт» не начинает набор, если реальное время уже не меньше лимита, — молча: поднимите лимит или нажмите «Сброс». Отрицательный лимит даёт «Некорректное предустановленное время.»</li><li><code>Мерт. Время % = 100·(T − LT)/T</code>; цифры до 20 % обычные, 20–50 % тёмно-оранжевые, больше 50 % тёмно-красные. Живое время <code>LT = T·(1 − n·τ)</code>, n — все импульсы за реальное время.</li><li>«Скор. счёта имп/с» на панели — корректные импульсы, делённые на реальное время; активность и FSA делят на живое.</li><li>Фон вычитается с масштабом по живым временам (<code>фон × LT образца / LT фона</code>), отрицательные каналы обнуляются, при разной калибровке фон переводится по энергии.</li><li>Автосохранение раз в N минут пишет только изменённые документы, у которых оно включено; «Стоп» тоже сохраняет такой документ. «Сброс» у Atom Spectra, RadiaCode и Obsidian очищает и накопитель прибора — если этот прибор не пишет в этот миг другой спектр.</li>',
+'hoodtxt':'<li>«Старт» не начинает набор, если реальное время уже не меньше лимита, — и говорит почему («Измерение уже достигло лимита времени…»): поднимите лимит или нажмите «Сброс». Отрицательный лимит даёт «Некорректное предустановленное время.»</li><li><code>Мерт. Время % = 100·(T − LT)/T</code>; цифры до 20 % обычные, 20–50 % тёмно-оранжевые, больше 50 % тёмно-красные. Живое время <code>LT = T·(1 − n·τ)</code>, n — все импульсы за реальное время.</li><li>«Скор. счёта имп/с» на панели — корректные импульсы, делённые на реальное время; активность и FSA делят на живое.</li><li>Фон вычитается с масштабом по живым временам (<code>фон × LT образца / LT фона</code>), отрицательные каналы обнуляются, при разной калибровке фон переводится по энергии.</li><li>Автосохранение раз в N минут пишет только документы с включённым автосохранением, в которых идёт набор и есть изменения; «Стоп» тоже сохраняет такой документ. «Сброс» у Atom Spectra, RadiaCode и Obsidian очищает и накопитель прибора — если этот прибор не пишет в этот миг другой спектр.</li>',
 },en:{
 'n.sim':'Simulator','n.panel':'Acquisition panel','n.bg':'Background','n.sample':'Sample','n.docs':'Documents',
 'h.k':'Chapter 4 · Acquiring a spectrum',
@@ -290,12 +290,12 @@ GUIDE.texts({ru:{
 's.card':'Acquisition simulator: the panel works like the real one',
 's.hint':'The buttons behave like the real ones: “Start” acquires, “Stop” pauses, “Clear” asks first. The field right of “Real Time” is the limit in seconds (Enter). Click the bar to change the time format. Add source strength — and watch “Dead Time %”.',
 's.src':'Cs-137 source at the detector','s.speed':'time acceleration','s.cps':'cps','s.none':'no source','s.audio':'Audio Input Device','s.us':'µs','s.empty':'the spectrum is empty — press “Start” on the panel',
-'p.title':'Measurement Control','p.save':'Save to','p.sel':'Select.','p.auto':'Save Automatically When Finished','p.dev':'Device Config.',
+'p.title':'Measurement Control','p.save':'Save to','p.sel':'Select','p.auto':'Save Automatically When Finished','p.dev':'Device Config.',
 'p.rt':'Real Time','p.start':'Start','p.stop':'Stop','p.clear':'Clear','p.tot':'Total Counts','p.val':'Valid Counts','p.cps':'Count Rate (cps)','p.inv':'Invalid Counts','p.dt':'Dead Time %','p.lt':'Live Time',
 'p.bartip':'Click to change display time format','p.presettip':'Preset Measurement Time','p.days':'d',
 'p.q':'Confirmation','p.qtext':'Clear spectrum?','p.yes':'Yes','p.no':'No','p.saveas':'Save As',
 'r.done':'Acquisition stopped: real time reached the {0} s limit','r.saved':'file written: <b>{0}</b>','r.sound':'♪ end-of-measurement sound (Preferences → Sound)',
-'r.nostart':'“Start” did nothing: the spectrum already reached its limit. Raise the limit or press “Clear”.','r.cleared':'spectrum cleared — and the device’s own buffer too',
+'r.nostart':'“Start” refused: “The measurement has already reached the preset time ({0} s); there is nothing to continue”. Raise the limit or press “Clear”.','r.cleared':'spectrum cleared — and the device’s own buffer too',
 'r.named':'without a file name the check mark will not stay — the program first opens “Save As”; here a name is made up for you','r.bad':'Invalid preset time.',
 'r.peak':'a {0} peak emerged','r.dt0':'Dead Time up to 20 % — normal','r.dt1':'20–50 % — dark orange digits: FWHM and spectrum degrade','r.dt2':'above 50 % — dark red: the spectrum is destroyed',
 'ax.e':'energy, keV','ax.c':'counts',
@@ -308,7 +308,7 @@ GUIDE.texts({ru:{
 'c.l1':'<b>Save to</b> — the spectrum file and the “Save Automatically When Finished” check box',
 'c.l2':'<b>Device Config.</b> — the device configuration; <b>Edit...</b> opens it, ⟳ applies its changes to the spectrum',
 'c.l3':'<b>Efficiency</b> — the efficiency curve behind activity and dose rate; ✕ resets it',
-'c.l4':'<b>Background</b> — the background spectrum to subtract: <b>Select.</b> and ✕',
+'c.l4':'<b>Background</b> — the background spectrum to subtract: <b>Select</b> and ✕',
 'c.l5':'<b>Real Time</b> — acquisition progress; the field on the right is the limit in seconds. Click the bar: seconds ↔ days and hours',
 'c.l6':'<b>Attach, Start, Stop, Clear</b> — “Attach” is shown for Atom Spectra only',
 'c.l7':'<b>Counters</b> — total, valid and invalid pulses, count rate',
@@ -317,12 +317,12 @@ GUIDE.texts({ru:{
 'c.s1':UM('File → New')+' (Ctrl+N) — the new document takes the top device configuration (chapter 3).',
 'c.s2':UM('View → Measurement Control')+' → check '+UI('Device Config.')+'; pick a curve in '+UI('Efficiency')+' — for activity and dose.',
 'c.s3':'Type the limit into the field right of '+UI('Real Time')+' — <b>3600</b> — and press Enter.',
-'c.s4':'Want a file at the end — '+UI('Save to')+' → '+UI('Select.')+' and tick '+UI('Save Automatically When Finished')+'.',
+'c.s4':'Want a file at the end — '+UI('Save to')+' → '+UI('Select')+' and tick '+UI('Save Automatically When Finished')+'.',
 'c.s5':UI('Start')+' (Ctrl+M). Watch '+UI('Dead Time %')+': up to 20 is normal.',
 'c.s6':UI('Stop')+' (Ctrl+P) pauses, “Start” continues the same spectrum; '+UI('Clear')+' starts over.',
 'c.warn':'<b>“Clear” wipes the device too.</b> For Atom Spectra, RadiaCode and Obsidian the buffer inside the device is reset along with the spectrum — whatever it collected is lost as well. The program asks “Clear spectrum?”: think before answering “Yes”.',
-'c.info':'<b>The ⟳ button next to “Device Config.”</b> applies device configuration changes to the current spectrum: its calibrations are replaced by the device’s, and with a different channel count the spectrum is erased — the program warns you.',
-'c.f1':'<b>Start is silent when the limit is reached.</b> The button does nothing once real time is not below the limit: raise the limit or press “Clear”.',
+'c.info':'<b>The ⟳ button next to “Device Config.”</b> applies the device configuration to the current spectrum: calibrations and peak search settings are replaced by the device’s, the background by the default one from the “References” tab (one chosen on the panel is lost), and with a different channel count the spectrum is erased — the program warns you. The same happens when you pick another device in the “Device Config.” list.',
+'c.f1':'<b>Start tells you when the limit is reached.</b> Once real time is not below the limit, acquisition does not begin and the program says “The measurement has already reached the preset time…; there is nothing to continue”: raise the limit or press “Clear”.',
 'c.f2':'<b>Atom Spectra can be joined on the fly.</b> “Attach” joins an acquisition already running in Atom Spectra Pro, without a reset.',
 'c.f3':'<b>Link lost — acquisition lives on.</b> Atom Spectra keeps counting time and waits for the port to come back.',
 'b.k':'Background','b.h':'Subtracting background — like removing café noise from a voice recording',
@@ -338,7 +338,7 @@ GUIDE.texts({ru:{
 'b.f3':'<b>Peaks see the subtraction too.</b> The same subtracted spectrum goes into peak search, Extended CSV and “Hard subtract to File”.',
 'b.steps':'Step by step: background',
 'b.s1':'Acquire background: same detector, same place, no sample — the longer the better. Save it as an ordinary spectrum.',
-'b.s2':'In the sample document, on the acquisition panel: '+UI('Background')+' → '+UI('Select.')+' → the background file.',
+'b.s2':'In the sample document, on the acquisition panel: '+UI('Background')+' → '+UI('Select')+' → the background file.',
 'b.s3':'The channel count must match — otherwise the program answers “Incompatible channel parameters.”',
 'b.s4':'On the bar under the chart '+UI('View:')+' → '+UI('Show Spectrum with Background Subtracted')+'.',
 'b.s5':'To give every new spectrum of the device this background — '+UM('Tool → Edit Device Configurations...')+' → '+UI('References')+'.',
@@ -358,14 +358,14 @@ GUIDE.texts({ru:{
 'l.lead':'A document is a folder, spectra are sheets in it. Each file is a tab above the chart, and a document holds up to 16 spectra: sample, background, repeats. Different devices record at the same time, each into its own document.',
 'l.cap':'The “Spectrum List” panel — spectra of the current document',
 'l.l1':'<b>New / Delete</b> — a spectrum in this document','l.l2':'<b>Arrows</b> — order of spectra',
-'l.l3':'<b>Import... / Export...</b> — spectra from files and to a file','l.l4':'<b>Legend</b> — the check box draws a spectrum over the active one; colours in Preferences, “Color” tab',
+'l.l3':'<b>Import... / Export...</b> — spectra from files and to a file','l.l4':'<b>View/Legend</b> — the check box draws a spectrum over the active one; colours in Preferences, “Color” tab',
 'l.l5':'<b>Name</b> — edited right in the cell','l.l6':'<b>Panel tabs</b> — “Peak Detection” and “Measurement Result” next door',
 'l.f1':'<b>Up to 16 spectra per document.</b> Import beyond that is refused, and the program says how many did not fit.',
 'l.f2':'<b>One device — one spectrum.</b> While a device writes into one spectrum, it will not write into another.',
-'l.f3':'<b>Compare spectra by overlaying.</b> Tick “Legend” — and two acquisitions share one chart.',
+'l.f3':'<b>Compare spectra by overlaying.</b> Tick “View/Legend” — and two acquisitions share one chart.',
 'l.dose':'<b>Dose rate</b> — on the right of the status bar. The program computes it from the acquired spectrum and the curve in '+UI('Efficiency')+'; without a response matrix the number carries “≈”, without a curve the field is empty. Count rate over time — '+UM('View → Counts Rate')+'.',
 'l.auto':'<b>Autosave.</b> '+UM('Tool → Preferences')+' → '+UI('System')+': “AutoSave documents every N minutes” (15 by default) and “Enable AutoSave by default…”. For one document — '+UM('Spectrum → Autosave spectrum')+'; a file name is required.',
-'hoodtxt':'<li>“Start” does not begin acquisition when real time is already not below the limit — silently: raise the limit or press “Clear”. A negative limit gives “Invalid preset time.”</li><li><code>Dead Time % = 100·(T − LT)/T</code>; digits are normal up to 20 %, dark orange at 20–50 %, dark red above 50 %. Live time <code>LT = T·(1 − n·τ)</code>, n — all pulses over real time.</li><li>“Count Rate (cps)” on the panel is valid pulses divided by real time; activity and FSA divide by live time.</li><li>Background is subtracted scaled by live times (<code>background × LT sample / LT background</code>), negative channels are zeroed, and with a different calibration the background is mapped by energy.</li><li>Autosave every N minutes writes only changed documents that have it on; “Stop” saves such a document too. “Clear” for Atom Spectra, RadiaCode and Obsidian also resets the device buffer — unless that device is recording another spectrum at the moment.</li>',
+'hoodtxt':'<li>“Start” does not begin acquisition when real time is already not below the limit — and says why (“The measurement has already reached the preset time…”): raise the limit or press “Clear”. A negative limit gives “Invalid preset time.”</li><li><code>Dead Time % = 100·(T − LT)/T</code>; digits are normal up to 20 %, dark orange at 20–50 %, dark red above 50 %. Live time <code>LT = T·(1 − n·τ)</code>, n — all pulses over real time.</li><li>“Count Rate (cps)” on the panel is valid pulses divided by real time; activity and FSA divide by live time.</li><li>Background is subtracted scaled by live times (<code>background × LT sample / LT background</code>), negative channels are zeroed, and with a different calibration the background is mapped by energy.</li><li>Autosave every N minutes writes only documents that have it on, are recording and have changes; “Stop” saves such a document too. “Clear” for Atom Spectra, RadiaCode and Obsidian also resets the device buffer — unless that device is recording another spectrum at the moment.</li>',
 }});
 
 /* ── общие спектральные формы: Cs-137 и фон, сцинтиллятор ~7 % при 662 кэВ ── */
@@ -440,11 +440,13 @@ function pdf(f, nch, emax) { const p = new Float64Array(nch); let s = 0; for (le
     $('#oDt').style.color = tm.dt <= 20 ? '#000' : tm.dt <= 50 ? '#ff8c00' : '#8b0000'; $('#oDt').style.fontWeight = tm.dt > 20 ? '700' : '400';
     const sv = src(); $('#sSrcV').textContent = sv ? fx(sv, sv < 100 ? 1 : 0) + ' ' + t('s.cps') : t('s.none');
     const dtk = tm.dt <= 20 ? ['good', 'r.dt0'] : tm.dt <= 50 ? ['', 'r.dt1'] : ['bad', 'r.dt2'];
-    $('#sRes').innerHTML = S.msgs.map(m => '<span class="pill ' + m.cls + '">' + (m.peak ? t('r.peak', m.a[0]) : t('r.' + m.k, ...m.a)) + '</span>').join('') + (S.T > 0 ? '<span class="pill ' + dtk[0] + '">' + t(dtk[1]) + '</span>' : '');
-    $('#pDlg').innerHTML = S.dlg ? '<div class="dlg"><div class="t">' + t('p.q') + '</div><div class="m"><i>!</i><span>' + t('p.qtext') + '</span></div><div class="b"><button data-a="yes">' + t('p.yes') + '</button><button data-a="no">' + t('p.no') + '</button></div></div>' : '';
-    $$('#pDlg button').forEach(b => b.onclick = () => { S.dlg = false; if (b.dataset.a === 'yes') { S.run = false; S.hist.fill(0); S.T = 0; S.val = 0; S.inv = 0; S.msgs = []; msg('cleared', 'bad'); } ui(); draw(); });
+    setHtml($('#sRes'), S.msgs.map(m => '<span class="pill ' + m.cls + '">' + (m.peak ? t('r.peak', m.a[0]) : t('r.' + m.k, ...m.a)) + '</span>').join('') + (S.T > 0 ? '<span class="pill ' + dtk[0] + '">' + t(dtk[1]) + '</span>' : ''));
+    // окно «Да/Нет» пересобирается, только когда меняется его текст: пересборка между нажатием и отпусканием мыши терял щелчок (`AMBER254`)
+    if (setHtml($('#pDlg'), S.dlg ? '<div class="dlg"><div class="t">' + t('p.q') + '</div><div class="m"><i>!</i><span>' + t('p.qtext') + '</span></div><div class="b"><button data-a="yes">' + t('p.yes') + '</button><button data-a="no">' + t('p.no') + '</button></div></div>' : ''))
+      $$('#pDlg button').forEach(b => b.onclick = () => { S.dlg = false; if (b.dataset.a === 'yes') { S.run = false; S.hist.fill(0); S.T = 0; S.val = 0; S.inv = 0; S.msgs = []; msg('cleared', 'bad'); } ui(); draw(); });
   }
-  $('#pStart').onclick = () => { if (S.preset < 0) { msg('bad', 'bad'); ui(); return; } if (S.T >= S.preset) { msg('nostart', 'bad'); ui(); return; } S.run = true; S.msgs = S.msgs.filter(m => m.k !== 'done' && m.k !== 'saved' && m.k !== 'sound' && m.k !== 'nostart'); S.last = performance.now(); ui(); };
+  function setHtml(el, s) { if (el._html === s) return false; el._html = s; el.innerHTML = s; return true; }
+  $('#pStart').onclick = () => { if (S.preset < 0) { msg('bad', 'bad'); ui(); return; } if (S.T >= S.preset) { msg('nostart', 'bad', S.preset); ui(); return; } S.run = true; S.msgs = S.msgs.filter(m => m.k !== 'done' && m.k !== 'saved' && m.k !== 'sound' && m.k !== 'nostart'); S.last = performance.now(); ui(); };
   $('#pStop').onclick = () => { S.run = false; ui(); };
   $('#pClear').onclick = () => { S.dlg = true; ui(); };
   $('#pSel').onclick = () => { if (!S.run) { S.file = 'Cs137_' + S.preset + 's.xml'; ui(); } };
@@ -452,10 +454,13 @@ function pdf(f, nch, emax) { const p = new Float64Array(nch); let s = 0; for (le
   $('#pBar').onclick = () => { S.dateFmt = !S.dateFmt; ui(); };
   $('#pPreset').addEventListener('keydown', e => { if (e.key !== 'Enter') return; const v = Number($('#pPreset').value.trim()); S.preset = isFinite(v) ? Math.round(v) : 0; $('#pPreset').value = S.preset; ui(); });   // нечисло программа меняет на 0;   // отрицательный лимит программа принимает, а отказывает на «Старте»
   $('#sSrc').addEventListener('input', ui);
-  let lastUi = 0;
+  let lastUi = 0, wasRun = false, wasVis = false;
   function loop(now) {
-    const dt = Math.min(0.25, (now - (S.last || now)) / 1000); S.last = now;
-    if (visible.get(cv) !== false || S.run) { step(dt); if (visible.get(cv) !== false) draw(); if (now - lastUi > 90 || !S.run) { lastUi = now; ui(); } }
+    const dt = Math.min(0.25, (now - (S.last || now)) / 1000), vis = visible.get(cv) !== false; S.last = now;
+    // стоящий набор не перерисовывается: всё, что его меняет, само зовёт ui()/draw(); кадр — на остановке
+    // и когда график снова показался (набор мог закончиться, пока его не было видно) (`AMBER254`)
+    if (S.run || wasRun || (vis && !wasVis)) { step(dt); if (vis) draw(); if (now - lastUi > 90 || !S.run) { lastUi = now; ui(); } }
+    wasRun = S.run; wasVis = vis;
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Калибровка — BecqMoni гид</title>
-<link rel="stylesheet" href="assets/guide.css?v=c6846273">
+<link rel="stylesheet" href="assets/guide.css?v=1b26651d">
 </head>
 <body data-chapter="calibration">
 
@@ -106,8 +106,8 @@
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=2094f2ee"></script>
-<script src="assets/quanta.js?v=98c4ced5"></script>
+<script src="assets/guide.js?v=19672d23"></script>
+<script src="assets/quanta.js?v=05579488"></script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, visible, io, t, gauss, poisson } = GUIDE;
@@ -119,20 +119,20 @@ GUIDE.texts({ru:{
 'w.k':'Зачем','w.h':'Калибровка — как линейка под спектром',
 'w.lead':'Пока линейка сдвинута, пики не совпадают с линиями нуклидов — пунктир библиотеки стоит мимо. Поставьте две-три опоры: щёлкните по известным пикам, скажите их энергии, и линейка встанет на место.',
 'g.h':'Откалибруйте сами',
-'g.hint':'1) Нажмите «Выбрать канал» и щёлкните по пику на графике. 2) В строке точки выберите, какая это линия. 3) Две точки — и «Выполнить калибровку». Пунктир — линии библиотеки; когда калибровка верна, пики садятся прямо на них.',
+'g.hint':'1) Нажмите «Выбрать канал» и щёлкните по пику на графике. 2) В строке точки выберите, какая это линия. 3) Две точки — и «Выполнить калибровку». Пунктир — линии библиотеки; когда калибровка верна, пики садятся прямо на них. В программе канал берётся ровно под курсором, а в строке состояния печатается средний квадрат ошибки опор, кэВ²; степень — до 4.',
 'g.pick':'Выбрать канал','g.pickOn':'Щёлкните по пику…','g.run':'Выполнить калибровку','g.help':'Подсказка','g.reset':'Сброс',
 'g.pt':'<b>№{0}</b> канал <b>{1}</b> →','g.del':'убрать','g.choose':'какая это линия?',
 'g.res':'калибровка: <b>E = {0}</b>','g.mse':'средняя ошибка опор <b>{0} кэВ</b>','g.id':'узнано пиков: <b>{0} из {1}</b>',
-'g.need':'нужна хотя бы одна точка с выбранной линией','g.help1':'Самый высокий пик справа от середины — Cs-137 (661.66 кэВ). Пик у правого края — K-40 (1460.82 кэВ).',
+'g.need':'нужна хотя бы одна точка с выбранной линией','g.help1':'Второй по высоте пик, на пятой части шкалы, — Cs-137 (661.66 кэВ); выше него только рентген свинца у левого края. Пик около середины шкалы — K-40 (1460.82 кэВ); правее него ещё два слабых: Bi-214 и Tl-208.',
 'ax.e':'энергия по текущей калибровке, кэВ','ax.c':'отсчёты','unk':'(неизвестный)',
 'w.f1':'<b>Две опоры — прямая, три и больше — кривая.</b> BecqMoni сама выбирает степень полинома: не выше четвёртой и не больше, чем позволяют точки.',
 'w.f2':'<b>Опоры — по краям диапазона.</b> Калибровка «врёт» за пределами точек: Cs-137 и K-40 вместе держат шкалу лучше, чем два близких пика.',
-'w.f3':'<b>Калибровка живёт и в спектре, и в приборе.</b> «Выполнить» меняет спектр; «Сохранить в конфигурацию» — все будущие спектры этого прибора.',
+'w.f3':'<b>Калибровка живёт и в спектре, и в приборе.</b> «Выполнить» меняет спектр; «Сохр. в конф. устр.» — все будущие спектры этого прибора.',
 'p.k':'В программе','p.h':'Панель «Калибровка энергии»',
 'p.lead':'Открывается через <span class="ui m">Вид → Калибровка энергии</span> или кнопкой калибровки на полосе под спектром. Наведите на номер или пункт списка — подсветится место в окне.',
 'p.cap':'Панель калибровки с раскрытой многоточечной таблицей',
 'p.l1':'<b>Выбрать канал</b> — следующий щелчок по графику добавит точку',
-'p.l2':'<b>Таблица точек</b> — канал, энергия (правится в ячейке), вес',
+'p.l2':'<b>Таблица точек</b> — канал, энергия (правится в ячейке); с галкой «Веса» — ещё и вес',
 'p.l3':'<b>Полином</b> — степень ставится сама: не больше «точек − 1» и не выше 4',
 'p.l4':'<b>Выполнить калибровку</b> — пересчитать коэффициенты; ошибка опор — в строке состояния',
 'p.l5':'<b>График</b> — кривая калибровки с точками',
@@ -144,7 +144,7 @@ GUIDE.texts({ru:{
 'p.s2':'<span class="ui m">Вид → Калибровка энергии</span> → кнопка <span class="ui">Многоточечная калибровка &gt;&gt;</span> раскрывает таблицу точек.',
 'p.s3':'<span class="ui">Выбрать канал</span> → щёлкните по вершине пика 662. В ячейке «Энергия» впишите <b>661.66</b>.',
 'p.s4':'Повторите для K-40: <b>1460.82</b>. Быстрее — правой кнопкой по подписанному пику в «Обнаружение пиков» → <span class="ui">Добавить в калибровку</span>.',
-'p.s5':'<span class="ui">Выполнить калибровку</span>. Внизу окна появится среднеквадратичная ошибка; <span class="ui">График</span> покажет кривую.',
+'p.s5':'<span class="ui">Выполнить калибровку</span>. Внизу окна появится средний квадрат ошибки; <span class="ui">График</span> покажет кривую.',
 'p.s6':'<span class="ui">Сохр. в конф. устр.</span> → «Да» — теперь калибровку получат и новые спектры этого прибора.',
 'p.tip':'<b>Числа — с точкой:</b> 661.66, а не 661,66. Поле, пока вы печатаете, синее; применяется по Enter.',
 'f.k':'Ширина пика','f.h':'FWHM — насколько «расплывается» линия',
@@ -152,18 +152,18 @@ GUIDE.texts({ru:{
 'fw.h':'Подвиньте ширину — и посмотрите, когда соседние линии сливаются',
 'fw.sl':'FWHM при 662 кэВ','fw.chip.csi':'CsI, RadiaCode ~8.5 %','fw.chip.nai':'NaI 63×63 ~6.5 %','fw.chip.good':'отличный NaI ~6 %',
 'fw.sep':'Tl-208 583 и Bi-214 609 кэВ: <b>{0}</b>','fw.ok':'видны раздельно','fw.merge':'слились в один горб','fw.w':'FWHM у 662 кэВ: <b>{0} кэВ</b>',
-'f.cap':'Панель «FWHM Калибровка»',
-'f.l1':'<b>Добавить пик</b> — затем протяните мышью выделение через пик на графике','f.l2':'<b>Таблица пиков</b> — канал, энергия и измеренная ширина',
+'f.cap':'Панель «Калибровка по FWHM»',
+'f.l1':'<b>Добавить</b> — затем протяните мышью выделение через пик на графике','f.l2':'<b>Таблица пиков</b> — канал, энергия и измеренная ширина',
 'f.l3':'<b>Кривая</b> — простой корень (≥2 пиков), корень полинома (≥3), степенная (≥2)','f.l4':'<b>Калибровать</b> — подогнать кривую; заодно подбирается форма пика',
-'f.l5':'<b>Выбранная функция пика</b> — Гаусс или с «хвостами» и их перекосы','f.l6':'<b>Сохранить в конфиг</b> — передать калибровку прибору',
-'f.info':'<b>Как быстро:</b> <span class="ui m">Вид → Калибровка по FWHM</span> → <span class="ui">Получить все пики</span> возьмёт пики из всех открытых спектров с тем же числом каналов → <span class="ui">Калибровать</span> → <span class="ui">Сохранить в конфиг</span>. Без FWHM поиск пиков не идёт, а FSA спросит, у какого прибора её взять.',
+'f.l5':'<b>Выбранная функция пика</b> — Гауссиана, Эксп-Гаусс-Эксп («хвосты»: левый и правый перекос) или Фойгт (отн. σ и отн. γ)','f.l6':'<b>Сохр. в конф. устр.</b> — передать калибровку прибору',
+'f.info':'<b>Как быстро:</b> <span class="ui m">Вид → Калибровка по FWHM</span> → <span class="ui">Все пики</span> возьмёт пики из всех открытых спектров с тем же числом каналов → <span class="ui">Калибровать</span> → <span class="ui">Сохр. в конф. устр.</span>. Без FWHM поиск пиков не идёт, а FSA спросит, у какого прибора её взять.',
 'd.k':'Прибор','d.h':'Калибровка в конфигурации прибора',
 'd.lead':'То же самое живёт во вкладке <span class="ui m">Инструменты → Конфигурация устройства → Калибровка энергии</span>. Отсюда калибровку получают новые спектры прибора, и здесь же её можно прочитать из прибора или записать в него.',
 'd.cap':'Вкладка «Калибровка энергии» конфигурации прибора (RadiaCode-103)',
 'd.l1':'<b>Читать с устройства</b> — взять калибровку, зашитую в приборе','d.l2':'<b>Записать в устройство</b> — отправить её обратно (сначала сохраните конфигурацию)',
 'd.l3':'<b>Многоточечная калибровка</b> — та же таблица точек, что на панели','d.l4':'<b>Настройки автокалибратора</b> — по каким линиям держать шкалу',
 'd.warn':'<b>Запись в прибор необратима</b> — старые коэффициенты прибора будут заменены. Чтение и запись есть у Atom Spectra, RadiaCode и Obsidian.',
-'hoodtxt':'<li>Решатель берёт наибольшую годную степень не выше заказанной: если кривая «загибается» между опорами, степень понижается, а старший коэффициент остаётся 0.</li><li>Одна точка — прямая через ноль (добавляется точка «канал 0 = 0 кэВ»).</li><li>«Собрать всё» берёт точки со всех открытых документов; «Сброс» возвращает калибровку прибора.</li><li>У RadiaCode и Obsidian параллельно хранится квадратичная копия калибровки — в таком виде её принимает сам прибор.</li><li>Ширину пика программа берёт из калибровки FWHM спектра; в матрице отклика ширины нет.</li>',
+'hoodtxt':'<li>Решатель берёт наибольшую годную степень не выше заказанной: если кривая где-либо на шкале — чаще всего за крайними опорами — отходит от прямой по тем же точкам больше чем на 15 % (но не меньше 40 кэВ) или перестаёт быть годной, степень понижается и подгонка повторяется; старший коэффициент остаётся 0.</li><li>Одна точка — прямая через ноль (добавляется точка «канал 0 = 0 кэВ»).</li><li>«Собрать всё» берёт точки со всех открытых документов; «Сброс» возвращает калибровку прибора.</li><li>У RadiaCode и Obsidian параллельно хранится квадратичная копия калибровки — в таком виде её принимает сам прибор.</li><li>Ширину пика программа берёт из калибровки FWHM спектра; в матрице отклика ширины нет.</li>',
 },en:{
 'n.why':'Why','n.how':'Energy calibration','n.fwhm':'Peak width','n.dev':'In the device configuration',
 'h.k':'Chapter 6 · Calibration',
@@ -172,20 +172,20 @@ GUIDE.texts({ru:{
 'w.k':'Why','w.h':'Calibration is the ruler under the spectrum',
 'w.lead':'While the ruler is off, peaks miss the nuclide lines — the dashed library lines stand beside them. Put down two or three anchors: click known peaks, tell their energies, and the ruler snaps into place.',
 'g.h':'Calibrate it yourself',
-'g.hint':'1) Press “Pick up channel” and click a peak on the chart. 2) In the point row choose which line it is. 3) With two points press “Execute calibration”. Dashed lines are library lines; when the calibration is right, peaks sit right on them.',
+'g.hint':'1) Press “Pick up channel” and click a peak on the chart. 2) In the point row choose which line it is. 3) With two points press “Execute calibration”. Dashed lines are library lines; when the calibration is right, peaks sit right on them. In the program the channel is taken exactly under the cursor, and the status bar shows the mean squared error of the anchors, keV²; the degree goes up to 4.',
 'g.pick':'Pick up channel','g.pickOn':'Click a peak…','g.run':'Execute calibration','g.help':'Hint','g.reset':'Reset',
 'g.pt':'<b>#{0}</b> channel <b>{1}</b> →','g.del':'remove','g.choose':'which line is it?',
 'g.res':'calibration: <b>E = {0}</b>','g.mse':'mean anchor error <b>{0} keV</b>','g.id':'peaks recognised: <b>{0} of {1}</b>',
-'g.need':'at least one point with a chosen line is needed','g.help1':'The tallest peak right of the middle is Cs-137 (661.66 keV). The peak near the right edge is K-40 (1460.82 keV).',
+'g.need':'at least one point with a chosen line is needed','g.help1':'The second-tallest peak, about a fifth of the way along the axis, is Cs-137 (661.66 keV); only the lead X-ray at the left edge is taller. The peak near the middle is K-40 (1460.82 keV); two weaker ones lie to its right, Bi-214 and Tl-208.',
 'ax.e':'energy by the current calibration, keV','ax.c':'counts','unk':'(unknown)',
 'w.f1':'<b>Two anchors give a line, three or more a curve.</b> BecqMoni picks the polynomial degree itself: at most 4 and no more than the points allow.',
 'w.f2':'<b>Anchors at the ends of the range.</b> A calibration “lies” beyond its points: Cs-137 and K-40 together hold the scale better than two close peaks.',
-'w.f3':'<b>The calibration lives both in the spectrum and in the device.</b> “Execute” changes the spectrum; “Save to device configuration” changes all future spectra of that detector.',
+'w.f3':'<b>The calibration lives both in the spectrum and in the device.</b> “Execute” changes the spectrum; “Save to Device Cfg.” changes all future spectra of that detector.',
 'p.k':'In the program','p.h':'The “Energy Calibration” panel',
 'p.lead':'Open it via <span class="ui m">View → Energy Calibration</span> or with the calibration button on the bar under the spectrum. Hover a number or a list item — the spot in the window lights up.',
 'p.cap':'The calibration panel with the multipoint table open',
 'p.l1':'<b>Pick up channel</b> — the next click on the chart adds a point',
-'p.l2':'<b>Point table</b> — channel, energy (edit in the cell), weight',
+'p.l2':'<b>Point table</b> — channel, energy (edit in the cell); with “Weights” ticked, also the weight',
 'p.l3':'<b>Polynom</b> — the degree sets itself: no more than “points − 1” and at most 4',
 'p.l4':'<b>Execute Calibration</b> — recompute the coefficients; the anchor error appears in the status bar',
 'p.l5':'<b>Graph</b> — the calibration curve with its points',
@@ -208,7 +208,7 @@ GUIDE.texts({ru:{
 'f.cap':'The “FWHM Calibration” panel',
 'f.l1':'<b>Add peak</b> — then drag a selection across a peak on the chart','f.l2':'<b>Peak table</b> — channel, energy and the measured width',
 'f.l3':'<b>Curve</b> — simple square root (≥2 peaks), square-root polynomial (≥3), power law (≥2)','f.l4':'<b>Execute calibration</b> — fit the curve; the peak shape is chosen too',
-'f.l5':'<b>Selected peak function</b> — Gaussian or with “tails”, and their skews','f.l6':'<b>Save to device config</b> — hand the calibration to the detector',
+'f.l5':'<b>Selected peak function</b> — Gaussian, Exp-Gaussian-Exp (“tails”: left and right skew) or Voigt (relative σ and relative γ)','f.l6':'<b>Save to device config</b> — hand the calibration to the detector',
 'f.info':'<b>The quick way:</b> <span class="ui m">View → FWHM Calibration</span> → <span class="ui">Get All peaks</span> takes peaks from all open spectra with the same channel count → <span class="ui">Execute calibration</span> → <span class="ui">Save to device config</span>. Without FWHM peak search does not run, and FSA asks which device to take it from.',
 'd.k':'Device','d.h':'Calibration in the device configuration',
 'd.lead':'The same lives in <span class="ui m">Tool → Edit Device Configurations → Energy Calibration</span>. New spectra of the detector take their calibration from here, and here you can read it from the device or write it back.',
@@ -216,7 +216,7 @@ GUIDE.texts({ru:{
 'd.l1':'<b>Read from device</b> — take the calibration stored in the detector','d.l2':'<b>Write to device</b> — send it back (save the configuration first)',
 'd.l3':'<b>Multipoint Calibration</b> — the same point table as on the panel','d.l4':'<b>AutoCalibrator Settings</b> — which lines hold the scale',
 'd.warn':'<b>Writing to the device cannot be undone</b> — the detector\'s old coefficients are replaced. Read and write exist for Atom Spectra, RadiaCode and Obsidian.',
-'hoodtxt':'<li>The solver takes the highest workable degree not above the one ordered: if the curve bends between anchors, the degree goes down and the top coefficient stays 0.</li><li>One point gives a line through zero (a “channel 0 = 0 keV” point is added).</li><li>“Get all points” collects points from all open documents; “Reset” brings back the device calibration.</li><li>RadiaCode and Obsidian also keep a quadratic copy of the calibration — that is the form the device itself accepts.</li><li>Peak width comes from the spectrum\'s FWHM calibration; the response matrix has no width in it.</li>',
+'hoodtxt':'<li>The solver takes the highest workable degree not above the one ordered: if anywhere on the scale — usually beyond the outermost anchors — the curve departs from the straight line through the same points by more than 15 % (at least 40 keV), or stops being valid, the degree goes down and the fit is redone; the top coefficient stays 0.</li><li>One point gives a line through zero (a “channel 0 = 0 keV” point is added).</li><li>“Get all points” collects points from all open documents; “Reset” brings back the device calibration.</li><li>RadiaCode and Obsidian also keep a quadratic copy of the calibration — that is the form the device itself accepts.</li><li>Peak width comes from the spectrum\'s FWHM calibration; the response matrix has no width in it.</li>',
 }});
 
 /* ── игра «откалибруйте сами» ── */

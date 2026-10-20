@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Приборы — BecqMoni гид</title>
-<link rel="stylesheet" href="assets/guide.css?v=c6846273">
+<link rel="stylesheet" href="assets/guide.css?v=1b26651d">
 <style>
 .ui{white-space:normal}
 figure.shot.side{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:16px;align-items:start}
@@ -208,7 +208,7 @@ ol.chk>li.done::before{content:"✓";background:var(--ok);color:#06210f;border-c
     </div>
     <div class="card">
       <h3 data-t="m.rh"></h3>
-      <figure class="shot" data-shot="devcfg-refs" data-hot='[[0.4502,0.1027,0.4095,0.0466],[0.4502,0.1773,0.3677,0.0267],[0.8247,0.1747,0.0679,0.0333]]'>
+      <figure class="shot" data-shot="devcfg-refs" data-hot-ru='[[0.4502,0.1027,0.4095,0.0466],[0.4502,0.1773,0.3677,0.0267],[0.8247,0.1747,0.0860,0.0333]]' data-hot='[[0.4502,0.1027,0.4095,0.0466],[0.4502,0.1773,0.3677,0.0267],[0.8247,0.1747,0.0679,0.0333]]'>
         <ol class="shot-legend"><li data-t="m.r1"></li><li data-t="m.r2"></li><li data-t="m.r3"></li></ol>
       </figure>
       <div class="callout tip" data-t="m.tip"></div>
@@ -250,8 +250,8 @@ ol.chk>li.done::before{content:"✓";background:var(--ok);color:#06210f;border-c
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=2094f2ee"></script>
-<script src="assets/quanta.js?v=98c4ced5"></script>
+<script src="assets/guide.js?v=19672d23"></script>
+<script src="assets/quanta.js?v=05579488"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
 GUIDE.texts({ ru: {"mc.n": "Кристалл", "mc.k": "Монте-Карло", "mc.h": "Кристалл решает: Ø40 против Ø76", "mc.lead": "Один и тот же источник в 2 см от торца, одни и те же фотоны. Слева кристалл Ø40 × 40 мм, справа Ø76 × 76 мм. Каждый трек сосчитан по физике взаимодействия, спектры — в общем масштабе на испущенный фотон.", "mc.pick": "Фотоны:", "mc.l1": "NaI Ø40 × 40 мм", "mc.l2": "NaI Ø76 × 76 мм", "mc.t1": "в пике у Ø40", "mc.t2": "в пике у Ø76", "mc.t3": "большой ловит в пик больше", "mc.f1": "<b>Больше кристалл — больше пик.</b> Фотону труднее проскочить насквозь, особенно на высоких энергиях: на 2614 кэВ разница в разы.", "mc.f2": "<b>Плато относительно пика ниже у большого.</b> Рассеянный фотон чаще догорает внутри и всё-таки попадает в пик.", "mc.f3": "<b>Ширину пика размер почти не меняет</b> — её задают кристалл и электроника. Здесь у обоих одна: 7.5 % при 662 кэВ."},
@@ -331,7 +331,7 @@ GUIDE.texts({ru:{
 'w.l2':'<b>Новый / Дубль / Удалить</b> — завести, скопировать, убрать',
 'w.l3':'<b>Вкладки</b> — Основное, Устройство, Калибровка энергии, Эффективность, Анализ, Ссылки',
 'w.l4':'<b>Имя, имя файла, тип устройства</b> — тип выбирает страницу «Устройство»',
-'w.l5':'<b>Вещество кристалла</b> — NaI, CsI…; нужно для расчёта эффективности',
+'w.l5':'<b>Вещество кристалла</b> — NaI, CsI…; из него FSA берёт состав кристалла (для пиков вылета), когда у кривой эффективности нет геометрии',
 'w.l6':'<b>Лимит времени</b> — предел набора по умолчанию для новых спектров, в секундах',
 'w.l7':'<b>Кол-во каналов, шаг канала, кривизна тракта</b> — серое поле задаёт сам прибор; кривизну оставьте 0, пока не измерена',
 'w.l8':'<b>Сохранить / Закрыть</b> — «Сохранить» горит, когда есть правки',
@@ -376,7 +376,7 @@ GUIDE.texts({ru:{
 'c.u8':'<b>Ширина имп.</b> — окно в отсчётах, куда должен войти импульс; <b>Позиция пика</b> — где в окне вершина. Ширина задаёт и мёртвое время: 16 отсчётов / 44100 Гц = 363 мкс',
 'c.u9':'<b>НПП / ВПП</b> образца — какие импульсы брать при записи образца, в % полной шкалы карты',
 'c.u10':'<b>Форма импульса</b> — записанный образец, среднее по импульсам; <b>Имп.</b> — сколько их вошло (здесь 10028)',
-'c.u11':'<b>Старт</b> — записать образец: источник у детектора, кривая выравнивается; на 10 000 импульсов запись останавливается сама, <b>Стоп</b> — раньше. Сменили ширину — образец стёрт, запишите заново',
+'c.u11':'<b>Старт</b> — записать образец: источник у детектора, кривая выравнивается; на 10000 импульсов запись останавливается сама, <b>Стоп</b> — раньше. Сменили ширину — образец стёрт, запишите заново',
 'c.ucap':'Atom Spectra Nano 8 как звуковая карта: образец уже записан',
 'c.b1':'<b>Тип устройства</b> — AmplitudaUSB: блок с 12-битным АЦП, Windows видит его как USB HID',
 'c.b2':'<b>Блок</b> — какой блок читать: «(первый найденный)», если он один; <b>Обновить</b> — перечитать список',
@@ -415,7 +415,7 @@ GUIDE.texts({ru:{
 'm.tip':'<b>Как завести фон:</b> наберите фон тем же прибором без источника (чем дольше, тем лучше), сохраните, затем '+UI('Ссылки')+' → '+UI('Выбрать...')+'. Подробнее о фоне — в главе 4.',
 'm.f1':'<b>Поиск пиков настраивается у прибора.</b> В файл спектра эти настройки не пишутся — всегда берутся из конфигурации.',
 'm.f2':'<b>Фон по умолчанию получит каждый новый спектр.</b> На панели набора его можно сменить для одного спектра.',
-'m.f3':'<b>Фон — с тем же числом каналов.</b> Иначе программа ответит «Несовместимые параметры каналов.»',
+'m.f3':'<b>Фон — с тем же числом каналов.</b> Вкладка «Ссылки» этого не проверяет; на панели набора фон с другим числом каналов программа не примет: «Несовместимые параметры каналов.»',
 'd.k':'Мёртвое время','d.h':'Турникет на входе',
 'd.lead':'Каждый импульс прибор «переваривает» какое-то время τ — как турникет, который после прохода ещё мгновение закрыт. Кто подошёл в это мгновение, проходит незамеченным. Пока очередь редкая, потерь нет; в толпе турникет пропускает всё меньшую долю.',
 'dt.h':'Попробуйте сами: поток импульсов через турникет',
@@ -463,7 +463,7 @@ GUIDE.texts({ru:{
 'ausb.s2':UI('General')+': '+UI('Input Device Type')+' → '+UI('AmplitudaUSB')+', '+UI('# of Channels')+' — 4096, 2048, 1024, 512 or 256.',
 'ausb.s3':UI('Device Specific')+': '+UI('Device :')+' → '+UI('(first found)')+' or a serial number → '+UI('Refresh')+'.',
 'ausb.s4':UI('Lower threshold, ADC code :')+' and '+UI('Upper threshold, ADC code :')+' — the amplitude window.',
-'ausb.s5':UI('Dead time per pulse, us :')+' — 14 by default.',
+'ausb.s5':UI('Dead time per pulse, µs :')+' — 14 by default.',
 'ausb.s6':UI('Test')+' → '+UI('Save')+'.',
 'aser.s2':UI('General')+': '+UI('Input Device Type')+' → '+UI('AmplitudaSerial')+', '+UI('# of Channels')+' — exactly as the block has (BDEG-3-2: 1024).',
 'aser.s3':UI('Device Specific')+': '+UI('Port :')+' → '+UI('Refresh')+'.',
@@ -482,7 +482,7 @@ GUIDE.texts({ru:{
 'w.l2':'<b>New / Duplicate / Delete</b> — create, copy, remove',
 'w.l3':'<b>Tabs</b> — General, Device Specific, Energy Calibration, Efficiency, Analysis, References',
 'w.l4':'<b>Name, file name, input device type</b> — the type picks the “Device Specific” page',
-'w.l5':'<b>Crystal Material</b> — NaI, CsI…; needed for efficiency calculations',
+'w.l5':'<b>Crystal Material</b> — NaI, CsI…; FSA takes the crystal composition from it (for escape peaks) when the efficiency curve has no geometry',
 'w.l6':'<b>Preset Time</b> — the default acquisition limit for new spectra, in seconds',
 'w.l7':'<b># of Channels, Channel Pitch, Tract Curvature</b> — a grey field is set by the device; keep curvature at 0 until measured',
 'w.l8':'<b>Save / Close</b> — “Save” lights up when there are changes',
@@ -527,7 +527,7 @@ GUIDE.texts({ru:{
 'c.u8':'<b>Sample Width</b> — the window in samples the pulse must fit in; <b>Peak Position</b> — where the top sits in it. The width also sets the dead time: 16 samples / 44100 Hz = 363 µs',
 'c.u9':'Template <b>LLD / ULD</b> — which pulses go into the template while it is recorded, in % of the card’s full scale',
 'c.u10':'<b>Pulse Shape</b> — the recorded template, an average over pulses; <b>Counts</b> — how many went in (10028 here)',
-'c.u11':'<b>Start</b> — record the template: source next to the detector, the curve settles; recording stops by itself at 10 000 pulses, <b>Stop</b> ends it earlier. Changing the width erases the template — record it again',
+'c.u11':'<b>Start</b> — record the template: source next to the detector, the curve settles; recording stops by itself at 10000 pulses, <b>Stop</b> ends it earlier. Changing the width erases the template — record it again',
 'c.ucap':'Atom Spectra Nano 8 as a sound card: the template is already recorded',
 'c.b1':'<b>Device Type</b> — AmplitudaUSB: a block with a 12-bit ADC, seen by Windows as a USB HID device',
 'c.b2':'<b>Device</b> — which block to read: “(first found)” if there is one; <b>Refresh</b> — re-read the list',
@@ -566,7 +566,7 @@ GUIDE.texts({ru:{
 'm.tip':'<b>Making a background:</b> acquire with the same device and no source (the longer the better), save it, then '+UI('References')+' → '+UI('Select...')+'. More on background in chapter 4.',
 'm.f1':'<b>Peak search is set per device.</b> These settings are not written to the spectrum file — they always come from the configuration.',
 'm.f2':'<b>Every new spectrum gets the default background.</b> On the acquisition panel it can be changed for one spectrum.',
-'m.f3':'<b>Same channel count for the background.</b> Otherwise the program answers “Incompatible channel parameters.”',
+'m.f3':'<b>Same channel count for the background.</b> The “References” tab does not check it; on the acquisition panel a background with another channel count is refused: “Incompatible channel parameters.”',
 'd.k':'Dead time','d.h':'A turnstile at the entrance',
 'd.lead':'The device needs some time τ to “digest” each pulse — like a turnstile that stays shut for a moment after each pass. Whoever arrives in that moment goes through unseen. With a thin queue nothing is lost; in a crowd the turnstile lets an ever smaller share through.',
 'dt.h':'Try it: a pulse stream through the turnstile',
@@ -756,7 +756,7 @@ tabset('cTabs');
   let cur = 1; const done = DEV.map(() => new Set());
   $('#devs').innerHTML = DEV.map((d, i) => '<button data-i="' + i + '"><b data-t="dv.' + d.id + '"></b><small data-t="dv.' + d.id + '.s"></small></button>').join('');
   $$('#devs button').forEach(b => b.onclick = () => { cur = +b.dataset.i; resetSim(); ui(); });
-  const steps = d => ['s0', d.id + '.s2', d.id + '.s3', (d.id === 'obs' ? 'rc' : d.id) + '.s4', (d.id === 'obs' ? 'rc' : d.id) + '.s5', (d.id === 'obs' ? 'rc' : d.id) + '.s6'];
+  const steps = d => ['s0', d.id + '.s2', (d.id === 'obs' ? 'rc' : d.id) + '.s3', (d.id === 'obs' ? 'rc' : d.id) + '.s4', (d.id === 'obs' ? 'rc' : d.id) + '.s5', (d.id === 'obs' ? 'rc' : d.id) + '.s6'];
   function ui() {
     const d = DEV[cur];
     $$('#devs button').forEach((b, i) => b.classList.toggle('on', i === cur));

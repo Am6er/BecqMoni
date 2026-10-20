@@ -278,10 +278,10 @@
     <value>Настройки автокалибратора</value>
   </data>
   <data name="label9.Size" type="System.Drawing.Size, System.Drawing">
-    <value>68, 13</value>
+    <value>147, 13</value>
   </data>
   <data name="label9.Text" xml:space="preserve">
-    <value>Калибровка</value>
+    <value>Многоточечная калибровка</value>
   </data>
   <data name="table2.NoItemsText" xml:space="preserve">
     <value>Нет точек калибровки</value>
@@ -441,6 +441,9 @@
   </data>
   <data name="button7.Text" xml:space="preserve">
     <value>Выбрать...</value>
+  </data>
+  <data name="button7.Size" type="System.Drawing.Size, System.Drawing">
+    <value>76, 25</value>
   </data>
   <data name="label23.Size" type="System.Drawing.Size, System.Drawing">
     <value>94, 13</value>

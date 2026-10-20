@@ -137,7 +137,7 @@
     <value>197, 13</value>
   </data>
   <data name="labelNuclides.Text" xml:space="preserve">
-    <value>Отметить изотопы входящие в набор</value>
+    <value>Отметить изотопы, входящие в набор</value>
   </data>
   <data name="buttonAddSet.Text" xml:space="preserve">
     <value>Добавить набор</value>
