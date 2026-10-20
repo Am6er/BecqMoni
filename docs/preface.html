@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Предисловие — BecqMoni гид</title>
-<link rel="stylesheet" href="assets/guide.css?v=c6846273">
+<link rel="stylesheet" href="assets/guide.css?v=1b26651d">
 <style>
 .formula{font-size:17px;line-height:1.7;background:var(--panel2);border-radius:12px;padding:10px 14px;margin-top:10px;font-variant-numeric:tabular-nums;overflow-x:auto}
 .formula b{color:var(--gold)}
@@ -200,8 +200,8 @@
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=2094f2ee"></script>
-<script src="assets/quanta.js?v=98c4ced5"></script>
+<script src="assets/guide.js?v=19672d23"></script>
+<script src="assets/quanta.js?v=05579488"></script>
 <script>
 'use strict';
 GUIDE.texts({
@@ -217,10 +217,10 @@ ru: {
 's1.lead':'Гамма-квант влетает в кристалл, как мяч в густой лес. Он может застрять сразу и отдать всю энергию, может отскочить от «дерева» и унести часть энергии, а может пролететь насквозь. Прибор видит только то, что фотон <b>оставил</b> в кристалле. Выпустите один фотон и следите за его путём — а потом сто тысяч, и посмотрите, какой спектр из этого вырастет.',
 's1.scene':'Кристалл NaI(Tl) сбоку — выпускайте фотоны',
 's1.energy':'Энергия фотона:','s1.shield':'свинцовый домик вокруг',
-'s1.b1':'1 фотон','s1.b100':'×100','s1.b10k':'×100 000','s1.clr':'Очистить','s1.spec':'Что записал прибор',
+'s1.b1':'1 фотон','s1.b100':'×100','s1.b10k':'×100000','s1.clr':'Очистить','s1.spec':'Что записал прибор',
 's1.f1':'<b>Пик полного поглощения</b> — фотон отдал всю энергию. По положению пика узнают нуклид, по его площади — сколько его.',
 's1.f2':'<b>Комптоновское плато</b> — фотон отскочил и улетел, оставив часть энергии. Плато обрывается на «комптоновском крае».',
-'s1.f3':'<b>Горбы и пики-спутники</b> — обратное рассеяние от защиты, рентген свинца, пики вылета. Их рисует окружение, а не проба.',
+'s1.f3':'<b>Горбы и пики-спутники</b> — обратное рассеяние от защиты, рентген свинца, пики вылета. Первые два рисует окружение, пики вылета — сам кристалл; нового нуклида в пробе за ними нет.',
 's2.k':'Шаг 2',
 's2.h':'Ведро под дождём: почему важно, где лежит проба',
 's2.lead':'Проба светит во все стороны, а кристалл ловит только то, что летит в него, — как ведро под дождём. Отодвиньте пробу — капель станет меньше, причём заметно быстрее, чем растёт расстояние. Эта доля и есть <b>эффективность</b>: без неё по числу отсчётов не узнать, сколько распадов было на самом деле.',
@@ -231,7 +231,7 @@ ru: {
 's2.t1':'долетело до кристалла','s2.t2':'отдало всю энергию — попало в пик','s2.t3':'фотонов в пике из каждой тысячи',
 's2.cnote':'Каждая точка — измеренная здесь же эффективность. Кривая строится сама, пока вы не трогаете ползунок; цвет — форма пробы.',
 's2.ax':'расстояние до кристалла, см','s2.ay':'в пике, %',
-'s2.f1':'<b>Расстояние решает больше всего.</b> Вдвое дальше — примерно вчетверо меньше: телесный угол падает как квадрат расстояния.',
+'s2.f1':'<b>Расстояние решает больше всего.</b> Вдали от кристалла телесный угол падает обратно квадрату расстояния: вдвое дальше — вчетверо меньше. Вплотную спад мягче — кристалл сам велик.',
 's2.f2':'<b>Форма пробы тоже.</b> Маринелли обнимает кристалл со всех сторон и ловит в разы больше, чем банка на торце.',
 's2.f3':'<b>В BecqMoni это кривая эффективности</b> из геометрии прибора и пробы — её считают так же, как здесь, только намного точнее (глава 8).',
 's3.k':'Шаг 3',
@@ -271,13 +271,13 @@ ru: {
 's5.ax':'время набора, с','s5.ay':'оценка, Бк',
 's5.dec':'распадов','s5.pk':'в пике',
 's5.f1':'<b>N</b> — отсчёты в пике (у FSA — площадь слоя), <b>t</b> — живое время набора, <b>ε</b> — эффективность из шага 2, <b>y</b> — выход линии на распад.',
-'s5.f2':'<b>Погрешность честная:</b> √N отсчётов плюс неточность ε. Короткий набор даёт широкий коридор, а не неверное число.',
+'s5.f2':'<b>Погрешность честная:</b> из статистики отсчётов (у FSA — из подгонки). Короткий набор даёт широкий коридор, а не неверное число.',
 's5.f3':'<b>В программе</b> активность, Бк/кг и предел обнаружения — в окне результата (глава 10).',
 'nx.k':'Дальше',
 'nx.h':'Две дороги отсюда',
 'nx.lead':'Можно сразу идти к делу — установить программу и набрать первый спектр. А можно задержаться в физике: глава 11 — то же самое, но руками и подробно.',
 'nx.a':'Установка и окно программы','nx.ad':'Скачать, установить, понять, где что на экране, — и набрать первый спектр.',
-'nx.b':'Как это устроено — для продвинутых','nx.bd':'Своя геометрия и кривая эффективности, расчёт матрицы, разбор настоящего спектра и вся цепочка до беккерелей.',
+'nx.b':'Как это работает — для продвинутых','nx.bd':'Своя геометрия и кривая эффективности, расчёт матрицы, разбор настоящего спектра и вся цепочка до беккерелей.',
 },
 en: {
 'n.ph':'Photon','n.geo':'Geometry','n.mx':'Matrix','n.fsa':'FSA','n.act':'Activity','n.next':'Next',
@@ -291,10 +291,10 @@ en: {
 's1.lead':'A gamma photon enters the crystal like a ball flying into a dense forest. It may stop at once and give up all its energy, bounce off a "tree" and carry part of it away, or fly straight through. The instrument only sees what the photon <b>left behind</b> in the crystal. Fire one photon and follow its path — then a hundred thousand, and watch the spectrum grow out of them.',
 's1.scene':'NaI(Tl) crystal, side view — fire some photons',
 's1.energy':'Photon energy:','s1.shield':'lead shield around',
-'s1.b1':'1 photon','s1.b100':'×100','s1.b10k':'×100 000','s1.clr':'Clear','s1.spec':'What the detector recorded',
+'s1.b1':'1 photon','s1.b100':'×100','s1.b10k':'×100000','s1.clr':'Clear','s1.spec':'What the detector recorded',
 's1.f1':'<b>Full-energy peak</b> — the photon gave up all its energy. The peak position tells which nuclide it is; its area tells how much.',
 's1.f2':'<b>Compton plateau</b> — the photon bounced and escaped, leaving only part of its energy. The plateau ends at the "Compton edge".',
-'s1.f3':'<b>Bumps and satellite peaks</b> — backscatter from the shield, lead X-rays, escape peaks. They come from the surroundings, not from the sample.',
+'s1.f3':'<b>Bumps and satellite peaks</b> — backscatter from the shield, lead X-rays, escape peaks. The first two come from the surroundings, escape peaks from the crystal itself; none of them means another nuclide in the sample.',
 's2.k':'Step 2',
 's2.h':'A bucket in the rain: why it matters where the sample sits',
 's2.lead':'A sample shines in all directions, while the crystal catches only what flies into it — like a bucket in the rain. Move the sample away and fewer drops land, noticeably faster than the distance grows. That share is the <b>efficiency</b>: without it the counts cannot tell how many decays there really were.',
@@ -305,7 +305,7 @@ en: {
 's2.t1':'reached the crystal','s2.t2':'gave up all energy — in the peak','s2.t3':'photons in the peak out of every thousand',
 's2.cnote':'Every dot is an efficiency measured right here. The curve builds itself while you leave the slider alone; the colour is the sample shape.',
 's2.ax':'distance to the crystal, cm','s2.ay':'in the peak, %',
-'s2.f1':'<b>Distance matters most.</b> Twice as far gives about four times less: the solid angle falls as the square of the distance.',
+'s2.f1':'<b>Distance matters most.</b> Far from the crystal the solid angle falls as the inverse square of the distance: twice as far, four times less. Up close the drop is gentler — the crystal itself is large.',
 's2.f2':'<b>So does the sample shape.</b> A Marinelli beaker wraps around the crystal and catches several times more than a jar on its face.',
 's2.f3':'<b>In BecqMoni this is the efficiency curve</b> from the detector and sample geometry — computed the same way as here, only far more precisely (chapter 8).',
 's3.k':'Step 3',
@@ -345,7 +345,7 @@ en: {
 's5.ax':'acquisition time, s','s5.ay':'estimate, Bq',
 's5.dec':'decays','s5.pk':'in the peak',
 's5.f1':'<b>N</b> — counts in the peak (for FSA, the layer area), <b>t</b> — live time, <b>ε</b> — efficiency from step 2, <b>y</b> — line yield per decay.',
-'s5.f2':'<b>The uncertainty is honest:</b> √N counts plus the uncertainty of ε. A short acquisition gives a wide corridor, not a wrong number.',
+'s5.f2':'<b>The uncertainty is honest:</b> it comes from counting statistics (for FSA, from the fit). A short acquisition gives a wide corridor, not a wrong number.',
 's5.f3':'<b>In the app</b> activity, Bq/kg and the detection limit are in the results window (chapter 10).',
 'nx.k':'Next',
 'nx.h':'Two roads from here',
@@ -383,11 +383,12 @@ Q.photonLab();
   function changed() { D = Q.dims(st); S = { n: 0, hit: 0, arr: 0, inter: 0, fep: 0 }; tracks = []; nEm = nHit = 0; chips(); }
   gapSl.addEventListener('input', () => { auto = false; st.gap = +gapSl.value / 10; changed(); });
   touchStop([gapSl], () => { auto = false; });
+  const setT = (el, s) => { if (el.textContent !== s) el.textContent = s; };   // плитки зовутся каждый кадр — писать, только если число сменилось (`AMBER254`)
   function tiles() {
     const ok = S && S.n >= 600;
-    $('#geoT1').textContent = ok ? sig(100 * S.hit / S.n, 2) + ' %' : '…';
-    $('#geoT2').textContent = ok ? sig(100 * S.fep / S.n, 2) + ' %' : '…';
-    $('#geoT3').textContent = ok ? sig(1000 * S.fep / S.n, 2) : '…';
+    setT($('#geoT1'), ok ? sig(100 * S.hit / S.n, 2) + ' %' : '…');
+    setT($('#geoT2'), ok ? sig(100 * S.fep / S.n, 2) + ' %' : '…');
+    setT($('#geoT3'), ok ? sig(1000 * S.fep / S.n, 2) : '…');
   }
   function drawScene() {
     const { ctx, w, h } = setup(cv);
@@ -630,9 +631,11 @@ const MXQ = { E: [], rows: [], blurred: [], fep: [], hits: [], N: 0, bw: 10, nb:
   $('#actFast').onclick = () => { st.fast = !st.fast; $('#actFast').textContent = t(st.fast ? 's5.slow' : 's5.fast'); };
   function reset() { st.t = 0; st.N = 0; st.dec = 0; st.hist = []; st.flashes = []; $('#actAv').textContent = st.A + (GUIDE.lang === 'ru' ? ' Бк' : ' Bq'); formula(); }
   function est() { if (st.N <= 0 || st.t <= 0) return null; const a = st.N / (st.t * EPS * Y_LINE), s = Math.sqrt(st.N) / (st.t * EPS * Y_LINE); return [a, s]; }
+  let fTxt = '';
   function formula() {
     const e = est();
-    $('#actF').innerHTML = e ? t('s5.f', st.N, fx(st.t, 0), fx(EPS, 4), Y_LINE, fx(e[0], e[0] < 100 ? 1 : 0) + ' ± ' + fx(2 * e[1], e[1] < 50 ? 1 : 0) + (GUIDE.lang === 'ru' ? ' Бк (2σ)' : ' Bq (2σ)')) : t('s5.fnone');
+    const s = e ? t('s5.f', st.N, fx(st.t, 0), fx(EPS, 4), Y_LINE, fx(e[0], e[0] < 100 ? 1 : 0) + ' ± ' + fx(2 * e[1], e[1] < 50 ? 1 : 0) + (GUIDE.lang === 'ru' ? ' Бк (2σ)' : ' Bq (2σ)')) : t('s5.fnone');
+    if (s !== fTxt) $('#actF').innerHTML = fTxt = s;
   }
   function tick() {
     const dt = st.fast ? 60 : 6;            // секунд набора за кадр
@@ -643,7 +646,9 @@ const MXQ = { E: [], rows: [], blurred: [], fep: [], hits: [], N: 0, bw: 10, nb:
     for (let i = 0; i < Math.min(nPk, 1); i++) st.flashes.push({ x: Math.random(), y: Math.random(), age: 0, hit: true });
     if (st.flashes.length > 80) st.flashes.splice(0, st.flashes.length - 80);   // не больше 80 вспышек на экране — иначе телефон не тянет
     st.flashes.forEach(f => f.age++); st.flashes = st.flashes.filter(f => f.age < 40);
-    const e = est(); if (e) st.hist.push([st.t, e[0], e[1]]);
+    // точка коридора — не чаще, чем через 0.5 % времени: ось логарифмическая, это около пикселя; раньше за 9 минут
+    // до сброса копилось 33000 точек, и каждый кадр перерисовывал их все (`AMBER254`)
+    const e = est(), hl = st.hist[st.hist.length - 1]; if (e && (!hl || st.t >= hl[0] * 1.005)) st.hist.push([st.t, e[0], e[1]]);
     if (st.t > 2e5) reset();
   }
   function drawScene() {
@@ -683,10 +688,11 @@ const MXQ = { E: [], rows: [], blurred: [], fep: [], hits: [], N: 0, bw: 10, nb:
     }
     ctx.strokeStyle = '#ffcc33'; ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(bx.l, Y(st.A)); ctx.lineTo(bx.r, Y(st.A)); ctx.stroke(); ctx.setLineDash([]);
   }
+  let afr = 0;
   function loop() {
     requestAnimationFrame(loop);
     if (!visible.get(cv) && !visible.get(cvC)) return;
-    tick(); drawScene(); drawConv(); formula();
+    tick(); drawScene(); drawConv(); if (++afr % 6 === 0) formula();   // формула — текстом в DOM, хватит 10 раз в секунду
   }
   GUIDE.onRedraw(() => { $('#actAv').textContent = st.A + (GUIDE.lang === 'ru' ? ' Бк' : ' Bq'); formula(); drawScene(); drawConv(); $('#actFast').textContent = t(st.fast ? 's5.slow' : 's5.fast'); });
   reset(); requestAnimationFrame(loop);

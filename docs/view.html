@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Окно спектра — BecqMoni гид</title>
-<link rel="stylesheet" href="assets/guide.css?v=c6846273">
+<link rel="stylesheet" href="assets/guide.css?v=1b26651d">
 <style>
 /* только для этой главы */
 @media (max-width:560px){.ui{white-space:normal}}
@@ -128,7 +128,7 @@
   <h2 data-t="md.h"></h2>
   <p class="lead" data-t="md.lead"></p>
   <div class="grid2 wr">
-    <figure class="shot" data-shot="view-modes" data-legend="lgModes" data-hot='[[0.181,0.058,0.787,0.116],[0.181,0.186,0.787,0.116],[0.181,0.308,0.787,0.116],[0.181,0.436,0.787,0.116],[0.181,0.564,0.787,0.116],[0.181,0.686,0.787,0.116],[0.168,0.852,0.048,0.11]]'>
+    <figure class="shot" data-shot="view-modes" data-legend="lgModes" data-hot-en='[[0.181,0.058,0.58,0.116],[0.181,0.186,0.58,0.116],[0.181,0.308,0.58,0.116],[0.181,0.436,0.58,0.116],[0.181,0.564,0.58,0.116],[0.181,0.686,0.58,0.116],[0.110,0.852,0.045,0.11]]' data-hot='[[0.181,0.058,0.787,0.116],[0.181,0.186,0.787,0.116],[0.181,0.308,0.787,0.116],[0.181,0.436,0.787,0.116],[0.181,0.564,0.787,0.116],[0.181,0.686,0.787,0.116],[0.168,0.852,0.048,0.11]]'>
       <figcaption data-t="md.cap"></figcaption>
     </figure>
     <div>
@@ -200,8 +200,8 @@
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=2094f2ee"></script>
-<script src="assets/quanta.js?v=98c4ced5"></script>
+<script src="assets/guide.js?v=19672d23"></script>
+<script src="assets/quanta.js?v=05579488"></script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, trimZ, setup, rgba, io, t, poisson, niceTicks, tickLabel, axes } = GUIDE;
@@ -236,7 +236,7 @@ GUIDE.texts({ru:{
 'bar.l4':'<b>Автомасштаб</b> — <span class="ui">Авто масштаб</span>, <span class="ui">Авто масштаб по фону</span> или <span class="ui">Без авто масштабирования</span>',
 'bar.l5':'<b>Канал / Энергия (кэВ)</b> — подписи оси X',
 'bar.l6':'<b>Увеличение масштаба · Показать все каналы · Масштаб 1:1</b> — то же, что <kbd>M</kbd> и <kbd>A</kbd>; 1:1 — один канал на точку экрана',
-'bar.l7':'<b>Масштаб по оси X</b> — от 0.1 до 10 точек экрана на канал; можно вписать число',
+'bar.l7':'<b>Масштаб по оси X</b> — от 0.01 до 10 точек экрана на канал; можно вписать число',
 'bar.l8':'<b>Вкл/Выкл калибровку по энергиям</b> — инструмент калибровки (глава 6)',
 'bar.r1':'<b>Режим отображения</b> — фон, вычет, континуум, FSA, нормировка (раздел ниже)',
 'bar.r2':'<b>Сглаживание линий / Обычное отображение</b> — сглаженные края линий; меняет только рисунок',
@@ -255,7 +255,7 @@ GUIDE.texts({ru:{
 'md.k':'Режимы','md.h':'Что рисовать: фон, вычет, FSA',
 'md.lead':'Режим — как слои на кальке: можно положить фон рядом, убрать его, вычесть или разложить спектр на составные части. Кнопка <span class="ui">BG</span> на полосе листает режимы по кругу, стрелка рядом открывает список.',
 'md.cap':'Список режимов отображения (кнопка BG)',
-'md.l1':'<b>Показать фоновый спектр</b> — фон (бирюзовый) рисуется под спектром, приведённый к его времени',
+'md.l1':'<b>Показать фоновый спектр</b> — фон (на снимке — бирюзовый; цвет — Инструменты → Настройки → Цвет) рисуется под спектром, приведённый к его времени',
 'md.l2':'<b>Скрыть фоновый спектр</b> — только спектр; панель выделения фон по-прежнему учитывает',
 'md.l3':'<b>Показать спектр за вычетом фона</b> — спектр минус фон; по нему же ищутся пики',
 'md.l4':'<b>Показать континуум с пиками</b> — подложка под найденными пиками и сами пики поверх',
@@ -264,7 +264,7 @@ GUIDE.texts({ru:{
 'md.l7':'<b>Кнопка BG</b> — щелчок листает режимы по кругу, стрелка открывает этот список',
 'md.f1':'<b>Вычет — честный, а не «на глаз».</b> Фон умножается на отношение живых времён, каналы ниже нуля обнуляются.',
 'md.f2':'<b>FSA — режим, а не отдельное окно.</b> Пока выбран «Показать FSA», разбор пересчитывается сам; отчёт и результат — в своих панелях.',
-'md.f3':'<b>Нормировка нужна кривая эффективности.</b> Без кривой у спектра режим показывает спектр как есть.',
+'md.f3':'<b>Нормировке нужна кривая эффективности.</b> Без кривой у спектра пункт недоступен, а кнопка BG его пропускает; если кривая выбрана, но делить по ней нельзя, щелчок по пункту называет причину.',
 'md.info':'<b>Режим влияет на поиск пиков.</b> «Показать спектр за вычетом фона» — пики ищутся по вычтенному спектру; в остальных режимах — по исходному. Тот же вычтенный спектр уходит в «Расширенный CSV файл» и «Жёсткий вычет в файл» (глава 12).',
 'ms.k':'Мышь','ms.h':'Выделение мышью и панель «Выбранная область»',
 'ms.lead':'Выделение — как прикинуть на весах: протянули левой кнопкой по пику, и программа взвешивает, сколько в этой полосе отсчётов, сколько из них фон и превышает ли остаток порог обнаружения.',
@@ -333,7 +333,7 @@ GUIDE.texts({ru:{
 'bar.l4':'<b>Auto fitting</b> — <span class="ui">Auto Fitting</span>, <span class="ui">Auto Fitting to Background</span> or <span class="ui">No Auto Fitting</span>',
 'bar.l5':'<b>Channel / Energy (keV)</b> — X axis labels',
 'bar.l6':'<b>Magnify Selection · Show All Channels · Scale 1:1</b> — same as <kbd>M</kbd> and <kbd>A</kbd>; 1:1 is one channel per screen pixel',
-'bar.l7':'<b>Change X scale</b> — 0.1 to 10 screen pixels per channel; a number can be typed in',
+'bar.l7':'<b>Change X scale</b> — 0.01 to 10 screen pixels per channel; a number can be typed in',
 'bar.l8':'<b>Activate/Inactivate Energy Calibration Tool</b> — the calibration tool (chapter 6)',
 'bar.r1':'<b>View mode</b> — background, subtraction, continuum, FSA, normalisation (section below)',
 'bar.r2':'<b>Antialias Drawing / Normal Drawing</b> — smooth line edges; changes only the picture',
@@ -352,7 +352,7 @@ GUIDE.texts({ru:{
 'md.k':'Modes','md.h':'What to draw: background, subtraction, FSA',
 'md.lead':'A mode is like a layer of tracing paper: put the background beside the spectrum, hide it, subtract it, or decompose the spectrum into its parts. The <span class="ui">BG</span> button on the bar cycles the modes, the arrow next to it opens the list.',
 'md.cap':'The list of view modes (the BG button)',
-'md.l1':'<b>Show Background Spectrum</b> — the background (teal) is drawn under the spectrum, scaled to its time',
+'md.l1':'<b>Show Background Spectrum</b> — the background (teal on the screenshot; colour in Tool → Preferences → Color) is drawn under the spectrum, scaled to its time',
 'md.l2':'<b>Hide Background Spectrum</b> — only the spectrum; the selection panel still accounts for the background',
 'md.l3':'<b>Show Spectrum with Background Subtracted</b> — spectrum minus background; peaks are searched on it too',
 'md.l4':'<b>Show Continuum with peaks</b> — the continuum under the detected peaks with the peaks on top',
@@ -361,7 +361,7 @@ GUIDE.texts({ru:{
 'md.l7':'<b>The BG button</b> — a click cycles the modes, the arrow opens this list',
 'md.f1':'<b>Subtraction is honest, not “by eye”.</b> The background is multiplied by the ratio of live times; channels below zero are set to zero.',
 'md.f2':'<b>FSA is a mode, not a separate window.</b> While “Show FSA” is selected the decomposition refreshes itself; the report and the result live in their own panels.',
-'md.f3':'<b>Normalisation needs an efficiency curve.</b> Without a curve the mode shows the spectrum as it is.',
+'md.f3':'<b>Normalisation needs an efficiency curve.</b> Without a curve the item is greyed out and the BG button skips it; if a curve is chosen but cannot be used, clicking the item tells why.',
 'md.info':'<b>The mode affects peak search.</b> With “Show Spectrum with Background Subtracted” peaks are searched on the subtracted spectrum; in the other modes, on the raw one. The same subtracted spectrum goes into the “Extended CSV File” and “Hard subtract to File” (chapter 12).',
 'ms.k':'Mouse','ms.h':'Mouse selection and the “Selected Region” panel',
 'ms.lead':'A selection is a quick weighing: drag the left button across a peak and the program weighs how many counts are in that band, how many of them are background, and whether the rest passes the detection limit.',

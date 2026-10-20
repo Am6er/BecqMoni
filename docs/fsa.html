@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FSA на практике — BecqMoni гид</title>
-<link rel="stylesheet" href="assets/guide.css?v=c6846273">
+<link rel="stylesheet" href="assets/guide.css?v=1b26651d">
 <style>
 /* только эта глава */
 figure.shot.side{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:6px 16px;align-items:start;margin-top:22px}
@@ -120,7 +120,7 @@ figure.shot.side.tall>.shot-frame{max-width:330px;width:100%}
       <div class="explain" id="qExp"></div>
     </div>
   </div>
-  <figure class="shot wide" data-shot="main-fsa-nomatrix" data-hot='[[0.0050,0.6270,0.1550,0.0730],[0.0050,0.8030,0.1550,0.0170],[0.0050,0.8320,0.1550,0.0400],[0.0050,0.8700,0.1550,0.0960],[0.7510,0.6310,0.0920,0.0170]]'>
+  <figure class="shot wide" data-shot="main-fsa-nomatrix" data-hot-en='[[0.0050,0.6270,0.1550,0.0730],[0.0050,0.7930,0.1550,0.0170],[0.0050,0.8210,0.1550,0.0290],[0.0050,0.8480,0.1550,0.1070],[0.7510,0.6310,0.0920,0.0170]]' data-hot='[[0.0050,0.6270,0.1550,0.0730],[0.0050,0.8030,0.1550,0.0170],[0.0050,0.8320,0.1550,0.0400],[0.0050,0.8700,0.1550,0.0960],[0.7510,0.6310,0.0920,0.0170]]'>
     <figcaption data-t="q.cap"></figcaption>
     <ol class="shot-legend cols2"><li data-t="q.l1"></li><li data-t="q.l2"></li><li data-t="q.l3"></li><li data-t="q.l4"></li><li data-t="q.l5"></li></ol>
   </figure>
@@ -210,12 +210,12 @@ figure.shot.side.tall>.shot-frame{max-width:330px;width:100%}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=2094f2ee"></script>
-<script src="assets/quanta.js?v=98c4ced5"></script>
+<script src="assets/guide.js?v=19672d23"></script>
+<script src="assets/quanta.js?v=05579488"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
-GUIDE.texts({ ru: {"mc.n": "Слой", "mc.k": "Монте-Карло", "mc.h": "Как рождается слой", "mc.lead": "Слой — это то, как нуклид со всеми своими линиями выглядит именно в вашей геометрии. Его печатает тот же перенос фотонов: каждая линия ряда летит в кристалл со своим выходом, и из оставленной энергии складывается форма слоя — пики, плато, пики вылета вместе.", "mc.pick": "Нуклид:", "mc.chain": "(ряд)", "mc.lab": "слой {0} в банке на торце", "mc.t1": "линий в слое", "mc.t2": "фотонов прогнано", "mc.t3": "в пиках на испущенный фотон", "mc.f1": "<b>Слой — это целый нуклид</b>, а не отдельный пик. Поэтому FSA разбирает даже перекрытые линии: 583 и 609 кэВ из разных рядов не путаются.", "mc.f2": "<b>Слой зависит от геометрии.</b> Один и тот же нуклид в банке и в Маринелли даёт разные слои — потому матрица считается для вашей геометрии.", "mc.f3": "<b>В программе слои не считаются заново</b> на каждом разборе: они берутся из матрицы отклика, которую прибор считает один раз."},
- en: {"mc.n": "Layer", "mc.k": "Monte Carlo", "mc.h": "How a layer is born", "mc.lead": "A layer is what a nuclide with all its lines looks like in exactly your geometry. The same photon transport prints it: every line of the chain flies into the crystal with its own yield, and the energy left behind builds the shape of the layer — peaks, plateaus and escape peaks together.", "mc.pick": "Nuclide:", "mc.chain": "(chain)", "mc.lab": "{0} layer, jar on the face", "mc.t1": "lines in the layer", "mc.t2": "photons run", "mc.t3": "in the peaks per emitted photon", "mc.f1": "<b>A layer is a whole nuclide</b>, not a single peak. That is why FSA separates even overlapping lines: 583 and 609 keV from different chains do not get mixed up.", "mc.f2": "<b>The layer depends on the geometry.</b> The same nuclide in a jar and in a Marinelli beaker gives different layers — so the matrix is computed for your geometry.", "mc.f3": "<b>The app does not recompute layers</b> on every analysis: it takes them from the response matrix the detector computes once."} });
+GUIDE.texts({ ru: {"mc.n": "Слой", "mc.k": "Монте-Карло", "mc.h": "Как рождается слой", "mc.lead": "Слой — это то, как нуклид со всеми своими линиями выглядит именно в вашей геометрии. Его печатает тот же перенос фотонов: каждая линия ряда летит в кристалл со своим выходом, и из оставленной энергии складывается форма слоя — пики, плато, пики вылета вместе.", "mc.pick": "Нуклид:", "mc.chain": "(ряд)", "mc.lab": "слой {0} в банке на торце", "mc.t1": "линий в слое", "mc.t2": "фотонов прогнано", "mc.t3": "в пиках на испущенный фотон", "mc.f1": "<b>Слой — это целый нуклид</b>, а не отдельный пик. Поэтому FSA разбирает даже перекрытые линии: 583 и 609 кэВ из разных рядов не путаются.", "mc.f2": "<b>Слой зависит от геометрии.</b> Один и тот же нуклид в банке и в Маринелли даёт разные слои — потому матрица считается для вашей геометрии.", "mc.f3": "<b>В программе слои не считаются заново</b> на каждом разборе: они берутся из матрицы отклика, которую программа один раз считает для вашей геометрии."},
+ en: {"mc.n": "Layer", "mc.k": "Monte Carlo", "mc.h": "How a layer is born", "mc.lead": "A layer is what a nuclide with all its lines looks like in exactly your geometry. The same photon transport prints it: every line of the chain flies into the crystal with its own yield, and the energy left behind builds the shape of the layer — peaks, plateaus and escape peaks together.", "mc.pick": "Nuclide:", "mc.chain": "(chain)", "mc.lab": "{0} layer, jar on the face", "mc.t1": "lines in the layer", "mc.t2": "photons run", "mc.t3": "in the peaks per emitted photon", "mc.f1": "<b>A layer is a whole nuclide</b>, not a single peak. That is why FSA separates even overlapping lines: 583 and 609 keV from different chains do not get mixed up.", "mc.f2": "<b>The layer depends on the geometry.</b> The same nuclide in a jar and in a Marinelli beaker gives different layers — so the matrix is computed for your geometry.", "mc.f3": "<b>The app does not recompute layers</b> on every analysis: it takes them from the response matrix the program computes once for your geometry."} });
 (function () {
   const { $, $$, fx, t, Q } = GUIDE;
   const NUC = [
@@ -241,7 +241,7 @@ GUIDE.texts({ru:{
 'n.on':'Включить','n.rep':'Окно отчёта','n.q':'Качество разбора','n.mod':'Компоненты модели','n.live':'Во время набора',
 'h.k':'Глава 9 · FSA на практике',
 'h.h':'Разобрать <em>весь спектр</em>, а не отдельные пики',
-'h.lead':'FSA (полноспектральное разложение) складывает спектр из «образов» нуклидов — каждый со своими пиками, комптоном и вылетами — и подбирает, сколько какого нужно. Как он устроен внутри — в главе <a href="how-it-works.html#fsa">«Как это устроено» → FSA</a>; здесь — как его включить и как читать отчёт.',
+'h.lead':'FSA (полноспектральное разложение) складывает спектр из «образов» нуклидов — каждый со своими пиками, комптоном и вылетами — и подбирает, сколько какого нужно. Как он устроен внутри — в главе <a href="how-it-works.html#fsa">«Как это работает» → FSA</a>; здесь — как его включить и как читать отчёт.',
 'o.k':'Шаг 1','o.h':'Включить FSA — один пункт в списке режимов',
 'o.lead':'FSA — это режим показа спектра, как «фон» или «за вычетом фона». Включили — программа разбирает спектр и раскрашивает его по нуклидам. Но, как повару, ей нужны все ингредиенты: без них она вежливо откажет и скажет, чего не хватает.',
 'o.cap':'Полоса под графиком: раскрытый список режимов «Просмотр:»',
@@ -272,7 +272,7 @@ GUIDE.texts({ru:{
 'o.f2':'<b>Без матрицы — работает, но хуже.</b> Каскадные нуклиды занижаются, и отчёт честно пишет это красным.',
 'o.f3':'<b>Пики нужны как подсказка состава.</b> FSA берёт нуклиды из подписанных пиков; не найдено ни одного — разбирать нечего.',
 'r.k':'Шаг 2','r.h':'Окно «Отчёт FSA»',
-'r.lead':'Слева — настройки: что считать и как показывать. Справа внизу — итог: доли нуклидов и оценка качества. Наведите на номер — подсветится блок.',
+'r.lead':'Вверху — настройки: что считать и как показывать. Внизу — итог: доли нуклидов и оценка качества. Наведите на номер — подсветится блок.',
 'r.cap':'«Отчёт FSA»: диск Th-232, разбор с матрицей',
 'r.l1':'<b>Источник состава</b>: «По меткам найденных пиков» — только подписанные пики; «Из NucBase» — состав по пикам, линии и ряды распада — из базы',
 'r.l2':'<b>Модель цепочек</b>: «Равновесие ряда» связывает членов ряда одной активностью (только при NucBase)',
@@ -311,9 +311,9 @@ GUIDE.texts({ru:{
 'q.e5h':'Кривая эффективности','q.e5':'«учтена»: веса линий внутри образа и беккерели берутся по ней. «не учтена» — низ спектра перекошен, а беккерели окно результата скроет.',
 'q.e6h':'Каскадное суммирование','q.e6':'Учитывается только при матрице. Без неё нуклиды с каскадами (Co-60, Bi-214, Tl-208 и др.) занижаются — по корпусу до 11 %.',
 'q.e7h':'Привязка шкалы','q.e7':'По скольким опорным пикам FSA сверил шкалу энергий и какую поправку нашёл. Доли процента и нули — норма; проценты и килоэлектронвольты — повод перекалибровать (глава <a href="calibration.html">6</a>).',
-'q.e10h':'Пик вне состава','q.e10':'В спектре есть пик, которого нет в модели: на 353.6 кэВ счёт на 12 % выше модели, значимость z 21.6. Рядом линия Pb-214 из ряда Ra-226, а этого нуклида нет в наборе — «нет в сете». Добавьте его в набор или включите «Из NucBase».',
-'q.e11h':'Нет матрицы отклика','q.e11':'Красное предупреждение со ценой: каскадные нуклиды могут быть занижены до 11 %. Лечится одним действием — матрицей из геометрии.',
-'q.cap':'Тот же диск без матрицы: красные строки (снимок русского интерфейса)',
+'q.e10h':'Пик вне состава','q.e10':'В спектре есть пик, которого нет в модели: на 353.6 кэВ счёт на 12 % выше модели, значимость z 21.6. Рядом линия Pb-214 из ряда Ra-226, а этого нуклида нет в наборе — «нет в сете». Добавьте Ra-226 (Pb-214) в набор нуклидов — тогда пик получит подпись и сможет войти в состав.',
+'q.e11h':'Нет матрицы отклика','q.e11':'Красное предупреждение с ценой: каскадные нуклиды могут быть занижены до 11 %. Лечится одним действием — матрицей из геометрии.',
+'q.cap':'Тот же диск без матрицы: красные строки',
 'q.l1':'<b>Отдельные компоненты</b> — рентген Pb и Th, пик вылета SE-1588, обратное рассеяние: без матрицы они живут в таблице сами по себе',
 'q.l2':'<b>Матрица отклика — не учтена</b>',
 'q.l3':'<b>Каскадное суммирование — не учтено: нет матрицы отклика</b>',
@@ -333,7 +333,7 @@ GUIDE.texts({ru:{
 'm.f1':'<b>Атомный рентген</b> — пики 75–85 кэВ от свинца домика и рентген самих нуклидов. Без него низ спектра «лишний».',
 'm.f2':'<b>Каскадное суммирование</b> — два кванта одного распада пойманы разом: их пики проседают, а на сумме энергий вырастает пик. Без компонента Co-60 занижен.',
 'm.f3':'<b>Обратное рассеяние</b> — горб около 200 кэВ от квантов, отразившихся от стен и домика. В геометрии это галка «Измерение в защите».',
-'l.k':'Шаг 5','l.h':'FSA во время набора',
+'l.k':'Шаг 6','l.h':'FSA во время набора',
 'l.lead':'Пока спектр пишется, FSA пересчитывается сам — но не чаще заданного: как прогноз погоды, который обновляют раз в полчаса, а не каждую секунду. Двигайте ползунки и посмотрите на ленту счётов.',
 'lv.h':'Лента набора: когда FSA пересчитывается','lv.int':'Пересчёт не чаще, чем раз в','lv.dur':'Длительность одного счёта','lv.run':'Пуск','lv.pause':'Пауза','lv.reset':'Сброс','lv.s':'с',
 'lv.runs':'счётов за 10 минут набора: <b>{0}</b>','lv.busy':'FSA занят <b>{0} %</b> времени','lv.time':'набор: <b>{0}</b>',
@@ -381,7 +381,7 @@ GUIDE.texts({ru:{
 'o.f2':'<b>Without a matrix it works, but worse.</b> Cascade nuclides read low, and the report honestly says so in red.',
 'o.f3':'<b>Peaks serve as a hint of the composition.</b> FSA takes nuclides from labelled peaks; none found — nothing to decompose.',
 'r.k':'Step 2','r.h':'The “FSA Report” window',
-'r.lead':'On the left — settings: what to compute and how to show it. Lower right — the outcome: nuclide shares and a quality check. Hover a number — the block lights up.',
+'r.lead':'At the top — settings: what to compute and how to show it. At the bottom — the outcome: nuclide shares and a quality check. Hover a number — the block lights up.',
 'r.cap':'“FSA Report”: a Th-232 disk, decomposition with a matrix',
 'r.l1':'<b>Composition source</b>: “From labels of detected peaks” — labelled peaks only; “From NucBase” — the composition from the peaks, lines and decay chains from the database',
 'r.l2':'<b>Chain model</b>: “Chain equilibrium” ties chain members to one activity (NucBase only)',
@@ -420,9 +420,9 @@ GUIDE.texts({ru:{
 'q.e5h':'Efficiency curve','q.e5':'“used”: line weights inside an image and the becquerels follow it. “not used” — the low end is skewed, and the result window hides the becquerels.',
 'q.e6h':'Cascade summing','q.e6':'Applied only with a matrix. Without it, nuclides with cascades (Co-60, Bi-214, Tl-208 and others) read low — up to 11 % in the corpus.',
 'q.e7h':'Scale anchoring','q.e7':'How many anchor peaks FSA checked the energy scale on, and what correction it found. Fractions of a percent and zeros are normal; percents and kilo-electronvolts are a reason to recalibrate (chapter <a href="calibration.html">6</a>).',
-'q.e10h':'Peak outside the composition','q.e10':'The spectrum has a peak the model lacks: at 353.6 keV the count is 12 % above the model, significance z 21.6. Nearby is the Pb-214 line of the Ra-226 chain, and that nuclide is not in the set — “not in set”. Add it to the set or switch to “From NucBase”.',
+'q.e10h':'Peak outside the composition','q.e10':'The spectrum has a peak the model lacks: at 353.6 keV the count is 12 % above the model, significance z 21.6. Nearby is the Pb-214 line of the Ra-226 chain, and that nuclide is not in the set — “not in set”. Add Ra-226 (Pb-214) to the nuclide set — the peak then gets a label and can enter the composition.',
 'q.e11h':'No response matrix','q.e11':'A red warning with a price: cascade nuclides may read up to 11 % low. One action cures it — a matrix from the geometry.',
-'q.cap':'The same disk without a matrix: red lines (a shot of the Russian interface)',
+'q.cap':'The same disk without a matrix: red lines',
 'q.l1':'<b>Separate components</b> — Pb and Th X-rays, the SE-1588 escape peak, backscatter: without a matrix they live in the table on their own',
 'q.l2':'<b>Response matrix — not used</b>',
 'q.l3':'<b>Cascade summing — not applied: no response matrix</b>',
@@ -442,7 +442,7 @@ GUIDE.texts({ru:{
 'm.f1':'<b>Atomic X-rays</b> — 75–85 keV peaks from the castle lead and the nuclides’ own X-rays. Without it the low end is “in excess”.',
 'm.f2':'<b>Cascade summing</b> — two photons of one decay caught at once: their peaks sag and a peak grows at the sum of energies. Without the component Co-60 reads low.',
 'm.f3':'<b>Backscatter</b> — a hump near 200 keV from photons bounced off the walls and the castle. In the geometry it is the “Measured inside a shield” box.',
-'l.k':'Step 5','l.h':'FSA during acquisition',
+'l.k':'Step 6','l.h':'FSA during acquisition',
 'l.lead':'While a spectrum is being recorded, FSA recomputes itself — but no more often than set: like a weather forecast updated every half hour, not every second. Move the sliders and watch the strip of runs.',
 'lv.h':'Acquisition strip: when FSA recomputes','lv.int':'Recompute no more often than every','lv.dur':'Duration of one run','lv.run':'Play','lv.pause':'Pause','lv.reset':'Reset','lv.s':'s',
 'lv.runs':'runs per 10 minutes of acquisition: <b>{0}</b>','lv.busy':'FSA busy <b>{0} %</b> of the time','lv.time':'acquisition: <b>{0}</b>',
@@ -471,9 +471,9 @@ GUIDE.texts({ru:{
     let dlg = '', status, head, qual = '';
     if (!on.fwhm) dlg = '<div class="dlg"><div class="ttl">' + t('d.fwhmT') + '</div><div class="bd">' + t('d.fwhmQ') + '</div></div>';
     else if (!on.curve) dlg = '<div class="dlg"><div class="ttl">' + t('d.effT') + '</div><div class="bd">' + t('d.effQ') + '<br><i style="color:#555">' + t('d.after') + '</i></div></div>';
-    if (!on.ecal) status = ['#c0262d', t('s.err') + ': ' + t('e.cal')];
+    if (!on.peaks) status = ['#c0262d', t('s.err') + ': ' + t('e.peaks')];   // как в программе: пустой состав — отказ ещё до разбора
+    else if (!on.ecal) status = ['#c0262d', t('s.err') + ': ' + t('e.cal')];
     else if (!geo) status = ['#c0262d', t('s.err') + ': ' + t('e.geo')];
-    else if (!on.peaks) status = ['#c0262d', t('s.err') + ': ' + t('e.peaks')];
     else { status = ['#1a8a1a', t('s.done')]; qual = t(mx ? 'q.mxOk' : 'q.mxNo'); }
     head = status[0] === '#1a8a1a' ? t(mx ? 'h.mx' : 'h.curve') : t('h.err');
     $('#cOut').innerHTML = dlg +

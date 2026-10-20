@@ -133,13 +133,13 @@
     <value>Удалить</value>
   </data>
   <data name="getAllPeaksButton.Text" xml:space="preserve">
-    <value>Получить все пики</value>
+    <value>Все пики</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
-    <value>FWHM Калибровка</value>
+    <value>Калибровка по FWHM</value>
   </data>
   <data name="saveToDeviceCfgButton.Text" xml:space="preserve">
-    <value>Сохранить в конфиг устройства</value>
+    <value>Сохр. в конф. устр.</value>
   </data>
   <data name="saveToDeviceCfgButton.ToolTip" xml:space="preserve">
     <value>Сохранить калибровку в конфиг устройства</value>
@@ -4427,7 +4427,7 @@
     <value>Номер канала</value>
   </data>
   <data name="$this.TabText" xml:space="preserve">
-    <value>FWHM Калибровка</value>
+    <value>Калибровка по FWHM</value>
   </data>
   <data name="selectCurveComboBox.Items2" xml:space="preserve">
     <value>Степенная</value>
@@ -4448,7 +4448,7 @@
     <value>Выберите кривую калибровки из списка ниже</value>
   </data>
   <data name="addPeakButton.Text" xml:space="preserve">
-    <value>Добавить пик</value>
+    <value>Добавить</value>
   </data>
   <data name="label3.Text" xml:space="preserve">
     <value>Формула:</value>

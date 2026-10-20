@@ -783,7 +783,7 @@
     <value>Выбранный канал превышает размер спектра</value>
   </data>
   <data name="MSGMSE" xml:space="preserve">
-    <value>Среднеквадратичная ошибка</value>
+    <value>Средний квадрат ошибки</value>
   </data>
   <data name="ERRSpectrumCheck" xml:space="preserve">
     <value>Ошибка при проверке контента файла спектра: калибровки, гистограммы, количества каналов</value>

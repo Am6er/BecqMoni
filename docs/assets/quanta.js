@@ -273,29 +273,49 @@
     ctx.fillStyle = gc; ctx.fillRect(X(0), Y(D.R), D.H * s, 2 * D.R * s);
     if (o.labels) { ctx.fillStyle = '#d7e6ff'; ctx.font = '600 12px system-ui'; ctx.textAlign = 'center'; ctx.fillText('NaI(Tl)', X(D.H / 2), Y(D.R) + 16); }
   }
+  /* свечение точки взаимодействия: радиальный градиент рисуется один раз в маленький холст на цвет и масштаб,
+     дальше — drawImage с прозрачностью; раньше градиент строился заново у каждой точки в каждом кадре (`AMBER254`) */
+  const glowCache = new Map();
+  function glowSprite(col, d) {
+    const key = col + '|' + d; let c = glowCache.get(key);
+    if (!c) {
+      const R = 13, n = Math.ceil(2 * R * d); c = document.createElement('canvas'); c.width = c.height = n;
+      const g = c.getContext('2d'); g.scale(n / (2 * R), n / (2 * R));
+      const gr = g.createRadialGradient(R, R, 0, R, R, R); gr.addColorStop(0, rgba(col, .8)); gr.addColorStop(1, rgba(col, 0));
+      g.fillStyle = gr; g.beginPath(); g.arc(R, R, R, 0, TWO_PI); g.fill(); glowCache.set(key, c);
+    }
+    return c;
+  }
+  const PT_COL = { ph: '#ff4d6d', co: '#ffd166', pa: '#c38bff' };
   function drawTrack(ctx, V, tr, alpha, prog) {    // prog: 0..1 — какая часть трека уже пролетела
-    const { X, Y } = V; let L = 0;
-    const segs = tr.filter(e => e.a);
-    segs.forEach(e => { e.len = Math.hypot(e.b[0] - e.a[0], e.b[2] - e.a[2]) + (e.c ? 3.5 : 0) + (e.k === 'miss' ? 0 : 0.01); L += e.len; });
-    let lim = prog === undefined ? Infinity : prog * L, acc = 0;
-    ctx.save(); ctx.lineCap = 'round';
+    const { X, Y } = V;
+    if (tr.L === undefined) {   // трек после рождения не меняется: длины и цвета отрезков — один раз, а не в каждом кадре (`AMBER254`)
+      let L = 0;
+      for (const e of tr) if (e.a) { e.len = Math.hypot(e.b[0] - e.a[0], e.b[2] - e.a[2]) + (e.c ? 3.5 : 0) + (e.k === 'miss' ? 0 : 0.01); L += e.len; e.col = e.k === 'bs' ? '#CC55BB' : eCol(e.E, e.k === 'miss' ? 0.22 : 0.95); }
+      tr.L = L;
+    }
+    let lim = prog === undefined ? Infinity : prog * tr.L, acc = 0;
+    const d = ctx.canvas._d || ctx.getTransform().a, lite = G.lite();   // масштаб холста запоминает setup()
+    // без ctx.save(): у сотни треков в кадре он стоил заметно; прозрачность — общей альфой, цвета — готовыми строками
+    const a0 = ctx.globalAlpha, lc0 = ctx.lineCap, lw0 = ctx.lineWidth;
+    ctx.lineCap = 'round'; ctx.globalAlpha = a0 * alpha;
     for (const e of tr) {
       if (e.a) {
         if (acc >= lim) break;
         const f = clamp((lim - acc) / e.len, 0, 1); acc += e.len;
-        ctx.strokeStyle = e.k === 'bs' ? rgba('#CC55BB', alpha) : eCol(e.E, alpha * (e.k === 'miss' ? 0.22 : 0.95)); ctx.lineWidth = e.k === 'miss' ? 1 : 1.8;
+        ctx.strokeStyle = e.col; ctx.lineWidth = e.k === 'miss' ? 1 : 1.8;
         const b = e.k === 'out' ? e.c : e.b, bx = lerp(e.a[2], b[2], f), by = lerp(e.a[0], b[0], f);
         ctx.beginPath(); ctx.moveTo(X(e.a[2]), Y(e.a[0])); ctx.lineTo(X(bx), Y(by)); ctx.stroke();
-        if (e.k === 'out' && f > 0.98) { ctx.fillStyle = rgba('#4dd0e1', alpha); ctx.beginPath(); ctx.arc(X(e.c[2]), Y(e.c[0]), 2.4, 0, TWO_PI); ctx.fill(); }
+        if (e.k === 'out' && f > 0.98) { ctx.fillStyle = '#4dd0e1'; ctx.beginPath(); ctx.arc(X(e.c[2]), Y(e.c[0]), 2.4, 0, TWO_PI); ctx.fill(); }
       } else if (e.p && e.k !== 'src') {
         if (acc > lim) break;
-        const col = e.k === 'ph' ? '#ff4d6d' : e.k === 'co' ? '#ffd166' : e.k === 'pa' ? '#c38bff' : '#8892a8', r = e.k === 'ph' ? 4.5 : e.k === 'pa' ? 4.5 : 3;
-        if ((e.k === 'ph' || e.k === 'pa') && !G.lite()) { const g = ctx.createRadialGradient(X(e.p[2]), Y(e.p[0]), 0, X(e.p[2]), Y(e.p[0]), 13); g.addColorStop(0, rgba(col, .8 * alpha)); g.addColorStop(1, rgba(col, 0)); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(X(e.p[2]), Y(e.p[0]), 13, 0, TWO_PI); ctx.fill(); }
-        ctx.fillStyle = rgba(col, alpha); ctx.beginPath(); ctx.arc(X(e.p[2]), Y(e.p[0]), r, 0, TWO_PI); ctx.fill();
-        if (e.k === 'abs') { ctx.strokeStyle = rgba('#8892a8', alpha); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(e.p[2]) - 4, Y(e.p[0]) - 4); ctx.lineTo(X(e.p[2]) + 4, Y(e.p[0]) + 4); ctx.moveTo(X(e.p[2]) + 4, Y(e.p[0]) - 4); ctx.lineTo(X(e.p[2]) - 4, Y(e.p[0]) + 4); ctx.stroke(); }
+        const col = PT_COL[e.k] || '#8892a8', r = e.k === 'ph' ? 4.5 : e.k === 'pa' ? 4.5 : 3, px = X(e.p[2]), py = Y(e.p[0]);
+        if ((e.k === 'ph' || e.k === 'pa') && !lite) ctx.drawImage(glowSprite(col, d), px - 13, py - 13, 26, 26);
+        ctx.fillStyle = col; ctx.beginPath(); ctx.arc(px, py, r, 0, TWO_PI); ctx.fill();
+        if (e.k === 'abs') { ctx.strokeStyle = '#8892a8'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(px - 4, py - 4); ctx.lineTo(px + 4, py + 4); ctx.moveTo(px + 4, py - 4); ctx.lineTo(px - 4, py + 4); ctx.stroke(); }
       }
     }
-    ctx.restore();
+    ctx.globalAlpha = a0; ctx.lineCap = lc0; ctx.lineWidth = lw0;
   }
 
   /* ============================== ЗАСТАВКА: банка → кристалл → спектр (вид сбоку; 3D снято — `AMBER247`) ============================== */
@@ -306,7 +326,8 @@
     const wsum = LINES.reduce((a, l) => a + l[1], 0);
     const pick = () => { let u = Math.random() * wsum; for (const l of LINES) { u -= l[1]; if (u <= 0) return l[0]; } return LINES[1][0]; };
     const NB = 170, EMAX = 1600, hist = new Float64Array(NB); let tracks = [], nEm = 0, nHit = 0, nSp = 0;
-    let odd = false;
+    const BC = Array.from({ length: NB }, (_, b) => eCol((b + 0.5) * EMAX / NB, 0.9));   // цвет столбца от кадра не зависит (`AMBER254`)
+    let odd = false, fr = 0, statTxt = '';
     function frame() {
       requestAnimationFrame(frame);
       if (!visible.get(cv)) return;
@@ -332,9 +353,10 @@
       const X = scale('lin', 0, EMAX, bx.l, bx.r), Y = scale('sqrt', 0, mx * 1.08, bx.b, bx.t);
       axes(ctx, bx, X, Y, { xl: t('qn.ax.e'), nx: 4, noY: true });
       const bw = (bx.r - bx.l) / NB;
-      for (let b = 1; b < NB; b++) { const y = Y(hist[b]); ctx.fillStyle = eCol((b + 0.5) * EMAX / NB, 0.9); ctx.fillRect(bx.l + b * bw, y, Math.max(1, bw - 0.6), bx.b - y); }
+      for (let b = 1; b < NB; b++) { const y = Y(hist[b]); ctx.fillStyle = BC[b]; ctx.fillRect(bx.l + b * bw, y, Math.max(1, bw - 0.6), bx.b - y); }
       ctx.fillStyle = '#cdd8f3'; ctx.font = '600 12px system-ui'; ctx.textAlign = 'left'; ctx.fillText(t('qn.spec'), bx.l + 4, bx.t + 4);
-      if (statEl) statEl.innerHTML = t('qn.stat', nEm, nHit, Math.round(nSp));
+      // счётчики — раз в 6 кадров: запись в DOM в каждом кадре заставляла браузер каждый кадр пересчитывать вёрстку
+      if (statEl && (++fr % 6 === 1)) { const s = t('qn.stat', nEm, nHit, Math.round(nSp)); if (s !== statTxt) statEl.innerHTML = statTxt = s; }
     }
     requestAnimationFrame(frame);
   }
@@ -347,7 +369,7 @@
   function mcDuo(cv, o) {
     io.observe(cv);
     const NB = 200;
-    let lines = o.lines, sc = [], fr = 0;
+    let lines = o.lines, sc = [], fr = 0, bcEM = 0, BC = [];
     const emax = () => o.emax || Math.max(...lines.map(l => l[0])) * 1.15;
     const pick = () => { const ws = lines.reduce((a, l) => a + l[1], 0); let u = Math.random() * ws; for (const l of lines) { u -= l[1]; if (u <= 0) return l[0]; } return lines[0][0]; };
     function reset() {
@@ -407,7 +429,8 @@
           ctx.lineTo(bx.r, bx.b); ctx.closePath(); ctx.fillStyle = rgba(o.layer(), .55); ctx.fill(); ctx.strokeStyle = o.layer(); ctx.lineWidth = 1.5; ctx.stroke();
           lines.forEach(([E]) => { const x = X(E); ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(x, bx.t); ctx.lineTo(x, bx.b); ctx.stroke(); ctx.setLineDash([]); });
         } else {
-          for (let b = 1; b < NB; b++) { if (!s.hist[b]) continue; const y = Y(s.hist[b] / s.S.n); ctx.fillStyle = eCol((b + 0.5) * EM / NB, .9); ctx.fillRect(bx.l + b * bw, y, Math.max(1, bw - 0.4), bx.b - y); }
+          if (EM !== bcEM) { bcEM = EM; BC = Array.from({ length: NB }, (_, b) => eCol((b + 0.5) * EM / NB, .9)); }   // цвета столбцов — при смене шкалы, не в каждом кадре
+          for (let b = 1; b < NB; b++) { if (!s.hist[b]) continue; const y = Y(s.hist[b] / s.S.n); ctx.fillStyle = BC[b]; ctx.fillRect(bx.l + b * bw, y, Math.max(1, bw - 0.4), bx.b - y); }
         }
         if (n > 1 && i) { ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.beginPath(); if (vert) { ctx.moveTo(8, y0); ctx.lineTo(w - 8, y0); } else { ctx.moveTo(x0, 8); ctx.lineTo(x0, h - 8); } ctx.stroke(); }
       });
