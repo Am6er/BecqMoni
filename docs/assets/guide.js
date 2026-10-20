@@ -128,6 +128,8 @@
   }
 
   /* ── снимки окон: img/<язык>/<id>.png, точки из data-hot (доли ширины/высоты) ── */
+  // версия снимков: её ставит tools/docs_stamp.py перед заливкой — новый снимок под старым именем не берётся из кэша (`AMBER248`)
+  const IMGV = '6c86a7b1';
   function buildShots() {
     $$('figure.shot[data-shot]').forEach(fig => {
       const id = fig.dataset.shot;
@@ -136,8 +138,8 @@
       frame.innerHTML = ''; frame.title = t('shot.zoom');
       const img = new Image(); img.alt = id; img.loading = 'lazy';
       const other = LANG === 'ru' ? 'en' : 'ru';
-      img.onerror = () => { if (!img.dataset.tried) { img.dataset.tried = '1'; img.src = 'img/' + other + '/' + id + '.png'; } else { frame.innerHTML = '<div class="miss">' + t('shot.miss') + ' · <code>' + id + '</code></div>'; } };
-      img.src = 'img/' + LANG + '/' + id + '.png';
+      img.onerror = () => { if (!img.dataset.tried) { img.dataset.tried = '1'; img.src = 'img/' + other + '/' + id + '.png?v=' + IMGV; } else { frame.innerHTML = '<div class="miss">' + t('shot.miss') + ' · <code>' + id + '</code></div>'; } };
+      img.src = 'img/' + LANG + '/' + id + '.png?v=' + IMGV;
       frame.appendChild(img);
       const hotSrc = fig.getAttribute('data-hot-' + LANG) || fig.getAttribute('data-hot');
       // легенда — по data-legend (id списка), внутри фигуры или рядом с ней в той же сетке (как в calibration.html)
