@@ -65,15 +65,18 @@
       'brand.sub': 'гид', 'toc': 'Оглавление', 'prev': '← Назад', 'next': 'Дальше →', 'hood': 'Как это сделано в BecqMoni',
       'shot.miss': 'снимок окна появится здесь', 'shot.zoom': 'щёлкните, чтобы увеличить',
       'foot': 'Гид по BecqMoni. Снимки окон — настоящей программы; модели на графиках упрощены и считаются прямо в браузере. Числа печатаются с точкой.',
+      'theme.light': 'Дневная тема', 'theme.dark': 'Ночная тема',
     },
     en: {
       'brand.sub': 'guide', 'toc': 'Contents', 'prev': '← Back', 'next': 'Next →', 'hood': 'How BecqMoni does it',
       'shot.miss': 'the window screenshot goes here', 'shot.zoom': 'click to enlarge',
       'foot': 'The BecqMoni guide. Window screenshots are of the real app; models in the charts are simplified and run right in your browser. Numbers are printed with a decimal point.',
+      'theme.light': 'Light theme', 'theme.dark': 'Dark theme',
     },
   };
   G.texts = d => { ['ru', 'en'].forEach(l => Object.assign(T[l], d[l] || {})); };
-  function t(k, ...a) { let s = (T[LANG][k] !== undefined ? T[LANG][k] : T.ru[k]); if (s === undefined) return k; a.forEach((v, i) => { s = s.split('{' + i + '}').join(v); }); return s; }
+  // в дневной теме текст, называющий цвет на холсте, берётся из «ключ@day» (`AMBER258`: белая линия днём — чёрная)
+  function t(k, ...a) { const dk = k + '@day'; let s = (window.BQTHEME && BQTHEME.light && T[LANG][dk] !== undefined ? T[LANG][dk] : T[LANG][k] !== undefined ? T[LANG][k] : T.ru[k]); if (s === undefined) return k; a.forEach((v, i) => { s = s.split('{' + i + '}').join(v); }); return s; }
   G.t = t;
   Object.defineProperty(G, 'lang', { get: () => LANG });
   const redrawers = [];
@@ -99,8 +102,11 @@
     const h = document.createElement('header'); h.className = 'top';
     h.innerHTML = '<div class="wrap"><a class="brand" href="index.html">Becq<span>Moni</span><small data-t="brand.sub"></small></a>' +
       '<button class="toc-btn" id="tocBtn" aria-expanded="false"><i></i><span data-t="toc"></span></button>' +
-      '<nav class="steps" id="nav"></nav><div class="lang"><button data-lang="ru">RU</button><button data-lang="en">EN</button></div></div>';
+      '<nav class="steps" id="nav"></nav><div class="lang"><button data-lang="ru">RU</button><button data-lang="en">EN</button></div>' +
+      (W.BQTHEME ? W.BQTHEME.switchHtml : '') + '</div>';
     document.body.insertBefore(h, document.body.firstChild);
+    // дневная и ночная темы (`AMBER258`, assets/theme.js): смена темы перерисовывает холсты
+    if (W.BQTHEME) { W.BQTHEME.bind(h); W.BQTHEME.on(() => applyLang()); }
     const p = document.createElement('div'); p.className = 'toc-panel'; p.id = 'tocPanel'; p.innerHTML = '<div class="wrap"><div class="toc-grid" id="tocGrid"></div></div>';
     h.after(p);
     const btn = $('#tocBtn');
@@ -218,7 +224,9 @@
   };
   const visible = new Map();
   const io = new IntersectionObserver(es => es.forEach(e => visible.set(e.target, e.isIntersecting)), { rootMargin: '120px' });
-  Object.assign(G, { setup, scale, niceTicks, logTicks, sqrtTicks, axes, eHue, eCol, rgba, showTip, hideTip, gauss, poisson, Jobs, visible, io });
+  // цвет мимо пересчёта дневной темы (`AMBER258`): подражание окну программы — жёлтый флажок пика, чёрная рамка
+  const keep = c => W.BQTHEME ? W.BQTHEME.keep(c) : c;
+  Object.assign(G, { setup, scale, niceTicks, logTicks, sqrtTicks, axes, eHue, eCol, rgba, showTip, hideTip, gauss, poisson, Jobs, visible, io, keep });
 
   /* ── запуск: страница зовёт GUIDE.init() после своих GUIDE.texts(...) ── */
   G.init = () => {

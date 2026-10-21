@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Приборы — BecqMoni гид</title>
-<link rel="stylesheet" href="assets/guide.css?v=1b26651d">
+<script src="assets/theme.js?v=53cbbd2b"></script>
+<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
 <style>
 .ui{white-space:normal}
 figure.shot.side{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:16px;align-items:start}
@@ -39,10 +40,12 @@ ol.chk>li.done::before{content:"✓";background:var(--ok);color:#06210f;border-c
 .docs span{background:#fffbe5;color:#1a1300;border-radius:6px 6px 0 0;padding:4px 10px;font:600 12.5px system-ui;border-bottom:3px solid var(--gold)}
 .docs span.bad{border-bottom-color:var(--photo)}.docs span.good{border-bottom-color:var(--ok)}
 .goal{font-size:16px;font-weight:700;color:var(--ink);margin:2px 0 10px}
-.goal b{color:var(--gold)}
+.goal b{color:var(--goldink)}
 @media (max-width:1000px){.devs{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:900px){figure.shot.side{grid-template-columns:1fr}.tiles.four{grid-template-columns:1fr 1fr}}
 @media (max-width:560px){.devs{grid-template-columns:1fr 1fr}}
+/* дневная тема (`AMBER258`) */
+[data-theme=light] ol.chk>li::before{border-color:#c2ccdf}[data-theme=light] ol.chk>li.done::before{color:#fff}[data-theme=light] .cfgt td{border-bottom-color:rgba(140,155,190,.45)}
 </style>
 </head>
 <body data-chapter="devices">
@@ -250,8 +253,8 @@ ol.chk>li.done::before{content:"✓";background:var(--ok);color:#06210f;border-c
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=a431dac9"></script>
-<script src="assets/quanta.js?v=05579488"></script>
+<script src="assets/guide.js?v=f94cf66c"></script>
+<script src="assets/quanta.js?v=67b2c2dc"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
 GUIDE.texts({ ru: {"mc.n": "Кристалл", "mc.k": "Монте-Карло", "mc.h": "Кристалл решает: Ø40 против Ø76", "mc.lead": "Один и тот же источник в 2 см от торца, одни и те же фотоны. Слева кристалл Ø40 × 40 мм, справа Ø76 × 76 мм. Каждый трек сосчитан по физике взаимодействия, спектры — в общем масштабе на испущенный фотон.", "mc.pick": "Фотоны:", "mc.l1": "NaI Ø40 × 40 мм", "mc.l2": "NaI Ø76 × 76 мм", "mc.t1": "в пике у Ø40", "mc.t2": "в пике у Ø76", "mc.t3": "большой ловит в пик больше", "mc.f1": "<b>Больше кристалл — больше пик.</b> Фотону труднее проскочить насквозь, особенно на высоких энергиях: на 2614 кэВ разница в разы.", "mc.f2": "<b>Плато относительно пика ниже у большого.</b> Рассеянный фотон чаще догорает внутри и всё-таки попадает в пик.", "mc.f3": "<b>Ширину пика размер почти не меняет</b> — её задают кристалл и электроника. Здесь у обоих одна: 7.5 % при 662 кэВ."},

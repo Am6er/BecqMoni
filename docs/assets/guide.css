@@ -20,7 +20,7 @@ code{font-size:.92em;color:#ffe08a}
 header.top{position:sticky;top:0;z-index:30;background:rgba(9,13,24,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 header.top .wrap{display:flex;align-items:center;gap:10px;height:56px}
 .brand{font-weight:800;white-space:nowrap;text-decoration:none;color:var(--ink);font-size:17px}
-.brand span{color:var(--gold)}
+.brand span{color:var(--goldink)}
 .brand small{font-weight:500;color:var(--muted);margin-left:6px;font-size:13.5px}
 .toc-btn{display:inline-flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:6px 12px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap}
 .toc-btn:hover,.toc-btn.on{border-color:var(--gold)}
@@ -50,7 +50,7 @@ nav.steps a.on b{background:var(--gold);color:#1a1300}
 /* ── разделы ── */
 section.sec{padding:66px 0 56px;border-top:1px solid var(--line)}
 section.hero{padding:42px 0 50px}
-.kicker{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:800}
+.kicker{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--goldink);font-weight:800}
 h1{font-size:clamp(30px,4.8vw,54px);line-height:1.07;margin:10px 0 14px;letter-spacing:-.01em;max-width:980px}
 h1 em{font-style:normal;background:linear-gradient(90deg,#ffcc33,#ff6b8b 55%,#9c8bff);-webkit-background-clip:text;background-clip:text;color:transparent}
 h2{font-size:clamp(25px,3.3vw,40px);line-height:1.12;margin:8px 0 12px}
@@ -112,7 +112,7 @@ details.hood li{margin:3px 0}
 
 /* ── подписи интерфейса и шаги ── */
 .ui{display:inline-block;background:#202b4a;border:1px solid #3a4a78;border-radius:6px;padding:0 6px;font-size:.92em;color:#e9efff;white-space:nowrap;line-height:1.5}
-.ui.m::before{content:"☰ ";color:var(--gold)}
+.ui.m::before{content:"☰ ";color:var(--goldink)}
 kbd{display:inline-block;background:#1b2440;border:1px solid #3a4a78;border-bottom-width:3px;border-radius:6px;padding:0 6px;font:600 .88em/1.5 system-ui;color:#e9efff}
 ol.howto{list-style:none;counter-reset:st;margin:14px 0 0;padding:0;display:grid;gap:8px}
 ol.howto>li{counter-increment:st;position:relative;padding:9px 12px 9px 50px;background:var(--panel);border:1px solid var(--line);border-radius:12px;color:var(--soft)}
@@ -180,6 +180,40 @@ footer{padding:30px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
   .toc-btn span{display:none}
 }
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* ── переключатель темы: две иконки рядом с RU|EN (`AMBER258`) ── */
+.theme{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
+.theme button{display:grid;place-items:center;background:none;border:0;color:var(--muted);padding:6px 9px;cursor:pointer}
+.theme button:hover{color:var(--ink)}
+.theme button.on{background:var(--gold);color:#1a1300}
+.theme svg{display:block}
+
+/* ── дневная тема (`AMBER258`): токены светлые, акценты темнее; где цвет был зашит — правило ниже ──
+   --gold остаётся заливкой кнопок и меток с тёмным текстом; текст «золотом» — --goldink */
+:root{--goldink:var(--gold)}
+[data-theme=light]{
+  --bg:#f4f6fb;--bg2:#e9eef7;--panel:#ffffff;--panel2:#edf1f8;--line:#d3dbea;
+  --ink:#121a2e;--soft:#2c3752;--muted:#56627f;--dim:#737f9c;
+  --gold:#f5b800;--goldink:#9a6a00;--photo:#d11f45;--compton:#a87b00;--pair:#7a3fd6;--esc:#0b8798;--ok:#1b9150;--blue:#2361c6;
+}
+[data-theme=light] body{background:radial-gradient(1200px 620px at 85% -8%,rgba(35,97,198,.08),transparent 60%),
+  radial-gradient(900px 520px at -12% 8%,rgba(209,31,69,.06),transparent 60%),var(--bg)}
+[data-theme=light] code{color:#8a5d00}
+[data-theme=light] header.top{background:rgba(244,246,251,.88)}
+[data-theme=light] .toc-panel{background:rgba(248,250,253,.98);box-shadow:0 24px 60px rgba(30,40,70,.18)}
+[data-theme=light] h1 em{background:linear-gradient(90deg,#c98a00,#d8325a 55%,#5b45d6);-webkit-background-clip:text;background-clip:text}
+[data-theme=light] canvas.cv{background:#ffffff;box-shadow:0 0 0 1px var(--line)}
+[data-theme=light] .btn,[data-theme=light] .chip,[data-theme=light] input[type=number],[data-theme=light] input[type=text],
+[data-theme=light] input[type=date],[data-theme=light] select{border-color:#c2ccdf}
+[data-theme=light] .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+[data-theme=light] input[type=range],[data-theme=light] input[type=checkbox]{accent-color:var(--goldink)}
+[data-theme=light] details.hood{border-color:#c2ccdf;background:rgba(255,255,255,.6)}
+[data-theme=light] .pill.good{background:rgba(27,145,80,.13);color:#11683a}
+[data-theme=light] .pill.bad{background:rgba(209,31,69,.11);color:#a3122f}
+[data-theme=light] .ui,[data-theme=light] kbd{background:#eef2f9;border-color:#b6c1d8;color:#1b2540}
+[data-theme=light] .shot-frame{border-color:#c2ccdf;background:#fff;box-shadow:0 10px 30px rgba(30,40,70,.13)}
+[data-theme=light] .hot b{box-shadow:0 0 0 3px rgba(255,255,255,.85)}
+[data-theme=light] .gtip{background:rgba(255,255,255,.97);border-color:#c2ccdf;box-shadow:0 8px 28px rgba(30,40,70,.18)}
 
 /* цепочка шагов под заставкой (из how-it-works.html, `AMBER244`) */
 .minichain{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}

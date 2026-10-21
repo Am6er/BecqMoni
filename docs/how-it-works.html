@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BecqMoni — как это работает</title>
+<script src="assets/theme.js?v=53cbbd2b"></script>
 <meta name="description" content="Геометрия, кривые эффективности, матрица отклика, режим FSA и расчёт активности в BecqMoni — наглядно и интерактивно.">
 <!--
   Самодостаточная страница: ни шрифтов, ни библиотек из сети. Всё, что движется, считается здесь же:
@@ -28,7 +29,7 @@ a{color:var(--blue)}
 header.top{position:sticky;top:0;z-index:30;background:rgba(9,13,24,.84);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 header.top .wrap{display:flex;align-items:center;gap:12px;height:56px}
 .brand{font-weight:800;white-space:nowrap;text-decoration:none;color:var(--ink);font-size:17px}
-.brand span{color:var(--gold)}
+.brand span{color:var(--goldink)}
 .brand small{font-weight:500;color:var(--muted);margin-left:6px;font-size:13.5px}
 nav.steps{display:flex;gap:2px;margin-left:auto;overflow-x:auto;scrollbar-width:none;min-width:0}
 nav.steps::-webkit-scrollbar{display:none}
@@ -41,7 +42,7 @@ nav.steps a.on b{background:var(--gold);color:#1a1300}
 .lang button.on{background:var(--gold);color:#1a1300}
 section.sec{padding:72px 0 60px;border-top:1px solid var(--line)}
 section.hero{padding:46px 0 54px}
-.kicker{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:800}
+.kicker{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--goldink);font-weight:800}
 h1{font-size:clamp(31px,5vw,56px);line-height:1.06;margin:10px 0 14px;letter-spacing:-.01em;max-width:960px}
 h1 em{font-style:normal;background:linear-gradient(90deg,#ffcc33,#ff6b8b 55%,#9c8bff);-webkit-background-clip:text;background-clip:text;color:transparent}
 h2{font-size:clamp(25px,3.3vw,40px);line-height:1.12;margin:8px 0 12px}
@@ -120,14 +121,14 @@ details.hood code{font-size:13px;color:#ffe08a}
 .eq .box{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;text-align:center;min-width:92px}
 .eq .box b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
 .eq .box small{color:var(--muted);font-size:12px}
-.eq .op{font-size:22px;color:var(--gold);font-weight:800}
+.eq .op{font-size:22px;color:var(--goldink);font-weight:800}
 .tip{position:fixed;pointer-events:none;z-index:50;background:rgba(10,14,26,.95);border:1px solid #3a4874;border-radius:10px;padding:8px 10px;font-size:12.5px;color:var(--soft);min-width:150px;display:none;box-shadow:0 8px 28px rgba(0,0,0,.45)}
 .tip b{color:var(--ink)}
 .tip i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
 footer{padding:36px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px solid var(--line)}
 .tocl{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:14px;font-weight:700;text-decoration:none;white-space:nowrap}
 .tocl:hover{border-color:var(--gold)}
-.tocl b{color:var(--gold)}
+.tocl b{color:var(--goldink)}
 .gpager{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:30px 0 0}
 .gpager a{display:block;text-decoration:none;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 16px}
 .gpager a:hover{border-color:var(--gold)}
@@ -143,6 +144,20 @@ footer{padding:36px 0 60px;color:var(--dim);font-size:13.5px;border-top:1px soli
 }
 @media (max-width:560px){.chain{grid-template-columns:1fr 1fr}.node::after{display:none}.wrap{padding:0 16px}header.top .wrap{gap:6px}nav.steps a{padding:6px 3px}}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+/* ── переключатель темы и дневная тема (`AMBER258`; то же, что в assets/guide.css) ── */
+.theme{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
+.theme button{display:grid;place-items:center;background:none;border:0;color:var(--muted);padding:6px 9px;cursor:pointer}
+.theme button:hover{color:var(--ink)}.theme button.on{background:var(--gold);color:#1a1300}.theme svg{display:block}
+:root{--goldink:var(--gold)}
+[data-theme=light]{--bg:#f4f6fb;--bg2:#e9eef7;--panel:#ffffff;--panel2:#edf1f8;--line:#d3dbea;--ink:#121a2e;--soft:#2c3752;--muted:#56627f;--dim:#737f9c;--gold:#f5b800;--goldink:#9a6a00;--photo:#d11f45;--compton:#a87b00;--pair:#7a3fd6;--esc:#0b8798;--ok:#1b9150;--blue:#2361c6}
+[data-theme=light] body{background:radial-gradient(1200px 620px at 85% -8%,rgba(35,97,198,.08),transparent 60%),radial-gradient(900px 520px at -12% 8%,rgba(209,31,69,.06),transparent 60%),var(--bg)}
+[data-theme=light] header.top{background:rgba(244,246,251,.88)}
+[data-theme=light] h1 em{background:linear-gradient(90deg,#c98a00,#d8325a 55%,#5b45d6);-webkit-background-clip:text;background-clip:text}
+[data-theme=light] canvas.cv{background:#ffffff;box-shadow:0 0 0 1px var(--line)}
+[data-theme=light] .btn,[data-theme=light] .chip{border-color:#c2ccdf}[data-theme=light] .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}[data-theme=light] input[type=range],[data-theme=light] input[type=checkbox]{accent-color:var(--goldink)}
+[data-theme=light] details.hood{border-color:#c2ccdf;background:rgba(255,255,255,.6)}[data-theme=light] details.hood code{color:#8a5d00}
+[data-theme=light] .pill.good{background:rgba(27,145,80,.13);color:#11683a}[data-theme=light] .pill.bad{background:rgba(209,31,69,.11);color:#a3122f}
+[data-theme=light] .tip{background:rgba(255,255,255,.97);border-color:#c2ccdf;box-shadow:0 8px 28px rgba(30,40,70,.18)}
 </style>
 </head>
 <body>
@@ -455,6 +470,7 @@ const T = {ru:{
 's3.f3':'<b>Тонкие линии вдоль диагонали</b> — пики вылета: у мягких фотонов улетает рентген йода (−29 кэВ), у самых жёстких — кванты аннигиляции 511 кэВ.',
 's3.real':'Зачем это нужно: настоящий спектр Cs-137 в свинцовом домике',
 's3.realcap':'Белая линия — измерение (ASN16, 99 часов, 250 млн отсчётов). Цветом — то, что объясняет модель BecqMoni. Добавляйте части по одной: пик, комптон из матрицы, затем всё остальное — обратное рассеяние от домика и рентген свинца, которые программа добавляет отдельными слоями.',
+'s3.realcap@day':'Чёрная линия — измерение (ASN16, 99 часов, 250 млн отсчётов). Цветом — то, что объясняет модель BecqMoni. Добавляйте части по одной: пик, комптон из матрицы, затем всё остальное — обратное рассеяние от домика и рентген свинца, которые программа добавляет отдельными слоями.',
 's3.l1':'Только пик','s3.l2':'+ комптон','s3.l3':'+ всё остальное',
 's3.expl':'объяснено <b>{0} %</b> отсчётов',
 's3.lpk':'пик Cs-137','s3.lco':'комптон Cs-137','s3.lrest':'обратное рассеяние, рентген Pb, прочее',
@@ -464,6 +480,7 @@ const T = {ru:{
 's4.lead':'Обычный поиск пиков меряет каждый пик по отдельности. <b>FSA</b> (полноспектральный разбор) работает со всем спектром сразу. Сначала по найденным пикам он решает, <b>кто</b> есть в пробе, и для каждого нуклида берёт готовый «слой» — как этот нуклид со всем своим рядом распада выглядит именно в вашей геометрии. Потом подбирает, <b>сколько</b> каждого слоя нужно, чтобы сложилась измеренная картина. Как художник, который знает чистые краски и угадывает пропорции смеси.',
 's4.game':'Попробуйте сами: соберите спектр из слоёв',
 's4.hint':'Двигайте ползунки, пока цветная гора не ляжет на белые точки измерения. Полоса снизу — невязка: чем она спокойнее, тем лучше. Слои посчитаны тем же переносом фотонов для вашей геометрии; фон помещения считаем уже вычтенным, как в программе.',
+'s4.hint@day':'Двигайте ползунки, пока цветная гора не ляжет на чёрные точки измерения. Полоса снизу — невязка: чем она спокойнее, тем лучше. Слои посчитаны тем же переносом фотонов для вашей геометрии; фон помещения считаем уже вычтенным, как в программе.',
 's4.fit':'Подобрать, как FSA','s4.new':'Новая загадка','s4.show':'Показать ответ','s4.drift':'шкала прибора «уплыла» на несколько %',
 's4.bg':'Подложка',
 's4.chi2':'качество подгонки χ²/ndf = <b>{0}</b>',
@@ -478,6 +495,7 @@ const T = {ru:{
 's4.real':'Настоящий разбор BecqMoni',
 's4.tab.th':'Th-232, ториевый диск (Atom Spectra 80×80)','s4.tab.cs':'Cs-137 в свинцовом домике (ASN16)',
 's4.realcap':'Цвета — как на экране программы. Белая линия — измерение. Наведите на график; щёлкните по пункту легенды, чтобы спрятать слой.',
+'s4.realcap@day':'Цвета — как на экране программы, только темнее: так они читаются на светлом фоне. Чёрная линия — измерение. Наведите на график; щёлкните по пункту легенды, чтобы спрятать слой.',
 's4.rs':'живое время <b>{0}</b> · χ²/ndf <b>{1}</b> · усиление шкалы <b>{2}</b> · активность {5} <b>{3} Бк</b> · предел обнаружения <b>{4} Бк</b>',
 's4.chainof':'ряда Th-232',
 's4.f1':'<b>Весь спектр — улика</b>: плато и горбы работают на результат, а не мешают ему.',
@@ -565,6 +583,7 @@ const T = {ru:{
 's3.f3':'<b>Thin lines along the diagonal</b> — escape peaks: soft photons lose an iodine X-ray (−29 keV), the hardest ones lose 511 keV annihilation quanta.',
 's3.real':'Why it matters: a real Cs-137 spectrum in a lead house',
 's3.realcap':'White line — the measurement (ASN16, 99 hours, 250 million counts). In colour — what BecqMoni\'s model explains. Add the parts one by one: the peak, the Compton part of the matrix, then everything else — backscatter from the house and lead X-rays, which the app adds as separate layers.',
+'s3.realcap@day':'Black line — the measurement (ASN16, 99 hours, 250 million counts). In colour — what BecqMoni\'s model explains. Add the parts one by one: the peak, the Compton part of the matrix, then everything else — backscatter from the house and lead X-rays, which the app adds as separate layers.',
 's3.l1':'Peak only','s3.l2':'+ Compton','s3.l3':'+ everything else',
 's3.expl':'<b>{0} %</b> of counts explained',
 's3.lpk':'Cs-137 peak','s3.lco':'Cs-137 Compton','s3.lrest':'backscatter, Pb X-rays, other',
@@ -574,6 +593,7 @@ const T = {ru:{
 's4.lead':'Ordinary peak search measures every peak on its own. <b>FSA</b> (full-spectrum analysis) works with the whole spectrum at once. First, from the peaks it found, it decides <b>who</b> is in the sample, and for every nuclide it takes a ready-made "layer" — what that nuclide with its whole decay chain looks like in exactly your geometry. Then it finds <b>how much</b> of each layer is needed to rebuild the measured picture. Like a painter who knows the pure paints and guesses the proportions of a mix.',
 's4.game':'Try it: build the spectrum from layers',
 's4.hint':'Move the sliders until the coloured hill lies on the white measurement dots. The strip below is the residual: the calmer it is, the better. The layers come from the same photon transport for your geometry; room background is taken as already subtracted, as in the app.',
+'s4.hint@day':'Move the sliders until the coloured hill lies on the black measurement dots. The strip below is the residual: the calmer it is, the better. The layers come from the same photon transport for your geometry; room background is taken as already subtracted, as in the app.',
 's4.fit':'Fit like FSA','s4.new':'New puzzle','s4.show':'Reveal answer','s4.drift':'the energy scale "drifted" by a few %',
 's4.bg':'Continuum',
 's4.chi2':'fit quality χ²/ndf = <b>{0}</b>',
@@ -588,6 +608,7 @@ const T = {ru:{
 's4.real':'A real BecqMoni decomposition',
 's4.tab.th':'Th-232, thorium disc (Atom Spectra 80×80)','s4.tab.cs':'Cs-137 in a lead house (ASN16)',
 's4.realcap':'Colours match the app screen. The white line is the measurement. Hover the chart; click a legend item to hide a layer.',
+'s4.realcap@day':'Colours match the app screen, only darker so they read on a light background. The black line is the measurement. Hover the chart; click a legend item to hide a layer.',
 's4.rs':'live time <b>{0}</b> · χ²/ndf <b>{1}</b> · scale gain <b>{2}</b> · activity of {5} <b>{3} Bq</b> · detection limit <b>{4} Bq</b>',
 's4.chainof':'the Th-232 chain',
 's4.f1':'<b>The whole spectrum is evidence</b>: plateaus and bumps help the result instead of getting in the way.',
@@ -625,6 +646,8 @@ const T = {ru:{
 'foot':'The models on this page are simplified and run right in your browser: Monte Carlo photon transport in a NaI(Tl) cylinder — photoeffect with iodine K X-ray escape, Klein–Nishina Compton scattering, pair production — with attenuation cross sections from BecqMoni\'s own database; the lead shield is drawn roughly. The real decompositions are spectra analysed by BecqMoni itself (19.10.2026); layer colours match the app. Numbers are approximate: the app\'s model is more detailed.',
 }};
 /* Подкапотные списки — заполняются из фактов о коде приложения */
+Object.assign(T.ru, { 'theme.light': 'Дневная тема', 'theme.dark': 'Ночная тема' });   // `AMBER258`
+Object.assign(T.en, { 'theme.light': 'Light theme', 'theme.dark': 'Dark theme' });
 const HOOD = {ru:{
 1:'<li>Перенос в программе подробнее, чем здесь: комптон на связанных электронах, рэлей, вылет K- и L-рентгена, пары с переносом позитрона, перенос электронов и тормозное излучение, нелинейность светового выхода.</li>'+
   '<li>Свинцовый домик в перенос не входит. Слой «Обратное рассеяние» FSA строит без матрицы всегда, а при матрице — только если в геометрии отмечено «Измерение в защите (свинцовый домик)». Слой «Рентген Pb» появляется, когда поиск пиков подписал линии рентгена свинца (флажок «Атомный рентген»).</li>'+
@@ -700,7 +723,8 @@ function syncLangUrl() {
   try { const u = new URL(location.href); if (u.searchParams.get('lang') !== LANG) { u.searchParams.set('lang', LANG); history.replaceState(history.state, '', u.href); } } catch (e) { }
 }
 document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href]'); if (!a) return; const h = withLang(a.getAttribute('href')); if (h) a.setAttribute('href', h); }, true);
-function t(k, ...a) { let s = (T[LANG][k] !== undefined ? T[LANG][k] : T.ru[k]); if (s === undefined) return k; a.forEach((v, i) => { s = s.split('{' + i + '}').join(v); }); return s; }
+// в дневной теме текст, называющий цвет на холсте, берётся из «ключ@day» (`AMBER258`: белая линия днём — чёрная)
+function t(k, ...a) { const dk = k + '@day'; let s = (window.BQTHEME && BQTHEME.light && T[LANG][dk] !== undefined ? T[LANG][dk] : T[LANG][k] !== undefined ? T[LANG][k] : T.ru[k]); if (s === undefined) return k; a.forEach((v, i) => { s = s.split('{' + i + '}').join(v); }); return s; }
 const redrawers = [];
 function onRedraw(f) { redrawers.push(f); }
 function redrawAll() { redrawers.forEach(f => { try { f(); } catch (e) { console.error(e); } }); syncLangUrl(); }
@@ -712,6 +736,7 @@ function applyLang() {
     el.innerHTML = t(k);
   });
   $$('.lang button').forEach(b => b.classList.toggle('on', b.dataset.lang === LANG));
+  $$('[data-tt]').forEach(el => { el.title = t(el.dataset.tt); });
   document.title = LANG === 'ru' ? 'BecqMoni — как это работает' : 'BecqMoni — how it works';
   redrawAll();
 }
@@ -1029,7 +1054,7 @@ function drawSetup(ctx, V, D, o = {}) {
    дальше — drawImage с прозрачностью; раньше градиент строился у каждой точки в каждом кадре (`AMBER254`) */
 const glowCache = new Map();
 function glowSprite(col, d) {
-  const key = col + '|' + d; let c = glowCache.get(key);
+  const key = col + '|' + d + '|' + (window.BQTHEME ? BQTHEME.name : ''); let c = glowCache.get(key);   // у темы свой спрайт (`AMBER258`)
   if (!c) {
     const R = 13, n = Math.ceil(2 * R * d); c = document.createElement('canvas'); c.width = c.height = n;
     const g = c.getContext('2d'); g.scale(n / (2 * R), n / (2 * R));
@@ -1949,6 +1974,8 @@ const ACT = { meas: [], Ig: 0.851, B: 0.25 };
   secs.forEach(s => ob.observe(s));
 })();
 let rz = 0; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(redrawAll, 120); });
+// дневная и ночная темы (`AMBER258`, assets/theme.js): иконки рядом с RU|EN, смена темы заново раскладывает тексты и холсты
+if (window.BQTHEME) { const lg = $('header.top .lang'); lg.insertAdjacentHTML('afterend', BQTHEME.switchHtml); BQTHEME.bind($('header.top')); BQTHEME.on(() => applyLang()); }
 applyLang();
 Jobs.add('eff', effJob());
 </script>

@@ -4,12 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Окно спектра — BecqMoni гид</title>
-<link rel="stylesheet" href="assets/guide.css?v=1b26651d">
+<script src="assets/theme.js?v=53cbbd2b"></script>
+<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
 <style>
 /* только для этой главы */
 @media (max-width:560px){.ui{white-space:normal}}
 .tb{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:8px}
-.tb .grp{font-size:12.5px;font-weight:800;color:var(--gold);letter-spacing:.04em;min-width:74px}
+.tb .grp{font-size:12.5px;font-weight:800;color:var(--goldink);letter-spacing:.04em;min-width:74px}
 .tb .sep{width:1px;height:22px;background:var(--line)}
 .tb .chip{padding:5px 10px;font-size:13px}
 .tb .btn{padding:5px 10px;font-size:13px}
@@ -43,6 +44,8 @@
 .key b{color:var(--ink)}
 @media (max-width:900px){.keys{grid-template-columns:1fr 1fr}}
 @media (max-width:480px){.keys{grid-template-columns:1fr}}
+/* дневная тема (`AMBER258`) */
+[data-theme=light] .crop{background:#fff;border-color:#c2ccdf;box-shadow:0 10px 30px rgba(30,40,70,.13)}[data-theme=light] .slice .hot b{box-shadow:0 0 0 2px rgba(255,255,255,.9)}
 </style>
 </head>
 <body data-chapter="view">
@@ -200,8 +203,8 @@
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=a431dac9"></script>
-<script src="assets/quanta.js?v=05579488"></script>
+<script src="assets/guide.js?v=f94cf66c"></script>
+<script src="assets/quanta.js?v=67b2c2dc"></script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, trimZ, setup, rgba, io, t, poisson, niceTicks, tickLabel, axes } = GUIDE;
@@ -578,8 +581,8 @@ GUIDE.texts({ru:{
         const row = i % 2, nx = fl[i + 2] ? fl[i + 2].x : bx.r + 200, y = bx.t - 34 + row * 16;
         const tw = Math.max(14, Math.min(ctx.measureText(f.label).width + 12, nx - f.x - 2));
         ctx.strokeStyle = 'rgba(255,120,200,.55)'; ctx.beginPath(); ctx.moveTo(f.x + .5, y + 14); ctx.lineTo(f.x + .5, bx.b); ctx.stroke();
-        ctx.fillStyle = '#fffbd0'; ctx.strokeStyle = '#000'; ctx.beginPath(); ctx.moveTo(f.x, y + 14); ctx.lineTo(f.x + 5, y); ctx.lineTo(f.x + tw, y); ctx.lineTo(f.x + tw, y + 14); ctx.closePath(); ctx.fill(); ctx.stroke();
-        ctx.save(); ctx.beginPath(); ctx.rect(f.x + 5, y, tw - 6, 14); ctx.clip(); ctx.fillStyle = '#111'; ctx.textAlign = 'left'; ctx.fillText(f.label, f.x + 8, y + 7.5); ctx.restore();
+        ctx.fillStyle = GUIDE.keep('#fffbd0'); ctx.strokeStyle = GUIDE.keep('#000'); ctx.beginPath(); ctx.moveTo(f.x, y + 14); ctx.lineTo(f.x + 5, y); ctx.lineTo(f.x + tw, y); ctx.lineTo(f.x + tw, y + 14); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.save(); ctx.beginPath(); ctx.rect(f.x + 5, y, tw - 6, 14); ctx.clip(); ctx.fillStyle = GUIDE.keep('#111'); ctx.textAlign = 'left'; ctx.fillText(f.label, f.x + 8, y + 7.5); ctx.restore();
       });
     }
     // подписи осей — поверх спектра

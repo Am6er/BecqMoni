@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FSA на практике — BecqMoni гид</title>
-<link rel="stylesheet" href="assets/guide.css?v=1b26651d">
+<script src="assets/theme.js?v=53cbbd2b"></script>
+<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
 <style>
 /* только эта глава */
 figure.shot.side{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:6px 16px;align-items:start;margin-top:22px}
@@ -210,8 +211,8 @@ figure.shot.side.tall>.shot-frame{max-width:330px;width:100%}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=a431dac9"></script>
-<script src="assets/quanta.js?v=05579488"></script>
+<script src="assets/guide.js?v=f94cf66c"></script>
+<script src="assets/quanta.js?v=67b2c2dc"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
 GUIDE.texts({ ru: {"mc.n": "Слой", "mc.k": "Монте-Карло", "mc.h": "Как рождается слой", "mc.lead": "Слой — это то, как нуклид со всеми своими линиями выглядит именно в вашей геометрии. Его печатает тот же перенос фотонов: каждая линия ряда летит в кристалл со своим выходом, и из оставленной энергии складывается форма слоя — пики, плато, пики вылета вместе.", "mc.pick": "Нуклид:", "mc.chain": "(ряд)", "mc.lab": "слой {0} в банке на торце", "mc.t1": "линий в слое", "mc.t2": "фотонов прогнано", "mc.t3": "в пиках на испущенный фотон", "mc.f1": "<b>Слой — это целый нуклид</b>, а не отдельный пик. Поэтому FSA разбирает даже перекрытые линии: 583 и 609 кэВ из разных рядов не путаются.", "mc.f2": "<b>Слой зависит от геометрии.</b> Один и тот же нуклид в банке и в Маринелли даёт разные слои — потому матрица считается для вашей геометрии.", "mc.f3": "<b>В программе слои не считаются заново</b> на каждом разборе: они берутся из матрицы отклика, которую программа один раз считает для вашей геометрии."},
