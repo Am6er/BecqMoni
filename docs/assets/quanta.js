@@ -277,7 +277,7 @@
      дальше — drawImage с прозрачностью; раньше градиент строился заново у каждой точки в каждом кадре (`AMBER254`) */
   const glowCache = new Map();
   function glowSprite(col, d) {
-    const key = col + '|' + d; let c = glowCache.get(key);
+    const key = col + '|' + d + '|' + (window.BQTHEME ? BQTHEME.name : ''); let c = glowCache.get(key);   // у темы свой спрайт (`AMBER258`)
     if (!c) {
       const R = 13, n = Math.ceil(2 * R * d); c = document.createElement('canvas'); c.width = c.height = n;
       const g = c.getContext('2d'); g.scale(n / (2 * R), n / (2 * R));

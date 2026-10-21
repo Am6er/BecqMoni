@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Калибровка — BecqMoni гид</title>
-<link rel="stylesheet" href="assets/guide.css?v=1b26651d">
+<script src="assets/theme.js?v=53cbbd2b"></script>
+<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
 </head>
 <body data-chapter="calibration">
 
@@ -124,8 +125,8 @@
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=a431dac9"></script>
-<script src="assets/quanta.js?v=05579488"></script>
+<script src="assets/guide.js?v=f94cf66c"></script>
+<script src="assets/quanta.js?v=67b2c2dc"></script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, visible, io, t, gauss, poisson } = GUIDE;
@@ -174,6 +175,7 @@ GUIDE.texts({ru:{
 'f.l1':'<b>Добавить</b> — затем протяните мышью выделение через пик на графике','f.l2':'<b>Таблица пиков</b> — канал, энергия и измеренная ширина',
 'fq.h':'Калибровка по FWHM — откалибруйте сами',
 'fq.hint':'1) Нажмите «Добавить» и щёлкните по пику — его ширина измерится на половине высоты, как в программе. 2) Два пика или больше — например, Cs-137 и K-40 — и «Калибровать». Полоски на пиках — ширина, которую ждёт кривая: золотая совпала с настоящей в пределах 10 %, красная — нет; белый пунктир — ширина, измеренная по выделению. В программе пик выделяют, протянув мышью через него от подножия до подножия, и кривых три; здесь одна — «Простой квадратный корень».',
+'fq.hint@day':'1) Нажмите «Добавить» и щёлкните по пику — его ширина измерится на половине высоты, как в программе. 2) Два пика или больше — например, Cs-137 и K-40 — и «Калибровать». Полоски на пиках — ширина, которую ждёт кривая: золотая совпала с настоящей в пределах 10 %, красная — нет; чёрный пунктир — ширина, измеренная по выделению. В программе пик выделяют, протянув мышью через него от подножия до подножия, и кривых три; здесь одна — «Простой квадратный корень».',
 'fq.add':'Добавить','fq.addOn':'Щёлкните по пику…','fq.run':'Калибровать',
 'fq.pt':'<b>№{0}</b> {1} · канал <b>{2}</b> · FWHM <b>{3} кан.</b> ({4} кэВ)',
 'fq.res':'кривая: <b>FWHM = √({0}·ch {1})</b>, каналы','fq.def':'по умолчанию из конфигурации прибора',
@@ -245,6 +247,7 @@ GUIDE.texts({ru:{
 'f.l1':'<b>Add peak</b> — then drag a selection across a peak on the chart','f.l2':'<b>Peak table</b> — channel, energy and the measured width',
 'fq.h':'FWHM calibration — calibrate it yourself',
 'fq.hint':'1) Press “Add peak” and click a peak — its width is measured at half height, as in the program. 2) Two peaks or more — for instance Cs-137 and K-40 — then “Execute calibration”. Bars on the peaks show the width the curve expects: gold matches the real one within 10 %, red does not; the white dashes are the width measured from the selection. In the program you select a peak by dragging the mouse across it from foot to foot, and there are three curves; here there is one, “Simple Square root”.',
+'fq.hint@day':'1) Press “Add peak” and click a peak — its width is measured at half height, as in the program. 2) Two peaks or more — for instance Cs-137 and K-40 — then “Execute calibration”. Bars on the peaks show the width the curve expects: gold matches the real one within 10 %, red does not; the black dashes are the width measured from the selection. In the program you select a peak by dragging the mouse across it from foot to foot, and there are three curves; here there is one, “Simple Square root”.',
 'fq.add':'Add peak','fq.addOn':'Click a peak…','fq.run':'Execute calibration',
 'fq.pt':'<b>#{0}</b> {1} · channel <b>{2}</b> · FWHM <b>{3} ch</b> ({4} keV)',
 'fq.res':'curve: <b>FWHM = √({0}·ch {1})</b>, channels','fq.def':'the default from the device configuration',

@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Геометрия и матрица — BecqMoni гид</title>
-<link rel="stylesheet" href="assets/guide.css?v=1b26651d">
+<script src="assets/theme.js?v=53cbbd2b"></script>
+<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
 <style>
 /* только эта глава: вкладки снимков, конвейер «где лежит кривая» */
 .tabsel{display:flex;flex-wrap:wrap;gap:6px;margin-top:18px}
@@ -34,6 +35,9 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
 @media (max-width:900px){.pipe{grid-template-columns:1fr 1fr}.where{grid-template-columns:1fr 1fr}
   figure.shot.side,figure.shot.side.nr{grid-template-columns:1fr}figure.shot.side>ol.shot-legend{grid-column:1;grid-row:3}}
 @media (max-width:560px){.pipe,.where{grid-template-columns:1fr}}
+/* дневная тема (`AMBER258`) */
+[data-theme=light] .pipe button{border-color:#c2ccdf}[data-theme=light] .pipe button b{background:#dfe5f1}[data-theme=light] .pipe button.done b{color:#fff}
+[data-theme=light] .tag.new{color:#8a5d00}[data-theme=light] .tag.ok{color:#11683a}[data-theme=light] .tag.wait{color:#1f4fa0}[data-theme=light] .tag.none{border-color:#b6c1d8}
 </style>
 </head>
 <body data-chapter="geometry">
@@ -252,8 +256,8 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=a431dac9"></script>
-<script src="assets/quanta.js?v=05579488"></script>
+<script src="assets/guide.js?v=f94cf66c"></script>
+<script src="assets/quanta.js?v=67b2c2dc"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
 GUIDE.texts({ ru: {"mc.n": "Маринелли", "mc.k": "Монте-Карло", "mc.h": "Банка или Маринелли", "mc.lead": "Один и тот же кристалл Ø63 × 63 мм, одна и та же вода с одним нуклидом. Слева банка 0.2 л на торце, справа сосуд Маринелли, обнимающий кристалл. Видно, откуда фотоны входят в кристалл и сколько их пролетает мимо.", "mc.pick": "Фотоны:", "mc.l1": "банка на торце", "mc.l2": "Маринелли", "mc.t1": "в пике: банка", "mc.t2": "в пике: Маринелли", "mc.t3": "Маринелли ловит в пик больше", "mc.f1": "<b>Маринелли окружает кристалл</b> — больше телесного угла, больше пик на испущенный фотон.", "mc.f2": "<b>Зато путь сквозь пробу длиннее.</b> Плотная проба сильнее гасит низкие энергии — попробуйте Am-241.", "mc.f3": "<b>Обе кривые BecqMoni строит из геометрии</b> тем же переносом фотонов — в конструкторе кривой ниже на этой странице."},
@@ -589,6 +593,7 @@ function restart() {
 function fmtV(v, k) { return v >= 100 ? fx(v, 0) : v >= 10 ? fx(v, 1) : fx(v, 2); }
 function drawGeo() {
   const cv = $('#cvGeo'), { ctx, w, h } = setup(cv), D = DET[st.det], G = detGeo(D), S = srcGeo(G), mm = t('mm');
+  if (window.BQTHEME) BQTHEME.raw(cv);   // чертёж — как в окне программы: цвета не зависят от темы гида (`AMBER258`)
   ctx.fillStyle = '#d6d2c4'; ctx.fillRect(0, 0, w, h);
   const top = S.kind === 'point' ? S.z + 10 : S.zt + 8, bot = -G.Hl - 6;
   const xr = Math.max(G.Rh, S.Ro || 0, 14) + 8;
@@ -629,7 +634,7 @@ function drawGeo() {
   // плитки
   const f = mc.n ? mc.hit / mc.n : 0, e = mc.n ? Math.sqrt(f * (1 - f) / mc.n) : 0;
   $('#gTiles').innerHTML =
-    '<div class="tile"><div class="big" style="color:var(--gold)">' + fx(100 * f, 2) + ' %</div><div class="small">' + t('g.t.frac') + ' · ' + t('g.t.fracS', fx(100 * e, 2), mc.n) + '</div></div>' +
+    '<div class="tile"><div class="big" style="color:var(--goldink)">' + fx(100 * f, 2) + ' %</div><div class="small">' + t('g.t.frac') + ' · ' + t('g.t.fracS', fx(100 * e, 2), mc.n) + '</div></div>' +
     '<div class="tile"><div class="big">' + fmtV(G.vol) + ' ' + t('cm3') + '</div><div class="small">' + t('g.t.cr') + ' · ' + D.nm + '</div></div>' +
     '<div class="tile"><div class="big">' + (S.kind === 'point' ? t('g.t.pt') : fmtV(S.vol) + ' ' + t('ml')) + '</div><div class="small">' + t('g.t.sm') + '</div></div>';
   $('#gKept').innerHTML = kept && f > 0 ? t('g.kept', kept.lbl + ' · ' + fx(100 * kept.f, 2) + ' %', fx(f / kept.f, 2)) : t('g.kept0');

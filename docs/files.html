@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Файлы и вопросы — BecqMoni гид</title>
-<link rel="stylesheet" href="assets/guide.css?v=1b26651d">
+<script src="assets/theme.js?v=53cbbd2b"></script>
+<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
 <style>
 /* только для этой главы */
 @media (max-width:560px){.ui{white-space:normal}}
@@ -40,7 +41,7 @@ pre.xml .tg{color:#7fb6ff}pre.xml .vl{color:#ffe08a}pre.xml .cm{color:#6a7899}
 .fcard ul{list-style:none;margin:8px 0 0;padding:0;font-size:13.5px;color:var(--soft)}
 .fcard li{margin:2px 0}
 .fcard li::before{display:inline-block;width:18px;font-weight:800}
-.fcard li.y::before{content:"✓";color:var(--ok)}.fcard li.n::before{content:"✗";color:var(--photo)}.fcard li.w::before{content:"!";color:var(--gold)}
+.fcard li.y::before{content:"✓";color:var(--ok)}.fcard li.n::before{content:"✗";color:var(--photo)}.fcard li.w::before{content:"!";color:var(--goldink)}
 .csvw{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:700px){.csvw{grid-template-columns:1fr}}
 .csvw .lbl{display:block;margin-top:8px}
@@ -54,6 +55,9 @@ details.faq .a{padding:0 14px 12px 44px;color:var(--soft);font-size:15px}
 details.faq .a p{margin:4px 0}
 details.faq .a q{color:#ffd8b0;quotes:"«" "»"}
 .faqs{margin-top:16px}
+/* дневная тема (`AMBER258`) */
+[data-theme=light] .tag.go{color:#11683a}[data-theme=light] .tag.ref{color:#9a4b00}
+[data-theme=light] pre.xml{background:#fff;color:#1b2540}[data-theme=light] pre.xml .tg{color:#1f5fc0}[data-theme=light] pre.xml .vl{color:#8a5d00}[data-theme=light] details.faq .a q{color:#9a4b00}
 </style>
 </head>
 <body data-chapter="files">
@@ -193,8 +197,8 @@ details.faq .a q{color:#ffd8b0;quotes:"«" "»"}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=a431dac9"></script>
-<script src="assets/quanta.js?v=05579488"></script>
+<script src="assets/guide.js?v=f94cf66c"></script>
+<script src="assets/quanta.js?v=67b2c2dc"></script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, io, t, poisson } = GUIDE;

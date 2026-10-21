@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Установка и окно программы — BecqMoni гид</title>
-<link rel="stylesheet" href="assets/guide.css?v=1b26651d">
+<script src="assets/theme.js?v=53cbbd2b"></script>
+<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
 <style>
 /* длинные пути меню переносятся, иначе на телефоне они распирают страницу вбок */
 .ui{white-space:normal}
@@ -50,7 +51,7 @@ figure.shot.side.md .shot-frame{width:100%;max-width:470px;justify-self:center}
 .tree .n{display:flex;align-items:center;gap:6px;white-space:nowrap;padding:1px 6px;border-radius:6px;cursor:default}
 .tree .n:hover,.tree .n.on{background:rgba(255,204,51,.12)}
 .tree .n .ic{width:15px;flex:none;text-align:center}
-.tree .d{color:var(--gold)}.tree .f{color:#cfe0ff}
+.tree .d{color:var(--goldink)}.tree .f{color:#cfe0ff}
 .tree .n small{margin-left:auto;padding-left:10px;font:600 11px system-ui;color:var(--ok)}
 .tree .n.flash{animation:flash 1s 3}
 @keyframes flash{50%{background:rgba(91,227,138,.32)}}
@@ -76,6 +77,9 @@ figure.shot.side.md .shot-frame{width:100%;max-width:470px;justify-self:center}
 @media (max-width:900px){.upd{grid-template-columns:1fr}figure.shot.side{grid-template-columns:1fr}.shot-legend.cols2{grid-template-columns:1fr}}
 @media (max-width:900px){.qframe{width:880px}}
 .mobonly{display:none}@media (max-width:900px){.mobonly{display:inline}}
+/* дневная тема (`AMBER258`) */
+[data-theme=light] .tree{background:#fff}[data-theme=light] .tree .f{color:#1d3a78}[data-theme=light] .tree .d{color:var(--goldink)}
+[data-theme=light] .qdots i{border-color:#c2ccdf}[data-theme=light] .qframe{border-color:#c2ccdf;background:#fff}
 </style>
 </head>
 <body data-chapter="install">
@@ -254,8 +258,8 @@ figure.shot.side.md .shot-frame{width:100%;max-width:470px;justify-self:center}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=a431dac9"></script>
-<script src="assets/quanta.js?v=05579488"></script>
+<script src="assets/guide.js?v=f94cf66c"></script>
+<script src="assets/quanta.js?v=67b2c2dc"></script>
 <script>
 'use strict';
 const { $, $$, fx, t } = GUIDE;
