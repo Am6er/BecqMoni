@@ -612,6 +612,13 @@ namespace BecquerelMonitor
                     this.deviceController = (DeviceController)Activator.CreateInstance(deviceType.DeviceControllerType);
                 }
             }
+            else if (deviceType.DeviceControllerType == typeof(AtomSpectraTcpDeviceController))
+            {
+                if (this.deviceController == null)
+                {
+                    this.deviceController = (DeviceController)Activator.CreateInstance(deviceType.DeviceControllerType);
+                }
+            }
             if (this.deviceController == null)
             {
                 // Сюда попадает зарегистрированный тип прибора, у которого

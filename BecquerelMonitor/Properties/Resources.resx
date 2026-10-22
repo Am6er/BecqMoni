@@ -43895,6 +43895,57 @@ Close the window and discard it?</value>
   <data name="DeviceTypeAmplitudaSerial" xml:space="preserve">
     <value>AmplitudaSerial</value>
   </data>
+  <data name="DeviceTypeAtomSpectraTCP" xml:space="preserve">
+    <value>AtomSpectra TCP/REST</value>
+  </data>
+  <data name="ERRAtomSpectraTcpHostBusy" xml:space="preserve">
+    <value>AtomSpectra TCP: the board {0}:{1} is already used by another measurement of this program. The board serves one client - stop that measurement first.</value>
+  </data>
+  <data name="ERRAtomSpectraTcpStopDeferred" xml:space="preserve">
+    <value>AtomSpectra TCP: no connection to {0}:{1}, the stop command could not be sent. The analyzer may keep counting; BecqMoni will send the stop command as soon as the board answers. Check the spectrum before continuing this measurement.</value>
+  </data>
+  <data name="MSGAtomSpectraTcpLinkLost" xml:space="preserve">
+    <value>AtomSpectra TCP: the connection to {0}:{1} is lost. The measurement is not stopped; the spectrum and the time do not change until BecqMoni reconnects (it retries every 60 s).</value>
+  </data>
+  <data name="ERRAtomSpectraTcpCalGap" xml:space="preserve">
+    <value>AtomSpectra TCP: the device calibration has an empty coefficient followed by a filled one; the coefficients would shift to wrong powers, so they were not applied.</value>
+  </data>
+  <data name="ERRAtomSpectraTcpBadHost" xml:space="preserve">
+    <value>AtomSpectra: "{0}" is not a valid board address. Enter host[:port] - an IP address or a name, e.g. 192.168.0.119 or atomspectra.local:8234, without "http://". Without a port, {1} is used.</value>
+  </data>
+  <data name="ERRAtomSpectraTcpCalBusy" xml:space="preserve">
+    <value>AtomSpectra TCP: the board {0}:{1} is busy with a running measurement of this program. The board serves one client - stop the measurement, then read the calibration.</value>
+  </data>
+  <data name="AtomSpectraTcpHost" xml:space="preserve">
+    <value>Host (IP or name) :</value>
+  </data>
+  <data name="AtomSpectraTcpPort" xml:space="preserve">
+    <value>TCP port :</value>
+  </data>
+  <data name="AtomSpectraTcpHint" xml:space="preserve">
+    <value>Atom Spectra analyzer behind a Wi-Fi bridge board (atomspectra-waterfall-esp32, port 8234) instead of a COM port. The board serves one client at a time; after a dropped connection its slot stays busy for about a minute, so BecqMoni reconnects after 60 s. The dead time is read from the device (-inf) at start.</value>
+  </data>
+  <data name="AtomSpectraTcpTest" xml:space="preserve">
+    <value>Test connection</value>
+  </data>
+  <data name="AtomSpectraTcpTesting" xml:space="preserve">
+    <value>Connecting and listening...</value>
+  </data>
+  <data name="AtomSpectraTcpTestResult" xml:space="preserve">
+    <value>Connected to {0}:{1}: {2} valid packets in {3} s, {4} with a bad CRC. Nothing was sent to the device.</value>
+  </data>
+  <data name="AtomSpectraTcpTestNoData" xml:space="preserve">
+    <value>Connected to {0}:{1}, but no data in {2} s: the analyzer is not collecting or not connected to the board.</value>
+  </data>
+  <data name="ERRAtomSpectraTcpNoHost" xml:space="preserve">
+    <value>AtomSpectra: the board address is not set. Enter it (host[:port]) in the device configuration, or press "Refresh" there.</value>
+  </data>
+  <data name="ERRAtomSpectraTcpConnect" xml:space="preserve">
+    <value>AtomSpectra TCP: cannot connect to {0}:{1} ({2}). The board accepts one client at a time; after a dropped connection its slot stays busy for about a minute.</value>
+  </data>
+  <data name="ERRAtomSpectraTcpNoAnswer" xml:space="preserve">
+    <value>AtomSpectra TCP: the analyzer behind {0}:{1} did not answer the start commands.</value>
+  </data>
   <data name="ERRAmplitudaSerialChannels" xml:space="preserve">
     <value>Amplituda Serial: the number of channels must be a multiple of 512, up to 8192 (the spectrum has {0}). Set it in the device configuration and apply the configuration to an empty spectrum.</value>
   </data>
@@ -44092,6 +44143,266 @@ Close the window and discard it?</value>
 Bin: {3:F0} keV, histories per node: {4}
 Data: {5:F0} KB, file: not saved
 Computed: {7}, took {8:F0} s</value>
+  </data>
+  <data name="AtomSpectraTcpLogTitle" xml:space="preserve">
+    <value>AtomSpectra TCP/REST log</value>
+  </data>
+  <data name="AtomSpectraTcpLogPause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="AtomSpectraTcpLogResume" xml:space="preserve">
+    <value>Resume</value>
+  </data>
+  <data name="AtomSpectraTcpLogClear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="AtomSpectraTcpLogCopy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="AtomSpectraTcpLogSave" xml:space="preserve">
+    <value>Save...</value>
+  </data>
+  <data name="AtomSpectraTcpLogFilterAll" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="AtomSpectraTcpLogFilterWarn" xml:space="preserve">
+    <value>Warnings and errors</value>
+  </data>
+  <data name="AtomSpectraTcpLogFilterError" xml:space="preserve">
+    <value>Errors only</value>
+  </data>
+  <data name="AtomSpectraTcpLogNoStatus" xml:space="preserve">
+    <value>No device session yet</value>
+  </data>
+  <data name="AtomSpectraTcpLogDevlog" xml:space="preserve">
+    <value>Board log</value>
+  </data>
+  <data name="AtomSpectraTcpLogRefresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="AtomSpectraTcpLogNoBoard" xml:space="preserve">
+    <value>No REST board in use yet: start a measurement or test the connection.</value>
+  </data>
+  <data name="AtomSpectraTcpLogStale" xml:space="preserve">
+    <value>DATA IS {0} s OLD</value>
+  </data>
+  <data name="AtomSpectraTcpLogFresh" xml:space="preserve">
+    <value>data {0} s old</value>
+  </data>
+  <data name="AtomSpectraRestTransport" xml:space="preserve">
+    <value>Transport :</value>
+  </data>
+  <data name="AtomSpectraRestTransportTcp" xml:space="preserve">
+    <value>TCP bridge (test)</value>
+  </data>
+  <data name="AtomSpectraRestTransportRest" xml:space="preserve">
+    <value>REST API (test)</value>
+  </data>
+  <data name="AtomSpectraRestUrl" xml:space="preserve">
+    <value>Board URL (empty = http://host/) :</value>
+  </data>
+  <data name="AtomSpectraRestPoll" xml:space="preserve">
+    <value>Poll period, s (1-60) :</value>
+  </data>
+  <data name="AtomSpectraRestLimit" xml:space="preserve">
+    <value>Time limit of a new run on the board, s (0 = none) :</value>
+  </data>
+  <data name="AtomSpectraRestObserve" xml:space="preserve">
+    <value>Observe only: never send commands to the board</value>
+  </data>
+  <data name="AtomSpectraRestNoProxy" xml:space="preserve">
+    <value>Do not use the system proxy</value>
+  </data>
+  <data name="AtomSpectraRestAuth" xml:space="preserve">
+    <value>Proxy authorization :</value>
+  </data>
+  <data name="AtomSpectraRestAuthUser" xml:space="preserve">
+    <value>User :</value>
+  </data>
+  <data name="AtomSpectraRestAuthSecret" xml:space="preserve">
+    <value>Password / token :</value>
+  </data>
+  <data name="AtomSpectraRestProxyAuthWarning" xml:space="preserve">
+    <value>Proxy credentials are sent unencrypted over HTTP (Basic); do not use on untrusted networks.</value>
+  </data>
+  <data name="AtomSpectraCalibToPage" xml:space="preserve">
+    <value>Board calibration {0} is put on the Energy Calibration page; save the configuration to keep it.</value>
+  </data>
+  <data name="AtomSpectraCalibNotSet" xml:space="preserve">
+    <value>The board has no calibration (calib_set=false); the Energy Calibration page is left as it is.</value>
+  </data>
+  <data name="AtomSpectraCalibNotRead" xml:space="preserve">
+    <value>The board calibration was not read ({0}); the Energy Calibration page is left as it is.</value>
+  </data>
+  <data name="AtomSpectraTcpStartNote" xml:space="preserve">
+    <value>TCP bridge. "Continue without reset" sends nothing to a counting board (no -sto, -rst, -sta): the document shows the spectrum and time the board has accumulated; a stopped board gets only -sta, without a reset. "Start over (reset)" sends -sto, -rst, -sta: the spectrum on the board is erased.</value>
+  </data>
+  <data name="AtomSpectraTcpDeadTimeText" xml:space="preserve">
+    <value>Dead Time: {0:0.###} µs</value>
+  </data>
+  <data name="AtomSpectraConsolePollTcpShort" xml:space="preserve">
+    <value>TCP: not used</value>
+  </data>
+  <data name="AtomSpectraGzipTitle" xml:space="preserve">
+    <value>Board reply compression</value>
+  </data>
+  <data name="AtomSpectraGzipLabel" xml:space="preserve">
+    <value>Board reply compression :</value>
+  </data>
+  <data name="AtomSpectraGzipOff" xml:space="preserve">
+    <value>0 (off)</value>
+  </data>
+  <data name="AtomSpectraGzipApply" xml:space="preserve">
+    <value>Apply to board</value>
+  </data>
+  <data name="AtomSpectraGzipUnknown" xml:space="preserve">
+    <value>not read yet</value>
+  </data>
+  <data name="AtomSpectraGzipUnsupported" xml:space="preserve">
+    <value>not supported by this firmware</value>
+  </data>
+  <data name="AtomSpectraGzipOnBoard" xml:space="preserve">
+    <value>on the board: {0}</value>
+  </data>
+  <data name="AtomSpectraGzipObserve" xml:space="preserve">
+    <value>Observe only: no writing to the board</value>
+  </data>
+  <data name="AtomSpectraGzipConfirm" xml:space="preserve">
+    <value>Set the board's reply compression to {0}?
+
+The setting is saved on the board and applies to all its clients. Do not change production boards.</value>
+  </data>
+  <data name="AtomSpectraGzipDone" xml:space="preserve">
+    <value>Board reply compression set to {0} (read back from the board: {1}).</value>
+  </data>
+  <data name="AtomSpectraGzipFailed" xml:space="preserve">
+    <value>Board reply compression not set: {0}</value>
+  </data>
+  <data name="AtomSpectraRestCompression" xml:space="preserve">
+    <value>; spectrum reply: {0}, {1} B over the network for {2} B of data</value>
+  </data>
+  <data name="AtomSpectraRestNoCompression" xml:space="preserve">
+    <value>; spectrum reply not compressed ({0} B; the board compresses in the background, the first reply after its cache refresh is plain)</value>
+  </data>
+  <data name="AtomSpectraTcpLogFilterDebug" xml:space="preserve">
+    <value>All, with debug (device answers; may contain the serial number)</value>
+  </data>
+  <data name="AtomSpectraRestTest" xml:space="preserve">
+    <value>Test connection (REST)</value>
+  </data>
+  <data name="AtomSpectraRestShowLog" xml:space="preserve">
+    <value>Show log</value>
+  </data>
+  <data name="AtomSpectraRestTestResult" xml:space="preserve">
+    <value>{0}: firmware {1}, board time {2} s, total {3}; calibration {4}.</value>
+  </data>
+  <data name="AtomSpectraRestCalibSet" xml:space="preserve">
+    <value>set on the board</value>
+  </data>
+  <data name="AtomSpectraRestCalibNone" xml:space="preserve">
+    <value>not set</value>
+  </data>
+  <data name="ERRAtomSpectraRestBadUrl" xml:space="preserve">
+    <value>Invalid board URL: {0}. Expected http://host[:port]/[prefix/]</value>
+  </data>
+  <data name="AtomSpectraRestWait" xml:space="preserve">
+    <value>Reading the board...</value>
+  </data>
+  <data name="AtomSpectraRestStartTitle" xml:space="preserve">
+    <value>The board holds an acquisition</value>
+  </data>
+  <data name="AtomSpectraRestStartRunning" xml:space="preserve">
+    <value>The board is counting: {0} h {1} min, {2} counts.</value>
+  </data>
+  <data name="AtomSpectraRestStartStopped" xml:space="preserve">
+    <value>The board is stopped and holds {0} h {1} min, {2} counts.</value>
+  </data>
+  <data name="AtomSpectraRestStartDocument" xml:space="preserve">
+    <value>Document: {0} h {1} min, {2} counts.</value>
+  </data>
+  <data name="AtomSpectraRestStartBehind" xml:space="preserve">
+    <value>The board holds less than the document: it was reset or restarted. Continuing in this document is not possible; create a new document for the new acquisition.</value>
+  </data>
+  <data name="AtomSpectraRestContinue" xml:space="preserve">
+    <value>Continue without reset</value>
+  </data>
+  <data name="AtomSpectraRestRestart" xml:space="preserve">
+    <value>Start over (reset)</value>
+  </data>
+  <data name="AtomSpectraRestCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="MSGAtomSpectraRestClearConfirm" xml:space="preserve">
+    <value>The board holds {0} h {1} min, {2} counts. Reset the spectrum ON THE BOARD? This cannot be undone.</value>
+  </data>
+  <data name="MSGAtomSpectraRestNotReset" xml:space="preserve">
+    <value>The board was NOT reset ({0}); its spectrum is intact. While the board is polled the document is refilled from it.</value>
+  </data>
+  <data name="AtomSpectraRestDeclined" xml:space="preserve">
+    <value>declined</value>
+  </data>
+  <data name="MSGAtomSpectraRestObserveOnly" xml:space="preserve">
+    <value>Observe only: no command is sent to the board, it was not reset.</value>
+  </data>
+  <data name="MSGAtomSpectraRestBoardReset" xml:space="preserve">
+    <value>The board was reset or restarted ({0}). The document was not changed and the recording is stopped; no command was sent. To take the new acquisition create a new document and press Start.</value>
+  </data>
+  <data name="MSGAtomSpectraRestBoardStalled" xml:space="preserve">
+    <value>The board stopped counting by itself. The recording in BecqMoni is stopped; no command was sent to the board.</value>
+  </data>
+  <data name="ERRAtomSpectraRestStart" xml:space="preserve">
+    <value>The board did not start the measurement: {0}</value>
+  </data>
+  <data name="ERRAtomSpectraRestRestartPartial" xml:space="preserve">
+    <value>"Start over" was not completed: {0}. Check the board state in the log.</value>
+  </data>
+  <data name="ERRAtomSpectraRestHeadlessBehind" xml:space="preserve">
+    <value>The board holds less than the document, and a run without windows cannot ask what to do.</value>
+  </data>
+  <data name="ERRAtomSpectraRestNeedNewDocument" xml:space="preserve">
+    <value>"Start over" resets the board, and the new acquisition would overwrite this document's data. Create a new document and press Start there.</value>
+  </data>
+  <data name="ERRAtomSpectraRestStopUnconfirmed" xml:space="preserve">
+    <value>AtomSpectra REST: the stop command reached {0}:{1}, but no clear answer came back. BecqMoni does not repeat it, so as not to stop someone else's acquisition. Check on the board whether the analyzer has stopped.</value>
+  </data>
+  <data name="AtomSpectraConsoleAddress" xml:space="preserve">
+    <value>Address (host[:port]) :</value>
+  </data>
+  <data name="AtomSpectraConsoleRefresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="AtomSpectraConsoleWarning" xml:space="preserve">
+    <value>Type a command and press Enter. Some commands ARE HAZARDOUS!</value>
+  </data>
+  <data name="AtomSpectraConsoleStatusConnected" xml:space="preserve">
+    <value>Status: connected, SN {0} ({1})</value>
+  </data>
+  <data name="AtomSpectraConsoleStatusNotFound" xml:space="preserve">
+    <value>Status: board not found. {0}</value>
+  </data>
+  <data name="AtomSpectraConsoleStatusSearching" xml:space="preserve">
+    <value>Status: looking for {0}...</value>
+  </data>
+  <data name="AtomSpectraConsolePollTcpHint" xml:space="preserve">
+    <value>TCP: the analyzer streams the spectrum, the poll interval is not used</value>
+  </data>
+  <data name="AtomSpectraConsoleObserveOnly" xml:space="preserve">
+    <value>Observe only is on: commands are not sent to the board</value>
+  </data>
+  <data name="AtomSpectraConsoleBadAddress" xml:space="preserve">
+    <value>Invalid address: {0}</value>
+  </data>
+  <data name="MSGAtomSpectraRestLinkLost" xml:space="preserve">
+    <value>AtomSpectra REST: the board {0} does not answer. The measurement is not stopped; BecqMoni keeps polling it every {1} s, and the spectrum continues as soon as the board answers.</value>
+  </data>
+  <data name="ERRAtomSpectraRestUnreachable" xml:space="preserve">
+    <value>AtomSpectra REST: the board {0} does not answer ({2}). The measurement is not started: check the address and the network, then press Start again. During a measurement BecqMoni keeps polling the board every {1} s when it stops answering.</value>
+  </data>
+  <data name="AtomSpectraRestHint" xml:space="preserve">
+    <value>Atom Spectra analyzer through the board's web interface (REST, HTTP). Address host[:port], the default port is 80; "Refresh" finds atomspectra.local. The board is polled every 1-60 s. Commands are sent as POST /api/command; the analyzer's text answer is shown from the board log.</value>
+  </data>
+  <data name="AtomSpectraRestTcpTestDisabled" xml:space="preserve">
+    <value>REST mode: the bridge port test is not used; check the board with "Test connection (REST)" below.</value>
   </data>
   <data name="NuclideSetNewName" xml:space="preserve">
     <value>New set {0}</value>
