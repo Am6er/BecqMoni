@@ -1175,6 +1175,15 @@ namespace BecquerelMonitor.NucBase
                     // окне, где эти N уже видны. Отказ записи и «Отмена» сюда не
                     // доходят — библиотека та же, что в окне.
                     NuclideDefinitionForm.ShowLibraryChangeInOpen();
+
+                    // ⛔ (`AMBER260`, 22.10.2026) Подписи пиков открытого спектра —
+                    // заново, по пополненной библиотеке, тем же вызовом, что у
+                    // редактора нуклидов. Прежде импорт поиск пиков не трогал, а
+                    // отпечаток FSA (имя, энергия, выход линий) сменялся — разбор
+                    // «по меткам» пересчитывался сразу, но по СТАРЫМ подписям, и
+                    // импортированный нуклид появлялся лишь после перезапуска
+                    // (урановое стекло Max: Th-234 в составе не было до перезапуска).
+                    this.UpdatePeakDetectionResult();
                 }
 
                 string text = string.Format(CultureInfo.InvariantCulture, Resources.NuclideDefImportSuccess, plan.CreatedCount, plan.UpdatedCount);
@@ -1195,6 +1204,26 @@ namespace BecquerelMonitor.NucBase
             catch (Exception ex)
             {
                 MessageBox.Show(string.Format(Resources.NuclideDefImportError, ex.Message + ex.StackTrace));
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER260`) Повторить поиск пиков активного спектра — как
+        /// <c>NuclideDefinitionForm.UpdatePeakDetectionResult</c>. Окно без
+        /// главного окна (поднятое пробой) пересчитывать не берётся.
+        /// </summary>
+        void UpdatePeakDetectionResult()
+        {
+            MainForm main = this.mainForm as MainForm;
+            if (main == null)
+            {
+                return;
+            }
+
+            main.UpdateDetectedPeakView();
+            if (main.ActiveDocument != null)
+            {
+                main.ActiveDocument.UpdateEnergySpectrum();
             }
         }
 
