@@ -679,6 +679,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public const double ThresholdPersistWindowKev = 3.0 * ThresholdLevelWindowKev;
 
         /// <summary>
+        /// ⛔ (`AMBER260`, 22.10.2026) УРОВЕНЬ, ОТЛИЧИМЫЙ ОТ ШУМА, отсчётов на
+        /// канал: <c>1/(1 − f)²</c> при доле уровня f
+        /// (<see cref="DefaultThresholdLevelFraction"/>; 11.1 при 0.7). Сравнение
+        /// «канал ≥ f·медиана окна» при меньшем уровне L идёт внутри одной
+        /// пуассоновой σ (запас (1 − f)·L меньше √L): кандидат на таком уровне —
+        /// случай шума, а не середина рампы. Так правило принимало за рампу
+        /// ПЬЕДЕСТАЛ — редкие отсчёты под порогом: у кубика уранового стекла на
+        /// Nano15 Pro (каналы 19–60 по 1–7 отсчётов под рампой 11–19 кэВ)
+        /// «уровень» 2 в канале 35, падение на нулях пьедестала и пол на первом
+        /// канале 0.62 кэВ — фит шёл по подпороговым каналам, и L-рентген Th
+        /// образов «Из NucBase» гасил ряд U-238 (2.3 Бк вместо ~1.3 кБк при поле
+        /// 18 кэВ). Порог тогда — первый канал, где медиана окна уровня не
+        /// ниже этой границы (<see cref="AboveNoiseKev"/>). Только у пола
+        /// (<see cref="AdcThresholdOf"/>): обход <see cref="ScanRamp"/>, который
+        /// читает и модель рампы `S204`, не тронут. Офлайн по 131 спектру
+        /// корпуса и их фонам правило двигает пол у трёх (`ASN16_Cs137_10cm`,
+        /// `ASN16_Granite`, `RC103_Cs137_0cm`) и пяти германиевых.
+        /// </summary>
+        public static double ThresholdNoiseLevel(double fraction)
+        {
+            double margin = 1.0 - fraction;
+            return margin > 0.0 ? 1.0 / (margin * margin) : double.PositiveInfinity;
+        }
+
+        /// <summary>
         /// ⛔ ПОЛ ПОЛОСЫ ФИТА — ОДНО МЕСТО НА ВЕСЬ ПРОЕКТ (`A302`, `A309`), по
         /// образцу <see cref="NoCurveFloor"/>. Возвращает 0, когда пола нет:
         /// тогда фит, как и до `A302`, начинается с нулевого канала.
@@ -723,6 +748,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         ///    частично заполненный краевой канал (ASN8, ASN3) пропускается.
         /// 3. Кандидата нет — уровень так и не устоялся (рост континуума
         ///    RC101): порог = <c>c0</c>.
+        /// 3а. (`AMBER260`) Уровень кандидата ниже шумового
+        ///    (<see cref="ThresholdNoiseLevel"/>) — кандидат стоит на пьедестале
+        ///    редких отсчётов под порогом: порог = первый канал, где медиана окна
+        ///    уровня не ниже шумового (<see cref="AboveNoiseKev"/>).
         /// 4. Подошва рампы — первый канал с отсчётами не ниже
         ///    <see cref="ThresholdFootFraction"/> уровня; от подошвы до
         ///    кандидата шире <see cref="ThresholdRampMaxKev"/> — не рампа, а
@@ -764,6 +793,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return e0;
             }
 
+            // (`AMBER260`) уровень кандидата от шума не отличим — это пьедестал под порогом
+            double noise = ThresholdNoiseLevel(DefaultThresholdLevelFraction);
+            if (scan.Level < noise)
+            {
+                double above = AboveNoiseKev(counts, calibration, scan.C0, noise);
+                how = string.Format(CultureInfo.InvariantCulture,
+                    "уровень {0:F0} в канале {1} ниже шумового {2:F1} (пьедестал под порогом) — порог по первому каналу выше шума {3:F2} кэВ",
+                    scan.Level, scan.Candidate, noise, above);
+                return above;
+            }
+
             if (scan.WidthKev > ThresholdRampMaxKev)
             {
                 how = string.Format(CultureInfo.InvariantCulture,
@@ -794,6 +834,39 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 "рампа {0:F2}→{1:F2} кэВ (каналы {2}→{3}; подошва {4:F2}, середина в канале {5} при уровне {6:F0}, хвост {7})",
                 e0, kev, scan.C0, top, scan.FootKev, scan.Candidate, scan.Level, tail);
             return kev;
+        }
+
+        /// <summary>
+        /// (`AMBER260`) Энергия первого канала от <paramref name="c0"/>, где медиана
+        /// окна уровня (то же окно, что у <see cref="ScanRamp"/>) не ниже
+        /// <paramref name="noise"/>, — не дальше <see cref="ThresholdScanKev"/>;
+        /// такого нет — энергия <paramref name="c0"/>, как прежде.
+        /// </summary>
+        static double AboveNoiseKev(int[] counts, EnergyCalibration calibration, int c0, double noise)
+        {
+            double e0 = calibration.ChannelToEnergy(c0);
+            double pitch = c0 + 1 < counts.Length ? calibration.ChannelToEnergy(c0 + 1) - e0 : 0.0;
+            int window = ThresholdMinWindowChannels;
+            if (pitch > 0.0 && !double.IsNaN(pitch) && !double.IsInfinity(pitch))
+            {
+                window = Math.Max(window, (int)Math.Ceiling(ThresholdLevelWindowKev / pitch));
+            }
+
+            for (int c = c0; c + window <= counts.Length; c++)
+            {
+                double energy = calibration.ChannelToEnergy(c);
+                if (energy - e0 > ThresholdScanKev)
+                {
+                    break;
+                }
+
+                if (MedianOf(counts, c, c + window) >= noise)
+                {
+                    return energy;
+                }
+            }
+
+            return e0;
         }
 
         /// <summary>

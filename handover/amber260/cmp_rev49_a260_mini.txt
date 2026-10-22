@@ -1,0 +1,7 @@
+спектров: 59 / 59
+СДВИГ ASN16_Cs137_10cm             known   chi2ndf 0.5280 -> 0.5339 ; pois 1.1635 -> 1.2509 ; поля: anchor_note, chi2ndf, chi2ndf_pois, gain, model_residual_pct
+сдвинулись в runs: 1
+расхождения прочих файлов по спектрам: 1
+  ASN16_Cs137_10cm             anchors.csv, components.csv, grey.csv, limits.csv, tails.csv, uncovered.csv
+файлы только в A: []
+файлы только в B: []
