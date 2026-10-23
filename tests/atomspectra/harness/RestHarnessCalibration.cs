@@ -88,21 +88,26 @@ namespace RestHarness
                     if (hasTarget)
                     {
                         Func<string, Control> c = n => (Control)t.GetField(n, f).GetValue(form);
+                        const string older = "OLDER LINE OF THE OUTPUT";   // PR37 fix, REST: the newest line goes on top, as the console writes
+                        c("textOutput").Text = older + Environment.NewLine;
 
                         t.GetMethod("buttonRestTest_Click", f).Invoke(form, new object[] { null, EventArgs.Empty });
                         Pump(() => c("buttonRestTest").Enabled, 8000);
                         Application.DoEvents();
                         Console.WriteLine("test: " + c("labelRestResult").Text + " | output: " + c("textOutput").Text.Replace("\r\n", " / "));
+                        string outText = c("textOutput").Text;
 
                         if (!unset)
                         {
                             Check(got != null && got.SequenceEqual(MockCalib), "Test connection (REST): the board calibration (3.65; 0.41; 4.5e-05; -1.3e-08; 1.2e-12) is given to the Energy Calibration page");
-                            Check(c("textOutput").Text.Contains("3.65"), "Test connection (REST): the output names the coefficients");
+                            Check(outText.Contains("3.65"), "Test connection (REST): the output names the coefficients");
+                            Check(outText.IndexOf("3.65", StringComparison.Ordinal) < outText.IndexOf(older, StringComparison.Ordinal), "the calibration line is written above the older output (newest on top, as the console)");
                         }
                         else
                         {
                             Check(calls == 0, "Test connection (REST), calib_set=false: the Energy Calibration page is not touched");
-                            Check(c("textOutput").Text.Contains("calib_set"), "Test connection (REST), calib_set=false: the output says the board has no calibration");
+                            Check(outText.Contains("calib_set"), "Test connection (REST), calib_set=false: the output says the board has no calibration");
+                            Check(outText.IndexOf("calib_set", StringComparison.Ordinal) < outText.IndexOf(older, StringComparison.Ordinal), "the line is written above the older output (newest on top, as the console)");
                         }
 
                         // both connection tests write their result to the log; the status says whose session it is

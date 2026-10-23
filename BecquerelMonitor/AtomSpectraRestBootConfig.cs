@@ -37,11 +37,32 @@ namespace BecquerelMonitor
             return r.Ok ? ParseGzipLevel(r.Body) : Unknown;
         }
 
+        // the level for the user ("not supported" from the resources)
         public static string Describe(int level)
+        {
+            if (level == Unsupported) return BecquerelMonitor.Properties.Resources.AtomSpectraGzipLevelUnsupported;
+            return DescribeLog(level);
+        }
+
+        // the level for the log (English)
+        private static string DescribeLog(int level)
         {
             if (level == Unsupported) return "not supported";
             if (level == Unknown) return "?";
             return level.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static string Text(string format, params object[] args)
+        {
+            return string.Format(CultureInfo.InvariantCulture, format, args);
+        }
+
+        // message: the user's text (resources); the log gets the English one
+        private static bool Fail(out string message, string user, string log)
+        {
+            message = user;
+            AtomSpectraTcpLog.Warn("REST", "gzip_level not set: " + log);
+            return false;
         }
 
         // Success = 2xx AND {"ok":true} AND a fresh GET /api/boot-config shows the same value (gz_level in /api/system may lag).
@@ -49,38 +70,36 @@ namespace BecquerelMonitor
         {
             if (Array.IndexOf(Levels, level) < 0)
             {
-                message = "level " + level + " is not 0, 1 or 6";
-                return false;
+                message = "level " + level.ToString(CultureInfo.InvariantCulture) + " is not 0, 1 or 6";
+                string log = message;
+                return Fail(out message, Text(BecquerelMonitor.Properties.Resources.AtomSpectraGzipErrLevel, level), log);
             }
             int before = ReadGzipLevel(client, deadlineMs);
             if (before == Unsupported)
             {
-                message = "this firmware has no gzip_level in /api/boot-config (not supported); nothing was sent";
-                return false;
+                return Fail(out message, BecquerelMonitor.Properties.Resources.AtomSpectraGzipErrUnsupported, "this firmware has no gzip_level in /api/boot-config (not supported); nothing was sent");
             }
             if (before == Unknown)
             {
-                message = "GET /api/boot-config gave no usable answer; nothing was sent";
-                return false;
+                return Fail(out message, BecquerelMonitor.Properties.Resources.AtomSpectraGzipErrNoRead, "GET /api/boot-config gave no usable answer; nothing was sent");
             }
             AtomSpectraRestResponse r = client.Post("/api/boot-config", "{\"gzip_level\":" + level.ToString(CultureInfo.InvariantCulture) + "}", deadlineMs);
             if (!r.Ok)
             {
-                message = "POST /api/boot-config: " + (r.Error ?? ("HTTP " + r.Status)) + (string.IsNullOrEmpty(r.Body) ? "" : " (" + r.Body.Trim() + ")");
-                return false;
+                return Fail(out message, Text(BecquerelMonitor.Properties.Resources.AtomSpectraGzipErrPost, r.UserText),
+                    "POST /api/boot-config: " + (r.Error ?? ("HTTP " + r.Status.ToString(CultureInfo.InvariantCulture))) + (string.IsNullOrEmpty(r.Body) ? "" : " (" + r.Body.Trim() + ")"));
             }
             if (!r.Accepted)
             {
-                message = "the board answered {\"ok\":false}: the setting was not saved";
-                return false;
+                return Fail(out message, BecquerelMonitor.Properties.Resources.AtomSpectraGzipErrOkFalse, "the board answered {\"ok\":false}: the setting was not saved");
             }
             int after = ReadGzipLevel(client, deadlineMs);
             if (after != level)
             {
-                message = "the board answered ok, but GET /api/boot-config shows " + Describe(after) + " instead of " + level.ToString(CultureInfo.InvariantCulture);
-                return false;
+                return Fail(out message, Text(BecquerelMonitor.Properties.Resources.AtomSpectraGzipErrReadBack, Describe(after), level),
+                    "the board answered ok, but GET /api/boot-config shows " + DescribeLog(after) + " instead of " + level.ToString(CultureInfo.InvariantCulture));
             }
-            AtomSpectraTcpLog.Info("REST", "gzip_level " + Describe(before) + " -> " + level.ToString(CultureInfo.InvariantCulture) + " (read back from /api/boot-config)");
+            AtomSpectraTcpLog.Info("REST", "gzip_level " + DescribeLog(before) + " -> " + level.ToString(CultureInfo.InvariantCulture) + " (read back from /api/boot-config)");
             message = null;
             return true;
         }

@@ -1,11 +1,79 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 namespace BecquerelMonitor
 {
+    // Why a REST calibration was not taken: the code the window branches on (its text is in the resources), not the log's English Error.
+    public enum AtomSpectraRestCalibReason
+    {
+        None,
+        Network,     // no answer / an HTTP status
+        NotObject,   // the answer is not a JSON object
+        NoArray,     // no "calibration" / "calib" array
+        NotSet,      // calib_set is false: the board has no calibration
+        NotNumber,   // a slot that is not a number (Slot)
+        Gap,         // a number after an empty slot (Slot)
+        NotFinite,   // NaN or infinity in a slot (Slot)
+        TooFew,      // fewer than 2 coefficients
+        Malformed    // the answer does not parse
+    }
+
     public static class AtomSpectraRestCalibration
     {
+        // the reason of each result made here (the result type is shared with TCP and carries no code of its own)
+        private sealed class Why
+        {
+            public AtomSpectraRestCalibReason Reason;
+            public int Slot = -1;
+            public string UserError;   // Network: the user's text of the failed request
+        }
+
+        private static readonly ConditionalWeakTable<AtomSpectraTcpCalibrationResult, Why> why = new ConditionalWeakTable<AtomSpectraTcpCalibrationResult, Why>();
+
+        private static AtomSpectraTcpCalibrationResult Result(AtomSpectraRestCalibReason reason, int slot, AtomSpectraTcpCalibrationFailure failure, string error, double[] coefficients, string raw, string userError = null)
+        {
+            AtomSpectraTcpCalibrationResult r = new AtomSpectraTcpCalibrationResult(failure, error, coefficients, raw);
+            why.Add(r, new Why { Reason = reason, Slot = slot, UserError = userError });
+            return r;
+        }
+
+        // The reason of a result (one not made here is judged by its Failure alone)
+        public static AtomSpectraRestCalibReason ReasonOf(AtomSpectraTcpCalibrationResult r)
+        {
+            if (r == null) return AtomSpectraRestCalibReason.Malformed;
+            Why w;
+            if (why.TryGetValue(r, out w)) return w.Reason;
+            switch (r.Failure)
+            {
+                case AtomSpectraTcpCalibrationFailure.None: return AtomSpectraRestCalibReason.None;
+                case AtomSpectraTcpCalibrationFailure.Connect:
+                case AtomSpectraTcpCalibrationFailure.Busy:
+                case AtomSpectraTcpCalibrationFailure.NoAnswer: return AtomSpectraRestCalibReason.Network;
+                case AtomSpectraTcpCalibrationFailure.EmptyCoefficients: return AtomSpectraRestCalibReason.TooFew;
+                case AtomSpectraTcpCalibrationFailure.InvalidNumber: return AtomSpectraRestCalibReason.NotFinite;
+                case AtomSpectraTcpCalibrationFailure.GapInCoefficients: return AtomSpectraRestCalibReason.Gap;
+                default: return AtomSpectraRestCalibReason.Malformed;
+            }
+        }
+
+        // the slot the reason names (-1: none or not known)
+        public static int SlotOf(AtomSpectraTcpCalibrationResult r)
+        {
+            Why w;
+            return r != null && why.TryGetValue(r, out w) ? w.Slot : -1;
+        }
+
+        // the user's text of a failed request (null: not a request failure, or not known)
+        public static string NetworkTextOf(AtomSpectraTcpCalibrationResult r)
+        {
+            Why w;
+            return r != null && why.TryGetValue(r, out w) ? w.UserError : null;
+        }
+
+        private static string Inv(int v) { return v.ToString(CultureInfo.InvariantCulture); }
+
         // channel k' of the folded spectrum sums fine channels m*k' .. m*k'+m-1 (the board and Compress alike);
         // it is placed at the centre of its group, x = m*k' + GroupCentre(m).
         // Assumption: the argument of the board's polynomial is the index of the channel centre (not confirmed by the board).
@@ -50,11 +118,12 @@ namespace BecquerelMonitor
             if (!r.Ok)
             {
                 AtomSpectraTcpLog.Warn("Cal", "REST calibration failed: " + r.Error);
-                result = new AtomSpectraTcpCalibrationResult(
+                result = Result(AtomSpectraRestCalibReason.Network, -1,
                     AtomSpectraTcpCalibrationFailure.Connect,
                     r.Error,
                     null,
-                    r.Body);
+                    r.Body,
+                    r.UserText);
             }
             else
             {
@@ -84,22 +153,22 @@ namespace BecquerelMonitor
         public static AtomSpectraTcpCalibrationResult FromSlots(double[] slots)
         {
             if (slots == null)
-                return new AtomSpectraTcpCalibrationResult(AtomSpectraTcpCalibrationFailure.EmptyCoefficients, "calib_set is false", null, null);
+                return Result(AtomSpectraRestCalibReason.NotSet, -1, AtomSpectraTcpCalibrationFailure.EmptyCoefficients, "calib_set is false", null, null);
             List<double> coeffs = new List<double>();
             bool emptySeen = false;
             for (int i = 0; i < Math.Min(5, slots.Length); i++)
             {
                 if (double.IsNaN(slots[i])) { emptySeen = true; continue; }
                 if (emptySeen)
-                    return new AtomSpectraTcpCalibrationResult(AtomSpectraTcpCalibrationFailure.GapInCoefficients, "Number after empty slot at index " + i, null, null);
+                    return Result(AtomSpectraRestCalibReason.Gap, i, AtomSpectraTcpCalibrationFailure.GapInCoefficients, "Number after empty slot at index " + Inv(i), null, null);
                 if (double.IsInfinity(slots[i]))
-                    return new AtomSpectraTcpCalibrationResult(AtomSpectraTcpCalibrationFailure.InvalidNumber, "Infinity at index " + i, null, null);
+                    return Result(AtomSpectraRestCalibReason.NotFinite, i, AtomSpectraTcpCalibrationFailure.InvalidNumber, "Infinity at index " + Inv(i), null, null);
                 coeffs.Add(slots[i]);
             }
             while (coeffs.Count > 0 && coeffs[coeffs.Count - 1] == 0.0) coeffs.RemoveAt(coeffs.Count - 1);
             return coeffs.Count < 2
-                ? new AtomSpectraTcpCalibrationResult(AtomSpectraTcpCalibrationFailure.EmptyCoefficients, "Fewer than 2 coefficients", null, null)
-                : new AtomSpectraTcpCalibrationResult(AtomSpectraTcpCalibrationFailure.None, null, coeffs.ToArray(), null);
+                ? Result(AtomSpectraRestCalibReason.TooFew, -1, AtomSpectraTcpCalibrationFailure.EmptyCoefficients, "Fewer than 2 coefficients", null, null)
+                : Result(AtomSpectraRestCalibReason.None, -1, AtomSpectraTcpCalibrationFailure.None, null, coeffs.ToArray(), null);
         }
 
         public static AtomSpectraTcpCalibrationResult ParseDevice(string json)
@@ -109,7 +178,7 @@ namespace BecquerelMonitor
                 object root = AtomSpectraJson.Parse(json);
                 if (!(root is Dictionary<string, object>))
                 {
-                    return new AtomSpectraTcpCalibrationResult(
+                    return Result(AtomSpectraRestCalibReason.NotObject, -1,
                         AtomSpectraTcpCalibrationFailure.Malformed,
                         "Root is not an object",
                         null,
@@ -121,7 +190,7 @@ namespace BecquerelMonitor
                 List<object> calibArray = AtomSpectraJson.GetArray(obj, "calibration") ?? AtomSpectraJson.GetArray(obj, "calib");
                 if (calibArray == null)
                 {
-                    return new AtomSpectraTcpCalibrationResult(
+                    return Result(AtomSpectraRestCalibReason.NoArray, -1,
                         AtomSpectraTcpCalibrationFailure.Malformed,
                         "Missing calibration array",
                         null,
@@ -131,7 +200,7 @@ namespace BecquerelMonitor
                 bool calibSet = AtomSpectraJson.GetBool(obj, "calib_set", true);
                 if (!calibSet)
                 {
-                    return new AtomSpectraTcpCalibrationResult(
+                    return Result(AtomSpectraRestCalibReason.NotSet, -1,
                         AtomSpectraTcpCalibrationFailure.EmptyCoefficients,
                         "calib_set is false",
                         null,
@@ -154,9 +223,9 @@ namespace BecquerelMonitor
 
                     if (!(slot is double))
                     {
-                        return new AtomSpectraTcpCalibrationResult(
+                        return Result(AtomSpectraRestCalibReason.NotNumber, i,
                             AtomSpectraTcpCalibrationFailure.Malformed,
-                            "Slot " + i + " is not a number",
+                            "Slot " + Inv(i) + " is not a number",
                             null,
                             json);
                     }
@@ -165,18 +234,18 @@ namespace BecquerelMonitor
 
                     if (emptySeen)
                     {
-                        return new AtomSpectraTcpCalibrationResult(
+                        return Result(AtomSpectraRestCalibReason.Gap, i,
                             AtomSpectraTcpCalibrationFailure.GapInCoefficients,
-                            "Number after empty slot at index " + i,
+                            "Number after empty slot at index " + Inv(i),
                             null,
                             json);
                     }
 
                     if (double.IsNaN(val) || double.IsInfinity(val))
                     {
-                        return new AtomSpectraTcpCalibrationResult(
+                        return Result(AtomSpectraRestCalibReason.NotFinite, i,
                             AtomSpectraTcpCalibrationFailure.InvalidNumber,
-                            "NaN or Infinity at index " + i,
+                            "NaN or Infinity at index " + Inv(i),
                             null,
                             json);
                     }
@@ -191,14 +260,14 @@ namespace BecquerelMonitor
 
                 if (coeffs.Count < 2)
                 {
-                    return new AtomSpectraTcpCalibrationResult(
+                    return Result(AtomSpectraRestCalibReason.TooFew, -1,
                         AtomSpectraTcpCalibrationFailure.EmptyCoefficients,
                         "Fewer than 2 coefficients",
                         null,
                         json);
                 }
 
-                return new AtomSpectraTcpCalibrationResult(
+                return Result(AtomSpectraRestCalibReason.None, -1,
                     AtomSpectraTcpCalibrationFailure.None,
                     null,
                     coeffs.ToArray(),
@@ -206,7 +275,7 @@ namespace BecquerelMonitor
             }
             catch (Exception ex)
             {
-                return new AtomSpectraTcpCalibrationResult(
+                return Result(AtomSpectraRestCalibReason.Malformed, -1,
                     AtomSpectraTcpCalibrationFailure.Malformed,
                     ex.Message,
                     null,

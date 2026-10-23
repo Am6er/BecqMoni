@@ -92,8 +92,12 @@ namespace BecquerelMonitor
             if (q.DocumentSeconds > 0 || q.DocumentCounts > 0)
                 text += Environment.NewLine + Span(Resources.AtomSpectraRestStartDocument, q.DocumentSeconds, q.DocumentCounts);
 
+            // the board below the document in time or counts: reset; in a channel only: another acquisition that overtook ours
+            bool behind = q.Board == null || !q.Board.HasData || bt < q.DocumentSeconds || bn < q.DocumentCounts;
             if (!q.ContinueAllowed)
-                text += Environment.NewLine + Environment.NewLine + Resources.AtomSpectraRestStartBehind;
+                text += Environment.NewLine + Environment.NewLine + (q.ChannelBelow >= 0 && !behind
+                    ? string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraRestStartOtherSpectrum, q.ChannelBelow)
+                    : Resources.AtomSpectraRestStartBehind);
 
             if (!string.IsNullOrEmpty(q.Note))
                 text += Environment.NewLine + Environment.NewLine + q.Note;   // TCP says what each button sends
