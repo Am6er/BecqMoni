@@ -116,7 +116,7 @@ namespace RestHarness
                         ((RadioButton)c("radioRest")).Checked = true;
                         AtomSpectraTcpLog.SetStatus("REST", "192.0.2.46:80", "stopped (Detached)");
                         Console.WriteLine("status: " + AtomSpectraTcpLog.StatusText);
-                        Check(AtomSpectraTcpLog.StatusText.StartsWith("last session: REST"), "the log status says it is the last session's state");
+                        Check(AtomSpectraTcpLog.StatusText.StartsWith("last session: REST") || AtomSpectraTcpLog.StatusText.StartsWith("последний сеанс: REST"), "the log status says it is the last session's state");   // a resource now: the language of the run
 
                         got = null;
                         int callsBefore = calls;

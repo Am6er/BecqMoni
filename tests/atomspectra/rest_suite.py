@@ -8,7 +8,28 @@ import tempfile
 import time
 import concurrent.futures
 
-CSC = os.environ.get("ATOMSPECTRA_CSC") or r"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\Roslyn\csc.exe"
+def find_msbuild():
+    """MSBuild of the newest Visual Studio / Build Tools that has it (vswhere); None when vswhere finds nothing"""
+    vswhere = os.path.join(os.environ.get("ProgramFiles(x86)") or r"C:\Program Files (x86)", "Microsoft Visual Studio", "Installer", "vswhere.exe")
+    if not os.path.isfile(vswhere):
+        return None
+    try:
+        p = subprocess.run([vswhere, "-latest", "-products", "*", "-requires", "Microsoft.Component.MSBuild", "-find", r"MSBuild\**\Bin\MSBuild.exe"],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    for line in p.stdout.splitlines():
+        path = line.strip()
+        if path and os.path.isfile(path):
+            return path
+    return None
+
+
+# the environment variables first, then vswhere (any edition: Community, Professional, Build Tools), then the old default
+_VS_MSBUILD = None if (os.environ.get("ATOMSPECTRA_MSBUILD") and os.environ.get("ATOMSPECTRA_CSC")) else find_msbuild()
+MSBUILD = os.environ.get("ATOMSPECTRA_MSBUILD") or _VS_MSBUILD or r"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
+CSC = os.environ.get("ATOMSPECTRA_CSC") or (os.path.join(os.path.dirname(_VS_MSBUILD), "Roslyn", "csc.exe") if _VS_MSBUILD else None) \
+    or r"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\Roslyn\csc.exe"
 D = os.path.dirname(os.path.abspath(__file__))
 SRC_FILES = ["AtomSpectraRestPolicy.cs", "AtomSpectraRestClient.cs", "AtomSpectraRestAcquisition.cs", "AtomSpectraRestSession.cs",
              "AtomSpectraRestCalibration.cs", "AtomSpectraTcpLog.cs", "IAtomSpectraSession.cs", "AtomSpectraTcpSession.cs",
@@ -21,6 +42,47 @@ STUBS = """namespace BecquerelMonitor.Properties { public static class Resources
   public static string ERRAtomSpectraTcpCalGap = "gap"; public static string MSGAtomSpectraRestLinkLost = "REST {0}: polling every {1} s"; public static string ERRAtomSpectraRestUnreachable = "REST {0} ({2}): not started, polling every {1} s"; } }
 namespace BecquerelMonitor { public class PolynomialEnergyCalibration { public int PolynomialOrder { get; set; } public double[] Coefficients { get; set; } } }
 """
+
+
+def resource_stubs(stubs, src_dir, texts):
+    """The stub of Properties.Resources for a build from the sources: the members written in `stubs` as they are, plus every
+    other Resources.X the sources use, with its English value from Properties/Resources.resx (so a text a source starts to take
+    from the resources does not break the source build, and its scenarios see the same words as on the real build)"""
+    have = set(re.findall(r"public static string (\w+)\s*=", stubs))
+    used = sorted(set(k for t in texts for k in re.findall(r"\bResources\.(\w+)", t)) - have - {"ResourceManager", "Culture"})
+    if not used:
+        return stubs
+    with open(os.path.join(src_dir, "Properties", "Resources.resx"), "r", encoding="utf-8-sig") as fh:
+        resx = fh.read()
+    members = []
+    for k in used:
+        m = re.search(r'<data name="%s"[^>]*>\s*<value>(.*?)</value>' % re.escape(k), resx, re.S)
+        if m is None:
+            raise RuntimeError("resource " + k + " is used by the sources but is not in Resources.resx")
+        v = m.group(1).replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", '"').replace("&apos;", "'").replace("&amp;", "&")
+        members.append('public static string %s = "%s";' % (k, v.replace("\\", "\\\\").replace('"', '\\"').replace("\r", "\\r").replace("\n", "\\n")))
+    marker = "public static class Resources {"
+    return stubs.replace(marker, marker + NL + "  " + " ".join(members), 1)
+
+
+# AppUi (GlobalConfigManager.cs) is not among the sources of a source build; a source that reports through it gets this stub,
+# which behaves as the real door does without windows: Report writes one line to stderr, a question throws.
+APPUI_STUB = """namespace BecquerelMonitor { public static class AppUi {
+  public static bool HasWindows { get { return false; } }
+  public static void Report(string text, string caption, System.Windows.Forms.MessageBoxIcon icon) { System.Console.Error.WriteLine("BecqMoni: " + (string.IsNullOrEmpty(caption) ? "" : caption + ": ") + text); }
+  public static bool AskYesNo(string text, string caption) { throw new System.InvalidOperationException("BecqMoni: " + caption + ": " + text); }
+  public static bool AskYesNo(string text, string caption, System.Windows.Forms.MessageBoxIcon icon, bool defaultNo) { throw new System.InvalidOperationException("BecqMoni: " + caption + ": " + text); }
+  public static string WrapTip(string text) { return text; } } }
+"""
+
+
+def source_stubs(stubs, src_dir, texts):
+    """resource_stubs, plus the AppUi stub when the sources use AppUi and do not define it"""
+    out = resource_stubs(stubs, src_dir, texts)
+    if any(re.search(r"\bAppUi\.", t) for t in texts) and not any("static class AppUi" in t for t in texts):
+        out += APPUI_STUB
+    return out
+
 
 NL = chr(10)
 SCENARIOS = [
@@ -191,10 +253,18 @@ SCENARIOS = [
     ("console-tcp-start-headless-counting", ["--order", "hs", "--period", "0.5", "--cycles", "12", "--connections", "1"]),
     ("console-tcp-start-headless-stopped", ["--order", "hs", "--period", "0.5", "--cycles", "12", "--connections", "1", "--stopped-at", "500"]),
     ("console-tcp-start-headless-idle", ["--order", "hs", "--period", "0.5", "--cycles", "12", "--connections", "1", "--stopped-at", "0"]),
+    # PR37 fix, UI lane (harness/UiFix.cs): console confirmation, page generations, "Read from device" from the page, the save refusal
+    ("ui-console-classify", None),
+    ("ui-console-confirm", ["--counting", "0", "--valid", "0"]),
+    ("ui-page-generations", ["--counting", "0", "--valid", "0", "--boot-gzip", "1"]),
+    ("ui-read-edited", ["--counting", "0", "--valid", "0"]),
+    ("ui-save-refusal", ["--counting", "0", "--valid", "0"]),
 ]
 # scenarios that need the controller or the forms exist in the REAL build only (the source build prints n/a). On the real build each must
 # EXECUTE at least this many checks ("checks executed: N" of the harness); n/a or fewer is a failure of the suite, not a pass.
-REAL_ONLY_MIN_CHECKS = {"f5-tcp-cal-n": 8, "f5-ctl-length-first": 5, "f5-form-cal-n": 6, "f5-form-cfg-n": 4, "f5-form-test-n": 5, "f5-ctl-headless-text": 3}
+REAL_ONLY_MIN_CHECKS = {"f5-tcp-cal-n": 8, "f5-ctl-length-first": 5, "f5-form-cal-n": 6, "f5-form-cfg-n": 4, "f5-form-test-n": 5, "f5-ctl-headless-text": 3,
+                        # PR37 fix, UI lane
+                        "ui-console-confirm": 8, "ui-page-generations": 5, "ui-read-edited": 6, "ui-save-refusal": 3}
 FIX_SCENARIOS = ["overtake", "restart-doc", "preset-new", "deferred-resumed", "clear-stale", "session-key",
                  "headless-stopped", "stop-hang", "url-userinfo"]
 PASSC_SCENARIOS = ["prefix-auth", "parse", "deferred-resumed", "restart", "time-back", "nodata-404", "dead-404", "dead-flag",
@@ -425,7 +495,7 @@ MUTATIONS = [
 
 
 # (these mutations belong to the automatic set, each reddens ITS scenario): code that exists in the REAL build only (controller,
-# forms). Each: the patched tree is built by MSBuild (as tools/verify.py build), the harness is built on that exe, the real-only scenarios run on it.
+# forms). Each: the patched tree is built by MSBuild (build_real_mutant), the harness is built on that exe, the real-only scenarios run on it.
 # (id, description, [(file under BecquerelMonitor/, old text, new text)], the scenario that must be red)
 CTL = "AtomSpectraTcpDeviceController.cs"
 REAL_MUTATIONS = [
@@ -447,7 +517,6 @@ REAL_MUTATIONS = [
     ("headless-text", "HeadlessAsk has no text of its own (the generic one)",
      [("AtomSpectraTcpDeviceController.Rest.cs", "return AtomSpectraRestSession.HeadlessAskText;", "return string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraRestStart, rest.LastError ?? outcome.ToString());")], "f5-ctl-headless-text"),
 ]
-MSBUILD = os.environ.get("ATOMSPECTRA_MSBUILD") or r"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
 
 
 def free_port():
@@ -470,7 +539,7 @@ def run(cmd, timeout=180, prio=0):
         return None
 
 
-HARNESS_FILES = [os.path.join(D, "harness", n) for n in ("RestHarness.cs", "RestHarnessFixes.cs", "RestHarnessPassC.cs", "RestHarnessConsole.cs", "RestHarnessForm.cs", "RestHarnessFormModes.cs", "RestHarnessFormLayout.cs", "RestHarnessCalibration.cs", "RestHarnessTcpStart.cs", "RestHarnessGzip.cs", "RestHarnessInfDebug.cs", "RestHarnessF5.cs", "RestHarnessF5b.cs", "RestHarnessF5c.cs", "RestHarnessF5d.cs", "RestHarnessF5e.cs", "RestHarnessF5f.cs", "RestHarnessF5g.cs", "RestHarnessF5h.cs", "RestHarnessF5i.cs", "RestHarnessF5j.cs", "RestHarnessF5k.cs")]
+HARNESS_FILES = [os.path.join(D, "harness", n) for n in ("RestHarness.cs", "RestHarnessFixes.cs", "RestHarnessPassC.cs", "RestHarnessConsole.cs", "RestHarnessForm.cs", "RestHarnessFormModes.cs", "RestHarnessFormLayout.cs", "RestHarnessCalibration.cs", "RestHarnessTcpStart.cs", "RestHarnessGzip.cs", "RestHarnessInfDebug.cs", "RestHarnessF5.cs", "RestHarnessF5b.cs", "RestHarnessF5c.cs", "RestHarnessF5d.cs", "RestHarnessF5e.cs", "RestHarnessF5f.cs", "RestHarnessF5g.cs", "RestHarnessF5h.cs", "RestHarnessF5i.cs", "RestHarnessF5j.cs", "RestHarnessF5k.cs", "UiFix.cs")]
 FIXTURE = os.path.join(D, "fixtures", "spectrum_sample.json")   # a spectrum document recorded from a board, read by 'parse'
 
 
@@ -506,6 +575,7 @@ def build_ref(out_dir, exe_dir):
 def build_src(out_dir, src_dir, replacements):
     os.makedirs(out_dir, exist_ok=True)
     applied = set()
+    texts = []
     for f in SRC_FILES:
         src_path = os.path.join(src_dir, f)
         with open(src_path, "r", encoding="utf-8-sig", newline=None) as fh:
@@ -517,6 +587,7 @@ def build_src(out_dir, src_dir, replacements):
                     raise RuntimeError(f"replacement {i} in {rfile} expected 1 occurrence, found {count}")
                 text = text.replace(old, new)
                 applied.add(i)
+        texts.append(text)
         out_path = os.path.join(out_dir, os.path.basename(f))
         with open(out_path, "w", encoding="utf-8", newline="\n") as fh:
             fh.write(text)
@@ -524,7 +595,7 @@ def build_src(out_dir, src_dir, replacements):
         if i not in applied:
             raise RuntimeError(f"replacement {i} was not applied")
     with open(os.path.join(out_dir, "Stubs.cs"), "w", encoding="utf-8", newline="\n") as fh:
-        fh.write(STUBS)
+        fh.write(source_stubs(STUBS, src_dir, texts))
     out_exe = os.path.join(out_dir, "RestHarness.exe")
     cs_files = [os.path.join(out_dir, os.path.basename(f)) for f in SRC_FILES]
     cs_files.append(os.path.join(out_dir, "Stubs.cs"))
@@ -615,16 +686,21 @@ def patch_file(path, old, new):
         fh.write((b"\xef\xbb\xbf" if raw.startswith(b"\xef\xbb\xbf") else b"") + text.encode("utf-8"))
 
 
+TEST_OUT = "Release_atomspectra_tests"   # own OutputPath and IntermediateOutputPath: never the obj\Release of a ClickOnce publish
+
+
 def build_real_mutant(tree_root, mdir, replacements):
-    """a copy of the source tree (no bin/obj) with the patches, built by MSBuild like tools/verify.py build; returns the exe directory"""
+    """a copy of the source tree (no bin/obj) with the patches, built by MSBuild; returns the exe directory"""
     if os.path.exists(mdir):
         shutil.rmtree(mdir, ignore_errors=True)
     shutil.copytree(tree_root, mdir, ignore=shutil.ignore_patterns("bin", "obj", ".git"))
     for rfile, old, new in replacements:
         patch_file(os.path.join(mdir, "BecquerelMonitor", rfile), old, new)
-    args = [MSBUILD, "BecquerelMonitor.sln", "/restore", "/t:Rebuild", "/p:Configuration=Release", "/p:Platform=Any CPU", "/p:GenerateManifests=false", "/p:SignManifests=false", "/nologo", "/v:minimal"]
+    # the recipe of CLAUDE.md: MSBuild.exe on BecquerelMonitor.csproj with /p:GenerateManifests=false and its own output and obj directories
+    args = [MSBUILD, os.path.join("BecquerelMonitor", "BecquerelMonitor.csproj"), "/restore", "/t:Rebuild", "/p:Configuration=Release", "/p:Platform=AnyCPU", "/p:SignManifests=false", "/p:GenerateManifests=false",
+            "/p:OutputPath=bin\\" + TEST_OUT + "\\", "/p:IntermediateOutputPath=obj\\" + TEST_OUT + "\\", "/nologo", "/v:minimal"]
     p = subprocess.run(args, cwd=mdir, capture_output=True, text=True, encoding="utf-8", errors="replace")
-    exe_dir = os.path.join(mdir, "BecquerelMonitor", "bin", "Release")
+    exe_dir = os.path.join(mdir, "BecquerelMonitor", "bin", TEST_OUT)
     if p.returncode != 0 or not os.path.isfile(os.path.join(exe_dir, "BecquerelMonitor.exe")):
         raise RuntimeError("MSBuild failed: " + (p.stdout + p.stderr)[-600:])
     return exe_dir

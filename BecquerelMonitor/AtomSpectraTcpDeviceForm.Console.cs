@@ -21,10 +21,17 @@ namespace BecquerelMonitor
         private Label labelConsole;
         private TextBox textCommand;
         private TextBox textOutput;
+        private ToolTip toolTip;   // in components: disposed with the page
         private int restAddressPort = AtomSpectraTcpDeviceConfig.DefaultRestPort;
+
+        // The question before a command that changes the board ("No" is the default button); the test harness answers it.
+        public static Func<string, bool> ConfirmCommand = text => AppUi.AskYesNo(text, Resources.AtomSpectraConsoleConfirmTitle, MessageBoxIcon.Warning, true);
 
         private void BuildConsoleControls()
         {
+            if (components == null) components = new System.ComponentModel.Container();
+            toolTip = new ToolTip(components);
+
             labelHost.Visible = false;
             textHost.Visible = false;
             labelPort.Visible = false;
@@ -59,6 +66,7 @@ namespace BecquerelMonitor
             {
                 Location = new Point(17, 104),
                 Size = new Size(438, 28),
+                AutoEllipsis = true,   // a long reason ends with "..." inside its two lines; the whole text is in the tooltip
                 Text = ""
             };
             Controls.Add(labelStatus);
@@ -71,7 +79,7 @@ namespace BecquerelMonitor
                 Text = Resources.AtomSpectraConsolePollTcpShort   // the long hint was cut at the right edge
             };
             Controls.Add(labelPollHint);
-            new ToolTip().SetToolTip(labelPollHint, Resources.AtomSpectraConsolePollTcpHint);   // the full text on hover
+            toolTip.SetToolTip(labelPollHint, AppUi.WrapTip(Resources.AtomSpectraConsolePollTcpHint));   // the full text on hover
 
             labelConsole = new Label
             {
@@ -160,10 +168,18 @@ namespace BecquerelMonitor
             textAddress.Text = radioRest.Checked
                 ? AtomSpectraDeviceConsole.FormatAddress(config.Host, config.RestPort, AtomSpectraTcpDeviceConfig.DefaultRestPort)
                 : AtomSpectraDeviceConsole.FormatAddress(config.Host, config.TcpPort, AtomSpectraTcpDeviceConfig.DefaultTcpPort);
-            labelStatus.Text = "";
+            SetStatus(SystemColors.ControlText, "");
             textOutput.Text = "";
             labelPollHint.Visible = !radioRest.Checked;
             buttonRefresh.Enabled = true;
+        }
+
+        // the status line holds two lines; a longer reason is cut with "...", the tooltip has all of it
+        private void SetStatus(Color color, string text)
+        {
+            labelStatus.ForeColor = color;
+            labelStatus.Text = text;
+            toolTip.SetToolTip(labelStatus, string.IsNullOrEmpty(text) ? null : AppUi.WrapTip(text));
         }
 
         // REST shows its own hint; the bridge port test (TCP) is disabled there and says why. TCP keeps the old ones.
@@ -191,33 +207,31 @@ namespace BecquerelMonitor
                 name = h;
             }
 
-            int generation = ++testGeneration;
+            int generation = ++refreshGeneration;
+            int page = pageGeneration;
             bool proxy = !checkNoProxy.Checked;
             int httpPort = radioRest.Checked ? restAddressPort : AtomSpectraTcpDeviceConfig.DefaultRestPort;
 
             buttonRefresh.Enabled = false;
-            labelStatus.ForeColor = Color.Gray;
-            labelStatus.Text = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleStatusSearching, name);
+            SetStatus(Color.Gray, string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleStatusSearching, name));
 
             Thread worker = new Thread(() =>
             {
                 var r = AtomSpectraDeviceConsole.Refresh(name, httpPort, proxy, 3000);
                 OnUi(delegate
                 {
-                    if (generation != testGeneration) return;
-                    buttonRefresh.Enabled = true;
+                    if (generation == refreshGeneration) buttonRefresh.Enabled = true;   // the last search is over
+                    if (generation != refreshGeneration || page != pageGeneration) return;   // a newer search, or another configuration on the page
                     if (r.Found)
                     {
                         textAddress.Text = AtomSpectraDeviceConsole.FormatAddress(r.Host, AddressPort(), AddressDefaultPort());
-                        labelStatus.ForeColor = Color.Green;
-                        labelStatus.Text = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleStatusConnected, r.Serial, name + " -> " + r.Host);
+                        SetStatus(Color.Green, string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleStatusConnected, r.Serial, name + " -> " + r.Host));
                         ApplyBoardCalibration(AtomSpectraRestCalibration.ParseDevice(r.DeviceJson));   // board calibration -> Energy Calibration page
                         ShowBoardGzip(r.BootConfigJson);   // the board's reply compression level
                     }
                     else
                     {
-                        labelStatus.ForeColor = Color.Red;
-                        labelStatus.Text = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleStatusNotFound, r.Message);
+                        SetStatus(Color.Red, string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleStatusNotFound, r.Message));
                     }
                 });
             });
@@ -237,14 +251,16 @@ namespace BecquerelMonitor
             textCommand.AutoCompleteCustomSource.Add(cmd);
             textCommand.Clear();
 
+            // "Observe only" holds in both modes: nothing is sent to the board from here
+            if (checkObserve.Checked)
+            {
+                PrependOutput(">> " + cmd + Environment.NewLine + (radioRest.Checked ? Resources.AtomSpectraConsoleObserveOnly : Resources.AtomSpectraConsoleObserveOnlyTcp) + Environment.NewLine);
+                return;
+            }
+
+            int page = pageGeneration;
             if (radioRest.Checked)
             {
-                if (checkObserve.Checked)
-                {
-                    PrependOutput(">> " + cmd + Environment.NewLine + Resources.AtomSpectraConsoleObserveOnly + Environment.NewLine);
-                    return;
-                }
-
                 var probe = new AtomSpectraTcpDeviceConfig();
                 probe.Host = textHost.Text.Trim();
                 probe.RestPort = restAddressPort;
@@ -266,10 +282,12 @@ namespace BecquerelMonitor
                     return;
                 }
 
+                if (!CommandConfirmed(cmd, AtomSpectraTcpLog.Mask(client.BaseUrl), false)) return;
+
                 Thread worker = new Thread(() =>
                 {
                     string text = AtomSpectraDeviceConsole.SendRest(client, cmd, 3000);
-                    OnUi(delegate { PrependOutput(text); });
+                    OnUi(page, delegate { PrependOutput(text); });
                 });
                 worker.IsBackground = true;
                 worker.Name = "AtomSpectraConsole";
@@ -285,10 +303,14 @@ namespace BecquerelMonitor
                     return;
                 }
 
+                // a running measurement of this program on this bridge takes the command into its own session
+                bool live = AtomSpectraTcpSession.IsHostInUse(host, port) || AtomSpectraTcpSession.FindLive(host, port) != null;
+                if (!CommandConfirmed(cmd, AtomSpectraDeviceConsole.FormatAddress(host, port, 0), live)) return;
+
                 Thread worker = new Thread(() =>
                 {
                     string text = AtomSpectraDeviceConsole.SendTcp(host, port, cmd, 2000);
-                    OnUi(delegate { PrependOutput(text); });
+                    OnUi(page, delegate { PrependOutput(text); });
                 });
                 worker.IsBackground = true;
                 worker.Name = "AtomSpectraConsole";
@@ -296,10 +318,40 @@ namespace BecquerelMonitor
             }
         }
 
+        // A command that may change the board (anything but a known query) is sent only after "Yes"; "No" is the default.
+        private bool CommandConfirmed(string cmd, string board, bool liveHere)
+        {
+            AtomSpectraCommandKind kind = AtomSpectraDeviceConsole.Classify(cmd);
+            if (kind == AtomSpectraCommandKind.Query) return true;
+
+            string text = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleConfirm, cmd, board)
+                + Environment.NewLine + Environment.NewLine + AtomSpectraDeviceConsole.EffectText(kind)
+                + Environment.NewLine + (liveHere ? Resources.AtomSpectraConsoleLiveTcp : Resources.AtomSpectraConsoleLiveMaybe);
+            bool yes;
+            try
+            {
+                yes = ConfirmCommand(text);
+            }
+            catch (InvalidOperationException)
+            {
+                yes = false;   // no window to ask in: not sent
+            }
+            AtomSpectraTcpLog.Info("Console", "command " + cmd + " to " + board + " (" + kind + "): " + (yes ? "confirmed" : "declined, not sent"));
+            if (!yes) PrependOutput(">> " + cmd + Environment.NewLine + Resources.AtomSpectraConsoleDeclined + Environment.NewLine);
+            return yes;
+        }
+
+        // the console writes on top; the window keeps the newest text within the limits
         private void PrependOutput(string text)
         {
             if (string.IsNullOrEmpty(text)) return;
-            textOutput.Text = text + textOutput.Text;
+            textOutput.Text = AtomSpectraDeviceConsole.ClipHead(text + textOutput.Text, AtomSpectraDeviceConsole.OutputMaxChars, AtomSpectraDeviceConsole.OutputMaxLines);
+        }
+
+        // On the UI thread, if the page still shows the configuration the work was started for (page = pageGeneration then).
+        private void OnUi(int page, MethodInvoker action)
+        {
+            OnUi(delegate { if (page == pageGeneration) action(); });
         }
 
         private void OnUi(MethodInvoker action)

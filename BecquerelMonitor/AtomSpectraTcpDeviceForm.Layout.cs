@@ -1,4 +1,4 @@
-// the page fills its tab, wide fields follow the width, long row labels wrap; proxy credentials warning.
+// the page fills its tab, wide fields follow the width, long row labels wrap; the plain-HTTP credentials warning.
 using BecquerelMonitor.Properties;
 using System;
 using System.Drawing;
@@ -75,7 +75,8 @@ namespace BecquerelMonitor
             }
         }
 
-        // Basic and Bearer credentials go over plain HTTP; the warning sits under the password field
+        // Basic and Bearer credentials go over plain HTTP in the Authorization header (to the board, not to a proxy);
+        // the warning, for both schemes, sits under the password field
         private void AddProxyAuthWarning()
         {
             int top = textAuthSecret.Bottom + 6;

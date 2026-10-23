@@ -44198,6 +44198,87 @@ Computed: {7}, took {8:F0} s</value>
   <data name="AtomSpectraTcpLogFresh" xml:space="preserve">
     <value>data {0} s old</value>
   </data>
+  <data name="AtomSpectraConsoleConfirmTitle" xml:space="preserve">
+    <value>Command to the board</value>
+  </data>
+  <data name="AtomSpectraConsoleConfirm" xml:space="preserve">
+    <value>Send {0} to the board {1}?</value>
+  </data>
+  <data name="AtomSpectraConsoleEffectReset" xml:space="preserve">
+    <value>-rst erases the spectrum accumulated on the board; this cannot be undone.</value>
+  </data>
+  <data name="AtomSpectraConsoleEffectStop" xml:space="preserve">
+    <value>-sto stops counting on the board.</value>
+  </data>
+  <data name="AtomSpectraConsoleEffectStart" xml:space="preserve">
+    <value>-sta starts counting on the board.</value>
+  </data>
+  <data name="AtomSpectraConsoleEffectCalibration" xml:space="preserve">
+    <value>-cal with values writes a new energy calibration into the analyzer in place of the one it holds.</value>
+  </data>
+  <data name="AtomSpectraConsoleEffectUnknown" xml:space="preserve">
+    <value>BecqMoni does not know what this command does: it may change the analyzer's settings or its spectrum.</value>
+  </data>
+  <data name="AtomSpectraConsoleLiveTcp" xml:space="preserve">
+    <value>A measurement of this program is running on this board: the command goes into it.</value>
+  </data>
+  <data name="AtomSpectraConsoleLiveMaybe" xml:space="preserve">
+    <value>If the board is counting a measurement (in this program or in another client), the command affects it.</value>
+  </data>
+  <data name="AtomSpectraConsoleObserveOnlyTcp" xml:space="preserve">
+    <value>Observe only is on: commands are not sent to the board. The switch is in the REST mode settings.</value>
+  </data>
+  <data name="AtomSpectraConsoleDeclined" xml:space="preserve">
+    <value>(not sent: declined)</value>
+  </data>
+  <data name="AtomSpectraRestAuthNone" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="AtomSpectraRestHttpStatus" xml:space="preserve">
+    <value>the board answered HTTP {0}</value>
+  </data>
+  <data name="AtomSpectraRestNoAnswer" xml:space="preserve">
+    <value>the board does not answer (network error or time-out)</value>
+  </data>
+  <data name="AtomSpectraRestBodyBroken" xml:space="preserve">
+    <value>the board's answer was cut short or damaged</value>
+  </data>
+  <data name="AtomSpectraRestBadJson" xml:space="preserve">
+    <value>the board's answer is not readable JSON</value>
+  </data>
+  <data name="AtomSpectraRestReadFailed" xml:space="preserve">
+    <value>the board's answer could not be read</value>
+  </data>
+  <data name="AtomSpectraConsoleNotResolved" xml:space="preserve">
+    <value>name {0} not resolved: there is no such name on the network</value>
+  </data>
+  <data name="AtomSpectraConsoleNoBoardAnswered" xml:space="preserve">
+    <value>{0} resolves to {1}, but no board answered GET /api/device</value>
+  </data>
+  <data name="AtomSpectraConsoleNotAccepted" xml:space="preserve">
+    <value>!! the board did not accept the command: {0}</value>
+  </data>
+  <data name="AtomSpectraConsoleNoText" xml:space="preserve">
+    <value>(no text from the analyzer in the board log within {0} s; the board answered {1})</value>
+  </data>
+  <data name="AtomSpectraConsoleNoAnswer" xml:space="preserve">
+    <value>(no answer)</value>
+  </data>
+  <data name="AtomSpectraConsoleNoConnection" xml:space="preserve">
+    <value>!! no connection to {0}:{1}</value>
+  </data>
+  <data name="AtomSpectraConsoleNoAnswerWithin" xml:space="preserve">
+    <value>(no answer within {0} ms)</value>
+  </data>
+  <data name="AtomSpectraTcpLogFileFilter" xml:space="preserve">
+    <value>Log (*.log)|*.log|Text (*.txt)|*.txt</value>
+  </data>
+  <data name="AtomSpectraTcpLogLastSession" xml:space="preserve">
+    <value>last session: {0}  |  {1}  |  {2}  |  {3}</value>
+  </data>
+  <data name="AtomSpectraTcpLogDevlogFailed" xml:space="preserve">
+    <value>-- the board log {0} was not read: {1}</value>
+  </data>
   <data name="AtomSpectraRestTransport" xml:space="preserve">
     <value>Transport :</value>
   </data>
@@ -44223,7 +44304,7 @@ Computed: {7}, took {8:F0} s</value>
     <value>Do not use the system proxy</value>
   </data>
   <data name="AtomSpectraRestAuth" xml:space="preserve">
-    <value>Proxy authorization :</value>
+    <value>Authorization :</value>
   </data>
   <data name="AtomSpectraRestAuthUser" xml:space="preserve">
     <value>User :</value>
@@ -44232,7 +44313,7 @@ Computed: {7}, took {8:F0} s</value>
     <value>Password / token :</value>
   </data>
   <data name="AtomSpectraRestProxyAuthWarning" xml:space="preserve">
-    <value>Proxy credentials are sent unencrypted over HTTP (Basic); do not use on untrusted networks.</value>
+    <value>The user name, password and token are sent unencrypted over HTTP; do not use them on untrusted networks.</value>
   </data>
   <data name="AtomSpectraCalibToPage" xml:space="preserve">
     <value>Board calibration {0} is put on the Energy Calibration page; save the configuration to keep it.</value>
@@ -44277,9 +44358,9 @@ Computed: {7}, took {8:F0} s</value>
     <value>Observe only: no writing to the board</value>
   </data>
   <data name="AtomSpectraGzipConfirm" xml:space="preserve">
-    <value>Set the board's reply compression to {0}?
+    <value>Set the reply compression of the board {1} to {0}?
 
-The setting is saved on the board and applies to all its clients. Do not change production boards.</value>
+The setting is saved on the board and applies to all its clients. If other programs or people work with this board, agree the change with them first.</value>
   </data>
   <data name="AtomSpectraGzipDone" xml:space="preserve">
     <value>Board reply compression set to {0} (read back from the board: {1}).</value>

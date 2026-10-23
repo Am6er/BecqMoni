@@ -67,13 +67,18 @@ namespace BecquerelMonitor
                 {
                     AtomSpectraRestResponse r = client.Get("/api/devlog?since=" + since.ToString(CultureInfo.InvariantCulture), 3000);
                     if (!r.Ok)
-                        error = r.Error ?? ("HTTP " + r.Status);
+                        error = AtomSpectraDeviceConsole.Problem(r);
                     else
                         text = FormatDevlog(r.Body, since, out next);
                 }
+                catch (FormatException)
+                {
+                    error = Resources.AtomSpectraRestBadJson;
+                }
                 catch (Exception ex)
                 {
-                    error = ex.Message;
+                    AtomSpectraTcpLog.Warn("Devlog", "board log not read: " + ex.Message);
+                    error = Resources.AtomSpectraRestReadFailed;
                 }
                 finally
                 {
@@ -87,15 +92,28 @@ namespace BecquerelMonitor
                         if (IsDisposed) return;
                         if (error != null)
                         {
-                            devlogBox.AppendText("-- " + client.BaseUrl + "/api/devlog: " + error + Environment.NewLine);
+                            AppendDevlog(string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraTcpLogDevlogFailed, AtomSpectraTcpLog.Mask(client.BaseUrl), error) + Environment.NewLine);
                             return;
                         }
                         devlogNext = next;
-                        if (text.Length > 0) devlogBox.AppendText(text);
+                        if (text.Length > 0) AppendDevlog(text);
                     }));
                 }
                 catch (InvalidOperationException) { }
             });
+        }
+
+        // the board log tab keeps the newest lines within the limits of the console output window
+        private void AppendDevlog(string text)
+        {
+            devlogBox.AppendText(text);
+            if (devlogBox.TextLength > AtomSpectraDeviceConsole.OutputMaxChars || devlogBox.GetLineFromCharIndex(devlogBox.TextLength) >= AtomSpectraDeviceConsole.OutputMaxLines)
+            {
+                // trimmed to three quarters, so a long session does not rewrite the box on every refresh
+                devlogBox.Text = AtomSpectraDeviceConsole.ClipTail(devlogBox.Text, AtomSpectraDeviceConsole.OutputMaxChars * 3 / 4, AtomSpectraDeviceConsole.OutputMaxLines * 3 / 4);
+                devlogBox.SelectionStart = devlogBox.TextLength;
+                devlogBox.ScrollToCaret();
+            }
         }
 
         public static string FormatDevlog(string json, long since, out long next)

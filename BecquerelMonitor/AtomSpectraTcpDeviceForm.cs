@@ -19,10 +19,16 @@ namespace BecquerelMonitor
         const int TestListenMs = 3000;
 
         // The settings form's own warnings (the test harness replaces it to see them without a modal window).
-        public static Func<string, DialogResult> ShowWarning = text => MessageBox.Show(text);
+        public static Func<string, DialogResult> ShowWarning = text => MessageBox.Show(text, Resources.InvalidValueDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
         private bool formLoading;
-        private int testGeneration;
+        // pageGeneration: the configuration shown (LoadFormContents, closing); a late answer of another one is dropped.
+        // Each background operation has its own counter, so one finishing does not leave another one's button grey.
+        private int pageGeneration;
+        private int testGeneration;       // "Test connection" (TCP bridge)
+        private int restTestGeneration;   // "Test connection (REST)"
+        private int refreshGeneration;    // "Refresh"
+        private AtomSpectraTcpDeviceConfig loadedConfig;   // the configuration the fields were loaded from
         private double deadTime;
 
         public AtomSpectraTcpDeviceForm()
@@ -56,10 +62,12 @@ namespace BecquerelMonitor
 
         public override void LoadFormContents(InputDeviceConfig inputConfig)
         {
-            testGeneration++;
+            pageGeneration++;   // answers still on their way belong to the configuration shown before
             formLoading = true;
 
             var config = inputConfig as AtomSpectraTcpDeviceConfig;
+            loadedConfig = config;
+            boardGzipLevel = AtomSpectraRestBootConfig.Unknown;   // the compression level read from the previous configuration's board
             if (config != null)
             {
                 textHost.Text = config.Host;
@@ -80,6 +88,7 @@ namespace BecquerelMonitor
             labelTestResult.Text = "";
             buttonTest.Enabled = true;
             ApplyModeTexts();   // REST: own hint, bridge test disabled (AtomSpectraTcpDeviceForm.Console.cs)
+            UpdateGzipEnabled();
             formLoading = false;
         }
 
@@ -89,17 +98,18 @@ namespace BecquerelMonitor
             if (config == null) return false;
 
             // DeviceConfigForm.SaveFormContents ignores this method's return value, so an invalid host is refused by
-            // an exception: its catch reports ERRInvalidInputForm and the configuration is not written to disk.
+            // an exception. DeviceSaveRefusedException says that the page has already shown why: the form then adds
+            // no ERRInvalidInputForm of its own, and the configuration is not written to disk.
             string host = textHost.Text.Trim();
             int port = (int)numericPort.Value;
-            SaveRest(config);   // throws FormatException on an invalid board URL, after its own message
+            SaveRest(config);   // throws DeviceSaveRefusedException on an invalid board URL, after its own message
             // an EMPTY address is not an error while editing (a new configuration starts empty);
             // it is refused at Start and by "Test connection" (ERRAtomSpectraTcpNoHost). A non-empty wrong address is refused here.
             bool addressEmpty = textAddress.Text.Trim().Length == 0;
             if (!RestUrlGiven() && !addressEmpty && (!AtomSpectraTcpDeviceConfig.IsValidHost(host) || port < 1 || port > 65535))
             {
                 ShowWarning(string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpBadHost, textAddress.Text.Trim(), AddressDefaultPort()));
-                throw new FormatException("AtomSpectra TCP: invalid host or port");
+                throw new DeviceSaveRefusedException("AtomSpectra TCP: invalid host or port");
             }
 
             try
@@ -118,7 +128,30 @@ namespace BecquerelMonitor
 
         public override void FormClosing()
         {
-            testGeneration++;
+            pageGeneration++;
+        }
+
+        // "Read from device" of DeviceConfigForm: the connection as the fields say NOW (the address reaches the
+        // configuration only at Save), on a copy of the configuration being edited. null: the fields were loaded from
+        // another configuration (the caller uses the saved one), or the board URL is invalid (already said by a warning).
+        public AtomSpectraTcpDeviceConfig EditedConnection(AtomSpectraTcpDeviceConfig saved, out bool refused)
+        {
+            refused = false;
+            if (saved == null || !ReferenceEquals(saved, loadedConfig)) return null;
+            var copy = (AtomSpectraTcpDeviceConfig)saved.Clone();
+            copy.Host = textHost.Text.Trim();
+            copy.TcpPort = (int)numericPort.Value;
+            try
+            {
+                SaveRest(copy);
+                SaveConsole(copy);
+            }
+            catch (FormatException)
+            {
+                refused = true;
+                return null;
+            }
+            return copy;
         }
 
         private void Setting_Changed(object sender, EventArgs e)
@@ -141,14 +174,15 @@ namespace BecquerelMonitor
             }
 
             int generation = ++testGeneration;
+            int page = pageGeneration;
             buttonTest.Enabled = false;
             labelTestResult.Text = Resources.AtomSpectraTcpTesting;
 
             Thread worker = new Thread(() =>
             {
                 string text = RunTest(host, port);
-                AtomSpectraTcpLog.Info("Test", "Test connection (TCP) " + host + ":" + port + ": " + text);   // the result goes to the log too
-                ShowTestResult(generation, text);
+                AtomSpectraTcpLog.Info("Test", "Test connection (TCP) " + host + ":" + port.ToString(CultureInfo.InvariantCulture) + ": " + text);   // the result goes to the log too
+                ShowTestResult(generation, page, text);
             });
             worker.IsBackground = true;
             worker.Name = "AtomSpectraTcpTest";
@@ -210,7 +244,7 @@ namespace BecquerelMonitor
             }
         }
 
-        private void ShowTestResult(int generation, string text)
+        private void ShowTestResult(int generation, int page, string text)
         {
             if (IsDisposed || !IsHandleCreated) return;
 
@@ -218,9 +252,10 @@ namespace BecquerelMonitor
             {
                 BeginInvoke(new MethodInvoker(delegate
                 {
-                    if (generation != testGeneration || IsDisposed) return;
+                    if (IsDisposed) return;
+                    if (generation == testGeneration) buttonTest.Enabled = !radioRest.Checked;   // the last test is over; the bridge test stays off in REST mode
+                    if (generation != testGeneration || page != pageGeneration) return;   // a newer test, or another configuration on the page
                     labelTestResult.Text = text;
-                    buttonTest.Enabled = !radioRest.Checked;   // the bridge test stays off in REST mode
                 }));
             }
             catch (InvalidOperationException)

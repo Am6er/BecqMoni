@@ -69,7 +69,6 @@ namespace BecquerelMonitor
                 return;
             }
             int level = AtomSpectraRestBootConfig.Levels[comboGzip.SelectedIndex];
-            if (!ConfirmGzip(string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraGzipConfirm, level))) return;
 
             AtomSpectraTcpDeviceConfig probe = new AtomSpectraTcpDeviceConfig();
             probe.Host = textHost.Text.Trim();
@@ -85,10 +84,13 @@ namespace BecquerelMonitor
             AtomSpectraRestClient client = probe.CreateRestClient(out error);
             if (client == null)
             {
-                textOutput.AppendText(string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraGzipFailed, error) + Environment.NewLine);
+                PrependOutput(string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraGzipFailed, error) + Environment.NewLine);
                 return;
             }
+            // the question names the board the setting goes to
+            if (!ConfirmGzip(string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraGzipConfirm, level, AtomSpectraTcpLog.Mask(client.BaseUrl)))) return;
 
+            int page = pageGeneration;
             buttonGzipApply.Enabled = false;
             comboGzip.Enabled = false;
             Thread worker = new Thread(() =>
@@ -96,16 +98,17 @@ namespace BecquerelMonitor
                 string message;
                 bool ok = AtomSpectraRestBootConfig.WriteGzipLevel(client, level, 3000, out message);
                 int now = AtomSpectraRestBootConfig.ReadGzipLevel(client, 3000);
-                OnUi(delegate
+                string text = ok
+                    ? string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraGzipDone, level, AtomSpectraRestBootConfig.Describe(now))
+                    : string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraGzipFailed, message);
+                AtomSpectraTcpLog.Info("Gzip", text);   // in the log even when the page shows another configuration by now
+                // another configuration on the page meanwhile: its board was not the one written, the page is left as it is
+                OnUi(page, delegate
                 {
                     boardGzipLevel = now;
                     int i = Array.IndexOf(AtomSpectraRestBootConfig.Levels, now);
                     if (i >= 0) comboGzip.SelectedIndex = i;
-                    string text = ok
-                        ? string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraGzipDone, level, AtomSpectraRestBootConfig.Describe(now))
-                        : string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraGzipFailed, message);
-                    AtomSpectraTcpLog.Info("Gzip", text);
-                    textOutput.AppendText(text + Environment.NewLine);
+                    PrependOutput(text + Environment.NewLine);
                     UpdateGzipEnabled();
                 });
             });

@@ -11,6 +11,7 @@ namespace RestHarness
     {
         static bool RunForm(string scenario, string[] args)
         {
+            if (RunUiFix(scenario)) return true;   // PR37 fix, UI lane (UiFix.cs)
             if (RunF5b(scenario)) return true;   // f5-timeout, f5-linklost-time, f5-ctl-calib (RestHarnessF5b.cs)
             if (scenario.StartsWith("f5-")) return RunF5(scenario);   // client rules on the recorded responses (RestHarnessF5.cs)
             if (scenario.StartsWith("gzip-") || scenario.StartsWith("form-gzip")) return RunGzip(scenario);   // (RestHarnessGzip.cs)
@@ -88,7 +89,8 @@ namespace RestHarness
                             }
                             else
                             {
-                                Check(threw == "FormatException" && !saved_ok, "a URL in the address field is refused");
+                                // PR37 fix, UI lane: the refusal says that the page has shown its warning (DeviceConfigForm adds no second window)
+                                Check(threw == "DeviceSaveRefusedException" && !saved_ok, "a URL in the address field is refused (DeviceSaveRefusedException: already reported)");
                                 Check(warnings.Count == 1, "exactly one warning");
                                 string w = warnings.Count > 0 ? warnings[0] : "";
                                 Check(w.Contains("host[:port]"), "the warning describes the accepted form host[:port]");
