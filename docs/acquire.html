@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Набор спектра — BecqMoni гид</title>
-<script src="assets/theme.js?v=53cbbd2b"></script>
-<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
+<script src="assets/theme.js?v=7b7024a7"></script>
+<link rel="stylesheet" href="assets/guide.css?v=7307f135">
 <style>
 .ui{white-space:normal}
 figure.shot.side{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
@@ -189,8 +189,8 @@ figure.shot[data-shot=panel-sample] .shot-frame{max-width:440px;margin:0 auto}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=648877f6"></script>
-<script src="assets/quanta.js?v=67b2c2dc"></script>
+<script src="assets/guide.js?v=9f0b40b4"></script>
+<script src="assets/quanta.js?v=b92ab866"></script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, t, io, visible, poisson } = GUIDE;
@@ -225,7 +225,7 @@ GUIDE.texts({ru:{
 'c.l3':'<b>Эффективн.</b> — кривая эффективности: по ней считаются активность и мощность дозы; ✕ сбрасывает',
 'c.l4':'<b>Фон</b> — спектр фона для вычитания: <b>Выбр.</b> и ✕',
 'c.l5':'<b>Тек. время</b> — ход набора; поле справа — лимит в секундах. Щелчок по полосе: секунды ↔ дни и часы',
-'c.l6':'<b>Подкл., Старт, Стоп, Сброс</b> — «Подкл.» видна только у Atom Spectra',
+'c.l6':'<b>Подкл., Старт, Стоп, Сброс</b> — «Подкл.» видна только у AtomSpectraVCP (Atom Spectra по COM). У AtomSpectra TCP/REST к набору, уже идущему на плате, присоединяет «Старт»: он спросит, что делать, и «Продолжить без сброса» подхватит набор',
 'c.l7':'<b>Счётчики</b> — всего, корректных и некорректных импульсов, скорость счёта',
 'c.l8':'<b>Мерт. Время % и Время без МВ</b> — доля «слепого» времени и живое время, с',
 'c.steps':'Пошагово: часовой набор',
@@ -235,7 +235,7 @@ GUIDE.texts({ru:{
 'c.s4':'Нужен файл в конце — '+UI('Сохранить в')+' → '+UI('Выбр.')+' и галка '+UI('Автоматическое сохранение в конце измерения')+'.',
 'c.s5':UI('Старт')+' (Ctrl+M). Следите за '+UI('Мерт. Время %')+': до 20 — норма.',
 'c.s6':UI('Стоп')+' (Ctrl+P) — пауза, «Старт» продолжит тот же спектр; '+UI('Сброс')+' — начать заново.',
-'c.warn':'<b>«Сброс» стирает и прибор.</b> У Atom Spectra, RadiaCode и Obsidian вместе со спектром обнуляется накопитель в самом приборе — набранное там тоже пропадёт. Программа спросит «Очистить спектр?»: подумайте, прежде чем ответить «Да».',
+'c.warn':'<b>«Сброс» стирает и прибор.</b> У Atom Spectra, RadiaCode и Obsidian вместе со спектром обнуляется накопитель в самом приборе — набранное там тоже пропадёт. Программа спросит «Очистить спектр?»: подумайте, прежде чем ответить «Да». У AtomSpectra TCP/REST «Сброс» стирает спектр на плате: в режиме REST программа сначала покажет, сколько на плате набрано, и переспросит («Нет» — по умолчанию), а при «Только наблюдении» плату не трогает; в режиме TCP команда сброса уходит сразу — переспрос только тогда, когда программа присоединилась к чужому набору, а без связи сброс уйдёт при следующем подключении.',
 'c.info':'<b>Кнопка ⟳ у «Устройства»</b> применяет конфигурацию прибора к текущему спектру: калибровки и настройки поиска пиков заменятся приборными, фон — фоном по умолчанию со вкладки «Ссылки» (выбранный на панели пропадёт), а при другом числе каналов спектр будет стёрт — программа предупредит. То же — при выборе другого прибора в списке «Устройство».',
 'c.f1':'<b>Старт скажет, если лимит набран.</b> Когда реальное время уже не меньше лимита, набор не начнётся, а программа ответит «Измерение уже достигло лимита времени…, продолжать нечего»: поднимите лимит или нажмите «Сброс».',
 'c.f2':'<b>Atom Spectra можно подхватить на ходу.</b> «Подкл.» присоединяется к набору, уже идущему в Atom Spectra Pro, без сброса.',
@@ -311,7 +311,7 @@ GUIDE.texts({ru:{
 'c.l3':'<b>Efficiency</b> — the efficiency curve behind activity and dose rate; ✕ resets it',
 'c.l4':'<b>Background</b> — the background spectrum to subtract: <b>Select</b> and ✕',
 'c.l5':'<b>Real Time</b> — acquisition progress; the field on the right is the limit in seconds. Click the bar: seconds ↔ days and hours',
-'c.l6':'<b>Attach, Start, Stop, Clear</b> — “Attach” is shown for Atom Spectra only',
+'c.l6':'<b>Attach, Start, Stop, Clear</b> — “Attach” is shown for AtomSpectraVCP (Atom Spectra over COM) only. For AtomSpectra TCP/REST “Start” joins an acquisition already running on the board: it asks what to do, and “Continue without reset” picks the acquisition up',
 'c.l7':'<b>Counters</b> — total, valid and invalid pulses, count rate',
 'c.l8':'<b>Dead Time % and Live Time</b> — the “blind” share of time and the live time, s',
 'c.steps':'Step by step: a one-hour acquisition',
@@ -321,7 +321,7 @@ GUIDE.texts({ru:{
 'c.s4':'Want a file at the end — '+UI('Save to')+' → '+UI('Select')+' and tick '+UI('Save Automatically When Finished')+'.',
 'c.s5':UI('Start')+' (Ctrl+M). Watch '+UI('Dead Time %')+': up to 20 is normal.',
 'c.s6':UI('Stop')+' (Ctrl+P) pauses, “Start” continues the same spectrum; '+UI('Clear')+' starts over.',
-'c.warn':'<b>“Clear” wipes the device too.</b> For Atom Spectra, RadiaCode and Obsidian the buffer inside the device is reset along with the spectrum — whatever it collected is lost as well. The program asks “Clear spectrum?”: think before answering “Yes”.',
+'c.warn':'<b>“Clear” wipes the device too.</b> For Atom Spectra, RadiaCode and Obsidian the buffer inside the device is reset along with the spectrum — whatever it collected is lost as well. The program asks “Clear spectrum?”: think before answering “Yes”. For AtomSpectra TCP/REST “Clear” wipes the spectrum on the board: in REST mode the program first shows how much the board holds and asks again (“No” is the default), and with “Observe only” it leaves the board alone; in TCP mode the reset command goes at once — it asks again only when the program joined someone else’s acquisition, and with no link the reset goes at the next connection.',
 'c.info':'<b>The ⟳ button next to “Device Config.”</b> applies the device configuration to the current spectrum: calibrations and peak search settings are replaced by the device’s, the background by the default one from the “References” tab (one chosen on the panel is lost), and with a different channel count the spectrum is erased — the program warns you. The same happens when you pick another device in the “Device Config.” list.',
 'c.f1':'<b>Start tells you when the limit is reached.</b> Once real time is not below the limit, acquisition does not begin and the program says “The measurement has already reached the preset time…; there is nothing to continue”: raise the limit or press “Clear”.',
 'c.f2':'<b>Atom Spectra can be joined on the fly.</b> “Attach” joins an acquisition already running in Atom Spectra Pro, without a reset.',

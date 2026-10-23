@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Калибровка — BecqMoni гид</title>
-<script src="assets/theme.js?v=53cbbd2b"></script>
-<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
+<script src="assets/theme.js?v=7b7024a7"></script>
+<link rel="stylesheet" href="assets/guide.css?v=7307f135">
 </head>
 <body data-chapter="calibration">
 
@@ -117,6 +117,7 @@
     <div>
       <ol class="shot-legend"><li data-t="d.l1"></li><li data-t="d.l2"></li><li data-t="d.l3"></li><li data-t="d.l4"></li></ol>
       <div class="callout warn" data-t="d.warn"></div>
+      <div class="callout warn" data-t="d.as"></div>
     </div>
   </div>
   <details class="hood"><summary data-t="hood"></summary><ul data-t="hoodtxt"></ul></details>
@@ -125,8 +126,8 @@
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=648877f6"></script>
-<script src="assets/quanta.js?v=67b2c2dc"></script>
+<script src="assets/guide.js?v=9f0b40b4"></script>
+<script src="assets/quanta.js?v=b92ab866"></script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, visible, io, t, gauss, poisson } = GUIDE;
@@ -200,8 +201,9 @@ GUIDE.texts({ru:{
 'd.cap':'Вкладка «Калибровка энергии» конфигурации прибора (RadiaCode-103)',
 'd.l1':'<b>Читать с устройства</b> — взять калибровку, зашитую в приборе','d.l2':'<b>Записать в устройство</b> — отправить её обратно (сначала сохраните конфигурацию)',
 'd.l3':'<b>Многоточечная калибровка</b> — та же таблица точек, что на панели','d.l4':'<b>Настройки автокалибратора</b> — по каким линиям держать шкалу',
-'d.warn':'<b>Запись в прибор необратима</b> — старые коэффициенты прибора будут заменены. Чтение и запись есть у Atom Spectra, RadiaCode и Obsidian.',
-'hoodtxt':'<li>Решатель берёт наибольшую годную степень не выше заказанной: если кривая где-либо на шкале — чаще всего за крайними опорами — отходит от прямой по тем же точкам больше чем на 15 % (но не меньше 40 кэВ) или перестаёт быть годной, степень понижается и подгонка повторяется; старший коэффициент остаётся 0.</li><li>Одна точка — прямая через ноль (добавляется точка «канал 0 = 0 кэВ»).</li><li>«Собрать всё» берёт точки со всех открытых документов; «Сброс» возвращает калибровку прибора.</li><li>У RadiaCode и Obsidian параллельно хранится квадратичная копия калибровки — в таком виде её принимает сам прибор.</li><li>Ширину пика программа берёт из калибровки FWHM спектра; в матрице отклика ширины нет.</li>',
+'d.warn':'<b>Запись в прибор необратима</b> — старые коэффициенты прибора будут заменены. Чтение и запись есть у Atom Spectra, RadiaCode и Obsidian; у AtomSpectra TCP/REST — только чтение.',
+'d.as':'<b>AtomSpectra TCP/REST: калибровку задаёт плата.</b> <span class="ui">Читать с устройства</span> берёт её с платы по адресу, который сейчас стоит на вкладке «Устройство», и пересчитывает к числу каналов, вписанному на вкладке «Основное»: в режиме REST — к любому, на которое делится 8192, в режиме TCP — только при 8192 каналах. Иначе программа скажет «калибровка платы не взята» и оставит свою. Пока на этой плате идёт измерение программы, мост TCP калибровку не отдаёт: остановите измерение. Прочитанное ложится в поля — нажмите «Сохранить». Те же коэффициенты переносят сюда кнопки <span class="ui">Обновить</span> и <span class="ui">Проверить связь (REST)</span> на вкладке «Устройство»; записи в плату здесь нет. На каждом «Старте» программа сама берёт калибровку платы в документ и сохраняет в конфигурацию прибора: в режиме REST — пересчитав к числу каналов профиля, в режиме TCP — только при 8192 каналах. Свою калибровку, сделанную в BecqMoni, следующий «Старт» заменит калибровкой платы; если на плате её нет, остаётся своя.',
+'hoodtxt':'<li>Решатель берёт наибольшую годную степень не выше заказанной: если кривая где-либо на шкале — чаще всего за крайними опорами — отходит от прямой по тем же точкам больше чем на 15 % (но не меньше 40 кэВ) или перестаёт быть годной, степень понижается и подгонка повторяется; старший коэффициент остаётся 0.</li><li>Одна точка — прямая через ноль (добавляется точка «канал 0 = 0 кэВ»).</li><li>«Собрать всё» берёт точки со всех открытых документов; «Сброс» возвращает калибровку прибора.</li><li>У RadiaCode и Obsidian параллельно хранится квадратичная копия калибровки — в таком виде её принимает сам прибор.</li><li>Ширину пика программа берёт из калибровки FWHM спектра; в матрице отклика ширины нет.</li><li>У AtomSpectra TCP/REST многочлен платы задан для 8192 каналов. Для профиля из N каналов его пересчитывают: канал k свёрнутого спектра — середина группы из m = 8192/N каналов платы, <code>x = m·k + (m − 1)/2</code>; степень многочлена та же.</li>',
 },en:{
 'n.why':'Why','n.how':'Energy calibration','n.fwhm':'Peak width','n.dev':'In the device configuration',
 'h.k':'Chapter 6 · Calibration',
@@ -272,8 +274,9 @@ GUIDE.texts({ru:{
 'd.cap':'The “Energy Calibration” tab of a device configuration (RadiaCode-103)',
 'd.l1':'<b>Read from device</b> — take the calibration stored in the detector','d.l2':'<b>Write to device</b> — send it back (save the configuration first)',
 'd.l3':'<b>Multipoint Calibration</b> — the same point table as on the panel','d.l4':'<b>AutoCalibrator Settings</b> — which lines hold the scale',
-'d.warn':'<b>Writing to the device cannot be undone</b> — the detector\'s old coefficients are replaced. Read and write exist for Atom Spectra, RadiaCode and Obsidian.',
-'hoodtxt':'<li>The solver takes the highest workable degree not above the one ordered: if anywhere on the scale — usually beyond the outermost anchors — the curve departs from the straight line through the same points by more than 15 % (at least 40 keV), or stops being valid, the degree goes down and the fit is redone; the top coefficient stays 0.</li><li>One point gives a line through zero (a “channel 0 = 0 keV” point is added).</li><li>“Get all points” collects points from all open documents; “Reset” brings back the device calibration.</li><li>RadiaCode and Obsidian also keep a quadratic copy of the calibration — that is the form the device itself accepts.</li><li>Peak width comes from the spectrum\'s FWHM calibration; the response matrix has no width in it.</li>',
+'d.warn':'<b>Writing to the device cannot be undone</b> — the detector\'s old coefficients are replaced. Read and write exist for Atom Spectra, RadiaCode and Obsidian; AtomSpectra TCP/REST can only read.',
+'d.as':'<b>AtomSpectra TCP/REST: the board sets the calibration.</b> <span class="ui">Read from device</span> takes it from the board at the address now on the “Device Specific” tab and rescales it to the channel count entered on the “General” tab: in REST mode to any count that divides 8192, in TCP mode only at 8192 channels. Otherwise the program says the board calibration is not taken and keeps its own. While a measurement of the program runs on this board, the TCP bridge does not give the calibration: stop the measurement. What is read goes into the fields — press “Save”. The <span class="ui">Refresh</span> and <span class="ui">Test connection (REST)</span> buttons on the “Device Specific” tab bring the same coefficients here; there is no writing to the board here. At every Start the program itself takes the board calibration into the document and saves it to the device configuration: in REST mode rescaled to the profile\'s channel count, in TCP mode only at 8192 channels. A calibration of your own made in BecqMoni is replaced by the board\'s at the next Start; if the board has none, yours stays.',
+'hoodtxt':'<li>The solver takes the highest workable degree not above the one ordered: if anywhere on the scale — usually beyond the outermost anchors — the curve departs from the straight line through the same points by more than 15 % (at least 40 keV), or stops being valid, the degree goes down and the fit is redone; the top coefficient stays 0.</li><li>One point gives a line through zero (a “channel 0 = 0 keV” point is added).</li><li>“Get all points” collects points from all open documents; “Reset” brings back the device calibration.</li><li>RadiaCode and Obsidian also keep a quadratic copy of the calibration — that is the form the device itself accepts.</li><li>Peak width comes from the spectrum\'s FWHM calibration; the response matrix has no width in it.</li><li>For AtomSpectra TCP/REST the board polynomial is for 8192 channels. For a profile of N channels it is rescaled: channel k of the folded spectrum is the middle of a group of m = 8192/N board channels, <code>x = m·k + (m − 1)/2</code>; the polynomial degree stays the same.</li>',
 }});
 
 /* ── игра «откалибруйте сами» ── */

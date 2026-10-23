@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Файлы и вопросы — BecqMoni гид</title>
-<script src="assets/theme.js?v=53cbbd2b"></script>
-<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
+<script src="assets/theme.js?v=7b7024a7"></script>
+<link rel="stylesheet" href="assets/guide.css?v=7307f135">
 <style>
 /* только для этой главы */
 @media (max-width:560px){.ui{white-space:normal}}
@@ -197,8 +197,8 @@ details.faq .a q{color:#ffd8b0;quotes:"«" "»"}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=648877f6"></script>
-<script src="assets/quanta.js?v=67b2c2dc"></script>
+<script src="assets/guide.js?v=9f0b40b4"></script>
+<script src="assets/quanta.js?v=b92ab866"></script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, io, t, poisson } = GUIDE;
@@ -277,7 +277,7 @@ GUIDE.texts({ru:{
  ['Вопрос «Сбросить калибровку спектра в y = x?»','<p>В файле нет калибровки энергии (или она негодная). Без ответа «Да» спектр не откроется.</p><p><b>Что делать:</b> «Да», а затем откалибровать по известным пикам (глава 6) или выбрать конфигурацию прибора с калибровкой.</p>'],
  ['Дата набора — 1970-01-01','<p>В файле нет времени начала набора: так бывает у CSV и части N42. Программа ставит 1970-01-01 нарочно, чтобы выдуманную дату не приняли за измеренную.</p><p><b>Что делать:</b> <span class="ui m">Вид → Информация об образце</span> → <span class="ui">Дата отбора</span>. К ней приводится активность при коррекции на полураспад.</p>'],
  ['Не добавляется ещё один спектр в документ','<p>В одном документе — не больше <b>16 спектров</b>. При импорте файла с множеством измерений лишние не читаются.</p><p><b>Что делать:</b> откройте остальное отдельным документом или удалите ненужные спектры в <span class="ui m">Вид → Список спектров</span>.</p>'],
- ['Набор Atom Spectra остановился: «Несовместимые параметры каналов.»','<p>Прибор прислал гистограмму с другим числом каналов, чем у спектра в документе. Фон тут ни при чём: фон с другим числом каналов программа сама перекладывает по энергии в шкалу спектра.</p><p><b>Что делать:</b> выставьте в конфигурации прибора то же число каналов, что в самом приборе, и начните спектр заново.</p>'],
+ ['Набор Atom Spectra остановился: «Несовместимые параметры каналов.»','<p>Прибор прислал гистограмму с другим числом каналов, чем у спектра в документе. Фон тут ни при чём: фон с другим числом каналов программа сама перекладывает по энергии в шкалу спектра.</p><p><b>Что делать:</b> выставьте в конфигурации прибора то же число каналов, что в самом приборе, и начните спектр заново.</p><p>У AtomSpectra TCP/REST плата считает 8192 канала и складывает их к числу каналов профиля: задайте в профиле 8192 или число, на которое 8192 делится, и начните новый документ с этим профилем. В режиме REST плата при этой остановке счёт не прекращает.</p>'],
  ['Друг открыл мой файл — а пики у него другие','<p>Настройки поиска пиков (Мин SNR, Допуск, диапазон, число пиков) <b>не пишутся в файл</b> — они берутся из конфигурации прибора того, кто открыл. Набор нуклидов и библиотека тоже свои у каждого.</p><p><b>Что делать:</b> сверить <span class="ui">Мин SNR</span>, <span class="ui">Допуск</span> и <span class="ui">Набор:</span> на панели «Обнаружение пиков».</p>'],
  ['Отправил CSV — у получателя другая скорость счёта','<p>CSV хранит только отсчёты и <b>реальное</b> время. Живого времени и калибровки в нём нет, и при мёртвом времени 10 % скорость у получателя будет на 10 % ниже.</p><p><b>Что делать:</b> отдавать N42 или свой XML; CSV — только для таблиц.</p>'],
  ['Расширенный CSV «не сырой»','<p>Он пишет то, что на экране: включён <span class="ui">Показать спектр за вычетом фона</span> — в файле вычтенный спектр; включено сглаживание — сглаженный.</p><p><b>Что делать:</b> на полосе под графиком выберите <span class="ui">Показать фоновый спектр</span> и сглаживание <span class="ui">Нет</span>, потом экспортируйте.</p>'],
@@ -359,7 +359,7 @@ GUIDE.texts({ru:{
  ['The question “Do you want to reset spectrum to default calibration y = x?”','<p>The file has no energy calibration (or a broken one). Without “Yes” the spectrum will not open.</p><p><b>What to do:</b> “Yes”, then calibrate on known peaks (chapter 6) or choose a device configuration with a calibration.</p>'],
  ['The acquisition date is 1970-01-01','<p>The file has no start time: this happens with CSV and some N42. The program sets 1970-01-01 on purpose, so that a made-up date is not taken for a measured one.</p><p><b>What to do:</b> <span class="ui m">View → Sample Information</span> → <span class="ui">Sampling Date</span>. Half-life correction of activity refers to it.</p>'],
  ['I cannot add one more spectrum to the document','<p>A document holds at most <b>16 spectra</b>. When a file with many measurements is imported, the extra ones are not read.</p><p><b>What to do:</b> open the rest as another document or delete unneeded spectra in <span class="ui m">View → Spectrum List</span>.</p>'],
- ['The Atom Spectra acquisition stopped: “Incompatible channel parameters.”','<p>The device sent a histogram with another channel count than the spectrum in the document. The background has nothing to do with it: a background with another channel count is re-binned by energy into the spectrum’s scale by the program itself.</p><p><b>What to do:</b> set the same channel count in the device configuration as in the device itself, and start the spectrum again.</p>'],
+ ['The Atom Spectra acquisition stopped: “Incompatible channel parameters.”','<p>The device sent a histogram with another channel count than the spectrum in the document. The background has nothing to do with it: a background with another channel count is re-binned by energy into the spectrum’s scale by the program itself.</p><p><b>What to do:</b> set the same channel count in the device configuration as in the device itself, and start the spectrum again.</p><p>For AtomSpectra TCP/REST the board counts 8192 channels and adds them up to the profile’s channel count: set 8192 or a number that divides 8192 in the profile, and start a new document with that profile. In REST mode the board keeps counting after this stop.</p>'],
  ['My friend opened my file — and found other peaks','<p>Peak search settings (Min SNR, Tolerance, range, number of peaks) are <b>not written into the file</b> — they come from the device configuration of whoever opens it. The nuclide set and the library are also everyone’s own.</p><p><b>What to do:</b> compare <span class="ui">Min SNR</span>, <span class="ui">Tolerance</span> and <span class="ui">Use set:</span> on the “Peak Detection” panel.</p>'],
  ['I sent a CSV — the recipient gets another count rate','<p>A CSV holds only counts and the <b>real</b> time. It has no live time and no calibration, and with 10 % dead time the recipient’s rate comes out 10 % lower.</p><p><b>What to do:</b> hand over N42 or your own XML; use CSV only for spreadsheets.</p>'],
  ['The Extended CSV is “not raw”','<p>It writes what is on screen: with <span class="ui">Show Spectrum with Background Subtracted</span> on, the file holds the subtracted spectrum; with smoothing on, the smoothed one.</p><p><b>What to do:</b> on the bar under the chart choose <span class="ui">Show Background Spectrum</span> and smoothing <span class="ui">None</span>, then export.</p>'],

@@ -784,7 +784,9 @@ namespace BecquerelMonitor
                     });
                     this.tabPage3.Controls.Clear();
                     this.tabPage3.Controls.Add(this.inputDeviceForm);
-                    switch (type.Name)
+                    // by the type Id, not by Name: Name is the caption from the resources ("AtomSpectra TCP/REST"),
+                    // and the case labels are Ids - by Name the AtomSpectra TCP/REST branch was never taken (AMBER265)
+                    switch (type.Id)
                     {
                         case "AtomSpectraVCP":
                             {

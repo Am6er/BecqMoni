@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Приборы — BecqMoni гид</title>
-<script src="assets/theme.js?v=53cbbd2b"></script>
-<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
+<script src="assets/theme.js?v=7b7024a7"></script>
+<link rel="stylesheet" href="assets/guide.css?v=7307f135">
 <style>
 .ui{white-space:normal}
 figure.shot.side{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:16px;align-items:start}
@@ -14,7 +14,7 @@ figure.shot.side .shot-legend{margin-top:0}
 .tabbar{margin:2px 0 14px}
 .plab{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
 .plab h3{margin:0 0 4px}
-.devs{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:2px 0 12px}
+.devs{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin:2px 0 12px}
 .devs button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;color:var(--soft);font-family:inherit;cursor:pointer;transition:border-color .15s}
 .devs button b{font-size:14px;color:var(--ink)}
 .devs button small{font-size:12px;color:var(--muted);line-height:1.25}
@@ -41,7 +41,7 @@ ol.chk>li.done::before{content:"✓";background:var(--ok);color:#06210f;border-c
 .docs span.bad{border-bottom-color:var(--photo)}.docs span.good{border-bottom-color:var(--ok)}
 .goal{font-size:16px;font-weight:700;color:var(--ink);margin:2px 0 10px}
 .goal b{color:var(--goldink)}
-@media (max-width:1000px){.devs{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:1000px){.devs{grid-template-columns:repeat(4,1fr)}}
 @media (max-width:900px){figure.shot.side{grid-template-columns:1fr}.tiles.four{grid-template-columns:1fr 1fr}}
 @media (max-width:560px){.devs{grid-template-columns:1fr 1fr}}
 /* дневная тема (`AMBER258`) */
@@ -189,6 +189,19 @@ ol.chk>li.done::before{content:"✓";background:var(--ok);color:#06210f;border-c
         <figcaption data-t="c.scap"></figcaption>
       </figure>
     </div>
+    <!-- AtomSpectra TCP/REST: два режима одной страницы (`AMBER265`) -->
+    <div class="pane" data-tab="c.tastcp">
+      <figure class="shot side" data-shot="devcfg-device-astcp" data-hot='[[0.4525,0.0700,0.3990,0.0260],[0.4525,0.1250,0.4980,0.0620],[0.4525,0.1890,0.1450,0.0170],[0.4525,0.2140,0.4980,0.0730],[0.4525,0.2900,0.1530,0.0280],[0.4525,0.3910,0.4980,0.0250],[0.4525,0.4200,0.4980,0.2980],[0.6540,0.7300,0.1530,0.0280],[0.4525,0.8280,0.4980,0.1300]]'>
+        <ol class="shot-legend"><li data-t="c.p1"></li><li data-t="c.p2"></li><li data-t="c.p3"></li><li data-t="c.p4"></li><li data-t="c.p5"></li><li data-t="c.p6"></li><li data-t="c.p7"></li><li data-t="c.p8"></li><li data-t="c.p9"></li></ol>
+        <figcaption data-t="c.pcap"></figcaption>
+      </figure>
+      <figure class="shot side plab" data-shot="devcfg-device-asrest" data-hot='[[0.4525,0.1250,0.4980,0.0620],[0.4525,0.2140,0.4980,0.1700],[0.4525,0.3910,0.4980,0.0250],[0.4525,0.4200,0.4980,0.0250],[0.4525,0.4475,0.3300,0.0250],[0.4525,0.4760,0.3420,0.0285],[0.4525,0.5055,0.3000,0.0205],[0.4525,0.5295,0.3000,0.0210],[0.4525,0.5560,0.4000,0.0800],[0.4525,0.6740,0.4980,0.0460],[0.4525,0.7300,0.3560,0.0280],[0.4525,0.8280,0.4980,0.1300]]'>
+        <ol class="shot-legend"><li data-t="c.w1"></li><li data-t="c.w2"></li><li data-t="c.w3"></li><li data-t="c.w4"></li><li data-t="c.w5"></li><li data-t="c.w6"></li><li data-t="c.w7"></li><li data-t="c.w8"></li><li data-t="c.w9"></li><li data-t="c.w10"></li><li data-t="c.w11"></li><li data-t="c.w12"></li></ol>
+        <figcaption data-t="c.wcap"></figcaption>
+      </figure>
+      <div class="callout info" data-t="c.wch"></div>
+      <div class="callout warn" data-t="c.wcal"></div>
+    </div>
   </div>
   <div class="facts">
     <div class="fact" style="--c:var(--blue)" data-t="c.f1"></div>
@@ -253,8 +266,8 @@ ol.chk>li.done::before{content:"✓";background:var(--ok);color:#06210f;border-c
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=648877f6"></script>
-<script src="assets/quanta.js?v=67b2c2dc"></script>
+<script src="assets/guide.js?v=9f0b40b4"></script>
+<script src="assets/quanta.js?v=b92ab866"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
 GUIDE.texts({ ru: {"mc.n": "Кристалл", "mc.k": "Монте-Карло", "mc.h": "Кристалл решает: Ø40 против Ø76", "mc.lead": "Один и тот же источник в 2 см от торца, одни и те же фотоны. Слева кристалл Ø40 × 40 мм, справа Ø76 × 76 мм. Каждый трек сосчитан по физике взаимодействия, спектры — в общем масштабе на испущенный фотон.", "mc.pick": "Фотоны:", "mc.l1": "NaI Ø40 × 40 мм", "mc.l2": "NaI Ø76 × 76 мм", "mc.t1": "в пике у Ø40", "mc.t2": "в пике у Ø76", "mc.t3": "большой ловит в пик больше", "mc.f1": "<b>Больше кристалл — больше пик.</b> Фотону труднее проскочить насквозь, особенно на высоких энергиях: на 2614 кэВ разница в разы.", "mc.f2": "<b>Плато относительно пика ниже у большого.</b> Рассеянный фотон чаще догорает внутри и всё-таки попадает в пик.", "mc.f3": "<b>Ширину пика размер почти не меняет</b> — её задают кристалл и электроника. Здесь у обоих одна: 7.5 % при 662 кэВ."},
@@ -281,19 +294,19 @@ GUIDE.texts({ ru: {"mc.n": "Кристалл", "mc.k": "Монте-Карло", 
 const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, t, io, visible } = GUIDE;
 const UI = s => '<span class="ui">' + s + '</span>', UM = s => '<span class="ui m">' + s + '</span>';
 GUIDE.texts({ru:{
-'n.types':'Шесть типов','n.win':'Конфигурация','n.conn':'Страница прибора','n.more':'Анализ и фон','n.dead':'Мёртвое время',
+'n.types':'Семь типов','n.win':'Конфигурация','n.conn':'Страница прибора','n.more':'Анализ и фон','n.dead':'Мёртвое время',
 'h.k':'Глава 3 · Приборы',
 'h.h':'Познакомить программу <em>с вашим прибором</em>',
 'h.lead':'Для BecqMoni прибор — это конфигурация: тип, каналы, калибровка, настройки поиска пиков и фон. Один раз заполнили — и каждый новый спектр знает, с кем говорит и как его понимать.',
-'ty.k':'Подключение','ty.h':'Шесть типов — шесть «вилок»',
-'ty.lead':'Тип устройства — как вилка у электроприбора: у одного USB, у другого Bluetooth, у третьего кабель в звуковую карту. Выберите свой — схема покажет, как бегут импульсы, а список — что нажать. Отмечайте шаги щелчком.',
+'ty.k':'Подключение','ty.h':'Семь типов — семь «вилок»',
+'ty.lead':'Тип устройства — как вилка у электроприбора: у одного USB, у другого Bluetooth, у третьего Wi-Fi, у четвёртого кабель в звуковую карту. Выберите свой — схема покажет, как бегут импульсы, а список — что нажать. Отмечайте шаги щелчком.',
 'ty.card':'Выберите прибор',
 'tl.link':'связь','tl.ch':'каналы','tl.tau':'мёртвое время τ','tl.cal':'калибровка в приборе',
-'cal.yes':'читать и писать','cal.no':'нет','ch.any':'любое','ch.amp':'4096 … 256','ch.blk':'как у блока, ×512',
+'cal.yes':'читать и писать','cal.no':'нет','cal.read':'только читать','ch.any':'любое','ch.amp':'4096 … 256','ch.blk':'как у блока, ×512','ch.as':'8192 или делитель',
 'tau.audio':'≈ 363 мкс','tau.atom':'из прибора','tau.fix':'5 мкс','tau.ausb':'поле, 14 мкс','tau.aser':'живое время — от блока',
 'dv.audio':'Звуковой вход','dv.audio.s':'кабель в звуковую карту','dv.atom':'AtomSpectraVCP','dv.atom.s':'USB, виден как COM-порт',
-'dv.rc':'RadiaCode','dv.rc.s':'Bluetooth LE','dv.obs':'Obsidian','dv.obs.s':'Bluetooth LE','dv.ausb':'AmplitudaUSB','dv.ausb.s':'USB HID','dv.aser':'AmplitudaSerial','dv.aser.s':'RS-232, 19200 бод',
-'lk.audio':'линейный вход','lk.usb':'USB → COM4 · 600000','lk.ble':'Bluetooth LE','lk.hid':'USB HID','lk.rs':'RS-232 · 19200 бод','lk.req':'запрос',
+'dv.rc':'RadiaCode','dv.rc.s':'Bluetooth LE','dv.obs':'Obsidian','dv.obs.s':'Bluetooth LE','dv.ausb':'AmplitudaUSB','dv.ausb.s':'USB HID','dv.aser':'AmplitudaSerial','dv.aser.s':'RS-232, 19200 бод','dv.astcp':'AtomSpectra TCP/REST','dv.astcp.s':'Wi-Fi, плата ESP32',
+'lk.audio':'линейный вход','lk.usb':'USB → COM4 · 600000','lk.ble':'Bluetooth LE','lk.hid':'USB HID','lk.rs':'RS-232 · 19200 бод','lk.req':'запрос','lk.wifi':'Wi-Fi · TCP 8234 / HTTP 80',
 'pc':'BecqMoni','det':'детектор',
 's0':'Откройте '+UM('Инструменты → Конфигурация устройства...')+' и нажмите '+UI('Новый')+' (или '+UI('Дубль')+' похожей конфигурации).',
 'audio.s2':UI('Основное')+': '+UI('Тип устройства')+' → '+UI('Звуковой вход')+', задайте '+UI('Имя')+' и '+UI('Кол-во каналов')+'.',
@@ -322,10 +335,15 @@ GUIDE.texts({ru:{
 'aser.s4':UI('Найти блоки')+' → впишите отвечающий '+UI('Адрес блока :')+'.',
 'aser.s5':UI('Проверка')+'; один раз прочтите '+UI('Инструкция')+' — что у блока нормально, а что похоже на зависание.',
 'aser.s6':UI('Сохранить')+'. После включения блока подождите минуту до «Старт»: он настраивает высокое напряжение.',
+'astcp.s2':UI('Основное')+': '+UI('Тип устройства')+' → '+UI('AtomSpectra TCP/REST')+', '+UI('Кол-во каналов')+' — 8192 или число, на которое 8192 делится: 4096, 2048, 1024 …',
+'astcp.s3':UI('Устройство')+': '+UI('Транспорт :')+' — '+UI('REST API (тест)')+' (новая конфигурация открывается в нём) или '+UI('TCP-мост (тест)')+'.',
+'astcp.s4':UI('Адрес (host[:port]) :')+' — IP или имя платы; '+UI('Обновить')+' найдёт плату (без имени в адресе — <b>atomspectra.local</b>) и покажет '+UI('Статус: подключено, SN …')+'.',
+'astcp.s5':UI('Проверить связь (REST)')+', у TCP-моста — '+UI('Проверить связь')+': обе только слушают и читают, плате ничего не шлют.',
+'astcp.s6':UI('Калибровка энергии')+' → '+UI('Читать с устройства')+' → '+UI('Сохранить')+'. Мёртвое время программа прочитает у платы на «Старте».',
 'atom.note':'Набор уже идёт в Atom Spectra Pro? Кнопка '+UI('Подкл.')+' на панели «Управление измерением» подключится к нему без сброса.',
 'st.n':'отмечено шагов: <b>{0} из {1}</b>','st.ok':'прибор готов к набору — дальше глава 4',
 'ty.f1':'<b>Тип решает, что можно менять.</b> От него зависят страница «Устройство», число каналов и откуда берётся мёртвое время.',
-'ty.f2':'<b>Калибровку можно взять из прибора.</b> У Atom Spectra, RadiaCode и Obsidian — «Читать с устройства» на вкладке «Калибровка энергии».',
+'ty.f2':'<b>Калибровку можно взять из прибора.</b> У Atom Spectra, RadiaCode, Obsidian и AtomSpectra TCP/REST — «Читать с устройства» на вкладке «Калибровка энергии». У AtomSpectra TCP/REST её туда же переносят «Обновить» и «Проверить связь (REST)», а на «Старте» программа берёт её у платы сама.',
 'ty.f3':'<b>Разные приборы — одновременно.</b> Каждый пишет в свой документ; один прибор — только в один спектр.',
 'w.k':'Окно','w.h':'Конфигурация прибора — его паспорт',
 'w.lead':'Всё о приборе живёт в одном окне: '+UM('Инструменты → Конфигурация устройства...')+' Слева — список паспортов, справа — вкладки одного из них. Наведите на номер — подсветится место.',
@@ -345,7 +363,7 @@ GUIDE.texts({ru:{
 'g.doc':'Документ {0} · {1}','g.ok':'Верно: документ получил «{0}».','g.bad':'Документ получил «{0}» — верхнюю строку. Сначала сохраните «{1}», чтобы она поднялась.',
 'g.saved':'«{0}» сохранена ({1}) и поднялась наверх',
 'w.f1':'<b>Дубль — самый быстрый путь.</b> Скопируйте похожую конфигурацию и поменяйте имя, тип и порт.',
-'w.f2':'<b>Серое поле решает прибор.</b> У RadiaCode и Obsidian ровно 1024 канала, у AmplitudaUSB — из списка, у Atom Spectra и звукового входа — свободно.',
+'w.f2':'<b>Серое поле решает прибор.</b> У RadiaCode и Obsidian ровно 1024 канала, у AmplitudaUSB — из списка, у Atom Spectra и звукового входа — свободно; у AtomSpectra TCP/REST поле открыто, но число должно делить 8192.',
 'w.f3':'<b>Свежая — сверху.</b> Новый документ берёт верхнюю строку списка; перед стартом проверьте «Устройство» на панели.',
 'w.steps':'Пошагово: своя конфигурация',
 'w.s1':UM('Инструменты → Конфигурация устройства...')+' → выберите похожую → '+UI('Дубль')+'.',
@@ -355,7 +373,7 @@ GUIDE.texts({ru:{
 'w.s5':UI('Сохранить')+' → '+UI('Закрыть')+'. Конфигурация ляжет файлом в папку <code>config\\device</code>.',
 'w.warn':'<b>Удаление не спрашивает дважды.</b> Конфигурация — это и калибровки, и кривые эффективности прибора. Перед большими правками сделайте '+UI('Дубль')+'.',
 'c.k':'Страница «Устройство»','c.h':'Как прибор находит компьютер',
-'c.lead':'Вкладка «Устройство» — как пульт сопряжения: у Bluetooth-приборов кнопка поиска, у USB и RS-232 — выбор порта или блока, у звукового входа — звуковая карта и образец импульса. Переключайте приборы и наводите на номера.',
+'c.lead':'Вкладка «Устройство» — как пульт сопряжения: у Bluetooth-приборов кнопка поиска, у USB и RS-232 — выбор порта или блока, у Wi-Fi-платы — адрес в сети, у звукового входа — звуковая карта и образец импульса. Переключайте приборы и наводите на номера.',
 'c.trc':'RadiaCode (BLE)','c.tas':'Atom Spectra (COM)','c.tobs':'Obsidian (BLE)',
 'c.r1':'<b>Тип устройства</b> — только для чтения, меняется на вкладке «Основное»','c.r2':'<b>Серийный номер:</b> — найденные приборы; номер на снимке скрыт',
 'c.r3':'<b>Сканировать BLE</b> — поиск приборов по Bluetooth Low Energy','c.r4':'<b>Диагностика</b> — пошаговая проверка связи с прибором',
@@ -396,6 +414,32 @@ GUIDE.texts({ru:{
 'c.s6':'Число каналов — ровно как в спектре блока (БДЭГ-3-2 — 1024), задаётся на вкладке «Основное»; живое время присылает блок',
 'c.s7':'<b>Проверка</b> — спросить блок по адресу; <b>Найти блоки</b> — опросить адреса 0–15; <b>Инструкция</b> — памятка о поведении блока, при первом заходе открывается сама',
 'c.scap':'AmplitudaSerial на COM4',
+'c.tastcp':'AtomSpectra TCP/REST (Wi-Fi)',
+'c.p1':'<b>Тип устройства</b> — AtomSpectra TCP/REST: анализатор Atom Spectra за Wi-Fi-платой. На снимке — режим TCP-моста',
+'c.p2':'<b>Адрес (host[:port])</b> — IP или имя платы; без порта мост берёт 8234. <b>Обновить</b> ищет плату по имени из адреса (без него — atomspectra.local), подставляет её IP и пишет строкой ниже «Статус: подключено, SN …» или «плата не найдена»',
+'c.p3':'<b>Мёртвое время</b> — τ платы: программа читает его на каждом «Старте» (ответ на -inf) и по нему считает живое время; у новой конфигурации здесь 0 мкс',
+'c.p4':'<b>Подсказка режима</b> — плата обслуживает одного клиента; после обрыва связи она около минуты остаётся занятой, поэтому BecqMoni переподключается через 60 с',
+'c.p5':'<b>Проверить связь</b> — подключиться и 3 с слушать мост: сколько пакетов пришло и сколько с ошибкой CRC. Плате ничего не отправляется',
+'c.p6':'<b>Транспорт</b> — <b>TCP-мост</b>: анализатор сам непрерывно шлёт спектр через порт 8234; <b>REST API</b>: программа опрашивает веб-интерфейс платы (снимок ниже)',
+'c.p7':'<b>Настройки REST</b> — в режиме TCP серые: период опроса не нужен, рядом так и написано «TCP: не используется»',
+'c.p8':'<b>Показать журнал</b> — окно «Журнал AtomSpectra TCP/REST»: подключения, команды, ошибки связи с платой; работает в обоих режимах',
+'c.p9':'<b>Командная строка</b> — команда плате по Enter, ответ — в окне ниже. Всё, кроме запросов -inf, -sho и -cal без значений, уходит только после «Да» в вопросе, где «Нет» стоит по умолчанию',
+'c.pcap':'AtomSpectra TCP/REST, режим TCP-моста. Адрес atomspectra.local — пример: платы на снимке нет',
+'c.w1':'<b>Адрес и Обновить</b> — в режиме REST порт по умолчанию 80. «Обновить» находит плату запросом GET /api/device, показывает серийный номер и переносит калибровку платы на вкладку «Калибровка энергии»',
+'c.w2':'<b>Подсказка режима</b> — программа опрашивает веб-интерфейс платы по HTTP; команды уходят запросом POST /api/command, текстовый ответ анализатора берётся из журнала платы. «Проверить связь» моста здесь серая: плату проверяет «Проверить связь (REST)» ниже',
+'c.w3':'<b>Транспорт: REST API</b> — новая конфигурация открывается сразу в этом режиме',
+'c.w4':'<b>URL платы</b> — пусто: http://адрес/. Полный URL нужен, если у платы другой порт или префикс: http://хост[:порт]/[префикс/]. Имя и пароль внутри URL не принимаются',
+'c.w5':'<b>Период опроса</b> — как часто читать спектр с платы: 1–60 с, по умолчанию 10',
+'c.w6':'<b>Предел времени нового измерения на плате</b> — плата сама остановит измерение, начатое отсюда, через столько секунд; при присоединении к уже идущему не посылается. 0 — без предела',
+'c.w7':'<b>Только наблюдение</b> — ни одной команды плате: можно следить за чужим измерением, не мешая ему. «Сброс» плату тогда не стирает',
+'c.w8':'<b>Не использовать системный прокси</b> — ходить к плате напрямую, мимо прокси Windows',
+'c.w9':'<b>Авторизация</b> — Нет, Basic или Bearer; <b>Пользователь</b> и <b>Пароль / токен</b>. Пароль хранится зашифрованным для вашей учётной записи Windows. По HTTP они идут без шифрования — об этом предупредит красная строка под полями',
+'c.w10':'<b>Сжатие ответов платы</b> — 0 (выкл.), 1 или 6; читается после «Проверить связь (REST)» или «Обновить». «Применить к плате» записывает настройку в плату после вопроса: она действует для всех её клиентов',
+'c.w11':'<b>Проверить связь (REST)</b> — только читает: прошивка, время платы, число импульсов, задана ли калибровка; калибровку платы переносит на вкладку «Калибровка энергии». <b>Показать журнал</b> — как у TCP',
+'c.w12':'<b>Командная строка</b> — те же правила: опасные команды уходят только после «Да»; при «Только наблюдении» — ни одной',
+'c.wcap':'Тот же прибор в режиме REST',
+'c.wch':'<b>Каналы — 8192 или их делитель.</b> Плата считает 8192 канала, а в документ приходит столько, сколько задано в '+UI('Кол-во каналов')+': соседние каналы складываются по 8192/N. Задайте 8192, 4096, 2048, 1024 … — другое число режим REST отклонит на «Старте», ничего не послав плате.',
+'c.wcal':'<b>На «Старте» калибровку задаёт плата.</b> Если на плате калибровка задана, программа на каждом «Старте» переносит её в документ и сохраняет в конфигурацию прибора: в режиме REST — пересчитав к числу каналов профиля, в режиме TCP — только при 8192 каналах. Калибровку, сделанную в BecqMoni, следующий «Старт» заменит калибровкой платы; если на плате её нет, остаётся своя. Кнопка «Читать с устройства» на вкладке «Калибровка энергии» берёт калибровку по тем же правилам — подробнее в главе «Калибровка».',
 'pl.h':'Как звуковой вход отбирает импульсы',
 'pl.hint':'Сигнал карты бежит справа налево. Окно шириной в несколько отсчётов ловит импульс, программа накладывает на него образец и решает: в спектр, выше ВПП или «не похож». Импульсы ниже НПП окно не замечает. Двигайте ползунки — образец справа и спектр внизу ответят сразу.',
 'pl.lld':'НПП','pl.uld':'ВПП','pl.thr':'Порог формы, %','pl.w':'Ширина, отсч.','pl.p':'Позиция пика','pl.reset':'Сбросить',
@@ -427,24 +471,24 @@ GUIDE.texts({ru:{
 'dt.m':'истинная скорость','dt.n':'посчитано','dt.dt':'Мерт. Время %','dt.lt':'живое время за час набора',
 'dt.sim':'в анимации потеряно {0} из {1}: <b>{2} %</b>','dt.ok':'до 20 % — норма','dt.warn':'20–50 % — предупреждение: FWHM и спектр деградируют','dt.bad':'больше 50 % — критично: спектр разрушен',
 'dt.ax.m':'истинная, имп/с','dt.ax.n':'посчитано, имп/с','dt.lim':'потолок 1/τ','dt.ideal':'без потерь','dt.t':'время →','dt.cps':'имп/с','dt.s':'с','dt.ms':'мс','dt.us':'мкс',
-'d.f1':'<b>У каждого прибора свой τ.</b> RadiaCode и Obsidian — 5 мкс, Atom Spectra сообщает свой сам, у звукового входа — сотни микросекунд.',
+'d.f1':'<b>У каждого прибора свой τ.</b> RadiaCode и Obsidian — 5 мкс, Atom Spectra сообщает свой сам — и по COM, и по Wi-Fi, у звукового входа — сотни микросекунд.',
 'd.f2':'<b>Живое время — честный знаменатель.</b> Скорость счёта для активности считается по нему, а не по часам.',
 'd.f3':'<b>Больше 20 % — повод отодвинуть источник.</b> Выше 50 % пики расплываются и наползают друг на друга.',
-'hoodtxt':'<li>Тип устройства — запись в реестре типов: на каждый тип своя тройка «страница настроек / контроллер / конфигурация». Типов шесть: Звуковой вход, AtomSpectraVCP, RadiaCode, Obsidian, AmplitudaUSB, AmplitudaSerial.</li><li>Живое время — модель без продления: <code>LT = T·(1 − n·τ)</code>, где n — посчитанная скорость; при n·τ ≥ 1 живое время — ноль (прибор насыщен). Отсюда и «Мерт. Время %» = 100·(T − LT)/T.</li><li>τ по типам: RadiaCode и Obsidian — 5 мкс; Atom Spectra — из ответа прибора; AmplitudaUSB — поле, 14 мкс по умолчанию; звуковой вход — ширина импульса / частота дискретизации (16 / 44100 = 363 мкс); AmplitudaSerial — живое время присылает сам блок.</li><li>Список конфигураций отсортирован по времени сохранения, свежая сверху; новый спектр берёт первую строку — с её каналами, калибровкой и лимитом времени.</li><li>Каждая конфигурация — отдельный XML в <code>config\\device</code>; файл спектра хранит ссылку на неё (имя и GUID), а не копию. Один прибор в каждый момент пишет только в один спектр.</li>',
+'hoodtxt':'<li>Тип устройства — запись в реестре типов: на каждый тип своя тройка «страница настроек / контроллер / конфигурация». Типов семь: Звуковой вход, AtomSpectraVCP, RadiaCode, Obsidian, AmplitudaUSB, AmplitudaSerial, AtomSpectra TCP/REST.</li><li>Живое время — модель без продления: <code>LT = T·(1 − n·τ)</code>, где n — посчитанная скорость; при n·τ ≥ 1 живое время — ноль (прибор насыщен). Отсюда и «Мерт. Время %» = 100·(T − LT)/T.</li><li>τ по типам: RadiaCode и Obsidian — 5 мкс; Atom Spectra — из ответа прибора: <code>τ = (RISE + FALL + 1)/F</code> (у AtomSpectra TCP/REST — на каждом «Старте»: ответ на -inf через мост или поля rise, fall, freq ответа GET /api/device в режиме REST); AmplitudaUSB — поле, 14 мкс по умолчанию; звуковой вход — ширина импульса / частота дискретизации (16 / 44100 = 363 мкс); AmplitudaSerial — живое время присылает сам блок.</li><li>AtomSpectra TCP/REST: плата считает 8192 канала; профиль из N каналов получает сумму каждых 8192/N соседних — при N = 8192, 4096, 2048, 1024 в режиме REST складывает сама плата, иначе программа. N, на которое 8192 не делится, режим REST отклоняет до первой команды плате. «Старт» на плате, где уже есть измерение, спрашивает: «Продолжить без сброса», «Начать заново (сброс)» или «Отмена».</li><li>Список конфигураций отсортирован по времени сохранения, свежая сверху; новый спектр берёт первую строку — с её каналами, калибровкой и лимитом времени.</li><li>Каждая конфигурация — отдельный XML в <code>config\\device</code>; файл спектра хранит ссылку на неё (имя и GUID), а не копию. Один прибор в каждый момент пишет только в один спектр.</li>',
 },en:{
-'n.types':'Six types','n.win':'Configuration','n.conn':'Device page','n.more':'Analysis and background','n.dead':'Dead time',
+'n.types':'Seven types','n.win':'Configuration','n.conn':'Device page','n.more':'Analysis and background','n.dead':'Dead time',
 'h.k':'Chapter 3 · Devices',
 'h.h':'Introduce the program <em>to your detector</em>',
 'h.lead':'To BecqMoni a detector is a configuration: type, channels, calibration, peak search settings and background. Fill it in once — and every new spectrum knows what it talks to and how to read it.',
-'ty.k':'Connecting','ty.h':'Six types — six “plugs”',
-'ty.lead':'The device type is like the plug of an appliance: one has USB, another Bluetooth, a third a cable into the sound card. Pick yours — the diagram shows how pulses travel, and the list shows what to press. Click steps to tick them.',
+'ty.k':'Connecting','ty.h':'Seven types — seven “plugs”',
+'ty.lead':'The device type is like the plug of an appliance: one has USB, another Bluetooth, a third Wi-Fi, a fourth a cable into the sound card. Pick yours — the diagram shows how pulses travel, and the list shows what to press. Click steps to tick them.',
 'ty.card':'Choose a device',
 'tl.link':'link','tl.ch':'channels','tl.tau':'dead time τ','tl.cal':'calibration in device',
-'cal.yes':'read and write','cal.no':'no','ch.any':'any','ch.amp':'4096 … 256','ch.blk':'as the block, ×512',
+'cal.yes':'read and write','cal.no':'no','cal.read':'read only','ch.any':'any','ch.amp':'4096 … 256','ch.blk':'as the block, ×512','ch.as':'8192 or a divisor',
 'tau.audio':'≈ 363 µs','tau.atom':'from the device','tau.fix':'5 µs','tau.ausb':'field, 14 µs','tau.aser':'live time from the block',
 'dv.audio':'Audio Input Device','dv.audio.s':'cable into the sound card','dv.atom':'AtomSpectraVCP','dv.atom.s':'USB, seen as a COM port',
-'dv.rc':'RadiaCode','dv.rc.s':'Bluetooth LE','dv.obs':'Obsidian','dv.obs.s':'Bluetooth LE','dv.ausb':'AmplitudaUSB','dv.ausb.s':'USB HID','dv.aser':'AmplitudaSerial','dv.aser.s':'RS-232, 19200 baud',
-'lk.audio':'line-in','lk.usb':'USB → COM4 · 600000','lk.ble':'Bluetooth LE','lk.hid':'USB HID','lk.rs':'RS-232 · 19200 baud','lk.req':'request',
+'dv.rc':'RadiaCode','dv.rc.s':'Bluetooth LE','dv.obs':'Obsidian','dv.obs.s':'Bluetooth LE','dv.ausb':'AmplitudaUSB','dv.ausb.s':'USB HID','dv.aser':'AmplitudaSerial','dv.aser.s':'RS-232, 19200 baud','dv.astcp':'AtomSpectra TCP/REST','dv.astcp.s':'Wi-Fi, ESP32 board',
+'lk.audio':'line-in','lk.usb':'USB → COM4 · 600000','lk.ble':'Bluetooth LE','lk.hid':'USB HID','lk.rs':'RS-232 · 19200 baud','lk.req':'request','lk.wifi':'Wi-Fi · TCP 8234 / HTTP 80',
 'pc':'BecqMoni','det':'detector',
 's0':'Open '+UM('Tool → Edit Device Configurations...')+' and press '+UI('New')+' (or '+UI('Duplicate')+' a similar configuration).',
 'audio.s2':UI('General')+': '+UI('Input Device Type')+' → '+UI('Audio Input Device')+', set '+UI('Name')+' and '+UI('# of Channels')+'.',
@@ -473,10 +517,15 @@ GUIDE.texts({ru:{
 'aser.s4':UI('Find blocks')+' → enter the answering '+UI('Block address :')+'.',
 'aser.s5':UI('Test')+'; read '+UI('Instruction')+' once — what is normal for the block and what only looks like a freeze.',
 'aser.s6':UI('Save')+'. After powering the block wait a minute before “Start”: it is setting its high voltage.',
+'astcp.s2':UI('General')+': '+UI('Input Device Type')+' → '+UI('AtomSpectra TCP/REST')+', '+UI('# of Channels')+' — 8192 or a number that divides 8192: 4096, 2048, 1024 …',
+'astcp.s3':UI('Device Specific')+': '+UI('Transport :')+' — '+UI('REST API (test)')+' (a new configuration opens in it) or '+UI('TCP bridge (test)')+'.',
+'astcp.s4':UI('Address (host[:port]) :')+' — the board’s IP or name; '+UI('Refresh')+' finds the board (<b>atomspectra.local</b> when the address has no name) and shows '+UI('Status: connected, SN …')+'.',
+'astcp.s5':UI('Test connection (REST)')+', for the TCP bridge '+UI('Test connection')+': both only listen and read, nothing is sent to the board.',
+'astcp.s6':UI('Energy Calibration')+' → '+UI('Read from device')+' → '+UI('Save')+'. The program reads the dead time from the board at Start.',
 'atom.note':'Acquisition already running in Atom Spectra Pro? The '+UI('Attach')+' button on the Measurement Control panel joins it without a reset.',
 'st.n':'steps ticked: <b>{0} of {1}</b>','st.ok':'the device is ready to acquire — on to chapter 4',
 'ty.f1':'<b>The type decides what can be changed.</b> It sets the “Device Specific” page, the channel count and where the dead time comes from.',
-'ty.f2':'<b>The calibration can come from the device.</b> Atom Spectra, RadiaCode and Obsidian have “Read from device” on the “Energy Calibration” tab.',
+'ty.f2':'<b>The calibration can come from the device.</b> Atom Spectra, RadiaCode, Obsidian and AtomSpectra TCP/REST have “Read from device” on the “Energy Calibration” tab. For AtomSpectra TCP/REST “Refresh” and “Test connection (REST)” put it there too, and at Start the program takes it from the board by itself.',
 'ty.f3':'<b>Several devices at once.</b> Each writes into its own document; one device feeds only one spectrum.',
 'w.k':'Window','w.h':'A device configuration is its passport',
 'w.lead':'Everything about a device lives in one window: '+UM('Tool → Edit Device Configurations...')+' On the left — the list of passports, on the right — the tabs of one of them. Hover a number to light up the spot.',
@@ -496,7 +545,7 @@ GUIDE.texts({ru:{
 'g.doc':'Document {0} · {1}','g.ok':'Right: the document got “{0}”.','g.bad':'The document got “{0}” — the top line. Save “{1}” first so it moves up.',
 'g.saved':'“{0}” saved ({1}) and moved to the top',
 'w.f1':'<b>Duplicate is the fastest way.</b> Copy a similar configuration and change the name, type and port.',
-'w.f2':'<b>A grey field is the device’s call.</b> RadiaCode and Obsidian have exactly 1024 channels, AmplitudaUSB a fixed list, Atom Spectra and audio input are free.',
+'w.f2':'<b>A grey field is the device’s call.</b> RadiaCode and Obsidian have exactly 1024 channels, AmplitudaUSB a fixed list, Atom Spectra and audio input are free; for AtomSpectra TCP/REST the field is open, but the number must divide 8192.',
 'w.f3':'<b>The newest is on top.</b> A new document takes the top line of the list; check “Device Config.” on the panel before starting.',
 'w.steps':'Step by step: your own configuration',
 'w.s1':UM('Tool → Edit Device Configurations...')+' → pick a similar one → '+UI('Duplicate')+'.',
@@ -506,7 +555,7 @@ GUIDE.texts({ru:{
 'w.s5':UI('Save')+' → '+UI('Close')+'. The configuration is stored as a file in <code>config\\device</code>.',
 'w.warn':'<b>Delete does not ask twice.</b> A configuration holds the device’s calibrations and efficiency curves. Make a '+UI('Duplicate')+' before big changes.',
 'c.k':'“Device Specific” page','c.h':'How the device finds the computer',
-'c.lead':'The “Device Specific” tab is a pairing remote: Bluetooth devices get a search button, USB and RS-232 ones a port or block choice, audio input a sound card and a pulse template. Switch devices and hover the numbers.',
+'c.lead':'The “Device Specific” tab is a pairing remote: Bluetooth devices get a search button, USB and RS-232 ones a port or block choice, a Wi-Fi board a network address, audio input a sound card and a pulse template. Switch devices and hover the numbers.',
 'c.trc':'RadiaCode (BLE)','c.tas':'Atom Spectra (COM)','c.tobs':'Obsidian (BLE)',
 'c.r1':'<b>Device Type</b> — read-only, changed on the “General” tab','c.r2':'<b>Serial Number:</b> — devices found; the number is hidden in the screenshot',
 'c.r3':'<b>Scan BLE</b> — search for devices over Bluetooth Low Energy','c.r4':'<b>Troubleshoot</b> — a step-by-step check of the link',
@@ -547,6 +596,32 @@ GUIDE.texts({ru:{
 'c.s6':'The number of channels — exactly as in the block’s spectrum (BDEG-3-2: 1024), set on the “General” tab; live time comes from the block',
 'c.s7':'<b>Test</b> — ask the block at the address; <b>Find blocks</b> — poll addresses 0–15; <b>Instruction</b> — a note on how the block behaves, opens by itself the first time',
 'c.scap':'AmplitudaSerial on COM4',
+'c.tastcp':'AtomSpectra TCP/REST (Wi-Fi)',
+'c.p1':'<b>Device Type</b> — AtomSpectra TCP/REST: an Atom Spectra analyzer behind a Wi-Fi board. The screenshot shows the TCP bridge mode',
+'c.p2':'<b>Address (host[:port])</b> — the board’s IP or name; without a port the bridge uses 8234. <b>Refresh</b> looks the board up by the name in the address (atomspectra.local if there is none), puts in its IP and writes “Status: connected, SN …” or “board not found” on the line below',
+'c.p3':'<b>Dead Time</b> — the board’s τ: the program reads it at every Start (the answer to -inf) and computes live time from it; a new configuration shows 0 µs here',
+'c.p4':'<b>Mode hint</b> — the board serves one client at a time; after a dropped connection it stays busy for about a minute, so BecqMoni reconnects after 60 s',
+'c.p5':'<b>Test connection</b> — connect and listen to the bridge for 3 s: how many packets came and how many had a bad CRC. Nothing is sent to the board',
+'c.p6':'<b>Transport</b> — <b>TCP bridge</b>: the analyzer streams the spectrum itself over port 8234; <b>REST API</b>: the program polls the board’s web interface (screenshot below)',
+'c.p7':'<b>REST settings</b> — grey in TCP mode: no polling period is needed, and the note next to it says “TCP: not used”',
+'c.p8':'<b>Show log</b> — the “AtomSpectra TCP/REST log” window: connections, commands, link errors with the board; works in both modes',
+'c.p9':'<b>Command line</b> — a command to the board on Enter, the answer in the window below. Everything except the queries -inf, -sho and -cal without values is sent only after “Yes” in a question where “No” is the default',
+'c.pcap':'AtomSpectra TCP/REST, TCP bridge mode. The address atomspectra.local is an example: there is no board in the screenshot',
+'c.w1':'<b>Address and Refresh</b> — in REST mode the default port is 80. “Refresh” finds the board with GET /api/device, shows the serial number and puts the board calibration on the “Energy Calibration” tab',
+'c.w2':'<b>Mode hint</b> — the program polls the board’s web interface over HTTP; commands go as POST /api/command, the analyzer’s text answer is taken from the board log. The bridge’s “Test connection” is grey here: “Test connection (REST)” below checks the board',
+'c.w3':'<b>Transport: REST API</b> — a new configuration opens in this mode right away',
+'c.w4':'<b>Board URL</b> — empty: http://address/. A full URL is needed when the board has another port or a prefix: http://host[:port]/[prefix/]. A user name and password inside the URL are not accepted',
+'c.w5':'<b>Poll period</b> — how often the spectrum is read from the board: 1–60 s, 10 by default',
+'c.w6':'<b>Time limit of a new run on the board</b> — the board itself stops a measurement started from here after this many seconds; it is not sent when joining one already running. 0 — no limit',
+'c.w7':'<b>Observe only</b> — not a single command to the board: you can watch someone else’s measurement without disturbing it. “Clear” then does not wipe the board',
+'c.w8':'<b>Do not use the system proxy</b> — go to the board directly, bypassing the Windows proxy',
+'c.w9':'<b>Authorization</b> — None, Basic or Bearer; <b>User</b> and <b>Password / token</b>. The password is stored encrypted for your Windows account. Over HTTP they travel unencrypted — a red line under the fields warns about it',
+'c.w10':'<b>Board reply compression</b> — 0 (off), 1 or 6; read after “Test connection (REST)” or “Refresh”. “Apply to board” writes the setting into the board after a question: it applies to all its clients',
+'c.w11':'<b>Test connection (REST)</b> — only reads: firmware, board time, pulse count, whether a calibration is set; puts the board calibration on the “Energy Calibration” tab. <b>Show log</b> — as in TCP',
+'c.w12':'<b>Command line</b> — the same rules: hazardous commands go only after “Yes”; with “Observe only” none at all',
+'c.wcap':'The same device in REST mode',
+'c.wch':'<b>Channels — 8192 or a divisor of it.</b> The board counts 8192 channels, and the document gets as many as set in '+UI('# of Channels')+': neighbouring channels are added up 8192/N at a time. Set 8192, 4096, 2048, 1024 … — REST mode refuses another number at Start without sending anything to the board.',
+'c.wcal':'<b>At Start the board sets the calibration.</b> If the board has a calibration, at every Start the program puts it into the document and saves it to the device configuration: in REST mode rescaled to the profile’s channel count, in TCP mode only at 8192 channels. A calibration made in BecqMoni is replaced by the board’s at the next Start; if the board has none, your own stays. The “Read from device” button on the “Energy Calibration” tab takes the calibration by the same rules — more in the “Calibration” chapter.',
 'pl.h':'How audio input picks pulses',
 'pl.hint':'The card’s signal runs right to left. A window a few samples wide catches a pulse, the program lays the template over it and decides: into the spectrum, above ULD or “not alike”. Pulses below LLD the window does not notice. Move the sliders — the template on the right and the spectrum below respond at once.',
 'pl.lld':'LLD','pl.uld':'ULD','pl.thr':'Shape threshold, %','pl.w':'Width, samples','pl.p':'Peak position','pl.reset':'Reset',
@@ -578,10 +653,10 @@ GUIDE.texts({ru:{
 'dt.m':'true rate','dt.n':'counted','dt.dt':'Dead Time %','dt.lt':'live time per hour of acquisition',
 'dt.sim':'lost in the animation {0} of {1}: <b>{2} %</b>','dt.ok':'up to 20 % — normal','dt.warn':'20–50 % — warning: FWHM and spectrum degrade','dt.bad':'above 50 % — critical: the spectrum is destroyed',
 'dt.ax.m':'true, cps','dt.ax.n':'counted, cps','dt.lim':'ceiling 1/τ','dt.ideal':'no losses','dt.t':'time →','dt.cps':'cps','dt.s':'s','dt.ms':'ms','dt.us':'µs',
-'d.f1':'<b>Each device has its own τ.</b> RadiaCode and Obsidian 5 µs, Atom Spectra reports its own, audio input hundreds of microseconds.',
+'d.f1':'<b>Each device has its own τ.</b> RadiaCode and Obsidian 5 µs, Atom Spectra reports its own — over COM and over Wi-Fi alike, audio input hundreds of microseconds.',
 'd.f2':'<b>Live time is the honest denominator.</b> The count rate behind activity is computed from it, not from the clock.',
 'd.f3':'<b>Above 20 % — move the source away.</b> Above 50 % peaks smear and run into each other.',
-'hoodtxt':'<li>The device type is an entry in a type registry: each type has its triple “settings page / controller / configuration”. There are six: Audio Input Device, AtomSpectraVCP, RadiaCode, Obsidian, AmplitudaUSB, AmplitudaSerial.</li><li>Live time uses the non-paralyzable model: <code>LT = T·(1 − n·τ)</code>, where n is the counted rate; at n·τ ≥ 1 live time is zero (the device is saturated). Hence “Dead Time %” = 100·(T − LT)/T.</li><li>τ by type: RadiaCode and Obsidian 5 µs; Atom Spectra from the device’s answer; AmplitudaUSB a field, 14 µs by default; audio input pulse width / sampling rate (16 / 44100 = 363 µs); AmplitudaSerial — the block sends its own live time.</li><li>The configuration list is sorted by save time, newest on top; a new spectrum takes the first line — with its channels, calibration and preset time.</li><li>Each configuration is a separate XML in <code>config\\device</code>; a spectrum file stores a reference to it (name and GUID), not a copy. At any moment one device writes into only one spectrum.</li>',
+'hoodtxt':'<li>The device type is an entry in a type registry: each type has its triple “settings page / controller / configuration”. There are seven: Audio Input Device, AtomSpectraVCP, RadiaCode, Obsidian, AmplitudaUSB, AmplitudaSerial, AtomSpectra TCP/REST.</li><li>Live time uses the non-paralyzable model: <code>LT = T·(1 − n·τ)</code>, where n is the counted rate; at n·τ ≥ 1 live time is zero (the device is saturated). Hence “Dead Time %” = 100·(T − LT)/T.</li><li>τ by type: RadiaCode and Obsidian 5 µs; Atom Spectra from the device’s answer: <code>τ = (RISE + FALL + 1)/F</code> (for AtomSpectra TCP/REST at every Start: the answer to -inf through the bridge, or the rise, fall, freq fields of GET /api/device in REST mode); AmplitudaUSB a field, 14 µs by default; audio input pulse width / sampling rate (16 / 44100 = 363 µs); AmplitudaSerial — the block sends its own live time.</li><li>AtomSpectra TCP/REST: the board counts 8192 channels; a profile of N channels gets the sum of every 8192/N neighbours — at N = 8192, 4096, 2048, 1024 in REST mode the board adds them up itself, otherwise the program does. An N that does not divide 8192 is refused by REST mode before the first command to the board. A Start on a board that already holds a measurement asks: “Continue without reset”, “Start over (reset)” or “Cancel”.</li><li>The configuration list is sorted by save time, newest on top; a new spectrum takes the first line — with its channels, calibration and preset time.</li><li>Each configuration is a separate XML in <code>config\\device</code>; a spectrum file stores a reference to it (name and GUID), not a copy. At any moment one device writes into only one spectrum.</li>',
 }});
 
 /* ── вкладки ── */
@@ -754,8 +829,9 @@ tabset('cTabs');
     { id: 'obs', link: 'ble', body: 'hand', ch: '1024', tau: 'tau.fix', cal: true },
     { id: 'ausb', link: 'hid', body: 'block', ch: 'ch.amp', tau: 'tau.ausb', cal: false },
     { id: 'aser', link: 'rs', body: 'block', ch: 'ch.blk', tau: 'tau.aser', cal: false },
+    { id: 'astcp', link: 'wifi', body: 'probe', ch: 'ch.as', tau: 'tau.atom', cal: 'cal.read' },   // AtomSpectra TCP/REST (`AMBER265`)
   ];
-  const LINK = { audio: 'lk.audio', usb: 'lk.usb', ble: 'lk.ble', hid: 'lk.hid', rs: 'lk.rs' };
+  const LINK = { audio: 'lk.audio', usb: 'lk.usb', ble: 'lk.ble', hid: 'lk.hid', rs: 'lk.rs', wifi: 'lk.wifi' };
   let cur = 1; const done = DEV.map(() => new Set());
   $('#devs').innerHTML = DEV.map((d, i) => '<button data-i="' + i + '"><b data-t="dv.' + d.id + '"></b><small data-t="dv.' + d.id + '.s"></small></button>').join('');
   $$('#devs button').forEach(b => b.onclick = () => { cur = +b.dataset.i; resetSim(); ui(); });
@@ -764,7 +840,7 @@ tabset('cTabs');
     const d = DEV[cur];
     $$('#devs button').forEach((b, i) => b.classList.toggle('on', i === cur));
     const tile = (k, v) => '<div class="tile"><div class="small">' + t(k) + '</div><div class="big mid">' + v + '</div></div>';
-    $('#devTiles').innerHTML = tile('tl.link', t(LINK[d.link])) + tile('tl.ch', d.ch[0] === 'c' ? t(d.ch) : d.ch) + tile('tl.tau', t(d.tau)) + tile('tl.cal', t(d.cal ? 'cal.yes' : 'cal.no'));
+    $('#devTiles').innerHTML = tile('tl.link', t(LINK[d.link])) + tile('tl.ch', d.ch[0] === 'c' ? t(d.ch) : d.ch) + tile('tl.tau', t(d.tau)) + tile('tl.cal', t(typeof d.cal === 'string' ? d.cal : d.cal ? 'cal.yes' : 'cal.no'));
     const st = steps(d);
     $('#devSteps').innerHTML = st.map((k, i) => '<li data-i="' + i + '" class="' + (done[cur].has(i) ? 'done' : '') + '">' + t(k) + '</li>').join('');
     $$('#devSteps li').forEach(li => li.onclick = () => { const i = +li.dataset.i; done[cur].has(i) ? done[cur].delete(i) : done[cur].add(i); ui(); });
@@ -784,14 +860,15 @@ tabset('cTabs');
     const d = DEV[cur], { ctx, w, h } = setup(cv), s = (now - T0) / 1000;
     const det = { x: w * 0.06, y: h * 0.42, w: Math.max(80, w * 0.2), h: h * 0.3 };
     const pc = { x: w * 0.68, y: h * 0.14, w: w * 0.29, h: h * 0.56 };
-    const L = { x0: det.x + det.w, x1: pc.x, y: h * 0.58, bow: d.link === 'ble' ? h * 0.22 : 0 };
+    const air = d.link === 'ble' || d.link === 'wifi';   // без провода: Bluetooth и Wi-Fi (AMBER265)
+    const L = { x0: det.x + det.w, x1: pc.x, y: h * 0.58, bow: air ? h * 0.22 : 0 };
     // события: фотон из источника → вспышка в кристалле
     if (s - lastEv > 1.5) { lastEv = s - 0.05; lastPk = Math.max(lastPk, s - 1); lastReq = Math.max(lastReq, s - 1.6); flying = flying.filter(f => s - f.t < f.dur); }   // вкладка спала: не догонять пропущенное
     while (lastEv < s) { lastEv += -Math.log(1 - Math.random()) / 9; photons.push({ t: lastEv, bin: sampleBin() }); }
     photons = photons.filter(p => { if (s - p.t > 0.35) { flashes.push({ t: p.t + 0.35, bin: p.bin }); if (d.link === 'audio') flying.push({ t: p.t + 0.35, kind: 'pulse', bins: [p.bin], dur: 0.9 }); else buf[p.bin]++; return false; } return true; });
     // посылки: гистограмма раз в секунду; у RS-232 — по запросу ПК
     if (d.link === 'rs') { if (s - lastReq > 1.6) { lastReq = s; flying.push({ t: s, kind: 'req', dur: 0.8 }); } }
-    else if (d.link !== 'audio' && s - lastPk > 1.0) { lastPk = s; flying.push({ t: s, kind: 'pkt', b: Float64Array.from(buf), dur: d.link === 'ble' ? 1.0 : 0.8 }); buf.fill(0); }
+    else if (d.link !== 'audio' && s - lastPk > 1.0) { lastPk = s; flying.push({ t: s, kind: 'pkt', b: Float64Array.from(buf), dur: air ? 1.0 : 0.8 }); buf.fill(0); }
     flying = flying.filter(f => { if ((s - f.t) / f.dur >= 1) { if (f.kind === 'req') { flying.push({ t: s, kind: 'pkt', b: Float64Array.from(buf), dur: 0.8 }); buf.fill(0); } else if (f.kind === 'pkt') f.b.forEach((v, i) => hist[i] += v); else f.bins.forEach(i => hist[i]++); return false; } return true; });
     // источник
     const src = { x: det.x + det.w * 0.18, y: h * 0.13 };
@@ -807,12 +884,12 @@ tabset('cTabs');
     const cr = { x: det.x + det.w * 0.08, y: det.y + det.h * 0.15, w: det.w * 0.42, h: det.h * 0.7 };
     const g = ctx.createLinearGradient(cr.x, 0, cr.x + cr.w, 0); g.addColorStop(0, 'rgba(106,168,255,.55)'); g.addColorStop(1, 'rgba(106,168,255,.25)'); ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(cr.x, cr.y, cr.w, cr.h, 5); ctx.fill();
     flashes = flashes.filter(f => s - f.t < 0.3); flashes.forEach(f => { const a = 1 - (s - f.t) / 0.3; ctx.fillStyle = 'rgba(255,255,255,' + (0.85 * a) + ')'; ctx.beginPath(); ctx.arc(cr.x + cr.w * (0.25 + (f.bin % 5) * 0.12), cr.y + cr.h * 0.5, 4 + 8 * (1 - a), 0, 7); ctx.fill(); });
-    ctx.fillStyle = '#cdd8f3'; ctx.font = '700 12px system-ui'; ctx.textAlign = 'center'; ctx.fillText(t('dv.' + d.id), det.x + det.w / 2, det.y + det.h * (d.body === 'hand' ? 1.45 : 1.3) + 6);
+    ctx.fillStyle = '#cdd8f3'; ctx.font = '700 12px system-ui'; ctx.textAlign = 'center'; const dvl = t('dv.' + d.id); ctx.fillText(dvl, Math.max(det.x + det.w / 2, ctx.measureText(dvl).width / 2 + 4), det.y + det.h * (d.body === 'hand' ? 1.45 : 1.3) + 6);   // длинное имя не уходит за левый край на узком экране
     // связь
-    ctx.strokeStyle = d.link === 'ble' ? 'rgba(106,168,255,.55)' : '#56648a'; ctx.lineWidth = d.link === 'ble' ? 1.5 : 4; if (d.link === 'ble') ctx.setLineDash([5, 6]);
+    ctx.strokeStyle = air ? 'rgba(106,168,255,.55)' : '#56648a'; ctx.lineWidth = air ? 1.5 : 4; if (air) ctx.setLineDash([5, 6]);
     ctx.beginPath(); for (let k = 0; k <= 30; k++) { const [x, y] = pathPt(L, k / 30); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1;
-    if (d.link === 'ble') { for (let k = 0; k < 3; k++) { const r = 10 + ((s * 30 + k * 14) % 42); ctx.strokeStyle = 'rgba(106,168,255,' + (0.6 * (1 - r / 52)) + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(L.x0, L.y - 6, r, -1.1, 1.1); ctx.stroke(); } ctx.lineWidth = 1; }
-    ctx.fillStyle = '#93a3c4'; ctx.font = '600 11.5px system-ui'; ctx.textAlign = 'center'; const [lx, ly] = pathPt(L, 0.5); ctx.fillText(t(LINK[d.link]), lx, ly + (d.link === 'ble' ? -10 : 22));
+    if (air) { for (let k = 0; k < 3; k++) { const r = 10 + ((s * 30 + k * 14) % 42); ctx.strokeStyle = 'rgba(106,168,255,' + (0.6 * (1 - r / 52)) + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(L.x0, L.y - 6, r, -1.1, 1.1); ctx.stroke(); } ctx.lineWidth = 1; }
+    ctx.fillStyle = '#93a3c4'; ctx.font = '600 11.5px system-ui'; ctx.textAlign = 'center'; const [lx, ly] = pathPt(L, 0.5); ctx.fillText(t(LINK[d.link]), lx, ly + (air ? -10 : 22));
     flying.forEach(f => {
       const u = (s - f.t) / f.dur; let [x, y] = pathPt(L, f.kind === 'req' ? 1 - u : u);
       if (f.kind === 'pulse') { ctx.strokeStyle = '#ff6b8b'; ctx.lineWidth = 2; ctx.beginPath(); for (let k = -10; k <= 14; k++) { const v = k < 0 ? 0 : -Math.exp(-k / 4) * (1 - Math.exp(-k * 1.5)) * 16; k === -10 ? ctx.moveTo(x + k, y + v) : ctx.lineTo(x + k, y + v); } ctx.stroke(); ctx.lineWidth = 1; }
