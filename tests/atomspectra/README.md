@@ -49,7 +49,7 @@ network access are needed.
    (`BecquerelMonitor/`, the mutations patch copies of its `.cs` files).
 
 2. Run the REST suite. By default it runs all scenarios on the real build and on a build from the
-   sources, then ALL source mutations (117, many hours) and the 10 real-build mutations. Set
+   sources, then ALL source mutations (131, many hours) and the 10 real-build mutations. Set
    `REST_NO_SOURCE_MUTATIONS=1` to run the scenarios and the real-build mutations only:
 
    ```
@@ -77,20 +77,20 @@ network access are needed.
 
 ## What is in the suites
 
-* REST suite: 155 scenarios in `SCENARIOS`, each run on the real build and on a build from the
+* REST suite: 165 scenarios in `SCENARIOS`, each run on the real build and on a build from the
   sources. A scenario that is only possible on the real build (controller and forms, found by
   reflection) prints `n/a` on the source build and must execute a minimum number of checks
   (`REAL_ONLY_MIN_CHECKS`). The real build speaks the language of the machine (English or
   Russian), so a check of a text that comes from the resources accepts both. The source build
   compiles the client sources with a stub of `Properties.Resources` (the English values of
   `Resources.resx`) and of `AppUi`.
-* TCP suite: 12 mock scenarios (real build and source build).
+* TCP suite: 24 mock scenarios (real build and source build).
 * Mutations show that the tests can fail. Each mutation patches a copy of the client source (the
   `(file, old text, new text)` triples in `rest_suite.py` and `run_review_tests.py`) and expects
   its target scenario to turn red:
-  * `MUTATIONS` in `rest_suite.py`: 117 source mutations (a full run takes many hours; select some
+  * `MUTATIONS` in `rest_suite.py`: 131 source mutations (a full run takes many hours; select some
     with `python run_mutations_subset.py <exeDir> <srcDir> <workDir> id1,id2`).
   * `REAL_MUTATIONS` in `rest_suite.py`: 10 mutations of the real build, run by default.
-  * `run_review_tests.py`: 7 TCP mutations.
+  * `run_review_tests.py`: 15 TCP mutations.
   * The `old text` of a mutation must match the source exactly. If a source file changes, a
     mutation whose text no longer matches fails to build and has to be updated.

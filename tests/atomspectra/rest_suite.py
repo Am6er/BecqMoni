@@ -384,7 +384,7 @@ MUTATIONS = [
     ("tcp-counting", "TCP Start does not see that the board counts",
      [("AtomSpectraTcpSession.cs", "s[s.Length - 1].Time > s[0].Time", "false")], "console-tcp-start-continue", False),
     ("tcp-idle-asks", "TCP Start resets an idle board's (empty) spectrum without need",
-     [("AtomSpectraTcpSession.cs", "AtomSpectraRestStartPlan plan = AtomSpectraRestPolicy.PlanStart(false, Ask != null, counting, board, 0, 0);", "AtomSpectraRestStartPlan plan = AtomSpectraRestStartPlan.Restart;")], "console-tcp-start-idle", False),
+     [("AtomSpectraTcpSession.cs", "AtomSpectraRestStartPlan plan = AtomSpectraRestPolicy.PlanStart(false, Ask != null, counting, board, DocumentSeconds, DocumentCounts);", "AtomSpectraRestStartPlan plan = AtomSpectraRestStartPlan.Restart;")], "console-tcp-start-idle", False),
     ("unreachable-period", "REST Start on an unreachable board names 60 s instead of the poll period",
      [("AtomSpectraRestSession.cs", "AtomSpectraTcpLog.Mask(client.BaseUrl), periodSeconds, LastErrorText", "AtomSpectraTcpLog.Mask(client.BaseUrl), 60, LastErrorText")], "rest-unreachable-text", False),
     # each rule cut out of the code; full run, the target must be the only red test
@@ -498,7 +498,7 @@ MUTATIONS = [
     ("gzip-status-wiped", "a broken gzip answer wipes the status (the board is taken for silent)",
      [("AtomSpectraRestClient.cs", "{ result.Error = problem; result.BodyBroken = broken; }", "{ result.Error = problem; result.BodyBroken = broken; if (broken) result.Status = 0; }")], "f5-linklost-gzip3", True),
     ("tcp-headless-has-windows", "the TCP Start plans as if there were a window (a counting board is 'asked', so refused)",
-     [("AtomSpectraTcpSession.cs", "PlanStart(false, Ask != null, counting, board, 0, 0)", "PlanStart(false, true, counting, board, 0, 0)")], "console-tcp-start-headless-counting", True),
+     [("AtomSpectraTcpSession.cs", "PlanStart(false, Ask != null, counting, board, DocumentSeconds, DocumentCounts)", "PlanStart(false, true, counting, board, DocumentSeconds, DocumentCounts)")], "console-tcp-start-headless-counting", True),
     ("tcp-headless-sends", "the TCP Start without a window does not refuse a stopped board with data (-sta goes out)",
      [("AtomSpectraTcpSession.cs", "            if (plan == AtomSpectraRestStartPlan.Ask)\n            {\n                // no window to ask in", "            if (false)\n            {\n                // no window to ask in")], "console-tcp-start-headless-stopped", True),
     ("tcp-headless-restart", "the TCP Start without a window restarts the board without a question (-sto -rst -sta), as before",
