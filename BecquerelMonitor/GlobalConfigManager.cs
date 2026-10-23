@@ -50,34 +50,92 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// ⛔ Ширина всплывающей подсказки, знаков. Правило Amber 23.10.2026, дословно:
+        /// «Запомни этот момент, что все подсказки в popup делать вот такими блоками.»
+        /// (`AMBER263`, `AMBER264`). 80 — ширина, которую приложение уже держало у подсказок
+        /// мощности дозы и мёртвого времени.
+        /// </summary>
+        public const int TipWidth = 80;
+
+        /// <summary>
         /// Перенос по словам на строки не длиннее <paramref name="width"/> знаков — для
         /// подсказок: <c>ToolTip</c> WinForms сам не переносит и тянется во весь экран
-        /// (проверено экраном 13.10.2026). Подсказки приложения переносятся на 80 знаков.
-        /// Прежде — две закрытые копии в <c>MainForm</c> и <c>DCCountRateView</c>; общей
-        /// стала с `AMBER263` (23.10.2026), когда понадобилась третья — окну матрицы.
+        /// (проверено экраном 13.10.2026). Готовые переносы строк текста сохраняются, и
+        /// каждая его строка переносится отдельно, поэтому повторный перенос ничего не
+        /// меняет. Прежде — две закрытые копии в <c>MainForm</c> и <c>DCCountRateView</c>;
+        /// общей стала с `AMBER263` (23.10.2026), когда понадобилась третья — окну матрицы.
         /// </summary>
         public static string WrapWords(string text, int width)
         {
-            var result = new System.Text.StringBuilder();
-            int line = 0;
-            foreach (string word in (text ?? "").Split(' '))
+            if (string.IsNullOrEmpty(text))
             {
-                if (line > 0 && line + 1 + word.Length > width)
+                return text ?? "";
+            }
+
+            var result = new System.Text.StringBuilder();
+            string[] lines = text.Replace("\r\n", "\n").Split('\n');
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (i > 0)
                 {
                     result.Append(Environment.NewLine);
-                    line = 0;
-                }
-                else if (line > 0)
-                {
-                    result.Append(' ');
-                    line++;
                 }
 
-                result.Append(word);
-                line += word.Length;
+                int line = 0;
+                foreach (string word in lines[i].Split(' '))
+                {
+                    if (line > 0 && line + 1 + word.Length > width)
+                    {
+                        result.Append(Environment.NewLine);
+                        line = 0;
+                    }
+                    else if (line > 0)
+                    {
+                        result.Append(' ');
+                        line++;
+                    }
+
+                    result.Append(word);
+                    line += word.Length;
+                }
             }
 
             return result.ToString();
+        }
+
+        /// <summary>Текст всплывающей подсказки блоком по <see cref="TipWidth"/> знаков (`AMBER264`).</summary>
+        public static string WrapTip(string text)
+        {
+            return WrapWords(text, TipWidth);
+        }
+
+        /// <summary>
+        /// (`AMBER264`) Переносит подсказки, которые <paramref name="tip"/> держит у
+        /// <paramref name="root"/> и всех его потомков, — для подсказок из дизайнера
+        /// (<c>*.resx</c>): зовётся один раз после <c>InitializeComponent</c>. Короткие и уже
+        /// перенесённые тексты не трогает.
+        /// </summary>
+        public static void WrapToolTips(ToolTip tip, Control root)
+        {
+            if (tip == null || root == null)
+            {
+                return;
+            }
+
+            string text = tip.GetToolTip(root);
+            if (!string.IsNullOrEmpty(text))
+            {
+                string wrapped = WrapTip(text);
+                if (wrapped != text)
+                {
+                    tip.SetToolTip(root, wrapped);
+                }
+            }
+
+            foreach (Control child in root.Controls)
+            {
+                WrapToolTips(tip, child);
+            }
         }
 
         /// <summary>

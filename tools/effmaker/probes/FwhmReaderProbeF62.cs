@@ -245,8 +245,9 @@ namespace FwhmReaderProbeF62
                 Check("причина ВИДНА на месте пустой таблицы",
                       shown != null && shown.Contains("40.5") && shown.Contains("1.25"));
                 Check("вид НЕ ГОВОРИТ (второго голоса об одной беде нет)", said.Length == 0);
+                // (`AMBER264`) подсказка — та же причина, блоком по 80 знаков
                 Check("подсказка на таблице несёт ту же причину",
-                      ToolTipOf(view, "CollectedPeaksTable") == shown);
+                      ToolTipOf(view, "CollectedPeaksTable") == BecquerelMonitor.AppUi.WrapTip(shown));
 
                 // ПЛЕЧО «ПОЧИНКА»: настройка годная — подпись обязана вернуться
                 // СВОЯ, из resx, а кривая — построиться.

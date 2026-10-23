@@ -2713,7 +2713,7 @@ namespace BecquerelMonitor
 
             bool nucBase = has && this.sourceNucBaseRadio.Checked;
             this.equilibriumCheckBox.Enabled = nucBase;
-            this.toolTip.SetToolTip(this.equilibriumCheckBox,
+            this.SetTip(this.equilibriumCheckBox,
                                     nucBase || !has ? Resources.FSAReportTipCalculation
                                                     : Resources.FSAReportTipEquilibriumNeedsNucBase);
 
@@ -2729,7 +2729,7 @@ namespace BecquerelMonitor
                         ? string.Format(CultureInfo.CurrentCulture, Resources.FSAReportTipParentsRefused,
                                         RefusalText(this.presentation.ParentGroupingRefusalReason))
                         : Resources.FSAReportTipGrouping;
-            this.toolTip.SetToolTip(this.parentsRadio, parentsTip);
+            this.SetTip(this.parentsRadio, parentsTip);
 
             // Матрица уже несёт рассеяние и вылеты: переключатель управляет
             // только ОТДЕЛЬНОЙ дополнительной компонентой, и подсказка обязана
@@ -2738,8 +2738,8 @@ namespace BecquerelMonitor
             string extra = matrix
                 ? Resources.FSAReportTipCalculation + " " + Resources.FSAReportTipMatrixExtra
                 : Resources.FSAReportTipCalculation;
-            this.toolTip.SetToolTip(this.backscatterCheckBox, extra);
-            this.toolTip.SetToolTip(this.escapeCheckBox, extra);
+            this.SetTip(this.backscatterCheckBox, extra);
+            this.SetTip(this.escapeCheckBox, extra);
 
             // (`AMBER45`) Комбо «Matrix layer» живо только при живой матрице:
             // без раскладки по каналам у слоёв (матрицы нет, старый формат,
@@ -2750,9 +2750,9 @@ namespace BecquerelMonitor
             // окно могло бы обещать слой, которого стопка не покажет.
             bool matrixLayers = has && this.MatrixLayerAvailable;
             this.matrixLayerComboBox.Enabled = matrixLayers;
-            this.toolTip.SetToolTip(this.matrixLayerComboBox,
+            this.SetTip(this.matrixLayerComboBox,
                                     !has || matrixLayers ? OwnText(KeyMatrixLayerTip) : OwnText(KeyMatrixLayerNoMatrixTip));
-            this.toolTip.SetToolTip(this.matrixLayerLabel,
+            this.SetTip(this.matrixLayerLabel,
                                     !has || matrixLayers ? OwnText(KeyMatrixLayerTip) : OwnText(KeyMatrixLayerNoMatrixTip));
 
             this.loading = true;
@@ -2796,19 +2796,29 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// (`AMBER264`) Подсказка переключателя окна — блоком по <see cref="AppUi.TipWidth"/>
+        /// знаков (правило Amber 23.10.2026: «все подсказки в popup делать вот такими блоками»).
+        /// Подсказки строк таблицы переносит сама таблица (XPTable, <c>CellRenderer</c>).
+        /// </summary>
+        void SetTip(Control control, string text)
+        {
+            this.toolTip.SetToolTip(control, AppUi.WrapTip(text));
+        }
+
         /// <summary>Подсказки, не зависящие от состояния: меняет расчёт или только показ.</summary>
         void SetToolTips()
         {
-            this.toolTip.SetToolTip(this.sourcePeaksRadio, Resources.FSAReportTipCalculation);
-            this.toolTip.SetToolTip(this.sourceNucBaseRadio, Resources.FSAReportTipCalculation);
-            this.toolTip.SetToolTip(this.daughtersRadio, Resources.FSAReportTipGrouping);
-            this.toolTip.SetToolTip(this.parentsRadio, Resources.FSAReportTipGrouping);
-            this.toolTip.SetToolTip(this.equilibriumCheckBox, Resources.FSAReportTipCalculation);
-            this.toolTip.SetToolTip(this.atomicXrayCheckBox, Resources.FSAReportTipCalculation);
-            this.toolTip.SetToolTip(this.cascadeSummingCheckBox, Resources.FSAReportTipCalculation);
-            this.toolTip.SetToolTip(this.backscatterCheckBox, Resources.FSAReportTipCalculation);
-            this.toolTip.SetToolTip(this.escapeCheckBox, Resources.FSAReportTipCalculation);
-            this.toolTip.SetToolTip(this.pileUpCheckBox, Resources.FSAReportTipCalculation);
+            this.SetTip(this.sourcePeaksRadio, Resources.FSAReportTipCalculation);
+            this.SetTip(this.sourceNucBaseRadio, Resources.FSAReportTipCalculation);
+            this.SetTip(this.daughtersRadio, Resources.FSAReportTipGrouping);
+            this.SetTip(this.parentsRadio, Resources.FSAReportTipGrouping);
+            this.SetTip(this.equilibriumCheckBox, Resources.FSAReportTipCalculation);
+            this.SetTip(this.atomicXrayCheckBox, Resources.FSAReportTipCalculation);
+            this.SetTip(this.cascadeSummingCheckBox, Resources.FSAReportTipCalculation);
+            this.SetTip(this.backscatterCheckBox, Resources.FSAReportTipCalculation);
+            this.SetTip(this.escapeCheckBox, Resources.FSAReportTipCalculation);
+            this.SetTip(this.pileUpCheckBox, Resources.FSAReportTipCalculation);
 
             // (`A248`) Лента невязки расчёта НЕ меняет, и подсказка обязана
             // сказать это прямо: подпись, по решению Amber, ничего не
@@ -2816,14 +2826,14 @@ namespace BecquerelMonitor
             // расчёт» и «меняет только показ». ⚠ Подсказка тут ВТОРОЙ
             // признак, а не единственный: с `A265` род переключателя виден
             // и без наведения — по группе, в которой он лежит.
-            this.toolTip.SetToolTip(this.residualBandCheckBox, OwnText(KeyResidualBandTip));
-            this.toolTip.SetToolTip(this.spectralDataCheckBox, OwnText(KeySpectralDataTip));
+            this.SetTip(this.residualBandCheckBox, OwnText(KeyResidualBandTip));
+            this.SetTip(this.spectralDataCheckBox, OwnText(KeySpectralDataTip));
 
             // (`AMBER45`) Комбо слоя матрицы — того же рода «меняет только
             // показ»; при мёртвой матрице подсказку подменяет причиной
             // <see cref="UpdateAvailability"/>.
-            this.toolTip.SetToolTip(this.matrixLayerComboBox, OwnText(KeyMatrixLayerTip));
-            this.toolTip.SetToolTip(this.matrixLayerLabel, OwnText(KeyMatrixLayerTip));
+            this.SetTip(this.matrixLayerComboBox, OwnText(KeyMatrixLayerTip));
+            this.SetTip(this.matrixLayerLabel, OwnText(KeyMatrixLayerTip));
         }
 
         /// <summary>Подсказка элемента сейчас (пробы).</summary>

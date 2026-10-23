@@ -2634,7 +2634,7 @@ namespace BecquerelMonitor
         void SetStatusCenterHint(bool canrefresh)
         {
             this.statusStrip1.ShowItemToolTips = true;
-            this.toolStripStatusLabel2.ToolTipText = canrefresh ? Resources.TemperatureRefreshHint : "";
+            this.toolStripStatusLabel2.ToolTipText = canrefresh ? AppUi.WrapTip(Resources.TemperatureRefreshHint) : "";
         }
 
         private void ToolStripStatusLabel2_Click(object sender, System.EventArgs e)
