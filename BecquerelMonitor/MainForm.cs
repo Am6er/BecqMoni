@@ -885,7 +885,7 @@ namespace BecquerelMonitor
             // +0.6 %, Na-22 до +3.2 %).
             this.statusStrip1.ShowItemToolTips = true;
             string scope = doseRate != null && string.IsNullOrEmpty(doseRate.Refusal)
-                ? WrapWords(DoseRateCoefficients.Text("DoseRateScopeHint",
+                ? AppUi.WrapWords(DoseRateCoefficients.Text("DoseRateScopeHint",
                     "H*(10) is counted from the photons of the spectrum only: cosmic radiation (about 30 nSv/h at sea"
                     + " level) and other particles are not included. True coincidence summing of cascades is not"
                     + " corrected: close to the detector it raises the reading of Co-60 by up to 0.6 % and of Na-22"
@@ -901,9 +901,9 @@ namespace BecquerelMonitor
             }
             this.toolStripStatusLabel3.ToolTipText =
                 doseRate != null && !string.IsNullOrEmpty(doseRate.Refusal)
-                    ? WrapWords(doseRate.Refusal, 80)
+                    ? AppUi.WrapWords(doseRate.Refusal, 80)
                 : doseRate != null && doseRate.SourceScene
-                    ? WrapWords(DoseRateCoefficients.Text("DoseRateSourceSceneHint",
+                    ? AppUi.WrapWords(DoseRateCoefficients.Text("DoseRateSourceSceneHint",
                         "The dose rate uses the geometry of the efficiency curve selected on the panel: the photons"
                         + " are taken to come from the source of that scene. A background field comes from all sides,"
                         + " and such a curve misstates it by tens of percent, most at low energies. To measure the"
@@ -911,31 +911,6 @@ namespace BecquerelMonitor
                         + " and select it."), 80)
                       + Environment.NewLine + Environment.NewLine + scope
                     : scope;
-        }
-
-        /// <summary>Перенос текста по словам на строки не длиннее <paramref name="width"/> знаков.</summary>
-        static string WrapWords(string text, int width)
-        {
-            var result = new System.Text.StringBuilder();
-            int line = 0;
-            foreach (string word in text.Split(' '))
-            {
-                if (line > 0 && line + 1 + word.Length > width)
-                {
-                    result.Append(Environment.NewLine);
-                    line = 0;
-                }
-                else if (line > 0)
-                {
-                    result.Append(' ');
-                    line++;
-                }
-
-                result.Append(word);
-                line += word.Length;
-            }
-
-            return result.ToString();
         }
 
         public void ShowCountsRate()
@@ -2659,7 +2634,7 @@ namespace BecquerelMonitor
         void SetStatusCenterHint(bool canrefresh)
         {
             this.statusStrip1.ShowItemToolTips = true;
-            this.toolStripStatusLabel2.ToolTipText = canrefresh ? Resources.TemperatureRefreshHint : "";
+            this.toolStripStatusLabel2.ToolTipText = canrefresh ? AppUi.WrapTip(Resources.TemperatureRefreshHint) : "";
         }
 
         private void ToolStripStatusLabel2_Click(object sender, System.EventArgs e)

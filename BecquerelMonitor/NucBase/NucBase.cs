@@ -891,11 +891,11 @@ namespace BecquerelMonitor.NucBase
                 DataGridViewRow added = this.ResultDataGridView.Rows[index];
                 // (`AMBER151`) У L-серии своя подсказка: лишней там стоит сводная
                 // `L` (или итог подоболочки) рядом с подлиниями, а не половина Kβ.
-                added.Cells[SeriesColumnIdx].ToolTipText =
+                added.Cells[SeriesColumnIdx].ToolTipText = AppUi.WrapTip(
                     FullSpectrumAnalysis.FsaSampleLibrary.LSeriesKind(decrad.XrayType)
                         != FullSpectrumAnalysis.FsaSampleLibrary.LSeriesNone
                     ? Resources.NucBase_LSeriesRedundantHint
-                    : Resources.NucBase_KSeriesRedundantHint;
+                    : Resources.NucBase_KSeriesRedundantHint);
                 added.DefaultCellStyle.ForeColor = System.Drawing.SystemColors.GrayText;
             }
         }

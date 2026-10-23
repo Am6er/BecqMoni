@@ -179,7 +179,7 @@ namespace XPTable.Renderers
                     if (args.Cancel)
                         e.Table.ToolTip.SetToolTip(e.Table, string.Empty);
                     else
-                        e.Table.ToolTip.SetToolTip(e.Table, args.ToolTipText);
+                        e.Table.ToolTip.SetToolTip(e.Table, BecquerelMonitor.AppUi.WrapTip(args.ToolTipText)); // AMBER264: tooltip as a wrapped block
                 }
                 else
                 {

@@ -1606,10 +1606,13 @@ namespace FsaReportViewProbe
                 report.RefreshReport();
                 Same("по пикам: родители недоступны", false, parents.Enabled);
                 Same("по пикам: равновесие недоступно", false, equilibrium.Enabled);
+                // (`AMBER264`) подсказки окна — блоком по 80 знаков: эталон через тот же перенос
                 Same("по пикам: подсказка родителей — «нужен NucBase+равновесие»",
-                     BecquerelMonitor.Properties.Resources.FSAReportTipParentsNeedNucBase, report.ToolTipOf(parents));
+                     BecquerelMonitor.AppUi.WrapTip(BecquerelMonitor.Properties.Resources.FSAReportTipParentsNeedNucBase),
+                     report.ToolTipOf(parents));
                 Same("по пикам: подсказка равновесия — «нужен NucBase»",
-                     BecquerelMonitor.Properties.Resources.FSAReportTipEquilibriumNeedsNucBase, report.ToolTipOf(equilibrium));
+                     BecquerelMonitor.AppUi.WrapTip(BecquerelMonitor.Properties.Resources.FSAReportTipEquilibriumNeedsNucBase),
+                     report.ToolTipOf(equilibrium));
                 Same("по пикам: выбраны дочерние", true, daughters.Checked && !parents.Checked);
 
                 // Просьба «родители» помнится, пока недоступна.
@@ -1626,7 +1629,8 @@ namespace FsaReportViewProbe
                 Same("NucBase + равновесие: просьба восстановлена — выбраны родители", true, parents.Checked);
                 Same("NucBase + равновесие: к графику ушли родители", FsaGrouping.Parents, thorium.FsaGrouping);
                 Same("подсказка родителей — «только группировка»",
-                     BecquerelMonitor.Properties.Resources.FSAReportTipGrouping, report.ToolTipOf(parents));
+                     BecquerelMonitor.AppUi.WrapTip(BecquerelMonitor.Properties.Resources.FSAReportTipGrouping),
+                     report.ToolTipOf(parents));
 
                 // Тождество сумм: ленты и доли родителей = сумма дочерних (критерий 8).
                 FsaResult result = thorium.FsaSession.Result;

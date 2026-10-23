@@ -49,6 +49,9 @@ namespace BecquerelMonitor
         /// <summary>Ответ <see cref="RmGpu.Probe"/> при открытии окна; null — не спрашивали.</summary>
         GpuProbe gpuProbe;
 
+        /// <summary>(`AMBER261`) Ответ дочерней пробы GPU на весь сеанс приложения; null — ещё не спрашивали.</summary>
+        static GpuProbe sessionGpuProbe;
+
         /// <summary>
         /// (П345) Сколько историй на узел НАБРАЛА прежняя матрица, вверх до миллиона и не
         /// выше поля; 0 — прежней нет или набрала не больше поля. Поле поднимается до него,
@@ -192,7 +195,22 @@ namespace BecquerelMonitor
         /// </summary>
         void ProbeGpu()
         {
-            this.gpuProbe = RmGpu.Probe(RmGpu.DefaultPath);
+            // ⛔ (`AMBER261`, 23.10.2026) Проба — дочерним процессом и один раз за сеанс:
+            // сбой в драйвере NVIDIA прежде ронял приложение молча, на нажатии кнопки
+            // «Матрица отклика...» (`RmGpu.ProbeIsolated`). Устройство за сеанс не
+            // меняется, а упавшая проба второй раз не пускается.
+            if (sessionGpuProbe == null)
+            {
+                Stopwatch clock = Stopwatch.StartNew();
+                sessionGpuProbe = RmGpu.ProbeIsolated(RmGpu.DefaultPath);
+                Trace.WriteLine("Response matrix: GPU check (child process, "
+                                + clock.Elapsed.TotalSeconds.ToString("F1", CultureInfo.InvariantCulture) + " s): "
+                                + (sessionGpuProbe.Available
+                                    ? "available, " + sessionGpuProbe.DeviceName + ", " + sessionGpuProbe.BuildInfo
+                                    : "not available, " + sessionGpuProbe.ReasonCode + ": " + sessionGpuProbe.Reason));
+            }
+
+            this.gpuProbe = sessionGpuProbe;
             // ⛔ (П253, 14.10.2026) Сцена, которую GPU-порт не умеет (изотропное поле ISO),
             // — тот же «критерий расчёта не удовлетворён», что и негодное устройство
             // (постановка `AMBER219`: «галка недоступна к выбору и ToolTip с объяснением
@@ -250,12 +268,23 @@ namespace BecquerelMonitor
                                             this.gpuProbe.DeviceName, ComputeCapability(this.gpuProbe.ComputeCapability),
                                             ComputeCapability(RmGpu.MinComputeCapability));
                         break;
+                    case GpuProbeReason.ProbeCrashed:
+                        tip = string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuProbeCrashed,
+                                            RmGpu.ExitCodeText(this.gpuProbe.ChildExitCode));
+                        break;
+                    case GpuProbeReason.ProbeTimeout:
+                        tip = string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuProbeTimeout,
+                                            RmGpu.ProbeChildTimeoutMs / 1000);
+                        break;
                     default:
                         tip = string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuRuntimeError, this.gpuProbe.Reason);
                         break;
                 }
             }
 
+            // (`AMBER263`) Блоком по 80 знаков, как прочие подсказки приложения: одной строкой
+            // подсказка уходила за край окна (снимок Amber 23.10.2026).
+            tip = AppUi.WrapTip(tip);
             this.gpuTip.SetToolTip(this.gpuPanel, tip);
             this.gpuTip.SetToolTip(this.gpuCheck, tip);
             // Негодная галка остаётся живой для мыши (ради подсказки), но
