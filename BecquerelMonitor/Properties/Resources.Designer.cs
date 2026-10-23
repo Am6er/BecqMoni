@@ -6994,6 +6994,456 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to AtomSpectraTCP.
+        /// </summary>
+        public static string DeviceTypeAtomSpectraTCP {
+            get {
+                return ResourceManager.GetString("DeviceTypeAtomSpectraTCP", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the board {0}:{1} is already used by another measurement of this program. The board serves one client - stop that measurement first..
+        /// </summary>
+        public static string ERRAtomSpectraTcpHostBusy {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpHostBusy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: no connection to {0}:{1}, the stop command could not be sent. The analyzer may keep counting; BecqMoni will send the stop command as soon as the board answers. Check the spectrum before continuing this measurement..
+        /// </summary>
+        public static string ERRAtomSpectraTcpStopDeferred {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpStopDeferred", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the connection to {0}:{1} is lost. The measurement is not stopped; the spectrum and the time do not change until BecqMoni reconnects (it retries every 60 s)..
+        /// </summary>
+        public static string MSGAtomSpectraTcpLinkLost {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraTcpLinkLost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the device calibration has an empty coefficient followed by a filled one; the coefficients would shift to wrong powers, so they were not applied..
+        /// </summary>
+        public static string ERRAtomSpectraTcpCalGap {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpCalGap", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the calibration of the board is not taken: its scale at {0} channels is not established. The page keeps its own calibration..
+        /// </summary>
+        public static string ERRAtomSpectraTcpCalNotTaken {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpCalNotTaken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra REST: the board did not confirm the stop command. BecqMoni repeats it while the program is open (up to 30 min) and only for this measurement; if the program is closed, stop the board yourself..
+        /// </summary>
+        public static string ERRAtomSpectraRestStopDeferred {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraRestStopDeferred", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the analyzer behind {0}:{1} did not answer the stop command. It may keep counting; BecqMoni sends the stop command again as soon as the board accepts a new connection. Check the spectrum before continuing this measurement..
+        /// </summary>
+        public static string ERRAtomSpectraTcpStopUnanswered {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpStopUnanswered", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the counters of the analyzer behind {0}:{1} went down (time {2} s → {3} s, counts {4} → {5}): it was reset or restarted from outside. The document was not overwritten and the recording is stopped; nothing was sent to the board. To take the new acquisition, create a new document and press Start..
+        /// </summary>
+        public static string MSGAtomSpectraTcpBoardReset {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraTcpBoardReset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to BecqMoni joined an acquisition that was already running on the analyzer; it holds {0} h {1} min, {2} counts. Reset the spectrum ON THE ANALYZER (-rst)? This cannot be undone..
+        /// </summary>
+        public static string MSGAtomSpectraTcpClearJoinedConfirm {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraTcpClearJoinedConfirm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The analyzer was NOT reset; its spectrum is intact. While the measurement goes on, the document is filled from the analyzer again..
+        /// </summary>
+        public static string MSGAtomSpectraTcpNotReset {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraTcpNotReset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the measurement did not start: {0}.
+        /// </summary>
+        public static string ERRAtomSpectraTcpStart {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpStart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the analyzer is stopped and holds a measurement, and a run without windows cannot ask what to do with it. Nothing was sent to the board..
+        /// </summary>
+        public static string ERRAtomSpectraTcpHeadlessStopped {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpHeadlessStopped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: in {0} s the bridge did not show whether the analyzer is counting (no status, or only one), and a run without windows cannot ask what to do. Nothing was sent to the board..
+        /// </summary>
+        public static string ERRAtomSpectraTcpHeadlessUnknown {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpHeadlessUnknown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the analyzer holds less than the document, and a run without windows cannot ask what to do. Nothing was sent to the board..
+        /// </summary>
+        public static string ERRAtomSpectraTcpHeadlessBehind {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpHeadlessBehind", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The bridge sent no status in {0} s: the state of the analyzer and its spectrum are not known. "Continue without reset" sends -sta..
+        /// </summary>
+        public static string AtomSpectraTcpStartSilent {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStartSilent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The bridge sent only one status in {0} s: whether the analyzer is counting is not known. "Continue without reset" sends -sta (harmless on a counting analyzer)..
+        /// </summary>
+        public static string AtomSpectraTcpStartUncertain {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStartUncertain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to no board address is set.
+        /// </summary>
+        public static string AtomSpectraTcpErrNoHost {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrNoHost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to port {0} is outside 1..65535.
+        /// </summary>
+        public static string AtomSpectraTcpErrBadPort {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrBadPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to no answer to the connection in {0} ms.
+        /// </summary>
+        public static string AtomSpectraTcpErrTimeout {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrTimeout", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to network error: {0}.
+        /// </summary>
+        public static string AtomSpectraTcpErrNetwork {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrNetwork", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to sending to the board failed: {0}.
+        /// </summary>
+        public static string AtomSpectraTcpErrWrite {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrWrite", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to reading from the board failed: {0}.
+        /// </summary>
+        public static string AtomSpectraTcpErrRead {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrRead", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the connection is closed.
+        /// </summary>
+        public static string AtomSpectraTcpErrClosed {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrClosed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board closed the connection.
+        /// </summary>
+        public static string AtomSpectraTcpErrBoardClosed {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrBoardClosed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to no data from the board for {0} s.
+        /// </summary>
+        public static string AtomSpectraTcpErrNoData {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrNoData", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to idle.
+        /// </summary>
+        public static string AtomSpectraTcpStatusIdle {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusIdle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to measuring.
+        /// </summary>
+        public static string AtomSpectraTcpStatusMeasuring {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusMeasuring", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to joined a running acquisition.
+        /// </summary>
+        public static string AtomSpectraTcpStatusJoined {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusJoined", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to receiving: time {0} s, {1} cps.
+        /// </summary>
+        public static string AtomSpectraTcpStatusReceiving {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusReceiving", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to link lost, retrying.
+        /// </summary>
+        public static string AtomSpectraTcpStatusLinkLost {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusLinkLost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to stopped.
+        /// </summary>
+        public static string AtomSpectraTcpStatusStopped {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusStopped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to stopped; the stop command waits for the board.
+        /// </summary>
+        public static string AtomSpectraTcpStatusStopDeferred {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusStopDeferred", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to detached; the board keeps counting.
+        /// </summary>
+        public static string AtomSpectraTcpStatusDetached {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusDetached", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to stopped; the board did not confirm.
+        /// </summary>
+        public static string AtomSpectraTcpStatusStopUnconfirmed {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusStopUnconfirmed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to not started.
+        /// </summary>
+        public static string AtomSpectraTcpStatusNotStarted {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusNotStarted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to not started: cancelled.
+        /// </summary>
+        public static string AtomSpectraTcpStatusCancelled {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusCancelled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to stopped: the board was reset from outside.
+        /// </summary>
+        public static string AtomSpectraTcpStatusBoardReset {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusBoardReset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra: "{0}" is not a valid board address. Enter host[:port] - an IP address or a name, e.g. 192.168.0.119 or atomspectra.local:8234, without "http://". Without a port, {1} is used..
+        /// </summary>
+        public static string ERRAtomSpectraTcpBadHost {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpBadHost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the board {0}:{1} is busy with a running measurement of this program. The board serves one client - stop the measurement, then read the calibration..
+        /// </summary>
+        public static string ERRAtomSpectraTcpCalBusy {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpCalBusy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Host (IP or name) :.
+        /// </summary>
+        public static string AtomSpectraTcpHost {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpHost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to TCP port :.
+        /// </summary>
+        public static string AtomSpectraTcpPort {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Atom Spectra analyzer behind a Wi-Fi bridge board (atomspectra-waterfall-esp32, port 8234) instead of a COM port. The board serves one client at a time; after a dropped connection its slot stays busy for about a minute, so BecqMoni reconnects after 60 s. The dead time is read from the device (-inf) at start..
+        /// </summary>
+        public static string AtomSpectraTcpHint {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Test connection.
+        /// </summary>
+        public static string AtomSpectraTcpTest {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpTest", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Connecting and listening....
+        /// </summary>
+        public static string AtomSpectraTcpTesting {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpTesting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Connected to {0}:{1}: {2} valid packets in {3} s, {4} with a bad CRC. Nothing was sent to the device..
+        /// </summary>
+        public static string AtomSpectraTcpTestResult {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpTestResult", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Connected to {0}:{1}, but no data in {2} s: the analyzer is not collecting or not connected to the board..
+        /// </summary>
+        public static string AtomSpectraTcpTestNoData {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpTestNoData", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra: the board address is not set. Enter it (host[:port]) in the device configuration, or press "Refresh" there..
+        /// </summary>
+        public static string ERRAtomSpectraTcpNoHost {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpNoHost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: cannot connect to {0}:{1} ({2}). The board accepts one client at a time; after a dropped connection its slot stays busy for about a minute..
+        /// </summary>
+        public static string ERRAtomSpectraTcpConnect {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpConnect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the analyzer behind {0}:{1} did not answer the start commands..
+        /// </summary>
+        public static string ERRAtomSpectraTcpNoAnswer {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpNoAnswer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Amplituda Serial: the number of channels must be a multiple of 512, up to 8192 (the spectrum has {0}). Set it in the device configuration and apply the configuration to an empty spectrum..
         /// </summary>
         public static string ERRAmplitudaSerialChannels {
@@ -7577,6 +8027,1428 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ResponseMatrixDetailsNotSaved", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP/REST log.
+        /// </summary>
+        public static string AtomSpectraTcpLogTitle {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pause.
+        /// </summary>
+        public static string AtomSpectraTcpLogPause {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogPause", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resume.
+        /// </summary>
+        public static string AtomSpectraTcpLogResume {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogResume", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Clear.
+        /// </summary>
+        public static string AtomSpectraTcpLogClear {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogClear", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Copy.
+        /// </summary>
+        public static string AtomSpectraTcpLogCopy {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogCopy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Save....
+        /// </summary>
+        public static string AtomSpectraTcpLogSave {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogSave", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to All.
+        /// </summary>
+        public static string AtomSpectraTcpLogFilterAll {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogFilterAll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Warnings and errors.
+        /// </summary>
+        public static string AtomSpectraTcpLogFilterWarn {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogFilterWarn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Errors only.
+        /// </summary>
+        public static string AtomSpectraTcpLogFilterError {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogFilterError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No device session yet.
+        /// </summary>
+        public static string AtomSpectraTcpLogNoStatus {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogNoStatus", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Board log.
+        /// </summary>
+        public static string AtomSpectraTcpLogDevlog {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogDevlog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Refresh.
+        /// </summary>
+        public static string AtomSpectraTcpLogRefresh {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogRefresh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No REST board in use yet: start a measurement or test the connection..
+        /// </summary>
+        public static string AtomSpectraTcpLogNoBoard {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogNoBoard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to DATA IS {0} s OLD.
+        /// </summary>
+        public static string AtomSpectraTcpLogStale {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogStale", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to data {0} s old.
+        /// </summary>
+        public static string AtomSpectraTcpLogFresh {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogFresh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Command to the board.
+        /// </summary>
+        public static string AtomSpectraConsoleConfirmTitle {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleConfirmTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Send {0} to the board {1}?.
+        /// </summary>
+        public static string AtomSpectraConsoleConfirm {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleConfirm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to -rst erases the spectrum accumulated on the board; this cannot be undone..
+        /// </summary>
+        public static string AtomSpectraConsoleEffectReset {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleEffectReset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to -sto stops counting on the board..
+        /// </summary>
+        public static string AtomSpectraConsoleEffectStop {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleEffectStop", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to -sta starts counting on the board..
+        /// </summary>
+        public static string AtomSpectraConsoleEffectStart {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleEffectStart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to -cal with values writes a new energy calibration into the analyzer in place of the one it holds..
+        /// </summary>
+        public static string AtomSpectraConsoleEffectCalibration {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleEffectCalibration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to BecqMoni does not know what this command does: it may change the analyzer's settings or its spectrum..
+        /// </summary>
+        public static string AtomSpectraConsoleEffectUnknown {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleEffectUnknown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A measurement of this program is running on this board: the command goes into it..
+        /// </summary>
+        public static string AtomSpectraConsoleLiveTcp {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleLiveTcp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to If the board is counting a measurement (in this program or in another client), the command affects it..
+        /// </summary>
+        public static string AtomSpectraConsoleLiveMaybe {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleLiveMaybe", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Observe only is on: commands are not sent to the board. The switch is in the REST mode settings..
+        /// </summary>
+        public static string AtomSpectraConsoleObserveOnlyTcp {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleObserveOnlyTcp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (not sent: declined).
+        /// </summary>
+        public static string AtomSpectraConsoleDeclined {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleDeclined", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to None.
+        /// </summary>
+        public static string AtomSpectraRestAuthNone {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestAuthNone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board answered HTTP {0}.
+        /// </summary>
+        public static string AtomSpectraRestHttpStatus {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestHttpStatus", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board does not answer (network error or time-out).
+        /// </summary>
+        public static string AtomSpectraRestNoAnswer {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestNoAnswer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board's answer was cut short or damaged.
+        /// </summary>
+        public static string AtomSpectraRestBodyBroken {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestBodyBroken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board's answer is not readable JSON.
+        /// </summary>
+        public static string AtomSpectraRestBadJson {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestBadJson", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board's answer could not be read.
+        /// </summary>
+        public static string AtomSpectraRestReadFailed {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestReadFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to name {0} not resolved: there is no such name on the network.
+        /// </summary>
+        public static string AtomSpectraConsoleNotResolved {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleNotResolved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} resolves to {1}, but no board answered GET /api/device.
+        /// </summary>
+        public static string AtomSpectraConsoleNoBoardAnswered {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleNoBoardAnswered", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to !! the board did not accept the command: {0}.
+        /// </summary>
+        public static string AtomSpectraConsoleNotAccepted {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleNotAccepted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (no text from the analyzer in the board log within {0} s; the board answered {1}).
+        /// </summary>
+        public static string AtomSpectraConsoleNoText {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleNoText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (no answer).
+        /// </summary>
+        public static string AtomSpectraConsoleNoAnswer {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleNoAnswer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to !! no connection to {0}:{1}.
+        /// </summary>
+        public static string AtomSpectraConsoleNoConnection {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleNoConnection", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (no answer within {0} ms).
+        /// </summary>
+        public static string AtomSpectraConsoleNoAnswerWithin {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleNoAnswerWithin", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Log (*.log)|*.log|Text (*.txt)|*.txt.
+        /// </summary>
+        public static string AtomSpectraTcpLogFileFilter {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogFileFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to last session: {0}  |  {1}  |  {2}  |  {3}.
+        /// </summary>
+        public static string AtomSpectraTcpLogLastSession {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogLastSession", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to -- the board log {0} was not read: {1}.
+        /// </summary>
+        public static string AtomSpectraTcpLogDevlogFailed {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogDevlogFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Transport :.
+        /// </summary>
+        public static string AtomSpectraRestTransport {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestTransport", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to TCP bridge (test).
+        /// </summary>
+        public static string AtomSpectraRestTransportTcp {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestTransportTcp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to REST API (test).
+        /// </summary>
+        public static string AtomSpectraRestTransportRest {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestTransportRest", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Board URL (empty = http://host/) :.
+        /// </summary>
+        public static string AtomSpectraRestUrl {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestUrl", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Poll period, s (1-60) :.
+        /// </summary>
+        public static string AtomSpectraRestPoll {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestPoll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Time limit of a new run on the board, s (0 = none) :.
+        /// </summary>
+        public static string AtomSpectraRestLimit {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestLimit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Observe only: never send commands to the board.
+        /// </summary>
+        public static string AtomSpectraRestObserve {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestObserve", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Do not use the system proxy.
+        /// </summary>
+        public static string AtomSpectraRestNoProxy {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestNoProxy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Proxy authorization :.
+        /// </summary>
+        public static string AtomSpectraRestAuth {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestAuth", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User :.
+        /// </summary>
+        public static string AtomSpectraRestAuthUser {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestAuthUser", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Proxy credentials are sent unencrypted over HTTP (Basic); do not use on untrusted networks.
+        /// </summary>
+        public static string AtomSpectraRestProxyAuthWarning {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestProxyAuthWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Board calibration {0} is put on the Energy Calibration page; save the configuration to keep it.
+        /// </summary>
+        public static string AtomSpectraCalibToPage {
+            get {
+                return ResourceManager.GetString("AtomSpectraCalibToPage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The board has no calibration (calib_set=false); the Energy Calibration page is left as it is.
+        /// </summary>
+        public static string AtomSpectraCalibNotSet {
+            get {
+                return ResourceManager.GetString("AtomSpectraCalibNotSet", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The board calibration was not read ({0}); the Energy Calibration page is left as it is.
+        /// </summary>
+        public static string AtomSpectraCalibNotRead {
+            get {
+                return ResourceManager.GetString("AtomSpectraCalibNotRead", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to TCP bridge. "Continue without reset" sends nothing to a counting board (no -sto, -rst, -sta): the document shows the spectrum and time the board has accumulated; a stopped board gets only -sta, without a reset. "Start over (reset)" sends -sto, -rst, -sta: the spectrum on the board is erased.
+        /// </summary>
+        public static string AtomSpectraTcpStartNote {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStartNote", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dead Time: {0:0.###} µs
+        /// </summary>
+        public static string AtomSpectraTcpDeadTimeText {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpDeadTimeText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to TCP: not used
+        /// </summary>
+        public static string AtomSpectraConsolePollTcpShort {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsolePollTcpShort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Board reply compression
+        /// </summary>
+        public static string AtomSpectraGzipTitle {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Board reply compression :
+        /// </summary>
+        public static string AtomSpectraGzipLabel {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 0 (off)
+        /// </summary>
+        public static string AtomSpectraGzipOff {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipOff", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Apply to board
+        /// </summary>
+        public static string AtomSpectraGzipApply {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipApply", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to not read yet
+        /// </summary>
+        public static string AtomSpectraGzipUnknown {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipUnknown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to not supported by this firmware
+        /// </summary>
+        public static string AtomSpectraGzipUnsupported {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipUnsupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to on the board: {0}
+        /// </summary>
+        public static string AtomSpectraGzipOnBoard {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipOnBoard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Observe only: no writing to the board
+        /// </summary>
+        public static string AtomSpectraGzipObserve {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipObserve", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Set the board's reply compression to {0}?    The setting is saved on the board and applies to all its clients. Do not change production boards.
+        /// </summary>
+        public static string AtomSpectraGzipConfirm {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipConfirm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Board reply compression set to {0} (read back from the board: {1}).
+        /// </summary>
+        public static string AtomSpectraGzipDone {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipDone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Board reply compression not set: {0}
+        /// </summary>
+        public static string AtomSpectraGzipFailed {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ; spectrum reply: {0}, {1} B over the network for {2} B of data
+        /// </summary>
+        public static string AtomSpectraRestCompression {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestCompression", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ; spectrum reply not compressed ({0} B; the board compresses in the background, the first reply after its cache refresh is plain)
+        /// </summary>
+        public static string AtomSpectraRestNoCompression {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestNoCompression", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to All, with debug (device answers; may contain the serial number)
+        /// </summary>
+        public static string AtomSpectraTcpLogFilterDebug {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpLogFilterDebug", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Password / token :.
+        /// </summary>
+        public static string AtomSpectraRestAuthSecret {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestAuthSecret", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Test connection (REST).
+        /// </summary>
+        public static string AtomSpectraRestTest {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestTest", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show log.
+        /// </summary>
+        public static string AtomSpectraRestShowLog {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestShowLog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0}: firmware {1}, board time {2} s, total {3}; calibration {4}..
+        /// </summary>
+        public static string AtomSpectraRestTestResult {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestTestResult", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to set on the board.
+        /// </summary>
+        public static string AtomSpectraRestCalibSet {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestCalibSet", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to not set.
+        /// </summary>
+        public static string AtomSpectraRestCalibNone {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestCalibNone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid board URL: {0}. Expected http://host[:port]/[prefix/].
+        /// </summary>
+        public static string ERRAtomSpectraRestBadUrl {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraRestBadUrl", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Reading the board....
+        /// </summary>
+        public static string AtomSpectraRestWait {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestWait", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The board holds an acquisition.
+        /// </summary>
+        public static string AtomSpectraRestStartTitle {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStartTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The board is counting: {0} h {1} min, {2} counts..
+        /// </summary>
+        public static string AtomSpectraRestStartRunning {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStartRunning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The board is stopped and holds {0} h {1} min, {2} counts..
+        /// </summary>
+        public static string AtomSpectraRestStartStopped {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStartStopped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Document: {0} h {1} min, {2} counts..
+        /// </summary>
+        public static string AtomSpectraRestStartDocument {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStartDocument", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The board holds less than the document: it was reset or restarted. Continuing in this document is not possible; create a new document for the new acquisition..
+        /// </summary>
+        public static string AtomSpectraRestStartBehind {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStartBehind", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Continue without reset.
+        /// </summary>
+        public static string AtomSpectraRestContinue {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestContinue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Start over (reset).
+        /// </summary>
+        public static string AtomSpectraRestRestart {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestRestart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cancel.
+        /// </summary>
+        public static string AtomSpectraRestCancel {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestCancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The board holds {0} h {1} min, {2} counts. Reset the spectrum ON THE BOARD? This cannot be undone..
+        /// </summary>
+        public static string MSGAtomSpectraRestClearConfirm {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraRestClearConfirm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The board was NOT reset ({0}); its spectrum is intact. While the board is polled the document is refilled from it..
+        /// </summary>
+        public static string MSGAtomSpectraRestNotReset {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraRestNotReset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to declined.
+        /// </summary>
+        public static string AtomSpectraRestDeclined {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestDeclined", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Observe only: no command is sent to the board, it was not reset..
+        /// </summary>
+        public static string MSGAtomSpectraRestObserveOnly {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraRestObserveOnly", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The board was reset or restarted ({0}). The document was not changed and the recording is stopped; no command was sent. To take the new acquisition create a new document and press Start..
+        /// </summary>
+        public static string MSGAtomSpectraRestBoardReset {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraRestBoardReset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The board stopped counting by itself. The recording in BecqMoni is stopped; no command was sent to the board..
+        /// </summary>
+        public static string MSGAtomSpectraRestBoardStalled {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraRestBoardStalled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The board did not start the measurement: {0}.
+        /// </summary>
+        public static string ERRAtomSpectraRestStart {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraRestStart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to "Start over" was not completed: {0}. Check the board state in the log..
+        /// </summary>
+        public static string ERRAtomSpectraRestRestartPartial {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraRestRestartPartial", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The board holds less than the document, and a run without windows cannot ask what to do..
+        /// </summary>
+        public static string ERRAtomSpectraRestHeadlessBehind {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraRestHeadlessBehind", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to "Start over" resets the board, and the new acquisition would overwrite this document's data. Create a new document and press Start there..
+        /// </summary>
+        public static string ERRAtomSpectraRestNeedNewDocument {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraRestNeedNewDocument", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra REST: the stop command reached {0}:{1}, but no clear answer came back. BecqMoni does not repeat it, so as not to stop someone else's acquisition. Check on the board whether the analyzer has stopped..
+        /// </summary>
+        public static string ERRAtomSpectraRestStopUnconfirmed {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraRestStopUnconfirmed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra REST: the profile has {0} channels, but the board gives 8192 channels and folds them only by a whole factor (8192, 4096, 2048, 1024, 512 ...). Set a number of channels that divides 8192 and press Start again. Nothing was sent to the board..
+        /// </summary>
+        public static string ERRAtomSpectraRestChannels {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraRestChannels", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The board is stopped and holds a measurement, and a run without windows cannot ask what to do with it. Nothing was sent to the board..
+        /// </summary>
+        public static string ERRAtomSpectraRestHeadlessAsk {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraRestHeadlessAsk", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Observe only: the board holds less than the document (it was reset or restarted, or it holds another acquisition), so the document cannot follow it. Nothing was sent to the board. To observe the board's acquisition create a new document and press Start..
+        /// </summary>
+        public static string ERRAtomSpectraRestObserveBehind {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraRestObserveBehind", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to A user name and password in the URL are not allowed; use the authorization fields of the device settings..
+        /// </summary>
+        public static string ERRAtomSpectraRestUrlUserInfo {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraRestUrlUserInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra REST: the board {0} answers, but refuses access (HTTP {1}). Check the authorization token in the device settings. The measurement is not stopped; BecqMoni keeps polling the board every {2} s..
+        /// </summary>
+        public static string MSGAtomSpectraRestAccessDenied {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraRestAccessDenied", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra REST: the recording in BecqMoni is stopped, but the board {0} keeps counting: the acquisition was not started from this window (BecqMoni only joined it), so no stop command was sent. Stop it on the board if needed..
+        /// </summary>
+        public static string MSGAtomSpectraRestStopJoined {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraRestStopJoined", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to In channel {0} the board holds fewer counts than the document: the board holds another acquisition. Continuing in this document is not possible; create a new document for the board's acquisition..
+        /// </summary>
+        public static string AtomSpectraRestStartOtherSpectrum {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStartOtherSpectrum", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to idle.
+        /// </summary>
+        public static string AtomSpectraRestStatusIdle {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStatusIdle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to idle (observe only).
+        /// </summary>
+        public static string AtomSpectraRestStatusIdleObserve {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStatusIdleObserve", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to observing.
+        /// </summary>
+        public static string AtomSpectraRestStatusObserving {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStatusObserving", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to joined a running acquisition.
+        /// </summary>
+        public static string AtomSpectraRestStatusJoined {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStatusJoined", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to measuring.
+        /// </summary>
+        public static string AtomSpectraRestStatusMeasuring {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStatusMeasuring", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to not started.
+        /// </summary>
+        public static string AtomSpectraRestStatusNotStarted {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStatusNotStarted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to stopped by the board state.
+        /// </summary>
+        public static string AtomSpectraRestStatusStoppedByBoard {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStatusStoppedByBoard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to board has no data yet.
+        /// </summary>
+        public static string AtomSpectraRestStatusNoData {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStatusNoData", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board's {0} changed: {1} → {2}.
+        /// </summary>
+        public static string AtomSpectraRestTripEpoch {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestTripEpoch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board has no spectrum any more (it had {0} s, {1} counts).
+        /// </summary>
+        public static string AtomSpectraRestTripNoData {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestTripNoData", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board's counters went down: time {0} → {1} s, counts {2} → {3}.
+        /// </summary>
+        public static string AtomSpectraRestTripCounters {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestTripCounters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to channel {0} of the spectrum went down ({1} → {2}): another acquisition replaced ours.
+        /// </summary>
+        public static string AtomSpectraRestTripChannel {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestTripChannel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the connection was refused.
+        /// </summary>
+        public static string AtomSpectraRestErrRefused {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestErrRefused", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board's name was not found in the network.
+        /// </summary>
+        public static string AtomSpectraRestErrNoName {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestErrNoName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to no answer in time.
+        /// </summary>
+        public static string AtomSpectraRestErrTimeout {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestErrTimeout", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board did not answer.
+        /// </summary>
+        public static string AtomSpectraRestErrNoAnswer {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestErrNoAnswer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to network error: {0}.
+        /// </summary>
+        public static string AtomSpectraRestErrNetwork {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestErrNetwork", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board answered HTTP {0}.
+        /// </summary>
+        public static string AtomSpectraRestErrHttp {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestErrHttp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board's answer is cut short.
+        /// </summary>
+        public static string AtomSpectraRestErrBodyCut {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestErrBodyCut", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board's answer is larger than {0} B.
+        /// </summary>
+        public static string AtomSpectraRestErrTooLarge {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestErrTooLarge", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board's compressed answer is damaged or cut short.
+        /// </summary>
+        public static string AtomSpectraRestErrGzip {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestErrGzip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board refused the command.
+        /// </summary>
+        public static string AtomSpectraRestErrCommandRefused {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestErrCommandRefused", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board answered, but the analyzer did not get the reset (sent=false).
+        /// </summary>
+        public static string AtomSpectraRestErrResetUnsent {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestErrResetUnsent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board's answer is not a valid spectrum ("{0}").
+        /// </summary>
+        public static string AtomSpectraRestErrAnswer {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestErrAnswer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board answered {0} channels instead of {1}.
+        /// </summary>
+        public static string AtomSpectraRestErrChannels {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestErrChannels", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to not supported.
+        /// </summary>
+        public static string AtomSpectraGzipLevelUnsupported {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipLevelUnsupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to level {0} is not 0, 1 or 6.
+        /// </summary>
+        public static string AtomSpectraGzipErrLevel {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipErrLevel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to this firmware has no gzip_level in /api/boot-config (not supported); nothing was sent.
+        /// </summary>
+        public static string AtomSpectraGzipErrUnsupported {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipErrUnsupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to GET /api/boot-config gave no usable answer; nothing was sent.
+        /// </summary>
+        public static string AtomSpectraGzipErrNoRead {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipErrNoRead", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to POST /api/boot-config: {0}.
+        /// </summary>
+        public static string AtomSpectraGzipErrPost {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipErrPost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board answered {"ok":false}: the setting was not saved.
+        /// </summary>
+        public static string AtomSpectraGzipErrOkFalse {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipErrOkFalse", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board answered ok, but GET /api/boot-config shows {0} instead of {1}.
+        /// </summary>
+        public static string AtomSpectraGzipErrReadBack {
+            get {
+                return ResourceManager.GetString("AtomSpectraGzipErrReadBack", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The board calibration is for 8192 channels and cannot be folded to the {0} channels of the profile; the Energy Calibration page is left as it is..
+        /// </summary>
+        public static string AtomSpectraCalibNotFolded {
+            get {
+                return ResourceManager.GetString("AtomSpectraCalibNotFolded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to slot {0} is not a number.
+        /// </summary>
+        public static string AtomSpectraCalibErrSlot {
+            get {
+                return ResourceManager.GetString("AtomSpectraCalibErrSlot", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to a number after an empty slot (slot {0}).
+        /// </summary>
+        public static string AtomSpectraCalibErrGap {
+            get {
+                return ResourceManager.GetString("AtomSpectraCalibErrGap", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to NaN or infinity in slot {0}.
+        /// </summary>
+        public static string AtomSpectraCalibErrNotFinite {
+            get {
+                return ResourceManager.GetString("AtomSpectraCalibErrNotFinite", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to fewer than 2 coefficients.
+        /// </summary>
+        public static string AtomSpectraCalibErrTooFew {
+            get {
+                return ResourceManager.GetString("AtomSpectraCalibErrTooFew", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board's answer carries no valid calibration.
+        /// </summary>
+        public static string AtomSpectraCalibErrAnswer {
+            get {
+                return ResourceManager.GetString("AtomSpectraCalibErrAnswer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Address (host[:port]) :.
+        /// </summary>
+        public static string AtomSpectraConsoleAddress {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleAddress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Refresh.
+        /// </summary>
+        public static string AtomSpectraConsoleRefresh {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleRefresh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Type a command and press Enter. Some commands ARE HAZARDOUS!.
+        /// </summary>
+        public static string AtomSpectraConsoleWarning {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Status: connected, SN {0} ({1}).
+        /// </summary>
+        public static string AtomSpectraConsoleStatusConnected {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleStatusConnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Status: board not found. {0}.
+        /// </summary>
+        public static string AtomSpectraConsoleStatusNotFound {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleStatusNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Status: looking for {0}....
+        /// </summary>
+        public static string AtomSpectraConsoleStatusSearching {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleStatusSearching", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to TCP: the analyzer streams the spectrum, the poll interval is not used.
+        /// </summary>
+        public static string AtomSpectraConsolePollTcpHint {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsolePollTcpHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Observe only is on: commands are not sent to the board.
+        /// </summary>
+        public static string AtomSpectraConsoleObserveOnly {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleObserveOnly", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid address: {0}.
+        /// </summary>
+        public static string AtomSpectraConsoleBadAddress {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleBadAddress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra REST: the board {0} does not answer. The measurement is not stopped; BecqMoni keeps polling it every {1} s, and the spectrum continues as soon as the board answers..
+        /// </summary>
+        public static string MSGAtomSpectraRestLinkLost {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraRestLinkLost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra REST: the board {0} does not answer ({2}). The measurement is not started: check the address and the network, then press Start again. During a measurement BecqMoni keeps polling the board every {1} s when it stops answering..
+        /// </summary>
+        public static string ERRAtomSpectraRestUnreachable {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraRestUnreachable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Atom Spectra analyzer through the board's web interface (REST, HTTP). Address host[:port], the default port is 80; "Refresh" finds atomspectra.local. The board is polled every 1-60 s. Commands are sent as POST /api/command; the analyzer's text answer is shown from the board log..
+        /// </summary>
+        public static string AtomSpectraRestHint {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to REST mode: the bridge port test is not used; check the board with "Test connection (REST)" below..
+        /// </summary>
+        public static string AtomSpectraRestTcpTestDisabled {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestTcpTestDisabled", resourceCulture);
+            }
+        }
+        
 
         /// <summary>
         ///   Looks up a localized string similar to New set {0}.

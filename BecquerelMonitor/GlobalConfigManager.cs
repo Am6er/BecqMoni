@@ -372,6 +372,29 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// Тот же вопрос «да/нет», когда «Да» необратимо (PR #37, 23.10.2026: сброс
+        /// накопления на плате AtomSpectra): значок задаёт вызывающий, хозяин — главное
+        /// окно, а <paramref name="defaultNo"/> ставит фокус на «Нет», чтобы Enter не
+        /// стёр данные. Без окон — тот же бросок ПЕРВЫМ оператором: имя метода то же,
+        /// и сторож `tools\check_headless.py` обеляет его поимённо (`NON_UI_ALLOW`).
+        /// </summary>
+        public static bool AskYesNo(string text, string caption, MessageBoxIcon icon, bool defaultNo)
+        {
+            if (!AppUi.hasWindows)
+            {
+                throw new InvalidOperationException(
+                    "BecqMoni: " + AppUi.OneLine(caption) + ": " + AppUi.OneLine(text)
+                    + " — ответить на этот вопрос без окон некому, а оба ответа меняют числа.");
+            }
+            MessageBoxDefaultButton button = defaultNo ? MessageBoxDefaultButton.Button2 : MessageBoxDefaultButton.Button1;
+            Form host = AppUi.UiHost();
+            DialogResult answer = host != null && !AppUi.MarshalNeeded(host)
+                ? MessageBox.Show(host, text, caption, MessageBoxButtons.YesNo, icon, button)
+                : MessageBox.Show(text, caption, MessageBoxButtons.YesNo, icon, button);
+            return answer == DialogResult.Yes;
+        }
+
+        /// <summary>
         /// Заверение о том, ЧТО ИМЕННО открылось: не беда, а факт. Печатается
         /// ТОЛЬКО без окон и ТОЛЬКО по факту открытия файла.
         ///

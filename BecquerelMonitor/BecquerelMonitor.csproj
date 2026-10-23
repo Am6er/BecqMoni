@@ -95,6 +95,7 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.Management" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Security" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Transactions" />
     <Reference Include="System.Windows.Forms" />
@@ -580,6 +581,53 @@
     <Compile Include="AmplitudaSerialReporter.cs" />
     <Compile Include="AmplitudaSerialSession.cs" />
     <Compile Include="IDeviceLiveTimeSource.cs" />
+    <Compile Include="AtomSpectraTcpAcquisition.cs" />
+    <Compile Include="AtomSpectraTcpCalibrationReader.cs" />
+    <Compile Include="AtomSpectraTcpDeviceConfig.cs" />
+    <Compile Include="AtomSpectraTcpDeviceController.cs" />
+    <Compile Include="AtomSpectraTcpDeviceForm.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="AtomSpectraTcpDeviceForm.Designer.cs">
+      <DependentUpon>AtomSpectraTcpDeviceForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AtomSpectraTcpTransport.cs" />
+    <Compile Include="AtomSpectraTcpSession.cs" />
+    <Compile Include="IAtomSpectraSession.cs" />
+    <Compile Include="AtomSpectraTcpLog.cs" />
+    <Compile Include="AtomSpectraTcpLogForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AtomSpectraTcpLogForm.Devlog.cs">
+      <DependentUpon>AtomSpectraTcpLogForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AtomSpectraRestPolicy.cs" />
+    <Compile Include="AtomSpectraRestClient.cs" />
+    <Compile Include="AtomSpectraRestAcquisition.cs" />
+    <Compile Include="AtomSpectraRestSession.cs" />
+    <Compile Include="AtomSpectraRestCalibration.cs" />
+    <Compile Include="AtomSpectraRestUi.cs" />
+    <Compile Include="AtomSpectraTcpDeviceConfig.Rest.cs" />
+    <Compile Include="AtomSpectraTcpDeviceController.Rest.cs" />
+    <Compile Include="AtomSpectraDeviceConsole.cs" />
+    <Compile Include="AtomSpectraDevlog.cs" />
+    <Compile Include="AtomSpectraTcpDeviceForm.Console.cs">
+      <DependentUpon>AtomSpectraTcpDeviceForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AtomSpectraTcpDeviceForm.Layout.cs">
+      <DependentUpon>AtomSpectraTcpDeviceForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AtomSpectraTcpDeviceForm.Calibration.cs">
+      <DependentUpon>AtomSpectraTcpDeviceForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AtomSpectraTcpDeviceController.Calibration.cs" />
+    <Compile Include="AtomSpectraTcpDeviceForm.Gzip.cs">
+      <DependentUpon>AtomSpectraTcpDeviceForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="AtomSpectraRestBootConfig.cs" />
+    <Compile Include="AtomSpectraTcpDeviceForm.Rest.cs">
+      <DependentUpon>AtomSpectraTcpDeviceForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="RepeatButton.cs">
       <SubType>Component</SubType>
     </Compile>

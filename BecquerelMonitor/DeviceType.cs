@@ -85,6 +85,15 @@ namespace BecquerelMonitor
             deviceType.DeviceConfigType = typeof(AmplitudaSerialDeviceConfig);
             DeviceType.deviceTypeList.Add(deviceType);
             DeviceType.deviceTypeMap.Add(deviceType.Id, deviceType);
+
+            deviceType = new DeviceType();
+            deviceType.Id = AtomSpectraTcpDeviceConfig.DeviceTypeId;
+            deviceType.Name = Resources.DeviceTypeAtomSpectraTCP;
+            deviceType.DeviceConfigFormType = typeof(AtomSpectraTcpDeviceForm);
+            deviceType.DeviceControllerType = typeof(AtomSpectraTcpDeviceController);
+            deviceType.DeviceConfigType = typeof(AtomSpectraTcpDeviceConfig);
+            DeviceType.deviceTypeList.Add(deviceType);
+            DeviceType.deviceTypeMap.Add(deviceType.Id, deviceType);
         }
 
         // Token: 0x17000156 RID: 342
