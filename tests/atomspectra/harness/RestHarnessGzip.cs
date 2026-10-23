@@ -65,7 +65,7 @@ namespace RestHarness
                 bool ok = GzWrite(bc, c, 6, out msg);
                 Console.WriteLine("write: " + ok + " " + msg);
                 Check(!ok && BootPosts() == 0, "not supported: nothing is POSTed (the release would answer ok and change nothing)");
-                Check(msg != null && msg.Contains("not supported"), "not supported: the reason is named");
+                Check(msg != null && (msg.Contains("not supported") || msg.Contains("не поддерживается")), "not supported: the reason is named (a resource: en or ru)");
             }
             else if (scenario == "gzip-write")
             {
@@ -83,7 +83,7 @@ namespace RestHarness
             {
                 bool ok = GzWrite(bc, c, 6, out msg);
                 Console.WriteLine("write 6: " + ok + " " + msg);
-                Check(!ok && BootPosts() == 1 && msg != null && msg.Contains("instead of 6"), "ok without the new value is a failure (read back 0 instead of 6)");
+                Check(!ok && BootPosts() == 1 && msg != null && (msg.Contains("instead of 6") || msg.Contains("вместо 6")), "ok without the new value is a failure (read back 0 instead of 6)");
             }
             else if (scenario == "gzip-okfalse")
             {

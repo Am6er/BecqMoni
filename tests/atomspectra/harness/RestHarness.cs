@@ -631,6 +631,7 @@ namespace RestHarness
                         break;
                     }
                     default:
+                        if (RunRestFixPr37(scenario)) break;   // PR #37 fixes of the REST lane (RestFixPr37.cs)
                         if (RunFix(scenario, args)) break;   // fix scenarios (RestHarnessFixes.cs)
                         Console.WriteLine("FAIL " + scenario + ": unknown scenario");
                         return 2;

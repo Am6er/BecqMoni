@@ -44455,6 +44455,141 @@ The setting is saved on the board and applies to all its clients. If other progr
   <data name="ERRAtomSpectraRestStopUnconfirmed" xml:space="preserve">
     <value>AtomSpectra REST: the stop command reached {0}:{1}, but no clear answer came back. BecqMoni does not repeat it, so as not to stop someone else's acquisition. Check on the board whether the analyzer has stopped.</value>
   </data>
+  <data name="ERRAtomSpectraRestChannels" xml:space="preserve">
+    <value>AtomSpectra REST: the profile has {0} channels, but the board gives 8192 channels and folds them only by a whole factor (8192, 4096, 2048, 1024, 512 ...). Set a number of channels that divides 8192 and press Start again. Nothing was sent to the board.</value>
+  </data>
+  <data name="ERRAtomSpectraRestHeadlessAsk" xml:space="preserve">
+    <value>The board is stopped and holds a measurement, and a run without windows cannot ask what to do with it. Nothing was sent to the board.</value>
+  </data>
+  <data name="ERRAtomSpectraRestObserveBehind" xml:space="preserve">
+    <value>Observe only: the board holds less than the document (it was reset or restarted, or it holds another acquisition), so the document cannot follow it. Nothing was sent to the board. To observe the board's acquisition create a new document and press Start.</value>
+  </data>
+  <data name="ERRAtomSpectraRestUrlUserInfo" xml:space="preserve">
+    <value>A user name and password in the URL are not allowed; use the authorization fields of the device settings.</value>
+  </data>
+  <data name="MSGAtomSpectraRestAccessDenied" xml:space="preserve">
+    <value>AtomSpectra REST: the board {0} answers, but refuses access (HTTP {1}). Check the authorization token in the device settings. The measurement is not stopped; BecqMoni keeps polling the board every {2} s.</value>
+  </data>
+  <data name="MSGAtomSpectraRestStopJoined" xml:space="preserve">
+    <value>AtomSpectra REST: the recording in BecqMoni is stopped, but the board {0} keeps counting: the acquisition was not started from this window (BecqMoni only joined it), so no stop command was sent. Stop it on the board if needed.</value>
+  </data>
+  <data name="AtomSpectraRestStartOtherSpectrum" xml:space="preserve">
+    <value>In channel {0} the board holds fewer counts than the document: the board holds another acquisition. Continuing in this document is not possible; create a new document for the board's acquisition.</value>
+  </data>
+  <data name="AtomSpectraRestStatusIdle" xml:space="preserve">
+    <value>idle</value>
+  </data>
+  <data name="AtomSpectraRestStatusIdleObserve" xml:space="preserve">
+    <value>idle (observe only)</value>
+  </data>
+  <data name="AtomSpectraRestStatusObserving" xml:space="preserve">
+    <value>observing</value>
+  </data>
+  <data name="AtomSpectraRestStatusJoined" xml:space="preserve">
+    <value>joined a running acquisition</value>
+  </data>
+  <data name="AtomSpectraRestStatusMeasuring" xml:space="preserve">
+    <value>measuring</value>
+  </data>
+  <data name="AtomSpectraRestStatusNotStarted" xml:space="preserve">
+    <value>not started</value>
+  </data>
+  <data name="AtomSpectraRestStatusStoppedByBoard" xml:space="preserve">
+    <value>stopped by the board state</value>
+  </data>
+  <data name="AtomSpectraRestStatusNoData" xml:space="preserve">
+    <value>board has no data yet</value>
+  </data>
+  <data name="AtomSpectraRestTripEpoch" xml:space="preserve">
+    <value>the board's {0} changed: {1} → {2}</value>
+  </data>
+  <data name="AtomSpectraRestTripNoData" xml:space="preserve">
+    <value>the board has no spectrum any more (it had {0} s, {1} counts)</value>
+  </data>
+  <data name="AtomSpectraRestTripCounters" xml:space="preserve">
+    <value>the board's counters went down: time {0} → {1} s, counts {2} → {3}</value>
+  </data>
+  <data name="AtomSpectraRestTripChannel" xml:space="preserve">
+    <value>channel {0} of the spectrum went down ({1} → {2}): another acquisition replaced ours</value>
+  </data>
+  <data name="AtomSpectraRestErrRefused" xml:space="preserve">
+    <value>the connection was refused</value>
+  </data>
+  <data name="AtomSpectraRestErrNoName" xml:space="preserve">
+    <value>the board's name was not found in the network</value>
+  </data>
+  <data name="AtomSpectraRestErrTimeout" xml:space="preserve">
+    <value>no answer in time</value>
+  </data>
+  <data name="AtomSpectraRestErrNoAnswer" xml:space="preserve">
+    <value>the board did not answer</value>
+  </data>
+  <data name="AtomSpectraRestErrNetwork" xml:space="preserve">
+    <value>network error: {0}</value>
+  </data>
+  <data name="AtomSpectraRestErrHttp" xml:space="preserve">
+    <value>the board answered HTTP {0}</value>
+  </data>
+  <data name="AtomSpectraRestErrBodyCut" xml:space="preserve">
+    <value>the board's answer is cut short</value>
+  </data>
+  <data name="AtomSpectraRestErrTooLarge" xml:space="preserve">
+    <value>the board's answer is larger than {0} B</value>
+  </data>
+  <data name="AtomSpectraRestErrGzip" xml:space="preserve">
+    <value>the board's compressed answer is damaged or cut short</value>
+  </data>
+  <data name="AtomSpectraRestErrCommandRefused" xml:space="preserve">
+    <value>the board refused the command</value>
+  </data>
+  <data name="AtomSpectraRestErrResetUnsent" xml:space="preserve">
+    <value>the board answered, but the analyzer did not get the reset (sent=false)</value>
+  </data>
+  <data name="AtomSpectraRestErrAnswer" xml:space="preserve">
+    <value>the board's answer is not a valid spectrum ("{0}")</value>
+  </data>
+  <data name="AtomSpectraRestErrChannels" xml:space="preserve">
+    <value>the board answered {0} channels instead of {1}</value>
+  </data>
+  <data name="AtomSpectraGzipLevelUnsupported" xml:space="preserve">
+    <value>not supported</value>
+  </data>
+  <data name="AtomSpectraGzipErrLevel" xml:space="preserve">
+    <value>level {0} is not 0, 1 or 6</value>
+  </data>
+  <data name="AtomSpectraGzipErrUnsupported" xml:space="preserve">
+    <value>this firmware has no gzip_level in /api/boot-config (not supported); nothing was sent</value>
+  </data>
+  <data name="AtomSpectraGzipErrNoRead" xml:space="preserve">
+    <value>GET /api/boot-config gave no usable answer; nothing was sent</value>
+  </data>
+  <data name="AtomSpectraGzipErrPost" xml:space="preserve">
+    <value>POST /api/boot-config: {0}</value>
+  </data>
+  <data name="AtomSpectraGzipErrOkFalse" xml:space="preserve">
+    <value>the board answered {"ok":false}: the setting was not saved</value>
+  </data>
+  <data name="AtomSpectraGzipErrReadBack" xml:space="preserve">
+    <value>the board answered ok, but GET /api/boot-config shows {0} instead of {1}</value>
+  </data>
+  <data name="AtomSpectraCalibNotFolded" xml:space="preserve">
+    <value>The board calibration is for 8192 channels and cannot be folded to the {0} channels of the profile; the Energy Calibration page is left as it is.</value>
+  </data>
+  <data name="AtomSpectraCalibErrSlot" xml:space="preserve">
+    <value>slot {0} is not a number</value>
+  </data>
+  <data name="AtomSpectraCalibErrGap" xml:space="preserve">
+    <value>a number after an empty slot (slot {0})</value>
+  </data>
+  <data name="AtomSpectraCalibErrNotFinite" xml:space="preserve">
+    <value>NaN or infinity in slot {0}</value>
+  </data>
+  <data name="AtomSpectraCalibErrTooFew" xml:space="preserve">
+    <value>fewer than 2 coefficients</value>
+  </data>
+  <data name="AtomSpectraCalibErrAnswer" xml:space="preserve">
+    <value>the board's answer carries no valid calibration</value>
+  </data>
   <data name="AtomSpectraConsoleAddress" xml:space="preserve">
     <value>Address (host[:port]) :</value>
   </data>

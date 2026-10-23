@@ -19,10 +19,13 @@ namespace BecquerelMonitor
             p.SkipWhitespace();
             if (p.Pos < p.Text.Length)
             {
-                throw new FormatException("Trailing characters at position " + p.Pos);
+                throw new FormatException("Trailing characters at position " + p.Pos.ToString(CultureInfo.InvariantCulture));
             }
             return result;
         }
+
+        // nesting deeper than this is refused: the parser is recursive, and a body of "[[[[..." must not end the process (StackOverflowException)
+        public const int MaxDepth = 64;
 
         public static double GetNumber(Dictionary<string, object> o, string key, double fallback)
         {
@@ -64,6 +67,7 @@ namespace BecquerelMonitor
         {
             private readonly string _text;
             private int _pos;
+            private int _depth;
 
             public Parser(string text)
             {
@@ -73,6 +77,19 @@ namespace BecquerelMonitor
 
             public string Text { get { return _text; } }
             public int Pos { get { return _pos; } }
+
+            private static string At(int pos) { return pos.ToString(CultureInfo.InvariantCulture); }
+
+            // the token starts at the current position; compared in place, no copy of the rest of the text
+            private bool Sees(string token)
+            {
+                return _pos + token.Length <= _text.Length && string.CompareOrdinal(_text, _pos, token, 0, token.Length) == 0;
+            }
+
+            private void Enter()
+            {
+                if (++_depth > MaxDepth) throw new FormatException("JSON nested deeper than " + At(MaxDepth) + " at position " + At(_pos));
+            }
 
             public void SkipWhitespace()
             {
@@ -95,7 +112,7 @@ namespace BecquerelMonitor
                 SkipWhitespace();
                 if (_pos >= _text.Length)
                 {
-                    throw new FormatException("Unexpected end of input at position " + _pos);
+                    throw new FormatException("Unexpected end of input at position " + At(_pos));
                 }
 
                 char c = _text[_pos];
@@ -140,28 +157,27 @@ namespace BecquerelMonitor
                     return ParseNumber();
                 }
 
-                throw new FormatException("Unexpected character '" + c + "' at position " + _pos);
+                throw new FormatException("Unexpected character '" + c + "' at position " + At(_pos));
             }
 
             private bool TryParseBareNumber()
             {
                 // Check if current position starts with a bare number token
-                string rest = _text.Substring(_pos);
-                if (rest.StartsWith("nan", StringComparison.Ordinal) ||
-                    rest.StartsWith("NaN", StringComparison.Ordinal) ||
-                    rest.StartsWith("inf", StringComparison.Ordinal) ||
-                    rest.StartsWith("-inf", StringComparison.Ordinal) ||
-                    rest.StartsWith("Infinity", StringComparison.Ordinal) ||
-                    rest.StartsWith("-Infinity", StringComparison.Ordinal))
+                if (Sees("nan") ||
+                    Sees("NaN") ||
+                    Sees("inf") ||
+                    Sees("-inf") ||
+                    Sees("Infinity") ||
+                    Sees("-Infinity"))
                 {
                     // Ensure it's not part of a larger identifier (next char must be non-alphanumeric or end)
                     int len = 0;
-                    if (rest.StartsWith("-inf", StringComparison.Ordinal)) len = 4;
-                    else if (rest.StartsWith("-Infinity", StringComparison.Ordinal)) len = 9;
-                    else if (rest.StartsWith("inf", StringComparison.Ordinal)) len = 3;
-                    else if (rest.StartsWith("Infinity", StringComparison.Ordinal)) len = 8;
-                    else if (rest.StartsWith("nan", StringComparison.Ordinal)) len = 3;
-                    else if (rest.StartsWith("NaN", StringComparison.Ordinal)) len = 3;
+                    if (Sees("-Infinity")) len = 9;
+                    else if (Sees("-inf")) len = 4;
+                    else if (Sees("Infinity")) len = 8;
+                    else if (Sees("inf")) len = 3;
+                    else if (Sees("nan")) len = 3;
+                    else if (Sees("NaN")) len = 3;
 
                     if (_pos + len < _text.Length)
                     {
@@ -188,15 +204,14 @@ namespace BecquerelMonitor
                 }
 
                 // Check for bare tokens
-                string rest = _text.Substring(_pos);
-                if (rest.StartsWith("nan", StringComparison.Ordinal) || rest.StartsWith("NaN", StringComparison.Ordinal))
+                if (Sees("nan") || Sees("NaN"))
                 {
                     _pos += 3;
                     return double.NaN;
                 }
-                if (rest.StartsWith("inf", StringComparison.Ordinal) || rest.StartsWith("Infinity", StringComparison.Ordinal))
+                if (Sees("inf") || Sees("Infinity"))
                 {
-                    if (rest.StartsWith("Infinity", StringComparison.Ordinal)) _pos += 8;
+                    if (Sees("Infinity")) _pos += 8;
                     else _pos += 3;
                     return isNegative ? double.NegativeInfinity : double.PositiveInfinity;
                 }
@@ -222,7 +237,7 @@ namespace BecquerelMonitor
                 }
                 catch (Exception ex)
                 {
-                    throw new FormatException("Invalid number at position " + start + ": " + ex.Message);
+                    throw new FormatException("Invalid number at position " + At(start) + ": " + ex.Message);
                 }
             }
 
@@ -230,7 +245,7 @@ namespace BecquerelMonitor
             {
                 if (_text[_pos] != '"')
                 {
-                    throw new FormatException("Expected '\"' at position " + _pos);
+                    throw new FormatException("Expected '\"' at position " + At(_pos));
                 }
                 _pos++;
                 StringBuilder sb = new StringBuilder();
@@ -248,7 +263,7 @@ namespace BecquerelMonitor
                         _pos++;
                         if (_pos >= _text.Length)
                         {
-                            throw new FormatException("Unexpected end of input in string escape at position " + _pos);
+                            throw new FormatException("Unexpected end of input in string escape at position " + At(_pos));
                         }
                         char esc = _text[_pos];
                         switch (esc)
@@ -264,7 +279,7 @@ namespace BecquerelMonitor
                             case 'u':
                                 if (_pos + 4 >= _text.Length)
                                 {
-                                    throw new FormatException("Invalid unicode escape at position " + _pos);
+                                    throw new FormatException("Invalid unicode escape at position " + At(_pos));
                                 }
                                 string hex = _text.Substring(_pos + 1, 4);
                                 try
@@ -275,11 +290,11 @@ namespace BecquerelMonitor
                                 }
                                 catch (Exception)
                                 {
-                                    throw new FormatException("Invalid unicode escape at position " + _pos);
+                                    throw new FormatException("Invalid unicode escape at position " + At(_pos));
                                 }
                                 break;
                             default:
-                                throw new FormatException("Invalid escape character '" + esc + "' at position " + _pos);
+                                throw new FormatException("Invalid escape character '" + esc + "' at position " + At(_pos));
                         }
                         _pos++;
                     }
@@ -290,15 +305,16 @@ namespace BecquerelMonitor
                     }
                 }
 
-                throw new FormatException("Unterminated string at position " + _pos);
+                throw new FormatException("Unterminated string at position " + At(_pos));
             }
 
             private Dictionary<string, object> ParseObject()
             {
                 if (_text[_pos] != '{')
                 {
-                    throw new FormatException("Expected '{' at position " + _pos);
+                    throw new FormatException("Expected '{' at position " + At(_pos));
                 }
+                Enter();
                 _pos++;
                 Dictionary<string, object> dict = new Dictionary<string, object>(StringComparer.Ordinal);
 
@@ -306,6 +322,7 @@ namespace BecquerelMonitor
                 if (_pos < _text.Length && _text[_pos] == '}')
                 {
                     _pos++;
+                    _depth--;
                     return dict;
                 }
 
@@ -314,14 +331,14 @@ namespace BecquerelMonitor
                     SkipWhitespace();
                     if (_pos >= _text.Length || _text[_pos] != '"')
                     {
-                        throw new FormatException("Expected string key at position " + _pos);
+                        throw new FormatException("Expected string key at position " + At(_pos));
                     }
                     string key = ParseString();
 
                     SkipWhitespace();
                     if (_pos >= _text.Length || _text[_pos] != ':')
                     {
-                        throw new FormatException("Expected ':' at position " + _pos);
+                        throw new FormatException("Expected ':' at position " + At(_pos));
                     }
                     _pos++;
 
@@ -331,17 +348,18 @@ namespace BecquerelMonitor
                     SkipWhitespace();
                     if (_pos >= _text.Length)
                     {
-                        throw new FormatException("Unexpected end of input in object at position " + _pos);
+                        throw new FormatException("Unexpected end of input in object at position " + At(_pos));
                     }
 
                     if (_text[_pos] == '}')
                     {
                         _pos++;
+                        _depth--;
                         return dict;
                     }
                     if (_text[_pos] != ',')
                     {
-                        throw new FormatException("Expected ',' or '}' at position " + _pos);
+                        throw new FormatException("Expected ',' or '}' at position " + At(_pos));
                     }
                     _pos++;
                 }
@@ -351,8 +369,9 @@ namespace BecquerelMonitor
             {
                 if (_text[_pos] != '[')
                 {
-                    throw new FormatException("Expected '[' at position " + _pos);
+                    throw new FormatException("Expected '[' at position " + At(_pos));
                 }
+                Enter();
                 _pos++;
                 List<object> list = new List<object>();
 
@@ -360,6 +379,7 @@ namespace BecquerelMonitor
                 if (_pos < _text.Length && _text[_pos] == ']')
                 {
                     _pos++;
+                    _depth--;
                     return list;
                 }
 
@@ -371,17 +391,18 @@ namespace BecquerelMonitor
                     SkipWhitespace();
                     if (_pos >= _text.Length)
                     {
-                        throw new FormatException("Unexpected end of input in array at position " + _pos);
+                        throw new FormatException("Unexpected end of input in array at position " + At(_pos));
                     }
 
                     if (_text[_pos] == ']')
                     {
                         _pos++;
+                        _depth--;
                         return list;
                     }
                     if (_text[_pos] != ',')
                     {
-                        throw new FormatException("Expected ',' or ']' at position " + _pos);
+                        throw new FormatException("Expected ',' or ']' at position " + At(_pos));
                     }
                     _pos++;
                 }
@@ -391,11 +412,11 @@ namespace BecquerelMonitor
             {
                 if (_pos + token.Length > _text.Length)
                 {
-                    throw new FormatException("Unexpected end of input at position " + _pos);
+                    throw new FormatException("Unexpected end of input at position " + At(_pos));
                 }
-                if (_text.Substring(_pos, token.Length) != token)
+                if (!Sees(token))
                 {
-                    throw new FormatException("Expected '" + token + "' at position " + _pos);
+                    throw new FormatException("Expected '" + token + "' at position " + At(_pos));
                 }
                 _pos += token.Length;
             }
@@ -410,8 +431,27 @@ namespace BecquerelMonitor
         public int BodyBytes;   // the decoded body; with ContentEncoding set, WireBytes is the compressed size on the network
         public string ContentEncoding;
         public long ElapsedMs;
-        public string Error;
+        public string Error;       // for the log (English); null = no error
+        public string UserError;   // the same failure for the user (resources); set together with Error
         public bool BodyBroken;   // the board answered (Status is kept) but the body was cut short or corrupt (gzip)
+
+        // Error and UserError together: the log line stays English, the user gets the resource text
+        internal void Fail(string log, string user)
+        {
+            Error = log;
+            UserError = user;
+        }
+
+        // the text of a failed request for the user (null: none)
+        public string UserText
+        {
+            get
+            {
+                if (UserError != null) return UserError;
+                if (Error == null) return null;
+                return Status > 0 ? AtomSpectraRestClient.HttpText(Status) : BecquerelMonitor.Properties.Resources.AtomSpectraRestErrNoAnswer;
+            }
+        }
 
         private static bool BodySaysRefused(string body)
         {
@@ -493,7 +533,7 @@ namespace BecquerelMonitor
         public bool SendAcceptEncoding = true;
 
         public AtomSpectraRestClient(string host, int port)
-            : this("http://" + (host ?? "") + (port == 80 ? "" : ":" + port) + "/")
+            : this("http://" + (host ?? "") + (port == 80 ? "" : ":" + port.ToString(CultureInfo.InvariantCulture)) + "/")
         {
         }
 
@@ -609,6 +649,9 @@ namespace BecquerelMonitor
                     // KeepAlive=false alone still lets a POST ride an idle pooled poll connection; its own group
                     // gives every command a fresh connect, so a refused connect really means "not sent"
                     req.ConnectionGroupName = "command";
+                    // the board's httpd never answers "100 Continue": the framework would wait for it before the body
+                    // and eat a short command deadline (-sto ending as "Unconfirmed")
+                    req.ServicePoint.Expect100Continue = false;
                 }
                 req.AllowAutoRedirect = false;
                 req.Timeout = deadlineMs;
@@ -665,7 +708,7 @@ namespace BecquerelMonitor
                         {
                             result.Status = 0;
                             result.NotSent = AtomSpectraRestResponse.IsNotSent(ex);
-                            result.Error = ex.Status + ": " + ex.Message;
+                            result.Fail(ex.Status + ": " + ex.Message, NetworkText(ex));
                             result.ElapsedMs = sw.ElapsedMilliseconds;
                             LogRequest(method, path, withToken, result);
                             return result;
@@ -697,24 +740,26 @@ namespace BecquerelMonitor
                                 }
                                 if (readProblem == null && ms.Length <= MaxBodyBytes && resp.ContentLength >= 0 && ms.Length < resp.ContentLength)
                                 {
-                                    readProblem = "body cut short: " + ms.Length + " of " + resp.ContentLength + " B";   // closed early, no exception
+                                    readProblem = AtomSpectraTcpLog.Format("body cut short: {0} of {1} B", ms.Length, resp.ContentLength);   // closed early, no exception
                                 }
                                 // ms holds the bytes as they came over the network; gzip/deflate are decoded here
                                 result.WireBytes = (int)ms.Length;
                                 result.ContentEncoding = (resp.ContentEncoding ?? "").Trim().ToLowerInvariant();
                                 result.SpectrometerDead = (resp.Headers["X-Spectrometer-Dead"] ?? "").Trim() == "1";
-                                string problem = null; bool broken = false;
-                                byte[] decoded = readProblem != null ? new byte[0] : Decode(ms.ToArray(), result.ContentEncoding, out problem, out broken);
-                                if (readProblem != null) { problem = readProblem; broken = true; }
+                                string problem = null, userProblem = null; bool broken = false;
+                                byte[] decoded = readProblem != null ? new byte[0] : Decode(ms.ToArray(), result.ContentEncoding, out problem, out userProblem, out broken);
+                                if (readProblem != null) { problem = readProblem; userProblem = BecquerelMonitor.Properties.Resources.AtomSpectraRestErrBodyCut; broken = true; }
                                 result.BodyBytes = decoded.Length;
                                 result.Body = Encoding.UTF8.GetString(decoded);
                                 if (problem != null) { result.Error = problem; result.BodyBroken = broken; }   // the status stays
+                                if (problem != null) result.UserError = userProblem;
                             }
                         }
 
                         if (result.Status < 200 || result.Status >= 300)
                         {
-                            if (result.Error == null) result.Error = "HTTP " + result.Status;   // the reason of a broken body is not overwritten
+                            // the reason of a broken body is not overwritten
+                            if (result.Error == null) result.Fail("HTTP " + result.Status.ToString(CultureInfo.InvariantCulture), HttpText(result.Status));
                         }
                     }
                 }
@@ -725,7 +770,8 @@ namespace BecquerelMonitor
                 // connect refused, or aborted at the deadline before the body went out (Windows retries a refused
                 // connect for about 2 s, so a short command deadline ends as RequestCanceled, not ConnectFailure)
                 result.NotSent = AtomSpectraRestResponse.IsNotSent(ex as WebException) || bodyPending;
-                result.Error = ex.Message;
+                result.Fail(ex.Message, ex is WebException ? NetworkText((WebException)ex)
+                    : string.Format(CultureInfo.InvariantCulture, BecquerelMonitor.Properties.Resources.AtomSpectraRestErrNetwork, ex.Message));
             }
             finally
             {
@@ -755,13 +801,44 @@ namespace BecquerelMonitor
         // a body over this size (read from the wire or decoded) is refused; the spectrum of N=8192 is about 26 KB
         public const int MaxBodyBytes = 1 << 20;
 
+        private static string TooLargeText()
+        {
+            return string.Format(CultureInfo.InvariantCulture, BecquerelMonitor.Properties.Resources.AtomSpectraRestErrTooLarge, MaxBodyBytes);
+        }
+
+        // the user's text of an HTTP status the board answered with
+        public static string HttpText(int status)
+        {
+            return string.Format(CultureInfo.InvariantCulture, BecquerelMonitor.Properties.Resources.AtomSpectraRestErrHttp, status);
+        }
+
+        // the user's text of a request that got no HTTP answer
+        public static string NetworkText(WebException ex)
+        {
+            switch (ex.Status)
+            {
+                case WebExceptionStatus.ConnectFailure:
+                    return BecquerelMonitor.Properties.Resources.AtomSpectraRestErrRefused;
+                case WebExceptionStatus.NameResolutionFailure:
+                case WebExceptionStatus.ProxyNameResolutionFailure:
+                    return BecquerelMonitor.Properties.Resources.AtomSpectraRestErrNoName;
+                case WebExceptionStatus.Timeout:
+                case WebExceptionStatus.RequestCanceled:   // the deadline timer aborts the request
+                    return BecquerelMonitor.Properties.Resources.AtomSpectraRestErrTimeout;
+                default:
+                    return string.Format(CultureInfo.InvariantCulture, BecquerelMonitor.Properties.Resources.AtomSpectraRestErrNetwork, ex.Message);
+            }
+        }
+
         // gzip / deflate by Content-Encoding; anything else is returned as it came. problem != null: the body is not handed on;
         // broken: it was cut short or corrupt (the attempt is repeated), otherwise it is over the limit (it is not).
-        private static byte[] Decode(byte[] wire, string encoding, out string problem, out bool broken)
+        // problem is the log line, userProblem the same for the user.
+        private static byte[] Decode(byte[] wire, string encoding, out string problem, out string userProblem, out bool broken)
         {
             problem = null;
+            userProblem = null;
             broken = false;
-            if (wire.Length > MaxBodyBytes) { problem = "body is over the limit of " + MaxBodyBytes + " B"; return new byte[0]; }
+            if (wire.Length > MaxBodyBytes) { problem = "body is over the limit of " + MaxBodyBytes.ToString(CultureInfo.InvariantCulture) + " B"; userProblem = TooLargeText(); return new byte[0]; }
             if (encoding != "gzip" && encoding != "deflate") return wire;
             try
             {
@@ -776,7 +853,7 @@ namespace BecquerelMonitor
                     while ((n = unzip.Read(chunk, 0, chunk.Length)) > 0)
                     {
                         output.Write(chunk, 0, n);
-                        if (output.Length > MaxBodyBytes) { problem = "decoded body is over the limit of " + MaxBodyBytes + " B"; return new byte[0]; }
+                        if (output.Length > MaxBodyBytes) { problem = "decoded body is over the limit of " + MaxBodyBytes.ToString(CultureInfo.InvariantCulture) + " B"; userProblem = TooLargeText(); return new byte[0]; }
                     }
                     if (encoding == "gzip") CheckGzipTrailer(wire, output.Length);
                     return output.ToArray();
@@ -785,6 +862,7 @@ namespace BecquerelMonitor
             catch (System.IO.InvalidDataException ex)
             {
                 problem = ex.Message;
+                userProblem = BecquerelMonitor.Properties.Resources.AtomSpectraRestErrGzip;
                 broken = true;
                 return new byte[0];
             }
@@ -797,9 +875,9 @@ namespace BecquerelMonitor
         // assumed (the board sends one): of several members the ISIZE of the last one would not match the whole output.
         private static void CheckGzipTrailer(byte[] wire, long decodedLength)
         {
-            if (wire.Length < 18) throw new System.IO.InvalidDataException("gzip body is cut short (" + wire.Length + " B)");
+            if (wire.Length < 18) throw new System.IO.InvalidDataException(AtomSpectraTcpLog.Format("gzip body is cut short ({0} B)", wire.Length));
             uint isize = BitConverter.ToUInt32(wire, wire.Length - 4);
-            if (isize != (uint)(decodedLength & 0xFFFFFFFFL)) throw new System.IO.InvalidDataException("gzip body is cut short (the trailer does not match: " + isize + " <> " + decodedLength + ")");
+            if (isize != (uint)(decodedLength & 0xFFFFFFFFL)) throw new System.IO.InvalidDataException(AtomSpectraTcpLog.Format("gzip body is cut short (the trailer does not match: {0} <> {1})", isize, decodedLength));
         }
 
         private string AuthorizationHeader()
@@ -820,10 +898,10 @@ namespace BecquerelMonitor
             // No secret goes to the log: neither the CSRF token nor the Authorization value.
             string logLine = method + " " + BaseUrl + path +
                 (withToken ? " [CSRF]" : "") + (AuthKind != AtomSpectraRestAuth.None ? " [auth " + AuthKind + "]" : "") +
-                " -> " + (result.Status == 0 ? "no response" : result.Status.ToString()) +
-                ", " + result.WireBytes + " B" +
-                (result.ContentEncoding.Length > 0 ? " (compressed: " + result.ContentEncoding + ", body " + result.BodyBytes + " B)" : " (plain)") +
-                ", " + result.ElapsedMs + " ms" +
+                " -> " + (result.Status == 0 ? "no response" : result.Status.ToString(CultureInfo.InvariantCulture)) +
+                ", " + result.WireBytes.ToString(CultureInfo.InvariantCulture) + " B" +
+                (result.ContentEncoding.Length > 0 ? " (compressed: " + result.ContentEncoding + ", body " + result.BodyBytes.ToString(CultureInfo.InvariantCulture) + " B)" : " (plain)") +
+                ", " + result.ElapsedMs.ToString(CultureInfo.InvariantCulture) + " ms" +
                 (result.Error != null ? ", " + result.Error : "");
 
             if (result.Error != null)
