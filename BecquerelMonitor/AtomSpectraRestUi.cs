@@ -87,20 +87,24 @@ namespace BecquerelMonitor
             long bt = q.Board != null && q.Board.HasData ? q.Board.Time : 0;
             long bn = q.Board != null && q.Board.HasData ? q.Board.Total : 0;
 
-            string text = Span(q.Counting ? Resources.AtomSpectraRestStartRunning : Resources.AtomSpectraRestStartStopped, bt, bn);
+            // a board that sent no status (TCP: a silent bridge) is described by the note; "stopped, 0 h 0 min" would be untrue
+            bool known = q.Board != null && q.Board.HasData;
+            string text = known || string.IsNullOrEmpty(q.Note)
+                ? Span(q.Counting ? Resources.AtomSpectraRestStartRunning : Resources.AtomSpectraRestStartStopped, bt, bn)
+                : "";
 
             if (q.DocumentSeconds > 0 || q.DocumentCounts > 0)
-                text += Environment.NewLine + Span(Resources.AtomSpectraRestStartDocument, q.DocumentSeconds, q.DocumentCounts);
+                text += (text.Length > 0 ? Environment.NewLine : "") + Span(Resources.AtomSpectraRestStartDocument, q.DocumentSeconds, q.DocumentCounts);
 
             // the board below the document in time or counts: reset; in a channel only: another acquisition that overtook ours
             bool behind = q.Board == null || !q.Board.HasData || bt < q.DocumentSeconds || bn < q.DocumentCounts;
             if (!q.ContinueAllowed)
-                text += Environment.NewLine + Environment.NewLine + (q.ChannelBelow >= 0 && !behind
+                text += (text.Length > 0 ? Environment.NewLine + Environment.NewLine : "") + (q.ChannelBelow >= 0 && !behind
                     ? string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraRestStartOtherSpectrum, q.ChannelBelow)
                     : Resources.AtomSpectraRestStartBehind);
 
             if (!string.IsNullOrEmpty(q.Note))
-                text += Environment.NewLine + Environment.NewLine + q.Note;   // TCP says what each button sends
+                text += (text.Length > 0 ? Environment.NewLine + Environment.NewLine : "") + q.Note;   // TCP says what each button sends
 
             return text;
         }
@@ -147,7 +151,9 @@ namespace BecquerelMonitor
                 cancel.DialogResult = DialogResult.Cancel;
                 f.Controls.Add(cancel);
 
-                int extra = string.IsNullOrEmpty(q.Note) ? 0 : 100;   // room for the TCP note
+                // room for the text as it lays out at this width (the reason lines and the TCP note vary in length)
+                Size need = TextRenderer.MeasureText(lbl.Text, lbl.Font, new Size(lbl.Width, int.MaxValue), TextFormatFlags.WordBreak);
+                int extra = Math.Max(0, need.Height + 8 - lbl.Height);
                 f.ClientSize = new Size(480, 190 + extra);
                 lbl.Height += extra;
                 foreach (Control b in new Control[] { cont, restart, cancel }) b.Top += extra;
