@@ -247,7 +247,8 @@ namespace BecquerelMonitor
                 AtomSpectraTcpLog.Info("Session", "the program closes: the joined acquisition goes on counting on the board, no message shown");
                 return;
             }
-            ReportLater(string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraRestStopJoined, rest != null ? rest.Endpoint : "?"));
+            ReportLater(string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraRestStopJoined, rest != null ? rest.Endpoint : "?"),
+                "Stop: the joined acquisition goes on counting on the board");
         }
 
         private void StopByBoard(string message)
