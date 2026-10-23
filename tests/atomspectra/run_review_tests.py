@@ -9,8 +9,10 @@ import tempfile
 
 sys.stdout.reconfigure(encoding="utf-8")
 
-CSC = os.environ.get("ATOMSPECTRA_CSC") or r"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\Roslyn\csc.exe"
 D = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, D)
+import rest_suite   # the build tools (ATOMSPECTRA_CSC, or found by vswhere) and the resource stub of a source build
+CSC = rest_suite.CSC
 W = os.environ.get("REST_WORK") or os.path.join(tempfile.gettempdir(), "atomspectra_tests_tcp")
 
 def get_free_port():
@@ -81,13 +83,14 @@ def build_src(out_dir, src_dir, mutation):
         "AtomSpectraRestCalibration.cs"
     ]
     
+    texts = []
     for f in files_to_copy:
         src_path = os.path.join(src_dir, f)
         dst_name = os.path.basename(f)
         dst_path = os.path.join(out_dir, dst_name)
         with open(src_path, "r", encoding="utf-8-sig") as fin:
             content = fin.read()
-        
+
         if mutation:
             m_file, old, new = mutation
             if os.path.basename(m_file) == dst_name:
@@ -95,10 +98,11 @@ def build_src(out_dir, src_dir, mutation):
                 if count != 1:
                     raise Exception(f"Mutation failed: expected 1 occurrence of {repr(old)} in {dst_name}, found {count}")
                 content = content.replace(old, new)
-        
+
+        texts.append(content)
         with open(dst_path, "w", encoding="utf-8-sig") as fout:
             fout.write(content)
-    
+
     stubs_content = """namespace BecquerelMonitor.Properties { public static class Resources {
       public static string ERRAtomSpectraTcpCalBusy = "busy {0}:{1}"; public static string ERRAtomSpectraTcpConnect = "connect {0}:{1} {2}";
       public static string ERRIncorrectCRC = "crc"; public static string ERREmptyCoefficients = "empty"; public static string ERRReadDataFromPort_Empty = "noanswer";
@@ -106,7 +110,7 @@ def build_src(out_dir, src_dir, mutation):
 namespace BecquerelMonitor { public class PolynomialEnergyCalibration { public int PolynomialOrder { get; set; } public double[] Coefficients { get; set; } } }
 """
     with open(os.path.join(out_dir, "Stubs.cs"), "w", encoding="utf-8-sig") as f:
-        f.write(stubs_content)
+        f.write(rest_suite.source_stubs(stubs_content, src_dir, texts))   # every other Resources.X of the sources (English, from Resources.resx) and AppUi
     
     all_cs = [os.path.join(out_dir, os.path.basename(f)) for f in files_to_copy]
     all_cs.append(os.path.join(out_dir, "Stubs.cs"))

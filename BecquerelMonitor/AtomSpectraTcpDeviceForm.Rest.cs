@@ -80,8 +80,8 @@ namespace BecquerelMonitor
             // Auth kind
             this.Controls.Add(MakeLabel(Resources.AtomSpectraRestAuth, 510));
             comboAuth = new ComboBox { Location = new Point(215, 510), Width = 120, DropDownStyle = ComboBoxStyle.DropDownList };
-            comboAuth.Items.Add("None");
-            comboAuth.Items.Add("Basic");
+            comboAuth.Items.Add(Resources.AtomSpectraRestAuthNone);
+            comboAuth.Items.Add("Basic");    // the names of the HTTP schemes are not translated
             comboAuth.Items.Add("Bearer");
             comboAuth.SelectedIndexChanged += Setting_Changed;
             comboAuth.SelectedIndexChanged += (s, e) => UpdateRestEnabled();
@@ -105,7 +105,7 @@ namespace BecquerelMonitor
             this.Controls.Add(buttonRestTest);
 
             buttonShowLog = new Button { Location = new Point(195, 598), Size = new Size(130, 23), Text = Resources.AtomSpectraRestShowLog };
-            buttonShowLog.Click += (s, e) => AtomSpectraTcpLogForm.ShowLog(FindForm());
+            buttonShowLog.Click += (s, e) => AtomSpectraTcpLogForm.ShowLog();   // no owner: the log outlives the settings window
             this.Controls.Add(buttonShowLog);
 
             // Result label
@@ -163,7 +163,7 @@ namespace BecquerelMonitor
             if (radioRest.Checked && !AtomSpectraTcpDeviceConfig.IsValidRestUrl(url))
             {
                 ShowWarning(string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraRestBadUrl, url));
-                throw new FormatException("AtomSpectra REST: invalid board URL");
+                throw new DeviceSaveRefusedException("AtomSpectra REST: invalid board URL");   // already said: no second window
             }
 
             config.Transport = radioRest.Checked ? AtomSpectraTransport.Rest : AtomSpectraTransport.TcpBridge;
@@ -204,7 +204,8 @@ namespace BecquerelMonitor
                 return;
             }
 
-            int generation = ++testGeneration;
+            int generation = ++restTestGeneration;
+            int page = pageGeneration;
             buttonRestTest.Enabled = false;
             labelRestResult.Text = Resources.AtomSpectraTcpTesting;
 
@@ -214,7 +215,7 @@ namespace BecquerelMonitor
                 string bootConfig;
                 string text = RunRestTest(client, out calibration, out bootConfig);
                 AtomSpectraTcpLog.Info("Test", "Test connection (REST) " + client.BaseUrl + ": " + text);   // the result goes to the log too
-                ShowRestResult(generation, text, calibration, bootConfig);
+                ShowRestResult(generation, page, text, calibration, bootConfig);
             });
             worker.IsBackground = true;
             worker.Name = "AtomSpectraRestTest";
@@ -237,7 +238,7 @@ namespace BecquerelMonitor
             AtomSpectraRestResponse st = client.Get("/api/status", 3000);
             if (!st.Ok)
             {
-                return client.BaseUrl + ": " + (st.Error ?? ("HTTP " + st.Status));
+                return client.BaseUrl + ": " + AtomSpectraDeviceConsole.Problem(st);   // the raw error is in the log of the client
             }
 
             try
@@ -246,7 +247,7 @@ namespace BecquerelMonitor
                 AtomSpectraRestResponse dv = client.Get("/api/device", 3000);
                 Dictionary<string, object> d = dv.Ok ? AtomSpectraJson.Parse(dv.Body) as Dictionary<string, object> : null;
                 calibration = dv.Ok ? AtomSpectraRestCalibration.ParseDevice(dv.Body)
-                    : new AtomSpectraTcpCalibrationResult(AtomSpectraTcpCalibrationFailure.Connect, dv.Error ?? ("HTTP " + dv.Status), null, null);
+                    : new AtomSpectraTcpCalibrationResult(AtomSpectraTcpCalibrationFailure.Connect, AtomSpectraDeviceConsole.Problem(dv), null, null);
                 AtomSpectraRestResponse boot = client.Get("/api/boot-config", 3000);
                 bootConfig = boot.Ok ? boot.Body : null;
                 string compression = CompressionText(client.Get("/api/spectrum.json", 3000));   // the board compresses only the spectrum
@@ -264,22 +265,24 @@ namespace BecquerelMonitor
             }
             catch (FormatException ex)
             {
-                return client.BaseUrl + ": " + ex.Message;
+                AtomSpectraTcpLog.Warn("Test", "Test connection (REST) " + client.BaseUrl + ": " + ex.Message);   // the parser's words go to the log
+                return client.BaseUrl + ": " + Resources.AtomSpectraRestBadJson;
             }
         }
 
-        private void ShowRestResult(int generation, string text, AtomSpectraTcpCalibrationResult calibration = null, string bootConfig = null)
+        private void ShowRestResult(int generation, int page, string text, AtomSpectraTcpCalibrationResult calibration = null, string bootConfig = null)
         {
             if (IsDisposed || !IsHandleCreated) return;
             try
             {
                 BeginInvoke(new MethodInvoker(delegate
                 {
-                    if (generation != testGeneration || IsDisposed) return;
+                    if (IsDisposed) return;
+                    if (generation == restTestGeneration) buttonRestTest.Enabled = radioRest.Checked;   // the last test is over
+                    if (generation != restTestGeneration || page != pageGeneration) return;   // a newer test, or another configuration on the page
                     labelRestResult.Text = text;
                     if (calibration != null) ApplyBoardCalibration(calibration);   // board calibration -> Energy Calibration page
                     ShowBoardGzip(bootConfig);   // the board's reply compression level (null = not read)
-                    buttonRestTest.Enabled = radioRest.Checked;
                 }));
             }
             catch (InvalidOperationException)

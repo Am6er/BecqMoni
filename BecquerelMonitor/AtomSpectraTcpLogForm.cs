@@ -8,10 +8,11 @@ using System.IO;
 using System.Text;
 using System.Windows.Forms;
 
-// Non-modal log window of the AtomSpectra TCP/REST device type.
+// Non-modal log window of the AtomSpectra TCP/REST device type, one for the whole program.
 // Lines arrive on any thread through LineAdded and are only queued;
 // a UI timer appends them in batches at most 10 times a second, so writers never wait for the window.
 // Closing the window neither stops a measurement nor loses the buffer (the buffer is AtomSpectraTcpLog).
+// It has no owner: closing the device settings window it was opened from does not close it.
 namespace BecquerelMonitor
 {
     public sealed partial class AtomSpectraTcpLogForm : Form
@@ -43,7 +44,7 @@ namespace BecquerelMonitor
             // Form setup
             Text = Resources.AtomSpectraTcpLogTitle;
             Size = new Size(900, 500);
-            StartPosition = FormStartPosition.CenterParent;
+            StartPosition = FormStartPosition.CenterScreen;   // no owner to center on
             ShowInTaskbar = true;
 
             // RichTextBox
@@ -114,7 +115,9 @@ namespace BecquerelMonitor
             flushTimer.Start();
         }
 
-        public static void ShowLog(IWin32Window owner)
+        // Shown WITHOUT an owner: an owned window is closed together with its owner, and the button that opens
+        // the log sits in the device settings window, which is closed long before a measurement ends.
+        public static void ShowLog()
         {
             if (instance == null || instance.IsDisposed)
             {
@@ -123,14 +126,7 @@ namespace BecquerelMonitor
 
             if (!instance.Visible)
             {
-                if (owner != null)
-                {
-                    instance.Show(owner);
-                }
-                else
-                {
-                    instance.Show();
-                }
+                instance.Show();
             }
 
             instance.Activate();
@@ -293,7 +289,7 @@ namespace BecquerelMonitor
         {
             using (SaveFileDialog dlg = new SaveFileDialog())
             {
-                dlg.Filter = "Log (*.log)|*.log|Text (*.txt)|*.txt";
+                dlg.Filter = Resources.AtomSpectraTcpLogFileFilter;
                 dlg.FileName = "atomspectra-tcp-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".log";
 
                 if (dlg.ShowDialog() == DialogResult.OK)

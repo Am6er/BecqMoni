@@ -27,7 +27,7 @@ namespace RestHarness
                 {
                     string text = AtomSpectraDeviceConsole.SendRest(Client(), "-inf", 2000);
                     Console.WriteLine(text);
-                    Check(text.Contains("(no text from the analyzer"), "no answer in the board log is said so");
+                    Check(text.Contains("(no text from the analyzer") || text.Contains("(в журнале платы за"), "no answer in the board log is said so");   // the text is a resource now: the language of the run
                     Check(!text.Contains("mock answer"), "nothing is made up");
                     return true;
                 }
@@ -35,7 +35,7 @@ namespace RestHarness
                 {
                     string text = AtomSpectraDeviceConsole.SendRest(Client(), "-inf", 2000);
                     Console.WriteLine(text);
-                    Check(text.Contains("did not accept"), "a refused command is reported");
+                    Check(text.Contains("did not accept") || text.Contains("не приняла"), "a refused command is reported");
                     return true;
                 }
                 case "console-refresh":
@@ -73,12 +73,12 @@ namespace RestHarness
                         };
                         var r1 = AtomSpectraDeviceConsole.Refresh(null, 1, false, 1000);
                         Console.WriteLine(r1.Message);
-                        Check(!r1.Found && r1.Message.Contains("not resolved"), "an unknown name is reported");
+                        Check(!r1.Found && (r1.Message.Contains("not resolved") || r1.Message.Contains("не найдено")), "an unknown name is reported");
 
                         AtomSpectraDeviceConsole.Resolve = n => new[] { IPAddress.Loopback };
                         var r2 = AtomSpectraDeviceConsole.Refresh("atomspectra.local", 1, false, 1000);
                         Console.WriteLine(r2.Message);
-                        Check(!r2.Found && r2.Message.Contains("no board answered"), "a name without a board is reported");
+                        Check(!r2.Found && (r2.Message.Contains("no board answered") || r2.Message.Contains("ни одна плата не ответила")), "a name without a board is reported");
                     }
                     finally
                     {

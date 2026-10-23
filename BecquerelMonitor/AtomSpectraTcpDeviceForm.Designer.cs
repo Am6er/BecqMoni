@@ -11,7 +11,7 @@ namespace BecquerelMonitor
         {
             if (disposing)
             {
-                testGeneration++;
+                pageGeneration++;   // answers still on their way find no page
                 if (components != null)
                 {
                     components.Dispose();

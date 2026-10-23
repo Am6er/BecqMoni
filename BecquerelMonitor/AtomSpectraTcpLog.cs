@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BecquerelMonitor.Properties;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -77,7 +78,8 @@ namespace BecquerelMonitor
         public static void SetStatus(string transport, string host, string state)
         {
             // the log window is shared; say that this is the LAST session's state and when it was set
-            statusText = "last session: " + (transport ?? "?") + "  |  " + (host ?? "") + "  |  " + (state ?? "") + "  |  " + DateTime.Now.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+            statusText = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraTcpLogLastSession,
+                transport ?? "?", host ?? "", state ?? "", DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture));
         }
 
         public static AtomSpectraTcpLogLine Add(AtomSpectraTcpLogLevel level, string source, string text)

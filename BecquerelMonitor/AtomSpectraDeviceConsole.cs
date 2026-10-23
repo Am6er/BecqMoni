@@ -3,7 +3,9 @@
 // REST: POST /api/command answers only {"ok":true|false} (fw web_server.c:322-342); the analyzer's text answer is taken from
 // the board log GET /api/devlog?since=N (fw usb_host_cdc.c: every CMD_TEXT packet, ring of 8 x 480 chars).
 // "Refresh" is not a mDNS browser: it resolves ONE name (atomspectra.local by default) through the system resolver.
+// Texts for a person come from Properties.Resources; the log lines stay English.
 
+using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -15,11 +17,105 @@ using System.Threading;
 
 namespace BecquerelMonitor
 {
+    // What a console command does to the board. Only Query is known to change nothing.
+    public enum AtomSpectraCommandKind
+    {
+        Query,              // -inf, -cal without values, -sho
+        Reset,              // -rst: erases the spectrum on the board
+        Stop,               // -sto
+        Start,              // -sta [seconds]
+        CalibrationWrite,   // -cal with values
+        Unknown             // anything else: the program does not know what it changes
+    }
+
     public static class AtomSpectraDeviceConsole
     {
         public const string DefaultBoardName = "atomspectra.local";
 
+        // the output windows keep the newest text up to these limits (older text is dropped)
+        public const int OutputMaxChars = 200 * 1024;
+        public const int OutputMaxLines = 2000;
+
         public static Func<string, IPAddress[]> Resolve = Dns.GetHostAddresses;
+
+        public static AtomSpectraCommandKind Classify(string command)
+        {
+            string[] parts = (command ?? "").Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0) return AtomSpectraCommandKind.Unknown;
+            string head = parts[0].ToLowerInvariant();
+            bool bare = parts.Length == 1;
+            switch (head)
+            {
+                case "-inf":
+                case "-sho":
+                    return bare ? AtomSpectraCommandKind.Query : AtomSpectraCommandKind.Unknown;
+                case "-cal":
+                    return bare ? AtomSpectraCommandKind.Query : AtomSpectraCommandKind.CalibrationWrite;
+                case "-rst":
+                    return AtomSpectraCommandKind.Reset;
+                case "-sto":
+                    return AtomSpectraCommandKind.Stop;
+                case "-sta":
+                    return AtomSpectraCommandKind.Start;
+                default:
+                    return AtomSpectraCommandKind.Unknown;
+            }
+        }
+
+        // What the command does, for the confirmation; null for a query.
+        public static string EffectText(AtomSpectraCommandKind kind)
+        {
+            switch (kind)
+            {
+                case AtomSpectraCommandKind.Reset: return Resources.AtomSpectraConsoleEffectReset;
+                case AtomSpectraCommandKind.Stop: return Resources.AtomSpectraConsoleEffectStop;
+                case AtomSpectraCommandKind.Start: return Resources.AtomSpectraConsoleEffectStart;
+                case AtomSpectraCommandKind.CalibrationWrite: return Resources.AtomSpectraConsoleEffectCalibration;
+                case AtomSpectraCommandKind.Unknown: return Resources.AtomSpectraConsoleEffectUnknown;
+                default: return null;
+            }
+        }
+
+        // Why a REST request failed, for a person (the raw error text stays in the log of the client).
+        public static string Problem(AtomSpectraRestResponse r)
+        {
+            if (r == null || r.Status <= 0) return Resources.AtomSpectraRestNoAnswer;
+            if (r.BodyBroken) return Resources.AtomSpectraRestBodyBroken;
+            return string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraRestHttpStatus, r.Status);
+        }
+
+        // The newest text is at the start (the console writes on top): keep the head within the limits.
+        public static string ClipHead(string text, int maxChars, int maxLines)
+        {
+            if (string.IsNullOrEmpty(text)) return text ?? "";
+            int end = Math.Min(text.Length, maxChars);
+            int lines = 0;
+            for (int i = 0; i < end; i++)
+            {
+                if (text[i] == '\n' && ++lines >= maxLines) { end = i + 1; break; }
+            }
+            if (end >= text.Length) return text;
+            int cut = text.LastIndexOf('\n', end - 1);   // whole lines only
+            return cut >= 0 ? text.Substring(0, cut + 1) : text.Substring(0, end);
+        }
+
+        // The newest text is at the end (an appending window): keep the tail within the limits.
+        public static string ClipTail(string text, int maxChars, int maxLines)
+        {
+            if (string.IsNullOrEmpty(text)) return text ?? "";
+            int start = Math.Max(0, text.Length - maxChars);
+            if (start > 0)
+            {
+                int nl = text.IndexOf('\n', start - 1);   // whole lines only
+                if (nl >= 0) start = nl + 1;
+            }
+            int lines = 0;
+            for (int i = text.Length - 2; i >= start; i--)   // a line break at the very end closes the newest line
+            {
+                if (text[i] == '\n' && ++lines >= maxLines) { start = i + 1; break; }
+            }
+            return start == 0 ? text : text.Substring(start);
+        }
 
         public static bool TryParseAddress(string text, int defaultPort, out string host, out int port)
         {
@@ -142,22 +238,19 @@ namespace BecquerelMonitor
             }
             catch (SocketException ex)
             {
-                var res = new RefreshResult { Found = false, Message = "name " + name + " not resolved: " + ex.Message };
-                AtomSpectraTcpLog.Info("Refresh", res.Message);
-                return res;
+                AtomSpectraTcpLog.Info("Refresh", "name " + name + " not resolved: " + ex.Message);
+                return NotResolved(name);
             }
             catch (ArgumentException ex)
             {
-                var res = new RefreshResult { Found = false, Message = "name " + name + " not resolved: " + ex.Message };
-                AtomSpectraTcpLog.Info("Refresh", res.Message);
-                return res;
+                AtomSpectraTcpLog.Info("Refresh", "name " + name + " not resolved: " + ex.Message);
+                return NotResolved(name);
             }
 
             if (list == null || list.Length == 0)
             {
-                var res = new RefreshResult { Found = false, Message = "name " + name + " not resolved" };
-                AtomSpectraTcpLog.Info("Refresh", res.Message);
-                return res;
+                AtomSpectraTcpLog.Info("Refresh", "name " + name + " not resolved");
+                return NotResolved(name);
             }
 
             var ordered = list
@@ -205,13 +298,19 @@ namespace BecquerelMonitor
                 }
             }
 
-            var notFound = new RefreshResult
+            string addresses = string.Join(", ", addressStrings);
+            AtomSpectraTcpLog.Info("Refresh", name + " resolves to " + addresses + ", but no board answered GET /api/device");
+            return new RefreshResult
             {
                 Found = false,
-                Message = name + " resolves to " + string.Join(", ", addressStrings) + ", but no board answered GET /api/device"
+                Message = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleNoBoardAnswered, name, addresses)
             };
-            AtomSpectraTcpLog.Info("Refresh", notFound.Message);
-            return notFound;
+        }
+
+        // Message is for a person (the status line); the log has the resolver's own words
+        private static RefreshResult NotResolved(string name)
+        {
+            return new RefreshResult { Found = false, Message = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleNotResolved, name) };
         }
 
         public static string SendRest(AtomSpectraRestClient client, string command, int waitMs)
@@ -239,9 +338,11 @@ namespace BecquerelMonitor
             AtomSpectraRestResponse r = client.Command(command, 3000);
             if (!r.Accepted)
             {
+                // the board's own answer ({"ok":false}) is shown as it is
+                string why = r.Ok ? string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraRestHttpStatus, r.Status) + " " + r.Body : Problem(r);
                 string msg = ">> " + command + Environment.NewLine +
-                    "!! the board did not accept the command: " + (r.Error ?? ("HTTP " + r.Status + " " + r.Body));
-                AtomSpectraTcpLog.Info("Console", "REST command " + command + ": not accepted");
+                    string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleNotAccepted, why) + Environment.NewLine;
+                AtomSpectraTcpLog.Info("Console", "REST command " + command + ": not accepted (" + (r.Error ?? ("HTTP " + r.Status.ToString(CultureInfo.InvariantCulture))) + ")");
                 return msg;
             }
 
@@ -290,13 +391,12 @@ namespace BecquerelMonitor
             if (sb.Length > 0)
             {
                 result = ">> " + command + Environment.NewLine + sb.ToString();
-                AtomSpectraTcpLog.Info("Console", "REST command " + command + ": answer " + sb.Length + " chars");
+                AtomSpectraTcpLog.Info("Console", "REST command " + command + ": answer " + sb.Length.ToString(CultureInfo.InvariantCulture) + " chars");
             }
             else
             {
                 result = ">> " + command + Environment.NewLine +
-                    "(no text from the analyzer in the board log within " + (waitMs / 1000.0).ToString("0.#", CultureInfo.InvariantCulture) +
-                    " s; the board answered " + r.Body + ")" + Environment.NewLine;
+                    string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleNoText, (waitMs / 1000.0).ToString("0.#", CultureInfo.InvariantCulture), r.Body) + Environment.NewLine;
                 AtomSpectraTcpLog.Info("Console", "REST command " + command + ": no answer in the board log");
             }
 
@@ -314,24 +414,25 @@ namespace BecquerelMonitor
             {
                 string a = live.Query(command, waitMs);
                 string result = ">> " + command + Environment.NewLine +
-                    (string.IsNullOrEmpty(a) ? "(no answer)" : a.TrimEnd('\r', '\n')) + Environment.NewLine;
+                    (string.IsNullOrEmpty(a) ? Resources.AtomSpectraConsoleNoAnswer : a.TrimEnd('\r', '\n')) + Environment.NewLine;
                 AtomSpectraTcpLog.Info("Console", "TCP command via the open session");
                 return result;
             }
 
+            string where = host + ":" + port.ToString(CultureInfo.InvariantCulture);
             var acq = new AtomSpectraTcpAcquisition(
                 () => new AtomSpectraTcpTransport(host, port, 1500),
                 60000,
                 0,
-                "console " + host + ":" + port);
+                "console " + where);
 
             try
             {
                 acq.Start();
                 if (!acq.WaitConnected(2500))
                 {
-                    AtomSpectraTcpLog.Info("Console", "TCP command: no connection to " + host + ":" + port);
-                    return ">> " + command + Environment.NewLine + "!! no connection to " + host + ":" + port + Environment.NewLine;
+                    AtomSpectraTcpLog.Info("Console", "TCP command: no connection to " + where);
+                    return ">> " + command + Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleNoConnection, host, port) + Environment.NewLine;
                 }
 
                 acq.SendCommand(command);
@@ -353,13 +454,13 @@ namespace BecquerelMonitor
                 if (sb.Length > 0)
                 {
                     result = ">> " + command + Environment.NewLine + sb.ToString();
-                    AtomSpectraTcpLog.Info("Console", "TCP command: answer " + sb.Length + " chars");
+                    AtomSpectraTcpLog.Info("Console", "TCP command: answer " + sb.Length.ToString(CultureInfo.InvariantCulture) + " chars");
                 }
                 else
                 {
                     result = ">> " + command + Environment.NewLine +
-                        "(no answer within " + waitMs + " ms)" + Environment.NewLine;
-                    AtomSpectraTcpLog.Info("Console", "TCP command: no answer within " + waitMs + " ms");
+                        string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleNoAnswerWithin, waitMs) + Environment.NewLine;
+                    AtomSpectraTcpLog.Info("Console", "TCP command: no answer within " + waitMs.ToString(CultureInfo.InvariantCulture) + " ms");
                 }
 
                 return result;
