@@ -43916,6 +43916,9 @@ Close the window and discard it?</value>
   <data name="ERRAtomSpectraTcpCalGap" xml:space="preserve">
     <value>AtomSpectra TCP: the device calibration has an empty coefficient followed by a filled one; the coefficients would shift to wrong powers, so they were not applied.</value>
   </data>
+  <data name="ERRAtomSpectraTcpCalNotTaken" xml:space="preserve">
+    <value>AtomSpectra TCP: the calibration of the board is not taken: its scale at {0} channels is not established. The page keeps its own calibration.</value>
+  </data>
   <data name="ERRAtomSpectraTcpBadHost" xml:space="preserve">
     <value>AtomSpectra: "{0}" is not a valid board address. Enter host[:port] - an IP address or a name, e.g. 192.168.0.119 or atomspectra.local:8234, without "http://". Without a port, {1} is used.</value>
   </data>

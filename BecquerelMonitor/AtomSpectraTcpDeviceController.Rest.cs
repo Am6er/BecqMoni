@@ -71,7 +71,7 @@ namespace BecquerelMonitor
                 AtomSpectraRestSession rest = session as AtomSpectraRestSession;
                 if (rest == null)
                 {
-                    refusal = string.Format(CultureInfo.CurrentCulture, Resources.ERRAtomSpectraRestBadUrl, restOpenError ?? "?");
+                    refusal = string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraRestBadUrl, restOpenError ?? "?");
                 }
                 else
                 {
@@ -111,7 +111,7 @@ namespace BecquerelMonitor
             {
                 // our own text, not the generic "Bluetooth not supported" of MeasurementController
                 AtomSpectraTcpLog.Error("Session", "Start failed: " + ex.GetType().Name + ": " + ex.Message);
-                refusal = string.Format(CultureInfo.CurrentCulture, Resources.ERRAtomSpectraRestStart, ex.Message);
+                refusal = string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraRestStart, ex.Message);
             }
             r.ResultDataStatus.Recording = false;
             return Refuse(refusal);
@@ -125,7 +125,7 @@ namespace BecquerelMonitor
                     return rest.UnreachableText();
                 case AtomSpectraRestFailure.StopRefused:
                 case AtomSpectraRestFailure.ResetRefused:
-                    return string.Format(CultureInfo.CurrentCulture, Resources.ERRAtomSpectraRestRestartPartial, rest.LastError ?? "");
+                    return string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraRestRestartPartial, rest.LastError ?? "");
                 case AtomSpectraRestFailure.HeadlessBehind:
                     return Resources.ERRAtomSpectraRestHeadlessBehind;
                 case AtomSpectraRestFailure.HeadlessAsk:   // a stopped board with data and no window to ask in
@@ -133,7 +133,7 @@ namespace BecquerelMonitor
                 case AtomSpectraRestFailure.DocumentNotEmpty:
                     return Resources.ERRAtomSpectraRestNeedNewDocument;
                 default:
-                    return string.Format(CultureInfo.CurrentCulture, Resources.ERRAtomSpectraRestStart, rest.LastError ?? outcome.ToString());
+                    return string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraRestStart, rest.LastError ?? outcome.ToString());
             }
         }
 
@@ -144,7 +144,7 @@ namespace BecquerelMonitor
             AtomSpectraRestSession rest = session as AtomSpectraRestSession;
             if (rest == null)
             {
-                AppUi.Report(string.Format(CultureInfo.CurrentCulture, Resources.ERRAtomSpectraRestBadUrl, restOpenError ?? "?"), "", MessageBoxIcon.Warning);
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraRestBadUrl, restOpenError ?? "?"), "", MessageBoxIcon.Warning);
                 return;
             }
             if (rest.ObserveOnly)
@@ -163,19 +163,19 @@ namespace BecquerelMonitor
             });
             if (board == null)
             {
-                AppUi.Report(string.Format(CultureInfo.CurrentCulture, Resources.MSGAtomSpectraRestNotReset, error ?? "?"), "", MessageBoxIcon.Warning);
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraRestNotReset, error ?? "?"), "", MessageBoxIcon.Warning);
                 return;
             }
             if (!AtomSpectraRestUi.ConfirmClear(board))
             {
                 AtomSpectraTcpLog.Info("Session", "Clear: declined, board not reset");
-                AppUi.Report(string.Format(CultureInfo.CurrentCulture, Resources.MSGAtomSpectraRestNotReset, Resources.AtomSpectraRestDeclined), "", MessageBoxIcon.Information);
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraRestNotReset, Resources.AtomSpectraRestDeclined), "", MessageBoxIcon.Information);
                 return;
             }
             bool ok = AtomSpectraRestUi.RunWithWait(delegate { return rest.ClearNow(CommandTimeoutMs); });
             if (!ok)
             {
-                AppUi.Report(string.Format(CultureInfo.CurrentCulture, Resources.MSGAtomSpectraRestNotReset, rest.LastError ?? "?"), "", MessageBoxIcon.Warning);
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraRestNotReset, rest.LastError ?? "?"), "", MessageBoxIcon.Warning);
                 return;
             }
             r.StartTime = DateTime.Now;
@@ -183,7 +183,7 @@ namespace BecquerelMonitor
 
         private void RestBoardReset(object sender, string why)
         {
-            StopByBoard(string.Format(CultureInfo.CurrentCulture, Resources.MSGAtomSpectraRestBoardReset, why));
+            StopByBoard(string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraRestBoardReset, why));
         }
 
         private void RestBoardStalled(object sender, EventArgs e)

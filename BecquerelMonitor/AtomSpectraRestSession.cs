@@ -80,15 +80,15 @@ namespace BecquerelMonitor
         {
             AtomSpectraRestAcquisition a = acquisition;
             if (a != null && a.AccessDenied)   // 401/403 is a refusal of access, not a board that does not answer
-                return string.Format(CultureInfo.CurrentCulture, AccessDeniedFormat, AtomSpectraTcpLog.Mask(client.BaseUrl), a.LastAnsweredStatus, periodSeconds);
-            return string.Format(CultureInfo.CurrentCulture, BecquerelMonitor.Properties.Resources.MSGAtomSpectraRestLinkLost,
+                return string.Format(CultureInfo.InvariantCulture, AccessDeniedFormat, AtomSpectraTcpLog.Mask(client.BaseUrl), a.LastAnsweredStatus, periodSeconds);
+            return string.Format(CultureInfo.InvariantCulture, BecquerelMonitor.Properties.Resources.MSGAtomSpectraRestLinkLost,
                 AtomSpectraTcpLog.Mask(client.BaseUrl), periodSeconds);
         }
 
         // The message of a Start that could not reach the board.
         public string UnreachableText()
         {
-            return string.Format(CultureInfo.CurrentCulture, BecquerelMonitor.Properties.Resources.ERRAtomSpectraRestUnreachable,
+            return string.Format(CultureInfo.InvariantCulture, BecquerelMonitor.Properties.Resources.ERRAtomSpectraRestUnreachable,
                 AtomSpectraTcpLog.Mask(client.BaseUrl), periodSeconds, LastError ?? "");   // not the bridge text (one client, busy slot)
         }
 

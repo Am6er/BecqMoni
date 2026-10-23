@@ -381,9 +381,11 @@ namespace BecquerelMonitor
                 button.Enabled = true;
                 if (!stillCurrent()) return;      // another device config was selected meanwhile
                 string error = Describe(result, config);
-                if (error != null) { MessageBox.Show(error); return; }
+                // through AppUi.Report: a bare MessageBox here hangs a run without windows (S100, tools/check_headless.py)
+                if (error != null) { AppUi.Report(error, Resources.ErrorDialogTitle, MessageBoxIcon.Warning); return; }
                 if (!ApplyResult(result, config, calibration, fieldsInOrder, markDirty, channels))
-                    MessageBox.Show("The calibration of the board is not taken: its scale at " + (channels == null ? 0 : channels()) + " channels is not established. The page keeps its own.");
+                    AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpCalNotTaken, channels == null ? 0 : channels()),
+                        Resources.ErrorDialogTitle, MessageBoxIcon.Warning);
             });
         }
 

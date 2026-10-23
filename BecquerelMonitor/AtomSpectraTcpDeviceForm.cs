@@ -98,7 +98,7 @@ namespace BecquerelMonitor
             bool addressEmpty = textAddress.Text.Trim().Length == 0;
             if (!RestUrlGiven() && !addressEmpty && (!AtomSpectraTcpDeviceConfig.IsValidHost(host) || port < 1 || port > 65535))
             {
-                ShowWarning(string.Format(CultureInfo.CurrentCulture, Resources.ERRAtomSpectraTcpBadHost, textAddress.Text.Trim(), AddressDefaultPort()));
+                ShowWarning(string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpBadHost, textAddress.Text.Trim(), AddressDefaultPort()));
                 throw new FormatException("AtomSpectra TCP: invalid host or port");
             }
 

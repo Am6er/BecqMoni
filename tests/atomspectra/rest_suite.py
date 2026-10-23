@@ -445,7 +445,7 @@ REAL_MUTATIONS = [
     ("page-unfolded", "the page of 'Test connection' is given the 8192-channel polynomial where no fold exists",
      [("AtomSpectraTcpDeviceForm.Calibration.cs", "double[] folded = n > 0 ? AtomSpectraRestCalibration.ForChannels(page, 0, n) : page;", "double[] folded = (n > 0 ? AtomSpectraRestCalibration.ForChannels(page, 0, n) : page) ?? page;")], "f5-form-test-n"),
     ("headless-text", "HeadlessAsk has no text of its own (the generic one)",
-     [("AtomSpectraTcpDeviceController.Rest.cs", "return AtomSpectraRestSession.HeadlessAskText;", "return string.Format(CultureInfo.CurrentCulture, Resources.ERRAtomSpectraRestStart, rest.LastError ?? outcome.ToString());")], "f5-ctl-headless-text"),
+     [("AtomSpectraTcpDeviceController.Rest.cs", "return AtomSpectraRestSession.HeadlessAskText;", "return string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraRestStart, rest.LastError ?? outcome.ToString());")], "f5-ctl-headless-text"),
 ]
 MSBUILD = os.environ.get("ATOMSPECTRA_MSBUILD") or r"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
 

@@ -197,7 +197,7 @@ namespace BecquerelMonitor
 
             buttonRefresh.Enabled = false;
             labelStatus.ForeColor = Color.Gray;
-            labelStatus.Text = string.Format(CultureInfo.CurrentCulture, Resources.AtomSpectraConsoleStatusSearching, name);
+            labelStatus.Text = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleStatusSearching, name);
 
             Thread worker = new Thread(() =>
             {
@@ -210,14 +210,14 @@ namespace BecquerelMonitor
                     {
                         textAddress.Text = AtomSpectraDeviceConsole.FormatAddress(r.Host, AddressPort(), AddressDefaultPort());
                         labelStatus.ForeColor = Color.Green;
-                        labelStatus.Text = string.Format(CultureInfo.CurrentCulture, Resources.AtomSpectraConsoleStatusConnected, r.Serial, name + " -> " + r.Host);
+                        labelStatus.Text = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleStatusConnected, r.Serial, name + " -> " + r.Host);
                         ApplyBoardCalibration(AtomSpectraRestCalibration.ParseDevice(r.DeviceJson));   // board calibration -> Energy Calibration page
                         ShowBoardGzip(r.BootConfigJson);   // the board's reply compression level
                     }
                     else
                     {
                         labelStatus.ForeColor = Color.Red;
-                        labelStatus.Text = string.Format(CultureInfo.CurrentCulture, Resources.AtomSpectraConsoleStatusNotFound, r.Message);
+                        labelStatus.Text = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleStatusNotFound, r.Message);
                     }
                 });
             });
@@ -262,7 +262,7 @@ namespace BecquerelMonitor
                 AtomSpectraRestClient client = probe.CreateRestClient(out err);
                 if (client == null)
                 {
-                    PrependOutput(string.Format(CultureInfo.CurrentCulture, Resources.AtomSpectraConsoleBadAddress, err) + Environment.NewLine);
+                    PrependOutput(string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleBadAddress, err) + Environment.NewLine);
                     return;
                 }
 
@@ -281,7 +281,7 @@ namespace BecquerelMonitor
                 int port = (int)numericPort.Value;
                 if (!AtomSpectraTcpDeviceConfig.IsValidHost(host))
                 {
-                    PrependOutput(string.Format(CultureInfo.CurrentCulture, Resources.AtomSpectraConsoleBadAddress, textAddress.Text) + Environment.NewLine);
+                    PrependOutput(string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleBadAddress, textAddress.Text) + Environment.NewLine);
                     return;
                 }
 

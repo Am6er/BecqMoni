@@ -28,12 +28,12 @@ namespace BecquerelMonitor
                 double[] folded = n > 0 ? AtomSpectraRestCalibration.ForChannels(page, 0, n) : page;
                 if (folded == null)
                 {
-                    text = string.Format(CultureInfo.CurrentCulture, Resources.AtomSpectraCalibNotRead, "the board calibration is for 8192 channels, it cannot be folded to the " + n + " channels of the profile; the page keeps its own");
+                    text = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraCalibNotRead, "the board calibration is for 8192 channels, it cannot be folded to the " + n + " channels of the profile; the page keeps its own");
                 }
                 else
                 {
                     if (target != null) target(folded);
-                    text = string.Format(CultureInfo.CurrentCulture, Resources.AtomSpectraCalibToPage, string.Join("; ", folded.Select(c => c.ToString("R", CultureInfo.InvariantCulture))));
+                    text = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraCalibToPage, string.Join("; ", folded.Select(c => c.ToString("R", CultureInfo.InvariantCulture))));
                 }
             }
             else if (r != null && r.Error == "calib_set is false")
@@ -42,7 +42,7 @@ namespace BecquerelMonitor
             }
             else
             {
-                text = string.Format(CultureInfo.CurrentCulture, Resources.AtomSpectraCalibNotRead, r == null ? "?" : (r.Error ?? r.Failure.ToString()));
+                text = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraCalibNotRead, r == null ? "?" : (r.Error ?? r.Failure.ToString()));
             }
 
             AtomSpectraTcpLog.Info("Cal", text);
