@@ -115,7 +115,7 @@ namespace BecquerelMonitor
             if (a < 0) return "";
 
             string f = a > AtomSpectraTcpLog.StaleAfterSeconds ? Resources.AtomSpectraTcpLogStale : Resources.AtomSpectraTcpLogFresh;
-            return "  |  " + string.Format(CultureInfo.CurrentCulture, f, (int)a);
+            return "  |  " + string.Format(CultureInfo.InvariantCulture, f, (int)a);
         }
     }
 }

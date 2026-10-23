@@ -2681,6 +2681,9 @@ http://xptable.sourceforge.net/</value>
   <data name="ERRAtomSpectraTcpCalGap" xml:space="preserve">
     <value>AtomSpectra TCP: в калибровке прибора за пустым коэффициентом идёт заполненный; коэффициенты сдвинулись бы на чужие степени, поэтому они не применены.</value>
   </data>
+  <data name="ERRAtomSpectraTcpCalNotTaken" xml:space="preserve">
+    <value>AtomSpectra TCP: калибровка платы не взята — её шкала для {0} каналов не установлена. На странице остаётся своя калибровка.</value>
+  </data>
   <data name="ERRAtomSpectraTcpBadHost" xml:space="preserve">
     <value>AtomSpectra: «{0}» — неверный адрес платы. Введите host[:port] — IP-адрес или имя, например 192.168.0.119 или atomspectra.local:8234, без «http://». Без порта используется {1}.</value>
   </data>

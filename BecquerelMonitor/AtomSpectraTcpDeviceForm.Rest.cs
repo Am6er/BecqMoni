@@ -162,7 +162,7 @@ namespace BecquerelMonitor
             string url = textRestUrl.Text.Trim();
             if (radioRest.Checked && !AtomSpectraTcpDeviceConfig.IsValidRestUrl(url))
             {
-                ShowWarning(string.Format(CultureInfo.CurrentCulture, Resources.ERRAtomSpectraRestBadUrl, url));
+                ShowWarning(string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraRestBadUrl, url));
                 throw new FormatException("AtomSpectra REST: invalid board URL");
             }
 
@@ -200,7 +200,7 @@ namespace BecquerelMonitor
             AtomSpectraRestClient client = probe.CreateRestClient(out error);
             if (client == null)
             {
-                labelRestResult.Text = string.Format(CultureInfo.CurrentCulture, Resources.ERRAtomSpectraRestBadUrl, error);
+                labelRestResult.Text = string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraRestBadUrl, error);
                 return;
             }
 
@@ -226,8 +226,8 @@ namespace BecquerelMonitor
         {
             if (!r.Ok) return "";
             return r.ContentEncoding.Length > 0
-                ? string.Format(CultureInfo.CurrentCulture, Resources.AtomSpectraRestCompression, r.ContentEncoding, r.WireBytes, r.BodyBytes)
-                : string.Format(CultureInfo.CurrentCulture, Resources.AtomSpectraRestNoCompression, r.BodyBytes);
+                ? string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraRestCompression, r.ContentEncoding, r.WireBytes, r.BodyBytes)
+                : string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraRestNoCompression, r.BodyBytes);
         }
 
         private static string RunRestTest(AtomSpectraRestClient client, out AtomSpectraTcpCalibrationResult calibration, out string bootConfig)
@@ -255,7 +255,7 @@ namespace BecquerelMonitor
                     ? Resources.AtomSpectraRestCalibSet
                     : Resources.AtomSpectraRestCalibNone;
 
-                return string.Format(CultureInfo.CurrentCulture, Resources.AtomSpectraRestTestResult,
+                return string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraRestTestResult,
                     client.BaseUrl,
                     AtomSpectraJson.GetString(s, "fw_version") ?? "?",
                     AtomSpectraJson.GetNumber(s, "time", -1),

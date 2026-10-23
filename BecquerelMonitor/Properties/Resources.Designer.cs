@@ -7039,6 +7039,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the calibration of the board is not taken: its scale at {0} channels is not established. The page keeps its own calibration..
+        /// </summary>
+        public static string ERRAtomSpectraTcpCalNotTaken {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpCalNotTaken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to AtomSpectra: "{0}" is not a valid board address. Enter host[:port] - an IP address or a name, e.g. 192.168.0.119 or atomspectra.local:8234, without "http://". Without a port, {1} is used..
         /// </summary>
         public static string ERRAtomSpectraTcpBadHost {

@@ -79,7 +79,7 @@ namespace BecquerelMonitor
 
         private static string Span(string format, long seconds, long counts)
         {
-            return string.Format(CultureInfo.CurrentCulture, format, seconds / 3600, (seconds % 3600) / 60, counts.ToString("N0", CultureInfo.CurrentCulture));
+            return string.Format(CultureInfo.InvariantCulture, format, seconds / 3600, (seconds % 3600) / 60, counts.ToString(CultureInfo.InvariantCulture));
         }
 
         public static string StartQuestionText(AtomSpectraRestStartQuestion q)
@@ -162,7 +162,8 @@ namespace BecquerelMonitor
         {
             long t = s != null && s.HasData ? s.Time : 0;
             long n = s != null && s.HasData ? s.Total : 0;
-            return MessageBox.Show(MainWindow(), Span(Resources.MSGAtomSpectraRestClearConfirm, t, n), Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) == DialogResult.Yes;
+            // through the AppUi door: without windows it throws instead of hanging (S100, tools/check_headless.py)
+            return AppUi.AskYesNo(Span(Resources.MSGAtomSpectraRestClearConfirm, t, n), Resources.ConfirmationDialogTitle, MessageBoxIcon.Warning, true);
         }
     }
 }

@@ -49,7 +49,7 @@ namespace BecquerelMonitor
             if (boardGzipLevel == AtomSpectraRestBootConfig.Unsupported) labelGzipState.Text = Resources.AtomSpectraGzipUnsupported;
             else if (!known) labelGzipState.Text = Resources.AtomSpectraGzipUnknown;
             else if (checkObserve.Checked) labelGzipState.Text = Resources.AtomSpectraGzipObserve;
-            else labelGzipState.Text = string.Format(CultureInfo.CurrentCulture, Resources.AtomSpectraGzipOnBoard, AtomSpectraRestBootConfig.Describe(boardGzipLevel));
+            else labelGzipState.Text = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraGzipOnBoard, AtomSpectraRestBootConfig.Describe(boardGzipLevel));
         }
 
         // On the UI thread after "Test connection (REST)" / "Refresh": the GET /api/boot-config body (null = not read).
@@ -69,7 +69,7 @@ namespace BecquerelMonitor
                 return;
             }
             int level = AtomSpectraRestBootConfig.Levels[comboGzip.SelectedIndex];
-            if (!ConfirmGzip(string.Format(CultureInfo.CurrentCulture, Resources.AtomSpectraGzipConfirm, level))) return;
+            if (!ConfirmGzip(string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraGzipConfirm, level))) return;
 
             AtomSpectraTcpDeviceConfig probe = new AtomSpectraTcpDeviceConfig();
             probe.Host = textHost.Text.Trim();
@@ -85,7 +85,7 @@ namespace BecquerelMonitor
             AtomSpectraRestClient client = probe.CreateRestClient(out error);
             if (client == null)
             {
-                textOutput.AppendText(string.Format(CultureInfo.CurrentCulture, Resources.AtomSpectraGzipFailed, error) + Environment.NewLine);
+                textOutput.AppendText(string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraGzipFailed, error) + Environment.NewLine);
                 return;
             }
 
@@ -102,8 +102,8 @@ namespace BecquerelMonitor
                     int i = Array.IndexOf(AtomSpectraRestBootConfig.Levels, now);
                     if (i >= 0) comboGzip.SelectedIndex = i;
                     string text = ok
-                        ? string.Format(CultureInfo.CurrentCulture, Resources.AtomSpectraGzipDone, level, AtomSpectraRestBootConfig.Describe(now))
-                        : string.Format(CultureInfo.CurrentCulture, Resources.AtomSpectraGzipFailed, message);
+                        ? string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraGzipDone, level, AtomSpectraRestBootConfig.Describe(now))
+                        : string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraGzipFailed, message);
                     AtomSpectraTcpLog.Info("Gzip", text);
                     textOutput.AppendText(text + Environment.NewLine);
                     UpdateGzipEnabled();

@@ -2282,7 +2282,7 @@ namespace BecquerelMonitor
         {
             int n;
             string text = (this.integerTextBox1.Text ?? "").Trim();
-            if (int.TryParse(text, NumberStyles.Integer, CultureInfo.CurrentCulture, out n) && n > 0) return n;
+            if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out n) && n > 0) return n;
             return saved.NumberOfChannels;
         }
 
