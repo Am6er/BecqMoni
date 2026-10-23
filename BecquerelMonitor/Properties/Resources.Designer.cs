@@ -6777,6 +6777,24 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuProbeCrashed.
+        /// </summary>
+        public static string ResponseMatrixGpuProbeCrashed {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuProbeCrashed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ResponseMatrixGpuProbeTimeout.
+        /// </summary>
+        public static string ResponseMatrixGpuProbeTimeout {
+            get {
+                return ResourceManager.GetString("ResponseMatrixGpuProbeTimeout", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to ResponseMatrixGpuProgress.
         /// </summary>
         public static string ResponseMatrixGpuProgress {

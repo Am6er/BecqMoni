@@ -20,10 +20,11 @@ namespace BecquerelMonitor.EfficiencyMaker
     //   * `RmGpu` — нативная `rmgpu.dll` (double, ступень 1) или `rmgpu_f.dll` (float,
     //     рабочая), загружается ПО ЯВНОМУ ПУТИ (`LoadLibrary`); приложение берёт копию
     //     рядом с собой (`DefaultPath`), пробы — из `tools\effmaker\gpu\bin`;
-    //   * `RmGpu.Probe` — годность GPU БЕЗ счёта (форма матрицы зовёт её при открытии):
-    //     есть ли библиотека, грузится ли, есть ли устройство и драйвер, не старее ли
-    //     карта той, под которую собрано ядро, та ли физика у сборки. Причина отказа —
-    //     словами, галка «Use Nvidia GPU» показывает её подсказкой;
+    //   * `RmGpu.Probe` — годность GPU БЕЗ счёта: есть ли библиотека, грузится ли, есть ли
+    //     устройство и драйвер, не старее ли карта той, под которую собрано ядро, та ли
+    //     физика у сборки. Причина отказа — словами, галка «Use Nvidia GPU» показывает её
+    //     подсказкой. Форма матрицы зовёт её ДОЧЕРНИМ процессом (`ProbeIsolated`,
+    //     `AMBER261`): сбой в драйвере роняет ребёнка, а не приложение;
     //   * `GpuNode.ResponseByChannel` — замена `EfficiencySimulator.ResponseByChannel` для
     //     одного узла: GPU считает ОБА цикла `Run` (сырые суммы), а всё после циклов —
     //     зеркало хвоста `Run` (EfficiencySimulator.cs:8665–8774) и вызов
@@ -71,6 +72,11 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         [DllImport("kernel32", CharSet = CharSet.Ansi, ExactSpelling = true)]
         static extern IntPtr GetProcAddress(IntPtr module, string name);
+
+        [DllImport("kernel32")]
+        static extern uint SetErrorMode(uint mode);
+
+        const uint SEM_FAILCRITICALERRORS = 0x0001, SEM_NOGPFAULTERRORBOX = 0x0002, SEM_NOOPENFILEERRORBOX = 0x8000;
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate IntPtr LastErrorFn();
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate void VoidFn();
@@ -205,7 +211,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// `CUDA_VISIBLE_DEVICES=` (пустая) у процесса приложения: рантайм отвечает
         /// `cudaErrorNoDevice`, как на машине без карты NVIDIA.
         /// </summary>
-        public static GpuProbe Probe(string path)
+        public static GpuProbe Probe(string path, Action<string> step = null)
         {
             var r = new GpuProbe { Path = path };
             try
@@ -217,6 +223,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                     return r;
                 }
 
+                // (`AMBER261`) Шаги — для дочерней пробы: упавший ребёнок называет
+                // последний начатый нативный вызов (`ProbeIsolated`).
+                if (step != null) step("LoadLibrary");
                 IntPtr h = LoadLibrary(System.IO.Path.GetFullPath(path));
                 if (h == IntPtr.Zero)
                 {
@@ -236,6 +245,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 var info = (LastErrorFn)Marshal.GetDelegateForFunctionPointer(infoPtr, typeof(LastErrorFn));
+                if (step != null) step("rm_build_info");
                 r.BuildInfo = Utf8(info());
                 int physics = BuildInfoInt(r.BuildInfo, "phys");
                 r.LibraryPhysics = physics;
@@ -251,17 +261,28 @@ namespace BecquerelMonitor.EfficiencyMaker
                 var probe = (ProbeFn)Marshal.GetDelegateForFunctionPointer(probePtr, typeof(ProbeFn));
                 var nameBytes = new byte[256];
                 int count, major, minor, driver, runtime;
+                if (step != null) step("rm_probe");
                 int code = probe(out count, out major, out minor, out driver, out runtime, nameBytes, nameBytes.Length);
                 r.DriverVersion = driver;
                 r.RuntimeVersion = runtime;
                 if (code != 0)
                 {
+                    if (step != null) step("rm_last_error");
                     var lastError = (LastErrorFn)Marshal.GetDelegateForFunctionPointer(GetProcAddress(h, "rm_last_error"), typeof(LastErrorFn));
                     string text = Utf8(lastError());
                     // Коды cudaError_t: 100 — cudaErrorNoDevice, 35 — cudaErrorInsufficientDriver.
                     if (code == 100)
                     {
                         r.Reason = "no CUDA-capable NVIDIA GPU found (" + text + ")";
+                        r.ReasonCode = GpuProbeReason.NoDevice;
+                    }
+                    else if (code == 35 && driver == 0)
+                    {
+                        // (`AMBER261`) Драйвера NVIDIA нет вовсе: `cudaDriverGetVersion`
+                        // отдаёт 0, а `cudaGetDeviceCount` — тот же код 35, что у старого
+                        // драйвера; подпись «драйвер 0.0 старее рантайма» на машине без
+                        // карты NVIDIA врала бы.
+                        r.Reason = "no NVIDIA driver installed (" + text + ")";
                         r.ReasonCode = GpuProbeReason.NoDevice;
                     }
                     else if (code == 35)
@@ -318,6 +339,213 @@ namespace BecquerelMonitor.EfficiencyMaker
                 r.ReasonCode = GpuProbeReason.RuntimeError;
                 return r;
             }
+        }
+
+        /// <summary>Ключ командной строки приложения: «ответить на пробу GPU и выйти» (<see cref="ProbeChildMain"/>).</summary>
+        public const string ProbeChildKey = "--gpu-probe";
+
+        /// <summary>Сколько ждать ответа дочерней пробы, мс; дольше — отказ, ребёнок снимается.</summary>
+        public const int ProbeChildTimeoutMs = 15000;
+
+        /// <summary>
+        /// ⛔ (`AMBER261`, 23.10.2026) <see cref="Probe"/> В ДОЧЕРНЕМ ПРОЦЕССЕ — так её зовёт
+        /// окно матрицы. У стороннего пользователя кнопка «Матрица отклика...» роняла
+        /// приложение молча: без окна ошибки и без строки в журнале. Так умирает процесс
+        /// только от сбоя в нативном коде, а при открытии окна нативный код один — эта
+        /// проба (`LoadLibrary` библиотеки, рантайм CUDA, драйвер NVIDIA). Нарушение
+        /// доступа и переполнение стека .NET 4 не отдаёт ни в `catch` пробы, ни в
+        /// `AppDomain.UnhandledException` журнала, поэтому ловить их в своём процессе
+        /// нечем; ребёнок падает вместо приложения, и падение называется кодом.
+        ///
+        /// Ребёнок — само приложение (`Assembly.Location` этой сборки, а не входной: под
+        /// пробой входная — проба) с ключом <see cref="ProbeChildKey"/>;
+        /// `Program.Main` отвечает на него раньше всего прочего — без журнала, проверки
+        /// второго экземпляра и окон. Ответ — строки «ключ=значение» в stdout
+        /// (<see cref="WriteAnswer"/>). Ненулевой код выхода, молчание или таймаут —
+        /// <see cref="GpuProbeReason.ProbeCrashed"/> / <see cref="GpuProbeReason.ProbeTimeout"/>.
+        ///
+        /// ⚠ Счёт на GPU (<see cref="RmGpu(string, long)"/>) по-прежнему идёт в процессе
+        /// приложения (решение Amber 23.10.2026 вопросником, дословно: «Отдельный процесс
+        /// (Рекомендую)» — о пробе); до него доходит лишь машина, где проба прошла.
+        /// </summary>
+        public static GpuProbe ProbeIsolated(string path)
+        {
+            var r = new GpuProbe { Path = path };
+            try
+            {
+                string exe = typeof(RmGpu).Assembly.Location;
+                var start = new ProcessStartInfo(exe, ProbeChildKey + " \"" + path + "\"")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    StandardOutputEncoding = new UTF8Encoding(false),
+                    WorkingDirectory = System.IO.Path.GetDirectoryName(exe)
+                };
+                using (Process child = Process.Start(start))
+                {
+                    Task<string> answer = child.StandardOutput.ReadToEndAsync();
+                    if (!child.WaitForExit(ProbeChildTimeoutMs))
+                    {
+                        try
+                        {
+                            child.Kill();
+                        }
+                        catch (Exception)
+                        {
+                            // Успел выйти сам — всё равно отказ: ответа в срок не было.
+                        }
+
+                        r.Reason = "the GPU check process did not answer in "
+                                   + (ProbeChildTimeoutMs / 1000).ToString(CultureInfo.InvariantCulture) + " s";
+                        r.ReasonCode = GpuProbeReason.ProbeTimeout;
+                        return r;
+                    }
+
+                    child.WaitForExit();
+                    string text = answer.Wait(ProbeChildTimeoutMs) ? answer.Result : "";
+                    r.ChildExitCode = child.ExitCode;
+                    if (child.ExitCode != 0)
+                    {
+                        string at = LastStep(text);
+                        r.Reason = "the GPU check process crashed in the native code"
+                                   + (at.Length > 0 ? " at " + at : "") + " (exit code " + ExitCodeText(child.ExitCode) + ")";
+                        r.ReasonCode = GpuProbeReason.ProbeCrashed;
+                        return r;
+                    }
+
+                    if (!ReadAnswer(text, r))
+                    {
+                        r.Reason = "the GPU check process gave no answer";
+                        r.ReasonCode = GpuProbeReason.ProbeCrashed;
+                        return r;
+                    }
+
+                    return r;
+                }
+            }
+            catch (Exception e)
+            {
+                // Не запустился сам ребёнок — отказ словами, как у пробы в процессе.
+                r.Available = false;
+                r.Reason = "the GPU check process did not start: " + e.GetType().Name + ": " + e.Message;
+                r.ReasonCode = GpuProbeReason.RuntimeError;
+                return r;
+            }
+        }
+
+        /// <summary>Код выхода так, как его пишет Windows: «0xC0000005» — нарушение доступа, «0xC00000FD» — переполнение стека.</summary>
+        public static string ExitCodeText(int code)
+        {
+            return "0x" + unchecked((uint)code).ToString("X8", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Дочерняя сторона <see cref="ProbeIsolated"/>: проба в своём процессе, ответ в
+        /// stdout, код 0. Окно отчёта Windows о сбое гасится (`SEM_NOGPFAULTERRORBOX`):
+        /// пока оно висит, упавший ребёнок жив, и приложение ждало бы до таймаута.
+        /// </summary>
+        public static int ProbeChildMain(string path)
+        {
+            SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+            using (var output = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)))
+            {
+                // Шаг уходит родителю ДО нативного вызова и сразу: после сбоя буфер не сбросится.
+                GpuProbe r = Probe(path, s =>
+                {
+                    output.WriteLine("step=" + s);
+                    output.Flush();
+                });
+                WriteAnswer(output, r);
+            }
+
+            return 0;
+        }
+
+        /// <summary>Последний шаг `step=…` ответа ребёнка; нет — пусто.</summary>
+        static string LastStep(string text)
+        {
+            string at = "";
+            foreach (string line in (text ?? "").Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string l = line.TrimEnd('\r');
+                if (l.StartsWith("step=", StringComparison.Ordinal)) at = l.Substring(5);
+            }
+
+            return at;
+        }
+
+        static void WriteAnswer(TextWriter output, GpuProbe r)
+        {
+            output.WriteLine("available=" + (r.Available ? "1" : "0"));
+            output.WriteLine("reasonCode=" + ((int)r.ReasonCode).ToString(CultureInfo.InvariantCulture));
+            output.WriteLine("reason=" + Escape(r.Reason));
+            output.WriteLine("buildInfo=" + Escape(r.BuildInfo));
+            output.WriteLine("libraryPhysics=" + r.LibraryPhysics.ToString(CultureInfo.InvariantCulture));
+            output.WriteLine("deviceCount=" + r.DeviceCount.ToString(CultureInfo.InvariantCulture));
+            output.WriteLine("deviceName=" + Escape(r.DeviceName));
+            output.WriteLine("computeCapability=" + r.ComputeCapability.ToString(CultureInfo.InvariantCulture));
+            output.WriteLine("driverVersion=" + r.DriverVersion.ToString(CultureInfo.InvariantCulture));
+            output.WriteLine("runtimeVersion=" + r.RuntimeVersion.ToString(CultureInfo.InvariantCulture));
+            output.WriteLine("end=1");
+        }
+
+        /// <summary>Разбор <see cref="WriteAnswer"/>; без замыкающей строки `end=1` ответ не принимается.</summary>
+        static bool ReadAnswer(string text, GpuProbe r)
+        {
+            var fields = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (string line in (text ?? "").Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string l = line.TrimEnd('\r');
+                int eq = l.IndexOf('=');
+                if (eq > 0) fields[l.Substring(0, eq)] = l.Substring(eq + 1);
+            }
+
+            if (!fields.ContainsKey("end")) return false;
+            r.Available = Field(fields, "available") == 1;
+            r.ReasonCode = (GpuProbeReason)Field(fields, "reasonCode");
+            r.Reason = Unescape(fields, "reason");
+            r.BuildInfo = Unescape(fields, "buildInfo");
+            r.LibraryPhysics = Field(fields, "libraryPhysics");
+            r.DeviceCount = Field(fields, "deviceCount");
+            r.DeviceName = Unescape(fields, "deviceName");
+            r.ComputeCapability = Field(fields, "computeCapability");
+            r.DriverVersion = Field(fields, "driverVersion");
+            r.RuntimeVersion = Field(fields, "runtimeVersion");
+            return true;
+        }
+
+        static int Field(Dictionary<string, string> fields, string key)
+        {
+            string s;
+            int v;
+            return fields.TryGetValue(key, out s) && int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out v) ? v : -1;
+        }
+
+        static string Escape(string s)
+        {
+            return (s ?? "").Replace("\\", "\\\\").Replace("\r", "\\r").Replace("\n", "\\n");
+        }
+
+        static string Unescape(Dictionary<string, string> fields, string key)
+        {
+            string s;
+            if (!fields.TryGetValue(key, out s)) return "";
+            var sb = new StringBuilder(s.Length);
+            for (int i = 0; i < s.Length; i++)
+            {
+                if (s[i] == '\\' && i + 1 < s.Length)
+                {
+                    char c = s[++i];
+                    sb.Append(c == 'n' ? '\n' : c == 'r' ? '\r' : c);
+                }
+                else
+                {
+                    sb.Append(s[i]);
+                }
+            }
+
+            return sb.ToString();
         }
 
         /// <summary>
@@ -615,7 +843,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         NoDevice,
         DriverTooOld,
         DeviceTooOld,
-        RuntimeError
+        RuntimeError,
+        /// <summary>(`AMBER261`) Дочерний процесс пробы упал (<see cref="RmGpu.ProbeIsolated"/>): сбой в драйвере или рантайме CUDA.</summary>
+        ProbeCrashed,
+        /// <summary>(`AMBER261`) Дочерний процесс пробы не ответил за <see cref="RmGpu.ProbeChildTimeoutMs"/>.</summary>
+        ProbeTimeout
     }
 
     /// <summary>Ответ <see cref="RmGpu.Probe"/>: годен ли GPU-путь и, если нет, почему.</summary>
@@ -633,6 +865,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>Вычислительная способность картой числом: 8.6 → 86.</summary>
         public int ComputeCapability;
         public int DriverVersion, RuntimeVersion;
+        /// <summary>Код выхода дочерней пробы (<see cref="RmGpu.ProbeIsolated"/>); у пробы в своём процессе 0.</summary>
+        public int ChildExitCode;
     }
 
     /// <summary>Слоты накопителей — те же номера, что `tally.cuh`.</summary>
