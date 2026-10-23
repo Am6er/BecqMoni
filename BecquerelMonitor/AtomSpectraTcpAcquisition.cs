@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BecquerelMonitor.Properties;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -208,8 +209,17 @@ namespace BecquerelMonitor
 
         private volatile bool isConnected;
         private volatile bool isLinkLost;
-        private volatile string lastError;
+        private volatile string lastError;       // for the user (resources): the {2} of ERRAtomSpectraTcpConnect
+        private volatile string lastLogError;    // the same in English, for the log
         private volatile string commandOnReconnect;
+
+        // The time (ClockMs) the last -rst was handed to the link, by any path (Clear, Start over, a queued Clear, the console):
+        // a drop of the board's counters right after it is our own reset, not one from outside (AtomSpectraTcpSession).
+        private long resetWrittenAtMs = long.MinValue;
+        // No complete data cycle for this long = the link is lost (0 = off; the session arms it for a running measurement).
+        private volatile int noDataLimitMs;
+        private long lastCycleAtMs;
+        private volatile bool forceReconnect;
 
         // Wake-up for an immediate reconnect, first-attempt signal (fail fast),
         // one-shot commands for the next connection, exit after the reconnect command (deferred -sto).
@@ -217,7 +227,7 @@ namespace BecquerelMonitor
         private readonly ManualResetEvent attemptEvent = new ManualResetEvent(false);
         private readonly ConcurrentQueue<string> oneShot = new ConcurrentQueue<string>();
         private volatile bool exitAfterReconnectCommand;
-        private bool reconnectCommandSent;
+        private volatile bool reconnectCommandSent;
 
         // A data event pairs a COMPLETE histogram cycle (all channels since the packet with offset 0) with a
         // status packet, in whichever order they arrive; both flags are cleared on every (re)connect, so a
@@ -274,6 +284,34 @@ namespace BecquerelMonitor
         public string LastError
         {
             get { return lastError; }
+        }
+
+        public string LastLogError
+        {
+            get { return lastLogError; }
+        }
+
+        // The acquisition's own clock, ms (the time base of ResetWrittenAtMs).
+        public long ClockMs
+        {
+            get { return statsClock.ElapsedMilliseconds; }
+        }
+
+        public long ResetWrittenAtMs
+        {
+            get { return Interlocked.Read(ref resetWrittenAtMs); }
+        }
+
+        // The bridge sends a complete cycle about once a second; none for this long while connected is a lost link
+        // (a socket that stays open while the board is gone), handled as any other loss: reconnect, then CommandOnReconnect.
+        public int NoDataLimitMs
+        {
+            get { return noDataLimitMs; }
+            set
+            {
+                Interlocked.Exchange(ref lastCycleAtMs, ClockMs);   // the limit counts from the moment it is armed
+                noDataLimitMs = Math.Max(0, value);
+            }
         }
 
         public int PacketsReceived
@@ -354,7 +392,29 @@ namespace BecquerelMonitor
             Trace.WriteLine("AtomSpectraTcp command: " + command);
             string line;
             while (lines.TryDequeue(out line)) { }
+            Enqueue(command);
+        }
+
+        // Every command goes out through here, so a -rst is noted whatever path sent it.
+        private void Enqueue(string command)
+        {
+            if (command != null && command.Trim() == "-rst")
+            {
+                Interlocked.Exchange(ref resetWrittenAtMs, ClockMs);
+            }
             outgoing.Enqueue(AtomSpectraShproto.EncodeText(command));
+        }
+
+        // A connected link that does not answer: drop it now, reconnect at once, send `command` on the new connection and end
+        // (the deferred -sto of a Stop whose -sto got no answer). The flag of an earlier reconnect is cleared first, so the
+        // reader cannot end before the command is out.
+        public void ReconnectAndSend(string command)
+        {
+            reconnectCommandSent = false;
+            commandOnReconnect = command;
+            exitAfterReconnectCommand = true;
+            forceReconnect = true;
+            wakeEvent.Set();
         }
 
         public bool WaitForAnswer(string answer, int timeoutMs)
@@ -378,7 +438,7 @@ namespace BecquerelMonitor
                 }
                 Thread.Sleep(1);
             }
-            return "";
+            return null;   // no answer in time: the callers test for null
         }
 
         public void Dispose()
@@ -449,6 +509,7 @@ namespace BecquerelMonitor
                         transport = created;
                         codec = new AtomSpectraShproto();
                         lastKeepAliveMs = created.NowMs;
+                        Interlocked.Exchange(ref lastCycleAtMs, ClockMs);
                         Array.Clear(covered, 0, covered.Length);
                         coveredCount = 0;
                         histogramFresh = false;
@@ -457,7 +518,7 @@ namespace BecquerelMonitor
                         string reconnectCommandSentNow = null;
                         while (oneShot.TryDequeue(out queued))
                         {
-                            outgoing.Enqueue(AtomSpectraShproto.EncodeText(queued));
+                            Enqueue(queued);
                             AtomSpectraTcpLog.Info("TCP", "queued command " + queued + " goes out on this connection");
                         }
                         if (connectedOnce)
@@ -466,7 +527,7 @@ namespace BecquerelMonitor
                             string again = CommandOnReconnect;
                             if (again != null)
                             {
-                                outgoing.Enqueue(AtomSpectraShproto.EncodeText(again));
+                                Enqueue(again);
                                 reconnectCommandSent = true;
                                 reconnectCommandSentNow = again;
                             }
@@ -474,11 +535,12 @@ namespace BecquerelMonitor
                         connectedOnce = true;
                         isLinkLost = false;
                         lastError = null;
+                        lastLogError = null;
                         isConnected = true;
                         connectedEvent.Set();
                         attemptEvent.Set();
                         Trace.WriteLine("AtomSpectraTcp connected: " + name);
-                        AtomSpectraTcpLog.Info("TCP", (reconnects > 0 ? "reconnected (#" + reconnects + ") to " : "connected to ") + name
+                        AtomSpectraTcpLog.Info("TCP", (reconnects > 0 ? "reconnected (#" + reconnects.ToString(CultureInfo.InvariantCulture) + ") to " : "connected to ") + name
                             + (reconnectCommandSentNow != null ? ", sent " + reconnectCommandSentNow + " after the reconnect" : ""));
                         EventHandler handler = Connected;
                         if (handler != null)
@@ -506,12 +568,13 @@ namespace BecquerelMonitor
                             }
                         }
                         lastError = ex.Message;
+                        lastLogError = AtomSpectraTcpLinkException.LogOf(ex);
                         isLinkLost = true;
                         attemptEvent.Set();
-                        Trace.WriteLine("AtomSpectraTcp connect to " + name + " failed: " + ex.Message
-                            + "; next attempt in " + (reconnectDelayMs / 1000) + " s");
-                        AtomSpectraTcpLog.Warn("TCP", "connect to " + name + " failed: " + ex.Message
-                            + "; next attempt in " + (reconnectDelayMs / 1000) + " s (at " + DateTime.Now.AddMilliseconds(reconnectDelayMs).ToString("HH:mm:ss") + ")");
+                        Trace.WriteLine("AtomSpectraTcp connect to " + name + " failed: " + lastLogError
+                            + "; next attempt in " + RetrySeconds() + " s");
+                        AtomSpectraTcpLog.Warn("TCP", "connect to " + name + " failed: " + lastLogError
+                            + "; next attempt in " + RetrySeconds() + " s (at " + RetryAt() + ")");
                         WaitBeforeRetry();
                         continue;
                     }
@@ -519,6 +582,12 @@ namespace BecquerelMonitor
 
                 try
                 {
+                    if (forceReconnect)
+                    {
+                        forceReconnect = false;
+                        throw new AtomSpectraTcpLinkException(Resources.AtomSpectraTcpErrClosed, "connection dropped to reconnect at once", null);
+                    }
+
                     byte[] packet;
                     while (outgoing.TryDequeue(out packet))
                     {
@@ -553,6 +622,14 @@ namespace BecquerelMonitor
                             crcErrors++;
                         }
                     }
+
+                    int limit = noDataLimitMs;
+                    if (limit > 0 && ClockMs - Interlocked.Read(ref lastCycleAtMs) > limit)
+                    {
+                        string seconds = (limit / 1000).ToString(CultureInfo.InvariantCulture);
+                        throw new AtomSpectraTcpLinkException(string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraTcpErrNoData, seconds),
+                            "no complete data cycle for " + seconds + " s", null);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -561,6 +638,7 @@ namespace BecquerelMonitor
                     connectedEvent.Reset();
                     isLinkLost = true;
                     lastError = ex.Message;
+                    lastLogError = AtomSpectraTcpLinkException.LogOf(ex);
                     try
                     {
                         transport.Dispose();
@@ -569,9 +647,9 @@ namespace BecquerelMonitor
                     {
                     }
                     transport = null;
-                    Trace.WriteLine("AtomSpectraTcp link lost: " + ex.Message + " next attempt in " + (reconnectDelayMs / 1000) + " s");
-                    AtomSpectraTcpLog.Error("TCP", "link to " + name + " lost: " + ex.Message + "; next attempt in " + (reconnectDelayMs / 1000)
-                        + " s (at " + DateTime.Now.AddMilliseconds(reconnectDelayMs).ToString("HH:mm:ss") + "); counts on the analyzer are kept");
+                    Trace.WriteLine("AtomSpectraTcp link lost: " + lastLogError + " next attempt in " + RetrySeconds() + " s");
+                    AtomSpectraTcpLog.Error("TCP", "link to " + name + " lost: " + lastLogError + "; next attempt in " + RetrySeconds()
+                        + " s (at " + RetryAt() + "); counts on the analyzer are kept");
                     EventHandler handler = ConnectionLost;
                     if (handler != null)
                     {
@@ -599,6 +677,16 @@ namespace BecquerelMonitor
                 transport = null;
             }
             isConnected = false;
+        }
+
+        private string RetrySeconds()
+        {
+            return (reconnectDelayMs / 1000).ToString(CultureInfo.InvariantCulture);
+        }
+
+        private string RetryAt()
+        {
+            return DateTime.Now.AddMilliseconds(reconnectDelayMs).ToString("HH:mm:ss", CultureInfo.InvariantCulture);
         }
 
         // Packet handling ported from AtomSpectraVCPIn.cs:570-642 (cmd 0x01 histogram, 0x04 status,
@@ -720,6 +808,7 @@ namespace BecquerelMonitor
             }
             histogramFresh = false;
             statusFresh = false;
+            Interlocked.Exchange(ref lastCycleAtMs, ClockMs);
             EventHandler<AtomSpectraTcpDataReadyArgs> handler = DataReady;
             if (handler != null)
             {

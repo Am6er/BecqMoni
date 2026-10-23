@@ -128,7 +128,7 @@ namespace BecquerelMonitor
                 if (emptySeen)
                 {
                     return new AtomSpectraTcpCalibrationResult(AtomSpectraTcpCalibrationFailure.GapInCoefficients,
-                        "slot " + i + " is filled after an empty slot", null, answer);
+                        "slot " + i.ToString(CultureInfo.InvariantCulture) + " is filled after an empty slot", null, answer);
                 }
 
                 ulong raw;
@@ -146,7 +146,7 @@ namespace BecquerelMonitor
                 if (double.IsNaN(value) || double.IsInfinity(value))
                 {
                     return new AtomSpectraTcpCalibrationResult(AtomSpectraTcpCalibrationFailure.InvalidNumber,
-                        "slot " + i + " is not a finite number: " + coeffStrings[i], null, answer);
+                        "slot " + i.ToString(CultureInfo.InvariantCulture) + " is not a finite number: " + coeffStrings[i], null, answer);
                 }
                 coeffList.Add(value);
             }
@@ -291,14 +291,14 @@ namespace BecquerelMonitor
             {
                 return new AtomSpectraTcpCalibrationResult(
                     AtomSpectraTcpCalibrationFailure.Connect,
-                    "no host is set",
+                    Resources.AtomSpectraTcpErrNoHost,   // the {2} of ERRAtomSpectraTcpConnect (Describe)
                     null,
                     null);
             }
 
             if (AtomSpectraTcpSession.IsHostInUse(config.Host, config.TcpPort))
             {
-                AtomSpectraTcpLog.Warn("Cal", "-cal refused: " + config.Host + ":" + config.TcpPort + " is busy with a measurement");
+                AtomSpectraTcpLog.Warn("Cal", "-cal refused: " + AtomSpectraTcpSession.HostKey(config.Host, config.TcpPort) + " is busy with a measurement");
                 return new AtomSpectraTcpCalibrationResult(
                     AtomSpectraTcpCalibrationFailure.Busy,
                     null,
@@ -310,8 +310,8 @@ namespace BecquerelMonitor
             AtomSpectraTcpCalibrationResult result = Read(
                 () => new AtomSpectraTcpTransport(config.Host, config.TcpPort, AtomSpectraTcpTransport.DefaultConnectTimeoutMs),
                 AnswerTimeoutMs);
-            AtomSpectraTcpLog.Info("Cal", "sent -cal to " + config.Host + ":" + config.TcpPort + ": " + (result == null ? "?" : result.Failure.ToString())
-                + " in " + sw.ElapsedMilliseconds + " ms" + (result != null && result.Error != null ? " (" + result.Error + ")" : ""));
+            AtomSpectraTcpLog.Info("Cal", "sent -cal to " + AtomSpectraTcpSession.HostKey(config.Host, config.TcpPort) + ": " + (result == null ? "?" : result.Failure.ToString())
+                + " in " + sw.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture) + " ms" + (result != null && result.Error != null ? " (" + result.Error + ")" : ""));
             return result;
         }
 
@@ -431,6 +431,8 @@ namespace BecquerelMonitor
                 case AtomSpectraTcpCalibrationFailure.Busy:
                     return string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpCalBusy, host, port);
                 case AtomSpectraTcpCalibrationFailure.Connect:
+                    if (config != null && config.Transport != AtomSpectraTransport.Rest && string.IsNullOrEmpty(host))
+                        return Resources.ERRAtomSpectraTcpNoHost;   // not "cannot connect to :8234"
                     return string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpConnect, host, port, result.Error);
                 case AtomSpectraTcpCalibrationFailure.BadCrc:
                     return Resources.ERRIncorrectCRC;

@@ -1,14 +1,17 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using BecquerelMonitor;
 
 namespace SessionHarness
 {
-    public static class Program
+    public static partial class Program
     {
         public static int Main(string[] args)
         {
@@ -103,6 +106,11 @@ namespace SessionHarness
                 }
                 else
                 {
+                    int fixResult;
+                    if (TryRunFix(mode, args, out fixResult))   // PR37 fix, TCP (the fix-* modes below)
+                    {
+                        return fixResult;
+                    }
                     Console.WriteLine("RESULT: FAIL (unknown mode)");
                     return 1;
                 }
@@ -568,6 +576,484 @@ namespace SessionHarness
                 }
             }
             return result;
+        }
+    }
+}
+
+// PR37 fix, TCP lane: session scenarios of the TCP fixes on the bridge mock (mock_cmd.py), built into SessionHarness.exe.
+// fix-reset             T1: the board is reset from outside while the link is down; the reconnect sends -sta, the smaller
+//                           counters never reach the document, BoardReset is raised once
+// fix-ownreset          T1, the positive control: our own Clear (-rst) drops the counters and the new acquisition goes on
+// fix-silent[-ask]      T2: a bridge that sends no status: refused without a window, asked with one ("Continue" sends -sta)
+// fix-onesample[-headless] T3: one status in the probe: not taken as counting; "Continue" sends -sta, Stop sends -sto
+// fix-docbehind[-ask]   T7: the document holds more than the board: refused without a window, "Continue" not offered with one
+// fix-stopmute          T4: -sto on a live link gets no answer: not "Stopped", -sto goes again on a new connection
+// fix-stall             T4: an open socket without data for NoDataLinkLostMs is a lost link (reconnect, -sta again)
+// fix-ctl-clear         T8 (real build, the controller by reflection): Clear of a joined acquisition asks first (throws without
+//                           windows, nothing sent); Clear of our own one resets at once and puts the raised preset back
+// fix-ctl-reset         T1 + T9 (real build): the controller on a reset from outside - the document keeps its data, the recording
+//                           stops, the session detaches without -sto; the snapshots are folded on the "UI" thread
+namespace SessionHarness
+{
+    public static partial class Program
+    {
+        static int fixFailures;
+
+        static void FixCheck(bool ok, string what)
+        {
+            Console.WriteLine((ok ? "ok: " : "FAILED: ") + what);
+            if (!ok) fixFailures++;
+        }
+
+        static int FixVerdict()
+        {
+            Console.WriteLine(fixFailures == 0 ? "RESULT: PASS" : "RESULT: FAIL (" + fixFailures.ToString(CultureInfo.InvariantCulture) + " checks)");
+            return fixFailures == 0 ? 0 : 1;
+        }
+
+        static bool TryRunFix(string mode, string[] args, out int result)
+        {
+            result = 1;
+            Func<int, string, int> body;
+            switch (mode)
+            {
+                case "fix-reset": body = FixReset; break;
+                case "fix-ownreset": body = FixOwnReset; break;
+                case "fix-silent": body = (p, l) => FixSilent(p, l, false); break;
+                case "fix-silent-ask": body = (p, l) => FixSilent(p, l, true); break;
+                case "fix-onesample": body = (p, l) => FixOneSample(p, l, true); break;
+                case "fix-onesample-headless": body = (p, l) => FixOneSample(p, l, false); break;
+                case "fix-docbehind": body = (p, l) => FixDocBehind(p, l, false); break;
+                case "fix-docbehind-ask": body = (p, l) => FixDocBehind(p, l, true); break;
+                case "fix-stopmute": body = FixStopMute; break;
+                case "fix-stall": body = FixStall; break;
+                case "fix-ctl-clear": body = FixCtlClear; break;
+                case "fix-ctl-reset": body = FixCtlReset; break;
+                default: return false;
+            }
+            if (args.Length < 3)
+            {
+                Console.WriteLine("RESULT: FAIL (missing args)");
+                return true;
+            }
+            if (args.Length > 3 && Directory.Exists(args[3]))
+            {
+                // the controller scenarios load the program's own libraries (MathNet for EnergySpectrum) from the directory of the build
+                string libs = args[3];
+                AppDomain.CurrentDomain.AssemblyResolve += (o, e) =>
+                {
+                    string path = Path.Combine(libs, new AssemblyName(e.Name).Name + ".dll");
+                    return File.Exists(path) ? Assembly.LoadFrom(path) : null;
+                };
+            }
+            try
+            {
+                result = body(int.Parse(args[1], CultureInfo.InvariantCulture), args[2]);
+            }
+            catch (Exception ex)
+            {
+                // the real cause, not "the target of an invocation threw" of a reflection call
+                Exception cause = ex;
+                while ((cause is TargetInvocationException || cause is TypeInitializationException) && cause.InnerException != null) cause = cause.InnerException;
+                Console.WriteLine("RESULT: FAIL (exception) " + cause.GetType().Name + ": " + cause.Message);
+                result = 3;
+            }
+            return true;
+        }
+
+        static List<string> Sent(string log)
+        {
+            return ReadCommands(log).Select(kv => kv.Value).ToList();
+        }
+
+        static string Joined(IEnumerable<KeyValuePair<int, string>> cmds)
+        {
+            return string.Join(" ", cmds.Select(kv => kv.Key.ToString(CultureInfo.InvariantCulture) + ":" + kv.Value));
+        }
+
+        // T1: 3 cycles, the link drops, the board is reset meanwhile; the reconnect sends -sta and gets smaller counters
+        static int FixReset(int port, string log)
+        {
+            var s = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
+            var given = new List<int>();
+            int resets = 0;
+            AtomSpectraTcpBoardResetArgs seen = null;
+            s.DataReady += (o, e) => { lock (given) given.Add(e.ElapsedTime); };
+            s.BoardReset += (o, e) => { seen = e; Interlocked.Increment(ref resets); };
+            var outcome = s.Begin(false, 1000);
+            FixCheck(outcome == AtomSpectraTcpBeginOutcome.Started, "Start (same document: -sta) is done (" + outcome + ")");
+            WaitUntil(() => Volatile.Read(ref resets) > 0, 15000);
+            Thread.Sleep(1500);   // more snapshots of the new acquisition arrive; none may reach the document
+            var cmds = ReadCommands(log);
+            s.Detach();
+            s.Dispose();
+            List<int> times;
+            lock (given) times = given.ToList();
+            Console.WriteLine("given times: " + string.Join(",", times.Select(t => t.ToString(CultureInfo.InvariantCulture))) + "; resets " + resets
+                + (seen != null ? " (" + seen.LogText() + ")" : "") + "; commands " + Joined(cmds));
+            FixCheck(resets == 1, "the drop of the counters after the reconnect is reported once (BoardReset)");
+            FixCheck(times.Count >= 2 && times.Zip(times.Skip(1), (a, b) => b >= a).All(x => x), "no snapshot with a lower time reached the document");
+            FixCheck(seen != null && seen.TimeNow < seen.TimeBefore && seen.TotalNow < seen.TotalBefore, "the event carries the numbers before and after");
+            FixCheck(cmds.Any(kv => kv.Key == 1 && kv.Value == "-sta"), "the reconnect sent -sta (the story of the finding)");
+            FixCheck(!cmds.Any(kv => kv.Value == "-rst"), "no -rst was sent");
+            return FixVerdict();
+        }
+
+        // T1, the positive control: Clear (-rst) on our own run drops the counters, which is our reset - the snapshots go on
+        static int FixOwnReset(int port, string log)
+        {
+            var s = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
+            var given = new List<int>();
+            int resets = 0;
+            s.DataReady += (o, e) => { lock (given) given.Add(e.ElapsedTime); };
+            s.BoardReset += (o, e) => Interlocked.Increment(ref resets);
+            var outcome = s.Begin(false, 1000);
+            FixCheck(outcome == AtomSpectraTcpBeginOutcome.Started, "Start is done (" + outcome + ")");
+            WaitUntil(() => { lock (given) return given.Count >= 3; }, 8000);
+            int before;
+            lock (given) before = given.Count;
+            s.Clear(1000);
+            Thread.Sleep(2500);
+            List<int> times;
+            lock (given) times = given.ToList();
+            var cmds = ReadCommands(log);
+            var stop = s.Stop(1000);
+            s.Dispose();
+            Console.WriteLine("given times: " + string.Join(",", times.Select(t => t.ToString(CultureInfo.InvariantCulture))) + " (Clear after " + before.ToString(CultureInfo.InvariantCulture)
+                + "); resets " + resets + "; stop " + stop + "; commands " + Joined(cmds));
+            FixCheck(cmds.Any(kv => kv.Value == "-rst"), "Clear sent -rst");
+            FixCheck(resets == 0, "our own reset is not a reset from outside");
+            FixCheck(times.Count > before && times.Skip(before).Any(t => t < times[before - 1]), "the smaller counters of the new acquisition reach the document");
+            return FixVerdict();
+        }
+
+        // T2: no status at all in the probe
+        static int FixSilent(int port, string log, bool withWindow)
+        {
+            var s = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
+            int asked = 0;
+            AtomSpectraRestStartQuestion question = null;
+            if (withWindow)
+                s.Ask = q => { asked++; question = q; return AtomSpectraRestStartChoice.Continue; };
+            var outcome = s.Begin(true, 1000);
+            Thread.Sleep(400);
+            var sent = Sent(log);
+            Console.WriteLine("outcome " + outcome + ", state " + s.BoardState + ", refusal " + s.Refusal + ", asked " + asked + ", commands " + string.Join(" ", sent));
+            FixCheck(s.BoardState == AtomSpectraTcpBoardState.Silent, "the probe saw no status (Silent)");
+            if (!withWindow)
+            {
+                FixCheck(outcome == AtomSpectraTcpBeginOutcome.Refused && s.Refusal == AtomSpectraTcpRefusal.Unknown, "without a window: refused, the reason is the unknown state");
+                FixCheck(!sent.Contains("-sta") && !sent.Contains("-sto") && !sent.Contains("-rst"), "without a window: nothing was sent (no blind -sta)");
+                s.Dispose();
+                return FixVerdict();
+            }
+            FixCheck(asked == 1 && question != null && !question.Counting && question.ContinueAllowed, "with a window: the question is asked (Continue offered)");
+            FixCheck(outcome == AtomSpectraTcpBeginOutcome.Started && sent.Contains("-sta") && !sent.Contains("-rst") && !s.JoinedRunning, "Continue: -sta without a reset, not a join");
+            var stop = s.Stop(1000);
+            Thread.Sleep(300);
+            FixCheck(stop == AtomSpectraTcpStopOutcome.Stopped && Sent(log).Contains("-sto"), "Stop sends -sto (" + stop + ")");
+            s.Dispose();
+            return FixVerdict();
+        }
+
+        // T3: one status in the probe (a stopped board with data, the bridge sends one cycle only)
+        static int FixOneSample(int port, string log, bool withWindow)
+        {
+            var s = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
+            int asked = 0;
+            AtomSpectraRestStartQuestion question = null;
+            if (withWindow)
+                s.Ask = q => { asked++; question = q; return AtomSpectraRestStartChoice.Continue; };
+            var outcome = s.Begin(true, 1000);
+            Thread.Sleep(400);
+            var sent = Sent(log);
+            Console.WriteLine("outcome " + outcome + ", state " + s.BoardState + ", refusal " + s.Refusal + ", asked " + asked + ", joined " + s.JoinedRunning
+                + ", board time " + s.ElapsedAtBeginSeconds.ToString("R", CultureInfo.InvariantCulture) + ", commands " + string.Join(" ", sent));
+            FixCheck(s.BoardState == AtomSpectraTcpBoardState.Uncertain, "the probe saw one status (Uncertain)");
+            if (!withWindow)
+            {
+                FixCheck(outcome == AtomSpectraTcpBeginOutcome.Refused && s.Refusal == AtomSpectraTcpRefusal.Unknown, "without a window and with data on the board: refused (not a blind join)");
+                FixCheck(!sent.Contains("-sta") && !sent.Contains("-sto") && !sent.Contains("-rst"), "without a window: nothing was sent");
+                s.Dispose();
+                return FixVerdict();
+            }
+            FixCheck(asked == 1 && question != null && !question.Counting, "with a window: asked, the board is not presented as counting");
+            FixCheck(outcome == AtomSpectraTcpBeginOutcome.Started && sent.Contains("-sta") && !sent.Contains("-rst"), "Continue: -sta (Resume), no reset");
+            FixCheck(!s.JoinedRunning && s.ElapsedAtBeginSeconds == 500, "not a join; the document starts from the board's 500 s");
+            var stop = s.Stop(1000);
+            Thread.Sleep(300);
+            FixCheck(stop == AtomSpectraTcpStopOutcome.Stopped && Sent(log).Contains("-sto"), "Stop sends -sto, not a detach (" + stop + ")");
+            s.Dispose();
+            return FixVerdict();
+        }
+
+        // T7: the document holds 100000 s, the counting board a few seconds
+        static int FixDocBehind(int port, string log, bool withWindow)
+        {
+            var s = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
+            s.DocumentSeconds = 100000;
+            s.DocumentCounts = 1;
+            int asked = 0;
+            AtomSpectraRestStartQuestion question = null;
+            if (withWindow)
+                s.Ask = q => { asked++; question = q; return AtomSpectraRestStartChoice.Continue; };
+            var outcome = s.Begin(true, 1000);
+            Thread.Sleep(400);
+            var sent = Sent(log);
+            Console.WriteLine("outcome " + outcome + ", state " + s.BoardState + ", refusal " + s.Refusal + ", asked " + asked
+                + (question != null ? ", question: document " + question.DocumentSeconds.ToString(CultureInfo.InvariantCulture) + " s, continue allowed " + question.ContinueAllowed : "")
+                + ", commands " + string.Join(" ", sent));
+            if (!withWindow)
+            {
+                FixCheck(outcome == AtomSpectraTcpBeginOutcome.Refused && s.Refusal == AtomSpectraTcpRefusal.BehindDocument, "without a window: refused, the board holds less than the document");
+            }
+            else
+            {
+                FixCheck(asked == 1 && question != null && question.DocumentSeconds == 100000 && question.DocumentCounts == 1, "the question knows what the document holds");
+                FixCheck(question != null && !question.ContinueAllowed, "Continue is not offered: the board holds less than the document");
+                FixCheck(outcome == AtomSpectraTcpBeginOutcome.Cancelled, "a Continue that is not allowed cancels (" + outcome + ")");
+            }
+            FixCheck(!sent.Contains("-sta") && !sent.Contains("-sto") && !sent.Contains("-rst"), "nothing was sent to the board");
+            s.Dispose();
+            return FixVerdict();
+        }
+
+        // T4: the bridge does not answer -sto on the first connection
+        static int FixStopMute(int port, string log)
+        {
+            var s = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
+            int lost = 0;
+            s.LinkLost += (o, e) => Interlocked.Increment(ref lost);
+            var outcome = s.Begin(false, 1000);
+            FixCheck(outcome == AtomSpectraTcpBeginOutcome.Started, "Start is done (" + outcome + ")");
+            Thread.Sleep(1200);
+            var sw = Stopwatch.StartNew();
+            var stop = s.Stop(1000);
+            long ms = sw.ElapsedMilliseconds;
+            WaitUntil(() => ReadCommands(log).Any(kv => kv.Key == 1 && kv.Value == "-sto"), 6000);
+            var cmds = ReadCommands(log);
+            Console.WriteLine("stop " + stop + " in " + ms.ToString(CultureInfo.InvariantCulture) + " ms, unanswered " + s.StopUnanswered + ", lost events " + lost + ", commands " + Joined(cmds));
+            FixCheck(stop != AtomSpectraTcpStopOutcome.Stopped, "an unanswered -sto is not reported as Stopped");
+            FixCheck(stop == AtomSpectraTcpStopOutcome.StoppedAfterReconnect || stop == AtomSpectraTcpStopOutcome.Deferred, "it is resent or deferred");
+            FixCheck(s.StopUnanswered, "the session says the stop was not answered (its own message)");
+            FixCheck(cmds.Any(kv => kv.Key == 1 && kv.Value == "-sto"), "-sto goes again on a new connection");
+            FixCheck(lost == 0, "our own drop is not announced as a lost link");
+            WaitUntil(() => AtomSpectraTcpSession.OrphanCount("127.0.0.1", port) == 0, 5000);
+            s.Dispose();
+            return FixVerdict();
+        }
+
+        // T4: the socket stays open, the data stops after 3 cycles
+        static int FixStall(int port, string log)
+        {
+            var s = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
+            long lastData = 0, lostAt = 0;
+            var clock = Stopwatch.StartNew();
+            int lost = 0;
+            s.DataReady += (o, e) => Interlocked.Exchange(ref lastData, clock.ElapsedMilliseconds);
+            s.LinkLost += (o, e) => { Interlocked.Exchange(ref lostAt, clock.ElapsedMilliseconds); Interlocked.Increment(ref lost); };
+            var outcome = s.Begin(false, 1000);
+            FixCheck(outcome == AtomSpectraTcpBeginOutcome.Started, "Start is done (" + outcome + ")");
+            WaitUntil(() => Volatile.Read(ref lost) > 0, AtomSpectraTcpSession.NoDataLinkLostMs + 8000);
+            long gap = Interlocked.Read(ref lostAt) - Interlocked.Read(ref lastData);
+            WaitUntil(() => ReadCommands(log).Any(kv => kv.Key == 1 && kv.Value == "-sta"), 6000);
+            var cmds = ReadCommands(log);
+            Console.WriteLine("lost " + lost + ", " + gap.ToString(CultureInfo.InvariantCulture) + " ms after the last snapshot (limit "
+                + AtomSpectraTcpSession.NoDataLinkLostMs.ToString(CultureInfo.InvariantCulture) + " ms); commands " + Joined(cmds));
+            FixCheck(lost == 1, "an open socket without data is a lost link");
+            FixCheck(gap >= AtomSpectraTcpSession.NoDataLinkLostMs - 500 && gap <= AtomSpectraTcpSession.NoDataLinkLostMs + 3000, "after the limit, not before");
+            FixCheck(cmds.Any(kv => kv.Key == 1 && kv.Value == "-sta"), "the reconnect sends -sta again");
+            s.Stop(1000);
+            s.Dispose();
+            return FixVerdict();
+        }
+
+        // ---- the controller (real build only): found by reflection; the source build has no controller and says n/a ----
+
+        const BindingFlags NonPub = BindingFlags.NonPublic | BindingFlags.Instance;
+
+        static Type CtlType
+        {
+            get { return Type.GetType("BecquerelMonitor.AtomSpectraTcpDeviceController, BecquerelMonitor"); }
+        }
+
+        static bool CtlMissing()
+        {
+            if (CtlType != null) return false;
+            if (File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BecquerelMonitor.exe")))
+            {
+                FixCheck(false, "the controller is not found in the real build");
+                return true;
+            }
+            Console.WriteLine("n/a: the controller is not in this build");
+            return true;
+        }
+
+        static object NewResultData(int channels, int preset)
+        {
+            Type rdT = Type.GetType("BecquerelMonitor.ResultData, BecquerelMonitor");
+            Type specT = Type.GetType("BecquerelMonitor.EnergySpectrum, BecquerelMonitor");
+            object rd = Activator.CreateInstance(rdT);
+            object spec = Activator.CreateInstance(specT, new object[] { 1.0, channels });
+            rdT.GetProperty("EnergySpectrum").SetValue(rd, spec);
+            rdT.GetProperty("DeviceConfig").SetValue(rd, null);
+            StatusSet(rd, "PresetTime", preset);
+            return rd;
+        }
+
+        static object StatusOf(object rd)
+        {
+            return rd.GetType().GetProperty("ResultDataStatus").GetValue(rd);
+        }
+
+        static T StatusGet<T>(object rd, string name)
+        {
+            object st = StatusOf(rd);
+            return (T)st.GetType().GetProperty(name).GetValue(st);
+        }
+
+        static void StatusSet(object rd, string name, object value)
+        {
+            object st = StatusOf(rd);
+            st.GetType().GetProperty(name).SetValue(st, value);
+        }
+
+        static Exception InvokeClear(Type ctlT, object ctl, object rd)
+        {
+            try
+            {
+                ctlT.GetMethod("ClearMeasurementResult").Invoke(ctl, new object[] { rd });
+                return null;
+            }
+            catch (TargetInvocationException ex)
+            {
+                return ex.InnerException;
+            }
+        }
+
+        // T8: a joined acquisition (the counting mock, Continue) and then our own one (-sta) on the same document
+        static int FixCtlClear(int port, string log)
+        {
+            if (CtlMissing()) return FixVerdict();
+            Type ctlT = CtlType;
+            object ctl = Activator.CreateInstance(ctlT);
+            object rd = NewResultData(8192, 40000);
+            ctlT.GetField("resultData", NonPub).SetValue(ctl, rd);
+            ctlT.GetField("deviceGuid", NonPub).SetValue(ctl, "pr37-fix-ctl-clear");
+            ctlT.GetField("presetBeforeBoardTime", NonPub).SetValue(ctl, 3600);   // as a Start that joined a board with time
+
+            var joined = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
+            joined.Ask = q => AtomSpectraRestStartChoice.Continue;
+            var o1 = joined.Begin(true, 2000);
+            FixCheck(o1 == AtomSpectraTcpBeginOutcome.Started && joined.JoinedRunning, "joined the counting board (" + o1 + ")");
+            ctlT.GetField("session", NonPub).SetValue(ctl, joined);
+            Exception thrown = InvokeClear(ctlT, ctl, rd);
+            Thread.Sleep(300);
+            var sentA = Sent(log);
+            Console.WriteLine("joined: " + (thrown == null ? "no exception" : thrown.GetType().Name + ": " + thrown.Message) + "; preset "
+                + StatusGet<int>(rd, "PresetTime").ToString(CultureInfo.InvariantCulture) + "; commands " + string.Join(" ", sentA));
+            FixCheck(thrown is InvalidOperationException, "Clear of a joined acquisition asks first; without windows the question throws (S100)");
+            FixCheck(!sentA.Contains("-rst"), "without an answer nothing is reset on the board");
+            FixCheck(StatusGet<int>(rd, "PresetTime") == 40000, "the preset stays while the board is not reset");
+            joined.Stop(1000);   // detached, no -sto
+            joined.Dispose();
+
+            var own = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
+            var o2 = own.Begin(false, 2000);
+            FixCheck(o2 == AtomSpectraTcpBeginOutcome.Started && !own.JoinedRunning, "our own acquisition (-sta) (" + o2 + ")");
+            ctlT.GetField("session", NonPub).SetValue(ctl, own);
+            thrown = InvokeClear(ctlT, ctl, rd);
+            Thread.Sleep(300);
+            var cmds = ReadCommands(log);
+            Console.WriteLine("own: " + (thrown == null ? "no exception" : thrown.GetType().Name + ": " + thrown.Message) + "; preset "
+                + StatusGet<int>(rd, "PresetTime").ToString(CultureInfo.InvariantCulture) + "; commands " + Joined(cmds));
+            FixCheck(thrown == null && cmds.Any(kv => kv.Key == 1 && kv.Value == "-rst"), "Clear of our own acquisition resets the board without a question");
+            FixCheck(StatusGet<int>(rd, "PresetTime") == 3600, "the preset raised by the board's time goes back to the document's own (40000 -> 3600)");
+            FixCheck((int)ctlT.GetField("presetBeforeBoardTime", NonPub).GetValue(ctl) == -1, "and is forgotten");
+            own.Stop(1000);
+            own.Dispose();
+            return FixVerdict();
+        }
+
+        // The UI thread of the program, for MainForm.originalContext: posts run in order on one thread of their own.
+        sealed class UiThread : SynchronizationContext, IDisposable
+        {
+            readonly BlockingCollection<Action> work = new BlockingCollection<Action>();
+
+            public UiThread()
+            {
+                var t = new Thread(() =>
+                {
+                    foreach (Action a in work.GetConsumingEnumerable())
+                    {
+                        try { a(); }
+                        catch (Exception ex) { Console.WriteLine("ui thread: " + ex.GetType().Name + ": " + ex.Message); }
+                    }
+                });
+                t.IsBackground = true;
+                t.Start();
+            }
+
+            public override void Post(SendOrPostCallback d, object state)
+            {
+                work.Add(() => d(state));
+            }
+
+            public void Flush()
+            {
+                var done = new ManualResetEvent(false);
+                work.Add(() => done.Set());
+                done.WaitOne(5000);
+            }
+
+            public void Dispose()
+            {
+                work.CompleteAdding();
+            }
+        }
+
+        // T1 + T9: the same mock as fix-reset, the controller's own handlers on the session
+        static int FixCtlReset(int port, string log)
+        {
+            if (CtlMissing()) return FixVerdict();
+            Type ctlT = CtlType;
+            FieldInfo context = Type.GetType("BecquerelMonitor.MainForm, BecquerelMonitor").GetField("originalContext", BindingFlags.Public | BindingFlags.Static);
+            var ui = new UiThread();
+            context.SetValue(null, ui);
+            object ctl = Activator.CreateInstance(ctlT);
+            object rd = NewResultData(8192, 40000);
+            StatusSet(rd, "Recording", true);
+            ctlT.GetField("resultData", NonPub).SetValue(ctl, rd);
+            ctlT.GetField("deviceGuid", NonPub).SetValue(ctl, "pr37-fix-ctl-reset");
+            var s = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
+            s.DataReady += (EventHandler<AtomSpectraTcpDataReadyArgs>)Delegate.CreateDelegate(typeof(EventHandler<AtomSpectraTcpDataReadyArgs>), ctl, ctlT.GetMethod("Acquisition_DataReady", NonPub));
+            s.BoardReset += (EventHandler<AtomSpectraTcpBoardResetArgs>)Delegate.CreateDelegate(typeof(EventHandler<AtomSpectraTcpBoardResetArgs>), ctl, ctlT.GetMethod("Session_BoardReset", NonPub));
+            int resets = 0;
+            s.BoardReset += (o, e) => Interlocked.Increment(ref resets);
+            ctlT.GetField("session", NonPub).SetValue(ctl, s);
+            var outcome = s.Begin(false, 1000);
+            FixCheck(outcome == AtomSpectraTcpBeginOutcome.Started, "Start is done (" + outcome + ")");
+            WaitUntil(() => Volatile.Read(ref resets) > 0, 15000);
+            Thread.Sleep(1500);
+            ui.Flush();
+            double seconds = StatusGet<TimeSpan>(rd, "ElapsedTime").TotalSeconds;
+            object spec = rd.GetType().GetProperty("EnergySpectrum").GetValue(rd);
+            long valid = (long)spec.GetType().GetProperty("ValidPulseCount").GetValue(spec);
+            bool recording = StatusGet<bool>(rd, "Recording");
+            var cmds = ReadCommands(log);
+            bool logged = AtomSpectraTcpLog.Snapshot().Any(l => l.Text.Contains("board reset from outside"));
+            Console.WriteLine("document: " + seconds.ToString("R", CultureInfo.InvariantCulture) + " s, " + valid.ToString(CultureInfo.InvariantCulture)
+                + " counts, recording " + recording + "; session open " + s.IsOpen + "; resets " + resets + "; commands " + Joined(cmds));
+            FixCheck(resets == 1, "the reset from outside is found");
+            FixCheck(!recording, "the recording is stopped");
+            FixCheck(seconds >= 2 && valid > 100000000000L, "the document keeps the data before the reset (board time 1 s and lower counts never copied)");
+            FixCheck(!s.IsOpen, "the session is detached");
+            FixCheck(!cmds.Any(kv => kv.Value == "-sto" || kv.Value == "-rst"), "no -sto, no -rst: the acquisition on the board is not the document's any more");
+            FixCheck(logged, "without windows: a line in the log instead of a window");
+            context.SetValue(null, null);
+            ui.Dispose();
+            s.Dispose();
+            return FixVerdict();
         }
     }
 }

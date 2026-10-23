@@ -43919,6 +43919,102 @@ Close the window and discard it?</value>
   <data name="ERRAtomSpectraTcpCalNotTaken" xml:space="preserve">
     <value>AtomSpectra TCP: the calibration of the board is not taken: its scale at {0} channels is not established. The page keeps its own calibration.</value>
   </data>
+  <data name="ERRAtomSpectraRestStopDeferred" xml:space="preserve">
+    <value>AtomSpectra REST: the board did not confirm the stop command. BecqMoni repeats it while the program is open (up to 30 min) and only for this measurement; if the program is closed, stop the board yourself.</value>
+  </data>
+  <data name="ERRAtomSpectraTcpStopUnanswered" xml:space="preserve">
+    <value>AtomSpectra TCP: the analyzer behind {0}:{1} did not answer the stop command. It may keep counting; BecqMoni sends the stop command again as soon as the board accepts a new connection. Check the spectrum before continuing this measurement.</value>
+  </data>
+  <data name="MSGAtomSpectraTcpBoardReset" xml:space="preserve">
+    <value>AtomSpectra TCP: the counters of the analyzer behind {0}:{1} went down (time {2} s → {3} s, counts {4} → {5}): it was reset or restarted from outside. The document was not overwritten and the recording is stopped; nothing was sent to the board. To take the new acquisition, create a new document and press Start.</value>
+  </data>
+  <data name="MSGAtomSpectraTcpClearJoinedConfirm" xml:space="preserve">
+    <value>BecqMoni joined an acquisition that was already running on the analyzer; it holds {0} h {1} min, {2} counts. Reset the spectrum ON THE ANALYZER (-rst)? This cannot be undone.</value>
+  </data>
+  <data name="MSGAtomSpectraTcpNotReset" xml:space="preserve">
+    <value>The analyzer was NOT reset; its spectrum is intact. While the measurement goes on, the document is filled from the analyzer again.</value>
+  </data>
+  <data name="ERRAtomSpectraTcpStart" xml:space="preserve">
+    <value>AtomSpectra TCP: the measurement did not start: {0}</value>
+  </data>
+  <data name="ERRAtomSpectraTcpHeadlessStopped" xml:space="preserve">
+    <value>AtomSpectra TCP: the analyzer is stopped and holds a measurement, and a run without windows cannot ask what to do with it. Nothing was sent to the board.</value>
+  </data>
+  <data name="ERRAtomSpectraTcpHeadlessUnknown" xml:space="preserve">
+    <value>AtomSpectra TCP: in {0} s the bridge did not show whether the analyzer is counting (no status, or only one), and a run without windows cannot ask what to do. Nothing was sent to the board.</value>
+  </data>
+  <data name="ERRAtomSpectraTcpHeadlessBehind" xml:space="preserve">
+    <value>AtomSpectra TCP: the analyzer holds less than the document, and a run without windows cannot ask what to do. Nothing was sent to the board.</value>
+  </data>
+  <data name="AtomSpectraTcpStartSilent" xml:space="preserve">
+    <value>The bridge sent no status in {0} s: the state of the analyzer and its spectrum are not known. "Continue without reset" sends -sta.</value>
+  </data>
+  <data name="AtomSpectraTcpStartUncertain" xml:space="preserve">
+    <value>The bridge sent only one status in {0} s: whether the analyzer is counting is not known. "Continue without reset" sends -sta (harmless on a counting analyzer).</value>
+  </data>
+  <data name="AtomSpectraTcpErrNoHost" xml:space="preserve">
+    <value>no board address is set</value>
+  </data>
+  <data name="AtomSpectraTcpErrBadPort" xml:space="preserve">
+    <value>port {0} is outside 1..65535</value>
+  </data>
+  <data name="AtomSpectraTcpErrTimeout" xml:space="preserve">
+    <value>no answer to the connection in {0} ms</value>
+  </data>
+  <data name="AtomSpectraTcpErrNetwork" xml:space="preserve">
+    <value>network error: {0}</value>
+  </data>
+  <data name="AtomSpectraTcpErrWrite" xml:space="preserve">
+    <value>sending to the board failed: {0}</value>
+  </data>
+  <data name="AtomSpectraTcpErrRead" xml:space="preserve">
+    <value>reading from the board failed: {0}</value>
+  </data>
+  <data name="AtomSpectraTcpErrClosed" xml:space="preserve">
+    <value>the connection is closed</value>
+  </data>
+  <data name="AtomSpectraTcpErrBoardClosed" xml:space="preserve">
+    <value>the board closed the connection</value>
+  </data>
+  <data name="AtomSpectraTcpErrNoData" xml:space="preserve">
+    <value>no data from the board for {0} s</value>
+  </data>
+  <data name="AtomSpectraTcpStatusIdle" xml:space="preserve">
+    <value>idle</value>
+  </data>
+  <data name="AtomSpectraTcpStatusMeasuring" xml:space="preserve">
+    <value>measuring</value>
+  </data>
+  <data name="AtomSpectraTcpStatusJoined" xml:space="preserve">
+    <value>joined a running acquisition</value>
+  </data>
+  <data name="AtomSpectraTcpStatusReceiving" xml:space="preserve">
+    <value>receiving: time {0} s, {1} cps</value>
+  </data>
+  <data name="AtomSpectraTcpStatusLinkLost" xml:space="preserve">
+    <value>link lost, retrying</value>
+  </data>
+  <data name="AtomSpectraTcpStatusStopped" xml:space="preserve">
+    <value>stopped</value>
+  </data>
+  <data name="AtomSpectraTcpStatusStopDeferred" xml:space="preserve">
+    <value>stopped; the stop command waits for the board</value>
+  </data>
+  <data name="AtomSpectraTcpStatusDetached" xml:space="preserve">
+    <value>detached; the board keeps counting</value>
+  </data>
+  <data name="AtomSpectraTcpStatusStopUnconfirmed" xml:space="preserve">
+    <value>stopped; the board did not confirm</value>
+  </data>
+  <data name="AtomSpectraTcpStatusNotStarted" xml:space="preserve">
+    <value>not started</value>
+  </data>
+  <data name="AtomSpectraTcpStatusCancelled" xml:space="preserve">
+    <value>not started: cancelled</value>
+  </data>
+  <data name="AtomSpectraTcpStatusBoardReset" xml:space="preserve">
+    <value>stopped: the board was reset from outside</value>
+  </data>
   <data name="ERRAtomSpectraTcpBadHost" xml:space="preserve">
     <value>AtomSpectra: "{0}" is not a valid board address. Enter host[:port] - an IP address or a name, e.g. 192.168.0.119 or atomspectra.local:8234, without "http://". Without a port, {1} is used.</value>
   </data>
