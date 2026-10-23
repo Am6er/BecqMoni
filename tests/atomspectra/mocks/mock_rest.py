@@ -18,7 +18,8 @@ S = {
     "valid": False,
     "cache_body": None,
     "cache_at": -1e9,
-    "new_run": False
+    "new_run": False,
+    "limit_at": -1   # --sta-limit: the board time at which "-sta N" stops by itself (-1: none)
 }
 FiredEvents = set()
 args = None
@@ -124,6 +125,10 @@ def ticker():
                 S["total"] += 37
                 S["hist"] += 1
                 S["valid"] = True
+                # --sta-limit: "-sta N" counts N seconds and stops by itself (the board's own limit)
+                if S["limit_at"] >= 0 and S["time"] >= S["limit_at"]:
+                    S["counting"] = False
+                    S["limit_at"] = -1
 
 def spectrum_body():
     global RENDER_COUNT
@@ -289,7 +294,8 @@ class Handler(BaseHTTPRequestHandler):
             "gz": gz,
             "auth": self.headers.get("Authorization") is not None,
             "accept_encoding": self.headers.get("Accept-Encoding") or "",
-            "csrf": self.headers.get("X-CSRF-Token") or ""
+            "csrf": self.headers.get("X-CSRF-Token") or "",
+            "expect": self.headers.get("Expect") or ""   # "100-continue": the client waits for an interim answer before the body
         }
         with LOGLOCK:
             with open(args.log, "a", encoding="utf-8") as f:
@@ -462,6 +468,9 @@ class Handler(BaseHTTPRequestHandler):
                         with LOCK:
                             if cmd.startswith("-sta"):
                                 S["counting"] = True
+                                parts = cmd.split()
+                                if args.sta_limit and len(parts) > 1 and parts[1].isdigit():
+                                    S["limit_at"] = S["time"] + int(parts[1])
                             elif cmd.startswith("-sto"):
                                 S["counting"] = False
                                 late = args.sto_late   # executed, but the answer is lost
@@ -562,6 +571,7 @@ def main():
     parser.add_argument("--hist-reset-at", type=float, default=-1)
     parser.add_argument("--cmd-no-text", action="store_true")   # the analyzer gives no text answer (nothing reaches the board log)
     parser.add_argument("--cases", type=str, default="")   # comma list of fixtures/responses files
+    parser.add_argument("--sta-limit", action="store_true")   # PR37 fix, REST: "-sta N" stops the board after N s (the board's own limit)
     args = parser.parse_args()
 
     # Load shape

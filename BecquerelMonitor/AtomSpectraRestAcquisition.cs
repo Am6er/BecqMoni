@@ -52,6 +52,26 @@ namespace BecquerelMonitor
             return Array.IndexOf(RequestableChannels, profileChannels) >= 0 ? profileChannels : 0;
         }
 
+        // A profile the board's 8192 channels fold into by a whole factor; any other N (16384, 6000) cannot be
+        // filled from the board: more channels are never sent, and a fold that does not divide would lose the top ones.
+        public static bool ChannelsSupported(int profileChannels)
+        {
+            return profileChannels > 0 && profileChannels <= Channels && Channels % profileChannels == 0;
+        }
+
+        // the user's text of a snapshot that does not parse (the field that is wrong)
+        public static string AnswerText(string field)
+        {
+            return string.Format(CultureInfo.InvariantCulture, BecquerelMonitor.Properties.Resources.AtomSpectraRestErrAnswer, field);
+        }
+
+        private static string ChannelsText(int got, int wanted)
+        {
+            return string.Format(CultureInfo.InvariantCulture, BecquerelMonitor.Properties.Resources.AtomSpectraRestErrChannels, got, wanted);
+        }
+
+        private static string Inv(long v) { return v.ToString(CultureInfo.InvariantCulture); }
+
         // double.IsFinite does not exist in .NET Framework 4.8
         public static bool Finite(double v) { return !double.IsNaN(v) && !double.IsInfinity(v); }
 
@@ -77,22 +97,60 @@ namespace BecquerelMonitor
         // request without the parameter). Without "channels" only the old 8192 answer is taken (the client folds it).
         public static string LengthError(int bins, int declared, int requested)
         {
-            if (declared < 0) return bins == Channels ? null : "bins count " + bins + " without \"channels\" (only " + Channels + ")";
-            if (declared != bins) return "\"channels\" " + declared + " != bins count " + bins;
+            string user;
+            return LengthError(bins, declared, requested, out user);
+        }
+
+        // the log text (null: the length is right) and the same for the user
+        public static string LengthError(int bins, int declared, int requested, out string userError)
+        {
+            userError = null;
+            if (declared < 0)
+            {
+                if (bins == Channels) return null;
+                userError = ChannelsText(bins, Channels);
+                return "bins count " + Inv(bins) + " without \"channels\" (only " + Inv(Channels) + ")";
+            }
+            if (declared != bins)
+            {
+                userError = AnswerText("channels");
+                return "\"channels\" " + Inv(declared) + " != bins count " + Inv(bins);
+            }
             int wanted = requested > 0 ? requested : Channels;
-            return bins == wanted ? null : "\"channels\" " + bins + " != requested " + wanted;
+            if (bins == wanted) return null;
+            userError = ChannelsText(bins, wanted);
+            return "\"channels\" " + Inv(bins) + " != requested " + Inv(wanted);
         }
 
         // requested: the N of ?channels=N (0: the request had no parameter)
         public static AtomSpectraRestDataReadyArgs Parse(string json, int requested, out string error)
         {
+            string user;
+            return Parse(json, requested, out error, out user);
+        }
+
+        // a whole number of a field that must be one: NaN, inf or out of the int range is a broken snapshot ((int)NaN is int.MinValue)
+        private static bool WholeField(Dictionary<string, object> o, string key, double fallback, out int value)
+        {
+            double v = AtomSpectraJson.GetNumber(o, key, fallback);
+            value = 0;
+            if (!Finite(v) || v < 0 || v > int.MaxValue) return false;
+            value = (int)v;
+            return true;
+        }
+
+        // error: the log text; userError: the same for the user (resources)
+        public static AtomSpectraRestDataReadyArgs Parse(string json, int requested, out string error, out string userError)
+        {
             error = null;
+            userError = null;
             try
             {
                 object root = AtomSpectraJson.Parse(json);
                 if (!(root is Dictionary<string, object>))
                 {
                     error = "not an object";
+                    userError = AnswerText("JSON");
                     return null;
                 }
 
@@ -102,14 +160,17 @@ namespace BecquerelMonitor
                 if (bins == null)
                 {
                     error = "no bins";
+                    userError = AnswerText("bins");
                     return null;
                 }
 
                 int declared = o.ContainsKey("channels") ? (int)AtomSpectraJson.GetNumber(o, "channels", -1) : -1;
-                string lengthError = LengthError(bins.Count, declared, requested);
+                string lengthUser = null;
+                string lengthError = LengthError(bins.Count, declared, requested, out lengthUser);
                 if (lengthError != null)
                 {
                     error = lengthError;
+                    userError = lengthUser;
                     return null;
                 }
 
@@ -121,14 +182,16 @@ namespace BecquerelMonitor
                     object item = bins[i];
                     if (!(item is double))
                     {
-                        error = "bin " + i + " is not a number";
+                        error = "bin " + Inv(i) + " is not a number";
+                        userError = AnswerText("bins");
                         return null;
                     }
 
                     double val = (double)item;
                     if (!AtomSpectraRestSpectrum.Finite(val) || val < 0 || val > int.MaxValue)
                     {
-                        error = "bin " + i + " out of range";
+                        error = "bin " + Inv(i) + " out of range";
+                        userError = AnswerText("bins");
                         return null;
                     }
 
@@ -140,20 +203,31 @@ namespace BecquerelMonitor
                 if (!o.ContainsKey("time"))
                 {
                     error = "missing time";
+                    userError = AnswerText("time");
                     return null;
                 }
 
-                double timeVal = AtomSpectraJson.GetNumber(o, "time", 0);
-                int elapsed = (int)timeVal;
+                int elapsed;
+                if (!WholeField(o, "time", double.NaN, out elapsed))
+                {
+                    error = "\"time\" is not a number of seconds";
+                    userError = AnswerText("time");
+                    return null;
+                }
 
                 double cpuVal = AtomSpectraJson.GetNumber(o, "cpu", 0);
-                int cpu = (int)cpuVal;
+                int cpu = Finite(cpuVal) && Math.Abs(cpuVal) <= int.MaxValue ? (int)cpuVal : 0;   // shown only
 
                 double cpsVal = AtomSpectraJson.GetNumber(o, "cps", 0);
-                int cps = (int)cpsVal;
+                int cps = Finite(cpsVal) && Math.Abs(cpsVal) <= int.MaxValue ? (int)cpsVal : 0;   // shown only
 
-                double lostVal = AtomSpectraJson.GetNumber(o, "lost", 0);
-                int invalid = (int)lostVal;
+                int invalid;
+                if (!WholeField(o, "lost", 0, out invalid))
+                {
+                    error = "\"lost\" is not a count";
+                    userError = AnswerText("lost");
+                    return null;
+                }
 
                 double liveVal = double.NaN;
                 if (o.ContainsKey("live"))
@@ -209,6 +283,7 @@ namespace BecquerelMonitor
             catch (Exception ex)
             {
                 error = "parse exception: " + ex.Message;
+                userError = AnswerText("JSON");
                 return null;
             }
         }
@@ -235,6 +310,8 @@ namespace BecquerelMonitor
         private readonly AtomSpectraRestPeriod _period;     // the effective period
         private long _lastAnsweredMs;                       // clock time of the last answer (0 = the start of the clock)
         private readonly ManualResetEvent _stopEvent = new ManualResetEvent(false);
+        private readonly object _stopLock = new object();
+        private bool _stopClosed;                           // _stopEvent is disposed (by the poll thread on its way out, or by Dispose)
         private Thread _thread;
         private readonly Stopwatch _clock = Stopwatch.StartNew();
 
@@ -289,7 +366,7 @@ namespace BecquerelMonitor
         }
 
         public int EffectivePeriodMs { get { return _period.EffectiveMs; } }
-        public string SpectrumPath { get { return "/api/spectrum.json" + (_requestChannels > 0 ? "?channels=" + _requestChannels : ""); } }
+        public string SpectrumPath { get { return "/api/spectrum.json" + (_requestChannels > 0 ? "?channels=" + _requestChannels.ToString(CultureInfo.InvariantCulture) : ""); } }
 
         public bool IsLinkLost
         {
@@ -329,9 +406,13 @@ namespace BecquerelMonitor
         public void Start()
         {
             if (_thread != null) return;
+            lock (_stopLock)
+            {
+                if (_stopClosed) return;   // disposed before it was started
+                _stopEvent.Reset();
+            }
 
             _alive = true;
-            _stopEvent.Reset();
 
             _thread = new Thread(Run)
             {
@@ -339,29 +420,60 @@ namespace BecquerelMonitor
                 Name = "AtomSpectraRest"
             };
 
-            AtomSpectraTcpLog.Info("REST", "polling " + _client.BaseUrl + "/api/spectrum.json every " + (_periodMs / 1000) + " s, deadline " + DeadlineMs + " ms");
+            AtomSpectraTcpLog.Info("REST", AtomSpectraTcpLog.Format("polling {0}/api/spectrum.json every {1} s, deadline {2} ms", _client.BaseUrl, _periodMs / 1000, DeadlineMs));
 
             _thread.Start();
         }
 
-        // Ask the poll thread to end after the request in flight, without waiting for it.
+        private void SetStop()
+        {
+            lock (_stopLock)
+            {
+                if (!_stopClosed) _stopEvent.Set();
+            }
+        }
+
+        private void CloseStop()
+        {
+            lock (_stopLock)
+            {
+                if (_stopClosed) return;
+                _stopClosed = true;
+                _stopEvent.Dispose();
+            }
+        }
+
+        // the stop event may be gone already (a test polls by hand after Dispose): then the stop is asked for
+        private bool WaitStop(int ms)
+        {
+            try { return _stopEvent.WaitOne(ms); }
+            catch (ObjectDisposedException) { return true; }
+        }
+
+        // Ask the poll thread to end after the request in flight, without waiting for it; the thread is a background one and disposes
+        // the stop event itself on its way out, and no snapshot is raised after this (the session unhooks before it signals).
         public void Signal()
         {
             _alive = false;
-            _stopEvent.Set();
+            SetStop();
         }
 
+        // Ends the polling and WAITS for the thread (up to a deadline): not for the UI thread, which uses Signal.
         public void Dispose()
         {
-            if (!_alive && _thread == null) return;
-
+            Thread t = _thread;
             _alive = false;
-            _stopEvent.Set();
+            SetStop();
 
-            if (_thread != null && _thread != Thread.CurrentThread)
+            if (t == null)
             {
-                _thread.Join(DeadlineMs + 1000);
-                if (_thread.IsAlive)
+                CloseStop();   // never started: no poll thread to dispose the event
+                return;
+            }
+            if (t != Thread.CurrentThread)
+            {
+                t.Join(DeadlineMs + 1000);
+                if (t.IsAlive)
                 {
                     AtomSpectraTcpLog.Warn("REST", "poll thread did not stop in time");
                 }
@@ -412,7 +524,7 @@ namespace BecquerelMonitor
                     // missed deadline, transport error or an answer that did not parse = a skipped poll: no Trip
                     PeriodAfter(false);
 
-                    AtomSpectraTcpLog.Warn("REST", "poll failed (" + cf + " in a row): " + error);
+                    AtomSpectraTcpLog.Warn("REST", AtomSpectraTcpLog.Format("poll failed ({0} in a row): {1}", cf, error));
 
                     // The link is lost by SILENCE: no answer for max(3 periods, 15 s); the period is the larger of
                     // the configured one and the one in force. The plain count of failures is not used: they come fast when a board refuses.
@@ -425,7 +537,7 @@ namespace BecquerelMonitor
                     if ((silent || answeredInRow >= LinkLostAfterFailures) && !_linkLost)
                     {
                         _linkLost = true;
-                        AtomSpectraTcpLog.Error("REST", "link lost after " + cf + " failed polls, " + silentMs + " ms without an answer, " + answeredInRow + " answered failures in a row");
+                        AtomSpectraTcpLog.Error("REST", AtomSpectraTcpLog.Format("link lost after {0} failed polls, {1} ms without an answer, {2} answered failures in a row", cf, silentMs, answeredInRow));
                         RaiseLinkLost();
                     }
 
@@ -461,7 +573,7 @@ namespace BecquerelMonitor
             data = null;
             error = null;
             if (r.Status == 404) return;
-            error = r.Ok ? null : (r.Error ?? "HTTP " + r.Status);
+            error = r.Ok ? null : (r.Error ?? "HTTP " + r.Status.ToString(CultureInfo.InvariantCulture));
             if (error == null) data = AtomSpectraRestSpectrum.Parse(r.Body, _requestChannels, out error);
         }
 
@@ -501,8 +613,8 @@ namespace BecquerelMonitor
                 }
                 Interlocked.Increment(ref _retries);
                 _client.CloseConnections(null);   // the connection of the failed attempt is closed before the repeat
-                AtomSpectraTcpLog.Info("REST", "poll attempt " + n + " of " + attempts + " failed (" + error + "), repeated inside the period");
-                if (_stopEvent.WaitOne(RetryPauseMs)) return;
+                AtomSpectraTcpLog.Info("REST", AtomSpectraTcpLog.Format("poll attempt {0} of {1} failed ({2}), repeated inside the period", n, attempts, error));
+                if (WaitStop(RetryPauseMs)) return;
             }
         }
 
@@ -513,9 +625,8 @@ namespace BecquerelMonitor
             if (full ? _period.Full() : _period.Skip())
             {
                 AtomSpectraTcpLog.StaleAfterSeconds = 2 * _period.EffectiveMs / 1000 + 5;   // the freshness mark of the log window follows the period in force
-                AtomSpectraTcpLog.Info("REST", "poll period " + (before / 1000.0).ToString(CultureInfo.InvariantCulture) + " s -> " +
-                    (_period.EffectiveMs / 1000.0).ToString(CultureInfo.InvariantCulture) + " s, deadline " + DeadlineMs + " ms" +
-                    (full ? " (" + AtomSpectraRestPeriod.FullToHalve + " full polls in a row)" : " (skipped poll: " + _lastError + ")"));
+                AtomSpectraTcpLog.Info("REST", AtomSpectraTcpLog.Format("poll period {0} s -> {1} s, deadline {2} ms", before / 1000.0, _period.EffectiveMs / 1000.0, DeadlineMs) +
+                    (full ? AtomSpectraTcpLog.Format(" ({0} full polls in a row)", AtomSpectraRestPeriod.FullToHalve) : " (skipped poll: " + _lastError + ")"));
             }
         }
 
@@ -544,24 +655,31 @@ namespace BecquerelMonitor
             long next = _clock.ElapsedMilliseconds;
             long nextStats = next + StatsEveryMs;
 
-            while (_alive)
+            try
             {
-                long wait = next - _clock.ElapsedMilliseconds;
-                if (wait > 0 && _stopEvent.WaitOne((int)wait)) break;
-                if (!_alive) break;
-
-                PollOnce();
-
-                next += _period.EffectiveMs;
-
-                long nowMs = _clock.ElapsedMilliseconds;
-                if (next <= nowMs) next = nowMs + _period.EffectiveMs;
-
-                if (nowMs >= nextStats)
+                while (_alive)
                 {
-                    LogStats();
-                    nextStats = nowMs + StatsEveryMs;
+                    long wait = next - _clock.ElapsedMilliseconds;
+                    if (wait > 0 && WaitStop((int)wait)) break;
+                    if (!_alive) break;
+
+                    PollOnce();
+
+                    next += _period.EffectiveMs;
+
+                    long nowMs = _clock.ElapsedMilliseconds;
+                    if (next <= nowMs) next = nowMs + _period.EffectiveMs;
+
+                    if (nowMs >= nextStats)
+                    {
+                        LogStats();
+                        nextStats = nowMs + StatsEveryMs;
+                    }
                 }
+            }
+            finally
+            {
+                CloseStop();   // the loop ends only when the stop was asked for
             }
         }
 
@@ -589,12 +707,9 @@ namespace BecquerelMonitor
                 cps = _last.Cps;
             }
 
-            string msg = "REST stats: period " + (_period.EffectiveMs / 1000.0).ToString(CultureInfo.InvariantCulture) + " s (configured " + (_periodMs / 1000) + " s), polls " + attempts +
-                         " (ok " + successes + ", failed " + failures + "), last response " + wireBytes +
-                         " B (" + encoding + "), last total " + total +
-                         ", time " + time.ToString(CultureInfo.InvariantCulture) + " s, live " +
-                         live.ToString(CultureInfo.InvariantCulture) + " s, " +
-                         (dead > 0 ? "analyzer silent (dead=1)" : "dead=0") + ", cps " + cps + ", 404 answers " + Volatile.Read(ref _noData);
+            string msg = AtomSpectraTcpLog.Format("REST stats: period {0} s (configured {1} s), polls {2} (ok {3}, failed {4}), last response {5} B ({6}), last total {7}, time {8} s, live {9} s, {10}, cps {11}, 404 answers {12}",
+                         _period.EffectiveMs / 1000.0, _periodMs / 1000, attempts, successes, failures, wireBytes, encoding, total,
+                         time, live, dead > 0 ? "analyzer silent (dead=1)" : "dead=0", cps, Volatile.Read(ref _noData));
 
             AtomSpectraTcpLog.Info("REST", msg);
         }

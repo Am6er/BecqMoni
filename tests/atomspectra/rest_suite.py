@@ -191,6 +191,18 @@ SCENARIOS = [
     ("console-tcp-start-headless-counting", ["--order", "hs", "--period", "0.5", "--cycles", "12", "--connections", "1"]),
     ("console-tcp-start-headless-stopped", ["--order", "hs", "--period", "0.5", "--cycles", "12", "--connections", "1", "--stopped-at", "500"]),
     ("console-tcp-start-headless-idle", ["--order", "hs", "--period", "0.5", "--cycles", "12", "--connections", "1", "--stopped-at", "0"]),
+    # PR37 fix, REST (harness/RestFixPr37.cs): the board's own limit, Continue over another acquisition, observe only behind the document,
+    # profile channels, the JSON parser, Disconnect without waiting, a joined Stop, the user texts, no "Expect: 100-continue"
+    ("pr37-rest-limit-end", ["--counting", "0", "--valid", "0", "--sta-limit"]),
+    ("pr37-rest-limit-stall", ["--counting", "0", "--valid", "0", "--sta-limit", "--stop-at", "8"]),
+    ("pr37-rest-continue-other", ["--counting", "1", "--time", "1000", "--total", "37000"]),
+    ("pr37-rest-observe-behind", ["--counting", "1", "--time", "1000", "--total", "37000"]),
+    ("pr37-rest-channels", None),
+    ("pr37-rest-json", None),
+    ("pr37-rest-detach-hang", ["--counting", "1", "--time", "100", "--total", "50", "--hang-from", "4", "--hang-for", "30"]),
+    ("pr37-rest-stop-joined", ["--counting", "1", "--time", "1000", "--total", "37000"]),
+    ("pr37-rest-texts", ["--counting", "0", "--valid", "0", "--cmd-ok-false"]),
+    ("pr37-rest-expect", ["--counting", "0", "--valid", "0"]),
 ]
 # scenarios that need the controller or the forms exist in the REAL build only (the source build prints n/a). On the real build each must
 # EXECUTE at least this many checks ("checks executed: N" of the harness); n/a or fewer is a failure of the suite, not a pass.
@@ -239,7 +251,7 @@ MUTATIONS = [
     ("headless-stopped", "headless Start on a stopped board with data starts it (-sta) without a question",
      [("AtomSpectraRestPolicy.cs", "return !counting && BoardHasData(board) ? AtomSpectraRestStartPlan.Ask : AtomSpectraRestStartPlan.Join;", "return !counting && BoardHasData(board) ? AtomSpectraRestStartPlan.Resume : AtomSpectraRestStartPlan.Join;")], "headless-stopped", True),
     ("stop-hang", "Stop waits for the poll hanging on the board",
-     [("AtomSpectraRestSession.cs", "DetachNoWait();   // the caller (UI thread)", "Detach();   // the caller (UI thread)")], "stop-hang", True),
+     [("AtomSpectraRestSession.cs", "DetachNoWait();   // the caller (UI thread)", "{ AtomSpectraRestAcquisition hung = acquisition; DetachNoWait(); if (hung != null) hung.Dispose(); }   // the caller (UI thread)")], "stop-hang", True),
     ("url-userinfo", "a URL with user:pass is accepted",
      [("AtomSpectraTcpDeviceConfig.Rest.cs", "&& !string.IsNullOrEmpty(u.Host) && string.IsNullOrEmpty(u.UserInfo);", "&& !string.IsNullOrEmpty(u.Host);")], "url-userinfo", True),
     # tests that were green on broken code, and the mock matched to the board
@@ -262,7 +274,7 @@ MUTATIONS = [
     ("sent-false", "C mismatch 7: reset answered sent=false is reported as done",
      [("AtomSpectraRestSession.cs", "if (r.Accepted && r.SentFalse)", "if (false)")], "reset-unsent", True),
     ("live-nan", "C mismatch 10: the bare token nan is not parsed (the whole snapshot is lost)",
-     [("AtomSpectraRestClient.cs", "if (rest.StartsWith(\"nan\", StringComparison.Ordinal) ||" + NL + "                    rest.StartsWith(\"NaN\", StringComparison.Ordinal) ||" + NL + "                    rest.StartsWith(\"inf\"", "if (rest.StartsWith(\"inf\"")], "live-nan", True),
+     [("AtomSpectraRestClient.cs", "if (Sees(\"nan\") ||" + NL + "                    Sees(\"NaN\") ||" + NL + "                    Sees(\"inf\")", "if (Sees(\"inf\")")], "live-nan", True),
     # device console: each mutation must redden its target scenario ("exactly one" is informative)
     ("console-baseline", "console: the board log is read from the start, old lines are shown as the answer",
      [("AtomSpectraDeviceConsole.cs", "                    baseline = next;", "                    baseline = 0;")], "console-rest", False),
@@ -304,10 +316,10 @@ MUTATIONS = [
     ("tcp-idle-asks", "TCP Start resets an idle board's (empty) spectrum without need",
      [("AtomSpectraTcpSession.cs", "AtomSpectraRestStartPlan plan = AtomSpectraRestPolicy.PlanStart(false, Ask != null, counting, board, 0, 0);", "AtomSpectraRestStartPlan plan = AtomSpectraRestStartPlan.Restart;")], "console-tcp-start-idle", False),
     ("unreachable-period", "REST Start on an unreachable board names 60 s instead of the poll period",
-     [("AtomSpectraRestSession.cs", "AtomSpectraTcpLog.Mask(client.BaseUrl), periodSeconds, LastError", "AtomSpectraTcpLog.Mask(client.BaseUrl), 60, LastError")], "rest-unreachable-text", False),
+     [("AtomSpectraRestSession.cs", "AtomSpectraTcpLog.Mask(client.BaseUrl), periodSeconds, LastErrorText", "AtomSpectraTcpLog.Mask(client.BaseUrl), 60, LastErrorText")], "rest-unreachable-text", False),
     # each rule cut out of the code; full run, the target must be the only red test
     ("channels", "only the 8192 answer is taken (channels=N answer refused)",
-     [("AtomSpectraRestAcquisition.cs", "string lengthError = LengthError(bins.Count, declared, requested);", "string lengthError = bins.Count != Channels ? \"bins count != \" + Channels : null;")], "f5-channels", True),
+     [("AtomSpectraRestAcquisition.cs", "string lengthError = LengthError(bins.Count, declared, requested, out lengthUser);", "string lengthError = bins.Count != Channels ? \"bins count != \" + Channels : null;")], "f5-channels", True),
     ("boot", "boot_id is not compared", [("AtomSpectraRestPolicy.cs", "if (Differs(BootId, before.BootId))", "if (false)")], "f5-epoch-boot", True),
     ("dev", "dev_resets is not compared", [("AtomSpectraRestPolicy.cs", "if (Differs(DevResets, before.DevResets))", "if (false)")], "f5-epoch-dev", True),
     ("spec", "spec_resets is not compared", [("AtomSpectraRestPolicy.cs", "if (Differs(SpecResets, before.SpecResets))", "if (false)")], "f5-epoch-spec", True),
@@ -374,7 +386,7 @@ MUTATIONS = [
     ("attempt-quarter", "the attempt is period/4 (2.5 s at a period of 10 s)",
      [("AtomSpectraRestAcquisition.cs", "(int)((long)period * AttemptPermille / 1000)", "period / 4")], "f5-retry-slow", True),
     ("no-accept-encoding", "gzip: the request does not ask for gzip", [("AtomSpectraRestClient.cs", "if (SendAcceptEncoding)", "if (false)")], "f5-gz-request", True),
-    ("no-decode", "gzip: a gzip answer is not decoded by Content-Encoding", [("AtomSpectraRestClient.cs", "Decode(ms.ToArray(), result.ContentEncoding, out problem, out broken)", "ms.ToArray()")], "f5-gz-same", True),
+    ("no-decode", "gzip: a gzip answer is not decoded by Content-Encoding", [("AtomSpectraRestClient.cs", "Decode(ms.ToArray(), result.ContentEncoding, out problem, out userProblem, out broken)", "ms.ToArray()")], "f5-gz-same", True),
     ("cut-gzip-whole", "gzip: a gzip cut short (the trailer gone) is taken for a whole answer", [("AtomSpectraRestClient.cs", "if (encoding == \"gzip\") CheckGzipTrailer(wire, output.Length);", "")], "f5-gz-cut-trailer", True),
     ("keep-first-connection", "the connection of the failed first attempt stays open", [("AtomSpectraRestAcquisition.cs", "_client.CloseConnections(null);", "")], "f5-retry-close-first", True),
     ("groups-pile-up", "the retry-<Guid> group is not closed after the attempt", [("AtomSpectraRestClient.cs", "if (connectionGroup != null && method == \"GET\") CloseConnections(connectionGroup);", "")], "f5-retry-close-groups", True),
@@ -421,6 +433,35 @@ MUTATIONS = [
      [("AtomSpectraTcpSession.cs", "            if (plan == AtomSpectraRestStartPlan.Ask)\n            {\n                // no window to ask in", "            if (false)\n            {\n                // no window to ask in")], "console-tcp-start-headless-stopped", True),
     ("tcp-headless-restart", "the TCP Start without a window restarts the board without a question (-sto -rst -sta), as before",
      [("AtomSpectraTcpSession.cs", "            AtomSpectraRestBoardSample[] s = ProbeBoard(ProbeMs);   // with or without a window", "            if (Ask == null) return AtomSpectraRestStartPlan.Restart;\n            AtomSpectraRestBoardSample[] s = ProbeBoard(ProbeMs);   // with or without a window")], "console-tcp-start-headless-idle", True),
+    # PR37 fix, REST: each fix cut out again reddens its own scenario
+    ("pr37-limit-stall", "R1: the board's stop at its own limit is declared a stall (the run ends as an accident)",
+     [("AtomSpectraRestSession.cs", "guard.Stalled(acq.NowMs, StallMs) && !atLimit)", "guard.Stalled(acq.NowMs, StallMs))")], "pr37-rest-limit-end", False),
+    ("pr37-limit-margin", "R1: the preset of our limited run gets the old margin (the document never reaches it)",
+     [("AtomSpectraRestSession.cs", "return (int)Math.Min(int.MaxValue / 2, board + limitSeconds);", "return (int)Math.Min(int.MaxValue / 2, board + limitSeconds + 2L * Math.Max(1, periodSeconds) + 5);")], "pr37-rest-limit-end", False),
+    ("pr37-continue-channels", "R2: Continue is offered over a board below the document in a channel",
+     [("AtomSpectraRestSession.cs", "bool continueAllowed = !AtomSpectraRestPolicy.BoardBehindDocument(second, DocumentSeconds, DocumentCounts) && below < 0;", "bool continueAllowed = !AtomSpectraRestPolicy.BoardBehindDocument(second, DocumentSeconds, DocumentCounts);")], "pr37-rest-continue-other", False),
+    ("pr37-guard-unseeded", "R2: the guard does not start from the document's channels",
+     [("AtomSpectraRestPolicy.cs", "                lastBins = docBins;", "                lastBins = null;")], "pr37-rest-continue-other", False),
+    ("pr37-observe-joins", "R9: observe only joins a board behind the document (and reports a 'reset' at the first snapshot)",
+     [("AtomSpectraRestPolicy.cs", "return otherSpectrum || BoardBehindDocument(board, docSeconds, docCounts) ? AtomSpectraRestStartPlan.RefuseObserve : AtomSpectraRestStartPlan.Join;", "return AtomSpectraRestStartPlan.Join;")], "pr37-rest-observe-behind", False),
+    ("pr37-channels-any", "R3: any profile channels are taken (16384, 6000)",
+     [("AtomSpectraRestAcquisition.cs", "return profileChannels > 0 && profileChannels <= Channels && Channels % profileChannels == 0;", "return profileChannels > 0;")], "pr37-rest-channels", False),
+    ("pr37-json-depth", "R9: no depth limit (a deep answer ends the process with StackOverflowException)",
+     [("AtomSpectraRestClient.cs", "if (++_depth > MaxDepth) throw", "if (++_depth > int.MaxValue) throw")], "pr37-rest-json", False),
+    ("pr37-json-copy", "R4: every token test copies the rest of the text (quadratic parse)",
+     [("AtomSpectraRestClient.cs", "return _pos + token.Length <= _text.Length && string.CompareOrdinal(_text, _pos, token, 0, token.Length) == 0;", "return _text.Substring(_pos).StartsWith(token, StringComparison.Ordinal);")], "pr37-rest-json", False),
+    ("pr37-nan-time", "R9: NaN in time/lost is cast to int.MinValue",
+     [("AtomSpectraRestAcquisition.cs", "if (!Finite(v) || v < 0 || v > int.MaxValue) return false;", "")], "pr37-rest-json", False),
+    ("pr37-detach-waits", "R6: Disconnect waits for a poll hanging on the board",
+     [("AtomSpectraRestSession.cs", "DetachNoWait();   // never waits: Disconnect runs on the UI thread", "{ AtomSpectraRestAcquisition hung = acquisition; DetachNoWait(); if (hung != null) hung.Dispose(); }")], "pr37-rest-detach-hang", False),
+    ("pr37-joined-silent", "R9: Stop of a joined acquisition says nothing",
+     [("AtomSpectraRestSession.cs", "if (kept != null) kept(this, EventArgs.Empty);", "")], "pr37-rest-stop-joined", False),
+    ("pr37-user-text-english", "R8: the user's text of a refused command is the English log text",
+     [("AtomSpectraRestSession.cs", "            lastUserError = RefusalText(r);\n            AtomSpectraTcpLog.Warn(\"Session\", command + \" refused: \" + lastError);", "            lastUserError = lastError;\n            AtomSpectraTcpLog.Warn(\"Session\", command + \" refused: \" + lastError);")], "pr37-rest-texts", False),
+    ("pr37-culture", "R7: the epoch change is printed in the culture of the thread",
+     [("AtomSpectraRestPolicy.cs", "field + \": \" + Inv(was) + \" -> \" + Inv(now)", "field + \": \" + was + \" -> \" + now")], "pr37-rest-texts", False),
+    ("pr37-expect-100", "R9: a POST asks for 100 Continue",
+     [("AtomSpectraRestClient.cs", "req.ServicePoint.Expect100Continue = false;", "")], "pr37-rest-expect", False),
 ]
 
 
@@ -472,6 +513,8 @@ def run(cmd, timeout=180, prio=0):
 
 HARNESS_FILES = [os.path.join(D, "harness", n) for n in ("RestHarness.cs", "RestHarnessFixes.cs", "RestHarnessPassC.cs", "RestHarnessConsole.cs", "RestHarnessForm.cs", "RestHarnessFormModes.cs", "RestHarnessFormLayout.cs", "RestHarnessCalibration.cs", "RestHarnessTcpStart.cs", "RestHarnessGzip.cs", "RestHarnessInfDebug.cs", "RestHarnessF5.cs", "RestHarnessF5b.cs", "RestHarnessF5c.cs", "RestHarnessF5d.cs", "RestHarnessF5e.cs", "RestHarnessF5f.cs", "RestHarnessF5g.cs", "RestHarnessF5h.cs", "RestHarnessF5i.cs", "RestHarnessF5j.cs", "RestHarnessF5k.cs")]
 FIXTURE = os.path.join(D, "fixtures", "spectrum_sample.json")   # a spectrum document recorded from a board, read by 'parse'
+
+HARNESS_FILES.append(os.path.join(D, "harness", "RestFixPr37.cs"))   # PR37 fix, REST: the scenarios pr37-rest-*
 
 
 def copy_fixture(out_dir):
