@@ -15,6 +15,23 @@ namespace BecquerelMonitor
         [STAThread]
         static void Main(string[] args)
         {
+            // ⛔ (`AMBER261`, 23.10.2026) Дочерняя проба GPU окна матрицы отклика
+            // (`RmGpu.ProbeIsolated`): ответить и выйти РАНЬШЕ всего прочего — без
+            // проверки второго экземпляра (приложение уже запущено, это его ребёнок),
+            // без журнала (файл держит родитель) и без окон. Тело приложения — в
+            // отдельном методе, чтобы ребёнку не компилировалось ничего лишнего.
+            if (args != null && args.Length >= 1 && args[0] == EfficiencyMaker.RmGpu.ProbeChildKey)
+            {
+                Environment.Exit(EfficiencyMaker.RmGpu.ProbeChildMain(
+                    args.Length > 1 ? args[1] : EfficiencyMaker.RmGpu.DefaultPath));
+                return;
+            }
+
+            Program.RunApplication(args);
+        }
+
+        static void RunApplication(string[] args)
+        {
             // Single-instance check via a named mutex. The old implementation walked the
             // process list and read process.MainModule.FileName without try/catch, which
             // throws Win32Exception for same-named processes with a different integrity

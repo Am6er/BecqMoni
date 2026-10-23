@@ -2588,6 +2588,12 @@ http://xptable.sourceforge.net/</value>
   <data name="ResponseMatrixGpuRuntimeError" xml:space="preserve">
     <value>Недоступно: {0}</value>
   </data>
+  <data name="ResponseMatrixGpuProbeCrashed" xml:space="preserve">
+    <value>Недоступно: проверка GPU упала в драйвере Nvidia или рантайме CUDA (код завершения {0}). Матрица считается на процессоре; подробности — в журнале приложения.</value>
+  </data>
+  <data name="ResponseMatrixGpuProbeTimeout" xml:space="preserve">
+    <value>Недоступно: проверка GPU не ответила за {0} с. Матрица считается на процессоре.</value>
+  </data>
   <data name="ResponseMatrixGpuProgress" xml:space="preserve">
     <value>GPU: узел {0} из {1}, {2:F0} кэВ.</value>
   </data>

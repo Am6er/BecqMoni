@@ -34,7 +34,10 @@ using System.Threading.Tasks;
 //       Таблица κ пар отдельно (`MeasureJointTable`): отпечаток таблицы (правка опроса
 //       отмены обязана оставить его побитово) / ожидание отмены посреди блоков κ.
 //
-//   --mode=probe[=<путь к dll>]   годность GPU, как её спрашивает окно, с замером времени;
+//   --mode=probe[=<путь к dll>]   годность GPU в СВОЁМ процессе (`RmGpu.Probe`), с замером времени;
+//   --mode=isolated[=<путь к dll>] годность GPU дочерним процессом, как её спрашивает окно
+//                                 (`RmGpu.ProbeIsolated`, `AMBER261`): падающая библиотека
+//                                 роняет ребёнка, а проба печатает код его выхода;
 //   --mode=form                   окно матрицы над геометрией и её ISO-двойником: галка GPU;
 //   --mode=mkscene=ground|borehole|iso   записать сцену редактора рядом с геометрией.
 //
@@ -158,6 +161,17 @@ static class GpuAppProbeP253
                               dll, p.Available, p.ReasonCode, p.Reason, p.DeviceName, p.ComputeCapability,
                               p.DriverVersion, p.RuntimeVersion, p.BuildInfo);
             Console.WriteLine("  время: первый вызов {0:F3} с, повторный {1:F3} с; повторный годен {2}", first, second, again.Available);
+            return 0;
+        }
+
+        if (mode != null && mode.StartsWith("isolated", StringComparison.Ordinal))
+        {
+            string dll = mode.Length > 9 ? mode.Substring(9) : RmGpu.DefaultPath;
+            var clock = Stopwatch.StartNew();
+            GpuProbe p = RmGpu.ProbeIsolated(dll);
+            Console.WriteLine("ProbeIsolated({0}): годен {1}, код {2}, выход ребёнка {3}, причина «{4}», устройство «{5}» cc {6}, драйвер {7}, рантайм {8}, паспорт «{9}»; {10:F2} с",
+                              dll, p.Available, p.ReasonCode, RmGpu.ExitCodeText(p.ChildExitCode), p.Reason, p.DeviceName,
+                              p.ComputeCapability, p.DriverVersion, p.RuntimeVersion, p.BuildInfo, clock.Elapsed.TotalSeconds);
             return 0;
         }
 
