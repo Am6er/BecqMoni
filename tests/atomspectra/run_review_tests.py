@@ -209,6 +209,23 @@ def main():
             ("cal-nan", "CalHarness.exe", "mock_cal.py", ["--mode", "ok", "--coeffs", "0.5,nan,0,0,0"], lambda port, log: ["127.0.0.1", str(port), "InvalidNumber"]),
             ("cal-inf", "CalHarness.exe", "mock_cal.py", ["--mode", "ok", "--coeffs", "0.5,inf,0,0,0"], lambda port, log: ["127.0.0.1", str(port), "InvalidNumber"]),
             ("cal-gap", "CalHarness.exe", "mock_cal.py", ["--mode", "ok", "--coeffs", "0.5,none,1e-5,0,0"], lambda port, log: ["127.0.0.1", str(port), "GapInCoefficients"]),
+            # PR37 fix, TCP (the fix-* modes of SessionHarness.cs): T1 a reset from outside (and our own -rst as the control), T2 a silent
+            # bridge, T3 one status in the probe, T7 the document at Start, T4 an unanswered -sto (the mock waits before streaming, so
+            # the resent -sto is read before anything is written to the closed socket) and an open socket without data
+            ("fix-reset", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "16", "--connections", "2", "--drop-cycle", "3", "--reset-at", "4"], lambda port, log: ["fix-reset", str(port), log]),
+            ("fix-ownreset", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "16", "--connections", "1", "--honor-rst"], lambda port, log: ["fix-ownreset", str(port), log]),
+            ("fix-silent", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "4", "--connections", "1", "--silent-after", "0"], lambda port, log: ["fix-silent", str(port), log]),
+            ("fix-silent-ask", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "4", "--connections", "1", "--silent-after", "0"], lambda port, log: ["fix-silent-ask", str(port), log]),
+            ("fix-onesample", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "1", "--connections", "1", "--stopped-at", "500", "--first-delay", "0.8"], lambda port, log: ["fix-onesample", str(port), log]),
+            ("fix-onesample-headless", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "1", "--connections", "1", "--stopped-at", "500", "--first-delay", "0.8"], lambda port, log: ["fix-onesample-headless", str(port), log]),
+            ("fix-docbehind", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "12", "--connections", "1"], lambda port, log: ["fix-docbehind", str(port), log]),
+            ("fix-docbehind-ask", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "12", "--connections", "1"], lambda port, log: ["fix-docbehind-ask", str(port), log]),
+            ("fix-stopmute", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "20", "--connections", "2", "--mute", "sto", "--first-delay", "0.5"], lambda port, log: ["fix-stopmute", str(port), log]),
+            ("fix-stall", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "30", "--connections", "2", "--silent-after", "3"], lambda port, log: ["fix-stall", str(port), log]),
+            # the controller by reflection: real build only (n/a on the source build); T8 Clear of a joined / own acquisition, T1+T9 the controller on a reset;
+            # the last argument is the directory of the build, where the harness finds the program's own libraries
+            ("fix-ctl-clear", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "4", "--connections", "2", "--honor-rst"], lambda port, log: ["fix-ctl-clear", str(port), log, exe_dir]),
+            ("fix-ctl-reset", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "16", "--connections", "2", "--drop-cycle", "3", "--reset-at", "4"], lambda port, log: ["fix-ctl-reset", str(port), log, exe_dir]),
         ]
 
     def run_scenarios(build_dir, scenario_list):
@@ -307,6 +324,15 @@ def main():
         ("no-window", "no pairing time window (a leftover status of the previous cycle pairs with the next histogram)", ("AtomSpectraTcpAcquisition.cs", "public const int PairWindowMs = 400;", "public const int PairWindowMs = int.MaxValue;"), ["pairing-hs", "pairing-sh"]),
         ("nan-accepted", "NaN/Infinity accepted", ("AtomSpectraTcpCalibrationReader.cs", "if (double.IsNaN(value) || double.IsInfinity(value))", "if (false)"), ["cal-nan", "cal-inf"]),
         ("gap-compacts", "a gap compacts the list", ("AtomSpectraTcpCalibrationReader.cs", "if (emptySeen)", "if (false)"), ["cal-gap"]),
+        # PR37 fix, TCP
+        ("reset-copied", "a drop of the board's counters goes to the document (no reset guard)", ("AtomSpectraTcpSession.cs", "if (e.ElapsedTime < guardTime || total < guardTotal || channel >= 0)", "if (false)"), ["fix-reset"]),
+        ("own-rst-unknown", "our own -rst is not noted: Clear is taken for a reset from outside", ("AtomSpectraTcpAcquisition.cs", "Interlocked.Exchange(ref resetWrittenAtMs, ClockMs);", ""), ["fix-ownreset"]),
+        ("silent-blind", "a silent bridge gets a blind -sta", ("AtomSpectraTcpSession.cs", "if (BoardState == AtomSpectraTcpBoardState.Silent) plan = AtomSpectraRestStartPlan.Ask;", ""), ["fix-silent", "fix-silent-ask"]),
+        ("one-sample-counts", "one status is taken for a counting board (join, no -sta)", ("AtomSpectraTcpSession.cs", "bool counting = grew;", "bool counting = grew || s.Length == 1;"), ["fix-onesample", "fix-onesample-headless"]),
+        ("doc-ignored", "the plan does not know what the document holds", ("AtomSpectraTcpSession.cs", "PlanStart(false, Ask != null, counting, board, DocumentSeconds, DocumentCounts)", "PlanStart(false, Ask != null, counting, board, 0, 0)"), ["fix-docbehind"]),
+        ("doc-continue-allowed", "Continue is offered when the board holds less than the document", ("AtomSpectraTcpSession.cs", "ContinueAllowed = continueAllowed", "ContinueAllowed = true"), ["fix-docbehind-ask"]),
+        ("sto-unanswered-stopped", "Stop reports Stopped when -sto got no answer", ("AtomSpectraTcpSession.cs", "if (Command(\"-sto\", commandTimeoutMs))", "Command(\"-sto\", commandTimeoutMs); if (true)"), ["fix-stopmute"]),
+        ("no-stall-watchdog", "an open socket without data is never a lost link", ("AtomSpectraTcpSession.cs", "acquisition.NoDataLimitMs = NoDataLinkLostMs;", "acquisition.NoDataLimitMs = 0;"), ["fix-stall"]),
     ]
     
     red_count = 0
@@ -352,9 +378,9 @@ def main():
 
     # 5. REST mode (): own harness, mock board and mutations (rest_suite.py)
     import rest_suite
-    # REST runs work on a local disk: build dirs and mock logs on the synced Google Drive folder add IO stalls
-    import tempfile
-    rest_ok = rest_suite.run_rest_suite(exe_dir, src_dir, os.path.join(tempfile.gettempdir(), "atomspectra_rest_work"))
+    # REST runs work on a local disk (build dirs and mock logs on a synced folder add IO stalls); under the work directory
+    # of this run, so parallel runs with their own REST_WORK do not share it
+    rest_ok = rest_suite.run_rest_suite(exe_dir, src_dir, os.path.join(W, "rest_part"))
     print(f"TCP suite: {'PASS' if all_passed else 'FAIL'}; REST suite: {'PASS' if rest_ok else 'FAIL'}")
     sys.exit(0 if (all_passed and rest_ok) else 1)
 
