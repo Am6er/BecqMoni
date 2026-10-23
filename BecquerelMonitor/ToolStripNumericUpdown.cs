@@ -151,7 +151,8 @@ namespace BecquerelMonitor
                 hostedControlToolTip = new ToolTip();
             }
 
-            hostedControlToolTip.SetToolTip(control, base.ToolTipText ?? string.Empty);
+            // (AMBER264) tooltip as a wrapped block, like every popup hint of the application
+            hostedControlToolTip.SetToolTip(control, AppUi.WrapTip(base.ToolTipText));
         }
 
         protected override void Dispose(bool disposing)

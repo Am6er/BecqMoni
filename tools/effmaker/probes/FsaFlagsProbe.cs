@@ -87,8 +87,10 @@ namespace FsaFlagsProbe
             nucBase.Checked = true;
             equilibrium.Checked = true;
             Same("вывод из баз включён: «Равновесие» доступно", true, equilibrium.Enabled);
+            // (`AMBER264`) подсказки окна — блоком по 80 знаков: эталон через тот же перенос
             Same("подсказка доступной галки — «меняет расчёт»",
-                 BecquerelMonitor.Properties.Resources.FSAReportTipCalculation, panel.ToolTipOf(equilibrium));
+                 BecquerelMonitor.AppUi.WrapTip(BecquerelMonitor.Properties.Resources.FSAReportTipCalculation),
+                 panel.ToolTipOf(equilibrium));
             Same("конфигурация спектра: состав из баз", true, cfg.DbLookupsForFsa);
 
             // Выключил вывод из баз — галка обязана погаснуть, но НЕ сброситься.
@@ -97,7 +99,8 @@ namespace FsaFlagsProbe
             Same("значение «Равновесия» не тронуто", true, equilibrium.Checked);
             Same("и в конфигурации не тронуто", true, cfg.ChainEquilibrium);
             Same("у погашенной галки подсказка объясняет причину",
-                 BecquerelMonitor.Properties.Resources.FSAReportTipEquilibriumNeedsNucBase, panel.ToolTipOf(equilibrium));
+                 BecquerelMonitor.AppUi.WrapTip(BecquerelMonitor.Properties.Resources.FSAReportTipEquilibriumNeedsNucBase),
+                 panel.ToolTipOf(equilibrium));
 
             // Вернул — галка оживает с прежним значением.
             nucBase.Checked = true;

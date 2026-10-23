@@ -355,7 +355,7 @@ namespace BecquerelMonitor
                 this.detectionToolTip = new ToolTip();
             }
             this.detectionToolTip.SetToolTip(this.labelDetectionFailed,
-                                             ex.GetType().Name + ": " + ex.Message);
+                                             AppUi.WrapTip(ex.GetType().Name + ": " + ex.Message));
         }
 
         /// <summary>

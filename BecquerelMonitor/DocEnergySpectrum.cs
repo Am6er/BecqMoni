@@ -385,7 +385,7 @@ namespace BecquerelMonitor
             // у документа, и второго расчёта не будет (критерий 4).
             this.view.FsaSession = this.fsaSession;
             this.fsaSession.Completed += this.FsaSessionCompleted;
-            this.toolTip1.SetToolTip(this.view, this.toolTip1.GetToolTip(this.energySpectrumView1));
+            this.toolTip1.SetToolTip(this.view, AppUi.WrapTip(this.toolTip1.GetToolTip(this.energySpectrumView1)));
             this.energySpectrumView1.Controls.Add(this.view);
             this.resultDataFile = new ResultDataFile();
             this.resultDataFile.InitFormatVersion();

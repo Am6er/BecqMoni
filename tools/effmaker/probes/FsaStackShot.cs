@@ -1552,10 +1552,13 @@ namespace FsaStackShot
                 Application.DoEvents();
 
                 ComboBox layerCombo = (ComboBox)Field(typeof(FSAReportView), "matrixLayerComboBox").GetValue(report);
+                // (`AMBER264`) Подсказка окна теперь блоком (`AppUi.WrapTip`): перенос стоит на
+                // месте одного пробела, и строка шапки дампа обязана остаться одной строкой —
+                // переносы склеиваются обратно, эталон сравнивает те же слова.
                 Console.WriteLine("MATRIX_LAYER_COMBO\t{0}\t{1}\t{2}",
                                   layerCombo.Enabled ? "enabled" : "disabled",
                                   layerCombo.SelectedItem ?? "",
-                                  report.ToolTipOf(layerCombo));
+                                  report.ToolTipOf(layerCombo).Replace(Environment.NewLine, " "));
 
                 var combined = new Bitmap(stack.Width + reportWidth, stack.Height + captionHeight);
                 using (Graphics g = Graphics.FromImage(combined))

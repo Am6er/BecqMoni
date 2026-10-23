@@ -19,7 +19,7 @@ namespace BecquerelMonitor
             // Контейнер разбирает Dispose из Designer.cs.
             this.components = new System.ComponentModel.Container();
             ToolTip deadTimeHint = new ToolTip(this.components);
-            string hint = AppUi.WrapWords(Resources.CountRateDeadTimeHint, 80);
+            string hint = AppUi.WrapTip(Resources.CountRateDeadTimeHint);
             deadTimeHint.SetToolTip(this.DeadTimeLbl, hint);
             deadTimeHint.SetToolTip(this.DeadTimeValLbl, hint);
         }

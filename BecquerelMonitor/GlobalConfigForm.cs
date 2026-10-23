@@ -72,6 +72,10 @@ namespace BecquerelMonitor
             {
                 this.progressiveSmoothTooltip.SetToolTip(this.progressiveSmoothCheckbox, progressiveSmoothTooltipText);
             }
+
+            // (`AMBER264`) Подсказки из дизайнера — блоком: у «Сохранять матрицу отклика в
+            // файл спектра» 248 знаков одной строкой.
+            AppUi.WrapToolTips(this.progressiveSmoothTooltip, this);
         }
 
         /// <summary>
