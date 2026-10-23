@@ -19,38 +19,9 @@ namespace BecquerelMonitor
             // Контейнер разбирает Dispose из Designer.cs.
             this.components = new System.ComponentModel.Container();
             ToolTip deadTimeHint = new ToolTip(this.components);
-            string hint = WrapWords(Resources.CountRateDeadTimeHint, 80);
+            string hint = AppUi.WrapWords(Resources.CountRateDeadTimeHint, 80);
             deadTimeHint.SetToolTip(this.DeadTimeLbl, hint);
             deadTimeHint.SetToolTip(this.DeadTimeValLbl, hint);
-        }
-
-        /// <summary>
-        /// Перенос по словам на строки не длиннее <paramref name="width"/> знаков —
-        /// подсказка WinForms сама не переносит и тянется во весь экран (проверено
-        /// экраном 13.10.2026). Копия <c>MainForm.WrapWords</c>: та закрыта в MainForm.
-        /// </summary>
-        static string WrapWords(string text, int width)
-        {
-            var result = new System.Text.StringBuilder();
-            int line = 0;
-            foreach (string word in text.Split(' '))
-            {
-                if (line > 0 && line + 1 + word.Length > width)
-                {
-                    result.Append(Environment.NewLine);
-                    line = 0;
-                }
-                else if (line > 0)
-                {
-                    result.Append(' ');
-                    line++;
-                }
-
-                result.Append(word);
-                line += word.Length;
-            }
-
-            return result.ToString();
         }
 
         public double getWindow()

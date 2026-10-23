@@ -50,6 +50,37 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// Перенос по словам на строки не длиннее <paramref name="width"/> знаков — для
+        /// подсказок: <c>ToolTip</c> WinForms сам не переносит и тянется во весь экран
+        /// (проверено экраном 13.10.2026). Подсказки приложения переносятся на 80 знаков.
+        /// Прежде — две закрытые копии в <c>MainForm</c> и <c>DCCountRateView</c>; общей
+        /// стала с `AMBER263` (23.10.2026), когда понадобилась третья — окну матрицы.
+        /// </summary>
+        public static string WrapWords(string text, int width)
+        {
+            var result = new System.Text.StringBuilder();
+            int line = 0;
+            foreach (string word in (text ?? "").Split(' '))
+            {
+                if (line > 0 && line + 1 + word.Length > width)
+                {
+                    result.Append(Environment.NewLine);
+                    line = 0;
+                }
+                else if (line > 0)
+                {
+                    result.Append(' ');
+                    line++;
+                }
+
+                result.Append(word);
+                line += word.Length;
+            }
+
+            return result.ToString();
+        }
+
+        /// <summary>
         /// Сообщить о беде, после которой работа продолжается. В окнах —
         /// модальное окно, как было; без окон — одна строка в поток ошибок
         /// (её видно в перехваченном выводе пробы), и запуск идёт дальше.
