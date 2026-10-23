@@ -2,6 +2,7 @@
 // The document mirrors the board, the board is the only source of truth.
 
 using System;
+using System.Globalization;
 
 namespace BecquerelMonitor
 {
@@ -39,14 +40,24 @@ namespace BecquerelMonitor
         // What changed since `before` (null: the same epoch); a field absent on either side is not compared
         public string ChangeFrom(AtomSpectraRestEpoch before)
         {
-            if (before == null) return null;
-            if (Differs(BootId, before.BootId)) return "boot_id: " + before.BootId + " -> " + BootId;
-            if (Differs(DevResets, before.DevResets)) return "dev_resets: " + before.DevResets + " -> " + DevResets;
-            if (Differs(SpecResets, before.SpecResets)) return "spec_resets: " + before.SpecResets + " -> " + SpecResets;
-            return null;
+            string field;
+            long was, now;
+            return Changed(before, out field, out was, out now) ? field + ": " + Inv(was) + " -> " + Inv(now) : null;
+        }
+
+        // the first field that changed since `before`, with its two values
+        public bool Changed(AtomSpectraRestEpoch before, out string field, out long was, out long now)
+        {
+            field = null; was = now = 0;
+            if (before == null) return false;
+            if (Differs(BootId, before.BootId)) { field = "boot_id"; was = before.BootId.Value; now = BootId.Value; return true; }
+            if (Differs(DevResets, before.DevResets)) { field = "dev_resets"; was = before.DevResets.Value; now = DevResets.Value; return true; }
+            if (Differs(SpecResets, before.SpecResets)) { field = "spec_resets"; was = before.SpecResets.Value; now = SpecResets.Value; return true; }
+            return false;
         }
 
         private static bool Differs(long? now, long? before) { return now.HasValue && before.HasValue && now.Value != before.Value; }
+        private static string Inv(long v) { return v.ToString(CultureInfo.InvariantCulture); }
     }
 
     public enum AtomSpectraRestStartChoice
@@ -71,7 +82,10 @@ namespace BecquerelMonitor
         // Cancel
         Cancel,
         // RefuseHeadless = no window to ask and the board holds less than the document
-        RefuseHeadless
+        RefuseHeadless,
+        // RefuseObserve = observe only, and the board holds less than the document (in time, counts or a channel):
+        // joining would stop at the first snapshot as "the board was reset"
+        RefuseObserve
     }
 
     public enum AtomSpectraRestUpdate
@@ -130,14 +144,37 @@ namespace BecquerelMonitor
             return t < docSeconds || n < docCounts;
         }
 
+        // The first channel in which the board holds fewer counts than the document (-1: none, or the two cannot be compared).
+        // A longer board spectrum is folded to the document's channels first (the board and Compress fold alike).
+        public static int ChannelBelow(int[] document, int[] board)
+        {
+            if (document == null || board == null || document.Length == 0) return -1;
+            int[] seen = board.Length == document.Length ? board
+                : board.Length > document.Length && board.Length % document.Length == 0 ? AtomSpectraTcpAcquisition.Compress(board, document.Length)
+                : null;
+            if (seen == null) return -1;
+            for (int i = 0; i < document.Length; i++)
+            {
+                if (seen[i] < document[i]) return i;
+            }
+            return -1;
+        }
+
         public static AtomSpectraRestStartPlan PlanStart(bool observeOnly, bool hasWindows, bool counting, AtomSpectraRestBoardSample board, long docSeconds, long docCounts)
+        {
+            return PlanStart(observeOnly, hasWindows, counting, board, docSeconds, docCounts, false);
+        }
+
+        // otherSpectrum: some channel of the board holds fewer counts than the document (ChannelBelow) - the board holds another acquisition
+        public static AtomSpectraRestStartPlan PlanStart(bool observeOnly, bool hasWindows, bool counting, AtomSpectraRestBoardSample board, long docSeconds, long docCounts, bool otherSpectrum)
         {
             if (observeOnly)
             {
-                return AtomSpectraRestStartPlan.Join;
+                // nothing is ever sent; a board behind the document is refused now, not reported as "reset" at the first snapshot
+                return otherSpectrum || BoardBehindDocument(board, docSeconds, docCounts) ? AtomSpectraRestStartPlan.RefuseObserve : AtomSpectraRestStartPlan.Join;
             }
 
-            bool behind = BoardBehindDocument(board, docSeconds, docCounts);
+            bool behind = BoardBehindDocument(board, docSeconds, docCounts) || otherSpectrum;
             bool ask = counting || BoardHasData(board) || docSeconds > 0 || docCounts > 0;
 
             if (!ask)
@@ -183,7 +220,7 @@ namespace BecquerelMonitor
 
         public static string StartCommand(int limitSeconds)
         {
-            return limitSeconds > 0 ? "-sta " + limitSeconds : "-sta";
+            return limitSeconds > 0 ? "-sta " + limitSeconds.ToString(CultureInfo.InvariantCulture) : "-sta";
         }
     }
 
@@ -244,7 +281,18 @@ namespace BecquerelMonitor
         public int EpochChanges { get; private set; }
         public string LastEpochChange { get; private set; }
         public bool Tripped { get; private set; }
-        public string TripReason { get; private set; }
+        public string TripReason { get; private set; }   // for the log (English)
+        public string TripText { get; private set; }     // the same for the user (resources)
+
+        // docBins: the document's channels; a snapshot that holds fewer counts in any of them is another acquisition
+        public void Begin(long docSeconds, long docCounts, bool counting, int[] docBins)
+        {
+            lock (sync)
+            {
+                Begin(docSeconds, docCounts, counting);
+                lastBins = docBins;
+            }
+        }
 
         public void Begin(long docSeconds, long docCounts, bool counting)
         {
@@ -268,6 +316,7 @@ namespace BecquerelMonitor
                 openedByExpect = false;
                 Tripped = false;
                 TripReason = null;
+                TripText = null;
                 sawGrowth = counting;
                 lastGrowthMs = -1;
             }
@@ -429,6 +478,9 @@ namespace BecquerelMonitor
                 {
                     EpochChanges++;
                     LastEpochChange = change;
+                    string field; long was, now;
+                    s.Epoch.Changed(refEpoch, out field, out was, out now);
+                    TripText = Text(BecquerelMonitor.Properties.Resources.AtomSpectraRestTripEpoch, field, was, now);
                     return Trip("board reset: " + change);
                 }
                 if (change != null) AbsorbChange(change, s.AtMs);
@@ -446,23 +498,27 @@ namespace BecquerelMonitor
                     // the epoch of the next snapshot tells a new acquisition apart, so the 404 itself is no Trip
                     if (hasLast && (lastTime > 0 || lastTotal > 0) && lastEpoch == null)
                     {
-                        return Trip("the board has no spectrum any more (404 after time " + lastTime + " s, total " + lastTotal + ")");
+                        TripText = Text(BecquerelMonitor.Properties.Resources.AtomSpectraRestTripNoData, lastTime, lastTotal);
+                        return Trip(AtomSpectraTcpLog.Format("the board has no spectrum any more (404 after time {0} s, total {1})", lastTime, lastTotal));
                     }
                     return AtomSpectraRestUpdate.NoData;
                 }
 
                 // our reset was asked for but its outcome is not known (no confirmation): a drop of the counters is its answer
                 bool counted = s.Time < lastTime || s.Total < lastTotal || (histFromSample && s.HistOk < lastHistOk) || FirstDecrease(lastBins, s.Bins) >= 0;
-                if (hasLast && ownReset && openedByExpect && counted) AbsorbChange("counters went down: time " + lastTime + " -> " + s.Time + " s, total " + lastTotal + " -> " + s.Total, s.AtMs);
+                if (hasLast && ownReset && openedByExpect && counted) AbsorbChange(AtomSpectraTcpLog.Format("counters went down: time {0} -> {1} s, total {2} -> {3}", lastTime, s.Time, lastTotal, s.Total), s.AtMs);
                 if (hasLast && (s.Time < lastTime || s.Total < lastTotal || (histFromSample && s.HistOk < lastHistOk)))
                 {
-                    return Trip("board counters went down: time " + lastTime + " -> " + s.Time + " s, total " + lastTotal + " -> " + s.Total + ", hist_ok " + lastHistOk + " -> " + s.HistOk);
+                    TripText = Text(BecquerelMonitor.Properties.Resources.AtomSpectraRestTripCounters, lastTime, s.Time, lastTotal, s.Total);
+                    return Trip(AtomSpectraTcpLog.Format("board counters went down: time {0} -> {1} s, total {2} -> {3}, hist_ok {4} -> {5}", lastTime, s.Time, lastTotal, s.Total, lastHistOk, s.HistOk));
                 }
 
                 int down = FirstDecrease(lastBins, s.Bins);
                 if (down >= 0)
                 {
-                    return Trip("spectrum channel " + down + " went down (" + lastBins[down] + " -> " + s.Bins[down] + "): another acquisition replaced ours");
+                    int[] seen = Folded(lastBins, s.Bins);
+                    TripText = Text(BecquerelMonitor.Properties.Resources.AtomSpectraRestTripChannel, down, lastBins[down], seen[down]);
+                    return Trip(AtomSpectraTcpLog.Format("spectrum channel {0} went down ({1} -> {2}): another acquisition replaced ours", down, lastBins[down], seen[down]));
                 }
 
                 bool grew = !hasLast || s.Time > lastTime || (histFromSample && s.HistOk > lastHistOk);
@@ -493,14 +549,21 @@ namespace BecquerelMonitor
         }
 
         // First channel that went down (-1: none): a continuing acquisition never loses counts in a channel.
+        // `before` may be the document's channels (fewer than the answer's): the answer is folded to them.
         private static int FirstDecrease(int[] before, int[] now)
         {
-            if (before == null || now == null || before.Length != now.Length) return -1;
-            for (int i = 0; i < now.Length; i++)
-            {
-                if (now[i] < before[i]) return i;
-            }
-            return -1;
+            return AtomSpectraRestPolicy.ChannelBelow(before, now);
+        }
+
+        // the answer's channels as FirstDecrease compared them
+        private static int[] Folded(int[] before, int[] now)
+        {
+            return now.Length == before.Length ? now : AtomSpectraTcpAcquisition.Compress(now, before.Length);
+        }
+
+        private static string Text(string format, params object[] args)
+        {
+            return string.Format(CultureInfo.InvariantCulture, format, args);
         }
 
         public bool Stalled(long nowMs, long stallMs)

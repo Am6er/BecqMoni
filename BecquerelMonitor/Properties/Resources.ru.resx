@@ -3220,6 +3220,141 @@ http://xptable.sourceforge.net/</value>
   <data name="ERRAtomSpectraRestStopUnconfirmed" xml:space="preserve">
     <value>AtomSpectra REST: команда остановки дошла до {0}:{1}, но ясного ответа не пришло. BecqMoni её не повторяет, чтобы не остановить чужое измерение. Проверьте на плате, остановился ли анализатор.</value>
   </data>
+  <data name="ERRAtomSpectraRestChannels" xml:space="preserve">
+    <value>AtomSpectra REST: в профиле {0} каналов, а плата даёт 8192 канала и сворачивает их только в целое число раз (8192, 4096, 2048, 1024, 512 …). Задайте число каналов, на которое делится 8192, и снова нажмите «Старт». Плате ничего не послано.</value>
+  </data>
+  <data name="ERRAtomSpectraRestHeadlessAsk" xml:space="preserve">
+    <value>Плата остановлена и хранит измерение, а запуск без окон не может спросить, что с ним делать. Плате ничего не послано.</value>
+  </data>
+  <data name="ERRAtomSpectraRestObserveBehind" xml:space="preserve">
+    <value>Только наблюдение: на плате меньше, чем в документе (плату сбрасывали или перезапускали, либо на ней другое измерение), поэтому документ не может за ней следовать. Плате ничего не послано. Чтобы наблюдать измерение платы, создайте новый документ и нажмите «Старт».</value>
+  </data>
+  <data name="ERRAtomSpectraRestUrlUserInfo" xml:space="preserve">
+    <value>Имя пользователя и пароль в URL не допускаются; используйте поля авторизации в настройках прибора.</value>
+  </data>
+  <data name="MSGAtomSpectraRestAccessDenied" xml:space="preserve">
+    <value>AtomSpectra REST: плата {0} отвечает, но отказывает в доступе (HTTP {1}). Проверьте токен авторизации в настройках прибора. Измерение не остановлено; BecqMoni продолжает опрашивать плату каждые {2} с.</value>
+  </data>
+  <data name="MSGAtomSpectraRestStopJoined" xml:space="preserve">
+    <value>AtomSpectra REST: запись в BecqMoni остановлена, но плата {0} продолжает счёт: измерение начато не из этого окна (программа лишь присоединилась к нему), поэтому команда остановки не посылалась. Если нужно, остановите счёт на самой плате.</value>
+  </data>
+  <data name="AtomSpectraRestStartOtherSpectrum" xml:space="preserve">
+    <value>В канале {0} на плате меньше отсчётов, чем в документе: на плате другое измерение. Продолжить в этом документе нельзя; для измерения платы создайте новый документ.</value>
+  </data>
+  <data name="AtomSpectraRestStatusIdle" xml:space="preserve">
+    <value>ожидание</value>
+  </data>
+  <data name="AtomSpectraRestStatusIdleObserve" xml:space="preserve">
+    <value>ожидание (только наблюдение)</value>
+  </data>
+  <data name="AtomSpectraRestStatusObserving" xml:space="preserve">
+    <value>наблюдение</value>
+  </data>
+  <data name="AtomSpectraRestStatusJoined" xml:space="preserve">
+    <value>присоединено к идущему измерению</value>
+  </data>
+  <data name="AtomSpectraRestStatusMeasuring" xml:space="preserve">
+    <value>идёт измерение</value>
+  </data>
+  <data name="AtomSpectraRestStatusNotStarted" xml:space="preserve">
+    <value>не начато</value>
+  </data>
+  <data name="AtomSpectraRestStatusStoppedByBoard" xml:space="preserve">
+    <value>остановлено по состоянию платы</value>
+  </data>
+  <data name="AtomSpectraRestStatusNoData" xml:space="preserve">
+    <value>на плате ещё нет данных</value>
+  </data>
+  <data name="AtomSpectraRestTripEpoch" xml:space="preserve">
+    <value>у платы изменился {0}: {1} → {2}</value>
+  </data>
+  <data name="AtomSpectraRestTripNoData" xml:space="preserve">
+    <value>на плате больше нет спектра (было {0} с, {1} отсчётов)</value>
+  </data>
+  <data name="AtomSpectraRestTripCounters" xml:space="preserve">
+    <value>счётчики платы уменьшились: время {0} → {1} с, отсчёты {2} → {3}</value>
+  </data>
+  <data name="AtomSpectraRestTripChannel" xml:space="preserve">
+    <value>канал {0} спектра уменьшился ({1} → {2}): наше измерение заменено другим</value>
+  </data>
+  <data name="AtomSpectraRestErrRefused" xml:space="preserve">
+    <value>соединение отвергнуто</value>
+  </data>
+  <data name="AtomSpectraRestErrNoName" xml:space="preserve">
+    <value>имя платы не найдено в сети</value>
+  </data>
+  <data name="AtomSpectraRestErrTimeout" xml:space="preserve">
+    <value>ответа в срок нет</value>
+  </data>
+  <data name="AtomSpectraRestErrNoAnswer" xml:space="preserve">
+    <value>плата не ответила</value>
+  </data>
+  <data name="AtomSpectraRestErrNetwork" xml:space="preserve">
+    <value>ошибка сети: {0}</value>
+  </data>
+  <data name="AtomSpectraRestErrHttp" xml:space="preserve">
+    <value>плата ответила HTTP {0}</value>
+  </data>
+  <data name="AtomSpectraRestErrBodyCut" xml:space="preserve">
+    <value>ответ платы оборван</value>
+  </data>
+  <data name="AtomSpectraRestErrTooLarge" xml:space="preserve">
+    <value>ответ платы больше {0} Б</value>
+  </data>
+  <data name="AtomSpectraRestErrGzip" xml:space="preserve">
+    <value>сжатый ответ платы повреждён или оборван</value>
+  </data>
+  <data name="AtomSpectraRestErrCommandRefused" xml:space="preserve">
+    <value>плата отклонила команду</value>
+  </data>
+  <data name="AtomSpectraRestErrResetUnsent" xml:space="preserve">
+    <value>плата ответила, но анализатор сброс не получил (sent=false)</value>
+  </data>
+  <data name="AtomSpectraRestErrAnswer" xml:space="preserve">
+    <value>ответ платы — не годный спектр («{0}»)</value>
+  </data>
+  <data name="AtomSpectraRestErrChannels" xml:space="preserve">
+    <value>плата ответила {0} каналов вместо {1}</value>
+  </data>
+  <data name="AtomSpectraGzipLevelUnsupported" xml:space="preserve">
+    <value>не поддерживается</value>
+  </data>
+  <data name="AtomSpectraGzipErrLevel" xml:space="preserve">
+    <value>уровень {0} — не 0, 1 и не 6</value>
+  </data>
+  <data name="AtomSpectraGzipErrUnsupported" xml:space="preserve">
+    <value>в этой прошивке нет gzip_level в /api/boot-config (не поддерживается); ничего не послано</value>
+  </data>
+  <data name="AtomSpectraGzipErrNoRead" xml:space="preserve">
+    <value>GET /api/boot-config не дал годного ответа; ничего не послано</value>
+  </data>
+  <data name="AtomSpectraGzipErrPost" xml:space="preserve">
+    <value>POST /api/boot-config: {0}</value>
+  </data>
+  <data name="AtomSpectraGzipErrOkFalse" xml:space="preserve">
+    <value>плата ответила {"ok":false}: настройка не сохранена</value>
+  </data>
+  <data name="AtomSpectraGzipErrReadBack" xml:space="preserve">
+    <value>плата ответила ok, но GET /api/boot-config показывает {0} вместо {1}</value>
+  </data>
+  <data name="AtomSpectraCalibNotFolded" xml:space="preserve">
+    <value>Калибровка платы задана для 8192 каналов и не сворачивается к {0} каналам профиля; вкладка «Калибровка энергии» не изменена.</value>
+  </data>
+  <data name="AtomSpectraCalibErrSlot" xml:space="preserve">
+    <value>ячейка {0} — не число</value>
+  </data>
+  <data name="AtomSpectraCalibErrGap" xml:space="preserve">
+    <value>число после пустой ячейки (ячейка {0})</value>
+  </data>
+  <data name="AtomSpectraCalibErrNotFinite" xml:space="preserve">
+    <value>NaN или бесконечность в ячейке {0}</value>
+  </data>
+  <data name="AtomSpectraCalibErrTooFew" xml:space="preserve">
+    <value>меньше 2 коэффициентов</value>
+  </data>
+  <data name="AtomSpectraCalibErrAnswer" xml:space="preserve">
+    <value>в ответе платы нет годной калибровки</value>
+  </data>
   <data name="AtomSpectraConsoleAddress" xml:space="preserve">
     <value>Адрес (host[:port]) :</value>
   </data>

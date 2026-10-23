@@ -16,6 +16,7 @@ namespace BecquerelMonitor
         private void ApplyBoardCalibration(AtomSpectraTcpCalibrationResult r)
         {
             string text;
+            AtomSpectraRestCalibReason reason = AtomSpectraRestCalibration.ReasonOf(r);
 
             if (r != null && r.Failure == AtomSpectraTcpCalibrationFailure.None && r.Coefficients != null)
             {
@@ -28,25 +29,49 @@ namespace BecquerelMonitor
                 double[] folded = n > 0 ? AtomSpectraRestCalibration.ForChannels(page, 0, n) : page;
                 if (folded == null)
                 {
-                    text = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraCalibNotRead, "the board calibration is for 8192 channels, it cannot be folded to the " + n + " channels of the profile; the page keeps its own");
+                    text = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraCalibNotFolded, n);
+                    AtomSpectraTcpLog.Info("Cal", "the board calibration is for 8192 channels, it cannot be folded to the " + n.ToString(CultureInfo.InvariantCulture) + " channels of the profile; the page keeps its own");
                 }
                 else
                 {
                     if (target != null) target(folded);
                     text = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraCalibToPage, string.Join("; ", folded.Select(c => c.ToString("R", CultureInfo.InvariantCulture))));
+                    AtomSpectraTcpLog.Info("Cal", "board calibration given to the Energy Calibration page: " + string.Join("; ", folded.Select(c => c.ToString("R", CultureInfo.InvariantCulture))));
                 }
             }
-            else if (r != null && r.Error == "calib_set is false")
+            else if (reason == AtomSpectraRestCalibReason.NotSet)
             {
                 text = Resources.AtomSpectraCalibNotSet;
+                AtomSpectraTcpLog.Info("Cal", "the board has no calibration (calib_set=false); the page is left as it is");
             }
             else
             {
-                text = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraCalibNotRead, r == null ? "?" : (r.Error ?? r.Failure.ToString()));
+                text = string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraCalibNotRead, NotReadReason(r, reason));
+                AtomSpectraTcpLog.Info("Cal", "the board calibration was not read (" + (r == null ? "no result" : (r.Error ?? r.Failure.ToString())) + "); the page is left as it is");
             }
 
-            AtomSpectraTcpLog.Info("Cal", text);
-            textOutput.AppendText(text + Environment.NewLine);
+            PrependOutput(text + Environment.NewLine);   // the newest line on top, as the console writes
+        }
+
+        // the reason of a calibration not taken, for the user (resources; the log keeps the English Error)
+        private static string NotReadReason(AtomSpectraTcpCalibrationResult r, AtomSpectraRestCalibReason reason)
+        {
+            int slot = AtomSpectraRestCalibration.SlotOf(r);
+            switch (reason)
+            {
+                case AtomSpectraRestCalibReason.Network:
+                    return AtomSpectraRestCalibration.NetworkTextOf(r) ?? Resources.AtomSpectraRestErrNoAnswer;
+                case AtomSpectraRestCalibReason.NotNumber:
+                    return string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraCalibErrSlot, slot);
+                case AtomSpectraRestCalibReason.Gap:
+                    return string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraCalibErrGap, slot);
+                case AtomSpectraRestCalibReason.NotFinite:
+                    return string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraCalibErrNotFinite, slot);
+                case AtomSpectraRestCalibReason.TooFew:
+                    return Resources.AtomSpectraCalibErrTooFew;
+                default:   // not an object, no array, does not parse
+                    return Resources.AtomSpectraCalibErrAnswer;
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Serialization;
@@ -51,7 +52,7 @@ namespace BecquerelMonitor
             if (url.Length > 0)
                 return url;
 
-            string portPart = restPort == 80 ? "" : ":" + restPort;
+            string portPart = restPort == 80 ? "" : ":" + restPort.ToString(CultureInfo.InvariantCulture);
             return "http://" + host + portPart + "/";
         }
 
@@ -65,6 +66,7 @@ namespace BecquerelMonitor
                 || (u.Scheme != Uri.UriSchemeHttp && u.Scheme != Uri.UriSchemeHttps)
                 || string.IsNullOrEmpty(u.Host) || !string.IsNullOrEmpty(u.UserInfo))   // no user:pass in the URL
             {
+                // the log's text; the user's one is built by the controller from the URL (resources)
                 error = "invalid board URL (user:password in a URL is not allowed, use the authorization fields): " + AtomSpectraTcpLog.Mask(url);
                 return null;
             }
@@ -80,8 +82,8 @@ namespace BecquerelMonitor
         // What makes the controller open a new REST session (in memory only, never logged).
         public string RestSessionKey()
         {
-            return EffectiveRestUrl() + "|" + RestPollSeconds + "|" + RestObserveOnly + "|" + RestLimitSeconds + "|" + RestNoProxy
-                + "|" + RestAuthKind + "|" + RestAuthUser + "|" + (RestAuthSecret ?? "").GetHashCode();   // not the DPAPI text, it differs on every save
+            return EffectiveRestUrl() + "|" + RestPollSeconds.ToString(CultureInfo.InvariantCulture) + "|" + RestObserveOnly + "|" + RestLimitSeconds.ToString(CultureInfo.InvariantCulture) + "|" + RestNoProxy
+                + "|" + RestAuthKind + "|" + RestAuthUser + "|" + (RestAuthSecret ?? "").GetHashCode().ToString(CultureInfo.InvariantCulture);   // not the DPAPI text, it differs on every save
         }
 
         public static bool IsValidRestUrl(string url)

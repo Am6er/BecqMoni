@@ -136,8 +136,10 @@ namespace RestHarness
             Check(o == AtomSpectraTcpBeginOutcome.Refused && s.Failure == AtomSpectraRestFailure.HeadlessAsk, "headless Start on a stopped board with data: refused, HeadlessAsk (" + o + ", " + s.Failure + ")");
             string text = (string)m.Invoke(null, new object[] { s, o });
             Console.WriteLine("text: " + text);
-            Check(text.Contains("cannot ask"), "the text says that a run without windows cannot ask what to do with the board's measurement");
-            Check(text.Contains("Nothing was sent"), "the text says that nothing was sent to the board");
+            // the text is a resource now (English or Russian by the culture of the run)
+            Check(text == BecquerelMonitor.Properties.Resources.ERRAtomSpectraRestHeadlessAsk, "the text is the HeadlessAsk resource");
+            Check(text.Contains("cannot ask") || text.Contains("не может спросить"), "the text says that a run without windows cannot ask what to do with the board's measurement");
+            Check(text.Contains("Nothing was sent") || text.Contains("ничего не послано"), "the text says that nothing was sent to the board");
             s.Dispose();
         }
         // the button "read the calibration" of DeviceConfigForm takes the channels from the FIELD being edited (not from the
