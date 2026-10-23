@@ -966,7 +966,7 @@ namespace BecquerelMonitor
             this.sourceTypeCombo.SelectedIndexChanged += this.SourceTypeChanged;
             // (остаток `AMBER102`) Подсказка ISO — и при наведении на список:
             // строка под ним у полевых сцен занята своим текстом.
-            new ToolTip().SetToolTip(this.sourceTypeCombo, Resources.GeometryEditorSceneIsoHint);
+            new ToolTip().SetToolTip(this.sourceTypeCombo, AppUi.WrapTip(Resources.GeometryEditorSceneIsoHint));
             page.Controls.Add(typeLabel);
             page.Controls.Add(this.sourceTypeCombo);
 
@@ -1319,7 +1319,7 @@ namespace BecquerelMonitor
                 Text = Resources.GeometryEditorMaterialsEdit,
                 UseVisualStyleBackColor = true,
             };
-            new ToolTip().SetToolTip(edit, Resources.GeometryEditorMaterialsEditHint);
+            new ToolTip().SetToolTip(edit, AppUi.WrapTip(Resources.GeometryEditorMaterialsEditHint));
             edit.Click += (s, e) => this.EditMaterials(key, kind);
             parent.Controls.Add(edit);
             group.Add(edit);
@@ -2142,7 +2142,7 @@ namespace BecquerelMonitor
             // ставится ДО разметки, а следующая встаёт от её правого края.
             Size want = button.GetPreferredSize(Size.Empty);
             button.Size = new Size(Math.Max(button.MinimumSize.Width, want.Width), TemplateButtonHeight);
-            tips.SetToolTip(button, tip);
+            tips.SetToolTip(button, AppUi.WrapTip(tip));
             parent.Controls.Add(button);
             left = button.Right + 6;
             return button;

@@ -43823,6 +43823,12 @@ Close the window and discard it?</value>
   <data name="ResponseMatrixGpuRuntimeError" xml:space="preserve">
     <value>Not available: {0}</value>
   </data>
+  <data name="ResponseMatrixGpuProbeCrashed" xml:space="preserve">
+    <value>Not available: the GPU check crashed in the Nvidia driver or the CUDA runtime (exit code {0}). The matrix is computed on the CPU; details are in the application log.</value>
+  </data>
+  <data name="ResponseMatrixGpuProbeTimeout" xml:space="preserve">
+    <value>Not available: the GPU check did not answer in {0} s. The matrix is computed on the CPU.</value>
+  </data>
   <data name="ResponseMatrixGpuProgress" xml:space="preserve">
     <value>GPU: node {0} of {1}, {2:F0} keV.</value>
   </data>

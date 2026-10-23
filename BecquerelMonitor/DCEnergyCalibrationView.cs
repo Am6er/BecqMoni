@@ -19,6 +19,8 @@ namespace BecquerelMonitor
         {
             this.mainForm = mainForm;
             this.InitializeComponent();
+            // (`AMBER264`) Подсказки из дизайнера — блоком (русская у checkBox2 — 104 знака).
+            AppUi.WrapToolTips(this.toolTip1, this);
             GlobalConfigInfo globalConfig = this.globalConfigManager.GlobalConfig;
             this.UpdateMultipointButtonState();
             this.UpdateTableColumns();

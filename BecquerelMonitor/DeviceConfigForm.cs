@@ -42,6 +42,8 @@ namespace BecquerelMonitor
         public DeviceConfigForm()
         {
             this.InitializeComponent();
+            // (`AMBER264`) Подсказки из дизайнера — блоком (кривизна тракта — 85 знаков).
+            AppUi.WrapToolTips(this.hints, this);
             // (П266, 14.10.2026) Колонка «Энергия» точек калибровки (table2) шла без
             // Maximum, и XPTable брал своё умолчание 100: открыть ячейку и нажать Enter
             // делало точку 661.66 кэВ точкой 100 кэВ, вписанное 1173.228 — тоже 100,

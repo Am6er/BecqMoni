@@ -169,8 +169,8 @@ namespace BecquerelMonitor
         {
             bool refused = !string.IsNullOrEmpty(fwhmRefusal);
             CollectedPeaksTable.NoItemsText = refused ? fwhmRefusal : collectedPeaksNoItemsText;
-            toolTip1.SetToolTip(CollectedPeaksTable, refused ? fwhmRefusal : string.Empty);
-            toolTip1.SetToolTip(label1, refused ? fwhmRefusal : string.Empty);
+            toolTip1.SetToolTip(CollectedPeaksTable, refused ? AppUi.WrapTip(fwhmRefusal) : string.Empty);
+            toolTip1.SetToolTip(label1, refused ? AppUi.WrapTip(fwhmRefusal) : string.Empty);
         }
 
         private void DCFwhmCalibrationView_FormLoad(object sender, EventArgs e)
