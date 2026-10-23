@@ -38,6 +38,9 @@ using System.Threading.Tasks;
 //   --mode=isolated[=<путь к dll>] годность GPU дочерним процессом, как её спрашивает окно
 //                                 (`RmGpu.ProbeIsolated`, `AMBER261`): падающая библиотека
 //                                 роняет ребёнка, а проба печатает код его выхода;
+//   --mode=driver[=<путь к nvcuda.dll>] только предпроверка драйвера NVIDIA без рантайма CUDA
+//                                 (`RmGpu.ProbeDriver`, `AMBER262`); путь — поддельный драйвер
+//                                 для положительного контроля, без пути — драйвер из System32;
 //   --mode=form                   окно матрицы над геометрией и её ISO-двойником: галка GPU;
 //   --mode=mkscene=ground|borehole|iso   записать сцену редактора рядом с геометрией.
 //
@@ -161,6 +164,15 @@ static class GpuAppProbeP253
                               dll, p.Available, p.ReasonCode, p.Reason, p.DeviceName, p.ComputeCapability,
                               p.DriverVersion, p.RuntimeVersion, p.BuildInfo);
             Console.WriteLine("  время: первый вызов {0:F3} с, повторный {1:F3} с; повторный годен {2}", first, second, again.Available);
+            return 0;
+        }
+
+        if (mode != null && mode.StartsWith("driver", StringComparison.Ordinal))
+        {
+            string nvcuda = mode.Length > 7 ? mode.Substring(7) : null;
+            GpuProbe p = RmGpu.ProbeDriver(nvcuda);
+            Console.WriteLine("ProbeDriver({0}): годен {1}, код {2}, причина «{3}», драйвер {4}, устройств {5}, нужен рантайм {6}",
+                              nvcuda ?? "System32", p.Available, p.ReasonCode, p.Reason, p.DriverVersion, p.DeviceCount, p.RuntimeVersion);
             return 0;
         }
 

@@ -78,6 +78,15 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         const uint SEM_FAILCRITICALERRORS = 0x0001, SEM_NOGPFAULTERRORBOX = 0x0002, SEM_NOOPENFILEERRORBOX = 0x8000;
 
+        [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "LoadLibraryExW")]
+        static extern IntPtr LoadLibraryEx(string path, IntPtr file, uint flags);
+
+        const uint LOAD_WITH_ALTERED_SEARCH_PATH = 0x00000008, LOAD_LIBRARY_SEARCH_SYSTEM32 = 0x00000800;
+
+        // API драйвера NVIDIA (`nvcuda.dll`): CUDAAPI — __stdcall (на x64 совпадает с cdecl).
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int CuOutIntFn(out int value);
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)] delegate int CuInitFn(uint flags);
+
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate IntPtr LastErrorFn();
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)] delegate void VoidFn();
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -124,6 +133,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// не запустит.
         /// </summary>
         public const int MinComputeCapability = 86;
+
+        /// <summary>
+        /// (`AMBER262`) Рантайм CUDA, слинкованный в поставочную библиотеку статически (`cudart=`
+        /// паспорта; `build_gpu.cmd`: `set CUDA_VER=13.4` → 13040). Нужен ДО загрузки библиотеки —
+        /// предпроверке драйвера (<see cref="CheckDriver"/>); расхождение с паспортом ловит
+        /// `tools/check_gpu_dll.py`.
+        /// </summary>
+        public const int LinkedCudaRuntime = 13040;
 
         /// <summary>Поставочная копия библиотеки — рядом с исполняемым файлом приложения.</summary>
         public static string DefaultPath
@@ -201,10 +218,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Годность GPU-пути БЕЗ счёта и без контекста устройства (`AMBER219`): форма
         /// матрицы зовёт это при открытии и по ответу включает или гасит галку «Use Nvidia
         /// GPU», показывая причину подсказкой. Проверки по порядку, первая отказавшая —
-        /// причина: файл библиотеки, её загрузка, сборка с `rm_build_info` (старая сборка
-        /// без него — отказ), физика сборки против <see cref="ResponseMatrix.PhysicsVersion"/>,
-        /// устройство и драйвер (`cudaGetDeviceCount`: нет устройства / драйвер старее
-        /// рантайма), вычислительная способность карты не ниже <see cref="MinComputeCapability"/>.
+        /// причина: файл библиотеки, драйвер NVIDIA БЕЗ рантайма CUDA (<see cref="CheckDriver"/>:
+        /// есть ли он, какой версии, видит ли устройство), загрузка библиотеки, сборка с
+        /// `rm_build_info` (старая сборка без него — отказ), физика сборки против
+        /// <see cref="ResponseMatrix.PhysicsVersion"/>, устройство и драйвер глазами рантайма
+        /// (`cudaGetDeviceCount`), вычислительная способность карты не ниже
+        /// <see cref="MinComputeCapability"/>.
         ///
         /// Ничего из этого не бросает: отказ — словами в <see cref="GpuProbe.Reason"/>.
         /// Положительный контроль отказа «устройства нет» снаружи — переменная среды
@@ -220,6 +239,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     r.Reason = "library " + FileName + " is not next to the application";
                     r.ReasonCode = GpuProbeReason.NoLibrary;
+                    return r;
+                }
+
+                // ⛔ (`AMBER262`) Драйвер — ДО загрузки библиотеки: рантайм CUDA 13.4, вшитый в
+                // неё, на машине без драйвера NVIDIA падает нарушением доступа внутри `rm_probe`
+                // (стенд 23.10.2026; 12.8 там же отвечал кодом 35). Решение Amber 23.10.2026,
+                // дословно: «Делай базовые проверки сначала, что у пользователя вообще есть Cuda
+                // какой-то версии. И только потом грузи библиотеку.»
+                if (!CheckDriver(r, null, step))
+                {
                     return r;
                 }
 
@@ -339,6 +368,133 @@ namespace BecquerelMonitor.EfficiencyMaker
                 r.ReasonCode = GpuProbeReason.RuntimeError;
                 return r;
             }
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER262`, 23.10.2026) Драйвер NVIDIA БЕЗ рантайма CUDA — первым делом пробы,
+        /// до загрузки библиотеки. Тот же `nvcuda.dll`, что потом возьмёт рантайм (он грузит его
+        /// `LoadLibraryExA(…, LOAD_LIBRARY_SEARCH_SYSTEM32)` — стенд 23.10.2026), и три вызова API
+        /// драйвера, которым контекст не нужен: `cuDriverGetVersion`, `cuInit`, `cuDeviceGetCount`.
+        ///
+        /// Зачем: рантайм CUDA 13.4, слинкованный в поставочную DLL, на машине без драйвера
+        /// падает нарушением доступа внутри `rm_probe` (12.8 отвечал там же кодом 35), и так же —
+        /// когда заглушка `nvcuda.dll` есть, а сам драйвер не грузится. Драйвер в обоих случаях
+        /// отвечает штатно: файла нет — `LoadLibraryEx` даёт NULL; не грузится — все три вызова
+        /// дают 100 (`CUDA_ERROR_NO_DEVICE`), без сбоя.
+        ///
+        /// Отказы: нет `nvcuda.dll`, нет нужного вызова, драйвер отвечает 100 или 0 устройств —
+        /// <see cref="GpuProbeReason.NoDevice"/>; драйвер поддерживает CUDA старше крупной версии
+        /// рантайма (<see cref="LinkedCudaRuntime"/>: 13.4 → нужен драйвер с CUDA 13.0 и новее) —
+        /// <see cref="GpuProbeReason.DriverTooOld"/>; иной код драйвера —
+        /// <see cref="GpuProbeReason.RuntimeError"/>. `nvcudaPath` — для положительного контроля
+        /// поддельным драйвером (<see cref="ProbeDriver"/>); null — `nvcuda.dll` из System32.
+        /// </summary>
+        static bool CheckDriver(GpuProbe r, string nvcudaPath, Action<string> step)
+        {
+            r.RuntimeVersion = LinkedCudaRuntime;
+            if (step != null) step("nvcuda.dll");
+            IntPtr nv = nvcudaPath == null
+                ? LoadLibraryEx("nvcuda.dll", IntPtr.Zero, LOAD_LIBRARY_SEARCH_SYSTEM32)
+                : LoadLibraryEx(nvcudaPath, IntPtr.Zero, LOAD_WITH_ALTERED_SEARCH_PATH);
+            if (nv == IntPtr.Zero)
+            {
+                r.Reason = "no NVIDIA driver installed (nvcuda.dll is not loadable, Win32 error "
+                           + Marshal.GetLastWin32Error().ToString(CultureInfo.InvariantCulture) + ")";
+                r.ReasonCode = GpuProbeReason.NoDevice;
+                return false;
+            }
+
+            IntPtr versionPtr = GetProcAddress(nv, "cuDriverGetVersion");
+            IntPtr initPtr = GetProcAddress(nv, "cuInit");
+            IntPtr countPtr = GetProcAddress(nv, "cuDeviceGetCount");
+            if (versionPtr == IntPtr.Zero || initPtr == IntPtr.Zero || countPtr == IntPtr.Zero)
+            {
+                r.Reason = "the NVIDIA driver is broken: nvcuda.dll has no cuDriverGetVersion/cuInit/cuDeviceGetCount";
+                r.ReasonCode = GpuProbeReason.NoDevice;
+                return false;
+            }
+
+            if (step != null) step("cuDriverGetVersion");
+            int driver;
+            int code = ((CuOutIntFn)Marshal.GetDelegateForFunctionPointer(versionPtr, typeof(CuOutIntFn)))(out driver);
+            if (code != 0 || driver <= 0)
+            {
+                return DriverRefused(r, "cuDriverGetVersion", code, driver);
+            }
+
+            r.DriverVersion = driver;
+            int needed = LinkedCudaRuntime / 1000 * 1000;
+            if (driver < needed)
+            {
+                r.Reason = "the NVIDIA driver supports CUDA " + Version(driver) + ", the library needs CUDA "
+                           + Version(needed) + " or newer (linked runtime " + Version(LinkedCudaRuntime) + ") — update the driver";
+                r.ReasonCode = GpuProbeReason.DriverTooOld;
+                return false;
+            }
+
+            if (step != null) step("cuInit");
+            code = ((CuInitFn)Marshal.GetDelegateForFunctionPointer(initPtr, typeof(CuInitFn)))(0);
+            if (code != 0)
+            {
+                return DriverRefused(r, "cuInit", code, driver);
+            }
+
+            if (step != null) step("cuDeviceGetCount");
+            int count;
+            code = ((CuOutIntFn)Marshal.GetDelegateForFunctionPointer(countPtr, typeof(CuOutIntFn)))(out count);
+            if (code != 0)
+            {
+                return DriverRefused(r, "cuDeviceGetCount", code, driver);
+            }
+
+            r.DeviceCount = count;
+            if (count < 1)
+            {
+                r.Reason = "no CUDA-capable NVIDIA GPU found (the driver sees no device)";
+                r.ReasonCode = GpuProbeReason.NoDevice;
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>Отказ API драйвера: 100 (`CUDA_ERROR_NO_DEVICE`) и версия 0 — «устройства нет», иной код — словами.</summary>
+        static bool DriverRefused(GpuProbe r, string call, int code, int driver)
+        {
+            if (code == 100 || (code == 0 && driver <= 0))
+            {
+                r.Reason = "no working NVIDIA driver or device (" + call + " returned "
+                           + code.ToString(CultureInfo.InvariantCulture) + ")";
+                r.ReasonCode = GpuProbeReason.NoDevice;
+            }
+            else
+            {
+                r.Reason = "the NVIDIA driver refused: " + call + " returned " + code.ToString(CultureInfo.InvariantCulture);
+                r.ReasonCode = GpuProbeReason.RuntimeError;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Только предпроверка драйвера (<see cref="CheckDriver"/>) — для оснастки и положительного
+        /// контроля поддельным `nvcuda.dll` по явному пути; null — драйвер из System32.
+        /// </summary>
+        public static GpuProbe ProbeDriver(string nvcudaPath)
+        {
+            var r = new GpuProbe { Path = nvcudaPath ?? "nvcuda.dll" };
+            try
+            {
+                r.Available = CheckDriver(r, nvcudaPath, null);
+            }
+            catch (Exception e)
+            {
+                r.Available = false;
+                r.Reason = e.GetType().Name + ": " + e.Message;
+                r.ReasonCode = GpuProbeReason.RuntimeError;
+            }
+
+            return r;
         }
 
         /// <summary>Ключ командной строки приложения: «ответить на пробу GPU и выйти» (<see cref="ProbeChildMain"/>).</summary>
