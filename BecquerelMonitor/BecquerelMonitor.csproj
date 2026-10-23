@@ -35,8 +35,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>2</ApplicationRevision>
-    <ApplicationVersion>2026.10.23.02</ApplicationVersion>
+    <ApplicationRevision>3</ApplicationRevision>
+    <ApplicationVersion>2026.10.23.03</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -600,6 +600,7 @@
     </Compile>
     <Compile Include="AtomSpectraTcpLogForm.Devlog.cs">
       <DependentUpon>AtomSpectraTcpLogForm.cs</DependentUpon>
+      <SubType>Form</SubType>
     </Compile>
     <Compile Include="AtomSpectraRestPolicy.cs" />
     <Compile Include="AtomSpectraRestClient.cs" />
@@ -613,20 +614,25 @@
     <Compile Include="AtomSpectraDevlog.cs" />
     <Compile Include="AtomSpectraTcpDeviceForm.Console.cs">
       <DependentUpon>AtomSpectraTcpDeviceForm.cs</DependentUpon>
+      <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="AtomSpectraTcpDeviceForm.Layout.cs">
       <DependentUpon>AtomSpectraTcpDeviceForm.cs</DependentUpon>
+      <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="AtomSpectraTcpDeviceForm.Calibration.cs">
       <DependentUpon>AtomSpectraTcpDeviceForm.cs</DependentUpon>
+      <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="AtomSpectraTcpDeviceController.Calibration.cs" />
     <Compile Include="AtomSpectraTcpDeviceForm.Gzip.cs">
       <DependentUpon>AtomSpectraTcpDeviceForm.cs</DependentUpon>
+      <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="AtomSpectraRestBootConfig.cs" />
     <Compile Include="AtomSpectraTcpDeviceForm.Rest.cs">
       <DependentUpon>AtomSpectraTcpDeviceForm.cs</DependentUpon>
+      <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="RepeatButton.cs">
       <SubType>Component</SubType>
