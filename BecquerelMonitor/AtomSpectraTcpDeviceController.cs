@@ -7,9 +7,11 @@
 //   serves one client, so an idle BecqMoni must not hold its slot;
 // - a dropped link does not stop the measurement: the session reconnects and re-sends -sta
 //   (never -rst);
-// - Stop with the link down tries one immediate reconnect to send -sto and otherwise leaves
-//   a deferred -sto and tells the user;
-// - the loss of the link is announced once per measurement.
+// - Stop with the link down (or with no answer to -sto) tries one immediate reconnect to send -sto and otherwise
+//   leaves a deferred -sto and tells the user;
+// - the loss of the link is announced once per measurement; no window is raised while the program closes;
+// - counters of the board that went down without our -rst (a reset from outside) are never written over the
+//   document: the recording stops and the user is told (AtomSpectraTcpSession.BoardReset).
 // - IDeviceLiveTimeSource: live time is written here, from the same packet as the counts
 //   (SetSpectrumTimes with the configured dead time - the formula of the COM type), so
 //   MeasurementController.OnTimer leaves it alone.
@@ -22,6 +24,7 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace BecquerelMonitor
@@ -38,6 +41,9 @@ namespace BecquerelMonitor
         private string deviceGuid;
         private bool newDocumentCreated = true;
         private bool disposed;
+        // The document's preset before a Start raised it by the board's time (Join / Resume); -1: not raised.
+        // Clear resets the board, the run starts from zero again, so the preset goes back to this value.
+        private int presetBeforeBoardTime = -1;
 
         public bool IsLinkLost
         {
@@ -69,23 +75,47 @@ namespace BecquerelMonitor
                     r.EndTime = DateTime.Now;
                 }
 
-                if (session != null)
+                IAtomSpectraSession s = session;
+                if (s != null)
                 {
                     AtomSpectraTcpLog.Info("Session", "Stop: " + outcome);
-                    AtomSpectraTcpLog.SetStatus(session.TransportName, session.Host + ":" + session.Port, "stopped (" + outcome + ")");
+                    SetStatus(s, StopStatusText(outcome));
                 }
-                if (outcome == AtomSpectraTcpStopOutcome.Deferred)
+                if (outcome == AtomSpectraTcpStopOutcome.Deferred && s != null)
                 {
-                    ReportLater(string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpStopDeferred, session.Host, session.Port));
+                    ReportLater(string.Format(CultureInfo.InvariantCulture, StopDeferredText(s), s.Host, s.Port), "Stop: -sto deferred");
                 }
-                else if (outcome == AtomSpectraTcpStopOutcome.Unconfirmed && session != null)
+                else if (outcome == AtomSpectraTcpStopOutcome.Unconfirmed && s != null)
                 {
-                    ReportLater(string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraRestStopUnconfirmed, session.Host, session.Port));
+                    ReportLater(string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraRestStopUnconfirmed, s.Host, s.Port), "Stop: unconfirmed");
                 }
             }
             finally
             {
                 r.ResultDataStatus.Recording = false;
+            }
+        }
+
+        // The text of a deferred stop: REST has its own (it retries for 30 min), TCP says whether the link was down or did not answer.
+        private static string StopDeferredText(IAtomSpectraSession s)
+        {
+            if (s is AtomSpectraRestSession) return Resources.ERRAtomSpectraRestStopDeferred;
+            AtomSpectraTcpSession tcp = s as AtomSpectraTcpSession;
+            return tcp != null && tcp.StopUnanswered ? Resources.ERRAtomSpectraTcpStopUnanswered : Resources.ERRAtomSpectraTcpStopDeferred;
+        }
+
+        private static string StopStatusText(AtomSpectraTcpStopOutcome outcome)
+        {
+            switch (outcome)
+            {
+                case AtomSpectraTcpStopOutcome.Deferred:
+                    return Resources.AtomSpectraTcpStatusStopDeferred;
+                case AtomSpectraTcpStopOutcome.Detached:
+                    return Resources.AtomSpectraTcpStatusDetached;
+                case AtomSpectraTcpStopOutcome.Unconfirmed:
+                    return Resources.AtomSpectraTcpStatusStopUnconfirmed;
+                default:
+                    return Resources.AtomSpectraTcpStatusStopped;
             }
         }
 
@@ -112,6 +142,15 @@ namespace BecquerelMonitor
 
             if (session != null)
             {
+                // A joined acquisition is not ours: its reset is asked first, with the board's numbers (as REST ConfirmClear).
+                // Without windows AskYesNo throws (S100) and nothing goes to the board.
+                if (session.JoinedRunning && !ConfirmJoinedClear(session))
+                {
+                    AtomSpectraTcpLog.Info("Session", "Clear of a joined acquisition: declined, the board is not reset");
+                    AppUi.Report(Resources.MSGAtomSpectraTcpNotReset, "", MessageBoxIcon.Information);
+                    return;
+                }
+
                 // The explicit Clear is the only user action that resets the analyzer's spectrum;
                 // with the link down it is kept and executed later, see AtomSpectraTcpSession.Clear.
                 session.Clear(CommandTimeoutMs);
@@ -130,7 +169,31 @@ namespace BecquerelMonitor
                 }
             }
 
+            RestorePreset(r);
             r.StartTime = DateTime.Now;
+        }
+
+        private static bool ConfirmJoinedClear(IAtomSpectraSession s)
+        {
+            AtomSpectraTcpSession tcp = s as AtomSpectraTcpSession;
+            long t = tcp != null ? tcp.BoardSeconds : 0;
+            long n = tcp != null ? tcp.BoardCounts : 0;
+            string text = string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraTcpClearJoinedConfirm,
+                t / 3600, (t % 3600) / 60, n.ToString(CultureInfo.InvariantCulture));
+            return AppUi.AskYesNo(text, Resources.ConfirmationDialogTitle, MessageBoxIcon.Warning, true);
+        }
+
+        // The board starts from zero after Clear: a preset raised at Start by the board's old time goes back to the document's own.
+        private void RestorePreset(ResultData r)
+        {
+            if (presetBeforeBoardTime < 0)
+            {
+                return;
+            }
+            AtomSpectraTcpLog.Info("Session", "preset " + r.ResultDataStatus.PresetTime.ToString(CultureInfo.InvariantCulture) + " s -> "
+                + presetBeforeBoardTime.ToString(CultureInfo.InvariantCulture) + " s (Clear: the board starts from zero)");
+            r.ResultDataStatus.PresetTime = presetBeforeBoardTime;
+            presetBeforeBoardTime = -1;
         }
 
         public override bool AttachToDevice(ResultData r)
@@ -197,10 +260,12 @@ namespace BecquerelMonitor
 
             if (session == null)
             {
-                session = new AtomSpectraTcpSession(config.Host, port, AtomSpectraTcpSession.DefaultReconnectDelayMs, KeepAliveMs, null);
-                AtomSpectraTcpLog.SetStatus(session.TransportName, config.Host + ":" + port, "idle");
-                session.DataReady += Acquisition_DataReady;
-                session.LinkLost += Session_LinkLost;
+                AtomSpectraTcpSession tcp = new AtomSpectraTcpSession(config.Host, port, AtomSpectraTcpSession.DefaultReconnectDelayMs, KeepAliveMs, null);
+                session = tcp;
+                SetStatus(tcp, Resources.AtomSpectraTcpStatusIdle);
+                tcp.DataReady += Acquisition_DataReady;
+                tcp.LinkLost += Session_LinkLost;
+                tcp.BoardReset += Session_BoardReset;
             }
         }
 
@@ -213,6 +278,11 @@ namespace BecquerelMonitor
 
             session.DataReady -= Acquisition_DataReady;
             session.LinkLost -= Session_LinkLost;
+            AtomSpectraTcpSession tcp = session as AtomSpectraTcpSession;
+            if (tcp != null)
+            {
+                tcp.BoardReset -= Session_BoardReset;
+            }
             UnhookRest();
             try
             {
@@ -246,18 +316,59 @@ namespace BecquerelMonitor
                 return Refuse(Resources.ERRAtomSpectraTcpNoHost);
             }
 
+            bool started;
+            string refusal;
+            try
+            {
+                started = BeginTcp(r, config, start, out refusal);
+            }
+            catch (Exception ex)
+            {
+                // our own text, not the generic "Bluetooth not supported" of MeasurementController.StartRecording
+                AtomSpectraTcpLog.Error("Session", "TCP Start failed: " + ex.GetType().Name + ": " + ex.Message);
+                started = false;
+                refusal = string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpStart, ex.Message);
+            }
+            if (started)
+            {
+                return true;
+            }
+            r.ResultDataStatus.Recording = false;
+            return refusal == null ? false : Refuse(refusal);   // null: "Cancel" in the Start dialog, nothing to say
+        }
+
+        // true: started. false: refusal is the text for the user, or null when the user cancelled.
+        private bool BeginTcp(ResultData r, AtomSpectraTcpDeviceConfig config, bool start, out string refusal)
+        {
+            refusal = null;
             OpenSession(config);
             linkLossReported = false;
 
-            // a Start on a board with data asks "Continue / Start over / Cancel" (the REST dialog)
+            // a Start on a board with data asks "Continue / Start over / Cancel" (the REST dialog), knowing what the document holds
             AtomSpectraTcpSession tcp = session as AtomSpectraTcpSession;
-            if (tcp != null) tcp.Ask = AppUi.HasWindows ? new Func<AtomSpectraRestStartQuestion, AtomSpectraRestStartChoice>(q => { q.Note = Resources.AtomSpectraTcpStartNote; return AtomSpectraRestUi.AskStart(q); }) : null;
+            if (tcp != null)
+            {
+                tcp.Ask = AppUi.HasWindows ? new Func<AtomSpectraRestStartQuestion, AtomSpectraRestStartChoice>(q => { q.Note = StartNote(tcp); return AtomSpectraRestUi.AskStart(q); }) : null;
+                tcp.DocumentSeconds = (long)r.ResultDataStatus.ElapsedTime.TotalSeconds;
+                tcp.DocumentCounts = r.EnergySpectrum != null ? r.EnergySpectrum.ValidPulseCount : 0;
+            }
+            IAtomSpectraSession s = session;
             bool newDoc = start && newDocumentCreated;
-            AtomSpectraTcpBeginOutcome outcome = AtomSpectraRestUi.RunWithWait(delegate { return session.Begin(newDoc, CommandTimeoutMs); });
+            string info = null, calibration = null;
+            AtomSpectraTcpBeginOutcome outcome = AtomSpectraRestUi.RunWithWait(delegate
+            {
+                AtomSpectraTcpBeginOutcome o = s.Begin(newDoc, CommandTimeoutMs);
+                if (o == AtomSpectraTcpBeginOutcome.Started)
+                {
+                    // -inf and -cal behind the same wait window, not on the UI thread after it (InfoTimeoutMs each)
+                    info = QueryQuietly(s, "-inf");
+                    calibration = QueryQuietly(s, "-cal");
+                }
+                return o;
+            });
             if (outcome == AtomSpectraTcpBeginOutcome.Cancelled)
             {
-                r.ResultDataStatus.Recording = false;
-                AtomSpectraTcpLog.SetStatus(session.TransportName, session.Host + ":" + session.Port, "not started: cancelled");
+                SetStatus(s, Resources.AtomSpectraTcpStatusCancelled);
                 return false;
             }
 
@@ -266,42 +377,93 @@ namespace BecquerelMonitor
                 if (newDocumentCreated)
                 {
                     // Joining or resuming the board's acquisition: the document starts when the board started.
-                    r.StartTime = DateTime.Now - TimeSpan.FromSeconds(session.ElapsedAtBeginSeconds);
+                    r.StartTime = DateTime.Now - TimeSpan.FromSeconds(s.ElapsedAtBeginSeconds);
                     newDocumentCreated = false;
                 }
-                if (session.ElapsedAtBeginSeconds > 0)
+                if (s.ElapsedAtBeginSeconds > 0)
                 {
                     // the preset counts the board's time: it must not stop the run at the first tick (as REST, MeasurementController.cs:749)
                     int before = r.ResultDataStatus.PresetTime;
-                    r.ResultDataStatus.PresetTime = AtomSpectraRestPolicy.PresetForContinue(before, (long)session.ElapsedAtBeginSeconds, 0);
-                    AtomSpectraTcpLog.Info("Session", "preset " + before + " s -> " + r.ResultDataStatus.PresetTime + " s (board time " + session.ElapsedAtBeginSeconds + " s)");
+                    r.ResultDataStatus.PresetTime = AtomSpectraRestPolicy.PresetForContinue(before, (long)s.ElapsedAtBeginSeconds, 0);
+                    if (presetBeforeBoardTime < 0) presetBeforeBoardTime = before;   // Clear puts it back
+                    AtomSpectraTcpLog.Info("Session", "preset " + before.ToString(CultureInfo.InvariantCulture) + " s -> "
+                        + r.ResultDataStatus.PresetTime.ToString(CultureInfo.InvariantCulture) + " s (board time "
+                        + s.ElapsedAtBeginSeconds.ToString("R", CultureInfo.InvariantCulture) + " s)");
                 }
-                AtomSpectraTcpLog.SetStatus(session.TransportName, session.Host + ":" + session.Port, session.JoinedRunning ? "joined a running acquisition" : "measuring");
+                SetStatus(s, s.JoinedRunning ? Resources.AtomSpectraTcpStatusJoined : Resources.AtomSpectraTcpStatusMeasuring);
                 r.ResultDataStatus.Recording = true;
-                RefreshDeadTimeFromDevice(r);
-                RefreshCalibrationFromDevice(r);   // the board calibration -> document and configuration
+                ApplyDeadTime(r, info);
+                RefreshCalibrationFromDevice(r, calibration);   // the board calibration -> document and configuration
                 return true;
             }
 
-            r.ResultDataStatus.Recording = false;
-            AtomSpectraTcpLog.Warn("Session", "Start refused: " + outcome + " (" + session.TransportName + " " + session.Host + ":" + session.Port + ") " + (session.LastError ?? ""));
-            AtomSpectraTcpLog.SetStatus(session.TransportName, session.Host + ":" + session.Port, "not started: " + outcome);
+            AtomSpectraTcpLog.Warn("Session", "Start refused: " + outcome + " (" + s.TransportName + " " + AtomSpectraTcpSession.HostKey(s.Host, s.Port) + ") " + (s.LastError ?? ""));
+            SetStatus(s, Resources.AtomSpectraTcpStatusNotStarted);
 
             switch (outcome)
             {
                 case AtomSpectraTcpBeginOutcome.NoHost:
-                    return Refuse(Resources.ERRAtomSpectraTcpNoHost);
+                    refusal = Resources.ERRAtomSpectraTcpNoHost;
+                    break;
                 case AtomSpectraTcpBeginOutcome.HostBusy:
-                    return Refuse(string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpHostBusy, config.Host, session.Port));
+                    refusal = string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpHostBusy, config.Host, s.Port);
+                    break;
                 case AtomSpectraTcpBeginOutcome.ConnectFailed:
                 case AtomSpectraTcpBeginOutcome.LinkClosed:
-                    return Refuse(string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpConnect, config.Host, session.Port, session.LastError ?? ""));
-                case AtomSpectraTcpBeginOutcome.NoAnswer:
-                    return Refuse(string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpNoAnswer, config.Host, session.Port));
-                case AtomSpectraTcpBeginOutcome.Refused:   // no window to ask in, a stopped board with data
-                    return Refuse(session.LastError ?? AtomSpectraRestSession.HeadlessAskText);
+                    refusal = string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpConnect, config.Host, s.Port, s.LastError ?? "");
+                    break;
+                case AtomSpectraTcpBeginOutcome.Refused:   // no window to ask in
+                    refusal = RefusalText(tcp);
+                    break;
                 default:
-                    return Refuse(string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpNoAnswer, config.Host, session.Port));
+                    refusal = string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpNoAnswer, config.Host, s.Port);
+                    break;
+            }
+            return false;
+        }
+
+        // The note under the Start question: what the probe could not see, then what each button sends.
+        private static string StartNote(AtomSpectraTcpSession tcp)
+        {
+            string seconds = ProbeSeconds();
+            string note = Resources.AtomSpectraTcpStartNote;
+            if (tcp.BoardState == AtomSpectraTcpBoardState.Silent)
+                return string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraTcpStartSilent, seconds) + Environment.NewLine + note;
+            if (tcp.BoardState == AtomSpectraTcpBoardState.Uncertain)
+                return string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraTcpStartUncertain, seconds) + Environment.NewLine + note;
+            return note;
+        }
+
+        private static string ProbeSeconds()
+        {
+            return (AtomSpectraTcpSession.ProbeMs / 1000.0).ToString("0.0", CultureInfo.InvariantCulture);
+        }
+
+        // A Start without a window to ask in: the text of the reason (nothing was sent to the board).
+        private static string RefusalText(AtomSpectraTcpSession tcp)
+        {
+            AtomSpectraTcpRefusal why = tcp != null ? tcp.Refusal : AtomSpectraTcpRefusal.StoppedWithData;
+            switch (why)
+            {
+                case AtomSpectraTcpRefusal.Unknown:
+                    return string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpHeadlessUnknown, ProbeSeconds());
+                case AtomSpectraTcpRefusal.BehindDocument:
+                    return Resources.ERRAtomSpectraTcpHeadlessBehind;
+                default:
+                    return Resources.ERRAtomSpectraTcpHeadlessStopped;
+            }
+        }
+
+        private static string QueryQuietly(IAtomSpectraSession s, string command)
+        {
+            try
+            {
+                return s.Query(command, InfoTimeoutMs);
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine("AtomSpectraTcp: " + command + " failed: " + ex.Message);
+                return null;
             }
         }
 
@@ -316,7 +478,28 @@ namespace BecquerelMonitor
             return false;
         }
 
+        // On the reader thread: only the status line and a post to the UI thread (the fold reads the configuration there).
         private void Acquisition_DataReady(object sender, AtomSpectraTcpDataReadyArgs e)
+        {
+            if (resultData == null)
+            {
+                return;
+            }
+
+            IAtomSpectraSession s = session;
+            if (s != null)
+            {
+                SetStatus(s, string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraTcpStatusReceiving, e.ElapsedTime, e.Cps));
+            }
+
+            if (MainForm.originalContext != null)
+            {
+                MainForm.originalContext.Post(d => FoldAndUpdate(e), null);
+            }
+        }
+
+        // On the UI thread: the profile's channels come from the configuration map here, never from the reader thread.
+        private void FoldAndUpdate(AtomSpectraTcpDataReadyArgs e)
         {
             ResultData data = resultData;
             if (data == null)
@@ -324,29 +507,15 @@ namespace BecquerelMonitor
                 return;
             }
 
-            int channels;
-            string guid = data.DeviceConfig != null ? data.DeviceConfig.Guid ?? "" : "";
-            DeviceConfigInfo configInfo;
-            if (DeviceConfigManager.GetInstance().DeviceConfigMap.TryGetValue(guid, out configInfo))
+            int channels = 0;
+            if (data.DeviceConfig != null)
             {
-                channels = configInfo.NumberOfChannels;
-            }
-            else
-            {
-                channels = data.DeviceConfig != null ? data.DeviceConfig.NumberOfChannels : 0;
+                DeviceConfigInfo configInfo;
+                channels = DeviceConfigManager.GetInstance().DeviceConfigMap.TryGetValue(data.DeviceConfig.Guid ?? "", out configInfo)
+                    ? configInfo.NumberOfChannels : data.DeviceConfig.NumberOfChannels;
             }
 
-            AtomSpectraTcpDataReadyArgs args = BuildArgs(e, channels, restChannels);   // a static method, tested without a window
-            IAtomSpectraSession s = session;
-            if (s != null)
-            {
-                AtomSpectraTcpLog.SetStatus(s.TransportName, s.Host + ":" + s.Port, "receiving, time " + e.ElapsedTime + " s, cps " + e.Cps);
-            }
-
-            if (MainForm.originalContext != null)
-            {
-                MainForm.originalContext.Post(d => UpdateHistogram(args), null);
-            }
+            UpdateHistogram(BuildArgs(e, channels, restChannels));   // BuildArgs: a static method, tested without a window
         }
 
         // The snapshot for the document: folded to the profile's channels; a REST snapshot is folded to restChannels (fixed at Start,
@@ -436,29 +605,31 @@ namespace BecquerelMonitor
             }
         }
 
+        // REST Start (AtomSpectraTcpDeviceController.Rest.cs): -inf behind the wait window, the dead time applied here, on the UI thread.
         private void RefreshDeadTimeFromDevice(ResultData r)
         {
-            if (session == null)
+            IAtomSpectraSession s = session;
+            if (s == null)
             {
                 return;
             }
 
-            // The DOCUMENT's config, as AtomSpectraDeviceController.RefreshDeadTimeFromDevice: live time
-            // (SetSpectrumTimes) reads the dead time from resultData.DeviceConfig.
-            AtomSpectraTcpDeviceConfig config = r.DeviceConfig == null ? null : r.DeviceConfig.InputDeviceConfig as AtomSpectraTcpDeviceConfig;
-            if (config == null)
+            string answer = AtomSpectraRestUi.RunWithWait(delegate { return QueryQuietly(s, "-inf"); });
+            ApplyDeadTime(r, answer);
+        }
+
+        // The answer to -inf -> the dead time of the DOCUMENT's config, as AtomSpectraDeviceController.RefreshDeadTimeFromDevice:
+        // live time (SetSpectrumTimes) reads the dead time from resultData.DeviceConfig. null (no answer): nothing changes.
+        private static void ApplyDeadTime(ResultData r, string answer)
+        {
+            AtomSpectraTcpDeviceConfig config = r == null || r.DeviceConfig == null ? null : r.DeviceConfig.InputDeviceConfig as AtomSpectraTcpDeviceConfig;
+            if (config == null || answer == null)
             {
                 return;
             }
 
             try
             {
-                string answer = session == null ? null : session.Query("-inf", InfoTimeoutMs);
-                if (answer == null)
-                {
-                    return;
-                }
-
                 string error;
                 double tau = AtomSpectraDeviceConfig.DeadTimeFromInfo(answer, out error);
                 if (double.IsNaN(tau))
@@ -469,7 +640,8 @@ namespace BecquerelMonitor
 
                 if (config.DeadTimeValue != tau)
                 {
-                    Trace.WriteLine("AtomSpectraTcp: updating dead time from " + config.DeadTimeValue + " to " + tau);
+                    Trace.WriteLine("AtomSpectraTcp: updating dead time from " + config.DeadTimeValue.ToString("R", CultureInfo.InvariantCulture)
+                        + " to " + tau.ToString("R", CultureInfo.InvariantCulture));
                     config.DeadTimeValue = tau;
                 }
             }
@@ -481,36 +653,108 @@ namespace BecquerelMonitor
 
         private void Session_LinkLost(object sender, EventArgs e)
         {
-            Trace.WriteLine("AtomSpectraTcp: link lost " + (session != null ? session.Host + ":" + session.Port : "unknown"));
+            IAtomSpectraSession s = session;
+            Trace.WriteLine("AtomSpectraTcp: link lost " + (s != null ? AtomSpectraTcpSession.HostKey(s.Host, s.Port) : "unknown"));
             if (linkLossReported)
             {
                 return;
             }
             linkLossReported = true;
-            IAtomSpectraSession s = session;
             if (s == null)
             {
                 return;
             }
-            AtomSpectraTcpLog.SetStatus(s.TransportName, s.Host + ":" + s.Port, "link lost, retrying");
+            SetStatus(s, Resources.AtomSpectraTcpStatusLinkLost);
             // The status bar shows "port lost" only for the COM type (MainForm); until that is extended,
             // the loss is announced once per measurement.
             AtomSpectraRestSession rs = s as AtomSpectraRestSession;   // REST has its own text, not the TCP bridge one
             ReportLater(rs != null ? rs.LinkLostText()
-                : string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraTcpLinkLost, s.Host, s.Port));
+                : string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraTcpLinkLost, s.Host, s.Port), "link lost");
         }
 
-        private static void ReportLater(string text)
+        // The board's counters went down without our -rst (raised on the reader thread): the document keeps its data, the recording
+        // stops, the session detaches without -sto (the acquisition on the board is not the document's any more).
+        private void Session_BoardReset(object sender, AtomSpectraTcpBoardResetArgs e)
         {
-            // Posted, not modal inside the caller (a preset-time Stop saves the document right after StopMeasurement).
-            if (AppUi.HasWindows && MainForm.originalContext != null)
+            IAtomSpectraSession s = sender as IAtomSpectraSession;
+            ResultData data = resultData;
+            if (s == null)
             {
-                MainForm.originalContext.Post(_ => AppUi.Report(text, "", MessageBoxIcon.Warning), null);
+                return;
+            }
+
+            SetStatus(s, Resources.AtomSpectraTcpStatusBoardReset);
+            string text = string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraTcpBoardReset, s.Host, s.Port,
+                e.TimeBefore, e.TimeNow, e.TotalBefore, e.TotalNow);
+            if (MainForm.originalContext != null)
+            {
+                MainForm.originalContext.Post(delegate
+                {
+                    StopAfterBoardReset(s, data);
+                    ShowOrLog(text, "board reset from outside: " + e.LogText());
+                }, null);
             }
             else
             {
+                if (data != null) data.ResultDataStatus.Recording = false;
+                ThreadPool.QueueUserWorkItem(_ => s.Detach());   // not on the reader thread that raised the event
                 Trace.WriteLine(text);
             }
+        }
+
+        private void StopAfterBoardReset(IAtomSpectraSession s, ResultData data)
+        {
+            if (session == s)
+            {
+                s.Detach();
+            }
+            if (data == null || !data.ResultDataStatus.Recording)
+            {
+                return;
+            }
+            data.EndTime = DateTime.Now;
+            if (data.MeasurementController != null)
+            {
+                data.MeasurementController.NotifyMeasurementStoppedByDevice();
+            }
+            else
+            {
+                data.ResultDataStatus.Recording = false;
+            }
+        }
+
+        private static void SetStatus(IAtomSpectraSession s, string state)
+        {
+            if (s != null)
+            {
+                AtomSpectraTcpLog.SetStatus(s.TransportName, AtomSpectraTcpSession.HostKey(s.Host, s.Port), state);
+            }
+        }
+
+        // Posted, not modal inside the caller (a preset-time Stop saves the document right after StopMeasurement).
+        private static void ReportLater(string text, string logText)
+        {
+            if (AppUi.HasWindows && MainForm.originalContext != null && !MainForm.ApplicationClosing)
+            {
+                MainForm.originalContext.Post(_ => ShowOrLog(text, logText), null);
+            }
+            else
+            {
+                ShowOrLog(text, logText);
+            }
+        }
+
+        // While the program closes no window is raised - a modal box would hold up the close (and a Windows shutdown) and nothing
+        // can be done about it then: the log only, as AmplitudaUsbDeviceController.ReportLoss.
+        private static void ShowOrLog(string text, string logText)
+        {
+            if (AppUi.HasWindows && !MainForm.ApplicationClosing)
+            {
+                AppUi.Report(text, "", MessageBoxIcon.Warning);
+                return;
+            }
+            AtomSpectraTcpLog.Warn("Session", logText + " (no window: " + (MainForm.ApplicationClosing ? "the program closes" : "no windows") + ")");
+            Trace.WriteLine(text);
         }
     }
 }

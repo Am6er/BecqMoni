@@ -2684,6 +2684,102 @@ http://xptable.sourceforge.net/</value>
   <data name="ERRAtomSpectraTcpCalNotTaken" xml:space="preserve">
     <value>AtomSpectra TCP: калибровка платы не взята — её шкала для {0} каналов не установлена. На странице остаётся своя калибровка.</value>
   </data>
+  <data name="ERRAtomSpectraRestStopDeferred" xml:space="preserve">
+    <value>AtomSpectra REST: плата не подтвердила команду остановки. BecqMoni повторяет её, пока программа открыта (до 30 мин), и только для этого измерения; если программу закрыть, остановите плату сами.</value>
+  </data>
+  <data name="ERRAtomSpectraTcpStopUnanswered" xml:space="preserve">
+    <value>AtomSpectra TCP: анализатор за {0}:{1} не ответил на команду остановки. Он может продолжать набор; BecqMoni повторит остановку, как только плата примет новое подключение. Проверьте спектр, прежде чем продолжать этот набор.</value>
+  </data>
+  <data name="MSGAtomSpectraTcpBoardReset" xml:space="preserve">
+    <value>AtomSpectra TCP: счётчики анализатора за {0}:{1} уменьшились (время {2} с → {3} с, импульсов {4} → {5}): его сбросили или перезапустили извне. Документ не перезаписан, запись остановлена; плате ничего не отправлялось. Чтобы взять новый набор, создайте новый документ и нажмите «Старт».</value>
+  </data>
+  <data name="MSGAtomSpectraTcpClearJoinedConfirm" xml:space="preserve">
+    <value>BecqMoni присоединилось к набору, который уже шёл на анализаторе; в нём {0} ч {1} мин, импульсов {2}. Сбросить спектр НА АНАЛИЗАТОРЕ (-rst)? Отменить будет нельзя.</value>
+  </data>
+  <data name="MSGAtomSpectraTcpNotReset" xml:space="preserve">
+    <value>Анализатор НЕ сброшен; его спектр цел. Пока идёт набор, документ заполняется с анализатора заново.</value>
+  </data>
+  <data name="ERRAtomSpectraTcpStart" xml:space="preserve">
+    <value>AtomSpectra TCP: набор не начат: {0}</value>
+  </data>
+  <data name="ERRAtomSpectraTcpHeadlessStopped" xml:space="preserve">
+    <value>AtomSpectra TCP: анализатор стоит, и на нём есть набор, а запуск без окон не может спросить, что с ним делать. Плате ничего не отправлено.</value>
+  </data>
+  <data name="ERRAtomSpectraTcpHeadlessUnknown" xml:space="preserve">
+    <value>AtomSpectra TCP: за {0} с мост не показал, идёт ли набор на анализаторе (статуса не было или он был один), а запуск без окон не может спросить, что делать. Плате ничего не отправлено.</value>
+  </data>
+  <data name="ERRAtomSpectraTcpHeadlessBehind" xml:space="preserve">
+    <value>AtomSpectra TCP: на анализаторе меньше, чем в документе, а запуск без окон не может спросить, что делать. Плате ничего не отправлено.</value>
+  </data>
+  <data name="AtomSpectraTcpStartSilent" xml:space="preserve">
+    <value>Мост не прислал ни одного статуса за {0} с: состояние анализатора и его спектр неизвестны. «Продолжить без сброса» отправит -sta.</value>
+  </data>
+  <data name="AtomSpectraTcpStartUncertain" xml:space="preserve">
+    <value>Мост прислал за {0} с только один статус: идёт ли набор на анализаторе, неизвестно. «Продолжить без сброса» отправит -sta (набирающему анализатору это не мешает).</value>
+  </data>
+  <data name="AtomSpectraTcpErrNoHost" xml:space="preserve">
+    <value>не задан адрес платы</value>
+  </data>
+  <data name="AtomSpectraTcpErrBadPort" xml:space="preserve">
+    <value>порт {0} вне диапазона 1..65535</value>
+  </data>
+  <data name="AtomSpectraTcpErrTimeout" xml:space="preserve">
+    <value>нет ответа на подключение за {0} мс</value>
+  </data>
+  <data name="AtomSpectraTcpErrNetwork" xml:space="preserve">
+    <value>ошибка сети: {0}</value>
+  </data>
+  <data name="AtomSpectraTcpErrWrite" xml:space="preserve">
+    <value>не удалось отправить плате: {0}</value>
+  </data>
+  <data name="AtomSpectraTcpErrRead" xml:space="preserve">
+    <value>не удалось прочитать с платы: {0}</value>
+  </data>
+  <data name="AtomSpectraTcpErrClosed" xml:space="preserve">
+    <value>соединение закрыто</value>
+  </data>
+  <data name="AtomSpectraTcpErrBoardClosed" xml:space="preserve">
+    <value>плата закрыла соединение</value>
+  </data>
+  <data name="AtomSpectraTcpErrNoData" xml:space="preserve">
+    <value>нет данных с платы {0} с</value>
+  </data>
+  <data name="AtomSpectraTcpStatusIdle" xml:space="preserve">
+    <value>простой</value>
+  </data>
+  <data name="AtomSpectraTcpStatusMeasuring" xml:space="preserve">
+    <value>идёт набор</value>
+  </data>
+  <data name="AtomSpectraTcpStatusJoined" xml:space="preserve">
+    <value>присоединено к идущему набору</value>
+  </data>
+  <data name="AtomSpectraTcpStatusReceiving" xml:space="preserve">
+    <value>приём: время {0} с, {1} имп/с</value>
+  </data>
+  <data name="AtomSpectraTcpStatusLinkLost" xml:space="preserve">
+    <value>связь потеряна, повтор</value>
+  </data>
+  <data name="AtomSpectraTcpStatusStopped" xml:space="preserve">
+    <value>остановлено</value>
+  </data>
+  <data name="AtomSpectraTcpStatusStopDeferred" xml:space="preserve">
+    <value>остановлено; команда остановки ждёт плату</value>
+  </data>
+  <data name="AtomSpectraTcpStatusDetached" xml:space="preserve">
+    <value>отключено; плата продолжает набор</value>
+  </data>
+  <data name="AtomSpectraTcpStatusStopUnconfirmed" xml:space="preserve">
+    <value>остановлено; плата не подтвердила</value>
+  </data>
+  <data name="AtomSpectraTcpStatusNotStarted" xml:space="preserve">
+    <value>не запущено</value>
+  </data>
+  <data name="AtomSpectraTcpStatusCancelled" xml:space="preserve">
+    <value>не запущено: отменено</value>
+  </data>
+  <data name="AtomSpectraTcpStatusBoardReset" xml:space="preserve">
+    <value>остановлено: плату сбросили извне</value>
+  </data>
   <data name="ERRAtomSpectraTcpBadHost" xml:space="preserve">
     <value>AtomSpectra: «{0}» — неверный адрес платы. Введите host[:port] — IP-адрес или имя, например 192.168.0.119 или atomspectra.local:8234, без «http://». Без порта используется {1}.</value>
   </data>

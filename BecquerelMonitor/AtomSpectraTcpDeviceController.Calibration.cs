@@ -14,11 +14,12 @@ namespace BecquerelMonitor
         internal Func<DeviceConfigInfo, bool> configSaver = c => DeviceConfigManager.GetInstance().SaveConfig(c);
 
         // TCP: -cal through the open session at Start (the bridge serves one client), then the same rules as REST.
-        private void RefreshCalibrationFromDevice(ResultData r)
+        // The answer is read behind the wait window of Start (BeginTcp, worker thread) and given here, on the UI thread.
+        private void RefreshCalibrationFromDevice(ResultData r, string answer)
         {
             AtomSpectraTcpSession tcp = session as AtomSpectraTcpSession;
             if (tcp == null || r == null) return;
-            RefreshCalibrationFromAnswer(r, tcp.Query("-cal", InfoTimeoutMs));
+            RefreshCalibrationFromAnswer(r, answer);
         }
 
         // the answer to -cal: parsed and given to the document and the configuration (a seam for the tests: no session needed)
@@ -29,7 +30,7 @@ namespace BecquerelMonitor
             int n = r.DeviceConfig != null ? r.DeviceConfig.NumberOfChannels : (r.EnergySpectrum != null && r.EnergySpectrum.Spectrum != null ? r.EnergySpectrum.Spectrum.Length : AtomSpectraRestSpectrum.Channels);
             if (n != AtomSpectraRestSpectrum.Channels)
             {
-                AtomSpectraTcpLog.Info("Cal", "-cal at Start: not taken at " + n + " channels (its scale is not established); the document and the device configuration keep their own");
+                AtomSpectraTcpLog.Info("Cal", "-cal at Start: not taken at " + n.ToString(CultureInfo.InvariantCulture) + " channels (its scale is not established); the document and the device configuration keep their own");
                 return;
             }
 
@@ -57,7 +58,7 @@ namespace BecquerelMonitor
 
             if (config != null && !board.CheckCalibration(config.NumberOfChannels))
             {
-                return "board calibration not taken: it fails CheckCalibration for " + config.NumberOfChannels + " channels";
+                return "board calibration not taken: it fails CheckCalibration for " + config.NumberOfChannels.ToString(CultureInfo.InvariantCulture) + " channels";
             }
 
             string text = string.Join("; ", cal.Coefficients.Select(c => c.ToString("R", CultureInfo.InvariantCulture)));
