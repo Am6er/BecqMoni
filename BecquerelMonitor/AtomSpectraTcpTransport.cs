@@ -1,5 +1,7 @@
-﻿using System;
+﻿using BecquerelMonitor.Properties;
+using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Net.Sockets;
 
@@ -14,6 +16,31 @@ namespace BecquerelMonitor
         void Write(byte[] buffer, int offset, int count);
         int Read(byte[] buffer, int offset, int count, int timeoutMs);
         long NowMs { get; }
+    }
+
+    // A failure of the bridge link. Message is the text for the user (resources; it reaches the {2} of ERRAtomSpectraTcpConnect
+    // and the test-connection result), LogText the same in English for the log.
+    public sealed class AtomSpectraTcpLinkException : IOException
+    {
+        public string LogText { get; private set; }
+
+        public AtomSpectraTcpLinkException(string userText, string logText, Exception inner) : base(userText, inner)
+        {
+            LogText = logText;
+        }
+
+        // The English text of any exception, for the log.
+        public static string LogOf(Exception ex)
+        {
+            AtomSpectraTcpLinkException link = ex as AtomSpectraTcpLinkException;
+            return link != null ? link.LogText : ex == null ? "" : ex.Message;
+        }
+
+        // A socket error: the system's own text inside our resource.
+        public static AtomSpectraTcpLinkException Network(string userFormat, string logPrefix, Exception ex)
+        {
+            return new AtomSpectraTcpLinkException(string.Format(CultureInfo.InvariantCulture, userFormat, ex.Message), logPrefix + ": " + ex.Message, ex);
+        }
     }
 
     public sealed class AtomSpectraTcpTransport : IAtomSpectraTcpTransport
@@ -63,12 +90,13 @@ namespace BecquerelMonitor
 
             if (string.IsNullOrEmpty(host))
             {
-                throw new ArgumentException("no host is set");
+                throw new AtomSpectraTcpLinkException(Resources.AtomSpectraTcpErrNoHost, "no host is set", null);
             }
 
             if (port < 1 || port > 65535)
             {
-                throw new ArgumentOutOfRangeException("port", port, "port must be between 1 and 65535");
+                throw new AtomSpectraTcpLinkException(string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraTcpErrBadPort, port),
+                    "port " + port.ToString(CultureInfo.InvariantCulture) + " is outside 1..65535", null);
             }
 
             TcpClient created = new TcpClient();
@@ -78,13 +106,19 @@ namespace BecquerelMonitor
                 IAsyncResult pending = created.BeginConnect(host, port, null, null);
                 if (!pending.AsyncWaitHandle.WaitOne(connectTimeoutMs))
                 {
-                    throw new TimeoutException(string.Format("connection to {0}:{1} timed out after {2} ms", host, port, connectTimeoutMs));
+                    throw new AtomSpectraTcpLinkException(string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraTcpErrTimeout, connectTimeoutMs),
+                        string.Format(CultureInfo.InvariantCulture, "connection to {0}:{1} timed out after {2} ms", host, port, connectTimeoutMs), null);
                 }
 
                 created.EndConnect(pending);
                 created.NoDelay = true;
                 created.SendTimeout = WriteTimeoutMs;
                 created.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+            }
+            catch (SocketException ex)
+            {
+                created.Close();
+                throw AtomSpectraTcpLinkException.Network(Resources.AtomSpectraTcpErrNetwork, "TCP connect failed", ex);
             }
             catch (Exception)
             {
@@ -126,16 +160,16 @@ namespace BecquerelMonitor
                 }
                 catch (SocketException ex)
                 {
-                    throw new IOException("TCP write failed: " + ex.Message, ex);
+                    throw AtomSpectraTcpLinkException.Network(Resources.AtomSpectraTcpErrWrite, "TCP write failed", ex);
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    throw new IOException("TCP write failed", ex);
+                    throw new AtomSpectraTcpLinkException(Resources.AtomSpectraTcpErrClosed, "TCP write failed: the socket is closed", ex);
                 }
 
                 if (sent <= 0)
                 {
-                    throw new IOException("TCP write returned no bytes");
+                    throw new AtomSpectraTcpLinkException(Resources.AtomSpectraTcpErrClosed, "TCP write returned no bytes", null);
                 }
 
                 currentOffset += sent;
@@ -160,16 +194,16 @@ namespace BecquerelMonitor
             }
             catch (SocketException ex)
             {
-                throw new IOException("TCP read failed: " + ex.Message, ex);
+                throw AtomSpectraTcpLinkException.Network(Resources.AtomSpectraTcpErrRead, "TCP read failed", ex);
             }
             catch (ObjectDisposedException ex)
             {
-                throw new IOException("TCP read failed: " + ex.Message, ex);
+                throw new AtomSpectraTcpLinkException(Resources.AtomSpectraTcpErrClosed, "TCP read failed: " + ex.Message, ex);
             }
 
             if (received == 0)
             {
-                throw new IOException("the board closed the connection");
+                throw new AtomSpectraTcpLinkException(Resources.AtomSpectraTcpErrBoardClosed, "the board closed the connection", null);
             }
 
             return received;
@@ -185,7 +219,7 @@ namespace BecquerelMonitor
             TcpClient local = client;
             if (local == null || local.Client == null)
             {
-                throw new IOException("the TCP connection is closed");
+                throw new AtomSpectraTcpLinkException(Resources.AtomSpectraTcpErrClosed, "the TCP connection is closed", null);
             }
             return local.Client;
         }

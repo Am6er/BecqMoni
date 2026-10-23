@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 
 namespace BecquerelMonitor
 {
@@ -69,7 +70,7 @@ namespace BecquerelMonitor
             set
             {
                 int clamped = Math.Max(MinRestPollSeconds, Math.Min(MaxRestPollSeconds, value));
-                if (clamped != value) AtomSpectraTcpLog.Warn("Session", "RestPollSeconds " + value + " is out of 1..60, set to " + clamped);
+                if (clamped != value) AtomSpectraTcpLog.Warn("Session", "RestPollSeconds " + value.ToString(CultureInfo.InvariantCulture) + " is out of 1..60, set to " + clamped.ToString(CultureInfo.InvariantCulture));
                 restPollSeconds = clamped;
             }
         }

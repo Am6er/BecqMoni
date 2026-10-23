@@ -7048,6 +7048,294 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra REST: the board did not confirm the stop command. BecqMoni repeats it while the program is open (up to 30 min) and only for this measurement; if the program is closed, stop the board yourself..
+        /// </summary>
+        public static string ERRAtomSpectraRestStopDeferred {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraRestStopDeferred", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the analyzer behind {0}:{1} did not answer the stop command. It may keep counting; BecqMoni sends the stop command again as soon as the board accepts a new connection. Check the spectrum before continuing this measurement..
+        /// </summary>
+        public static string ERRAtomSpectraTcpStopUnanswered {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpStopUnanswered", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the counters of the analyzer behind {0}:{1} went down (time {2} s → {3} s, counts {4} → {5}): it was reset or restarted from outside. The document was not overwritten and the recording is stopped; nothing was sent to the board. To take the new acquisition, create a new document and press Start..
+        /// </summary>
+        public static string MSGAtomSpectraTcpBoardReset {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraTcpBoardReset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to BecqMoni joined an acquisition that was already running on the analyzer; it holds {0} h {1} min, {2} counts. Reset the spectrum ON THE ANALYZER (-rst)? This cannot be undone..
+        /// </summary>
+        public static string MSGAtomSpectraTcpClearJoinedConfirm {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraTcpClearJoinedConfirm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The analyzer was NOT reset; its spectrum is intact. While the measurement goes on, the document is filled from the analyzer again..
+        /// </summary>
+        public static string MSGAtomSpectraTcpNotReset {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraTcpNotReset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the measurement did not start: {0}.
+        /// </summary>
+        public static string ERRAtomSpectraTcpStart {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpStart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the analyzer is stopped and holds a measurement, and a run without windows cannot ask what to do with it. Nothing was sent to the board..
+        /// </summary>
+        public static string ERRAtomSpectraTcpHeadlessStopped {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpHeadlessStopped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: in {0} s the bridge did not show whether the analyzer is counting (no status, or only one), and a run without windows cannot ask what to do. Nothing was sent to the board..
+        /// </summary>
+        public static string ERRAtomSpectraTcpHeadlessUnknown {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpHeadlessUnknown", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: the analyzer holds less than the document, and a run without windows cannot ask what to do. Nothing was sent to the board..
+        /// </summary>
+        public static string ERRAtomSpectraTcpHeadlessBehind {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpHeadlessBehind", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The bridge sent no status in {0} s: the state of the analyzer and its spectrum are not known. "Continue without reset" sends -sta..
+        /// </summary>
+        public static string AtomSpectraTcpStartSilent {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStartSilent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The bridge sent only one status in {0} s: whether the analyzer is counting is not known. "Continue without reset" sends -sta (harmless on a counting analyzer)..
+        /// </summary>
+        public static string AtomSpectraTcpStartUncertain {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStartUncertain", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to no board address is set.
+        /// </summary>
+        public static string AtomSpectraTcpErrNoHost {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrNoHost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to port {0} is outside 1..65535.
+        /// </summary>
+        public static string AtomSpectraTcpErrBadPort {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrBadPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to no answer to the connection in {0} ms.
+        /// </summary>
+        public static string AtomSpectraTcpErrTimeout {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrTimeout", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to network error: {0}.
+        /// </summary>
+        public static string AtomSpectraTcpErrNetwork {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrNetwork", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to sending to the board failed: {0}.
+        /// </summary>
+        public static string AtomSpectraTcpErrWrite {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrWrite", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to reading from the board failed: {0}.
+        /// </summary>
+        public static string AtomSpectraTcpErrRead {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrRead", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the connection is closed.
+        /// </summary>
+        public static string AtomSpectraTcpErrClosed {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrClosed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the board closed the connection.
+        /// </summary>
+        public static string AtomSpectraTcpErrBoardClosed {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrBoardClosed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to no data from the board for {0} s.
+        /// </summary>
+        public static string AtomSpectraTcpErrNoData {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpErrNoData", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to idle.
+        /// </summary>
+        public static string AtomSpectraTcpStatusIdle {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusIdle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to measuring.
+        /// </summary>
+        public static string AtomSpectraTcpStatusMeasuring {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusMeasuring", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to joined a running acquisition.
+        /// </summary>
+        public static string AtomSpectraTcpStatusJoined {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusJoined", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to receiving: time {0} s, {1} cps.
+        /// </summary>
+        public static string AtomSpectraTcpStatusReceiving {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusReceiving", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to link lost, retrying.
+        /// </summary>
+        public static string AtomSpectraTcpStatusLinkLost {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusLinkLost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to stopped.
+        /// </summary>
+        public static string AtomSpectraTcpStatusStopped {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusStopped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to stopped; the stop command waits for the board.
+        /// </summary>
+        public static string AtomSpectraTcpStatusStopDeferred {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusStopDeferred", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to detached; the board keeps counting.
+        /// </summary>
+        public static string AtomSpectraTcpStatusDetached {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusDetached", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to stopped; the board did not confirm.
+        /// </summary>
+        public static string AtomSpectraTcpStatusStopUnconfirmed {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusStopUnconfirmed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to not started.
+        /// </summary>
+        public static string AtomSpectraTcpStatusNotStarted {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusNotStarted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to not started: cancelled.
+        /// </summary>
+        public static string AtomSpectraTcpStatusCancelled {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusCancelled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to stopped: the board was reset from outside.
+        /// </summary>
+        public static string AtomSpectraTcpStatusBoardReset {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStatusBoardReset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to AtomSpectra: "{0}" is not a valid board address. Enter host[:port] - an IP address or a name, e.g. 192.168.0.119 or atomspectra.local:8234, without "http://". Without a port, {1} is used..
         /// </summary>
         public static string ERRAtomSpectraTcpBadHost {

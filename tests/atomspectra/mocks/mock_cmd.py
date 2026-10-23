@@ -30,6 +30,15 @@ def main():
     parser.add_argument("--inf-text", type=str, default=None)
     # a board that does not count: the status time stays N (0 = idle, empty histogram); -1 = counting (time = cycle)
     parser.add_argument("--stopped-at", type=int, default=-1)
+    # PR37 fix, TCP: a reset of the board from outside at global cycle G (time restarts at 1, every channel drops);
+    # --honor-rst does the same on our own -rst; --mute CMD leaves the command -CMD unanswered on the first connection;
+    # --silent-after C: the first connection sends no cycle from cycle C on and keeps the socket open; --first-delay: seconds
+    # before the first cycle of each connection
+    parser.add_argument("--reset-at", type=int, default=-1)
+    parser.add_argument("--honor-rst", action="store_true")
+    parser.add_argument("--mute", type=str, default=None)
+    parser.add_argument("--silent-after", type=int, default=-1)
+    parser.add_argument("--first-delay", type=float, default=0.0)
     args = parser.parse_args()
 
     # Generate base histogram
@@ -53,6 +62,23 @@ def main():
 
     def status_time(cycle):
         return cycle if args.stopped_at < 0 else args.stopped_at
+
+    # the global cycle from which the counters restart (a reset), None: no reset yet
+    state = {"reset_from": None}
+
+    def make_cycle(cycle):
+        """(status time, histogram) of a cycle: as before, or after a reset the time from 1 and every channel lower"""
+        if args.reset_at >= 0 and state["reset_from"] is None and cycle >= args.reset_at:
+            state["reset_from"] = args.reset_at
+        rf = state["reset_from"]
+        if rf is not None and cycle >= rf:
+            t = cycle - rf + 1
+            hist = [v >> 8 for v in base]
+            hist[5] = t
+            return t, hist
+        hist = base.copy() if args.stopped_at != 0 else [0] * len(base)
+        hist[5] = (1000 + cycle) if args.stopped_at < 0 else hist[5]
+        return status_time(cycle), hist
 
     # Global cycle counter
     g = 1
@@ -102,6 +128,10 @@ def main():
                         if cmd == 0x03:
                             text = payload.decode('ascii', 'replace')
                             log_entry({"conn": k, "cmd": text, "t": time.time()})
+                            if args.honor_rst and text.strip() == "-rst":
+                                state["reset_from"] = g
+                            if args.mute and k == 0 and text.strip() == "-" + args.mute:
+                                continue   # no answer at all, the socket stays open
                             # --inf-text answers -inf with a (synthetic) device text instead of "-ok"
                             reply = (args.inf_text + "\r\n").encode("ascii", "replace") if args.inf_text and text.strip() == "-inf" else b"-ok\r\n"
                             with send_lock:
@@ -146,7 +176,11 @@ def main():
 
             # Streaming cycles
             dropped = False
+            if args.first_delay > 0:
+                time.sleep(args.first_delay)
             for c in range(args.cycles):
+                if k == 0 and 0 <= args.silent_after <= c:
+                    break   # silent from here on: the socket stays open below while the client keeps it
                 # Check drop condition
                 if k == 0 and args.drop_cycle == c:
                     # Send the first part based on order, then close
@@ -173,10 +207,9 @@ def main():
                     break
 
                 # Normal cycle
+                t_now, hist = make_cycle(g)
                 if args.order == "hs":
                     # Histogram first
-                    hist = base.copy() if args.stopped_at != 0 else [0] * len(base)
-                    hist[5] = (1000 + g) if args.stopped_at < 0 else hist[5]
                     for i in range(8192 // args.chunk):
                         offset = i * args.chunk
                         values = hist[offset:offset + args.chunk]
@@ -184,17 +217,15 @@ def main():
                         with send_lock:
                             conn.sendall(mock_board.encode(0x01, payload))
                     # Then status
-                    status_payload = struct.pack('<IHIII', status_time(g), 7, 1234, 55, 0)
+                    status_payload = struct.pack('<IHIII', t_now, 7, 1234, 55, 0)
                     with send_lock:
                         conn.sendall(mock_board.encode(0x04, status_payload))
                 else:
                     # Status first
-                    status_payload = struct.pack('<IHIII', status_time(g), 7, 1234, 55, 0)
+                    status_payload = struct.pack('<IHIII', t_now, 7, 1234, 55, 0)
                     with send_lock:
                         conn.sendall(mock_board.encode(0x04, status_payload))
                     # Then histogram
-                    hist = base.copy() if args.stopped_at != 0 else [0] * len(base)
-                    hist[5] = (1000 + g) if args.stopped_at < 0 else hist[5]
                     for i in range(8192 // args.chunk):
                         offset = i * args.chunk
                         values = hist[offset:offset + args.chunk]
