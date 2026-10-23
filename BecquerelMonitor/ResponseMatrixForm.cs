@@ -282,6 +282,9 @@ namespace BecquerelMonitor
                 }
             }
 
+            // (`AMBER263`) Блоком по 80 знаков, как прочие подсказки приложения: одной строкой
+            // подсказка уходила за край окна (снимок Amber 23.10.2026).
+            tip = AppUi.WrapWords(tip, 80);
             this.gpuTip.SetToolTip(this.gpuPanel, tip);
             this.gpuTip.SetToolTip(this.gpuCheck, tip);
             // Негодная галка остаётся живой для мыши (ради подсказки), но
