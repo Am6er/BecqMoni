@@ -157,8 +157,9 @@ namespace BecquerelMonitor
         /// Документ, открытый из файла без начала, времени пробы и конца, несёт
         /// метку <see cref="ResultData.UnknownStartTime"/> (1970, `A207`) в обоих
         /// полях. Прибор ставил ему НАЧАЛО «сейчас» — чистый «Пуск» после
-        /// «Очистить» у всех шести, первый «Пуск» вообще у AtomSpectra, RadiaCode,
-        /// Obsidian и звукового входа, «Очистить» у трёх первых, — а время пробы
+        /// «Очистить» у всех семи, первый «Пуск» вообще у AtomSpectra (COM и TCP),
+        /// RadiaCode, Obsidian и звукового входа, «Очистить» у AtomSpectra (COM и
+        /// TCP), RadiaCode и Obsidian, — а время пробы
         /// оставалось 1970, и поправка на распад к дате отбора
         /// (<c>MeasurementResultManager.DecayToSamplingFactor</c>) считала задержку
         /// пробы ≈ 56.8 года: Cs-137 ×3.70, Co-60 ×1758. Найдено полосой П298
@@ -612,12 +613,19 @@ namespace BecquerelMonitor
                     this.deviceController = (DeviceController)Activator.CreateInstance(deviceType.DeviceControllerType);
                 }
             }
+            else if (deviceType.DeviceControllerType == typeof(AtomSpectraTcpDeviceController))
+            {
+                if (this.deviceController == null)
+                {
+                    this.deviceController = (DeviceController)Activator.CreateInstance(deviceType.DeviceControllerType);
+                }
+            }
             if (this.deviceController == null)
             {
                 // Сюда попадает зарегистрированный тип прибора, у которого
-                // `DeviceControllerType` не совпал ни с одним из шести выше.
+                // `DeviceControllerType` не совпал ни с одним из семи выше.
                 // Сегодня таких в реестре нет — но это и есть та ветка, которая
-                // молча промолчит при добавлении седьмого прибора.
+                // молча промолчит при добавлении восьмого прибора.
                 if (!AppUi.HasWindows)
                 {
                     throw new InvalidOperationException(
