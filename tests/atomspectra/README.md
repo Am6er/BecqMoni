@@ -52,7 +52,7 @@ network access are needed.
    (`BecquerelMonitor/`, the mutations patch copies of its `.cs` files).
 
 2. Run the REST suite. By default it runs all scenarios on the real build and on a build from the
-   sources, then ALL source mutations (131, many hours) and the 10 real-build mutations. Set
+   sources, then ALL source mutations (135, many hours) and the 11 real-build mutations. Set
    `REST_NO_SOURCE_MUTATIONS=1` to run the scenarios and the real-build mutations only:
 
    ```
@@ -80,7 +80,7 @@ network access are needed.
 
 ## What is in the suites
 
-* REST suite: 222 scenarios in `SCENARIOS`, each run on the real build and on a build from the
+* REST suite: 227 scenarios in `SCENARIOS`, each run on the real build and on a build from the
   sources. A scenario that is only possible on the real build (controller and forms, found by
   reflection) prints `n/a` on the source build and must execute a minimum number of checks
   (`REAL_ONLY_MIN_CHECKS`). The real build speaks the language of the machine (English or
@@ -91,6 +91,8 @@ network access are needed.
   same document), `night-*`, `console-tcp-night-*`, `fix2-*`, `fix3-*`, `fix4-*`, `fix9-*`, `fix10-*`,
   `console-tcp-fix2-*`, `console-tcp-fix10-*` (follow-up fixes of the Start question, the joined Stop, the
   deferred reset), `bm10-*` and `bm18-chooser` (DNS-SD discovery of the boards and the chooser window).
+  `fixr2-*` and `fixr6-*` (`harness/RestHarnessFixR.cs`, the maintainer's fixes of PR #38): after Replace the guard
+  starts from the snapshot the Start question showed; the observe-only hint beside Replace.
   The scenarios that check a text of the resources (`LOCALE_SCENARIOS`) are run once more under
   `REST_UI_CULTURE=en-US` and `ru-RU`, so they pass in any interface language; set `REST_UI_CULTURE`
   yourself to run any scenario under a language. `RL_WORKERS` sets the number of scenarios run in parallel
@@ -100,7 +102,7 @@ network access are needed.
 * Mutations show that the tests can fail. Each mutation patches a copy of the client source (the
   `(file, old text, new text)` triples in `rest_suite.py` and `run_review_tests.py`) and expects
   its target scenario to turn red:
-  * `MUTATIONS` in `rest_suite.py`: 131 source mutations (a full run takes many hours; select some
+  * `MUTATIONS` in `rest_suite.py`: 135 source mutations (a full run takes many hours; select some
     with `python run_mutations_subset.py <exeDir> <srcDir> <workDir> id1,id2`).
   * `REAL_MUTATIONS` in `rest_suite.py`: 11 mutations of the real build, run by default.
   * `mutations/*.json`: 60 mutations for the added scenarios, run by `run_mutants.py` (each builds the

@@ -8856,14 +8856,23 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The spectrum of the document ({0} h {1} min, {2} counts) will be replaced by the board's ({3} h {4} min, {5} counts); the board is not reset. The document's own data are lost unless it is saved. Replace the document spectrum?.
+        ///   Looks up a localized string similar to The spectrum of the document ({0} h {1} min, {2} counts) will be replaced by the board's ({3} h {4} min, {5} counts); the board is not reset. Whenever the document is saved, autosave included, its file is overwritten with the board's spectrum. To keep the present spectrum, first save the document under another name ("Save As..."). Replace the document spectrum?.
         /// </summary>
         public static string MSGAtomSpectraRestReplaceConfirm {
             get {
                 return ResourceManager.GetString("MSGAtomSpectraRestReplaceConfirm", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to "Replace document spectrum" takes the board's spectrum and time into this document; observe only is on, so nothing is sent to the board (no -sta, no reset) and the document follows the board as it is; the efficiency, background and settings of the document stay..
+        /// </summary>
+        public static string AtomSpectraRestStartReplaceHintObserve {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStartReplaceHintObserve", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Open the board's acquisition in a new document.
         /// </summary>
@@ -9585,7 +9594,7 @@ namespace BecquerelMonitor.Properties {
             }
         }
         /// <summary>
-        ///   Looks up a localized string similar to Keep counting.
+        ///   Looks up a localized string similar to Don't stop.
         /// </summary>
         public static string AtomSpectraKeepCounting {
             get {
@@ -9630,7 +9639,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to AtomSpectra: the recording in BecqMoni stops. The acquisition on the board {0} was not started from this window (BecqMoni only joined it). Stop the acquisition on the board as well, or let the board keep counting?.
+        ///   Looks up a localized string similar to AtomSpectra: the recording in BecqMoni stops. The acquisition on the board {0} was already running when this recording started (BecqMoni only joined it). Stop the acquisition on the board as well? If not, the board goes on counting..
         /// </summary>
         public static string MSGAtomSpectraStopJoinedAsk {
             get {
