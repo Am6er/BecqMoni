@@ -245,8 +245,9 @@ namespace BecquerelMonitor
         {
             long t = s != null && s.HasData ? s.Time : 0;
             long n = s != null && s.HasData ? s.Total : 0;
-            // through the AppUi door: without windows it throws instead of hanging (S100, tools/check_headless.py)
-            return AppUi.AskYesNo(Span(Resources.MSGAtomSpectraRestClearConfirm, t, n), Resources.ConfirmationDialogTitle, MessageBoxIcon.Warning, true);
+            // through the AppUi door: without windows it throws instead of hanging (S100, tools/check_headless.py);
+            // the windows held over the wait window keep waiting until it is answered
+            return HoldingAfterWait(() => AppUi.AskYesNo(Span(Resources.MSGAtomSpectraRestClearConfirm, t, n), Resources.ConfirmationDialogTitle, MessageBoxIcon.Warning, true));
         }
     }
 }

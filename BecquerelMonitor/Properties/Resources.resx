@@ -43932,7 +43932,7 @@ Close the window and discard it?</value>
     <value>BecqMoni joined an acquisition that was already running on the analyzer; it holds {0} h {1} min, {2} counts. Reset the spectrum ON THE ANALYZER (-rst)? This cannot be undone.</value>
   </data>
   <data name="MSGAtomSpectraTcpClearJoinedDeferredConfirm" xml:space="preserve">
-    <value>BecqMoni joined an acquisition that was already running on the analyzer, but recording is stopped now. Only the document is cleared now and nothing is sent to the analyzer; the analyzer's spectrum will be reset (-rst) at the next Start. Continue? This cannot be undone.</value>
+    <value>BecqMoni joined an acquisition that was already running on the analyzer, but recording is stopped now. Only the document is cleared now and nothing is sent to the analyzer; the analyzer's spectrum will be reset (-rst) at the next Start; if the analyzer has counted by then, Start asks first. Continue? This cannot be undone.</value>
   </data>
   <data name="AtomSpectraTcpStartClearPending" xml:space="preserve">
     <value>Your Clear left the reset of the analyzer for this Start, but the analyzer has counted since (or was reset by someone else): it holds an acquisition that Clear did not see, and it is not erased without asking. "Start over (reset)" erases it now; "Continue without reset" keeps it.</value>

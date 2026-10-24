@@ -364,11 +364,13 @@ MUTATIONS = [
     ("decrease", "the document is overwritten when the board counters go down (no comparison)",
      [("AtomSpectraRestPolicy.cs", "if (hasLast && (s.Time < lastTime || s.Total < lastTotal || (histFromSample && s.HistOk < lastHistOk)))", "if (false)")], "time-back", False),   # coarse: the whole comparison, reddens time-back and hist-reset; the pointed ones are MP5 (time) and MP6 (hist_ok)
     ("continue-sta", "Start on a counting board + Continue sends -sta instead of joining",
-     [("AtomSpectraRestPolicy.cs", "return counting ? AtomSpectraRestStartPlan.Join : AtomSpectraRestStartPlan.Resume;", "return AtomSpectraRestStartPlan.Resume;")], "join-continue", True),
+     # PR #38 added the same return to the Replace case: the anchor takes the Continue case only (its continueAllowed check)
+     [("AtomSpectraRestPolicy.cs", "if (!continueAllowed)\n                    {\n                        return AtomSpectraRestStartPlan.Cancel;\n                    }\n                    return counting ? AtomSpectraRestStartPlan.Join : AtomSpectraRestStartPlan.Resume;",
+       "if (!continueAllowed)\n                    {\n                        return AtomSpectraRestStartPlan.Cancel;\n                    }\n                    return AtomSpectraRestStartPlan.Resume;")], "join-continue", True),
     ("preset", "the document preset 3600 s is kept when joining a board with time >> 3600",
      [("AtomSpectraRestPolicy.cs", "long wanted = Math.Max((long)documentPreset, boardSeconds + add);", "long wanted = documentPreset;")], "preset", True),
     ("close-sto", "closing (Stop) a joined acquisition sends -sto",
-     [("AtomSpectraRestSession.cs", "if (!startedByUs)", "if (false)")], "close-joined", True),
+     [("AtomSpectraRestSession.cs", "if (!startedByUs && !StopJoinedOnBoard())", "if (false)")], "close-joined", True),   # PR #38: the Stop question joined the condition
     ("deferred-reset", "a failed Clear is queued and sent with the next Start",
      [("AtomSpectraRestSession.cs", "private bool stallReported;", "private bool stallReported; private bool mutResetQueued;"),
       ("AtomSpectraRestSession.cs", "// [clear failed]", "mutResetQueued = true;"),
@@ -603,7 +605,7 @@ MUTATIONS = [
     ("pr37-detach-waits", "R6: Disconnect waits for a poll hanging on the board",
      [("AtomSpectraRestSession.cs", "DetachNoWait();   // never waits: Disconnect runs on the UI thread", "{ AtomSpectraRestAcquisition hung = acquisition; DetachNoWait(); if (hung != null) hung.Dispose(); }")], "pr37-rest-detach-hang", False),
     ("pr37-joined-silent", "R9: Stop of a joined acquisition says nothing",
-     [("AtomSpectraRestSession.cs", "if (kept != null) kept(this, EventArgs.Empty);", "")], "pr37-rest-stop-joined", False),
+     [("AtomSpectraRestSession.cs", "if (kept != null && AskStopJoined == null) kept(this, EventArgs.Empty);", "")], "pr37-rest-stop-joined", False),   # PR #38: said only without the Stop question
     ("pr37-user-text-english", "R8: the user's text of a refused command is the English log text",
      [("AtomSpectraRestSession.cs", "            lastUserError = RefusalText(r);\n            AtomSpectraTcpLog.Warn(\"Session\", command + \" refused: \" + lastError);", "            lastUserError = lastError;\n            AtomSpectraTcpLog.Warn(\"Session\", command + \" refused: \" + lastError);")], "pr37-rest-texts", False),
     ("pr37-culture", "R7: the epoch change is printed in the culture of the thread",

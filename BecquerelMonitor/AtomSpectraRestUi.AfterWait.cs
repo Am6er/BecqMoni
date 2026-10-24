@@ -14,6 +14,10 @@ namespace BecquerelMonitor
         // the actions held while the wait window is open (UI thread only).
         private static readonly List<Action> afterWait = new List<Action>();
 
+        // > 0 while a confirmation of an irreversible step is open (ConfirmClear): the held actions wait for it too - the window
+        // "The board was reset" of another document must not come up over "Reset the spectrum ON THE BOARD?" (PR #38 review, R8)
+        private static int holdAfterWait;
+
         // runs the action now, or right after the wait window closes when one is open (a message must not open over the wait window); UI thread only.
         public static void AfterWait(Action action)
         {
@@ -22,7 +26,7 @@ namespace BecquerelMonitor
                 return;
             }
 
-            if (currentWait == null)
+            if (currentWait == null && holdAfterWait == 0)
             {
                 action();
                 return;
@@ -31,10 +35,25 @@ namespace BecquerelMonitor
             afterWait.Add(action);
         }
 
+        // a question during which the held actions keep waiting; they are posted once it is answered (UI thread only)
+        private static T HoldingAfterWait<T>(Func<T> question)
+        {
+            holdAfterWait++;
+            try
+            {
+                return question();
+            }
+            finally
+            {
+                holdAfterWait--;
+                if (holdAfterWait == 0 && currentWait == null) RunAfterWait();
+            }
+        }
+
         // called once the wait window is closed: the held actions are posted to the UI thread in their order.
         private static void RunAfterWait()
         {
-            if (afterWait.Count == 0)
+            if (afterWait.Count == 0 || holdAfterWait > 0)
             {
                 return;
             }
