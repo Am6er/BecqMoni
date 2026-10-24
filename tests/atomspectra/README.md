@@ -80,7 +80,7 @@ network access are needed.
 
 ## What is in the suites
 
-* REST suite: 222 scenarios in `SCENARIOS`, each run on the real build and on a build from the
+* REST suite: 226 scenarios in `SCENARIOS`, each run on the real build and on a build from the
   sources. A scenario that is only possible on the real build (controller and forms, found by
   reflection) prints `n/a` on the source build and must execute a minimum number of checks
   (`REAL_ONLY_MIN_CHECKS`). The real build speaks the language of the machine (English or
@@ -96,15 +96,20 @@ network access are needed.
   yourself to run any scenario under a language. `RL_WORKERS` sets the number of scenarios run in parallel
   (default 4; 1 = one by one). The mDNS mock gets its port from the OS (a UDP socket bound to 0, the same
   number checked on the three TCP addresses).
-* TCP suite: 24 mock scenarios (real build and source build).
+* TCP suite: 28 mock scenarios (real build and source build). PR #38, the maintainer's TCP lane: `fix-stopask-reset` (a reset
+  from outside while the Stop question of a joined acquisition is open), `fix-clear-counted[-headless]` and `fix-clear-own` (the reset a
+  Clear left for the next Start goes without a question only to a board that still holds what that Clear saw); in the REST suite
+  `console-tcp-lane-replace` and `tcplane-*` (Replace takes the spectrum of the question at once, an answer given in advance only for a
+  counting board, the same board by host:port, a Stop entered while the first one runs). `p1`, `p1clear`, `p2fast`, `p2deferred` drop the
+  link at cycle 6 instead of 2 (after the probe of the Start), and their Start question is answered "Start over".
 * Mutations show that the tests can fail. Each mutation patches a copy of the client source (the
   `(file, old text, new text)` triples in `rest_suite.py` and `run_review_tests.py`) and expects
   its target scenario to turn red:
   * `MUTATIONS` in `rest_suite.py`: 131 source mutations (a full run takes many hours; select some
     with `python run_mutations_subset.py <exeDir> <srcDir> <workDir> id1,id2`).
-  * `REAL_MUTATIONS` in `rest_suite.py`: 11 mutations of the real build, run by default.
+  * `REAL_MUTATIONS` in `rest_suite.py`: 14 mutations of the real build, run by default.
   * `mutations/*.json`: 60 mutations for the added scenarios, run by `run_mutants.py` (each builds the
     program: slow, not part of the default run).
-  * `run_review_tests.py`: 15 TCP mutations.
+  * `run_review_tests.py`: 19 TCP mutations.
   * The `old text` of a mutation must match the source exactly. If a source file changes, a
     mutation whose text no longer matches fails to build and has to be updated.
