@@ -9666,6 +9666,24 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to OK.
+        /// </summary>
+        public static string AtomSpectraBoardChoiceOk {
+            get {
+                return ResourceManager.GetString("AtomSpectraBoardChoiceOk", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not every board sent its address in time ({0} without an address); they are not in the list. To search again, press Cancel, then Refresh..
+        /// </summary>
+        public static string AtomSpectraBoardChoiceIncomplete {
+            get {
+                return ResourceManager.GetString("AtomSpectraBoardChoiceIncomplete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Host name.
         /// </summary>
         public static string AtomSpectraBoardChoiceHost {

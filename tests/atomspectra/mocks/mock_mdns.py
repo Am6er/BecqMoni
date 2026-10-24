@@ -52,11 +52,10 @@ def encode_name(name):
     return out
 
 
-def encode_rr(rec):
+def encode_rr(rec, ttl=120):   # ttl 0: a goodbye (RFC 6762 10.1), the record is withdrawn
     name_bytes = encode_name(rec["name_raw"])
     rtype = rec["type"]
     rclass = 0x0001
-    ttl = 120
 
     if rtype == 1:
         addr = rec["addr"]
@@ -84,7 +83,7 @@ def encode_rr(rec):
     return name_bytes + struct.pack('!HHIH', rtype, rclass, ttl, rdlength) + rdata
 
 
-def new_service(owner, instance_label, host, sn, P):
+def new_service(owner, instance_label, host, sn, P, rest=True):   # rest=False: an announcement without TXT rest (the port is not given)
     ptr_name = "_atomspectra._tcp.local"
     instance_name = instance_label + "._atomspectra._tcp.local"
     instance_name_lower = instance_name.lower()
@@ -114,7 +113,7 @@ def new_service(owner, instance_label, host, sn, P):
         "name": instance_name_lower,
         "name_raw": instance_name,
         "type": 16,
-        "txt": ["sn=" + sn, "proto=1", "rest=" + str(P), "fw=1.2.39"]
+        "txt": ["sn=" + sn, "proto=1"] + (["rest=" + str(P)] if rest else []) + ["fw=1.2.39"]
     }
 
     return [ptr_rec, srv_rec, txt_rec]
@@ -196,6 +195,28 @@ def build_records(set_name, P):
         records += new_service("b119", "AtomSpectra Gateway", "atomspectra-2.local", "00000081", P)
         records.append(a_record("b146", "atomspectra.local", "127.0.0.2"))
         records.append(a_record("b119", "atomspectra-2.local", "127.0.0.3"))
+    elif set_name in ("samehost", "samehost-split"):   # two boards with ONE host name (the conflict not resolved), b146 shows a second instance
+        records += new_service("b146", "AtomSpectra Gateway", "atomspectra.local", "00000051", P)
+        records += new_service("b119", "AtomSpectra Gateway-2", "atomspectra.local", "00000119", P)
+        records += new_service("b146", "AtomSpectra Gateway-5", "atomspectra.local", "00000051", P)
+        records.append(a_record("b146", "atomspectra.local", "127.0.0.2"))
+        records.append(a_record("b119", "atomspectra.local", "127.0.0.3"))
+    elif set_name == "orphan":   # the two boards and an instance that answers its PTR only (no SRV, no address ever comes)
+        records += new_service("b146", "AtomSpectra Gateway-2", "atomspectra.local", "00000051", P)
+        records += new_service("b119", "AtomSpectra Gateway", "atomspectra-2.local", "00000119", P)
+        records += new_service("b3", "AtomSpectra Gateway-3", "atomspectra-3.local", "00000091", P)[0:1]
+        records.append(a_record("b146", "atomspectra.local", "127.0.0.2"))
+        records.append(a_record("b119", "atomspectra-2.local", "127.0.0.3"))
+    elif set_name == "longlabel":   # an instance read from two labels of 40 bytes: joined, it is longer than one label may be
+        records += new_service("b146", "AtomSpectra Gateway-2", "atomspectra.local", "00000051", P)
+        records += new_service("b119", "x" * 40 + "." + "y" * 40, "atomspectra-2.local", "00000119", P)
+        records.append(a_record("b146", "atomspectra.local", "127.0.0.2"))
+        records.append(a_record("b119", "atomspectra-2.local", "127.0.0.3"))
+    elif set_name == "norest":   # a board without TXT rest and one with it
+        records += new_service("b146", "AtomSpectra Gateway-2", "atomspectra.local", "00000051", P, rest=False)
+        records += new_service("b119", "AtomSpectra Gateway", "atomspectra-2.local", "00000119", P)
+        records.append(a_record("b146", "atomspectra.local", "127.0.0.2"))
+        records.append(a_record("b119", "atomspectra-2.local", "127.0.0.3"))
     elif set_name == "flood":   # VERIFY-2 finding 7: 40 gateway instances (_http._tcp), each with SRV and A, one packet per owner
         for i in range(1, 41):
             records += http_service("g%d" % i, "AtomSpectra Gateway-%d" % i, "gw%d.local" % i, P)
@@ -258,6 +279,10 @@ def start_http_server(ip, port, serial, log_handler):
 
 ONLY_FROM = ''
 DELAYS = {}
+GOODBYE = {}   # owner -> ms: after its answer the board sends the same records again with TTL 0 (a goodbye)
+REPLY_FROM = {}   # owner -> socket bound to the board's own address: the answer comes from the board, as on a network
+SPLIT_SETS = ("split", "samehost-split", "longlabel")   # answers without additional records: SRV/TXT and A only to their own questions
+OWNER_IP = {"b146": "127.0.0.2", "b119": "127.0.0.3", "b3": "127.0.0.4", "printer": "127.0.0.4"}
 
 
 def udp_loop(sock, records, set_name, log_handler):
@@ -310,7 +335,7 @@ def udp_loop(sock, records, set_name, log_handler):
                 answers = owner_records[owner]
                 additionals = []
 
-                if set_name != "split":
+                if set_name not in SPLIT_SETS:
                     answer_names = set(r["name"] for r in answers)
                     additionals_names = set()
 
@@ -330,17 +355,23 @@ def udp_loop(sock, records, set_name, log_handler):
                                     if a not in answers and a not in additionals:
                                         additionals.append(a)
 
-                packet = struct.pack('!HHHHHH', qid, 0x8400, 0, len(answers), 0, len(additionals))
-                for r in answers:
-                    packet += encode_rr(r)
-                for r in additionals:
-                    packet += encode_rr(r)
+                def make(ttl):
+                    packet = struct.pack('!HHHHHH', qid, 0x8400, 0, len(answers), 0, len(additionals))
+                    for r in answers:
+                        packet += encode_rr(r, ttl)
+                    for r in additionals:
+                        packet += encode_rr(r, ttl)
+                    return packet
+                packet = make(120)
+                out = REPLY_FROM.get(owner, sock)
 
                 delay_ms = DELAYS.get(owner, 0)   # #BM-17: a board answers late (random delay of the real boards)
                 if delay_ms > 0:
-                    threading.Timer(delay_ms / 1000.0, lambda p=packet, a=addr: sock.sendto(p, a)).start()
+                    threading.Timer(delay_ms / 1000.0, lambda p=packet, a=addr, s=out: s.sendto(p, a)).start()
                 else:
-                    sock.sendto(packet, addr)
+                    out.sendto(packet, addr)
+                if owner in GOODBYE:
+                    threading.Timer((delay_ms + GOODBYE[owner]) / 1000.0, lambda p=make(0), a=addr, s=out: s.sendto(p, a)).start()
 
         except Exception:
             continue
@@ -350,16 +381,29 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, required=True)
     parser.add_argument('--log', required=True)
-    parser.add_argument('--set', required=True, choices=['two-new', 'legacy', 'real-146', 'split', 'flood', 'three', 'difflabel'])
+    parser.add_argument('--set', required=True, choices=['two-new', 'legacy', 'real-146', 'split', 'flood', 'three', 'difflabel', 'samehost', 'samehost-split', 'norest', 'orphan', 'longlabel'])
     parser.add_argument('--duration', type=int, default=60)
     parser.add_argument('--only-from', default='')
     parser.add_argument('--delays', default='')   # owner=ms,owner=ms: delay of the answer of each board
+    parser.add_argument('--goodbye', default='')   # owner=ms: the board withdraws its records (TTL 0) this long after its answer
+    parser.add_argument('--reply-from-owner', action='store_true')   # each board answers from its own address (OWNER_IP), not 127.0.0.1
     args = parser.parse_args()
     global ONLY_FROM
     ONLY_FROM = args.only_from
     for item in args.delays.split(','):
         if '=' in item:
             DELAYS[item.split('=')[0]] = int(item.split('=')[1])
+    for item in args.goodbye.split(','):
+        if '=' in item:
+            GOODBYE[item.split('=')[0]] = int(item.split('=')[1])
+    if args.reply_from_owner:
+        for owner, ip in OWNER_IP.items():
+            if ip not in [s.getsockname()[0] for s in REPLY_FROM.values()]:
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.bind((ip, 0))
+                REPLY_FROM[owner] = s
+            else:
+                REPLY_FROM[owner] = [s for s in REPLY_FROM.values() if s.getsockname()[0] == ip][0]
 
     P = args.port
     log_handler = LogHandler(args.log)

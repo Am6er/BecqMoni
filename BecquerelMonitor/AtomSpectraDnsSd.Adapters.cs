@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -119,9 +120,9 @@ namespace BecquerelMonitor
 
                 LogFile("sent the PTR query from " +
                     (SentFrom.Count == 0 ? "no adapter" : string.Join(", ", Names.Where(n => SentFrom.Contains(n)))) +
-                    "; send errors: " + SendErrors +
-                    "; response packets received: " + Packets +
-                    "; follow-up packets: " + FollowUpPackets);
+                    "; send errors: " + SendErrors.ToString(CultureInfo.InvariantCulture) +
+                    "; response packets received: " + Packets.ToString(CultureInfo.InvariantCulture) +
+                    "; follow-up packets: " + FollowUpPackets.ToString(CultureInfo.InvariantCulture));
             }
         }
 
@@ -180,42 +181,48 @@ namespace BecquerelMonitor
             return set;
         }
 
-        // Send the query from all sockets and collect responses until timeout.
+        // Send the follow-up query from all sockets, again on QueryScheduleMs, and collect the answers until every question is
+        // answered or the window ends: the boards answer after a delay of their own (seen up to ~5 s), and a board whose answer
+        // came after a short window used to drop out of the list without a word.
         private static void Exchange(SocketSet set, IList<KeyValuePair<string, int>> questions, int timeoutMs, Cache cache)
         {
             if (questions == null || questions.Count == 0 || set.Sockets.Count == 0) return;
 
             ushort id = (ushort)new Random().Next(1, 65535);
             byte[] data = BuildQuery(id, questions);
+            if (data == null) return;   // no question could be written (BuildQuery logged which)
 
-            // Send from every socket
-            foreach (var s in set.Sockets)
-            {
-                try { s.SendTo(data, QueryEndpoint); }
-                catch (SocketException) { set.SendErrors++; }
-            }
-
-            // Receive until timeout
+            var sends = SendMoments(timeoutMs);
+            int nextSend = 0;
             var sw = Stopwatch.StartNew();
             byte[] buffer = new byte[9000];
 
             while (true)
             {
-                int elapsed = (int)sw.ElapsedMilliseconds;
-                int remaining = timeoutMs - elapsed;
-                if (remaining <= 0) break;
+                long now = sw.ElapsedMilliseconds;
+                if (now >= timeoutMs || Answered(cache, questions)) break;
 
+                // Send from every socket at the scheduled moments
+                while (nextSend < sends.Count && sends[nextSend] <= now)
+                {
+                    foreach (var s in set.Sockets)
+                    {
+                        try { s.SendTo(data, QueryEndpoint); }
+                        catch (SocketException) { set.SendErrors++; }
+                    }
+                    nextSend++;
+                }
+
+                long wake = nextSend < sends.Count ? Math.Min(timeoutMs, sends[nextSend]) : timeoutMs;
                 var read = new List<Socket>(set.Sockets);
                 try
                 {
-                    Socket.Select(read, null, null, Math.Max(1, remaining) * 1000);
+                    Socket.Select(read, null, null, (int)Math.Max(1, wake - now) * 1000);
                 }
                 catch (SocketException)
                 {
                     break;
                 }
-
-                if (read.Count == 0) break;
 
                 foreach (var s in read)
                 {
@@ -226,12 +233,46 @@ namespace BecquerelMonitor
                         if (received > 0)
                         {
                             set.FollowUpPackets++;   // Packets is the PTR phase (ExchangeScheduled)
-                            cache.Add(ParseRecords(buffer, received));
+                            cache.Add(ParseRecords(buffer, received), SenderOf(remote));
                         }
                     }
                     catch (SocketException) { }
                 }
             }
+        }
+
+        // The moments (ms from the start of a window) at which a query is sent: QueryScheduleMs inside the window, 0 at least.
+        private static List<int> SendMoments(int windowMs)
+        {
+            var sends = (QueryScheduleMs ?? new int[] { 0 })
+                .Where(t => t >= 0 && t < windowMs)
+                .Distinct()
+                .OrderBy(t => t)
+                .ToList();
+            if (sends.Count == 0) sends.Add(0);
+            return sends;
+        }
+
+        // Every follow-up question has its answer: SRV and TXT of the instance, and for an A question an address for each instance
+        // that names the host (two boards with one host name: the first A to come is not the second board's).
+        private static bool Answered(Cache cache, IList<KeyValuePair<string, int>> questions)
+        {
+            foreach (var q in questions)
+            {
+                if (q.Value == TypeSrv && !cache.Srv.ContainsKey(q.Key)) return false;
+                if (q.Value == TypeTxt && !cache.Txt.ContainsKey(q.Key)) return false;
+                if (q.Value == TypeA)
+                {
+                    List<string> a;
+                    if (!cache.A.TryGetValue(q.Key, out a) || a.Count == 0) return false;
+                    foreach (var kv in cache.Srv)
+                    {
+                        if (string.Equals(kv.Value.Target, q.Key, StringComparison.OrdinalIgnoreCase) && AddressOf(cache, kv.Key, kv.Value) == null) return false;
+                    }
+                }
+                if (q.Value != TypeSrv && q.Value != TypeTxt && q.Value != TypeA) return false;   // PTR: the number of instances is not known
+            }
+            return true;
         }
     }
 }

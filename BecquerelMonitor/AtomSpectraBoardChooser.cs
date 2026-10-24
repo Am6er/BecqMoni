@@ -1,9 +1,10 @@
-// "Refresh" found several AtomSpectra boards: the person chooses one (address, serial number).
-// Texts: Properties.Resources by name (ResourceManager.GetString) with an English fallback.
+// "Refresh" found several AtomSpectra boards (or one, and another one without its address): the person chooses one
+// (address, serial number). Texts: Properties.Resources (English, Russian).
 using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Windows.Forms;
 
 namespace BecquerelMonitor
@@ -45,16 +46,26 @@ namespace BecquerelMonitor
             form.ClientSize = new Size(560, 300);
             form.Font = SystemFonts.MessageBoxFont;
 
+            // boards that answered without an address are not in the list: the prompt says so (one more line, the list is shorter)
+            AtomSpectraBoardList found = boards as AtomSpectraBoardList;
+            int incomplete = found != null ? found.Incomplete : 0;
+            int extra = incomplete > 0 ? 34 : 0;
+
             Label promptLabel = new Label();
             promptLabel.Location = new Point(12, 12);
             promptLabel.AutoSize = false;
-            promptLabel.Size = new Size(536, 36);
+            promptLabel.Size = new Size(536, 36 + extra);
             promptLabel.Text = Resources.AtomSpectraBoardChoicePrompt;
+            if (incomplete > 0)
+            {
+                promptLabel.Text += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraBoardChoiceIncomplete, incomplete);
+            }
             form.Controls.Add(promptLabel);
 
             ListView list = new ListView();
-            list.Location = new Point(12, 52);
-            list.Size = new Size(536, 196);
+            list.Location = new Point(12, 52 + extra);
+            list.Size = new Size(536, 196 - extra);
+            list.TabIndex = 0;
             list.View = View.Details;
             list.FullRowSelect = true;
             list.MultiSelect = false;
@@ -85,8 +96,9 @@ namespace BecquerelMonitor
             }
 
             Button okButton = new Button();
-            okButton.Text = "OK";
+            okButton.Text = Resources.AtomSpectraBoardChoiceOk;
             okButton.DialogResult = DialogResult.OK;
+            okButton.TabIndex = 1;
             okButton.Size = new Size(90, 28);
             okButton.Location = new Point(362, 258);
             okButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
@@ -95,6 +107,7 @@ namespace BecquerelMonitor
             Button cancelButton = new Button();
             cancelButton.Text = Resources.AtomSpectraBoardChoiceCancel;
             cancelButton.DialogResult = DialogResult.Cancel;
+            cancelButton.TabIndex = 2;
             cancelButton.Size = new Size(90, 28);
             cancelButton.Location = new Point(458, 258);
             cancelButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
@@ -117,6 +130,7 @@ namespace BecquerelMonitor
                 }
             };
             form.Controls.Add(list);
+            form.ActiveControl = list;   // the focus on the list (arrows choose a board, Enter is OK), not on OK
             listView = list;
             return form;
         }

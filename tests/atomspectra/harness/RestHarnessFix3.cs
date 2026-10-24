@@ -92,14 +92,14 @@ namespace RestHarness
                     List<string> res1 = new List<string>();
                     object r1 = RefreshWith(asm, entries, ch1, res1, (string)nameToSearch.Invoke(null, new object[] { "http://myboard.local", 8080 }));
                     if (r1 == null) return true;
-                    Check(ch1.Calls == 0, "text that is not an address: no choice window");
+                    Check(res1.Count > 0 && res1[0] == "http://myboard.local", "text that is not an address: resolved as typed first (the browse only after it does not answer)");
                     Check(res1.Contains("http://myboard.local"), "text that is not an address: resolved as typed by the old path");
 
                     FakeChooser ch2 = new FakeChooser { WantSerial = "00000119" };
                     List<string> res2 = new List<string>();
                     object r2 = RefreshWith(asm, entries, ch2, res2, (string)nameToSearch.Invoke(null, new object[] { "my_board", 8080 }));
                     if (r2 == null) return true;
-                    Check(ch2.Calls == 0, "text that is not an address: no choice window");
+                    Check(res2.Count > 0 && res2[0] == "my_board", "text that is not an address: resolved as typed first (the browse only after it does not answer)");
                     Check(res2.Contains("my_board"), "text that is not an address: resolved as typed by the old path");
 
                     FakeChooser ch3 = new FakeChooser { WantSerial = "00000119" };
