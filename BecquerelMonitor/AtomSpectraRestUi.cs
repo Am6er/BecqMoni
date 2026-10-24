@@ -228,15 +228,16 @@ namespace BecquerelMonitor
             f.Text = Resources.AtomSpectraRestBoardResetTitle;
             f.AutoScaleMode = AutoScaleMode.Font;
             Label lbl = new Label { Location = new Point(12, 12), Text = message + Environment.NewLine + Environment.NewLine + Resources.AtomSpectraRestBoardResetChoices };
-            Size need = TextRenderer.MeasureText(lbl.Text, lbl.Font, new Size(536, int.MaxValue), TextFormatFlags.WordBreak);
-            lbl.Size = new Size(536, need.Height + 8);
+            Size need = TextRenderer.MeasureText(lbl.Text, lbl.Font, new Size(566, int.MaxValue), TextFormatFlags.WordBreak);
+            lbl.Size = new Size(566, need.Height + 8);
             f.Controls.Add(lbl);
             int top = lbl.Bottom + 12;
             f.Controls.Add(new Button { Location = new Point(12, top), Size = new Size(170, 28), Text = Resources.AtomSpectraRestReplace, DialogResult = DialogResult.Yes });
-            f.Controls.Add(new Button { Location = new Point(190, top), Size = new Size(250, 28), Text = Resources.AtomSpectraRestOpenNewDocument, DialogResult = DialogResult.Retry });
-            Button close = new Button { Location = new Point(448, top), Size = new Size(100, 28), Text = Resources.AtomSpectraRestClose, DialogResult = DialogResult.Cancel };
+            // 280: the English "Open the board's acquisition in a new document" wrapped to two cut lines at 250 (seen on screen, PR #38 review)
+            f.Controls.Add(new Button { Location = new Point(190, top), Size = new Size(280, 28), Text = Resources.AtomSpectraRestOpenNewDocument, DialogResult = DialogResult.Retry });
+            Button close = new Button { Location = new Point(478, top), Size = new Size(100, 28), Text = Resources.AtomSpectraRestClose, DialogResult = DialogResult.Cancel };
             f.Controls.Add(close);
-            f.ClientSize = new Size(560, top + 40);
+            f.ClientSize = new Size(590, top + 40);
             f.AcceptButton = f.CancelButton = close;
             return f;
         }
