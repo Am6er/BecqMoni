@@ -16,6 +16,13 @@
             StopMeasurement(resultData);
         }
 
+        // true while a StopMeasurement of this device still runs and another may enter it (AtomSpectra TCP/REST: its Stop question is open,
+        // a REST Stop waits behind its window): MeasurementController does not end the run a second time. No other device stops so.
+        public virtual bool StopInProgress
+        {
+            get { return false; }
+        }
+
         // Token: 0x060000E6 RID: 230
         public abstract void ClearMeasurementResult(ResultData resultData);
 

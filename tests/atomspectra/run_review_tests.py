@@ -54,12 +54,12 @@ def build_exe_ref(out_dir, exe_dir):
     cmd_session = [CSC, "-nologo", "-langversion:7.3", "-r:" + dst_exe, "-out:" + os.path.join(out_dir, "SessionHarness.exe"), session_harness_cs]
     p1 = run_subprocess(cmd_session)
     if p1 is None or p1.returncode != 0:
-        raise Exception("Failed to build SessionHarness.exe (ref): " + (p1.stderr if p1 else "timeout"))
-        
+        raise Exception("Failed to build SessionHarness.exe (ref): " + (p1.stdout + p1.stderr if p1 else "timeout"))   # csc writes its errors to stdout
+
     cmd_cal = [CSC, "-nologo", "-langversion:7.3", "-r:" + dst_exe, "-out:" + os.path.join(out_dir, "CalHarness.exe"), cal_harness_cs]
     p2 = run_subprocess(cmd_cal)
     if p2 is None or p2.returncode != 0:
-        raise Exception("Failed to build CalHarness.exe (ref): " + (p2.stderr if p2 else "timeout"))
+        raise Exception("Failed to build CalHarness.exe (ref): " + (p2.stdout + p2.stderr if p2 else "timeout"))
 
 def build_src(out_dir, src_dir, mutation):
     os.makedirs(out_dir, exist_ok=True)
@@ -80,7 +80,10 @@ def build_src(out_dir, src_dir, mutation):
         "AtomSpectraRestClient.cs",
         "AtomSpectraRestAcquisition.cs",
         "AtomSpectraRestSession.cs",
-        "AtomSpectraRestCalibration.cs"
+        "AtomSpectraRestCalibration.cs",
+        # the partial files of the two sessions added by PR #38 (the Stop question of a joined acquisition, Replace in observe-only mode)
+        "AtomSpectraTcpSession.JoinedStop.cs",
+        "AtomSpectraRestSession.JoinedAndObserve.cs"
     ]
     
     texts = []
@@ -123,14 +126,14 @@ namespace BecquerelMonitor { public class PolynomialEnergyCalibration { public i
     cmd_session.extend(all_cs)
     p1 = run_subprocess(cmd_session)
     if p1 is None or p1.returncode != 0:
-        raise Exception("Failed to build SessionHarness.exe (src): " + (p1.stderr if p1 else "timeout"))
-        
+        raise Exception("Failed to build SessionHarness.exe (src): " + (p1.stdout + p1.stderr if p1 else "timeout"))   # csc writes its errors to stdout
+
     cmd_cal = [CSC, "-nologo", "-langversion:7.3", "-nowarn:0162,0219", "-r:System.Windows.Forms.dll", "-r:System.Security.dll", "-out:" + os.path.join(out_dir, "CalHarness.exe")]
     cmd_cal.append(cal_harness_cs)
     cmd_cal.extend(all_cs)
     p2 = run_subprocess(cmd_cal)
     if p2 is None or p2.returncode != 0:
-        raise Exception("Failed to build CalHarness.exe (src): " + (p2.stderr if p2 else "timeout"))
+        raise Exception("Failed to build CalHarness.exe (src): " + (p2.stdout + p2.stderr if p2 else "timeout"))
 
 def run_scenario(name, harness_exe, mock_path, mock_args, harness_args, run_dir):
     port = get_free_port()
@@ -197,10 +200,10 @@ def main():
     
     def get_scenarios(run_dir):
         return [
-            ("p1", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "20", "--connections", "2", "--drop-cycle", "2"], lambda port, log: [f"p1", str(port), log]),
-            ("p1clear", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "10", "--connections", "3", "--drop-cycle", "2", "--down-ms", "2000"], lambda port, log: [f"p1clear", str(port), log]),
-            ("p2fast", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "20", "--connections", "2", "--drop-cycle", "2"], lambda port, log: [f"p2fast", str(port), log]),
-            ("p2deferred", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "10", "--connections", "2", "--drop-cycle", "2", "--down-ms", "3500"], lambda port, log: [f"p2deferred", str(port), log]),
+            ("p1", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "20", "--connections", "2", "--drop-cycle", "6"], lambda port, log: [f"p1", str(port), log]),
+            ("p1clear", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "10", "--connections", "3", "--drop-cycle", "6", "--down-ms", "2000"], lambda port, log: [f"p1clear", str(port), log]),
+            ("p2fast", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "20", "--connections", "2", "--drop-cycle", "6"], lambda port, log: [f"p2fast", str(port), log]),
+            ("p2deferred", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "10", "--connections", "2", "--drop-cycle", "6", "--down-ms", "3500"], lambda port, log: [f"p2deferred", str(port), log]),
             ("busy", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "8", "--connections", "1"], lambda port, log: [f"busy", str(port)]),
             ("failfast", "SessionHarness.exe", None, None, lambda port, log: [f"failfast", "127.0.0.1", str(port)]),
             ("pairing-hs", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "1.0", "--cycles", "6", "--connections", "2", "--drop-cycle", "2", "--stale-join", "--expected", os.path.join(run_dir, "expected_hs.txt")], lambda port, log: [f"pairing", str(port), os.path.join(run_dir, "expected_hs.txt"), "5"]),
@@ -226,6 +229,12 @@ def main():
             # the last argument is the directory of the build, where the harness finds the program's own libraries
             ("fix-ctl-clear", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "4", "--connections", "2", "--honor-rst"], lambda port, log: ["fix-ctl-clear", str(port), log, exe_dir]),
             ("fix-ctl-reset", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "16", "--connections", "2", "--drop-cycle", "3", "--reset-at", "4"], lambda port, log: ["fix-ctl-reset", str(port), log, exe_dir]),
+            # PR #38, the maintainer's TCP lane: T2+T3 a reset from outside while the Stop question of a joined acquisition is open; O3 the reset a
+            # Clear left for the next Start (a counting board: asked / refused without a window; our own stopped run: reset without a question)
+            ("fix-stopask-reset", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "24", "--connections", "1", "--reset-at", "9"], lambda port, log: ["fix-stopask-reset", str(port), log]),
+            ("fix-clear-counted", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "16", "--connections", "2"], lambda port, log: ["fix-clear-counted", str(port), log]),
+            ("fix-clear-counted-headless", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "8", "--connections", "1"], lambda port, log: ["fix-clear-counted-headless", str(port), log]),
+            ("fix-clear-own", "SessionHarness.exe", "mock_cmd.py", ["--order", "hs", "--period", "0.5", "--cycles", "20", "--connections", "3", "--stopped-at", "500"], lambda port, log: ["fix-clear-own", str(port), log]),
         ]
 
     def run_scenarios(build_dir, scenario_list):
@@ -333,6 +342,11 @@ def main():
         ("doc-continue-allowed", "Continue is offered when the board holds less than the document", ("AtomSpectraTcpSession.cs", "ContinueAllowed = continueAllowed", "ContinueAllowed = true"), ["fix-docbehind-ask"]),
         ("sto-unanswered-stopped", "Stop reports Stopped when -sto got no answer", ("AtomSpectraTcpSession.cs", "if (Command(\"-sto\", commandTimeoutMs))", "Command(\"-sto\", commandTimeoutMs); if (true)"), ["fix-stopmute"]),
         ("no-stall-watchdog", "an open socket without data is never a lost link", ("AtomSpectraTcpSession.cs", "acquisition.NoDataLimitMs = NoDataLinkLostMs;", "acquisition.NoDataLimitMs = 0;"), ["fix-stall"]),
+        # PR #38, the maintainer's TCP lane
+        ("startnew-guard-zero", "T6: StartNew of the same document starts the guard from the document alone, not from the probe", ("AtomSpectraTcpSession.cs", "if (plan != AtomSpectraRestStartPlan.Restart)", "if (plan == AtomSpectraRestStartPlan.Join || plan == AtomSpectraRestStartPlan.Resume)"), ["fix-reset"]),
+        ("stopask-unguarded", "T2: the guard is disarmed before the Stop question (a reset meanwhile reaches the document)", ("AtomSpectraTcpSession.cs", "bool stopOnBoard = StopJoinedOnBoard();", "DisarmGuard(); bool stopOnBoard = StopJoinedOnBoard();"), ["fix-stopask-reset"]),
+        ("stopask-closed", "T3: the answer acts on an acquisition closed while the question was open (NullReferenceException)", ("AtomSpectraTcpSession.cs", "bool stopOnBoard = StopJoinedOnBoard();\n                if (acquisition == null)", "bool stopOnBoard = StopJoinedOnBoard();\n                if (false)"), ["fix-stopask-reset"]),
+        ("clear-blind", "O3: the reset a Clear left for the next Start goes to any board without a question, as before", ("AtomSpectraTcpSession.cs", "bool holds = ClearStillHolds(board);", "bool holds = true;"), ["fix-clear-counted", "fix-clear-counted-headless"]),
     ]
     
     red_count = 0
@@ -346,7 +360,7 @@ def main():
         try:
             build_src(mut_dir, src_dir, mutation)
         except Exception as e:
-            print(f"MUTATION {mid} ({desc}): BUILD FAIL")
+            print(f"MUTATION {mid} ({desc}): BUILD FAIL {e}")
             continue
             
         scenarios = get_scenarios(mut_dir)

@@ -121,7 +121,7 @@ namespace BecquerelMonitor
                     // the document's channels: "Continue" is offered only when the board holds at least as much in every one of them
                     rest.DocumentBins = r.EnergySpectrum != null && r.EnergySpectrum.Spectrum != null ? (int[])r.EnergySpectrum.Spectrum.Clone() : null;
                     // asked on the UI thread; a headless run never asks (joins or refuses)
-                    rest.Ask = AppUi.HasWindows ? AnswerGiven(r, new Func<AtomSpectraRestStartQuestion, AtomSpectraRestStartChoice>(AtomSpectraRestUi.AskStart)) : null;
+                    rest.Ask = AppUi.HasWindows ? ReplaceOnlyIfFolds(r, profileChannels, AnswerGiven(r, new Func<AtomSpectraRestStartQuestion, AtomSpectraRestStartChoice>(AtomSpectraRestUi.AskStart))) : null;
                     // ?channels=N of the profile at Start (the same number restChannels keeps below)
                     rest.RequestChannels = profileChannels;
                     bool newDoc = newDocumentCreated;
@@ -138,7 +138,7 @@ namespace BecquerelMonitor
                         long boardSeconds = (long)rest.ElapsedAtBeginSeconds;
                         r.StartTime = DateTime.Now - TimeSpan.FromSeconds(boardSeconds);   // the document starts when the board started
                         newDocumentCreated = false;
-                        TakeBoardTime(r, rest);
+                        TakeBoardSpectrum(r, rest, profileChannels);
                         int before = r.ResultDataStatus.PresetTime;
                         // the preset must not stop the board before its own limit (MeasurementController.cs:749)
                         r.ResultDataStatus.PresetTime = rest.PresetAfterStart(before);

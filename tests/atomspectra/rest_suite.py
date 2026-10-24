@@ -337,6 +337,10 @@ SCENARIOS = [
     ("fixr2-replace-resume", ["--counting", "0", "--time", "5000", "--total", "1000"]),
     ("fixr2-replace-join-epoch", ["--cases", "c01_epoch_added.json|time=163682,c01_epoch_added.json|time=163690,c01_epoch_added.json|time=163700,c01_epoch_added.json|time=163710*40"]),
     ("fixr6-observe-hint", ["--counting", "1", "--time", "70000", "--total", "400000"]),
+    # PR #38, the maintainer's TCP lane (RestHarnessTcpLane.cs): R1 Replace takes the spectrum of the question at once and only where it folds,
+    # R3 an answer given in advance only for a counting board, T5 the same board by HostKey, T4/O1 a Stop inside a running Stop
+    ("console-tcp-lane-replace", ["--order", "hs", "--period", "0.5", "--cycles", "16", "--connections", "1"]),
+    ("tcplane-answer-counting", None), ("tcplane-host-key", None), ("tcplane-stop-nested", None),
 ]
 # scenarios that need the controller or the forms exist in the REAL build only (the source build prints n/a). On the real build each must
 # EXECUTE at least this many checks ("checks executed: N" of the harness); n/a or fewer is a failure of the suite, not a pass.
@@ -348,7 +352,9 @@ REAL_ONLY_MIN_CHECKS = {"f5-tcp-cal-n": 8, "f5-ctl-length-first": 5, "f5-form-ca
                         "fix2-stop-auto": 5, "fix2-after-wait-held": 3, "fix3-held-throws": 6, "fix3-offer-stop": 6, "fix4-joined-clear-text": 9, "bm10-adapters": 7, "bm10-schedule": 4, "bm18-chooser": 23, "bm18-choose-stale": 5,
                         "bm10-quiet-three": 2, "bm10-count-address": 2, "bm10-bind-fallback": 3, "bm10-log-sent": 4, "bm10-log-packets": 3, "fix9-reset-carry": 5, "fix9-reset-other-board": 6,
                         "console-tcp-fix10-stop-reenter": 3, "fix10-dns-chain": 3, "fix10-dns-limit": 2, "fix10-dns-good": 3, "fix10-reset-to-rest": 5,
-                        "fixr6-observe-hint": 5}
+                        "fixr6-observe-hint": 5,
+                        # PR #38, TCP lane
+                        "console-tcp-lane-replace": 13, "tcplane-answer-counting": 5, "tcplane-host-key": 4, "tcplane-stop-nested": 6}
 FIX_SCENARIOS = ["overtake", "restart-doc", "preset-new", "deferred-resumed", "clear-stale", "session-key",
                  "headless-stopped", "stop-hang", "url-userinfo"]
 PASSC_SCENARIOS = ["prefix-auth", "parse", "deferred-resumed", "restart", "time-back", "nodata-404", "dead-404", "dead-flag",
@@ -640,6 +646,13 @@ REAL_MUTATIONS = [
      [("AtomSpectraBoardChooser.cs", "form.Controls.Add(list);", "")], "bm18-chooser"),
     ("headless-text", "HeadlessAsk has no text of its own (the generic one)",
      [("AtomSpectraTcpDeviceController.Rest.cs", "return AtomSpectraRestSession.HeadlessAskText;", "return string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraRestStart, rest.LastError ?? outcome.ToString());")], "f5-ctl-headless-text"),
+    # PR #38, the maintainer's TCP lane
+    ("replace-time-only", "R1: Replace takes only the board's time at Start, the document keeps its own spectrum until the first snapshot (the old way)",
+     [("AtomSpectraTcpDeviceController.BoardOffers.cs", "CopySnapshot(r, spectrum, e, false);", "r.ResultDataStatus.ElapsedTime = r.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(e.ElapsedTime);")], "console-tcp-lane-replace"),
+    ("replace-any-channels", "R1: Replace is offered whether or not the board's channels fold into the document's",
+     [("AtomSpectraTcpDeviceController.BoardOffers.cs", "if (q != null && q.ReplaceAllowed && !SnapshotFits(bins, foldChannels, documentChannels))", "if (false)")], "console-tcp-lane-replace"),
+    ("answer-stopped-holds", "R3: an answer given in advance holds for a stopped board too (a -sta the window after a reset did not mention)",
+     [("AtomSpectraTcpDeviceController.BoardOffers.cs", "if (q == null || !q.Counting)", "if (q == null)")], "tcplane-answer-counting"),
 ]
 
 
@@ -690,6 +703,7 @@ FIXTURE = os.path.join(D, "fixtures", "spectrum_sample.json")   # a spectrum doc
 
 HARNESS_FILES.append(os.path.join(D, "harness", "RestFixPr37.cs"))   # PR37 fix, REST: the scenarios pr37-rest-*
 HARNESS_FILES.append(os.path.join(D, "harness", "RestHarnessFixR.cs"))   # PR #38, maintainer's REST fixes: the scenarios fixr*
+HARNESS_FILES.append(os.path.join(D, "harness", "RestHarnessTcpLane.cs"))   # PR #38, TCP lane: console-tcp-lane-*, tcplane-*
 
 
 def copy_fixture(out_dir):

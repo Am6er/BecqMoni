@@ -7091,6 +7091,24 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("MSGAtomSpectraTcpClearJoinedDeferredConfirm", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Your Clear left the reset of the analyzer for this Start, but the analyzer has counted since (or was reset by someone else): it holds an acquisition that Clear did not see, and it is not erased without asking. &quot;Start over (reset)&quot; erases it now; &quot;Continue without reset&quot; keeps it..
+        /// </summary>
+        public static string AtomSpectraTcpStartClearPending {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStartClearPending", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: a Clear left the reset of the analyzer for this Start, but the analyzer holds an acquisition that Clear did not see (it has counted since, or was reset by someone else), and a run without windows cannot ask whether to erase it. Nothing was sent to the board..
+        /// </summary>
+        public static string ERRAtomSpectraTcpHeadlessClearPending {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpHeadlessClearPending", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to The analyzer was NOT reset; its spectrum is intact. While the measurement goes on, the document is filled from the analyzer again..
