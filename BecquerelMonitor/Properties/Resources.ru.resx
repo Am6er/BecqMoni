@@ -3538,6 +3538,12 @@ http://xptable.sourceforge.net/</value>
   <data name="AtomSpectraBoardChoiceCancelled" xml:space="preserve">
     <value>Статус: найдено несколько плат, плата не выбрана. Адрес не изменён.</value>
   </data>
+  <data name="AtomSpectraBoardChoiceOk" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceIncomplete" xml:space="preserve">
+    <value>Не все платы прислали адрес вовремя (без адреса: {0}), в списке их нет. Чтобы поискать снова, нажмите «Отмена», затем «Обновить».</value>
+  </data>
   <data name="AtomSpectraConsolePollTcpHint" xml:space="preserve">
     <value>TCP: прибор сам передаёт спектр непрерывно, период опроса не используется</value>
   </data>

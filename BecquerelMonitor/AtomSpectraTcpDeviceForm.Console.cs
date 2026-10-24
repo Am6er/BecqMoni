@@ -28,6 +28,9 @@ namespace BecquerelMonitor
         // The question before a command that changes the board ("No" is the default button); the test harness answers it.
         public static Func<string, bool> ConfirmCommand = text => AppUi.AskYesNo(text, Resources.AtomSpectraConsoleConfirmTitle, MessageBoxIcon.Warning, true);
 
+        // The board choice window (the test harness replaces it to see the call without a modal window).
+        public static Func<IWin32Window, IList<AtomSpectraBoardEntry>, AtomSpectraBoardEntry> ChooseWindow = AtomSpectraBoardChooser.Choose;
+
         private void BuildConsoleControls()
         {
             if (components == null) components = new System.ComponentModel.Container();
@@ -205,7 +208,8 @@ namespace BecquerelMonitor
             int generation = ++refreshGeneration;
             int page = pageGeneration;
             bool proxy = !checkNoProxy.Checked;
-            int httpPort = radioRest.Checked ? restAddressPort : AtomSpectraTcpDeviceConfig.DefaultRestPort;
+            bool rest = radioRest.Checked;
+            int httpPort = rest ? restAddressPort : AtomSpectraTcpDeviceConfig.DefaultRestPort;
 
             // a disabled button that has the focus hands it to another control (the command line at the bottom) and the
             // AutoScroll page scrolls after it: the focus goes to the address field (in view) first and the page position is kept.
@@ -217,8 +221,10 @@ namespace BecquerelMonitor
 
             Thread worker = new Thread(() =>
             {
-                // DNS-SD browse of every board; several -> the choice window; none -> the old one-name path
-                var r = AtomSpectraBoardFinder.Refresh(name, httpPort, proxy, 3000, ChooseBoard);
+                // a typed address that answers is read as it is; else the DNS-SD browse of every board; several -> the choice window;
+                // none -> the old one-name path. restPort: the REST port the board was read on (TXT rest of its announcement)
+                int restPort;
+                var r = AtomSpectraBoardFinder.Find(name, httpPort, proxy, 3000, boards => ChooseBoard(boards, generation, page), out restPort);
                 OnUi(delegate
                 {
                     if (generation == refreshGeneration) buttonRefresh.Enabled = true;   // the last search is over
@@ -229,7 +235,8 @@ namespace BecquerelMonitor
                     }
                     else if (r.Found)
                     {
-                        textAddress.Text = AtomSpectraDeviceConsole.FormatAddress(r.Host, AddressPort(), AddressDefaultPort());
+                        // REST: the address with the port the board answered on (AddressChanged takes it into the REST port)
+                        textAddress.Text = AtomSpectraDeviceConsole.FormatAddress(r.Host, rest && radioRest.Checked ? restPort : AddressPort(), AddressDefaultPort());
                         SetStatus(Color.Green, string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleStatusConnected, r.Serial, (r.FoundAs ?? name) + " -> " + r.Host));
                         ApplyBoardCalibration(AtomSpectraRestCalibration.ParseDevice(r.DeviceJson));   // board calibration -> Energy Calibration page
                         ShowBoardGzip(r.BootConfigJson);   // the board's reply compression level
@@ -245,13 +252,39 @@ namespace BecquerelMonitor
             worker.Start();
         }
 
-        // called on the "Refresh" worker thread when several boards answered; the window runs on the UI thread
-        private AtomSpectraBoardEntry ChooseBoard(IList<AtomSpectraBoardEntry> boards)
+        // called on the "Refresh" worker thread when the person has to choose; the window runs on the UI thread, and only for the
+        // search still current on the page (ChoiceRefused): not chosen = the search ends as cancelled
+        private AtomSpectraBoardEntry ChooseBoard(IList<AtomSpectraBoardEntry> boards, int generation, int page)
         {
             AtomSpectraBoardEntry pick = null;
-            try { Invoke(new MethodInvoker(delegate { if (!IsDisposed) pick = AtomSpectraBoardChooser.Choose(this, boards); })); }
+            try
+            {
+                Invoke(new MethodInvoker(delegate
+                {
+                    string refused = ChoiceRefused(generation, page);
+                    if (refused != null)
+                    {
+                        AtomSpectraTcpLog.Info("Refresh", "the board choice is not shown: " + refused);
+                        return;
+                    }
+                    pick = ChooseWindow(this, boards);
+                }));
+            }
             catch (InvalidOperationException) { }   // the settings window was closed meanwhile: nothing chosen
             return pick;
+        }
+
+        // Why the choice window is not shown (null: it is shown). The search is ~8 s long: a modal window then must not come up for a
+        // search the page has left - a newer one, another configuration (LoadFormContents), a closed or hidden page - nor over a window
+        // of the settings form itself (the "Save changes?" question while it closes disables the form).
+        private string ChoiceRefused(int generation, int page)
+        {
+            if (IsDisposed || !Visible) return "the page is closed or hidden";
+            if (generation != refreshGeneration) return "a newer search was started";
+            if (page != pageGeneration) return "another configuration is on the page";
+            Form top = FindForm();
+            if (top == null || !top.CanFocus) return "another window of the settings form is open";
+            return null;
         }
 
         private void textCommand_KeyDown(object sender, KeyEventArgs e)

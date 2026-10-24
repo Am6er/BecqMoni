@@ -6,6 +6,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Net;
 using System.Reflection;
+using System.Diagnostics;
 using BecquerelMonitor;
 
 namespace RestHarness
@@ -71,6 +72,8 @@ namespace RestHarness
             return count;
         }
 
+        static object lastBrowse;   // the list object Browse returned last (BrowseFake), for its own fields (Incomplete)
+
         static List<object> BrowseFake(Assembly asm)
         {
             Type t = asm.GetType("BecquerelMonitor.AtomSpectraDnsSd");
@@ -129,6 +132,7 @@ namespace RestHarness
             }
 
             var listObj = mBrowse.Invoke(null, null);
+            lastBrowse = listObj;
             if (listObj == null)
             {
                 return new List<object>();
@@ -184,7 +188,10 @@ namespace RestHarness
             return o;
         }
 
-        static object RefreshWith(Assembly asm, List<object> entries, FakeChooser chooser, List<string> resolved, string typed = "atomspectra.local")
+        // incomplete >= 0: the browse returns an AtomSpectraBoardList with that many instances without an address;
+        // restPort != null: AtomSpectraBoardFinder.Find is called and the port it read the board on is put in restPort[0]
+        static object RefreshWith(Assembly asm, List<object> entries, FakeChooser chooser, List<string> resolved, string typed = "atomspectra.local",
+            int incomplete = -1, int httpPort = -1, int[] restPort = null)
         {
             Type tf = asm.GetType("BecquerelMonitor.AtomSpectraBoardFinder");
             Type te = asm.GetType("BecquerelMonitor.AtomSpectraBoardEntry");
@@ -195,7 +202,22 @@ namespace RestHarness
             }
 
             Type listType = typeof(List<>).MakeGenericType(te);
-            IList list = (IList)Activator.CreateInstance(listType);
+            IList list;
+            if (incomplete >= 0)
+            {
+                Type tl = asm.GetType("BecquerelMonitor.AtomSpectraBoardList");
+                if (tl == null)
+                {
+                    Check(false, "AtomSpectraBoardList is missing: no count of the boards without an address in this build");
+                    return null;
+                }
+                list = (IList)Activator.CreateInstance(tl);
+                tl.GetField("Incomplete").SetValue(list, incomplete);
+            }
+            else
+            {
+                list = (IList)Activator.CreateInstance(listType);
+            }
             foreach (var e in entries)
             {
                 list.Add(e);
@@ -229,14 +251,16 @@ namespace RestHarness
                 return new[] { IPAddress.Parse("127.0.0.2") };
             };
 
-            MethodInfo mRefresh = tf.GetMethod("Refresh", BindingFlags.Public | BindingFlags.Static);
+            MethodInfo mRefresh = tf.GetMethod(restPort != null ? "Find" : "Refresh", BindingFlags.Public | BindingFlags.Static);
             if (mRefresh == null)
             {
-                Check(false, "AtomSpectraBoardFinder.Refresh is missing");
+                Check(false, "AtomSpectraBoardFinder." + (restPort != null ? "Find" : "Refresh") + " is missing");
                 return null;
             }
 
-            object r = mRefresh.Invoke(null, new object[] { typed, port, false, 2000, choose });
+            object[] args = restPort != null ? new object[] { typed, httpPort >= 0 ? httpPort : port, false, 2000, choose, 0 } : new object[] { typed, httpPort >= 0 ? httpPort : port, false, 2000, choose };
+            object r = mRefresh.Invoke(null, args);
+            if (restPort != null) restPort[0] = (int)args[5];
             if (r != null)
             {
                 Console.WriteLine("refresh: Found=" + GetF(r, "Found") + " Host=" + S(r, "Host") + " Serial=" + S(r, "Serial") + " Cancelled=" + GetF(r, "Cancelled"));
@@ -449,6 +473,163 @@ namespace RestHarness
                     if (r == null) return true;
                     Check(!(bool)GetF(r, "Found") && (bool)GetF(r, "Cancelled"), "the choice closed: nothing found, cancelled");
                     Check(DeviceGets(A146) + DeviceGets(A119) == 0, "the choice closed: no board is read");
+                    return true;
+                }
+                case "bm10-refresh-typed-dead":   // the address in the field does not answer (DHCP gave the board another one): the browse looks for the boards
+                {
+                    Type te = asm.GetType("BecquerelMonitor.AtomSpectraBoardEntry");
+                    if (te == null)
+                    {
+                        Check(false, "AtomSpectraBoardEntry is missing: no board choice in this build");
+                        return true;
+                    }
+                    const string Dead = "127.0.0.9";   // nothing listens there
+
+                    var ch = new FakeChooser { WantSerial = "00000119" };
+                    var res = new List<string>();
+                    var r = RefreshWith(asm, new List<object> { NewEntry(te, A146, "atomspectra.local", "00000051", port), NewEntry(te, A119, "atomspectra-2.local", "00000119", port) }, ch, res, Dead);
+                    if (r == null) return true;
+                    Check(res.Count > 0 && res[0] == Dead, "the address in the field is tried first, as it is (" + string.Join(",", res) + ")");
+                    Check(ch.Calls == 1 && ch.LastCount == 2, "it does not answer: the browse finds two boards, the choice is offered (calls " + ch.Calls + ", boards " + ch.LastCount + ")");
+                    Check((bool)GetF(r, "Found") && S(r, "Host") == A119 && S(r, "Serial") == "00000119", "the chosen board is read at its address from the browse");
+
+                    var ch1 = new FakeChooser { WantSerial = "x" };
+                    var res1 = new List<string>();
+                    var r1 = RefreshWith(asm, new List<object> { NewEntry(te, A119, "atomspectra-2.local", "00000119", port) }, ch1, res1, Dead);
+                    if (r1 == null) return true;
+                    Check(ch1.Calls == 0 && (bool)GetF(r1, "Found") && S(r1, "Host") == A119, "one board in the browse: read at its new address without a choice (calls " + ch1.Calls + ")");
+
+                    var ch2 = new FakeChooser { WantSerial = "x" };
+                    var res2 = new List<string>();
+                    var r2 = RefreshWith(asm, new List<object>(), ch2, res2, Dead);
+                    if (r2 == null) return true;
+                    Check(res2.Contains("atomspectra.local") && (bool)GetF(r2, "Found") && S(r2, "Host") == A146, "no board in the browse either: the default name through the system resolver (" + string.Join(",", res2) + ")");
+
+                    var ch3 = new FakeChooser { WantSerial = "00000051" };
+                    var res3 = new List<string>();
+                    var r3 = RefreshWith(asm, new List<object> { NewEntry(te, A146, "atomspectra.local", "00000051", port), NewEntry(te, A119, "atomspectra-2.local", "00000119", port) }, ch3, res3, A119);
+                    if (r3 == null) return true;
+                    Check(ch3.Calls == 0 && (bool)GetF(r3, "Found") && S(r3, "Host") == A119, "control: an address in the field that answers is read as it is, no browse, no choice");
+                    return true;
+                }
+                case "bm10-same-host":   // two boards answer with ONE host name: each instance gets the A of its own packet, a board is listed once
+                case "bm10-same-host-split":   // the same without A records next to SRV: the source address of the SRV packet tells the boards apart
+                {
+                    var l = BrowseFake(asm);
+                    if (l == null) return true;
+                    object g = l.FirstOrDefault(e => (S(e, "Instance") ?? "").StartsWith("AtomSpectra Gateway.", StringComparison.OrdinalIgnoreCase));
+                    object g2 = l.FirstOrDefault(e => (S(e, "Instance") ?? "").StartsWith("AtomSpectra Gateway-2.", StringComparison.OrdinalIgnoreCase));
+                    Check(l.Count == 2, "two boards with one host name: two entries, the second instance of the board " + A146 + " is not a third board (found " + l.Count + ")");
+                    Check(g != null && S(g, "Address") == A146 && S(g, "Serial") == "00000051", "Gateway (SN 00000051) -> " + A146 + ": " + (g == null ? "missing" : Describe(g)));
+                    Check(g2 != null && S(g2, "Address") == A119 && S(g2, "Serial") == "00000119", "Gateway-2 (SN 00000119) -> " + A119 + ", not the first A of the host: " + (g2 == null ? "missing" : Describe(g2)));
+                    Check(l.Select(e => S(e, "Address")).Distinct().Count() == l.Count, "each address once");
+                    return true;
+                }
+                case "bm10-incomplete":   // an instance answered without its address: one board found is not taken silently
+                {
+                    var l = BrowseFake(asm);
+                    if (l == null) return true;
+                    FieldInfo fi = lastBrowse == null ? null : lastBrowse.GetType().GetField("Incomplete");
+                    Check(l.Count == 2 && fi != null && (int)fi.GetValue(lastBrowse) == 1, "two boards found, the third answered its PTR only: counted as without an address (found " + l.Count + ", incomplete " + (fi == null ? "n/a" : fi.GetValue(lastBrowse).ToString()) + ")");
+
+                    Type te = asm.GetType("BecquerelMonitor.AtomSpectraBoardEntry");
+                    var ch = new FakeChooser { WantSerial = "00000119" };
+                    var r = RefreshWith(asm, new List<object> { NewEntry(te, A119, "atomspectra-2.local", "00000119", port) }, ch, new List<string>(), "atomspectra.local", 1);
+                    if (r == null) return true;
+                    Check(ch.Calls == 1 && ch.LastCount == 1, "one board and one without an address: the choice is offered (calls " + ch.Calls + ")");
+                    Check((bool)GetF(r, "Found") && S(r, "Host") == A119, "the board chosen is read");
+
+                    var chc = new FakeChooser { WantSerial = null };
+                    var rc = RefreshWith(asm, new List<object> { NewEntry(te, A146, "atomspectra.local", "00000051", port) }, chc, new List<string>(), "atomspectra.local", 1);
+                    if (rc == null) return true;
+                    Check(!(bool)GetF(rc, "Found") && (bool)GetF(rc, "Cancelled") && DeviceGets(A146) == 0, "the choice closed: cancelled, the one board found is not read");
+
+                    var ch0 = new FakeChooser { WantSerial = "x" };
+                    var r0 = RefreshWith(asm, new List<object> { NewEntry(te, A119, "atomspectra-2.local", "00000119", port) }, ch0, new List<string>(), "atomspectra.local", 0);
+                    if (r0 == null) return true;
+                    Check(ch0.Calls == 0 && (bool)GetF(r0, "Found"), "control: one board, none without an address - read without a choice");
+                    return true;
+                }
+                case "bm10-port":   // the REST port: TXT rest when the board gives it, else the port of the form; Find returns the port it read on
+                {
+                    var l = BrowseFake(asm);
+                    if (l == null) return true;
+                    object noRest = l.FirstOrDefault(e => S(e, "Address") == A146);
+                    object withRest = l.FirstOrDefault(e => S(e, "Address") == A119);
+                    Check(noRest != null && I(noRest, "HttpPort") == 0, "no TXT rest: no REST port of the board's own (" + (noRest == null ? "missing" : Describe(noRest)) + ")");
+                    Check(withRest != null && I(withRest, "HttpPort") == port, "TXT rest=" + port + ": that port (" + (withRest == null ? "missing" : Describe(withRest)) + ")");
+
+                    Type te = asm.GetType("BecquerelMonitor.AtomSpectraBoardEntry");
+                    int[] rp = new int[1];
+                    var r = RefreshWith(asm, new List<object> { NewEntry(te, A146, "atomspectra.local", "00000051", 0) }, new FakeChooser(), new List<string>(), "atomspectra.local", -1, port, rp);
+                    if (r == null) return true;
+                    Check((bool)GetF(r, "Found") && rp[0] == port, "no port of the board: read on the port of the form " + port + " (found " + GetF(r, "Found") + ", port " + rp[0] + ")");
+
+                    var r2 = RefreshWith(asm, new List<object> { NewEntry(te, A119, "atomspectra-2.local", "00000119", port) }, new FakeChooser(), new List<string>(), "atomspectra.local", -1, 1, rp);
+                    if (r2 == null) return true;
+                    Check((bool)GetF(r2, "Found") && rp[0] == port, "the board's port " + port + " over the form's 1: read on it, and it is returned for the field (port " + rp[0] + ")");
+                    return true;
+                }
+                case "bm10-goodbye":   // a board withdraws its records (TTL 0) during the browse: it is not listed
+                {
+                    var l = BrowseFake(asm);
+                    if (l == null) return true;
+                    Check(l.Count == 1 && S(l[0], "Address") == A146, "the board that said goodbye is not in the list (found " + l.Count + ": " + string.Join("; ", l.Select(Describe)) + ")");
+                    return true;
+                }
+                case "bm10-long-label":   // an instance read from several labels is asked for by those labels; a question that cannot be written is left out alone
+                {
+                    Type t = asm.GetType("BecquerelMonitor.AtomSpectraDnsSd");
+                    MethodInfo bq = t == null ? null : t.GetMethod("BuildQuery", BindingFlags.Public | BindingFlags.Static);
+                    if (bq == null)
+                    {
+                        Check(false, "AtomSpectraDnsSd.BuildQuery is missing");
+                        return true;
+                    }
+                    string x40 = new string('x', 40), y40 = new string('y', 40), z70 = new string('z', 70);
+                    Func<List<KeyValuePair<string, int>>, byte[]> build = qs =>
+                    {
+                        try { return (byte[])bq.Invoke(null, new object[] { (ushort)1, qs }); }
+                        catch (TargetInvocationException ex) { Console.WriteLine("BuildQuery threw " + ex.InnerException.GetType().Name + ": " + ex.InnerException.Message); return null; }
+                    };
+                    Func<byte[], int, string> labelsAt = (b, offset) =>
+                    {
+                        var list = new List<string>();
+                        while (offset < b.Length && b[offset] != 0 && offset + 1 + b[offset] <= b.Length)
+                        {
+                            list.Add(System.Text.Encoding.UTF8.GetString(b, offset + 1, b[offset]));
+                            offset += 1 + b[offset];
+                        }
+                        return string.Join("|", list);
+                    };
+
+                    byte[] p1 = build(new List<KeyValuePair<string, int>> { new KeyValuePair<string, int>(x40 + "." + y40 + "._atomspectra._tcp.local", 33) });
+                    Check(p1 != null && labelsAt(p1, 12) == x40 + "|" + y40 + "|_atomspectra|_tcp|local", "an instance of 81 bytes cannot be one label: it is asked for by its two labels (" + (p1 == null ? "no packet" : labelsAt(p1, 12)) + ")");
+
+                    byte[] p2 = build(new List<KeyValuePair<string, int>> { new KeyValuePair<string, int>(z70 + "._atomspectra._tcp.local", 33), new KeyValuePair<string, int>("AtomSpectra Gateway._atomspectra._tcp.local", 16) });
+                    Check(p2 != null && ((p2[4] << 8) | p2[5]) == 1 && labelsAt(p2, 12) == "AtomSpectra Gateway|_atomspectra|_tcp|local", "a label of 70 bytes: that question is left out, the other one is asked (" + (p2 == null ? "no packet" : "qdcount " + ((p2[4] << 8) | p2[5])) + ")");
+
+                    var l = BrowseFake(asm);
+                    if (l == null) return true;
+                    Check(l.Count == 2 && l.Any(e => S(e, "Address") == A119), "the browse is not broken by the long instance: both boards found, the long one at " + A119 + " (found " + l.Count + ")");
+                    return true;
+                }
+                case "bm10-no-network":   // not one query could be sent: the browse ends at once, the window is not waited out
+                {
+                    try
+                    {
+                        Fix9Addresses(() => new List<IPAddress> { IPAddress.Loopback });   // the adapter list is fixed: no real adapter is touched
+                        var sw = Stopwatch.StartNew();
+                        var found = Fix9Browse(3000, 0);
+                        sw.Stop();
+                        if (found == null) return true;
+                        Check(found.Count == 0, "nothing could be sent, no board found (found " + found.Count + ")");
+                        Check(sw.ElapsedMilliseconds < 1000, "the browse ends at once, not after its 3000 ms window (" + sw.ElapsedMilliseconds + " ms)");
+                    }
+                    finally
+                    {
+                        Fix9Addresses(null);
+                    }
                     return true;
                 }
                 default:

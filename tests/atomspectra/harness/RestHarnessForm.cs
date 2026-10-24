@@ -16,7 +16,7 @@ namespace RestHarness
             if (scenario == "fix9-reset-carry" || scenario == "fix9-reset-other-board") return RunFix9b(scenario);   // VERIFY-4 #7 (RestHarnessFix9b.cs)
             if (scenario == "bm10-quiet-three" || scenario == "bm10-count-address" || scenario == "bm10-bind-fallback"
                 || scenario == "bm10-log-sent" || scenario == "bm10-log-packets") return RunFix9(scenario);   // VERIFY-4 (RestHarnessFix9.cs)
-            if (scenario == "bm18-chooser") return RunFix7(scenario);   // #BM-18 (RestHarnessFix7.cs)
+            if (scenario == "bm18-chooser" || scenario == "bm18-choose-stale") return RunFix7(scenario);   // #BM-18 (RestHarnessFix7.cs)
             if (scenario == "bm10-schedule") return RunFix6(scenario);   // #BM-17 (RestHarnessFix6.cs)
             if (scenario == "bm10-adapters") return RunFix5(scenario);   // #BM-17 (RestHarnessFix5.cs)
             if (scenario.StartsWith("fix4-")) return RunFix4(scenario);   // #BM-14/#BM-15 (RestHarnessFix4.cs)

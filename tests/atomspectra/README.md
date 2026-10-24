@@ -14,7 +14,7 @@ network access are needed.
 | `harness/*.cs` | Test harnesses compiled against `BecquerelMonitor.exe` (`RestHarness*.cs` for REST, `SessionHarness.cs` and `CalHarness.cs` for TCP). |
 | `run_live.py` | Runs the named scenarios on a built exe and prints one line per scenario as soon as it ends: `python run_live.py <exeDir> <workDir> name1,name2` (`RL_WORKERS` = parallel scenarios). |
 | `run_mutants.py` | Runs the mutations of `mutations/<MUT_FILE>.json` (default `startpkg`) on a copy of the repository: patch, MSBuild, `run_live.py`. See the header of the file. |
-| `mutations/*.json` | Mutations of the program sources for the scenarios of the start package, board discovery and the follow-up fixes (60 in total; `file`, `old`, `new`, `target` scenario). |
+| `mutations/*.json` | Mutations of the program sources for the scenarios of the start package, board discovery and the follow-up fixes (73 in total; `file`, `old`, `new`, `target` scenario). |
 | `mocks/*.py` | Mock boards: `mock_rest.py` (REST), `mock_cmd.py` (TCP command bridge), `mock_board.py` and `mock_cal.py` (TCP framing and calibration), `mock_mdns.py` (a fake mDNS responder on `127.0.0.1` with the boards' `/api/device` on `127.0.0.2-4`, for the `bm10-*` scenarios). |
 | `fixtures/` | Recorded board responses read by the mocks and the harness: `responses/` (cases for `mock_rest.py --cases`) and `spectrum_sample.json`. |
 
@@ -52,7 +52,7 @@ network access are needed.
    (`BecquerelMonitor/`, the mutations patch copies of its `.cs` files).
 
 2. Run the REST suite. By default it runs all scenarios on the real build and on a build from the
-   sources, then ALL source mutations (131, many hours) and the 10 real-build mutations. Set
+   sources, then ALL source mutations (131, many hours) and the 11 real-build mutations. Set
    `REST_NO_SOURCE_MUTATIONS=1` to run the scenarios and the real-build mutations only:
 
    ```
@@ -80,7 +80,7 @@ network access are needed.
 
 ## What is in the suites
 
-* REST suite: 222 scenarios in `SCENARIOS`, each run on the real build and on a build from the
+* REST suite: 231 scenarios in `SCENARIOS`, each run on the real build and on a build from the
   sources. A scenario that is only possible on the real build (controller and forms, found by
   reflection) prints `n/a` on the source build and must execute a minimum number of checks
   (`REAL_ONLY_MIN_CHECKS`). The real build speaks the language of the machine (English or
@@ -90,7 +90,7 @@ network access are needed.
   Added with the start package: `startpkg-*` and `console-tcp-same-*` (Replace document spectrum, a TCP Start of the
   same document), `night-*`, `console-tcp-night-*`, `fix2-*`, `fix3-*`, `fix4-*`, `fix9-*`, `fix10-*`,
   `console-tcp-fix2-*`, `console-tcp-fix10-*` (follow-up fixes of the Start question, the joined Stop, the
-  deferred reset), `bm10-*` and `bm18-chooser` (DNS-SD discovery of the boards and the chooser window).
+  deferred reset), `bm10-*`, `bm18-chooser` and `bm18-choose-stale` (DNS-SD discovery of the boards and the chooser window).
   The scenarios that check a text of the resources (`LOCALE_SCENARIOS`) are run once more under
   `REST_UI_CULTURE=en-US` and `ru-RU`, so they pass in any interface language; set `REST_UI_CULTURE`
   yourself to run any scenario under a language. `RL_WORKERS` sets the number of scenarios run in parallel
@@ -103,7 +103,7 @@ network access are needed.
   * `MUTATIONS` in `rest_suite.py`: 131 source mutations (a full run takes many hours; select some
     with `python run_mutations_subset.py <exeDir> <srcDir> <workDir> id1,id2`).
   * `REAL_MUTATIONS` in `rest_suite.py`: 11 mutations of the real build, run by default.
-  * `mutations/*.json`: 60 mutations for the added scenarios, run by `run_mutants.py` (each builds the
+  * `mutations/*.json`: 73 mutations for the added scenarios, run by `run_mutants.py` (each builds the
     program: slow, not part of the default run).
   * `run_review_tests.py`: 15 TCP mutations.
   * The `old text` of a mutation must match the source exactly. If a source file changes, a

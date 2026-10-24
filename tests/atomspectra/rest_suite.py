@@ -316,6 +316,16 @@ SCENARIOS = [
     ("bm10-bind-fallback", ["--set", "two-new"]),
     ("bm10-log-sent", ["--set", "two-new"]),
     ("bm10-log-packets", ["--set", "split"]),
+    # maintainer review of PR 38, board discovery (RestHarnessBm10.cs, RestHarnessFix7.cs; sets of mocks/mock_mdns.py)
+    ("bm10-refresh-typed-dead", ["--set", "legacy"]),   # the address in the field does not answer: the browse, the choice
+    ("bm10-same-host", ["--set", "samehost"]),   # two boards with one host name: the A of the SRV's own packet
+    ("bm10-same-host-split", ["--set", "samehost-split", "--reply-from-owner"]),   # the same, told apart by the source of the SRV packet
+    ("bm10-incomplete", ["--set", "orphan"]),   # an instance without an address is counted, one board is not taken silently
+    ("bm10-port", ["--set", "norest"]),   # no TXT rest: the port of the form; the port read on comes back for the field
+    ("bm10-goodbye", ["--set", "two-new", "--goodbye", "b119=200"]),   # TTL 0 withdraws the board
+    ("bm10-long-label", ["--set", "longlabel"]),   # an instance of two labels; a question that cannot be written is left out alone
+    ("bm10-no-network", ["--set", "two-new"]),   # nothing sent: the browse ends at once
+    ("bm18-choose-stale", None),   # the choice window only for the current search, not over another window (real build only)
     ("fix9-reset-carry", None),
     ("fix9-reset-other-board", None),   # the deferred reset of one board is not given to another (host or port changed)
     # audit 6 (RestHarnessFix10.cs): reentrant Stop under the open question, DNS name chains and length, reset dropped at the switch to REST
@@ -329,7 +339,7 @@ REAL_ONLY_MIN_CHECKS = {"f5-tcp-cal-n": 8, "f5-ctl-length-first": 5, "f5-form-ca
                         "ui-console-confirm": 8, "ui-page-generations": 5, "ui-read-edited": 6, "ui-save-refusal": 3,
                         # start package, night package, board discovery
                         "night-start-text": 4, "night-status-401": 5, "night-answer-stale": 4, "night-reset-offer": 6,
-                        "fix2-stop-auto": 5, "fix2-after-wait-held": 3, "fix3-held-throws": 6, "fix3-offer-stop": 6, "fix4-joined-clear-text": 9, "bm10-adapters": 7, "bm10-schedule": 4, "bm18-chooser": 16,
+                        "fix2-stop-auto": 5, "fix2-after-wait-held": 3, "fix3-held-throws": 6, "fix3-offer-stop": 6, "fix4-joined-clear-text": 9, "bm10-adapters": 7, "bm10-schedule": 4, "bm18-chooser": 23, "bm18-choose-stale": 5,
                         "bm10-quiet-three": 2, "bm10-count-address": 2, "bm10-bind-fallback": 3, "bm10-log-sent": 4, "bm10-log-packets": 3, "fix9-reset-carry": 5, "fix9-reset-other-board": 6,
                         "console-tcp-fix10-stop-reenter": 3, "fix10-dns-chain": 3, "fix10-dns-limit": 2, "fix10-dns-good": 3, "fix10-reset-to-rest": 5}
 FIX_SCENARIOS = ["overtake", "restart-doc", "preset-new", "deferred-resumed", "clear-stale", "session-key",

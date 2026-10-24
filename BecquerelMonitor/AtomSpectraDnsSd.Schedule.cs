@@ -19,7 +19,7 @@ namespace BecquerelMonitor
         // Early exit only when at least this many boards are known
         public static int EarlyExitBoards = 2;
 
-        // Count the boards known from the cache by their address: instance -> SRV -> host -> A.
+        // Count the boards known from the cache by their address: instance -> SRV -> host -> A (AddressOf).
         // One board that shows two labels (_atomspectra and _http) is one address; an instance whose chain is not complete yet is not counted.
         private static int CountBoards(Cache cache)
         {
@@ -32,9 +32,9 @@ namespace BecquerelMonitor
                     bool suffix = inst.EndsWith("." + service, StringComparison.OrdinalIgnoreCase);
                     string label = suffix ? inst.Substring(0, inst.Length - service.Length - 1) : inst;
                     if (service == ServiceHttp && !label.StartsWith(GatewayInstancePrefix, StringComparison.OrdinalIgnoreCase)) continue;
-                    if (!cache.Srv.TryGetValue(inst, out var srv) || string.IsNullOrEmpty(srv.Target)) continue;
-                    if (!cache.A.TryGetValue(srv.Target, out var a) || a.Count == 0) continue;
-                    addresses.Add(a[0]);
+                    if (!cache.Srv.TryGetValue(inst, out var srv)) continue;
+                    string address = AddressOf(cache, inst, srv);
+                    if (address != null) addresses.Add(address);
                 }
             }
             return addresses.Count;
@@ -46,12 +46,9 @@ namespace BecquerelMonitor
             if (questions == null || questions.Count == 0 || set.Sockets.Count == 0)
                 return;
 
-            var sends = (QueryScheduleMs ?? new int[] { 0 })
-                .Where(t => t >= 0 && t < windowMs)
-                .Distinct()
-                .OrderBy(t => t)
-                .ToList();
-            if (sends.Count == 0) sends.Add(0);
+            var sends = SendMoments(windowMs);
+            byte[] query = BuildQuery((ushort)new Random().Next(1, 65535), questions);
+            if (query == null) return;   // no question could be written (BuildQuery logged which)
 
             int nextSend = 0;
             var sw = Stopwatch.StartNew();
@@ -66,13 +63,20 @@ namespace BecquerelMonitor
                 // a. Send queries at scheduled times
                 while (nextSend < sends.Count && sends[nextSend] <= now)
                 {
-                    byte[] data = BuildQuery((ushort)new Random().Next(1, 65535), questions);
+                    byte[] data = nextSend == 0 ? query : BuildQuery((ushort)new Random().Next(1, 65535), questions);
                     for (int i = 0; i < set.Sockets.Count; i++)
                     {
                         try { set.Sockets[i].SendTo(data, QueryEndpoint); set.SentFrom.Add(set.Names[i]); }   // the log names only the adapters that sent
                         catch (SocketException) { set.SendErrors++; }
                     }
                     nextSend++;
+                }
+
+                // not one query went out (no network: every SendTo failed): no answer can come, the window is not waited out
+                if (set.SentFrom.Count == 0)
+                {
+                    LogFile("the PTR query could not be sent from any adapter, the browse ends");
+                    break;
                 }
 
                 // b. Early exit check
@@ -111,7 +115,7 @@ namespace BecquerelMonitor
                         {
                             set.Packets++;
                             int before = CountBoards(cache);
-                            cache.Add(ParseRecords(buffer, received));
+                            cache.Add(ParseRecords(buffer, received), SenderOf(remote));
                             if (CountBoards(cache) > before)
                                 lastNewMs = sw.ElapsedMilliseconds;
                         }

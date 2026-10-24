@@ -44773,6 +44773,12 @@ The setting is saved on the board and applies to all its clients. If other progr
   <data name="AtomSpectraBoardChoiceCancelled" xml:space="preserve">
     <value>Status: several boards found, none chosen. The address is not changed.</value>
   </data>
+  <data name="AtomSpectraBoardChoiceOk" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceIncomplete" xml:space="preserve">
+    <value>Not every board sent its address in time ({0} without an address); they are not in the list. To search again, press Cancel, then Refresh.</value>
+  </data>
   <data name="AtomSpectraConsolePollTcpHint" xml:space="preserve">
     <value>TCP: the analyzer streams the spectrum, the poll interval is not used</value>
   </data>
