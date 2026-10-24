@@ -107,8 +107,8 @@ namespace BecquerelMonitor
                 text += (text.Length > 0 ? Environment.NewLine + Environment.NewLine : "") + (q.ChannelBelow >= 0 && !behind
                     ? string.Format(CultureInfo.InvariantCulture, q.ReplaceAllowed ? Resources.AtomSpectraRestStartOtherSpectrumReplace : Resources.AtomSpectraRestStartOtherSpectrum, q.ChannelBelow)
                     : (q.ReplaceAllowed ? Resources.AtomSpectraRestStartBehindReplace : Resources.AtomSpectraRestStartBehind));   // no "create a new document" beside Replace
-            if (q.ReplaceAllowed)
-                text += " " + Resources.AtomSpectraRestStartReplaceHint;
+            if (q.ReplaceAllowed)   // observe only sends nothing at all (ObservePlan), not even -sta to a stopped board
+                text += " " + (q.ObserveOnly ? Resources.AtomSpectraRestStartReplaceHintObserve : Resources.AtomSpectraRestStartReplaceHint);
 
             if (!string.IsNullOrEmpty(q.Note))
                 text += (text.Length > 0 ? Environment.NewLine + Environment.NewLine : "") + q.Note;   // TCP says what each button sends

@@ -331,6 +331,12 @@ SCENARIOS = [
     # audit 6 (RestHarnessFix10.cs): reentrant Stop under the open question, DNS name chains and length, reset dropped at the switch to REST
     ("console-tcp-fix10-stop-reenter", ["--order", "hs", "--period", "0.5", "--cycles", "16", "--connections", "1"]),
     ("fix10-dns-chain", None), ("fix10-dns-limit", None), ("fix10-dns-good", None), ("fix10-reset-to-rest", None),
+    # PR #38, maintainer's REST fixes (RestHarnessFixR.cs): R2 - the guard after Replace starts from the snapshot of the question; R6 - the observe-only hint
+    ("fixr2-replace-reset-asked", ["--counting", "1", "--time", "70000", "--total", "400000"]),
+    ("fixr2-replace-epoch-asked", ["--cases", "c01_epoch_added.json*2,c02_boot_id_changed.json|time=170000|total=13442130"]),   # the epoch changed, time and counts overtook
+    ("fixr2-replace-resume", ["--counting", "0", "--time", "5000", "--total", "1000"]),
+    ("fixr2-replace-join-epoch", ["--cases", "c01_epoch_added.json|time=163682,c01_epoch_added.json|time=163690,c01_epoch_added.json|time=163700,c01_epoch_added.json|time=163710*40"]),
+    ("fixr6-observe-hint", ["--counting", "1", "--time", "70000", "--total", "400000"]),
 ]
 # scenarios that need the controller or the forms exist in the REAL build only (the source build prints n/a). On the real build each must
 # EXECUTE at least this many checks ("checks executed: N" of the harness); n/a or fewer is a failure of the suite, not a pass.
@@ -341,7 +347,8 @@ REAL_ONLY_MIN_CHECKS = {"f5-tcp-cal-n": 8, "f5-ctl-length-first": 5, "f5-form-ca
                         "night-start-text": 4, "night-status-401": 5, "night-answer-stale": 4, "night-reset-offer": 6,
                         "fix2-stop-auto": 5, "fix2-after-wait-held": 3, "fix3-held-throws": 6, "fix3-offer-stop": 6, "fix4-joined-clear-text": 9, "bm10-adapters": 7, "bm10-schedule": 4, "bm18-chooser": 23, "bm18-choose-stale": 5,
                         "bm10-quiet-three": 2, "bm10-count-address": 2, "bm10-bind-fallback": 3, "bm10-log-sent": 4, "bm10-log-packets": 3, "fix9-reset-carry": 5, "fix9-reset-other-board": 6,
-                        "console-tcp-fix10-stop-reenter": 3, "fix10-dns-chain": 3, "fix10-dns-limit": 2, "fix10-dns-good": 3, "fix10-reset-to-rest": 5}
+                        "console-tcp-fix10-stop-reenter": 3, "fix10-dns-chain": 3, "fix10-dns-limit": 2, "fix10-dns-good": 3, "fix10-reset-to-rest": 5,
+                        "fixr6-observe-hint": 5}
 FIX_SCENARIOS = ["overtake", "restart-doc", "preset-new", "deferred-resumed", "clear-stale", "session-key",
                  "headless-stopped", "stop-hang", "url-userinfo"]
 PASSC_SCENARIOS = ["prefix-auth", "parse", "deferred-resumed", "restart", "time-back", "nodata-404", "dead-404", "dead-flag",
@@ -597,6 +604,15 @@ MUTATIONS = [
      [("AtomSpectraRestPolicy.cs", "field + \": \" + Inv(was) + \" -> \" + Inv(now)", "field + \": \" + was + \" -> \" + now")], "pr37-rest-texts", False),
     ("pr37-expect-100", "R9: a POST asks for 100 Continue",
      [("AtomSpectraRestClient.cs", "req.ServicePoint.Expect100Continue = false;", "")], "pr37-rest-expect", False),
+    # PR #38, maintainer's REST fixes (RestHarnessFixR.cs)
+    ("r2-join-from-zero", "R2: after Replace on a counting board the guard starts from zero, not from the snapshot of the question",
+     [("AtomSpectraRestSession.cs", "if (replaced) guard.BeginFrom(second, SeenBins(second), counting);", "if (replaced) guard.Begin(0, 0, counting, null);")], "fixr2-replace-reset-asked", False),
+    ("r2-resume-from-zero", "R2: after Replace on a stopped board (-sta) the guard starts from zero",
+     [("AtomSpectraRestSession.cs", "if (replaced) guard.BeginFrom(second, SeenBins(second), true);", "if (replaced) guard.Begin(0, 0, true, null);")], "fixr2-replace-epoch-asked", False),
+    ("r2-epoch-not-seen", "R2: the epoch of the snapshot the question showed is not the reference of the guard",
+     [("AtomSpectraRestPolicy.cs", "                lastEpoch = seen.Epoch;\n", "")], "fixr2-replace-epoch-asked", False),
+    ("r6-observe-unmarked", "R6: the observe-only question is not marked (its hint promises -sta to a stopped board)",
+     [("AtomSpectraRestSession.JoinedAndObserve.cs", "                ChannelBelow = below,\n                ObserveOnly = true\n", "                ChannelBelow = below\n")], "fixr6-observe-hint", False),
 ]
 
 
@@ -673,6 +689,7 @@ HARNESS_FILES = [os.path.join(D, "harness", n) for n in ("RestHarness.cs", "Rest
 FIXTURE = os.path.join(D, "fixtures", "spectrum_sample.json")   # a spectrum document recorded from a board, read by 'parse'
 
 HARNESS_FILES.append(os.path.join(D, "harness", "RestFixPr37.cs"))   # PR37 fix, REST: the scenarios pr37-rest-*
+HARNESS_FILES.append(os.path.join(D, "harness", "RestHarnessFixR.cs"))   # PR #38, maintainer's REST fixes: the scenarios fixr*
 
 
 def copy_fixture(out_dir):
@@ -888,7 +905,7 @@ def run_real_mutations(src_dir, work_dir):
 # so that a check that holds only for the language of the machine cannot pass here and fail elsewhere
 LOCALE_SCENARIOS = ["console-rest-notext", "console-rest-refused", "console-refresh-none", "form-bad-address", "form-calib", "form-calib-unset",
                     "gzip-unsupported", "gzip-ignored", "f5-ctl-headless-text", "pr37-rest-continue-other", "pr37-rest-observe-behind", "pr37-rest-texts",
-                    "night-start-text", "fix4-joined-clear-text", "rest-linklost-text", "rest-unreachable-text", "ui-console-confirm"]
+                    "night-start-text", "fix4-joined-clear-text", "rest-linklost-text", "rest-unreachable-text", "ui-console-confirm", "fixr6-observe-hint"]
 LOCALES = ("en-US", "ru-RU")
 
 

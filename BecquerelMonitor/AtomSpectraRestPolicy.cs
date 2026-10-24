@@ -344,6 +344,25 @@ namespace BecquerelMonitor
             }
         }
 
+        // Replace: the document takes the board's spectrum as the Start question showed it, so that snapshot is the reference -
+        // its time, counts, hist_ok, channels (seenBins: folded as the polls bring them) and epoch. A board reset, restarted or
+        // given another acquisition while the question was open trips at the first poll instead of being taken silently.
+        public void BeginFrom(AtomSpectraRestBoardSample seen, int[] seenBins, bool counting)
+        {
+            lock (sync)
+            {
+                Begin(0, 0, counting);
+                if (seen == null || !seen.HasData) return;
+                hasLast = true;
+                lastTime = seen.Time;
+                lastTotal = seen.Total;
+                lastHistOk = seen.HistOk;
+                histFromSample = true;
+                lastBins = seenBins;
+                lastEpoch = seen.Epoch;
+            }
+        }
+
         // After OUR reset the next smaller snapshot is the new acquisition.
         public void AcceptReset()
         {

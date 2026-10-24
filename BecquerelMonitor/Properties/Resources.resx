@@ -44522,13 +44522,13 @@ The setting is saved on the board and applies to all its clients. If other progr
     <value>access refused (HTTP {0}): check the token; polling goes on</value>
   </data>
   <data name="MSGAtomSpectraStopJoinedAsk" xml:space="preserve">
-    <value>AtomSpectra: the recording in BecqMoni stops. The acquisition on the board {0} was not started from this window (BecqMoni only joined it). Stop the acquisition on the board as well, or let the board keep counting?</value>
+    <value>AtomSpectra: the recording in BecqMoni stops. The acquisition on the board {0} was already running when this recording started (BecqMoni only joined it). Stop the acquisition on the board as well? If not, the board goes on counting.</value>
   </data>
   <data name="AtomSpectraStopOnBoard" xml:space="preserve">
     <value>Stop the acquisition on the board</value>
   </data>
   <data name="AtomSpectraKeepCounting" xml:space="preserve">
-    <value>Keep counting</value>
+    <value>Don't stop</value>
   </data>
   <data name="AtomSpectraRestContinue" xml:space="preserve">
     <value>Continue without reset</value>
@@ -44546,7 +44546,10 @@ The setting is saved on the board and applies to all its clients. If other progr
     <value>"Replace document spectrum" takes the board's spectrum and time into this document without resetting the board (nothing is sent to a counting board, a stopped one gets only -sta); the efficiency, background and settings of the document stay.</value>
   </data>
   <data name="MSGAtomSpectraRestReplaceConfirm" xml:space="preserve">
-    <value>The spectrum of the document ({0} h {1} min, {2} counts) will be replaced by the board's ({3} h {4} min, {5} counts); the board is not reset. The document's own data are lost unless it is saved. Replace the document spectrum?</value>
+    <value>The spectrum of the document ({0} h {1} min, {2} counts) will be replaced by the board's ({3} h {4} min, {5} counts); the board is not reset. Whenever the document is saved, autosave included, its file is overwritten with the board's spectrum. To keep the present spectrum, first save the document under another name ("Save As..."). Replace the document spectrum?</value>
+  </data>
+  <data name="AtomSpectraRestStartReplaceHintObserve" xml:space="preserve">
+    <value>"Replace document spectrum" takes the board's spectrum and time into this document; observe only is on, so nothing is sent to the board (no -sta, no reset) and the document follows the board as it is; the efficiency, background and settings of the document stay.</value>
   </data>
   <data name="MSGAtomSpectraRestClearConfirm" xml:space="preserve">
     <value>The board holds {0} h {1} min, {2} counts. Reset the spectrum ON THE BOARD? This cannot be undone.</value>
