@@ -201,8 +201,18 @@ namespace BecquerelMonitor
             {
                 return;
             }
+            DeviceController device = activeResultData.MeasurementController.DeviceController;
+            if (device != null && device.StopInProgress)
+            {
+                return;   // the first Stop of the device still runs (AtomSpectra: its Stop question is open): it ends the run, saves and shows it
+            }
             activeDocument.UpdateSpectrum = false;
+            bool closing = MainForm.ApplicationClosing;
             activeResultData.MeasurementController.StopRecording(manual);   // the user's "Stop": a joined AtomSpectra acquisition may be asked about
+            if (MainForm.ApplicationClosing && !closing)
+            {
+                return;   // the program began to close while that question was open (a modal loop): its forms are being torn down
+            }
             if (activeDocument.PulseDetector != null)
             {
                 activeDocument.PulseDetector.DoUpdatePulseView = false;

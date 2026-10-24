@@ -37,8 +37,10 @@ namespace BecquerelMonitor
 
         private IAtomSpectraSession session;
         // A reset (user's Clear) that the last closed TCP session had not sent yet: handed to the next TCP session
-        // and the host:port it was owed for (null: none); a session of another board does not get it
+        // and the host:port it was owed for (null: none); a session of another board does not get it.
+        // With it, what the board held at that Clear: the next Start resets only a board that still holds it (O3)
         private string carriedResetKey;
+        private long carriedResetSeconds, carriedResetCounts;
         private bool linkLossReported;
         private ResultData resultData;
         private string deviceGuid;
@@ -95,6 +97,18 @@ namespace BecquerelMonitor
                 return;
             }
 
+            if (StopInProgress)
+            {
+                // T4/O1: a Stop entered while the first one still runs (the preset or the timer while its Stop question is open, or while a
+                // REST Stop waits behind its window): the first Stop decides and ends the run. This one leaves AskStopJoined as the first
+                // set it, sends nothing and starts no second Stop of the session (REST ran one in parallel: "the board counts on", then
+                // -sto); the document is frozen since the first Stop (UpdateHistogram)
+                AtomSpectraTcpLog.Info("Session", "a second Stop while the first one still runs (its question is open): the first Stop ends the run");
+                return;
+            }
+
+            DateTime stoppedAt = DateTime.Now;   // O1: the run ends when Stop is pressed (the first Stop), not when its question is answered
+            stopping = true;
             try
             {
                 IAtomSpectraSession s0 = session;
@@ -106,7 +120,7 @@ namespace BecquerelMonitor
 
                 if (deviceGuid != null)
                 {
-                    r.EndTime = DateTime.Now;
+                    r.EndTime = stoppedAt;
                 }
 
                 IAtomSpectraSession s = session;
@@ -126,7 +140,20 @@ namespace BecquerelMonitor
             }
             finally
             {
+                stopping = false;
                 r.ResultDataStatus.Recording = false;
+            }
+        }
+
+        // true while StopMeasurement runs (its Stop question may be open, a REST Stop waits behind its window); UI thread
+        private bool stopping;
+
+        public override bool StopInProgress
+        {
+            get
+            {
+                AtomSpectraTcpSession tcp = session as AtomSpectraTcpSession;
+                return stopping || (tcp != null && tcp.StopQuestionOpen);
             }
         }
 
@@ -297,7 +324,10 @@ namespace BecquerelMonitor
                 return;
             }
             int port = config.TcpPort;
-            if (session != null && (session.Host != config.Host || session.Port != port || session.TransportName != "TCP"))
+            // the same board by the rule of HostKey (spaces trimmed, the case of the name not counted): a session made again at every
+            // Start for " Board.local" lost what it knew (a joined acquisition stayed joined only inside one session) - T5
+            if (session != null && (session.TransportName != "TCP" || !string.Equals(AtomSpectraTcpSession.HostKey(session.Host, session.Port),
+                AtomSpectraTcpSession.HostKey(config.Host, port), StringComparison.OrdinalIgnoreCase)))
             {
                 CloseSession();
             }
@@ -312,7 +342,7 @@ namespace BecquerelMonitor
                     string newKey = AtomSpectraTcpSession.HostKey(config.Host, port);
                     if (string.Equals(carriedResetKey, newKey, StringComparison.OrdinalIgnoreCase))
                     {
-                        tcp.RequestResetOnNextStart();
+                        tcp.RequestResetOnNextStart(carriedResetSeconds, carriedResetCounts);
                         AtomSpectraTcpLog.Info("Session", "a reset left by the closed session waits for the next Start of " + newKey);
                     }
                     else
@@ -352,6 +382,11 @@ namespace BecquerelMonitor
                 Trace.WriteLine("AtomSpectraTcp: error disposing session: " + ex.Message);
             }
             if (tcp != null && tcp.ResetOnNextStart) carriedResetKey = AtomSpectraTcpSession.HostKey(tcp.Host, tcp.Port);   // read after Dispose: Close may have put a lost -rst back
+            if (tcp != null && tcp.ResetOnNextStart)
+            {
+                carriedResetSeconds = tcp.ClearSeenSeconds;   // what the board held at that Clear goes with the reset (O3)
+                carriedResetCounts = tcp.ClearSeenCounts;
+            }
             session = null;
         }
 
@@ -406,9 +441,10 @@ namespace BecquerelMonitor
 
             // a Start on a board with data asks "Continue / Start over / Cancel" (the REST dialog), knowing what the document holds
             AtomSpectraTcpSession tcp = session as AtomSpectraTcpSession;
+            int foldChannels = ProfileChannels(r);   // the channels every snapshot is folded to (FoldAndUpdate)
             if (tcp != null)
             {
-                tcp.Ask = AppUi.HasWindows ? AnswerGiven(r, new Func<AtomSpectraRestStartQuestion, AtomSpectraRestStartChoice>(q => { q.Note = StartNote(tcp); return AtomSpectraRestUi.AskStart(q); })) : null;
+                tcp.Ask = AppUi.HasWindows ? ReplaceOnlyIfFolds(r, foldChannels, AnswerGiven(r, new Func<AtomSpectraRestStartQuestion, AtomSpectraRestStartChoice>(q => { q.Note = StartNote(tcp); return AtomSpectraRestUi.AskStart(q); }))) : null;
                 tcp.DocumentSeconds = (long)r.ResultDataStatus.ElapsedTime.TotalSeconds;
                 tcp.DocumentCounts = r.EnergySpectrum != null ? r.EnergySpectrum.ValidPulseCount : 0;
             }
@@ -440,7 +476,7 @@ namespace BecquerelMonitor
                     r.StartTime = DateTime.Now - TimeSpan.FromSeconds(s.ElapsedAtBeginSeconds);
                     newDocumentCreated = false;
                 }
-                TakeBoardTime(r, s);
+                TakeBoardSpectrum(r, s, foldChannels);
                 if (s.ElapsedAtBeginSeconds > 0)
                 {
                     // the preset counts the board's time: it must not stop the run at the first tick (as REST, MeasurementController.cs:749)
@@ -484,11 +520,13 @@ namespace BecquerelMonitor
             return false;
         }
 
-        // The note under the Start question: what the probe could not see, then what each button sends.
+        // The note under the Start question: why a Clear left for this Start is asked about, what the probe could not see, then what each button sends.
         private static string StartNote(AtomSpectraTcpSession tcp)
         {
             string seconds = ProbeSeconds();
             string note = Resources.AtomSpectraTcpStartNote;
+            if (tcp.ResetOnNextStart)
+                note = Resources.AtomSpectraTcpStartClearPending + Environment.NewLine + note;   // O3: the board holds an acquisition the Clear did not see
             if (tcp.BoardState == AtomSpectraTcpBoardState.Silent)
                 return string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraTcpStartSilent, seconds) + Environment.NewLine + note;
             if (tcp.BoardState == AtomSpectraTcpBoardState.Uncertain)
@@ -511,6 +549,8 @@ namespace BecquerelMonitor
                     return string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpHeadlessUnknown, ProbeSeconds());
                 case AtomSpectraTcpRefusal.BehindDocument:
                     return Resources.ERRAtomSpectraTcpHeadlessBehind;
+                case AtomSpectraTcpRefusal.ClearPending:
+                    return Resources.ERRAtomSpectraTcpHeadlessClearPending;
                 default:
                     return Resources.ERRAtomSpectraTcpHeadlessStopped;
             }
@@ -569,15 +609,19 @@ namespace BecquerelMonitor
                 return;
             }
 
-            int channels = 0;
-            if (data.DeviceConfig != null)
-            {
-                DeviceConfigInfo configInfo;
-                channels = DeviceConfigManager.GetInstance().DeviceConfigMap.TryGetValue(data.DeviceConfig.Guid ?? "", out configInfo)
-                    ? configInfo.NumberOfChannels : data.DeviceConfig.NumberOfChannels;
-            }
+            UpdateHistogram(BuildArgs(e, ProfileChannels(data), restChannels));   // BuildArgs: a static method, tested without a window
+        }
 
-            UpdateHistogram(BuildArgs(e, channels, restChannels));   // BuildArgs: a static method, tested without a window
+        // The channels of the profile the snapshots are folded to: the configuration map first, else the document's own configuration (0: none).
+        private static int ProfileChannels(ResultData data)
+        {
+            if (data == null || data.DeviceConfig == null)
+            {
+                return 0;
+            }
+            DeviceConfigInfo configInfo;
+            return DeviceConfigManager.GetInstance().DeviceConfigMap.TryGetValue(data.DeviceConfig.Guid ?? "", out configInfo)
+                ? configInfo.NumberOfChannels : data.DeviceConfig.NumberOfChannels;
         }
 
         // The snapshot for the document: folded to the profile's channels; a REST snapshot is folded to restChannels (fixed at Start,
@@ -597,7 +641,8 @@ namespace BecquerelMonitor
 
         private void UpdateHistogram(AtomSpectraTcpDataReadyArgs e)
         {
-            if (resultData == null || !resultData.ResultDataStatus.Recording)
+            // stopping: the run ended when Stop was pressed (O1) - the snapshots that come while its question is open do not move the document on
+            if (resultData == null || !resultData.ResultDataStatus.Recording || stopping)
             {
                 return;
             }
@@ -632,14 +677,22 @@ namespace BecquerelMonitor
             }
 
             // AFTER the length checks above - a snapshot that is refused must not have rewritten the calibration and the configuration file
+            CopySnapshot(resultData, spectrum, e, true);
+        }
+
+        // One snapshot into the document, its length checked already: the channels, the counts, the time and the live time (calibration:
+        // the board calibration of the first REST snapshot after Start as well). The path of every snapshot (UpdateHistogram) and of the
+        // board's spectrum that Replace takes at once (TakeBoardSpectrum).
+        private void CopySnapshot(ResultData data, EnergySpectrum spectrum, AtomSpectraTcpDataReadyArgs e, bool calibration)
+        {
             AtomSpectraRestDataReadyArgs restSnapshot = e as AtomSpectraRestDataReadyArgs;
-            if (boardCalibrationPending && restSnapshot != null)
+            if (calibration && boardCalibrationPending && restSnapshot != null)
             {
                 // the board calibration of the first snapshot after Start -> the document and the configuration
                 boardCalibrationPending = false;
                 // "calib" is for calib_channels; the document has e.Histogram.Length channels (board or client fold)
                 double[] slots = AtomSpectraRestCalibration.ForChannels(restSnapshot.Calibration, restSnapshot.CalibChannels, e.Histogram.Length);
-                AtomSpectraTcpLog.Info("Cal", ApplyBoardCalibration(spectrum, resultData.DeviceConfig, slots, configSaver));
+                AtomSpectraTcpLog.Info("Cal", ApplyBoardCalibration(spectrum, data.DeviceConfig, slots, configSaver));
             }
 
             Array.Copy(e.Histogram, spectrum.Spectrum, e.Histogram.Length);
@@ -650,15 +703,15 @@ namespace BecquerelMonitor
             spectrum.ChannelPitch = 1;
 
             TimeSpan elapsed = TimeSpan.FromSeconds(e.ElapsedTime);
-            resultData.ResultDataStatus.TotalTime = elapsed;
-            resultData.ResultDataStatus.ElapsedTime = elapsed;
+            data.ResultDataStatus.TotalTime = elapsed;
+            data.ResultDataStatus.ElapsedTime = elapsed;
 
             AtomSpectraRestDataReadyArgs rest = e as AtomSpectraRestDataReadyArgs;
             bool boardLive = rest != null && !double.IsNaN(rest.LiveSeconds) && !double.IsInfinity(rest.LiveSeconds)
                 && rest.LiveSeconds > 0 && rest.LiveSeconds <= elapsed.TotalSeconds + 1;
-            if (resultData.MeasurementController != null)
+            if (data.MeasurementController != null)
             {
-                MeasurementController.SetSpectrumTimes(spectrum, elapsed.TotalSeconds, resultData.DeviceConfig, boardLive);
+                MeasurementController.SetSpectrumTimes(spectrum, elapsed.TotalSeconds, data.DeviceConfig, boardLive);
                 if (boardLive)
                 {
                     // REST: live time measured by the board itself (GET /api/spectrum.json "live")
@@ -717,6 +770,9 @@ namespace BecquerelMonitor
         {
             IAtomSpectraSession s = session;
             Trace.WriteLine("AtomSpectraTcp: link lost " + (s != null ? AtomSpectraTcpSession.HostKey(s.Host, s.Port) : "unknown"));
+            AtomSpectraRestSession denied = s as AtomSpectraRestSession;   // 401/403 is a refusal of access, not a lost link
+            // every loss goes to the status line, a 401/403 after a restored link too (R7); the window only once per measurement
+            if (s != null) SetStatus(s, denied != null ? denied.LinkLostStatusText() : Resources.AtomSpectraTcpStatusLinkLost);
             if (linkLossReported)
             {
                 return;
@@ -726,8 +782,6 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            AtomSpectraRestSession denied = s as AtomSpectraRestSession;   // 401/403 is a refusal of access, not a lost link
-            SetStatus(s, denied != null ? denied.LinkLostStatusText() : Resources.AtomSpectraTcpStatusLinkLost);
             // The status bar shows "port lost" only for the COM type (MainForm); until that is extended,
             // the loss is announced once per measurement.
             AtomSpectraRestSession rs = s as AtomSpectraRestSession;   // REST has its own text, not the TCP bridge one

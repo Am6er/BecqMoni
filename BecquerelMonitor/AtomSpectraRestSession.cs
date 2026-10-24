@@ -121,6 +121,8 @@ namespace BecquerelMonitor
         public string LastErrorText { get { return lastUserError; } }      // the user's text of the same failure (null: none)
         public bool JoinedRunning { get { return joined; } }
         public bool ReplacedDocument { get { return replaced; } }
+        // Replace: the board's spectrum the Start question showed (the second look) as a snapshot for the document; its live time and calibration come with the first poll
+        public AtomSpectraTcpDataReadyArgs ReplacedSnapshot { get { AtomSpectraRestBoardSample p = lastProbe; return replaced && p != null && p.HasData && p.Bins != null ? new AtomSpectraRestDataReadyArgs((int[])p.Bins.Clone(), 0, (int)Math.Min(int.MaxValue, p.Time), 0, 0, double.NaN, p.Total, false, p.HistOk, null) : null; } }
         public double ElapsedAtBeginSeconds { get { return elapsedAtBegin; } }
         public bool StartedByUs { get { return startedByUs; } }
         public bool ObserveOnly { get { return observeOnly; } }

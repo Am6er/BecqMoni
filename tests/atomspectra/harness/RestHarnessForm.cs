@@ -13,6 +13,7 @@ namespace RestHarness
         {
             if (RunUiFix(scenario)) return true;   // PR37 fix, UI lane (UiFix.cs)
             if (scenario.StartsWith("fixr")) return RunFixR(scenario);   // PR #38, maintainer's REST fixes (RestHarnessFixR.cs)
+            if (scenario.StartsWith("tcplane-") || scenario.StartsWith("console-tcp-lane-")) return RunTcpLane(scenario);   // PR #38, TCP lane (RestHarnessTcpLane.cs)
             if (scenario == "console-tcp-fix10-stop-reenter" || scenario.StartsWith("fix10-")) return RunFix10(scenario);   // audit 6 (RestHarnessFix10.cs)
             if (scenario == "fix9-reset-carry" || scenario == "fix9-reset-other-board") return RunFix9b(scenario);   // VERIFY-4 #7 (RestHarnessFix9b.cs)
             if (scenario == "bm10-quiet-three" || scenario == "bm10-count-address" || scenario == "bm10-bind-fallback"

@@ -16,6 +16,7 @@ namespace BecquerelMonitor
         bool JoinedRunning { get; }             // Begin only joined an acquisition already running on the board
         double ElapsedAtBeginSeconds { get; }   // board acquisition time at Begin when joined, else 0
         bool ReplacedDocument { get; }          // Begin took the board's spectrum in place of the document's ("Replace document spectrum")
+        AtomSpectraTcpDataReadyArgs ReplacedSnapshot { get; }   // Replace: the board's snapshot the Start question showed (null otherwise)
         Func<bool> AskStopJoined { get; set; }  // Stop of a joined acquisition: true = -sto as well; null = no window, nothing sent
         AtomSpectraTcpBeginOutcome Begin(bool newDocument, int commandTimeoutMs);
         AtomSpectraTcpStopOutcome Stop(int commandTimeoutMs);
