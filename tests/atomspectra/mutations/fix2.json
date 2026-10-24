@@ -9,7 +9,7 @@
    "old": "if (!IsDefaultName(name))",
    "new": "if (false)"},
   {"id": "FX-F4-silent-asks", "target": "console-tcp-fix2-silent", "file": "AtomSpectraTcpSession.cs",
-   "old": "if (BoardState == AtomSpectraTcpBoardState.Silent && !newDocument) plan = AtomSpectraRestStartPlan.StartNew;",
+   "old": "if (BoardState == AtomSpectraTcpBoardState.Silent && !newDocument && !wasJoined) plan = AtomSpectraRestStartPlan.StartNew;",
    "new": "if (false) plan = AtomSpectraRestStartPlan.StartNew;"},
   {"id": "FX-F6-held-run-direct", "target": "fix2-after-wait-held", "file": "AtomSpectraRestUi.AfterWait.cs",
    "old": "                else\n                {\n                    AfterWaitSafe(action);\n                }",

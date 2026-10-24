@@ -11,6 +11,9 @@ namespace BecquerelMonitor
         // true while the Stop question of a joined acquisition is on the screen
         private bool stopQuestionOpen;
 
+        // the same for the controller: a Stop entered meanwhile (the preset, the timer) is not a second stop of the run (O1)
+        public bool StopQuestionOpen { get { return stopQuestionOpen; } }
+
         // Stop of a joined acquisition with a window to ask in; true = the user stops it on the board, Stop goes on to -sto as for its own run
         private bool StopJoinedOnBoard()
         {

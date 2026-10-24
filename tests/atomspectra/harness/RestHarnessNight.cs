@@ -185,11 +185,11 @@ namespace RestHarness
                         object f = given.GetParameters().Length == 2 ? given.Invoke(null, new object[] { rd, ask }) : given.Invoke(null, new object[] { rd });
                         return (Func<AtomSpectraRestStartQuestion, AtomSpectraRestStartChoice>)f;
                     }
-                    var r1 = Prepared()(new AtomSpectraRestStartQuestion { Board = Sample(500, 5000), DocumentSeconds = 100, DocumentCounts = 1000, ContinueAllowed = true, ReplaceAllowed = false });
+                    var r1 = Prepared()(new AtomSpectraRestStartQuestion { Counting = true, Board = Sample(500, 5000), DocumentSeconds = 100, DocumentCounts = 1000, ContinueAllowed = true, ReplaceAllowed = false });
                     Check(r1 != AtomSpectraRestStartChoice.Replace && fallback == 1, "the board overtook the document since the answer: Replace given in advance is not used, the question is asked again (" + r1 + ", asked " + fallback + ")");
-                    var r2 = Prepared()(new AtomSpectraRestStartQuestion { Board = Sample(50, 400), DocumentSeconds = 1000, DocumentCounts = 9000, ContinueAllowed = false, ReplaceAllowed = true });
+                    var r2 = Prepared()(new AtomSpectraRestStartQuestion { Counting = true, Board = Sample(50, 400), DocumentSeconds = 1000, DocumentCounts = 9000, ContinueAllowed = false, ReplaceAllowed = true });
                     Check(r2 != AtomSpectraRestStartChoice.Replace && fallback == 2, "the board was reset again since the answer (50 s < 100 s seen): asked again (" + r2 + ", asked " + fallback + ")");
-                    var r3 = Prepared()(new AtomSpectraRestStartQuestion { Board = Sample(130, 1500), DocumentSeconds = 1000, DocumentCounts = 9000, ContinueAllowed = false, ReplaceAllowed = true });
+                    var r3 = Prepared()(new AtomSpectraRestStartQuestion { Counting = true, Board = Sample(130, 1500), DocumentSeconds = 1000, DocumentCounts = 9000, ContinueAllowed = false, ReplaceAllowed = true });
                     Check(r3 == AtomSpectraRestStartChoice.Replace && fallback == 2, "the board as seen, grown: Replace holds without a question (control, " + r3 + ")");
                     return true;
                 }
