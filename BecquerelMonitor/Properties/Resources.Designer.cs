@@ -9540,7 +9540,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Atom Spectra analyzer through the board's web interface (REST, HTTP). Address host[:port], the default port is 80; "Refresh" finds atomspectra.local. The board is polled every 1-60 s. Commands are sent as POST /api/command; the analyzer's text answer is shown from the board log..
+        ///   Looks up a localized string similar to Atom Spectra analyzer through the board's web interface (REST, HTTP). Address host[:port], the default port is 80; "Refresh" searches the network for the board (several boards - a choice window). The board is polled every 1-60 s. Commands are sent as POST /api/command; the analyzer's text answer is shown from the board log..
         /// </summary>
         public static string AtomSpectraRestHint {
             get {
@@ -9709,7 +9709,16 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("AtomSpectraBoardChoiceIncomplete", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Status: searching the network for boards….
+        /// </summary>
+        public static string AtomSpectraConsoleStatusBrowsing {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleStatusBrowsing", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Host name.
         /// </summary>

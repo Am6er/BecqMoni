@@ -217,7 +217,9 @@ namespace BecquerelMonitor
             textAddress.Focus();
             buttonRefresh.Enabled = false;
             AutoScrollPosition = scrollPos;
-            SetStatus(Color.Gray, string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleStatusSearching, name));
+            // the default name is not looked up by itself first: the network is browsed (the status said "searching atomspectra.local" - seen on screen)
+            SetStatus(Color.Gray, AtomSpectraBoardFinder.IsDefaultName(name) ? Resources.AtomSpectraConsoleStatusBrowsing
+                : string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleStatusSearching, name));
 
             Thread worker = new Thread(() =>
             {

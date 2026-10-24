@@ -3553,6 +3553,9 @@ http://xptable.sourceforge.net/</value>
   <data name="AtomSpectraBoardChoiceIncomplete" xml:space="preserve">
     <value>Не все платы прислали адрес вовремя (без адреса: {0}), в списке их нет. Чтобы поискать снова, нажмите «Отмена», затем «Обновить».</value>
   </data>
+  <data name="AtomSpectraConsoleStatusBrowsing" xml:space="preserve">
+    <value>Статус: поиск плат в сети…</value>
+  </data>
   <data name="AtomSpectraConsolePollTcpHint" xml:space="preserve">
     <value>TCP: прибор сам передаёт спектр непрерывно, период опроса не используется</value>
   </data>
@@ -3569,7 +3572,7 @@ http://xptable.sourceforge.net/</value>
     <value>AtomSpectra REST: плата {0} не отвечает ({2}). Измерение не начато: проверьте адрес и сеть, затем снова нажмите «Старт». Во время измерения BecqMoni продолжает опрашивать плату каждые {1} с, если она перестала отвечать.</value>
   </data>
   <data name="AtomSpectraRestHint" xml:space="preserve">
-    <value>Анализатор Atom Spectra через веб-интерфейс платы (REST, HTTP). Адрес host[:port], порт по умолчанию 80; «Обновить» находит atomspectra.local. Плата опрашивается каждые 1–60 с. Команды передаются запросом POST /api/command, текстовый ответ прибора показывается из журнала платы.</value>
+    <value>Анализатор Atom Spectra через веб-интерфейс платы (REST, HTTP). Адрес host[:port], порт по умолчанию 80; «Обновить» ищет плату в сети (несколько плат — окно выбора). Плата опрашивается каждые 1–60 с. Команды передаются запросом POST /api/command, текстовый ответ прибора показывается из журнала платы.</value>
   </data>
   <data name="AtomSpectraRestTcpTestDisabled" xml:space="preserve">
     <value>Режим REST: проверка порта моста не используется; проверьте плату кнопкой «Проверить связь (REST)» ниже.</value>

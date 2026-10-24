@@ -44788,6 +44788,9 @@ The setting is saved on the board and applies to all its clients. If other progr
   <data name="AtomSpectraBoardChoiceIncomplete" xml:space="preserve">
     <value>Not every board sent its address in time ({0} without an address); they are not in the list. To search again, press Cancel, then Refresh.</value>
   </data>
+  <data name="AtomSpectraConsoleStatusBrowsing" xml:space="preserve">
+    <value>Status: searching the network for boards…</value>
+  </data>
   <data name="AtomSpectraConsolePollTcpHint" xml:space="preserve">
     <value>TCP: the analyzer streams the spectrum, the poll interval is not used</value>
   </data>
@@ -44804,7 +44807,7 @@ The setting is saved on the board and applies to all its clients. If other progr
     <value>AtomSpectra REST: the board {0} does not answer ({2}). The measurement is not started: check the address and the network, then press Start again. During a measurement BecqMoni keeps polling the board every {1} s when it stops answering.</value>
   </data>
   <data name="AtomSpectraRestHint" xml:space="preserve">
-    <value>Atom Spectra analyzer through the board's web interface (REST, HTTP). Address host[:port], the default port is 80; "Refresh" finds atomspectra.local. The board is polled every 1-60 s. Commands are sent as POST /api/command; the analyzer's text answer is shown from the board log.</value>
+    <value>Atom Spectra analyzer through the board's web interface (REST, HTTP). Address host[:port], the default port is 80; "Refresh" searches the network for the board (several boards - a choice window). The board is polled every 1-60 s. Commands are sent as POST /api/command; the analyzer's text answer is shown from the board log.</value>
   </data>
   <data name="AtomSpectraRestTcpTestDisabled" xml:space="preserve">
     <value>REST mode: the bridge port test is not used; check the board with "Test connection (REST)" below.</value>
