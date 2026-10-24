@@ -610,7 +610,15 @@
     <Compile Include="AtomSpectraRestUi.cs" />
     <Compile Include="AtomSpectraTcpDeviceConfig.Rest.cs" />
     <Compile Include="AtomSpectraTcpDeviceController.Rest.cs" />
+    <Compile Include="AtomSpectraTcpDeviceController.BoardOffers.cs" />
+    <Compile Include="AtomSpectraRestSession.JoinedAndObserve.cs" />
+    <Compile Include="AtomSpectraRestUi.AfterWait.cs" />
+    <Compile Include="AtomSpectraTcpSession.JoinedStop.cs" />
     <Compile Include="AtomSpectraDeviceConsole.cs" />
+    <Compile Include="AtomSpectraDnsSd.cs" />
+    <Compile Include="AtomSpectraDnsSd.Adapters.cs" />
+    <Compile Include="AtomSpectraDnsSd.Schedule.cs" />
+    <Compile Include="AtomSpectraBoardChooser.cs" />
     <Compile Include="AtomSpectraDevlog.cs" />
     <Compile Include="AtomSpectraTcpDeviceForm.Console.cs">
       <DependentUpon>AtomSpectraTcpDeviceForm.cs</DependentUpon>

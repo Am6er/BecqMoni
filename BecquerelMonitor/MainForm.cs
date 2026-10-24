@@ -415,7 +415,7 @@ namespace BecquerelMonitor
                 // Stop and shut down controllers of ALL ResultData, not just the active
                 // one - otherwise non-active recordings kept their worker threads alive
                 // past application close.
-                this.StopRecordingOrTesting(docEnergySpectrum);
+                this.StopRecordingOrTesting(docEnergySpectrum, false);   // the program closes: no question
                 foreach (ResultData resultData in docEnergySpectrum.ResultDataFile.ResultDataList)
                 {
                     DeviceController dc = resultData.MeasurementController != null
@@ -1794,7 +1794,10 @@ namespace BecquerelMonitor
             {
                 if (this.ConfirmSaveDocument(this.activeDocument))
                 {
-                    this.StopRecordingOrTesting(this.activeDocument);
+                    if (!this.StopRecordingOrTesting(this.activeDocument, true))   // the user closes the document
+                    {
+                        return false;   // the program began to close during that Stop: it tears everything down itself
+                    }
                     this.DestroyVCPThreads(this.activeDocument);
                     this.DestroyRCThreads(this.activeDocument);
                     this.DestroyObsidianThreads(this.activeDocument);
@@ -1813,7 +1816,10 @@ namespace BecquerelMonitor
             {
                 if (docEnergySpectrum.Filename == filename)
                 {
-                    this.StopRecordingOrTesting(docEnergySpectrum);
+                    if (!this.StopRecordingOrTesting(docEnergySpectrum, true))   // the user closes the document
+                    {
+                        return;   // the program began to close during that Stop: it tears everything down itself
+                    }
                     this.DestroyVCPThreads(docEnergySpectrum);
                     this.DestroyRCThreads(docEnergySpectrum);
                     this.DestroyObsidianThreads(docEnergySpectrum);
@@ -1909,8 +1915,12 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000A78 RID: 2680 RVA: 0x0003E564 File Offset: 0x0003C764
-        void StopRecordingOrTesting(DocEnergySpectrum doc)
+        // manual: a person closes the document (a joined AtomSpectra acquisition may ask); false: the program closes (no question).
+        // false: the program began to close during one of these Stops (its question was open, a modal loop) - the caller goes no further,
+        // MainForm_FormClosing has torn the documents and the devices down
+        bool StopRecordingOrTesting(DocEnergySpectrum doc, bool manual)
         {
+            bool closing = MainForm.ApplicationClosing;
             // Stop ALL recording spectra of the document, not only the active one:
             // multi-recording is a normal state (OnTimer services every recording
             // ResultData), but stop/close/delete only handled ActiveResultData.
@@ -1918,9 +1928,14 @@ namespace BecquerelMonitor
             {
                 if (resultData.ResultDataStatus.Recording && resultData.MeasurementController != null)
                 {
-                    resultData.MeasurementController.StopRecording();
+                    resultData.MeasurementController.StopRecording(manual);
+                    if (MainForm.ApplicationClosing && !closing)
+                    {
+                        return false;
+                    }
                 }
             }
+            return true;
         }
 
         // Token: 0x06000A79 RID: 2681 RVA: 0x0003E5A8 File Offset: 0x0003C7A8
@@ -2527,7 +2542,10 @@ namespace BecquerelMonitor
                 e.Cancel = true;
                 return;
             }
-            this.StopRecordingOrTesting(docEnergySpectrum);
+            if (!this.StopRecordingOrTesting(docEnergySpectrum, true))   // the user closes the document window (the MdiFormClosing branch above returned earlier)
+            {
+                return;   // the program began to close during that Stop: it tears everything down itself
+            }
             this.DestroyVCPThreads(docEnergySpectrum);
             this.DestroyRCThreads(docEnergySpectrum);
             this.DestroyObsidianThreads(docEnergySpectrum);
@@ -2607,6 +2625,46 @@ namespace BecquerelMonitor
                 this.ShowMeasurementResult(true);
                 this.dcSpectrumListView.ShowSpectrumList(doc);
             }
+        }
+
+        // A new empty document with the device configuration, efficiency, background and settings of `source` (AtomSpectra:
+        // "Open the board's acquisition in a new document"); null when it was not created. The new document is the active one.
+        public ResultData CreateDocumentLike(ResultData source)
+        {
+            if (source == null || source.EnergySpectrum == null || !CreateDocument()) return null;
+            ResultData data = this.activeDocument.ActiveResultData;
+            data.DeviceConfig = source.DeviceConfig;
+            data.DeviceConfigReference = source.DeviceConfigReference;
+            data.DeviceConfigWiped = source.DeviceConfigWiped;
+            data.EnergySpectrum = new EnergySpectrum(source.EnergySpectrum.ChannelPitch, source.EnergySpectrum.NumberOfChannels);
+            if (source.EnergySpectrum.EnergyCalibration != null) data.EnergySpectrum.EnergyCalibration = source.EnergySpectrum.EnergyCalibration.Clone();
+            if (source.PeakDetectionMethodConfig != null) data.PeakDetectionMethodConfig = source.PeakDetectionMethodConfig.Clone();
+            data.FwhmCalibration = source.FwhmCalibration != null ? source.FwhmCalibration.Clone() : null;
+            data.Efficiency = source.Efficiency != null ? source.Efficiency.Copy() : null;
+            // as ResultData.Clone: the mark "the file's own curve" (reference identity), the sample, the detector feature
+            data.FileEfficiency = ReferenceEquals(source.Efficiency, source.FileEfficiency) ? data.Efficiency : (source.FileEfficiency != null ? source.FileEfficiency.Copy() : null);
+            if (source.SampleInfo != null) data.SampleInfo = source.SampleInfo.Clone();
+            data.DetectorFeature = source.DetectorFeature;
+            data.BackgroundEnergySpectrum = source.BackgroundEnergySpectrum != null ? source.BackgroundEnergySpectrum.Clone() : null;
+            data.BackgroundSpectrumFile = source.BackgroundSpectrumFile;
+            data.BackgroundSpectrumPathname = source.BackgroundSpectrumPathname;
+            data.PresetTime = data.ResultDataStatus.PresetTime = source.PresetTime;
+            this.activeDocument.Dirty = true;
+            this.UpdateAllView();
+            return data;
+        }
+
+        // "Start" of the control panel on `data`, its document brought to the front first. false: the document is closed or
+        // another of its spectra is selected - nothing is started then - or the Start itself was refused. replacing: the board's spectrum
+        // replaces the document's, so the document's own time is not held against the preset of the panel.
+        public bool StartRecordingOf(ResultData data, bool replacing = false)
+        {
+            DocEnergySpectrum doc = data != null && data.MeasurementController != null ? data.MeasurementController.Document : null;
+            if (doc == null || !this.documentManager.DocumentList.Contains(doc) || doc.ActiveResultData != data) return false;
+            if (doc != this.activeDocument) doc.Activate();
+            if (doc != this.activeDocument) return false;
+            this.dcControlPanel.StartMeasurement(replacing);
+            return data.ResultDataStatus.Recording;
         }
 
         public void SetStatusTextLeft(string Text)
@@ -2713,7 +2771,12 @@ namespace BecquerelMonitor
             // the device controller running with no owner.
             if (activeResultData.ResultDataStatus.Recording && activeResultData.MeasurementController != null)
             {
-                activeResultData.MeasurementController.StopRecording();
+                bool closing = MainForm.ApplicationClosing;
+                activeResultData.MeasurementController.StopRecording(true);   // the user deletes the spectrum: a joined acquisition may ask
+                if (MainForm.ApplicationClosing && !closing)
+                {
+                    return;   // the program began to close while that question was open: its forms are being torn down
+                }
             }
             // Fully tear down the controller (lease + dispose + unsubscribe from the singleton
             // input), matching the document-close path. Deleting a spectrum used to only remove

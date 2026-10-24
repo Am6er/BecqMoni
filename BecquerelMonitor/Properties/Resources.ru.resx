@@ -2691,10 +2691,19 @@ http://xptable.sourceforge.net/</value>
     <value>AtomSpectra TCP: анализатор за {0}:{1} не ответил на команду остановки. Он может продолжать набор; BecqMoni повторит остановку, как только плата примет новое подключение. Проверьте спектр, прежде чем продолжать этот набор.</value>
   </data>
   <data name="MSGAtomSpectraTcpBoardReset" xml:space="preserve">
-    <value>AtomSpectra TCP: счётчики анализатора за {0}:{1} уменьшились (время {2} с → {3} с, импульсов {4} → {5}): его сбросили или перезапустили извне. Документ не перезаписан, запись остановлена; плате ничего не отправлялось. Чтобы взять новый набор, создайте новый документ и нажмите «Старт».</value>
+    <value>AtomSpectra TCP: счётчики анализатора за {0}:{1} уменьшились (время {2} с → {3} с, импульсов {4} → {5}): его сбросили или перезапустили извне. Документ не перезаписан, запись остановлена; плате ничего не отправлялось.</value>
   </data>
   <data name="MSGAtomSpectraTcpClearJoinedConfirm" xml:space="preserve">
     <value>BecqMoni присоединилось к набору, который уже шёл на анализаторе; в нём {0} ч {1} мин, импульсов {2}. Сбросить спектр НА АНАЛИЗАТОРЕ (-rst)? Отменить будет нельзя.</value>
+  </data>
+  <data name="MSGAtomSpectraTcpClearJoinedDeferredConfirm" xml:space="preserve">
+    <value>BecqMoni присоединилось к набору, который уже шёл на анализаторе, но запись сейчас остановлена. Сейчас будет очищен только документ, анализатору ничего не отправляется; спектр на анализаторе будет сброшен (-rst) при следующем «Старт», а если анализатор к тому времени наберёт ещё, «Старт» сначала спросит. Продолжить? Отменить будет нельзя.</value>
+  </data>
+  <data name="AtomSpectraTcpStartClearPending" xml:space="preserve">
+    <value>«Очистить» отложило сброс анализатора до этого «Старт», но с тех пор анализатор набирал (или его сбросили извне): на нём набор, которого та очистка не видела, и без вопроса он не стирается. «Начать заново (сброс)» сотрёт его сейчас; «Продолжить без сброса» его сохранит.</value>
+  </data>
+  <data name="ERRAtomSpectraTcpHeadlessClearPending" xml:space="preserve">
+    <value>AtomSpectra TCP: «Очистить» отложило сброс анализатора до этого «Старт», но на анализаторе набор, которого та очистка не видела (с тех пор он набирал или его сбросили извне), а запуск без окон не может спросить, стирать ли его. Плате ничего не отправлено.</value>
   </data>
   <data name="MSGAtomSpectraTcpNotReset" xml:space="preserve">
     <value>Анализатор НЕ сброшен; его спектр цел. Пока идёт набор, документ заполняется с анализатора заново.</value>
@@ -3274,6 +3283,24 @@ http://xptable.sourceforge.net/</value>
   <data name="AtomSpectraRestStartBehind" xml:space="preserve">
     <value>На плате меньше, чем в документе: плату сбрасывали или перезапускали. Продолжить в этом документе нельзя; для нового измерения создайте новый документ.</value>
   </data>
+  <data name="AtomSpectraRestStartBehindReplace" xml:space="preserve">
+    <value>На плате меньше, чем в документе: плату сбрасывали или перезапускали. Продолжить в этом документе нельзя.</value>
+  </data>
+  <data name="AtomSpectraRestStartOtherSpectrumReplace" xml:space="preserve">
+    <value>В канале {0} на плате меньше отсчётов, чем в документе: на плате другое измерение. Продолжить в этом документе нельзя.</value>
+  </data>
+  <data name="AtomSpectraRestStatusAccessDenied" xml:space="preserve">
+    <value>доступ запрещён (HTTP {0}): проверьте токен; опрос продолжается</value>
+  </data>
+  <data name="MSGAtomSpectraStopJoinedAsk" xml:space="preserve">
+    <value>AtomSpectra: запись в BecqMoni останавливается. Измерение на плате {0} уже шло, когда началась эта запись (программа лишь присоединилась к нему). Остановить измерение и на плате? Если не останавливать, плата продолжит считать.</value>
+  </data>
+  <data name="AtomSpectraStopOnBoard" xml:space="preserve">
+    <value>Остановить измерение на плате</value>
+  </data>
+  <data name="AtomSpectraKeepCounting" xml:space="preserve">
+    <value>Не останавливать</value>
+  </data>
   <data name="AtomSpectraRestContinue" xml:space="preserve">
     <value>Продолжить без сброса</value>
   </data>
@@ -3282,6 +3309,18 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="AtomSpectraRestCancel" xml:space="preserve">
     <value>Отмена</value>
+  </data>
+  <data name="AtomSpectraRestReplace" xml:space="preserve">
+    <value>Заменить спектр документа</value>
+  </data>
+  <data name="AtomSpectraRestStartReplaceHint" xml:space="preserve">
+    <value>«Заменить спектр документа» — в этот документ берутся спектр и время платы, плата не сбрасывается (плате, которая считает, ничего не посылается; стоящая плата получает только -sta); эффективность, фон и настройки документа остаются.</value>
+  </data>
+  <data name="MSGAtomSpectraRestReplaceConfirm" xml:space="preserve">
+    <value>Спектр документа ({0} ч {1} мин, импульсов {2}) будет заменён спектром платы ({3} ч {4} мин, импульсов {5}); плата не сбрасывается. При сохранении документа, в том числе автосохранением, его файл будет перезаписан спектром платы. Чтобы сохранить прежний спектр, сначала сохраните документ под другим именем («Сохранить как...»). Заменить спектр документа?</value>
+  </data>
+  <data name="AtomSpectraRestStartReplaceHintObserve" xml:space="preserve">
+    <value>«Заменить спектр документа» — в этот документ берутся спектр и время платы; включено «только наблюдение», поэтому плате ничего не посылается (ни -sta, ни сброса) и документ следует за платой как есть; эффективность, фон и настройки документа остаются.</value>
   </data>
   <data name="MSGAtomSpectraRestClearConfirm" xml:space="preserve">
     <value>На плате набрано {0} ч {1} мин, импульсов {2}. Сбросить спектр НА ПЛАТЕ? Отменить будет нельзя.</value>
@@ -3296,7 +3335,22 @@ http://xptable.sourceforge.net/</value>
     <value>Режим «только наблюдение»: команды на плату не отправляются, плата не сброшена.</value>
   </data>
   <data name="MSGAtomSpectraRestBoardReset" xml:space="preserve">
-    <value>Плату сбросили или перезапустили ({0}). Документ не изменён, запись остановлена; команды плате не посылались. Чтобы взять новое измерение, создайте новый документ и нажмите «Старт».</value>
+    <value>Плату сбросили или перезапустили ({0}). Документ не изменён, запись остановлена; команды плате не посылались.</value>
+  </data>
+  <data name="MSGAtomSpectraRestBoardResetNewDocument" xml:space="preserve">
+    <value>Чтобы взять новое измерение, создайте новый документ и нажмите «Старт».</value>
+  </data>
+  <data name="AtomSpectraRestBoardResetTitle" xml:space="preserve">
+    <value>Плату сбросили</value>
+  </data>
+  <data name="AtomSpectraRestBoardResetChoices" xml:space="preserve">
+    <value>«Заменить спектр документа» — новый набор платы берётся в этот документ (плата не сбрасывается). «Открыть набор платы в новом документе» — новый документ с той же конфигурацией устройства, эффективностью и фоном, присоединённый к набору платы.</value>
+  </data>
+  <data name="AtomSpectraRestOpenNewDocument" xml:space="preserve">
+    <value>Открыть набор платы в новом документе</value>
+  </data>
+  <data name="AtomSpectraRestClose" xml:space="preserve">
+    <value>Закрыть</value>
   </data>
   <data name="MSGAtomSpectraRestBoardStalled" xml:space="preserve">
     <value>Плата сама остановила счёт. Запись в BecqMoni остановлена; команды плате не посылались.</value>
@@ -3469,6 +3523,39 @@ http://xptable.sourceforge.net/</value>
   <data name="AtomSpectraConsoleStatusSearching" xml:space="preserve">
     <value>Статус: поиск {0}…</value>
   </data>
+  <data name="AtomSpectraBoardChoiceTitle" xml:space="preserve">
+    <value>AtomSpectra: выбор платы</value>
+  </data>
+  <data name="AtomSpectraBoardChoicePrompt" xml:space="preserve">
+    <value>В сети ответили несколько плат. Выберите плату для этой конфигурации:</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceAddress" xml:space="preserve">
+    <value>Адрес</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceSerial" xml:space="preserve">
+    <value>Серийный номер</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceHost" xml:space="preserve">
+    <value>Имя хоста</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceService" xml:space="preserve">
+    <value>Служба</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceCancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceCancelled" xml:space="preserve">
+    <value>Статус: найдено несколько плат, плата не выбрана. Адрес не изменён.</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceOk" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceIncomplete" xml:space="preserve">
+    <value>Не все платы прислали адрес вовремя (без адреса: {0}), в списке их нет. Чтобы поискать снова, нажмите «Отмена», затем «Обновить».</value>
+  </data>
+  <data name="AtomSpectraConsoleStatusBrowsing" xml:space="preserve">
+    <value>Статус: поиск плат в сети…</value>
+  </data>
   <data name="AtomSpectraConsolePollTcpHint" xml:space="preserve">
     <value>TCP: прибор сам передаёт спектр непрерывно, период опроса не используется</value>
   </data>
@@ -3485,7 +3572,7 @@ http://xptable.sourceforge.net/</value>
     <value>AtomSpectra REST: плата {0} не отвечает ({2}). Измерение не начато: проверьте адрес и сеть, затем снова нажмите «Старт». Во время измерения BecqMoni продолжает опрашивать плату каждые {1} с, если она перестала отвечать.</value>
   </data>
   <data name="AtomSpectraRestHint" xml:space="preserve">
-    <value>Анализатор Atom Spectra через веб-интерфейс платы (REST, HTTP). Адрес host[:port], порт по умолчанию 80; «Обновить» находит atomspectra.local. Плата опрашивается каждые 1–60 с. Команды передаются запросом POST /api/command, текстовый ответ прибора показывается из журнала платы.</value>
+    <value>Анализатор Atom Spectra через веб-интерфейс платы (REST, HTTP). Адрес host[:port], порт по умолчанию 80; «Обновить» ищет плату в сети (несколько плат — окно выбора). Плата опрашивается каждые 1–60 с. Команды передаются запросом POST /api/command, текстовый ответ прибора показывается из журнала платы.</value>
   </data>
   <data name="AtomSpectraRestTcpTestDisabled" xml:space="preserve">
     <value>Режим REST: проверка порта моста не используется; проверьте плату кнопкой «Проверить связь (REST)» ниже.</value>

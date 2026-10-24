@@ -216,7 +216,8 @@ namespace SessionHarness
         private static int RunP1(int port, string logPath)
         {
             var session = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
-            session.Clear(1000);   // a Start without a window no longer restarts a counting board by itself; an explicit Clear first keeps these scenarios on the -sto/-rst/-sta start they test
+            session.Clear(1000);   // a Clear left for the next Start keeps these scenarios on the -sto/-rst/-sta start they test; since O3 it does not
+            session.Ask = q => AtomSpectraRestStartChoice.Restart;   // reset a counting board blind, the Start question is answered "Start over"
             var beginOutcome = session.Begin(true, 1000);
             if (beginOutcome != AtomSpectraTcpBeginOutcome.Started)
             {
@@ -270,7 +271,8 @@ namespace SessionHarness
         private static int RunP1Clear(int port, string logPath)
         {
             var session = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
-            session.Clear(1000);   // a Start without a window no longer restarts a counting board by itself; an explicit Clear first keeps these scenarios on the -sto/-rst/-sta start they test
+            session.Clear(1000);   // a Clear left for the next Start keeps these scenarios on the -sto/-rst/-sta start they test; since O3 it does not
+            session.Ask = q => AtomSpectraRestStartChoice.Restart;   // reset a counting board blind, the Start question is answered "Start over"
             var beginOutcome = session.Begin(true, 1000);
             if (beginOutcome != AtomSpectraTcpBeginOutcome.Started)
             {
@@ -345,7 +347,8 @@ namespace SessionHarness
         private static int RunP2Fast(int port, string logPath)
         {
             var session = new AtomSpectraTcpSession("127.0.0.1", port, 60000, 1000, null);
-            session.Clear(1000);   // a Start without a window no longer restarts a counting board by itself; an explicit Clear first keeps these scenarios on the -sto/-rst/-sta start they test
+            session.Clear(1000);   // a Clear left for the next Start keeps these scenarios on the -sto/-rst/-sta start they test; since O3 it does not
+            session.Ask = q => AtomSpectraRestStartChoice.Restart;   // reset a counting board blind, the Start question is answered "Start over"
             var beginOutcome = session.Begin(true, 1000);
             if (beginOutcome != AtomSpectraTcpBeginOutcome.Started)
             {
@@ -399,7 +402,8 @@ namespace SessionHarness
         private static int RunP2Deferred(int port, string logPath)
         {
             var session = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
-            session.Clear(1000);   // a Start without a window no longer restarts a counting board by itself; an explicit Clear first keeps these scenarios on the -sto/-rst/-sta start they test
+            session.Clear(1000);   // a Clear left for the next Start keeps these scenarios on the -sto/-rst/-sta start they test; since O3 it does not
+            session.Ask = q => AtomSpectraRestStartChoice.Restart;   // reset a counting board blind, the Start question is answered "Start over"
             var beginOutcome = session.Begin(true, 1000);
             if (beginOutcome != AtomSpectraTcpBeginOutcome.Started)
             {
@@ -458,7 +462,8 @@ namespace SessionHarness
         private static int RunBusy(int port)
         {
             var s1 = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
-            s1.Clear(1000);   // a Start without a window no longer restarts a counting board by itself; an explicit Clear first keeps these scenarios on the -sto/-rst/-sta start they test
+            s1.Clear(1000);   // a Clear left for the next Start keeps this scenario on the -sto/-rst/-sta start; since O3 it does not
+            s1.Ask = q => AtomSpectraRestStartChoice.Restart;   // reset a counting board blind, the Start question is answered "Start over"
             var o1 = s1.Begin(true, 1000);
             if (o1 != AtomSpectraTcpBeginOutcome.Started)
             {
@@ -593,6 +598,14 @@ namespace SessionHarness
 //                           windows, nothing sent); Clear of our own one resets at once and puts the raised preset back
 // fix-ctl-reset         T1 + T9 (real build): the controller on a reset from outside - the document keeps its data, the recording
 //                           stops, the session detaches without -sto; the snapshots are folded on the "UI" thread
+// PR #38, the maintainer's TCP lane:
+// fix-stopask-reset     T2 + T3: the board is reset from outside while the Stop question of a joined acquisition is open - the guard
+//                           still watches (BoardReset, no smaller spectrum to the document); the acquisition is closed meanwhile (as the
+//                           controller does on BoardReset), the answer "stop on the board" then sends nothing and does not throw
+// fix-clear-counted[-headless] O3: a Clear before any Start leaves the reset for it; the board counts - the Start question (Cancel: nothing
+//                           sent, the reset still waits; Start over: -sto -rst -sta), without a window refused with nothing sent
+// fix-clear-own         O3, the positive control: a Clear after our own Stop on a stopped board resets it at the next Start without a
+//                           question; a Clear that saw less than the board holds now is asked about
 namespace SessionHarness
 {
     public static partial class Program
@@ -629,6 +642,10 @@ namespace SessionHarness
                 case "fix-stall": body = FixStall; break;
                 case "fix-ctl-clear": body = FixCtlClear; break;
                 case "fix-ctl-reset": body = FixCtlReset; break;
+                case "fix-stopask-reset": body = FixStopAskReset; break;
+                case "fix-clear-counted": body = (p, l) => FixClearCounted(p, l, true); break;
+                case "fix-clear-counted-headless": body = (p, l) => FixClearCounted(p, l, false); break;
+                case "fix-clear-own": body = FixClearOwn; break;
                 default: return false;
             }
             if (args.Length < 3)
@@ -864,6 +881,129 @@ namespace SessionHarness
             FixCheck(gap >= AtomSpectraTcpSession.NoDataLinkLostMs - 500 && gap <= AtomSpectraTcpSession.NoDataLinkLostMs + 3000, "after the limit, not before");
             FixCheck(cmds.Any(kv => kv.Key == 1 && kv.Value == "-sta"), "the reconnect sends -sta again");
             s.Stop(1000);
+            s.Dispose();
+            return FixVerdict();
+        }
+
+        // T2 + T3: a joined acquisition (the counting mock, Continue); while the Stop question is open the board is reset from outside, the
+        // acquisition is closed meanwhile (as the controller does on BoardReset: its post runs in the modal loop of the question), and the
+        // answer is "stop on the board"
+        static int FixStopAskReset(int port, string log)
+        {
+            var s = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
+            var given = new List<int>();
+            int resets = 0, asked = 0;
+            s.DataReady += (o, e) => { lock (given) given.Add(e.ElapsedTime); };
+            s.BoardReset += (o, e) => Interlocked.Increment(ref resets);
+            s.Ask = q => AtomSpectraRestStartChoice.Continue;
+            var outcome = s.Begin(true, 1000);
+            FixCheck(outcome == AtomSpectraTcpBeginOutcome.Started && s.JoinedRunning, "a counting board, Continue: joined (" + outcome + ")");
+            bool resetInQuestion = false;
+            s.AskStopJoined = () =>
+            {
+                asked++;
+                resetInQuestion = WaitUntil(() => Volatile.Read(ref resets) > 0, 10000);   // the user thinks; the board is reset meanwhile
+                Thread.Sleep(1500);   // more snapshots of the new acquisition arrive; none may reach the document
+                s.Detach();           // BoardReset -> the controller detaches the session (StopAfterBoardReset), still inside the question
+                return true;          // "stop on the board" - for an acquisition that is gone
+            };
+            AtomSpectraTcpStopOutcome stop = AtomSpectraTcpStopOutcome.NotRunning;
+            Exception thrown = null;
+            try { stop = s.Stop(1000); }
+            catch (Exception ex) { thrown = ex; }
+            Thread.Sleep(300);
+            var cmds = ReadCommands(log);
+            List<int> times;
+            lock (given) times = given.ToList();
+            Console.WriteLine("asked " + asked + ", reset in the question " + resetInQuestion + " (resets " + resets + "), stop " + stop
+                + (thrown != null ? ", thrown " + thrown.GetType().Name + ": " + thrown.Message : "") + "; given times "
+                + string.Join(",", times.Select(t => t.ToString(CultureInfo.InvariantCulture))) + "; commands " + Joined(cmds));
+            FixCheck(asked == 1, "the Stop question of the joined acquisition is asked");
+            FixCheck(resetInQuestion && resets == 1, "T2: the reset from outside while the question is open is found (BoardReset once)");
+            FixCheck(times.Count >= 2 && times.Zip(times.Skip(1), (a, b) => b >= a).All(x => x), "T2: no smaller spectrum reached the document while the question was open");
+            FixCheck(thrown == null, "T3: the answer after the acquisition was closed meanwhile does not throw");
+            FixCheck(stop == AtomSpectraTcpStopOutcome.Detached && s.JoinedRunning, "T3: Detached, the acquisition on the board still not ours (" + stop + ")");
+            FixCheck(!cmds.Any(kv => kv.Value == "-sto" || kv.Value == "-rst" || kv.Value == "-sta"), "nothing was sent to the board");
+            s.Dispose();
+            return FixVerdict();
+        }
+
+        // O3: a Clear before any Start (as after a restart of the program) leaves the reset for the next Start; the board counts meanwhile
+        static int FixClearCounted(int port, string log, bool withWindow)
+        {
+            var s = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
+            s.Clear(1000);
+            FixCheck(s.ResetOnNextStart, "Clear without an open acquisition leaves the reset for the next Start");
+            int asked = 0;
+            AtomSpectraRestStartQuestion question = null;
+            if (withWindow)
+                s.Ask = q => { asked++; question = q; return AtomSpectraRestStartChoice.Cancel; };
+            var o1 = s.Begin(true, 1000);
+            Thread.Sleep(300);
+            var sent = Sent(log);
+            Console.WriteLine("outcome " + o1 + ", state " + s.BoardState + ", refusal " + s.Refusal + ", asked " + asked
+                + (question != null && question.Board != null ? ", question: board " + question.Board.Time.ToString(CultureInfo.InvariantCulture) + " s, counting " + question.Counting : "")
+                + ", commands " + string.Join(" ", sent));
+            bool none = !sent.Contains("-sto") && !sent.Contains("-rst") && !sent.Contains("-sta");
+            if (!withWindow)
+            {
+                FixCheck(o1 == AtomSpectraTcpBeginOutcome.Refused && s.Refusal == AtomSpectraTcpRefusal.ClearPending, "O3 without a window: refused, the reason is the Clear that did not see this acquisition");
+                FixCheck(none, "O3 without a window: nothing was sent (no blind -sto -rst -sta)");
+                FixCheck(s.ResetOnNextStart, "the reset still waits");
+                s.Dispose();
+                return FixVerdict();
+            }
+            FixCheck(asked == 1 && question != null && question.Counting, "O3: a counting board, the Start question instead of a blind reset");
+            FixCheck(question != null && question.Board != null && question.Board.Time > 0 && question.DocumentSeconds == 0 && question.DocumentCounts == 0,
+                "the question shows the board's numbers, the document empty (Start over is offered)");
+            FixCheck(o1 == AtomSpectraTcpBeginOutcome.Cancelled && none, "Cancel: nothing was sent (" + o1 + ")");
+            FixCheck(s.ResetOnNextStart, "Cancel: the reset still waits");
+            s.Ask = q => { asked++; return AtomSpectraRestStartChoice.Restart; };
+            var o2 = s.Begin(true, 1000);
+            Thread.Sleep(300);
+            var cmds = ReadCommands(log);
+            Console.WriteLine("second Start " + o2 + ", asked " + asked + ", commands " + Joined(cmds));
+            FixCheck(o2 == AtomSpectraTcpBeginOutcome.Started && asked == 2 && cmds.Count(kv => kv.Value == "-rst") == 1
+                && cmds.Any(kv => kv.Key == 1 && kv.Value == "-sto") && cmds.Any(kv => kv.Key == 1 && kv.Value == "-sta"), "the answer Start over: -sto, -rst, -sta");
+            FixCheck(!s.ResetOnNextStart, "the reset is done");
+            s.Stop(1000);
+            s.Dispose();
+            return FixVerdict();
+        }
+
+        // O3, the positive control (the mock stopped at 500 s): Continue (-sta), our own Stop, Clear - the next Start resets without a
+        // question; then a Clear that saw 100 s, the board holds 500 s: asked
+        static int FixClearOwn(int port, string log)
+        {
+            var s = new AtomSpectraTcpSession("127.0.0.1", port, 1000, 1000, null);
+            int asked = 0;
+            s.Ask = q => { asked++; return AtomSpectraRestStartChoice.Continue; };
+            var o1 = s.Begin(true, 1000);
+            FixCheck(o1 == AtomSpectraTcpBeginOutcome.Started && asked == 1 && !s.JoinedRunning, "a stopped board with data: asked, Continue resumes it (" + o1 + ")");
+            Thread.Sleep(1200);
+            var stop = s.Stop(1000);
+            s.Clear(1000);
+            Console.WriteLine("stop " + stop + "; Clear after it: the reset waits " + s.ResetOnNextStart + ", the board then "
+                + s.ClearSeenSeconds.ToString(CultureInfo.InvariantCulture) + " s, " + s.ClearSeenCounts.ToString(CultureInfo.InvariantCulture) + " counts");
+            FixCheck(s.ResetOnNextStart && s.ClearSeenSeconds == 500 && s.ClearSeenCounts > 0, "the Clear after our own Stop waits for the next Start and remembers the board (500 s)");
+            var o2 = s.Begin(false, 1000);
+            Thread.Sleep(300);
+            var cmds = ReadCommands(log);
+            Console.WriteLine("second Start " + o2 + ", asked " + asked + ", commands " + Joined(cmds));
+            FixCheck(o2 == AtomSpectraTcpBeginOutcome.Started && asked == 1, "the board still holds what the Clear saw: no question");
+            FixCheck(cmds.Any(kv => kv.Key == 1 && kv.Value == "-sto") && cmds.Any(kv => kv.Key == 1 && kv.Value == "-rst") && cmds.Any(kv => kv.Key == 1 && kv.Value == "-sta"),
+                "it is reset as the Clear promised: -sto, -rst, -sta");
+            FixCheck(!s.ResetOnNextStart, "the reset is done");
+            s.Stop(1000);
+            s.RequestResetOnNextStart(100, 10);   // a Clear that saw 100 s: the 500 s of the board were counted after it
+            AtomSpectraRestStartQuestion question = null;
+            s.Ask = q => { asked++; question = q; return AtomSpectraRestStartChoice.Cancel; };
+            var o3 = s.Begin(false, 1000);
+            Thread.Sleep(300);
+            var third = ReadCommands(log).Where(kv => kv.Key == 2).ToList();
+            Console.WriteLine("third Start " + o3 + ", asked " + asked + ", commands of its connection " + Joined(third));
+            FixCheck(asked == 2 && question != null && question.Board != null && question.Board.Time == 500, "a board ahead of what the Clear saw: the Start question with its numbers");
+            FixCheck(o3 == AtomSpectraTcpBeginOutcome.Cancelled && third.Count == 0, "Cancel: nothing sent");
             s.Dispose();
             return FixVerdict();
         }

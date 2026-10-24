@@ -1,0 +1,20 @@
+[
+  {"id": "FX3-C-capture-at-post", "target": "fix3-offer-stop", "file": "AtomSpectraTcpDeviceController.BoardOffers.cs",
+   "old": "return recordingAtPost && !ReferenceEquals(stopAsked, data);",
+   "new": "return recordingAtPost;"},
+  {"id": "FX3-C-no-mark", "target": "fix3-offer-stop", "file": "AtomSpectraTcpDeviceController.cs",
+   "old": "            stopAsked = r;   // a board reset met during this Stop is not offered a replacement (RecordingAtShow)\n",
+   "new": ""},
+  {"id": "FX3-D-rethrow", "target": "fix3-held-throws", "file": "AtomSpectraRestUi.AfterWait.cs",
+   "old": "AtomSpectraTcpLog.Warn(\"Session\", \"an action held over the wait window failed: \" + ex.Message);",
+   "new": "throw;"},
+  {"id": "FX3-D-unsafe", "target": "fix3-held-throws", "file": "AtomSpectraRestUi.AfterWait.cs",
+   "old": "                    AfterWaitSafe(action);\n",
+   "new": "                    AfterWait(action);\n"},
+  {"id": "FX3-E-old-logic", "target": "fix3-name-to-search", "file": "AtomSpectraDnsSd.cs",
+   "old": "            return text.Trim();\n        }",
+   "new": "            return AtomSpectraDeviceConsole.DefaultBoardName;\n        }"},
+  {"id": "FX3-E-dot", "target": "fix3-name-to-search", "file": "AtomSpectraDnsSd.cs",
+   "old": "name.Trim().TrimEnd('.');",
+   "new": "name.Trim();"}
+]

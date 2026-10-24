@@ -35,7 +35,9 @@ SRC_FILES = ["AtomSpectraRestPolicy.cs", "AtomSpectraRestClient.cs", "AtomSpectr
              "AtomSpectraRestCalibration.cs", "AtomSpectraTcpLog.cs", "IAtomSpectraSession.cs", "AtomSpectraTcpSession.cs",
              "AtomSpectraTcpAcquisition.cs", "AtomSpectraTcpTransport.cs", "AtomSpectraTcpCalibrationReader.cs",
              "AtomSpectraTcpDeviceConfig.cs", "AtomSpectraTcpDeviceConfig.Rest.cs", "InputDeviceConfig.cs", "Hash/Crc32.cs",
-             "AtomSpectraDeviceConsole.cs", "AtomSpectraDevlog.cs", "AtomSpectraRestBootConfig.cs"]
+             "AtomSpectraDeviceConsole.cs", "AtomSpectraDevlog.cs", "AtomSpectraRestBootConfig.cs",
+             "AtomSpectraRestSession.JoinedAndObserve.cs", "AtomSpectraTcpSession.JoinedStop.cs",
+             "AtomSpectraDnsSd.cs", "AtomSpectraDnsSd.Adapters.cs", "AtomSpectraDnsSd.Schedule.cs"]
 STUBS = """namespace BecquerelMonitor.Properties { public static class Resources {
   public static string ERRAtomSpectraTcpCalBusy = "busy {0}:{1}"; public static string ERRAtomSpectraTcpConnect = "connect {0}:{1} {2}";
   public static string ERRIncorrectCRC = "crc"; public static string ERREmptyCoefficients = "empty"; public static string ERRReadDataFromPort_Empty = "noanswer";
@@ -72,6 +74,7 @@ APPUI_STUB = """namespace BecquerelMonitor { public static class AppUi {
   public static void Report(string text, string caption, System.Windows.Forms.MessageBoxIcon icon) { System.Console.Error.WriteLine("BecqMoni: " + (string.IsNullOrEmpty(caption) ? "" : caption + ": ") + text); }
   public static bool AskYesNo(string text, string caption) { throw new System.InvalidOperationException("BecqMoni: " + caption + ": " + text); }
   public static bool AskYesNo(string text, string caption, System.Windows.Forms.MessageBoxIcon icon, bool defaultNo) { throw new System.InvalidOperationException("BecqMoni: " + caption + ": " + text); }
+  public static bool AskYesNo(System.Windows.Forms.IWin32Window owner, string text, string caption, System.Windows.Forms.MessageBoxIcon icon, bool defaultNo) { throw new System.InvalidOperationException("BecqMoni: " + caption + ": " + text); }
   public static string WrapTip(string text) { return text; } } }
 """
 
@@ -271,12 +274,87 @@ SCENARIOS = [
     ("pr37-rest-stop-joined", ["--counting", "1", "--time", "1000", "--total", "37000"]),
     ("pr37-rest-texts", ["--counting", "0", "--valid", "0", "--cmd-ok-false"]),
     ("pr37-rest-expect", ["--counting", "0", "--valid", "0"]),
+    # Replace document spectrum; TCP Start of the same document probes the board
+    ("startpkg-replace", ["--counting", "1", "--time", "70000", "--total", "400000"]),
+    ("startpkg-replace-guard", ["--counting", "1", "--time", "70000", "--total", "400000"]),
+    ("console-tcp-same-behind", ["--order", "hs", "--period", "0.5", "--cycles", "12", "--connections", "1"]),
+    ("console-tcp-same-replace", ["--order", "hs", "--period", "0.5", "--cycles", "16", "--connections", "1"]),
+    # findings of VERIFY-1, #BM-4/5/13/6, the Start text; console-tcp-night-clear = the #BM-3 diagnosis
+    ("night-replace-empty", None),
+    ("night-start-text", None),
+    ("night-observe-replace", ["--counting", "1", "--time", "70000", "--total", "400000"]),
+    ("night-stop-joined-ask", ["--counting", "1", "--time", "70000", "--total", "400000"]),
+    ("night-stop-joined-keep", ["--counting", "1", "--time", "70000", "--total", "400000"]),
+    ("night-status-401", ["--counting", "1", "--time", "1000", "--total", "100", "--fail-from", "3", "--fail-status", "401"]),
+    ("night-answer-stale", None),
+    ("night-reset-offer", None),
+    ("console-tcp-night-resume", ["--order", "hs", "--period", "0.5", "--cycles", "12", "--connections", "1", "--stopped-at", "500"]),
+    ("console-tcp-night-stop-ask", ["--order", "hs", "--period", "0.5", "--cycles", "16", "--connections", "1"]),
+    ("console-tcp-night-clear", ["--order", "hs", "--period", "0.5", "--cycles", "16", "--connections", "1", "--stopped-at", "0"]),
+    # #BM-10 (RestHarnessBm10.cs, mocks/mock_mdns.py): DNS-SD browse of two boards, choice window logic
+    ("bm10-count", ["--set", "two-new"]), ("bm10-chain", ["--set", "two-new"]), ("bm10-txt-sn", ["--set", "two-new"]),
+    ("bm10-txt-rest", ["--set", "two-new"]), ("bm10-legacy-serial", ["--set", "legacy"]), ("bm10-legacy-filter", ["--set", "legacy"]),
+    ("bm10-mixed", ["--set", "real-146"]), ("bm10-followup", ["--set", "split"]), ("bm10-one-query", ["--set", "two-new"]),
+    ("bm10-refresh-two", ["--set", "legacy"]), ("bm10-refresh-one", ["--set", "legacy"]),
+    ("bm10-refresh-none", ["--set", "legacy"]), ("bm10-refresh-cancel", ["--set", "legacy"]),
+    # findings 1, 3, 4, 6, 7, 8
+    ("fix2-stop-auto", None), ("fix2-after-wait-held", None),
+    ("bm10-refresh-typed", ["--set", "legacy"]), ("bm10-dot-instance", ["--set", "legacy"]), ("bm10-bad-label", ["--set", "legacy"]),
+    ("bm10-flood-cap", ["--set", "flood"]), ("bm10-flood-budget", ["--set", "flood"]),
+    ("console-tcp-fix2-silent", ["--order", "hs", "--period", "0.5", "--cycles", "0", "--connections", "1"]),
+    ("console-tcp-fix2-silent-new", ["--order", "hs", "--period", "0.5", "--cycles", "0", "--connections", "1"]),
+    ("console-tcp-fix2-uncertain", ["--order", "hs", "--period", "6", "--cycles", "1", "--connections", "1"]),
+    # findings C, D, E
+    ("fix3-name-to-search", None), ("fix3-held-throws", None), ("fix3-offer-stop", None),
+    ("fix4-joined-clear-text", None),   # #BM-14/#BM-15
+    ("bm10-schedule", ["--set", "two-new", "--delays", "b146=500,b119=5000"]),   # #BM-17: boards answer late, the query is repeated
+    ("bm10-adapters", ["--set", "two-new", "--only-from", "127.0.0.3"]),   # #BM-17: one socket per adapter
+    ("bm18-chooser", None),   # #BM-18: the board chooser window contains the list (real build only)
+    # VERIFY-4 findings 1, 2, 3, 5, 7 (RestHarnessFix9.cs, sets three / difflabel of mocks/mock_mdns.py)
+    ("bm10-quiet-three", ["--set", "three", "--delays", "b3=3500"]),
+    ("bm10-count-address", ["--set", "difflabel", "--delays", "b119=6500"]),
+    ("bm10-bind-fallback", ["--set", "two-new"]),
+    ("bm10-log-sent", ["--set", "two-new"]),
+    ("bm10-log-packets", ["--set", "split"]),
+    # maintainer review of PR 38, board discovery (RestHarnessBm10.cs, RestHarnessFix7.cs; sets of mocks/mock_mdns.py)
+    ("bm10-refresh-typed-dead", ["--set", "legacy"]),   # the address in the field does not answer: the browse, the choice
+    ("bm10-same-host", ["--set", "samehost"]),   # two boards with one host name: the A of the SRV's own packet
+    ("bm10-same-host-split", ["--set", "samehost-split", "--reply-from-owner"]),   # the same, told apart by the source of the SRV packet
+    ("bm10-incomplete", ["--set", "orphan"]),   # an instance without an address is counted, one board is not taken silently
+    ("bm10-port", ["--set", "norest"]),   # no TXT rest: the port of the form; the port read on comes back for the field
+    ("bm10-goodbye", ["--set", "two-new", "--goodbye", "b119=200"]),   # TTL 0 withdraws the board
+    ("bm10-long-label", ["--set", "longlabel"]),   # an instance of two labels; a question that cannot be written is left out alone
+    ("bm10-no-network", ["--set", "two-new"]),   # nothing sent: the browse ends at once
+    ("bm18-choose-stale", None),   # the choice window only for the current search, not over another window (real build only)
+    ("fix9-reset-carry", None),
+    ("fix9-reset-other-board", None),   # the deferred reset of one board is not given to another (host or port changed)
+    # audit 6 (RestHarnessFix10.cs): reentrant Stop under the open question, DNS name chains and length, reset dropped at the switch to REST
+    ("console-tcp-fix10-stop-reenter", ["--order", "hs", "--period", "0.5", "--cycles", "16", "--connections", "1"]),
+    ("fix10-dns-chain", None), ("fix10-dns-limit", None), ("fix10-dns-good", None), ("fix10-reset-to-rest", None),
+    # PR #38, maintainer's REST fixes (RestHarnessFixR.cs): R2 - the guard after Replace starts from the snapshot of the question; R6 - the observe-only hint
+    ("fixr2-replace-reset-asked", ["--counting", "1", "--time", "70000", "--total", "400000"]),
+    ("fixr2-replace-epoch-asked", ["--cases", "c01_epoch_added.json*2,c02_boot_id_changed.json|time=170000|total=13442130"]),   # the epoch changed, time and counts overtook
+    ("fixr2-replace-resume", ["--counting", "0", "--time", "5000", "--total", "1000"]),
+    ("fixr2-replace-join-epoch", ["--cases", "c01_epoch_added.json|time=163682,c01_epoch_added.json|time=163690,c01_epoch_added.json|time=163700,c01_epoch_added.json|time=163710*40"]),
+    ("fixr6-observe-hint", ["--counting", "1", "--time", "70000", "--total", "400000"]),
+    # PR #38, the maintainer's TCP lane (RestHarnessTcpLane.cs): R1 Replace takes the spectrum of the question at once and only where it folds,
+    # R3 an answer given in advance only for a counting board, T5 the same board by HostKey, T4/O1 a Stop inside a running Stop
+    ("console-tcp-lane-replace", ["--order", "hs", "--period", "0.5", "--cycles", "16", "--connections", "1"]),
+    ("tcplane-answer-counting", None), ("tcplane-host-key", None), ("tcplane-stop-nested", None),
 ]
 # scenarios that need the controller or the forms exist in the REAL build only (the source build prints n/a). On the real build each must
 # EXECUTE at least this many checks ("checks executed: N" of the harness); n/a or fewer is a failure of the suite, not a pass.
 REAL_ONLY_MIN_CHECKS = {"f5-tcp-cal-n": 8, "f5-ctl-length-first": 5, "f5-form-cal-n": 6, "f5-form-cfg-n": 4, "f5-form-test-n": 5, "f5-ctl-headless-text": 3,
                         # PR37 fix, UI lane
-                        "ui-console-confirm": 8, "ui-page-generations": 5, "ui-read-edited": 6, "ui-save-refusal": 3}
+                        "ui-console-confirm": 8, "ui-page-generations": 5, "ui-read-edited": 6, "ui-save-refusal": 3,
+                        # start package, night package, board discovery
+                        "night-start-text": 4, "night-status-401": 5, "night-answer-stale": 4, "night-reset-offer": 6,
+                        "fix2-stop-auto": 5, "fix2-after-wait-held": 3, "fix3-held-throws": 6, "fix3-offer-stop": 6, "fix4-joined-clear-text": 9, "bm10-adapters": 7, "bm10-schedule": 4, "bm18-chooser": 23, "bm18-choose-stale": 5,
+                        "bm10-quiet-three": 2, "bm10-count-address": 2, "bm10-bind-fallback": 3, "bm10-log-sent": 4, "bm10-log-packets": 3, "fix9-reset-carry": 5, "fix9-reset-other-board": 6,
+                        "console-tcp-fix10-stop-reenter": 3, "fix10-dns-chain": 3, "fix10-dns-limit": 2, "fix10-dns-good": 3, "fix10-reset-to-rest": 5,
+                        "fixr6-observe-hint": 5,
+                        # PR #38, TCP lane
+                        "console-tcp-lane-replace": 13, "tcplane-answer-counting": 5, "tcplane-host-key": 4, "tcplane-stop-nested": 6}
 FIX_SCENARIOS = ["overtake", "restart-doc", "preset-new", "deferred-resumed", "clear-stale", "session-key",
                  "headless-stopped", "stop-hang", "url-userinfo"]
 PASSC_SCENARIOS = ["prefix-auth", "parse", "deferred-resumed", "restart", "time-back", "nodata-404", "dead-404", "dead-flag",
@@ -286,11 +364,13 @@ MUTATIONS = [
     ("decrease", "the document is overwritten when the board counters go down (no comparison)",
      [("AtomSpectraRestPolicy.cs", "if (hasLast && (s.Time < lastTime || s.Total < lastTotal || (histFromSample && s.HistOk < lastHistOk)))", "if (false)")], "time-back", False),   # coarse: the whole comparison, reddens time-back and hist-reset; the pointed ones are MP5 (time) and MP6 (hist_ok)
     ("continue-sta", "Start on a counting board + Continue sends -sta instead of joining",
-     [("AtomSpectraRestPolicy.cs", "return counting ? AtomSpectraRestStartPlan.Join : AtomSpectraRestStartPlan.Resume;", "return AtomSpectraRestStartPlan.Resume;")], "join-continue", True),
+     # PR #38 added the same return to the Replace case: the anchor takes the Continue case only (its continueAllowed check)
+     [("AtomSpectraRestPolicy.cs", "if (!continueAllowed)\n                    {\n                        return AtomSpectraRestStartPlan.Cancel;\n                    }\n                    return counting ? AtomSpectraRestStartPlan.Join : AtomSpectraRestStartPlan.Resume;",
+       "if (!continueAllowed)\n                    {\n                        return AtomSpectraRestStartPlan.Cancel;\n                    }\n                    return AtomSpectraRestStartPlan.Resume;")], "join-continue", True),
     ("preset", "the document preset 3600 s is kept when joining a board with time >> 3600",
      [("AtomSpectraRestPolicy.cs", "long wanted = Math.Max((long)documentPreset, boardSeconds + add);", "long wanted = documentPreset;")], "preset", True),
     ("close-sto", "closing (Stop) a joined acquisition sends -sto",
-     [("AtomSpectraRestSession.cs", "if (!startedByUs)", "if (false)")], "close-joined", True),
+     [("AtomSpectraRestSession.cs", "if (!startedByUs && !StopJoinedOnBoard())", "if (false)")], "close-joined", True),   # PR #38: the Stop question joined the condition
     ("deferred-reset", "a failed Clear is queued and sent with the next Start",
      [("AtomSpectraRestSession.cs", "private bool stallReported;", "private bool stallReported; private bool mutResetQueued;"),
       ("AtomSpectraRestSession.cs", "// [clear failed]", "mutResetQueued = true;"),
@@ -525,13 +605,22 @@ MUTATIONS = [
     ("pr37-detach-waits", "R6: Disconnect waits for a poll hanging on the board",
      [("AtomSpectraRestSession.cs", "DetachNoWait();   // never waits: Disconnect runs on the UI thread", "{ AtomSpectraRestAcquisition hung = acquisition; DetachNoWait(); if (hung != null) hung.Dispose(); }")], "pr37-rest-detach-hang", False),
     ("pr37-joined-silent", "R9: Stop of a joined acquisition says nothing",
-     [("AtomSpectraRestSession.cs", "if (kept != null) kept(this, EventArgs.Empty);", "")], "pr37-rest-stop-joined", False),
+     [("AtomSpectraRestSession.cs", "if (kept != null && AskStopJoined == null) kept(this, EventArgs.Empty);", "")], "pr37-rest-stop-joined", False),   # PR #38: said only without the Stop question
     ("pr37-user-text-english", "R8: the user's text of a refused command is the English log text",
      [("AtomSpectraRestSession.cs", "            lastUserError = RefusalText(r);\n            AtomSpectraTcpLog.Warn(\"Session\", command + \" refused: \" + lastError);", "            lastUserError = lastError;\n            AtomSpectraTcpLog.Warn(\"Session\", command + \" refused: \" + lastError);")], "pr37-rest-texts", False),
     ("pr37-culture", "R7: the epoch change is printed in the culture of the thread",
      [("AtomSpectraRestPolicy.cs", "field + \": \" + Inv(was) + \" -> \" + Inv(now)", "field + \": \" + was + \" -> \" + now")], "pr37-rest-texts", False),
     ("pr37-expect-100", "R9: a POST asks for 100 Continue",
      [("AtomSpectraRestClient.cs", "req.ServicePoint.Expect100Continue = false;", "")], "pr37-rest-expect", False),
+    # PR #38, maintainer's REST fixes (RestHarnessFixR.cs)
+    ("r2-join-from-zero", "R2: after Replace on a counting board the guard starts from zero, not from the snapshot of the question",
+     [("AtomSpectraRestSession.cs", "if (replaced) guard.BeginFrom(second, SeenBins(second), counting);", "if (replaced) guard.Begin(0, 0, counting, null);")], "fixr2-replace-reset-asked", False),
+    ("r2-resume-from-zero", "R2: after Replace on a stopped board (-sta) the guard starts from zero",
+     [("AtomSpectraRestSession.cs", "if (replaced) guard.BeginFrom(second, SeenBins(second), true);", "if (replaced) guard.Begin(0, 0, true, null);")], "fixr2-replace-epoch-asked", False),
+    ("r2-epoch-not-seen", "R2: the epoch of the snapshot the question showed is not the reference of the guard",
+     [("AtomSpectraRestPolicy.cs", "                lastEpoch = seen.Epoch;\n", "")], "fixr2-replace-epoch-asked", False),
+    ("r6-observe-unmarked", "R6: the observe-only question is not marked (its hint promises -sta to a stopped board)",
+     [("AtomSpectraRestSession.JoinedAndObserve.cs", "                ChannelBelow = below,\n                ObserveOnly = true\n", "                ChannelBelow = below\n")], "fixr6-observe-hint", False),
 ]
 
 
@@ -555,8 +644,17 @@ REAL_MUTATIONS = [
      [("DeviceConfigForm.cs", "int editedChannels = ChannelsBeingEdited(asked);", "int editedChannels = asked.NumberOfChannels;")], "f5-form-cfg-n"),
     ("page-unfolded", "the page of 'Test connection' is given the 8192-channel polynomial where no fold exists",
      [("AtomSpectraTcpDeviceForm.Calibration.cs", "double[] folded = n > 0 ? AtomSpectraRestCalibration.ForChannels(page, 0, n) : page;", "double[] folded = (n > 0 ? AtomSpectraRestCalibration.ForChannels(page, 0, n) : page) ?? page;")], "f5-form-test-n"),
+    ("chooser-list-not-added", "the board list is not added to the chooser window (the reported defect)",
+     [("AtomSpectraBoardChooser.cs", "form.Controls.Add(list);", "")], "bm18-chooser"),
     ("headless-text", "HeadlessAsk has no text of its own (the generic one)",
      [("AtomSpectraTcpDeviceController.Rest.cs", "return AtomSpectraRestSession.HeadlessAskText;", "return string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraRestStart, rest.LastError ?? outcome.ToString());")], "f5-ctl-headless-text"),
+    # PR #38, the maintainer's TCP lane
+    ("replace-time-only", "R1: Replace takes only the board's time at Start, the document keeps its own spectrum until the first snapshot (the old way)",
+     [("AtomSpectraTcpDeviceController.BoardOffers.cs", "CopySnapshot(r, spectrum, e, false);", "r.ResultDataStatus.ElapsedTime = r.ResultDataStatus.TotalTime = TimeSpan.FromSeconds(e.ElapsedTime);")], "console-tcp-lane-replace"),
+    ("replace-any-channels", "R1: Replace is offered whether or not the board's channels fold into the document's",
+     [("AtomSpectraTcpDeviceController.BoardOffers.cs", "if (q != null && q.ReplaceAllowed && !SnapshotFits(bins, foldChannels, documentChannels))", "if (false)")], "console-tcp-lane-replace"),
+    ("answer-stopped-holds", "R3: an answer given in advance holds for a stopped board too (a -sta the window after a reset did not mention)",
+     [("AtomSpectraTcpDeviceController.BoardOffers.cs", "if (q == null || !q.Counting)", "if (q == null)")], "tcplane-answer-counting"),
 ]
 
 
@@ -566,6 +664,26 @@ def free_port():
     port = s.getsockname()[1]
     s.close()
     return port
+
+
+def free_port_bm10():   # the mDNS mock needs one number free for UDP 127.0.0.1 and for TCP 127.0.0.2-4
+    # the OS picks the number (bind to 0 on the UDP socket, whose excluded ranges differ from TCP's); the same number is then tried on the three
+    # TCP addresses. The UDP socket is held meanwhile, so no parallel scenario is given the same number.
+    for _ in range(500):
+        socks = [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]
+        try:
+            socks[0].bind(("127.0.0.1", 0))
+            p = socks[0].getsockname()[1]
+            for ip in ("127.0.0.2", "127.0.0.3", "127.0.0.4"):
+                socks.append(socket.socket(socket.AF_INET, socket.SOCK_STREAM))
+                socks[-1].bind((ip, p))
+            return p
+        except OSError:
+            time.sleep(0.01)
+        finally:
+            for s in socks:
+                s.close()
+    raise RuntimeError("no free port for the mDNS mock")
 
 
 # Determinism: the machine is shared with long CPU-bound jobs at normal priority; mock and harness run above
@@ -580,10 +698,14 @@ def run(cmd, timeout=180, prio=0):
         return None
 
 
-HARNESS_FILES = [os.path.join(D, "harness", n) for n in ("RestHarness.cs", "RestHarnessFixes.cs", "RestHarnessPassC.cs", "RestHarnessConsole.cs", "RestHarnessForm.cs", "RestHarnessFormModes.cs", "RestHarnessFormLayout.cs", "RestHarnessCalibration.cs", "RestHarnessTcpStart.cs", "RestHarnessGzip.cs", "RestHarnessInfDebug.cs", "RestHarnessF5.cs", "RestHarnessF5b.cs", "RestHarnessF5c.cs", "RestHarnessF5d.cs", "RestHarnessF5e.cs", "RestHarnessF5f.cs", "RestHarnessF5g.cs", "RestHarnessF5h.cs", "RestHarnessF5i.cs", "RestHarnessF5j.cs", "RestHarnessF5k.cs", "UiFix.cs")]
+HARNESS_FILES = [os.path.join(D, "harness", n) for n in ("RestHarness.cs", "RestHarnessFixes.cs", "RestHarnessPassC.cs", "RestHarnessConsole.cs", "RestHarnessForm.cs", "RestHarnessFormModes.cs", "RestHarnessFormLayout.cs", "RestHarnessCalibration.cs", "RestHarnessTcpStart.cs", "RestHarnessGzip.cs", "RestHarnessInfDebug.cs", "RestHarnessF5.cs", "RestHarnessF5b.cs", "RestHarnessF5c.cs", "RestHarnessF5d.cs", "RestHarnessF5e.cs", "RestHarnessF5f.cs", "RestHarnessF5g.cs", "RestHarnessF5h.cs", "RestHarnessF5i.cs", "RestHarnessF5j.cs", "RestHarnessF5k.cs", "UiFix.cs",
+                                                                  "RestHarnessStartPkg.cs", "RestHarnessNight.cs", "RestHarnessBm10.cs", "RestHarnessFix2.cs", "RestHarnessFix3.cs", "RestHarnessFix4.cs",
+                                                                  "RestHarnessFix5.cs", "RestHarnessFix6.cs", "RestHarnessFix7.cs", "RestHarnessFix9.cs", "RestHarnessFix9b.cs", "RestHarnessFix10.cs")]
 FIXTURE = os.path.join(D, "fixtures", "spectrum_sample.json")   # a spectrum document recorded from a board, read by 'parse'
 
 HARNESS_FILES.append(os.path.join(D, "harness", "RestFixPr37.cs"))   # PR37 fix, REST: the scenarios pr37-rest-*
+HARNESS_FILES.append(os.path.join(D, "harness", "RestHarnessFixR.cs"))   # PR #38, maintainer's REST fixes: the scenarios fixr*
+HARNESS_FILES.append(os.path.join(D, "harness", "RestHarnessTcpLane.cs"))   # PR #38, TCP lane: console-tcp-lane-*, tcplane-*
 
 
 def copy_fixture(out_dir):
@@ -642,7 +764,7 @@ def build_src(out_dir, src_dir, replacements):
     out_exe = os.path.join(out_dir, "RestHarness.exe")
     cs_files = [os.path.join(out_dir, os.path.basename(f)) for f in SRC_FILES]
     cs_files.append(os.path.join(out_dir, "Stubs.cs"))
-    cmd = [CSC, "-nologo", "-langversion:7.3", "-nowarn:0162,0219,0414,0649,0169", "-r:System.Windows.Forms.dll", "-r:System.Drawing.dll", "-r:System.Security.dll", "-r:System.Xml.dll", "-out:" + out_exe] + HARNESS_FILES + cs_files
+    cmd = [CSC, "-nologo", "-langversion:7.3", "-d:TRACE", "-nowarn:0162,0219,0414,0649,0169", "-r:System.Windows.Forms.dll", "-r:System.Drawing.dll", "-r:System.Security.dll", "-r:System.Xml.dll", "-out:" + out_exe] + HARNESS_FILES + cs_files
     p = run(cmd)
     if p is None or p.returncode != 0:
         raise RuntimeError("build_src failed: " + (p.stdout if p else "") + (p.stderr if p else ""))
@@ -651,7 +773,7 @@ def build_src(out_dir, src_dir, replacements):
 
 def run_one(build_dir, name, mock_args):
     harness = os.path.join(build_dir, "RestHarness.exe")
-    port = free_port()
+    port = free_port_bm10() if name.startswith("bm10-") else free_port()
     log = os.path.join(build_dir, name + "_req.jsonl")
     proc = None
     out = None
@@ -659,7 +781,9 @@ def run_one(build_dir, name, mock_args):
         if mock_args is not None:
             out_path = os.path.join(build_dir, name + "_mock.txt")
             out = open(out_path, "w", encoding="utf-8")
-            if name.startswith("console-tcp"):   # the TCP bridge console talks shproto to the bridge mock, not HTTP
+            if name.startswith("bm10-"):   # board discovery: a fake mDNS responder on 127.0.0.1 and /api/device of the boards on 127.0.0.2-4
+                cmdline = [sys.executable, "-u", os.path.join(D, "mocks", "mock_mdns.py"), "--port", str(port), "--log", log] + mock_args
+            elif name.startswith("console-tcp"):   # the TCP bridge console talks shproto to the bridge mock, not HTTP
                 cmdline = [sys.executable, "-u", os.path.join(D, "mocks", "mock_cmd.py"), "--port", str(port), "--log", log] + mock_args
             else:
                 cmdline = [sys.executable, "-u", os.path.join(D, "mocks", "mock_rest.py"), "--port", str(port), "--log", log, "--duration", "60"] + mock_args
@@ -697,7 +821,8 @@ def run_one(build_dir, name, mock_args):
             out.close()
 
 
-def run_many(build_dir, names_args, workers=4):   # stabilization: 4 parallel scenarios, not 6 (shared machine)
+def run_many(build_dir, names_args, workers=None):   # stabilization: 4 parallel scenarios, not 6 (shared machine); RL_WORKERS=1 runs one by one
+    workers = workers or int(os.environ.get("RL_WORKERS", "4"))
     results = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
         futures = {executor.submit(run_one, build_dir, name, args): name for name, args in names_args}
@@ -792,6 +917,29 @@ def run_real_mutations(src_dir, work_dir):
     return red == len(REAL_MUTATIONS)
 
 
+# scenarios whose checks read a text of the resources; they are run once more under each interface language (REST_UI_CULTURE),
+# so that a check that holds only for the language of the machine cannot pass here and fail elsewhere
+LOCALE_SCENARIOS = ["console-rest-notext", "console-rest-refused", "console-refresh-none", "form-bad-address", "form-calib", "form-calib-unset",
+                    "gzip-unsupported", "gzip-ignored", "f5-ctl-headless-text", "pr37-rest-continue-other", "pr37-rest-observe-behind", "pr37-rest-texts",
+                    "night-start-text", "fix4-joined-clear-text", "rest-linklost-text", "rest-unreachable-text", "ui-console-confirm", "fixr6-observe-hint"]
+LOCALES = ("en-US", "ru-RU")
+
+
+def run_locales(ref):
+    """LOCALE_SCENARIOS on the real build under every language of LOCALES; True when all pass"""
+    chosen = [s for s in SCENARIOS if s[0] in LOCALE_SCENARIOS]
+    good = True
+    for culture in LOCALES:
+        os.environ["REST_UI_CULTURE"] = culture
+        try:
+            res = run_many(ref, chosen)
+        finally:
+            del os.environ["REST_UI_CULTURE"]
+        print_results("REST LOCALE " + culture, res)
+        good = good and all(ok for ok, _ in res.values())
+    return good
+
+
 def run_rest_suite(exe_dir, src_dir, work_dir):
     if os.environ.get("REST_NO_SOURCE_MUTATIONS"):   # base scenarios and real-build mutations only (the source mutations take hours)
         MUTATIONS[:] = []
@@ -807,6 +955,7 @@ def run_rest_suite(exe_dir, src_dir, work_dir):
     print_results("REST BASE real", res)
     real_ok = sum(1 for ok, _ in res.values() if ok)
     checks_ok = real_only_checks("REST BASE real", res)   # a real-build-only scenario that executed no checks (n/a) is a failure
+    locale_ok = True if os.environ.get("REST_SKIP_BASE") else run_locales(ref)   # the text checks in English and in Russian
 
     src = os.path.join(rest_dir, "src_base")
     build_src(src, src_dir, [])
@@ -852,7 +1001,7 @@ def run_rest_suite(exe_dir, src_dir, work_dir):
     print(f"rest key mutations reddening exactly one test: {exactly_one}/{full_total}")
     print("(exactly one is informative: the verdict counts every mutation reddening its own target)")
     real_mut_ok = run_real_mutations(src_dir, rest_dir)   # mutations of the controller and the forms on the real build, in the automatic set
-    return real_ok == n and src_ok == n and red == len(MUTATIONS) and checks_ok and real_mut_ok
+    return real_ok == n and src_ok == n and red == len(MUTATIONS) and checks_ok and real_mut_ok and locale_ok
 
 
 if __name__ == "__main__":
@@ -866,14 +1015,17 @@ if __name__ == "__main__":
     only = None
     if "--real-mutations" in sys.argv:   # only the real-build mutations (a rerun of that part of the suite)
         sys.exit(0 if run_real_mutations(src_dir, work_dir) else 1)
-    if len(sys.argv) > 3:
-        if sys.argv[3] == "--only":
-            if len(sys.argv) < 5:
-                print("usage: python rest_suite.py <exeDir> <srcDir> [workDir] [--only name1,name2]")
-                sys.exit(1)
-            only = sys.argv[4].split(",")
-        else:
-            work_dir = sys.argv[3]
+    # [workDir] and --only together, in either order
+    rest_args = sys.argv[3:]
+    if "--only" in rest_args:
+        i = rest_args.index("--only")
+        if i + 1 >= len(rest_args):
+            print("usage: python rest_suite.py <exeDir> <srcDir> [workDir] [--only name1,name2]")
+            sys.exit(1)
+        only = rest_args[i + 1].split(",")
+        rest_args = rest_args[:i] + rest_args[i + 2:]
+    if rest_args:
+        work_dir = rest_args[0]
     if only is not None:
         rest_dir = os.path.join(work_dir, "rest")
         if os.path.exists(rest_dir):

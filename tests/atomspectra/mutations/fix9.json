@@ -1,0 +1,23 @@
+[
+  {"id": "FX9-1-quiet-2000", "target": "bm10-quiet-three", "file": "AtomSpectraDnsSd.Schedule.cs",
+   "old": "public static int QuietExitMs = 5500;",
+   "new": "public static int QuietExitMs = 2000;"},
+  {"id": "FX9-2-count-instances", "target": "bm10-count-address", "file": "AtomSpectraDnsSd.Schedule.cs",
+   "old": "if (address != null) addresses.Add(address);",
+   "new": "if (address != null) addresses.Add(inst);"},
+  {"id": "FX9-3-no-fallback", "target": "bm10-bind-fallback", "file": "AtomSpectraDnsSd.Adapters.cs",
+   "old": "if (set.Sockets.Count == 0 && !addresses.Contains(IPAddress.Any))",
+   "new": "if (false && !addresses.Contains(IPAddress.Any))"},
+  {"id": "FX9-5a-log-all-names", "target": "bm10-log-sent", "file": "AtomSpectraDnsSd.Adapters.cs",
+   "old": "(SentFrom.Count == 0 ? \"no adapter\" : string.Join(\", \", Names.Where(n => SentFrom.Contains(n))))",
+   "new": "(Names.Count == 0 ? \"no adapter\" : string.Join(\", \", Names))"},
+  {"id": "FX9-5b-packets-mixed", "target": "bm10-log-packets", "file": "AtomSpectraDnsSd.Adapters.cs",
+   "old": "set.FollowUpPackets++;   // Packets is the PTR phase (ExchangeScheduled)",
+   "new": "set.Packets++;"},
+  {"id": "FX9-7-no-carry", "target": "fix9-reset-carry", "file": "AtomSpectraTcpDeviceController.cs",
+   "old": "if (tcp != null && tcp.ResetOnNextStart) carriedResetKey",
+   "new": "if (false) carriedResetKey"},
+  {"id": "FX9-7b-no-host-compare", "target": "fix9-reset-other-board", "file": "AtomSpectraTcpDeviceController.cs",
+   "old": "if (string.Equals(carriedResetKey, newKey, StringComparison.OrdinalIgnoreCase))",
+   "new": "if (true)"}
+]
