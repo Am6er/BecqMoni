@@ -7066,7 +7066,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to AtomSpectra TCP: the counters of the analyzer behind {0}:{1} went down (time {2} s → {3} s, counts {4} → {5}): it was reset or restarted from outside. The document was not overwritten and the recording is stopped; nothing was sent to the board. To take the new acquisition, create a new document and press Start..
+        ///   Looks up a localized string similar to AtomSpectra TCP: the counters of the analyzer behind {0}:{1} went down (time {2} s → {3} s, counts {4} → {5}): it was reset or restarted from outside. The document was not overwritten and the recording is stopped; nothing was sent to the board..
         /// </summary>
         public static string MSGAtomSpectraTcpBoardReset {
             get {
@@ -7080,6 +7080,33 @@ namespace BecquerelMonitor.Properties {
         public static string MSGAtomSpectraTcpClearJoinedConfirm {
             get {
                 return ResourceManager.GetString("MSGAtomSpectraTcpClearJoinedConfirm", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to BecqMoni joined an acquisition that was already running on the analyzer, but recording is stopped now. Only the document is cleared now and nothing is sent to the analyzer; the analyzer's spectrum will be reset (-rst) at the next Start; if the analyzer has counted by then, Start asks first. Continue? This cannot be undone..
+        /// </summary>
+        public static string MSGAtomSpectraTcpClearJoinedDeferredConfirm {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraTcpClearJoinedDeferredConfirm", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Your Clear left the reset of the analyzer for this Start, but the analyzer has counted since (or was reset by someone else): it holds an acquisition that Clear did not see, and it is not erased without asking. &quot;Start over (reset)&quot; erases it now; &quot;Continue without reset&quot; keeps it..
+        /// </summary>
+        public static string AtomSpectraTcpStartClearPending {
+            get {
+                return ResourceManager.GetString("AtomSpectraTcpStartClearPending", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra TCP: a Clear left the reset of the analyzer for this Start, but the analyzer holds an acquisition that Clear did not see (it has counted since, or was reset by someone else), and a run without windows cannot ask whether to erase it. Nothing was sent to the board..
+        /// </summary>
+        public static string ERRAtomSpectraTcpHeadlessClearPending {
+            get {
+                return ResourceManager.GetString("ERRAtomSpectraTcpHeadlessClearPending", resourceCulture);
             }
         }
         
@@ -8829,6 +8856,87 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Replace document spectrum.
+        /// </summary>
+        public static string AtomSpectraRestReplace {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestReplace", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to "Replace document spectrum" takes the board's spectrum and time into this document without resetting the board (nothing is sent to a counting board, a stopped one gets only -sta); the efficiency, background and settings of the document stay..
+        /// </summary>
+        public static string AtomSpectraRestStartReplaceHint {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStartReplaceHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The spectrum of the document ({0} h {1} min, {2} counts) will be replaced by the board's ({3} h {4} min, {5} counts); the board is not reset. Whenever the document is saved, autosave included, its file is overwritten with the board's spectrum. To keep the present spectrum, first save the document under another name ("Save As..."). Replace the document spectrum?.
+        /// </summary>
+        public static string MSGAtomSpectraRestReplaceConfirm {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraRestReplaceConfirm", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to "Replace document spectrum" takes the board's spectrum and time into this document; observe only is on, so nothing is sent to the board (no -sta, no reset) and the document follows the board as it is; the efficiency, background and settings of the document stay..
+        /// </summary>
+        public static string AtomSpectraRestStartReplaceHintObserve {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStartReplaceHintObserve", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Open the board's acquisition in a new document.
+        /// </summary>
+        public static string AtomSpectraRestOpenNewDocument {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestOpenNewDocument", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Close.
+        /// </summary>
+        public static string AtomSpectraRestClose {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestClose", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The board was reset.
+        /// </summary>
+        public static string AtomSpectraRestBoardResetTitle {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestBoardResetTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to "Replace document spectrum" takes the board's new acquisition into this document (the board is not reset). "Open the board's acquisition in a new document" opens a new document with the same device configuration, efficiency and background, joined to the board's acquisition..
+        /// </summary>
+        public static string AtomSpectraRestBoardResetChoices {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestBoardResetChoices", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to To take the new acquisition create a new document and press Start..
+        /// </summary>
+        public static string MSGAtomSpectraRestBoardResetNewDocument {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraRestBoardResetNewDocument", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The board holds {0} h {1} min, {2} counts. Reset the spectrum ON THE BOARD? This cannot be undone..
         /// </summary>
         public static string MSGAtomSpectraRestClearConfirm {
@@ -8865,7 +8973,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The board was reset or restarted ({0}). The document was not changed and the recording is stopped; no command was sent. To take the new acquisition create a new document and press Start..
+        ///   Looks up a localized string similar to The board was reset or restarted ({0}). The document was not changed and the recording is stopped; no command was sent..
         /// </summary>
         public static string MSGAtomSpectraRestBoardReset {
             get {
@@ -9432,7 +9540,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Atom Spectra analyzer through the board's web interface (REST, HTTP). Address host[:port], the default port is 80; "Refresh" finds atomspectra.local. The board is polled every 1-60 s. Commands are sent as POST /api/command; the analyzer's text answer is shown from the board log..
+        ///   Looks up a localized string similar to Atom Spectra analyzer through the board's web interface (REST, HTTP). Address host[:port], the default port is 80; "Refresh" searches the network for the board (several boards - a choice window). The board is polled every 1-60 s. Commands are sent as POST /api/command; the analyzer's text answer is shown from the board log..
         /// </summary>
         public static string AtomSpectraRestHint {
             get {
@@ -9503,5 +9611,158 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ERRSoundFilePlay", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to Don't stop.
+        /// </summary>
+        public static string AtomSpectraKeepCounting {
+            get {
+                return ResourceManager.GetString("AtomSpectraKeepCounting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The board holds less than the document: it was reset or restarted. Continuing in this document is not possible..
+        /// </summary>
+        public static string AtomSpectraRestStartBehindReplace {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStartBehindReplace", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to In channel {0} the board holds fewer counts than the document: the board holds another acquisition. Continuing in this document is not possible..
+        /// </summary>
+        public static string AtomSpectraRestStartOtherSpectrumReplace {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStartOtherSpectrumReplace", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to access refused (HTTP {0}): check the token; polling goes on.
+        /// </summary>
+        public static string AtomSpectraRestStatusAccessDenied {
+            get {
+                return ResourceManager.GetString("AtomSpectraRestStatusAccessDenied", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Stop the acquisition on the board.
+        /// </summary>
+        public static string AtomSpectraStopOnBoard {
+            get {
+                return ResourceManager.GetString("AtomSpectraStopOnBoard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra: the recording in BecqMoni stops. The acquisition on the board {0} was already running when this recording started (BecqMoni only joined it). Stop the acquisition on the board as well? If not, the board goes on counting..
+        /// </summary>
+        public static string MSGAtomSpectraStopJoinedAsk {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraStopJoinedAsk", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Address.
+        /// </summary>
+        public static string AtomSpectraBoardChoiceAddress {
+            get {
+                return ResourceManager.GetString("AtomSpectraBoardChoiceAddress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cancel.
+        /// </summary>
+        public static string AtomSpectraBoardChoiceCancel {
+            get {
+                return ResourceManager.GetString("AtomSpectraBoardChoiceCancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Status: several boards found, none chosen. The address is not changed..
+        /// </summary>
+        public static string AtomSpectraBoardChoiceCancelled {
+            get {
+                return ResourceManager.GetString("AtomSpectraBoardChoiceCancelled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OK.
+        /// </summary>
+        public static string AtomSpectraBoardChoiceOk {
+            get {
+                return ResourceManager.GetString("AtomSpectraBoardChoiceOk", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Not every board sent its address in time ({0} without an address); they are not in the list. To search again, press Cancel, then Refresh..
+        /// </summary>
+        public static string AtomSpectraBoardChoiceIncomplete {
+            get {
+                return ResourceManager.GetString("AtomSpectraBoardChoiceIncomplete", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Status: searching the network for boards….
+        /// </summary>
+        public static string AtomSpectraConsoleStatusBrowsing {
+            get {
+                return ResourceManager.GetString("AtomSpectraConsoleStatusBrowsing", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Host name.
+        /// </summary>
+        public static string AtomSpectraBoardChoiceHost {
+            get {
+                return ResourceManager.GetString("AtomSpectraBoardChoiceHost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Several boards answered on the network. Choose the board for this configuration:.
+        /// </summary>
+        public static string AtomSpectraBoardChoicePrompt {
+            get {
+                return ResourceManager.GetString("AtomSpectraBoardChoicePrompt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Serial number.
+        /// </summary>
+        public static string AtomSpectraBoardChoiceSerial {
+            get {
+                return ResourceManager.GetString("AtomSpectraBoardChoiceSerial", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Service.
+        /// </summary>
+        public static string AtomSpectraBoardChoiceService {
+            get {
+                return ResourceManager.GetString("AtomSpectraBoardChoiceService", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra: choose a board.
+        /// </summary>
+        public static string AtomSpectraBoardChoiceTitle {
+            get {
+                return ResourceManager.GetString("AtomSpectraBoardChoiceTitle", resourceCulture);
+            }
+        }
+        
     }
 }

@@ -643,12 +643,33 @@ namespace BecquerelMonitor
         // Token: 0x060006AD RID: 1709 RVA: 0x00028110 File Offset: 0x00026310
         public void StopRecording()
         {
+            this.StopRecording(false);
+        }
+
+        // manual: the user's own "Stop" - the only Stop that may ask a question (see DeviceController.StopMeasurement)
+        public void StopRecording(bool manual)
+        {
             if (this.deviceController == null)
             {
                 return;
             }
-            this.deviceController.StopMeasurement(this.resultData);
+            // A Stop entered while the device's own Stop still runs (AtomSpectra TCP/REST: its Stop question is open): the first Stop ends
+            // the run and tells the views; this one only gives the device its turn - no second lease release, no second MeasurementTerminated
+            // (the views, a save after it). The program closing is not held back by it. Other devices never report StopInProgress.
+            bool nested = this.deviceController.StopInProgress && !MainForm.ApplicationClosing;
+            bool closing = MainForm.ApplicationClosing;
+            this.deviceController.StopMeasurement(this.resultData, manual);
+            if (nested)
+            {
+                return;
+            }
             this.ReleaseDeviceLease();
+            if (MainForm.ApplicationClosing && !closing)
+            {
+                // the program began to close while this Stop asked its question (a modal loop): its forms are being torn down,
+                // there are no views left to tell
+                return;
+            }
             if (this.MeasurementTerminated != null)
             {
                 this.MeasurementTerminated(this, new EventArgs());
@@ -749,6 +770,12 @@ namespace BecquerelMonitor
             // Preset time elapsed
             if (resultDataStatus.Recording && resultDataStatus.ElapsedTime.TotalSeconds >= (double)resultDataStatus.PresetTime)
             {
+                if (this.deviceController != null && this.deviceController.StopInProgress)
+                {
+                    // the device's first Stop still runs (AtomSpectra: its Stop question is open): that Stop ends the run, the preset
+                    // does not end it again (no second save, no completion sound)
+                    return;
+                }
                 this.StopRecording();
                 this.document.UpdateSpectrum = false;
                 if (this.saveOnMeasurementEnd)

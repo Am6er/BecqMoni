@@ -1,0 +1,14 @@
+[
+  {"id": "FX10-1-no-reenter-guard", "target": "console-tcp-fix10-stop-reenter", "file": "AtomSpectraTcpSession.cs",
+   "old": "if (stopQuestionOpen)\n            {",
+   "new": "if (false)\n            {"},
+  {"id": "FX10-2a-no-jump-cap", "target": "fix10-dns-chain", "file": "AtomSpectraDnsSd.cs",
+   "old": "if (jumps > MaxNameJumps)",
+   "new": "if (jumps > 1000000)"},
+  {"id": "FX10-2b-no-length-cap", "target": "fix10-dns-limit", "file": "AtomSpectraDnsSd.cs",
+   "old": "if (total > MaxNameLength)",
+   "new": "if (total > 100000)"},
+  {"id": "FX10-3-keep-for-rest", "target": "fix10-reset-to-rest", "file": "AtomSpectraTcpDeviceController.Rest.cs",
+   "old": "if (carriedResetKey != null)\n            {",
+   "new": "if (false)\n            {"}
+]

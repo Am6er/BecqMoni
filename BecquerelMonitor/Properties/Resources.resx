@@ -43926,10 +43926,19 @@ Close the window and discard it?</value>
     <value>AtomSpectra TCP: the analyzer behind {0}:{1} did not answer the stop command. It may keep counting; BecqMoni sends the stop command again as soon as the board accepts a new connection. Check the spectrum before continuing this measurement.</value>
   </data>
   <data name="MSGAtomSpectraTcpBoardReset" xml:space="preserve">
-    <value>AtomSpectra TCP: the counters of the analyzer behind {0}:{1} went down (time {2} s → {3} s, counts {4} → {5}): it was reset or restarted from outside. The document was not overwritten and the recording is stopped; nothing was sent to the board. To take the new acquisition, create a new document and press Start.</value>
+    <value>AtomSpectra TCP: the counters of the analyzer behind {0}:{1} went down (time {2} s → {3} s, counts {4} → {5}): it was reset or restarted from outside. The document was not overwritten and the recording is stopped; nothing was sent to the board.</value>
   </data>
   <data name="MSGAtomSpectraTcpClearJoinedConfirm" xml:space="preserve">
     <value>BecqMoni joined an acquisition that was already running on the analyzer; it holds {0} h {1} min, {2} counts. Reset the spectrum ON THE ANALYZER (-rst)? This cannot be undone.</value>
+  </data>
+  <data name="MSGAtomSpectraTcpClearJoinedDeferredConfirm" xml:space="preserve">
+    <value>BecqMoni joined an acquisition that was already running on the analyzer, but recording is stopped now. Only the document is cleared now and nothing is sent to the analyzer; the analyzer's spectrum will be reset (-rst) at the next Start; if the analyzer has counted by then, Start asks first. Continue? This cannot be undone.</value>
+  </data>
+  <data name="AtomSpectraTcpStartClearPending" xml:space="preserve">
+    <value>Your Clear left the reset of the analyzer for this Start, but the analyzer has counted since (or was reset by someone else): it holds an acquisition that Clear did not see, and it is not erased without asking. "Start over (reset)" erases it now; "Continue without reset" keeps it.</value>
+  </data>
+  <data name="ERRAtomSpectraTcpHeadlessClearPending" xml:space="preserve">
+    <value>AtomSpectra TCP: a Clear left the reset of the analyzer for this Start, but the analyzer holds an acquisition that Clear did not see (it has counted since, or was reset by someone else), and a run without windows cannot ask whether to erase it. Nothing was sent to the board.</value>
   </data>
   <data name="MSGAtomSpectraTcpNotReset" xml:space="preserve">
     <value>The analyzer was NOT reset; its spectrum is intact. While the measurement goes on, the document is filled from the analyzer again.</value>
@@ -44509,6 +44518,24 @@ The setting is saved on the board and applies to all its clients. If other progr
   <data name="AtomSpectraRestStartBehind" xml:space="preserve">
     <value>The board holds less than the document: it was reset or restarted. Continuing in this document is not possible; create a new document for the new acquisition.</value>
   </data>
+  <data name="AtomSpectraRestStartBehindReplace" xml:space="preserve">
+    <value>The board holds less than the document: it was reset or restarted. Continuing in this document is not possible.</value>
+  </data>
+  <data name="AtomSpectraRestStartOtherSpectrumReplace" xml:space="preserve">
+    <value>In channel {0} the board holds fewer counts than the document: the board holds another acquisition. Continuing in this document is not possible.</value>
+  </data>
+  <data name="AtomSpectraRestStatusAccessDenied" xml:space="preserve">
+    <value>access refused (HTTP {0}): check the token; polling goes on</value>
+  </data>
+  <data name="MSGAtomSpectraStopJoinedAsk" xml:space="preserve">
+    <value>AtomSpectra: the recording in BecqMoni stops. The acquisition on the board {0} was already running when this recording started (BecqMoni only joined it). Stop the acquisition on the board as well? If not, the board goes on counting.</value>
+  </data>
+  <data name="AtomSpectraStopOnBoard" xml:space="preserve">
+    <value>Stop the acquisition on the board</value>
+  </data>
+  <data name="AtomSpectraKeepCounting" xml:space="preserve">
+    <value>Don't stop</value>
+  </data>
   <data name="AtomSpectraRestContinue" xml:space="preserve">
     <value>Continue without reset</value>
   </data>
@@ -44517,6 +44544,18 @@ The setting is saved on the board and applies to all its clients. If other progr
   </data>
   <data name="AtomSpectraRestCancel" xml:space="preserve">
     <value>Cancel</value>
+  </data>
+  <data name="AtomSpectraRestReplace" xml:space="preserve">
+    <value>Replace document spectrum</value>
+  </data>
+  <data name="AtomSpectraRestStartReplaceHint" xml:space="preserve">
+    <value>"Replace document spectrum" takes the board's spectrum and time into this document without resetting the board (nothing is sent to a counting board, a stopped one gets only -sta); the efficiency, background and settings of the document stay.</value>
+  </data>
+  <data name="MSGAtomSpectraRestReplaceConfirm" xml:space="preserve">
+    <value>The spectrum of the document ({0} h {1} min, {2} counts) will be replaced by the board's ({3} h {4} min, {5} counts); the board is not reset. Whenever the document is saved, autosave included, its file is overwritten with the board's spectrum. To keep the present spectrum, first save the document under another name ("Save As..."). Replace the document spectrum?</value>
+  </data>
+  <data name="AtomSpectraRestStartReplaceHintObserve" xml:space="preserve">
+    <value>"Replace document spectrum" takes the board's spectrum and time into this document; observe only is on, so nothing is sent to the board (no -sta, no reset) and the document follows the board as it is; the efficiency, background and settings of the document stay.</value>
   </data>
   <data name="MSGAtomSpectraRestClearConfirm" xml:space="preserve">
     <value>The board holds {0} h {1} min, {2} counts. Reset the spectrum ON THE BOARD? This cannot be undone.</value>
@@ -44531,7 +44570,22 @@ The setting is saved on the board and applies to all its clients. If other progr
     <value>Observe only: no command is sent to the board, it was not reset.</value>
   </data>
   <data name="MSGAtomSpectraRestBoardReset" xml:space="preserve">
-    <value>The board was reset or restarted ({0}). The document was not changed and the recording is stopped; no command was sent. To take the new acquisition create a new document and press Start.</value>
+    <value>The board was reset or restarted ({0}). The document was not changed and the recording is stopped; no command was sent.</value>
+  </data>
+  <data name="MSGAtomSpectraRestBoardResetNewDocument" xml:space="preserve">
+    <value>To take the new acquisition create a new document and press Start.</value>
+  </data>
+  <data name="AtomSpectraRestBoardResetTitle" xml:space="preserve">
+    <value>The board was reset</value>
+  </data>
+  <data name="AtomSpectraRestBoardResetChoices" xml:space="preserve">
+    <value>"Replace document spectrum" takes the board's new acquisition into this document (the board is not reset). "Open the board's acquisition in a new document" opens a new document with the same device configuration, efficiency and background, joined to the board's acquisition.</value>
+  </data>
+  <data name="AtomSpectraRestOpenNewDocument" xml:space="preserve">
+    <value>Open the board's acquisition in a new document</value>
+  </data>
+  <data name="AtomSpectraRestClose" xml:space="preserve">
+    <value>Close</value>
   </data>
   <data name="MSGAtomSpectraRestBoardStalled" xml:space="preserve">
     <value>The board stopped counting by itself. The recording in BecqMoni is stopped; no command was sent to the board.</value>
@@ -44704,6 +44758,39 @@ The setting is saved on the board and applies to all its clients. If other progr
   <data name="AtomSpectraConsoleStatusSearching" xml:space="preserve">
     <value>Status: looking for {0}...</value>
   </data>
+  <data name="AtomSpectraBoardChoiceTitle" xml:space="preserve">
+    <value>AtomSpectra: choose a board</value>
+  </data>
+  <data name="AtomSpectraBoardChoicePrompt" xml:space="preserve">
+    <value>Several boards answered on the network. Choose the board for this configuration:</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceAddress" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceSerial" xml:space="preserve">
+    <value>Serial number</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceHost" xml:space="preserve">
+    <value>Host name</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceService" xml:space="preserve">
+    <value>Service</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceCancelled" xml:space="preserve">
+    <value>Status: several boards found, none chosen. The address is not changed.</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceOk" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="AtomSpectraBoardChoiceIncomplete" xml:space="preserve">
+    <value>Not every board sent its address in time ({0} without an address); they are not in the list. To search again, press Cancel, then Refresh.</value>
+  </data>
+  <data name="AtomSpectraConsoleStatusBrowsing" xml:space="preserve">
+    <value>Status: searching the network for boards…</value>
+  </data>
   <data name="AtomSpectraConsolePollTcpHint" xml:space="preserve">
     <value>TCP: the analyzer streams the spectrum, the poll interval is not used</value>
   </data>
@@ -44720,7 +44807,7 @@ The setting is saved on the board and applies to all its clients. If other progr
     <value>AtomSpectra REST: the board {0} does not answer ({2}). The measurement is not started: check the address and the network, then press Start again. During a measurement BecqMoni keeps polling the board every {1} s when it stops answering.</value>
   </data>
   <data name="AtomSpectraRestHint" xml:space="preserve">
-    <value>Atom Spectra analyzer through the board's web interface (REST, HTTP). Address host[:port], the default port is 80; "Refresh" finds atomspectra.local. The board is polled every 1-60 s. Commands are sent as POST /api/command; the analyzer's text answer is shown from the board log.</value>
+    <value>Atom Spectra analyzer through the board's web interface (REST, HTTP). Address host[:port], the default port is 80; "Refresh" searches the network for the board (several boards - a choice window). The board is polled every 1-60 s. Commands are sent as POST /api/command; the analyzer's text answer is shown from the board log.</value>
   </data>
   <data name="AtomSpectraRestTcpTestDisabled" xml:space="preserve">
     <value>REST mode: the bridge port test is not used; check the board with "Test connection (REST)" below.</value>

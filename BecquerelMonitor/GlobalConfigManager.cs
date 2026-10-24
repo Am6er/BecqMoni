@@ -395,6 +395,28 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// Тот же вопрос с явным хозяином (PR #38, 24.10.2026: подтверждение «Заменить спектр
+        /// документа» поверх окна старта AtomSpectra). Хозяином остаётся окно, над которым
+        /// спрашивают, иначе вопрос старта остался бы доступен под подтверждением. Без окон —
+        /// тот же бросок первым оператором.
+        /// </summary>
+        public static bool AskYesNo(IWin32Window owner, string text, string caption, MessageBoxIcon icon, bool defaultNo)
+        {
+            if (!AppUi.hasWindows)
+            {
+                throw new InvalidOperationException(
+                    "BecqMoni: " + AppUi.OneLine(caption) + ": " + AppUi.OneLine(text)
+                    + " — ответить на этот вопрос без окон некому, а оба ответа меняют числа.");
+            }
+            if (owner == null)
+            {
+                return AppUi.AskYesNo(text, caption, icon, defaultNo);
+            }
+            MessageBoxDefaultButton button = defaultNo ? MessageBoxDefaultButton.Button2 : MessageBoxDefaultButton.Button1;
+            return MessageBox.Show(owner, text, caption, MessageBoxButtons.YesNo, icon, button) == DialogResult.Yes;
+        }
+
+        /// <summary>
         /// Заверение о том, ЧТО ИМЕННО открылось: не беда, а факт. Печатается
         /// ТОЛЬКО без окон и ТОЛЬКО по факту открытия файла.
         ///

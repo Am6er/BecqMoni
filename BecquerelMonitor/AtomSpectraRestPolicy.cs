@@ -64,7 +64,9 @@ namespace BecquerelMonitor
     {
         Continue,
         Restart,
-        Cancel
+        Cancel,
+        // Replace = the document's spectrum is replaced by the board's; the board is joined as by Continue, never reset
+        Replace
     }
 
     public enum AtomSpectraRestStartPlan
@@ -193,10 +195,30 @@ namespace BecquerelMonitor
             return AtomSpectraRestStartPlan.Ask;
         }
 
+        // Replace is offered only where Continue is not (with it allowed, Continue gives the same spectrum), for a document with data
+        // and a board that sent a spectrum (a silent bridge or a 404 has none to take)
+        public static bool ReplaceAllowed(AtomSpectraRestBoardSample board, long docSeconds, long docCounts, bool continueAllowed)
+        {
+            return !continueAllowed && (docSeconds > 0 || docCounts > 0) && BoardHasData(board);   // an empty board (0 s, 0 counts) has nothing to take
+        }
+
         public static AtomSpectraRestStartPlan PlanChoice(AtomSpectraRestStartChoice choice, bool counting, bool continueAllowed)
+        {
+            return PlanChoice(choice, counting, continueAllowed, true);
+        }
+
+        // boardHasData: the board sent a spectrum; Replace without one is cancelled (nothing to take, nothing sent)
+        public static AtomSpectraRestStartPlan PlanChoice(AtomSpectraRestStartChoice choice, bool counting, bool continueAllowed, bool boardHasData)
         {
             switch (choice)
             {
+                case AtomSpectraRestStartChoice.Replace:
+                    // the board's acquisition as it is: joined, or resumed (-sta, no reset) when stopped - as Continue
+                    if (!boardHasData)
+                    {
+                        return AtomSpectraRestStartPlan.Cancel;
+                    }
+                    return counting ? AtomSpectraRestStartPlan.Join : AtomSpectraRestStartPlan.Resume;
                 case AtomSpectraRestStartChoice.Continue:
                     if (!continueAllowed)
                     {
@@ -319,6 +341,25 @@ namespace BecquerelMonitor
                 TripText = null;
                 sawGrowth = counting;
                 lastGrowthMs = -1;
+            }
+        }
+
+        // Replace: the document takes the board's spectrum as the Start question showed it, so that snapshot is the reference -
+        // its time, counts, hist_ok, channels (seenBins: folded as the polls bring them) and epoch. A board reset, restarted or
+        // given another acquisition while the question was open trips at the first poll instead of being taken silently.
+        public void BeginFrom(AtomSpectraRestBoardSample seen, int[] seenBins, bool counting)
+        {
+            lock (sync)
+            {
+                Begin(0, 0, counting);
+                if (seen == null || !seen.HasData) return;
+                hasLast = true;
+                lastTime = seen.Time;
+                lastTotal = seen.Total;
+                lastHistOk = seen.HistOk;
+                histFromSample = true;
+                lastBins = seenBins;
+                lastEpoch = seen.Epoch;
             }
         }
 
