@@ -7084,7 +7084,7 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to BecqMoni joined an acquisition that was already running on the analyzer, but recording is stopped now. Only the document is cleared now and nothing is sent to the analyzer; the analyzer's spectrum will be reset (-rst) at the next Start. Continue? This cannot be undone..
+        ///   Looks up a localized string similar to BecqMoni joined an acquisition that was already running on the analyzer, but recording is stopped now. Only the document is cleared now and nothing is sent to the analyzer; the analyzer's spectrum will be reset (-rst) at the next Start; if the analyzer has counted by then, Start asks first. Continue? This cannot be undone..
         /// </summary>
         public static string MSGAtomSpectraTcpClearJoinedDeferredConfirm {
             get {
