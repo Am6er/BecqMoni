@@ -31,7 +31,7 @@ namespace BecquerelMonitor
     // What the probe at Start saw of the board (the stream of the bridge, no command sent).
     public enum AtomSpectraTcpBoardState
     {
-        NotProbed,      // no probe: an explicit Clear waits, or the same document goes on
+        NotProbed,      // no probe: an explicit Clear waits
         Silent,         // no complete cycle in ProbeMs: nothing is known about the board
         Uncertain,      // one sample, or two close ones with the same time: counting or stopped is not known
         Counting,
@@ -83,7 +83,7 @@ namespace BecquerelMonitor
         Unconfirmed     // REST: -sto reached the board but no clear answer came back; not repeated
     }
 
-    public sealed class AtomSpectraTcpSession : IAtomSpectraSession
+    public sealed partial class AtomSpectraTcpSession : IAtomSpectraSession
     {
         // IAtomSpectraSession. "Continue" on a counting board joins it (no command); the stream carries
         // the board's ACCUMULATED histogram and time (AtomSpectraTcpDeviceController.UpdateHistogram copies them), so joining is real.
@@ -91,7 +91,7 @@ namespace BecquerelMonitor
         public bool JoinedRunning { get { return joinedRunning; } }
         public double ElapsedAtBeginSeconds { get { return elapsedAtBegin; } }
 
-        // A Start into a new document on a board with data asks "Continue / Start over / Cancel" (the REST dialog);
+        // A Start on a board with data, or into a document with data, asks "Continue / Start over / Replace / Cancel" (the REST dialog);
         // null = no window to ask (headless runs, the TCP suite): the REST rules without windows: a counting board is joined
         // (nothing sent), a stopped board with data is refused (HeadlessAsk, nothing sent), an empty board gets -sta only; no reset without an answer.
         public Func<AtomSpectraRestStartQuestion, AtomSpectraRestStartChoice> Ask { get; set; }
@@ -104,7 +104,9 @@ namespace BecquerelMonitor
         public const int NoDataLinkLostMs = 4 * ProbeMs;
         public const int OwnResetWindowMs = 4 * ProbeMs;
         bool joinedRunning;
+        bool replaced;   // "Replace document spectrum": the guard starts from the board as the probe saw it, not from the document
         double elapsedAtBegin;
+        public bool ReplacedDocument { get { return replaced; } }
 
         // What the document holds at Start (set by the controller, as REST): the question shows it, "Continue" is refused
         // when the board holds less, and the document is the first reference of the reset guard.
@@ -130,6 +132,9 @@ namespace BecquerelMonitor
         // The board's last known time and counts (the Clear question shows them).
         public long BoardSeconds { get { lock (guardLock) return boardTime; } }
         public long BoardCounts { get { lock (guardLock) return boardTotal; } }
+
+        // True when Clear sends nothing now (no open acquisition): the reset waits for the next Start (resetOnNextStart, see Clear).
+        public bool ClearDeferred { get { return acquisition == null; } }
 
         public const int ConnectTimeoutMs = 1500;
         public const int StopReconnectWaitMs = 1900;
@@ -200,6 +205,12 @@ namespace BecquerelMonitor
         public bool ResetOnNextStart
         {
             get { return resetOnNextStart; }
+        }
+
+        // The controller hands over a reset that a closed session of the same document still owed: the next Start sends -rst.
+        public void RequestResetOnNextStart()
+        {
+            resetOnNextStart = true;
         }
 
         public event EventHandler<AtomSpectraTcpDataReadyArgs> DataReady;
@@ -409,11 +420,12 @@ namespace BecquerelMonitor
         private AtomSpectraRestStartPlan PlanTcpStart(bool newDocument)
         {
             joinedRunning = false;
+            replaced = false;
             elapsedAtBegin = 0;
             probeTime = probeTotal = 0;
             BoardState = AtomSpectraTcpBoardState.NotProbed;
             if (resetOnNextStart) return AtomSpectraRestStartPlan.Restart;   // an explicit Clear waits for this Start
-            if (!newDocument) return AtomSpectraRestStartPlan.StartNew;       // the same document goes on: -sta, as before
+            // the same document is probed as well (as REST): a board behind the document gets nothing before the answer
             AtomSpectraRestBoardSample[] s = ProbeBoard(ProbeMs);   // with or without a window; no question possible = the REST rules without windows
             bool grew = s.Length >= 2 && s[s.Length - 1].Time > s[0].Time;
             // counting only when the board time grew, stopped only when it stood still over ProbeSpanMs; no sample, one sample or
@@ -427,8 +439,12 @@ namespace BecquerelMonitor
             AtomSpectraRestStartPlan plan = AtomSpectraRestPolicy.PlanStart(false, Ask != null, counting, board, DocumentSeconds, DocumentCounts);
             // a silent bridge says nothing about the board, its spectrum included: never a blind -sta - a question, or a refusal without a window
             if (BoardState == AtomSpectraTcpBoardState.Silent) plan = AtomSpectraRestStartPlan.Ask;
+            // ... except the same document after its own Stop ("pause - continue"): a silent bridge gets -sta at once, as before; Uncertain keeps the question
+            if (BoardState == AtomSpectraTcpBoardState.Silent && !newDocument) plan = AtomSpectraRestStartPlan.StartNew;
             if (!known && Ask == null && plan == AtomSpectraRestStartPlan.Ask) Refusal = AtomSpectraTcpRefusal.Unknown;
             bool continueAllowed = !AtomSpectraRestPolicy.BoardBehindDocument(board, DocumentSeconds, DocumentCounts);
+            // the same document after its own Stop ("pause - continue"): a board seen clearly, not behind the document, gets -sta as before, no question
+            if (plan == AtomSpectraRestStartPlan.Ask && !newDocument && known && board.HasData && continueAllowed) plan = AtomSpectraRestStartPlan.StartNew;
             if (plan == AtomSpectraRestStartPlan.Ask && Ask != null)
             {
                 AtomSpectraRestStartQuestion q = new AtomSpectraRestStartQuestion
@@ -437,9 +453,12 @@ namespace BecquerelMonitor
                     Board = board,
                     DocumentSeconds = DocumentSeconds,
                     DocumentCounts = DocumentCounts,
-                    ContinueAllowed = continueAllowed
+                    ContinueAllowed = continueAllowed,
+                    ReplaceAllowed = AtomSpectraRestPolicy.ReplaceAllowed(board, DocumentSeconds, DocumentCounts, continueAllowed)
                 };
-                plan = AtomSpectraRestPolicy.PlanChoice(Ask(q), counting, continueAllowed);
+                AtomSpectraRestStartChoice choice = Ask(q);
+                plan = AtomSpectraRestPolicy.PlanChoice(choice, counting, continueAllowed, AtomSpectraRestPolicy.BoardHasData(board));
+                replaced = choice == AtomSpectraRestStartChoice.Replace && plan != AtomSpectraRestStartPlan.Cancel;
             }
             if (plan == AtomSpectraRestStartPlan.Restart && (DocumentSeconds > 0 || DocumentCounts > 0))
             {
@@ -461,12 +480,19 @@ namespace BecquerelMonitor
             }
             AtomSpectraTcpLog.Info("Session", "TCP Start: board " + BoardState + " (" + s.Length.ToString(CultureInfo.InvariantCulture) + " samples), time "
                 + board.Time.ToString(CultureInfo.InvariantCulture) + " s, counts " + board.Total.ToString(CultureInfo.InvariantCulture)
-                + ", document " + DocumentSeconds.ToString(CultureInfo.InvariantCulture) + " s, " + DocumentCounts.ToString(CultureInfo.InvariantCulture) + " counts -> " + plan);
+                + ", document " + DocumentSeconds.ToString(CultureInfo.InvariantCulture) + " s, " + DocumentCounts.ToString(CultureInfo.InvariantCulture) + " counts -> " + plan
+                + (replaced ? " (the document's spectrum is replaced by the board's)" : ""));
             return plan;
         }
 
         public AtomSpectraTcpStopOutcome Stop(int commandTimeoutMs)
         {
+            if (stopQuestionOpen)
+            {
+                // a second Stop (the preset, the timer) while the user is still answering the first: the answer decides, this one does nothing
+                AtomSpectraTcpLog.Info("Session", "Stop refused: the Stop question of " + HostKey(host, port) + " is still open");
+                return AtomSpectraTcpStopOutcome.NotRunning;
+            }
             StopUnanswered = false;
             if (acquisition == null)
             {
@@ -474,7 +500,7 @@ namespace BecquerelMonitor
             }
 
             DisarmGuard();
-            if (joinedRunning)
+            if (joinedRunning && !StopJoinedOnBoard())
             {
                 // a joined acquisition is not ours to stop (as REST): no -sto, the board keeps counting
                 AtomSpectraTcpLog.Info("Session", "Stop of a joined acquisition on " + HostKey(host, port) + ": detached, -sto not sent");
@@ -614,8 +640,9 @@ namespace BecquerelMonitor
             {
                 guardArmed = true;
                 guardTripped = false;
-                guardTime = Math.Max(DocumentSeconds, probeTime);
-                guardTotal = Math.Max(DocumentCounts, probeTotal);
+                // Replace: the document's numbers are given up, the board's smaller spectrum is no reset from outside
+                guardTime = replaced ? probeTime : Math.Max(DocumentSeconds, probeTime);
+                guardTotal = replaced ? probeTotal : Math.Max(DocumentCounts, probeTotal);
                 guardHasLast = guardTime > 0 || guardTotal > 0;
                 guardBins = null;
             }

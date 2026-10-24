@@ -2,7 +2,8 @@
 // address host[:port], "Refresh" (name resolution + GET /api/device, only GET), and a command line.
 // REST: POST /api/command answers only {"ok":true|false} (fw web_server.c:322-342); the analyzer's text answer is taken from
 // the board log GET /api/devlog?since=N (fw usb_host_cdc.c: every CMD_TEXT packet, ring of 8 x 480 chars).
-// "Refresh" is not a mDNS browser: it resolves ONE name (atomspectra.local by default) through the system resolver.
+// Refresh(name) resolves ONE name (atomspectra.local by default) through the system resolver; "Refresh" now first
+// browses DNS-SD (AtomSpectraBoardFinder, AtomSpectraDnsSd.cs) and uses this path only when no board answered the browse.
 // Texts for a person come from Properties.Resources; the log lines stay English.
 
 using BecquerelMonitor.Properties;
@@ -224,6 +225,8 @@ namespace BecquerelMonitor
             public string Message;
             public string DeviceJson;   // the GET /api/device body (calibration for the Energy Calibration page)
             public string BootConfigJson;   // the GET /api/boot-config body (gzip_level), null when not read
+            public bool Cancelled;   // several boards and the person closed the choice without choosing
+            public string FoundAs;   // the board's mDNS host name (SRV target) for the status line; null = the searched name
         }
 
         public static RefreshResult Refresh(string name, int httpPort, bool useProxy, int timeoutMs)

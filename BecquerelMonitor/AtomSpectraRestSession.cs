@@ -27,6 +27,7 @@ namespace BecquerelMonitor
         public long DocumentSeconds;
         public long DocumentCounts;
         public bool ContinueAllowed;
+        public bool ReplaceAllowed;   // "Replace document spectrum" is offered (AtomSpectraRestPolicy.ReplaceAllowed)
         public int ChannelBelow = -1;   // the first channel in which the board holds fewer counts than the document (-1: none)
         public string Note;   // an extra line under the question (TCP: what each button sends)
     }
@@ -36,7 +37,7 @@ namespace BecquerelMonitor
     // "observe only" never sends a POST; there is NO deferred reset (a Clear resets now or never);
     // Stop sends -sto only for an acquisition this session started;
     // a board whose counters went down is never written over the document.
-    public sealed class AtomSpectraRestSession : IAtomSpectraSession
+    public sealed partial class AtomSpectraRestSession : IAtomSpectraSession
     {
         public static int ProbeGapMs = 3200;
         public static int RetryStopEveryMs = 10000;
@@ -55,6 +56,7 @@ namespace BecquerelMonitor
 
         private AtomSpectraRestAcquisition acquisition;
         private bool joined;
+        private bool replaced;   // Start took the board's spectrum in place of the document's: the guard starts from zero
         private bool startedByUs;
         private bool counting;
         private double elapsedAtBegin;
@@ -117,6 +119,7 @@ namespace BecquerelMonitor
         public string LastError { get { return lastError; } }              // the log text
         public string LastErrorText { get { return lastUserError; } }      // the user's text of the same failure (null: none)
         public bool JoinedRunning { get { return joined; } }
+        public bool ReplacedDocument { get { return replaced; } }
         public double ElapsedAtBeginSeconds { get { return elapsedAtBegin; } }
         public bool StartedByUs { get { return startedByUs; } }
         public bool ObserveOnly { get { return observeOnly; } }
@@ -126,6 +129,7 @@ namespace BecquerelMonitor
         public AtomSpectraRestFailure Failure { get; private set; }
         public AtomSpectraRestStartPlan LastPlan { get; private set; }
         public AtomSpectraRestBoardSample LastProbe { get { return lastProbe; } }
+        public AtomSpectraRestBoardSample TripSample { get; private set; }   // the snapshot that showed the reset from outside (the board's new acquisition)
         public AtomSpectraRestAcquisition Acquisition { get { return acquisition; } }
         public AtomSpectraRestGuard Guard { get { return guard; } }
         public long StallMs { get { return StallOverrideMs > 0 ? StallOverrideMs : Math.Max(3L * Math.Max(1, periodSeconds) * 1000L, 15000L); } }
@@ -213,9 +217,11 @@ namespace BecquerelMonitor
             lastUserError = null;
             RestartedBoard = false;
             joined = false;
+            replaced = false;
             startedByUs = false;
             elapsedAtBegin = 0;
             resetReported = false;
+            TripSample = null;
             stallReported = false;
             limitReported = false;
             noDataSince = -1;
@@ -251,6 +257,7 @@ namespace BecquerelMonitor
 
             AtomSpectraRestStartPlan plan = AtomSpectraRestPolicy.PlanStart(observeOnly, Ask != null, counting, second, DocumentSeconds, DocumentCounts, below >= 0);
 
+            if (plan == AtomSpectraRestStartPlan.RefuseObserve) plan = ObservePlan(second, below);   // Replace is still possible (nothing sent)
             if (plan == AtomSpectraRestStartPlan.RefuseObserve)
             {
                 // observe only never sends a command; joining would end at the first snapshot as "the board was reset"
@@ -282,11 +289,14 @@ namespace BecquerelMonitor
                     DocumentSeconds = DocumentSeconds,
                     DocumentCounts = DocumentCounts,
                     ContinueAllowed = continueAllowed,
+                    ReplaceAllowed = AtomSpectraRestPolicy.ReplaceAllowed(second, DocumentSeconds, DocumentCounts, continueAllowed),
                     ChannelBelow = below
                 };
                 AtomSpectraRestStartChoice choice = Ask(q);
                 AtomSpectraTcpLog.Info("Session", "Start dialog: " + choice);
-                plan = AtomSpectraRestPolicy.PlanChoice(choice, counting, continueAllowed);
+                plan = AtomSpectraRestPolicy.PlanChoice(choice, counting, continueAllowed, AtomSpectraRestPolicy.BoardHasData(second));
+                replaced = choice == AtomSpectraRestStartChoice.Replace && plan != AtomSpectraRestStartPlan.Cancel;
+                if (replaced) AtomSpectraTcpLog.Info("Session", "Start: the document's spectrum is replaced by the board's; the board is not reset");
             }
 
             LastPlan = plan;
@@ -308,7 +318,9 @@ namespace BecquerelMonitor
                 case AtomSpectraRestStartPlan.Join:
                     joined = true;
                     elapsedAtBegin = boardTime;
-                    guard.Begin(DocumentSeconds, DocumentCounts, counting, DocumentBins);
+                    // Replace: the board's smaller spectrum is what the document takes, not a reset from outside
+                    if (replaced) guard.Begin(0, 0, counting, null);
+                    else guard.Begin(DocumentSeconds, DocumentCounts, counting, DocumentBins);
                     break;
 
                 case AtomSpectraRestStartPlan.Resume:
@@ -320,7 +332,8 @@ namespace BecquerelMonitor
                     }
                     startedByUs = true;
                     elapsedAtBegin = boardTime;
-                    guard.Begin(DocumentSeconds, DocumentCounts, true, DocumentBins);
+                    if (replaced) guard.Begin(0, 0, true, null);
+                    else guard.Begin(DocumentSeconds, DocumentCounts, true, DocumentBins);
                     break;
 
                 case AtomSpectraRestStartPlan.Restart:
@@ -415,12 +428,12 @@ namespace BecquerelMonitor
                 return AtomSpectraTcpStopOutcome.Detached;
             }
 
-            if (!startedByUs)
+            if (!startedByUs && !StopJoinedOnBoard())
             {
                 AtomSpectraTcpLog.Info("Session", "Stop: the acquisition was joined, not started here - -sto is not sent, polling stopped");
                 joined = false;
-                EventHandler kept = BoardKeepsCounting;   // the user is told that the board counts on
-                if (kept != null) kept(this, EventArgs.Empty);
+                EventHandler kept = BoardKeepsCounting;   // the user is told that the board counts on (unless the Stop question told it already)
+                if (kept != null && AskStopJoined == null) kept(this, EventArgs.Empty);
                 return AtomSpectraTcpStopOutcome.Detached;
             }
 
@@ -686,6 +699,7 @@ namespace BecquerelMonitor
                 if (!resetReported)
                 {
                     resetReported = true;
+                    TripSample = e.Sample;
                     string why = guard.TripReason;
                     AtomSpectraTcpLog.Error("Session", "board reset or restarted from outside: " + why + "; the document is not overwritten, polling stops, nothing is sent");
                     EventHandler<string> h = BoardReset;

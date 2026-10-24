@@ -26,6 +26,12 @@ namespace BecquerelMonitor
                 return;
             }
             if (session != null && (!(session is AtomSpectraRestSession) || key != restKey)) CloseSession();
+            if (carriedResetKey != null)
+            {
+                // REST has no deferred reset: the one the TCP session left is dropped, not kept for a later switch back to TCP
+                AtomSpectraTcpLog.Info("Session", "deferred reset dropped: transport changed to REST (" + carriedResetKey + ")");
+                carriedResetKey = null;
+            }
             if (session != null) return;
             string error;
             AtomSpectraRestClient client = config.CreateRestClient(out error);
@@ -115,7 +121,7 @@ namespace BecquerelMonitor
                     // the document's channels: "Continue" is offered only when the board holds at least as much in every one of them
                     rest.DocumentBins = r.EnergySpectrum != null && r.EnergySpectrum.Spectrum != null ? (int[])r.EnergySpectrum.Spectrum.Clone() : null;
                     // asked on the UI thread; a headless run never asks (joins or refuses)
-                    rest.Ask = AppUi.HasWindows ? new Func<AtomSpectraRestStartQuestion, AtomSpectraRestStartChoice>(AtomSpectraRestUi.AskStart) : null;
+                    rest.Ask = AppUi.HasWindows ? AnswerGiven(r, new Func<AtomSpectraRestStartQuestion, AtomSpectraRestStartChoice>(AtomSpectraRestUi.AskStart)) : null;
                     // ?channels=N of the profile at Start (the same number restChannels keeps below)
                     rest.RequestChannels = profileChannels;
                     bool newDoc = newDocumentCreated;
@@ -132,6 +138,7 @@ namespace BecquerelMonitor
                         long boardSeconds = (long)rest.ElapsedAtBeginSeconds;
                         r.StartTime = DateTime.Now - TimeSpan.FromSeconds(boardSeconds);   // the document starts when the board started
                         newDocumentCreated = false;
+                        TakeBoardTime(r, rest);
                         int before = r.ResultDataStatus.PresetTime;
                         // the preset must not stop the board before its own limit (MeasurementController.cs:749)
                         r.ResultDataStatus.PresetTime = rest.PresetAfterStart(before);
@@ -139,6 +146,7 @@ namespace BecquerelMonitor
                         AtomSpectraTcpLog.SetStatus("REST", rest.Endpoint, rest.ObserveOnly ? Resources.AtomSpectraRestStatusObserving
                             : (rest.JoinedRunning ? Resources.AtomSpectraRestStatusJoined : Resources.AtomSpectraRestStatusMeasuring));
                         r.ResultDataStatus.Recording = true;
+                        if (ReferenceEquals(stopAsked, r)) stopAsked = null;
                         boardCalibrationPending = true;   // the first snapshot's "calib" -> document and configuration
                         return true;
                     }
@@ -230,7 +238,7 @@ namespace BecquerelMonitor
         {
             AtomSpectraRestSession rest = sender as AtomSpectraRestSession;
             string text = rest != null ? rest.Guard.TripText : null;   // `why` is the log's English reason
-            StopByBoard(string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraRestBoardReset, text ?? "?"));
+            StopByBoard(string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraRestBoardReset, text ?? "?"), rest != null ? rest.TripSample : null);
         }
 
         private void RestBoardStalled(object sender, EventArgs e)
@@ -251,7 +259,9 @@ namespace BecquerelMonitor
                 "Stop: the joined acquisition goes on counting on the board");
         }
 
-        private void StopByBoard(string message)
+        // board: the board's new acquisition after a reset from outside (null: a stall); one with a spectrum is offered to the user,
+        // one without (404) gets the advice of a new document
+        private void StopByBoard(string message, AtomSpectraRestBoardSample board = null)
         {
             ResultData data = resultData;
             AtomSpectraRestSession rest = session as AtomSpectraRestSession;
@@ -267,9 +277,12 @@ namespace BecquerelMonitor
             {
                 MainForm.originalContext.Post(delegate
                 {
-                    if (data != null && data.ResultDataStatus.Recording && data.MeasurementController != null) data.MeasurementController.NotifyMeasurementStoppedByDevice();
+                    bool recording = data != null && data.ResultDataStatus.Recording;   // a recording the user stopped first is not offered a replacement
+                    if (recording && data.MeasurementController != null) data.MeasurementController.NotifyMeasurementStoppedByDevice();
                     if (MainForm.ApplicationClosing) return;   // the program began to close after the post
-                    AppUi.Report(message, "", MessageBoxIcon.Warning);
+                    // an empty board (404 or 0 s / 0 counts) gets the advice of a new document, not the window
+                    if (board != null) ScheduleBoardOffer(message, "board reset from outside", data, board.HasData ? board.Time : 0, board.HasData ? board.Total : 0, recording);   // not over a wait window
+                    else AtomSpectraRestUi.AfterWait(() => AppUi.Report(message, "", MessageBoxIcon.Warning));
                 }, null);
             }
             else

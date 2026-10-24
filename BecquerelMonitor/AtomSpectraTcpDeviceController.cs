@@ -36,6 +36,9 @@ namespace BecquerelMonitor
         const int KeepAliveMs = 1000;
 
         private IAtomSpectraSession session;
+        // A reset (user's Clear) that the last closed TCP session had not sent yet: handed to the next TCP session
+        // and the host:port it was owed for (null: none); a session of another board does not get it
+        private string carriedResetKey;
         private bool linkLossReported;
         private ResultData resultData;
         private string deviceGuid;
@@ -44,6 +47,19 @@ namespace BecquerelMonitor
         // The document's preset before a Start raised it by the board's time (Join / Resume); -1: not raised.
         // Clear resets the board, the run starts from zero again, so the preset goes back to this value.
         private int presetBeforeBoardTime = -1;
+        // The answer given in advance to the Start question of one spectrum: the window after a board reset has asked already
+        private static ResultData answerFor;
+        private static AtomSpectraRestStartChoice answer;
+
+        // The Ask of a Start that was answered in advance (taken once): the answer while the board is as the user saw it, else `ask`
+        private static Func<AtomSpectraRestStartQuestion, AtomSpectraRestStartChoice> AnswerGiven(ResultData r, Func<AtomSpectraRestStartQuestion, AtomSpectraRestStartChoice> ask)
+        {
+            if (answerFor == null || !ReferenceEquals(answerFor, r)) return ask;
+            AtomSpectraRestStartChoice given = answer;
+            long seenSeconds = answerSeconds, seenCounts = answerCounts;
+            answerFor = null;
+            return q => { bool holds = AnswerStillHolds(given, seenSeconds, seenCounts, q); AtomSpectraTcpLog.Info("Session", "Start question answered in advance: " + given + (holds ? "" : " - the board changed since, asked again")); return holds ? given : ask(q); };
+        }
 
         public bool IsLinkLost
         {
@@ -62,9 +78,27 @@ namespace BecquerelMonitor
 
         public override void StopMeasurement(ResultData r)
         {
+            StopMeasurement(r, false);
+        }
+
+        // manual (the user's "Stop") may ask whether a joined acquisition is to be stopped on the board too; the preset, the timer
+        // and any other Stop ask nothing: the joined acquisition is detached without -sto, as before (no window, timerBusy not held)
+        public override void StopMeasurement(ResultData r, bool manual)
+        {
+            stopAsked = r;   // a board reset met during this Stop is not offered a replacement (RecordingAtShow)
+            if (MainForm.ApplicationClosing)
+            {
+                // the program closes: detach first, the board keeps counting (no -sto). This is intended for the REST/TCP board;
+                // the USB AtomSpectra Pro does otherwise (its StopMeasurement sends -sto)
+                AtomSpectraTcpLog.Info("Session", "the program closes: detached, -sto not sent, the board keeps counting");
+                DetachFromDevice(r);
+                return;
+            }
+
             try
             {
                 IAtomSpectraSession s0 = session;
+                if (s0 != null) s0.AskStopJoined = manual ? StopJoinedQuestion(s0) : null;   // a joined acquisition - stop it on the board too?
                 // REST Stop behind the wait window, the UI thread does not block on the network
                 AtomSpectraTcpStopOutcome outcome = s0 == null ? AtomSpectraTcpStopOutcome.NotRunning
                     : s0 is AtomSpectraRestSession ? AtomSpectraRestUi.RunWithWait(delegate { return s0.Stop(CommandTimeoutMs); })
@@ -173,14 +207,24 @@ namespace BecquerelMonitor
             r.StartTime = DateTime.Now;
         }
 
-        private static bool ConfirmJoinedClear(IAtomSpectraSession s)
+        // with no open acquisition (recording stopped) Clear sends nothing now, the board is reset at the next Start: the text says so
+        // and carries no board numbers (the last known ones are stale after a Stop). With a live session -rst goes at once, the board's numbers are shown.
+        internal static string JoinedClearText(IAtomSpectraSession s)
         {
             AtomSpectraTcpSession tcp = s as AtomSpectraTcpSession;
+            if (tcp != null && tcp.ClearDeferred)
+            {
+                return Resources.MSGAtomSpectraTcpClearJoinedDeferredConfirm;
+            }
             long t = tcp != null ? tcp.BoardSeconds : 0;
             long n = tcp != null ? tcp.BoardCounts : 0;
-            string text = string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraTcpClearJoinedConfirm,
+            return string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraTcpClearJoinedConfirm,
                 t / 3600, (t % 3600) / 60, n.ToString(CultureInfo.InvariantCulture));
-            return AppUi.AskYesNo(text, Resources.ConfirmationDialogTitle, MessageBoxIcon.Warning, true);
+        }
+
+        private static bool ConfirmJoinedClear(IAtomSpectraSession s)
+        {
+            return AppUi.AskYesNo(JoinedClearText(s), Resources.ConfirmationDialogTitle, MessageBoxIcon.Warning, true);
         }
 
         // The board starts from zero after Clear: a preset raised at Start by the board's old time goes back to the document's own.
@@ -262,6 +306,21 @@ namespace BecquerelMonitor
             {
                 AtomSpectraTcpSession tcp = new AtomSpectraTcpSession(config.Host, port, AtomSpectraTcpSession.DefaultReconnectDelayMs, KeepAliveMs, null);
                 session = tcp;
+                if (carriedResetKey != null)
+                {
+                    // the Clear text promises "the board is reset at the next Start": a closed session must not lose it, but only the same board gets it
+                    string newKey = AtomSpectraTcpSession.HostKey(config.Host, port);
+                    if (string.Equals(carriedResetKey, newKey, StringComparison.OrdinalIgnoreCase))
+                    {
+                        tcp.RequestResetOnNextStart();
+                        AtomSpectraTcpLog.Info("Session", "a reset left by the closed session waits for the next Start of " + newKey);
+                    }
+                    else
+                    {
+                        AtomSpectraTcpLog.Info("Session", "deferred reset dropped: board changed (" + carriedResetKey + " -> " + newKey + ")");
+                    }
+                    carriedResetKey = null;
+                }
                 SetStatus(tcp, Resources.AtomSpectraTcpStatusIdle);
                 tcp.DataReady += Acquisition_DataReady;
                 tcp.LinkLost += Session_LinkLost;
@@ -292,6 +351,7 @@ namespace BecquerelMonitor
             {
                 Trace.WriteLine("AtomSpectraTcp: error disposing session: " + ex.Message);
             }
+            if (tcp != null && tcp.ResetOnNextStart) carriedResetKey = AtomSpectraTcpSession.HostKey(tcp.Host, tcp.Port);   // read after Dispose: Close may have put a lost -rst back
             session = null;
         }
 
@@ -348,7 +408,7 @@ namespace BecquerelMonitor
             AtomSpectraTcpSession tcp = session as AtomSpectraTcpSession;
             if (tcp != null)
             {
-                tcp.Ask = AppUi.HasWindows ? new Func<AtomSpectraRestStartQuestion, AtomSpectraRestStartChoice>(q => { q.Note = StartNote(tcp); return AtomSpectraRestUi.AskStart(q); }) : null;
+                tcp.Ask = AppUi.HasWindows ? AnswerGiven(r, new Func<AtomSpectraRestStartQuestion, AtomSpectraRestStartChoice>(q => { q.Note = StartNote(tcp); return AtomSpectraRestUi.AskStart(q); })) : null;
                 tcp.DocumentSeconds = (long)r.ResultDataStatus.ElapsedTime.TotalSeconds;
                 tcp.DocumentCounts = r.EnergySpectrum != null ? r.EnergySpectrum.ValidPulseCount : 0;
             }
@@ -374,12 +434,13 @@ namespace BecquerelMonitor
 
             if (outcome == AtomSpectraTcpBeginOutcome.Started)
             {
-                if (newDocumentCreated)
+                if (newDocumentCreated || s.ReplacedDocument)
                 {
-                    // Joining or resuming the board's acquisition: the document starts when the board started.
+                    // Joining or resuming the board's acquisition (or taking its spectrum in place of the document's): the document starts when the board started.
                     r.StartTime = DateTime.Now - TimeSpan.FromSeconds(s.ElapsedAtBeginSeconds);
                     newDocumentCreated = false;
                 }
+                TakeBoardTime(r, s);
                 if (s.ElapsedAtBeginSeconds > 0)
                 {
                     // the preset counts the board's time: it must not stop the run at the first tick (as REST, MeasurementController.cs:749)
@@ -392,6 +453,7 @@ namespace BecquerelMonitor
                 }
                 SetStatus(s, s.JoinedRunning ? Resources.AtomSpectraTcpStatusJoined : Resources.AtomSpectraTcpStatusMeasuring);
                 r.ResultDataStatus.Recording = true;
+                if (ReferenceEquals(stopAsked, r)) stopAsked = null;
                 ApplyDeadTime(r, info);
                 RefreshCalibrationFromDevice(r, calibration);   // the board calibration -> document and configuration
                 return true;
@@ -664,7 +726,8 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            SetStatus(s, Resources.AtomSpectraTcpStatusLinkLost);
+            AtomSpectraRestSession denied = s as AtomSpectraRestSession;   // 401/403 is a refusal of access, not a lost link
+            SetStatus(s, denied != null ? denied.LinkLostStatusText() : Resources.AtomSpectraTcpStatusLinkLost);
             // The status bar shows "port lost" only for the COM type (MainForm); until that is extended,
             // the loss is announced once per measurement.
             AtomSpectraRestSession rs = s as AtomSpectraRestSession;   // REST has its own text, not the TCP bridge one
@@ -690,8 +753,9 @@ namespace BecquerelMonitor
             {
                 MainForm.originalContext.Post(delegate
                 {
+                    bool recording = data != null && data.ResultDataStatus.Recording;   // a recording the user stopped first is not offered a replacement
                     StopAfterBoardReset(s, data);
-                    ShowOrLog(text, "board reset from outside: " + e.LogText());
+                    ScheduleBoardOffer(text, "board reset from outside: " + e.LogText(), data, e.TimeNow, e.TotalNow, recording);   // not over a wait window
                 }, null);
             }
             else
@@ -699,6 +763,45 @@ namespace BecquerelMonitor
                 if (data != null) data.ResultDataStatus.Recording = false;
                 ThreadPool.QueueUserWorkItem(_ => s.Detach());   // not on the reader thread that raised the event
                 Trace.WriteLine(text);
+            }
+        }
+
+        // On the UI thread, the recording stopped: the board's new acquisition can be taken into this document (its spectrum
+        // replaced, after a confirmation) or into a new document with the same configuration, efficiency and background.
+        private static void OfferBoardAcquisition(string text, string logText, ResultData data, long boardSeconds, long boardCounts, bool recording)
+        {
+            if (RecordingSeen != null) RecordingSeen(recording);
+            MainForm main = Application.OpenForms.OfType<MainForm>().FirstOrDefault();
+            if (!AppUi.HasWindows || MainForm.ApplicationClosing || data == null || main == null || !OfferAfterReset(recording, boardSeconds, boardCounts))
+            {
+                ShowOrLog(ResetAdvice(text), logText);   // without the window: what to do next
+                return;
+            }
+            long docSeconds = (long)data.ResultDataStatus.ElapsedTime.TotalSeconds;
+            long docCounts = data.EnergySpectrum != null ? data.EnergySpectrum.ValidPulseCount : 0;
+            AtomSpectraBoardResetChoice choice = AtomSpectraRestUi.AskAfterBoardReset(text, docSeconds, docCounts, boardSeconds, boardCounts);
+            AtomSpectraTcpLog.Info("Session", logText + "; the user chose " + choice);
+            if (choice != AtomSpectraBoardResetChoice.Close) TakeBoardAcquisition(main, data, choice == AtomSpectraBoardResetChoice.NewDocument, boardSeconds, boardCounts);
+        }
+
+        // The Start of the spectrum that takes the board's acquisition, its question answered already: Replace in this
+        // document, Continue (join) in a new one. Nothing is started when the document is gone.
+        private static void TakeBoardAcquisition(MainForm main, ResultData data, bool newDocument, long boardSeconds, long boardCounts)
+        {
+            ResultData target = newDocument ? main.CreateDocumentLike(data) : data;
+            if (target == null) return;
+            answerFor = target;
+            answer = newDocument ? AtomSpectraRestStartChoice.Continue : AtomSpectraRestStartChoice.Replace;
+            answerSeconds = boardSeconds;
+            answerCounts = boardCounts;
+            try
+            {
+                if (!main.StartRecordingOf(target, !newDocument))
+                    AtomSpectraTcpLog.Warn("Session", "the board's acquisition was not taken: the document is closed, another of its spectra is selected or the Start was refused");
+            }
+            finally
+            {
+                answerFor = null;   // a Start refused before the question must not leave the answer for a later one
             }
         }
 
@@ -736,7 +839,7 @@ namespace BecquerelMonitor
         {
             if (AppUi.HasWindows && MainForm.originalContext != null && !MainForm.ApplicationClosing)
             {
-                MainForm.originalContext.Post(_ => ShowOrLog(text, logText), null);
+                MainForm.originalContext.Post(_ => AtomSpectraRestUi.AfterWait(() => ShowOrLog(text, logText)), null);   // not over the wait window
             }
             else
             {

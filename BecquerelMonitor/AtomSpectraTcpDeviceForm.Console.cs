@@ -4,6 +4,7 @@
 
 using BecquerelMonitor.Properties;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.Threading;
@@ -199,33 +200,37 @@ namespace BecquerelMonitor
 
         private void buttonRefresh_Click(object sender, EventArgs e)
         {
-            string h;
-            int p;
-            string name = AtomSpectraDeviceConsole.DefaultBoardName;
-            if (AtomSpectraDeviceConsole.TryParseAddress(textAddress.Text, AddressDefaultPort(), out h, out p) && Uri.CheckHostName(h) == UriHostNameType.Dns)
-            {
-                name = h;
-            }
+            string name = AtomSpectraBoardFinder.NameToSearch(textAddress.Text, AddressDefaultPort());   // typed text is resolved as typed, only an empty field or the default name browses
 
             int generation = ++refreshGeneration;
             int page = pageGeneration;
             bool proxy = !checkNoProxy.Checked;
             int httpPort = radioRest.Checked ? restAddressPort : AtomSpectraTcpDeviceConfig.DefaultRestPort;
 
+            // a disabled button that has the focus hands it to another control (the command line at the bottom) and the
+            // AutoScroll page scrolls after it: the focus goes to the address field (in view) first and the page position is kept.
+            Point scrollPos = new Point(-AutoScrollPosition.X, -AutoScrollPosition.Y);
+            textAddress.Focus();
             buttonRefresh.Enabled = false;
+            AutoScrollPosition = scrollPos;
             SetStatus(Color.Gray, string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleStatusSearching, name));
 
             Thread worker = new Thread(() =>
             {
-                var r = AtomSpectraDeviceConsole.Refresh(name, httpPort, proxy, 3000);
+                // DNS-SD browse of every board; several -> the choice window; none -> the old one-name path
+                var r = AtomSpectraBoardFinder.Refresh(name, httpPort, proxy, 3000, ChooseBoard);
                 OnUi(delegate
                 {
                     if (generation == refreshGeneration) buttonRefresh.Enabled = true;   // the last search is over
                     if (generation != refreshGeneration || page != pageGeneration) return;   // a newer search, or another configuration on the page
-                    if (r.Found)
+                    if (r.Cancelled)
+                    {
+                        SetStatus(Color.Gray, Resources.AtomSpectraBoardChoiceCancelled);
+                    }
+                    else if (r.Found)
                     {
                         textAddress.Text = AtomSpectraDeviceConsole.FormatAddress(r.Host, AddressPort(), AddressDefaultPort());
-                        SetStatus(Color.Green, string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleStatusConnected, r.Serial, name + " -> " + r.Host));
+                        SetStatus(Color.Green, string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraConsoleStatusConnected, r.Serial, (r.FoundAs ?? name) + " -> " + r.Host));
                         ApplyBoardCalibration(AtomSpectraRestCalibration.ParseDevice(r.DeviceJson));   // board calibration -> Energy Calibration page
                         ShowBoardGzip(r.BootConfigJson);   // the board's reply compression level
                     }
@@ -238,6 +243,15 @@ namespace BecquerelMonitor
             worker.IsBackground = true;
             worker.Name = "AtomSpectraRefresh";
             worker.Start();
+        }
+
+        // called on the "Refresh" worker thread when several boards answered; the window runs on the UI thread
+        private AtomSpectraBoardEntry ChooseBoard(IList<AtomSpectraBoardEntry> boards)
+        {
+            AtomSpectraBoardEntry pick = null;
+            try { Invoke(new MethodInvoker(delegate { if (!IsDisposed) pick = AtomSpectraBoardChooser.Choose(this, boards); })); }
+            catch (InvalidOperationException) { }   // the settings window was closed meanwhile: nothing chosen
+            return pick;
         }
 
         private void textCommand_KeyDown(object sender, KeyEventArgs e)

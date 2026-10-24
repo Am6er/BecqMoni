@@ -9,6 +9,13 @@
         // Token: 0x060000E5 RID: 229
         public abstract void StopMeasurement(ResultData resultData);
 
+        // manual = the user pressed "Stop" (or deleted the spectrum); false = the preset, the timer or the program itself stops it.
+        // Only a manual Stop may ask the user anything (AtomSpectra: stop a joined acquisition on the board too?).
+        public virtual void StopMeasurement(ResultData resultData, bool manual)
+        {
+            StopMeasurement(resultData);
+        }
+
         // Token: 0x060000E6 RID: 230
         public abstract void ClearMeasurementResult(ResultData resultData);
 
