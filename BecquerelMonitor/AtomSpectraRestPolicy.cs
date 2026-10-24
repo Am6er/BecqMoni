@@ -64,7 +64,9 @@ namespace BecquerelMonitor
     {
         Continue,
         Restart,
-        Cancel
+        Cancel,
+        // Replace = the document's spectrum is replaced by the board's; the board is joined as by Continue, never reset
+        Replace
     }
 
     public enum AtomSpectraRestStartPlan
@@ -193,10 +195,30 @@ namespace BecquerelMonitor
             return AtomSpectraRestStartPlan.Ask;
         }
 
+        // Replace is offered only where Continue is not (with it allowed, Continue gives the same spectrum), for a document with data
+        // and a board that sent a spectrum (a silent bridge or a 404 has none to take)
+        public static bool ReplaceAllowed(AtomSpectraRestBoardSample board, long docSeconds, long docCounts, bool continueAllowed)
+        {
+            return !continueAllowed && (docSeconds > 0 || docCounts > 0) && BoardHasData(board);   // an empty board (0 s, 0 counts) has nothing to take
+        }
+
         public static AtomSpectraRestStartPlan PlanChoice(AtomSpectraRestStartChoice choice, bool counting, bool continueAllowed)
+        {
+            return PlanChoice(choice, counting, continueAllowed, true);
+        }
+
+        // boardHasData: the board sent a spectrum; Replace without one is cancelled (nothing to take, nothing sent)
+        public static AtomSpectraRestStartPlan PlanChoice(AtomSpectraRestStartChoice choice, bool counting, bool continueAllowed, bool boardHasData)
         {
             switch (choice)
             {
+                case AtomSpectraRestStartChoice.Replace:
+                    // the board's acquisition as it is: joined, or resumed (-sta, no reset) when stopped - as Continue
+                    if (!boardHasData)
+                    {
+                        return AtomSpectraRestStartPlan.Cancel;
+                    }
+                    return counting ? AtomSpectraRestStartPlan.Join : AtomSpectraRestStartPlan.Resume;
                 case AtomSpectraRestStartChoice.Continue:
                     if (!continueAllowed)
                     {

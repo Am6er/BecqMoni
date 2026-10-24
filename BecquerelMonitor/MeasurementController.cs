@@ -643,11 +643,17 @@ namespace BecquerelMonitor
         // Token: 0x060006AD RID: 1709 RVA: 0x00028110 File Offset: 0x00026310
         public void StopRecording()
         {
+            this.StopRecording(false);
+        }
+
+        // manual: the user's own "Stop" - the only Stop that may ask a question (see DeviceController.StopMeasurement)
+        public void StopRecording(bool manual)
+        {
             if (this.deviceController == null)
             {
                 return;
             }
-            this.deviceController.StopMeasurement(this.resultData);
+            this.deviceController.StopMeasurement(this.resultData, manual);
             this.ReleaseDeviceLease();
             if (this.MeasurementTerminated != null)
             {

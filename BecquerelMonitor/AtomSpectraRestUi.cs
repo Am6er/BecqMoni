@@ -8,7 +8,15 @@ using System.Windows.Forms;
 
 namespace BecquerelMonitor
 {
-    public static class AtomSpectraRestUi
+    // What to do after a reset of the board from outside: nothing, the board's spectrum into this document, or into a new one
+    public enum AtomSpectraBoardResetChoice
+    {
+        Close,
+        Replace,
+        NewDocument
+    }
+
+    public static partial class AtomSpectraRestUi
     {
         private static Form currentWait;
 
@@ -59,9 +67,10 @@ namespace BecquerelMonitor
                     }
                 });
 
+                Form outer = currentWait;   // a wait window opened inside another one (a window answered during it): the outer one is restored
                 currentWait = wait;
                 try { wait.ShowDialog(MainWindow()); }
-                finally { currentWait = null; }
+                finally { currentWait = outer; if (outer == null) RunAfterWait(); }   // the messages posted during the wait come now, not over it
             }
 
             if (error != null) throw new InvalidOperationException(error.Message, error);
@@ -70,11 +79,7 @@ namespace BecquerelMonitor
 
         public static AtomSpectraRestStartChoice AskStart(AtomSpectraRestStartQuestion q)
         {
-            Form host = currentWait ?? MainWindow();
-            if (host == null) return AtomSpectraRestStartChoice.Cancel;
-            if (host.InvokeRequired)
-                return (AtomSpectraRestStartChoice)host.Invoke(new Func<AtomSpectraRestStartChoice>(delegate { return ShowStartDialog(q, host); }));
-            return ShowStartDialog(q, host);
+            return OverWait(AtomSpectraRestStartChoice.Cancel, owner => ShowStartDialog(q, owner));   // the wait window hidden under it
         }
 
         private static string Span(string format, long seconds, long counts)
@@ -100,8 +105,10 @@ namespace BecquerelMonitor
             bool behind = q.Board == null || !q.Board.HasData || bt < q.DocumentSeconds || bn < q.DocumentCounts;
             if (!q.ContinueAllowed)
                 text += (text.Length > 0 ? Environment.NewLine + Environment.NewLine : "") + (q.ChannelBelow >= 0 && !behind
-                    ? string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraRestStartOtherSpectrum, q.ChannelBelow)
-                    : Resources.AtomSpectraRestStartBehind);
+                    ? string.Format(CultureInfo.InvariantCulture, q.ReplaceAllowed ? Resources.AtomSpectraRestStartOtherSpectrumReplace : Resources.AtomSpectraRestStartOtherSpectrum, q.ChannelBelow)
+                    : (q.ReplaceAllowed ? Resources.AtomSpectraRestStartBehindReplace : Resources.AtomSpectraRestStartBehind));   // no "create a new document" beside Replace
+            if (q.ReplaceAllowed)
+                text += " " + Resources.AtomSpectraRestStartReplaceHint;
 
             if (!string.IsNullOrEmpty(q.Note))
                 text += (text.Length > 0 ? Environment.NewLine + Environment.NewLine : "") + q.Note;   // TCP says what each button sends
@@ -119,12 +126,13 @@ namespace BecquerelMonitor
                 f.ShowInTaskbar = false;
                 f.StartPosition = FormStartPosition.CenterParent;
                 f.Text = Resources.AtomSpectraRestStartTitle;
-                f.ClientSize = new Size(480, 190);
+                int width = q.ReplaceAllowed ? 658 : 480;   // room for the fourth button
+                f.ClientSize = new Size(width, 190);
                 f.AutoScaleMode = AutoScaleMode.Font;
 
                 Label lbl = new Label();
                 lbl.Location = new Point(12, 12);
-                lbl.Size = new Size(456, 120);
+                lbl.Size = new Size(width - 24, 120);
                 lbl.Text = StartQuestionText(q);
                 f.Controls.Add(lbl);
 
@@ -144,8 +152,17 @@ namespace BecquerelMonitor
                 restart.Enabled = q.DocumentSeconds <= 0 && q.DocumentCounts <= 0;   // only into an empty document
                 f.Controls.Add(restart);
 
+                // the board's spectrum into this document, the board not reset; shown only where Continue is refused
+                Button replace = new Button();
+                replace.Location = new Point(368, 150);
+                replace.Size = new Size(170, 28);
+                replace.Text = Resources.AtomSpectraRestReplace;
+                replace.DialogResult = DialogResult.OK;
+                replace.Visible = q.ReplaceAllowed;
+                f.Controls.Add(replace);
+
                 Button cancel = new Button();
-                cancel.Location = new Point(368, 150);
+                cancel.Location = new Point(width - 112, 150);
                 cancel.Size = new Size(100, 28);
                 cancel.Text = Resources.AtomSpectraRestCancel;
                 cancel.DialogResult = DialogResult.Cancel;
@@ -154,18 +171,74 @@ namespace BecquerelMonitor
                 // room for the text as it lays out at this width (the reason lines and the TCP note vary in length)
                 Size need = TextRenderer.MeasureText(lbl.Text, lbl.Font, new Size(lbl.Width, int.MaxValue), TextFormatFlags.WordBreak);
                 int extra = Math.Max(0, need.Height + 8 - lbl.Height);
-                f.ClientSize = new Size(480, 190 + extra);
+                f.ClientSize = new Size(width, 190 + extra);
                 lbl.Height += extra;
-                foreach (Control b in new Control[] { cont, restart, cancel }) b.Top += extra;
+                foreach (Control b in new Control[] { cont, restart, replace, cancel }) b.Top += extra;
 
                 f.AcceptButton = q.ContinueAllowed ? cont : cancel;
                 f.CancelButton = cancel;
 
-                DialogResult r = f.ShowDialog(owner);
-                if (r == DialogResult.Yes && q.ContinueAllowed) return AtomSpectraRestStartChoice.Continue;
-                if (r == DialogResult.Retry) return AtomSpectraRestStartChoice.Restart;
-                return AtomSpectraRestStartChoice.Cancel;
+                while (true)
+                {
+                    DialogResult r = f.ShowDialog(owner);
+                    if (r == DialogResult.Yes && q.ContinueAllowed) return AtomSpectraRestStartChoice.Continue;
+                    if (r == DialogResult.Retry) return AtomSpectraRestStartChoice.Restart;
+                    if (r != DialogResult.OK || !q.ReplaceAllowed) return AtomSpectraRestStartChoice.Cancel;
+                    // declined: back to the question, nothing is sent
+                    if (ConfirmReplace(owner, q.DocumentSeconds, q.DocumentCounts, q.Board.Time, q.Board.Total)) return AtomSpectraRestStartChoice.Replace;
+                }
             }
+        }
+
+        public static string ReplaceConfirmText(long docSeconds, long docCounts, long boardSeconds, long boardCounts)
+        {
+            return string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraRestReplaceConfirm,
+                docSeconds / 3600, (docSeconds % 3600) / 60, docCounts.ToString(CultureInfo.InvariantCulture),
+                boardSeconds / 3600, (boardSeconds % 3600) / 60, boardCounts.ToString(CultureInfo.InvariantCulture));
+        }
+
+        // "No" is the default: Enter does not give the document's data away
+        public static bool ConfirmReplace(long docSeconds, long docCounts, long boardSeconds, long boardCounts)
+        {
+            return AppUi.AskYesNo(ReplaceConfirmText(docSeconds, docCounts, boardSeconds, boardCounts), Resources.ConfirmationDialogTitle, MessageBoxIcon.Warning, true);
+        }
+
+        // After a reset of the board from outside (the recording is stopped already), on the UI thread: the message and what to
+        // do with the board's new acquisition. Replace is confirmed with the numbers first; "No" returns to the question.
+        public static AtomSpectraBoardResetChoice AskAfterBoardReset(string message, long docSeconds, long docCounts, long boardSeconds, long boardCounts)
+        {
+            using (Form f = BoardResetForm(message))
+            {
+                while (true)
+                {
+                    DialogResult r = f.ShowDialog(MainWindow());
+                    if (r == DialogResult.Retry) return AtomSpectraBoardResetChoice.NewDocument;
+                    if (r != DialogResult.Yes) return AtomSpectraBoardResetChoice.Close;
+                    if (ConfirmReplace(docSeconds, docCounts, boardSeconds, boardCounts)) return AtomSpectraBoardResetChoice.Replace;
+                }
+            }
+        }
+
+        private static Form BoardResetForm(string message)
+        {
+            Form f = new Form();
+            f.FormBorderStyle = FormBorderStyle.FixedDialog;
+            f.MaximizeBox = f.MinimizeBox = f.ShowInTaskbar = false;
+            f.StartPosition = FormStartPosition.CenterParent;
+            f.Text = Resources.AtomSpectraRestBoardResetTitle;
+            f.AutoScaleMode = AutoScaleMode.Font;
+            Label lbl = new Label { Location = new Point(12, 12), Text = message + Environment.NewLine + Environment.NewLine + Resources.AtomSpectraRestBoardResetChoices };
+            Size need = TextRenderer.MeasureText(lbl.Text, lbl.Font, new Size(536, int.MaxValue), TextFormatFlags.WordBreak);
+            lbl.Size = new Size(536, need.Height + 8);
+            f.Controls.Add(lbl);
+            int top = lbl.Bottom + 12;
+            f.Controls.Add(new Button { Location = new Point(12, top), Size = new Size(170, 28), Text = Resources.AtomSpectraRestReplace, DialogResult = DialogResult.Yes });
+            f.Controls.Add(new Button { Location = new Point(190, top), Size = new Size(250, 28), Text = Resources.AtomSpectraRestOpenNewDocument, DialogResult = DialogResult.Retry });
+            Button close = new Button { Location = new Point(448, top), Size = new Size(100, 28), Text = Resources.AtomSpectraRestClose, DialogResult = DialogResult.Cancel };
+            f.Controls.Add(close);
+            f.ClientSize = new Size(560, top + 40);
+            f.AcceptButton = f.CancelButton = close;
+            return f;
         }
 
         public static bool ConfirmClear(AtomSpectraRestBoardSample s)

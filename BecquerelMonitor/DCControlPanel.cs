@@ -104,7 +104,8 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000290 RID: 656 RVA: 0x0000B5C4 File Offset: 0x000097C4
-        public void StartMeasurement()
+        // replacing (AtomSpectra "Replace document spectrum"): the document's time goes away with its spectrum, it is not held against the preset
+        public void StartMeasurement(bool replacing = false)
         {
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             if (activeDocument == null)
@@ -119,7 +120,7 @@ namespace BecquerelMonitor
                 return;
             }
             resultDataStatus.PresetTime = this.PresetTime;
-            if ((int)resultDataStatus.ElapsedTime.TotalSeconds >= this.PresetTime)
+            if (!replacing && (int)resultDataStatus.ElapsedTime.TotalSeconds >= this.PresetTime)
             {
                 // (`AMBER241`(10), 20.10.2026) Отказ — словами. Прежде «Старт» здесь молча
                 // возвращался: время спектра уже не меньше лимита, мерить дальше нечего, а
@@ -188,7 +189,7 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000292 RID: 658 RVA: 0x0000B6C4 File Offset: 0x000098C4
-        public void StopMeasurement()
+        public void StopMeasurement(bool manual = true)
         {
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             if (activeDocument == null)
@@ -201,7 +202,7 @@ namespace BecquerelMonitor
                 return;
             }
             activeDocument.UpdateSpectrum = false;
-            activeResultData.MeasurementController.StopRecording();
+            activeResultData.MeasurementController.StopRecording(manual);   // the user's "Stop": a joined AtomSpectra acquisition may be asked about
             if (activeDocument.PulseDetector != null)
             {
                 activeDocument.PulseDetector.DoUpdatePulseView = false;
@@ -331,7 +332,7 @@ namespace BecquerelMonitor
             if (flag)
             {
                 DCControlPanel.exept_flag = false;
-                this.StopMeasurement();
+                this.StopMeasurement(false);   // not the user's Stop: no question
             }
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             if (activeDocument == null)
