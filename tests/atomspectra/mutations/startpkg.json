@@ -1,0 +1,14 @@
+[
+  {"id": "SP-a-rest-replace-sends-sta", "target": "startpkg-replace", "file": "AtomSpectraRestSession.cs",
+   "old": "                plan = AtomSpectraRestPolicy.PlanChoice(choice, counting, continueAllowed, AtomSpectraRestPolicy.BoardHasData(second));",
+   "new": "                plan = choice == AtomSpectraRestStartChoice.Replace ? AtomSpectraRestStartPlan.Resume : AtomSpectraRestPolicy.PlanChoice(choice, counting, continueAllowed, AtomSpectraRestPolicy.BoardHasData(second));"},
+  {"id": "SP-c-rest-guard-from-document", "target": "startpkg-replace-guard", "file": "AtomSpectraRestSession.cs",
+   "old": "if (replaced) guard.Begin(0, 0, counting, null);",
+   "new": "if (false) guard.Begin(0, 0, counting, null);"},
+  {"id": "SP-b-tcp-same-document-sta", "target": "console-tcp-same-behind", "file": "AtomSpectraTcpSession.cs",
+   "old": "            // the same document is probed as well (as REST): a board behind the document gets nothing before the answer\n",
+   "new": "            // the same document is probed as well (as REST): a board behind the document gets nothing before the answer\n            if (!newDocument) return AtomSpectraRestStartPlan.StartNew;\n"},
+  {"id": "SP-t-tcp-guard-from-document", "target": "console-tcp-same-replace", "file": "AtomSpectraTcpSession.cs",
+   "old": "guardTime = replaced ? probeTime : Math.Max(DocumentSeconds, probeTime);",
+   "new": "guardTime = Math.Max(DocumentSeconds, probeTime);"}
+]

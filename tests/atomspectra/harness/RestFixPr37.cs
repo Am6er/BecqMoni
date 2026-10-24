@@ -139,7 +139,7 @@ namespace RestHarness
             {
                 string text = (string)ui.GetMethod("StartQuestionText", BindingFlags.Public | BindingFlags.Static).Invoke(null, new object[] { q });
                 Console.WriteLine("question: " + text.Replace(Environment.NewLine, " / "));
-                Check(text.Contains(Fmt(Pr37Res("AtomSpectraRestStartOtherSpectrum"), 100)), "the question says the board holds another acquisition, channel 100");
+                Check(text.Contains(Fmt(Pr37Res(q.ReplaceAllowed ? "AtomSpectraRestStartOtherSpectrumReplace" : "AtomSpectraRestStartOtherSpectrum"), 100)), "the question says the board holds another acquisition, channel 100");
                 Check(!text.Contains(Pr37Res("AtomSpectraRestStartBehind")), "not the 'board was reset' text (the board is ahead in time and counts)");
             }
             s.Dispose();
@@ -204,9 +204,19 @@ namespace RestHarness
             s.DocumentSeconds = 5000;   // the board has 1000 s
             s.DocumentCounts = 1000;
             var o = s.Begin(true, 1000);
-            Check(o == AtomSpectraTcpBeginOutcome.Refused && s.Failure == AtomSpectraRestFailure.ObserveBehind && s.LastPlan == AtomSpectraRestStartPlan.RefuseObserve, "observe only, the board behind the document in time: refused at Start (" + o + ", " + s.Failure + ")");
-            Check(c.Asked == 0 && s.Acquisition == null && c.Reset == null, "no question, no polling, no 'board was reset' message later");
+            // with a window the board behind the document is asked about (Replace is offered; nothing is ever sent): Continue pressed anyway cancels
+            Check(o == AtomSpectraTcpBeginOutcome.Cancelled && c.Asked == 1 && s.Acquisition == null && c.Reset == null, "observe only with a window, the board behind the document in time: asked, Continue pressed anyway cancels (" + o + ")");
             s.Dispose();
+
+            // without a window nobody can choose Replace: refused at Start
+            var c1 = new Counter();
+            s = NewSession(true, 0, null);
+            Hook(s, c1);
+            s.DocumentSeconds = 5000;
+            s.DocumentCounts = 1000;
+            o = s.Begin(true, 1000);
+            Check(o == AtomSpectraTcpBeginOutcome.Refused && s.Failure == AtomSpectraRestFailure.ObserveBehind && s.LastPlan == AtomSpectraRestStartPlan.RefuseObserve, "observe only without a window, the board behind the document in time: refused at Start (" + o + ", " + s.Failure + ")");
+            Check(c1.Asked == 0 && s.Acquisition == null && c1.Reset == null, "no question, no polling, no 'board was reset' message later");
 
             var s2 = NewSession(true, 0, null);
             s2.DocumentSeconds = 100;
@@ -235,6 +245,7 @@ namespace RestHarness
                 Console.WriteLine("text: " + text);
                 Check(text == Pr37Res("ERRAtomSpectraRestObserveBehind"), "the refusal has its own text (resources)");
             }
+            s.Dispose();
         }
 
         // R3. Profile channels: only a whole fold of the board's 8192 is filled; the controller refuses any other N before any request.
