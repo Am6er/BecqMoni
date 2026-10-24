@@ -180,9 +180,19 @@ namespace RestHarness
             logPath = args[2];
             fail = null;
 
+            // REST_UI_CULTURE pins the language of the interface (resources, forms): a check of a text must pass in any language
+            string uiCulture = Environment.GetEnvironmentVariable("REST_UI_CULTURE");
+            if (!string.IsNullOrEmpty(uiCulture))
+            {
+                var ci = new System.Globalization.CultureInfo(uiCulture);
+                System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = ci;
+                Thread.CurrentThread.CurrentUICulture = ci;
+            }
+
             // Determinism: the mock's timeline starts here (GET /__sync, not logged), after the process start-up
             // and with the HTTP stack warm, so mock events and harness sleeps share one origin under any load.
-            if (port > 0 && !scenario.StartsWith("console-tcp"))   // the TCP bridge mock has no HTTP clock
+            Bm10NoNetwork();   // no scenario may send a multicast mDNS query (RestHarnessBm10.cs)
+            if (port > 0 && !scenario.StartsWith("console-tcp") && !scenario.StartsWith("bm10-"))   // the TCP bridge mock has no HTTP clock
             {
                 try
                 {

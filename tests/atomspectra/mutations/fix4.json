@@ -1,0 +1,14 @@
+[
+  {"id": "FX4-never-deferred", "target": "fix4-joined-clear-text", "file": "AtomSpectraTcpSession.cs",
+   "old": "public bool ClearDeferred { get { return acquisition == null; } }",
+   "new": "public bool ClearDeferred { get { return false; } }"},
+  {"id": "FX4-always-deferred", "target": "fix4-joined-clear-text", "file": "AtomSpectraTcpSession.cs",
+   "old": "public bool ClearDeferred { get { return acquisition == null; } }",
+   "new": "public bool ClearDeferred { get { return true; } }"},
+  {"id": "FX5-first-adapter-only", "target": "bm10-adapters", "file": "AtomSpectraDnsSd.cs",
+   "old": "using (var socket = OpenSockets(ChooseAddresses()))",
+   "new": "using (var socket = OpenSockets(ChooseAddresses().Take(1).ToList()))"},
+  {"id": "FX6-one-window-1500", "target": "bm10-schedule", "file": "AtomSpectraDnsSd.cs",
+   "old": "ExchangeScheduled(socket, ptrQuestions, BrowseTimeoutMs, cache);",
+   "new": "Exchange(socket, ptrQuestions, 1500, cache);"}
+]
