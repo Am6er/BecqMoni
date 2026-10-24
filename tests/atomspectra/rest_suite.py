@@ -74,6 +74,7 @@ APPUI_STUB = """namespace BecquerelMonitor { public static class AppUi {
   public static void Report(string text, string caption, System.Windows.Forms.MessageBoxIcon icon) { System.Console.Error.WriteLine("BecqMoni: " + (string.IsNullOrEmpty(caption) ? "" : caption + ": ") + text); }
   public static bool AskYesNo(string text, string caption) { throw new System.InvalidOperationException("BecqMoni: " + caption + ": " + text); }
   public static bool AskYesNo(string text, string caption, System.Windows.Forms.MessageBoxIcon icon, bool defaultNo) { throw new System.InvalidOperationException("BecqMoni: " + caption + ": " + text); }
+  public static bool AskYesNo(System.Windows.Forms.IWin32Window owner, string text, string caption, System.Windows.Forms.MessageBoxIcon icon, bool defaultNo) { throw new System.InvalidOperationException("BecqMoni: " + caption + ": " + text); }
   public static string WrapTip(string text) { return text; } } }
 """
 

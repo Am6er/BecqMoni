@@ -419,6 +419,9 @@ namespace BecquerelMonitor
         // the REST rules (AtomSpectraRestPolicy) on what the board's own stream says before any command.
         private AtomSpectraRestStartPlan PlanTcpStart(bool newDocument)
         {
+            // the board alone cannot tell our acquisition from someone else's: the session remembers that its last Start only joined
+            // (it lives in the controller from Stop to Start), and the same document stays joined then
+            bool wasJoined = joinedRunning && !newDocument;
             joinedRunning = false;
             replaced = false;
             elapsedAtBegin = 0;
@@ -440,11 +443,16 @@ namespace BecquerelMonitor
             // a silent bridge says nothing about the board, its spectrum included: never a blind -sta - a question, or a refusal without a window
             if (BoardState == AtomSpectraTcpBoardState.Silent) plan = AtomSpectraRestStartPlan.Ask;
             // ... except the same document after its own Stop ("pause - continue"): a silent bridge gets -sta at once, as before; Uncertain keeps the question
-            if (BoardState == AtomSpectraTcpBoardState.Silent && !newDocument) plan = AtomSpectraRestStartPlan.StartNew;
+            if (BoardState == AtomSpectraTcpBoardState.Silent && !newDocument && !wasJoined) plan = AtomSpectraRestStartPlan.StartNew;
             if (!known && Ask == null && plan == AtomSpectraRestStartPlan.Ask) Refusal = AtomSpectraTcpRefusal.Unknown;
             bool continueAllowed = !AtomSpectraRestPolicy.BoardBehindDocument(board, DocumentSeconds, DocumentCounts);
-            // the same document after its own Stop ("pause - continue"): a board seen clearly, not behind the document, gets -sta as before, no question
-            if (plan == AtomSpectraRestStartPlan.Ask && !newDocument && known && board.HasData && continueAllowed) plan = AtomSpectraRestStartPlan.StartNew;
+            // the same document after its own Stop ("pause - continue"): a board seen clearly, not behind the document, gets -sta as before, no question.
+            // Join too: without a window PlanStart joins a counting board at once, and the same document became "joined" (no -sta on the
+            // reconnect, Stop only detached, Clear asked as for someone else's acquisition) - PR #38 review, TCP suite of PR #37 20/24.
+            // A document whose last Start only joined stays joined: a counting board is joined again, a stopped one is asked about
+            // (otherwise the next Stop and Clear sent -sto and -rst into someone else's acquisition without a question)
+            if ((plan == AtomSpectraRestStartPlan.Ask || plan == AtomSpectraRestStartPlan.Join) && !newDocument && known && board.HasData && continueAllowed)
+                plan = !wasJoined ? AtomSpectraRestStartPlan.StartNew : counting ? AtomSpectraRestStartPlan.Join : AtomSpectraRestStartPlan.Ask;
             if (plan == AtomSpectraRestStartPlan.Ask && Ask != null)
             {
                 AtomSpectraRestStartQuestion q = new AtomSpectraRestStartQuestion

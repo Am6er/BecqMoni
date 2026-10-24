@@ -121,17 +121,8 @@ namespace BecquerelMonitor
 
             string text = ReplaceConfirmText(docSeconds, docCounts, boardSeconds, boardCounts);
 
-            DialogResult result;
-            if (owner != null)
-            {
-                result = MessageBox.Show(owner, text, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
-            }
-            else
-            {
-                result = MessageBox.Show(text, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
-            }
-
-            return result == DialogResult.Yes;
+            // through the door of AppUi (tools\check_headless.py): the owner stays the window it is asked over
+            return AppUi.AskYesNo(owner, text, Resources.ConfirmationDialogTitle, MessageBoxIcon.Warning, true);
         }
 
         // Stop of an acquisition BecqMoni only joined: true = stop it on the board too, false = it keeps counting (the default); any thread.
