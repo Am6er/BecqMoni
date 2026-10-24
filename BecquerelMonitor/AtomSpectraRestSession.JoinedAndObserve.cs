@@ -36,7 +36,8 @@ namespace BecquerelMonitor
                 DocumentCounts = DocumentCounts,
                 ContinueAllowed = false,
                 ReplaceAllowed = AtomSpectraRestPolicy.ReplaceAllowed(second, DocumentSeconds, DocumentCounts, false),
-                ChannelBelow = below
+                ChannelBelow = below,
+                ObserveOnly = true
             };
 
             if (!q.ReplaceAllowed)

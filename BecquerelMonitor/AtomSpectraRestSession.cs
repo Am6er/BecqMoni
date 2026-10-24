@@ -30,6 +30,7 @@ namespace BecquerelMonitor
         public bool ReplaceAllowed;   // "Replace document spectrum" is offered (AtomSpectraRestPolicy.ReplaceAllowed)
         public int ChannelBelow = -1;   // the first channel in which the board holds fewer counts than the document (-1: none)
         public string Note;   // an extra line under the question (TCP: what each button sends)
+        public bool ObserveOnly;   // observe only: Replace sends nothing at all, not even -sta to a stopped board
     }
 
     // The AtomSpectra type over the board's REST API; the board counts by itself, BecqMoni polls GET /api/spectrum.json and mirrors it.
@@ -56,7 +57,7 @@ namespace BecquerelMonitor
 
         private AtomSpectraRestAcquisition acquisition;
         private bool joined;
-        private bool replaced;   // Start took the board's spectrum in place of the document's: the guard starts from zero
+        private bool replaced;   // Start took the board's spectrum in place of the document's: the guard starts from the snapshot the question showed
         private bool startedByUs;
         private bool counting;
         private double elapsedAtBegin;
@@ -318,8 +319,9 @@ namespace BecquerelMonitor
                 case AtomSpectraRestStartPlan.Join:
                     joined = true;
                     elapsedAtBegin = boardTime;
-                    // Replace: the board's smaller spectrum is what the document takes, not a reset from outside
-                    if (replaced) guard.Begin(0, 0, counting, null);
+                    // Replace: the board's smaller spectrum is what the document takes, not a reset from outside; the guard starts
+                    // from the snapshot the question showed (the question may stay open for minutes, the board may change meanwhile)
+                    if (replaced) guard.BeginFrom(second, SeenBins(second), counting);
                     else guard.Begin(DocumentSeconds, DocumentCounts, counting, DocumentBins);
                     break;
 
@@ -332,7 +334,7 @@ namespace BecquerelMonitor
                     }
                     startedByUs = true;
                     elapsedAtBegin = boardTime;
-                    if (replaced) guard.Begin(0, 0, true, null);
+                    if (replaced) guard.BeginFrom(second, SeenBins(second), true);   // -sta resumes the board's acquisition, no reset
                     else guard.Begin(DocumentSeconds, DocumentCounts, true, DocumentBins);
                     break;
 
@@ -386,6 +388,14 @@ namespace BecquerelMonitor
             acquisition.Start();
             AtomSpectraTcpLog.Info("Session", "REST session started on " + client.BaseUrl + " (" + plan + ")");
             return AtomSpectraTcpBeginOutcome.Started;
+        }
+
+        // the channels of a probe (always 8192: a probe asks without ?channels=N) as the polls of this session bring them
+        private int[] SeenBins(AtomSpectraRestBoardSample s)
+        {
+            int n = AtomSpectraRestSpectrum.RequestChannels(RequestChannels);
+            int[] bins = s != null ? s.Bins : null;
+            return bins != null && n > 0 && bins.Length > n && bins.Length % n == 0 ? AtomSpectraTcpAcquisition.Compress(bins, n) : bins;
         }
 
         // the user's text of a POST the board did not take: no answer / HTTP status / 200 {"ok":false}
