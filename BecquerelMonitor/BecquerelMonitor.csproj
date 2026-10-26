@@ -305,6 +305,10 @@
       <DependentUpon>EnergySpectrumView.cs</DependentUpon>
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Include="EnergySpectrumView.PixelBins.cs">
+      <DependentUpon>EnergySpectrumView.cs</DependentUpon>
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="EfficiencyMaker\EfficiencyCurveGraph.cs">
       <SubType>Component</SubType>
     </Compile>

@@ -2065,13 +2065,17 @@ namespace BecquerelMonitor
                     }
 
                     double bgChannelValue;
+                    // (прототип 26.10.2026) при сжатии — сумма окна столбца
+                    double bgRaw = this.IsCompressedAt(i)
+                        ? this.BoundaryValue(this.backgroundEnergySpectrum.DrawingSpectrum, i, this.backgroundEnergySpectrum, this.backgroundEnergyCalibration)
+                        : this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel];
                     if (this.verticalUnit == VerticalUnit.CountsPerSecond)
                     {
-                        bgChannelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] / this.backgroundEnergySpectrum.EffectiveLiveTime;
+                        bgChannelValue = bgRaw / this.backgroundEnergySpectrum.EffectiveLiveTime;
                     }
                     else
                     {
-                        bgChannelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] * this.energySpectrum.EffectiveLiveTime / this.backgroundEnergySpectrum.EffectiveLiveTime;
+                        bgChannelValue = bgRaw * this.energySpectrum.EffectiveLiveTime / this.backgroundEnergySpectrum.EffectiveLiveTime;
                     }
 
                     if (bgChannelValue > this.totalMaxValue)
@@ -2090,7 +2094,7 @@ namespace BecquerelMonitor
                 EnergySpectrum energySpectrum = resultData.EnergySpectrum;
                 for (int j = 0; j < energySpectrum.NumberOfChannels - 1; j++)
                 {
-                    double channelValue = (double)energySpectrum.DrawingSpectrum[j];
+                    double channelValue = this.WindowValue(energySpectrum.DrawingSpectrum, j);
                     if (this.verticalUnit == VerticalUnit.CountsPerSecond && energySpectrum.EffectiveLiveTime != 0.0)
                     {
                         channelValue /= energySpectrum.EffectiveLiveTime;
@@ -2151,7 +2155,7 @@ namespace BecquerelMonitor
 
                 if (fsaDrawn != null)
                 {
-                    channelValue = (k < fsaDrawn.Length ? fsaDrawn[k] : 0.0) * fsaScale;
+                    channelValue = (k < fsaDrawn.Length ? this.WindowValue(fsaDrawn, k) : 0.0) * fsaScale;
                 }
                 else if (useBackground)
                 {
@@ -2164,18 +2168,21 @@ namespace BecquerelMonitor
                         continue;
                     }
 
+                    double bgRaw = this.IsCompressedAt(k)
+                        ? this.BoundaryValue(this.backgroundEnergySpectrum.DrawingSpectrum, k, this.backgroundEnergySpectrum, this.backgroundEnergyCalibration)
+                        : this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel];
                     if (this.verticalUnit == VerticalUnit.CountsPerSecond)
                     {
-                        channelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] / this.backgroundEnergySpectrum.EffectiveLiveTime;
+                        channelValue = bgRaw / this.backgroundEnergySpectrum.EffectiveLiveTime;
                     }
                     else
                     {
-                        channelValue = (double)this.backgroundEnergySpectrum.DrawingSpectrum[bgChannel] * this.energySpectrum.EffectiveLiveTime / this.backgroundEnergySpectrum.EffectiveLiveTime;
+                        channelValue = bgRaw * this.energySpectrum.EffectiveLiveTime / this.backgroundEnergySpectrum.EffectiveLiveTime;
                     }
                 }
                 else
                 {
-                    channelValue = (double)this.energySpectrum.DrawingSpectrum[k];
+                    channelValue = this.WindowValue(this.energySpectrum.DrawingSpectrum, k);
                     if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0)
                     {
                         channelValue /= this.energySpectrum.EffectiveLiveTime;
@@ -3028,6 +3035,13 @@ namespace BecquerelMonitor
                 if (num3 >= 0 && num3 < spectrum.DrawingSpectrum.Length)
                 {
                     double num4 = spectrum.DrawingSpectrum[num3];
+                    // (прототип 26.10.2026) столбец накрывает больше канала — сумма с долями
+                    double spanFrom, spanTo;
+                    this.PixelSpan(i, spectrum, calibration, isBackground, out spanFrom, out spanTo);
+                    if (IsCompressedSpan(spanFrom, spanTo))
+                    {
+                        num4 = OverlapSum(spectrum.DrawingSpectrum, spanFrom, spanTo);
+                    }
                     if (this.backgroundEnergySpectrum != null && isBackground)
                     {
                         if (this.verticalUnit == VerticalUnit.Counts)
@@ -3149,6 +3163,8 @@ namespace BecquerelMonitor
         }
 
         int[] pixelChannelMap;
+        double[] pixelSpanFrom;
+        double[] pixelSpanTo;
         int pixelChannelMapFirstPixel;
         int pixelChannelMapLength;
         EnergySpectrum pixelChannelMapSpectrum;
@@ -3170,11 +3186,16 @@ namespace BecquerelMonitor
             if (this.pixelChannelMap == null || this.pixelChannelMap.Length < length)
             {
                 this.pixelChannelMap = new int[length];
+                this.pixelSpanFrom = new double[length];
+                this.pixelSpanTo = new double[length];
             }
 
             for (int filled = 0; filled < length; filled++)
             {
                 this.pixelChannelMap[filled] = this.ChannelAtPixel(spectrum, calibration, firstPixel + filled);
+                // (прототип 26.10.2026) края столбца в дробных каналах — для суммы при сжатии
+                this.PixelSpan(firstPixel + filled, spectrum, calibration, false,
+                               out this.pixelSpanFrom[filled], out this.pixelSpanTo[filled]);
             }
 
             this.pixelChannelMapSpectrum = spectrum;
@@ -3234,10 +3255,28 @@ namespace BecquerelMonitor
             while (i <= maxPixel)
             {
                 int num3 = pixelChannels[i - firstPixel];
-                if (num3 >= min_ch && num3 < max_ch)
+                // (прототип 26.10.2026) при сжатии — сумма: подложка по всему
+                // столбцу, пик — только по его каналам [min_ch, max_ch)
+                bool compressedColumn = this.IsMappedColumnCompressed(i - firstPixel);
+                double spanFrom = this.pixelSpanFrom[i - firstPixel];
+                double spanTo = this.pixelSpanTo[i - firstPixel];
+                bool inPeak = compressedColumn
+                    ? spanTo > min_ch - 0.5 && spanFrom < max_ch - 0.5 && num3 >= 0 && num3 < spectrum.DrawingSpectrum.Length
+                    : num3 >= min_ch && num3 < max_ch;
+                if (inPeak)
                 {
-                    double peakv = spectrum.DrawingSpectrum[num3] + peakSpectrum[num3];
-                    double num4 = spectrum.DrawingSpectrum[num3];
+                    double peakv;
+                    double num4;
+                    if (compressedColumn)
+                    {
+                        num4 = OverlapSum(spectrum.DrawingSpectrum, spanFrom, spanTo);
+                        peakv = num4 + OverlapSum(peakSpectrum, Math.Max(spanFrom, min_ch - 0.5), Math.Min(spanTo, max_ch - 0.5));
+                    }
+                    else
+                    {
+                        peakv = spectrum.DrawingSpectrum[num3] + peakSpectrum[num3];
+                        num4 = spectrum.DrawingSpectrum[num3];
+                    }
                     if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.EffectiveLiveTime != 0.0)
                     {
                         num4 /= spectrum.EffectiveLiveTime;
@@ -3311,6 +3350,10 @@ namespace BecquerelMonitor
             bool hasPreviousPoint = false;
             if (spectrum.DrawingSpectrum == null) return;
             if (!this.TryGetVisibleChannelRange(spectrum, calibration, isBackground, out int startChannel, out int endChannel))
+            {
+                return;
+            }
+            if (this.DrawCompressedLineChart(g, pen, spectrum, calibration, isBackground))
             {
                 return;
             }
@@ -3475,6 +3518,10 @@ namespace BecquerelMonitor
             int startChannel = Math.Max(min_ch, visibleStartChannel);
             int endChannel = Math.Min(max_ch - 1, visibleEndChannel);
             if (startChannel > endChannel)
+            {
+                return;
+            }
+            if (this.DrawCompressedPeakLine(g, pen, spectrum, calibration, peakSpectrum, min_ch, max_ch))
             {
                 return;
             }
@@ -3775,6 +3822,14 @@ namespace BecquerelMonitor
                         double fgValue = fsaNetHere
                             ? this.ScaleFsaValue(fsaNet[ch])
                             : this.energySpectrum.DrawingSpectrum[ch];
+                        // (прототип 26.10.2026) заливка выделения — до той же
+                        // суммы столбца, что нарисована
+                        double columnFg;
+                        bool columnCompressed = this.TryCompressedColumnValue(fsaNetHere ? fsaNet : this.energySpectrum.DrawingSpectrum, i, out columnFg);
+                        if (columnCompressed)
+                        {
+                            fgValue = fsaNetHere ? this.ScaleFsaValue(columnFg) : columnFg;
+                        }
                         double bgValue = 0.0;
                         if (!fsaNetHere && this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0)
                         {
@@ -3795,13 +3850,20 @@ namespace BecquerelMonitor
                                 i++;
                                 continue;
                             }
+                            double bgRaw = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh];
+                            if (columnCompressed)
+                            {
+                                double bgFrom, bgTo;
+                                this.PixelSpan(i, this.backgroundEnergySpectrum, this.backgroundEnergyCalibration, true, out bgFrom, out bgTo);
+                                bgRaw = OverlapSum(this.backgroundEnergySpectrum.DrawingSpectrum, bgFrom, bgTo);
+                            }
                             if (this.verticalUnit == VerticalUnit.CountsPerSecond)
                             {
-                                bgValue = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh] / this.backgroundEnergySpectrum.EffectiveLiveTime;
+                                bgValue = bgRaw / this.backgroundEnergySpectrum.EffectiveLiveTime;
                             }
                             else
                             {
-                                bgValue = this.backgroundEnergySpectrum.DrawingSpectrum[bgCh] * this.energySpectrum.EffectiveLiveTime / this.backgroundEnergySpectrum.EffectiveLiveTime;
+                                bgValue = bgRaw * this.energySpectrum.EffectiveLiveTime / this.backgroundEnergySpectrum.EffectiveLiveTime;
                             }
                         }
 
@@ -4342,21 +4404,28 @@ namespace BecquerelMonitor
 
             int channel2 = peak.Channel;
             double num6 = 0.0;
+            double[] drawn;
             if (fsaNet != null && channel2 >= 0 && channel2 < fsaNet.Length)
             {
                 // В режиме разложения на графике нарисован спектр ЗА ВЫЧЕТОМ
                 // фона — метка пика должна упираться в ту же кривую, иначе
                 // она висит над ней на величину фона (на слабых пробах это
                 // 13-50 % высоты пика).
-                num6 = fsaNet[channel2];
+                drawn = fsaNet;
             }
             else if (this.backgroundMode == BackgroundMode.Substract && this.backgroundEnergySpectrum != null && this.backgroundEnergySpectrum.EffectiveLiveTime != 0.0
                 && this.substractedEnergySpectrum != null)
             {
-                num6 = this.substractedEnergySpectrum.DrawingSpectrum[channel2];
+                drawn = this.substractedEnergySpectrum.DrawingSpectrum;
             } else
             {
-                num6 = spectrum.DrawingSpectrum[channel2];
+                drawn = spectrum.DrawingSpectrum;
+            }
+            // (прототип 26.10.2026) при сжатии — сумма каналов столбца пика,
+            // то есть верх того, что в этом столбце нарисовано
+            if (!this.TryCompressedColumnValue(drawn, this.PeakX((double)channel2), out num6))
+            {
+                num6 = drawn[channel2];
             }
             if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.EffectiveLiveTime != 0.0)
             {
@@ -4536,7 +4605,11 @@ namespace BecquerelMonitor
                     double num2 = this.energyCalibration.ChannelToEnergy((double)channel);
                     num = (int)((num2 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale + (double)this.scrollX + (double)this.left);
                 }
-                double num3 = spectrum.DrawingSpectrum[channel];
+                double num3;
+                if (!this.TryCompressedColumnValue(spectrum.DrawingSpectrum, num, out num3))
+                {
+                    num3 = spectrum.DrawingSpectrum[channel];
+                }
                 if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.EffectiveLiveTime != 0.0)
                 {
                     num3 /= spectrum.EffectiveLiveTime;
@@ -4682,15 +4755,30 @@ namespace BecquerelMonitor
                 g.DrawRectangle(Pens.Black, channel_table_x_pos - 3, table_y_pos - 3, table_width_origin, table_heigth);
                 this.RegisterCursorPanel(channel_table_x_pos - 3, table_y_pos - 3, table_heigth);
                 Rectangle r = new Rectangle(channel_table_x_pos + 5, table_y_pos + 4, table_width_origin - 12, 32);
+                // (прототип 26.10.2026, решение Amber «Диапазон и сумма группы»)
+                // столбец под курсором сжат — панель показывает его каналы и их
+                // сумму с теми же долями, что у столбца; иначе один канал, как прежде
+                double spanFrom, spanTo;
+                int spanFirst, spanLast;
+                bool cursorSpan = this.TryCursorSpan(out spanFrom, out spanTo, out spanFirst, out spanLast);
                 g.DrawString(Resources.ChartHeaderChannel, this.Font, Brushes.Black, r);
-                g.DrawString(this.cursorChannel.ToString(intFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r, this.farFormat);
+                string channelText = cursorSpan
+                    ? spanFirst.ToString(intFormat, CultureInfo.InvariantCulture) + " - " + spanLast.ToString(intFormat, CultureInfo.InvariantCulture)
+                    : this.cursorChannel.ToString(intFormat, CultureInfo.InvariantCulture);
+                g.DrawString(channelText, this.Font, Brushes.Black, r, this.farFormat);
                 r.Y += 16;
                 double channelEnergy = this.energyCalibration.ChannelToEnergy((double)this.cursorChannel);
                 g.DrawString(Resources.ChartHeaderEnergy, this.Font, Brushes.Black, r);
-                g.DrawString(channelEnergy.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r, this.farFormat);
+                string energyText = cursorSpan
+                    ? this.energyCalibration.ChannelToEnergy((double)spanFirst).ToString(floatFormat, CultureInfo.InvariantCulture) + " - "
+                      + this.energyCalibration.ChannelToEnergy((double)spanLast).ToString(floatFormat, CultureInfo.InvariantCulture)
+                    : channelEnergy.ToString(floatFormat, CultureInfo.InvariantCulture);
+                g.DrawString(energyText, this.Font, Brushes.Black, r, this.farFormat);
                 r.Y += 22;
                 g.DrawLine(Pens.LightGray, r.Left, r.Top - 6, r.Right, r.Top - 6);
-                int channelGrossCounts = fg_spectrum[this.cursorChannel];
+                double channelGrossCounts = cursorSpan
+                    ? OverlapSum(fg_spectrum, spanFrom, spanTo)
+                    : fg_spectrum[this.cursorChannel];
                 g.DrawString(Resources.ChartHeaderGrossCounts, this.Font, Brushes.Black, r);
                 g.DrawString(channelGrossCounts.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r, this.farFormat);
                 if (bg_spectrum != null)
@@ -4707,7 +4795,13 @@ namespace BecquerelMonitor
                         {
                             bgChannelIndex = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, this.baseEnergyCalibration.ChannelToEnergy((double)this.cursorChannel), this.backgroundEnergySpectrum.NumberOfChannels));
                         }
-                        if (bgChannelIndex >= 0 && bgChannelIndex < this.backgroundNumberOfChannels)
+                        if (cursorSpan)
+                        {
+                            double bgFrom, bgTo;
+                            this.PixelSpan(this.cursorX, this.backgroundEnergySpectrum, this.backgroundEnergyCalibration, true, out bgFrom, out bgTo);
+                            adjBgChannelCounts = OverlapSum(bg_spectrum, bgFrom, bgTo) * fg_time / bg_time;
+                        }
+                        else if (bgChannelIndex >= 0 && bgChannelIndex < this.backgroundNumberOfChannels)
                         {
                             adjBgChannelCounts = bg_spectrum[bgChannelIndex];
                             adjBgChannelCounts *= fg_time / bg_time;
