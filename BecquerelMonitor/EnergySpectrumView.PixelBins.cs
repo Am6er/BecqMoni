@@ -235,6 +235,17 @@ namespace BecquerelMonitor
             return OverlapSum(values, k - width / 2.0, k + width / 2.0);
         }
 
+        /// <summary>
+        /// Множитель для величины «на канал» (плавной кривой — база и уровни
+        /// полуширины), чтобы она легла на столбцы-суммы: «каналов на столбец»
+        /// около <paramref name="k"/> при сжатии, иначе ровно 1 (кадр прежний).
+        /// </summary>
+        double CompressionScaleAt(double k)
+        {
+            double width = this.ChannelsPerPixelAt(k);
+            return width > CompressedSpanThreshold ? width : 1.0;
+        }
+
         /// <summary>Сжат ли столбец около канала <paramref name="k"/> основного спектра.</summary>
         bool IsCompressedAt(int k)
         {
