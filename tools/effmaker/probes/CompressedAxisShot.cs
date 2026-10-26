@@ -35,6 +35,13 @@ namespace CompressedAxisShot
     {
         const BindingFlags Any = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
+        /// <summary>
+        /// `--select-kev=a..b` (жёлтые линии ПШПВ, дефект AMBER266 26.10.2026):
+        /// выделение по энергиям вместо курсора; печатается верх жёлтой
+        /// вертикали в пикселях против верха нарисованного столбца под ней.
+        /// </summary>
+        static double[] selectKev;
+
         [STAThread]
         static int Main(string[] args)
         {
@@ -51,6 +58,11 @@ namespace CompressedAxisShot
                 else if (a.StartsWith("--scale=", StringComparison.Ordinal)) scale = a.Substring(8);
                 else if (a.StartsWith("--rebin=", StringComparison.Ordinal)) rebin = int.Parse(a.Substring(8), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--write-rebin=", StringComparison.Ordinal)) writeRebin = a.Substring(14);
+                else if (a.StartsWith("--select-kev=", StringComparison.Ordinal))
+                {
+                    string[] ends = a.Substring(13).Split(new[] { ".." }, StringSplitOptions.RemoveEmptyEntries);
+                    selectKev = new[] { double.Parse(ends[0], CultureInfo.InvariantCulture), double.Parse(ends[1], CultureInfo.InvariantCulture) };
+                }
                 else if (a.StartsWith("--hs=", StringComparison.Ordinal))
                     scales = Array.ConvertAll(a.Substring(5).Split(','), s => double.Parse(s, CultureInfo.InvariantCulture));
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
@@ -117,14 +129,26 @@ namespace CompressedAxisShot
                 if (e < 500 || e > 700) continue;
                 if (s.Spectrum[i] > best) { best = s.Spectrum[i]; peakCh = i; }
             }
-            int x = (int)Invoke(view, "PeakX", (double)peakCh);
-            Set(view, "cursorX", x);
-            Set(view, "cursorChannel", peakCh);
+            if (selectKev != null)
+            {
+                view.SelectionStart = (int)Math.Round(s.EnergyCalibration.EnergyToChannel(selectKev[0], s.NumberOfChannels));
+                view.SelectionEnd = (int)Math.Round(s.EnergyCalibration.EnergyToChannel(selectKev[1], s.NumberOfChannels));
+            }
+            else
+            {
+                int x = (int)Invoke(view, "PeakX", (double)peakCh);
+                Set(view, "cursorX", x);
+                Set(view, "cursorChannel", peakCh);
+            }
 
             using (Bitmap frame = new Bitmap(view.Width, view.Height))
             {
                 view.DrawToBitmap(frame, new Rectangle(0, 0, view.Width, view.Height));
                 frame.Save(png, ImageFormat.Png);
+                if (selectKev != null)
+                {
+                    MeasureFwhm(view, s, frame);
+                }
             }
 
             // площадь видимого: сумма высот столбцов в отсчётах — тем же правилом,
@@ -136,6 +160,54 @@ namespace CompressedAxisShot
                               Path.GetFileName(png), s.NumberOfChannels, hs, 1.0 / hs, total, drawnSum, drawnSum / total);
             host.Dispose();
             doc.Dispose();
+        }
+
+        /// <summary>
+        /// Верх жёлтой вертикали ПШПВ (пиксели `Pens.Yellow` в её столбце) против
+        /// верха столбца спектра под ней — `GetSpectrumValueY` того значения,
+        /// которое вид рисует в этом столбце (сумма при сжатии, иначе канал).
+        /// </summary>
+        static void MeasureFwhm(EnergySpectrumView view, EnergySpectrum s, Bitmap frame)
+        {
+            object an = Get(view, "selectionAnalytics");
+            object fwhm = an == null ? null : an.GetType().GetProperty("FwhmResult", Any).GetValue(an, null);
+            if (fwhm == null)
+            {
+                Console.WriteLine("  ПШПВ: результата нет");
+                return;
+            }
+
+            double maxChannel = Convert.ToDouble(fwhm.GetType().GetProperty("MaxChannel").GetValue(fwhm, null), CultureInfo.InvariantCulture);
+            int x = (int)Invoke(view, "PeakX", maxChannel);
+            if (x < 1 || x >= frame.Width - 1)
+            {
+                Console.WriteLine("  ПШПВ: вершина вне кадра (x = {0}), мерить нечего", x);
+                return;
+            }
+
+            // вертикаль — столбец (x−1…x+1), где жёлтых точек БОЛЬШЕ всего:
+            // в соседнем может лежать лишь точка линии полувысоты или базы
+            int yellowTop = -1, bestCount = 0;
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                int count = 0, top = -1;
+                for (int y = 0; y < frame.Height; y++)
+                {
+                    Color c = frame.GetPixel(x + dx, y);
+                    if (c.R == 255 && c.G == 255 && c.B == 0) { count++; if (top < 0) top = y; }
+                }
+                if (count > bestCount) { bestCount = count; yellowTop = top; }
+            }
+
+            double drawn;
+            MethodInfo tryCol = typeof(EnergySpectrumView).GetMethod("TryCompressedColumnValue", Any);
+            object[] a = { s.DrawingSpectrum, x, 0.0 };
+            if (tryCol != null && (bool)tryCol.Invoke(view, a)) drawn = (double)a[2];
+            else drawn = s.DrawingSpectrum[(int)Math.Round(maxChannel)];
+            if ((VerticalUnit)Get(view, "verticalUnit") == VerticalUnit.CountsPerSecond && s.EffectiveLiveTime != 0.0) drawn /= s.EffectiveLiveTime;
+            int drawnTop = (int)Invoke(view, "GetSpectrumValueY", drawn);
+            Console.WriteLine("  ПШПВ: вершина в канале {0:0.0}, столбец x = {1}; верх жёлтой вертикали y = {2}, верх нарисованного столбца y = {3}, расхождение {4} пкс",
+                              maxChannel, x, yellowTop, drawnTop, yellowTop < 0 ? "—" : (yellowTop - drawnTop).ToString(CultureInfo.InvariantCulture));
         }
 
         static double DrawnSum(EnergySpectrumView view, EnergySpectrum s)

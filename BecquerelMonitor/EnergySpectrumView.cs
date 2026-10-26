@@ -2827,6 +2827,7 @@ namespace BecquerelMonitor
             for (int i = visibleFrom; i <= visibleTo; i++)
             {
                 double num4 = energyResolutionResult.StartValue + (energyResolutionResult.EndValue - energyResolutionResult.StartValue) * ((double)i - energyResolutionResult.StartChannel) / (energyResolutionResult.EndChannel - energyResolutionResult.StartChannel);
+                num4 *= this.CompressionScaleAt(i);
                 if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0)
                 {
                     num4 /= this.energySpectrum.EffectiveLiveTime;
@@ -2875,8 +2876,12 @@ namespace BecquerelMonitor
             {
                 num8 = GdiCoordinate(energyResolutionResult.MaxChannel * this.horizontalScale) + this.scrollX + this.left;
             }
-            double num10 = energyResolutionResult.MaxValue;
-            double num11 = energyResolutionResult.MaxBaseValue;
+            // (`AMBER266`, 26.10.2026) Значения полуширины — НА КАНАЛ, а столбец при
+            // сжатой оси — сумма «каналов на столбец»: без множителя жёлтые линии
+            // ложились в разы ниже нарисованного пика (снимок Amber, 0.216 пкс/кан).
+            double fwhmScale = this.CompressionScaleAt(energyResolutionResult.MaxChannel);
+            double num10 = energyResolutionResult.MaxValue * fwhmScale;
+            double num11 = energyResolutionResult.MaxBaseValue * fwhmScale;
             if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0)
             {
                 num10 /= this.energySpectrum.EffectiveLiveTime;
@@ -2957,8 +2962,8 @@ namespace BecquerelMonitor
                 double baseSlope = (energyResolutionResult.EndChannel != energyResolutionResult.StartChannel)
                     ? (energyResolutionResult.EndValue - energyResolutionResult.StartValue) / (energyResolutionResult.EndChannel - energyResolutionResult.StartChannel)
                     : 0.0;
-                double halfLeft = energyResolutionResult.HalfValue + baseSlope * (energyResolutionResult.LeftChannel - energyResolutionResult.MaxChannel);
-                double halfRight = energyResolutionResult.HalfValue + baseSlope * (energyResolutionResult.RightChannel - energyResolutionResult.MaxChannel);
+                double halfLeft = (energyResolutionResult.HalfValue + baseSlope * (energyResolutionResult.LeftChannel - energyResolutionResult.MaxChannel)) * fwhmScale;
+                double halfRight = (energyResolutionResult.HalfValue + baseSlope * (energyResolutionResult.RightChannel - energyResolutionResult.MaxChannel)) * fwhmScale;
                 if (this.verticalUnit == VerticalUnit.CountsPerSecond && this.energySpectrum.EffectiveLiveTime != 0.0)
                 {
                     halfLeft /= this.energySpectrum.EffectiveLiveTime;
