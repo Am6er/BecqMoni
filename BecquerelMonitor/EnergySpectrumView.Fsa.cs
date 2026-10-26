@@ -459,23 +459,26 @@ namespace BecquerelMonitor
                 return false;
             }
 
+            // (прототип 26.10.2026) значения — те, что нарисованы в столбце:
+            // при сжатии сумма его каналов, иначе канал карты
             double top;
             if (this.fsaShowSpectralData)
             {
-                if (net == null || channel >= net.Length)
+                if (net == null || channel >= net.Length || !this.TryColumnValue(net, x, out top))
                 {
                     return false;
                 }
-
-                top = net[channel];
             }
             else
             {
-                top = stackTop[channel];
+                this.TryColumnValue(stackTop, x, out top);
                 if (this.fsaShowResidual && net != null && model != null
                     && channel < net.Length && channel < model.Length)
                 {
-                    top = Math.Max(top, Math.Max(model[channel], net[channel]));
+                    double modelValue, netValue;
+                    this.TryColumnValue(model, x, out modelValue);
+                    this.TryColumnValue(net, x, out netValue);
+                    top = Math.Max(top, Math.Max(modelValue, netValue));
                 }
             }
 
@@ -565,7 +568,7 @@ namespace BecquerelMonitor
             int to = Math.Min(model.Length - 1, lastChannel);
             for (int i = from; i <= to; i++)
             {
-                double value = model[i] * scale;
+                double value = this.WindowValue(model, i) * scale;
                 if (value > maximum)
                 {
                     maximum = value;
@@ -1155,7 +1158,13 @@ namespace BecquerelMonitor
                         continue;
                     }
 
-                    double value = this.ScaleFsaValue(modelTop[index]);
+                    // (прототип 26.10.2026) верх стека в столбце якоря — как нарисован
+                    double columnTop;
+                    if (!this.TryCompressedColumnValue(modelTop, x, out columnTop))
+                    {
+                        columnTop = modelTop[index];
+                    }
+                    double value = this.ScaleFsaValue(columnTop);
                     int y = value > 0.0 ? this.GetSpectrumValueY(value) : this.height;
                     if (y > this.height)
                     {
@@ -1405,8 +1414,9 @@ namespace BecquerelMonitor
                     continue;
                 }
 
-                double lowerValue = this.ScaleFsaValue(lower[channel]);
-                double upperValue = this.ScaleFsaValue(upper[channel]);
+                // (прототип 26.10.2026) при сжатии — сумма каналов столбца
+                double lowerValue = this.ScaleFsaValue(this.MappedColumnValue(lower, x - firstPixel, channel));
+                double upperValue = this.ScaleFsaValue(this.MappedColumnValue(upper, x - firstPixel, channel));
                 if (upperValue <= 0.0)
                 {
                     continue;
@@ -1501,7 +1511,7 @@ namespace BecquerelMonitor
                 int y = 0;
                 if (!broken)
                 {
-                    double value = this.ScaleFsaValue(values[channel]);
+                    double value = this.ScaleFsaValue(this.MappedColumnValue(values, x - firstPixel, channel));
                     if (value <= 0.0)
                     {
                         if (clampToFloor)
