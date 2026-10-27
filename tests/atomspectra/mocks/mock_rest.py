@@ -406,7 +406,7 @@ class Handler(BaseHTTPRequestHandler):
                     with LOCK:
                         t = S["time"]
                         tot = S["total"]
-                    self.send(200, json.dumps({"time": t, "total_counts": tot, "fw_version": "mock-1.2.37", "analyzer_connected": True}).encode())
+                    self.send(200, json.dumps({"time": t, "total_counts": tot, "fw_version": args.fw_version, "analyzer_connected": True}).encode())
                 
                 elif method == "GET" and path == "/api/device":
                     calib_floats = [float(x) for x in args.calib.split(",")]
@@ -572,6 +572,7 @@ def main():
     parser.add_argument("--cmd-no-text", action="store_true")   # the analyzer gives no text answer (nothing reaches the board log)
     parser.add_argument("--cases", type=str, default="")   # comma list of fixtures/responses files
     parser.add_argument("--sta-limit", action="store_true")   # PR37 fix, REST: "-sta N" stops the board after N s (the board's own limit)
+    parser.add_argument("--fw-version", type=str, default="mock-1.2.37")   # #BM-21: fw_version of GET /api/status (any text, e.g. 1.2.38, 1.2.39-t1b, ?)
     args = parser.parse_args()
 
     # Load shape
