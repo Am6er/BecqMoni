@@ -56,6 +56,13 @@ namespace BecquerelMonitor
             return "http://" + host + portPart + "/";
         }
 
+        // The REST address of the configuration is the TCP board's own only when its host is the TCP Host (a RestUrl left over from another board is not)
+        public bool RestUrlIsTcpHost()
+        {
+            Uri u;
+            return Uri.TryCreate(EffectiveRestUrl(), UriKind.Absolute, out u) && string.Equals(u.Host, (host ?? "").Trim(), StringComparison.OrdinalIgnoreCase);
+        }
+
         public AtomSpectraRestClient CreateRestClient(out string error)
         {
             error = null;

@@ -7084,6 +7084,15 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to BecqMoni joined an acquisition that was already running on the analyzer; it holds {0} h {1} min, {2} counts. Clear the spectrum in the document AND reset it ON THE ANALYZER (-rst)? This cannot be undone..
+        /// </summary>
+        public static string MSGAtomSpectraTcpClearJoinedBothConfirm {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraTcpClearJoinedBothConfirm", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to BecqMoni joined an acquisition that was already running on the analyzer, but recording is stopped now. Only the document is cleared now and nothing is sent to the analyzer; the analyzer's spectrum will be reset (-rst) at the next Start; if the analyzer has counted by then, Start asks first. Continue? This cannot be undone..
         /// </summary>
         public static string MSGAtomSpectraTcpClearJoinedDeferredConfirm {
@@ -8748,6 +8757,15 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to AtomSpectra board firmware {0} is older than the recommended {1}: the board search and "Start" may not work - update the board firmware..
+        /// </summary>
+        public static string AtomSpectraFirmwareBelow {
+            get {
+                return ResourceManager.GetString("AtomSpectraFirmwareBelow", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to set on the board.
         /// </summary>
         public static string AtomSpectraRestCalibSet {
@@ -8942,6 +8960,15 @@ namespace BecquerelMonitor.Properties {
         public static string MSGAtomSpectraRestClearConfirm {
             get {
                 return ResourceManager.GetString("MSGAtomSpectraRestClearConfirm", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The board holds {0} h {1} min, {2} counts. Clear the spectrum in the document AND reset it ON THE BOARD? This cannot be undone..
+        /// </summary>
+        public static string MSGAtomSpectraRestClearBothConfirm {
+            get {
+                return ResourceManager.GetString("MSGAtomSpectraRestClearBothConfirm", resourceCulture);
             }
         }
         
