@@ -83,7 +83,8 @@ def build_src(out_dir, src_dir, mutation):
         "AtomSpectraRestCalibration.cs",
         # the partial files of the two sessions added by PR #38 (the Stop question of a joined acquisition, Replace in observe-only mode)
         "AtomSpectraTcpSession.JoinedStop.cs",
-        "AtomSpectraRestSession.JoinedAndObserve.cs"
+        "AtomSpectraRestSession.JoinedAndObserve.cs",
+        "AtomSpectraFirmware.cs"   # #BM-21: AtomSpectraRestSession reads the board firmware version after a failed Start
     ]
     
     texts = []
@@ -395,8 +396,11 @@ def main():
     # REST runs work on a local disk (build dirs and mock logs on a synced folder add IO stalls); under the work directory
     # of this run, so parallel runs with their own REST_WORK do not share it
     rest_ok = rest_suite.run_rest_suite(exe_dir, src_dir, os.path.join(W, "rest_part"))
-    print(f"TCP suite: {'PASS' if all_passed else 'FAIL'}; REST suite: {'PASS' if rest_ok else 'FAIL'}")
-    sys.exit(0 if (all_passed and rest_ok) else 1)
+    import run_window_checks   # PR2 review 2, H2: the real MainForm on a hidden desktop (the "No" of Clear leaves the document); REST_NO_WINDOW_CHECKS=1 or no PR2_GUI_DIR: SKIPPED, not PASS
+    win_ok = run_window_checks.run(exe_dir)
+    win_txt = 'SKIPPED' if win_ok is None else ('PASS' if win_ok else 'FAIL')   # None = the stand is not available (PR2_GUI_DIR): not a pass
+    print(f"TCP suite: {'PASS' if all_passed else 'FAIL'}; REST suite: {'PASS' if rest_ok else 'FAIL'}; window checks: {win_txt}")
+    sys.exit(0 if (all_passed and rest_ok and win_ok is not False) else 1)
 
 if __name__ == "__main__":
     main()

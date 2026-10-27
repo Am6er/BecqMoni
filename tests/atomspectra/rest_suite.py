@@ -37,7 +37,8 @@ SRC_FILES = ["AtomSpectraRestPolicy.cs", "AtomSpectraRestClient.cs", "AtomSpectr
              "AtomSpectraTcpDeviceConfig.cs", "AtomSpectraTcpDeviceConfig.Rest.cs", "InputDeviceConfig.cs", "Hash/Crc32.cs",
              "AtomSpectraDeviceConsole.cs", "AtomSpectraDevlog.cs", "AtomSpectraRestBootConfig.cs",
              "AtomSpectraRestSession.JoinedAndObserve.cs", "AtomSpectraTcpSession.JoinedStop.cs",
-             "AtomSpectraDnsSd.cs", "AtomSpectraDnsSd.Adapters.cs", "AtomSpectraDnsSd.Schedule.cs"]
+             "AtomSpectraDnsSd.cs", "AtomSpectraDnsSd.Adapters.cs", "AtomSpectraDnsSd.Schedule.cs",
+             "AtomSpectraFirmware.cs"]   # #BM-21: the board firmware version check
 STUBS = """namespace BecquerelMonitor.Properties { public static class Resources {
   public static string ERRAtomSpectraTcpCalBusy = "busy {0}:{1}"; public static string ERRAtomSpectraTcpConnect = "connect {0}:{1} {2}";
   public static string ERRIncorrectCRC = "crc"; public static string ERREmptyCoefficients = "empty"; public static string ERRReadDataFromPort_Empty = "noanswer";
@@ -341,6 +342,31 @@ SCENARIOS = [
     # R3 an answer given in advance only for a counting board, T5 the same board by HostKey, T4/O1 a Stop inside a running Stop
     ("console-tcp-lane-replace", ["--order", "hs", "--period", "0.5", "--cycles", "16", "--connections", "1"]),
     ("tcplane-answer-counting", None), ("tcplane-host-key", None), ("tcplane-stop-nested", None),
+    # PR2 (RestHarnessPr2.cs): the Stop of a joined acquisition in the delete sequence asks nothing more (a counting board)
+    ("pr2-delete-keep", ["--counting", "1", "--time", "5000", "--total", "1000"]),
+    ("console-tcp-pr2-clear-joined", ["--order", "hs", "--period", "0.5", "--cycles", "40", "--connections", "2", "--honor-rst"]),   # PR2: TCP Clear of a joined acquisition asks ONE question (was RED on 8e954b7e)
+    ("console-tcp-pr2-clear-joined-no", ["--order", "hs", "--period", "0.5", "--cycles", "40", "--connections", "2", "--honor-rst"]),
+    ("console-tcp-pr2-clear-deferred", ["--order", "hs", "--period", "0.5", "--cycles", "40", "--connections", "2", "--honor-rst"]),
+    ("console-tcp-pr2-switch-no", ["--order", "hs", "--period", "0.5", "--cycles", "40", "--connections", "2", "--honor-rst"]),   # PR2 review H1: transport switched to REST, Clear, "No": the TCP session stays
+    ("pr2-switch-yes-down", None), ("pr2-switch-yes-up", ["--counting", "0", "--time", "5000", "--total", "1000"]),   # IMPL-11 H4: "Yes" after the switch to REST (BM21_CMD gives the TCP bridge): how many questions
+    ("console-tcp-pr2-switch-deferred-no", ["--order", "hs", "--period", "0.5", "--cycles", "40", "--connections", "2", "--honor-rst"]),   # ... and the deferred reset stays
+    ("pr2-clear-after-keep", ["--counting", "1", "--time", "5000", "--total", "1000"]),   # what REST does for "Clear" after Stop -> keep counting (pending the operator's decision)
+    # #BM-22 (RestHarnessBm22.cs): "Clear" asks ONE question in REST mode (a stopped mock board: 5000 s, 1000 counts)
+    ("bm22-yes", ["--counting", "0", "--time", "5000", "--total", "1000"]), ("bm22-no", ["--counting", "0", "--time", "5000", "--total", "1000"]),
+    ("bm22-observe", ["--counting", "0", "--time", "5000", "--total", "1000"]), ("bm22-readfail", None), ("bm22-tcp", None),
+    # #BM-21 (RestHarnessBm21.cs): the board firmware below 1.2.39 is a warning (test of the connection, failed Start), never a block
+    ("bm21-parse", None),
+    ("bm21-start-low", ["--fw-version", "1.2.38", "--fail-from", "0", "--fail-status", "503"]),
+    ("bm21-start-ok-low", ["--fw-version", "1.2.38", "--counting", "0", "--valid", "0"]),
+    ("bm21-start-fail-new", ["--fw-version", "1.2.39", "--fail-from", "0", "--fail-status", "503"]),
+    ("bm21-start-fail-unknown", ["--fw-version", "?", "--fail-from", "0", "--fail-status", "503"]),
+    ("bm21-test-low", ["--fw-version", "1.2.38", "--counting", "0", "--time", "5000", "--total", "1000"]),
+    ("bm21-test-new", ["--fw-version", "1.2.39-t1b", "--counting", "0", "--time", "5000", "--total", "1000"]),
+    ("bm21-long", None),   # a 140-char version is cut in the hint
+    # #BM-21, the controller (real build): the REST mock answers /api/status; the TCP bridge mock (BM21_CMD) is the Start's other side
+    ("bm21-ctl-connfail", ["--fw-version", "1.2.38"]), ("bm21-ctl-other-board", ["--fw-version", "1.2.38"]), ("bm21-ctl-noanswer", ["--fw-version", "1.2.38"]),
+    ("bm21-ctl-linkclosed", ["--fw-version", "1.2.38"]), ("bm21-ctl-ok", ["--fw-version", "1.2.38"]),
+    ("bm21-ctl-rest-ok", ["--fw-version", "1.2.38", "--counting", "0", "--valid", "0"]),
 ]
 # scenarios that need the controller or the forms exist in the REAL build only (the source build prints n/a). On the real build each must
 # EXECUTE at least this many checks ("checks executed: N" of the harness); n/a or fewer is a failure of the suite, not a pass.
@@ -352,9 +378,13 @@ REAL_ONLY_MIN_CHECKS = {"f5-tcp-cal-n": 8, "f5-ctl-length-first": 5, "f5-form-ca
                         "fix2-stop-auto": 5, "fix2-after-wait-held": 3, "fix3-held-throws": 6, "fix3-offer-stop": 6, "fix4-joined-clear-text": 9, "bm10-adapters": 7, "bm10-schedule": 4, "bm18-chooser": 23, "bm18-choose-stale": 5,
                         "bm10-quiet-three": 2, "bm10-count-address": 2, "bm10-bind-fallback": 3, "bm10-log-sent": 4, "bm10-log-packets": 3, "fix9-reset-carry": 5, "fix9-reset-other-board": 6,
                         "console-tcp-fix10-stop-reenter": 3, "fix10-dns-chain": 3, "fix10-dns-limit": 2, "fix10-dns-good": 3, "fix10-reset-to-rest": 5,
-                        "fixr6-observe-hint": 5,
+                        "fixr6-observe-hint": 5, "bm21-test-low": 4, "bm21-test-new": 3, "bm21-ctl-connfail": 3, "bm21-ctl-other-board": 3, "bm21-ctl-noanswer": 3, "bm21-ctl-linkclosed": 3, "bm21-ctl-ok": 3, "bm21-ctl-rest-ok": 3,
                         # PR #38, TCP lane
-                        "console-tcp-lane-replace": 13, "tcplane-answer-counting": 5, "tcplane-host-key": 4, "tcplane-stop-nested": 6}
+                        "console-tcp-lane-replace": 13, "tcplane-answer-counting": 5, "tcplane-host-key": 4, "tcplane-stop-nested": 6,
+                        # #BM-22
+                        "bm22-yes": 5, "bm22-no": 4, "bm22-observe": 5, "bm22-readfail": 4, "bm22-tcp": 4,
+                        # PR2
+                        "pr2-delete-keep": 7, "pr2-clear-after-keep": 6, "console-tcp-pr2-clear-joined": 6, "console-tcp-pr2-clear-joined-no": 3, "console-tcp-pr2-clear-deferred": 4, "pr2-switch-yes-down": 4, "pr2-switch-yes-up": 4, "console-tcp-pr2-switch-no": 5, "console-tcp-pr2-switch-deferred-no": 5}
 FIX_SCENARIOS = ["overtake", "restart-doc", "preset-new", "deferred-resumed", "clear-stale", "session-key",
                  "headless-stopped", "stop-hang", "url-userinfo"]
 PASSC_SCENARIOS = ["prefix-auth", "parse", "deferred-resumed", "restart", "time-back", "nodata-404", "dead-404", "dead-flag",
@@ -623,12 +653,16 @@ MUTATIONS = [
      [("AtomSpectraRestSession.JoinedAndObserve.cs", "                ChannelBelow = below,\n                ObserveOnly = true\n", "                ChannelBelow = below\n")], "fixr6-observe-hint", False),
 ]
 
+import bm21_mutations   # #BM-21: the source mutations of the firmware version warning
+MUTATIONS.extend(bm21_mutations.MUTATIONS)
 
 # (these mutations belong to the automatic set, each reddens ITS scenario): code that exists in the REAL build only (controller,
 # forms). Each: the patched tree is built by MSBuild (build_real_mutant), the harness is built on that exe, the real-only scenarios run on it.
 # (id, description, [(file under BecquerelMonitor/, old text, new text)], the scenario that must be red)
 CTL = "AtomSpectraTcpDeviceController.cs"
 REAL_MUTATIONS = [
+    ("bm21-test-no-warning", "#BM-21: the test of the connection does not add the firmware warning under the status",
+     [("AtomSpectraTcpDeviceForm.Rest.cs", "calib) + compression, fw);", "calib) + compression, null);")], "bm21-test-low"),
     ("calibration-before-length", "the board calibration is applied BEFORE the length checks (the old order)",
      [(CTL, "if (e.Histogram.Length != spectrum.Spectrum.Length && session is AtomSpectraRestSession)", "if (boardCalibrationPending) { boardCalibrationPending = false; AtomSpectraTcpLog.Info(\"Cal\", ApplyBoardCalibration(spectrum, resultData.DeviceConfig, AtomSpectraRestCalibration.ForChannels(((AtomSpectraRestDataReadyArgs)e).Calibration, ((AtomSpectraRestDataReadyArgs)e).CalibChannels, e.Histogram.Length), configSaver)); }\n            if (e.Histogram.Length != spectrum.Spectrum.Length && session is AtomSpectraRestSession)")], "f5-ctl-length-first"),
     ("no-fold-in-controller", "the controller gives the document the 8192-channel polynomial unfolded",
@@ -655,6 +689,19 @@ REAL_MUTATIONS = [
      [("AtomSpectraTcpDeviceController.BoardOffers.cs", "if (q != null && q.ReplaceAllowed && !SnapshotFits(bins, foldChannels, documentChannels))", "if (false)")], "console-tcp-lane-replace"),
     ("answer-stopped-holds", "R3: an answer given in advance holds for a stopped board too (a -sta the window after a reset did not mention)",
      [("AtomSpectraTcpDeviceController.BoardOffers.cs", "if (q == null || !q.Counting)", "if (q == null)")], "tcplane-answer-counting"),
+    # #BM-22: "Clear" in REST mode asks one question
+    ("bm22-second-question", "#BM-22: the second question (the board's) comes back after the first",
+     [("AtomSpectraTcpDeviceController.Rest.cs", "if (!confirmed && !AtomSpectraRestUi.ConfirmClear(board))", "if (!AtomSpectraRestUi.ConfirmClear(board))")], "bm22-yes"),
+    ("bm22-no-resets", "#BM-22: the answer No still lets Clear go on",
+     [("AtomSpectraTcpDeviceController.Rest.cs", "Clear: declined, nothing is cleared (document and board)\");\n                return false;", "Clear: declined, nothing is cleared (document and board)\");\n                return true;")], "bm22-no"),
+    ("bm22-yes-no-reset", "#BM-22: the answer Yes does not reset the board",
+     [("AtomSpectraTcpDeviceController.Rest.cs", "bool ok = AtomSpectraRestUi.RunWithWait(delegate { return rest.ClearNow(CommandTimeoutMs); });", "bool ok = true;")], "bm22-yes"),
+    ("bm22-observe-board-question", "#BM-22: observe-only mode asks the board's question too",
+     [("AtomSpectraTcpDeviceController.Rest.cs", "if (rest == null || rest.ObserveOnly)", "if (rest == null)")], "bm22-observe"),
+    ("bm22-readfail-no-question", "#BM-22: a board that cannot be read clears the document without any question",
+     [("AtomSpectraTcpDeviceController.Rest.cs", "if (!DeviceController.AskClearDocument())\n                {\n                    return false;", "if (false)\n                {\n                    return false;")], "bm22-readfail"),
+    ("bm22-tcp-no-question", "#BM-22: the TCP question (the plain one) is dropped (PR2: it lives in ConfirmClearTcp now)",
+     [("AtomSpectraTcpDeviceController.cs", "if (s == null || !s.JoinedRunning)"+chr(10)+"                return DeviceController.AskClearDocument();", "if (s == null || !s.JoinedRunning)"+chr(10)+"                return true;")], "bm22-tcp"),
 ]
 
 
@@ -705,7 +752,17 @@ FIXTURE = os.path.join(D, "fixtures", "spectrum_sample.json")   # a spectrum doc
 
 HARNESS_FILES.append(os.path.join(D, "harness", "RestFixPr37.cs"))   # PR37 fix, REST: the scenarios pr37-rest-*
 HARNESS_FILES.append(os.path.join(D, "harness", "RestHarnessFixR.cs"))   # PR #38, maintainer's REST fixes: the scenarios fixr*
+HARNESS_FILES.append(os.path.join(D, "harness", "RestHarnessBm21.cs"))   # #BM-21: the scenarios bm21-*
+HARNESS_FILES.append(os.path.join(D, "harness", "RestHarnessBm21Ctl.cs"))   # #BM-21: the scenarios bm21-ctl-* (the controller)
+# bm21-ctl-*: arguments of the TCP bridge mock (mock_cmd.py); None = no bridge, the harness gets a port nobody listens on
+BM21_CMD = {"pr2-switch-yes-down": ["--order", "hs", "--period", "0.5", "--cycles", "40", "--connections", "2", "--honor-rst"], "pr2-switch-yes-up": ["--order", "hs", "--period", "0.5", "--cycles", "40", "--connections", "2", "--honor-rst"],
+            "bm21-ctl-connfail": None, "bm21-ctl-other-board": None,
+            "bm21-ctl-noanswer": ["--stopped-at", "0", "--mute", "sta", "--period", "0.5", "--cycles", "12", "--connections", "1"],
+            "bm21-ctl-linkclosed": ["--stopped-at", "0", "--drop-cycle", "1", "--mute", "sta", "--period", "0.5", "--cycles", "12", "--connections", "2"],
+            "bm21-ctl-ok": ["--stopped-at", "0", "--period", "0.5", "--cycles", "12", "--connections", "1"]}
 HARNESS_FILES.append(os.path.join(D, "harness", "RestHarnessTcpLane.cs"))   # PR #38, TCP lane: console-tcp-lane-*, tcplane-*
+HARNESS_FILES.append(os.path.join(D, "harness", "RestHarnessPr2.cs"))   # PR2: pr2-*
+HARNESS_FILES.append(os.path.join(D, "harness", "RestHarnessBm22.cs"))   # #BM-22: "Clear" asks one question in REST mode: bm22-*
 
 
 def copy_fixture(out_dir):
@@ -771,12 +828,24 @@ def build_src(out_dir, src_dir, replacements):
     copy_fixture(out_dir)
 
 
+class _Done:
+    def __init__(self, code, text):
+        self.returncode, self.stdout, self.stderr = code, text, ""
+
+
+def run_hidden_harness(args, timeout):
+    import hidden_desktop   # tests/atomspectra/hidden_desktop.py: CreateProcess on a desktop of its own (stdout and stderr in one stream)
+    r = hidden_desktop.run_hidden(args, timeout)
+    return None if r is None else _Done(r[0], r[1])
+
+
 def run_one(build_dir, name, mock_args):
     harness = os.path.join(build_dir, "RestHarness.exe")
     port = free_port_bm10() if name.startswith("bm10-") else free_port()
     log = os.path.join(build_dir, name + "_req.jsonl")
     proc = None
     out = None
+    cmd_proc = None
     try:
         if mock_args is not None:
             out_path = os.path.join(build_dir, name + "_mock.txt")
@@ -805,8 +874,14 @@ def run_one(build_dir, name, mock_args):
                 proc.kill()
                 proc.wait(timeout=10)
                 return (False, "mock did not start")
-        args = [harness, name, str(port) if proc else "0", log if proc else "-"]
-        p = run(args, timeout=120, prio=PRIO)
+        cmd_port = 0
+        if name in BM21_CMD:
+            cmd_port = free_port()
+            if BM21_CMD[name] is not None:
+                cmd_proc = subprocess.Popen([sys.executable, "-u", os.path.join(D, "mocks", "mock_cmd.py"), "--port", str(cmd_port)] + BM21_CMD[name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=PRIO)
+                time.sleep(1.0)
+        args = [harness, name, str(port) if proc else "0", log if proc else "-"] + ([str(cmd_port)] if cmd_port else [])
+        p = run_hidden_harness(args, 120)   # the harness may open forms: on a hidden desktop, never on the desktop of the person
         if p is None:
             return (False, "harness timeout")
         text = p.stdout + (("\n[ERR] " + p.stderr) if p.stderr.strip() else "")
@@ -814,6 +889,9 @@ def run_one(build_dir, name, mock_args):
             fh.write(text)
         return (p.returncode == 0, text)
     finally:
+        if cmd_proc:
+            cmd_proc.kill()
+            cmd_proc.wait(timeout=10)
         if proc:
             proc.kill()
             proc.wait(timeout=10)
@@ -917,11 +995,17 @@ def run_real_mutations(src_dir, work_dir):
     return red == len(REAL_MUTATIONS)
 
 
+REAL_MUTATIONS.extend(bm21_mutations.REAL)   # #BM-21: the controller (TCP, REST status line)
+import pr2_mutations   # PR2: the Stop of a joined acquisition and the Clear after it
+REAL_MUTATIONS.extend(pr2_mutations.REAL)
+import pr2_mutations_tcp   # PR2: the one question of the TCP Clear
+REAL_MUTATIONS.extend(pr2_mutations_tcp.REAL)
+
 # scenarios whose checks read a text of the resources; they are run once more under each interface language (REST_UI_CULTURE),
 # so that a check that holds only for the language of the machine cannot pass here and fail elsewhere
 LOCALE_SCENARIOS = ["console-rest-notext", "console-rest-refused", "console-refresh-none", "form-bad-address", "form-calib", "form-calib-unset",
                     "gzip-unsupported", "gzip-ignored", "f5-ctl-headless-text", "pr37-rest-continue-other", "pr37-rest-observe-behind", "pr37-rest-texts",
-                    "night-start-text", "fix4-joined-clear-text", "rest-linklost-text", "rest-unreachable-text", "ui-console-confirm", "fixr6-observe-hint"]
+                    "night-start-text", "fix4-joined-clear-text", "rest-linklost-text", "rest-unreachable-text", "ui-console-confirm", "fixr6-observe-hint", "bm21-start-low", "bm21-test-low", "bm21-long"]
 LOCALES = ("en-US", "ru-RU")
 
 
