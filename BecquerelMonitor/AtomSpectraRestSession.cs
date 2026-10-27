@@ -93,11 +93,15 @@ namespace BecquerelMonitor
                 AtomSpectraTcpLog.Mask(client.BaseUrl), periodSeconds);
         }
 
+        // The board's firmware version read after a failed Start (one GET /api/status, its own failure ignored); null: not read or unknown.
+        public string FirmwareVersion { get; private set; }
+        public const int FirmwareReadMs = 1500;   // the short deadline of that one read
+
         // The message of a Start that could not reach the board.
         public string UnreachableText()
         {
-            return string.Format(CultureInfo.InvariantCulture, BecquerelMonitor.Properties.Resources.ERRAtomSpectraRestUnreachable,
-                AtomSpectraTcpLog.Mask(client.BaseUrl), periodSeconds, LastErrorText ?? "");   // not the bridge text (one client, busy slot)
+            return AtomSpectraFirmware.AppendWarning(string.Format(CultureInfo.InvariantCulture, BecquerelMonitor.Properties.Resources.ERRAtomSpectraRestUnreachable,
+                AtomSpectraTcpLog.Mask(client.BaseUrl), periodSeconds, LastErrorText ?? ""), FirmwareVersion);   // not the bridge text (one client, busy slot); a known version below 1.2.39 adds the firmware hint
         }
 
         public AtomSpectraRestSession(AtomSpectraRestClient client, int periodSeconds, bool observeOnly, int limitSeconds)
@@ -218,6 +222,7 @@ namespace BecquerelMonitor
             Failure = AtomSpectraRestFailure.None;
             lastError = null;
             lastUserError = null;
+            FirmwareVersion = null;
             RestartedBoard = false;
             joined = false;
             replaced = false;
@@ -239,6 +244,7 @@ namespace BecquerelMonitor
                 lastUserError = userErr;
                 Failure = AtomSpectraRestFailure.Unreachable;
                 AtomSpectraTcpLog.Warn("Session", "Start: board not reachable: " + err);
+                FirmwareVersion = AtomSpectraFirmware.ReadVersion(client, FirmwareReadMs);   // on this worker; a failure of this read is ignored
                 return AtomSpectraTcpBeginOutcome.ConnectFailed;
             }
 
@@ -250,6 +256,7 @@ namespace BecquerelMonitor
                 lastUserError = userErr;
                 Failure = AtomSpectraRestFailure.Unreachable;
                 AtomSpectraTcpLog.Warn("Session", "Start: board not reachable (2nd look): " + err);
+                FirmwareVersion = AtomSpectraFirmware.ReadVersion(client, FirmwareReadMs);
                 return AtomSpectraTcpBeginOutcome.ConnectFailed;
             }
 
