@@ -92,6 +92,14 @@ static class MatrixWindowDetailsProbeP292
         /// <summary>«Посчитать» и дождаться конца; <paramref name="cancelAt"/> ≥ 0 — «Отмена» через столько секунд.</summary>
         public bool Compute(double cancelAt)
         {
+            // (`AMBER268`) Контекст окна перед каждым счётом: первый `DoEvents` без
+            // `Application.Run` снимает его с потока, и второй счёт шёл бы отчётами
+            // с потоков пула (подробно — `MatrixWindowProbeP291.EnsureWinFormsContext`).
+            if (!(SynchronizationContext.Current is WindowsFormsSynchronizationContext))
+            {
+                SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
+            }
+
             this.Call("ComputeClick");
             if (!this.Busy)
             {
@@ -143,12 +151,24 @@ static class MatrixWindowDetailsProbeP292
 
     static string Q(string s) { return s == null ? "<null>" : "«" + s.Replace("\r\n", " ⏎ ").Replace("\n", " ⏎ ") + "»"; }
 
+    static System.Collections.Generic.List<ROIEfficiencyData> Amber267Curve()
+    {
+        return new System.Collections.Generic.List<ROIEfficiencyData>
+        {
+            new ROIEfficiencyData { Energy = 5, Efficiency = 0.5, ErrorPercent = 1 },
+            new ROIEfficiencyData { Energy = 662, Efficiency = 0.1, ErrorPercent = 1 },
+            new ROIEfficiencyData { Energy = 3000, Efficiency = 0.02, ErrorPercent = 1 },
+        };
+    }
+
     static string geometryPath;
 
     static EfficiencyConfigData NewConfig(string guid)
     {
         GeometryModel g = GeometryModel.Load(geometryPath);
-        return new EfficiencyConfigData("проба П292") { Guid = guid, Geometry = g };
+        // (`AMBER267`) Без посчитанной кривой окно «Посчитать» не даёт; края
+        // кривой — умолчания полей окна (5–3000 кэВ), чтобы диапазон счёта не сдвинулся.
+        return new EfficiencyConfigData("проба П292") { Guid = guid, Geometry = g, Curve = Amber267Curve() };
     }
 
     static string Res(string key)

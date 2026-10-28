@@ -360,6 +360,10 @@ namespace BecquerelMonitor
                 return;
             }
 
+            // ⛔ (`AMBER267`) Без кривой «Посчитать» заперта, и об этом сказано
+            // первой строкой подробностей — и у посчитанной матрицы тоже.
+            this.computeButton.Enabled = this.CanCompute;
+
             // ⛔ (`A50`) ОТКАЗ ЧИТАТЬ МАТРИЦУ СПРАШИВАЕТСЯ У САМОГО ЧТЕНИЯ, а не
             // угадывается по заголовку. Причину знает `Load`, и она называет
             // себя (`MatrixRefusal`); форма обязана сказать её словами.
@@ -380,7 +384,7 @@ namespace BecquerelMonitor
                 // получал матрицу с 30: кривая и матрица описывают ОДИН прибор
                 // в ОДНОЙ геометрии, и разъехавшийся диапазон — не выбор, а
                 // недосмотр. Границы берём у кривой.
-                this.SetDetails(this.ApplyCurveRange());
+                this.SetDetails(this.WithNoCurveNote(this.ApplyCurveRange()));
                 return;
             }
 
@@ -447,10 +451,41 @@ namespace BecquerelMonitor
             // Но кривую с тех пор могли пересчитать в другом диапазоне, и это
             // расхождение надо НАЗЫВАТЬ, а не прятать: молчащее несогласие
             // ровно того сорта, из-за которого и заведена эта правка.
-            this.existingDetails = this.Describe(existing) + this.DescribeRangeMismatch(existing)
-                                   + DescribeInheritedHistories(existing, nominalHistories)
-                                   + this.DescribePending();
+            this.existingDetails = this.WithNoCurveNote(
+                this.Describe(existing) + this.DescribeRangeMismatch(existing)
+                + DescribeInheritedHistories(existing, nominalHistories)
+                + this.DescribePending());
             this.SetDetails(this.existingDetails);
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER267`, решение Amber 28.10.2026 вопросником, дословно:
+        /// «Пометка в окне матрицы + не давать считать матрицу, пока не будет
+        /// посчитана кривая эффективности») Считать можно только при геометрии
+        /// И посчитанной кривой. Прежде кнопка требовала одной геометрии:
+        /// пользователь сохранил геометрию без «Посчитать из геометрии»,
+        /// посчитал матрицу, окно сказало «Годна для текущей геометрии», а
+        /// разбор FSA отказывал — кривая пустая.
+        /// </summary>
+        bool CanCompute
+        {
+            get { return this.config != null && this.config.HasGeometry && this.config.HasCurve; }
+        }
+
+        /// <summary>
+        /// (`AMBER267`) Подробности с пометкой «кривая не посчитана» первой
+        /// строкой — у геометрии без кривой; иначе подробности как есть.
+        /// </summary>
+        string WithNoCurveNote(string details)
+        {
+            if (this.config == null || !this.config.HasGeometry || this.config.HasCurve)
+            {
+                return details;
+            }
+
+            return string.IsNullOrEmpty(details)
+                ? Resources.ResponseMatrixNoCurve
+                : Resources.ResponseMatrixNoCurve + Environment.NewLine + details;
         }
 
         /// <summary>
@@ -866,7 +901,7 @@ namespace BecquerelMonitor
 
         async void ComputeClick(object sender, EventArgs e)
         {
-            if (this.busy || this.config == null || !this.config.HasGeometry)
+            if (this.busy || !this.CanCompute)
             {
                 return;
             }
@@ -1226,7 +1261,7 @@ namespace BecquerelMonitor
         void SetBusy(bool value)
         {
             this.busy = value;
-            this.computeButton.Enabled = !value && this.config != null && this.config.HasGeometry;
+            this.computeButton.Enabled = !value && this.CanCompute;
             this.cancelButton.Enabled = value;
             // (П291, Н6) Сохранённая матрица после отменённого пересчёта остаётся в
             // `computed`, но «Сохранить» второй раз её не предлагает.

@@ -8429,6 +8429,12 @@ Increase the preset time or press Clear to start over.</value>
   <data name="FSANoGeometry" xml:space="preserve">
     <value>Full-spectrum decomposition needs a detector geometry: describe the crystal in the geometry editor of the efficiency curve</value>
   </data>
+  <data name="FSACurveNotComputed" xml:space="preserve">
+    <value>Full-spectrum decomposition needs an efficiency curve: "{0}" has a geometry, but the curve itself has not been calculated — on the Efficiency tab of the device configuration press Edit..., then Calculate from geometry and Save curve</value>
+  </data>
+  <data name="EfficiencyTabNoCurve" xml:space="preserve">
+    <value>Curve not calculated: press Edit..., then Calculate from geometry.</value>
+  </data>
   <data name="FSAFailed" xml:space="preserve">
     <value>Full-spectrum decomposition failed.</value>
   </data>
@@ -43047,6 +43053,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="ResponseMatrixNoGeometry" xml:space="preserve">
     <value>This efficiency curve has no geometry, so a response matrix cannot be computed.</value>
+  </data>
+  <data name="ResponseMatrixNoCurve" xml:space="preserve">
+    <value>The efficiency curve has not been calculated: the matrix cannot be computed until it is (close this window, press Edit..., then Calculate from geometry and Save curve). Without the curve, neither FSA decomposition nor becquerels are available.</value>
   </data>
   <data name="ResponseMatrixDetails" xml:space="preserve">
     <value>Nodes: {0} from {1:F0} to {2:F0} keV
