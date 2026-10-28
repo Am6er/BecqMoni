@@ -3289,9 +3289,11 @@ namespace BecquerelMonitor
             }
 
             bool activeTouched = false;
+            bool activeEfficiencyChanged = false;
             foreach (DocEnergySpectrum document in this.documentManager.DocumentList)
             {
                 bool touched = false;
+                bool efficiencyChanged = false;
                 foreach (ResultData resultData in document.ResultDataFile.ResultDataList)
                 {
                     if (resultData.DeviceConfigReference == null
@@ -3305,6 +3307,7 @@ namespace BecquerelMonitor
                     resultData.PeakDetectionMethodConfig = FWHMPeakDetectionMethodConfig.AdoptFrom(
                         saved.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig,
                         resultData.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig);
+                    efficiencyChanged |= RefreshDeviceEfficiencyCopy(resultData, saved);
                     touched = true;
                 }
 
@@ -3313,9 +3316,24 @@ namespace BecquerelMonitor
                     continue;
                 }
 
+                if (efficiencyChanged)
+                {
+                    document.Dirty = true;
+                }
+
                 document.UpdateDetectedPeaks = true;
                 document.UpdateEnergySpectrum();
                 activeTouched |= document == this.activeDocument;
+                activeEfficiencyChanged |= efficiencyChanged && document == this.activeDocument;
+            }
+
+            if (activeEfficiencyChanged)
+            {
+                // (`AMBER267`) Новая кривая — новые активность, доза и подпись
+                // в списке кривых панели, сразу, как при выборе её в панели.
+                this.dcControlPanel.ShowDocumentStatus();
+                this.ShowMeasurementResult(true);
+                this.ShowDoseRate();
             }
 
             if (activeTouched)
@@ -3333,6 +3351,84 @@ namespace BecquerelMonitor
                 {
                     this.dcFsaReportView.ActiveResultDataChanged();
                 }
+            }
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER267`, решение Amber 28.10.2026 вопросником, дословно:
+        /// «Обновлять копию прибора (Рекомендую)») Спектр, у которого выбрана
+        /// кривая ПРИБОРА, держит её копию со времени выбора
+        /// (<see cref="DCControlPanel.EfficiencyFromItem"/>). Сохранение
+        /// конфигурации прибора копию не освежало, а повторный выбор той же
+        /// строки списка событие не поднимает (индекс тот же) — и кривая,
+        /// посчитанная после выбора, до открытого спектра не доходила: разбор
+        /// FSA продолжал отказывать по пустой копии.
+        ///
+        /// Заменяется только копия кривой прибора того же Guid. Родная кривая
+        /// спектра (<see cref="ResultData.FileEfficiency"/>, тождество ссылок)
+        /// не трогается: по ней посчитан сохранённый замер, и правка прибора
+        /// задним числом его не меняет. Кривую у прибора удалили — копия
+        /// остаётся (панель показывает её отдельной строкой).
+        ///
+        /// Матрица, приехавшая с копией из файла спектра
+        /// (<see cref="EfficiencyConfigData.EmbeddedMatrix"/>), переносится в
+        /// свежую копию, если у той своей нет: годность по геометрии она
+        /// проверяет сама при чтении.
+        ///
+        /// true — копия заменена и по содержимому отличается.
+        /// </summary>
+        public static bool RefreshDeviceEfficiencyCopy(ResultData resultData, DeviceConfigInfo saved)
+        {
+            EfficiencyConfigData current = resultData.Efficiency;
+            if (current == null || saved == null || saved.EfficiencyConfigs == null
+                || object.ReferenceEquals(current, resultData.FileEfficiency))
+            {
+                return false;
+            }
+
+            EfficiencyConfigData source = null;
+            foreach (EfficiencyConfigData item in saved.EfficiencyConfigs)
+            {
+                if (item != null && item.Guid == current.Guid)
+                {
+                    source = item;
+                    break;
+                }
+            }
+
+            if (source == null || SameEfficiencyContent(current, source))
+            {
+                return false;
+            }
+
+            EfficiencyConfigData fresh = source.Copy();
+            if (fresh.EmbeddedMatrix == null)
+            {
+                fresh.EmbeddedMatrix = current.EmbeddedMatrix;
+            }
+
+            resultData.Efficiency = fresh;
+            return true;
+        }
+
+        /// <summary>
+        /// Одинаковы ли две записи кривой по тому, что уходит в файл: сравнение
+        /// сериализованным видом, чтобы новое поле записи не выпало из сверки
+        /// молча. Матрица в памяти (`[XmlIgnore]`) не сравнивается.
+        /// </summary>
+        static bool SameEfficiencyContent(EfficiencyConfigData a, EfficiencyConfigData b)
+        {
+            return string.Equals(SerializeEfficiency(a), SerializeEfficiency(b), StringComparison.Ordinal);
+        }
+
+        static readonly XmlSerializer efficiencySerializer = new XmlSerializer(typeof(EfficiencyConfigData));
+
+        static string SerializeEfficiency(EfficiencyConfigData config)
+        {
+            using (StringWriter writer = new StringWriter(CultureInfo.InvariantCulture))
+            {
+                efficiencySerializer.Serialize(writer, config);
+                return writer.ToString();
             }
         }
 
