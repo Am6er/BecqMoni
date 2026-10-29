@@ -244,11 +244,18 @@ namespace BecquerelMonitor
 
         public static bool ConfirmClear(AtomSpectraRestBoardSample s)
         {
+            return ConfirmClear(s, false);
+        }
+
+        // withDocument (#BM-22): the ONE question of "Clear" - it speaks of the document and the board together
+        public static bool ConfirmClear(AtomSpectraRestBoardSample s, bool withDocument)
+        {
             long t = s != null && s.HasData ? s.Time : 0;
             long n = s != null && s.HasData ? s.Total : 0;
+            string format = withDocument ? Resources.MSGAtomSpectraRestClearBothConfirm : Resources.MSGAtomSpectraRestClearConfirm;
             // through the AppUi door: without windows it throws instead of hanging (S100, tools/check_headless.py);
             // the windows held over the wait window keep waiting until it is answered
-            return HoldingAfterWait(() => AppUi.AskYesNo(Span(Resources.MSGAtomSpectraRestClearConfirm, t, n), Resources.ConfirmationDialogTitle, MessageBoxIcon.Warning, true));
+            return HoldingAfterWait(() => AppUi.AskYesNo(Span(format, t, n), Resources.ConfirmationDialogTitle, MessageBoxIcon.Warning, true));
         }
     }
 }

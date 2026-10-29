@@ -178,6 +178,7 @@ namespace RestHarness
             string scenario = args[0];
             try { port = int.Parse(args[1]); } catch { port = 0; }
             logPath = args[2];
+            try { cmdPort = args.Length > 3 ? int.Parse(args[3]) : 0; } catch { cmdPort = 0; }   // #BM-21: port of the TCP bridge mock (RestHarnessBm21Ctl.cs)
             fail = null;
 
             // REST_UI_CULTURE pins the language of the interface (resources, forms): a check of a text must pass in any language

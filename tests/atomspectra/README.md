@@ -11,6 +11,9 @@ network access are needed.
 | `rest_suite.py` | Driver of the REST suite: builds the harness, starts the mock, runs the scenarios, runs the mutations. |
 | `run_review_tests.py` | Driver of the TCP suite (session and calibration scenarios, TCP mutations). It also runs `rest_suite.py` at the end. |
 | `run_mutations_subset.py` | Runs the REST suite with only the named source mutations. |
+| `run_real_mutations_subset.py`, `run_bm22_mutations.py`, `run_pr2_mutations.py` | Run only some real-build mutations (by id, or the `bm22-*` / `pr2-*` ones against all real-build scenarios). |
+| `hidden_desktop.py` | Starts a harness on a desktop of its own (`CreateDesktop`): the forms and message boxes a harness opens never appear on the desktop of the person at the machine. `rest_suite.py` runs every REST harness through it. |
+| `run_window_checks.py`, `run_window_mutants.py` | The window checks of an external stand (the real `MainForm` on a hidden desktop): only with `PR2_GUI_DIR`; without it they print SKIPPED, which is not a pass. |
 | `harness/*.cs` | Test harnesses compiled against `BecquerelMonitor.exe` (`RestHarness*.cs` for REST, `SessionHarness.cs` and `CalHarness.cs` for TCP). |
 | `mocks/*.py` | Mock boards: `mock_rest.py` (REST), `mock_cmd.py` (TCP command bridge), `mock_board.py` and `mock_cal.py` (TCP framing and calibration). |
 | `fixtures/` | Recorded board responses read by the mocks and the harness: `responses/` (cases for `mock_rest.py --cases`) and `spectrum_sample.json`. |
@@ -49,7 +52,7 @@ network access are needed.
    (`BecquerelMonitor/`, the mutations patch copies of its `.cs` files).
 
 2. Run the REST suite. By default it runs all scenarios on the real build and on a build from the
-   sources, then ALL source mutations (131, many hours) and the 10 real-build mutations. Set
+   sources, then ALL source mutations (141, many hours) and the 37 real-build mutations. Set
    `REST_NO_SOURCE_MUTATIONS=1` to run the scenarios and the real-build mutations only:
 
    ```
@@ -77,20 +80,20 @@ network access are needed.
 
 ## What is in the suites
 
-* REST suite: 165 scenarios in `SCENARIOS`, each run on the real build and on a build from the
+* REST suite: 271 scenarios in `SCENARIOS` (the 21 of `LOCALE_SCENARIOS` once more under en-US and under ru-RU), each run on the real build and on a build from the
   sources. A scenario that is only possible on the real build (controller and forms, found by
   reflection) prints `n/a` on the source build and must execute a minimum number of checks
   (`REAL_ONLY_MIN_CHECKS`). The real build speaks the language of the machine (English or
   Russian), so a check of a text that comes from the resources accepts both. The source build
   compiles the client sources with a stub of `Properties.Resources` (the English values of
-  `Resources.resx`) and of `AppUi`.
-* TCP suite: 24 mock scenarios (real build and source build).
+  `Resources.resx`) and of `AppUi`. The questions and messages of the controller scenarios (`bm22-*`, `pr2-*`, `*a275-*`) are answered and recorded through the test seam `AppUi.Probe` (always `null` in the program).
+* TCP suite: 28 mock scenarios (real build and source build).
 * Mutations show that the tests can fail. Each mutation patches a copy of the client source (the
   `(file, old text, new text)` triples in `rest_suite.py` and `run_review_tests.py`) and expects
   its target scenario to turn red:
-  * `MUTATIONS` in `rest_suite.py`: 131 source mutations (a full run takes many hours; select some
+  * `MUTATIONS` in `rest_suite.py` (with `bm21_mutations.py`): 141 source mutations (a full run takes many hours; select some
     with `python run_mutations_subset.py <exeDir> <srcDir> <workDir> id1,id2`).
-  * `REAL_MUTATIONS` in `rest_suite.py`: 10 mutations of the real build, run by default.
-  * `run_review_tests.py`: 15 TCP mutations.
+  * `REAL_MUTATIONS` in `rest_suite.py` (with `bm21_mutations.py`, `pr2_mutations.py`, `pr2_mutations_tcp.py`): 37 mutations of the real build, run by default.
+  * `run_review_tests.py`: 19 TCP mutations.
   * The `old text` of a mutation must match the source exactly. If a source file changes, a
     mutation whose text no longer matches fails to build and has to be updated.

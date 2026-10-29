@@ -38,6 +38,13 @@ namespace BecquerelMonitor
     public static class AppUi
     {
         /// <summary>
+        /// Шов для стенда (#BM-22): не null — каждый вопрос (<c>AskYesNo</c>) и каждое сообщение (<c>Report</c>)
+        /// уходит сюда вместо окна и записывается стендом в журнал. Аргументы: вид ("ask"/"report"), текст,
+        /// заголовок; ответ — для вопроса. В приложении всегда null.
+        /// </summary>
+        public static Func<string, string, string, bool> Probe;
+
+        /// <summary>
         /// true — приложение с окнами: окно поднимать можно, есть кому нажать
         /// «ОК». false — проба, харнесс, служба: окно повесит запуск намертво.
         /// </summary>
@@ -45,7 +52,7 @@ namespace BecquerelMonitor
         {
             get
             {
-                return AppUi.hasWindows;
+                return AppUi.hasWindows || AppUi.Probe != null;
             }
         }
 
@@ -221,6 +228,11 @@ namespace BecquerelMonitor
         /// </summary>
         public static void Report(string text, string caption, MessageBoxIcon icon)
         {
+            if (AppUi.Probe != null)
+            {
+                AppUi.Probe("report", text, caption);
+                return;
+            }
             if (AppUi.hasWindows)
             {
                 // ⚠ Показ стоит ЗДЕСЬ, а не в отдельном опрятном методе, и это
@@ -361,6 +373,7 @@ namespace BecquerelMonitor
         /// </summary>
         public static bool AskYesNo(string text, string caption)
         {
+            if (AppUi.Probe != null) return AppUi.Probe("ask", text, caption);
             if (!AppUi.hasWindows)
             {
                 throw new InvalidOperationException(
@@ -380,6 +393,7 @@ namespace BecquerelMonitor
         /// </summary>
         public static bool AskYesNo(string text, string caption, MessageBoxIcon icon, bool defaultNo)
         {
+            if (AppUi.Probe != null) return AppUi.Probe("ask", text, caption);
             if (!AppUi.hasWindows)
             {
                 throw new InvalidOperationException(
@@ -402,6 +416,7 @@ namespace BecquerelMonitor
         /// </summary>
         public static bool AskYesNo(IWin32Window owner, string text, string caption, MessageBoxIcon icon, bool defaultNo)
         {
+            if (AppUi.Probe != null) return AppUi.Probe("ask", text, caption);
             if (!AppUi.hasWindows)
             {
                 throw new InvalidOperationException(

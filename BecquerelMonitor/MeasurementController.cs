@@ -690,6 +690,35 @@ namespace BecquerelMonitor
             }
         }
 
+        // The one question before "Clear" (#BM-22); false = the user declined, nothing is to be cleared.
+        public bool ConfirmClear()
+        {
+            return this.ConfirmClearAsking(null);
+        }
+
+        // ask = the window question of the caller (DCControlPanel: the release MessageBox without owner); used by every device except AtomSpectra TCP/REST.
+        public bool ConfirmClearAsking(Func<bool> ask)
+        {
+            return this.deviceController != null ? this.deviceController.ConfirmClear(this.resultData, ask) : (ask != null ? ask() : DeviceController.AskClearDocument());
+        }
+
+        // "Clear" for the panel (#BM-22): one question, then the device is cleared. The caller clears the DOCUMENT only when this
+        // returns true: after "No" neither the document nor the device is touched.
+        public bool ConfirmAndClear()
+        {
+            return this.ConfirmAndClearAsking(null);
+        }
+
+        public bool ConfirmAndClearAsking(Func<bool> ask)
+        {
+            if (!this.ConfirmClearAsking(ask))
+            {
+                return false;
+            }
+            this.ClearMeasurementResult();
+            return true;
+        }
+
         // Token: 0x060006AE RID: 1710 RVA: 0x0002814C File Offset: 0x0002634C
         public void ClearMeasurementResult()
         {
