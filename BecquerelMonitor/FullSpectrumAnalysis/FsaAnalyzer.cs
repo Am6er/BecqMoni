@@ -7923,6 +7923,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             a = 1.0;
             dz = 0.0;
             this.jointScale = false;
+            this.jointTrace = AnchorPassSink != null ? new List<string>() : null;
             List<AnchorFit> all = this.zeroCandidates;
             List<double> frozen = this.zeroTakenLines;
             // (`AMBER155`, П220) неподвижная точка — свет верхней линии карты
@@ -8020,6 +8021,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 js.Add(new[] { ja, jz });
                 ws.Add(w);
                 wTrue.Add(f.Weight);
+                this.jointTrace?.Add(string.Format(CultureInfo.InvariantCulture,
+                    "{0,9:F2} кэВ {1} w {2,10:G4} (запас {3:F3}) невязка {4,8:F3} кан. ∂/∂a {5,7:F2} ∂/∂z₀ {6,8:F4}",
+                    anchor.LineKev, anchor.Used ? "опора" : "нуль ", w, margin, r, ja, jz));
             }
 
             double det = s11 * s22 - s12 * s12;
@@ -8052,6 +8056,67 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             a = 1.0 + da;
             dz = dzz;
             return Finite(a) && a > 0.0 && Finite(dz);
+        }
+
+        /// <summary>
+        /// (`AMBER269`, шаг 0) Опоры прохода <paramref name="pass"/> — в
+        /// <see cref="AnchorPassSink"/>. Вклад взятой опоры в шаг усиления —
+        /// по МНК через нулевой канал: w·X·(Y′ − X) / Σw·X², в каналах верха
+        /// полосы; у шага «усиление и ноль» и у совместного шага он показателен,
+        /// но не точен — тогда смотреть точки совместного шага.
+        /// </summary>
+        void EmitAnchorPass(Action<string> sink, int pass, int used, double a, double b, double zeroStep,
+                            bool joint, bool zeroCapped, double gain, double offset, int chHi)
+        {
+            var text = new StringBuilder();
+            int top = Math.Max(1, chHi);
+            text.AppendFormat(CultureInfo.InvariantCulture,
+                "разбор {0}, проход {1}: вход — усиление {2:F5}, ноль {3:F3} кан.; опор {4}; шаг a {5:F6} (da·ch {6:F2}), b {7:F3} кан., нуль света {8:F4} кэВ{9}{10}",
+                CorePassCount, pass, gain, offset, used, a, (a - 1.0) * top, b, zeroStep,
+                joint ? (this.jointScale ? "; совместный шаг" : "; совместного шага нет") : "",
+                zeroCapped ? "; шаг нуля за пределом" : "");
+            double sxx = 0.0;
+            List<AnchorFit> fits = this.zeroCandidates ?? new List<AnchorFit>();
+            foreach (AnchorFit f in fits)
+            {
+                if (f.Anchor.Used)
+                {
+                    sxx += f.Weight * f.X * f.X;
+                }
+            }
+
+            foreach (AnchorFit f in fits)
+            {
+                FsaScaleAnchor anchor = f.Anchor;
+                text.AppendLine();
+                text.AppendFormat(CultureInfo.InvariantCulture,
+                    "  {0,9:F2} кэВ {1,-16} X {2,8:F2} Y−X {3,8:F3} σ {4,7:F3} кан. ({5:F2} FWHM) доля {6:F2} z {7,7:F1} {8}",
+                    anchor.LineKev, anchor.Component, f.X, f.Y - f.X, 1.0 / Math.Sqrt(f.Weight), f.ShiftFwhm,
+                    anchor.PeakShare, anchor.Z, anchor.Used ? "ВЗЯТА" : "отказ " + (anchor.Refusal ?? "?"));
+                if (anchor.Used && sxx > 0.0)
+                {
+                    text.AppendFormat(CultureInfo.InvariantCulture, "; вклад в da·ch {0:F2}, доля w·X² {1:F3}",
+                                      f.Weight * f.X * (f.YEff - f.X) / sxx * top, f.Weight * f.X * f.X / sxx);
+                }
+            }
+
+            int unmeasured = (this.scaleAnchors != null ? this.scaleAnchors.Count : 0) - fits.Count;
+            if (unmeasured > 0)
+            {
+                text.AppendLine();
+                text.AppendFormat(CultureInfo.InvariantCulture, "  кандидатов без измеренного центра: {0}", unmeasured);
+            }
+
+            if (joint && this.jointTrace != null)
+            {
+                foreach (string line in this.jointTrace)
+                {
+                    text.AppendLine();
+                    text.Append("  совместный: ").Append(line);
+                }
+            }
+
+            sink(text.ToString());
         }
 
         /// <summary>
@@ -11426,8 +11491,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 "свет снят на проходе {0}: плечо опор пропало — ноль прибора, свет до конца привязки снят", pass);
                         }
 
+                        // (`AMBER269`, шаг 0) опоры прохода — пробам; в приложении приёмника нет
+                        Action<string> passSink = AnchorPassSink;
                         if (used == 0)
                         {
+                            if (passSink != null)
+                            {
+                                this.EmitAnchorPass(passSink, pass, used, a, b, 0.0, false, false, bestGain, bestOffset, chHi);
+                            }
+
                             break;
                         }
 
@@ -11455,6 +11527,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                     zeroCappedPasses++;
                                 }
                             }
+                        }
+
+                        if (passSink != null)
+                        {
+                            this.EmitAnchorPass(passSink, pass, used, a, b, zeroStep, zeroRemeasure, zeroCapped,
+                                                bestGain, bestOffset, chHi);
                         }
 
                         // Новая шкала поверх прежней: p'' = a·(g·p + o) + b.
@@ -22762,6 +22840,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// приложении не задан, и тогда никто не зовётся.
         /// </summary>
         public static Action<string> ZeroTraceSink { get; set; }
+
+        /// <summary>
+        /// (`AMBER269`, шаг 0) ПРИЁМНИК ОПОР КАЖДОГО ПРОХОДА ПРИВЯЗКИ ШКАЛЫ: шкала
+        /// входа, итог шага, кандидаты прохода с измеренным центром (линия,
+        /// хозяин, канал модели, промах и σ, доля, z, взята ли, отказ), вклад
+        /// взятых в шаг усиления и точки совместного шага нуля и усиления с их
+        /// весами. Без него виден только последний проход (`ScaleAnchors`), а
+        /// разнос начинается с первого. Ставится безоконной пробой
+        /// (`FsaLinePosProbeP255 --anchor-passes`); в приложении не задан, и
+        /// тогда ничего не собирается.
+        /// </summary>
+        public static Action<string> AnchorPassSink { get; set; }
+
+        /// <summary>(`AMBER269`) Точки последнего <see cref="JointScaleStep"/> — для <see cref="AnchorPassSink"/>; без приёмника null.</summary>
+        List<string> jointTrace;
 
         /// <summary>(`A308`) Трасса одного вызова <see cref="NnlsSolve"/> для <see cref="NnlsTraceSink"/>.</summary>
         public sealed class NnlsTrace

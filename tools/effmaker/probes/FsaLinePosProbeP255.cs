@@ -22,7 +22,8 @@ namespace BecquerelMonitor.Probes
     /// Печатает и состояние карты света анализатора (отражением).
     ///
     /// Ключи: --spectrum=&lt;файл&gt;; --set=&lt;имя&gt;; --fromset; --equilibrium; --nucbase;
-    /// --lines=238.6,583.2,… (кэВ); --no-matrix; --dump=lo,hi[,шаг] — каналы: данные минус фон, модель, pull.
+    /// --lines=238.6,583.2,… (кэВ); --no-matrix; --dump=lo,hi[,шаг] — каналы: данные минус фон, модель, pull;
+    /// --anchor-passes — опоры КАЖДОГО прохода привязки (`AMBER269`, <see cref="FsaAnalyzer.AnchorPassSink"/>).
     /// Коды: 0 — посчитано; 2 — ключи/файлы; 3 — разбор не завершился.
     /// </summary>
     static class FsaLinePosProbeP255
@@ -47,6 +48,7 @@ namespace BecquerelMonitor.Probes
                 else if (a == "--equilibrium") equilibrium = true;
                 else if (a == "--nucbase") nucbase = true;
                 else if (a == "--no-matrix") noMatrix = true;
+                else if (a == "--anchor-passes") FsaAnalyzer.AnchorPassSink = line => Console.WriteLine("[опоры] " + line);
                 else if (a.StartsWith("--prop=", StringComparison.Ordinal)) props.Add(a.Substring(7));
                 else if (a.StartsWith("--dump=", StringComparison.Ordinal))
                 {
