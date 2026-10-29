@@ -205,7 +205,9 @@ namespace BecquerelMonitor
             {
                 // A joined acquisition is not ours: its reset is asked first, with the board's numbers (as REST ConfirmClear).
                 // Without windows AskYesNo throws (S100) and nothing goes to the board.
-                if (session.JoinedRunning && !ConfirmJoinedClear(session))
+                bool askedAlready = ReferenceEquals(tcpClearFor, r);   // ConfirmClear has already asked the one question of this Clear
+                tcpClearFor = null;
+                if (session.JoinedRunning && !askedAlready && !ConfirmJoinedClear(session))
                 {
                     AtomSpectraTcpLog.Info("Session", "Clear of a joined acquisition: declined, the board is not reset");
                     AppUi.Report(Resources.MSGAtomSpectraTcpNotReset, "", MessageBoxIcon.Information);
@@ -247,6 +249,32 @@ namespace BecquerelMonitor
             long n = tcp != null ? tcp.BoardCounts : 0;
             return string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraTcpClearJoinedConfirm,
                 t / 3600, (t % 3600) / 60, n.ToString(CultureInfo.InvariantCulture));
+        }
+
+        // The text of the ONE question of "Clear" of a joined TCP acquisition: speaks of the document and the analyzer together; the deferred text (recording stopped) already does
+        internal static string JoinedClearBothText(IAtomSpectraSession s)
+        {
+            AtomSpectraTcpSession tcp = s as AtomSpectraTcpSession;
+            if (tcp != null && tcp.ClearDeferred)
+                return JoinedClearText(s);
+            long t = tcp != null ? tcp.BoardSeconds : 0;
+            long n = tcp != null ? tcp.BoardCounts : 0;
+            return string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraTcpClearJoinedBothConfirm, t / 3600, (t % 3600) / 60, n.ToString(CultureInfo.InvariantCulture));
+        }
+
+        // The question before "Clear" of a TCP document: a joined acquisition is asked ONCE, with the analyzer's numbers; "No" clears nothing (document and board)
+        private bool ConfirmClearTcp(ResultData r)
+        {
+            IAtomSpectraSession s = session;
+            if (s == null || !s.JoinedRunning)
+                return DeviceController.AskClearDocument();
+            if (!AppUi.AskYesNo(JoinedClearBothText(s), Resources.ConfirmationDialogTitle, MessageBoxIcon.Warning, true))
+            {
+                AtomSpectraTcpLog.Info("Session", "Clear of a joined acquisition: declined, nothing is cleared (document and board)");
+                return false;
+            }
+            tcpClearFor = r;
+            return true;
         }
 
         private static bool ConfirmJoinedClear(IAtomSpectraSession s)
@@ -450,7 +478,7 @@ namespace BecquerelMonitor
             }
             IAtomSpectraSession s = session;
             bool newDoc = start && newDocumentCreated;
-            string info = null, calibration = null;
+            string info = null, calibration = null, boardFirmware = null;   // boardFirmware: read only after a Start without an answer
             AtomSpectraTcpBeginOutcome outcome = AtomSpectraRestUi.RunWithWait(delegate
             {
                 AtomSpectraTcpBeginOutcome o = s.Begin(newDoc, CommandTimeoutMs);
@@ -459,6 +487,12 @@ namespace BecquerelMonitor
                     // -inf and -cal behind the same wait window, not on the UI thread after it (InfoTimeoutMs each)
                     info = QueryQuietly(s, "-inf");
                     calibration = QueryQuietly(s, "-cal");
+                }
+                else if (AtomSpectraFirmware.IsNoAnswerOutcome(o))
+                {
+                    // one short GET /api/status behind the same wait window; its own failure is ignored (null)
+                    string urlError;
+                    if (config.RestUrlIsTcpHost()) boardFirmware = AtomSpectraFirmware.ReadVersion(config.CreateRestClient(out urlError), AtomSpectraRestSession.FirmwareReadMs);   // not another board's version (a RestUrl left over from another board)
                 }
                 return o;
             });
@@ -517,6 +551,7 @@ namespace BecquerelMonitor
                     refusal = string.Format(CultureInfo.InvariantCulture, Resources.ERRAtomSpectraTcpNoAnswer, config.Host, s.Port);
                     break;
             }
+            refusal = AtomSpectraFirmware.AppendWarning(refusal, boardFirmware);   // a known version below 1.2.39 only; otherwise the text stays as it is
             return false;
         }
 

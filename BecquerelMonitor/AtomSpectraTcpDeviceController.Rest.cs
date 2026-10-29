@@ -189,10 +189,113 @@ namespace BecquerelMonitor
             }
         }
 
+        private enum RestClearPlan { Ask, BoardConfirmed, DocumentOnly }
+
+        private RestClearPlan restClearPlan = RestClearPlan.Ask;
+        private ResultData restClearFor;
+        private ResultData tcpClearFor;   // the document whose Clear was confirmed by the one question of ConfirmClearTcp
+
+        public override bool ConfirmClear(ResultData r, Func<bool> ask = null)   // ask: the window question of other devices, not used here
+        {
+            restClearPlan = RestClearPlan.Ask;
+            restClearFor = null;
+            tcpClearFor = null;
+
+            // PR #39 review: every window of this confirmation (the TCP question of a joined acquisition, the report of a board that could not
+            // be read and the question after it, the REST question) holds the windows waiting for a wait window to close: "The board was
+            // reset" of another document must not come up inside it and pass for its answer (PR #38 review, R8)
+            return AtomSpectraRestUi.HoldingAfterWait(() => ConfirmClearHeld(r));
+        }
+
+        private bool ConfirmClearHeld(ResultData r)
+        {
+            AtomSpectraTcpDeviceConfig config = ConfigOf(r);
+
+            if (deviceGuid == null
+                || config == null
+                || MeasurementController.IsDeviceLeasedByOther(deviceGuid, r.MeasurementController))
+            {
+                return DeviceController.AskClearDocument();
+            }
+
+            if (config.Transport != AtomSpectraTransport.Rest)
+            {
+                return ConfirmClearTcp(r);   // ONE question for a joined TCP acquisition too (as #BM-22 for REST)
+            }
+
+            return ConfirmClearRest(r, config);
+        }
+
+        private bool ConfirmClearRest(ResultData r, AtomSpectraTcpDeviceConfig config)
+        {
+            // a TCP session (the transport was switched to REST; it stays in the controller from Stop to Start too) and its deferred reset are
+            // replaced only in ClearRest after a "Yes", never before the answer: the board is read here through a session of its own (nothing is
+            // started, nothing hooked), the controller's stays as it is. Before the PR #39 review this case asked the plain question and then,
+            // after a "Yes", the board's own one - two questions, and "Yes, No" cleared the document only
+            bool keepSession = (session != null && !(session is AtomSpectraRestSession)) || carriedResetKey != null;
+            AtomSpectraRestSession rest;
+            if (keepSession)
+            {
+                string clientError;
+                AtomSpectraRestClient client = config.CreateRestClient(out clientError);
+                rest = client == null ? null : new AtomSpectraRestSession(client, config.RestPollSeconds, config.RestObserveOnly, config.RestLimitSeconds);
+            }
+            else
+            {
+                OpenRestSession(config);
+                rest = session as AtomSpectraRestSession;
+            }
+
+            if (rest == null || rest.ObserveOnly)
+            {
+                return DeviceController.AskClearDocument();
+            }
+
+            string error = null;
+            AtomSpectraRestBoardSample board = AtomSpectraRestUi.RunWithWait(delegate
+            {
+                string e, user;
+                AtomSpectraRestBoardSample s = rest.ReadBoard(AtomSpectraRestSession.ProbeTimeoutMs, out e, out user);
+                if (s == null) AtomSpectraTcpLog.Warn("Session", "Clear: the board was not read: " + e);
+                error = user;
+                return s;
+            });
+
+            if (board == null)
+            {
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraRestNotReset, error ?? Resources.AtomSpectraRestErrNoAnswer), "", MessageBoxIcon.Warning);
+
+                if (!DeviceController.AskClearDocument())
+                {
+                    return false;
+                }
+
+                restClearPlan = RestClearPlan.DocumentOnly;
+                restClearFor = r;
+                return true;
+            }
+
+            if (!AtomSpectraRestUi.ConfirmClear(board, true))
+            {
+                AtomSpectraTcpLog.Info("Session", "Clear: declined, nothing is cleared (document and board)");
+                return false;
+            }
+
+            restClearPlan = RestClearPlan.BoardConfirmed;
+            restClearFor = r;
+            return true;
+        }
+
+        // #BM-22: ClearRest below carries out what ConfirmClear has already asked (restClearPlan)
         private void ClearRest(ResultData r, AtomSpectraTcpDeviceConfig config)
         {
             if (!AppUi.HasWindows) throw new InvalidOperationException("BecqMoni: AtomSpectra REST Clear needs a confirmation window; the board was not reset.");
-            OpenRestSession(config);
+            // #BM-22: ConfirmClear (the one question of "Clear") has already been answered for this document
+            RestClearPlan plan = ReferenceEquals(restClearFor, r) ? restClearPlan : RestClearPlan.Ask;
+            restClearPlan = RestClearPlan.Ask;
+            restClearFor = null;
+            OpenRestSession(config);   // after the "Yes" only: a TCP session left by a switch of the transport (and its deferred reset) goes now
+            if (plan == RestClearPlan.DocumentOnly) return;   // the board could not be read, the user chose to clear the document only
             AtomSpectraRestSession rest = session as AtomSpectraRestSession;
             if (rest == null)
             {
@@ -206,7 +309,8 @@ namespace BecquerelMonitor
                 return;
             }
             string error = null;
-            AtomSpectraRestBoardSample board = AtomSpectraRestUi.RunWithWait(delegate
+            bool confirmed = plan == RestClearPlan.BoardConfirmed;   // the board's numbers were shown in the one question
+            AtomSpectraRestBoardSample board = confirmed ? null : AtomSpectraRestUi.RunWithWait(delegate
             {
                 string e, user;
                 AtomSpectraRestBoardSample s = rest.ReadBoard(AtomSpectraRestSession.ProbeTimeoutMs, out e, out user);
@@ -214,12 +318,12 @@ namespace BecquerelMonitor
                 error = user;
                 return s;
             });
-            if (board == null)
+            if (board == null && !confirmed)
             {
                 AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraRestNotReset, error ?? Resources.AtomSpectraRestErrNoAnswer), "", MessageBoxIcon.Warning);
                 return;
             }
-            if (!AtomSpectraRestUi.ConfirmClear(board))
+            if (!confirmed && !AtomSpectraRestUi.ConfirmClear(board))
             {
                 AtomSpectraTcpLog.Info("Session", "Clear: declined, board not reset");
                 AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.MSGAtomSpectraRestNotReset, Resources.AtomSpectraRestDeclined), "", MessageBoxIcon.Information);

@@ -2708,6 +2708,9 @@ http://xptable.sourceforge.net/</value>
   <data name="MSGAtomSpectraTcpClearJoinedConfirm" xml:space="preserve">
     <value>BecqMoni присоединилось к набору, который уже шёл на анализаторе; в нём {0} ч {1} мин, импульсов {2}. Сбросить спектр НА АНАЛИЗАТОРЕ (-rst)? Отменить будет нельзя.</value>
   </data>
+  <data name="MSGAtomSpectraTcpClearJoinedBothConfirm" xml:space="preserve">
+    <value>BecqMoni присоединилось к набору, который уже шёл на анализаторе; в нём {0} ч {1} мин, импульсов {2}. Очистить спектр в документе И сбросить его НА АНАЛИЗАТОРЕ (-rst)? Отменить будет нельзя.</value>
+  </data>
   <data name="MSGAtomSpectraTcpClearJoinedDeferredConfirm" xml:space="preserve">
     <value>BecqMoni присоединилось к набору, который уже шёл на анализаторе, но запись сейчас остановлена. Сейчас будет очищен только документ, анализатору ничего не отправляется; спектр на анализаторе будет сброшен (-rst) при следующем «Старт», а если анализатор к тому времени наберёт ещё, «Старт» сначала спросит. Продолжить? Отменить будет нельзя.</value>
   </data>
@@ -3268,6 +3271,9 @@ http://xptable.sourceforge.net/</value>
   <data name="AtomSpectraRestTestResult" xml:space="preserve">
     <value>{0}: прошивка {1}, время платы {2} с, импульсов {3}; калибровка {4}.</value>
   </data>
+  <data name="AtomSpectraFirmwareBelow" xml:space="preserve">
+    <value>Прошивка платы {0} ниже рекомендуемой {1}: поиск плат и «Старт» могут не работать — обновите прошивку.</value>
+  </data>
   <data name="AtomSpectraRestCalibSet" xml:space="preserve">
     <value>задана на плате</value>
   </data>
@@ -3336,6 +3342,9 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="MSGAtomSpectraRestClearConfirm" xml:space="preserve">
     <value>На плате набрано {0} ч {1} мин, импульсов {2}. Сбросить спектр НА ПЛАТЕ? Отменить будет нельзя.</value>
+  </data>
+  <data name="MSGAtomSpectraRestClearBothConfirm" xml:space="preserve">
+    <value>На плате набрано {0} ч {1} мин, импульсов {2}. Очистить спектр в документе И сбросить его НА ПЛАТЕ? Отменить будет нельзя.</value>
   </data>
   <data name="MSGAtomSpectraRestNotReset" xml:space="preserve">
     <value>Плата НЕ сброшена ({0}); её спектр цел. Пока идёт опрос, документ заполняется с платы заново.</value>
