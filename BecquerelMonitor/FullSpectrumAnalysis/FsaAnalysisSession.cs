@@ -175,6 +175,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         DateTime lastStartUtc = DateTime.MinValue;
 
         /// <summary>
+        /// (`AMBER269`) Энергии найденных пиков (центры, кэВ по калибровке файла) — для
+        /// <see cref="FsaAnalyzer.DetectedPeakKev"/>; пик с нечисловой или неположительной
+        /// энергией пропускается.
+        /// </summary>
+        public static double[] PeakEnergiesOf(List<Peak> peaks)
+        {
+            var energies = new List<double>();
+            if (peaks != null)
+            {
+                foreach (Peak peak in peaks)
+                {
+                    if (peak != null && peak.Energy > 0.0 && !double.IsInfinity(peak.Energy))
+                    {
+                        energies.Add(peak.Energy);
+                    }
+                }
+            }
+
+            return energies.ToArray();
+        }
+
+        /// <summary>
         /// (`AMBER210`) Линии библиотеки приложения — имя и энергия каждого определения — для
         /// <see cref="FsaAnalyzer.LibraryLines"/>. Выход у определения не хранится, поэтому
         /// интенсивность линии нуль; определение без имени или с неположительной энергией пропускается.
@@ -871,6 +893,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`AMBER210`) линии библиотеки приложения — называть пики вне состава;
             // имён в коде нет, всё из определений менеджера
             analyzer.LibraryLines = LibraryLinesOf(job.Definitions);
+
+            // (`AMBER269`, (Б)) найденные пики — подтверждать опоры шкалы (читает
+            // только `AnchorConfirmByPeaks`)
+            analyzer.DetectedPeakKev = PeakEnergiesOf(job.Peaks);
 
             Action<FsaAnalyzer> probeHook = ProbeAnalyzerHook;
 
