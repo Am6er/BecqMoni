@@ -289,6 +289,18 @@
   <data name="MSGSaveEnergyCalibrationTractCurvature" xml:space="preserve">
     <value>Кривизна тракта прибора тоже сменится: {0} → {1} 1/МэВ (значение этого спектра).</value>
   </data>
+  <data name="MSGSaveCalibration" xml:space="preserve">
+    <value>Сохранить калибровку по энергии и кривую FWHM в текущей конфигурации устройства?</value>
+  </data>
+  <data name="MSGPickUpCalibrationPeak" xml:space="preserve">
+    <value>Выделите пик на графике спектра.</value>
+  </data>
+  <data name="MSGUnifiedCalibrationDone" xml:space="preserve">
+    <value>Калибровка выполнена.</value>
+  </data>
+  <data name="MSGEnergyShort" xml:space="preserve">
+    <value>Энергия</value>
+  </data>
   <data name="ERRInputInteger" xml:space="preserve">
     <value>Введите целое число.</value>
   </data>

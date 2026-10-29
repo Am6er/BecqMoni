@@ -1362,7 +1362,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///   впятеро сильнее, чем углублял провал.
         ///
         /// null — у материала нет строки параметров или тормозной (германий,
-        /// CZT, LaBr3 — та же «шкала пропорциональна», что у таблицы).
+        /// CZT; LaBr3:Ce и CeBr3 — только БЕЗ <paramref name="computedStopping"/>: с ним,
+        /// а это умолчание склада, их кривая считается из той же базы, ниже).
         ///
         /// (`F11` (г), П44 13.09.2026) <paramref name="computedStopping"/> —
         /// ключ <see cref="EfficiencySimulator.ElectronAnyMaterial"/>: у
@@ -2026,6 +2027,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// таблица, которую начнёт читать перенос, обязана встать сюда, иначе
         /// её правка снова пройдёт мимо клейма (сторож —
         /// `tools/check_matdb_fingerprint.py`).
+        ///
+        /// ⚠ (`AMBER272`) Фотонные кривые света `scint_photon_light_curves` и
+        /// `scint_photon_light_yield` читает FSA (`FsaLightScale`), а НЕ перенос: тело
+        /// матрицы от них не зависит, и в список они НЕ входят нарочно — иначе их правка
+        /// объявила бы негодным весь склад без единого изменения физики.
         /// </summary>
         public static readonly string[] SimulatorTables =
         {
@@ -2252,8 +2258,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// каждый коммит; куски разведены по скорости изменения, а граница
         /// проведена по потребителю — этому классу не нужен ни один из
         /// двух других файлов.
+        ///
+        /// (`AMBER272`) `internal`: фотонные кривые света FSA (`FsaLightScale`) читают тот же
+        /// файл тем же путём.
         /// </summary>
-        static string DatabasePath()
+        internal static string DatabasePath()
         {
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "matdb.sqlite");
         }

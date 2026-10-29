@@ -288,14 +288,11 @@
   <data name="NuclideSetToolStripMenuItem.Text" xml:space="preserve">
     <value>Редактировать наборы изотопов...</value>
   </data>
-  <data name="FWHMCalStripMenuItem.Text" xml:space="preserve">
-    <value>Калибровка по FWHM</value>
-  </data>
   <data name="fsaReportStripMenuItem.Text" xml:space="preserve">
     <value>От&amp;чёт FSA</value>
   </data>
   <data name="energyCalibrationStripMenuItem.Text" xml:space="preserve">
-    <value>Калибровка &amp;энергии</value>
+    <value>Калибровка &amp;энергии и FWHM</value>
   </data>
   <data name="countsRateStripMenuItem.Text" xml:space="preserve">
     <value>С&amp;корость счёта</value>

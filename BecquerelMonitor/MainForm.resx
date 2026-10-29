@@ -381,7 +381,7 @@
     <value>190, 22</value>
   </data>
   <data name="energyCalibrationStripMenuItem.Text" xml:space="preserve">
-    <value>&amp;Energy Calibration</value>
+    <value>&amp;Energy and FWHM Calibration</value>
   </data>
   <data name="peakDetectionDToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>190, 22</value>
@@ -400,12 +400,6 @@
   </data>
   <data name="countsRateStripMenuItem.Text" xml:space="preserve">
     <value>Counts R&amp;ate</value>
-  </data>
-  <data name="FWHMCalStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>190, 22</value>
-  </data>
-  <data name="FWHMCalStripMenuItem.Text" xml:space="preserve">
-    <value>FWHM Calibration</value>
   </data>
   <data name="fsaReportStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>190, 22</value>
@@ -5256,12 +5250,6 @@
     <value>countsRateStripMenuItem</value>
   </data>
   <data name="&gt;&gt;countsRateStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;FWHMCalStripMenuItem.Name" xml:space="preserve">
-    <value>FWHMCalStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;FWHMCalStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;fsaReportStripMenuItem.Name" xml:space="preserve">

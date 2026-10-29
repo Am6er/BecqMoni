@@ -8144,6 +8144,18 @@ http://xptable.sourceforge.net/</value>
   <data name="MSGSaveEnergyCalibrationTractCurvature" xml:space="preserve">
     <value>The tract curvature of the device will change too: {0} → {1} 1/MeV (the value of this spectrum).</value>
   </data>
+  <data name="MSGSaveCalibration" xml:space="preserve">
+    <value>Save the energy calibration and the FWHM curve to the current device configuration?</value>
+  </data>
+  <data name="MSGPickUpCalibrationPeak" xml:space="preserve">
+    <value>Drag across a peak on the spectrum chart.</value>
+  </data>
+  <data name="MSGUnifiedCalibrationDone" xml:space="preserve">
+    <value>Calibration is done.</value>
+  </data>
+  <data name="MSGEnergyShort" xml:space="preserve">
+    <value>Energy</value>
+  </data>
   <data name="BG" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         Qk1OAQAAAAAAAHYAAAAoAAAAEgAAABIAAAABAAQAAAAAAAAAAAAAAAAAAAAAABAAAAAQAAAAAAAA/wAA

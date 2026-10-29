@@ -4080,6 +4080,10 @@ namespace BecquerelMonitor
             data.DetectedPeaks = new List<Peak>();
             data.CalibrationPeaks = new List<Peak>();
             data.CalibrationPoints = new List<CalibrationPoint>();
+            // (`AMBER276`) строки единой калибровки у спектра без кривой — тем же
+            //   решением `A260` («Снять пики и точки калибровки»): строки С кривой
+            //   ушли вместе с ней (`FwhmCalibration = null` выше)
+            data.PendingCalibrationLines = new List<CalibrationPeak>();
             // (`AMBER271`) кривизна тракта — часть калибровки прибора и снимается с
             //   ним: спектр без прибора разбирается с κ = 0, как до правки, и
             //   поля в файл не получает (`ResultData.TractCurvatureSpecified`)

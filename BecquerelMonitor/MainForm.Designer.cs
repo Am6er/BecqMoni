@@ -70,7 +70,6 @@ namespace BecquerelMonitor
             this.peakDetectionDToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pulseViewPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.countsRateStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.FWHMCalStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.fsaReportStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.measurementResultsRToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator8 = new System.Windows.Forms.ToolStripSeparator();
@@ -426,7 +425,6 @@ namespace BecquerelMonitor
             this.peakDetectionDToolStripMenuItem,
             this.pulseViewPToolStripMenuItem,
             this.countsRateStripMenuItem,
-            this.FWHMCalStripMenuItem,
             this.fsaReportStripMenuItem,
             this.measurementResultsRToolStripMenuItem,
             this.toolStripSeparator8,
@@ -477,12 +475,6 @@ namespace BecquerelMonitor
             this.countsRateStripMenuItem.Name = "countsRateStripMenuItem";
             resources.ApplyResources(this.countsRateStripMenuItem, "countsRateStripMenuItem");
             this.countsRateStripMenuItem.Click += new System.EventHandler(this.toolStripMenuItem5_Click);
-            // 
-            // FWHMCalStripMenuItem
-            // 
-            this.FWHMCalStripMenuItem.Name = "FWHMCalStripMenuItem";
-            resources.ApplyResources(this.FWHMCalStripMenuItem, "FWHMCalStripMenuItem");
-            this.FWHMCalStripMenuItem.Click += new System.EventHandler(this.FWHMCalStripMenuItem_Click);
             //
             // fsaReportStripMenuItem
             //
@@ -937,7 +929,6 @@ namespace BecquerelMonitor
 		// Token: 0x040005C0 RID: 1472
 		global::System.Windows.Forms.ToolStripMenuItem countsRateStripMenuItem;
 
-        global::System.Windows.Forms.ToolStripMenuItem FWHMCalStripMenuItem;
 
         global::System.Windows.Forms.ToolStripMenuItem fsaReportStripMenuItem;
 

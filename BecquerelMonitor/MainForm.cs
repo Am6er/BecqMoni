@@ -367,9 +367,9 @@ namespace BecquerelMonitor
             this.dcSampleInfoView = new DCSampleInfoView(this);
             this.dcSpectrumListView = new DCSpectrumListView(this);
             this.dcPeakDetectionView = new DCPeakDetectionView(this);
+            // (`AMBER276`) Калибровка по энергии и FWHM — одна вкладка, одно окно.
             this.dcEnergyCalibrationView = new DCEnergyCalibrationView(this);
             this.dcCountRateView = new DCCountRateView(this);
-            this.dcCFwhmCalibrationView = new DCFwhmCalibrationView(this);
             if (this.dcFsaReportView != null && !this.dcFsaReportView.IsDisposed)
             {
                 // Смена раскладки пересоздаёт tool-view: прежнее окно отчёта
@@ -383,7 +383,6 @@ namespace BecquerelMonitor
             this.dcPeakDetectionView.Enabled = false;
             this.dcEnergyCalibrationView.Enabled = false;
             this.dcCountRateView.Enabled = false;
-            this.dcCFwhmCalibrationView.Enabled = false;
         }
 
         // Token: 0x06000A4A RID: 2634 RVA: 0x0003CB48 File Offset: 0x0003AD48
@@ -491,9 +490,15 @@ namespace BecquerelMonitor
             {
                 return this.dcCountRateView;
             }
-            if (a == typeof(DCFwhmCalibrationView).ToString())
+            if (a == RetiredFwhmCalibrationPersistString)
             {
-                return this.dcCFwhmCalibrationView;
+                // (`AMBER276`) Прежняя вкладка FWHM слита с вкладкой энергии. Её место в
+                // раскладке держит заглушка; после чтения раскладки единая вкладка
+                // встаёт на него, если своё место (вкладки энергии) у неё скрыто
+                // (`AdoptRetiredFwhmCalibrationTab`). Вернуть одно окно на ДВЕ строки
+                // раскладки нельзя: библиотека нумерует окна панелей по строкам.
+                this.retiredFwhmCalibrationPlaceholder = new DockContent();
+                return this.retiredFwhmCalibrationPlaceholder;
             }
             if (a == typeof(FSAReportView).ToString())
             {
@@ -925,20 +930,6 @@ namespace BecquerelMonitor
             }
         }
 
-        public void ShowFwhmCalibration()
-        {
-            if (this.dcCFwhmCalibrationView == null || this.dcCFwhmCalibrationView.IsDisposed)
-            {
-                this.dcCFwhmCalibrationView = new DCFwhmCalibrationView(this);
-            }
-            this.dcCFwhmCalibrationView.Show(this.dockPanel1);
-        }
-
-        void FWHMCalStripMenuItem_Click(object sender, EventArgs e)
-        {
-            ShowFwhmCalibration();
-        }
-
         /// <summary>«Вид → Отчёт FSA»: показать и активировать окно независимо от режима графика.</summary>
         void fsaReportStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -1213,7 +1204,8 @@ namespace BecquerelMonitor
 
         public void UpdateFwhmCalibrationView(bool reset_state = false)
         {
-            this.dcCFwhmCalibrationView.UpdateFwhmCalibration(reset_state);
+            // (`AMBER276`) кривая FWHM — на той же вкладке, что и шкала энергии
+            this.dcEnergyCalibrationView.UpdateFwhmCalibration(reset_state);
         }
 
 
@@ -1355,7 +1347,6 @@ namespace BecquerelMonitor
                 this.dcControlPanel.Enabled = true;
                 this.dcSampleInfoView.Enabled = true;
                 this.dcCountRateView.Enabled = true;
-                this.dcCFwhmCalibrationView.Enabled = true;
                 UpdateFwhmCalibrationView(true);
                 foreach (DCResultView dcresultView in this.dcResultViewList)
                 {
@@ -1393,7 +1384,6 @@ namespace BecquerelMonitor
                 this.dcSpectrumListView.Enabled = false;
                 this.dcPeakDetectionView.Enabled = false;
                 this.dcEnergyCalibrationView.Enabled = false;
-                this.dcCFwhmCalibrationView.Enabled = false;
                 this.dcFsaReportView.SetDocument(null);
             }
             this.UpdateApplicationTitle();
@@ -1497,9 +1487,15 @@ namespace BecquerelMonitor
             return this.deviceConfigForm;
         }
 
-        public void addCalibration(int channel, decimal energy, int count)
+        /// <summary>
+        /// (`AMBER276`) «Добавить в калибровку» таблицы найденных пиков — второй вход
+        /// единой калибровки: пик идёт в ту же таблицу и с той же подгонкой, что щелчок
+        /// по спектру (<see cref="DCFwhmCalibrationView.AddDetectedPeak"/>). Прежде здесь
+        /// клалась точка калибровки по энергии с целым каналом пика и без FWHM.
+        /// </summary>
+        public bool AddDetectedPeakToCalibration(Peak peak, double energy)
         {
-            this.dcEnergyCalibrationView.AddCalibration(channel, energy, count);
+            return this.dcEnergyCalibrationView.AddDetectedPeak(peak, energy);
         }
 
         // Token: 0x06000A6E RID: 2670 RVA: 0x0003E0BC File Offset: 0x0003C2BC
@@ -2620,7 +2616,6 @@ namespace BecquerelMonitor
                 this.dcEnergyCalibrationView.SetStabilizerState(this.activeDocument.ActiveResultData);
                 this.dcEnergyCalibrationView.Enabled = true;
                 UpdateFwhmCalibrationView();
-                this.dcCFwhmCalibrationView.Enabled = true;
                 doc.UpdateEnergySpectrum();
                 this.ShowMeasurementResult(true);
                 this.dcSpectrumListView.ShowSpectrumList(doc);
@@ -3540,11 +3535,8 @@ namespace BecquerelMonitor
             if (this.dcEnergyCalibrationView != null)
             {
                 this.dcEnergyCalibrationView.UpdateEnergyCalibrationConfig();
+                // (`AMBER276`) строки единой таблицы и кривая FWHM — одним обновлением
                 this.dcEnergyCalibrationView.LoadCalibrationPoints();
-            }
-            if (this.dcCFwhmCalibrationView != null) 
-            {
-                UpdateFwhmCalibrationView();
             }
             foreach (DocEnergySpectrum docEnergySpectrum in this.documentManager.DocumentList)
             {
@@ -4058,6 +4050,7 @@ namespace BecquerelMonitor
         string LoadLayoutXml(string fileName, bool canReportNow)
         {
             LayoutFile.LoadOutcome outcome = LayoutFile.Load(this.dockPanel1, fileName, this.m_deserializeDockContent);
+            this.AdoptRetiredFwhmCalibrationTab();
             if (!outcome.Failed)
             {
                 string absent = LayoutFile.DescribeAbsent(outcome);
@@ -4074,6 +4067,54 @@ namespace BecquerelMonitor
                 return null;
             }
             return text;
+        }
+
+        /// <summary>
+        /// (`AMBER276`) Раскладка прежней версии несёт ДВЕ вкладки калибровки — энергии и
+        /// FWHM, — а окно теперь одно и стоит на месте вкладки энергии. Если там оно
+        /// скрыто (или его строки в раскладке нет), а вкладка FWHM была видна, единая
+        /// вкладка встаёт на место FWHM: прежняя раскладка не теряет видимую вкладку
+        /// калибровки. Заглушка снимается в любом случае.
+        /// </summary>
+        void AdoptRetiredFwhmCalibrationTab()
+        {
+            DockContent placeholder = this.retiredFwhmCalibrationPlaceholder;
+            this.retiredFwhmCalibrationPlaceholder = null;
+            if (placeholder == null || placeholder.IsDisposed)
+            {
+                return;
+            }
+            try
+            {
+                DCEnergyCalibrationView unified = this.dcEnergyCalibrationView;
+                bool placeholderShown = placeholder.DockPanel != null
+                                        && placeholder.DockState != DockState.Hidden
+                                        && placeholder.DockState != DockState.Unknown;
+                bool unifiedShown = unified != null && !unified.IsDisposed && unified.DockPanel != null
+                                    && unified.DockState != DockState.Hidden
+                                    && unified.DockState != DockState.Unknown;
+                if (placeholderShown && !unifiedShown && unified != null && !unified.IsDisposed)
+                {
+                    if (placeholder.Pane != null)
+                    {
+                        unified.Show(placeholder.Pane, placeholder);
+                    }
+                    else
+                    {
+                        unified.Show(this.dockPanel1);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Раскладка прочитана; не встала только единая вкладка на чужое место —
+                // её откроет «Вид». Слово — строкой, без окна (запуск).
+                AppUi.Note("BecqMoni: вкладка калибровки на месте прежней вкладки FWHM не встала: " + ex.Message);
+            }
+            finally
+            {
+                placeholder.Close();
+            }
         }
 
         /// <summary>
@@ -4325,7 +4366,16 @@ namespace BecquerelMonitor
         // Token: 0x040005DD RID: 1501
         DCCountRateView dcCountRateView;
 
-        DCFwhmCalibrationView dcCFwhmCalibrationView;
+        /// <summary>
+        /// (`AMBER276`) Строка раскладки окон прежней вкладки калибровки FWHM. Класс с этим
+        /// именем остался (это реализация единой вкладки), но окно приложения заводится
+        /// наследником <see cref="DCEnergyCalibrationView"/>, и новая раскладка этой строки
+        /// не несёт; несут её раскладки прежних версий.
+        /// </summary>
+        const string RetiredFwhmCalibrationPersistString = "BecquerelMonitor.DCFwhmCalibrationView";
+
+        /// <summary>(`AMBER276`) Заглушка на месте прежней вкладки FWHM на время чтения раскладки.</summary>
+        DockContent retiredFwhmCalibrationPlaceholder;
 
         FSAReportView dcFsaReportView;
 

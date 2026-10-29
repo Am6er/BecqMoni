@@ -5399,6 +5399,49 @@ namespace BecquerelMonitor
             MouseButtons button = e.Button;
         }
 
+        /// <summary>
+        /// (`AMBER276`, 29.10.2026) Пик калибровки по ДИАПАЗОНУ каналов — той же
+        /// арифметикой, что выделение мышью (<see cref="EnsureSelectionAnalytics"/>:
+        /// показанный спектр — за вычетом фона, нормированный или чистый FSA, — центроид
+        /// и FWHM выделения), и с теми же числами, что несёт <see cref="PeakPickuped"/>.
+        /// Нужен второму входу единой калибровки — пункту «Добавить в калибровку» таблицы
+        /// найденных пиков: Amber 29.10.2026, дословно, о нём — «обрати внимание на форму
+        /// поиска пиков»; выбранный там пик идёт в ту же таблицу и с той же подгонкой,
+        /// что щелчок по спектру. Выделение на графике не меняется: прежнее
+        /// восстанавливается. <c>null</c> — ширину в диапазоне не измерить.
+        /// </summary>
+        internal PeakPickupedEventArgs PeakPickupFor(int startChannel, int endChannel)
+        {
+            if (this.energySpectrum == null)
+            {
+                return null;
+            }
+            int keepStart = this.selectionStart;
+            int keepEnd = this.selectionEnd;
+            try
+            {
+                this.selectionStart = Math.Max(0, Math.Min(startChannel, this.energySpectrum.NumberOfChannels - 1));
+                this.selectionEnd = Math.Max(0, Math.Min(endChannel, this.energySpectrum.NumberOfChannels - 1));
+                this.InvalidateSelectionAnalytics();
+                this.EnsureSelectionAnalytics();
+                if (!(this.selectionFWHM > 0))
+                {
+                    return null;
+                }
+                return new PeakPickupedEventArgs(this.selectionCentroidCh,
+                    this.selectionCentroidkeV,
+                    this.selectionFullWidth,
+                    this.selectionStart,
+                    this.selectionEnd);
+            }
+            finally
+            {
+                this.selectionStart = keepStart;
+                this.selectionEnd = keepEnd;
+                this.InvalidateSelectionAnalytics();
+            }
+        }
+
         // Token: 0x060004CD RID: 1229 RVA: 0x0001C080 File Offset: 0x0001A280
         void button1_Click(object sender, EventArgs e)
         {
