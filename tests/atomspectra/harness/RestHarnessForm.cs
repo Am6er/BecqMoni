@@ -11,6 +11,7 @@ namespace RestHarness
     {
         static bool RunForm(string scenario, string[] args)
         {
+            if (scenario.StartsWith("console-tcp-a275-") || scenario.StartsWith("a275-")) return RunA275(scenario);   // PR #39, maintainer's review: the windows of "Clear" hold the board offers (RestHarnessA275.cs)
             if (scenario.StartsWith("console-tcp-pr2-switch-") || scenario.StartsWith("pr2-switch-yes-")) return RunPr2Switch(scenario);   // PR2 review H1: a "No" after the transport was switched to REST touches nothing
             if (scenario.StartsWith("console-tcp-pr2-")) return RunPr2Tcp(scenario);   // PR2: Clear of a joined TCP acquisition, RestHarnessPr2.cs
             if (scenario.StartsWith("pr2-")) return RunPr2(scenario);   // PR2: delete of a joined spectrum, RestHarnessPr2.cs

@@ -367,6 +367,9 @@ SCENARIOS = [
     ("bm21-ctl-connfail", ["--fw-version", "1.2.38"]), ("bm21-ctl-other-board", ["--fw-version", "1.2.38"]), ("bm21-ctl-noanswer", ["--fw-version", "1.2.38"]),
     ("bm21-ctl-linkclosed", ["--fw-version", "1.2.38"]), ("bm21-ctl-ok", ["--fw-version", "1.2.38"]),
     ("bm21-ctl-rest-ok", ["--fw-version", "1.2.38", "--counting", "0", "--valid", "0"]),
+    # PR #39, maintainer's review (RestHarnessA275.cs): no window held over a wait window comes up inside a window of the device "Clear"
+    ("console-tcp-a275-held-joined", ["--order", "hs", "--period", "0.5", "--cycles", "40", "--connections", "2", "--honor-rst"]),
+    ("a275-held-rest-readfail", None), ("a275-held-rest-both", ["--counting", "0", "--time", "5000", "--total", "1000"]),
 ]
 # scenarios that need the controller or the forms exist in the REAL build only (the source build prints n/a). On the real build each must
 # EXECUTE at least this many checks ("checks executed: N" of the harness); n/a or fewer is a failure of the suite, not a pass.
@@ -384,7 +387,9 @@ REAL_ONLY_MIN_CHECKS = {"f5-tcp-cal-n": 8, "f5-ctl-length-first": 5, "f5-form-ca
                         # #BM-22
                         "bm22-yes": 5, "bm22-no": 4, "bm22-observe": 5, "bm22-readfail": 4, "bm22-tcp": 4,
                         # PR2
-                        "pr2-delete-keep": 7, "pr2-clear-after-keep": 6, "console-tcp-pr2-clear-joined": 6, "console-tcp-pr2-clear-joined-no": 3, "console-tcp-pr2-clear-deferred": 4, "pr2-switch-yes-down": 4, "pr2-switch-yes-up": 4, "console-tcp-pr2-switch-no": 5, "console-tcp-pr2-switch-deferred-no": 5}
+                        "pr2-delete-keep": 7, "pr2-clear-after-keep": 6, "console-tcp-pr2-clear-joined": 6, "console-tcp-pr2-clear-joined-no": 3, "console-tcp-pr2-clear-deferred": 4, "pr2-switch-yes-down": 4, "pr2-switch-yes-up": 4, "console-tcp-pr2-switch-no": 5, "console-tcp-pr2-switch-deferred-no": 5,
+                        # PR #39, maintainer's review
+                        "console-tcp-a275-held-joined": 6, "a275-held-rest-readfail": 5, "a275-held-rest-both": 5}
 FIX_SCENARIOS = ["overtake", "restart-doc", "preset-new", "deferred-resumed", "clear-stale", "session-key",
                  "headless-stopped", "stop-hang", "url-userinfo"]
 PASSC_SCENARIOS = ["prefix-auth", "parse", "deferred-resumed", "restart", "time-back", "nodata-404", "dead-404", "dead-flag",
@@ -702,6 +707,9 @@ REAL_MUTATIONS = [
      [("AtomSpectraTcpDeviceController.Rest.cs", "if (!DeviceController.AskClearDocument())\n                {\n                    return false;", "if (false)\n                {\n                    return false;")], "bm22-readfail"),
     ("bm22-tcp-no-question", "#BM-22: the TCP question (the plain one) is dropped (PR2: it lives in ConfirmClearTcp now)",
      [("AtomSpectraTcpDeviceController.cs", "if (s == null || !s.JoinedRunning)"+chr(10)+"                return DeviceController.AskClearDocument();", "if (s == null || !s.JoinedRunning)"+chr(10)+"                return true;")], "bm22-tcp"),
+    # PR #39, maintainer's review: the confirmation of the device "Clear" does not hold the board offers (a window of another document inside its question)
+    ("a275-clear-unheld", "PR #39 review: the device Clear confirmation does not hold the windows waiting for a wait window",
+     [("AtomSpectraTcpDeviceController.Rest.cs", "return AtomSpectraRestUi.HoldingAfterWait(() => ConfirmClearHeld(r));", "return ConfirmClearHeld(r);")], "console-tcp-a275-held-joined"),
 ]
 
 
@@ -763,6 +771,7 @@ BM21_CMD = {"pr2-switch-yes-down": ["--order", "hs", "--period", "0.5", "--cycle
 HARNESS_FILES.append(os.path.join(D, "harness", "RestHarnessTcpLane.cs"))   # PR #38, TCP lane: console-tcp-lane-*, tcplane-*
 HARNESS_FILES.append(os.path.join(D, "harness", "RestHarnessPr2.cs"))   # PR2: pr2-*
 HARNESS_FILES.append(os.path.join(D, "harness", "RestHarnessBm22.cs"))   # #BM-22: "Clear" asks one question in REST mode: bm22-*
+HARNESS_FILES.append(os.path.join(D, "harness", "RestHarnessA275.cs"))   # PR #39, maintainer's review: the windows of "Clear" hold the board offers: *a275-*
 
 
 def copy_fixture(out_dir):
