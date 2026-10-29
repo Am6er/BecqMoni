@@ -309,10 +309,19 @@ namespace RestHarness
 
                 if (scenario.StartsWith("pr2-switch-yes"))
                 {
-                    // known limitation of a rare path: after the switch to REST a "Yes" gives the plain question of the document and, when the REST board is readable, the board question as well
+                    // PR #39 review: after the switch to REST "Clear" asks ONE question too - the board's numbers with the document when the REST board
+                    // is readable (it was the plain question and then the board's: two questions, and "Yes, No" cleared the document only)
                     bool up = scenario == "pr2-switch-yes-up";
                     Console.WriteLine("PR2-SWITCH-YES board=" + (up ? "up" : "down") + " asks=" + Bm22Count("ask") + " reports=" + Bm22Count("report") + " cleared=" + cleared + " resets=" + Bm22Resets() + " tcpSessionClosed=" + !object.ReferenceEquals(sessionBefore, sessionAfter));
-                    Check(cleared && Bm22Count("ask") == (up ? 2 : 1), "Yes: " + (up ? "two questions (document, then the board's)" : "one question (document)") + ", the document is cleared");
+                    Check(cleared && Bm22Count("ask") == 1, "Yes: one question " + (up ? "(the document and the board together)" : "(the document: the board cannot be read)") + ", the document is cleared: " + Bm22Count("ask"));
+                    if (up)
+                    {
+                        string bothFmt = (string)Type.GetType("BecquerelMonitor.Properties.Resources, BecquerelMonitor").GetProperty("MSGAtomSpectraRestClearBothConfirm").GetValue(null);
+                        string pat = "^" + System.Text.RegularExpressions.Regex.Escape(bothFmt).Replace("\\{0}", "\\d+").Replace("\\{1}", "\\d+").Replace("\\{2}", "\\d+") + "$";
+                        string firstAsk;
+                        lock (Bm22Journal) { firstAsk = Bm22Journal.FirstOrDefault(e => e.StartsWith("ask|")); }
+                        Check(firstAsk != null && System.Text.RegularExpressions.Regex.IsMatch(firstAsk.Substring(4), pat), "the one question is MSGAtomSpectraRestClearBothConfirm with the REST board's numbers: " + firstAsk);
+                    }
                     Check(Bm22Resets() == (up ? 1 : 0) && !object.ReferenceEquals(sessionBefore, sessionAfter), "Yes: the TCP session is replaced, the board is reset " + (up ? "once" : "not (it cannot be read)"));
                 }
                 Check(!cleared || scenario.StartsWith("pr2-switch-yes"), "No: the document is not cleared");
