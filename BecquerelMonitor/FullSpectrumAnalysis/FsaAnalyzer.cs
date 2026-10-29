@@ -6210,6 +6210,88 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double AnchorZeroBlendBand { get; set; }
 
         /// <summary>
+        /// (`AMBER269`, плечо (А2); решение Amber 29.10.2026 вопросником, дословно:
+        /// «(А2) + дорабатывать (Д) (Рекомендую)», мерка — «χ² Пуассона, как сейчас
+        /// (Рекомендую)») ОТКАТ ПРИВЯЗКИ: верхний разбор считается ещё и без
+        /// привязки шкалы, и если χ²/ndf Пуассона
+        /// (<see cref="FsaResult.Chi2NdfPoisson"/>) с привязкой хуже, чем без
+        /// неё, отдаётся разбор без привязки (пометка — в строке привязки).
+        /// Сравнение — всегда, а не только у несошедшейся привязки, как у
+        /// стража нуля (<see cref="AnchorZeroGuard"/>): разнос, у которого опоры
+        /// кончились, выходит из цикла без признака «не сошлась»
+        /// (`AnchorUnsettled`) — на спектре Th-232 RC-110 страж молчал при
+        /// 1623 против 595. Цена — один разбор без привязки на каждый разбор (и
+        /// повтор отданного при <see cref="AnchorZeroGuardReplay"/>). Тормоза
+        /// усиления (А1) мерены и сняты (журнал `AMBER269`): буквальный ухудшил
+        /// 36 спектров корпуса, «плечо от нуля» останавливал качание на худшей
+        /// точке. Умолчание — в конструкторе.
+        /// </summary>
+        public bool AnchorRollback { get; set; }
+
+        /// <summary>
+        /// (`AMBER269`, плечо сравнения (Б); решение Amber 29.10.2026 вопросником,
+        /// дословно: «По положению (Рекомендую)») ОПОРЫ — ТОЛЬКО ЛИНИИ,
+        /// ПОДТВЕРЖДЁННЫЕ ПОИСКОМ ПИКОВ: кандидат опоры берётся, только если
+        /// одна из линий его ядра стоит в пределах FWHM от найденного пика
+        /// (<see cref="DetectedPeakKev"/>) по калибровке файла — подпись пика не
+        /// важна; иначе отказ `peak`. У подтверждённой опоры окно накрывает и
+        /// вершину модели, и найденный пик, шаг сдвига стартует от пика, а нож
+        /// промаха меряет согласие замера с найденным пиком, а не с моделью —
+        /// пик найден по данным и вместе с моделью не уезжает. Умолчание — в конструкторе.
+        /// </summary>
+        public bool AnchorConfirmByPeaks { get; set; }
+
+        /// <summary>
+        /// (`AMBER269`) Энергии пиков, найденных поиском пиков на этом спектре, кэВ
+        /// по калибровке файла (центры — <see cref="Peak.Energy"/>). Данные, а не
+        /// настройка: их ставит сеанс (из таблицы «Обнаруженные пики») и
+        /// корпусная проба; читает только <see cref="AnchorConfirmByPeaks"/>.
+        /// </summary>
+        public double[] DetectedPeakKev { get; set; }
+
+        /// <summary>
+        /// (`AMBER269`, плечо сравнения (Г); решение Amber 29.10.2026 вопросником,
+        /// дословно: «(Г) без отказанных по shift (Рекомендую)») НОЖ ПРОМАХА В
+        /// СОВМЕСТНОМ ШАГЕ: кандидат нуля, не взятый опорой, с промахом дальше
+        /// <see cref="AnchorMaxShiftFwhm"/>, в совместный шаг нуля и усиления
+        /// (<see cref="JointScaleStep"/>) не входит. Кандидаты у ножа доли
+        /// остаются, как задумано `AMBER142`/`S205`. Довод (журнал `AMBER269`,
+        /// шаг 0): с прохода 1 шаг усиления ставят кандидаты, отказанные по
+        /// промаху в 1.2…8.9 FWHM, — их замер уже не держится. Умолчание — в конструкторе.
+        /// </summary>
+        public bool AnchorJointShiftKnife { get; set; }
+
+        /// <summary>
+        /// (`AMBER269`, плечо (Д-амп); решения Amber 29.10.2026 вопросником,
+        /// дословно: «Дописать в AMBER269 (Рекомендую)», «(Д-амп)+(Д2)
+        /// (Рекомендую)») ЗАМЕР СДВИГА СО СВОБОДНОЙ
+        /// АМПЛИТУДОЙ: шаг Гаусса — Ньютона подбирает сдвиг нуклидной модели в
+        /// окне опоры вместе с её множителем, r = D − c·N(k − δ), σ сдвига — из
+        /// обратной матрицы 2×2. Довод (журнал `AMBER269`, ход замера): у модели,
+        /// которая в окне ниже или шире данных, сдвиг без амплитуды устойчивой
+        /// точки не имеет — у семи кандидатов из девяти на спектре Th-232 RC-110
+        /// шаги кончились, не сойдясь (опора 2614: центры тяжести +6.5 кан.,
+        /// «замер» +29.4). Предохранители шага: сдвиг за итерацию не дальше
+        /// половины FWHM, множитель не переходит через нуль (без них `AS80_Am241`
+        /// со стартом в 14 кан. от данных терял обе опоры). Умолчание — в конструкторе.
+        /// </summary>
+        public bool AnchorShiftFreeAmplitude { get; set; }
+
+        /// <summary>
+        /// (`AMBER269`, плечо (Д2) доводки (Д); решение Amber 29.10.2026 вопросником,
+        /// дословно: «(Д-амп)+(Д2) (Рекомендую)») ВЫБРОСЫ СОВМЕСТНОГО ШАГА — ЕГО ЖЕ
+        /// МОДЕЛЬЮ: у совместного шага нуля света и усиления
+        /// (<see cref="JointScaleStep"/>) опоры отсеиваются по отклонению от его
+        /// решения (усиление и нуль света), а не от прямой «усиление через нуль»
+        /// сбора опор. Довод (журнал `AMBER269`): на исходном спектре Th-232 RC-110
+        /// нижние линии хотят +3.5…7 % усиления, 2614 — +1.2 %; прямая через нуль
+        /// снимала 2614 выбросом, хотя нуль света объясняет нижние, а верх карты
+        /// закреплён, — и верх шкалы вели нижние линии (2614 на 22 кан. правее
+        /// данных). Умолчание — в конструкторе.
+        /// </summary>
+        public bool AnchorJointOutliers { get; set; }
+
+        /// <summary>
         /// Добавлять образы обратного рассеяния, выведенные из найденного
         /// состава. Мерено дважды, и числа принадлежат РАЗНОМУ коду:
         ///
@@ -7279,6 +7361,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // пропадает через проход. Рычаг — <see cref="AnchorCoreHalfChannel"/>.
                 double coreReach = 0.5 * fwhm + (this.AnchorCoreHalfChannel ? 0.5 : 0.0);
 
+                // (`AMBER269`, (Б)) подтверждение найденным пиком — см. <see cref="AnchorConfirmByPeaks"/>:
+                // окно накрывает и вершину модели, и пик
+                bool confirmOn = this.AnchorConfirmByPeaks;
+                double confirmCh = confirmOn
+                    ? this.ConfirmingPeakChannel(owner, calibration, gain, offset, i, coreReach, fwhm, channels)
+                    : double.NaN;
+                if (Finite(confirmCh))
+                {
+                    int pc = (int)Math.Round(confirmCh);
+                    int loPeak = Math.Min(i, pc) - half, hiPeak = Math.Max(i, pc) + half;
+                    edge = loPeak < chLo || hiPeak > chHi;
+                    lo = Math.Max(chLo, loPeak);
+                    hi = Math.Min(chHi, hiPeak);
+                }
+
                 // ЯДРО ОКНА — синий канал ТЕХ ЛИНИЙ ХОЗЯИНА, что стоят в
                 // полуширине от вершины: у K-серии это вся серия, у 356 кэВ
                 // Ba-133 — одна линия без соседней 384. Всё остальное в окне
@@ -7390,6 +7487,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // (`AMBER142`) σ центра БЕЗ поправки Бирге — для погрешности
                     // привязки в σ амплитуд: Бирге — довод веса в МНК, а не шум
                     double varCentreStat = varCentre;
+                    // (`AMBER269`) ход замера сдвига — только приёмнику опор проходов
+                    double traceCentroid = centreData - centreModel, traceStart = double.NaN, traceBirge = double.NaN;
+                    double traceAmplitude = double.NaN;
+                    int traceSteps = 0;
+                    // (`AMBER269`, (Д)) шаг сдвига сошёлся (шаг меньше сотой канала), а не кончился
+                    bool shiftSettled = false;
                     if (this.AnchorShiftMeasure)
                     {
                         // ⛔ (`AMBER142`, П201) ПРОМАХ — СДВИГОМ ВСЕЙ НУКЛИДНОЙ
@@ -7412,13 +7515,45 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                        && Math.Abs(centreData - centreModel) <= 2.0 * fwhm
                             ? centreData - centreModel
                             : 0.0;
+                        // (`AMBER269`, (Б)) у подтверждённой опоры — старт от найденного пика,
+                        // и предел шага — дальше на его отход от модели
+                        double deltaLimit = 2.0 * fwhm;
+                        if (Finite(confirmCh))
+                        {
+                            delta = confirmCh - centreModel;
+                            deltaLimit += Math.Abs(delta);
+                        }
+
+                        traceStart = delta;
                         double den = 0.0;
                         bool measured = false;
                         int kLo = Math.Max(lo, chLo + 1), kHi = Math.Min(hi, chHi - 1);
+                        // (`AMBER269`, (Д)) свободная амплитуда — см. <see cref="AnchorShiftFreeAmplitude"/>
+                        bool freeAmplitude = this.AnchorShiftFreeAmplitude;
+                        double amplitude = 1.0, varDelta = double.NaN;
+                        if (freeAmplitude)
+                        {
+                            // старт множителя — проекция данных окна на модель на стартовом сдвиге
+                            double sdn = 0.0, snn = 0.0;
+                            for (int k = kLo; k <= kHi; k++)
+                            {
+                                double s = InterpolateAt(net, k - delta, chLo, chHi);
+                                double w = variance[k] > 0.0 ? 1.0 / variance[k] : 0.0;
+                                sdn += w * (fit.Residual[k] + net[k]) * s;
+                                snn += w * s * s;
+                            }
+
+                            if (snn > 0.0 && sdn > 0.0)
+                            {
+                                amplitude = sdn / snn;
+                            }
+                        }
+
                         for (int it = 0; it < 8; it++)
                         {
                             double num = 0.0;
                             den = 0.0;
+                            double a12 = 0.0, a22 = 0.0, b2 = 0.0;
                             for (int k = kLo; k <= kHi; k++)
                             {
                                 double at = k - delta;
@@ -7426,9 +7561,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 double d = 0.5 * (InterpolateAt(net, at + 1.0, chLo, chHi)
                                                   - InterpolateAt(net, at - 1.0, chLo, chHi));
                                 double w = variance[k] > 0.0 ? 1.0 / variance[k] : 0.0;
-                                double r = fit.Residual[k] + net[k] - shifted;
-                                num += w * r * d;
-                                den += w * d * d;
+                                if (!freeAmplitude)
+                                {
+                                    double r = fit.Residual[k] + net[k] - shifted;
+                                    num += w * r * d;
+                                    den += w * d * d;
+                                }
+                                else
+                                {
+                                    // r = D − c·N(k − δ): ∂r/∂δ = c·N′, ∂r/∂c = −N
+                                    double r = fit.Residual[k] + net[k] - amplitude * shifted;
+                                    double jd = amplitude * d;
+                                    num += w * r * jd;
+                                    den += w * jd * jd;
+                                    a12 -= w * jd * shifted;
+                                    a22 += w * shifted * shifted;
+                                    b2 += w * shifted * r;
+                                }
                             }
 
                             if (!(den > 0.0))
@@ -7436,26 +7585,79 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 break;
                             }
 
-                            double step = -num / den;
+                            double step;
+                            if (!freeAmplitude)
+                            {
+                                step = -num / den;
+                            }
+                            else
+                            {
+                                double det = den * a22 - a12 * a12;
+                                if (!(det > 1.0E-12 * den * a22))
+                                {
+                                    break;
+                                }
+
+                                step = (-num * a22 - a12 * b2) / det;
+                                double stepAmplitude = (den * b2 + a12 * num) / det;
+                                // предохранители (`AS80_Am241`: старт в 14 кан. от данных, первый шаг
+                                // без них — множитель −144, сдвиг +374 кан.): шаг сдвига не дальше
+                                // половины FWHM, множитель не переходит через нуль
+                                double cap = 0.5 * fwhm;
+                                if (Math.Abs(step) > cap)
+                                {
+                                    double shrink = cap / Math.Abs(step);
+                                    step *= shrink;
+                                    stepAmplitude *= shrink;
+                                }
+
+                                amplitude = amplitude + stepAmplitude > 0.0 ? amplitude + stepAmplitude : 0.5 * amplitude;
+                                varDelta = a22 / det;
+                            }
+
                             delta += step;
                             measured = true;
-                            if (Math.Abs(delta) > 2.0 * fwhm)
+                            traceSteps = it + 1;
+                            if (Math.Abs(delta) > deltaLimit)
                             {
                                 break;
                             }
 
                             if (Math.Abs(step) < 0.01)
                             {
+                                shiftSettled = true;
                                 break;
                             }
                         }
 
                         // промах дальше двух ПШПВ — отказ «shift» ниже, не центр тяжести
-                        if (measured && den > 0.0)
+                        if (measured && den > 0.0 && (!freeAmplitude || PositiveFinite(varDelta)))
                         {
                             centreData = centreModel + delta;
                             varCentre = 1.0 / den;
+                            if (freeAmplitude)
+                            {
+                                // ⛔ (`AMBER269`, (Д)) σ и Бирге — ПРЕЖНЕЙ МЕРОЙ, моделью без множителя
+                                // на найденном сдвиге: σ свободной амплитуды сжата в множитель раз
+                                // (данные выше модели в 2…4 раза), и на исходном спектре Th-232 RC-110
+                                // с кривизной тракта прибора нож выбросов снимал 238.6 и 583.2 кэВ
+                                // (σ 0.41 и 0.84 кан. вместо 2.54 и 3.53) — нуль света 11.37 → 4.60
+                                // кэВ, χ²/ndf 602 → 764. Сдвиг — со свободной амплитудой, вес — прежний.
+                                double den1 = 0.0;
+                                for (int k = kLo; k <= kHi; k++)
+                                {
+                                    double at = k - delta;
+                                    double d = 0.5 * (InterpolateAt(net, at + 1.0, chLo, chHi)
+                                                      - InterpolateAt(net, at - 1.0, chLo, chHi));
+                                    double w = variance[k] > 0.0 ? 1.0 / variance[k] : 0.0;
+                                    den1 += w * d * d;
+                                }
+
+                                varCentre = den1 > 0.0 ? 1.0 / den1 : varDelta;
+                            }
+
                             varCentreStat = varCentre;
+                            traceAmplitude = amplitude;
                             // Модель в окне врёт формой — σ сдвига растёт на
                             // χ²/ndf окна на сдвинутой модели (Бирге): слитный
                             // образ, где модель не сходится с данными, не
@@ -7472,6 +7674,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             }
 
                             double birge = nWin > 1 ? chiWin / (nWin - 1) : 1.0;
+                            traceBirge = birge;
                             if (this.AnchorShiftBirge && birge > 1.0)
                             {
                                 varCentre *= birge;
@@ -7513,6 +7716,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         anchor.Refusal = "narrow";
                     }
+                    else if (confirmOn && !Finite(confirmCh))
+                    {
+                        // (`AMBER269`, (Б)) поиском пиков не подтверждена
+                        anchor.Refusal = "peak";
+                    }
                     else if (anchor.Z < this.AnchorMinZ)
                     {
                         anchor.Refusal = "z";
@@ -7521,8 +7729,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         anchor.Refusal = "share";
                     }
-                    else if (Math.Abs(centreData - centreModel) > this.AnchorMaxShiftFwhm * fwhm)
+                    else if (Math.Abs(centreData - (Finite(confirmCh) ? confirmCh : centreModel)) > this.AnchorMaxShiftFwhm * fwhm)
                     {
+                        // (`AMBER269`, (Б)) у подтверждённой — согласие замера с найденным пиком
                         anchor.Refusal = "shift";
                     }
 
@@ -7540,7 +7749,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             S = this.lightShiftChannels != null
                                 ? this.LightShift(centreModel)
                                 : this.LineShiftChannels(calibration, anchor.ModelKev, coreLineKev, centreModel, channels),
-                            ShiftFwhm = Math.Abs(centreData - centreModel) / fwhm
+                            ShiftFwhm = Math.Abs(centreData - centreModel) / fwhm,
+                            // (`AMBER269`) ход замера сдвига — только приёмнику опор проходов
+                            Trace = AnchorPassSink == null ? null : string.Format(CultureInfo.InvariantCulture,
+                                "окно {0}…{1}, центры тяжести {2:F2}, старт {3:F2}, шагов {4}{5}, итог {6:F2}, Бирге {7:F2}{8}{9}",
+                                lo, hi, traceCentroid, traceStart, traceSteps, shiftSettled ? " (сошёлся)" : " (НЕ сошёлся)",
+                                centreData - centreModel, traceBirge,
+                                Finite(traceAmplitude) ? string.Format(CultureInfo.InvariantCulture, ", множитель {0:F3}", traceAmplitude) : "",
+                                Finite(confirmCh) ? string.Format(CultureInfo.InvariantCulture, ", пик {0:F2}", confirmCh) : "")
                         };
                         // (`AMBER150`) ширина — только у ОДИНОЧНОГО пика: в ядре
                         // одна линия, прочие ниже двадцатой её вершины. K-серия
@@ -7754,7 +7970,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
 
-                if (fits.Count <= 2)
+                // (`AMBER269`, (Д2)) у совместного шага выбросы судит он сам своей моделью
+                if (fits.Count <= 2 || (this.AnchorJointOutliers && this.anchorGainOnly))
                 {
                     break;
                 }
@@ -7923,6 +8140,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             a = 1.0;
             dz = 0.0;
             this.jointScale = false;
+            this.jointTrace = AnchorPassSink != null ? new List<string>() : null;
             List<AnchorFit> all = this.zeroCandidates;
             List<double> frozen = this.zeroTakenLines;
             // (`AMBER155`, П220) неподвижная точка — свет верхней линии карты
@@ -7941,6 +8159,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var js = new List<double[]>();
             var ws = new List<double>();
             var wTrue = new List<double>();
+            // (`AMBER269`, (Д2)) «мясо» и хозяин точки — для отсева выбросов моделью шага
+            var wbs = new List<double>();
+            var owners = new List<AnchorFit>();
             var seen = new List<double>();
             foreach (AnchorFit f in all)
             {
@@ -7956,6 +8177,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
+                // (`AMBER269`, (Г)) кандидат нуля с промахом за пределом опоры — не в шаг
+                if (!anchor.Used && this.AnchorJointShiftKnife && f.ShiftFwhm > this.AnchorMaxShiftFwhm)
+                {
+                    continue;
+                }
                 // кандидат нуля (не опора) — с весом, умноженным на запас разведки
                 double margin = anchor.Used || this.zeroTakenMargins == null || frozenAt >= this.zeroTakenMargins.Count
                     ? 1.0
@@ -8020,6 +8246,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 js.Add(new[] { ja, jz });
                 ws.Add(w);
                 wTrue.Add(f.Weight);
+                wbs.Add(wb);
+                owners.Add(f);
+                this.jointTrace?.Add(string.Format(CultureInfo.InvariantCulture,
+                    "{0,9:F2} кэВ {1} w {2,10:G4} (запас {3:F3}) невязка {4,8:F3} кан. ∂/∂a {5,7:F2} ∂/∂z₀ {6,8:F4}",
+                    anchor.LineKev, anchor.Used ? "опора" : "нуль ", w, margin, r, ja, jz));
             }
 
             double det = s11 * s22 - s12 * s12;
@@ -8030,6 +8261,66 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             double da = (s22 * t1 - s12 * t2) / det;
             double dzz = (s11 * t2 - s12 * t1) / det;
+            // ⛔ (`AMBER269`, (Д2)) ВЫБРОСЫ — МОДЕЛЬЮ ЭТОГО ШАГА (доводы у <see cref="AnchorJointOutliers"/>):
+            // по одной, с худшей, пока взятых опор больше двух
+            while (this.AnchorJointOutliers)
+            {
+                int worstAt = -1, usedPoints = 0;
+                double worstPull = 3.0;
+                for (int i = 0; i < rs.Count; i++)
+                {
+                    if (!owners[i].Anchor.Used)
+                    {
+                        continue;
+                    }
+
+                    usedPoints++;
+                    double pull = Math.Abs(rs[i] - js[i][0] * da - js[i][1] * dzz) * Math.Sqrt(wTrue[i]);
+                    if (pull > worstPull)
+                    {
+                        worstPull = pull;
+                        worstAt = i;
+                    }
+                }
+
+                if (worstAt < 0 || usedPoints <= 2)
+                {
+                    break;
+                }
+
+                owners[worstAt].Anchor.Refusal = "outlier";
+                owners[worstAt].Anchor.Used = false;
+                this.jointTrace?.Add(string.Format(CultureInfo.InvariantCulture,
+                    "выброс совместного шага: {0:F2} кэВ, отклонение {1:F1} σ", owners[worstAt].Anchor.LineKev, worstPull));
+                rs.RemoveAt(worstAt);
+                js.RemoveAt(worstAt);
+                ws.RemoveAt(worstAt);
+                wTrue.RemoveAt(worstAt);
+                wbs.RemoveAt(worstAt);
+                owners.RemoveAt(worstAt);
+                s11 = s12 = s22 = t1 = t2 = b11 = b12 = b22 = 0.0;
+                for (int i = 0; i < rs.Count; i++)
+                {
+                    double w = ws[i], ja = js[i][0], jz = js[i][1], r = rs[i], wb = wbs[i];
+                    s11 += w * ja * ja;
+                    s12 += w * ja * jz;
+                    s22 += w * jz * jz;
+                    t1 += w * ja * r;
+                    t2 += w * jz * r;
+                    b11 += wb * ja * ja;
+                    b12 += wb * ja * jz;
+                    b22 += wb * jz * jz;
+                }
+
+                det = s11 * s22 - s12 * s12;
+                if (rs.Count < 2 || !(det > 1.0E-9 * s11 * s22))
+                {
+                    return false;
+                }
+
+                da = (s22 * t1 - s12 * t2) / det;
+                dzz = (s11 * t2 - s12 * t1) / det;
+            }
             double chi = 0.0;
             for (int i = 0; i < rs.Count; i++)
             {
@@ -8052,6 +8343,120 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             a = 1.0 + da;
             dz = dzz;
             return Finite(a) && a > 0.0 && Finite(dz);
+        }
+
+        /// <summary>
+        /// (`AMBER269`, (Б)) Канал файла найденного пика, подтверждающего кандидата
+        /// с вершиной синего канала <paramref name="vertex"/>, или NaN. Линии —
+        /// те же, что идут в ядро окна (в пределах <paramref name="coreReach"/>
+        /// от вершины по модели); пик подтверждает линию, если по калибровке
+        /// файла он не дальше FWHM от неё. Из нескольких — ближайший к своей линии.
+        /// </summary>
+        double ConfirmingPeakChannel(FsaComponent owner, EnergyCalibration calibration, double gain, double offset,
+                                     int vertex, double coreReach, double fwhm, int channels)
+        {
+            double[] peaks = this.DetectedPeakKev;
+            if (peaks == null || peaks.Length == 0)
+            {
+                return double.NaN;
+            }
+
+            double best = double.NaN, bestGap = double.MaxValue;
+            for (int j = 0; j < owner.Lines.Count; j++)
+            {
+                double energy = owner.Lines[j].Energy;
+                double p = this.LightToChannel(calibration, this.LinePositionKev(energy), channels);
+                if (!Finite(p) || Math.Abs(this.DriftPosition(p, gain, offset) - vertex) > coreReach)
+                {
+                    continue;
+                }
+
+                double lineCh = calibration.EnergyToChannel(energy, channels);
+                if (!Finite(lineCh))
+                {
+                    continue;
+                }
+
+                foreach (double kev in peaks)
+                {
+                    double peakCh = calibration.EnergyToChannel(kev, channels);
+                    double gap = Math.Abs(peakCh - lineCh);
+                    if (Finite(peakCh) && gap <= fwhm && gap < bestGap)
+                    {
+                        bestGap = gap;
+                        best = peakCh;
+                    }
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// (`AMBER269`, шаг 0) Опоры прохода <paramref name="pass"/> — в
+        /// <see cref="AnchorPassSink"/>. Вклад взятой опоры в шаг усиления —
+        /// по МНК через нулевой канал: w·X·(Y′ − X) / Σw·X², в каналах верха
+        /// полосы; у шага «усиление и ноль» и у совместного шага он показателен,
+        /// но не точен — тогда смотреть точки совместного шага.
+        /// </summary>
+        void EmitAnchorPass(Action<string> sink, int pass, int used, double a, double b, double zeroStep,
+                            bool joint, bool zeroCapped, double gain, double offset, int chHi)
+        {
+            var text = new StringBuilder();
+            int top = Math.Max(1, chHi);
+            text.AppendFormat(CultureInfo.InvariantCulture,
+                "разбор {0}, проход {1}: вход — усиление {2:F5}, ноль {3:F3} кан.; опор {4}; шаг a {5:F6} (da·ch {6:F2}), b {7:F3} кан., нуль света {8:F4} кэВ{9}{10}",
+                CorePassCount, pass, gain, offset, used, a, (a - 1.0) * top, b, zeroStep,
+                joint ? (this.jointScale ? "; совместный шаг" : "; совместного шага нет") : "",
+                zeroCapped ? "; шаг нуля за пределом" : "");
+            double sxx = 0.0;
+            List<AnchorFit> fits = this.zeroCandidates ?? new List<AnchorFit>();
+            foreach (AnchorFit f in fits)
+            {
+                if (f.Anchor.Used)
+                {
+                    sxx += f.Weight * f.X * f.X;
+                }
+            }
+
+            foreach (AnchorFit f in fits)
+            {
+                FsaScaleAnchor anchor = f.Anchor;
+                text.AppendLine();
+                text.AppendFormat(CultureInfo.InvariantCulture,
+                    "  {0,9:F2} кэВ {1,-16} X {2,8:F2} Y−X {3,8:F3} σ {4,7:F3} кан. ({5:F2} FWHM) доля {6:F2} z {7,7:F1} {8}",
+                    anchor.LineKev, anchor.Component, f.X, f.Y - f.X, 1.0 / Math.Sqrt(f.Weight), f.ShiftFwhm,
+                    anchor.PeakShare, anchor.Z, anchor.Used ? "ВЗЯТА" : "отказ " + (anchor.Refusal ?? "?"));
+                if (anchor.Used && sxx > 0.0)
+                {
+                    text.AppendFormat(CultureInfo.InvariantCulture, "; вклад в da·ch {0:F2}, доля w·X² {1:F3}",
+                                      f.Weight * f.X * (f.YEff - f.X) / sxx * top, f.Weight * f.X * f.X / sxx);
+                }
+
+                if (f.Trace != null)
+                {
+                    text.AppendLine();
+                    text.Append("      замер: ").Append(f.Trace);
+                }
+            }
+
+            int unmeasured = (this.scaleAnchors != null ? this.scaleAnchors.Count : 0) - fits.Count;
+            if (unmeasured > 0)
+            {
+                text.AppendLine();
+                text.AppendFormat(CultureInfo.InvariantCulture, "  кандидатов без измеренного центра: {0}", unmeasured);
+            }
+
+            if (joint && this.jointTrace != null)
+            {
+                foreach (string line in this.jointTrace)
+                {
+                    text.AppendLine();
+                    text.Append("  совместный: ").Append(line);
+                }
+            }
+
+            sink(text.ToString());
         }
 
         /// <summary>
@@ -8730,6 +9135,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             /// <summary>(`AMBER150`) Дисперсия <see cref="LnWidth"/> с полом <see cref="AnchorWidthFloor"/>.</summary>
             public double LnWidthVar;
+
+            /// <summary>(`AMBER269`) Ход замера сдвига (окно, центры тяжести, старт и шаги, Бирге) — только при <see cref="AnchorPassSink"/>.</summary>
+            public string Trace;
         }
 
         /// <summary>
@@ -9288,6 +9696,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // запасом ×2. Обратное плечо — "off" (числа прежние до бита)
             this.AnchorZeroGuard = "calib,adc-fixed";
             this.AnchorZeroGuardRatio = 0.5;
+            // (`AMBER269`) откат привязки (А2) — ВКЛЮЧЁН; обратное плечо — false (числа
+            // rev50 до бита). Решение Amber 29.10.2026 вопросником, дословно: «Сейчас, с
+            // базой и витриной (Рекомендую)» — после перемера на её конфиге: на её приборе
+            // откат ни в одном случае не хуже нынешнего. (Д-амп), (Д2), (Б), (Г) —
+            // выключенные плечи: «Держать выключенными ключами (Рекомендую)» до её
+            // спектров RC-110. Журнал — handover/handover-2026-10-28-amber269-*.md.
+            this.AnchorRollback = true;
+            this.AnchorConfirmByPeaks = false;
+            this.AnchorJointShiftKnife = false;
+            this.AnchorShiftFreeAmplitude = false;
+            this.AnchorJointOutliers = false;
             // (`A320`, П323) повтор отданного разбора — пробам и корпусу; сеанс
             // приложения снимает (`FsaAnalysisSession.Capture`)
             this.AnchorZeroGuardReplay = true;
@@ -9510,7 +9929,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             try
             {
-                return this.AnalyzeGuarded(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+                return this.AnalyzeRolledBack(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
             }
             finally
             {
@@ -9523,6 +9942,74 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
         }
+
+        /// <summary>
+        /// (`AMBER269`, (А2)) Разбор со стражем нуля и ОТКАТОМ ПРИВЯЗКИ
+        /// (<see cref="AnchorRollback"/>): сначала разбор без привязки, затем
+        /// обычный, — состояние анализатора остаётся от обычного. При откате
+        /// разбор без привязки повторяется последним (только при
+        /// <see cref="AnchorZeroGuardReplay"/>, как у стража нуля), чтобы
+        /// состояние отвечало отданному.
+        /// </summary>
+        FsaResult AnalyzeRolledBack(
+            EnergySpectrum spectrum,
+            EnergySpectrum backgroundSpectrum,
+            FwhmCalibration fwhmCalibration,
+            List<FsaComponent> originalLibrary,
+            FsaEfficiency efficiency)
+        {
+            if (!this.shareRefit)
+            {
+                this.AnchorRolledBack = false;
+            }
+
+            if (this.shareRefit || !this.AnchorRollback || !this.AnchorScale)
+            {
+                return this.AnalyzeGuarded(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+            }
+
+            FsaResult bare;
+            try
+            {
+                this.AnchorScale = false;
+                bare = this.AnalyzeCore(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+            }
+            finally
+            {
+                this.AnchorScale = true;
+            }
+
+            FsaResult main = this.AnalyzeGuarded(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+            if (main == null || bare == null || !(bare.Chi2NdfPoisson < main.Chi2NdfPoisson))
+            {
+                return main;
+            }
+
+            double chiMain = main.Chi2NdfPoisson;
+            double gainMain = main.Gain;
+            int anchorsMain = main.ScaleAnchorsUsed;
+            if (this.AnchorZeroGuardReplay)
+            {
+                try
+                {
+                    this.AnchorScale = false;
+                    bare = this.AnalyzeCore(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency) ?? bare;
+                }
+                finally
+                {
+                    this.AnchorScale = true;
+                }
+            }
+
+            this.AnchorRolledBack = true;
+            bare.AnchorNote = string.Format(CultureInfo.InvariantCulture,
+                "откат привязки (AMBER269): с привязкой (опор {0}, усиление {1:F5}) χ²/ndf Пуассона {2:F2} хуже, чем без неё {3:F2}, — шкала без привязки",
+                anchorsMain, gainMain, chiMain, bare.Chi2NdfPoisson);
+            return bare;
+        }
+
+        /// <summary>(`AMBER269`) Сработал ли откат привязки (<see cref="AnchorRollback"/>) на последнем <see cref="Analyze"/> (пробам).</summary>
+        public bool AnchorRolledBack { get; private set; }
 
         /// <summary>
         /// (П304) Тело <see cref="Analyze"/>: разбор и страж нуля (`A320`). Вынесено,
@@ -11426,8 +11913,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 "свет снят на проходе {0}: плечо опор пропало — ноль прибора, свет до конца привязки снят", pass);
                         }
 
+                        // (`AMBER269`, шаг 0) опоры прохода — пробам; в приложении приёмника нет
+                        Action<string> passSink = AnchorPassSink;
                         if (used == 0)
                         {
+                            if (passSink != null)
+                            {
+                                this.EmitAnchorPass(passSink, pass, used, a, b, 0.0, false, false, bestGain, bestOffset, chHi);
+                            }
+
                             break;
                         }
 
@@ -11455,6 +11949,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                     zeroCappedPasses++;
                                 }
                             }
+                        }
+
+                        if (passSink != null)
+                        {
+                            this.EmitAnchorPass(passSink, pass, used, a, b, zeroStep, zeroRemeasure, zeroCapped,
+                                                bestGain, bestOffset, chHi);
                         }
 
                         // Новая шкала поверх прежней: p'' = a·(g·p + o) + b.
@@ -22762,6 +23262,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// приложении не задан, и тогда никто не зовётся.
         /// </summary>
         public static Action<string> ZeroTraceSink { get; set; }
+
+        /// <summary>
+        /// (`AMBER269`, шаг 0) ПРИЁМНИК ОПОР КАЖДОГО ПРОХОДА ПРИВЯЗКИ ШКАЛЫ: шкала
+        /// входа, итог шага, кандидаты прохода с измеренным центром (линия,
+        /// хозяин, канал модели, промах и σ, доля, z, взята ли, отказ), вклад
+        /// взятых в шаг усиления и точки совместного шага нуля и усиления с их
+        /// весами. Без него виден только последний проход (`ScaleAnchors`), а
+        /// разнос начинается с первого. Ставится безоконной пробой
+        /// (`FsaLinePosProbeP255 --anchor-passes`); в приложении не задан, и
+        /// тогда ничего не собирается.
+        /// </summary>
+        public static Action<string> AnchorPassSink { get; set; }
+
+        /// <summary>(`AMBER269`) Точки последнего <see cref="JointScaleStep"/> — для <see cref="AnchorPassSink"/>; без приёмника null.</summary>
+        List<string> jointTrace;
 
         /// <summary>(`A308`) Трасса одного вызова <see cref="NnlsSolve"/> для <see cref="NnlsTraceSink"/>.</summary>
         public sealed class NnlsTrace

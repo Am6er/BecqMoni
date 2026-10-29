@@ -2880,6 +2880,24 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Full-spectrum decomposition needs an efficiency curve: &quot;{0}&quot; has a geometry, but the curve itself has not been calculated.
+        /// </summary>
+        public static string FSACurveNotComputed {
+            get {
+                return ResourceManager.GetString("FSACurveNotComputed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Curve not calculated: press Edit..., then Calculate from geometry..
+        /// </summary>
+        public static string EfficiencyTabNoCurve {
+            get {
+                return ResourceManager.GetString("EfficiencyTabNoCurve", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Full-spectrum decomposition is not possible for this spectrum.
         /// </summary>
         public static string FSANotPossible {
@@ -4937,6 +4955,15 @@ namespace BecquerelMonitor.Properties {
         public static string ResponseMatrixNoGeometry {
             get {
                 return ResourceManager.GetString("ResponseMatrixNoGeometry", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The efficiency curve has not been calculated: the matrix cannot be computed until it is.
+        /// </summary>
+        public static string ResponseMatrixNoCurve {
+            get {
+                return ResourceManager.GetString("ResponseMatrixNoCurve", resourceCulture);
             }
         }
         

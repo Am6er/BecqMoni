@@ -391,6 +391,12 @@
   <data name="FSANoGeometry" xml:space="preserve">
     <value>Полноспектральному разложению нужна геометрия прибора: опишите кристалл в редакторе геометрии у кривой эффективности</value>
   </data>
+  <data name="FSACurveNotComputed" xml:space="preserve">
+    <value>Полноспектральному разложению нужна кривая эффективности: у «{0}» геометрия задана, а сама кривая не посчитана — в конфигурации прибора на вкладке «Эффективность» нажмите «Изменить…», затем «Посчитать из геометрии» и «Сохранить кривую»</value>
+  </data>
+  <data name="EfficiencyTabNoCurve" xml:space="preserve">
+    <value>Кривая не посчитана: нажмите «Изменить…», затем «Посчитать из геометрии».</value>
+  </data>
   <data name="FSAFailed" xml:space="preserve">
     <value>Полноспектральное разложение не удалось.</value>
   </data>
@@ -1694,6 +1700,9 @@
   </data>
   <data name="ResponseMatrixNoGeometry" xml:space="preserve">
     <value>У этой кривой эффективности нет геометрии, поэтому матрицу отклика посчитать не из чего.</value>
+  </data>
+  <data name="ResponseMatrixNoCurve" xml:space="preserve">
+    <value>Кривая эффективности не посчитана: матрицу считать нельзя, пока её нет (закройте окно, «Изменить…» → «Посчитать из геометрии» → «Сохранить кривую»). Без кривой не идут ни разбор FSA, ни беккерели.</value>
   </data>
   <data name="ResponseMatrixDetails" xml:space="preserve">
     <value>Узлов: {0} от {1:F0} до {2:F0} кэВ

@@ -122,6 +122,7 @@ static class MatrixWindowProbeP291
         public bool Compute(double cancelAt, out double seconds)
         {
             var sw = Stopwatch.StartNew();
+            EnsureWinFormsContext();
             this.Call("ComputeClick");
             if (!this.Busy)
             {
@@ -145,6 +146,27 @@ static class MatrixWindowProbeP291
         }
 
         public void Dispose() { this.Form.Dispose(); }
+    }
+
+    /// <summary>
+    /// ⛔ (`AMBER268`, 28.10.2026) Контекст окна — перед КАЖДЫМ «Посчитать». Проба
+    /// качает очередь `Application.DoEvents` без `Application.Run`, и к второму
+    /// счёту `WindowsFormsSynchronizationContext` с потока уже снят (замерено;
+    /// что снимает именно выход из `DoEvents`, по исходникам WinForms не
+    /// проверено). Второй счёт окна создавал
+    /// `Progress&lt;T&gt;` и продолжение `await` уже без него: отчёты и итог шли с
+    /// потоков пула вперемешку, и «Узел 12 из 12» затирал «Готово…» (S7 падал и на
+    /// коде до `AMBER267`). Замер: без установки 276 отчётов второго счёта вне
+    /// потока окна и итог «Узел 144 из 144»; с установкой 0 и «Готово за 3:40».
+    /// В приложении цикл `Application.Run` держит контекст всё время — это
+    /// свойство пробы, не окна.
+    /// </summary>
+    static void EnsureWinFormsContext()
+    {
+        if (!(SynchronizationContext.Current is WindowsFormsSynchronizationContext))
+        {
+            SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
+        }
     }
 
     static bool Pump(Func<bool> until, double seconds)
@@ -182,12 +204,24 @@ static class MatrixWindowProbeP291
         return false;
     }
 
+    static System.Collections.Generic.List<ROIEfficiencyData> Amber267Curve()
+    {
+        return new System.Collections.Generic.List<ROIEfficiencyData>
+        {
+            new ROIEfficiencyData { Energy = 5, Efficiency = 0.5, ErrorPercent = 1 },
+            new ROIEfficiencyData { Energy = 662, Efficiency = 0.1, ErrorPercent = 1 },
+            new ROIEfficiencyData { Energy = 3000, Efficiency = 0.02, ErrorPercent = 1 },
+        };
+    }
+
     static string geometryPath;
 
     static EfficiencyConfigData NewConfig(string guid)
     {
         GeometryModel g = GeometryModel.Load(geometryPath);
-        return new EfficiencyConfigData("проба П291") { Guid = guid, Geometry = g };
+        // (`AMBER267`) Без посчитанной кривой окно «Посчитать» не даёт; края
+        // кривой — умолчания полей окна (5–3000 кэВ), чтобы диапазон счёта не сдвинулся.
+        return new EfficiencyConfigData("проба П291") { Guid = guid, Geometry = g, Curve = Amber267Curve() };
     }
 
     /// <summary>Подмена: «цилиндр сбоку» — построитель (ЦП и GPU) отказывает словами до счёта.</summary>
