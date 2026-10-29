@@ -516,6 +516,113 @@ namespace BecquerelMonitor
         public FwhmCalibration FwhmCalibration { get => fwhmCalibration; set => fwhmCalibration = value; }
 
         /// <summary>
+        /// ⛔ (`AMBER271`, 29.10.2026) КРИВИЗНА ТРАКТА, КОТОРОЙ РАЗБИРАЕТСЯ ЭТОТ
+        /// СПЕКТР, 1/МэВ (смысл числа — у <see cref="DeviceConfigInfo.TractCurvature"/>).
+        /// Amber, консоль, дословно: «Кривизну тракта вписывать в файл спектра для
+        /// переносимости.» Решение вопросником того же дня, дословно: «Спектра,
+        /// прибор — умолчание (Рекомендую)» — «Как кривая FWHM: у спектра своя. У
+        /// старых файлов без неё берётся значение прибора — их числа не сдвинутся.
+        /// В прибор — кнопкой «Сохранить калибровку в конфигурацию прибора».»
+        ///
+        /// До этой правки κ жила только в приборе, и файл, открытый на машине без
+        /// того же прибора, разбирался FSA с κ = 0 — молча другим числом.
+        ///
+        /// ЧТЕНИЕ: своя κ спектра (<see cref="HasOwnTractCurvature"/>), а без неё —
+        /// κ его прибора, живьём: старый файл, свежий набор и спектр, которому
+        /// прибор только что назначен, разбираются ровно тем же числом, что до
+        /// правки. Нечисло — нуль, как у <c>FsaAnalyzer.AdoptDevice</c>.
+        ///
+        /// ЗАПИСЬ — элементом <c>&lt;TractCurvature&gt;</c>, когда спектр несёт свою
+        /// κ ИЛИ стоит на настоящем приборе (с Guid): файл уносит ту κ, которой
+        /// его разбирали. Спектр без прибора (прибор не найден на этой машине,
+        /// снят сбросом импорта, спектр — результат вычитания или обрезки) поля
+        /// не получает: иначе файл чужого прибора, пересохранённый здесь, вернулся
+        /// бы к хозяину с κ = 0 вместо его κ. Число пишет и читает
+        /// <c>XmlSerializer</c> (<c>XmlConvert</c>: инвариантная культура, круг
+        /// без потерь), запятой в файле не бывает ни при какой культуре потока.
+        /// Нечисло в файле — как поля нет: спектр остаётся без своей κ.
+        /// </summary>
+        public double TractCurvature
+        {
+            get
+            {
+                double k = this.tractCurvatureOwn
+                    ? this.tractCurvature
+                    : (this.deviceConfig != null ? this.deviceConfig.TractCurvature : 0.0);
+                return double.IsNaN(k) || double.IsInfinity(k) ? 0.0 : k;
+            }
+            set
+            {
+                if (double.IsNaN(value) || double.IsInfinity(value))
+                {
+                    return;
+                }
+                this.tractCurvature = value;
+                this.tractCurvatureOwn = true;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER271`) Писать ли <see cref="TractCurvature"/> — соглашение
+        /// <c>XmlSerializer</c> о членах <c>…Specified</c> (как у
+        /// <see cref="StartTimeSpecified"/>): своя κ или настоящий прибор. При
+        /// чтении сериализатор ставит сюда true, если элемент был, — своя κ при этом
+        /// уже отмечена сеттером значения, поэтому сеттер здесь пуст.
+        /// </summary>
+        [XmlIgnore]
+        public bool TractCurvatureSpecified
+        {
+            get
+            {
+                return this.tractCurvatureOwn
+                       || (this.deviceConfig != null && !string.IsNullOrEmpty(this.deviceConfig.Guid));
+            }
+            set
+            {
+            }
+        }
+
+        /// <summary>(`AMBER271`) Своя κ у спектра есть: пришла в файле или записана в файл (<see cref="KeepWrittenTractCurvature"/>).</summary>
+        [XmlIgnore]
+        public bool HasOwnTractCurvature
+        {
+            get
+            {
+                return this.tractCurvatureOwn;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER271`) Снять свою κ — спектр снова берёт κ своего прибора. Зовут
+        /// те, кто ставит спектру калибровку ПРИБОРА: назначение прибора в панели
+        /// измерения (<c>DCControlPanel.ApplyDeviceConfigChange</c>, энергетическая
+        /// и FWHM-калибровки там же берутся у прибора) и сброс настройки импорта
+        /// (<c>DocumentManager.ResetSpectrumConfig</c>, прибор снят вместе с
+        /// калибровкой).
+        /// </summary>
+        public void ForgetTractCurvature()
+        {
+            this.tractCurvatureOwn = false;
+            this.tractCurvature = 0.0;
+        }
+
+        /// <summary>
+        /// (`AMBER271`) Спектр записан в СВОЙ файл — κ, которую файл унёс, теперь
+        /// своя (как кривая эффективности после записи, <c>DocumentManager.PrepareEfficiency</c>):
+        /// иначе правка κ в окне прибора двигала бы разбор на экране, а файл и
+        /// повторное открытие держали бы прежнюю — экран и диск разошлись бы
+        /// молча. Зовёт <c>DocumentManager.SaveDocument</c> после удачной записи.
+        /// </summary>
+        public void KeepWrittenTractCurvature()
+        {
+            if (!this.tractCurvatureOwn && this.TractCurvatureSpecified)
+            {
+                this.tractCurvature = this.TractCurvature;
+                this.tractCurvatureOwn = true;
+            }
+        }
+
+        /// <summary>
         /// ПРИБОР У СПЕКТРА СНЯТ СБРОСОМ НАСТРОЙКИ, И УМОЛЧАНИЕ КРИВОЙ
         /// РАЗРЕШЕНИЯ ПО НЕМУ НЕ СТРОИТСЯ (`A260`, решение Amber
         /// 06.09.2026: «Снять кривую вместе с прибором»).
@@ -674,6 +781,11 @@ namespace BecquerelMonitor
                 copy.PeakDetectionMethodConfig = this.PeakDetectionMethodConfig.Clone();
             }
 
+            // (`AMBER271`) своя κ спектра — копии тоже своя (вычтенный спектр и фон
+            // в файл уносят ту κ, которой разбирался оригинал)
+            copy.tractCurvature = this.tractCurvature;
+            copy.tractCurvatureOwn = this.tractCurvatureOwn;
+
             copy.FileEfficiency = object.ReferenceEquals(this.Efficiency, this.FileEfficiency)
                 ? efficiencyCopy
                 : (this.FileEfficiency != null ? this.FileEfficiency.Copy() : null);
@@ -729,6 +841,12 @@ namespace BecquerelMonitor
         PeakDetectionMethodConfig peakDetectionMethodConfig = new FWHMPeakDetectionMethodConfig();
 
         FwhmCalibration fwhmCalibration = null;
+
+        /// <summary>(`AMBER271`) Своя κ спектра, 1/МэВ; значима только при <see cref="tractCurvatureOwn"/>.</summary>
+        double tractCurvature;
+
+        /// <summary>(`AMBER271`) Своя κ есть (<see cref="HasOwnTractCurvature"/>).</summary>
+        bool tractCurvatureOwn;
 
         bool deviceConfigWiped;
 

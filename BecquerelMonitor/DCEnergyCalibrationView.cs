@@ -227,7 +227,18 @@ namespace BecquerelMonitor
         // Token: 0x06000824 RID: 2084 RVA: 0x0002E328 File Offset: 0x0002C528
         void button4_Click(object sender, EventArgs e)
         {
-            if (MessageBox.Show(Resources.MSGSaveEnergyCalibration, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) != DialogResult.Yes)
+            // (`AMBER271`) кривизна тракта спектра уходит в прибор этой же кнопкой —
+            // и если она у прибора СМЕНИТСЯ, вопрос говорит это числами: прежняя κ
+            // прибора задана руками в его окне, и тихо затереть её значением
+            // спектра, пришедшего с другой машины, было бы молчаливой потерей.
+            string question = Resources.MSGSaveEnergyCalibration;
+            string curvatureNote = TractCurvatureChangeNote(
+                this.mainForm.ActiveDocument != null ? this.mainForm.ActiveDocument.ActiveResultData : null);
+            if (curvatureNote != null)
+            {
+                question += "\n\n" + curvatureNote;
+            }
+            if (MessageBox.Show(question, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) != DialogResult.Yes)
             {
                 return;
             }
@@ -256,12 +267,17 @@ namespace BecquerelMonitor
                 rc_deviceConfig != null ? rc_deviceConfig.RC_EnergyCalibration : null;
             PolynomialEnergyCalibration previousObsCalibration =
                 obs_deviceConfig != null ? obs_deviceConfig.OBS_EnergyCalibration : null;
+            double previousTractCurvature = deviceConfig.TractCurvature;
 
             // ⛔ `AMBER188(б)` (полоса fixcal, 05.10.2026): КОПИЯ, как в
             // `UpdateEnergyCalibration`. Прежде прибор, документ и вид держали
             // ОДИН объект, и дальнейшие правки полей и «Рассчитать» меняли
             // конфигурацию прибора в памяти без записи и до проверки.
             deviceConfig.EnergyCalibration = this.energyCalibration.Clone();
+            // (`AMBER271`, решение Amber 29.10.2026: «В прибор — кнопкой «Сохранить
+            // калибровку в конфигурацию прибора»») кривизна тракта — спектра; у
+            // спектра без своей κ это κ самого прибора, и запись её не меняет
+            deviceConfig.TractCurvature = activeDocument.ActiveResultData.TractCurvature;
             if (rc_deviceConfig != null)
             {
                 if (this.energyCalibration.PolynomialOrder == 2)
@@ -308,6 +324,7 @@ namespace BecquerelMonitor
             if (!DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig))
             {
                 deviceConfig.EnergyCalibration = previousEnergyCalibration;
+                deviceConfig.TractCurvature = previousTractCurvature;
                 if (rc_deviceConfig != null)
                 {
                     rc_deviceConfig.RC_EnergyCalibration = previousRcCalibration;
@@ -322,6 +339,31 @@ namespace BecquerelMonitor
             }
             activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration = this.energyCalibration.Clone();
             this.mainForm.UpdateDeviceConfigForm();
+        }
+
+        /// <summary>
+        /// (`AMBER271`) Строка вопроса кнопки «Сохранить в конфигурацию прибора»
+        /// о кривизне тракта: null, когда κ прибора не меняется (у спектра своей
+        /// κ нет или она та же), иначе — прежняя и новая κ прибора, точкой
+        /// (`A242`). Сравнение побитовое: «почти та же» κ — уже другая.
+        /// </summary>
+        internal static string TractCurvatureChangeNote(ResultData data)
+        {
+            if (data == null || data.DeviceConfig == null)
+            {
+                return null;
+            }
+
+            double device = data.DeviceConfig.TractCurvature;
+            double spectrum = data.TractCurvature;
+            if (spectrum.Equals(device))
+            {
+                return null;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, Resources.MSGSaveEnergyCalibrationTractCurvature,
+                                 device.ToString("R", CultureInfo.InvariantCulture),
+                                 spectrum.ToString("R", CultureInfo.InvariantCulture));
         }
 
         void setNewCalibration(TextBox t, int order)

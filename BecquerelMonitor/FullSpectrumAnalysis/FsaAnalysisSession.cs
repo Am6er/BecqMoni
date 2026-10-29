@@ -915,9 +915,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 probeHook(analyzer);
             }
 
-            // (`AMBER155` (в), П220) свойства прибора (кривизна тракта) — тем же
-            // местом, что у проб, снимком на UI-потоке
-            analyzer.AdoptDevice(resultData.DeviceConfig);
+            // (`AMBER155` (в), П220) свойства прибора — тем же местом, что у проб,
+            // снимком на UI-потоке; (`AMBER271`) кривизна тракта — СПЕКТРА: своя
+            // из файла, а у файла без поля — прибора (`ResultData.TractCurvature`)
+            analyzer.AdoptSpectrum(resultData);
 
             // Матрица отклика берётся у ТОЙ ЖЕ кривой, что и эффективность, и
             // только если её отпечаток сходится с нынешней геометрией. Не
@@ -1911,7 +1912,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // ожидаемых линий вывода состава (`FsaCompositionInference.Score`)
                 // прямо, а не только через список пиков.
                 "|", PeakConfigStamp(resultData.PeakDetectionMethodConfig),
-                // (`AMBER180`) Прибор: кривизна тракта (`AdoptDevice`), мёртвое
+                // (`AMBER180`) Прибор: кривизна тракта (`AdoptSpectrum`, `AMBER271`), мёртвое
                 // время — окно совпадения (`CoincidenceWindowSec`) — и вещество
                 // кристалла (запасной источник долей без геометрии, `A276`).
                 "|", DeviceStamp(resultData),
@@ -2056,8 +2057,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return "-";
             }
 
+            // ⛔ (`AMBER271`) κ — та, которую возьмёт разбор (`FsaAnalyzer.AdoptSpectrum`):
+            // своя спектра, без неё — прибора. Прежде здесь стояла κ ПРИБОРА, и у
+            // спектра со своей κ отпечаток следовал бы правке окна прибора, которой
+            // разбор не видит, а смены κ спектра не видел бы вовсе.
             return string.Concat(
-                device.TractCurvature.ToString("R", CultureInfo.InvariantCulture),
+                resultData.TractCurvature.ToString("R", CultureInfo.InvariantCulture),
                 ":", DeadTimeOf(resultData).ToString("R", CultureInfo.InvariantCulture),
                 ":", device.CrystalMaterialName ?? string.Empty);
         }
