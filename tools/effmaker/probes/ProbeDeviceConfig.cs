@@ -38,8 +38,33 @@ static class ProbeDeviceConfig
     /// ОБЯЗАН быть напечатан вызывающим — молчаливый откат на умолчания и есть
     /// то, чем `S82` стоила двух сессий. Своего `Console` здесь нет нарочно:
     /// у корпусной пробы 126 спектров, и печатать построчно решает она.
+    ///
+    /// ⛔ (`AMBER269`, 29.10.2026) ЗДЕСЬ ЖЕ — КРИВАЯ FWHM, ТЕМ ЖЕ ПРАВИЛОМ, ЧТО У
+    /// `DocumentManager.CheckDocument`: у спектра без своей кривой приложение строит
+    /// умолчание из трёх чисел настроек прибора (`FwhmCalibration.DefaultCalibration`),
+    /// а НЕ берёт кривую, сохранённую в его настройках поиска. Пробы брали её
+    /// (`cfg.FwhmCalibration`, блок после этого вызова в каждой из ~60 проб), и на
+    /// трёх чужих RC-110 без своей кривой разбор пробы расходился с окном: у прибора
+    /// лежала встроенная кривая 15/103 при числах 4/266/26 — пик шире на треть
+    /// (38.7 кан. против 30 при 1173 кэВ), другие пики поиска, другой состав «Из
+    /// NucBase», χ² 5.94 / 62.40 / 645.30 против 3.73 / 8.94 / 25.50 на экране. После
+    /// этой правки блоки проб ниже холостые: кривая уже стоит. Корпус не задет — все
+    /// 136 его спектров несут свою кривую, и ни у одного из 24 его приборов
+    /// сохранённой кривой нет (проверено 29.10.2026).
     /// </summary>
     public static string Attach(ResultData rd)
+    {
+        string said = AttachDevice(rd);
+        if (rd != null && rd.FwhmCalibration == null && rd.EnergySpectrum != null
+            && rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig cfg)
+        {
+            rd.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, rd.EnergySpectrum.EnergyCalibration);
+        }
+
+        return said;
+    }
+
+    static string AttachDevice(ResultData rd)
     {
         if (rd == null)
         {
