@@ -228,9 +228,23 @@ namespace BecquerelMonitor
 
         private bool ConfirmClearRest(ResultData r, AtomSpectraTcpDeviceConfig config)
         {
-            if ((session != null && !(session is AtomSpectraRestSession)) || carriedResetKey != null) return DeviceController.AskClearDocument();   // a TCP session / its deferred reset is replaced only in ClearRest after a "Yes", never before the answer
-            OpenRestSession(config);
-            AtomSpectraRestSession rest = session as AtomSpectraRestSession;
+            // a TCP session (the transport was switched to REST; it stays in the controller from Stop to Start too) and its deferred reset are
+            // replaced only in ClearRest after a "Yes", never before the answer: the board is read here through a session of its own (nothing is
+            // started, nothing hooked), the controller's stays as it is. Before the PR #39 review this case asked the plain question and then,
+            // after a "Yes", the board's own one - two questions, and "Yes, No" cleared the document only
+            bool keepSession = (session != null && !(session is AtomSpectraRestSession)) || carriedResetKey != null;
+            AtomSpectraRestSession rest;
+            if (keepSession)
+            {
+                string clientError;
+                AtomSpectraRestClient client = config.CreateRestClient(out clientError);
+                rest = client == null ? null : new AtomSpectraRestSession(client, config.RestPollSeconds, config.RestObserveOnly, config.RestLimitSeconds);
+            }
+            else
+            {
+                OpenRestSession(config);
+                rest = session as AtomSpectraRestSession;
+            }
 
             if (rest == null || rest.ObserveOnly)
             {
@@ -280,8 +294,8 @@ namespace BecquerelMonitor
             RestClearPlan plan = ReferenceEquals(restClearFor, r) ? restClearPlan : RestClearPlan.Ask;
             restClearPlan = RestClearPlan.Ask;
             restClearFor = null;
+            OpenRestSession(config);   // after the "Yes" only: a TCP session left by a switch of the transport (and its deferred reset) goes now
             if (plan == RestClearPlan.DocumentOnly) return;   // the board could not be read, the user chose to clear the document only
-            OpenRestSession(config);
             AtomSpectraRestSession rest = session as AtomSpectraRestSession;
             if (rest == null)
             {
