@@ -1986,6 +1986,14 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The tract curvature of the device will change too: {0} → {1} 1/MeV (the value of this spectrum)..
+        /// </summary>
+        public static string MSGSaveEnergyCalibrationTractCurvature {
+            get {
+                return ResourceManager.GetString("MSGSaveEnergyCalibrationTractCurvature", resourceCulture);
+            }
+        }        
+        /// <summary>
         ///   Looks up a localized string similar to Save FWHM calibration to current device configuration?.
         /// </summary>
         public static string MSGSaveFWHMCalibration {

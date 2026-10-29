@@ -286,6 +286,9 @@
   <data name="MSGSaveEnergyCalibration" xml:space="preserve">
     <value>Сохранить параметры калибровки по энергии в текущей конфигурации устройства?</value>
   </data>
+  <data name="MSGSaveEnergyCalibrationTractCurvature" xml:space="preserve">
+    <value>Кривизна тракта прибора тоже сменится: {0} → {1} 1/МэВ (значение этого спектра).</value>
+  </data>
   <data name="ERRInputInteger" xml:space="preserve">
     <value>Введите целое число.</value>
   </data>

@@ -4153,6 +4153,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.AdcTractCurvature = Finite(k) ? k : 0.0;
         }
 
+        /// <summary>
+        /// ⛔ (`AMBER271`, 29.10.2026; решение Amber вопросником, дословно:
+        /// «Спектра, прибор — умолчание (Рекомендую)») Свойства прибора — тем же
+        /// <see cref="AdoptDevice"/>, а кривизна тракта — СПЕКТРА
+        /// (<see cref="ResultData.TractCurvature"/>): своя, пришедшая в файле, а у
+        /// файла без поля — его прибора, то есть ровно то число, что брал
+        /// <see cref="AdoptDevice"/>. Так зовёт сеанс приложения
+        /// (<c>FsaAnalysisSession</c>); его отпечаток берёт κ тем же свойством.
+        /// </summary>
+        public void AdoptSpectrum(ResultData data)
+        {
+            this.AdoptDevice(data != null ? data.DeviceConfig : null);
+            if (data != null)
+            {
+                double k = data.TractCurvature;
+                this.AdcTractCurvature = Finite(k) ? k : 0.0;
+            }
+        }
+
         /// <summary>(`AMBER155`, П220) Число каналов спектра этого разбора — для канала верхней линии прямой карты.</summary>
         int adcChannels;
 

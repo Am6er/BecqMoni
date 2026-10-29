@@ -1379,6 +1379,11 @@ namespace BecquerelMonitor
             //   выдуманного прибора, то есть снятие кривой обходилось бы
             //   на самом частом из путей импорта.
             data.DeviceConfigWiped = template.DeviceConfigWiped;
+            // (`AMBER271`) своя κ шаблона — и соседу: тот же прибор и та же шкала
+            if (template.HasOwnTractCurvature)
+            {
+                data.TractCurvature = template.TractCurvature;
+            }
             return data;
         }
 
@@ -3196,6 +3201,12 @@ namespace BecquerelMonitor
             // прежнюю, которой в файле уже нет, и «вернуться к родной» вернуло
             // бы не то, что лежит на диске.
             this.PrepareEfficiency(resultDataFile);
+            // (`AMBER271`) κ, которую файл унёс, — теперь своя у спектра: экран и
+            // диск не расходятся при последующей правке κ в окне прибора.
+            foreach (ResultData written in resultDataFile.ResultDataList)
+            {
+                written.KeepWrittenTractCurvature();
+            }
             // A document stays dirty if ANY of its spectra is still recording,
             // not only the active one.
             doc.Dirty = resultDataFile.ResultDataList.Any(rd => rd.ResultDataStatus.Recording);
@@ -4069,6 +4080,10 @@ namespace BecquerelMonitor
             data.DetectedPeaks = new List<Peak>();
             data.CalibrationPeaks = new List<Peak>();
             data.CalibrationPoints = new List<CalibrationPoint>();
+            // (`AMBER271`) кривизна тракта — часть калибровки прибора и снимается с
+            //   ним: спектр без прибора разбирается с κ = 0, как до правки, и
+            //   поля в файл не получает (`ResultData.TractCurvatureSpecified`)
+            data.ForgetTractCurvature();
         }
 
         string ReadUntilSection(StreamReader streamReader, string sectionHeader)
