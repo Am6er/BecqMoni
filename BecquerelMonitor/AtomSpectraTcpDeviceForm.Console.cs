@@ -88,14 +88,14 @@ namespace BecquerelMonitor
             labelConsole = new Label
             {
                 AutoSize = true,
-                Location = new Point(17, 700),
+                Location = new Point(17, 730),   // +30: the result label above is 90 high (room for the firmware warning)
                 Text = Resources.AtomSpectraConsoleWarning
             };
             Controls.Add(labelConsole);
 
             textCommand = new TextBox
             {
-                Location = new Point(17, 720),
+                Location = new Point(17, 750),
                 Width = 438,
                 AutoCompleteMode = AutoCompleteMode.SuggestAppend,
                 AutoCompleteSource = AutoCompleteSource.CustomSource,
@@ -106,7 +106,7 @@ namespace BecquerelMonitor
 
             textOutput = new TextBox
             {
-                Location = new Point(17, 746),
+                Location = new Point(17, 776),
                 Size = new Size(438, 150),
                 Multiline = true,
                 ReadOnly = true,

@@ -604,6 +604,7 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="AtomSpectraRestPolicy.cs" />
+    <Compile Include="AtomSpectraFirmware.cs" />
     <Compile Include="AtomSpectraRestClient.cs" />
     <Compile Include="AtomSpectraRestAcquisition.cs" />
     <Compile Include="AtomSpectraRestSession.cs" />
