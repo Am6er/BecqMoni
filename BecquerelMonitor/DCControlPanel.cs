@@ -828,6 +828,9 @@ namespace BecquerelMonitor
                 }
             }
             activeResultData.EnergySpectrum.EnergyCalibration = activeResultData.DeviceConfig.EnergyCalibration.Clone();
+            // (`AMBER271`) калибровка — от прибора, и кривизна тракта с ней: своя κ
+            // спектра (пришедшая в файле) снимается, разбор берёт κ этого прибора
+            activeResultData.ForgetTractCurvature();
             this.mainForm.UpdateEnergyCalibrationView();
             FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)activeResultData.DeviceConfig.PeakDetectionMethodConfig;
             activeResultData.PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)FWHMPeakDetectionMethodConfig.Clone();

@@ -3569,8 +3569,9 @@ namespace CorpusFsaProbe
                 // (`AMBER269`, (Б)) найденные пики — тем же помощником, что в сеансе приложения
                 analyzer.DetectedPeakKev = FsaAnalysisSession.PeakEnergiesOf(peaks);
                 // (`AMBER155` (в), П220) свойства прибора — тем же местом, что в
-                // приложении; ключ `--adc-curvature=` перекрывает для плеча
-                analyzer.AdoptDevice(rd.DeviceConfig);
+                // приложении; ключ `--adc-curvature=` перекрывает для плеча.
+                // (`AMBER271`) кривизна — спектра, если она есть в его файле, иначе прибора.
+                analyzer.AdoptSpectrum(rd);
                 double curvatureByDet;
                 if (o.AdcCurvatureByDet != null && o.AdcCurvatureByDet.TryGetValue(sample.Det, out curvatureByDet))
                 {
