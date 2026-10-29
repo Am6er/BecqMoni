@@ -516,6 +516,55 @@ namespace BecquerelMonitor
         public FwhmCalibration FwhmCalibration { get => fwhmCalibration; set => fwhmCalibration = value; }
 
         /// <summary>
+        /// ⛔ (`AMBER276`, 29.10.2026) ТАБЛИЦА ЕДИНОЙ КАЛИБРОВКИ (энергия и FWHM) — ОДИН
+        /// СПИСОК. Amber, консоль, дословно: «Таблица калибровки - единая. В файл спектра
+        /// помимо калибровки fwhm теперь попадает и калибровка по энергии.» и «Можно
+        /// модифицировать секцию ФВХМ калибровки и туда добавить энергию.»
+        ///
+        /// Строки живут в опорах кривой FWHM (<see cref="FwhmCalibration"/>.<c>CalibrationPeaks</c>):
+        /// так они попадают в файл ВНУТРИ секции FWHM, а элемент <c>EnergyCalibration</c>
+        /// спектра не трогается вовсе — его читают другие программы. Линия калибровки по
+        /// энергии отмечена <see cref="CalibrationPeak.EnergyLine"/>.
+        ///
+        /// У спектра БЕЗ кривой FWHM (умолчание по настройкам не строится, прибор снят
+        /// сбросом импорта) строкам жить в секции негде, и они держатся в
+        /// <see cref="PendingCalibrationLines"/> — в памяти, как прежде точки калибровки по
+        /// энергии. Первая удачная подгонка FWHM заводит спектру кривую из этих строк и
+        /// уносит их в неё.
+        /// </summary>
+        [XmlIgnore]
+        public List<CalibrationPeak> CalibrationLines
+        {
+            get
+            {
+                if (this.fwhmCalibration != null && this.fwhmCalibration.CalibrationPeaks != null)
+                {
+                    return this.fwhmCalibration.CalibrationPeaks;
+                }
+                return this.pendingCalibrationLines;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER276`) Строки единой калибровки у спектра без кривой FWHM (см.
+        /// <see cref="CalibrationLines"/>). В файл не пишутся: секции FWHM у такого спектра
+        /// нет, а заводить её с пустой кривой нельзя — прежняя версия прочла бы кривую с
+        /// нулевыми коэффициентами как настоящую.
+        /// </summary>
+        [XmlIgnore]
+        public List<CalibrationPeak> PendingCalibrationLines
+        {
+            get
+            {
+                return this.pendingCalibrationLines;
+            }
+            set
+            {
+                this.pendingCalibrationLines = value ?? new List<CalibrationPeak>();
+            }
+        }
+
+        /// <summary>
         /// ⛔ (`AMBER271`, 29.10.2026) КРИВИЗНА ТРАКТА, КОТОРОЙ РАЗБИРАЕТСЯ ЭТОТ
         /// СПЕКТР, 1/МэВ (смысл числа — у <see cref="DeviceConfigInfo.TractCurvature"/>).
         /// Amber, консоль, дословно: «Кривизну тракта вписывать в файл спектра для
@@ -786,6 +835,10 @@ namespace BecquerelMonitor
             copy.tractCurvature = this.tractCurvature;
             copy.tractCurvatureOwn = this.tractCurvatureOwn;
 
+            // (`AMBER276`) строки единой калибровки спектра без кривой FWHM — копии тоже
+            // (строки спектра С кривой копируются вместе с ней, выше)
+            copy.pendingCalibrationLines = CalibrationPeak.ClonePeaks(this.pendingCalibrationLines);
+
             copy.FileEfficiency = object.ReferenceEquals(this.Efficiency, this.FileEfficiency)
                 ? efficiencyCopy
                 : (this.FileEfficiency != null ? this.FileEfficiency.Copy() : null);
@@ -853,6 +906,9 @@ namespace BecquerelMonitor
         List<Peak> calibrationPeaks = new List<Peak>();
 
         List<CalibrationPoint> calibrationPoints = new List<CalibrationPoint>();
+
+        /// <summary>(`AMBER276`) Строки единой калибровки, пока у спектра нет кривой FWHM (<see cref="PendingCalibrationLines"/>).</summary>
+        List<CalibrationPeak> pendingCalibrationLines = new List<CalibrationPeak>();
 
         List<CountRate> countRates = new List<CountRate>();
     }

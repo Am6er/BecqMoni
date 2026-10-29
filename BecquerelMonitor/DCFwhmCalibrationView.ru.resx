@@ -117,40 +117,225 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="selectCurveComboBox.ToolTip" xml:space="preserve">
-    <value>Выбрать кривую калибровки</value>
-  </data>
-  <data name="minPeaksRequirementLabel.ToolTip" xml:space="preserve">
-    <value>Мин. количество пиков для использования этой кривой в FWHM калибровке</value>
-  </data>
   <data name="label1.Text" xml:space="preserve">
-    <value>Укажите пик для калибровки...</value>
+    <value>Выделите пик на спектре и введите энергию его линии: каждая строка таблицы идёт и в калибровку по энергии, и в калибровку FWHM. Серая энергия (строка от прибора или из файла прежней версии) идёт только в FWHM, пока её не введут.</value>
   </data>
-  <data name="channelColumn.Text" xml:space="preserve">
-    <value>Канал</value>
+  <data name="textBox15.Text" xml:space="preserve">
+    <value>Энергия[кэВ] = ax^4 + bx^3 + cx^2 + dx + e (x = номер канала)</value>
+  </data>
+  <data name="label6.Size" type="System.Drawing.Size, System.Drawing">
+    <value>57, 13</value>
+  </data>
+  <data name="label6.Text" xml:space="preserve">
+    <value>4 коэф.(a)</value>
+  </data>
+  <data name="label7.Size" type="System.Drawing.Size, System.Drawing">
+    <value>57, 13</value>
+  </data>
+  <data name="label7.Text" xml:space="preserve">
+    <value>3 коэф.(b)</value>
+  </data>
+  <data name="label4.Size" type="System.Drawing.Size, System.Drawing">
+    <value>57, 13</value>
+  </data>
+  <data name="label4.Text" xml:space="preserve">
+    <value>2 коэф.(c)</value>
+  </data>
+  <data name="offsetLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>76, 13</value>
+  </data>
+  <data name="offsetLabel.Text" xml:space="preserve">
+    <value>Смещение (e)</value>
+  </data>
+  <data name="coeff1Label.Size" type="System.Drawing.Size, System.Drawing">
+    <value>57, 13</value>
+  </data>
+  <data name="coeff1Label.Text" xml:space="preserve">
+    <value>1 коэф.(d)</value>
+  </data>
+  <data name="button1.Text" xml:space="preserve">
+    <value>Сброс</value>
+  </data>
+  <data name="button1.ToolTip" xml:space="preserve">
+    <value>Сбросить калибровку по энергии к калибровке прибора</value>
+  </data>
+  <data name="viewEnergyGraphButton.Text" xml:space="preserve">
+    <value>График</value>
+  </data>
+  <data name="viewEnergyGraphButton.ToolTip" xml:space="preserve">
+    <value>Показать калибровку по энергии и её линии на графике</value>
+  </data>
+  <data name="getAllPeaksButton.Text" xml:space="preserve">
+    <value>Собрать всё</value>
+  </data>
+  <data name="getAllPeaksButton.ToolTip" xml:space="preserve">
+    <value>Собрать в эту таблицу строки калибровки всех открытых спектров с тем же числом каналов</value>
+  </data>
+  <data name="checkBox2.Location" type="System.Drawing.Point, System.Drawing">
+    <value>334, 34</value>
+  </data>
+  <data name="checkBox2.Size" type="System.Drawing.Size, System.Drawing">
+    <value>51, 17</value>
+  </data>
+  <data name="checkBox2.Text" xml:space="preserve">
+    <value>Веса</value>
+  </data>
+  <data name="checkBox2.ToolTip" xml:space="preserve">
+    <value>Использовать точки калибровки с весами, которые рассчитываются исходя из числа импульсов на этом канале.</value>
+  </data>
+  <data name="label37.Size" type="System.Drawing.Size, System.Drawing">
+    <value>56, 13</value>
+  </data>
+  <data name="label37.Text" xml:space="preserve">
+    <value>Полином:</value>
+  </data>
+  <data name="numericUpDown6.ToolTip" xml:space="preserve">
+    <value>Степень полинома энергии (понижается сама, если кривая между линиями гнётся слишком далеко)</value>
+  </data>
+  <data name="label36.Size" type="System.Drawing.Size, System.Drawing">
+    <value>245, 13</value>
+  </data>
+  <data name="label36.Text" xml:space="preserve">
+    <value>Изменить значения и нажать кнопку выполнить.</value>
+  </data>
+  <data name="cancelAddPeakButton.Text" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="executeCalibrationButton.Text" xml:space="preserve">
+    <value>Выполнить калибровку</value>
+  </data>
+  <data name="executeCalibrationButton.ToolTip" xml:space="preserve">
+    <value>Подогнать калибровку по энергии по линиям и кривую FWHM по всем строкам таблицы</value>
+  </data>
+  <data name="CollectedPeaksTable.NoItemsText" xml:space="preserve">
+    <value>Нет пиков для калибровки</value>
+  </data>
+  <data name="addPeakButton.Text" xml:space="preserve">
+    <value>Добавить пик</value>
+  </data>
+  <data name="addPeakButton.ToolTip" xml:space="preserve">
+    <value>Затем выделите пик на графике спектра</value>
   </data>
   <data name="removePeakButton.Text" xml:space="preserve">
     <value>Удалить</value>
   </data>
-  <data name="getAllPeaksButton.Text" xml:space="preserve">
-    <value>Все пики</value>
+  <data name="label2.Size" type="System.Drawing.Size, System.Drawing">
+    <value>139, 13</value>
   </data>
-  <data name="$this.Text" xml:space="preserve">
-    <value>Калибровка по FWHM</value>
+  <data name="label2.Text" xml:space="preserve">
+    <value>Кривая калибровки FWHM:</value>
+  </data>
+  <data name="selectCurveComboBox.Items" xml:space="preserve">
+    <value>Простой квадратный корень</value>
+  </data>
+  <data name="selectCurveComboBox.Items1" xml:space="preserve">
+    <value>Квадратный корень полинома</value>
+  </data>
+  <data name="selectCurveComboBox.Items2" xml:space="preserve">
+    <value>Степенная</value>
+  </data>
+  <data name="selectCurveComboBox.ToolTip" xml:space="preserve">
+    <value>Выбрать кривую калибровки</value>
+  </data>
+  <data name="viewCalibrationButton.Text" xml:space="preserve">
+    <value>Просмотр ...</value>
+  </data>
+  <data name="viewCalibrationButton.ToolTip" xml:space="preserve">
+    <value>Показать кривую FWHM и её строки на графике</value>
+  </data>
+  <data name="label3.Text" xml:space="preserve">
+    <value>Формула:</value>
+  </data>
+  <data name="curveFormulaLabel.Text" xml:space="preserve">
+    <value>FWHM = √(a * ch² + b * ch + c)</value>
+  </data>
+  <data name="minPeaksRequirementLabel.Text" xml:space="preserve">
+    <value>Мин. количество пиков: 3</value>
+  </data>
+  <data name="minPeaksRequirementLabel.ToolTip" xml:space="preserve">
+    <value>Мин. количество пиков для использования этой кривой в FWHM калибровке</value>
+  </data>
+  <data name="peakShapeInfoGroupBox.Text" xml:space="preserve">
+    <value>Выбранная функция пика</value>
+  </data>
+  <data name="viewPeakShapeButton.Text" xml:space="preserve">
+    <value>Просмотр</value>
+  </data>
+  <data name="peakShapeSecondParameterLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>92, 13</value>
+  </data>
+  <data name="peakShapeSecondParameterLabel.Text" xml:space="preserve">
+    <value>Правый перекос</value>
+  </data>
+  <data name="peakShapeFirstParameterLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>86, 13</value>
+  </data>
+  <data name="peakShapeFirstParameterLabel.Text" xml:space="preserve">
+    <value>Левый перекос</value>
+  </data>
+  <data name="peakShapeTypeValueLabel.Text" xml:space="preserve">
+    <value>Гауссиана</value>
+  </data>
+  <data name="peakShapeTypeLabel.Text" xml:space="preserve">
+    <value>Тип пика</value>
+  </data>
+  <data name="checkBox1.Size" type="System.Drawing.Size, System.Drawing">
+    <value>110, 17</value>
+  </data>
+  <data name="checkBox1.Text" xml:space="preserve">
+    <value>Автокалибровка</value>
+  </data>
+  <data name="checkBox1.ToolTip" xml:space="preserve">
+    <value>Вкл/Выкл Автокалибратор</value>
+  </data>
+  <data name="button5.Location" type="System.Drawing.Point, System.Drawing">
+    <value>125, 637</value>
+  </data>
+  <data name="button5.Text" xml:space="preserve">
+    <value>Изменить...</value>
+  </data>
+  <data name="button5.ToolTip" xml:space="preserve">
+    <value>Конфигурация стабилизатора</value>
   </data>
   <data name="saveToDeviceCfgButton.Text" xml:space="preserve">
     <value>Сохр. в конф. устр.</value>
   </data>
   <data name="saveToDeviceCfgButton.ToolTip" xml:space="preserve">
-    <value>Сохранить калибровку в конфиг устройства</value>
+    <value>Сохранить калибровку по энергии, кривизну тракта и кривую FWHM в текущую конфигурацию прибора</value>
   </data>
-  <data name="minPeaksRequirementLabel.Text" xml:space="preserve">
-    <value>Мин. количество пиков: 3</value>
+  <data name="positionColumn.Text" xml:space="preserve">
+    <value>#</value>
   </data>
-  <data name="executeCalibrationButton.Text" xml:space="preserve">
-    <value>Калибровать</value>
+  <data name="channelColumn.Text" xml:space="preserve">
+    <value>Канал</value>
   </data>
-  <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  <data name="channelColumn.ToolTipText" xml:space="preserve">
+    <value>Номер канала</value>
+  </data>
+  <data name="energyColumn.Text" xml:space="preserve">
+    <value>Энергия</value>
+  </data>
+  <data name="energyColumn.ToolTipText" xml:space="preserve">
+    <value>Энергия линии в кэВ; серая — оценка по калибровке того времени, идёт только в FWHM</value>
+  </data>
+  <data name="fwhmColumn.Text" xml:space="preserve">
+    <value>FWHM</value>
+  </data>
+  <data name="fwhmColumn.ToolTipText" xml:space="preserve">
+    <value>FWHM в каналах и в % от энергии пика</value>
+  </data>
+  <data name="weightColumn.Text" xml:space="preserve">
+    <value>Вес</value>
+  </data>
+  <data name="weightColumn.ToolTipText" xml:space="preserve">
+    <value>Отсчёты в канале: вес линии в подгонке энергии с весами</value>
+  </data>
+  <data name="$this.TabText" xml:space="preserve">
+    <value>Калибровка</value>
+  </data>
+  <data name="$this.Text" xml:space="preserve">
+    <value>Калибровка энергии и FWHM</value>
+  </data>
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         AAABAAsAEBAAAAEAIABoBAAAtgAAABgYAAABACAAiAkAAB4FAAAgIAAAAQAgAKgQAACmDgAAKCgAAAEA
@@ -4419,80 +4604,5 @@
         RrBvRPQxtOxH2AvsBfYBB9hhAtS/bLe4ff4Tv0VkGbGrSmRNhDUldkWJvSLYZ0TUs8ry3EZZPSdP/tT6
         nR7OG23/P+lc/Y4dBvlpAAAAAElFTkSuQmCC
 </value>
-  </data>
-  <data name="CollectedPeaksTable.NoItemsText" xml:space="preserve">
-    <value>Нет пиков для калибровки</value>
-  </data>
-  <data name="channelColumn.ToolTipText" xml:space="preserve">
-    <value>Номер канала</value>
-  </data>
-  <data name="$this.TabText" xml:space="preserve">
-    <value>Калибровка по FWHM</value>
-  </data>
-  <data name="selectCurveComboBox.Items2" xml:space="preserve">
-    <value>Степенная</value>
-  </data>
-  <data name="selectCurveComboBox.Items1" xml:space="preserve">
-    <value>Квадратный корень полинома</value>
-  </data>
-  <data name="fwhmColumn.ToolTipText" xml:space="preserve">
-    <value>FWHM в каналах</value>
-  </data>
-  <data name="selectCurveComboBox.Items" xml:space="preserve">
-    <value>Простой квадратный корень</value>
-  </data>
-  <data name="energyColumn.Text" xml:space="preserve">
-    <value>Энергия</value>
-  </data>
-  <data name="label2.Text" xml:space="preserve">
-    <value>Выберите кривую калибровки из списка ниже</value>
-  </data>
-  <data name="addPeakButton.Text" xml:space="preserve">
-    <value>Добавить</value>
-  </data>
-  <data name="label3.Text" xml:space="preserve">
-    <value>Формула:</value>
-  </data>
-  <data name="energyColumn.ToolTipText" xml:space="preserve">
-    <value>Энергия в кэВ</value>
-  </data>
-  <data name="viewCalibrationButton.Text" xml:space="preserve">
-    <value>Просмотр ...</value>
-  </data>
-  <data name="cancelAddPeakButton.Text" xml:space="preserve">
-    <value>Отмена</value>
-  </data>
-  <data name="peakShapeInfoGroupBox.Text" xml:space="preserve">
-    <value>Выбранная функция пика</value>
-  </data>
-  <data name="peakShapeTypeLabel.Text" xml:space="preserve">
-    <value>Тип пика</value>
-  </data>
-  <data name="viewPeakShapeButton.Text" xml:space="preserve">
-    <value>Просмотр</value>
-  </data>
-  <data name="peakShapeFirstParameterLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>86, 13</value>
-  </data>
-  <data name="peakShapeFirstParameterLabel.Text" xml:space="preserve">
-    <value>Левый перекос</value>
-  </data>
-  <data name="peakShapeSecondParameterLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>92, 13</value>
-  </data>
-  <data name="peakShapeSecondParameterLabel.Text" xml:space="preserve">
-    <value>Правый перекос</value>
-  </data>
-  <data name="curveFormulaLabel.Text" xml:space="preserve">
-    <value>FWHM = √(a * ch² + b * ch + c)</value>
-  </data>
-  <data name="fwhmColumn.Text" xml:space="preserve">
-    <value>FWHM</value>
-  </data>
-  <data name="peakShapeTypeValueLabel.Text" xml:space="preserve">
-    <value>Гауссиана</value>
-  </data>
-  <data name="positionColumn.Text" xml:space="preserve">
-    <value>#</value>
   </data>
 </root>

@@ -1994,6 +1994,38 @@ namespace BecquerelMonitor.Properties {
             }
         }        
         /// <summary>
+        ///   Looks up a localized string similar to Save the energy calibration and the FWHM curve to the current device configuration?.
+        /// </summary>
+        public static string MSGSaveCalibration {
+            get {
+                return ResourceManager.GetString("MSGSaveCalibration", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Drag across a peak on the spectrum chart..
+        /// </summary>
+        public static string MSGPickUpCalibrationPeak {
+            get {
+                return ResourceManager.GetString("MSGPickUpCalibrationPeak", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Calibration is done..
+        /// </summary>
+        public static string MSGUnifiedCalibrationDone {
+            get {
+                return ResourceManager.GetString("MSGUnifiedCalibrationDone", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Energy.
+        /// </summary>
+        public static string MSGEnergyShort {
+            get {
+                return ResourceManager.GetString("MSGEnergyShort", resourceCulture);
+            }
+        }
+        /// <summary>
         ///   Looks up a localized string similar to Save FWHM calibration to current device configuration?.
         /// </summary>
         public static string MSGSaveFWHMCalibration {

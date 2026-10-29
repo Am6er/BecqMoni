@@ -604,6 +604,16 @@ namespace BecquerelMonitor
         // флажками модели они живут в окне отчёта `FSAReportView`, а запись в
         // общую настройку приложения — там же (`AMBER212`).
 
+        /// <summary>
+        /// «Добавить в калибровку». (`AMBER276`, 29.10.2026) Amber, консоль, дословно:
+        /// «обрати внимание на форму поиска пиков. В нем есть табличка с найденными
+        /// пиками. При клике правой кнопкой мышки появляется контекстное меню «Добавить
+        /// выбранный пик в калибровку».» Пункт — второй вход единой калибровки: выбранный
+        /// пик (строка несёт его в <c>Tag</c>, `A255`) идёт в ту же таблицу и с той же
+        /// подгонкой центра и FWHM, что щелчок по спектру
+        /// (<c>MainForm.AddDetectedPeakToCalibration</c>). Энергия — прежней арифметикой:
+        /// энергия строки минус её промах, то есть энергия линии, которой пик подписан.
+        /// </summary>
         void ToolStripMenuItem1_Click(object sender, EventArgs e)
         {
             int channel = 0;
@@ -622,9 +632,10 @@ namespace BecquerelMonitor
                         diff = 0;
                     }
                     energy = Convert.ToDecimal(row.Cells[1].Text, CultureInfo.InvariantCulture) - diff;
-                    if (this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum.Length > channel)
+                    Peak peak = row.Tag as Peak;
+                    if (peak != null && channel >= 0 && this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum.Length > channel)
                     {
-                        this.mainForm.addCalibration(channel, energy, this.mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.Spectrum[channel]);
+                        this.mainForm.AddDetectedPeakToCalibration(peak, (double)energy);
                     } else
                     {
                         throw new Exception(Resources.ERRCalibrationChannelExceed);

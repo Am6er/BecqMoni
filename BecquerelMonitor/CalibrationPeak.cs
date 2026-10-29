@@ -9,6 +9,8 @@ namespace BecquerelMonitor
         int channel;
         double energy;
         double fwhm;
+        bool energyLine;
+        int count;
         int peak_type = 0;
         double left_tail = 1.0;
         double right_tail = 1.0;
@@ -33,7 +35,51 @@ namespace BecquerelMonitor
         public int Channel { get => channel; set => channel = value; }
         public double Energy { get => energy; set => energy = value; }
         public double FWHM { get => fwhm; set => fwhm = value; }
-        
+
+        /// <summary>
+        /// ⛔ (`AMBER276`, 29.10.2026) СТРОКА ЕДИНОЙ КАЛИБРОВКИ — ЛИНИЯ ДЛЯ ПОДГОНКИ
+        /// ЭНЕРГИИ. Amber, консоль, дословно: «Объединить калибровки по энергии и FWHM в
+        /// один процесс на одной вкладке … Таблица калибровки - единая. В файл спектра
+        /// помимо калибровки fwhm теперь попадает и калибровка по энергии.»; вопросником
+        /// того же дня: «Строка идёт в обе подгонки».
+        ///
+        /// true — строка заведена ЕДИНОЙ калибровкой этого спектра (щелчок по пику или
+        /// «Добавить в калибровку» из таблицы найденных пиков) либо человек ввёл её
+        /// энергию: такая строка идёт и в подгонку энергии, и в подгонку FWHM. false —
+        /// опора FWHM, пришедшая иначе: из прибора (его кривая FWHM с опорами того
+        /// спектра, по которому её сохраняли), из умолчания по трём числам настроек
+        /// (каналы 0 и <c>Ch_Fwhm</c>) или из файла прежней версии. Её «энергия» — оценка
+        /// по калибровке того времени, а не энергия линии, и в подгонку энергии такая
+        /// строка не идёт: две умолчательные опоры прибили бы шкалу к прежнему смещению
+        /// на канале 0, а опоры прибора — к каналам ЧУЖОГО спектра.
+        ///
+        /// ЗАПИСЬ — элементом <c>&lt;EnergyLine&gt;true&lt;/EnergyLine&gt;</c> внутри
+        /// <c>&lt;Peak&gt;</c> секции FWHM и только у линии (<see cref="ShouldSerializeEnergyLine"/>);
+        /// прежняя версия незнакомый элемент пропускает и читает канал, энергию и FWHM,
+        /// как читала. Конфигурация прибора линий не получает: сохранение в прибор
+        /// снимает признак (<c>DCFwhmCalibrationView.ForDevice</c>).
+        /// </summary>
+        public bool EnergyLine { get => energyLine; set => energyLine = value; }
+
+        /// <summary>(`AMBER276`) Писать ли <see cref="EnergyLine"/> — соглашение <c>XmlSerializer</c>: только у линии.</summary>
+        public bool ShouldSerializeEnergyLine()
+        {
+            return energyLine;
+        }
+
+        /// <summary>
+        /// (`AMBER276`) Отсчёты в канале строки — вес точки в подгонке энергии «с весами»
+        /// (прежде — столбец «Вес» таблицы энергии, <c>CalibrationPoint.Count</c>). Пишется
+        /// только у линии: опоре FWHM вес не нужен.
+        /// </summary>
+        public int Count { get => count; set => count = value; }
+
+        /// <summary>(`AMBER276`) Писать ли <see cref="Count"/> — только у линии.</summary>
+        public bool ShouldSerializeCount()
+        {
+            return energyLine;
+        }
+
         [XmlIgnore]
         public int PeakType { get => peak_type; set => peak_type = value; }
 
@@ -115,6 +161,8 @@ namespace BecquerelMonitor
                     Channel = point.Channel,
                     Energy = point.Energy,
                     FWHM = point.FWHM,
+                    EnergyLine = point.EnergyLine,
+                    Count = point.Count,
                     PeakType = point.PeakType,
                     ExpGaussExpLeftTail = point.ExpGaussExpLeftTail,
                     ExpGaussExpRightTail = point.ExpGaussExpRightTail,

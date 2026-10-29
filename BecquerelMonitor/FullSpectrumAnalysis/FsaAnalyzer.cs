@@ -23745,6 +23745,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// того же порядка, что сам сигнал; данные Co-60/Y-88 его не
     /// подтверждают (П16 §3.2). Ошибка в r(E₀) безвредна: она — общий
     /// множитель, его съедает усиление привязки.
+    ///
+    /// ⛔ (`AMBER272`, 29.10.2026) РЯДЫ ЖИВУТ В `matdb`, А НЕ В КОДЕ. Решение Amber 29.10.2026
+    /// вопросником, её словами: «Все таблицы должны жить в базе matdb». Таблицы
+    /// `scint_photon_light_curves` (кривая, префикс вещества, происхождение ряда) и
+    /// `scint_photon_light_yield` (узлы E, r) пишет `tools/nucdb/import_photon_light_yield.py`
+    /// из рядов `tools/nucdb/data/photon_light/`; прежние массивы `NaITable` (37 узлов) и
+    /// `CsITable` (35) перенесены ПОБИТОВО — корпус и витрина сходятся до бита (журнал
+    /// `handover/handover-2026-10-29-amber272-light-curves-matdb.md`). Новое вещество —
+    /// записью в базу (строка кривой с префиксом и её узлы), без правки кода.
+    ///
+    /// ⚠ Обе таблицы читает FSA, а НЕ ПЕРЕНОС, и в отпечаток справочных данных переноса
+    /// (`MaterialDatabase.SimulatorTables`, `mdb=` клейма матриц и кривых) они не входят
+    /// нарочно: тело матрицы от них не зависит, а их правка не должна объявлять негодным склад.
+    /// Ряд — ВЫХОД переноса: сменилась кривая электронов или её ключи — снять заново
+    /// `LightScaleProbe` и переписать импортом.
     /// </summary>
     internal static class FsaLightScale
     {
@@ -23754,38 +23769,199 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Имя кривой CsI:Tl.</summary>
         public const string CsI = "CsI:Tl";
 
-        static readonly double[][] NaITable =
+        /// <summary>Что знает разбор о фотонных кривых: прочитанное из базы и отказы чтения.</summary>
+        sealed class CurveSet
         {
-            new[] { 10.0, 1.1740 }, new[] { 20.0, 1.2160 }, new[] { 30.0, 1.2027 }, new[] { 31.0, 1.2008 },
-            new[] { 32.0, 1.1989 }, new[] { 33.0, 1.1969 }, new[] { 33.1, 1.1967 }, new[] { 33.2, 1.1924 },
-            new[] { 33.3, 1.1902 }, new[] { 33.4, 1.1887 }, new[] { 33.5, 1.1876 }, new[] { 33.7, 1.1863 },
-            new[] { 34.0, 1.1855 }, new[] { 34.5, 1.1856 }, new[] { 35.0, 1.1862 }, new[] { 35.5, 1.1872 },
-            new[] { 36.0, 1.1883 }, new[] { 36.5, 1.1894 }, new[] { 37.0, 1.1906 }, new[] { 37.5, 1.1917 },
-            new[] { 38.0, 1.1928 }, new[] { 39.0, 1.1949 }, new[] { 40.0, 1.1967 }, new[] { 45.0, 1.2017 },
-            new[] { 50.0, 1.2018 }, new[] { 60.0, 1.1942 }, new[] { 81.0, 1.1695 }, new[] { 100.0, 1.1488 },
-            new[] { 122.0, 1.1296 }, new[] { 200.0, 1.0909 }, new[] { 356.0, 1.0630 }, new[] { 661.657, 1.0377 },
-            new[] { 1000.0, 1.0221 }, new[] { 1173.0, 1.0168 }, new[] { 1332.0, 1.0129 }, new[] { 1408.0, 1.0113 },
-            new[] { 2614.0, 0.9985 },
-        };
+            /// <summary>Кривая по имени: узлы {E, r} по возрастанию E.</summary>
+            public readonly Dictionary<string, double[][]> Tables =
+                new Dictionary<string, double[][]>(StringComparer.Ordinal);
 
-        // 4 000 000 историй на каждом узле (П220, физика 26 + кривая p220_khodyuk2012_free, `ASN16_csi_point1.in`; узлы 1764.5 и 2614 добавлены)
-        static readonly double[][] CsITable =
+            /// <summary>(префикс вещества, имя кривой), длинные префиксы первыми.</summary>
+            public readonly List<KeyValuePair<string, string>> Prefixes = new List<KeyValuePair<string, string>>();
+
+            /// <summary>Отказы чтения — называются в отчёте разбора, а не глотаются.</summary>
+            public readonly List<Exception> Failures = new List<Exception>();
+        }
+
+        static CurveSet curves;
+        static string curvesPath;
+        static readonly object CurvesGate = new object();
+
+        /// <summary>
+        /// Кривые — один раз на процесс из `matdb.sqlite` рядом с программой. Отказ
+        /// (базы нет, таблицы нет, ряд негоден) не роняет разбор: вещество остаётся
+        /// без кривой, как было с веществом вне таблицы, а отказ уходит в
+        /// <see cref="FsaDatabaseFailures"/> на каждом разборе, который спросил кривую.
+        /// </summary>
+        static CurveSet Curves()
         {
-            new[] { 10.0, 1.1645 }, new[] { 20.0, 1.2059 }, new[] { 30.0, 1.1973 }, new[] { 32.0, 1.1944 },
-            new[] { 33.0, 1.1928 }, new[] { 33.1, 1.1927 }, new[] { 33.2, 1.1884 }, new[] { 33.3, 1.1867 },
-            new[] { 33.5, 1.1846 }, new[] { 33.7, 1.1837 }, new[] { 34.0, 1.1831 }, new[] { 34.5, 1.1831 },
-            new[] { 35.0, 1.1835 }, new[] { 35.5, 1.1840 }, new[] { 35.9, 1.1845 }, new[] { 36.1, 1.1836 },
-            new[] { 36.3, 1.1825 }, new[] { 36.6, 1.1820 }, new[] { 37.0, 1.1823 }, new[] { 37.5, 1.1829 },
-            new[] { 38.0, 1.1837 }, new[] { 39.0, 1.1854 }, new[] { 40.0, 1.1871 }, new[] { 50.0, 1.1942 },
-            new[] { 60.0, 1.1897 }, new[] { 81.0, 1.1698 }, new[] { 100.0, 1.1517 }, new[] { 122.0, 1.1339 },
-            new[] { 200.0, 1.0947 }, new[] { 356.0, 1.0619 }, new[] { 661.657, 1.0337 }, new[] { 1000.0, 1.0173 },
-            new[] { 1332.5, 1.0076 }, new[] { 1764.5, 1.0000 }, new[] { 2614.0, 0.9926 },
-        };
+            CurveSet set = System.Threading.Volatile.Read(ref curves);
+            if (set == null)
+            {
+                lock (CurvesGate)
+                {
+                    if (curves == null)
+                    {
+                        curves = ReadCurves(curvesPath ?? EfficiencyMaker.MaterialDatabase.DatabasePath());
+                    }
+
+                    set = curves;
+                }
+            }
+
+            return set;
+        }
+
+        /// <summary>
+        /// Только для проб (отражением): перечитать кривые из другого файла базы
+        /// (положительный контроль подменённого узла); null — снова файл рядом с программой.
+        /// </summary>
+        internal static void Reload(string path)
+        {
+            lock (CurvesGate)
+            {
+                curvesPath = path;
+                curves = null;
+            }
+        }
+
+        static void NoteFailures(CurveSet set)
+        {
+            foreach (Exception failure in set.Failures)
+            {
+                FsaDatabaseFailures.Note("matdb.sqlite", "фотонные кривые света", failure);
+            }
+        }
+
+        static CurveSet ReadCurves(string path)
+        {
+            var set = new CurveSet();
+            if (!System.IO.File.Exists(path))
+            {
+                set.Failures.Add(new System.IO.FileNotFoundException(
+                    "matdb.sqlite не найдена рядом с программой — световой поправки FSA нет: " + path, path));
+                return set;
+            }
+
+            var prefixes = new List<KeyValuePair<string, string>>();
+            var names = new List<string>();
+            var rows = new Dictionary<string, List<double[]>>(StringComparer.Ordinal);
+            try
+            {
+                using (var connection = new Microsoft.Data.Sqlite.SqliteConnection(
+                    EfficiencyMaker.MaterialDatabase.ReadOnlyConnection(path, true)))
+                {
+                    connection.Open();
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText = "select material, match_prefix from scint_photon_light_curves";
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                string name = reader.GetString(0);
+                                names.Add(name);
+                                if (!reader.IsDBNull(1) && reader.GetString(1).Length > 0)
+                                {
+                                    prefixes.Add(new KeyValuePair<string, string>(reader.GetString(1), name));
+                                }
+                            }
+                        }
+                    }
+
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText =
+                            "select material, energy_kev, yield_rel from scint_photon_light_yield order by material, energy_kev";
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                string name = reader.GetString(0);
+                                List<double[]> list;
+                                if (!rows.TryGetValue(name, out list))
+                                {
+                                    list = new List<double[]>();
+                                    rows[name] = list;
+                                }
+
+                                list.Add(new[] { reader.GetDouble(1), reader.GetDouble(2) });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                set.Failures.Add(new InvalidOperationException(
+                    "фотонные кривые света не прочитаны из " + path + ": " + ex.Message, ex));
+                return set;
+            }
+
+            foreach (string name in names)
+            {
+                List<double[]> list;
+                string bad = null;
+                if (!rows.TryGetValue(name, out list) || list.Count < 2)
+                {
+                    bad = "меньше двух узлов";
+                }
+                else
+                {
+                    for (int i = 0; i < list.Count && bad == null; i++)
+                    {
+                        double e = list[i][0], r = list[i][1];
+                        if (!(e > 0.0) || double.IsInfinity(e) || !(r > 0.0) || double.IsInfinity(r))
+                        {
+                            bad = "узел " + e.ToString("R", CultureInfo.InvariantCulture) + " кэВ негоден";
+                        }
+                        else if (i > 0 && !(e > list[i - 1][0]))
+                        {
+                            bad = "энергии узлов не возрастают";
+                        }
+                    }
+                }
+
+                if (bad != null)
+                {
+                    set.Failures.Add(new InvalidOperationException(
+                        "фотонная кривая «" + name + "» отвергнута: " + bad));
+                    continue;
+                }
+
+                set.Tables[name] = list.ToArray();
+            }
+
+            foreach (string name in rows.Keys)
+            {
+                if (!names.Contains(name))
+                {
+                    set.Failures.Add(new InvalidOperationException(
+                        "узлы фотонной кривой «" + name + "» без строки в scint_photon_light_curves — не взяты"));
+                }
+            }
+
+            foreach (KeyValuePair<string, string> pair in prefixes)
+            {
+                if (set.Tables.ContainsKey(pair.Value))
+                {
+                    set.Prefixes.Add(pair);
+                }
+            }
+
+            // Длинный префикс прежде короткого: вещество получает самую точную кривую.
+            set.Prefixes.Sort((a, b) => b.Key.Length != a.Key.Length
+                ? b.Key.Length.CompareTo(a.Key.Length)
+                : string.CompareOrdinal(a.Key, b.Key));
+            return set;
+        }
 
         /// <summary>
         /// Имя кривой по веществу кристалла (как его называет
         /// <see cref="EfficiencyMaker.EfficiencySimulator.ScintillatorNameOf(EfficiencyMaker.GeometryModel)"/>);
-        /// null — кривой для вещества нет (LaBr3, CZT, германий, пусто).
+        /// null — кривой для вещества нет (CZT, германий, пусто). Выбор — по базе: точное имя
+        /// кривой, иначе самый длинный `match_prefix`, с которого начинается имя вещества
+        /// («NaI…» → NaI:Tl, «CsI…» → CsI:Tl, у CsI:Na своей кривой нет — та же CsI:Tl).
         /// </summary>
         public static string CurveFor(string scintillator)
         {
@@ -23794,14 +23970,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
-            if (scintillator.StartsWith("NaI", StringComparison.Ordinal))
+            CurveSet set = Curves();
+            NoteFailures(set);
+            if (set.Tables.ContainsKey(scintillator))
             {
-                return NaI;
+                return scintillator;
             }
 
-            if (scintillator.StartsWith("CsI", StringComparison.Ordinal))
+            foreach (KeyValuePair<string, string> pair in set.Prefixes)
             {
-                return CsI;
+                if (scintillator.StartsWith(pair.Key, StringComparison.Ordinal))
+                {
+                    return pair.Value;
+                }
             }
 
             return null;
@@ -23810,22 +23991,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Есть ли таблица под этим именем.</summary>
         public static bool Known(string curve)
         {
-            return TableOf(curve) != null;
+            if (curve == null)
+            {
+                return false;
+            }
+
+            CurveSet set = Curves();
+            NoteFailures(set);
+            return set.Tables.ContainsKey(curve);
         }
 
         static double[][] TableOf(string curve)
         {
-            if (curve == NaI)
-            {
-                return NaITable;
-            }
-
-            if (curve == CsI)
-            {
-                return CsITable;
-            }
-
-            return null;
+            double[][] table;
+            return curve != null && Curves().Tables.TryGetValue(curve, out table) ? table : null;
         }
 
         static double Interp(double[][] table, double e)

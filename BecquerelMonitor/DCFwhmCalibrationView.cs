@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using XPTable.Editors;
@@ -11,10 +12,51 @@ using XPTable.Models;
 
 namespace BecquerelMonitor
 {
+    /// <summary>
+    /// ⛔ (`AMBER276`, 29.10.2026) ЕДИНАЯ ВКЛАДКА КАЛИБРОВКИ: ЭНЕРГИЯ И FWHM — ОДИН
+    /// ПРОЦЕСС И ОДНА ТАБЛИЦА. Amber, консоль, дословно: «Объединить калибровки по
+    /// энергии и FWHM в один процесс на одной вкладке, сейчас их две. Выбор пика для
+    /// линии калибровки делать как сейчас это делается в FWHM. Таблица калибровки -
+    /// единая. В файл спектра помимо калибровки fwhm теперь попадает и калибровка по
+    /// энергии.» Вопросником того же дня, дословно: «Строка идёт в обе подгонки» и
+    /// «Всё из обеих (Рекомендую)» — ни одна прежняя возможность двух вкладок не
+    /// пропадает: ручной ввод коэффициентов полинома, автокалибровка с её настройкой,
+    /// веса, «собрать всё», графики обеих калибровок, вид кривой FWHM, форма пика,
+    /// сохранение в прибор (с кривизной тракта, `AMBER271`).
+    ///
+    /// КАК УСТРОЕНО.
+    ///   * Пик берётся выделением на графике (событие <c>PeakPickuped</c>, как прежде у
+    ///     FWHM): центроид, FWHM и статистики формы пика (<c>CalcPeakFitValues</c>).
+    ///     Второй вход — «Добавить в калибровку» таблицы найденных пиков
+    ///     (<see cref="AddDetectedPeak"/>): тот же расчёт по диапазону вокруг пика.
+    ///   * Строки — <see cref="ResultData.CalibrationLines"/>: опоры кривой FWHM, то есть
+    ///     в файле они лежат в секции FWHM, дополненной признаком линии
+    ///     (<see cref="CalibrationPeak.EnergyLine"/>) и отсчётами канала. Элемент
+    ///     <c>EnergyCalibration</c> не трогается: Amber, дословно, «текущее
+    ///     местоположение коэффициентов калибровки ни в коем случае нельзя трогать».
+    ///   * «Рассчитать» (<see cref="RunCalibration"/>) — обе подгонки: энергия по
+    ///     линиям (прежняя подгонка вкладки энергии, <c>SolveGuarded</c>), FWHM по всем
+    ///     строкам (прежняя подгонка вкладки FWHM, выбор формы пика).
+    ///
+    /// ⚠ Имя класса — прежней вкладки FWHM: этот класс строят по имени пробы
+    /// (`FwhmViewReachProbeO13`, `ModalReachProbeF22`, `FwhmReaderProbeF62`,
+    /// `P314FwhmProbe`, `P321FwhmSameGridProbe`, `CultureProbeO14`) и зовут отражением
+    /// методы с прежними именами. Окно приложения — наследник
+    /// <see cref="DCEnergyCalibrationView"/>: его имя типа и есть строка раскладки окон
+    /// (<c>PersistString</c>), которую несут поставочная раскладка, раскладки людей и
+    /// прежние версии.
+    /// </summary>
     public partial class DCFwhmCalibrationView : ToolWindow
     {
         MainForm mainForm;
 
+        GlobalConfigManager globalConfigManager = GlobalConfigManager.GetInstance();
+
+        /// <summary>
+        /// Кривая FWHM вида: ссылка на кривую документа либо ещё не посчитанный выбор
+        /// вида кривой (см. <see cref="SelectCurveComboBox_SelectedIndexChanged"/>);
+        /// <c>null</c> — у спектра кривой нет.
+        /// </summary>
         FwhmCalibration fwhmCalibration;
 
         int lastSelectedIndex = -1;
@@ -25,8 +67,19 @@ namespace BecquerelMonitor
 
         EnergySpectrumView pickupSubscribedView;
 
+        /// <summary>Таблица и вид кривой не менялись после последнего расчёта (или документа ещё не трогали).</summary>
         bool calibrationDone = true;
+
+        /// <summary>Последний «Рассчитать» прошёл, и с тех пор ничего не менялось — строка состояния говорит «выполнено».</summary>
+        bool calibrationRan;
+
         bool updatingCurveSelection;
+
+        /// <summary>Степень полинома ставит код (по числу линий) — правка человека не отмечается изменением.</summary>
+        bool settingPolynomialOrder;
+
+        /// <summary>Число линий, по которому степень полинома ставилась в последний раз (-1 — ещё не ставилась).</summary>
+        int polynomialOrderLines = -1;
 
         string expGaussExpLeftParameterLabelText;
         string expGaussExpRightParameterLabelText;
@@ -35,80 +88,99 @@ namespace BecquerelMonitor
         /// ПРИЧИНА, ПО КОТОРОЙ КРИВОЙ РАЗРЕШЕНИЯ У СПЕКТРА НЕТ (`A240`, полоса
         /// F62, 06.09.2026), — словами и с тремя числами настроек. Заполняется
         /// последней попыткой <see cref="EnsureFwhmCalibration"/>, читается
-        /// <see cref="ApplyFwhmRefusalHint"/>. <c>null</c> — причины нет, то
-        /// есть кривая построилась либо о ней не спрашивали.
+        /// <see cref="ApplyFwhmRefusalHint"/>. <c>null</c> — причины нет.
         /// </summary>
         string fwhmRefusal;
 
         /// <summary>
-        /// Подпись пустой таблицы, какой её положил конструктор форм. Хранится
-        /// затем, что причина отказа пишется НА ЕЁ МЕСТО, а по исчезновении
-        /// причины подпись обязана вернуться ПЕРЕВЕДЁННОЙ: она приходит из
-        /// `DCFwhmCalibrationView.resx` / `.ru.resx`
-        /// (<c>CollectedPeaksTable.NoItemsText</c>), и подставить вместо неё
-        /// строку из кода значило бы потерять перевод. Приём тот же, что двумя
-        /// полями выше у подписей формы пика.
+        /// Подпись пустой таблицы, какой её положил конструктор форм (из resx, то есть
+        /// переведённая): причина отказа пишется НА ЕЁ МЕСТО и по исчезновении
+        /// причины подпись возвращается своя.
         /// </summary>
         string collectedPeaksNoItemsText;
+
+        /// <summary>Шкала энергии вида (копия шкалы спектра; правится полями коэффициентов и «Рассчитать»).</summary>
+        PolynomialEnergyCalibration energyCalibration;
+
+        /// <summary>Шкала прибора — цель «Сброса».</summary>
+        PolynomialEnergyCalibration defaultEnergyCalibration;
+
+        /// <summary>Квадратичная шкала для RadiaCode/Obsidian (их прибор держит шкалу степени 2).</summary>
+        PolynomialEnergyCalibration rc_EnergyCalibration;
 
         public DCFwhmCalibrationView(MainForm mainForm)
         {
             this.mainForm = mainForm;
             InitializeComponent();
+            // (`AMBER264`) Подсказки из дизайнера — блоком.
+            AppUi.WrapToolTips(this.toolTip1, this);
             channelColumn.Alignment = ColumnAlignment.Right;
             energyColumn.Alignment = ColumnAlignment.Right;
-            // (П259, 14.10.2026) Энергия точки — до тысячных кэВ, как в таблице
-            // линий. Прежний формат «G» печатал полный double: «13.1524957426509»,
-            // «350.546145162568» — пятнадцать знаков, из которых значащих два-три.
+            // (П259, 14.10.2026) Энергия точки — до тысячных кэВ, как в таблице линий.
             energyColumn.Format = "0.###";
             fwhmColumn.Alignment = ColumnAlignment.Right;
-            // (П314, 15.10.2026) ПШПВ опоры — тоже до тысячных. С `AMBER181` (05.10.2026)
-            // ширина выделения дробная, а столбец остался в формате «G» и печатал её полным
-            // double: «23.4699808265793» (замер `P314FwhmProbe`, плечо D).
-            fwhmColumn.Format = "0.###";
+            weightColumn.Alignment = ColumnAlignment.Right;
             executeCalibrationButton.Enabled = false;
             expGaussExpLeftParameterLabelText = peakShapeFirstParameterLabel.Text;
             expGaussExpRightParameterLabelText = peakShapeSecondParameterLabel.Text;
             // ⚠ Пустой строкой, а не null: сеттер `Table.NoItemsText` сравнивает
-            //    ЧЕРЕЗ СТАРОЕ значение (`this.noItemsText.Equals(value)`), и
-            //    однажды положенный туда null уронил бы следующее присваивание.
+            //    ЧЕРЕЗ СТАРОЕ значение.
             collectedPeaksNoItemsText = CollectedPeaksTable.NoItemsText ?? string.Empty;
+            // Вид кривой спектра без кривой — простой корень, как у умолчания прибора
+            // (`FwhmCalibration.DefaultCalibration`); у спектра с кривой список встанет на
+            // её вид при первом обновлении.
+            updatingCurveSelection = true;
+            try
+            {
+                selectCurveComboBox.SelectedIndex = (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration;
+            }
+            finally
+            {
+                updatingCurveSelection = false;
+            }
+            lastSelectedIndex = selectCurveComboBox.SelectedIndex;
+            UpdateTableColumns();
         }
+
+        ResultData ActiveResultData
+        {
+            get
+            {
+                return mainForm != null && mainForm.ActiveDocument != null ? mainForm.ActiveDocument.ActiveResultData : null;
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  Обновление вида
+        // ══════════════════════════════════════════════════════════════════════
 
         public void UpdateFwhmCalibration(bool reset_state = false)
         {
-            // TODO проверить в mainForm на избыточность событий.
-            // Нужны события, когда только калибровка меняется.
-            // Нужно на финальном этапе смотреть
             if (reset_state)
             {
                 calibrationDone = true;
+                calibrationRan = false;
                 ClearPeakPickupState();
             }
-            if (mainForm.ActiveDocument != null)
+            ResultData activeResultData = ActiveResultData;
+            if (activeResultData == null)
             {
-                ResultData activeResultData = mainForm.ActiveDocument.ActiveResultData;
-                EnsureFwhmCalibration(activeResultData);
-                fwhmCalibration = activeResultData != null ? activeResultData.FwhmCalibration : null;
-                ApplyFwhmRefusalHint();
-                if (fwhmCalibration == null)
-                {
-                    tableModel1.Rows.Clear();
-                    calibrationProcessingPanel.Hide();
-                    UpdateCalibrateButtonState();
-                    return;
-                }
-                UpdateData();
+                fwhmCalibration = null;
+                tableModel1.Rows.Clear();
+                UpdateCalibrateButtonState();
+                return;
             }
+            EnsureFwhmCalibration(activeResultData);
+            fwhmCalibration = activeResultData.FwhmCalibration;
+            ApplyFwhmRefusalHint();
+            UpdateData();
         }
 
         void EnsureFwhmCalibration(ResultData resultData)
         {
-            // ⛔ ПРИЧИНА ОТКАЗА НЕ ВЫБРАСЫВАЕТСЯ (`A240`, полоса F62,
-            //    06.09.2026). Сбрасывается она ЗДЕСЬ, а не у читателя: метод
-            //    зовут четыре места вида, и причина, оставшаяся от прошлого
-            //    спектра, была бы хуже молчания — она называет три числа ЧУЖИХ
-            //    настроек, и человек искал бы беду не там.
+            // ⛔ ПРИЧИНА ОТКАЗА НЕ ВЫБРАСЫВАЕТСЯ (`A240`). Сбрасывается она ЗДЕСЬ, а не
+            //    у читателя: причина, оставшаяся от прошлого спектра, называла бы три
+            //    числа ЧУЖИХ настроек.
             fwhmRefusal = null;
             if (resultData == null || resultData.FwhmCalibration != null)
             {
@@ -116,8 +188,8 @@ namespace BecquerelMonitor
             }
 
             FWHMPeakDetectionMethodConfig cfg = resultData.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
-            EnergyCalibration energyCalibration = resultData.EnergySpectrum != null ? resultData.EnergySpectrum.EnergyCalibration : null;
-            if (cfg == null || energyCalibration == null)
+            EnergyCalibration spectrumCalibration = resultData.EnergySpectrum != null ? resultData.EnergySpectrum.EnergyCalibration : null;
+            if (cfg == null || spectrumCalibration == null)
             {
                 return;
             }
@@ -125,7 +197,7 @@ namespace BecquerelMonitor
             if (cfg.FwhmCalibration == null)
             {
                 string refusal;
-                cfg.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, energyCalibration, out refusal);
+                cfg.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, spectrumCalibration, out refusal);
                 if (cfg.FwhmCalibration == null)
                 {
                     fwhmRefusal = refusal;
@@ -139,31 +211,11 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// ЧИТАТЕЛЬ ПРИЧИНЫ — НА МЕСТЕ, А НЕ ОКНОМ (`A240`, полоса F62,
-        /// 06.09.2026).
-        ///
-        /// ⛔ ПОЧЕМУ НЕ <c>AppUi.Report</c>. Голос о том, что у спектра нет
-        /// модели разрешения, УЖЕ звучит — один раз на файл, у общей двери
-        /// <c>DocumentManager.ReportMissingFwhmCalibration</c> (~~`A234`~~,
-        /// открытие, создание и оба импорта). Этот же вид обновляется на КАЖДОЕ
-        /// событие: смену документа, смену спектра, правку калибровки, выбор
-        /// пика — <c>MainForm.UpdateFwhmCalibrationView</c> зовут девять мест.
-        /// Модальное окно отсюда значило бы не «ещё один читатель», а второй,
-        /// третий и десятый голос об ОДНОЙ беде, о которой человеку уже
-        /// сказали. Соглашение «ровно один голос на событие» тут соблюдается
-        /// тем, что вид не говорит вовсе, а ПОКАЗЫВАЕТ.
-        ///
-        /// ⛔ ПОЧЕМУ ИМЕННО ПУСТАЯ ТАБЛИЦА. Без кривой вид пустеет весь:
-        /// строки очищаются, панель подгонки прячется — и на месте таблицы
-        /// остаётся ровно то поле, куда <c>XPTable</c> сам рисует
-        /// <c>NoItemsText</c>. Человек, пришедший на вкладку ПШПВ за причиной,
-        /// читает её там, где он и смотрит, без наведения мыши и без нового
-        /// места на форме. Подсказка на таблице и на подписи — вдобавок, для
-        /// длинного текста, который в поле таблицы может не поместиться.
-        ///
-        /// ⚠ Новой строки ресурсов не заведено: причина приходит уже
-        /// переведённой (<c>ERRFwhmDefaultNotMonotonic</c>), а подпись пустой
-        /// таблицы возвращается СВОЯ, из resx вида.
+        /// ЧИТАТЕЛЬ ПРИЧИНЫ — НА МЕСТЕ, А НЕ ОКНОМ (`A240`). Голос о том, что у спектра
+        /// нет модели разрешения, уже звучит один раз на файл
+        /// (<c>DocumentManager.ReportMissingFwhmCalibration</c>), а вид обновляется на
+        /// каждое событие — окно отсюда было бы десятым голосом об одной беде. Причина
+        /// встаёт подписью пустой таблицы и подсказкой у таблицы и у верхней подписи.
         /// </summary>
         void ApplyFwhmRefusalHint()
         {
@@ -175,7 +227,7 @@ namespace BecquerelMonitor
 
         private void DCFwhmCalibrationView_FormLoad(object sender, EventArgs e)
         {
-
+            UpdateFwhmCalibration();
         }
 
         private void DCFwhmCalibrationView_FormClosing(object sender, FormClosingEventArgs e)
@@ -186,14 +238,8 @@ namespace BecquerelMonitor
         void UpdateData()
         {
             UpdateTable();
-            if (fwhmCalibration.CalibrationPeaks.Count > 0)
-            {
-                calibrationProcessingPanel.Show();
-                UpdateSelectedCurveInfo();
-            } else
-            {
-                calibrationProcessingPanel.Hide();
-            }
+            calibrationProcessingPanel.Show();
+            UpdateSelectedCurveInfo();
             UpdateCalibrateButtonState();
         }
 
@@ -201,48 +247,156 @@ namespace BecquerelMonitor
         {
             CollectedPeaksTable.SuspendLayout();
             tableModel1.Rows.Clear();
-            fwhmCalibration.CalibrationPeaks.Sort();
+            ResultData resultData = ActiveResultData;
+            if (resultData == null)
+            {
+                CollectedPeaksTable.ResumeLayout();
+                return;
+            }
+            List<CalibrationPeak> lines = resultData.CalibrationLines;
+            lines.Sort();
             int position = 1;
-            foreach (CalibrationPeak calibrationPeak in fwhmCalibration.CalibrationPeaks)
+            int energyLines = 0;
+            foreach (CalibrationPeak line in lines)
             {
                 Row row = new Row();
                 row.Cells.Add(new Cell(position.ToString(CultureInfo.InvariantCulture)));
-                row.Cells.Add(new Cell(calibrationPeak.Channel));
-                row.Cells.Add(new Cell(calibrationPeak.Energy));
-                row.Cells.Add(new Cell(calibrationPeak.FWHM));
+                row.Cells.Add(new Cell(line.Channel));
+                Cell energyCell = new Cell(line.Energy);
+                if (!line.EnergyLine)
+                {
+                    // Опора FWHM без энергии линии (прибор, умолчание, прежний файл):
+                    // в подгонку энергии не идёт, пока энергию не введут.
+                    energyCell.ForeColor = SystemColors.GrayText;
+                }
+                row.Cells.Add(energyCell);
+                row.Cells.Add(new Cell(FwhmText(resultData, line)));
+                Cell weightCell = line.EnergyLine ? new Cell(line.Count) : new Cell(string.Empty);
+                weightCell.Editable = line.EnergyLine;
+                row.Cells.Add(weightCell);
                 tableModel1.Rows.Add(row);
                 position++;
+                if (line.EnergyLine)
+                {
+                    energyLines++;
+                }
             }
             CollectedPeaksTable.ResumeLayout();
+            // Степень полинома — по числу линий, как прежде у вкладки энергии
+            // (min(4, линий − 1)); ставится, только когда число линий СМЕНИЛОСЬ, —
+            // иначе всякое обновление вида затирало бы выбор человека.
+            if (energyLines != polynomialOrderLines)
+            {
+                polynomialOrderLines = energyLines;
+                settingPolynomialOrder = true;
+                try
+                {
+                    numericUpDown6.Value = Math.Min(4, Math.Max(0, energyLines - 1));
+                }
+                finally
+                {
+                    settingPolynomialOrder = false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER276`) Столбец FWHM — в каналах и в процентах. Amber 29.10.2026, консоль,
+        /// дословно: «AMBER276 - в столбце FWHM должны быть цифры как в каналах, так и в %».
+        /// Вид — как у таблицы найденных пиков (`DCPeakDetectionView.RefreshTable`: «30,
+        /// 6.8%»): каналы — до тысячных (П314, ширина выделения дробная), процент — до
+        /// десятых, ширина по шкале спектра в канале строки, к энергии этого канала. Числа —
+        /// инвариантной культурой, точкой, без группировки (`A242`). Нет шкалы или энергия
+        /// канала не больше нуля — одни каналы.
+        /// </summary>
+        internal static string FwhmText(ResultData resultData, CalibrationPeak line)
+        {
+            string channels = line.FWHM.ToString("0.###", CultureInfo.InvariantCulture);
+            EnergyCalibration calibration = resultData != null && resultData.EnergySpectrum != null
+                ? resultData.EnergySpectrum.EnergyCalibration
+                : null;
+            if (calibration == null)
+            {
+                return channels;
+            }
+            double center = calibration.ChannelToEnergy((double)line.Channel);
+            double left = calibration.ChannelToEnergy(line.Channel - line.FWHM / 2.0);
+            double right = calibration.ChannelToEnergy(line.Channel + line.FWHM / 2.0);
+            double percent = 100.0 * (right - left) / center;
+            if (!(center > 0.0) || double.IsNaN(percent) || double.IsInfinity(percent))
+            {
+                return channels;
+            }
+            return channels + ", " + percent.ToString("f1", CultureInfo.InvariantCulture) + "%";
+        }
+
+        /// <summary>FWHM в каналах из текста ячейки «каналы, процент%»: число до первой запятой.</summary>
+        static double FwhmChannelsOf(string text)
+        {
+            string head = text ?? string.Empty;
+            int comma = head.IndexOf(',');
+            if (comma >= 0)
+            {
+                head = head.Substring(0, comma);
+            }
+            return UserNumber.ParseDouble(head.Trim());
+        }
+
+        void UpdateTableColumns()
+        {
+            weightColumn.Visible = checkBox2.Checked;
+        }
+
+        FwhmCalibration CurveOfSelectedType()
+        {
+            if (selectCurveComboBox.SelectedIndex == (int)FwhmCalibration.FwhmCalibrationCurve.SqrtFwhmCalibration)
+            {
+                return new SqrtFwhmCalibration();
+            }
+            if (selectCurveComboBox.SelectedIndex == (int)FwhmCalibration.FwhmCalibrationCurve.PowerFwhmCalibration)
+            {
+                return new PowerFwhmCalibration();
+            }
+            return new SimpleSqrtFwhmCalibration();
         }
 
         void UpdateSelectedCurveInfo()
         {
-            int targetSelectedIndex =
-                fwhmCalibration is SimpleSqrtFwhmCalibration
-                    ? (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration
-                : fwhmCalibration is PowerFwhmCalibration
-                    ? (int)FwhmCalibration.FwhmCalibrationCurve.PowerFwhmCalibration
-                    : (int)FwhmCalibration.FwhmCalibrationCurve.SqrtFwhmCalibration;
-
-            if (selectCurveComboBox.SelectedIndex != targetSelectedIndex)
+            if (fwhmCalibration != null)
             {
-                updatingCurveSelection = true;
-                try
+                int targetSelectedIndex =
+                    fwhmCalibration is SimpleSqrtFwhmCalibration
+                        ? (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration
+                    : fwhmCalibration is PowerFwhmCalibration
+                        ? (int)FwhmCalibration.FwhmCalibrationCurve.PowerFwhmCalibration
+                        : (int)FwhmCalibration.FwhmCalibrationCurve.SqrtFwhmCalibration;
+
+                if (selectCurveComboBox.SelectedIndex != targetSelectedIndex)
                 {
-                    selectCurveComboBox.SelectedIndex = targetSelectedIndex;
-                }
-                finally
-                {
-                    updatingCurveSelection = false;
+                    updatingCurveSelection = true;
+                    try
+                    {
+                        selectCurveComboBox.SelectedIndex = targetSelectedIndex;
+                    }
+                    finally
+                    {
+                        updatingCurveSelection = false;
+                    }
                 }
             }
 
-            curveFormulaLabel.Text = fwhmCalibration.GetFormula();
-            minPeaksRequirement = fwhmCalibration.MinPeaksRequirement();
+            // Без кривой у спектра — формула и требование вида, выбранного в списке:
+            // первая подгонка заведёт спектру кривую этого вида.
+            FwhmCalibration shown = fwhmCalibration ?? CurveOfSelectedType();
+            curveFormulaLabel.Text = shown.GetFormula();
+            minPeaksRequirement = shown.MinPeaksRequirement();
             minPeaksRequirementLabel.Text = String.Format(CultureInfo.InvariantCulture, Resources.MinPeaksRequirement, minPeaksRequirement);
             lastSelectedIndex = selectCurveComboBox.SelectedIndex;
-            UpdatePeakShapeInfo();
+            peakShapeInfoGroupBox.Visible = fwhmCalibration != null;
+            if (fwhmCalibration != null)
+            {
+                UpdatePeakShapeInfo();
+            }
         }
 
         void UpdatePeakShapeInfo()
@@ -297,32 +451,25 @@ namespace BecquerelMonitor
             if (updatingCurveSelection || selectCurveComboBox.SelectedIndex == -1 || selectCurveComboBox.SelectedIndex == lastSelectedIndex || lastSelectedIndex == -1)
             {
                 lastSelectedIndex = selectCurveComboBox.SelectedIndex;
+                if (fwhmCalibration == null && !updatingCurveSelection)
+                {
+                    UpdateSelectedCurveInfo();
+                    UpdateCalibrateButtonState();
+                }
                 return;
             }
 
-            FwhmCalibration previousCalibration = fwhmCalibration;
-            if (selectCurveComboBox.SelectedIndex == (int)FwhmCalibration.FwhmCalibrationCurve.SimpleSqrtFwhmCalibration)
+            if (fwhmCalibration != null)
             {
-                fwhmCalibration = new SimpleSqrtFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
+                FwhmCalibration previousCalibration = fwhmCalibration;
+                FwhmCalibration chosen = CurveOfSelectedType();
+                chosen.CalibrationPeaks = fwhmCalibration.ClonePeaks();
+                fwhmCalibration = chosen;
+                CopyPeakShapeSettings(previousCalibration, fwhmCalibration);
             }
-            else if (selectCurveComboBox.SelectedIndex == (int)FwhmCalibration.FwhmCalibrationCurve.PowerFwhmCalibration)
-            {
-                // V2: степенная FWHM = a * ch^p — см. PowerFwhmCalibration.
-                fwhmCalibration = new PowerFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
-            }
-            else
-            {
-                fwhmCalibration = new SqrtFwhmCalibration { CalibrationPeaks = fwhmCalibration.ClonePeaks() };
-            }
-
-            CopyPeakShapeSettings(previousCalibration, fwhmCalibration);
-            // (П314, 15.10.2026) Новая форма кривой ещё НЕ ПОСЧИТАНА: в поле вида — пустые
-            // коэффициенты. Без этой строки «Рассчитать» гасла сразу после выбора формы у
-            // посчитанной кривой: `UpdateSelectedCurveInfo` (с d659de20, 26.06.2026) ставит
-            // `lastSelectedIndex` на новую форму ДО `UpdateCalibrateButtonState`, и условие
-            // «форма та же и расчёт сделан» выполнялось. Новую форму нельзя было посчитать,
-            // не тронув опоры (замер `P314FwhmProbe`, плечо C).
+            // (П314, 15.10.2026) Новая форма кривой ещё НЕ ПОСЧИТАНА.
             calibrationDone = false;
+            calibrationRan = false;
             UpdateSelectedCurveInfo();
             UpdateCalibrateButtonState();
             lastSelectedIndex = selectCurveComboBox.SelectedIndex;
@@ -342,141 +489,761 @@ namespace BecquerelMonitor
             target.VoigtGamma = source.VoigtGamma;
         }
 
+        static int EnergyLineCount(List<CalibrationPeak> lines)
+        {
+            int n = 0;
+            if (lines != null)
+            {
+                foreach (CalibrationPeak line in lines)
+                {
+                    if (line != null && line.EnergyLine)
+                    {
+                        n++;
+                    }
+                }
+            }
+            return n;
+        }
+
         void UpdateCalibrateButtonState()
         {
-            bool hasCalibration = fwhmCalibration != null;
+            ResultData resultData = ActiveResultData;
+            bool hasDocument = resultData != null;
+            List<CalibrationPeak> lines = hasDocument ? resultData.CalibrationLines : null;
+            int rows = lines != null ? lines.Count : 0;
+            int energyLines = EnergyLineCount(lines);
+            bool canFwhm = rows >= minPeaksRequirement && selectCurveComboBox.SelectedIndex != -1;
+            bool canEnergy = energyLines >= 1;
 
-            if (!hasCalibration ||
+            if (!hasDocument ||
+                peakPickupProcessing ||
                 selectCurveComboBox.SelectedIndex == -1 ||
                 (CollectedPeaksTable.SelectedItems.Length > 0 && CollectedPeaksTable.SelectedItems[0].Index < 0) ||
                 (lastSelectedIndex == selectCurveComboBox.SelectedIndex && calibrationDone) ||
-                minPeaksRequirement > tableModel1.Rows.Count)
+                !(canFwhm || canEnergy))
             {
                 executeCalibrationButton.Enabled = false;
-            } else
+            }
+            else
             {
                 executeCalibrationButton.Enabled = true;
             }
-            if (!hasCalibration || minPeaksRequirement > tableModel1.Rows.Count)
+            saveToDeviceCfgButton.Enabled = hasDocument;
+            getAllPeaksButton.Enabled = hasDocument && isCalibrationPeaksExist() > 1;
+            removePeakButton.Enabled = hasDocument && rows > 0 && !peakPickupProcessing;
+            viewEnergyGraphButton.Enabled = hasDocument && energyLines > 1;
+            viewCalibrationButton.Enabled = hasDocument && fwhmCalibration != null;
+            viewPeakShapeButton.Enabled = fwhmCalibration != null;
+            addPeakButton.Enabled = hasDocument && !peakPickupProcessing;
+            cancelAddPeakButton.Enabled = peakPickupProcessing;
+
+            if (peakPickupProcessing)
             {
-                saveToDeviceCfgButton.Enabled = false;
+                label36.Text = Resources.MSGPickUpCalibrationPeak;
+            }
+            else if (calibrationRan && calibrationDone)
+            {
+                label36.Text = Resources.MSGUnifiedCalibrationDone;
             }
             else
             {
-                saveToDeviceCfgButton.Enabled = true;
+                label36.Text = Resources.MSGProceedCalibration;
             }
-            if (hasCalibration && isCalibrationPeaksExist() > 1)
+        }
+
+        /// <summary>Таблица или вид кривой изменились — расчёт снова нужен.</summary>
+        void MarkModified()
+        {
+            calibrationDone = false;
+            calibrationRan = false;
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  Строки таблицы: щелчок по спектру, таблица найденных пиков, правка, удаление
+        // ══════════════════════════════════════════════════════════════════════
+
+        private void AddPeakButton_Click(object sender, EventArgs e)
+        {
+            if (mainForm.ActiveDocument != null)
             {
-                getAllPeaksButton.Enabled = true;
+                peakPickupProcessing = true;
+                // Remember the subscribed view - see ClearPeakPickupState.
+                this.pickupSubscribedView = mainForm.ActiveDocument.EnergySpectrumView;
+                this.pickupSubscribedView.PeakPickuped += this.EnergySpectrumView_PeakPickuped;
+            }
+            UpdateCalibrateButtonState();
+        }
+
+        void EnergySpectrumView_PeakPickuped(object sender, PeakPickupedEventArgs e)
+        {
+            if (!peakPickupProcessing)
+            {
+                return;
+            }
+
+            // Сторож по образцу `GetAllPeaksButton_Click` (`A236`).
+            ResultData pickupResultData = ActiveResultData;
+            EnsureFwhmCalibration(pickupResultData);
+            if (pickupResultData == null || pickupResultData.EnergySpectrum == null)
+            {
+                ClearPeakPickupState();
+                UpdateCalibrateButtonState();
+                return;
+            }
+
+            CalibrationPeak newPeak = e.CalibrationPeak;
+            foreach (CalibrationPeak peak in pickupResultData.CalibrationLines)
+            {
+                if (peak.Channel == newPeak.Channel)
+                {
+                    string PeakExistText = String.Format(CultureInfo.InvariantCulture, Resources.ERRPeakExist, peak.FWHM, peak.Channel);
+                    // ⛔ `A245`: метод лежит на БЕЗОКОННОМ пути (`ModalReachProbeF22`
+                    //    зовёт его отражением) — дверь `AppUi.Report`, не голое окно.
+                    AppUi.Report(PeakExistText, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                    return;
+                }
+            }
+            newPeak = FitLine(pickupResultData, newPeak, e.PeakStartSelection, e.PeakEndSelection);
+            // Энергия новой строки — по нынешней шкале В ЕЁ КАНАЛЕ, до сотых кэВ, как
+            // прежде у вкладки энергии: человек вводит энергию линии, а не введённая
+            // строка с собственной шкалой согласна (канал в подгонке целый).
+            newPeak.Energy = EnergyAtChannel(pickupResultData, newPeak.Channel);
+
+            pickupResultData.CalibrationLines.Add(newPeak);
+            mainForm.ActiveDocument.Dirty = true;
+            MarkModified();
+            ClearPeakPickupState();
+            UpdateFwhmCalibration();
+            UpdateCalibrateButtonState();
+        }
+
+        /// <summary>
+        /// Подгонка формы пика по выделению (как прежде у вкладки FWHM) и отметка линии:
+        /// строка единой калибровки идёт в обе подгонки.
+        /// </summary>
+        static CalibrationPeak FitLine(ResultData resultData, CalibrationPeak peak, int start, int end)
+        {
+            SpectrumAriphmetics sa = new SpectrumAriphmetics(resultData.EnergySpectrum);
+            CalibrationPeak fitted = sa.CalcPeakFitValues(peak, start, end);
+            sa.Dispose();
+            fitted.EnergyLine = true;
+            int[] spectrum = resultData.EnergySpectrum.Spectrum;
+            fitted.Count = spectrum != null && fitted.Channel >= 0 && fitted.Channel < spectrum.Length
+                ? spectrum[fitted.Channel]
+                : 0;
+            return fitted;
+        }
+
+        static double EnergyAtChannel(ResultData resultData, int channel)
+        {
+            EnergyCalibration calibration = resultData.EnergySpectrum != null ? resultData.EnergySpectrum.EnergyCalibration : null;
+            if (calibration == null)
+            {
+                return 0.0;
+            }
+            return (double)Math.Round((decimal)calibration.ChannelToEnergy((double)channel), 2);
+        }
+
+        /// <summary>
+        /// (`AMBER276`) Второй вход единой калибровки — «Добавить в калибровку» таблицы
+        /// найденных пиков (`DCPeakDetectionView`). Amber 29.10.2026, дословно: «обрати
+        /// внимание на форму поиска пиков. В нем есть табличка с найденными пиками. При
+        /// клике правой кнопкой мышки появляется контекстное меню «Добавить выбранный
+        /// пик в калибровку».» Пик идёт в ту же таблицу и с той же подгонкой, что щелчок
+        /// по спектру: центроид и FWHM считаются выделением диапазона ±1.5 FWHM пика
+        /// (<c>EnergySpectrumView.PeakPickupFor</c>), не меньше ±3 каналов. Не вышло
+        /// измерить ширину — строка берёт канал и FWHM поиска пиков. Энергия — линии,
+        /// которой пик подписан (прежняя арифметика меню), и строка — линия калибровки
+        /// по энергии. Пик в канале, который в таблице уже есть, не добавляется (как
+        /// прежде у вкладки энергии — без окна).
+        /// </summary>
+        /// <returns>true — строка добавлена</returns>
+        public bool AddDetectedPeak(Peak peak, double energy)
+        {
+            ResultData resultData = ActiveResultData;
+            if (peak == null || resultData == null || resultData.EnergySpectrum == null)
+            {
+                return false;
+            }
+            // Кривая — до сверки каналов: умолчание по настройкам, если строится, заводит
+            // спектру кривую, и строки живут уже в ней (`ResultData.CalibrationLines`).
+            EnsureFwhmCalibration(resultData);
+            int half =Math.Max(3, (int)Math.Ceiling(1.5 * (peak.FWHM > 0 ? peak.FWHM : 0.0)));
+            int start = peak.Channel - half;
+            int end = peak.Channel + half;
+            PeakPickupedEventArgs picked = null;
+            try
+            {
+                EnergySpectrumView view = mainForm.ActiveDocument.EnergySpectrumView;
+                picked = view != null ? view.PeakPickupFor(start, end) : null;
+            }
+            catch (Exception)
+            {
+                picked = null;
+            }
+            CalibrationPeak newPeak;
+            if (picked != null)
+            {
+                newPeak = picked.CalibrationPeak;
+                start = picked.PeakStartSelection;
+                end = picked.PeakEndSelection;
             }
             else
             {
-                getAllPeaksButton.Enabled = false;
+                newPeak = new CalibrationPeak { Channel = peak.Channel, Energy = peak.Energy, FWHM = peak.FWHM };
             }
+            foreach (CalibrationPeak line in resultData.CalibrationLines)
+            {
+                if (line.Channel == newPeak.Channel)
+                {
+                    return false;
+                }
+            }
+            newPeak = FitLine(resultData, newPeak, start, end);
+            newPeak.Energy = energy;
+            resultData.CalibrationLines.Add(newPeak);
+            mainForm.ActiveDocument.Dirty = true;
+            MarkModified();
+            UpdateFwhmCalibration();
+            UpdateCalibrateButtonState();
+            return true;
+        }
+
+        void ClearPeakPickupState()
+        {
+            // Unsubscribe from the view we actually subscribed to, not from whatever
+            // document happens to be active now.
+            if (this.pickupSubscribedView != null)
+            {
+                this.pickupSubscribedView.PeakPickuped -= this.EnergySpectrumView_PeakPickuped;
+                this.pickupSubscribedView = null;
+            }
+            peakPickupProcessing = false;
+            UpdateCalibrateButtonState();
+        }
+
+        private void CancelAddPeakButton_Click(object sender, EventArgs e)
+        {
+            ClearPeakPickupState();
         }
 
         private void RemovePeakButton_Click(object sender, EventArgs e)
         {
-            // Кривая разрешения законно бывает пустой (`ResultData.cs:470`), а
-            // `UpdateCalibrateButtonState` эту кнопку не гасит — сторож по образцу
-            // `GetAllPeaksButton_Click`. См. `A236`.
-            if (fwhmCalibration == null)
+            ResultData resultData = ActiveResultData;
+            if (resultData == null)
             {
                 UpdateCalibrateButtonState();
                 return;
             }
+            List<CalibrationPeak> lines = resultData.CalibrationLines;
             int selectedItemIndex;
             if (CollectedPeaksTable.SelectedItems.Length >= 1)
             {
                 selectedItemIndex = CollectedPeaksTable.SelectedItems[0].Index;
-                UpdateCalibrateButtonState();
             }
             else
             {
-                // (`AMBER201`, мелочь 4.10, 05.10.2026) Без выделенной строки НИЧЕГО
-                // не удаляется — как в панели энергии (полоса fixcal). Прежде здесь
-                // стоял 0, и «Удалить» молча снимало первую опору кривой.
+                // (`AMBER201`, мелочь 4.10) Без выделенной строки НИЧЕГО не удаляется.
                 selectedItemIndex = -1;
             }
-            if (selectedItemIndex < 0 || selectedItemIndex >= fwhmCalibration.CalibrationPeaks.Count)
+            if (selectedItemIndex < 0 || selectedItemIndex >= lines.Count)
             {
                 UpdateCalibrateButtonState();
                 return;
             }
-            try
-            {
-                mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks.RemoveAt(selectedItemIndex);
-                mainForm.ActiveDocument.Dirty = true;
-                calibrationDone = false;
-            }
-            catch { }
+            // Плохой для одной из подгонок пик удаляется целиком (решение Amber
+            // 29.10.2026: «Строка идёт в обе подгонки»).
+            lines.RemoveAt(selectedItemIndex);
+            mainForm.ActiveDocument.Dirty = true;
+            MarkModified();
             tableModel1.Selections.Clear();
             UpdateFwhmCalibration();
             UpdateCalibrateButtonState();
         }
 
-        private void SaveToDeviceCfgButton_Click(object sender, EventArgs e)
+        private void CollectedPeaksTable_EditingStopped(object sender, XPTable.Events.CellEditEventArgs e)
         {
-            if (MessageBox.Show(Resources.MSGSaveFWHMCalibration, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) != DialogResult.Yes)
+            Cell cell = e.Cell;
+            Row row = cell.Row;
+            // Сторож по образцу `GetAllPeaksButton_Click` (`A236`).
+            ResultData editResultData = ActiveResultData;
+            if (editResultData == null || row == null || row.Index < 0 || row.Index >= editResultData.CalibrationLines.Count)
             {
+                UpdateCalibrateButtonState();
                 return;
             }
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            DeviceConfigInfo deviceConfig = activeDocument.ActiveResultData.DeviceConfig;
-            if (deviceConfig == null || deviceConfig.Guid == null || deviceConfig.Guid == "")
+            CalibrationPeak line = editResultData.CalibrationLines[row.Index];
+            NumberCellEditor editor = e.Editor as NumberCellEditor;
+            TextCellEditor textEditor = e.Editor as TextCellEditor;
+            string textvalue = editor != null ? editor.TextBox.Text
+                             : textEditor != null ? textEditor.TextBox.Text
+                             : string.Empty;
+            try
             {
-                MessageBox.Show(Resources.ERRDeviceConfigNotSelected, Resources.ErrorDialogTitle, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                if (e.Column == 1)
+                {
+                    // ⛔ `AMBER188(в)`: канал разбирается в ЛОКАЛЬНУЮ и пишется в строку
+                    //    только после проверки границы.
+                    int channel = (int)UserNumber.ParseDecimal(textvalue);
+                    int[] spectrum = editResultData.EnergySpectrum.Spectrum;
+                    if (channel < 0 || channel >= spectrum.Length)
+                    {
+                        throw new Exception(Resources.ERRCalibrationChannelExceed);
+                    }
+                    line.Channel = channel;
+                    line.Count = spectrum[channel];
+                }
+                else if (e.Column == 2)
+                {
+                    // Введённая энергия — энергия линии: строка идёт и в подгонку энергии.
+                    line.Energy = UserNumber.ParseDouble(textvalue);
+                    if (!line.EnergyLine)
+                    {
+                        line.Count = CountAt(editResultData, line.Channel);
+                    }
+                    line.EnergyLine = true;
+                }
+                else if (e.Column == 3)
+                {
+                    // (`AMBER276`) Ячейка — «каналы, процент%»: текст не правили — FWHM не
+                    // трогается (иначе ширина урезалась бы до показанных тысячных); правили —
+                    // берётся число до запятой, в каналах.
+                    if (textvalue == FwhmText(editResultData, line))
+                    {
+                        return;
+                    }
+                    line.FWHM = FwhmChannelsOf(textvalue);
+                }
+                else if (e.Column == 4)
+                {
+                    line.Count = UserNumber.ParseInt(textvalue);
+                }
+                else
+                {
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                AppUi.Report(String.Format(CultureInfo.InvariantCulture, Resources.ERRAddCalibrationPoints, textvalue, ex.Message),
+                             Resources.ErrorExclamation, MessageBoxIcon.Error);
+                e.Cancel = true;
+                // `AMBER188(в)`: ячейка после отказа перерисовывается из модели ПОСЛЕ
+                // выхода из события правки.
+                this.BeginInvoke(new Action(this.UpdateTable));
                 return;
             }
-            // ⛔ ПОДГОНЯЕТСЯ КОПИЯ (`AMBER189` (а), 05.10.2026; прежде — снимок `A2`).
-            // `PerformCalibration` кладёт ответ решателя в объект ДО проверки, а поле
-            // вида — ССЫЛКА на `ActiveResultData.FwhmCalibration`. Теперь решатель
-            // пишет в копию, документ и прибор получают её только после проверки и
-            // записи, — отказ и сорванная запись документа не касаются вовсе.
-            FwhmCalibration fitted = FitCopyOrRefuse(activeDocument.ActiveResultData);
-            if (fitted == null)
+            mainForm.ActiveDocument.Dirty = true;
+            MarkModified();
+            UpdateCalibrateButtonState();
+            // Цвет энергии, порядок по каналу и степень полинома — из модели, после
+            // выхода из события правки.
+            this.BeginInvoke(new Action(delegate
             {
+                UpdateTable();
+                UpdateCalibrateButtonState();
+            }));
+        }
+
+        static int CountAt(ResultData resultData, int channel)
+        {
+            int[] spectrum = resultData.EnergySpectrum != null ? resultData.EnergySpectrum.Spectrum : null;
+            return spectrum != null && channel >= 0 && channel < spectrum.Length ? spectrum[channel] : 0;
+        }
+
+        int isCalibrationPeaksExist()
+        {
+            int count = 0;
+            if (mainForm.DocumentList != null)
+            {
+                foreach (DocEnergySpectrum doc in mainForm.DocumentList)
+                {
+                    if (doc == null || doc.ResultDataFile == null || doc.ResultDataFile.ResultDataList == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (ResultData data in doc.ResultDataFile.ResultDataList)
+                    {
+                        if (data == null || data.CalibrationLines == null)
+                        {
+                            continue;
+                        }
+
+                        count += data.CalibrationLines.Count;
+                    }
+                }
+            }
+            return count;
+        }
+
+        private void GetAllPeaksButton_Click(object sender, EventArgs e)
+        {
+            List<CalibrationPeak> peaks = new List<CalibrationPeak>();
+            HashSet<int> channels = new HashSet<int>();
+            ResultData activeResultData = ActiveResultData;
+
+            EnsureFwhmCalibration(activeResultData);
+            if (activeResultData == null)
+            {
+                UpdateCalibrateButtonState();
                 return;
             }
-            FWHMPeakDetectionMethodConfig peakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig) deviceConfig.PeakDetectionMethodConfig;
-            FwhmCalibration previousDeviceCalibration = peakDetectionMethodConfig.FwhmCalibration;
-            peakDetectionMethodConfig.FwhmCalibration = fitted.Clone();
-            // ⛔ ОТВЕТ МЕНЕДЖЕРА ЧИТАЕТСЯ (`A2`). Прежде он выбрасывался, и
-            // калибровка применялась ВСЕГДА: человек видел окно с ошибкой и тут
-            // же — что калибровка встала, хотя на диск не легло ничего. При
-            // отказе не применяется НИЧЕГО: ни в приборе (ни в памяти, ни в
-            // файле), ни в спектре. Довод тот же, что и у энергетической
-            // калибровки: обещание кнопки — запись, а половинный исход
-            // (спектр пересчитан, файл прежний) переживает перезапуск молча.
-            if (!DeviceConfigManager.GetInstance().SaveConfig(activeDocument.ActiveResultData.DeviceConfig))
+
+            // (П321, 15.10.2026; решение Amber вопросником 15.10.2026, дословно: «Брать
+            // только из документов, где число каналов такое же.») Канал и FWHM строки — в
+            // каналах своего спектра: строка спектра другой сетки легла бы в чужие
+            // единицы. (`AMBER276`) То же правило теперь и у линий энергии: канал линии
+            // спектра в 1024 канала на шкале спектра в 4096 — другая энергия.
+            if (activeResultData.EnergySpectrum == null)
             {
-                peakDetectionMethodConfig.FwhmCalibration = previousDeviceCalibration;
-                MessageBox.Show(Resources.ERRCalibrationNotSavedToDevice, Resources.ErrorDialogTitle,
-                                MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                UpdateCalibrateButtonState();
                 return;
             }
-            // (П314, 15.10.2026) В документ — тем же хвостом, что у «Рассчитать»
-            // (`CommitFittedCurve`). Прежде здесь кривая документа менялась, но документ
-            // не помечался изменённым, пики спектра не пересчитывались по новой ширине, а
-            // «Рассчитать» оставалась гореть (замер `P314FwhmProbe`, плечо G). Поле вида
-            // хвост снова делает ссылкой на кривую документа (`UpdateFwhmCalibration`).
-            CommitFittedCurve(activeDocument, fitted.Clone());
-            mainForm.UpdateDeviceConfigForm();
+            int activeChannels = activeResultData.EnergySpectrum.NumberOfChannels;
+            int skippedOtherGrid = 0;
+
+            if (mainForm.DocumentList != null)
+            {
+                foreach (DocEnergySpectrum doc in mainForm.DocumentList)
+                {
+                    if (doc == null || doc.ResultDataFile == null || doc.ResultDataFile.ResultDataList == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (ResultData data in doc.ResultDataFile.ResultDataList)
+                    {
+                        if (data != null && data.CalibrationLines != null && data.CalibrationLines.Count > 0)
+                        {
+                            if (data.EnergySpectrum == null || data.EnergySpectrum.NumberOfChannels != activeChannels)
+                            {
+                                skippedOtherGrid += data.CalibrationLines.Count;
+                                continue;
+                            }
+                            peaks.AddRange(data.CalibrationLines);
+                        }
+                    }
+                }
+                List<CalibrationPeak> target = activeResultData.CalibrationLines;
+                if (peaks.Count > 0)
+                {
+                    // (`AMBER201`, подозрение полосы 4) В документ — КОПИИ строк: правка
+                    // строки здесь не должна молча менять таблицу ДРУГОГО спектра.
+                    List<CalibrationPeak> copies = CalibrationPeak.ClonePeaks(peaks);
+                    target.Clear();
+                    foreach (CalibrationPeak peak in copies)
+                    {
+                        if (channels.Add(peak.Channel))
+                        {
+                            target.Add(peak);
+                        }
+                    }
+                    mainForm.ActiveDocument.Dirty = true;
+                    MarkModified();
+                }
+                UpdateFwhmCalibration();
+                UpdateCalibrateButtonState();
+                if (skippedOtherGrid > 0)
+                {
+                    // Окно через `AppUi.Report`: метод зовут отражением безоконные пробы.
+                    AppUi.Report(String.Format(CultureInfo.InvariantCulture, Resources.MSGFwhmPeaksOtherGridSkipped, skippedOtherGrid),
+                                 Resources.NotificationDialogTitle, MessageBoxIcon.Information);
+                }
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  «Рассчитать»: подгонка энергии по линиям и FWHM по всем строкам
+        // ══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// (`AMBER276`) Линии калибровки по энергии — точками прежней подгонки вкладки
+        /// энергии (канал, энергия, отсчёты), по возрастанию канала. Энергия переходит в
+        /// <c>decimal</c> тем же путём, каким прежде её держала таблица энергии, и решатель
+        /// получает ровно прежние числа.
+        /// </summary>
+        internal static List<CalibrationPoint> EnergyPoints(List<CalibrationPeak> lines)
+        {
+            List<CalibrationPoint> points = new List<CalibrationPoint>();
+            if (lines == null)
+            {
+                return points;
+            }
+            foreach (CalibrationPeak line in lines.OrderBy(l => l.Channel))
+            {
+                if (line != null && line.EnergyLine)
+                {
+                    points.Add(new CalibrationPoint(line.Channel, (decimal)line.Energy, line.Count));
+                }
+            }
+            return points;
         }
 
         /// <summary>
-        /// Подогнанная кривая — в документ: ОДИН хвост для «Рассчитать» и «Сохранить в
-        /// конфиг прибора» (П314, 15.10.2026). Документ помечается изменённым и пики
-        /// спектра пересчитываются по новой ширине, только если кривая документа
-        /// ДЕЙСТВИТЕЛЬНО сменилась (<see cref="SameCurve"/>): «Сохранить в прибор» на
-        /// только что открытом файле кладёт в документ ту же самую кривую, и звёздочка
-        /// «изменён» там была бы ложной. Кривая отмечается посчитанной в любом случае.
+        /// (`AMBER276`) Подгонка шкалы энергии — прежняя арифметика «Выполнить
+        /// калибровку» вкладки энергии без изменений (`AMBER188`, `S42`): одна точка
+        /// получает синтетическую (0, 0) в ЛОКАЛЬНОЙ копии списка, степень 0 значит 1,
+        /// степень понижается сторожем изгиба (<c>SolveGuarded</c>). <c>null</c> —
+        /// годной подгонки нет.
+        ///
+        /// ⚠ Сюда же ляжет кривизна тракта (`AMBER270`): третьим параметром карты
+        /// «канал ← энергия» наряду с полиномом, и результат станет парой
+        /// (коэффициенты, κ).
+        /// </summary>
+        internal static double[] SolveEnergy(List<CalibrationPoint> energyPoints, int polynomialOrder, int channels, bool weighted, out int usedOrder)
+        {
+            usedOrder = 0;
+            int order = polynomialOrder == 0 ? 1 : polynomialOrder;
+            List<CalibrationPoint> points = new List<CalibrationPoint>(energyPoints);
+            if (points.Count == 1)
+            {
+                points.Add(new CalibrationPoint(0, 0, 0));
+            }
+            return CalibrationSolver.SolveGuarded(points, order, channels, weighted, out usedOrder);
+        }
+
+        private void ExecuteCalibrationButton_Click(object sender, EventArgs e)
+        {
+            RunCalibration();
+        }
+
+        /// <summary>
+        /// «Рассчитать» — один процесс: подгонка энергии по линиям калибровки (если они
+        /// есть) и подгонка FWHM по всем строкам (если строк хватает виду кривой).
+        /// Каждая подгонка пишет в КОПИЮ и применяется только после своих проверок
+        /// (`AMBER188`, `AMBER189`): отказ одной не трогает ни её шкалу, ни другую,
+        /// уже принятую. Возвращает true, если каждая начатая подгонка принята.
+        /// </summary>
+        internal bool RunCalibration()
+        {
+            DocEnergySpectrum activeDocument = mainForm.ActiveDocument;
+            ResultData resultData = ActiveResultData;
+            if (activeDocument == null || resultData == null || resultData.EnergySpectrum == null)
+            {
+                return false;
+            }
+            int channels = resultData.EnergySpectrum.NumberOfChannels;
+            List<CalibrationPeak> lines = resultData.CalibrationLines;
+            bool refused = false;
+            bool energyDone = false;
+            double energyMse = 0.0;
+
+            // ── 1. Энергия ───────────────────────────────────────────────────────
+            List<CalibrationPoint> points;
+            try
+            {
+                points = EnergyPoints(lines);
+            }
+            catch (OverflowException)
+            {
+                points = null;
+            }
+            if (points == null)
+            {
+                AppUi.Report(Resources.ERRInvalidChannelOrEnergyValues, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                refused = true;
+            }
+            else if (points.Count > 0 && energyCalibration != null)
+            {
+                int requestedOrder = (int)numericUpDown6.Value;
+                int usedOrder;
+                double[] matrix = null;
+                try
+                {
+                    matrix = SolveEnergy(points, requestedOrder, channels, checkBox2.Checked, out usedOrder);
+                }
+                catch (Exception)
+                {
+                    matrix = null;
+                }
+                if (matrix == null)
+                {
+                    AppUi.Report(Resources.ERRInvalidChannelOrEnergyValues, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                    refused = true;
+                }
+                else
+                {
+                    PolynomialEnergyCalibration fitted = (PolynomialEnergyCalibration)energyCalibration.Clone();
+                    fitted.PolynomialOrder = matrix.Length - 1;
+                    fitted.Coefficients = matrix;
+                    if (!fitted.CheckCalibration(channels: channels))
+                    {
+                        AppUi.Report(Resources.CalibrationFunctionError, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                        refused = true;
+                    }
+                    else
+                    {
+                        energyCalibration = fitted;
+                        SyncRcEnergyCalibration();
+                        FitRcEnergyCalibration(resultData, points, requestedOrder == 0 ? 1 : requestedOrder);
+                        ShowCoefficients();
+                        List<CalibrationPoint> msePoints = new List<CalibrationPoint>(points);
+                        if (msePoints.Count == 1)
+                        {
+                            msePoints.Add(new CalibrationPoint(0, 0, 0));
+                        }
+                        energyMse = checkBox2.Checked
+                            ? CalibrationSolver.WMSE(matrix, msePoints)
+                            : CalibrationSolver.MSE(matrix, msePoints);
+                        UpdateEnergyCalibration();
+                        energyDone = true;
+                    }
+                }
+            }
+
+            // ── 2. FWHM ──────────────────────────────────────────────────────────
+            bool fwhmDone = false;
+            double fwhmMse = 0.0;
+            FwhmCalibration template = fwhmCalibration ?? CurveOfSelectedType();
+            if (lines.Count >= template.MinPeaksRequirement())
+            {
+                // (`AMBER189` (а)) Решатель пишет в КОПИЮ; документ получает её только
+                // после проверки — отказ кривую документа не трогает.
+                FwhmCalibration fitted = FitCopyOrRefuse(resultData);
+                if (fitted == null)
+                {
+                    refused = true;
+                }
+                else
+                {
+                    if (HasPeakShapeComparisonData(fitted.CalibrationPeaks))
+                    {
+                        SelectGlobalPeakShape(fitted, fitted.CalibrationPeaks);
+                    }
+                    fwhmMse = CalibrationSolver.MSE(fitted, fitted.CalibrationPeaks);
+                    CommitFittedCurve(activeDocument, fitted);
+                    fwhmDone = true;
+                }
+            }
+
+            calibrationDone = !refused;
+            calibrationRan = !refused && (energyDone || fwhmDone);
+            UpdateCalibrateButtonState();
+            if (energyDone || fwhmDone)
+            {
+                StringBuilder status = new StringBuilder(Resources.MSGUnifiedCalibrationDone);
+                if (energyDone)
+                {
+                    status.AppendFormat(CultureInfo.InvariantCulture, " {0}: {1} = {2:0.00000};", Resources.MSGEnergyShort, Resources.MSGMSE, energyMse);
+                }
+                if (fwhmDone)
+                {
+                    status.AppendFormat(CultureInfo.InvariantCulture, " FWHM: {0} = {1:0.00000}", Resources.MSGMSE, fwhmMse);
+                }
+                mainForm.SetStatusTextLeft(status.ToString());
+            }
+            return !refused;
+        }
+
+        /// <summary>
+        /// Квадратичная шкала RadiaCode/Obsidian — прежняя ветка «Выполнить калибровку»
+        /// вкладки энергии (`AMBER188` (е)): под <c>try</c> и только при трёх точках и
+        /// больше; не вышло — остаётся то, что дал <see cref="SyncRcEnergyCalibration"/>.
+        /// </summary>
+        void FitRcEnergyCalibration(ResultData resultData, List<CalibrationPoint> energyPoints, int polynomOrder)
+        {
+            List<CalibrationPoint> points = new List<CalibrationPoint>(energyPoints);
+            if (points.Count == 1)
+            {
+                points.Add(new CalibrationPoint(0, 0, 0));
+            }
+            DeviceConfigInfo deviceConfig = resultData.DeviceConfig;
+            if (deviceConfig == null || string.IsNullOrEmpty(deviceConfig.Guid))
+            {
+                return;
+            }
+            if (!(deviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig || deviceConfig.InputDeviceConfig is ObsidianDeviceConfig)
+                || polynomOrder < 2 || points.Count < 3)
+            {
+                return;
+            }
+            double[] rcMatrix = null;
+            try
+            {
+                rcMatrix = this.checkBox2.Checked
+                    ? CalibrationSolver.SolveWeighted(points, 2)
+                    : CalibrationSolver.Solve(points, 2);
+            }
+            catch (Exception)
+            {
+                rcMatrix = null;
+            }
+            if (rcMatrix != null && rcMatrix.Length == 3
+                && !Array.Exists(rcMatrix, v => double.IsNaN(v) || double.IsInfinity(v)))
+            {
+                rc_EnergyCalibration = new PolynomialEnergyCalibration();
+                rc_EnergyCalibration.Coefficients = rcMatrix;
+                rc_EnergyCalibration.PolynomialOrder = 2;
+            }
+        }
+
+        /// <summary>
+        /// Подгонка кривой FWHM в КОПИЮ (`AMBER189` (а)) по ВСЕМ строкам таблицы (линии
+        /// и опоры). Вид кривой — выбранный в списке (у спектра без кривой — тоже).
+        /// Возвращает подогнанную копию или <c>null</c> после окна отказа. Отказ «ширина
+        /// ≤ 0 на нижних каналах» — с подсказкой взять степенную кривую (решение Amber
+        /// 05.10.2026: «Отвергать с подсказкой (Рекомендую)»). Окна — через
+        /// <c>AppUi.Report</c>: метод лежит на пути, который пробы зовут отражением.
+        /// </summary>
+        FwhmCalibration FitCopyOrRefuse(ResultData resultData)
+        {
+            int channels = resultData.EnergySpectrum.Spectrum.Length;
+            FwhmCalibration fitted = fwhmCalibration != null ? fwhmCalibration.Clone() : CurveOfSelectedType();
+            fitted.CalibrationPeaks = CalibrationPeak.ClonePeaks(resultData.CalibrationLines);
+            bool ok;
+            try
+            {
+                ok = fitted.PerformCalibration(channels);
+            }
+            catch (ArgumentException)
+            {
+                // Решатель MathNet бросает на негодной системе — это тот же отказ.
+                ok = false;
+            }
+            if (ok)
+            {
+                return fitted;
+            }
+            if (fitted.LastCheck == FwhmCalibration.FwhmCheckResult.NonPositiveWidth)
+            {
+                int last = -1;
+                while (last + 1 < channels && !(fitted.ChannelToFwhm(last + 1) > 0.0))
+                {
+                    last++;
+                }
+                last = Math.Max(last, 0);
+                EnergyCalibration spectrumCalibration = resultData.EnergySpectrum.EnergyCalibration;
+                string energy = spectrumCalibration != null
+                    ? spectrumCalibration.ChannelToEnergy((double)last).ToString("f1", CultureInfo.InvariantCulture)
+                    : "?";
+                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRFwhmNonPositiveWidth,
+                                           last.ToString(CultureInfo.InvariantCulture), energy),
+                             Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+            }
+            else if (fitted.LastCheck == FwhmCalibration.FwhmCheckResult.NotFinite)
+            {
+                AppUi.Report(Resources.ERRFwhmNotFinite, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+            }
+            else
+            {
+                AppUi.Report(Resources.CalibrationFunctionError, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Подогнанная кривая — в документ (П314): документ помечается изменённым и пики
+        /// спектра пересчитываются по новой ширине, только если кривая ДЕЙСТВИТЕЛЬНО
+        /// сменилась (<see cref="SameCurve"/>). У спектра, у которого кривой не было,
+        /// строки из памяти уходят в неё (<see cref="ResultData.PendingCalibrationLines"/>).
         /// </summary>
         void CommitFittedCurve(DocEnergySpectrum document, FwhmCalibration fitted)
         {
             ResultData resultData = document.ActiveResultData;
             bool changed = !SameCurve(resultData.FwhmCalibration, fitted);
             resultData.FwhmCalibration = fitted;
+            resultData.PendingCalibrationLines = new List<CalibrationPeak>();
             if (changed)
             {
                 document.Dirty = true;
@@ -492,8 +1259,9 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Две кривые ПШПВ совпадают ВСЕМ, что пишется в файл: форма, коэффициенты
-        /// (побитово), опоры, форма пика и её параметры, суммы χ².
+        /// Две кривые FWHM совпадают ВСЕМ, что пишется в файл: форма, коэффициенты
+        /// (побитово), строки (с признаком линии и отсчётами), форма пика и её
+        /// параметры, суммы χ².
         /// </summary>
         static bool SameCurve(FwhmCalibration a, FwhmCalibration b)
         {
@@ -528,7 +1296,9 @@ namespace BecquerelMonitor
             {
                 if (pa[i].Channel != pb[i].Channel
                     || !SameBits(pa[i].Energy, pb[i].Energy)
-                    || !SameBits(pa[i].FWHM, pb[i].FWHM))
+                    || !SameBits(pa[i].FWHM, pb[i].FWHM)
+                    || pa[i].EnergyLine != pb[i].EnergyLine
+                    || pa[i].Count != pb[i].Count)
                 {
                     return false;
                 }
@@ -559,170 +1329,6 @@ namespace BecquerelMonitor
                 }
             }
             return true;
-        }
-
-        /// <summary>
-        /// Подгонка кривой ПШПВ в КОПИЮ поля вида (`AMBER189` (а), 05.10.2026).
-        /// Возвращает подогнанную копию или <c>null</c> после окна отказа.
-        ///
-        /// Прежде «Рассчитать» звал <c>PerformCalibration</c> на самом поле, а поле —
-        /// ссылка на кривую документа: решатель писал коэффициенты ДО проверки, и
-        /// отказ оставлял их в документе. Замер ревизии: опоры (300; 30) и (600; 28)
-        /// → окно ошибки, в документе <c>[1016, −0.38667]</c>, ПШПВ = 0 выше канала
-        /// 2628, поиск пиков там слеп. Образец — «Рассчитать» панели энергии
-        /// (полоса fixcal, <c>DCEnergyCalibrationView.button7_Click</c>).
-        ///
-        /// Отказ «ширина ≤ 0 на нижних каналах» — с ПОДСКАЗКОЙ взять степенную
-        /// кривую (решение Amber 05.10.2026, вопросником, дословно: «Отвергать с
-        /// подсказкой (Рекомендую)»). Окно — через <c>AppUi.Report</c>: метод лежит
-        /// на пути, который пробы зовут отражением.
-        /// </summary>
-        FwhmCalibration FitCopyOrRefuse(ResultData resultData)
-        {
-            int channels = resultData.EnergySpectrum.Spectrum.Length;
-            FwhmCalibration fitted = fwhmCalibration.Clone();
-            bool ok;
-            try
-            {
-                ok = fitted.PerformCalibration(channels);
-            }
-            catch (ArgumentException)
-            {
-                // Решатель MathNet бросает на негодной системе (широкая, не
-                // положительно определённая) — это тот же отказ, а не падение.
-                ok = false;
-            }
-            if (ok)
-            {
-                return fitted;
-            }
-            if (fitted.LastCheck == FwhmCalibration.FwhmCheckResult.NonPositiveWidth)
-            {
-                // Неубывающая кривая с нулём внизу: нулевая полоса — каналы 0…last.
-                int last = -1;
-                while (last + 1 < channels && !(fitted.ChannelToFwhm(last + 1) > 0.0))
-                {
-                    last++;
-                }
-                last = Math.Max(last, 0);
-                EnergyCalibration energyCalibration = resultData.EnergySpectrum.EnergyCalibration;
-                string energy = energyCalibration != null
-                    ? energyCalibration.ChannelToEnergy((double)last).ToString("f1", CultureInfo.InvariantCulture)
-                    : "?";
-                AppUi.Report(string.Format(CultureInfo.InvariantCulture, Resources.ERRFwhmNonPositiveWidth,
-                                           last.ToString(CultureInfo.InvariantCulture), energy),
-                             Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
-            }
-            else if (fitted.LastCheck == FwhmCalibration.FwhmCheckResult.NotFinite)
-            {
-                // (`AMBER189` (б)) Вырожденный решатель — прежде такая кривая
-                // ПРИНИМАЛАСЬ, и ПШПВ = NaN уходила на все каналы и в файл.
-                AppUi.Report(Resources.ERRFwhmNotFinite, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
-            }
-            else
-            {
-                AppUi.Report(Resources.CalibrationFunctionError, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
-            }
-            return null;
-        }
-
-        private void AddPeakButton_Click(object sender, EventArgs e)
-        {
-            if (mainForm.ActiveDocument != null)
-            {
-                cancelAddPeakButton.Enabled = true;
-                peakPickupProcessing = true;
-                addPeakButton.Enabled = !peakPickupProcessing;
-                // Remember the subscribed view - see ClearPeakPickupState.
-                this.pickupSubscribedView = mainForm.ActiveDocument.EnergySpectrumView;
-                this.pickupSubscribedView.PeakPickuped += this.EnergySpectrumView_PeakPickuped;
-            }
-        }
-
-        void EnergySpectrumView_PeakPickuped(object sender, PeakPickupedEventArgs e)
-        {
-            if (!peakPickupProcessing)
-            {
-                return;
-            }
-
-            // Сторож по образцу `GetAllPeaksButton_Click` (`A236`): без него
-            // подобранная точка падала `NullReferenceException` на пустой кривой.
-            ResultData pickupResultData = mainForm.ActiveDocument != null ? mainForm.ActiveDocument.ActiveResultData : null;
-            EnsureFwhmCalibration(pickupResultData);
-            if (pickupResultData == null || pickupResultData.FwhmCalibration == null)
-            {
-                ClearPeakPickupState();
-                UpdateCalibrateButtonState();
-                return;
-            }
-
-            CalibrationPeak newPeak = e.CalibrationPeak;
-            foreach (CalibrationPeak peak in mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks)
-            {
-                if (peak.Equals(newPeak))
-                {
-                    string PeakExistText = String.Format(CultureInfo.InvariantCulture, Resources.ERRPeakExist, peak.FWHM, peak.Channel);
-                    // ⛔ `A245`, полоса F22 05.09.2026. Здесь стоял голый
-                    //    `MessageBox.Show`, а метод лежит на БЕЗОКОННОМ пути:
-                    //    `EnergySpectrumView_PeakPickuped` зовут отражением
-                    //    пробы (`FwhmViewReachProbeO13` называет его по имени),
-                    //    и безоконный прогон, дойдя сюда, вис насмерть до
-                    //    убийства процесса — на этом подряд встали две полосы
-                    //    по ~~`A236`~~. Дверь `AppUi.Report` показывает то же
-                    //    самое окно тем же значком и с тем же заголовком
-                    //    (`MessageBox.Show(text, caption, OK, icon)` внутри), а
-                    //    без окон печатает строку в поток ошибок и идёт дальше.
-                    AppUi.Report(PeakExistText, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
-                    return;
-                }
-            }
-            // PeakFit
-            SpectrumAriphmetics sa = new SpectrumAriphmetics(mainForm.ActiveDocument.ActiveResultData.EnergySpectrum);
-            newPeak = sa.CalcPeakFitValues(newPeak,
-                e.PeakStartSelection,
-                e.PeakEndSelection);
-            sa.Dispose();
-
-
-            mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks.Add(newPeak);
-            mainForm.ActiveDocument.Dirty = true;
-            calibrationDone = false;
-            ClearPeakPickupState();
-            UpdateFwhmCalibration();
-            UpdateCalibrateButtonState();
-        }
-
-        void ClearPeakPickupState()
-        {
-            // Unsubscribe from the view we actually subscribed to, not from whatever
-            // document happens to be active now.
-            if (this.pickupSubscribedView != null)
-            {
-                this.pickupSubscribedView.PeakPickuped -= this.EnergySpectrumView_PeakPickuped;
-                this.pickupSubscribedView = null;
-            }
-            peakPickupProcessing = false;
-            addPeakButton.Enabled = !peakPickupProcessing;
-            cancelAddPeakButton.Enabled = peakPickupProcessing;
-            UpdateCalibrateButtonState();
-        }
-
-        private void ExecuteCalibrationButton_Click(object sender, EventArgs e)
-        {
-            // (`AMBER189` (а)) Решатель пишет в КОПИЮ; документ получает её только
-            // после проверки — отказ кривую документа не трогает.
-            FwhmCalibration fitted = FitCopyOrRefuse(mainForm.ActiveDocument.ActiveResultData);
-            if (fitted == null)
-            {
-                return;
-            }
-            if (HasPeakShapeComparisonData(fitted.CalibrationPeaks))
-            {
-                SelectGlobalPeakShape(fitted, fitted.CalibrationPeaks);
-            }
-
-            CommitFittedCurve(mainForm.ActiveDocument, fitted);
         }
 
         void SelectGlobalPeakShape(FwhmCalibration target, List<CalibrationPeak> peaks)
@@ -1031,6 +1637,12 @@ namespace BecquerelMonitor
 
         void ShowWideMessage(string title, string message)
         {
+            if (!AppUi.HasWindows)
+            {
+                // Без окон — строкой (метод на пути «Рассчитать», который зовут пробы).
+                AppUi.Report(message, title, MessageBoxIcon.Information);
+                return;
+            }
             using (Form dialog = new Form())
             {
                 dialog.Text = title;
@@ -1100,178 +1712,209 @@ namespace BecquerelMonitor
             public double Score { get; private set; }
         }
 
-        private void CancelAddPeakButton_Click(object sender, EventArgs e)
+        // ══════════════════════════════════════════════════════════════════════
+        //  Сохранение в прибор
+        // ══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// (`AMBER276`) Кривая FWHM для конфигурации прибора: КОПИЯ без признака линий и
+        /// без отсчётов. Линии — свойство ЭТОГО спектра (его каналы и его энергии);
+        /// спектр, который возьмёт кривую у прибора, получит их опорами FWHM (серыми), а
+        /// не чужими линиями энергии. Файл прибора при этом не меняет вида: элементы
+        /// <c>EnergyLine</c>/<c>Count</c> пишутся только у линий.
+        /// </summary>
+        internal static FwhmCalibration ForDevice(FwhmCalibration calibration)
         {
-            ClearPeakPickupState();
+            if (calibration == null)
+            {
+                return null;
+            }
+            FwhmCalibration copy = calibration.Clone();
+            foreach (CalibrationPeak peak in copy.CalibrationPeaks)
+            {
+                peak.EnergyLine = false;
+                peak.Count = 0;
+            }
+            return copy;
         }
 
-        private void CollectedPeaksTable_EditingStopped(object sender, XPTable.Events.CellEditEventArgs e)
+        /// <summary>
+        /// «Сохранить в конфигурацию прибора» — одна кнопка для обеих калибровок.
+        /// Шкала энергии — какая стоит в полях (прежняя кнопка вкладки энергии, `A2`,
+        /// `AMBER188`), с кривизной тракта спектра (`AMBER271`); кривая FWHM —
+        /// подогнанная заново по строкам таблицы, как прежде делала кнопка вкладки FWHM
+        /// (`AMBER189` (а), П314), а если строк меньше, чем нужно виду кривой, — та,
+        /// что стоит у спектра. Отказ подгонки FWHM или записи — не меняется НИЧЕГО ни
+        /// в приборе, ни в спектре.
+        /// </summary>
+        private void SaveToDeviceCfgButton_Click(object sender, EventArgs e)
         {
-            Cell cell = e.Cell;
-            Row row = cell.Row;
-            // Сторож по образцу `GetAllPeaksButton_Click` (`A236`).
-            ResultData editResultData = mainForm.ActiveDocument != null ? mainForm.ActiveDocument.ActiveResultData : null;
-            if (editResultData == null || editResultData.FwhmCalibration == null)
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            ResultData resultData = ActiveResultData;
+            if (activeDocument == null || resultData == null || energyCalibration == null)
             {
-                UpdateCalibrateButtonState();
                 return;
             }
-            List<CalibrationPeak> calibrationPeaks = editResultData.FwhmCalibration.CalibrationPeaks;
-            NumberCellEditor editor = (NumberCellEditor)e.Editor;
-            string textvalue = editor.TextBox.Text;
+            // (`AMBER271`) если κ прибора сменится, вопрос говорит это числами.
+            string question = Resources.MSGSaveCalibration;
+            string curvatureNote = TractCurvatureChangeNote(resultData);
+            if (curvatureNote != null)
+            {
+                question += "\n\n" + curvatureNote;
+            }
+            if (MessageBox.Show(question, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) != DialogResult.Yes)
+            {
+                return;
+            }
+            DeviceConfigInfo deviceConfig = resultData.DeviceConfig;
+            if (deviceConfig == null || deviceConfig.Guid == null || deviceConfig.Guid == "")
+            {
+                AppUi.Report(Resources.ERRDeviceConfigNotSelected, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                return;
+            }
+            if (!this.energyCalibration.CheckCalibration(channels: resultData.EnergySpectrum.NumberOfChannels))
+            {
+                AppUi.Report(Resources.CalibrationFunctionError, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                return;
+            }
+            FWHMPeakDetectionMethodConfig peakDetectionMethodConfig = deviceConfig.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            FwhmCalibration fitted = null;
+            FwhmCalibration template = fwhmCalibration ?? CurveOfSelectedType();
+            if (peakDetectionMethodConfig != null && (fwhmCalibration != null || resultData.FwhmCalibration != null))
+            {
+                if (resultData.CalibrationLines.Count >= template.MinPeaksRequirement())
+                {
+                    // ⛔ ПОДГОНЯЕТСЯ КОПИЯ (`AMBER189` (а)).
+                    fitted = FitCopyOrRefuse(resultData);
+                    if (fitted == null)
+                    {
+                        return;
+                    }
+                }
+                else if (resultData.FwhmCalibration != null)
+                {
+                    fitted = resultData.FwhmCalibration.Clone();
+                }
+            }
 
-            if (e.Column == 1)
+            // ⛔ СНИМОК ПРЕЖНИХ ЗНАЧЕНИЙ (`A2`): объект конфигурации прибора в памяти один
+            // на всех, и при сорванной записи всё возвращается на место.
+            EnergyCalibration previousEnergyCalibration = deviceConfig.EnergyCalibration;
+            RadiaCodeDeviceConfig rc_deviceConfig = deviceConfig.InputDeviceConfig as RadiaCodeDeviceConfig;
+            ObsidianDeviceConfig obs_deviceConfig = deviceConfig.InputDeviceConfig as ObsidianDeviceConfig;
+            PolynomialEnergyCalibration previousRcCalibration =
+                rc_deviceConfig != null ? rc_deviceConfig.RC_EnergyCalibration : null;
+            PolynomialEnergyCalibration previousObsCalibration =
+                obs_deviceConfig != null ? obs_deviceConfig.OBS_EnergyCalibration : null;
+            double previousTractCurvature = deviceConfig.TractCurvature;
+            FwhmCalibration previousDeviceFwhm = peakDetectionMethodConfig != null ? peakDetectionMethodConfig.FwhmCalibration : null;
+
+            // ⛔ `AMBER188(б)`: КОПИЯ — прибор, документ и вид не держат один объект.
+            deviceConfig.EnergyCalibration = this.energyCalibration.Clone();
+            // (`AMBER271`) кривизна тракта — спектра; у спектра без своей κ это κ самого
+            // прибора, и запись её не меняет.
+            deviceConfig.TractCurvature = resultData.TractCurvature;
+            if (rc_deviceConfig != null)
             {
-                calibrationPeaks[row.Index].Channel = UserNumber.ParseInt(textvalue);
+                if (this.energyCalibration.PolynomialOrder == 2)
+                {
+                    rc_deviceConfig.RC_EnergyCalibration = (PolynomialEnergyCalibration)this.energyCalibration.Clone();
+                }
+                else if (this.energyCalibration.PolynomialOrder > 2 && this.rc_EnergyCalibration != null)
+                {
+                    rc_deviceConfig.RC_EnergyCalibration = (PolynomialEnergyCalibration)this.rc_EnergyCalibration.Clone();
+                }
+                else
+                {
+                    rc_deviceConfig.RC_EnergyCalibration = null;
+                }
             }
-            else if (e.Column == 2)
+            else if (obs_deviceConfig != null)
             {
-                calibrationPeaks[row.Index].Energy = UserNumber.ParseDouble(textvalue);
+                if (this.energyCalibration.PolynomialOrder == 2)
+                {
+                    obs_deviceConfig.OBS_EnergyCalibration = (PolynomialEnergyCalibration)this.energyCalibration.Clone();
+                }
+                else if (this.energyCalibration.PolynomialOrder > 2 && this.rc_EnergyCalibration != null)
+                {
+                    obs_deviceConfig.OBS_EnergyCalibration = (PolynomialEnergyCalibration)this.rc_EnergyCalibration.Clone();
+                }
+                else
+                {
+                    obs_deviceConfig.OBS_EnergyCalibration = null;
+                }
             }
-            else if (e.Column == 3)
+            if (fitted != null)
             {
-                calibrationPeaks[row.Index].FWHM = UserNumber.ParseDouble(textvalue);
-            } else
+                peakDetectionMethodConfig.FwhmCalibration = ForDevice(fitted);
+            }
+            // ⛔ ОТВЕТ МЕНЕДЖЕРА ЧИТАЕТСЯ (`A2`). При отказе не применяется НИЧЕГО:
+            // обещание кнопки — запись, а половинный исход (спектр пересчитан, файл
+            // прежний) переживает перезапуск молча.
+            if (!DeviceConfigManager.GetInstance().SaveConfig(deviceConfig))
             {
+                deviceConfig.EnergyCalibration = previousEnergyCalibration;
+                deviceConfig.TractCurvature = previousTractCurvature;
+                if (rc_deviceConfig != null)
+                {
+                    rc_deviceConfig.RC_EnergyCalibration = previousRcCalibration;
+                }
+                if (obs_deviceConfig != null)
+                {
+                    obs_deviceConfig.OBS_EnergyCalibration = previousObsCalibration;
+                }
+                if (peakDetectionMethodConfig != null)
+                {
+                    peakDetectionMethodConfig.FwhmCalibration = previousDeviceFwhm;
+                }
+                AppUi.Report(Resources.ERRCalibrationNotSavedToDevice, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 return;
             }
-            mainForm.ActiveDocument.Dirty = true;
-            calibrationDone = false;
-            UpdateCalibrateButtonState();
+            resultData.EnergySpectrum.EnergyCalibration = this.energyCalibration.Clone();
+            if (fitted != null)
+            {
+                // (П314) В документ — тем же хвостом, что у «Рассчитать».
+                CommitFittedCurve(activeDocument, fitted.Clone());
+            }
+            mainForm.UpdateDeviceConfigForm();
         }
 
-        int isCalibrationPeaksExist()
+        /// <summary>
+        /// (`AMBER271`) Строка вопроса кнопки «Сохранить в конфигурацию прибора»
+        /// о кривизне тракта: null, когда κ прибора не меняется (у спектра своей
+        /// κ нет или она та же), иначе — прежняя и новая κ прибора, точкой
+        /// (`A242`). Сравнение побитовое: «почти та же» κ — уже другая.
+        /// </summary>
+        internal static string TractCurvatureChangeNote(ResultData data)
         {
-            int count = 0;
-            if (mainForm.DocumentList != null)
+            if (data == null || data.DeviceConfig == null)
             {
-                foreach (DocEnergySpectrum doc in mainForm.DocumentList)
-                {
-                    if (doc == null || doc.ResultDataFile == null || doc.ResultDataFile.ResultDataList == null)
-                    {
-                        continue;
-                    }
-
-                    foreach (ResultData data in doc.ResultDataFile.ResultDataList)
-                    {
-                        if (data == null || data.FwhmCalibration == null || data.FwhmCalibration.CalibrationPeaks == null)
-                        {
-                            continue;
-                        }
-
-                        count += data.FwhmCalibration.CalibrationPeaks.Count;
-                    }
-                }
+                return null;
             }
-            return count;
+
+            double device = data.DeviceConfig.TractCurvature;
+            double spectrum = data.TractCurvature;
+            if (spectrum.Equals(device))
+            {
+                return null;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, Resources.MSGSaveEnergyCalibrationTractCurvature,
+                                 device.ToString("R", CultureInfo.InvariantCulture),
+                                 spectrum.ToString("R", CultureInfo.InvariantCulture));
         }
 
-        private void GetAllPeaksButton_Click(object sender, EventArgs e)
-        {
-            List<CalibrationPeak> peaks = new List<CalibrationPeak>();
-            Dictionary<int, double> peaksDict = new Dictionary<int, double>();
-            ResultData activeResultData = mainForm.ActiveDocument != null ? mainForm.ActiveDocument.ActiveResultData : null;
-
-            EnsureFwhmCalibration(activeResultData);
-            if (activeResultData == null || activeResultData.FwhmCalibration == null)
-            {
-                UpdateCalibrateButtonState();
-                return;
-            }
-
-            // (П321, 15.10.2026; решение Amber вопросником 15.10.2026, дословно: «Брать только
-            // из документов, где число каналов такое же.») Опора кривой ПШПВ — это КАНАЛ и
-            // ширина в КАНАЛАХ своего спектра, а не в кэВ: опора спектра другой сетки (1024
-            // рядом с 4096, RadiaCode рядом с ASN) легла бы в чужие единицы, и степенная
-            // кривая после сбора принималась с ошибкой −15.9 / +19.9 / +38.6 % на 120 / 660 /
-            // 1332 кэВ (П314, плечо E). Поэтому берутся только спектры с тем же числом
-            // каналов, что у активного; остальные считаются и называются человеку ОДНОЙ
-            // строкой после сбора. ⚠ Спектр без шкалы каналов (`EnergySpectrum == null`) сеткой
-            // не обладает — как «того же числа каналов» он не берётся.
-            if (activeResultData.EnergySpectrum == null)
-            {
-                UpdateCalibrateButtonState();
-                return;
-            }
-            int activeChannels = activeResultData.EnergySpectrum.NumberOfChannels;
-            int skippedOtherGrid = 0;
-
-            if (mainForm.DocumentList != null)
-            {
-                foreach (DocEnergySpectrum doc in mainForm.DocumentList)
-                {
-                    if (doc == null || doc.ResultDataFile == null || doc.ResultDataFile.ResultDataList == null)
-                    {
-                        continue;
-                    }
-
-                    foreach (ResultData data in doc.ResultDataFile.ResultDataList)
-                    {
-                        if (data != null &&
-                            data.FwhmCalibration != null &&
-                            data.FwhmCalibration.CalibrationPeaks != null &&
-                            data.FwhmCalibration.CalibrationPeaks.Count > 0)
-                        {
-                            if (data.EnergySpectrum == null || data.EnergySpectrum.NumberOfChannels != activeChannels)
-                            {
-                                skippedOtherGrid += data.FwhmCalibration.CalibrationPeaks.Count;
-                                continue;
-                            }
-                            peaks.AddRange(data.FwhmCalibration.CalibrationPeaks);
-                        }
-                    }
-                }
-                if (peaks.Count > 0)
-                {
-                    activeResultData.FwhmCalibration.CalibrationPeaks.Clear();
-                }
-                foreach (CalibrationPeak peak in peaks)
-                {
-                    if (peaksDict.ContainsKey(peak.Channel))
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        peaksDict.Add(peak.Channel, peak.FWHM);
-                        // (`AMBER201`, подозрение полосы 4, 05.10.2026) В документ —
-                        // КОПИЯ опоры. Прежде клался тот же объект, что у документа-
-                        // источника, и правка ПШПВ точки здесь молча меняла кривую
-                        // ДРУГОГО спектра (и наоборот).
-                        activeResultData.FwhmCalibration.CalibrationPeaks.Add(
-                            CalibrationPeak.ClonePeaks(new List<CalibrationPeak> { peak })[0]);
-                        mainForm.ActiveDocument.Dirty = true;
-                        calibrationDone = false;
-                    }
-                }
-                UpdateFwhmCalibration();
-                UpdateCalibrateButtonState();
-                if (skippedOtherGrid > 0)
-                {
-                    // Окно через `AppUi.Report`: метод зовут отражением безоконные пробы.
-                    AppUi.Report(String.Format(CultureInfo.InvariantCulture, Resources.MSGFwhmPeaksOtherGridSkipped, skippedOtherGrid),
-                                 Resources.NotificationDialogTitle, MessageBoxIcon.Information);
-                }
-            }
-        }
+        // ══════════════════════════════════════════════════════════════════════
+        //  Графики и форма пика
+        // ══════════════════════════════════════════════════════════════════════
 
         private void ViewCalibrationButton_Click(object sender, EventArgs e)
         {
-            // Сторож по образцу `GetAllPeaksButton_Click` (`A236`): без него пустая
-            // кривая уезжала в `FWHMCalibrationGraph.Init` и валила ЧУЖОЙ класс.
+            // Сторож по образцу `GetAllPeaksButton_Click` (`A236`) и энергокалибровка —
+            // четвёртое звено (`A243`): `Init` разыменовывает шкалу энергии первой строкой.
             // ⛔ Поле `fwhmCalibration` здесь НЕ переприсваивается: между обновлениями
-            // вида оно законно держит ещё не сохранённый выбор типа кривой (см. 223-235).
-            // ⛔ ЭНЕРГОКАЛИБРОВКА — ЧЕТВЁРТОЕ ЗВЕНО, И ОНО ЗДЕСЬ НЕ ЛИШНЕЕ (`A243`,
-            // 05.09.2026). `Init` разыменовывает `ActiveResultData.EnergySpectrum
-            // .EnergyCalibration.Clone()` первой же строкой, а спектр без шкалы
-            // энергии приложение производит штатно (`A95`: `EnergySpectrum.Clone`
-            // ради этого отказывает СЛОВАМИ, `CheckDocument` без поправок судит
-            // такой документ негодным, а импортные двери при ответе «Нет» уходят
-            // `return`-ом из void, оставляя документ ОТКРЫТЫМ). Измерено полосой
-            // О22: при кривой ПШПВ на месте и пустой энергокалибровке дверь
-            // доходила до `Init` и валила чужой класс —
-            // `NullReferenceException @ FWHMCalibrationGraph.cs:53`.
-            ResultData graphResultData = mainForm.ActiveDocument != null ? mainForm.ActiveDocument.ActiveResultData : null;
+            // вида оно законно держит ещё не сохранённый выбор вида кривой.
+            ResultData graphResultData = ActiveResultData;
             EnsureFwhmCalibration(graphResultData);
             if (fwhmCalibration == null || graphResultData == null
                 || graphResultData.FwhmCalibration == null
@@ -1283,20 +1926,56 @@ namespace BecquerelMonitor
             }
 
             FWHMCalibrationGraph graph = new FWHMCalibrationGraph(this.mainForm);
-            graph.Init(fwhmCalibration, mainForm.ActiveDocument.ActiveResultData.EnergySpectrum.NumberOfChannels);
+            graph.Init(fwhmCalibration, graphResultData.EnergySpectrum.NumberOfChannels);
             DialogResult result = graph.ShowDialog();
             if (result == DialogResult.Yes)
             {
-                calibrationDone = false;
-                // (П314, 15.10.2026) «Обновить опоры» графика переписала опоры ДОКУМЕНТА
-                // (`FWHMCalibrationGraph.updateCalibrationPointsToolStripMenuItem_Click`) —
-                // документ изменён, как при добавлении, снятии и правке опоры здесь же.
-                // Прежде звёздочки не было, и закрытие без вопроса теряло сдвинутые опоры.
+                // (П314) «Обновить опоры» графика переписала строки ДОКУМЕНТА — документ
+                // изменён.
                 mainForm.ActiveDocument.Dirty = true;
-                fwhmCalibration.CalibrationPeaks = CalibrationPeak.ClonePeaks(mainForm.ActiveDocument.ActiveResultData.FwhmCalibration.CalibrationPeaks);
+                MarkModified();
+                fwhmCalibration.CalibrationPeaks = CalibrationPeak.ClonePeaks(graphResultData.FwhmCalibration.CalibrationPeaks);
                 UpdateTable();
                 UpdateCalibrateButtonState();
             }
+        }
+
+        /// <summary>
+        /// График калибровки по энергии (прежняя кнопка «График» вкладки энергии):
+        /// линии таблицы — точками графика; «Обновить точки» графика переписывает
+        /// <c>ResultData.CalibrationPoints</c>, и сдвинутые каналы возвращаются в
+        /// строки по порядку (график точек не добавляет и не снимает).
+        /// </summary>
+        private void ViewEnergyGraphButton_Click(object sender, EventArgs e)
+        {
+            ResultData resultData = ActiveResultData;
+            if (resultData == null || resultData.EnergySpectrum == null || energyCalibration == null)
+            {
+                return;
+            }
+            List<CalibrationPeak> energyLines = resultData.CalibrationLines
+                .Where(l => l != null && l.EnergyLine).OrderBy(l => l.Channel).ToList();
+            List<CalibrationPoint> points = EnergyPoints(resultData.CalibrationLines);
+            resultData.CalibrationPoints = points;
+            CalibrationGraph graph = new CalibrationGraph(this.mainForm);
+            graph.SetCalibration(this.energyCalibration, resultData.EnergySpectrum.NumberOfChannels, (int)this.numericUpDown6.Value, this.checkBox2.Checked);
+            graph.SetCalibrationPoints(points);
+            graph.ShowDialog();
+            List<CalibrationPoint> updated = resultData.CalibrationPoints;
+            if (!ReferenceEquals(updated, points) && updated != null && updated.Count == energyLines.Count)
+            {
+                for (int i = 0; i < energyLines.Count; i++)
+                {
+                    energyLines[i].Channel = updated[i].Channel;
+                    energyLines[i].Energy = (double)updated[i].Energy;
+                    energyLines[i].Count = updated[i].Count;
+                }
+                mainForm.ActiveDocument.Dirty = true;
+            }
+            resultData.CalibrationPoints = new List<CalibrationPoint>();
+            MarkModified();
+            UpdateTable();
+            UpdateCalibrateButtonState();
         }
 
         private void ViewPeakShapeButton_Click(object sender, EventArgs e)
@@ -1309,6 +1988,271 @@ namespace BecquerelMonitor
             PeakShapePreviewGraph graph = new PeakShapePreviewGraph(this.mainForm);
             graph.Init(fwhmCalibration, this.peakShapeInfoGroupBox.Text);
             graph.ShowDialog(this);
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  Шкала энергии: коэффициенты руками, сброс, автокалибровка, веса, степень
+        // ══════════════════════════════════════════════════════════════════════
+
+        public void LoadCalibrationPoints()
+        {
+            UpdateFwhmCalibration();
+        }
+
+        public void UpdateEnergyCalibrationConfig()
+        {
+        }
+
+        public void SetEnergyCalibration(EnergyCalibration energyCalibration, EnergyCalibration defaultEnergyCalibration)
+        {
+            this.energyCalibration = (PolynomialEnergyCalibration)energyCalibration.Clone();
+            this.defaultEnergyCalibration = (PolynomialEnergyCalibration)defaultEnergyCalibration.Clone();
+            this.SyncRcEnergyCalibration();
+            this.ShowCoefficients();
+            this.UpdateTable();
+            this.UpdateCalibrateButtonState();
+        }
+
+        /// <summary>
+        /// Пять полей коэффициентов — из шкалы вида, инвариантной культурой (`A242`).
+        /// Показанный текст запоминается (<see cref="shownCoefficientText"/>): см.
+        /// <see cref="setNewCalibration"/>.
+        /// </summary>
+        void ShowCoefficients()
+        {
+            this.numericUpDown1.Text = "0";
+            this.numericUpDown2.Text = "0";
+            this.numericUpDown3.Text = "0";
+            this.numericUpDown4.Text = "0";
+            this.numericUpDown5.Text = "0";
+            this.numericUpDown3.Text = this.energyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
+            this.numericUpDown2.Text = this.energyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
+            if (this.energyCalibration.PolynomialOrder >= 2)
+            {
+                this.numericUpDown1.Text = this.energyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
+            }
+            if (this.energyCalibration.PolynomialOrder >= 3)
+            {
+                this.numericUpDown5.Text = this.energyCalibration.Coefficients[3].ToString(CultureInfo.InvariantCulture);
+            }
+            if (this.energyCalibration.PolynomialOrder == 4)
+            {
+                this.numericUpDown4.Text = this.energyCalibration.Coefficients[4].ToString(CultureInfo.InvariantCulture);
+            }
+            foreach (TextBox box in new[] { this.numericUpDown1, this.numericUpDown2, this.numericUpDown3, this.numericUpDown4, this.numericUpDown5 })
+            {
+                this.shownCoefficientText[box] = box.Text;
+            }
+        }
+
+        /// <summary>Текст, которым поле коэффициента показано (см. <see cref="setNewCalibration"/>).</summary>
+        readonly Dictionary<TextBox, string> shownCoefficientText = new Dictionary<TextBox, string>();
+
+        void button1_Click(object sender, EventArgs e)
+        {
+            if (this.defaultEnergyCalibration == null || ActiveResultData == null)
+            {
+                return;
+            }
+            this.energyCalibration = (PolynomialEnergyCalibration)this.defaultEnergyCalibration.Clone();
+            this.SyncRcEnergyCalibration();
+            this.numericUpDown1.ForeColor = Color.Black;
+            this.numericUpDown2.ForeColor = Color.Black;
+            this.numericUpDown3.ForeColor = Color.Black;
+            this.numericUpDown4.ForeColor = Color.Black;
+            this.numericUpDown5.ForeColor = Color.Black;
+            this.ShowCoefficients();
+            this.UpdateEnergyCalibration();
+        }
+
+        void UpdateEnergyCalibration()
+        {
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            activeDocument.ActiveResultData.EnergySpectrum.EnergyCalibration = this.energyCalibration.Clone();
+            activeDocument.Dirty = true;
+            activeDocument.UpdateEnergySpectrum();
+            this.mainForm.ShowMeasurementResult(true);
+            this.mainForm.UpdateDetectedPeakView();
+        }
+
+        public void SetStabilizerState(ResultData resultData)
+        {
+            this.checkBox1.Checked = resultData.ResultDataStatus.Stabilization;
+        }
+
+        void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (activeDocument == null)
+            {
+                return;
+            }
+            activeDocument.ActiveResultData.ResultDataStatus.Stabilization = this.checkBox1.Checked;
+            this.mainForm.UpdateCalibrationPeak();
+        }
+
+        void button5_Click(object sender, EventArgs e)
+        {
+            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
+            if (activeDocument == null)
+            {
+                return;
+            }
+            this.mainForm.ShowDeviceConfigStabilizerForm(activeDocument.ActiveResultData.DeviceConfig);
+        }
+
+        void checkBox2_Click(object sender, EventArgs e)
+        {
+            MarkModified();
+            this.UpdateTableColumns();
+            UpdateCalibrateButtonState();
+        }
+
+        void numericUpDown6_ValueChanged(object sender, EventArgs e)
+        {
+            if (settingPolynomialOrder)
+            {
+                return;
+            }
+            MarkModified();
+            UpdateCalibrateButtonState();
+        }
+
+        void setNewCalibration(TextBox t, int order)
+        {
+            if (this.energyCalibration == null || ActiveResultData == null)
+            {
+                return;
+            }
+            PolynomialEnergyCalibration pe = this.energyCalibration;
+            // ⛔ (`AMBER276`, находка экраном 29.10.2026) Текст поля не правили — шкала не
+            // трогается. Поле печатает double пятнадцатью знаками, и прежде выход из поля,
+            // в которое человек только зашёл, разбирал этот текст в СОСЕДНИЙ double
+            // (0.00091681334111664073 → 0.000916813341116641): шкала менялась в последних
+            // битах, документ помечался изменённым, и такая шкала уходила в файл и в прибор.
+            string shown;
+            if (this.shownCoefficientText.TryGetValue(t, out shown) && shown == t.Text)
+            {
+                t.ForeColor = Color.Black;
+                return;
+            }
+            try
+            {
+                double result = fromStringtoDouble(t.Text);
+
+                // ⛔ `AMBER188(б, д)`: новая шкала строится ОБЩИМ помощником в НОВОМ
+                // объекте и присваивается только после проверки («Подъём до введённой»).
+                PolynomialEnergyCalibration newPe = PolynomialEnergyCalibration.WithCoefficient(pe, order, result);
+
+                if (newPe.Equals(pe))
+                {
+                    t.ForeColor = Color.Black;
+                    return;
+                }
+
+                if (!newPe.CheckCalibration(channels: ActiveResultData.EnergySpectrum.NumberOfChannels))
+                {
+                    throw new Exception();
+                }
+                this.energyCalibration = newPe;
+
+                t.ForeColor = Color.Black;
+                this.shownCoefficientText[t] = t.Text;
+                this.SyncRcEnergyCalibration();
+                this.UpdateEnergyCalibration();
+            }
+            catch
+            {
+                AppUi.Report(Resources.CalibrationFunctionError, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                t.ForeColor = Color.Red;
+            }
+        }
+
+        void numericUpDown1_KeyDown(object sender, KeyEventArgs e)
+        {
+            CoefficientKeyDown(this.numericUpDown1, 2, e);
+        }
+
+        void numericUpDown1_Leave(object sender, EventArgs e)
+        {
+            setNewCalibration(this.numericUpDown1, 2);
+        }
+
+        void numericUpDown2_KeyDown(object sender, KeyEventArgs e)
+        {
+            CoefficientKeyDown(this.numericUpDown2, 1, e);
+        }
+
+        void numericUpDown2_Leave(object sender, EventArgs e)
+        {
+            setNewCalibration(this.numericUpDown2, 1);
+        }
+
+        void numericUpDown3_KeyDown(object sender, KeyEventArgs e)
+        {
+            CoefficientKeyDown(this.numericUpDown3, 0, e);
+        }
+
+        void numericUpDown3_Leave(object sender, EventArgs e)
+        {
+            setNewCalibration(this.numericUpDown3, 0);
+        }
+
+        void numericUpDown4_KeyDown(object sender, KeyEventArgs e)
+        {
+            CoefficientKeyDown(this.numericUpDown4, 4, e);
+        }
+
+        void numericUpDown4_Leave(object sender, EventArgs e)
+        {
+            setNewCalibration(this.numericUpDown4, 4);
+        }
+
+        void numericUpDown5_KeyDown(object sender, KeyEventArgs e)
+        {
+            CoefficientKeyDown(this.numericUpDown5, 3, e);
+        }
+
+        void numericUpDown5_Leave(object sender, EventArgs e)
+        {
+            setNewCalibration(this.numericUpDown5, 3);
+        }
+
+        void CoefficientKeyDown(TextBox box, int order, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Return)
+            {
+                setNewCalibration(box, order);
+                e.SuppressKeyPress = true;
+            }
+            else
+            {
+                box.ForeColor = Color.Blue;
+            }
+        }
+
+        double fromStringtoDouble(string str)
+        {
+            double result;
+            if (UserNumber.TryParseDouble(str, out result))
+            {
+                // Let's try not to prohibit the user from entering data that seems strange.
+                // For example: kromek CZT have absolute offset = -400
+                return result;
+            }
+            throw new Exception();
+        }
+
+        void SyncRcEnergyCalibration()
+        {
+            if (this.energyCalibration != null && this.energyCalibration.PolynomialOrder == 2)
+            {
+                this.rc_EnergyCalibration = (PolynomialEnergyCalibration)this.energyCalibration.Clone();
+            }
+            else
+            {
+                this.rc_EnergyCalibration = null;
+            }
         }
     }
 }

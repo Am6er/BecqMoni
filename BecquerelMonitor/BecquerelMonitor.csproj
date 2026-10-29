@@ -222,9 +222,6 @@
     <Compile Include="DCEnergyCalibrationView.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="DCEnergyCalibrationView.Designer.cs">
-      <DependentUpon>DCEnergyCalibrationView.cs</DependentUpon>
-    </Compile>
     <Compile Include="DCFwhmCalibrationView.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -1038,14 +1035,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DCCountRateView.resx">
       <DependentUpon>DCCountRateView.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="DCEnergyCalibrationView.resx">
-      <DependentUpon>DCEnergyCalibrationView.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="DCEnergyCalibrationView.ru.resx">
-      <DependentUpon>DCEnergyCalibrationView.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="DCFwhmCalibrationView.resx">
