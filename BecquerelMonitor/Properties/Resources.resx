@@ -43943,6 +43943,9 @@ Close the window and discard it?</value>
   <data name="MSGAtomSpectraTcpClearJoinedConfirm" xml:space="preserve">
     <value>BecqMoni joined an acquisition that was already running on the analyzer; it holds {0} h {1} min, {2} counts. Reset the spectrum ON THE ANALYZER (-rst)? This cannot be undone.</value>
   </data>
+  <data name="MSGAtomSpectraTcpClearJoinedBothConfirm" xml:space="preserve">
+    <value>BecqMoni joined an acquisition that was already running on the analyzer; it holds {0} h {1} min, {2} counts. Clear the spectrum in the document AND reset it ON THE ANALYZER (-rst)? This cannot be undone.</value>
+  </data>
   <data name="MSGAtomSpectraTcpClearJoinedDeferredConfirm" xml:space="preserve">
     <value>BecqMoni joined an acquisition that was already running on the analyzer, but recording is stopped now. Only the document is cleared now and nothing is sent to the analyzer; the analyzer's spectrum will be reset (-rst) at the next Start; if the analyzer has counted by then, Start asks first. Continue? This cannot be undone.</value>
   </data>
@@ -44503,6 +44506,9 @@ The setting is saved on the board and applies to all its clients. If other progr
   <data name="AtomSpectraRestTestResult" xml:space="preserve">
     <value>{0}: firmware {1}, board time {2} s, total {3}; calibration {4}.</value>
   </data>
+  <data name="AtomSpectraFirmwareBelow" xml:space="preserve">
+    <value>AtomSpectra board firmware {0} is older than the recommended {1}: the board search and "Start" may not work - update the board firmware.</value>
+  </data>
   <data name="AtomSpectraRestCalibSet" xml:space="preserve">
     <value>set on the board</value>
   </data>
@@ -44571,6 +44577,9 @@ The setting is saved on the board and applies to all its clients. If other progr
   </data>
   <data name="MSGAtomSpectraRestClearConfirm" xml:space="preserve">
     <value>The board holds {0} h {1} min, {2} counts. Reset the spectrum ON THE BOARD? This cannot be undone.</value>
+  </data>
+  <data name="MSGAtomSpectraRestClearBothConfirm" xml:space="preserve">
+    <value>The board holds {0} h {1} min, {2} counts. Clear the spectrum in the document AND reset it ON THE BOARD? This cannot be undone.</value>
   </data>
   <data name="MSGAtomSpectraRestNotReset" xml:space="preserve">
     <value>The board was NOT reset ({0}); its spectrum is intact. While the board is polled the document is refilled from it.</value>

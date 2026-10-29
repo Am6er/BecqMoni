@@ -256,13 +256,13 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            DialogResult dialogResult = MessageBox.Show(Resources.MSGClearSpectrum, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
-            if (dialogResult == DialogResult.No)
+            ResultData activeResultData = activeDocument.ActiveResultData;
+            // #BM-22: ONE question; the device may ask it itself (AtomSpectra REST: with the board's numbers)
+            // other devices ask exactly as the release did: MessageBox without owner, "No" = nothing is cleared
+            if (!activeResultData.MeasurementController.ConfirmAndClearAsking(() => MessageBox.Show(Resources.MSGClearSpectrum, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) != DialogResult.No))
             {
                 return;
             }
-            ResultData activeResultData = activeDocument.ActiveResultData;
-            activeResultData.MeasurementController.ClearMeasurementResult();
             ResultDataStatus resultDataStatus = activeResultData.ResultDataStatus;
             resultDataStatus.TotalTime = TimeSpan.FromSeconds(0.0);
             resultDataStatus.ElapsedTime = TimeSpan.FromSeconds(0.0);

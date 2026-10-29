@@ -109,7 +109,7 @@ namespace BecquerelMonitor
             this.Controls.Add(buttonShowLog);
 
             // Result label
-            labelRestResult = new Label { Location = new Point(17, 628), Size = new Size(438, 60) };
+            labelRestResult = new Label { Location = new Point(17, 628), Size = new Size(438, 90) };   // room for the firmware warning line under the status
             this.Controls.Add(labelRestResult);
 
             // Default state
@@ -256,12 +256,13 @@ namespace BecquerelMonitor
                     ? Resources.AtomSpectraRestCalibSet
                     : Resources.AtomSpectraRestCalibNone;
 
-                return string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraRestTestResult,
+                string fw = AtomSpectraJson.GetString(s, "fw_version");   // the answer already in hand: no second read
+                return AtomSpectraFirmware.AppendWarning(string.Format(CultureInfo.InvariantCulture, Resources.AtomSpectraRestTestResult,
                     client.BaseUrl,
-                    AtomSpectraJson.GetString(s, "fw_version") ?? "?",
+                    fw ?? "?",
                     AtomSpectraJson.GetNumber(s, "time", -1),
                     AtomSpectraJson.GetNumber(s, "total_counts", -1),
-                    calib) + compression;
+                    calib) + compression, fw);   // a version below 1.2.39: the warning on its own line under the status
             }
             catch (FormatException ex)
             {
