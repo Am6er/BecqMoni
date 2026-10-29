@@ -201,6 +201,14 @@ namespace BecquerelMonitor
             restClearFor = null;
             tcpClearFor = null;
 
+            // PR #39 review: every window of this confirmation (the TCP question of a joined acquisition, the report of a board that could not
+            // be read and the question after it, the REST question) holds the windows waiting for a wait window to close: "The board was
+            // reset" of another document must not come up inside it and pass for its answer (PR #38 review, R8)
+            return AtomSpectraRestUi.HoldingAfterWait(() => ConfirmClearHeld(r));
+        }
+
+        private bool ConfirmClearHeld(ResultData r)
+        {
             AtomSpectraTcpDeviceConfig config = ConfigOf(r);
 
             if (deviceGuid == null

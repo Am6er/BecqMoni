@@ -35,8 +35,10 @@ namespace BecquerelMonitor
             afterWait.Add(action);
         }
 
-        // a question during which the held actions keep waiting; they are posted once it is answered (UI thread only)
-        private static T HoldingAfterWait<T>(Func<T> question)
+        // a question during which the held actions keep waiting; they are posted once it is answered (UI thread only); nests.
+        // Also the whole confirmation of the device "Clear" (AtomSpectraTcpDeviceController.ConfirmClear, PR #39 review): its board read,
+        // its report and its question
+        internal static T HoldingAfterWait<T>(Func<T> question)
         {
             holdAfterWait++;
             try
