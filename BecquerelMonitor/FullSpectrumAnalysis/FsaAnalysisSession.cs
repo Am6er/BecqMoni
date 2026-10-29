@@ -175,6 +175,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         DateTime lastStartUtc = DateTime.MinValue;
 
         /// <summary>
+        /// (`AMBER269`) Энергии найденных пиков (центры, кэВ по калибровке файла) — для
+        /// <see cref="FsaAnalyzer.DetectedPeakKev"/>; пик с нечисловой или неположительной
+        /// энергией пропускается.
+        /// </summary>
+        public static double[] PeakEnergiesOf(List<Peak> peaks)
+        {
+            var energies = new List<double>();
+            if (peaks != null)
+            {
+                foreach (Peak peak in peaks)
+                {
+                    if (peak != null && peak.Energy > 0.0 && !double.IsInfinity(peak.Energy))
+                    {
+                        energies.Add(peak.Energy);
+                    }
+                }
+            }
+
+            return energies.ToArray();
+        }
+
+        /// <summary>
         /// (`AMBER210`) Линии библиотеки приложения — имя и энергия каждого определения — для
         /// <see cref="FsaAnalyzer.LibraryLines"/>. Выход у определения не хранится, поэтому
         /// интенсивность линии нуль; определение без имени или с неположительной энергией пропускается.
@@ -665,12 +687,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static string RefusalText(FsaRefusal refusal, string efficiencyRefusal)
         {
+            return RefusalText(refusal, efficiencyRefusal, null);
+        }
+
+        /// <summary>
+        /// (`AMBER267`, 28.10.2026) То же, плюс третий случай гейта геометрии:
+        /// <paramref name="uncomputedCurve"/> — имя выбранной кривой, у которой
+        /// геометрия ЕСТЬ, а годных точек меньше двух (конструктор сохраняет
+        /// геометрию и без «Посчитать из геометрии»). Прежде человек читал
+        /// «нужна геометрия» при описанной геометрии и годной матрице — видео
+        /// пользователя 28.10.2026: «он мне пишет нужна геометрия, почему она
+        /// нужна, если я её уже выбрал».
+        /// </summary>
+        public static string RefusalText(FsaRefusal refusal, string efficiencyRefusal, string uncomputedCurve)
+        {
             switch (refusal)
             {
                 case FsaRefusal.Geometry:
-                    return efficiencyRefusal != null
+                    if (efficiencyRefusal != null)
+                    {
+                        return string.Format(CultureInfo.InvariantCulture,
+                                             Properties.Resources.FSACurveRefused, efficiencyRefusal);
+                    }
+
+                    return uncomputedCurve != null
                         ? string.Format(CultureInfo.InvariantCulture,
-                                        Properties.Resources.FSACurveRefused, efficiencyRefusal)
+                                        Properties.Resources.FSACurveNotComputed, uncomputedCurve)
                         : Properties.Resources.FSANoGeometry;
                 case FsaRefusal.LibraryEmptied:
                     return Properties.Resources.FSALibraryEmptied;
@@ -755,6 +797,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// геометрии называл бы геометрию там, где чинить надо точку.
             /// </summary>
             public string EfficiencyRefusal;
+
+            /// <summary>
+            /// (`AMBER267`) Имя выбранной кривой, у которой геометрия есть, а
+            /// годных точек нет (не посчитана); null — не этот случай.
+            /// </summary>
+            public string UncomputedCurve;
             public ResultData CompositionInput;
             public List<NuclideDefinition> Definitions;
             public List<Peak> Peaks;
@@ -815,6 +863,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // сама кривая, читает его `FsaAnalyzer` → `FsaResult` → окно отчёта.
             // Отвергнутая кривая (точка выше единицы у долей) — причина словами.
             job.Efficiency = FsaEfficiency.FromConfig(efficiencyConfig, out job.EfficiencyRefusal);
+            // (`AMBER267`) Геометрия есть, кривой из неё не вышло без названной
+            // причины — значит точек нет: «Посчитать из геометрии» не нажимали.
+            if (job.Efficiency == null && job.EfficiencyRefusal == null
+                && efficiencyConfig != null && efficiencyConfig.HasGeometry)
+            {
+                job.UncomputedCurve = efficiencyConfig.Name ?? string.Empty;
+            }
             job.CompositionInput = CompositionInput(resultData.PeakDetectionMethodConfig,
                                                     efficiencyConfig, job.Spectrum, job.FwhmCalibration,
                                                     resultData.DeviceConfig);
@@ -838,6 +893,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`AMBER210`) линии библиотеки приложения — называть пики вне состава;
             // имён в коде нет, всё из определений менеджера
             analyzer.LibraryLines = LibraryLinesOf(job.Definitions);
+
+            // (`AMBER269`, (Б)) найденные пики — подтверждать опоры шкалы (читает
+            // только `AnchorConfirmByPeaks`)
+            analyzer.DetectedPeakKev = PeakEnergiesOf(job.Peaks);
 
             Action<FsaAnalyzer> probeHook = ProbeAnalyzerHook;
 
@@ -1088,7 +1147,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         // или одним нуклидом в составе. Решение о самом
                         // отказе принято ОДНИМ местом (`FsaAnalyzer.Refuse`,
                         // причина — `FsaAnalyzer.Refusal`), здесь только слова.
-                        message = RefusalText(job.Analyzer.Refusal, job.EfficiencyRefusal);
+                        message = RefusalText(job.Analyzer.Refusal, job.EfficiencyRefusal, job.UncomputedCurve);
                         Trace.WriteLine("FSA refused: " + job.Analyzer.Refusal
                                         + (job.Analyzer.RefusalNote != null ? " — " + job.Analyzer.RefusalNote : ""));
                     }

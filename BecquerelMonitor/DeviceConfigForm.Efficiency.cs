@@ -493,6 +493,13 @@ namespace BecquerelMonitor
                                         (int)config.Curve[0].Energy,
                                         (int)config.Curve[config.Curve.Count - 1].Energy));
             }
+            else if (config.HasGeometry)
+            {
+                // (`AMBER267`, 28.10.2026) Геометрия сохранена без «Посчитать из
+                // геометрии»: точек нет, и разбор FSA откажет. Вкладка об этом
+                // молчала — видна была одна схема, как у готовой кривой.
+                parts.Add(Resources.EfficiencyTabNoCurve);
+            }
 
             if (!config.HasGeometry)
             {

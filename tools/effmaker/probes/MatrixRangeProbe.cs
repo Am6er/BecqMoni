@@ -98,7 +98,13 @@ static class MatrixRangeProbe
             // ничего не проверяет: поля совпали бы и без правки.
             Console.WriteLine("   умолчание отличается от краёв кривой: {0}",
                               ok ? "ДА (случай (а) значим)" : "НЕТ — проба слепа!");
-            return ok && details.Length == 0;
+            // (`AMBER267`) О диапазоне молчит, но называет непосчитанную кривую —
+            // и только её; «Посчитать» заперта.
+            bool onlyNote = details == BecquerelMonitor.Properties.Resources.ResponseMatrixNoCurve;
+            bool locked = !((Button)Field(form, "computeButton")).Enabled;
+            Console.WriteLine("   подробности — одна пометка «кривая не посчитана»: {0}", onlyNote ? "ДА" : "НЕТ");
+            Console.WriteLine("   «Посчитать» заперта: {0}", locked ? "ДА" : "НЕТ");
+            return ok && onlyNote && locked;
         }
     }
 

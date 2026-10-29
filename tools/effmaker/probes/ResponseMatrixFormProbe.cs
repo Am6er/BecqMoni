@@ -101,13 +101,33 @@ namespace ResponseMatrixFormProbe
             GlobalConfigManager.GetInstance();
 
             GeometryModel geometry = GeometryModel.Load(geometryPath);
+            // (`AMBER267`) Кривая обязательна: без неё «Посчитать» заперта.
+            // Края — умолчания полей окна (5–3000 кэВ), диапазон не сдвигается.
             var config = new EfficiencyConfigData("проба")
             {
                 Guid = "probe-" + Guid.NewGuid().ToString("N"),
-                Geometry = geometry
+                Geometry = geometry,
+                Curve = ProbeCurve()
             };
 
             int bad = 0;
+
+            // ⛔ (`AMBER267`) Геометрия есть, кривой нет — «Посчитать» недоступна,
+            // первая строка подробностей называет непосчитанную кривую.
+            var noCurve = new EfficiencyConfigData("без кривой")
+            {
+                Guid = "probe-nocurve-" + Guid.NewGuid().ToString("N"),
+                Geometry = geometry
+            };
+            using (var form = new ResponseMatrixForm(noCurve))
+            {
+                string details = StringField(form, "detailsText");
+                bool ok = !Enabled(form, "computeButton")
+                          && FirstLine(details) == BecquerelMonitor.Properties.Resources.ResponseMatrixNoCurve;
+                Report(ok, "геометрия без кривой: «Посчитать» {0}, первая строка «{1}»",
+                       Enabled(form, "computeButton") ? "ДОСТУПНА" : "недоступна", Short(FirstLine(details)));
+                bad += ok ? 0 : 1;
+            }
 
             // Файла ещё нет — состояние «не посчитана».
             ResponseMatrixStore.Delete(config.Guid);
@@ -292,7 +312,8 @@ namespace ResponseMatrixFormProbe
             var movedConfig = new EfficiencyConfigData("проба-2")
             {
                 Guid = config.Guid,
-                Geometry = moved
+                Geometry = moved,
+                Curve = ProbeCurve()
             };
 
             using (var form = new ResponseMatrixForm(movedConfig))
@@ -544,6 +565,17 @@ namespace ResponseMatrixFormProbe
             {
                 EnergySpectrum = spectrum,
                 Efficiency = config.Copy()
+            };
+        }
+
+        /// <summary>(`AMBER267`) Кривая пробы: края — умолчания полей окна матрицы.</summary>
+        static System.Collections.Generic.List<ROIEfficiencyData> ProbeCurve()
+        {
+            return new System.Collections.Generic.List<ROIEfficiencyData>
+            {
+                new ROIEfficiencyData { Energy = 5, Efficiency = 0.5, ErrorPercent = 1 },
+                new ROIEfficiencyData { Energy = 662, Efficiency = 0.1, ErrorPercent = 1 },
+                new ROIEfficiencyData { Energy = 3000, Efficiency = 0.02, ErrorPercent = 1 },
             };
         }
 

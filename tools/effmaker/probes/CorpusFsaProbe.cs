@@ -821,6 +821,9 @@ namespace CorpusFsaProbe
     ///                  [--dump-curves=&lt;каталог&gt;] [--knot-fwhm=&lt;ПШПВ&gt;]
     ///                  [--dump-bits=&lt;каталог&gt;]  (П241: полный снимок результата, числа битами)
     ///                  [--band-audit=&lt;файл.csv&gt;]
+    ///                  [--anchor-rollback=0|1] [--anchor-confirm-peaks=0|1] [--anchor-joint-shift=0|1]
+    ///                  [--anchor-free-amp=0|1] [--anchor-joint-outliers=0|1]   (`AMBER269`: плечи (А2) — умолчание вкл., (Б), (Г), (Д-амп), (Д2))
+    ///                  [--anchor-passes]   (`AMBER269`: опоры каждого прохода привязки — в вывод)
     ///                  [--band=whole|fit|library|curve|share] [--band-floor=&lt;кэВ&gt;]
     ///                  [--floor-frac=&lt;доля&gt;] [--share-thr=&lt;0…1&gt;] [--band-selftest]
     ///                  [--spoil=manager|key]  (порча: поднять менеджер — ОБЯЗАН кончиться кодом 12;
@@ -1207,6 +1210,49 @@ namespace CorpusFsaProbe
                     string v = a.Substring(19);
                     if (v != "0" && v != "1") { throw new ArgumentException("--anchor-core-half=0|1"); }
                     o.AnchorCoreOwner = v == "1" ? 1 : 0;
+                    continue;
+                }
+                // (`AMBER269`) плечи привязки шкалы: (А2) откат (умолчание — вкл.), (Б) опоры,
+                // подтверждённые поиском пиков, (Г) нож промаха в совместном шаге, (Д) свободная амплитуда
+                if (a.StartsWith("--anchor-rollback=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(18);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--anchor-rollback=0|1"); }
+                    o.AnchorRollback = v == "1" ? 1 : 0;
+                    continue;
+                }
+                if (a.StartsWith("--anchor-confirm-peaks=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(23);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--anchor-confirm-peaks=0|1"); }
+                    o.AnchorConfirm = v == "1" ? 1 : 0;
+                    continue;
+                }
+                if (a.StartsWith("--anchor-joint-shift=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(21);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--anchor-joint-shift=0|1"); }
+                    o.AnchorJointShift = v == "1" ? 1 : 0;
+                    continue;
+                }
+                if (a == "--anchor-passes")
+                {
+                    // (`AMBER269`) опоры каждого прохода привязки — в вывод (разбор не меняется)
+                    FsaAnalyzer.AnchorPassSink = line => Console.WriteLine("[опоры] " + line);
+                    continue;
+                }
+                if (a.StartsWith("--anchor-joint-outliers=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(24);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--anchor-joint-outliers=0|1"); }
+                    o.AnchorJointOut = v == "1" ? 1 : 0;
+                    continue;
+                }
+                if (a.StartsWith("--anchor-free-amp=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(18);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--anchor-free-amp=0|1"); }
+                    o.AnchorFreeAmp = v == "1" ? 1 : 0;
                     continue;
                 }
                 // (`AMBER142` п. 3, П224) нуль хранимого фона против пробы: 1 — мерить с усилением, 0 — одно усиление
@@ -2623,6 +2669,32 @@ namespace CorpusFsaProbe
                 analyzer.AnchorShareWithoutContinuum = o.AnchorShareNet == 1;
             }
 
+            // (`AMBER269`) плечи сравнения тормозов и опор привязки
+            if (o.AnchorRollback >= 0)
+            {
+                analyzer.AnchorRollback = o.AnchorRollback == 1;
+            }
+
+            if (o.AnchorConfirm >= 0)
+            {
+                analyzer.AnchorConfirmByPeaks = o.AnchorConfirm == 1;
+            }
+
+            if (o.AnchorJointShift >= 0)
+            {
+                analyzer.AnchorJointShiftKnife = o.AnchorJointShift == 1;
+            }
+
+            if (o.AnchorFreeAmp >= 0)
+            {
+                analyzer.AnchorShiftFreeAmplitude = o.AnchorFreeAmp == 1;
+            }
+
+            if (o.AnchorJointOut >= 0)
+            {
+                analyzer.AnchorJointOutliers = o.AnchorJointOut == 1;
+            }
+
             if (o.AnchorWidthFreeze >= 0)
             {
                 analyzer.AnchorWidthFreezeWeak = o.AnchorWidthFreeze == 1;
@@ -3494,6 +3566,8 @@ namespace CorpusFsaProbe
                 // (`T65`) Настройки прогона — ОДНИМ местом, тем же, из
                 // которого их берёт на печать шапка.
                 FsaAnalyzer analyzer = NewAnalyzer(o);
+                // (`AMBER269`, (Б)) найденные пики — тем же помощником, что в сеансе приложения
+                analyzer.DetectedPeakKev = FsaAnalysisSession.PeakEnergiesOf(peaks);
                 // (`AMBER155` (в), П220) свойства прибора — тем же местом, что в
                 // приложении; ключ `--adc-curvature=` перекрывает для плеча
                 analyzer.AdoptDevice(rd.DeviceConfig);
@@ -6396,6 +6470,11 @@ namespace CorpusFsaProbe
             public int NoLeverZero = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора; 0 inherit, 1 instrument, 2 shift
             public int AnchorCoreOwner = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора
             public int AnchorShareNet = -1;    // (`AMBER142`, П222) −1 — умолчание анализатора
+            public int AnchorRollback = -1;    // (`AMBER269`, (А2)) −1 — умолчание анализатора
+            public int AnchorConfirm = -1;     // (`AMBER269`, (Б)) −1 — умолчание анализатора
+            public int AnchorJointShift = -1;  // (`AMBER269`, (Г)) −1 — умолчание анализатора
+            public int AnchorFreeAmp = -1;     // (`AMBER269`, (Д-амп)) −1 — умолчание анализатора
+            public int AnchorJointOut = -1;    // (`AMBER269`, (Д2)) −1 — умолчание анализатора
             public int AnchorWidthFreeze = -1; // (`AMBER142`, П222) −1 — умолчание анализатора
             public int TailEscape = -1;        // (`AMBER142` (6), П226) −1 — умолчание анализатора
             public int AnchorWidthOn = -1;     // (`AMBER142`, П226) −1 — умолчание анализатора
