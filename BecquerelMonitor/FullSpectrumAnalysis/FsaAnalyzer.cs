@@ -7634,7 +7634,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         if (measured && den > 0.0 && (!freeAmplitude || PositiveFinite(varDelta)))
                         {
                             centreData = centreModel + delta;
-                            varCentre = freeAmplitude ? varDelta : 1.0 / den;
+                            varCentre = 1.0 / den;
+                            if (freeAmplitude)
+                            {
+                                // ⛔ (`AMBER269`, (Д)) σ и Бирге — ПРЕЖНЕЙ МЕРОЙ, моделью без множителя
+                                // на найденном сдвиге: σ свободной амплитуды сжата в множитель раз
+                                // (данные выше модели в 2…4 раза), и на исходном спектре Th-232 RC-110
+                                // с кривизной тракта прибора нож выбросов снимал 238.6 и 583.2 кэВ
+                                // (σ 0.41 и 0.84 кан. вместо 2.54 и 3.53) — нуль света 11.37 → 4.60
+                                // кэВ, χ²/ndf 602 → 764. Сдвиг — со свободной амплитудой, вес — прежний.
+                                double den1 = 0.0;
+                                for (int k = kLo; k <= kHi; k++)
+                                {
+                                    double at = k - delta;
+                                    double d = 0.5 * (InterpolateAt(net, at + 1.0, chLo, chHi)
+                                                      - InterpolateAt(net, at - 1.0, chLo, chHi));
+                                    double w = variance[k] > 0.0 ? 1.0 / variance[k] : 0.0;
+                                    den1 += w * d * d;
+                                }
+
+                                varCentre = den1 > 0.0 ? 1.0 / den1 : varDelta;
+                            }
+
                             varCentreStat = varCentre;
                             traceAmplitude = amplitude;
                             // Модель в окне врёт формой — σ сдвига растёт на
@@ -7647,9 +7668,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             for (int k = kLo; k <= kHi; k++)
                             {
                                 double w = variance[k] > 0.0 ? 1.0 / variance[k] : 0.0;
-                                double r = freeAmplitude
-                                    ? fit.Residual[k] + net[k] - amplitude * InterpolateAt(net, k - delta, chLo, chHi)
-                                    : fit.Residual[k] + net[k] - InterpolateAt(net, k - delta, chLo, chHi);
+                                double r = fit.Residual[k] + net[k] - InterpolateAt(net, k - delta, chLo, chHi);
                                 chiWin += w * r * r;
                                 nWin++;
                             }
@@ -9677,14 +9696,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // запасом ×2. Обратное плечо — "off" (числа прежние до бита)
             this.AnchorZeroGuard = "calib,adc-fixed";
             this.AnchorZeroGuardRatio = 0.5;
-            // (`AMBER269`) плечи привязки шкалы — ВЫКЛЮЧЕНЫ, числа rev50 до бита.
-            // Решения Amber 29.10.2026 вопросником, дословно: «(А2) + дорабатывать (Д)
-            // (Рекомендую)», «(Д-амп)+(Д2) (Рекомендую)»; перемер на её конфиге показал,
-            // что (Д-амп)+(Д2) на её приборе вредит, и следом, дословно: «Пока стоп,
-            // пришлют ещё спектры прибора RC-110». Умолчание включается в конце задачи
-            // вместе с базой корпуса и эталоном витрины (её же решение «Одним разом в
-            // конце задачи»). Журнал — handover/handover-2026-10-28-amber269-*.md.
-            this.AnchorRollback = false;
+            // (`AMBER269`) откат привязки (А2) — ВКЛЮЧЁН; обратное плечо — false (числа
+            // rev50 до бита). Решение Amber 29.10.2026 вопросником, дословно: «Сейчас, с
+            // базой и витриной (Рекомендую)» — после перемера на её конфиге: на её приборе
+            // откат ни в одном случае не хуже нынешнего. (Д-амп), (Д2), (Б), (Г) —
+            // выключенные плечи: «Держать выключенными ключами (Рекомендую)» до её
+            // спектров RC-110. Журнал — handover/handover-2026-10-28-amber269-*.md.
+            this.AnchorRollback = true;
             this.AnchorConfirmByPeaks = false;
             this.AnchorJointShiftKnife = false;
             this.AnchorShiftFreeAmplitude = false;
