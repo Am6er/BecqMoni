@@ -681,7 +681,11 @@ namespace BecquerelMonitor
                     }
                     if (activeDocument != null && (activeDocument.UpdateSpectrum || activeDocument.UpdateMeasurementResult))
                     {
-                        this.UpdateCalibrationPeak();
+                        // (`AMBER280`) Здесь звался `UpdateCalibrationPeak`: при галке
+                        // «Автокалибровка» — стабилизатор пиков (снят вместе с галкой,
+                        // Amber: «Автокалибратор - полностью удалить из бекмони.»), и
+                        // всегда — перерисовка спектра раз в секунду набора. Она и осталась.
+                        activeDocument.UpdateEnergySpectrum();
                         this.ShowCountsRate();
                         this.ShowDetectorFeature();
                     }
@@ -1056,24 +1060,6 @@ namespace BecquerelMonitor
             this.dcPeakDetectionView.ShowPeakDetectionResult();
         }
 
-        // Token: 0x06000A52 RID: 2642 RVA: 0x0003D450 File Offset: 0x0003B650
-        public void UpdateCalibrationPeak()
-        {
-            ResultData activeResultData = this.activeDocument.ActiveResultData;
-            if (activeResultData.ResultDataStatus.Stabilization)
-            {
-                PeakStabilizer peakStabilizer = new PeakStabilizer();
-                peakStabilizer.Stabilize(activeResultData);
-                this.dcEnergyCalibrationView.SetEnergyCalibration(activeResultData.EnergySpectrum.EnergyCalibration, activeResultData.DeviceConfig.EnergyCalibration);
-                this.activeDocument.Dirty = true;
-            }
-            else
-            {
-                activeResultData.CalibrationPeaks.Clear();
-            }
-            this.activeDocument.UpdateEnergySpectrum();
-        }
-
         // Token: 0x06000A53 RID: 2643 RVA: 0x0003D4D4 File Offset: 0x0003B6D4
         void exitXToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -1181,10 +1167,6 @@ namespace BecquerelMonitor
             else if (!this.dcEnergyCalibrationView.IsDisposed)
             {
                 this.dcEnergyCalibrationView.Hide();
-            }
-            if (this.activeDocument != null)
-            {
-                this.dcEnergyCalibrationView.SetStabilizerState(this.activeDocument.ActiveResultData);
             }
         }
 
@@ -1356,7 +1338,6 @@ namespace BecquerelMonitor
                 this.dcSpectrumListView.ShowSpectrumList(this.activeDocument);
                 this.dcPeakDetectionView.Enabled = true;
                 UpdateEnergyCalibrationView();
-                this.dcEnergyCalibrationView.SetStabilizerState(this.activeDocument.ActiveResultData);
                 this.dcEnergyCalibrationView.Enabled = true;
                 this.activeDocument.ActiveEnergyCalibration = this.dcEnergyCalibrationView.Visible;
                 this.dcFsaReportView.SetDocument(this.activeDocument);
@@ -1406,7 +1387,6 @@ namespace BecquerelMonitor
             this.ShowDetectorFeature();
             this.dcPeakDetectionView.ShowPeakDetectionResult();
             UpdateEnergyCalibrationView();
-            this.dcEnergyCalibrationView.SetStabilizerState(this.activeDocument.ActiveResultData);
             this.activeDocument.ActiveEnergyCalibration = this.dcEnergyCalibrationView.Visible;
             this.dcControlPanel.Enabled = true;
             this.dcSampleInfoView.Enabled = true;
@@ -1496,15 +1476,6 @@ namespace BecquerelMonitor
         public bool AddDetectedPeakToCalibration(Peak peak, double energy)
         {
             return this.dcEnergyCalibrationView.AddDetectedPeak(peak, energy);
-        }
-
-        // Token: 0x06000A6E RID: 2670 RVA: 0x0003E0BC File Offset: 0x0003C2BC
-        public DeviceConfigForm ShowDeviceConfigStabilizerForm(DeviceConfigInfo config)
-        {
-            DeviceConfigForm deviceConfigForm = this.ShowDeviceConfigForm(config);
-            //deviceConfigForm.deviceConfigurationChanged += deviceConfigChanged;
-            deviceConfigForm.ShowStabilizerForm(config);
-            return deviceConfigForm;
         }
 
         // Token: 0x06000A71 RID: 2673 RVA: 0x0003E230 File Offset: 0x0003C430
@@ -2613,7 +2584,6 @@ namespace BecquerelMonitor
                 this.dcSampleInfoView.LoadFormContents();
                 this.dcControlPanel.ShowDocumentStatus();
                 UpdateEnergyCalibrationView();
-                this.dcEnergyCalibrationView.SetStabilizerState(this.activeDocument.ActiveResultData);
                 this.dcEnergyCalibrationView.Enabled = true;
                 UpdateFwhmCalibrationView();
                 doc.UpdateEnergySpectrum();

@@ -45,6 +45,15 @@ namespace BecquerelMonitor.Probes
     ///   ... --mode=leave --corpus=&lt;спектр&gt; --tmp=&lt;каталог&gt;
     ///       выход из поля коэффициента, которое не правили: шкала побитово та же,
     ///       документ не изменён (прежняя сборка — положительный контроль: код 1).
+    ///   ... --mode=pick --corpus=&lt;спектр&gt; --lines=E1,E2 --far=E3 --tmp=&lt;каталог&gt;
+    ///       (остаток `AMBER276`, решение Amber вопросником 29.10.2026, дословно: «Только
+    ///       с введённой энергией (Рекомендую)») строки, выделенные щелчком (настоящий
+    ///       обработчик выделения), без ввода энергии — серые, в подгонку энергии не
+    ///       идут: «Рассчитать» шкалу побитово не трогает. ⛔ Положительный контроль — те
+    ///       же строки линиями (прежнее поведение): шкала обязана уйти, сдвиг печатается
+    ///       в канале линии E3. Затем энергии вводятся настоящей правкой ячейки — строки
+    ///       чёрные, идут в подгонку, шкала проходит через введённые энергии. Подписанный
+    ///       и неподписанный пик таблицы найденных пиков — линия и опора.
     ///
     /// Окон проба не поднимает (окно сравнения форм пика у прежней сборки закрывает
     /// таймер). Запускать из каталога сборки проб (там поставочный `config\`).
@@ -90,6 +99,7 @@ namespace BecquerelMonitor.Probes
                     case "dump": return Dump(Need(opt, "in"));
                     case "fit": return Fit(Need(opt, "corpus"), Lines(Need(opt, "lines")), Need(opt, "out"), Need(opt, "tmp"));
                     case "leave": return Leave(Need(opt, "corpus"), Need(opt, "tmp"));
+                    case "pick": return PickRule(Need(opt, "corpus"), Lines(Need(opt, "lines")), double.Parse(Need(opt, "far"), Inv), Need(opt, "tmp"));
                     default:
                         Console.Error.WriteLine("неизвестный режим: " + mode);
                         return 2;
@@ -620,6 +630,167 @@ namespace BecquerelMonitor.Probes
                               shown, R(after.Coefficients[2]), same ? "тот же" : "ДРУГОЙ", doc.Dirty);
             Close(doc);
             return same && !doc.Dirty ? 0 : 1;
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  pick — «только с введённой энергией»
+        // ══════════════════════════════════════════════════════════════════════
+
+        static int PickRule(string corpus, double[] lines, double far, string tmp)
+        {
+            Directory.CreateDirectory(tmp);
+            string copy = Path.Combine(tmp, "pick_" + Path.GetFileName(corpus));
+            File.Copy(corpus, copy, true);
+            DocEnergySpectrum doc = DocumentManager.GetInstance().OpenDocument(copy);
+            ResultData rd = doc.ActiveResultData;
+            PolynomialEnergyCalibration original = (PolynomialEnergyCalibration)rd.EnergySpectrum.EnergyCalibration.Clone();
+            int farChannel = NearestChannel(rd.EnergySpectrum, original, far);
+            List<Pick> picks = Picks(rd, lines);
+            Check("пиков столько, сколько линий: " + picks.Count, picks.Count == lines.Length);
+            MainForm form = Shell(doc);
+            Timer closer = new Timer { Interval = 150 };
+            closer.Tick += (s, e) =>
+            {
+                foreach (Form f in Application.OpenForms.Cast<Form>().ToList())
+                {
+                    if (f.Modal) f.Close();
+                }
+            };
+            closer.Start();
+            DCEnergyCalibrationView view = new DCEnergyCalibrationView(form);
+            IntPtr handle = view.Handle; // BeginInvoke правки ячейки
+            rd.CalibrationLines.Clear();
+            Call(view, "SetEnergyCalibration", original, original);
+            Call(view, "UpdateFwhmCalibration", true);
+            var model = (XPTable.Models.TableModel)Field(view, "tableModel1");
+            Console.WriteLine("шкала спектра: " + Cal(original) + "; линия {0} кэВ — канал {1}", R(far), farChannel);
+
+            Console.WriteLine();
+            Console.WriteLine("=== 1. выделение щелчком без ввода энергии ===");
+            foreach (Pick p in picks)
+            {
+                SetField(view, "peakPickupProcessing", true);
+                Call(view, "EnergySpectrumView_PeakPickuped", null,
+                     new PeakPickupedEventArgs(p.Peak.Channel, p.Peak.Energy, p.Peak.FWHM, p.Start, p.End));
+            }
+            List<CalibrationPeak> rows = rd.CalibrationLines;
+            Check("строк в таблице: " + rows.Count + ", в модели вида: " + model.Rows.Count, rows.Count == picks.Count && model.Rows.Count == picks.Count);
+            foreach (CalibrationPeak r in rows)
+            {
+                Console.WriteLine("  строка: канал {0}, энергия {1} (по шкале), FWHM {2}, линия {3}", r.Channel, R(r.Energy), R(r.FWHM), r.EnergyLine);
+            }
+            Check("ни одна выделенная строка — не линия энергии", rows.All(r => !r.EnergyLine));
+            Check("энергия всех строк — серая", model.Rows.Cast<XPTable.Models.Row>().All(r => r.Cells[2].ForeColor == System.Drawing.SystemColors.GrayText));
+            Check("в подгонку энергии не идёт ни одной точки", EnergyPointsOf(rows).Count == 0);
+            bool run1 = (bool)Call(view, "RunCalibration");
+            Console.WriteLine("  «Рассчитать»: {0}; строки после — тот же список: {1}", run1 ? "принят" : "ОТКАЗ", ReferenceEquals(rows, rd.CalibrationLines));
+            rows = rd.CalibrationLines;
+            PolynomialEnergyCalibration after = (PolynomialEnergyCalibration)rd.EnergySpectrum.EnergyCalibration;
+            Check("«Рассчитать»: шкала энергии побитово та же (" + Cal(after) + ")", SameCal(after, original));
+            Console.WriteLine("  кривая FWHM после «Рассчитать»: " + Curve(rd.FwhmCalibration));
+
+            Console.WriteLine();
+            Console.WriteLine("=== 2. ⛔ положительный контроль: те же строки ЛИНИЯМИ (прежнее поведение) ===");
+            foreach (CalibrationPeak r in rows)
+            {
+                r.EnergyLine = true;
+                r.Count = rd.EnergySpectrum.Spectrum[r.Channel];
+            }
+            Call(view, "UpdateFwhmCalibration", true);
+            bool run2 = (bool)Call(view, "RunCalibration");
+            Console.WriteLine("  «Рассчитать»: {0}", run2 ? "принят" : "ОТКАЗ");
+            rows = rd.CalibrationLines;
+            PolynomialEnergyCalibration oldWay = (PolynomialEnergyCalibration)rd.EnergySpectrum.EnergyCalibration;
+            double shift = oldWay.ChannelToEnergy(farChannel) - original.ChannelToEnergy(farChannel);
+            Console.WriteLine("  шкала: {0}; сдвиг в канале {1}: {2} кэВ", Cal(oldWay), farChannel, shift.ToString("0.0", Inv));
+            Check("контроль: строки-линии без ввода уводят шкалу (сдвиг " + shift.ToString("0.0", Inv) + " кэВ)", !SameCal(oldWay, original) && Math.Abs(shift) > 1.0);
+            // назад: шкала спектра и строки — как после выделения
+            rd.EnergySpectrum.EnergyCalibration = original.Clone();
+            Call(view, "SetEnergyCalibration", original, original);
+            foreach (CalibrationPeak r in rows)
+            {
+                r.EnergyLine = false;
+                r.Count = 0;
+            }
+            Call(view, "UpdateFwhmCalibration", true);
+
+            Console.WriteLine();
+            Console.WriteLine("=== 3. энергии введены правкой ячейки «Энергия» ===");
+            var table = (XPTable.Models.Table)Field(view, "CollectedPeaksTable");
+            for (int i = 0; i < picks.Count; i++)
+            {
+                var editor = new XPTable.Editors.TextCellEditor();
+                editor.TextBox.Text = R(picks[i].LineEnergy);
+                XPTable.Models.Cell cell = model.Rows[i].Cells[2];
+                var args = new XPTable.Events.CellEditEventArgs(cell, editor, table, i, 2, System.Drawing.Rectangle.Empty);
+                Call(view, "CollectedPeaksTable_EditingStopped", table, args);
+                Application.DoEvents();
+            }
+            Check("все строки — линии энергии", rows.All(r => r.EnergyLine));
+            Check("энергия всех строк — не серая", model.Rows.Cast<XPTable.Models.Row>().All(r => r.Cells[2].ForeColor != System.Drawing.SystemColors.GrayText));
+            Check("отсчёты канала у строк — из спектра", rows.All(r => r.Count == rd.EnergySpectrum.Spectrum[r.Channel]));
+            Check("в подгонку энергии идёт " + EnergyPointsOf(rows).Count + " точек", EnergyPointsOf(rows).Count == picks.Count);
+            bool run3 = (bool)Call(view, "RunCalibration");
+            Console.WriteLine("  «Рассчитать»: {0}", run3 ? "принят" : "ОТКАЗ");
+            rows = rd.CalibrationLines;
+            PolynomialEnergyCalibration entered = (PolynomialEnergyCalibration)rd.EnergySpectrum.EnergyCalibration;
+            double worst = rows.Max(r => Math.Abs(entered.ChannelToEnergy(r.Channel) - r.Energy));
+            Console.WriteLine("  шкала: {0}; наибольший промах в каналах линий {1} кэВ; в канале {2}: {3} кэВ",
+                              Cal(entered), worst.ToString("0.000000", Inv), farChannel, entered.ChannelToEnergy(farChannel).ToString("0.0", Inv));
+            Check("шкала подогнана по введённым энергиям", !SameCal(entered, original) && worst < 1e-6);
+
+            Console.WriteLine();
+            Console.WriteLine("=== 4. «Добавить в калибровку» таблицы найденных пиков ===");
+            rd.EnergySpectrum.EnergyCalibration = original.Clone();
+            Call(view, "SetEnergyCalibration", original, original);
+            rd.CalibrationLines.Clear();
+            Call(view, "UpdateFwhmCalibration", true);
+            Pick a = picks[0], b = picks[picks.Count - 1];
+            var signed = new Peak { Channel = a.Peak.Channel, Energy = original.ChannelToEnergy(a.Peak.Channel), FWHM = a.Peak.FWHM };
+            signed.Nuclide = new NuclideDefinition { Energy = a.LineEnergy };
+            var unsigned = new Peak { Channel = b.Peak.Channel, Energy = original.ChannelToEnergy(b.Peak.Channel), FWHM = b.Peak.FWHM };
+            bool added1 = (bool)Call(view, "AddDetectedPeak", signed, a.LineEnergy);
+            CalibrationPeak rs = rd.CalibrationLines.LastOrDefault();
+            bool added2 = (bool)Call(view, "AddDetectedPeak", unsigned, unsigned.Energy);
+            CalibrationPeak ru = rd.CalibrationLines.FirstOrDefault(r => !ReferenceEquals(r, rs));
+            foreach (CalibrationPeak r in rd.CalibrationLines)
+            {
+                Console.WriteLine("  строка: канал {0}, энергия {1}, FWHM {2}, линия {3}", r.Channel, R(r.Energy), R(r.FWHM), r.EnergyLine);
+            }
+            Check("обе строки добавлены", added1 && added2 && rs != null && ru != null);
+            Check("подписанный пик — линия энергии (энергия линии " + R(a.LineEnergy) + ")", rs != null && rs.EnergyLine && Bits(rs.Energy) == Bits(a.LineEnergy));
+            Check("неподписанный пик — опора FWHM, не линия", ru != null && !ru.EnergyLine);
+            Check("в подгонку энергии идёт 1 точка", EnergyPointsOf(rd.CalibrationLines).Count == 1);
+
+            closer.Stop();
+            Close(doc);
+            Console.WriteLine();
+            Console.WriteLine(bad == 0 ? "СОШЛОСЬ" : "НЕ СОШЛОСЬ: " + bad);
+            return bad == 0 ? 0 : 1;
+        }
+
+        static List<CalibrationPoint> EnergyPointsOf(List<CalibrationPeak> lines)
+        {
+            return (List<CalibrationPoint>)typeof(DCFwhmCalibrationView)
+                .GetMethod("EnergyPoints", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { lines });
+        }
+
+        static bool SameCal(PolynomialEnergyCalibration a, PolynomialEnergyCalibration b)
+        {
+            return a.PolynomialOrder == b.PolynomialOrder && a.Coefficients.Length == b.Coefficients.Length
+                   && a.Coefficients.Select(Bits).SequenceEqual(b.Coefficients.Select(Bits));
+        }
+
+        static int NearestChannel(EnergySpectrum es, EnergyCalibration cal, double e)
+        {
+            int ch0 = 0;
+            double best = double.MaxValue;
+            for (int ch = 0; ch < es.NumberOfChannels; ch++)
+            {
+                double d = Math.Abs(cal.ChannelToEnergy(ch) - e);
+                if (d < best) { best = d; ch0 = ch; }
+            }
+            return ch0;
         }
 
         // ══════════════════════════════════════════════════════════════════════

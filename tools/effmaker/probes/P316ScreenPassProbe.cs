@@ -654,25 +654,9 @@ static class P316ScreenPassProbe
             }
             tm.Text = tm0;
 
-            // Н19: «New» в опорах автокалибровки и правка имени.
-            TableModel peaks = (TableModel)Field(f, "tableModel3");
-            Table peaksTable = (Table)Field(f, "table3");
-            Call(f, "button10_Click", null, EventArgs.Empty); // пустая строка ("", 0, 10)
-            Row good = new Row();
-            good.Cells.Add(new Cell("Cs-137"));
-            good.Cells.Add(new Cell(661.657m));
-            good.Cells.Add(new Cell(5m));
-            peaks.Rows.Add(good);
-            bool saved = (bool)Call(f, "SaveFormContents", cfg);
-            List<TargetPeak> tp = cfg.StabilizerConfig.TargetPeaks;
-            string tpText = string.Join("; ", tp.Select(p => "«" + p.Nuclide + "» " + p.Energy.ToString(Inv)));
-            Verdict("Н19", "опоры после «New» и записи: нет опоры с E ≤ 0", "принято=" + saved + ": " + tpText, saved && tp.All(p => p.Energy > 0m));
-            Verdict("Н19", "контроль: опора Cs-137 661.657 записана", tpText, tp.Any(p => p.Energy == 661.657m));
-            Call(f, "ResetActiveDeviceConfigDirty");
-            Row named = peaks.Rows[peaks.Rows.Count - 1];
-            named.Cells[0].Text = "Cs137";
-            Call(f, "table3_EditingStopped", peaksTable, new CellEditEventArgs(named.Cells[0], null, peaksTable, named.Index, 0, Rectangle.Empty));
-            Verdict("Н19", "правка имени нуклида (столбец 0) взводит «Сохранить»", "Dirty=" + cfg.Dirty, cfg.Dirty);
+            // Н19 (опоры автокалибровки: «New», запись, правка имени) СНЯТ (`AMBER280`,
+            // 29.10.2026): панель «Настройки автокалибратора» удалена вместе со
+            // стабилизатором пиков (Amber: «Автокалибратор - полностью удалить из бекмони.»).
         }
 
         DialogAnswerer.Start();

@@ -4068,17 +4068,15 @@ namespace BecquerelMonitor
             //   ровно та же беда, что была с кривой разрешения. Точки
             //   калибровки к тому же поехали бы в подгонку шкалы энергий.
             //   ⛔ Списки заводятся ПУСТЫЕ, а не null: к ним приводят без
-            //   проверки на null и `PeakStabilizer` (`Clear`/`Add`), и
-            //   `DCEnergyCalibrationView` (`Count`, `Sort`, `Add`), и
-            //   `EnergySpectrumView.ShowCalibrationPeaks` (`foreach`) — null
-            //   был бы новым падением сразу после импорта.
+            //   проверки на null вид калибровки (`Count`, `Sort`, `Add`) — null
+            //   был бы новым падением сразу после импорта. (`AMBER280`: пики
+            //   стабилизатора `CalibrationPeaks` сняты вместе с ним.)
             //   ⚠ Ссылка на прибор `DeviceConfigReference`, кривая
             //   эффективности (`Efficiency`/`FileEfficiency`) и
             //   `DetectorFeature` сбросом НЕ трогаются — решение Amber того же
             //   вопросника: ссылка сегодня единственный след стёртого прибора
             //   в файле, и вернуть его после импорта больше нечем.
             data.DetectedPeaks = new List<Peak>();
-            data.CalibrationPeaks = new List<Peak>();
             data.CalibrationPoints = new List<CalibrationPoint>();
             // (`AMBER276`) строки единой калибровки у спектра без кривой — тем же
             //   решением `A260` («Снять пики и точки калибровки»): строки С кривой

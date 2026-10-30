@@ -135,8 +135,6 @@ namespace BecquerelMonitor
             }
         }
 
-        public event EnergySpectrumView.ChannelPickupedEventHandler ChannelPickuped;
-
         public event EnergySpectrumView.PeakPickupedEventHandler PeakPickuped;
 
         // Token: 0x17000185 RID: 389
@@ -2721,10 +2719,9 @@ namespace BecquerelMonitor
             {
                 this.ShowHighlightedPeakBands(g);
             }
-            if (this.activeResultData.Visible)
-            {
-                this.ShowCalibrationPeaks(g, this.energySpectrum, this.energyCalibration);
-            }
+            // (`AMBER280`) Здесь рисовались оранжевые метки пиков стабилизатора
+            // (`ShowCalibrationPeaks` по `ResultData.CalibrationPeaks`) — сняты вместе
+            // с автокалибратором (Amber: «Автокалибратор - полностью удалить из бекмони.»).
             if (this.peakMode == PeakMode.Visible && this.activeResultData.Visible)
             {
                 this.ShowDetectedPeaks(g, this.energySpectrum, this.energyCalibration);
@@ -4592,65 +4589,6 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x060004C2 RID: 1218 RVA: 0x0001AFF8 File Offset: 0x000191F8
-        void ShowCalibrationPeaks(Graphics g, EnergySpectrum spectrum, EnergyCalibration calibration)
-        {
-            // (П315) Здесь создавалось и разбиралось перо `Color.Red`, которым ничего не
-            // рисовалось (всё — `Pens.Orange`/`Brushes.Orange`): лишний объект GDI+ на кадр — снято.
-            foreach (Peak peak in this.activeResultData.CalibrationPeaks)
-            {
-                int channel = peak.Channel;
-                int num;
-                if (this.horizontalUnit == HorizontalUnit.Channel)
-                {
-                    num = (int)((double)channel * this.horizontalScale) + this.scrollX + this.left;
-                }
-                else
-                {
-                    double num2 = this.energyCalibration.ChannelToEnergy((double)channel);
-                    num = (int)((num2 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale + (double)this.scrollX + (double)this.left);
-                }
-                double num3;
-                if (!this.TryCompressedColumnValue(spectrum.DrawingSpectrum, num, out num3))
-                {
-                    num3 = spectrum.DrawingSpectrum[channel];
-                }
-                if (this.verticalUnit == VerticalUnit.CountsPerSecond && spectrum.EffectiveLiveTime != 0.0)
-                {
-                    num3 /= spectrum.EffectiveLiveTime;
-                }
-                // (`AMBER179`, 05.10.2026) Y — общим методом, знающим все три шкалы:
-                // прежняя самодельная ветка логарифма брала totalMinValuePow и
-                // valueRangePow, которые присваиваются только в степенной шкале
-                // (там 0 → деление на 0 → (int) = int.MinValue → OverflowException
-                // в DrawLine каждый кадр).
-                int y = GetSpectrumValueY(num3);
-                if (num > this.left)
-                {
-                    g.DrawLine(Pens.Orange, num, 5, num, y);
-                }
-                int leftChannel = peak.LeftChannel;
-                int rightChannel = peak.RightChannel;
-                double num5 = this.energyCalibration.ChannelToEnergy((double)leftChannel);
-                double num6 = this.energyCalibration.ChannelToEnergy((double)rightChannel);
-                int num7;
-                int num8;
-                if (this.horizontalUnit == HorizontalUnit.Channel)
-                {
-                    num7 = (int)((double)leftChannel * this.horizontalScale) + this.scrollX + this.left;
-                    num8 = (int)((double)rightChannel * this.horizontalScale) + this.scrollX + this.left;
-                }
-                else
-                {
-                    num7 = (int)((num5 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale + (double)this.scrollX + (double)this.left);
-                    num8 = (int)((num6 - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale + (double)this.scrollX + (double)this.left);
-                }
-                g.FillRectangle(Brushes.Orange, num7, 5, num8 - num7 + 1, 2);
-                g.DrawLine(Pens.Orange, num7, 3, num7, 8);
-                g.DrawLine(Pens.Orange, num8, 3, num8, 8);
-            }
-        }
-
         // Token: 0x060004C3 RID: 1219 RVA: 0x0001B334 File Offset: 0x00019534
         NuclideDefinitionManager nuclideManager;
 
@@ -5360,11 +5298,10 @@ namespace BecquerelMonitor
                     }
                     this.selectionDragging = true;
                     base.Invalidate();
-                    if (this.ChannelPickuped != null)
-                    {
-                        this.ChannelPickuped(this, new ChannelPickupedEventArgs(num2, this.energySpectrum.Spectrum[num2]));
-                        return;
-                    }
+                    // (`AMBER280`) Событие `ChannelPickuped` снято: его слушала одна
+                    // «Многоточечная калибровка» окна прибора («Выбрать канал»), снятая
+                    // решением Amber («Во вкладке убрать функциональность калибровки и
+                    // оставить только данные»). Пик калибровки спектра — `PeakPickuped`.
                 }
                 else
                 {
@@ -6114,8 +6051,6 @@ namespace BecquerelMonitor
         bool selectionAnalyticsDirty = true;
 
         SelectionAnalytics selectionAnalytics;
-
-        public delegate void ChannelPickupedEventHandler(object sender, ChannelPickupedEventArgs e);
 
         public delegate void PeakPickupedEventHandler(object sender, PeakPickupedEventArgs e);
 

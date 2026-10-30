@@ -1089,8 +1089,15 @@ namespace BecquerelMonitor.Probes
             MethodInfo user = typeof(MainForm).GetMethod("userLayoutToolStripMenuItem_Click", Any);
             MethodInfo expert = typeof(MainForm).GetMethod("expertLayoutToolStripMenuItem_Click", Any);
             var panels = new List<WeakReference>();
+            // (`AMBER276`, 29.10.2026) Поля `dcCFwhmCalibrationView` больше нет: калибровка
+            // энергии и FWHM — одна вкладка в поле `dcEnergyCalibrationView`.
             string[] viewFields = { "dcControlPanel", "dcPulseView", "dcSampleInfoView", "dcSpectrumListView", "dcPeakDetectionView",
-                                    "dcEnergyCalibrationView", "dcCountRateView", "dcCFwhmCalibrationView", "dcFsaReportView" };
+                                    "dcEnergyCalibrationView", "dcCountRateView", "dcFsaReportView" };
+            foreach (string f in viewFields)
+            {
+                // Снятое поле молча дало бы WeakReference(null) — «вид отпущен» без вида.
+                if (typeof(MainForm).GetField(f, Any) == null) throw new MissingFieldException("MainForm", f);
+            }
             var oldViews = new List<KeyValuePair<string, WeakReference>>();
             var samples = new List<Sample>();
             Action switchOnce = () =>

@@ -20,9 +20,10 @@ namespace BecquerelMonitor
     /// единая. В файл спектра помимо калибровки fwhm теперь попадает и калибровка по
     /// энергии.» Вопросником того же дня, дословно: «Строка идёт в обе подгонки» и
     /// «Всё из обеих (Рекомендую)» — ни одна прежняя возможность двух вкладок не
-    /// пропадает: ручной ввод коэффициентов полинома, автокалибровка с её настройкой,
-    /// веса, «собрать всё», графики обеих калибровок, вид кривой FWHM, форма пика,
-    /// сохранение в прибор (с кривизной тракта, `AMBER271`).
+    /// пропадает: ручной ввод коэффициентов полинома, веса, «собрать всё», графики
+    /// обеих калибровок, вид кривой FWHM, форма пика, сохранение в прибор (с кривизной
+    /// тракта, `AMBER271`). Автокалибровка с её настройкой снята вместе со
+    /// стабилизатором пиков (`AMBER280`).
     ///
     /// КАК УСТРОЕНО.
     ///   * Пик берётся выделением на графике (событие <c>PeakPickuped</c>, как прежде у
@@ -37,6 +38,10 @@ namespace BecquerelMonitor
     ///   * «Рассчитать» (<see cref="RunCalibration"/>) — обе подгонки: энергия по
     ///     линиям (прежняя подгонка вкладки энергии, <c>SolveGuarded</c>), FWHM по всем
     ///     строкам (прежняя подгонка вкладки FWHM, выбор формы пика).
+    ///   * ⛔ Линия энергии — только строка с ВВЕДЁННОЙ энергией или подписанный пик
+    ///     таблицы найденных пиков (решение Amber вопросником 29.10.2026, дословно:
+    ///     «Только с введённой энергией (Рекомендую)»). Выделенная щелчком строка без
+    ///     ввода и серые опоры (прибор, умолчание, прежний файл) — только в FWHM.
     ///
     /// ⚠ Имя класса — прежней вкладки FWHM: этот класс строят по имени пробы
     /// (`FwhmViewReachProbeO13`, `ModalReachProbeF22`, `FwhmReaderProbeF62`,
@@ -265,7 +270,8 @@ namespace BecquerelMonitor
                 Cell energyCell = new Cell(line.Energy);
                 if (!line.EnergyLine)
                 {
-                    // Опора FWHM без энергии линии (прибор, умолчание, прежний файл):
+                    // Опора FWHM без энергии линии (выделена щелчком без ввода энергии,
+                    // неподписанный найденный пик, прибор, умолчание, прежний файл):
                     // в подгонку энергии не идёт, пока энергию не введут.
                     energyCell.ForeColor = SystemColors.GrayText;
                 }
@@ -603,11 +609,19 @@ namespace BecquerelMonitor
                     return;
                 }
             }
-            newPeak = FitLine(pickupResultData, newPeak, e.PeakStartSelection, e.PeakEndSelection);
+            // ⛔ (`AMBER276`, решение Amber вопросником 29.10.2026, дословно: «Только с
+            //    введённой энергией (Рекомендую)») Выделенная щелчком строка — ещё НЕ линия
+            //    калибровки по энергии: она идёт в подгонку FWHM, а в подгонку энергии —
+            //    только когда человек введёт энергию её линии (правка ячейки «Энергия»).
+            //    Прежде она шла и в энергию с оценкой по нынешней шкале, и «Рассчитать»
+            //    ради одной FWHM молча переподгоняло шкалу по этим оценкам: две строки на
+            //    ASN16 (полином 2) роняли степень до 1 и уводили линию 2614.5 на −82.9 кэВ.
+            newPeak = FitLine(pickupResultData, newPeak, e.PeakStartSelection, e.PeakEndSelection, false);
             // Энергия новой строки — по нынешней шкале В ЕЁ КАНАЛЕ, до сотых кэВ, как
-            // прежде у вкладки энергии: человек вводит энергию линии, а не введённая
-            // строка с собственной шкалой согласна (канал в подгонке целый).
+            // прежде у вкладки энергии; показана серой, пока её не введут.
             newPeak.Energy = EnergyAtChannel(pickupResultData, newPeak.Channel);
+            // (`AMBER270`) центр масс пика для κ — по спектру, где строку завели
+            RememberCentroid(newPeak, pickupResultData.EnergySpectrum);
 
             pickupResultData.CalibrationLines.Add(newPeak);
             mainForm.ActiveDocument.Dirty = true;
@@ -618,15 +632,18 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Подгонка формы пика по выделению (как прежде у вкладки FWHM) и отметка линии:
-        /// строка единой калибровки идёт в обе подгонки.
+        /// Подгонка формы пика по выделению (как прежде у вкладки FWHM) и отметка линии.
+        /// <paramref name="energyLine"/> — у строки есть энергия ЛИНИИ (подписанный пик
+        /// таблицы найденных пиков): она идёт в обе подгонки; без неё — только в FWHM,
+        /// пока энергию не введут (решение Amber 29.10.2026 «Только с введённой
+        /// энергией»). Отсчёты канала (вес) считаются у обеих.
         /// </summary>
-        static CalibrationPeak FitLine(ResultData resultData, CalibrationPeak peak, int start, int end)
+        static CalibrationPeak FitLine(ResultData resultData, CalibrationPeak peak, int start, int end, bool energyLine)
         {
             SpectrumAriphmetics sa = new SpectrumAriphmetics(resultData.EnergySpectrum);
             CalibrationPeak fitted = sa.CalcPeakFitValues(peak, start, end);
             sa.Dispose();
-            fitted.EnergyLine = true;
+            fitted.EnergyLine = energyLine;
             int[] spectrum = resultData.EnergySpectrum.Spectrum;
             fitted.Count = spectrum != null && fitted.Channel >= 0 && fitted.Channel < spectrum.Length
                 ? spectrum[fitted.Channel]
@@ -654,8 +671,11 @@ namespace BecquerelMonitor
         /// (<c>EnergySpectrumView.PeakPickupFor</c>), не меньше ±3 каналов. Не вышло
         /// измерить ширину — строка берёт канал и FWHM поиска пиков. Энергия — линии,
         /// которой пик подписан (прежняя арифметика меню), и строка — линия калибровки
-        /// по энергии. Пик в канале, который в таблице уже есть, не добавляется (как
-        /// прежде у вкладки энергии — без окна).
+        /// по энергии. ⛔ Пик БЕЗ подписанной линии (промаха нет, энергия — его же по
+        /// нынешней шкале) линией не становится: идёт только в FWHM, энергия серая, пока
+        /// её не введут (решение Amber 29.10.2026 «Только с введённой энергией»). Пик в
+        /// канале, который в таблице уже есть, не добавляется (как прежде у вкладки
+        /// энергии — без окна).
         /// </summary>
         /// <returns>true — строка добавлена</returns>
         public bool AddDetectedPeak(Peak peak, double energy)
@@ -699,8 +719,11 @@ namespace BecquerelMonitor
                     return false;
                 }
             }
-            newPeak = FitLine(resultData, newPeak, start, end);
+            bool signedLine = peak.Nuclide != null && peak.Nuclide.Energy > 0.0;
+            newPeak = FitLine(resultData, newPeak, start, end, signedLine);
             newPeak.Energy = energy;
+            // (`AMBER270`) центр масс пика для κ — по спектру, где строку завели
+            RememberCentroid(newPeak, resultData.EnergySpectrum);
             resultData.CalibrationLines.Add(newPeak);
             mainForm.ActiveDocument.Dirty = true;
             MarkModified();
@@ -902,6 +925,9 @@ namespace BecquerelMonitor
             }
             int activeChannels = activeResultData.EnergySpectrum.NumberOfChannels;
             int skippedOtherGrid = 0;
+            // (`AMBER270`) спектр, откуда строка, — по индексу `peaks`: центр масс пика линии
+            // для κ мерится по НЕМУ, а не по спектру, в чью таблицу строка уходит
+            List<EnergySpectrum> sources = new List<EnergySpectrum>();
 
             if (mainForm.DocumentList != null)
             {
@@ -922,6 +948,10 @@ namespace BecquerelMonitor
                                 continue;
                             }
                             peaks.AddRange(data.CalibrationLines);
+                            for (int k = 0; k < data.CalibrationLines.Count; k++)
+                            {
+                                sources.Add(data.EnergySpectrum);
+                            }
                         }
                     }
                 }
@@ -932,10 +962,12 @@ namespace BecquerelMonitor
                     // строки здесь не должна молча менять таблицу ДРУГОГО спектра.
                     List<CalibrationPeak> copies = CalibrationPeak.ClonePeaks(peaks);
                     target.Clear();
-                    foreach (CalibrationPeak peak in copies)
+                    for (int i = 0; i < copies.Count; i++)
                     {
+                        CalibrationPeak peak = copies[i];
                         if (channels.Add(peak.Channel))
                         {
+                            RememberCentroid(peak, sources[i]);
                             target.Add(peak);
                         }
                     }
@@ -987,9 +1019,11 @@ namespace BecquerelMonitor
         /// степень понижается сторожем изгиба (<c>SolveGuarded</c>). <c>null</c> —
         /// годной подгонки нет.
         ///
-        /// ⚠ Сюда же ляжет кривизна тракта (`AMBER270`): третьим параметром карты
-        /// «канал ← энергия» наряду с полиномом, и результат станет парой
-        /// (коэффициенты, κ).
+        /// (`AMBER270`) Кривизна тракта подгоняется РЯДОМ, а не здесь
+        /// (<see cref="FitTractCurvature"/>): прямая карта разбора FSA, которая её
+        /// читает, берёт у полинома калибровки только две точки (энергию в точке нуля и
+        /// канал верхней линии), а между ними кладёт свет в канал сама. Полином и κ —
+        /// две разные модели одних точек; полином остаётся прежним побитово.
         /// </summary>
         internal static double[] SolveEnergy(List<CalibrationPoint> energyPoints, int polynomialOrder, int channels, bool weighted, out int usedOrder)
         {
@@ -1001,6 +1035,502 @@ namespace BecquerelMonitor
                 points.Add(new CalibrationPoint(0, 0, 0));
             }
             return CalibrationSolver.SolveGuarded(points, order, channels, weighted, out usedOrder);
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  Кривизна тракта (`AMBER270`)
+        // ══════════════════════════════════════════════════════════════════════
+
+        /// <summary>(`AMBER270`) Итог подгонки кривизны тракта: κ либо причина, по которой её нет.</summary>
+        public sealed class TractCurvatureFit
+        {
+            /// <summary>κ подогнана.</summary>
+            public bool Ok;
+            /// <summary>κ, 1/МэВ шкалы карты FSA.</summary>
+            public double Kappa;
+            /// <summary>Свет в точке нуля карты z₀, кэВ.</summary>
+            public double ZeroLightKev;
+            /// <summary>Наибольший промах линии по подогнанной карте, каналы.</summary>
+            public double WorstChannels;
+            /// <summary>Линий в подгонке.</summary>
+            public int Lines;
+            /// <summary>
+            /// Из них — каналом центра масс пика (<see cref="CentroidOf"/>); прочие — целым
+            /// каналом строки (центр по спектру строки не измерен).
+            /// </summary>
+            public int CentroidLines;
+            /// <summary>Верхняя линия набора, кэВ.</summary>
+            public double TopLineKev;
+            /// <summary>Имя фотонной кривой света (как у разбора: <c>FsaLightScale.CurveFor</c>).</summary>
+            public string Curve;
+            /// <summary>Вещество, по которому взята кривая.</summary>
+            public string Material;
+            /// <summary>Причина отказа словами (ресурс), null — подогнана.</summary>
+            public string Refusal;
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER270`, 29.10.2026) ВЕЩЕСТВО КРИСТАЛЛА СПЕКТРА — ДЛЯ КРИВОЙ СВЕТА, тем
+        /// же путём, что у разбора FSA: вещество геометрии кривой эффективности спектра
+        /// (<c>EfficiencySimulator.ScintillatorNameOf</c> — его же кладут в разбор
+        /// <c>FsaMatrixBinding.Bind</c> и <c>FsaEfficiency</c>). Геометрии нет — поле
+        /// прибора «Вещество кристалла» (<c>DeviceConfigInfo.CrystalMaterialName</c>,
+        /// `A276`: геометрия первична, поле — запасной источник). Пусто — вещество не
+        /// названо.
+        /// </summary>
+        public static string ScintillatorOf(ResultData resultData)
+        {
+            if (resultData == null)
+            {
+                return "";
+            }
+            EfficiencyConfigData efficiency = resultData.Efficiency;
+            try
+            {
+                if (efficiency != null && efficiency.HasGeometry && efficiency.Geometry != null && efficiency.Geometry.Crystal != null)
+                {
+                    string name = EfficiencyMaker.EfficiencySimulator.ScintillatorNameOf(efficiency.Geometry);
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        return name;
+                    }
+                }
+                string named = resultData.DeviceConfig != null ? resultData.DeviceConfig.CrystalMaterialName : null;
+                if (!string.IsNullOrEmpty(named))
+                {
+                    EfficiencyMaker.GeometryMaterialLibrary.Entry entry = EfficiencyMaker.GeometryMaterialLibrary.ByName(named);
+                    EfficiencyMaker.GeometryMaterial material = entry != null
+                        ? EfficiencyMaker.GeometryMaterialLibrary.Make(entry, entry.Density)
+                        : null;
+                    if (material != null)
+                    {
+                        EfficiencyMaker.GeometryModel probe = new EfficiencyMaker.GeometryModel();
+                        probe.Crystal = material;
+                        return EfficiencyMaker.EfficiencySimulator.ScintillatorNameOf(probe);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // библиотека веществ или геометрия не читаются — вещество не названо
+            }
+            return "";
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER270`, 29.10.2026) КРИВИЗНА ТРАКТА ПО ТОЧКАМ КАЛИБРОВКИ ПО ЭНЕРГИИ.
+        /// Amber, консоль, дословно: «При калибровке по энергии так же проводить
+        /// калибровку по кривизне тракта.» Вопросником того же дня, дословно: «Спектра,
+        /// прибор — умолчание (Рекомендую)» — κ ложится в спектр, в прибор — кнопкой
+        /// сохранения.
+        ///
+        /// ФОРМУЛА — ТА ЖЕ, ЧТО У РАЗБОРА (<c>FsaAnalyzer.LightToChannel</c> прямой карты,
+        /// <c>AdcScaleOf</c>, <c>TractChannel</c>): фотопик энергии E даёт свет
+        /// x = E + s(E), s — фотонная кривая света вещества кристалла
+        /// (<c>FsaLightScale.ShiftKev</c>, опорная энергия и порог — умолчания разбора),
+        /// и стоит в канале c = c₀ + v·(1 + q·v), v = ℓ/G, q = κ·G/1000, где
+        /// ℓ = (x − z₀)·s₁ — свет в кэВ шкалы карты от точки нуля (s₁ = (E₁ − e₀)/(x₁ − z₀),
+        /// E₁ — верхняя линия, e₀ — энергия калибровки в точке нуля карты), G — шаг карты,
+        /// c₀ — канал точки нуля (умолчания разбора). Это квадрат по свету:
+        /// c = c₀ + a·(x − z₀) + b·(x − z₀)², a = s₁/G, b = κ·s₁²/(1000·G), то есть
+        /// κ = 1000·b/(a·s₁). Подгоняется МНК c(x) второй степени (веса — как у шкалы
+        /// энергии), z₀ — корень c(z₀) = c₀, κ — по формуле выше. Три свободных числа —
+        /// нуль света, шаг и κ: линий нужно не меньше трёх.
+        ///
+        /// Без кривой света кривизну фотопиков в каналах несёт полином калибровки, и
+        /// отделить от неё кривизну тракта нечем (у разбора то же: прямая карта
+        /// включается только с кривой) — тогда κ не подгоняется, и причина возвращается
+        /// словами (<see cref="TractCurvatureFit.Refusal"/>).
+        ///
+        /// ⛔ (решения Amber вопросником 30.10.2026, дословно) Набор линий — «Только с
+        /// линиями до ≥ 2 МэВ (Рекомендую)»: без линии от <see cref="TractCurvatureTopLineKev"/>
+        /// κ не подгоняется (ядро, отказ словами). Канал линии — «Центр масс пика
+        /// (Рекомендую)»: дробный центр масс пика строки по спектру (<see cref="CentroidOf"/>),
+        /// а не целый канал строки; строки таблицы и файл не меняются. Целые каналы стоили
+        /// κ до ±0.001 1/МэВ на 1024 каналах (журнал `amber280` §3).
+        /// </summary>
+        /// <param name="lines">строки единой калибровки; в подгонку идут линии энергии
+        /// (<see cref="CalibrationPeak.EnergyLine"/>), канал — один раз, как у шкалы энергии</param>
+        /// <param name="spectrum">спектр, чья это таблица (активный документ), — по нему мерится
+        /// центр масс его строк, у которых он ещё не измерен (<see cref="CentroidOf"/>)</param>
+        public static TractCurvatureFit FitTractCurvature(List<CalibrationPeak> lines, EnergySpectrum spectrum,
+                                                            EnergyCalibration energyScale, string scintillator, bool weighted)
+        {
+            var channels = new List<double>();
+            var energies = new List<double>();
+            var weights = new List<double>();
+            var seen = new HashSet<int>();
+            int centroids = 0;
+            if (lines != null)
+            {
+                // порядок и отбор — как у точек шкалы энергии (`EnergyPoints`)
+                foreach (CalibrationPeak line in lines.Where(l => l != null).OrderBy(l => l.Channel))
+                {
+                    if (!line.EnergyLine || !seen.Add(line.Channel))
+                    {
+                        continue;
+                    }
+                    double centroid = CentroidOf(line, spectrum);
+                    if (double.IsNaN(centroid))
+                    {
+                        centroid = line.Channel;
+                    }
+                    else
+                    {
+                        centroids++;
+                    }
+                    channels.Add(centroid);
+                    energies.Add(line.Energy);
+                    weights.Add(weighted && line.Count > 0 ? (double)line.Count : 1.0);
+                }
+            }
+            TractCurvatureFit fit = FitTractCurvature(channels, energies, weights, energyScale, scintillator);
+            fit.CentroidLines = centroids;
+            return fit;
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER270`, решение Amber вопросником 30.10.2026 о наборе линий для κ,
+        /// дословно: «Только с линиями до ≥ 2 МэВ (Рекомендую)») Нижняя граница
+        /// верхней линии набора, кэВ: без линии от неё κ не подгоняется. Замер полосы: набор
+        /// с верхом 2614 кэВ (Th-228) дал κ сумм-пиков с точностью +0.0003…+0.0010 1/МэВ, набор
+        /// с верхом 1408 кэВ (Eu-152) — втрое-вчетверо выше: ошибку фотонной кривой света
+        /// ниже 400 кэВ подгонка без длинного плеча принимает за кривизну тракта.
+        /// </summary>
+        public const double TractCurvatureTopLineKev = 2000.0;
+
+        /// <summary>
+        /// ⛔ (`AMBER270`, решение Amber вопросником 30.10.2026, дословно: «Центр масс пика
+        /// (Рекомендую)») КАНАЛ ЛИНИИ ДЛЯ κ — ДРОБНЫЙ ЦЕНТР МАСС ЕЁ ПИКА ПО ЕЁ СПЕКТРУ:
+        /// <list type="number">
+        /// <item>измеренный, когда строка заведена (щелчок по пику, «Добавить в калибровку»)
+        /// или собрана «Собрать всё» из документа, откуда она (<see cref="CalibrationPeak.SpectrumCentroid"/>,
+        /// пока канал строки тот же);</item>
+        /// <item>иначе — по <paramref name="spectrum"/> (<see cref="LineCentroid"/>), но только
+        /// если строка — ЕГО: отсчёты в канале строки (<see cref="CalibrationPeak.Count"/>) те
+        /// же, что у спектра в этом канале. ⛔ Без этой сверки строка, собранная из другого
+        /// спектра и прочитанная из файла (центр масс в файл не пишется — формат не меняется),
+        /// мерилась бы по ЧУЖОМУ пику: замер пробы `TractCurvatureFitProbeA270` на шести
+        /// источниках G1S24 — κ 0.00776 вместо 0.00591 1/МэВ, промах линии до 6.5 канала.</item>
+        /// </list>
+        /// <c>NaN</c> — центр не измерен (строка не этого спектра либо пика у её канала нет):
+        /// строка идёт в κ своим целым каналом.
+        /// </summary>
+        public static double CentroidOf(CalibrationPeak line, EnergySpectrum spectrum)
+        {
+            if (line == null)
+            {
+                return double.NaN;
+            }
+            if (line.SpectrumCentroidChannel == line.Channel && !double.IsNaN(line.SpectrumCentroid))
+            {
+                return line.SpectrumCentroid;
+            }
+            int[] counts = spectrum != null ? spectrum.Spectrum : null;
+            if (counts == null || line.Channel < 0 || line.Channel >= counts.Length || line.Count <= 0 || counts[line.Channel] != line.Count)
+            {
+                return double.NaN;
+            }
+            return LineCentroid(spectrum, line.Channel, line.FWHM);
+        }
+
+        /// <summary>
+        /// (`AMBER270`) Мерит центр масс пика строки по её спектру и запоминает его в строке
+        /// (<see cref="CalibrationPeak.SpectrumCentroid"/>): когда строка заведена (спектр
+        /// может набираться дальше — отсчёты канала разойдутся с весом строки) и когда она
+        /// уходит «Собрать всё» в таблицу ДРУГОГО спектра. Не измерился — строка без него.
+        /// </summary>
+        static void RememberCentroid(CalibrationPeak line, EnergySpectrum ownSpectrum)
+        {
+            if (line == null)
+            {
+                return;
+            }
+            double centroid = CentroidOf(line, ownSpectrum);
+            line.SpectrumCentroid = centroid;
+            line.SpectrumCentroidChannel = double.IsNaN(centroid) ? -1 : line.Channel;
+        }
+
+        /// <summary>
+        /// (`AMBER270`) Центр масс пика у канала <paramref name="channel"/> — ТЕМ ЖЕ способом,
+        /// каким программа уточняет центр пика при выделении и поиске пиков
+        /// (<see cref="SpectrumAriphmetics.FindCentroid(EnergySpectrum, int, int, int, bool)"/>:
+        /// центр масс ядра пика выше полувысоты над минимумом окна), в окне ±1.5 FWHM строки,
+        /// не меньше ±3 каналов — том же, каким «Добавить в калибровку» выделяет пик
+        /// (<see cref="AddDetectedPeak"/>). Спектр — отсчёты файла, а не показанный вид:
+        /// κ не должна зависеть от того, вычтен ли на экране фон. <c>NaN</c> — пика нет:
+        /// окно плоское либо центр ушёл от канала строки дальше max(1, ½ FWHM) (строка
+        /// стоит не на пике этого спектра).
+        /// </summary>
+        public static double LineCentroid(EnergySpectrum spectrum, int channel, double fwhmChannels)
+        {
+            if (spectrum == null || spectrum.Spectrum == null)
+            {
+                return double.NaN;
+            }
+            int n = Math.Min(spectrum.NumberOfChannels, spectrum.Spectrum.Length);
+            if (channel < 0 || channel >= n)
+            {
+                return double.NaN;
+            }
+            double fwhm = fwhmChannels > 0.0 && !double.IsInfinity(fwhmChannels) ? fwhmChannels : 0.0;
+            int half = Math.Max(3, (int)Math.Ceiling(1.5 * fwhm));
+            int start = Math.Max(0, channel - half);
+            int end = Math.Min(n - 1, channel + half);
+            double centroid = new SpectrumAriphmetics().FindCentroid(spectrum, channel, start, end, true);
+            if (double.IsNaN(centroid) || double.IsInfinity(centroid) || Math.Abs(centroid - channel) > Math.Max(1.0, 0.5 * fwhm))
+            {
+                return double.NaN;
+            }
+            return centroid;
+        }
+
+        /// <summary>
+        /// (`AMBER270`) Ядро подгонки κ по дробным каналам: приложение зовёт его центрами
+        /// масс пиков строк (<see cref="FitTractCurvature(List{CalibrationPeak}, EnergySpectrum, EnergyCalibration, string, bool)"/>),
+        /// пробы — каналами карты разбора без округления.
+        /// </summary>
+        public static TractCurvatureFit FitTractCurvature(IList<double> pointChannels, IList<double> pointEnergies, IList<double> pointWeights,
+                                                            EnergyCalibration energyScale, string scintillator)
+        {
+            TractCurvatureFit fit = new TractCurvatureFit();
+            fit.Material = scintillator ?? "";
+            FullSpectrumAnalysis.FsaAnalyzer defaults = new FullSpectrumAnalysis.FsaAnalyzer();
+            string form = (defaults.AnchorLightForm ?? "").Trim().ToLowerInvariant();
+            if (!defaults.AdcLinear || !defaults.AnchorLightPosition || (form != "line" && form != "peak"))
+            {
+                fit.Refusal = Resources.MSGTractCurvatureNotUsed;
+                return fit;
+            }
+            if (string.IsNullOrEmpty(scintillator) && string.IsNullOrEmpty(defaults.AnchorLightCurve))
+            {
+                fit.Refusal = Resources.MSGTractCurvatureNoMaterial;
+                return fit;
+            }
+            string curve = string.IsNullOrEmpty(defaults.AnchorLightCurve)
+                ? FullSpectrumAnalysis.FsaLightScale.CurveFor(scintillator)
+                : defaults.AnchorLightCurve;
+            if (!FullSpectrumAnalysis.FsaLightScale.Known(curve))
+            {
+                fit.Refusal = String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureNoCurve, scintillator);
+                return fit;
+            }
+            fit.Curve = curve;
+
+            // свет фотопика каждой линии: x = E + s(E) — тем же вызовом и с теми же
+            // умолчаниями, что у разбора (`FsaAnalyzer.CurveShiftKev`)
+            var channels = new List<double>();
+            var lights = new List<double>();
+            var weights = new List<double>();
+            var energies = new List<double>();
+            int count = pointChannels != null && pointEnergies != null ? Math.Min(pointChannels.Count, pointEnergies.Count) : 0;
+            for (int i = 0; i < count; i++)
+            {
+                double e = pointEnergies[i];
+                double ch = pointChannels[i];
+                if (!(e > 0.0) || double.IsNaN(ch) || double.IsInfinity(ch))
+                {
+                    continue;
+                }
+                double s = defaults.AnchorLightMaxKev > 0.0 && e > defaults.AnchorLightMaxKev
+                    ? 0.0
+                    : FullSpectrumAnalysis.FsaLightScale.ShiftKev(curve, e, defaults.AnchorLightReferenceKev);
+                if (double.IsNaN(s) || double.IsInfinity(s))
+                {
+                    continue;
+                }
+                double w = pointWeights != null && i < pointWeights.Count && pointWeights[i] > 0.0 ? pointWeights[i] : 1.0;
+                channels.Add(ch);
+                lights.Add(e + s);
+                energies.Add(e);
+                weights.Add(w);
+            }
+            fit.Lines = channels.Count;
+            fit.TopLineKev = energies.Count > 0 ? energies.Max() : 0.0;
+            if (channels.Count < 3)
+            {
+                fit.Refusal = String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureFewLines,
+                                            channels.Count.ToString(CultureInfo.InvariantCulture));
+                return fit;
+            }
+            // ⛔ решение Amber 30.10.2026 «Только с линиями до ≥ 2 МэВ»: κ спектра прежняя,
+            // причина — словами (строка состояния и подпись под полем)
+            if (fit.TopLineKev < TractCurvatureTopLineKev)
+            {
+                fit.Refusal = String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureNoHighLine,
+                                            TractCurvatureTopLineKev.ToString("0", CultureInfo.InvariantCulture),
+                                            fit.TopLineKev.ToString("0.##", CultureInfo.InvariantCulture));
+                return fit;
+            }
+
+            // МНК c(x) = p0 + p1·x + p2·x² (свет — от середины, чтобы система была обусловлена)
+            double mid = lights.Average();
+            double[,] m = new double[3, 4];
+            for (int i = 0; i < channels.Count; i++)
+            {
+                double t = lights[i] - mid;
+                double[] basis = { 1.0, t, t * t };
+                for (int r = 0; r < 3; r++)
+                {
+                    for (int c = 0; c < 3; c++)
+                    {
+                        m[r, c] += weights[i] * basis[r] * basis[c];
+                    }
+                    m[r, 3] += weights[i] * basis[r] * channels[i];
+                }
+            }
+            double[] p = SolveSmall(m);
+            double edge = defaults.AdcZeroAtChannelEdge ? -0.5 : 0.0;
+            double zeroT;
+            if (p == null || !TractZero(p, edge, lights.Min() - mid, out zeroT))
+            {
+                fit.Refusal = Resources.MSGTractCurvatureFailed;
+                return fit;
+            }
+            double slope = p[1] + 2.0 * p[2] * zeroT;
+            double zeroLight = zeroT + mid;
+
+            // шкала карты: верхняя линия держится на месте, как у разбора
+            int top = 0;
+            for (int i = 1; i < energies.Count; i++)
+            {
+                if (energies[i] > energies[top])
+                {
+                    top = i;
+                }
+            }
+            double e0;
+            try
+            {
+                e0 = energyScale.ChannelToEnergy(0.0);
+                if (defaults.AdcZeroAtChannelEdge)
+                {
+                    e0 -= 0.5 * (energyScale.ChannelToEnergy(1.0) - e0);
+                }
+            }
+            catch (Exception)
+            {
+                e0 = double.NaN;
+            }
+            double scale = (energies[top] - e0) / (lights[top] - zeroLight);
+            double kappa = 1000.0 * p[2] / (slope * scale);
+            if (!(slope > 0.0) || !(scale > 0.0) || double.IsNaN(kappa) || double.IsInfinity(kappa))
+            {
+                fit.Refusal = Resources.MSGTractCurvatureFailed;
+                return fit;
+            }
+            double worst = 0.0;
+            for (int i = 0; i < channels.Count; i++)
+            {
+                double t = lights[i] - mid;
+                double c = p[0] + p[1] * t + p[2] * t * t;
+                worst = Math.Max(worst, Math.Abs(c - channels[i]));
+            }
+            fit.Ok = true;
+            fit.Kappa = kappa;
+            fit.ZeroLightKev = zeroLight;
+            fit.WorstChannels = worst;
+            return fit;
+        }
+
+        /// <summary>
+        /// Корень c(t) = <paramref name="edge"/> квадрата p0 + p1·t + p2·t² — точка нуля карты:
+        /// тот, где карта растёт, ближайший к нижней линии <paramref name="lowT"/>.
+        /// </summary>
+        static bool TractZero(double[] p, double edge, double lowT, out double zeroT)
+        {
+            zeroT = double.NaN;
+            double a = p[2], b = p[1], c = p[0] - edge;
+            var roots = new List<double>();
+            if (Math.Abs(a) < 1e-300 || Math.Abs(a * lowT * lowT) < 1e-12 * Math.Abs(b * lowT))
+            {
+                if (b != 0.0)
+                {
+                    roots.Add(-c / b);
+                }
+            }
+            else
+            {
+                double d = b * b - 4.0 * a * c;
+                if (d >= 0.0)
+                {
+                    double sq = Math.Sqrt(d);
+                    // устойчивая запись корней квадрата
+                    double q = -0.5 * (b + (b >= 0.0 ? sq : -sq));
+                    if (q != 0.0)
+                    {
+                        roots.Add(c / q);
+                    }
+                    roots.Add(q / a);
+                }
+            }
+            double best = double.PositiveInfinity;
+            foreach (double t in roots)
+            {
+                if (double.IsNaN(t) || double.IsInfinity(t) || !(b + 2.0 * a * t > 0.0))
+                {
+                    continue;
+                }
+                double distance = Math.Abs(t - lowT);
+                if (distance < best)
+                {
+                    best = distance;
+                    zeroT = t;
+                }
+            }
+            return !double.IsNaN(zeroT);
+        }
+
+        /// <summary>Гаусс с выбором главного по столбцу для расширенной матрицы 3×4; null — вырождена.</summary>
+        static double[] SolveSmall(double[,] m)
+        {
+            int n = 3;
+            for (int col = 0; col < n; col++)
+            {
+                int pivot = col;
+                for (int r = col + 1; r < n; r++)
+                {
+                    if (Math.Abs(m[r, col]) > Math.Abs(m[pivot, col]))
+                    {
+                        pivot = r;
+                    }
+                }
+                if (!(Math.Abs(m[pivot, col]) > 1e-300))
+                {
+                    return null;
+                }
+                if (pivot != col)
+                {
+                    for (int k = 0; k <= n; k++)
+                    {
+                        double tmp = m[col, k];
+                        m[col, k] = m[pivot, k];
+                        m[pivot, k] = tmp;
+                    }
+                }
+                for (int r = 0; r < n; r++)
+                {
+                    if (r == col)
+                    {
+                        continue;
+                    }
+                    double f = m[r, col] / m[col, col];
+                    for (int k = col; k <= n; k++)
+                    {
+                        m[r, k] -= f * m[col, k];
+                    }
+                }
+            }
+            double[] x = new double[n];
+            for (int r = 0; r < n; r++)
+            {
+                x[r] = m[r, n] / m[r, r];
+                if (double.IsNaN(x[r]) || double.IsInfinity(x[r]))
+                {
+                    return null;
+                }
+            }
+            return x;
         }
 
         private void ExecuteCalibrationButton_Click(object sender, EventArgs e)
@@ -1028,6 +1558,7 @@ namespace BecquerelMonitor
             bool refused = false;
             bool energyDone = false;
             double energyMse = 0.0;
+            TractCurvatureFit tractFit = null;
 
             // ── 1. Энергия ───────────────────────────────────────────────────────
             List<CalibrationPoint> points;
@@ -1086,6 +1617,18 @@ namespace BecquerelMonitor
                         energyMse = checkBox2.Checked
                             ? CalibrationSolver.WMSE(matrix, msePoints)
                             : CalibrationSolver.MSE(matrix, msePoints);
+                        // (`AMBER270`) кривизна тракта — тем же движением, по тем же
+                        // линиям; в спектр (`AMBER271`). Не вышло — κ спектра прежняя,
+                        // а причина идёт в строку состояния и под поле κ. Канал линии —
+                        // центр масс её пика, набор — с линией от 2 МэВ (решения Amber
+                        // 30.10.2026).
+                        tractFit = FitTractCurvature(lines, resultData.EnergySpectrum, fitted, ScintillatorOf(resultData), checkBox2.Checked);
+                        if (tractFit.Ok)
+                        {
+                            resultData.TractCurvature = tractFit.Kappa;
+                        }
+                        lastTractFit = tractFit;
+                        ShowTractCurvature();
                         UpdateEnergyCalibration();
                         energyDone = true;
                     }
@@ -1126,6 +1669,10 @@ namespace BecquerelMonitor
                 if (energyDone)
                 {
                     status.AppendFormat(CultureInfo.InvariantCulture, " {0}: {1} = {2:0.00000};", Resources.MSGEnergyShort, Resources.MSGMSE, energyMse);
+                    if (tractFit != null)
+                    {
+                        status.Append(' ').Append(TractCurvatureStatus(tractFit)).Append(';');
+                    }
                 }
                 if (fwhmDone)
                 {
@@ -1991,7 +2538,7 @@ namespace BecquerelMonitor
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        //  Шкала энергии: коэффициенты руками, сброс, автокалибровка, веса, степень
+        //  Шкала энергии: коэффициенты руками, сброс, веса, степень
         // ══════════════════════════════════════════════════════════════════════
 
         public void LoadCalibrationPoints()
@@ -2009,6 +2556,9 @@ namespace BecquerelMonitor
             this.defaultEnergyCalibration = (PolynomialEnergyCalibration)defaultEnergyCalibration.Clone();
             this.SyncRcEnergyCalibration();
             this.ShowCoefficients();
+            // (`AMBER270`) другой спектр — подпись прежней подгонки κ к нему не относится
+            this.lastTractFit = null;
+            this.ShowTractCurvature();
             this.UpdateTable();
             this.UpdateCalibrateButtonState();
         }
@@ -2048,12 +2598,138 @@ namespace BecquerelMonitor
         /// <summary>Текст, которым поле коэффициента показано (см. <see cref="setNewCalibration"/>).</summary>
         readonly Dictionary<TextBox, string> shownCoefficientText = new Dictionary<TextBox, string>();
 
+        // ── (`AMBER270`) кривизна тракта спектра: показ, правка, причина ────────
+
+        /// <summary>Последняя подгонка κ этого вида (для подписи под полем); null — не было.</summary>
+        TractCurvatureFit lastTractFit;
+
+        /// <summary>Текст, которым поле κ показано (сторож неизменённого текста, как у коэффициентов).</summary>
+        string shownTractCurvatureText;
+
+        /// <summary>Итог подгонки κ строкой состояния: число и вещество либо причина.</summary>
+        internal static string TractCurvatureStatus(TractCurvatureFit fit)
+        {
+            if (fit == null)
+            {
+                return string.Empty;
+            }
+            return fit.Ok
+                ? String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureFitted,
+                                fit.Kappa.ToString("0.00000", CultureInfo.InvariantCulture), fit.Curve,
+                                fit.Lines.ToString(CultureInfo.InvariantCulture)) + RowChannelNote(fit)
+                : fit.Refusal;
+        }
+
+        /// <summary>
+        /// (`AMBER270`) Хвост итога κ, когда не у всех линий нашёлся пик у канала строки:
+        /// сколько из них пошло в κ целым каналом строки, а не центром масс. Пусто — у всех.
+        /// </summary>
+        static string RowChannelNote(TractCurvatureFit fit)
+        {
+            int rowChannels = fit.Lines - fit.CentroidLines;
+            return rowChannels > 0
+                ? "; " + String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureRowChannels,
+                                       rowChannels.ToString(CultureInfo.InvariantCulture),
+                                       fit.Lines.ToString(CultureInfo.InvariantCulture))
+                : string.Empty;
+        }
+
+        /// <summary>
+        /// Поле κ — кривизна тракта, которой разбирается спектр (<see cref="ResultData.TractCurvature"/>:
+        /// своя либо прибора), и подпись под ним: чья она, а после «Выполнить калибровку» —
+        /// по чему подогнана или почему нет.
+        /// </summary>
+        void ShowTractCurvature()
+        {
+            ResultData resultData = ActiveResultData;
+            if (resultData == null)
+            {
+                this.tractCurvatureTextBox.Text = string.Empty;
+                this.shownTractCurvatureText = string.Empty;
+                this.tractCurvatureSourceLabel.Text = string.Empty;
+                this.toolTip1.SetToolTip(this.tractCurvatureSourceLabel, string.Empty);
+                return;
+            }
+            this.tractCurvatureTextBox.Text = resultData.TractCurvature.ToString("R", CultureInfo.InvariantCulture);
+            this.tractCurvatureTextBox.ForeColor = SystemColors.WindowText;
+            this.shownTractCurvatureText = this.tractCurvatureTextBox.Text;
+            string note = resultData.HasOwnTractCurvature ? Resources.MSGTractCurvatureOwn : Resources.MSGTractCurvatureDevice;
+            if (this.lastTractFit != null)
+            {
+                // подпись короткая: число уже в поле; полный текст — в строке состояния и подсказке
+                note = this.lastTractFit.Ok
+                    ? String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureFittedNote, this.lastTractFit.Curve,
+                                    this.lastTractFit.Lines.ToString(CultureInfo.InvariantCulture)) + RowChannelNote(this.lastTractFit)
+                    : this.lastTractFit.Refusal;
+            }
+            this.tractCurvatureSourceLabel.Text = note;
+            this.toolTip1.SetToolTip(this.tractCurvatureSourceLabel, AppUi.WrapTip(note));
+        }
+
+        /// <summary>
+        /// Правка κ руками: текст не правили — ничего; правили — своя κ спектра (`AMBER271`),
+        /// документ изменён, разбор пересчитается. Нечисло — поле краснеет, κ прежняя.
+        /// </summary>
+        void SetTractCurvatureFromField()
+        {
+            ResultData resultData = ActiveResultData;
+            if (resultData == null || this.mainForm.ActiveDocument == null)
+            {
+                return;
+            }
+            if (this.tractCurvatureTextBox.Text == this.shownTractCurvatureText)
+            {
+                this.tractCurvatureTextBox.ForeColor = SystemColors.WindowText;
+                return;
+            }
+            double value;
+            if (!UserNumber.TryParseDouble(this.tractCurvatureTextBox.Text, out value)
+                || double.IsNaN(value) || double.IsInfinity(value))
+            {
+                this.tractCurvatureTextBox.ForeColor = Color.Red;
+                return;
+            }
+            if (resultData.HasOwnTractCurvature && resultData.TractCurvature.Equals(value))
+            {
+                this.shownTractCurvatureText = this.tractCurvatureTextBox.Text;
+                this.tractCurvatureTextBox.ForeColor = SystemColors.WindowText;
+                return;
+            }
+            resultData.TractCurvature = value;
+            this.lastTractFit = null;
+            this.ShowTractCurvature();
+            this.UpdateEnergyCalibration();
+        }
+
+        void tractCurvatureTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Return)
+            {
+                this.SetTractCurvatureFromField();
+                e.SuppressKeyPress = true;
+            }
+            else
+            {
+                this.tractCurvatureTextBox.ForeColor = Color.Blue;
+            }
+        }
+
+        void tractCurvatureTextBox_Leave(object sender, EventArgs e)
+        {
+            this.SetTractCurvatureFromField();
+        }
+
         void button1_Click(object sender, EventArgs e)
         {
             if (this.defaultEnergyCalibration == null || ActiveResultData == null)
             {
                 return;
             }
+            // (`AMBER270`, находка 2 `AMBER271`) «Сброс» возвращает и κ прибора: спектр
+            // снова разбирается кривизной своего прибора, как шкалой прибора.
+            ActiveResultData.ForgetTractCurvature();
+            this.lastTractFit = null;
+            this.ShowTractCurvature();
             this.energyCalibration = (PolynomialEnergyCalibration)this.defaultEnergyCalibration.Clone();
             this.SyncRcEnergyCalibration();
             this.numericUpDown1.ForeColor = Color.Black;
@@ -2075,31 +2751,9 @@ namespace BecquerelMonitor
             this.mainForm.UpdateDetectedPeakView();
         }
 
-        public void SetStabilizerState(ResultData resultData)
-        {
-            this.checkBox1.Checked = resultData.ResultDataStatus.Stabilization;
-        }
-
-        void checkBox1_CheckedChanged(object sender, EventArgs e)
-        {
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            if (activeDocument == null)
-            {
-                return;
-            }
-            activeDocument.ActiveResultData.ResultDataStatus.Stabilization = this.checkBox1.Checked;
-            this.mainForm.UpdateCalibrationPeak();
-        }
-
-        void button5_Click(object sender, EventArgs e)
-        {
-            DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
-            if (activeDocument == null)
-            {
-                return;
-            }
-            this.mainForm.ShowDeviceConfigStabilizerForm(activeDocument.ActiveResultData.DeviceConfig);
-        }
+        // ⛔ (`AMBER280`, 29.10.2026) Галка «Автокалибровка» (`checkBox1`) и кнопка её
+        // настройки «Изменить...» (`button5`) сняты вместе со стабилизатором пиков. Amber,
+        // консоль, дословно: «1. Автокалибратор - полностью удалить из бекмони.»
 
         void checkBox2_Click(object sender, EventArgs e)
         {

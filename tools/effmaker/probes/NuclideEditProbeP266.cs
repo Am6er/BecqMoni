@@ -95,43 +95,12 @@ namespace BecquerelMonitor.Probes
 
             form.Dispose();
 
-            // То же у таблицы многоточечной калибровки прибора (`DeviceConfigForm.table2`,
-            // колонка энергии `numberColumn1`: Minimum −10000, Maximum по умолчанию) — НЕ файл
-            // полосы П266, только замер для распорядителя (`--device`).
+            // Плечо `--device` (таблица многоточечной калибровки прибора `DeviceConfigForm.table2`)
+            // СНЯТО (`AMBER280`, 29.10.2026): таблицы больше нет — Amber, дословно: «Во вкладке
+            // убрать функциональность калибровки и оставить только данные».
             if (Environment.GetCommandLineArgs().Length > 1 && Environment.GetCommandLineArgs()[1] == "--device")
             {
-                DeviceType.InitializeDeviceTypes();
-                typeof(ThermometerType).GetMethod("InitializeThermometerTypes", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)?.Invoke(null, null);
-                var dev = new DeviceConfigForm();
-                Type dt = typeof(DeviceConfigForm);
-                var points = (System.Collections.Generic.List<CalibrationPoint>)dt.GetField("calibrationPoints", any).GetValue(dev);
-                points.Clear();
-                points.Add(new CalibrationPoint(120, 59.54m, 0));
-                points.Add(new CalibrationPoint(1300, 661.66m, 0));
-                dt.GetMethod("ShowCalibrationPoints", any).Invoke(dev, null);
-                var t2 = (XPTable.Models.Table)dt.GetField("table2", any).GetValue(dev);
-                dt.GetMethod("EnableForm", any).Invoke(dev, null);
-                IntPtr dh = dev.Handle;
-                IntPtr th2 = t2.Handle;
-                for (int i = 0; i < 2; i++)
-                {
-                    decimal before = points[i].Energy;
-                    t2.EditCell(i, 2);
-                    Console.WriteLine("    редактор открыт: {0}", t2.IsEditing);
-                    t2.StopEditing();
-                    decimal after = points[i].Energy;
-                    bool ok = after == before;
-                    if (!ok) bad++;
-                    Console.WriteLine("  калибровка прибора, точка {0}: энергия {1} — было {2}, после открытия и закрытия без ввода {3}",
-                                      i + 1, ok ? "ок" : "!!", before.ToString(CultureInfo.InvariantCulture), after.ToString(CultureInfo.InvariantCulture));
-                }
-
-                Typed(t2, 0, 2, "1173.228");
-                bool typedOk = points[0].Energy == 1173.228m;
-                if (!typedOk) bad++;
-                Console.WriteLine("  калибровка прибора, точка 1: вписано 1173.228 {0} → в точке {1}", typedOk ? "ок" : "!!",
-                                  points[0].Energy.ToString(CultureInfo.InvariantCulture));
-                dev.Dispose();
+                Console.WriteLine("  --device: таблицы многоточечной калибровки прибора нет (AMBER280) — плечо снято");
             }
 
             Console.WriteLine(bad == 0 ? "СОШЛОСЬ" : "НЕ СОШЛОСЬ: " + bad.ToString(CultureInfo.InvariantCulture));

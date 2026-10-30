@@ -1753,15 +1753,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Energy calibration is done..
-        /// </summary>
-        public static string MSGCalibrationDone {
-            get {
-                return ResourceManager.GetString("MSGCalibrationDone", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Clear spectrum?.
         /// </summary>
         public static string MSGClearSpectrum {
@@ -1903,15 +1894,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Pick up calibration point from spectrum chart..
-        /// </summary>
-        public static string MSGPickUpCalibrationPoint {
-            get {
-                return ResourceManager.GetString("MSGPickUpCalibrationPoint", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Pick up channel #1 from spectrum chart..
         /// </summary>
         public static string MSGPickUpChannel1 {
@@ -2023,6 +2005,105 @@ namespace BecquerelMonitor.Properties {
         public static string MSGEnergyShort {
             get {
                 return ResourceManager.GetString("MSGEnergyShort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   (`AMBER270`) κ not fitted: the full-spectrum analysis does not use a tract curvature (its light map is not linear)
+        /// </summary>
+        public static string MSGTractCurvatureNotUsed {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureNotUsed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   (`AMBER270`) κ not fitted: the crystal material is not named (no geometry in the efficiency curve and no “Crystal Material” in the device)
+        /// </summary>
+        public static string MSGTractCurvatureNoMaterial {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureNoMaterial", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   (`AMBER270`) κ not fitted: no photon light curve for “{0}”
+        /// </summary>
+        public static string MSGTractCurvatureNoCurve {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureNoCurve", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   (`AMBER270`) κ not fitted: at least 3 energy lines are needed (there are {0})
+        /// </summary>
+        public static string MSGTractCurvatureFewLines {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureFewLines", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   (`AMBER270`) κ not fitted: the light-to-channel fit has no solution
+        /// </summary>
+        public static string MSGTractCurvatureFailed {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   (`AMBER270`) κ not fitted: an energy line at {0} keV or above is needed (the highest is {1} keV); the spectrum κ is unchanged
+        /// </summary>
+        public static string MSGTractCurvatureNoHighLine {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureNoHighLine", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   (`AMBER270`) peak centre not measured on their own spectrum for {0} of {1}: row channel taken
+        /// </summary>
+        public static string MSGTractCurvatureRowChannels {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureRowChannels", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   (`AMBER270`) κ = {0} 1/MeV ({1}, {2} lines)
+        /// </summary>
+        public static string MSGTractCurvatureFitted {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureFitted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   (`AMBER270`) fitted: {0}, {1} lines
+        /// </summary>
+        public static string MSGTractCurvatureFittedNote {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureFittedNote", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   (`AMBER270`) own value of the spectrum
+        /// </summary>
+        public static string MSGTractCurvatureOwn {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureOwn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   (`AMBER270`) value of the device
+        /// </summary>
+        public static string MSGTractCurvatureDevice {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureDevice", resourceCulture);
             }
         }
         /// <summary>
@@ -3943,6 +4024,15 @@ namespace BecquerelMonitor.Properties {
         public static string GeometryEditorSourcePoint {
             get {
                 return ResourceManager.GetString("GeometryEditorSourcePoint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   (`AMBER274`) Подпись строки капсулы точечного источника в редакторе геометрии.
+        /// </summary>
+        public static string GeometryEditorSourceCapsule {
+            get {
+                return ResourceManager.GetString("GeometryEditorSourceCapsule", resourceCulture);
             }
         }
 

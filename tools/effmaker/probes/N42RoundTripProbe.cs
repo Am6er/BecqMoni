@@ -1240,7 +1240,7 @@ namespace N42RoundTripProbe
             v.Add("родная из файла        = " + (rd.FileEfficiency == null ? "(нет)" : "«" + Nz(rd.FileEfficiency.Name) + "»"));
             v.Add("примета детектора      = " + Nz(rd.DetectorFeature));
             v.Add("найденных пиков        = " + Peaks(rd.DetectedPeaks));
-            v.Add("пиков калибровки       = " + Peaks(rd.CalibrationPeaks));
+            v.Add("пиков калибровки       = " + PeaksCal(rd));
             v.Add("точек калибровки       = " + (rd.CalibrationPoints == null ? "(нет)"
                     : rd.CalibrationPoints.Count.ToString(CultureInfo.InvariantCulture)
                       + (rd.CalibrationPoints.Count == 0 ? "" : ", первая на канале "
@@ -1265,6 +1265,31 @@ namespace N42RoundTripProbe
         }
 
         /// <summary>Длина списка, −1 у отсутствующего: null и пустой список — разные состояния.</summary>
+        // (`AMBER280`, 29.10.2026) `ResultData.CalibrationPeaks` (пики стабилизатора) снят вместе
+        // с автокалибратором. Плечи `A260` мерят его отражением: у сборки без списка он «снят»,
+        // посадка и сброс судятся по двум оставшимся спискам; у прежней сборки — как прежде.
+        static readonly System.Reflection.PropertyInfo CalPeaksProp = typeof(ResultData).GetProperty("CalibrationPeaks");
+
+        static List<Peak> CalPeaksOf(ResultData r)
+        {
+            return CalPeaksProp == null || r == null ? null : (List<Peak>)CalPeaksProp.GetValue(r, null);
+        }
+
+        static void SeedCalPeaks(ResultData r, List<Peak> v)
+        {
+            if (CalPeaksProp != null) CalPeaksProp.SetValue(r, v, null);
+        }
+
+        static string CntSCal(ResultData r)
+        {
+            return CalPeaksProp == null ? "(снят)" : CntS(CalPeaksOf(r));
+        }
+
+        static string PeaksCal(ResultData r)
+        {
+            return CalPeaksProp == null ? "(снят, AMBER280)" : Peaks(CalPeaksOf(r));
+        }
+
         static int Cnt(System.Collections.ICollection c)
         {
             return c == null ? -1 : c.Count;
@@ -1311,13 +1336,13 @@ namespace N42RoundTripProbe
             //   (1024) нет вовсе. Пустые списки сброс НЕ МЕРЯЛИ: ноль равен
             //   нулю и до, и после, и «ОСТАЛОСЬ» ничего не значило бы.
             rd.DetectedPeaks = new List<Peak> { new Peak { Channel = 5000, Energy = 1460.8, SNR = 42.0 } };
-            rd.CalibrationPeaks = new List<Peak> { new Peak { Channel = 6000, Energy = 2614.5, SNR = 17.0 } };
+            SeedCalPeaks(rd, new List<Peak> { new Peak { Channel = 6000, Energy = 2614.5, SNR = 17.0 } });
             rd.CalibrationPoints = new List<CalibrationPoint> { new CalibrationPoint(5000, 1460.8m, 123) };
             // ⛔ Посадка ПРОВЕРЯЕТСЯ (полоса F74): не сядь она, «после сброса
             //   пусто» значило бы «нечего было снимать», и плечо подтвердило бы
             //   правку, которой нет. Три числа берутся здесь и печатаются ниже
             //   как «посажено».
-            int seedDet = Cnt(rd.DetectedPeaks), seedCal = Cnt(rd.CalibrationPeaks), seedPt = Cnt(rd.CalibrationPoints);
+            int seedDet = Cnt(rd.DetectedPeaks), seedCal = Cnt(CalPeaksOf(rd)), seedPt = Cnt(rd.CalibrationPoints);
             string seedRefName = rd.DeviceConfigReference == null ? null : rd.DeviceConfigReference.Name;
             string seedRefGuid = rd.DeviceConfigReference == null ? null : rd.DeviceConfigReference.Guid;
             string seedEff = rd.Efficiency == null ? null : rd.Efficiency.Name;
@@ -1393,7 +1418,7 @@ namespace N42RoundTripProbe
             Console.WriteLine("    найденных пиков   : " + seedDet.ToString(CultureInfo.InvariantCulture)
                               + " -> " + CntS(after.DetectedPeaks));
             Console.WriteLine("    пиков калибровки  : " + seedCal.ToString(CultureInfo.InvariantCulture)
-                              + " -> " + CntS(after.CalibrationPeaks));
+                              + " -> " + CntSCal(after));
             Console.WriteLine("    точек калибровки  : " + seedPt.ToString(CultureInfo.InvariantCulture)
                               + " -> " + CntS(after.CalibrationPoints));
             Console.WriteLine("  `A260` ОСТАТОК — ОБЯЗАНО ОСТАТЬСЯ (решение Amber «оставить как есть»):");
@@ -1414,7 +1439,7 @@ namespace N42RoundTripProbe
             List<string> fail = new List<string>();
             if (trouble != null) fail.Add(trouble);
             // Посадка примет — сначала: без неё плечо не мерит вовсе.
-            if (seedDet != 1 || seedCal != 1 || seedPt != 1)
+            if (seedDet != 1 || (CalPeaksProp != null && seedCal != 1) || seedPt != 1)
                 fail.Add("приметы НЕ СЕЛИ (пиков " + seedDet + ", пиков калибровки " + seedCal
                          + ", точек " + seedPt + ") — плечо не мерит");
             if (string.IsNullOrEmpty(seedFeature) || seedEff == null || seedFileEff == null)
@@ -1424,11 +1449,11 @@ namespace N42RoundTripProbe
             {
                 // `A260`, остаток: три списка обязаны стать ПУСТЫМИ — именно
                 //   пустыми, а не null: к ним приводят без проверки и
-                //   `PeakStabilizer`, и `DCEnergyCalibrationView`.
+                //   вид калибровки (прежде и `PeakStabilizer`, снятый `AMBER280`).
                 if (Cnt(after.DetectedPeaks) != 0)
                     fail.Add("найденные пики НЕ сняты: " + CntS(after.DetectedPeaks));
-                if (Cnt(after.CalibrationPeaks) != 0)
-                    fail.Add("пики калибровки НЕ сняты: " + CntS(after.CalibrationPeaks));
+                if ((CalPeaksProp != null && Cnt(CalPeaksOf(after)) != 0))
+                    fail.Add("пики калибровки НЕ сняты: " + CntSCal(after));
                 if (Cnt(after.CalibrationPoints) != 0)
                     fail.Add("точки калибровки НЕ сняты: " + CntS(after.CalibrationPoints));
                 // Контроль на ГРАНИЦЫ решения: сверх названного не снято ничего.
@@ -1456,10 +1481,10 @@ namespace N42RoundTripProbe
                 if (curveVoices != 0) fail.Add("голосов «кривой нет» " + curveVoices + ", ожидалось 0");
                 // Импорт без сброса не трогает и пиков с точками — по каждому
                 //   полю отдельно, а не одним счётом сдвинутых полей.
-                if (Cnt(after.DetectedPeaks) != seedDet || Cnt(after.CalibrationPeaks) != seedCal
+                if (Cnt(after.DetectedPeaks) != seedDet || Cnt(CalPeaksOf(after)) != seedCal
                         || Cnt(after.CalibrationPoints) != seedPt)
                     fail.Add("пики или точки сдвинулись (" + CntS(after.DetectedPeaks) + "/"
-                             + CntS(after.CalibrationPeaks) + "/" + CntS(after.CalibrationPoints)
+                             + CntSCal(after) + "/" + CntS(after.CalibrationPoints)
                              + "), хотя сброса быть не должно");
             }
             // Четыре поля, которые решение Amber велело ОСТАВИТЬ, — одним словом
@@ -1476,7 +1501,7 @@ namespace N42RoundTripProbe
                            + ", голосов «кривой нет» " + curveVoices.ToString(CultureInfo.InvariantCulture)
                            + ", полей сдвинулось " + wiped.ToString(CultureInfo.InvariantCulture)
                            + ", пики/пики калибровки/точки " + CntS(after.DetectedPeaks) + "/"
-                           + CntS(after.CalibrationPeaks) + "/" + CntS(after.CalibrationPoints)
+                           + CntSCal(after) + "/" + CntS(after.CalibrationPoints)
                            + " (посажено " + seedDet.ToString(CultureInfo.InvariantCulture) + "/"
                            + seedCal.ToString(CultureInfo.InvariantCulture) + "/"
                            + seedPt.ToString(CultureInfo.InvariantCulture) + ")"
@@ -1542,9 +1567,9 @@ namespace N42RoundTripProbe
             rd.Efficiency = new EfficiencyConfigData { Name = "F71-кривая эффективности", Guid = "f71-eff-guid" };
             rd.FileEfficiency = rd.Efficiency;
             rd.DetectedPeaks = new List<Peak> { new Peak { Channel = 5000, Energy = 1460.8, SNR = 42.0 } };
-            rd.CalibrationPeaks = new List<Peak> { new Peak { Channel = 6000, Energy = 2614.5, SNR = 17.0 } };
+            SeedCalPeaks(rd, new List<Peak> { new Peak { Channel = 6000, Energy = 2614.5, SNR = 17.0 } });
             rd.CalibrationPoints = new List<CalibrationPoint> { new CalibrationPoint(5000, 1460.8m, 123) };
-            int seedDet = Cnt(rd.DetectedPeaks), seedCal = Cnt(rd.CalibrationPeaks), seedPt = Cnt(rd.CalibrationPoints);
+            int seedDet = Cnt(rd.DetectedPeaks), seedCal = Cnt(CalPeaksOf(rd)), seedPt = Cnt(rd.CalibrationPoints);
             string seedRefName = rd.DeviceConfigReference == null ? null : rd.DeviceConfigReference.Name;
             string seedEff = rd.Efficiency == null ? null : rd.Efficiency.Name;
             string seedFeature = rd.DetectorFeature;
@@ -1606,7 +1631,7 @@ namespace N42RoundTripProbe
                               + seedDet.ToString(CultureInfo.InvariantCulture) + "/"
                               + seedCal.ToString(CultureInfo.InvariantCulture) + "/"
                               + seedPt.ToString(CultureInfo.InvariantCulture) + " -> после "
-                              + CntS(after.DetectedPeaks) + "/" + CntS(after.CalibrationPeaks) + "/"
+                              + CntS(after.DetectedPeaks) + "/" + CntSCal(after) + "/"
                               + CntS(after.CalibrationPoints)
                               + ";  ОБЯЗАНО ОСТАТЬСЯ: ссылка «"
                               + (after.DeviceConfigReference == null ? "(нет)" : Nz(after.DeviceConfigReference.Name))
@@ -1614,7 +1639,7 @@ namespace N42RoundTripProbe
                               + "», примета «" + Nz(after.DetectorFeature) + "»");
             List<string> fail = new List<string>();
             if (trouble != null) fail.Add(trouble);
-            if (seedDet != 1 || seedCal != 1 || seedPt != 1)
+            if (seedDet != 1 || (CalPeaksProp != null && seedCal != 1) || seedPt != 1)
                 fail.Add("приметы НЕ СЕЛИ (" + seedDet + "/" + seedCal + "/" + seedPt + ") — плечо не мерит");
             if (emptyConfig)
             {
@@ -1624,7 +1649,7 @@ namespace N42RoundTripProbe
                 if (curveVoices != 1) fail.Add("голосов «кривой нет» " + curveVoices + ", ожидался ровно 1");
                 // `A260`, остаток: снимаются пики и точки — и только они.
                 if (Cnt(after.DetectedPeaks) != 0) fail.Add("найденные пики НЕ сняты: " + CntS(after.DetectedPeaks));
-                if (Cnt(after.CalibrationPeaks) != 0) fail.Add("пики калибровки НЕ сняты: " + CntS(after.CalibrationPeaks));
+                if ((CalPeaksProp != null && Cnt(CalPeaksOf(after)) != 0)) fail.Add("пики калибровки НЕ сняты: " + CntSCal(after));
                 if (Cnt(after.CalibrationPoints) != 0) fail.Add("точки калибровки НЕ сняты: " + CntS(after.CalibrationPoints));
                 if (after.DeviceConfigReference == null || after.DeviceConfigReference.Name != seedRefName)
                     fail.Add("ссылка на прибор СДВИНУЛАСЬ, а Amber велела оставить её как есть");
@@ -1638,7 +1663,7 @@ namespace N42RoundTripProbe
                 if (curveGone) fail.Add("кривая снята, хотя сброса быть не должно");
                 if (wiped != 0) fail.Add("опись сдвинулась в " + wiped + " полях, хотя сброса быть не должно");
                 if (curveVoices != 0) fail.Add("голосов «кривой нет» " + curveVoices + ", ожидалось 0");
-                if (Cnt(after.DetectedPeaks) != seedDet || Cnt(after.CalibrationPeaks) != seedCal
+                if (Cnt(after.DetectedPeaks) != seedDet || Cnt(CalPeaksOf(after)) != seedCal
                         || Cnt(after.CalibrationPoints) != seedPt)
                     fail.Add("пики или точки сдвинулись, хотя сброса быть не должно");
             }
@@ -1647,7 +1672,7 @@ namespace N42RoundTripProbe
                            + ", голосов «кривой нет» " + curveVoices.ToString(CultureInfo.InvariantCulture)
                            + ", полей сдвинулось " + wiped.ToString(CultureInfo.InvariantCulture)
                            + ", пики/пики калибровки/точки " + CntS(after.DetectedPeaks) + "/"
-                           + CntS(after.CalibrationPeaks) + "/" + CntS(after.CalibrationPoints)
+                           + CntSCal(after) + "/" + CntS(after.CalibrationPoints)
                            + (ok ? " — СОШЛОСЬ" : " — НЕ СОШЛОСЬ: " + string.Join("; ", fail.ToArray()));
             Console.WriteLine("  ИТОГ: " + total);
             Console.WriteLine();

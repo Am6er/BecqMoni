@@ -127,9 +127,6 @@
   <data name="ConfirmationDialogTitle" xml:space="preserve">
     <value>Confirmation</value>
   </data>
-  <data name="MSGCalibrationDone" xml:space="preserve">
-    <value>Energy calibration is done.</value>
-  </data>
   <data name="CsvFileFilter" xml:space="preserve">
     <value>CSV Files (*.csv)|*.csv|All Files (*.*)|*.*</value>
   </data>
@@ -8156,6 +8153,39 @@ http://xptable.sourceforge.net/</value>
   <data name="MSGEnergyShort" xml:space="preserve">
     <value>Energy</value>
   </data>
+  <data name="MSGTractCurvatureNotUsed" xml:space="preserve">
+    <value>κ not fitted: the full-spectrum analysis does not use a tract curvature (its light map is not linear)</value>
+  </data>
+  <data name="MSGTractCurvatureNoMaterial" xml:space="preserve">
+    <value>κ not fitted: the crystal material is not named (no geometry in the efficiency curve and no “Crystal Material” in the device)</value>
+  </data>
+  <data name="MSGTractCurvatureNoCurve" xml:space="preserve">
+    <value>κ not fitted: no photon light curve for “{0}”</value>
+  </data>
+  <data name="MSGTractCurvatureFewLines" xml:space="preserve">
+    <value>κ not fitted: at least 3 energy lines are needed (there are {0})</value>
+  </data>
+  <data name="MSGTractCurvatureFailed" xml:space="preserve">
+    <value>κ not fitted: the light-to-channel fit has no solution</value>
+  </data>
+  <data name="MSGTractCurvatureNoHighLine" xml:space="preserve">
+    <value>κ not fitted: an energy line at {0} keV or above is needed (the highest is {1} keV); the spectrum κ is unchanged</value>
+  </data>
+  <data name="MSGTractCurvatureRowChannels" xml:space="preserve">
+    <value>peak centre not measured on their own spectrum for {0} of {1}: row channel taken</value>
+  </data>
+  <data name="MSGTractCurvatureFitted" xml:space="preserve">
+    <value>κ = {0} 1/MeV ({1}, {2} lines)</value>
+  </data>
+  <data name="MSGTractCurvatureFittedNote" xml:space="preserve">
+    <value>fitted: {0}, {1} lines</value>
+  </data>
+  <data name="MSGTractCurvatureOwn" xml:space="preserve">
+    <value>own value of the spectrum</value>
+  </data>
+  <data name="MSGTractCurvatureDevice" xml:space="preserve">
+    <value>value of the device</value>
+  </data>
   <data name="BG" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         Qk1OAQAAAAAAAHYAAAAoAAAAEgAAABIAAAABAAQAAAAAAAAAAAAAAAAAAAAAABAAAAAQAAAAAAAA/wAA
@@ -8331,9 +8361,6 @@ It is probably open in another program or write-protected.</value>
   </data>
   <data name="ERRNotSupportedWavFormat" xml:space="preserve">
     <value>Specified WAV format is not supported by the audio device.</value>
-  </data>
-  <data name="MSGPickUpCalibrationPoint" xml:space="preserve">
-    <value>Pick up calibration point from spectrum chart.</value>
   </data>
   <data name="NoSmooth" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
@@ -42582,6 +42609,9 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="GeometryEditorSourcePoint" xml:space="preserve">
     <value>Point</value>
+  </data>
+  <data name="GeometryEditorSourceCapsule" xml:space="preserve">
+    <value>Source capsule film, mm (0 = bare point)</value>
   </data>
   <data name="GeometryEditorSourceCylinder" xml:space="preserve">
     <value>Cylinder</value>

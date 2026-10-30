@@ -127,9 +127,6 @@
   <data name="ConfirmationDialogTitle" xml:space="preserve">
     <value>Подтверждение</value>
   </data>
-  <data name="MSGCalibrationDone" xml:space="preserve">
-    <value>Калибровка по энергии выполнена.</value>
-  </data>
   <data name="CsvFileFilter" xml:space="preserve">
     <value>Файлы CSV (*.csv)|*.csv|Все файлы (*.*)|*.*</value>
   </data>
@@ -301,6 +298,39 @@
   <data name="MSGEnergyShort" xml:space="preserve">
     <value>Энергия</value>
   </data>
+  <data name="MSGTractCurvatureNotUsed" xml:space="preserve">
+    <value>κ не подогнана: разбор FSA кривизну тракта не применяет (карта света не прямая)</value>
+  </data>
+  <data name="MSGTractCurvatureNoMaterial" xml:space="preserve">
+    <value>κ не подогнана: вещество кристалла не названо (нет геометрии у кривой эффективности и «Вещества кристалла» у прибора)</value>
+  </data>
+  <data name="MSGTractCurvatureNoCurve" xml:space="preserve">
+    <value>κ не подогнана: для вещества «{0}» нет фотонной кривой света</value>
+  </data>
+  <data name="MSGTractCurvatureFewLines" xml:space="preserve">
+    <value>κ не подогнана: нужно не меньше трёх линий энергии (есть {0})</value>
+  </data>
+  <data name="MSGTractCurvatureFailed" xml:space="preserve">
+    <value>κ не подогнана: подгонка «свет → канал» не сошлась</value>
+  </data>
+  <data name="MSGTractCurvatureNoHighLine" xml:space="preserve">
+    <value>κ не подогнана: нужна линия энергии от {0} кэВ (верхняя — {1} кэВ); κ спектра прежняя</value>
+  </data>
+  <data name="MSGTractCurvatureRowChannels" xml:space="preserve">
+    <value>у {0} из {1} центр пика по их спектру не измерен: взят канал строки</value>
+  </data>
+  <data name="MSGTractCurvatureFitted" xml:space="preserve">
+    <value>κ = {0} 1/МэВ ({1}, линий: {2})</value>
+  </data>
+  <data name="MSGTractCurvatureFittedNote" xml:space="preserve">
+    <value>подогнана: {0}, линий: {1}</value>
+  </data>
+  <data name="MSGTractCurvatureOwn" xml:space="preserve">
+    <value>своя у спектра</value>
+  </data>
+  <data name="MSGTractCurvatureDevice" xml:space="preserve">
+    <value>значение прибора</value>
+  </data>
   <data name="ERRInputInteger" xml:space="preserve">
     <value>Введите целое число.</value>
   </data>
@@ -326,9 +356,6 @@
   </data>
   <data name="ERRNotSupportedWavFormat" xml:space="preserve">
     <value>Выбранный формат WAV не поддерживается аудио устройством.</value>
-  </data>
-  <data name="MSGPickUpCalibrationPoint" xml:space="preserve">
-    <value>Выберите точку калибровки из спектра.</value>
   </data>
   <data name="ThermometerTypeNone" xml:space="preserve">
     <value>Нет</value>
@@ -1229,6 +1256,9 @@
   </data>
   <data name="GeometryEditorSourcePoint" xml:space="preserve">
     <value>Точечный</value>
+  </data>
+  <data name="GeometryEditorSourceCapsule" xml:space="preserve">
+    <value>Плёнка капсулы источника, мм (0 — голая точка)</value>
   </data>
   <data name="GeometryEditorSourceCylinder" xml:space="preserve">
     <value>Цилиндр</value>

@@ -253,63 +253,6 @@
   <data name="tabPage2.Text" xml:space="preserve">
     <value>Калибровка энергии</value>
   </data>
-  <data name="button10.Text" xml:space="preserve">
-    <value>Новый</value>
-  </data>
-  <data name="button2.Text" xml:space="preserve">
-    <value>Удалить</value>
-  </data>
-  <data name="table3.NoItemsText" xml:space="preserve">
-    <value>Нет настроек</value>
-  </data>
-  <data name="textColumn4.Text" xml:space="preserve">
-    <value>Нуклид</value>
-  </data>
-  <data name="numberColumn3.Text" xml:space="preserve">
-    <value>Энергия</value>
-  </data>
-  <data name="numberColumn4.Text" xml:space="preserve">
-    <value>Ошибка%</value>
-  </data>
-  <data name="label19.Size" type="System.Drawing.Size, System.Drawing">
-    <value>153, 13</value>
-  </data>
-  <data name="label19.Text" xml:space="preserve">
-    <value>Настройки автокалибратора</value>
-  </data>
-  <data name="label9.Size" type="System.Drawing.Size, System.Drawing">
-    <value>147, 13</value>
-  </data>
-  <data name="label9.Text" xml:space="preserve">
-    <value>Многоточечная калибровка</value>
-  </data>
-  <data name="table2.NoItemsText" xml:space="preserve">
-    <value>Нет точек калибровки</value>
-  </data>
-  <data name="numberColumn2.Text" xml:space="preserve">
-    <value>Канал</value>
-  </data>
-  <data name="numberColumn1.Text" xml:space="preserve">
-    <value>Энергия</value>
-  </data>
-  <data name="button9.Text" xml:space="preserve">
-    <value>Удалить</value>
-  </data>
-  <data name="button8.Text" xml:space="preserve">
-    <value>Выбрать канал</value>
-  </data>
-  <data name="button1.Text" xml:space="preserve">
-    <value>Выполнить калибровку</value>
-  </data>
-  <data name="button11.Text" xml:space="preserve">
-    <value>Отмена</value>
-  </data>
-  <data name="label36.Size" type="System.Drawing.Size, System.Drawing">
-    <value>149, 13</value>
-  </data>
-  <data name="label36.Text" xml:space="preserve">
-    <value>Выберите канал из спектра</value>
-  </data>
   <data name="label43.Size" type="System.Drawing.Size, System.Drawing">
     <value>57, 13</value>
   </data>
@@ -340,11 +283,8 @@
   <data name="label7.Text" xml:space="preserve">
     <value>1 коэф.(d)</value>
   </data>
-  <data name="label8.Size" type="System.Drawing.Size, System.Drawing">
-    <value>405, 13</value>
-  </data>
   <data name="label8.Text" xml:space="preserve">
-    <value>Выберите параметры так, чтобы пики соответствовали известным энергиям.</value>
+    <value>Только данные. Калибровку прибора задаёт вкладка «Калибровка» спектра (кнопка «Сохр. в конф. устр.») или чтение с устройства.</value>
   </data>
   <data name="textBox15.Text" xml:space="preserve">
     <value>Энергия[кэВ] = ax^4 + bx^3 + cx^2 + dx + e (x = номер канала)</value>
@@ -4734,9 +4674,6 @@
   </data>
   <data name="$this.Text" xml:space="preserve">
     <value>Редактировать конфигурацию устройства</value>
-  </data>
-  <data name="textColumn3.Text" xml:space="preserve">
-    <value>#</value>
   </data>
   <data name="peakTypecomboBox.Items" xml:space="preserve">
     <value>Gaussian</value>

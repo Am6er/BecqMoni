@@ -111,20 +111,10 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x17000301 RID: 769
-        // (get) Token: 0x06000B49 RID: 2889 RVA: 0x000461F0 File Offset: 0x000443F0
-        // (set) Token: 0x06000B4A RID: 2890 RVA: 0x000461F8 File Offset: 0x000443F8
-        public bool Stabilization
-        {
-            get
-            {
-                return this.stabilization;
-            }
-            set
-            {
-                this.stabilization = value;
-            }
-        }
+        // ⛔ `Stabilization` СНЯТ (`AMBER280`, 29.10.2026): галка «Автокалибровка»
+        // стабилизатора пиков удалена вместе с ним (Amber, дословно: «Автокалибратор -
+        // полностью удалить из бекмони.»). Поле не сериализовалось (`ResultData.ResultDataStatus`
+        // — `[XmlIgnore]`), файлы спектров его не несут.
 
         // Token: 0x17000302 RID: 770
         // (get) Token: 0x06000B4B RID: 2891 RVA: 0x00046204 File Offset: 0x00044404
@@ -203,9 +193,6 @@ namespace BecquerelMonitor
 
         // Token: 0x0400075F RID: 1887
         bool stopTest;
-
-        // Token: 0x04000760 RID: 1888
-        bool stabilization;
 
         // Token: 0x04000761 RID: 1889
         WaveIn waveIn;

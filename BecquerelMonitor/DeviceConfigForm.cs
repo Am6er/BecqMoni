@@ -44,13 +44,6 @@ namespace BecquerelMonitor
             this.InitializeComponent();
             // (`AMBER264`) Подсказки из дизайнера — блоком (кривизна тракта — 85 знаков).
             AppUi.WrapToolTips(this.hints, this);
-            // (П266, 14.10.2026) Колонка «Энергия» точек калибровки (table2) шла без
-            // Maximum, и XPTable брал своё умолчание 100: открыть ячейку и нажать Enter
-            // делало точку 661.66 кэВ точкой 100 кэВ, вписанное 1173.228 — тоже 100,
-            // молча. Предела по существу у энергии точки нет — тот же приём, что у
-            // редактора нуклидов (NuclideDefinitionForm). «Ошибка %» в table3 — процент,
-            // её умолчание 100 верно.
-            this.numberColumn1.Maximum = decimal.MaxValue;
             base.Icon = Resources.becqmoni;
             this.expGaussExpLeftLabelText = this.leftSkewlabel.Text;
             this.expGaussExpRightLabelText = this.rightSkewlabel.Text;
@@ -64,7 +57,6 @@ namespace BecquerelMonitor
             this.button6.Enabled = false;
             this.button5.Enabled = true;
             GlobalConfigInfo globalConfig = this.globalConfigManager.GlobalConfig;
-            this.UpdateMultipointButtonState();
             this.comboBox4.Items.Clear();
             foreach (DeviceType item in DeviceType.DeviceTypeList)
             {
@@ -114,8 +106,7 @@ namespace BecquerelMonitor
             {
                 // Actually cancel the close. A bare return let the form close anyway
                 // while skipping the cleanup below (the 50 ms AudioInputDeviceForm timer
-                // then kept poking disposed controls, and ChannelPickuped stayed
-                // subscribed).
+                // then kept poking disposed controls).
                 e.Cancel = true;
                 return;
             }
@@ -127,7 +118,6 @@ namespace BecquerelMonitor
             {
                 this.inputDeviceForm.FormClosing();
             }
-            this.ClearChannelPickupState();
             this.globalConfigManager.GlobalConfig.DeviceConfigFormWidth = base.Width;
             this.globalConfigManager.GlobalConfig.DeviceConfigFormHeight = base.Height;
             int[] array = new int[this.columnModel1.Columns.Count];
@@ -221,7 +211,7 @@ namespace BecquerelMonitor
         /// совпадает с записью менеджера, поэтому строка активной конфигурации
         /// несёт ТОТ ЖЕ объект, а не свежий клон. Прежде клон подменялся всегда,
         /// и привязанные к прежнему клону конструкторы кривой (с их счётом)
-        /// закрывались вместе с точками многоточечной калибровки.
+        /// закрывались (вместе с точками многоточечной калибровки, снятой `AMBER280`).
         ///
         /// false — активный объект мог разойтись с менеджером (сохранение мимо
         /// формы — панель калибровки, `UpdateModifiedConfigFile`) или ещё не клон
@@ -276,12 +266,10 @@ namespace BecquerelMonitor
                         List<string> restored = null;
                         if (!object.ReferenceEquals(this.activeDeviceConfig, deviceConfigInfo2))
                         {
-                            // Клон подменяется: точки многоточечной калибровки
-                            // уходят, как было до `AMBER184` на этом пути.
-                            // (`AMBER184`, остаток) Конструкторы кривой ТОЙ ЖЕ
-                            // конфигурации перепривязываются к новому клону, а
-                            // не закрываются; чужой (новая, копия) — закрываются.
-                            this.calibrationPoints.Clear();
+                            // Клон подменяется. (`AMBER184`, остаток) Конструкторы
+                            // кривой ТОЙ ЖЕ конфигурации перепривязываются к новому
+                            // клону, а не закрываются; чужой (новая, копия) —
+                            // закрываются.
                             this.AdoptClone(deviceConfigInfo2, deviceConfigInfo);
                             restored = this.RebindEfficiencyMakers(deviceConfigInfo2);
                         }
@@ -367,8 +355,10 @@ namespace BecquerelMonitor
         /// (<see cref="activeBaseline"/>), запись менеджера M. Поле, в котором
         /// F совпадает с B (форма его не правила), а M от B отличается (его
         /// переписали мимо формы), берётся из M. Поле, которое правила сама форма
-        /// (многоточечная калибровка, коэффициенты руками, форма пика), остаётся
-        /// её — это правка человека в этом окне. Калибровка энергии сравнивается
+        /// (калибровка, прочитанная с устройства, форма пика), остаётся её — это
+        /// правка человека в этом окне. (`AMBER280`: многоточечной калибровки и
+        /// ручного ввода коэффициентов в окне больше нет — коэффициенты только
+        /// показываются.) Калибровка энергии сравнивается
         /// с допуском: поля формы печатают коэффициенты строкой, и обратный
         /// разбор не обязан вернуть последний бит.
         /// </summary>
@@ -1017,11 +1007,9 @@ namespace BecquerelMonitor
             }
             this.numericUpDown2.Text = polynomialEnergyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
             this.numericUpDown7.Text = polynomialEnergyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
-            this.ShowCalibrationPoints();
-            this.UpdateMultipointButtonState();
-            this.tableModel3.Rows.Clear();
             this.textBox16.Text = string.Empty;
-            if (type != null && type.Name == "RadiaCode")
+            // (`AMBER280`) по Id типа, а не по имени (имя — подпись из ресурсов, `AMBER265`)
+            if (type != null && type.Id == "RadiaCode")
             {
                 RadiaCodeDeviceConfig rc_config = (RadiaCodeDeviceConfig)config.InputDeviceConfig;
                 if (rc_config.RC_EnergyCalibration != null)
@@ -1036,7 +1024,7 @@ namespace BecquerelMonitor
                     this.button14.Visible = true;
                 }
             }
-            else if (type != null && type.Name == "Obsidian")
+            else if (type != null && type.Id == "Obsidian")
             {
                 ObsidianDeviceConfig obs_config = (ObsidianDeviceConfig)config.InputDeviceConfig;
                 this.button13.Enabled = true;
@@ -1054,17 +1042,6 @@ namespace BecquerelMonitor
                 }
             }
 
-            if (config.StabilizerConfig != null)
-            {
-                foreach (TargetPeak targetPeak in config.StabilizerConfig.TargetPeaks)
-                {
-                    Row row = new Row();
-                    row.Cells.Add(new Cell(targetPeak.Nuclide));
-                    row.Cells.Add(new Cell(targetPeak.Energy));
-                    row.Cells.Add(new Cell(targetPeak.Error));
-                    this.tableModel3.Rows.Add(row);
-                }
-            }
             // ⛔ `AMBER13`, решение Amber 10.09.2026 («Убрать в коде работу с
             // этими точками. При пересохранении конфига этот рудимент
             // исчезнет. Это legacy.»): ручной таблицы точек калибровки дозы на
@@ -1268,9 +1245,9 @@ namespace BecquerelMonitor
                 //    прежде имя, файл и тип прибора были уже переписаны, когда
                 //    разбор спотыкался на времени измерения или числе каналов, —
                 //    и конфигурация, одна на всех, оставалась смесью нового со
-                //    старым. Остаток известен и НЕ закрыт здесь: ниже по методу
-                //    разбор коэффициентов калибровки стоит уже после записей и
-                //    после двух вложенных форм.
+                //    старым. (`AMBER280`) Разбора коэффициентов калибровки после
+                //    записей больше нет вовсе: поля коэффициентов только
+                //    показывают шкалу конфигурации.
                 int defaultMeasurementTime = UserNumber.ParseInt(this.doubleTextBox5.Text);
                 int numberOfChannels = UserNumber.ParseInt(this.integerTextBox1.Text);
                 double channelPitch = UserNumber.ParseDouble(this.doubleTextBox6.Text);
@@ -1323,74 +1300,41 @@ namespace BecquerelMonitor
                 // разбора здесь нет, значит и спотыкаться нечему.
                 config.CrystalMaterialName = this.CrystalMaterialFromForm();
                 this.SaveEfficiencyTab(config);
-                if (config.InputDeviceConfig is RadiaCodeDeviceConfig)
+                // (`AMBER280`) Калибровка 2-го порядка, которую пишет в прибор
+                // «Записать в устройство» (Amber, дословно: «3. Оставить калибровку 2
+                // порядка для устройств RadiaCode.»; Obsidian — «Да, как RadiaCode
+                // (Рекомендую)»): шкала конфигурации степени 2 — она сама (копией).
+                // Шкалу другой степени даёт калибровка спектра («Сохр. в конф. устр.»
+                // кладёт рядом свою квадратичную подгонку) — запись формы её не трогает.
+                // Прежде сюда же шла подгонка «Многоточечной калибровки» окна (снята).
+                if (config.InputDeviceConfig is RadiaCodeDeviceConfig rc_config)
                 {
                     PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)config.EnergyCalibration;
                     if (cal.PolynomialOrder == 2)
                     {
-                        RadiaCodeDeviceConfig rc_config = (RadiaCodeDeviceConfig)config.InputDeviceConfig;
-                        rc_config.RC_EnergyCalibration = cal;
-                    } else if (this.rc_EnergyCalibration != null)
-                    {
-                        RadiaCodeDeviceConfig rc_config = (RadiaCodeDeviceConfig)config.InputDeviceConfig;
-                        rc_config.RC_EnergyCalibration = this.rc_EnergyCalibration;
+                        rc_config.RC_EnergyCalibration = (PolynomialEnergyCalibration)cal.Clone();
                     }
                 }
-                else if (config.InputDeviceConfig is ObsidianDeviceConfig)
+                else if (config.InputDeviceConfig is ObsidianDeviceConfig obs_config)
                 {
                     PolynomialEnergyCalibration cal = (PolynomialEnergyCalibration)config.EnergyCalibration;
                     if (cal.PolynomialOrder == 2)
                     {
-                        ObsidianDeviceConfig obs_config = (ObsidianDeviceConfig)config.InputDeviceConfig;
-                        obs_config.OBS_EnergyCalibration = cal;
-                    }
-                    else if (this.rc_EnergyCalibration != null)
-                    {
-                        ObsidianDeviceConfig obs_config = (ObsidianDeviceConfig)config.InputDeviceConfig;
-                        obs_config.OBS_EnergyCalibration = this.rc_EnergyCalibration;
+                        obs_config.OBS_EnergyCalibration = (PolynomialEnergyCalibration)cal.Clone();
                     }
                 }
                 this.inputDeviceForm.SaveFormContents(config.InputDeviceConfig);
                 this.thermometerForm.SaveFormContents(config.ThermometerConfig);
-                PolynomialEnergyCalibration polynomialEnergyCalibration = (PolynomialEnergyCalibration)config.EnergyCalibration;
-                if (polynomialEnergyCalibration.PolynomialOrder >= 2)
-                {
-                    polynomialEnergyCalibration.Coefficients[2] = UserNumber.ParseDouble(this.numericUpDown1.Text);
-                }
-                if (polynomialEnergyCalibration.PolynomialOrder >= 3)
-                {
-                    polynomialEnergyCalibration.Coefficients[3] = UserNumber.ParseDouble(this.numericUpDown9.Text);
-                }
-                if (polynomialEnergyCalibration.PolynomialOrder == 4)
-                {
-                    polynomialEnergyCalibration.Coefficients[4] = UserNumber.ParseDouble(this.numericUpDown8.Text);
-                }
-                polynomialEnergyCalibration.Coefficients[1] = UserNumber.ParseDouble(this.numericUpDown2.Text);
-                polynomialEnergyCalibration.Coefficients[0] = UserNumber.ParseDouble(this.numericUpDown7.Text);
-                // Element writes bypass the property setter - drop the stale
-                // EnergyToChannel cache explicitly.
-                polynomialEnergyCalibration.InvalidateCache();
-                if (config.StabilizerConfig == null)
-                {
-                    config.StabilizerConfig = new StabilizerConfig();
-                }
-                config.StabilizerConfig.TargetPeaks = new List<TargetPeak>();
-                foreach (Row row in this.tableModel3.Rows)
-                {
-                    TargetPeak targetPeak = new TargetPeak();
-                    targetPeak.Nuclide = row.Cells[0].Text;
-                    targetPeak.Energy = (decimal)row.Cells[1].Data;
-                    targetPeak.Error = (decimal)row.Cells[2].Data;
-                    // (П316, Н19) Опора с энергией ≤ 0 не записывается: «New» кладёт
-                    // строку («», 0 кэВ), и стабилизатор (`PeakStabilizer`) нашёл бы
-                    // для неё пик в окне 0…0 кэВ и объявил найденный канал нулём
-                    // энергии (то, против чего `AMBER110`).
-                    if (targetPeak.Energy <= 0m)
-                    {
-                        continue;
-                    }
-                    config.StabilizerConfig.TargetPeaks.Add(targetPeak);
-                }
+                // ⛔ (`AMBER280`, 29.10.2026) КОЭФФИЦИЕНТЫ ШКАЛЫ ИЗ ПОЛЕЙ НЕ РАЗБИРАЮТСЯ.
+                // Вопросником Amber того же дня, дословно: коэффициенты — «Только
+                // показ». Шкалу конфигурации меняют калибровка спектра («Сохр. в
+                // конф. устр.») и «Читать с устройства» — оба пишут саму шкалу, а
+                // поля лишь показывают её. Прежде запись разбирала текст полей
+                // обратно: поле печатает double пятнадцатью знаками, и шкала,
+                // прочитанная из прибора, уходила в файл (и кнопкой «Записать в
+                // устройство» обратно в прибор) соседним double, а не своей.
+                // Опорные пики автокалибратора (`StabilizerConfig`) сняты вместе с ним
+                // (Amber: «Автокалибратор - полностью удалить из бекмони.»).
                 // ⛔ `AMBER13`/`AMBER18`: точек калибровки дозы у конфигурации
                 // больше нет вовсе — `DeviceConfigInfo.DoseRateConfig` снят
                 // целиком 12.09.2026 (решение (4) Amber 11.09.2026). Старый
@@ -1471,7 +1415,6 @@ namespace BecquerelMonitor
                 && (this.activeDeviceConfig == null || deviceConfigInfo.Guid != this.activeDeviceConfig.Guid);
             if (switching)
             {
-                this.calibrationPoints.Clear();
                 // Конструкторы кривой привязаны к прежнему клону конфигурации:
                 // вместе с ним они и уходят, иначе их «Сохранить» писало бы в
                 // объект, который больше ниоткуда не достижим. Закрываются ДО
@@ -1919,135 +1862,10 @@ namespace BecquerelMonitor
             this.SetActiveDeviceConfigDirty();
         }
 
-        void setNewCalibration(TextBox t, int order)
-        {
-            PolynomialEnergyCalibration pe = (PolynomialEnergyCalibration)this.activeDeviceConfig.EnergyCalibration;
-            try
-            {
-                double result = fromStringtoDouble(t.Text);
-
-                // ⛔ `AMBER188(д)` (полоса fixcal, 05.10.2026): та же новая шкала,
-                // что у панели калибровки энергии, — ОБЩИЙ помощник
-                // `PolynomialEnergyCalibration.WithCoefficient` (решение Amber
-                // 05.10.2026 «Подъём до введённой»: ввод x³/x⁴ у шкалы низшей
-                // степени поднимает степень до введённой, ноль в старшем
-                // понижает до старшего ненулевого). Помощник строит НОВЫЙ
-                // объект, живая шкала конфигурации до присваивания не меняется,
-                // и отказ (поле краснеет) ничего в ней не оставляет. Прежде
-                // ввод x⁴ у линейной шкалы падал `IndexOutOfRange`, «0.0» степень
-                // не понижало (сравнивался текст «0»), а правка коэффициента
-                // писалась прямо в живой объект. Годность шкалы форма судит, как
-                // и прежде, при сохранении (`ConfirmSaveDeviceConfig`, менеджер).
-                PolynomialEnergyCalibration newPe = PolynomialEnergyCalibration.WithCoefficient(pe, order, result);
-
-                // Nothing changes, leave
-                if (newPe.Equals(pe))
-                {
-                    t.ForeColor = Color.Black;
-                    return;
-                }
-
-                this.activeDeviceConfig.EnergyCalibration = newPe;
-                t.ForeColor = Color.Black;
-                this.SetActiveDeviceConfigDirty();
-            }
-            catch (Exception ex)
-            {
-                Trace.WriteLine(ex.ToString());
-                t.ForeColor = Color.Red;
-            }
-        }
-
-        void numericUpDown8_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Return)
-            {
-                setNewCalibration(this.numericUpDown8, 4);
-                e.SuppressKeyPress = true;
-            }
-            else
-            {
-                this.numericUpDown8.ForeColor = Color.Blue;
-            }
-        }
-
-        void numericUpDown8_Leave(object sender, EventArgs e)
-        {
-            setNewCalibration(this.numericUpDown8, 4);
-        }
-
-        void numericUpDown9_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Return)
-            {
-                setNewCalibration(this.numericUpDown9, 3);
-                e.SuppressKeyPress = true;
-            }
-            else
-            {
-                this.numericUpDown9.ForeColor = Color.Blue;
-            }
-        }
-
-        void numericUpDown9_Leave(object sender, EventArgs e)
-        {
-            setNewCalibration(this.numericUpDown9, 3);
-        }
-
-        void numericUpDown1_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Return)
-            {
-                setNewCalibration(this.numericUpDown1, 2);
-                e.SuppressKeyPress = true;
-            }
-            else
-            {
-                this.numericUpDown1.ForeColor = Color.Blue;
-            }
-        }
-
-        void numericUpDown1_Leave(object sender, EventArgs e)
-        {
-            setNewCalibration(this.numericUpDown1, 2);
-        }
-
-        void numericUpDown2_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Return)
-            {
-                setNewCalibration(this.numericUpDown2, 1);
-                e.SuppressKeyPress = true;
-            }
-            else
-            {
-                this.numericUpDown2.ForeColor = Color.Blue;
-            }
-        }
-
-        void numericUpDown2_Leave(object sender, EventArgs e)
-        {
-            setNewCalibration(this.numericUpDown2, 1);
-        }
-
-        void numericUpDown7_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Return)
-            {
-                setNewCalibration(this.numericUpDown7, 0);
-                e.SuppressKeyPress = true;
-            }
-            else
-            {
-                this.numericUpDown7.ForeColor = Color.Blue;
-            }
-        }
-
-        void numericUpDown7_Leave(object sender, EventArgs e)
-        {
-            setNewCalibration(this.numericUpDown7, 0);
-        }
-
+        // ⛔ (`AMBER280`, 29.10.2026) Ручной ввод коэффициентов шкалы снят: поля
+        // коэффициентов — только показ (вопросником Amber, дословно: «Только показ»).
+        // Сняты `setNewCalibration`, `fromStringtoDouble` и обработчики `KeyDown`/`Leave`
+        // пяти полей; поля в дизайнере — `ReadOnly`.
 
         void button13_Click(object sender, EventArgs e)
         {
@@ -2675,299 +2493,13 @@ namespace BecquerelMonitor
             this.SetActiveDeviceConfigDirty();
         }
 
-        // Token: 0x06000534 RID: 1332 RVA: 0x000219B4 File Offset: 0x0001FBB4
-        void button8_Click(object sender, EventArgs e)
-        {
-            MainForm mainForm = (MainForm)base.Owner;
-            DocEnergySpectrum activeDocument = mainForm.ActiveDocument;
-            if (activeDocument != null)
-            {
-                this.channelPickupProcessing = true;
-                // Remember the subscribed view - see ClearChannelPickupState.
-                this.pickupSubscribedView = activeDocument.EnergySpectrumView;
-                this.pickupSubscribedView.ChannelPickuped += this.energySpectrumView_ChannelPickuped;
-            }
-            this.UpdateMultipointButtonState();
-        }
-
-        // Token: 0x06000535 RID: 1333 RVA: 0x00021A04 File Offset: 0x0001FC04
-        void UpdateMultipointButtonState()
-        {
-            this.button1.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing && this.multipointModified);
-            this.button8.Enabled = (this.calibrationPoints.Count < 5 && !this.channelPickupProcessing);
-            this.button9.Enabled = (this.calibrationPoints.Count > 0 && !this.channelPickupProcessing);
-            this.button11.Enabled = this.channelPickupProcessing;
-            if (this.calibrationDone)
-            {
-                this.label36.Text = Resources.MSGCalibrationDone;
-                return;
-            }
-            if (this.channelPickupProcessing || this.calibrationPoints.Count < 5)
-            {
-                this.label36.Text = Resources.MSGPickUpCalibrationPoint;
-                return;
-            }
-            this.label36.Text = Resources.MSGProceedCalibration;
-        }
-
-        // Token: 0x06000536 RID: 1334 RVA: 0x00021B08 File Offset: 0x0001FD08
-        void energySpectrumView_ChannelPickuped(object sender, ChannelPickupedEventArgs e)
-        {
-            if (!this.channelPickupProcessing)
-            {
-                return;
-            }
-            decimal energy = Math.Round((decimal)this.activeDeviceConfig.EnergyCalibration.ChannelToEnergy((double)e.Channel), 2);
-            CalibrationPoint item = new CalibrationPoint(e.Channel, energy, e.Count);
-            this.calibrationPoints.Add(item);
-            this.multipointModified = true;
-            this.calibrationDone = false;
-            this.ShowCalibrationPoints();
-            this.ClearChannelPickupState();
-        }
-
-        // Token: 0x06000537 RID: 1335 RVA: 0x00021B7C File Offset: 0x0001FD7C
-        void button11_Click(object sender, EventArgs e)
-        {
-            this.ClearChannelPickupState();
-        }
-
-        // Token: 0x06000538 RID: 1336 RVA: 0x00021B84 File Offset: 0x0001FD84
-        void ClearChannelPickupState()
-        {
-            // Unsubscribe from the view we actually subscribed to, not from whatever
-            // document happens to be active now.
-            if (this.pickupSubscribedView != null)
-            {
-                this.pickupSubscribedView.ChannelPickuped -= this.energySpectrumView_ChannelPickuped;
-                this.pickupSubscribedView = null;
-            }
-            this.channelPickupProcessing = false;
-            this.UpdateMultipointButtonState();
-        }
-
-        // Token: 0x06000539 RID: 1337 RVA: 0x00021BD4 File Offset: 0x0001FDD4
-        void button9_Click(object sender, EventArgs e)
-        {
-            int num;
-            if (this.table2.SelectedItems.Length >= 1)
-            {
-                num = this.table2.SelectedItems[0].Index;
-            }
-            else
-            {
-                // `AMBER176` попутно (полоса fixcal, 05.10.2026): без выделения
-                // удалять НЕЧЕГО. Прежде здесь стоял 0, а проверка ниже была
-                // `num < 0 && num >= Count` (не выполнялась никогда), и
-                // «Удалить» без выделения молча удаляло первую точку.
-                num = -1;
-            }
-            if (num < 0 || num >= this.calibrationPoints.Count)
-            {
-                return;
-            }
-            this.calibrationPoints.RemoveAt(num);
-            this.tableModel2.Selections.Clear();
-            this.multipointModified = true;
-            this.calibrationDone = false;
-            this.ShowCalibrationPoints();
-            this.UpdateMultipointButtonState();
-        }
-
-        // Token: 0x0600053A RID: 1338 RVA: 0x00021C68 File Offset: 0x0001FE68
-        void ShowCalibrationPoints()
-        {
-            int num = 1;
-            this.table2.SuspendLayout();
-            this.tableModel2.Rows.Clear();
-            this.calibrationPoints.Sort();
-            foreach (CalibrationPoint calibrationPoint in this.calibrationPoints)
-            {
-                Row row = new Row();
-                row.Cells.Add(new Cell(num.ToString(CultureInfo.InvariantCulture)));
-                row.Cells.Add(new Cell(calibrationPoint.Channel));
-                row.Cells.Add(new Cell(calibrationPoint.Energy));
-                this.tableModel2.Rows.Add(row);
-                num++;
-            }
-            this.table2.ResumeLayout();
-        }
-
-        // Token: 0x0600053B RID: 1339 RVA: 0x00021D5C File Offset: 0x0001FF5C
-        void table2_SelectionChanged(object sender, SelectionEventArgs e)
-        {
-            this.UpdateMultipointButtonState();
-        }
-
-        // Token: 0x0600053C RID: 1340 RVA: 0x00021D64 File Offset: 0x0001FF64
-        void table2_EditingStopped(object sender, CellEditEventArgs e)
-        {
-            Cell cell = e.Cell;
-            Row row = cell.Row;
-            try
-            {
-                if (e.Column == 1)
-                {
-                    string text = ((NumberCellEditor)e.Editor).TextBox.Text;
-                    this.calibrationPoints[row.Index].Channel = (int)UserNumber.ParseDecimal(text);
-                    this.multipointModified = true;
-                    this.calibrationDone = false;
-                    this.UpdateMultipointButtonState();
-                }
-                else if (e.Column == 2)
-                {
-                    string text2 = ((NumberCellEditor)e.Editor).TextBox.Text;
-                    this.calibrationPoints[row.Index].Energy = UserNumber.ParseDecimal(text2);
-                    this.multipointModified = true;
-                    this.UpdateMultipointButtonState();
-                }
-                else if (e.Column == 4)
-                {
-                    string text2 = ((NumberCellEditor)e.Editor).TextBox.Text;
-                    this.calibrationPoints[row.Index].Energy = UserNumber.ParseDecimal(text2);
-                    this.multipointModified = true;
-                    this.calibrationDone = false;
-                    this.UpdateMultipointButtonState();
-                }
-            }
-            catch (Exception)
-            {
-                e.Cancel = true;
-            }
-        }
-
-        // Token: 0x0600053D RID: 1341 RVA: 0x00021E48 File Offset: 0x00020048
-        void button1_Click(object sender, EventArgs e)
-        {
-            PolynomialEnergyCalibration energyCalibration = new PolynomialEnergyCalibration();
-            for (int i = 0; i < energyCalibration.Coefficients.Length; i++)
-            {
-                energyCalibration.Coefficients[i] = 0.0;
-            }
-            double[] matrix;
-            // ⛔ `AMBER176` (полоса fixcal, 05.10.2026): синтетическая (0, 0)
-            // калибровки по одной точке — в ЛОКАЛЬНУЮ копию. Прежде она
-            // добавлялась в сам список точек формы и оставалась в нём.
-            List<CalibrationPoint> points = new List<CalibrationPoint>(this.calibrationPoints);
-            if (points.Count == 1)
-            {
-                CalibrationPoint zero = new CalibrationPoint(0, 0, 0);
-                points.Add(zero);
-            }
-            int deviceChannels = this.activeDeviceConfig.NumberOfChannels > 1
-                               ? this.activeDeviceConfig.NumberOfChannels : 8192;
-            try
-            {
-                // ⛔ `S42` (полоса F77, 06.09.2026): степень запрашивается прежняя,
-                //    но принимается только та, чья кривая не гнётся сверх меры за
-                //    своими опорами (`CalibrationSolver.SolveGuarded`, перенос
-                //    сторожа `bend_ok` из конвейера корпуса). Здесь это заметнее
-                //    всего в дереве: пять точек и БОЛЬШЕ означали четвёртую
-                //    степень ВСЕГДА, то есть интерполяцию через все опоры без
-                //    единой свободной степени — ровно та кривая, что проходит
-                //    через все точки и врёт между ними и за ними.
-                //    ⚠ Судить сторожу НАДО по числу каналов ПРИБОРА, а не по
-                //    умолчанию 8192: измерено на корпусе (полоса F77) — тот же
-                //    сторож, судящий 1024-канальные шкалы до канала 8191,
-                //    понижает степень у 86 спектров из 118 вместо 37, и у 65 из
-                //    них внешняя мерка становится хуже. Число каналов у формы
-                //    ЕСТЬ (`activeDeviceConfig.NumberOfChannels`) — им же судит
-                //    соседний обработчик (`:987`) и менеджер настроек при
-                //    сохранении (`DeviceConfigManager.cs:237`).
-                int usedOrder;
-                matrix = Utils.CalibrationSolver.SolveGuarded(
-                    points, points.Count >= 5 ? 4 : points.Count - 1,
-                    deviceChannels, false, out usedOrder);
-                if (matrix == null) throw new Exception("Error");
-            }
-            catch (Exception)
-            {
-                // ⛔ `A245`, полоса F44 05.09.2026. Голое модальное окно на
-                //    БЕЗОКОННОМ пути. Окно тут было всегда, а достижимым из
-                //    безоконного прогона место стало 05.09.2026, когда проба
-                //    `RestCultureProbeF28` завела литерал `"button1_Click"` и
-                //    сторож `check_headless.py` признал метод достижимым по
-                //    правилу `REFLECT_OVERRIDE`. Нажать «ОК» здесь некому:
-                //    проба, дойдя сюда, виснет насмерть до убийства процесса.
-                //    Дверь маршалит показ на поток окон сама (~~`A241`~~), а
-                //    на потоке окон вызов остаётся синхронным — в приложении
-                //    вид сообщения ПРЕЖНИЙ: `MessageBox.Show(text)` это тот же
-                //    пустой заголовок, та же единственная «ОК» и тот же
-                //    отсутствующий знак (`MessageBoxIcon.None`).
-                AppUi.Report(Resources.ERRInvalidChannelOrEnergyValues, "", MessageBoxIcon.None);
-                return;
-            }
-
-            energyCalibration.Coefficients = new double[matrix.Length];
-            energyCalibration.PolynomialOrder = matrix.Length - 1;
-            energyCalibration.Coefficients = matrix;
-
-            // ⚠ Число каналов ПРИБОРА, а не умолчание 8192 (полоса F77,
-            //   06.09.2026): по нему судит и соседний обработчик (`:987`), и
-            //   менеджер настроек при сохранении (`DeviceConfigManager.cs:237`).
-            //   Прежде форма отвергала шкалу за поведение на каналах, которых у
-            //   прибора нет.
-            if (!energyCalibration.CheckCalibration(channels: deviceChannels))
-            {
-                // ⛔ `A245`, полоса F44 05.09.2026 — то же, что соседом выше:
-                //    голое модальное окно на безоконном пути. Тот же ресурс
-                //    уже ходит через дверь с пустым заголовком в
-                //    `DocumentManager.cs:1171` и `N42/Util.cs:510` — вид
-                //    сообщения в приложении не меняется.
-                AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
-                return;
-            }
-            this.numericUpDown1.Text = "0";
-            this.numericUpDown2.Text = "0";
-            this.numericUpDown7.Text = "0";
-            this.numericUpDown8.Text = "0";
-            this.numericUpDown9.Text = "0";
-            if (energyCalibration.PolynomialOrder >= 2)
-            {
-                this.numericUpDown1.Text = energyCalibration.Coefficients[2].ToString(CultureInfo.InvariantCulture);
-            }
-            if (energyCalibration.PolynomialOrder >= 3)
-            {
-                this.numericUpDown9.Text = energyCalibration.Coefficients[3].ToString(CultureInfo.InvariantCulture);
-            }
-            if (energyCalibration.PolynomialOrder == 4)
-            {
-                this.numericUpDown8.Text = energyCalibration.Coefficients[4].ToString(CultureInfo.InvariantCulture);
-            }
-            this.numericUpDown2.Text = energyCalibration.Coefficients[1].ToString(CultureInfo.InvariantCulture);
-            this.numericUpDown7.Text = energyCalibration.Coefficients[0].ToString(CultureInfo.InvariantCulture);
-            if (!energyCalibration.CheckCalibration(channels: deviceChannels))
-            {
-                // ⛔ `A245`, полоса F44 05.09.2026. Третье голое окно того же
-                //    обработчика: проверка повторяется после того, как
-                //    коэффициенты прошли через поля ввода, и отказать может
-                //    именно она. Чинится вместе с двумя соседями — оставить
-                //    одно из трёх значило бы оставить безоконный путь висящим.
-                AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
-                return;
-            }
-            // ⛔ `AMBER176` (полоса fixcal, 05.10.2026): подогнанная шкала уходит
-            // В КОНФИГУРАЦИЮ, а не только в поля. Прежде её несли одни поля, а
-            // `SaveFormContents` переносит из полей коэффициенты лишь до степени
-            // СТАРОЙ шкалы (поля меняют модель только на `KeyDown`/`Leave`):
-            // новая конфигурация (степень 1), три точки, «Калибровать»,
-            // «Сохранить» — на диск c0, c1 от подгонки второй степени без c2.
-            // `energyCalibration` — свой объект этого обработчика, ни с кем не
-            // делится.
-            this.activeDeviceConfig.EnergyCalibration = energyCalibration;
-            if (activeDeviceConfig.InputDeviceConfig is RadiaCodeDeviceConfig && energyCalibration.PolynomialOrder >= 2)
-            {
-                matrix = Utils.CalibrationSolver.Solve(points, 2);
-                if (matrix == null) throw new Exception("Error");
-                rc_EnergyCalibration = new PolynomialEnergyCalibration();
-                rc_EnergyCalibration.Coefficients = matrix;
-                rc_EnergyCalibration.PolynomialOrder = 2;
-            }
-            this.multipointModified = false;
-            this.calibrationDone = true;
-            this.UpdateMultipointButtonState();
-            this.SetActiveDeviceConfigDirty();
-        }
+        // ⛔ (`AMBER280`, 29.10.2026) «Многоточечная калибровка» вкладки снята целиком —
+        // таблица точек (`table2`), «Выбрать канал», «Удалить», «Выполнить калибровку»,
+        // «Отмена» и подписка на `EnergySpectrumView.ChannelPickuped`. Amber, консоль,
+        // дословно: «2. Во вкладке убрать функциональность калибровки и оставить только
+        // данные. Кнопки чтения калибровки и записи калибровки в устройство - оставить,
+        // это важно.» Калибруется спектр — единая вкладка «Калибровка» (`AMBER276`), в
+        // прибор — её кнопкой «Сохр. в конф. устр.».
 
         // Token: 0x0600053E RID: 1342 RVA: 0x00022254 File Offset: 0x00020454
         public void SetLowerThreshold(DeviceConfigInfo deviceConfig, double threshold)
@@ -3027,29 +2559,6 @@ namespace BecquerelMonitor
                 upperThresholdTextBox.SelectAll();
                 upperThresholdTextBox.Focus();
             }
-        }
-
-        // Token: 0x06000540 RID: 1344 RVA: 0x0002244C File Offset: 0x0002064C
-        public void ShowStabilizerForm(DeviceConfigInfo deviceConfig)
-        {
-            bool flag = false;
-            foreach (object obj in this.tableModel1.Rows)
-            {
-                Row row = (Row)obj;
-                DeviceConfigInfo deviceConfigInfo = (DeviceConfigInfo)row.Tag;
-                if (deviceConfig.Guid == deviceConfigInfo.Guid)
-                {
-                    flag = true;
-                    this.tableModel1.Selections.Clear();
-                    this.tableModel1.Selections.AddCell(row.Index, 0);
-                    break;
-                }
-            }
-            if (!flag)
-            {
-                return;
-            }
-            this.tabControl1.SelectedTab = this.tabPage2;
         }
 
         // Token: 0x06000541 RID: 1345 RVA: 0x00022514 File Offset: 0x00020714
@@ -3187,27 +2696,6 @@ namespace BecquerelMonitor
             this.SetActiveDeviceConfigDirty();
         }
 
-        double fromStringtoDouble(string str)
-        {
-            double result;
-            if (double.TryParse(str.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out result))
-            {
-                if (result > -200.0 && result < 200.0)
-                {
-                    return result;
-                }
-                else
-                {
-                    throw new Exception();
-                }
-            }
-            //System.Windows.Forms.MessageBox.Show("Error while converting text to double: " + str);
-            throw new Exception();
-        }
-
         void ShowOwnedMessageBox(string message)
         {
             if (this.IsDisposed)
@@ -3225,58 +2713,9 @@ namespace BecquerelMonitor
             MessageBox.Show(this, message);
         }
 
-        // Token: 0x0600054A RID: 1354 RVA: 0x000227F0 File Offset: 0x000209F0
-        void button10_Click(object sender, EventArgs e)
-        {
-            Row row = new Row();
-            row.Cells.Add(new Cell(""));
-            row.Cells.Add(new Cell(0m));
-            row.Cells.Add(new Cell(10m));
-            this.tableModel3.Rows.Add(row);
-            this.SetActiveDeviceConfigDirty();
-        }
-
-        // Token: 0x0600054B RID: 1355 RVA: 0x00022870 File Offset: 0x00020A70
-        void button2_Click(object sender, EventArgs e)
-        {
-            if (this.table3.SelectedItems.Length <= 0)
-            {
-                return;
-            }
-            Row row = this.table3.SelectedItems[0];
-            this.tableModel3.Rows.RemoveAt(row.Index);
-            this.SetActiveDeviceConfigDirty();
-        }
-
-        // Token: 0x0600054C RID: 1356 RVA: 0x000228C4 File Offset: 0x00020AC4
-        void table3_EditingStopped(object sender, CellEditEventArgs e)
-        {
-            Cell cell = e.Cell;
-            Row row = cell.Row;
-            try
-            {
-                if (e.Column == 0)
-                {
-                    // (П316, Н19) Правка имени нуклида тоже правка: прежде «Сохранить»
-                    // не загоралось, и изменённое имя при «Закрыть» терялось молча.
-                    this.SetActiveDeviceConfigDirty();
-                }
-                else if (e.Column == 1)
-                {
-                    string text = ((NumberCellEditor)e.Editor).TextBox.Text;
-                    this.SetActiveDeviceConfigDirty();
-                }
-                else if (e.Column == 2)
-                {
-                    string text2 = ((NumberCellEditor)e.Editor).TextBox.Text;
-                    this.SetActiveDeviceConfigDirty();
-                }
-            }
-            catch (Exception)
-            {
-                e.Cancel = true;
-            }
-        }
+        // ⛔ (`AMBER280`, 29.10.2026) Панель «Настройки автокалибратора» (`table3`,
+        // «Новый», «Удалить») снята вместе со стабилизатором пиков. Amber, дословно:
+        // «1. Автокалибратор - полностью удалить из бекмони.»
 
         // ⛔ `AMBER13`, решение Amber 10.09.2026 «Снять целиком»: обработчики
         // ручной таблицы точек дозы (`table4_EditingStopped`, `button15_Click`
@@ -3316,20 +2755,6 @@ namespace BecquerelMonitor
 
         string expGaussExpRightLabelText;
 
-        // Token: 0x040002BF RID: 703
-        bool channelPickupProcessing;
-
-        EnergySpectrumView pickupSubscribedView;
-
-        // Token: 0x040002C0 RID: 704
-        bool calibrationDone;
-
-        // Token: 0x040002C1 RID: 705
-        bool multipointModified;
-
-        // Token: 0x040002C2 RID: 706
-        List<CalibrationPoint> calibrationPoints = new List<CalibrationPoint>();
-
         // Token: 0x040002C3 RID: 707
         InputDeviceForm inputDeviceForm;
 
@@ -3347,8 +2772,6 @@ namespace BecquerelMonitor
 
         // Token: 0x040002C8 RID: 712
         int selectedThermometerIndex = -1;
-
-        PolynomialEnergyCalibration rc_EnergyCalibration;
 
 
         // --- `AMBER13` (10.09.2026) и `AMBER18` (11–12.09.2026), решения Amber ---
