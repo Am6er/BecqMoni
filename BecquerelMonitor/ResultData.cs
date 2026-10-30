@@ -484,18 +484,11 @@ namespace BecquerelMonitor
             }
         }
 
-        [XmlIgnore]
-        public List<Peak> CalibrationPeaks
-        {
-            get
-            {
-                return this.calibrationPeaks;
-            }
-            set
-            {
-                this.calibrationPeaks = value;
-            }
-        }
+        // ⛔ `CalibrationPeaks` (список `Peak`) СНЯТ (`AMBER280`, 29.10.2026): его
+        // заполнял только стабилизатор пиков (`PeakStabilizer`, снят — Amber, дословно:
+        // «Автокалибратор - полностью удалить из бекмони.»), а рисовал
+        // `EnergySpectrumView.ShowCalibrationPeaks` (снят). В файл не писался
+        // (`[XmlIgnore]`). Строки калибровки спектра — <see cref="CalibrationLines"/>.
 
         [XmlIgnore]
         public List<CountRate> CountRates
@@ -902,8 +895,6 @@ namespace BecquerelMonitor
         bool tractCurvatureOwn;
 
         bool deviceConfigWiped;
-
-        List<Peak> calibrationPeaks = new List<Peak>();
 
         List<CalibrationPoint> calibrationPoints = new List<CalibrationPoint>();
 

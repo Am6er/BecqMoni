@@ -15,7 +15,8 @@
 //   B  `UserNumber.TryParseDouble/TryParseDecimal/TryParseInt` — общий разбор приложения;
 //   C  `InvariantNumericUpDown.ValidateEditText` — поле со стрелками;
 //   D  XPTable `DoubleCellEditor.ParseEditText` / `NumberCellEditor.ParseEditText` — ячейки;
-//   E  `DeviceConfigForm.fromStringtoDouble` — коэффициенты калибровки в окне прибора;
+//   E  `DeviceConfigForm.fromStringtoDouble` — СНЯТО (`AMBER280`): поля коэффициентов окна
+//      прибора стали только показом, разбора у них нет;
 //   F  `GeometryMaterialEditorForm.TryReadNumber`, `GeometryEditorPanel.TryGet` — геометрия.
 //
 // МЕРКА. «Честное прочтение» текста — запятая и точка обе как разделитель ДРОБНОЙ части
@@ -96,7 +97,6 @@ static class P320UserNumberProbe
                 ArmUserNumber(c.Key);
                 ArmUpDown(c.Key);
                 ArmCells(c.Key);
-                ArmDeviceCalibration(c.Key);
                 ArmGeometry(c.Key);
             }
             Thread.CurrentThread.CurrentCulture = system;
@@ -350,28 +350,7 @@ static class P320UserNumberProbe
         }
     }
 
-    // ---- E: коэффициенты калибровки в окне прибора ----------------------------
-
-    static void ArmDeviceCalibration(string culture)
-    {
-        object form = FormatterServices.GetUninitializedObject(typeof(DeviceConfigForm));
-        GC.SuppressFinalize(form);
-        foreach (string input in Inputs)
-        {
-            bool ok;
-            double v = 0.0;
-            try
-            {
-                v = (double)Call(form, "fromStringtoDouble", input);
-                ok = true;
-            }
-            catch (Exception)
-            {
-                ok = false;
-            }
-            Report(culture, "E DeviceConfigForm.fromStringtoDouble (DeviceConfigForm.cs:3099)", input, input, ok, v);
-        }
-    }
+    // ---- E: коэффициенты калибровки в окне прибора — снято (`AMBER280`, поля — только показ)
 
     // ---- F: геометрия ---------------------------------------------------------
 

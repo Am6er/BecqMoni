@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="label1.Text" xml:space="preserve">
-    <value>Выделите пик на спектре и введите энергию его линии: каждая строка таблицы идёт и в калибровку по энергии, и в калибровку FWHM. Серая энергия (строка от прибора или из файла прежней версии) идёт только в FWHM, пока её не введут.</value>
+    <value>Выделите пик на спектре и введите энергию его линии: строка с введённой энергией идёт и в калибровку по энергии, и в калибровку FWHM. Серая энергия (пик выделен, но энергия не введена; строка от прибора или из файла прежней версии) — только в FWHM, пока энергию не введут.</value>
   </data>
   <data name="textBox15.Text" xml:space="preserve">
     <value>Энергия[кэВ] = ax^4 + bx^3 + cx^2 + dx + e (x = номер канала)</value>
@@ -146,6 +146,15 @@
   </data>
   <data name="offsetLabel.Text" xml:space="preserve">
     <value>Смещение (e)</value>
+  </data>
+  <data name="tractCurvatureLabel.Text" xml:space="preserve">
+    <value>κ, 1/МэВ</value>
+  </data>
+  <data name="tractCurvatureLabel.ToolTip" xml:space="preserve">
+    <value>Кривизна тракта спектра, 1/МэВ: насколько тракт (ФЭУ, АЦП) отходит от прямой «свет → канал» в полноспектральном разборе, c = c0 + v·(1 + κ·L/1000). «Выполнить калибровку» подгоняет её по линиям энергии и фотонной кривой света вещества кристалла — только если среди линий есть линия от 2000 кэВ, канал линии — центр масс её пика; её можно и вписать. «Сброс» возвращает значение прибора, «Сохр. в конф. устр.» пишет её в прибор.</value>
+  </data>
+  <data name="tractCurvatureTextBox.ToolTip" xml:space="preserve">
+    <value>Кривизна тракта спектра, 1/МэВ: насколько тракт (ФЭУ, АЦП) отходит от прямой «свет → канал» в полноспектральном разборе, c = c0 + v·(1 + κ·L/1000). «Выполнить калибровку» подгоняет её по линиям энергии и фотонной кривой света вещества кристалла — только если среди линий есть линия от 2000 кэВ, канал линии — центр масс её пика; её можно и вписать. «Сброс» возвращает значение прибора, «Сохр. в конф. устр.» пишет её в прибор.</value>
   </data>
   <data name="coeff1Label.Size" type="System.Drawing.Size, System.Drawing">
     <value>57, 13</value>
@@ -278,24 +287,6 @@
   </data>
   <data name="peakShapeTypeLabel.Text" xml:space="preserve">
     <value>Тип пика</value>
-  </data>
-  <data name="checkBox1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>110, 17</value>
-  </data>
-  <data name="checkBox1.Text" xml:space="preserve">
-    <value>Автокалибровка</value>
-  </data>
-  <data name="checkBox1.ToolTip" xml:space="preserve">
-    <value>Вкл/Выкл Автокалибратор</value>
-  </data>
-  <data name="button5.Location" type="System.Drawing.Point, System.Drawing">
-    <value>125, 637</value>
-  </data>
-  <data name="button5.Text" xml:space="preserve">
-    <value>Изменить...</value>
-  </data>
-  <data name="button5.ToolTip" xml:space="preserve">
-    <value>Конфигурация стабилизатора</value>
   </data>
   <data name="saveToDeviceCfgButton.Text" xml:space="preserve">
     <value>Сохр. в конф. устр.</value>

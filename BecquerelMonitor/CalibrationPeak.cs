@@ -80,6 +80,27 @@ namespace BecquerelMonitor
             return energyLine;
         }
 
+        double spectrumCentroid = double.NaN;
+        int spectrumCentroidChannel = -1;
+
+        /// <summary>
+        /// ⛔ (`AMBER270`, решение Amber вопросником 30.10.2026, дословно: «Центр масс пика
+        /// (Рекомендую)») ДРОБНЫЙ ЦЕНТР МАСС ПИКА СТРОКИ ПО ЕЁ СОБСТВЕННОМУ СПЕКТРУ — для
+        /// подгонки кривизны тракта (<c>DCFwhmCalibrationView.CentroidOf</c>). Нужен строке,
+        /// пришедшей «Собрать всё» из ДРУГОГО документа: её пик лежит в чужом спектре, и центр
+        /// масс по спектру, где её считают, был бы центром чужого пика. Мерится, когда строку
+        /// заводят и когда её собирают (по спектру документа, откуда строка), и действует,
+        /// пока канал строки тот же (<see cref="SpectrumCentroidChannel"/>): правка канала его
+        /// отменяет. Только в памяти — формат файла не меняется (решение того же дня);
+        /// <c>NaN</c> — не измерен.
+        /// </summary>
+        [XmlIgnore]
+        public double SpectrumCentroid { get => spectrumCentroid; set => spectrumCentroid = value; }
+
+        /// <summary>(`AMBER270`) Канал строки, у которого измерен <see cref="SpectrumCentroid"/>; −1 — не измерен.</summary>
+        [XmlIgnore]
+        public int SpectrumCentroidChannel { get => spectrumCentroidChannel; set => spectrumCentroidChannel = value; }
+
         [XmlIgnore]
         public int PeakType { get => peak_type; set => peak_type = value; }
 
@@ -163,6 +184,8 @@ namespace BecquerelMonitor
                     FWHM = point.FWHM,
                     EnergyLine = point.EnergyLine,
                     Count = point.Count,
+                    SpectrumCentroid = point.SpectrumCentroid,
+                    SpectrumCentroidChannel = point.SpectrumCentroidChannel,
                     PeakType = point.PeakType,
                     ExpGaussExpLeftTail = point.ExpGaussExpLeftTail,
                     ExpGaussExpRightTail = point.ExpGaussExpRightTail,

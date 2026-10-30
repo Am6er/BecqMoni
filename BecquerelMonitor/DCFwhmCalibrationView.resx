@@ -142,7 +142,7 @@
     <value>0</value>
   </data>
   <data name="label1.Text" xml:space="preserve">
-    <value>Drag across a peak on the spectrum and enter the energy of its line: every row of the table goes into both the energy and the FWHM calibration. A grey energy (a row from the device or from a file of an older version) is used for FWHM only until you enter it.</value>
+    <value>Drag across a peak on the spectrum and enter the energy of its line: a row with an entered energy goes into both the energy and the FWHM calibration. A grey energy (a peak selected but its energy not entered yet; a row from the device or from a file of an older version) is used for FWHM only until you enter it.</value>
   </data>
   <data name="&gt;&gt;label1.Name" xml:space="preserve">
     <value>label1</value>
@@ -479,6 +479,87 @@
   </data>
   <data name="&gt;&gt;numericUpDown5.ZOrder" xml:space="preserve">
     <value>10</value>
+  </data>
+  <data name="tractCurvatureLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="tractCurvatureLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>235, 103</value>
+  </data>
+  <data name="tractCurvatureLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>52, 13</value>
+  </data>
+  <data name="tractCurvatureLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>21</value>
+  </data>
+  <data name="tractCurvatureLabel.Text" xml:space="preserve">
+    <value>κ, 1/MeV</value>
+  </data>
+  <data name="tractCurvatureLabel.ToolTip" xml:space="preserve">
+    <value>Tract curvature of the spectrum, 1/MeV: how the tract (PMT, ADC) departs from a straight light-to-channel line in the full-spectrum analysis, c = c0 + v·(1 + κ·L/1000). “Execute Calibration” fits it from the energy lines and the photon light curve of the crystal material — only when one of the lines is at 2000 keV or above, and with each line at the centre of mass of its peak; you can also type it. “Reset” returns the device value; “Save to Device Cfg.” writes it into the device.</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureLabel.Name" xml:space="preserve">
+    <value>tractCurvatureLabel</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureLabel.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureLabel.ZOrder" xml:space="preserve">
+    <value>11</value>
+  </data>
+  <data name="tractCurvatureTextBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>297, 100</value>
+  </data>
+  <data name="tractCurvatureTextBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>98, 20</value>
+  </data>
+  <data name="tractCurvatureTextBox.TabIndex" type="System.Int32, mscorlib">
+    <value>22</value>
+  </data>
+  <data name="tractCurvatureTextBox.ToolTip" xml:space="preserve">
+    <value>Tract curvature of the spectrum, 1/MeV: how the tract (PMT, ADC) departs from a straight light-to-channel line in the full-spectrum analysis, c = c0 + v·(1 + κ·L/1000). “Execute Calibration” fits it from the energy lines and the photon light curve of the crystal material — only when one of the lines is at 2000 keV or above, and with each line at the centre of mass of its peak; you can also type it. “Reset” returns the device value; “Save to Device Cfg.” writes it into the device.</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureTextBox.Name" xml:space="preserve">
+    <value>tractCurvatureTextBox</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureTextBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureTextBox.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureTextBox.ZOrder" xml:space="preserve">
+    <value>12</value>
+  </data>
+  <data name="tractCurvatureSourceLabel.AutoEllipsis" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="tractCurvatureSourceLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>235, 126</value>
+  </data>
+  <data name="tractCurvatureSourceLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>166, 22</value>
+  </data>
+  <data name="tractCurvatureSourceLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>23</value>
+  </data>
+  <data name="tractCurvatureSourceLabel.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
+    <value>MiddleLeft</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureSourceLabel.Name" xml:space="preserve">
+    <value>tractCurvatureSourceLabel</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureSourceLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureSourceLabel.Parent" xml:space="preserve">
+    <value>groupBox1</value>
+  </data>
+  <data name="&gt;&gt;tractCurvatureSourceLabel.ZOrder" xml:space="preserve">
+    <value>13</value>
   </data>
   <data name="panel1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
@@ -1230,63 +1311,6 @@
   <data name="&gt;&gt;peakShapeTypeLabel.ZOrder" xml:space="preserve">
     <value>6</value>
   </data>
-  <data name="checkBox1.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="checkBox1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>14, 640</value>
-  </data>
-  <data name="checkBox1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>97, 17</value>
-  </data>
-  <data name="checkBox1.TabIndex" type="System.Int32, mscorlib">
-    <value>5</value>
-  </data>
-  <data name="checkBox1.Text" xml:space="preserve">
-    <value>AutoCalibration</value>
-  </data>
-  <data name="checkBox1.ToolTip" xml:space="preserve">
-    <value>Enable/Disable Stabilizer</value>
-  </data>
-  <data name="&gt;&gt;checkBox1.Name" xml:space="preserve">
-    <value>checkBox1</value>
-  </data>
-  <data name="&gt;&gt;checkBox1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;checkBox1.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;checkBox1.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
-  <data name="button5.Location" type="System.Drawing.Point, System.Drawing">
-    <value>111, 637</value>
-  </data>
-  <data name="button5.Size" type="System.Drawing.Size, System.Drawing">
-    <value>76, 23</value>
-  </data>
-  <data name="button5.TabIndex" type="System.Int32, mscorlib">
-    <value>6</value>
-  </data>
-  <data name="button5.Text" xml:space="preserve">
-    <value>Configure...</value>
-  </data>
-  <data name="button5.ToolTip" xml:space="preserve">
-    <value>Autocalibrator Configuration</value>
-  </data>
-  <data name="&gt;&gt;button5.Name" xml:space="preserve">
-    <value>button5</value>
-  </data>
-  <data name="&gt;&gt;button5.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;button5.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;button5.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
   <data name="saveToDeviceCfgButton.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Right</value>
   </data>
@@ -1315,7 +1339,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;saveToDeviceCfgButton.ZOrder" xml:space="preserve">
-    <value>7</value>
+    <value>5</value>
   </data>
   <data name="positionColumn.Text" xml:space="preserve">
     <value>#</value>

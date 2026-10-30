@@ -15,8 +15,9 @@
 //   C  вид: смена формы кривой у ПОСЧИТАННОЙ кривой — «Рассчитать» обязана загореться
 //      (дефект: гасла); «Рассчитать» после смены кладёт в документ новую форму.
 //   D  вид: столбец ПШПВ таблицы опор печатает дробную ширину не полным double.
-//   E  вид: «Получить все пики» с документом ДРУГОГО числа каналов — замер для вопроса
-//      (не правка): во что превращается кривая.
+//   E  вид: «Получить все пики» с документом ДРУГОГО числа каналов — был замер для вопроса;
+//      вопрос решён (П321, 15.10.2026: только то же число каналов) — контроль: чужая сетка
+//      в таблицу не попадает.
 //   F  предпросмотр формы пика (Фойгт): числа ширин в легенде — те, что у нарисованной кривой.
 //   G  вид: «Сохранить в конфиг прибора» после записи доводит документ до того же состояния,
 //      что «Рассчитать»: документ «изменён», пики перерисованы (разбором IL — у кнопки
@@ -348,15 +349,28 @@ static class P314FwhmProbe
         s.Rd.FwhmCalibration = curve;
         s.Invoke("UpdateFwhmCalibration", true);
         TableModel model = (TableModel)s.Get("tableModel1");
-        NumberColumn fwhmCol = (NumberColumn)s.Get("fwhmColumn");
+        // (`AMBER276`, 29.10.2026) Столбец ПШПВ единой вкладки — ТЕКСТОВЫЙ «каналы, процент%»
+        // (уточнение Amber: «в столбце FWHM должны быть цифры как в каналах, так и в %»):
+        // у текстового столбца печать — сам текст ячейки, а знаки считаются у числа каналов
+        // (до запятой). У сборки ДО — прежний числовой столбец и его рендерер.
+        object fwhmColObj = s.Get("fwhmColumn");
+        NumberColumn fwhmCol = fwhmColObj as NumberColumn;
         NumberColumn energyCol = (NumberColumn)s.Get("energyColumn");
         Control(model.Rows.Count == 2, "D: в таблице не две строки — замер пуст");
         if (model.Rows.Count != 2) { s.Drop(); return; }
-        string f0 = XPTable.Renderers.NumberCellRenderer.RenderText(model.Rows[0].Cells[3].Data, fwhmCol.Format, Inv);
+        string f0 = fwhmCol != null
+            ? XPTable.Renderers.NumberCellRenderer.RenderText(model.Rows[0].Cells[3].Data, fwhmCol.Format, Inv)
+            : model.Rows[0].Cells[3].Text ?? string.Empty;
         string e0 = XPTable.Renderers.NumberCellRenderer.RenderText(model.Rows[0].Cells[2].Data, energyCol.Format, Inv);
-        Console.WriteLine("  строка 1: энергия «{0}» (формат {1}), ПШПВ «{2}» (формат {3})", e0, energyCol.Format, f0, fwhmCol.Format);
+        Console.WriteLine("  строка 1: энергия «{0}» (формат {1}), ПШПВ «{2}» ({3})", e0, energyCol.Format, f0,
+                          fwhmCol != null ? "формат " + fwhmCol.Format : "текстовый столбец " + (fwhmColObj != null ? fwhmColObj.GetType().Name : "?"));
         Control(e0 == "661.657", "D: столбец энергии печатает не «661.657» — путь печати не тот, замер пуст");
-        int decimals = f0.Contains(".") ? f0.Length - f0.IndexOf('.') - 1 : 0;
+        string f0ch = f0.Split(',')[0].Trim();
+        if (fwhmCol == null)
+        {
+            Control(f0.Contains("%"), "D: текстовый столбец ПШПВ без процента — не тот столбец, замер пуст");
+        }
+        int decimals = f0ch.Contains(".") ? f0ch.Length - f0ch.IndexOf('.') - 1 : 0;
         if (decimals > 3)
         {
             Defect("D: столбец ПШПВ печатает полный double («" + f0 + "», " + decimals + " знаков после точки)");
@@ -389,7 +403,7 @@ static class P314FwhmProbe
 
     static void ArmGetAll()
     {
-        Console.WriteLine("== E. «Получить все пики» с документом другого числа каналов (замер для вопроса)");
+        Console.WriteLine("== E. «Получить все пики» с документом другого числа каналов (П321: чужая сетка не берётся)");
         // Один и тот же детектор: F(E) = √(4 + 3.232·E) кэВ (7 % на 662 кэВ); шкала 3 и 0.75 кэВ/канал.
         GetAllCase("активный 1024 канала (3 кэВ/кан), чужой 4096 (0.75 кэВ/кан)", 1024, 3.0, new[] { 40, 220, 444 }, 4096, 0.75, new[] { 880, 1564 });
         GetAllCase("активный 4096 каналов (0.75 кэВ/кан), чужой 1024 (3 кэВ/кан)", 4096, 0.75, new[] { 160, 880, 1776 }, 1024, 3.0, new[] { 40, 391 });
@@ -439,7 +453,12 @@ static class P314FwhmProbe
             sb.Append(en.ToString("0", Inv) + " кэВ " + now.ToString("0.0", Inv) + " (" + ((now / Fkev(en) - 1) * 100).ToString("+0.0;-0.0", Inv) + " %)  ");
         }
         Console.WriteLine("    степенная по подсказке на тех же опорах: принята {0} (p = {1}); {2}", okp, G(power.Coefficients[1]), sb.ToString().TrimEnd());
-        Control(got.Count == cha.Length + chb.Length, "E: сбор не притянул чужие опоры — замер пуст");
+        // (П321, решение Amber вопросником 15.10.2026, дословно: «Брать только из документов,
+        // где число каналов такое же.») Замер для вопроса отвечен: опоры документа другой
+        // сетки сбор НЕ берёт. Прежний контроль «чужие опоры притянуты» стал бы красным на
+        // исполненном решении — теперь контроль проверяет само решение.
+        Control(got.Count == cha.Length && got.All(p => cha.Contains(p.Channel)),
+                "E: сбор притянул опоры документа другой сетки (П321: только то же число каналов)");
         a.Drop(); b.Drop();
     }
 

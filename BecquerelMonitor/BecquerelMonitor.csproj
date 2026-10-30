@@ -138,7 +138,6 @@
     <Compile Include="CalibrationPeak.cs" />
     <Compile Include="CalibrationPoint.cs" />
     <Compile Include="CDATA.cs" />
-    <Compile Include="ChannelPickupedEventArgs.cs" />
     <Compile Include="ChanNumberChangeDialog.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -505,7 +504,6 @@
     <Compile Include="PeakDetector.cs" />
     <Compile Include="PeakMode.cs" />
     <Compile Include="PeakPickupedEventArgs.cs" />
-    <Compile Include="PeakStabilizer.cs" />
     <Compile Include="PercentageProgressBar.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -680,7 +678,6 @@
     <Compile Include="SpecUtilsNative.cs" />
     <Compile Include="PowerFwhmCalibration.cs" />
     <Compile Include="SqrtFwhmCalibration.cs" />
-    <Compile Include="StabilizerConfig.cs" />
     <Compile Include="StandardPulseRecorder.cs" />
     <Compile Include="StandardPulseView.cs">
       <SubType>UserControl</SubType>
@@ -688,7 +685,6 @@
     <Compile Include="StandardPulseView.Designer.cs">
       <DependentUpon>StandardPulseView.cs</DependentUpon>
     </Compile>
-    <Compile Include="TargetPeak.cs" />
     <Compile Include="ThermometerConfig.cs" />
     <Compile Include="ThermometerController.cs" />
     <Compile Include="ThermometerForm.cs">

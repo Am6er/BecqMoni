@@ -450,7 +450,8 @@ static class PeakFwhmUnitsProbeF41
         Console.WriteLine("  сериализуемых членов типа `Peak`: "
                           + reached.Count.ToString(CultureInfo.InvariantCulture)
                           + (reached.Count == 0 ? "" : " ⛔ " + string.Join(", ", reached)));
-        foreach (string name in new[] { "DetectedPeaks", "CalibrationPeaks" })
+        // (`AMBER280`) `CalibrationPeaks` (пики стабилизатора) снят вместе с автокалибратором.
+        foreach (string name in new[] { "DetectedPeaks" })
         {
             PropertyInfo pi = typeof(ResultData).GetProperty(name);
             bool ignored = pi != null && pi.GetCustomAttributes(typeof(XmlIgnoreAttribute), true).Length > 0;
@@ -468,7 +469,7 @@ static class PeakFwhmUnitsProbeF41
             var rdf = new ResultDataFile();
             var rd = new ResultData();
             rd.DetectedPeaks.Add(new Peak { Channel = 777, FWHM = marker, Energy = 4321.0 });
-            rd.CalibrationPeaks.Add(new Peak { Channel = 778, FWHM = marker, Energy = 4322.0 });
+            // (`AMBER280`) второго списка `Peak` (`ResultData.CalibrationPeaks`, пики стабилизатора) больше нет
             rdf.ResultDataList.Add(rd);
 
             var ser = new XmlSerializer(typeof(ResultDataFile));
@@ -484,7 +485,7 @@ static class PeakFwhmUnitsProbeF41
                               + xml.Length.ToString(CultureInfo.InvariantCulture));
             Console.WriteLine("  метка 1234.5 в XML: " + (hasMarker ? "ЕСТЬ ⛔" : "нет")
                               + "   элемент <Peak…>: " + (hasPeakTag ? "ЕСТЬ ⛔" : "нет"));
-            Console.WriteLine("  вывод: `DetectedPeaks` и `CalibrationPeaks` помечены [XmlIgnore] —"
+            Console.WriteLine("  вывод: `DetectedPeaks` помечен [XmlIgnore] —"
                               + " поле `Peak.FWHM` в файл НЕ ПОПАДАЕТ, и совместимость чтения именем поля не задета");
             if (hasMarker || hasPeakTag)
                 Fail("§4", "`Peak` всё-таки попадает в XML — имя поля становится частью формата файла");

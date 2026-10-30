@@ -46,6 +46,9 @@
             this.numericUpDown3 = new System.Windows.Forms.TextBox();
             this.numericUpDown4 = new System.Windows.Forms.TextBox();
             this.numericUpDown5 = new System.Windows.Forms.TextBox();
+            this.tractCurvatureLabel = new System.Windows.Forms.Label();
+            this.tractCurvatureTextBox = new System.Windows.Forms.TextBox();
+            this.tractCurvatureSourceLabel = new System.Windows.Forms.Label();
             this.panel1 = new System.Windows.Forms.Panel();
             this.viewEnergyGraphButton = new System.Windows.Forms.Button();
             this.getAllPeaksButton = new System.Windows.Forms.Button();
@@ -80,8 +83,6 @@
             this.peakShapeFirstParameterLabel = new System.Windows.Forms.Label();
             this.peakShapeTypeValueLabel = new System.Windows.Forms.Label();
             this.peakShapeTypeLabel = new System.Windows.Forms.Label();
-            this.checkBox1 = new System.Windows.Forms.CheckBox();
-            this.button5 = new System.Windows.Forms.Button();
             this.saveToDeviceCfgButton = new System.Windows.Forms.Button();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.groupBox1.SuspendLayout();
@@ -120,6 +121,9 @@
             this.groupBox1.Controls.Add(this.numericUpDown3);
             this.groupBox1.Controls.Add(this.numericUpDown4);
             this.groupBox1.Controls.Add(this.numericUpDown5);
+            this.groupBox1.Controls.Add(this.tractCurvatureLabel);
+            this.groupBox1.Controls.Add(this.tractCurvatureTextBox);
+            this.groupBox1.Controls.Add(this.tractCurvatureSourceLabel);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.TabStop = false;
             //
@@ -190,6 +194,25 @@
             this.numericUpDown5.Name = "numericUpDown5";
             this.numericUpDown5.KeyDown += new System.Windows.Forms.KeyEventHandler(this.numericUpDown5_KeyDown);
             this.numericUpDown5.Leave += new System.EventHandler(this.numericUpDown5_Leave);
+            //
+            // tractCurvatureLabel
+            //
+            resources.ApplyResources(this.tractCurvatureLabel, "tractCurvatureLabel");
+            this.tractCurvatureLabel.Name = "tractCurvatureLabel";
+            this.toolTip1.SetToolTip(this.tractCurvatureLabel, resources.GetString("tractCurvatureLabel.ToolTip"));
+            //
+            // tractCurvatureTextBox
+            //
+            resources.ApplyResources(this.tractCurvatureTextBox, "tractCurvatureTextBox");
+            this.tractCurvatureTextBox.Name = "tractCurvatureTextBox";
+            this.toolTip1.SetToolTip(this.tractCurvatureTextBox, resources.GetString("tractCurvatureTextBox.ToolTip"));
+            this.tractCurvatureTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.tractCurvatureTextBox_KeyDown);
+            this.tractCurvatureTextBox.Leave += new System.EventHandler(this.tractCurvatureTextBox_Leave);
+            //
+            // tractCurvatureSourceLabel
+            //
+            resources.ApplyResources(this.tractCurvatureSourceLabel, "tractCurvatureSourceLabel");
+            this.tractCurvatureSourceLabel.Name = "tractCurvatureSourceLabel";
             //
             // panel1
             //
@@ -466,22 +489,6 @@
             resources.ApplyResources(this.peakShapeTypeLabel, "peakShapeTypeLabel");
             this.peakShapeTypeLabel.Name = "peakShapeTypeLabel";
             //
-            // checkBox1
-            //
-            resources.ApplyResources(this.checkBox1, "checkBox1");
-            this.checkBox1.Name = "checkBox1";
-            this.toolTip1.SetToolTip(this.checkBox1, resources.GetString("checkBox1.ToolTip"));
-            this.checkBox1.UseVisualStyleBackColor = true;
-            this.checkBox1.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
-            //
-            // button5
-            //
-            resources.ApplyResources(this.button5, "button5");
-            this.button5.Name = "button5";
-            this.toolTip1.SetToolTip(this.button5, resources.GetString("button5.ToolTip"));
-            this.button5.UseVisualStyleBackColor = true;
-            this.button5.Click += new System.EventHandler(this.button5_Click);
-            //
             // saveToDeviceCfgButton
             //
             resources.ApplyResources(this.saveToDeviceCfgButton, "saveToDeviceCfgButton");
@@ -498,8 +505,6 @@
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.calibrationProcessingPanel);
-            this.Controls.Add(this.checkBox1);
-            this.Controls.Add(this.button5);
             this.Controls.Add(this.saveToDeviceCfgButton);
             this.HideOnClose = true;
             this.Name = "DCFwhmCalibrationView";
@@ -536,6 +541,9 @@
         private System.Windows.Forms.TextBox numericUpDown3;
         private System.Windows.Forms.TextBox numericUpDown4;
         private System.Windows.Forms.TextBox numericUpDown5;
+        private System.Windows.Forms.Label tractCurvatureLabel;
+        private System.Windows.Forms.TextBox tractCurvatureTextBox;
+        private System.Windows.Forms.Label tractCurvatureSourceLabel;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.Button viewEnergyGraphButton;
         private System.Windows.Forms.Button getAllPeaksButton;
@@ -570,8 +578,6 @@
         private System.Windows.Forms.Label peakShapeFirstParameterLabel;
         private System.Windows.Forms.Label peakShapeTypeValueLabel;
         private System.Windows.Forms.Label peakShapeTypeLabel;
-        private System.Windows.Forms.CheckBox checkBox1;
-        private System.Windows.Forms.Button button5;
         private System.Windows.Forms.Button saveToDeviceCfgButton;
         private System.Windows.Forms.ToolTip toolTip1;
     }

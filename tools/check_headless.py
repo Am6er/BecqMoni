@@ -135,8 +135,9 @@ ALLOW = {
     "RadiaCodeDeviceForm": "диалог RadiaCode",
     # --- виды панели DC (все `ToolWindow : DockContent`) -----------------
     "DCControlPanel": "докируемая панель видов",
-    "DCEnergyCalibrationView": "вид энергокалибровки: правка руками",
-    "DCFwhmCalibrationView": "вид калибровки ПШПВ: правка руками",
+    # (`AMBER276`, 29.10.2026) `DCEnergyCalibrationView` — наследник без своего кода
+    # (имя для раскладки окон); окна единой вкладки — у `DCFwhmCalibrationView`.
+    "DCFwhmCalibrationView": "единая вкладка калибровки энергии и FWHM: правка руками",
     "DCPeakDetectionView": "вид настройки поиска пиков",
     # --- экранные снасти -------------------------------------------------
     "EnergySpectrumView": "большой график спектра (`UserControl`)",

@@ -28,10 +28,6 @@ namespace BecquerelMonitor
 		{
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DeviceConfigForm));
-            XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder1 = new XPTable.Models.DataSourceColumnBinder();
-            XPTable.Renderers.DragDropRenderer dragDropRenderer1 = new XPTable.Renderers.DragDropRenderer();
-            XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder2 = new XPTable.Models.DataSourceColumnBinder();
-            XPTable.Renderers.DragDropRenderer dragDropRenderer2 = new XPTable.Renderers.DragDropRenderer();
             XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder3 = new XPTable.Models.DataSourceColumnBinder();
             XPTable.Renderers.DragDropRenderer dragDropRenderer3 = new XPTable.Renderers.DragDropRenderer();
             this.label4 = new System.Windows.Forms.Label();
@@ -70,29 +66,6 @@ namespace BecquerelMonitor
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.tabPage6 = new System.Windows.Forms.TabPage();
             this.tabPage2 = new System.Windows.Forms.TabPage();
-            this.panel2 = new System.Windows.Forms.Panel();
-            this.button10 = new System.Windows.Forms.Button();
-            this.button2 = new System.Windows.Forms.Button();
-            this.table3 = new XPTable.Models.Table();
-            this.columnModel3 = new XPTable.Models.ColumnModel();
-            this.textColumn4 = new XPTable.Models.TextColumn();
-            this.numberColumn3 = new XPTable.Models.NumberColumn();
-            this.numberColumn4 = new XPTable.Models.NumberColumn();
-            this.tableModel3 = new XPTable.Models.TableModel();
-            this.label19 = new System.Windows.Forms.Label();
-            this.label9 = new System.Windows.Forms.Label();
-            this.panel1 = new System.Windows.Forms.Panel();
-            this.table2 = new XPTable.Models.Table();
-            this.columnModel2 = new XPTable.Models.ColumnModel();
-            this.textColumn3 = new XPTable.Models.TextColumn();
-            this.numberColumn2 = new XPTable.Models.NumberColumn();
-            this.numberColumn1 = new XPTable.Models.NumberColumn();
-            this.tableModel2 = new XPTable.Models.TableModel();
-            this.button9 = new System.Windows.Forms.Button();
-            this.button8 = new System.Windows.Forms.Button();
-            this.button1 = new System.Windows.Forms.Button();
-            this.button11 = new System.Windows.Forms.Button();
-            this.label36 = new System.Windows.Forms.Label();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.label43 = new System.Windows.Forms.Label();
             this.label44 = new System.Windows.Forms.Label();
@@ -151,10 +124,6 @@ namespace BecquerelMonitor
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
-            this.panel2.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.table3)).BeginInit();
-            this.panel1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.table2)).BeginInit();
             this.groupBox1.SuspendLayout();
             this.tabPage5.SuspendLayout();
             this.peakSpecgroupBox.SuspendLayout();
@@ -419,197 +388,12 @@ namespace BecquerelMonitor
             // tabPage2
             // 
             this.tabPage2.BackColor = System.Drawing.SystemColors.Control;
-            this.tabPage2.Controls.Add(this.panel2);
-            this.tabPage2.Controls.Add(this.label19);
-            this.tabPage2.Controls.Add(this.label9);
-            this.tabPage2.Controls.Add(this.panel1);
             this.tabPage2.Controls.Add(this.groupBox1);
             this.tabPage2.Controls.Add(this.label8);
             this.tabPage2.Controls.Add(this.textBox15);
             this.tabPage2.Controls.Add(this.textBox16);
             resources.ApplyResources(this.tabPage2, "tabPage2");
             this.tabPage2.Name = "tabPage2";
-            // 
-            // panel2
-            // 
-            this.panel2.BackColor = System.Drawing.SystemColors.ControlLight;
-            this.panel2.Controls.Add(this.button10);
-            this.panel2.Controls.Add(this.button2);
-            this.panel2.Controls.Add(this.table3);
-            resources.ApplyResources(this.panel2, "panel2");
-            this.panel2.Name = "panel2";
-            // 
-            // button10
-            // 
-            resources.ApplyResources(this.button10, "button10");
-            this.button10.Name = "button10";
-            this.button10.UseVisualStyleBackColor = true;
-            this.button10.Click += new System.EventHandler(this.button10_Click);
-            // 
-            // button2
-            // 
-            resources.ApplyResources(this.button2, "button2");
-            this.button2.Name = "button2";
-            this.button2.UseVisualStyleBackColor = true;
-            this.button2.Click += new System.EventHandler(this.button2_Click);
-            // 
-            // table3
-            // 
-            this.table3.BorderColor = System.Drawing.Color.Black;
-            this.table3.ColumnModel = this.columnModel3;
-            this.table3.DataMember = null;
-            this.table3.DataSourceColumnBinder = dataSourceColumnBinder1;
-            dragDropRenderer1.ForeColor = System.Drawing.Color.Red;
-            this.table3.DragDropRenderer = dragDropRenderer1;
-            this.table3.FullRowSelect = true;
-            this.table3.GridLines = XPTable.Models.GridLines.Both;
-            this.table3.GridLinesContrainedToData = false;
-            this.table3.HeaderFont = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            resources.ApplyResources(this.table3, "table3");
-            this.table3.Name = "table3";
-            this.table3.TableModel = this.tableModel3;
-            this.table3.UnfocusedBorderColor = System.Drawing.Color.Black;
-            this.table3.EditingStopped += new XPTable.Events.CellEditEventHandler(this.table3_EditingStopped);
-            // 
-            // columnModel3
-            // 
-            this.columnModel3.Columns.AddRange(new XPTable.Models.Column[] {
-            ((XPTable.Models.Column)(this.textColumn4)),
-            ((XPTable.Models.Column)(this.numberColumn3)),
-            ((XPTable.Models.Column)(this.numberColumn4))});
-            // 
-            // textColumn4
-            // 
-            this.textColumn4.IsTextTrimmed = false;
-            this.textColumn4.Sortable = false;
-            resources.ApplyResources(this.textColumn4, "textColumn4");
-            // 
-            // numberColumn3
-            // 
-            this.numberColumn3.IsTextTrimmed = false;
-            this.numberColumn3.Maximum = new decimal(new int[] {
-            10000,
-            0,
-            0,
-            0});
-            this.numberColumn3.Sortable = false;
-            resources.ApplyResources(this.numberColumn3, "numberColumn3");
-            // 
-            // numberColumn4
-            // 
-            this.numberColumn4.IsTextTrimmed = false;
-            this.numberColumn4.Sortable = false;
-            resources.ApplyResources(this.numberColumn4, "numberColumn4");
-            // 
-            // label19
-            // 
-            resources.ApplyResources(this.label19, "label19");
-            this.label19.Name = "label19";
-            // 
-            // label9
-            // 
-            resources.ApplyResources(this.label9, "label9");
-            this.label9.Name = "label9";
-            // 
-            // panel1
-            // 
-            resources.ApplyResources(this.panel1, "panel1");
-            this.panel1.BackColor = System.Drawing.SystemColors.ControlLight;
-            this.panel1.Controls.Add(this.table2);
-            this.panel1.Controls.Add(this.button9);
-            this.panel1.Controls.Add(this.button8);
-            this.panel1.Controls.Add(this.button1);
-            this.panel1.Controls.Add(this.button11);
-            this.panel1.Controls.Add(this.label36);
-            this.panel1.Name = "panel1";
-            // 
-            // table2
-            // 
-            this.table2.BorderColor = System.Drawing.Color.Black;
-            this.table2.ColumnModel = this.columnModel2;
-            this.table2.DataMember = null;
-            this.table2.DataSourceColumnBinder = dataSourceColumnBinder2;
-            dragDropRenderer2.ForeColor = System.Drawing.Color.Red;
-            this.table2.DragDropRenderer = dragDropRenderer2;
-            this.table2.FullRowSelect = true;
-            this.table2.GridLines = XPTable.Models.GridLines.Both;
-            this.table2.GridLinesContrainedToData = false;
-            this.table2.HeaderFont = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            resources.ApplyResources(this.table2, "table2");
-            this.table2.Name = "table2";
-            this.table2.TableModel = this.tableModel2;
-            this.table2.UnfocusedBorderColor = System.Drawing.Color.Black;
-            this.table2.EditingStopped += new XPTable.Events.CellEditEventHandler(this.table2_EditingStopped);
-            this.table2.SelectionChanged += new XPTable.Events.SelectionEventHandler(this.table2_SelectionChanged);
-            // 
-            // columnModel2
-            // 
-            this.columnModel2.Columns.AddRange(new XPTable.Models.Column[] {
-            ((XPTable.Models.Column)(this.textColumn3)),
-            ((XPTable.Models.Column)(this.numberColumn2)),
-            ((XPTable.Models.Column)(this.numberColumn1))});
-            // 
-            // textColumn3
-            // 
-            this.textColumn3.Editable = false;
-            this.textColumn3.IsTextTrimmed = false;
-            this.textColumn3.Sortable = false;
-            resources.ApplyResources(this.textColumn3, "textColumn3");
-            // 
-            // numberColumn2
-            // 
-            this.numberColumn2.IsTextTrimmed = false;
-            this.numberColumn2.Maximum = new decimal(new int[] {
-            65535,
-            0,
-            0,
-            0});
-            this.numberColumn2.Sortable = false;
-            resources.ApplyResources(this.numberColumn2, "numberColumn2");
-            // 
-            // numberColumn1
-            // 
-            this.numberColumn1.IsTextTrimmed = false;
-            this.numberColumn1.Minimum = new decimal(new int[] {
-            10000,
-            0,
-            0,
-            -2147483648});
-            this.numberColumn1.Sortable = false;
-            resources.ApplyResources(this.numberColumn1, "numberColumn1");
-            // 
-            // button9
-            // 
-            resources.ApplyResources(this.button9, "button9");
-            this.button9.Name = "button9";
-            this.button9.UseVisualStyleBackColor = true;
-            this.button9.Click += new System.EventHandler(this.button9_Click);
-            // 
-            // button8
-            // 
-            resources.ApplyResources(this.button8, "button8");
-            this.button8.Name = "button8";
-            this.button8.UseVisualStyleBackColor = true;
-            this.button8.Click += new System.EventHandler(this.button8_Click);
-            // 
-            // button1
-            // 
-            resources.ApplyResources(this.button1, "button1");
-            this.button1.Name = "button1";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
-            // 
-            // button11
-            // 
-            resources.ApplyResources(this.button11, "button11");
-            this.button11.Name = "button11";
-            this.button11.UseVisualStyleBackColor = true;
-            this.button11.Click += new System.EventHandler(this.button11_Click);
-            // 
-            // label36
-            // 
-            resources.ApplyResources(this.label36, "label36");
-            this.label36.Name = "label36";
             // 
             // groupBox1
             // 
@@ -658,36 +442,31 @@ namespace BecquerelMonitor
             // 
             resources.ApplyResources(this.numericUpDown8, "numericUpDown8");
             this.numericUpDown8.Name = "numericUpDown8";
-            this.numericUpDown8.KeyDown += new System.Windows.Forms.KeyEventHandler(this.numericUpDown8_KeyDown);
-            this.numericUpDown8.Leave += new System.EventHandler(this.numericUpDown8_Leave);
+            this.numericUpDown8.ReadOnly = true;
             // 
             // numericUpDown9
             // 
             resources.ApplyResources(this.numericUpDown9, "numericUpDown9");
             this.numericUpDown9.Name = "numericUpDown9";
-            this.numericUpDown9.KeyDown += new System.Windows.Forms.KeyEventHandler(this.numericUpDown9_KeyDown);
-            this.numericUpDown9.Leave += new System.EventHandler(this.numericUpDown9_Leave);
+            this.numericUpDown9.ReadOnly = true;
             // 
             // numericUpDown1
             // 
             resources.ApplyResources(this.numericUpDown1, "numericUpDown1");
             this.numericUpDown1.Name = "numericUpDown1";
-            this.numericUpDown1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.numericUpDown1_KeyDown);
-            this.numericUpDown1.Leave += new System.EventHandler(this.numericUpDown1_Leave);
+            this.numericUpDown1.ReadOnly = true;
             // 
             // numericUpDown2
             // 
             resources.ApplyResources(this.numericUpDown2, "numericUpDown2");
             this.numericUpDown2.Name = "numericUpDown2";
-            this.numericUpDown2.KeyDown += new System.Windows.Forms.KeyEventHandler(this.numericUpDown2_KeyDown);
-            this.numericUpDown2.Leave += new System.EventHandler(this.numericUpDown2_Leave);
+            this.numericUpDown2.ReadOnly = true;
             // 
             // numericUpDown7
             // 
             resources.ApplyResources(this.numericUpDown7, "numericUpDown7");
             this.numericUpDown7.Name = "numericUpDown7";
-            this.numericUpDown7.KeyDown += new System.Windows.Forms.KeyEventHandler(this.numericUpDown7_KeyDown);
-            this.numericUpDown7.Leave += new System.EventHandler(this.numericUpDown7_Leave);
+            this.numericUpDown7.ReadOnly = true;
             // 
             // label8
             // 
@@ -1070,11 +849,6 @@ namespace BecquerelMonitor
             this.tabPage1.PerformLayout();
             this.tabPage2.ResumeLayout(false);
             this.tabPage2.PerformLayout();
-            this.panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.table3)).EndInit();
-            this.panel1.ResumeLayout(false);
-            this.panel1.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.table2)).EndInit();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.tabPage5.ResumeLayout(false);
@@ -1290,24 +1064,6 @@ namespace BecquerelMonitor
         // Token: 0x0400028F RID: 655
         System.Windows.Forms.Label label2;
 
-		// Token: 0x04000290 RID: 656
-		System.Windows.Forms.Panel panel1;
-
-		// Token: 0x04000291 RID: 657
-		System.Windows.Forms.Button button9;
-
-		// Token: 0x04000292 RID: 658
-		System.Windows.Forms.Button button8;
-
-		// Token: 0x04000293 RID: 659
-		System.Windows.Forms.Button button1;
-
-		// Token: 0x04000294 RID: 660
-		System.Windows.Forms.Button button11;
-
-		// Token: 0x04000295 RID: 661
-		System.Windows.Forms.Label label36;
-
 		// Token: 0x04000296 RID: 662
 		System.Windows.Forms.GroupBox groupBox1;
 
@@ -1345,24 +1101,6 @@ namespace BecquerelMonitor
 
         System.Windows.Forms.TextBox textBox16;
 
-        // Token: 0x0400029F RID: 671
-        XPTable.Models.Table table2;
-
-		// Token: 0x040002A0 RID: 672
-		XPTable.Models.ColumnModel columnModel2;
-
-		// Token: 0x040002A1 RID: 673
-		XPTable.Models.TableModel tableModel2;
-
-		// Token: 0x040002A2 RID: 674
-		XPTable.Models.TextColumn textColumn3;
-
-		// Token: 0x040002A3 RID: 675
-		XPTable.Models.NumberColumn numberColumn1;
-
-		// Token: 0x040002A4 RID: 676
-		System.Windows.Forms.Label label9;
-
 		// Token: 0x040002A6 RID: 678
 		//System.Windows.Forms.Label label15;
 
@@ -1382,43 +1120,11 @@ namespace BecquerelMonitor
 		// Token: 0x040002AF RID: 687
 		System.Windows.Forms.GroupBox groupBox2;
 
-		// Token: 0x040002B0 RID: 688
-		XPTable.Models.NumberColumn numberColumn2;
-
-		// Token: 0x040002B1 RID: 689
-		XPTable.Models.Table table3;
-        // Token: 0x040002B2 RID: 690
-        XPTable.Models.ColumnModel columnModel3;
-
-        // Token: 0x040002B3 RID: 691
-        XPTable.Models.TextColumn textColumn4;
-
-		// Token: 0x040002B4 RID: 692
-		XPTable.Models.TableModel tableModel3;
-
-        // Token: 0x040002B5 RID: 693
-        System.Windows.Forms.Label label19;
-
 		System.Windows.Forms.Label label47;
 
 		System.Windows.Forms.Label label48;
 
         System.Windows.Forms.Label label52;
-
-        // Token: 0x040002B6 RID: 694
-        System.Windows.Forms.Panel panel2;
-
-		// Token: 0x040002B7 RID: 695
-		System.Windows.Forms.Button button10;
-
-		// Token: 0x040002B8 RID: 696
-		System.Windows.Forms.Button button2;
-
-		// Token: 0x040002B9 RID: 697
-		XPTable.Models.NumberColumn numberColumn3;
-
-		// Token: 0x040002BA RID: 698
-		XPTable.Models.NumberColumn numberColumn4;
 
         private GroupBox peakSpecgroupBox;
         private ComboBox peakTypecomboBox;

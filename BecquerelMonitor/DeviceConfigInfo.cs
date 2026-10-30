@@ -272,20 +272,18 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x17000337 RID: 823
-        // (get) Token: 0x06000C19 RID: 3097 RVA: 0x000481D4 File Offset: 0x000463D4
-        // (set) Token: 0x06000C1A RID: 3098 RVA: 0x000481DC File Offset: 0x000463DC
-        public StabilizerConfig StabilizerConfig
-        {
-            get
-            {
-                return this.stabilizerConfig;
-            }
-            set
-            {
-                this.stabilizerConfig = value;
-            }
-        }
+        // ⛔ `StabilizerConfig` СНЯТ ЦЕЛИКОМ (`AMBER280`, 29.10.2026). Amber,
+        // консоль, дословно: «1. Автокалибратор - полностью удалить из
+        // бекмони.» Здесь стояли опорные пики стабилизатора (`TargetPeaks`:
+        // нуклид, энергия, допуск %), по которым `PeakStabilizer` раз в
+        // секунду двигал шкалу спектра при галке «Автокалибровка». Сняты
+        // классы `StabilizerConfig`, `TargetPeak`, `PeakStabilizer`, галка и
+        // панель «Настройки автокалибратора». Старые файлы с элементом
+        // `<StabilizerConfig>` (поставочные и корпусные несут его с пустым
+        // `<TargetPeaks />`) читаются как прежде: незнакомый элемент
+        // `XmlSerializer` пропускает молча, при пересохранении он не пишется —
+        // тем же путём, что `DoseRateConfig` ниже. Поставочные
+        // `config/device/*.xml` не трогаются (приказ 05.09.2026).
 
         // ⛔ `DoseRateConfig` СНЯТ ЦЕЛИКОМ (`AMBER18`, решение (4) Amber
         // 11.09.2026: «Снять целиком»). Здесь стояло свойство с ручными
@@ -485,7 +483,6 @@ namespace BecquerelMonitor
         {
             this.inputDeviceConfig = new AudioInputDeviceConfig();
             this.energyCalibration = new PolynomialEnergyCalibration();
-            this.stabilizerConfig = new StabilizerConfig();
             this.peakDetectionMethodConfig = new FWHMPeakDetectionMethodConfig();
         }
 
@@ -517,10 +514,6 @@ namespace BecquerelMonitor
                 this.thermometerConfig = info.thermometerConfig.Clone();
             }
             this.energyCalibration = info.energyCalibration.Clone();
-            if (info.stabilizerConfig != null)
-            {
-                this.stabilizerConfig = info.stabilizerConfig.Clone();
-            }
             this.peakDetectionMethodConfig = info.peakDetectionMethodConfig.Clone();
             if (this.peakDetectionMethodConfig is FWHMPeakDetectionMethodConfig fwhmConfig)
             {
@@ -683,9 +676,6 @@ namespace BecquerelMonitor
 
         // Token: 0x0400079E RID: 1950
         EnergyCalibration energyCalibration;
-
-        // Token: 0x0400079F RID: 1951
-        StabilizerConfig stabilizerConfig;
 
         // Token: 0x040007A1 RID: 1953
         PeakDetectionMethodConfig peakDetectionMethodConfig;

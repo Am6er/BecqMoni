@@ -18,11 +18,9 @@ namespace CalibPeaksProbeP170
     /// сборке печатается «метода нет».
     ///
     /// Ключи (каждый — отдельное плечо; можно несколько):
-    /// `--stab=&lt;xml&gt;` — `AMBER110`: стабилизатор пиков на спектре,
-    ///   сочинённом по калибровке корпусного `xml` (одна опора 661.66, одна
-    ///   опора 1460.82, две опоры — контроль «многоточечная ветвь не тронута»),
-    ///   при уходе усиления g = 1.000 и 1.020. Печатаются ошибки новой шкалы на
-    ///   59.54, 661.66, 1460.82, 2614.51 кэВ и коэффициенты «R».
+    /// `--stab=&lt;xml&gt;` — СНЯТ (`AMBER280`, 29.10.2026): стабилизатор пиков
+    ///   (`AMBER110`) удалён из приложения целиком (Amber: «Автокалибратор -
+    ///   полностью удалить из бекмони.»); ключ отказывает кодом 2.
     /// `--peak=&lt;xml&gt;` — `AMBER111`: `PeakDetector.CreatePeak` отражением
     ///   на дробных центроидах (без уточнения) — |E_пика − E(центроид)|; затем
     ///   настоящий `DetectPeak` на самом спектре — список пиков «канал, энергия».
@@ -56,7 +54,7 @@ namespace CalibPeaksProbeP170
             foreach (string a in args)
             {
                 if (a == "--expect-fixed") expectFixed = true;
-                else if (a.StartsWith("--stab=")) jobs.Add(new[] { "stab", a.Substring(7) });
+                else if (a.StartsWith("--stab=")) { Console.Error.WriteLine("--stab снят: стабилизатор пиков удалён из приложения (AMBER280)"); return 2; }
                 else if (a.StartsWith("--peak=")) jobs.Add(new[] { "peak", a.Substring(7) });
                 else if (a.StartsWith("--maxch=")) jobs.Add(new[] { "maxch", a.Substring(8) });
                 else if (a.StartsWith("--csv=")) jobs.Add(new[] { "csv", a.Substring(6) });
@@ -72,8 +70,7 @@ namespace CalibPeaksProbeP170
             {
                 try
                 {
-                    if (j[0] == "stab") Stab(j[1]);
-                    else if (j[0] == "peak") PeakArm(j[1]);
+                    if (j[0] == "peak") PeakArm(j[1]);
                     else if (j[0] == "maxch") MaxCh(j[1]);
                     else if (j[0] == "csv") Csv(j[1]);
                     else if (j[0] == "dt") DeadTime();
@@ -150,98 +147,6 @@ namespace CalibPeaksProbeP170
             if (!expectFixed) return;
             Console.WriteLine("  " + (ok ? "СОШЛОСЬ" : "⛔ НЕ СОШЛОСЬ") + ": " + what);
             if (!ok) bad++;
-        }
-
-        // ------------------------------------------------------------ AMBER110
-
-        static void Stab(string xml)
-        {
-            int n;
-            PolynomialEnergyCalibration refCal = RefCal(xml, out n);
-            Console.WriteLine("=== AMBER110: стабилизатор, калибровка " + Path.GetFileName(xml) + " ===");
-            Console.WriteLine("  каналов " + n.ToString(Inv) + ", опорная шкала " + Coefs(refCal)
-                              + ", E(0) = " + F(refCal.Coefficients[0], 3) + " кэВ");
-            double[] lines = { 59.54, 661.66, 1460.82, 2614.51 };
-            decimal[][] setups =
-            {
-                new decimal[] { 661.66m },
-                new decimal[] { 1460.82m },
-                new decimal[] { 661.66m, 1460.82m },
-            };
-            double[] gains = { 1.000, 1.020 };
-            foreach (decimal[] targets in setups)
-            {
-                foreach (double g in gains)
-                {
-                    StabOne(refCal, n, targets, g, lines);
-                }
-            }
-        }
-
-        static void StabOne(PolynomialEnergyCalibration refCal, int n, decimal[] targets, double g, double[] lines)
-        {
-            double[] c = refCal.Coefficients;
-            // Спектр прибора с усилением g: линия E стоит на канале g·C_ref(E).
-            EnergySpectrum es = new EnergySpectrum(1.0, n);
-            es.EnergyCalibration = refCal.Clone();
-            long total = 0;
-            for (int k = 0; k < n; k++)
-            {
-                double v = 30.0;
-                foreach (decimal t in targets)
-                {
-                    double ch = g * Inverse(c, (double)t, 0, n);
-                    double sigma = Math.Max(1.5, 0.07 * ch / 2.3548);
-                    v += 20000.0 * Math.Exp(-0.5 * (k - ch) * (k - ch) / (sigma * sigma));
-                }
-                es.Spectrum[k] = (int)Math.Round(v);
-                total += es.Spectrum[k];
-            }
-            es.TotalPulseCount = total;
-            es.ValidPulseCount = total;
-            es.MeasurementTime = 1000.0;
-
-            ResultData rd = new ResultData();
-            rd.EnergySpectrum = es;
-            DeviceConfigInfo dev = new DeviceConfigInfo();
-            dev.NumberOfChannels = n;
-            dev.EnergyCalibration = refCal.Clone();
-            dev.StabilizerConfig.TargetPeaks.Clear();
-            foreach (decimal t in targets)
-            {
-                TargetPeak tp = new TargetPeak();
-                tp.Energy = t;
-                tp.Error = 5m;
-                dev.StabilizerConfig.TargetPeaks.Add(tp);
-            }
-            rd.DeviceConfig = dev;
-
-            new PeakStabilizer().Stabilize(rd);
-            EnergyCalibration nc = rd.EnergySpectrum.EnergyCalibration;
-            StringBuilder sb = new StringBuilder();
-            sb.Append("  опоры {" + string.Join(", ", targets.Select(t => t.ToString(Inv))) + "}, g = " + F(g, 3)
-                      + ": найдено кан. {" + string.Join(", ", rd.CalibrationPeaks.Select(p => p.Channel.ToString(Inv))) + "}");
-            Console.WriteLine(sb.ToString());
-            Console.WriteLine("    новая шкала " + Coefs(nc) + (ReferenceEquals(nc, es.EnergyCalibration) ? "" : ""));
-            StringBuilder e = new StringBuilder("    E_new(g·C_ref(E)) − E:");
-            double worst = 0.0;
-            foreach (double line in lines)
-            {
-                double ch = g * Inverse(c, line, 0, n);
-                if (ch > n - 1) { e.Append("  " + F(line, 2) + "=вне"); continue; }
-                double d = nc.ChannelToEnergy(ch) - line;
-                e.Append("  " + F(line, 2) + ": " + (d >= 0 ? "+" : "") + F(d, 2));
-                if (Math.Abs(d) > Math.Abs(worst)) worst = d;
-            }
-            Console.WriteLine(e.ToString());
-            // После правки: одна опора — ошибка не больше полуширины канала
-            // стабилизатора (найденный канал целый) на всех линиях: ±h у 2614.
-            if (targets.Length <= 2)
-            {
-                double h = Poly(c, n / 2 + 1) - Poly(c, n / 2);
-                Expect(Math.Abs(worst) <= 3.0 * h * (2614.51 / (double)targets[0] + 1.0),
-                       "одна-две опоры: наибольшая ошибка " + F(worst, 2) + " кэВ в пределах целого канала опоры, растянутого на шкалу");
-            }
         }
 
         // ------------------------------------------------------------ AMBER111
