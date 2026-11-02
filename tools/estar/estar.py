@@ -315,6 +315,10 @@ WANTED = [
     ("Al", "Al1", 2.699),
     ("PTFE", "C2 F4", 2.2),
     ("Water", "H2 O1", 1.0),
+    # (`AMBER272`, полоса `dbdata`, 02.11.2026) GAGG:Ce — кристалл приборов (решение Amber 29.10.2026
+    # «Kole & De Angelis»): Gd3Al2Ga3O12 (Ga:Al 3:2, как у Kole & De Angelis, arXiv:2510.02920), ρ 6.63;
+    # ESTAR его не знает — I по Брэггу. Блок `ElectronData.Gagg` снят `gen_cs.py` отсюда.
+    ("GAGG", "Gd3 Al2 Ga3 O12", 6.63),
 ]
 
 # Сетка ElectronData.Grid — стандартный список ENG.ELE от 1 кэВ до 3 МэВ.

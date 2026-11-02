@@ -214,7 +214,13 @@ inline void Read_electronMats(BlobReader& r)
         m.logsEnergy = r.Reals(m.logsEnergyLen);
         m.logsRange = r.Reals(m.logsRangeLen);
         m.logsYield = r.Reals(m.logsYieldLen);
+        // (`AMBER274`, физика 28) Страгглинг: I, доля радиационной (+ логарифмы), постоянные Урбана.
+        m.PotentialEv = r.Real();
+        m.RadShare = r.Reals(m.RadShareLen);
+        m.logsRadShare = r.Reals(m.logsRadShareLen);
+        for (int u = 0; u < 8; u++) m.Urban[u] = r.Real();
         r.End();
+        if (m.RadShareLen != 0 && m.RadShareLen != m.EnergyLen) r.Fail("доля радиационной тормозной не той длины, что сетка");
         if (m.EnergyLen < 2 || m.RangeLen != m.EnergyLen || m.YieldLen != m.EnergyLen) r.Fail("таблица ESTAR пуста или разной длины");
         r.h.electronMats.push_back(m);
     }

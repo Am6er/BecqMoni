@@ -1213,6 +1213,323 @@ namespace BecquerelMonitor.EfficiencyMaker
         const double HistoriesMargin = 1.15;
 
         /// <summary>
+        /// (`AMBER274`, Э1 29.10.2026) РАЗДЕЛ СТРОК ЭЛЕКТРОНА ПРОБЫ к ГОТОВОЙ матрице
+        /// (<see cref="ResponseElectronSection"/>): по узлу сетки
+        /// <paramref name="grid"/> — строка электрона и (при <paramref name="positron"/>)
+        /// позитрона из точки пробы (<see cref="EfficiencySimulator.ElectronSourceResponse"/>),
+        /// симулятором ТЕХ ЖЕ настроек, что у матрицы (<see cref="MakeSimulator"/> с
+        /// <see cref="ResponseMatrix.Options"/>). Фотонная часть матрицы не трогается.
+        ///
+        /// Шкала: свет пика полного поглощения на кэВ при 661.657 кэВ берётся у
+        /// симулятора тех же настроек (20 000 историй узла 661.657); у кристалла без
+        /// кривой света — 0, строки в оставленной энергии.
+        ///
+        /// Отказ словами: матрица не годна для сцены (клеймо фотонной части не
+        /// сошлось — раздел посчитался бы для другой сцены).
+        /// </summary>
+        public static ResponseElectronSection BuildElectronSection(GeometryModel geometry, ResponseMatrix matrix,
+                                                                   double[] grid, int histories, int seed,
+                                                                   bool positron, int threads,
+                                                                   CancellationToken cancellation,
+                                                                   Action<string> log)
+        {
+            return BuildElectronSection(geometry, matrix, grid, histories, seed, positron, threads, cancellation, log, null);
+        }
+
+        /// <summary>
+        /// (`AMBER274`, физика 28) То же со СТРОКАМИ ЛИНИЙ КОНВЕРСИИ на точной энергии
+        /// <paramref name="lines"/> (кэВ; электрон, тот же перенос, что у узла; зерно строки
+        /// линии j — от номера 8001 + j, у узлов 7001 + i). null или пусто — строк линий нет.
+        /// Энергии вне сетки узлов отбрасываются, совпадающие ближе
+        /// <see cref="ResponseElectronSection.LineToleranceKev"/> сливаются.
+        /// </summary>
+        public static ResponseElectronSection BuildElectronSection(GeometryModel geometry, ResponseMatrix matrix,
+                                                                   double[] grid, int histories, int seed,
+                                                                   bool positron, int threads,
+                                                                   CancellationToken cancellation,
+                                                                   Action<string> log, double[] lines)
+        {
+            return BuildElectronSection(geometry, matrix, grid, histories, seed, positron, threads, cancellation, log,
+                                        lines, null);
+        }
+
+        /// <summary>
+        /// (`AMBER274` Ф8, полоса `f8cyl` 02.11.2026) То же со СТРОКАМИ ВЕТВЕЙ — шов события
+        /// целиком (решение Amber 30.10.2026 вопросником, дословно: «В Э1 событием целиком
+        /// (Рекомендую)»): у каждой ветви <paramref name="branches"/> — бета и кванты её каскада
+        /// одной историей (<see cref="EfficiencySimulator.BranchEventResponse"/>), зерно строки
+        /// ветви j — от номера 9001 + j. null или пусто — ключ шва ВЫКЛ: строк ветвей нет, строки
+        /// узлов и линий — побайтно те же, что без шва (их зёрна свои). Ветви без каскада и
+        /// с негодными таблицами пропускаются с записью в журнал.
+        /// </summary>
+        public static ResponseElectronSection BuildElectronSection(GeometryModel geometry, ResponseMatrix matrix,
+                                                                   double[] grid, int histories, int seed,
+                                                                   bool positron, int threads,
+                                                                   CancellationToken cancellation,
+                                                                   Action<string> log, double[] lines,
+                                                                   IList<ElectronBranchSpec> branches)
+        {
+            if (geometry == null || matrix == null || matrix.Options == null)
+            {
+                throw new ArgumentNullException("matrix");
+            }
+
+            if (!matrix.IsValidFor(geometry))
+            {
+                throw new InvalidOperationException("матрица не годна для сцены " + geometry.Name
+                                                    + ": клеймо фотонной части не сошлось");
+            }
+
+            // (`Ф5` критика физики 30.10.2026) У сцены изотропного поля источника в сцене
+            // нет — её «точка» есть ламбертова сфера в пустоте, и электрон с неё не бета
+            // пробы. Раздела у неё не бывает, разбор его не берёт (`ElectronSectionFor`).
+            if (geometry.Scene == GeometrySceneKind.Iso)
+            {
+                throw new InvalidOperationException("сцена изотропного поля " + geometry.Name
+                                                    + ": раздела электрона пробы у неё нет (AMBER274 Ф5)");
+            }
+
+            if (grid == null || grid.Length < 2)
+            {
+                grid = ResponseElectronSection.DefaultGrid();
+            }
+
+            ResponseMatrixOptions options = matrix.Options.Clone();
+            double bin = matrix.BinKev > 0.0 ? matrix.BinKev : options.BinKev;
+            var watch = Stopwatch.StartNew();
+
+            // Якорь шкалы — свет пика 661.657 кэВ тем же симулятором.
+            double lightPerKev = 0.0;
+            if (options.LightNonproportionality)
+            {
+                EfficiencySimulator anchor = MakeSimulator(geometry, options, 7000, 661.657);
+                anchor.Histories = 20000;
+                double anchorError;
+                anchor.Response(661.657, bin, out anchorError);
+                lightPerKev = anchor.LastPhotonLightScale;
+            }
+
+            int n = grid.Length;
+            double[] lineEnergies = ResponseElectronSection.CleanLines(lines, grid);
+            int nl = lineEnergies != null ? lineEnergies.Length : 0;
+            List<ElectronBranchSpec> branchList = CleanBranches(branches, log);
+            int nb = branchList.Count;
+            var section = new ResponseElectronSection
+            {
+                Stamp = ResponseElectronSection.ComputeStamp(geometry, matrix.Stamp, grid, histories, seed, positron, bin,
+                                                             lineEnergies, branchList),
+                ForMatrixStamp = matrix.Stamp,
+                BinKev = bin,
+                Energies = (double[])grid.Clone(),
+                Electron = new float[n][],
+                Positron = positron ? new float[n][] : null,
+                Histories = new long[n],
+                EnteredElectron = new double[n],
+                EnteredPositron = new double[n],
+                NodeSeconds = new double[n],
+                LightPerKev = lightPerKev,
+                Capsule = ResponseElectronSection.CapsuleText(geometry),
+                Engine = "cpu",
+                CreatedUtc = DateTime.UtcNow,
+                LineEnergies = lineEnergies,
+                LineElectron = nl > 0 ? new float[nl][] : null,
+                LineHistories = nl > 0 ? new long[nl] : null,
+                LineEntered = nl > 0 ? new double[nl] : null,
+            };
+
+            var parallel = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = Math.Max(1, threads),
+                CancellationToken = cancellation,
+            };
+            object gate = new object();
+            Parallel.For(0, n, parallel, i =>
+            {
+                double te = grid[i];
+                EfficiencySimulator sim = MakeSimulator(geometry, options, 7001 + i, te);
+                sim.Histories = Math.Max(1000, histories);
+                int baseSeed = seed != 0 ? seed : sim.Seed;
+                sim.ResetStream((ulong)baseSeed + (ulong)(7001 + i) * 0x9E3779B97F4A7C15UL);
+                if (cancellation.CanBeCanceled)
+                {
+                    sim.PollCancellation = cancellation.ThrowIfCancellationRequested;
+                }
+
+                EfficiencySimulator.ElectronSourceStats es, ps = null;
+                double[] e = sim.ElectronSourceResponse(te, false, bin, lightPerKev, out es);
+                double[] p = positron ? sim.ElectronSourceResponse(te, true, bin, lightPerKev, out ps) : null;
+                section.Electron[i] = ResponseElectronSection.Trim(e);
+                if (positron)
+                {
+                    section.Positron[i] = ResponseElectronSection.Trim(p);
+                }
+
+                section.Histories[i] = es.Histories;
+                section.EnteredElectron[i] = (double)es.Entered / es.Histories;
+                section.EnteredPositron[i] = ps != null ? (double)ps.Entered / ps.Histories : 0.0;
+                section.NodeSeconds[i] = es.Seconds + (ps != null ? ps.Seconds : 0.0);
+                if (log != null)
+                {
+                    lock (gate)
+                    {
+                        log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                            "  узел {0,2} T {1,7:F1} кэВ: e- вошло {2:F5}, занос {3:E3} на частицу, квантов очереди {4:F3}; " +
+                            "e+ вошло {5:F5}, аннигиляций в сцене {6:F3}; {7:F1} с",
+                            i, te, section.EnteredElectron[i], es.MeanDepositKev / Math.Max(te, 1e-9),
+                            (double)es.QueuedPhotons / es.Histories, section.EnteredPositron[i],
+                            ps != null ? (double)ps.Annihilations / ps.Histories : 0.0, section.NodeSeconds[i]));
+                    }
+                }
+            });
+
+            // (`AMBER274`, физика 28) Строки линий конверсии на точной энергии — электрон, тот
+            // же перенос; зерно — от номера 8001 + j.
+            if (nl > 0)
+            {
+                Parallel.For(0, nl, parallel, j =>
+                {
+                    double te = lineEnergies[j];
+                    EfficiencySimulator sim = MakeSimulator(geometry, options, 8001 + j, te);
+                    sim.Histories = Math.Max(1000, histories);
+                    int baseSeed = seed != 0 ? seed : sim.Seed;
+                    sim.ResetStream((ulong)baseSeed + (ulong)(8001 + j) * 0x9E3779B97F4A7C15UL);
+                    if (cancellation.CanBeCanceled)
+                    {
+                        sim.PollCancellation = cancellation.ThrowIfCancellationRequested;
+                    }
+
+                    EfficiencySimulator.ElectronSourceStats es;
+                    double[] e = sim.ElectronSourceResponse(te, false, bin, lightPerKev, out es);
+                    section.LineElectron[j] = ResponseElectronSection.Trim(e);
+                    section.LineHistories[j] = es.Histories;
+                    section.LineEntered[j] = (double)es.Entered / es.Histories;
+                });
+            }
+
+            // (`AMBER274` Ф8, `f8cyl`) Строки ветвей — событие целиком; зерно — от номера 9001 + j.
+            if (nb > 0)
+            {
+                AllocateBranches(section, branchList);
+                Parallel.For(0, nb, parallel, j =>
+                {
+                    ElectronBranchSpec spec = branchList[j];
+                    EfficiencySimulator sim = MakeSimulator(geometry, options, 9001 + j, spec.EndpointKev);
+                    sim.Histories = Math.Max(1000, histories);
+                    int baseSeed = seed != 0 ? seed : sim.Seed;
+                    sim.ResetStream((ulong)baseSeed + (ulong)(9001 + j) * 0x9E3779B97F4A7C15UL);
+                    if (cancellation.CanBeCanceled)
+                    {
+                        sim.PollCancellation = cancellation.ThrowIfCancellationRequested;
+                    }
+
+                    EfficiencySimulator.BranchEventStats bs;
+                    double[][] rows = sim.BranchEventResponse(spec, bin, lightPerKev, out bs);
+                    section.BranchEvent[j] = ResponseElectronSection.Trim(rows[0]);
+                    section.BranchGamma[j] = ResponseElectronSection.Trim(rows[1]);
+                    section.BranchHistories[j] = bs.Histories;
+                    section.BranchEntered[j] = (double)bs.Entered / bs.Histories;
+                    if (log != null)
+                    {
+                        lock (gate)
+                        {
+                            log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                                "  ветвь {0,3} {1} {2:F1} кэВ → уровень {3:F1}: бета вошла {4:F5}, квантов каскада {5:F3} на распад, " +
+                                "событие {6:E3}, каскад {7:E3} на распад; упоров каскада {8}; {9:F1} с",
+                                j, spec.Nuclide, spec.EndpointKev, spec.LevelKev, section.BranchEntered[j],
+                                (double)bs.CascadeQuanta / bs.Histories, SumRow(section.BranchEvent[j]),
+                                SumRow(section.BranchGamma[j]), bs.CascadeCut, bs.Seconds));
+                        }
+                    }
+                });
+            }
+
+            if (log != null)
+            {
+                log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "  раздел: {0} узлов, {5} строк линий и {6} строк ветвей, {1} историй на строку, свет 662 на кэВ {2:F6}, капсула {3}, {4:F1} с",
+                    n, histories, lightPerKev, section.Capsule, watch.Elapsed.TotalSeconds, nl, nb));
+            }
+
+            return section;
+        }
+
+        /// <summary>
+        /// (`Ф8`) Ветви, годные для строки: с каскадом и согласованными таблицами, без повторов
+        /// (тот же нуклид и граница); прочие — в журнал словами. Порядок — как дан.
+        /// </summary>
+        internal static List<ElectronBranchSpec> CleanBranches(IList<ElectronBranchSpec> branches, Action<string> log)
+        {
+            var result = new List<ElectronBranchSpec>();
+            if (branches == null)
+            {
+                return result;
+            }
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (ElectronBranchSpec b in branches)
+            {
+                if (b == null)
+                {
+                    continue;
+                }
+
+                string problem = b.Problem();
+                if (problem != null || !b.HasCascade)
+                {
+                    if (log != null)
+                    {
+                        log("  ветвь " + b.Key + " пропущена: " + (problem ?? "каскада нет"));
+                    }
+
+                    continue;
+                }
+
+                if (seen.Add(b.Key))
+                {
+                    result.Add(b);
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>(`Ф8`) Места под строки ветвей раздела — общие у построителей ЦП и GPU.</summary>
+        internal static void AllocateBranches(ResponseElectronSection section, List<ElectronBranchSpec> list)
+        {
+            int nb = list.Count;
+            section.BranchNuclides = new string[nb];
+            section.BranchEndpoints = new double[nb];
+            section.BranchLevels = new double[nb];
+            section.BranchHistories = new long[nb];
+            section.BranchEntered = new double[nb];
+            section.BranchHashes = new string[nb];
+            section.BranchEvent = new float[nb][];
+            section.BranchGamma = new float[nb][];
+            for (int j = 0; j < nb; j++)
+            {
+                section.BranchNuclides[j] = list[j].Nuclide;
+                section.BranchEndpoints[j] = list[j].EndpointKev;
+                section.BranchLevels[j] = list[j].LevelKev;
+                section.BranchHashes[j] = list[j].Hash;
+            }
+        }
+
+        /// <summary>(`Ф8`) Площадь строки — для журнала построителя.</summary>
+        internal static double SumRow(float[] row)
+        {
+            double s = 0.0;
+            if (row != null)
+            {
+                foreach (float v in row)
+                {
+                    s += v;
+                }
+            }
+
+            return s;
+        }
+
+        /// <summary>
         /// Один узел до заданного шума (`T35`). Возвращает гистограммы, а через
         /// параметры — достигнутый шум и потраченные истории.
         ///
@@ -1478,6 +1795,25 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // (2BS) — тем же путём: не доехав до построителя, ключ мёртв
                 // (`S130`), а клеймо `lbang=1` лгало бы о происхождении.
                 ElectronLayerBremAngular2BS = options.ElectronLayerBremAngular2BS,
+                // ⛔ (`AMBER274`, физика 28) Страгглинг потерь электрона — тем же путём:
+                // не доехав до построителя, ключ мёртв (`S130`), а клеймо `estr=1` лгало
+                // бы о происхождении матрицы.
+                ElectronStraggling = options.ElectronStraggling,
+                // ⛔ (`AMBER274`, физика 29) Перенос электрона, сходящийся по шагу — тем же
+                // путём: не доехав до построителя, ключ мёртв (`S130`), а клеймо `emix=1`
+                // лгало бы о происхождении матрицы.
+                ElectronMixedTransport = options.ElectronMixedTransport,
+                // ⛔ (`AMBER274`, физика 29, `phys29b`) Поправка Мотта при Z > 30 — тем же
+                // путём: не доехав до построителя, ключ мёртв (`S130`), а клеймо `mott=1`
+                // лгало бы о происхождении матрицы.
+                ElectronMottHeavy = options.ElectronMottHeavy,
+                // ⛔ (`AMBER274`, физика 30) Правки критиков физики 29 и ядерная часть по DPWA — тем же
+                // путём: не доехав до построителя, ключи мертвы (`S130`), а клеймо `eref=1`/`dpwa=1`
+                // лгало бы о происхождении матрицы.
+                ElectronElasticRefine = options.ElectronElasticRefine,
+                ElectronScreeningDpwa = options.ElectronScreeningDpwa,
+                // (`AMBER274`, физика 30) Вакансия L-кванта после Костера—Кронига (`ckv=1`) — тем же путём.
+                CascadeCkVacancy = options.CascadeCkVacancy,
                 // ⛔ (`E34`) ДОПУСК ПИКА. Ноль здесь стоял безусловно, и это
                 // запирало поправку на однократное рассеяние: `InPeak` требует
                 // `E − deposited ≤ допуск`, а у рассеявшегося кванта недобор
@@ -1500,8 +1836,17 @@ namespace BecquerelMonitor.EfficiencyMaker
             // (`T43`).
             int seed = options.Seed != 0 ? options.Seed : sim.Seed;
             sim.ResetStream((ulong)seed + (ulong)(index + 1) * 0x9E3779B97F4A7C15UL);
+            // (`AMBER274`, физика 30) РЫЧАГ ЗАМЕРА ПРОБ, не настройка: рычаги симулятора, которых нет в
+            // `ResponseMatrixOptions` (доля шага кристалла, части `ElectronRefineParts`), пробе иначе не достать —
+            // а цену и смещение на GPU (упаковщик берёт этот же симулятор) иначе не измерить
+            // (`CorpusMatrixProbe --sim-cstep= --sim-rparts=`). Ни один штатный путь его не ставит; матрица с ним —
+            // замер, не склад.
+            ProbeTweak?.Invoke(sim);
             return sim;
         }
+
+        /// <summary>(`AMBER274`, физика 30) Рычаг замера проб — см. конец <see cref="MakeSimulator"/>; штатно null.</summary>
+        internal static Action<EfficiencySimulator> ProbeTweak = null;
 
         // ⛔ (`A46`) ПРЕДВАРИТЕЛЬНОЙ ОЦЕНКИ ВРЕМЕНИ БОЛЬШЕ НЕТ — решение Amber
         // 02.09.2026 «убирай ETA, оно всегда врёт».

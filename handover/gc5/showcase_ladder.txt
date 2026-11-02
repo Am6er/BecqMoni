@@ -1,0 +1,288 @@
+# Лестница слоёв витрины (стенд gc5): счёт расхождений по шагам «плечо → плечо»; плечи названы снимком кода (tw11xx), HEAD — a4dbe97e, «дерево» — текущее; журнал gc5, §2.2
+
+
+### эталон-прежний → HEAD (first): контроль стенда: код HEAD a4dbe97e + входы эталона (матрицы, спектры, базы)
+   AS80_Th232_disk__infer_eq                   0  
+   ASN16_Cs137_10cm__sample_nomatrix           0  
+   ASN16_Cs137_house__infer_eq                 0  
+   ASN16_Cs137_house__infer_eq_compton         0  
+   ASN16_Cs137_house__infer_eq_peak            0  
+   ASN16_Radon_filter2__chain_eq               0  
+   ASN16_Radon_filter2__chain_noeq             0  
+   G1S24_Rn222Coal_eq01__sample_eq             0  
+   G1S24_Rn222Coal_eq01__sample_noeq           0  
+   ВСЕГО 0
+
+### HEAD → HEAD+спектры (full): спектры: узел <Efficiency> физики 30 (gc1, store30, gc3a) при коде HEAD
+   AS80_Th232_disk__infer_eq                   0  
+   ASN16_Cs137_10cm__sample_nomatrix           0  
+   ASN16_Cs137_house__infer_eq                 0  
+   ASN16_Cs137_house__infer_eq_compton         0  
+   ASN16_Cs137_house__infer_eq_peak            0  
+   ASN16_Radon_filter2__chain_eq               0  
+   ASN16_Radon_filter2__chain_noeq             0  
+   G1S24_Rn222Coal_eq01__sample_eq             0  
+   G1S24_Rn222Coal_eq01__sample_noeq           0  
+   ВСЕГО 0
+
+### HEAD → HEAD+nucdb (full): nucdb ee36b07c -> 140af74b при коде HEAD
+   AS80_Th232_disk__infer_eq                 186  ROWS 9, SCREEN 15, rates 66, полосы 93, шапка 3; скорость: Xray-La -4.157 %, Xray-Th +1.061 %, Tl-208 -0.939 %, Th-232 -0.939 %
+   ASN16_Cs137_10cm__sample_nomatrix           7  rates 7; скорость: Cs-137 +0.106 %
+   ASN16_Cs137_house__infer_eq               117  ROWS 3, SCREEN 3, rates 39, полосы 69, шапка 3; скорость: Cs-137 +0.086 %, Xray-Pb -0.081 %, Backscatter +0.025 %, pile-up +0.022 %
+   ASN16_Cs137_house__infer_eq_compton       108  ROWS 3, SCREEN 3, rates 39, полосы 60, шапка 3; скорость: Cs-137 +0.086 %, Xray-Pb -0.081 %, Backscatter +0.025 %, pile-up +0.022 %
+   ASN16_Cs137_house__infer_eq_peak          106  ROWS 3, SCREEN 3, rates 39, полосы 58, шапка 3; скорость: Cs-137 +0.086 %, Xray-Pb -0.081 %, Backscatter +0.025 %, pile-up +0.022 %
+   ASN16_Radon_filter2__chain_eq             158  ROWS 7, SCREEN 9, rates 57, полосы 83, шапка 2; скорость: Tl-208 +0.651 %, Th-232 +0.651 %, Th-228 +0.651 %, Rn-220 +0.651 %
+   ASN16_Radon_filter2__chain_noeq           139  ROWS 3, SCREEN 6, rates 95, полосы 32, шапка 3; скорость: Ra-224 +0.931 %, Pb-212 +0.931 %
+   G1S24_Rn222Coal_eq01__sample_eq           172  ROWS 5, SCREEN 8, rates 69, полосы 86, шапка 4; скорость: Rn-222 +0.164 %, Po-214 +0.164 %, Pb-214 +0.164 %, Bi-214 +0.164 %
+   G1S24_Rn222Coal_eq01__sample_noeq         185  ROWS 5, SCREEN 11, rates 92, полосы 73, шапка 4; скорость: Tl-208 -3.744 %, Ra-224 +0.777 %, Pb-212 +0.777 %, Bi-214 +0.602 %
+   ВСЕГО 1178
+
+### HEAD+nucdb → tw1101 (full): tw1101: Э1 + физика 28 (матрицы физики 28 полосы purebeta; точка со сдвигом Ф6)
+   AS80_Th232_disk__infer_eq                 177  ROWS 8, SCREEN 8, rates 65, полосы 93, шапка 3; скорость: Xray-La +5.756 %, Tl-208 -0.091 %, Th-232 -0.091 %, Th-228 -0.091 %
+   ASN16_Cs137_10cm__sample_nomatrix           0  
+   ASN16_Cs137_house__infer_eq               140  ROWS 6, SCREEN 17, rates 39, полосы 75, шапка 3; скорость: Xray-Pb +32.348 %, Cs-137 +25.203 %, Backscatter -3.833 %, Xray-Pb-L +2.576 %
+   ASN16_Cs137_house__infer_eq_compton       132  ROWS 6, SCREEN 17, rates 39, полосы 66, шапка 4; скорость: Xray-Pb +32.348 %, Cs-137 +25.203 %, Backscatter -3.833 %, Xray-Pb-L +2.576 %
+   ASN16_Cs137_house__infer_eq_peak          131  ROWS 6, SCREEN 17, rates 39, полосы 65, шапка 4; скорость: Xray-Pb +32.348 %, Cs-137 +25.203 %, Backscatter -3.833 %, Xray-Pb-L +2.576 %
+   ASN16_Radon_filter2__chain_eq             148  ROWS 5, SCREEN 5, rates 54, полосы 83, шапка 1; скорость: Tl-208 -0.027 %, Th-232 -0.027 %, Th-228 -0.027 %, Rn-220 -0.027 %
+   ASN16_Radon_filter2__chain_noeq           131  ROWS 2, SCREEN 3, rates 92, полосы 32, шапка 2; скорость: Ra-224 +0.085 %, Pb-212 +0.085 %
+   G1S24_Rn222Coal_eq01__sample_eq           157  ROWS 5, SCREEN 6, rates 61, полосы 84, шапка 1; скорость: Tl-208 +0.147 %, Th-228 +0.147 %, Rn-220 +0.147 %, Ra-224 +0.147 %
+   G1S24_Rn222Coal_eq01__sample_noeq         180  ROWS 5, SCREEN 12, rates 87, полосы 73, шапка 3; скорость: Tl-208 +1.145 %, Ra-224 -1.133 %, Pb-212 -1.133 %, Pb-214 -0.369 %
+   ВСЕГО 1196
+
+### tw1101 → tw1103 (full): tw1102–tw1103: физика 29 + purebeta + a269fix2 + fsa274b + a269fix3 (только радоновый фильтр: матрица физики 29 — счёт gc5 кодом tw1105; tw1102 её не берёт — отпечаток геометрии другой)
+   AS80_Th232_disk__infer_eq                отказ/нет плеча (False / True)
+   ASN16_Cs137_10cm__sample_nomatrix        отказ/нет плеча (False / True)
+   ASN16_Cs137_house__infer_eq              отказ/нет плеча (False / True)
+   ASN16_Cs137_house__infer_eq_compton      отказ/нет плеча (False / True)
+   ASN16_Cs137_house__infer_eq_peak         отказ/нет плеча (False / True)
+   ASN16_Radon_filter2__chain_eq             156  ROWS 6, SCREEN 12, rates 55, полосы 83; скорость: Tl-208 -0.352 %, Th-232 -0.352 %, Th-228 -0.352 %, Rn-220 -0.352 %
+   ASN16_Radon_filter2__chain_noeq           150  ROWS 3, SCREEN 20, rates 92, полосы 32, шапка 3; скорость: Ra-224 +1.722 %, Pb-212 +1.722 %
+   G1S24_Rn222Coal_eq01__sample_eq          отказ/нет плеча (False / True)
+   G1S24_Rn222Coal_eq01__sample_noeq        отказ/нет плеча (False / True)
+   ВСЕГО 306
+
+### tw1103 → tw1104 (full): tw1104: a269fix4
+   ASN16_Radon_filter2__chain_eq             157  ROWS 8, SCREEN 12, rates 53, полосы 83, шапка 1; скорость: Tl-208 -13.318 %, Th-232 -13.318 %, Th-228 -13.318 %, Rn-220 -13.318 %
+   ASN16_Radon_filter2__chain_noeq           170  ROWS 3, SCREEN 25, rates 90, полосы 48, шапка 4; скорость: Ra-224 -17.159 %, Pb-212 -17.159 %
+   ВСЕГО 327
+
+### tw1104 → tw1105 (full): tw1105: f8cyl
+   ASN16_Radon_filter2__chain_eq               0  
+   ASN16_Radon_filter2__chain_noeq             0  
+   ВСЕГО 0
+
+### tw1105 → tw1109 (full): tw1106–tw1109: dbdata, a269fix5, screen29, dbdata2, rc110mar, phys29c (физика 30), matdb
+   AS80_Th232_disk__infer_eq                отказ/нет плеча (True / False)
+   ASN16_Cs137_10cm__sample_nomatrix        отказ/нет плеча (True / False)
+   ASN16_Cs137_house__infer_eq              отказ/нет плеча (True / False)
+   ASN16_Cs137_house__infer_eq_compton      отказ/нет плеча (True / False)
+   ASN16_Cs137_house__infer_eq_peak         отказ/нет плеча (True / False)
+   ASN16_Radon_filter2__chain_eq             146  ROWS 7, SCREEN 13, rates 53, полосы 71, шапка 2; скорость: Tl-208 +5.405 %, Th-232 +5.405 %, Th-228 +5.405 %, Rn-220 +5.405 %
+   ASN16_Radon_filter2__chain_noeq           143  ROWS 3, SCREEN 16, rates 86, полосы 36, шапка 2; скорость: Ra-224 +0.091 %, Pb-212 +0.091 %
+   G1S24_Rn222Coal_eq01__sample_eq          отказ/нет плеча (True / False)
+   G1S24_Rn222Coal_eq01__sample_noeq        отказ/нет плеча (True / False)
+   ВСЕГО 289
+
+### tw1101 → tw1109 (full): tw1102–tw1109 целиком; матрицы 28 -> 30
+   AS80_Th232_disk__infer_eq                 191  ROWS 11, SCREEN 18, rates 66, полосы 93, шапка 3; скорость: Xray-La -36.989 %, Xray-Th -5.419 %, Xray-Pb -0.551 %, Tl-208 -0.252 %
+   ASN16_Cs137_10cm__sample_nomatrix          13  SCREEN 8, rates 5
+   ASN16_Cs137_house__infer_eq               136  ROWS 5, SCREEN 15, rates 41, полосы 73, шапка 2; скорость: Ann-511 -12.707 %, Xray-Pb -10.718 %, Xray-Pb-L +3.251 %, Backscatter -1.111 %
+   ASN16_Cs137_house__infer_eq_compton       126  ROWS 5, SCREEN 15, rates 41, полосы 63, шапка 2; скорость: Ann-511 -12.707 %, Xray-Pb -10.718 %, Xray-Pb-L +3.251 %, Backscatter -1.111 %
+   ASN16_Cs137_house__infer_eq_peak          123  ROWS 5, SCREEN 15, rates 41, полосы 60, шапка 2; скорость: Ann-511 -12.707 %, Xray-Pb -10.718 %, Xray-Pb-L +3.251 %, Backscatter -1.111 %
+   ASN16_Radon_filter2__chain_eq             163  ROWS 7, SCREEN 17, rates 54, полосы 83, шапка 2; скорость: Tl-208 -8.955 %, Th-232 -8.955 %, Th-228 -8.955 %, Rn-220 -8.955 %
+   ASN16_Radon_filter2__chain_noeq           167  ROWS 3, SCREEN 22, rates 90, полосы 48, шапка 4; скорость: Ra-224 -15.655 %, Pb-212 -15.655 %
+   G1S24_Rn222Coal_eq01__sample_eq           169  ROWS 6, SCREEN 14, rates 63, полосы 84, шапка 2; скорость: Rn-222 +0.268 %, Po-214 +0.268 %, Pb-214 +0.268 %, Bi-214 +0.268 %
+   G1S24_Rn222Coal_eq01__sample_noeq         184  ROWS 5, SCREEN 16, rates 87, полосы 73, шапка 3; скорость: Tl-208 +2.378 %, Bi-214 -0.365 %, Ra-224 -0.113 %, Pb-212 -0.113 %
+   ВСЕГО 1272
+
+### tw1109 → tw1110 (full): tw1110: f8diag + a269fix6(+b)
+   AS80_Th232_disk__infer_eq                   1  SCREEN 1
+   ASN16_Cs137_10cm__sample_nomatrix           0  
+   ASN16_Cs137_house__infer_eq                 0  
+   ASN16_Cs137_house__infer_eq_compton         0  
+   ASN16_Cs137_house__infer_eq_peak            0  
+   ASN16_Radon_filter2__chain_eq               0  
+   ASN16_Radon_filter2__chain_noeq             0  
+   G1S24_Rn222Coal_eq01__sample_eq             1  SCREEN 1
+   G1S24_Rn222Coal_eq01__sample_noeq           1  SCREEN 1
+   ВСЕГО 3
+
+### tw1110 → tw1111 (full): tw1111: calibui (+ скрипты store30)
+   AS80_Th232_disk__infer_eq                   0  
+   ASN16_Cs137_10cm__sample_nomatrix           0  
+   ASN16_Cs137_house__infer_eq                 0  
+   ASN16_Cs137_house__infer_eq_compton         0  
+   ASN16_Cs137_house__infer_eq_peak            0  
+   ASN16_Radon_filter2__chain_eq               0  
+   ASN16_Radon_filter2__chain_noeq             0  
+   G1S24_Rn222Coal_eq01__sample_eq             0  
+   G1S24_Rn222Coal_eq01__sample_noeq           0  
+   ВСЕГО 0
+
+### tw1111 → tw1113 (full): tw1113: fsalow + gc1 (tw1112 = tw1111 по коду)
+   AS80_Th232_disk__infer_eq                 210  ROWS 11, SCREEN 23, rates 74, полосы 99, шапка 3; скорость: Xray-Th -68.598 %, Xray-Pb -10.098 %, Tl-208 -1.003 %, Th-232 -1.003 %
+   ASN16_Cs137_10cm__sample_nomatrix         101  ROWS 3, SCREEN 13, rates 24, полосы 58, шапка 3; скорость: Cs-137 +3.864 %, Backscatter -2.948 %
+   ASN16_Cs137_house__infer_eq               146  ROWS 6, SCREEN 18, rates 39, полосы 80, шапка 3; скорость: Backscatter +34.945 %, Xray-Pb +28.253 %, Cs-137 +3.142 %, pile-up -2.869 %
+   ASN16_Cs137_house__infer_eq_compton       138  ROWS 6, SCREEN 18, rates 39, полосы 71, шапка 4; скорость: Backscatter +34.945 %, Xray-Pb +28.253 %, Cs-137 +3.142 %, pile-up -2.869 %
+   ASN16_Cs137_house__infer_eq_peak          137  ROWS 6, SCREEN 18, rates 39, полосы 70, шапка 4; скорость: Backscatter +34.945 %, Xray-Pb +28.253 %, Cs-137 +3.142 %, pile-up -2.869 %
+   ASN16_Radon_filter2__chain_eq             167  ROWS 8, SCREEN 19, rates 64, полосы 73, шапка 3; скорость: Tl-208 -31.321 %, Th-232 -31.321 %, Th-228 -31.321 %, Rn-220 -31.321 %
+   ASN16_Radon_filter2__chain_noeq           159  ROWS 3, SCREEN 23, rates 90, полосы 39, шапка 4; скорость: Ra-224 -12.961 %, Pb-212 -12.961 %
+   G1S24_Rn222Coal_eq01__sample_eq           210  ROWS 9, SCREEN 27, rates 78, полосы 93, шапка 3; скорость: Tl-208 +4.067 %, Th-228 +4.067 %, Rn-220 +4.067 %, Ra-224 +4.067 %
+   G1S24_Rn222Coal_eq01__sample_noeq         192  ROWS 5, SCREEN 19, rates 90, полосы 75, шапка 3; скорость: Ra-224 +18.478 %, Pb-212 +18.478 %, Tl-208 -12.725 %, Pb-214 +5.380 %
+   ВСЕГО 1460
+
+### tw1113 → tw1115 (full): tw1115: a284 + a285 (tw1114 = tw1113 по коду)
+   AS80_Th232_disk__infer_eq                   8  SCREEN 8
+   ASN16_Cs137_10cm__sample_nomatrix          10  SCREEN 10
+   ASN16_Cs137_house__infer_eq                 7  SCREEN 7
+   ASN16_Cs137_house__infer_eq_compton         7  SCREEN 7
+   ASN16_Cs137_house__infer_eq_peak            7  SCREEN 7
+   ASN16_Radon_filter2__chain_eq               6  SCREEN 6
+   ASN16_Radon_filter2__chain_noeq             7  SCREEN 7
+   G1S24_Rn222Coal_eq01__sample_eq             8  SCREEN 8
+   G1S24_Rn222Coal_eq01__sample_noeq           9  SCREEN 9
+   ВСЕГО 69
+
+### tw1115 → tw1116 (full): tw1116: critfsa30
+   AS80_Th232_disk__infer_eq                 193  ROWS 10, SCREEN 15, rates 72, полосы 93, шапка 3; скорость: Xray-Th +219.288 %, Xray-Pb +10.851 %, Tl-208 +1.019 %, Th-232 +1.019 %
+   ASN16_Cs137_10cm__sample_nomatrix          97  ROWS 3, SCREEN 9, rates 24, полосы 58, шапка 3; скорость: Cs-137 -0.237 %, Backscatter -0.222 %
+   ASN16_Cs137_house__infer_eq               124  ROWS 4, SCREEN 12, rates 37, полосы 68, шапка 3; скорость: Backscatter -2.073 %, pile-up +0.529 %, Cs-137 -0.476 %, Xray-Pb -0.119 %
+   ASN16_Cs137_house__infer_eq_compton       115  ROWS 4, SCREEN 12, rates 37, полосы 59, шапка 3; скорость: Backscatter -2.073 %, pile-up +0.529 %, Cs-137 -0.476 %, Xray-Pb -0.119 %
+   ASN16_Cs137_house__infer_eq_peak          114  ROWS 4, SCREEN 12, rates 37, полосы 58, шапка 3; скорость: Backscatter -2.073 %, pile-up +0.529 %, Cs-137 -0.476 %, Xray-Pb -0.119 %
+   ASN16_Radon_filter2__chain_eq             160  ROWS 8, SCREEN 14, rates 63, полосы 73, шапка 2; скорость: Tl-208 +37.630 %, Th-232 +37.630 %, Th-228 +37.630 %, Rn-220 +37.630 %
+   ASN16_Radon_filter2__chain_noeq           155  ROWS 3, SCREEN 19, rates 90, полосы 39, шапка 4; скорость: Ra-224 +11.665 %, Pb-212 +11.665 %
+   G1S24_Rn222Coal_eq01__sample_eq           210  ROWS 9, SCREEN 27, rates 78, полосы 93, шапка 3; скорость: Tl-208 -4.628 %, Th-228 -4.628 %, Rn-220 -4.628 %, Ra-224 -4.628 %
+   G1S24_Rn222Coal_eq01__sample_noeq         188  ROWS 5, SCREEN 16, rates 90, полосы 74, шапка 3; скорость: Ra-224 -16.032 %, Pb-212 -16.032 %, Tl-208 +14.617 %, Pb-214 -5.178 %
+   ВСЕГО 1356
+
+### tw1116 → tw1117 (full): tw1117: откат Ф6 (код) + матрица ASN16_point_house 437a1b33 -> 08f698c0 (gc3b)
+   AS80_Th232_disk__infer_eq                   0  
+   ASN16_Cs137_10cm__sample_nomatrix           0  
+   ASN16_Cs137_house__infer_eq               118  ROWS 4, SCREEN 9, rates 36, полосы 66, шапка 3; скорость: Cs-137 -20.348 %, Xray-Pb -19.640 %, Backscatter +6.571 %, pile-up -1.287 %
+   ASN16_Cs137_house__infer_eq_compton       109  ROWS 4, SCREEN 9, rates 36, полосы 57, шапка 3; скорость: Cs-137 -20.348 %, Xray-Pb -19.640 %, Backscatter +6.571 %, pile-up -1.287 %
+   ASN16_Cs137_house__infer_eq_peak          108  ROWS 4, SCREEN 9, rates 36, полосы 56, шапка 3; скорость: Cs-137 -20.348 %, Xray-Pb -19.640 %, Backscatter +6.571 %, pile-up -1.287 %
+   ASN16_Radon_filter2__chain_eq               0  
+   ASN16_Radon_filter2__chain_noeq             0  
+   G1S24_Rn222Coal_eq01__sample_eq             0  
+   G1S24_Rn222Coal_eq01__sample_noeq           0  
+   ВСЕГО 335
+
+### tw1117 → tw1118 (full): tw1118: a284b
+   AS80_Th232_disk__infer_eq                   0  
+   ASN16_Cs137_10cm__sample_nomatrix           0  
+   ASN16_Cs137_house__infer_eq                 0  
+   ASN16_Cs137_house__infer_eq_compton         0  
+   ASN16_Cs137_house__infer_eq_peak            0  
+   ASN16_Radon_filter2__chain_eq               2  SCREEN 2
+   ASN16_Radon_filter2__chain_noeq             0  
+   G1S24_Rn222Coal_eq01__sample_eq             0  
+   G1S24_Rn222Coal_eq01__sample_noeq           0  
+   ВСЕГО 2
+
+### tw1118 → tw1119-ш0 (full): tw1119 при ширине ВЫКЛ: gc3a + граница 28 -> 0 (правило порога)
+   AS80_Th232_disk__infer_eq                 201  ROWS 10, SCREEN 26, rates 64, полосы 98, шапка 3; скорость: Xray-Pb +0.344 %, Xray-Th -0.263 %, Tl-208 -0.006 %, Th-232 -0.006 %
+   ASN16_Cs137_10cm__sample_nomatrix          96  ROWS 3, SCREEN 8, rates 24, полосы 58, шапка 3; скорость: Cs-137 -3.492 %, Backscatter +3.267 %
+   ASN16_Cs137_house__infer_eq               138  ROWS 5, SCREEN 20, rates 36, полосы 74, шапка 3; скорость: Backscatter -24.150 %, Xray-Pb -15.489 %, Cs-137 -1.981 %, pile-up +1.287 %
+   ASN16_Cs137_house__infer_eq_compton       130  ROWS 5, SCREEN 20, rates 36, полосы 65, шапка 4; скорость: Backscatter -24.150 %, Xray-Pb -15.489 %, Cs-137 -1.981 %, pile-up +1.287 %
+   ASN16_Cs137_house__infer_eq_peak          129  ROWS 5, SCREEN 20, rates 36, полосы 64, шапка 4; скорость: Backscatter -24.150 %, Xray-Pb -15.489 %, Cs-137 -1.981 %, pile-up +1.287 %
+   ASN16_Radon_filter2__chain_eq             151  ROWS 8, SCREEN 16, rates 54, полосы 71, шапка 2; скорость: Tl-208 +5.795 %, Th-232 +5.795 %, Th-228 +5.795 %, Rn-220 +5.795 %
+   ASN16_Radon_filter2__chain_noeq           148  ROWS 3, SCREEN 21, rates 87, полосы 34, шапка 3; скорость: Ra-224 +2.889 %, Pb-212 +2.889 %
+   G1S24_Rn222Coal_eq01__sample_eq           168  ROWS 5, SCREEN 13, rates 63, полосы 85, шапка 2; скорость: Tl-208 +0.754 %, Th-228 +0.754 %, Rn-220 +0.754 %, Ra-224 +0.754 %
+   G1S24_Rn222Coal_eq01__sample_noeq         181  ROWS 4, SCREEN 14, rates 87, полосы 73, шапка 3; скорость: Ra-224 +0.519 %, Pb-212 +0.519 %, Pb-214 +0.077 %, Tl-208 -0.033 %
+   ВСЕГО 1342
+
+### tw1119-ш0 → tw1119 (full): умолчание rev52: откат с шириной ВКЛ (gc4)
+   AS80_Th232_disk__infer_eq                   0  
+   ASN16_Cs137_10cm__sample_nomatrix          93  ROWS 2, SCREEN 7, rates 23, полосы 58, шапка 3; скорость: Cs-137 +3.897 %, Backscatter +3.767 %
+   ASN16_Cs137_house__infer_eq                 0  
+   ASN16_Cs137_house__infer_eq_compton         0  
+   ASN16_Cs137_house__infer_eq_peak            0  
+   ASN16_Radon_filter2__chain_eq               0  
+   ASN16_Radon_filter2__chain_noeq             0  
+   G1S24_Rn222Coal_eq01__sample_eq             0  
+   G1S24_Rn222Coal_eq01__sample_noeq           0  
+   ВСЕГО 93
+
+### tw1119 → дерево (full): a286 (строки сумм-пиков) поверх tw1119
+   AS80_Th232_disk__infer_eq                  20  SCREEN 20
+   ASN16_Cs137_10cm__sample_nomatrix           0  
+   ASN16_Cs137_house__infer_eq                 0  
+   ASN16_Cs137_house__infer_eq_compton         0  
+   ASN16_Cs137_house__infer_eq_peak            0  
+   ASN16_Radon_filter2__chain_eq               0  
+   ASN16_Radon_filter2__chain_noeq             0  
+   G1S24_Rn222Coal_eq01__sample_eq             0  
+   G1S24_Rn222Coal_eq01__sample_noeq           0  
+   ВСЕГО 20
+
+### tw1111 → tw1119-ш0 (full): сумма fsalow -> critfsa30 -> gc4 при ширине ВЫКЛ (с a284/a285/a284b и откатом Ф6 между ними)
+   AS80_Th232_disk__infer_eq                  12  SCREEN 12
+   ASN16_Cs137_10cm__sample_nomatrix          11  SCREEN 11
+   ASN16_Cs137_house__infer_eq               140  ROWS 6, SCREEN 17, rates 39, полосы 75, шапка 3; скорость: Cs-137 -19.856 %, Xray-Pb -13.002 %, Backscatter +6.820 %, Xray-Pb-L -5.531 %
+   ASN16_Cs137_house__infer_eq_compton       132  ROWS 6, SCREEN 17, rates 39, полосы 66, шапка 4; скорость: Cs-137 -19.856 %, Xray-Pb -13.002 %, Backscatter +6.820 %, Xray-Pb-L -5.531 %
+   ASN16_Cs137_house__infer_eq_peak          131  ROWS 6, SCREEN 17, rates 39, полосы 65, шапка 4; скорость: Cs-137 -19.856 %, Xray-Pb -13.002 %, Backscatter +6.820 %, Xray-Pb-L -5.531 %
+   ASN16_Radon_filter2__chain_eq              12  SCREEN 12
+   ASN16_Radon_filter2__chain_noeq            13  SCREEN 13
+   G1S24_Rn222Coal_eq01__sample_eq            12  SCREEN 12
+   G1S24_Rn222Coal_eq01__sample_noeq          13  SCREEN 13
+   ВСЕГО 476
+
+### эталон-прежний → дерево (first): ИТОГ: прежний эталон -> текущее дерево (вид прежнего эталона: первая строка подсказки)
+   AS80_Th232_disk__infer_eq                 202  ROWS 11, SCREEN 29, rates 66, полосы 93, шапка 3; скорость: Xray-La -36.132 %, Xray-Th -4.343 %, Tl-208 -1.278 %, Th-232 -1.278 %
+   ASN16_Cs137_10cm__sample_nomatrix         101  ROWS 2, SCREEN 14, rates 24, полосы 58, шапка 3; скорость: Cs-137 +4.007 %, Backscatter +3.767 %
+   ASN16_Cs137_house__infer_eq               133  ROWS 5, SCREEN 16, rates 40, полосы 69, шапка 3; скорость: Xray-Pb +2.716 %, Backscatter +1.611 %, pile-up -1.004 %, Cs-137 +0.099 %
+   ASN16_Cs137_house__infer_eq_compton       124  ROWS 5, SCREEN 16, rates 40, полосы 60, шапка 3; скорость: Xray-Pb +2.716 %, Backscatter +1.611 %, pile-up -1.004 %, Cs-137 +0.099 %
+   ASN16_Cs137_house__infer_eq_peak          123  ROWS 5, SCREEN 16, rates 40, полосы 59, шапка 3; скорость: Xray-Pb +2.716 %, Backscatter +1.611 %, pile-up -1.004 %, Cs-137 +0.099 %
+   ASN16_Radon_filter2__chain_eq             168  ROWS 8, SCREEN 19, rates 55, полосы 83, шапка 3; скорость: Tl-208 -8.387 %, Th-232 -8.387 %, Th-228 -8.387 %, Rn-220 -8.387 %
+   ASN16_Radon_filter2__chain_noeq           177  ROWS 3, SCREEN 27, rates 94, полосы 48, шапка 5; скорость: Ra-224 -14.797 %, Pb-212 -14.797 %
+   G1S24_Rn222Coal_eq01__sample_eq           182  ROWS 6, SCREEN 17, rates 69, полосы 86, шапка 4; скорость: Rn-222 +0.392 %, Po-214 +0.392 %, Pb-214 +0.392 %, Bi-214 +0.392 %
+   G1S24_Rn222Coal_eq01__sample_noeq         193  ROWS 5, SCREEN 19, rates 92, полосы 73, шапка 4; скорость: Ra-224 -0.477 %, Pb-212 -0.477 %, Tl-208 -0.326 %, Bi-214 +0.177 %
+   ВСЕГО 1403
+
+### эталон-новый → дерево (full): контроль: новый эталон git (snapshot.ps1 02:08) против плеча дерево стенда
+   AS80_Th232_disk__infer_eq                   0  
+   ASN16_Cs137_10cm__sample_nomatrix           0  
+   ASN16_Cs137_house__infer_eq                 0  
+   ASN16_Cs137_house__infer_eq_compton         0  
+   ASN16_Cs137_house__infer_eq_peak            0  
+   ASN16_Radon_filter2__chain_eq               0  
+   ASN16_Radon_filter2__chain_noeq             0  
+   G1S24_Rn222Coal_eq01__sample_eq             0  
+   G1S24_Rn222Coal_eq01__sample_noeq           0  
+   ВСЕГО 0
+
+### дерево+nucdb-HEAD → дерево (full): перекрёстно: nucdb при коде дерева
+   AS80_Th232_disk__infer_eq                 187  ROWS 8, SCREEN 17, rates 66, полосы 93, шапка 3; скорость: Xray-La +4.430 %, Tl-208 -0.905 %, Th-232 -0.905 %, Th-228 -0.905 %
+   ASN16_Cs137_10cm__sample_nomatrix           7  rates 7; скорость: Cs-137 +0.106 %
+   ASN16_Cs137_house__infer_eq               118  ROWS 3, SCREEN 5, rates 39, полосы 69, шапка 2; скорость: Cs-137 +0.091 %, Xray-Pb -0.067 %, Backscatter +0.019 %, pile-up +0.013 %
+   ASN16_Cs137_house__infer_eq_compton       109  ROWS 3, SCREEN 5, rates 39, полосы 60, шапка 2; скорость: Cs-137 +0.091 %, Xray-Pb -0.067 %, Backscatter +0.019 %, pile-up +0.013 %
+   ASN16_Cs137_house__infer_eq_peak          107  ROWS 3, SCREEN 5, rates 39, полосы 58, шапка 2; скорость: Cs-137 +0.091 %, Xray-Pb -0.067 %, Backscatter +0.019 %, pile-up +0.013 %
+   ASN16_Radon_filter2__chain_eq             147  ROWS 7, SCREEN 12, rates 54, полосы 71, шапка 3; скорость: Tl-208 +6.249 %, Th-232 +6.249 %, Th-228 +6.249 %, Rn-220 +6.249 %
+   ASN16_Radon_filter2__chain_noeq           152  ROWS 3, SCREEN 18, rates 90, полосы 37, шапка 4; скорость: Ra-224 -4.071 %, Pb-212 -4.071 %
+   G1S24_Rn222Coal_eq01__sample_eq           174  ROWS 5, SCREEN 10, rates 69, полосы 86, шапка 4; скорость: Rn-222 +0.359 %, Po-214 +0.359 %, Pb-214 +0.359 %, Bi-214 +0.359 %
+   G1S24_Rn222Coal_eq01__sample_noeq         186  ROWS 5, SCREEN 12, rates 92, полосы 73, шапка 4; скорость: Tl-208 -1.214 %, Ra-224 -0.441 %, Pb-212 -0.441 %, Bi-214 +0.296 %
+   ВСЕГО 1187
+
+### дерево+спектры-HEAD → дерево (full): перекрёстно: спектры при коде дерева
+   AS80_Th232_disk__infer_eq                   0  
+   ASN16_Cs137_10cm__sample_nomatrix           0  
+   ASN16_Cs137_house__infer_eq                 0  
+   ASN16_Cs137_house__infer_eq_compton         0  
+   ASN16_Cs137_house__infer_eq_peak            0  
+   ASN16_Radon_filter2__chain_eq               0  
+   ASN16_Radon_filter2__chain_noeq             0  
+   G1S24_Rn222Coal_eq01__sample_eq             0  
+   G1S24_Rn222Coal_eq01__sample_noeq           0  
+   ВСЕГО 0
+
+### tw1101-своя-nucdb → tw1101 (full): перекрёстно: nucdb снимка tw1101 -> 140af74b при коде tw1101
+   AS80_Th232_disk__infer_eq                 185  ROWS 9, SCREEN 14, rates 66, полосы 93, шапка 3; скорость: Xray-La +1.759 %, Tl-208 -0.953 %, Th-232 -0.953 %, Th-228 -0.953 %
+   ASN16_Cs137_10cm__sample_nomatrix           7  rates 7; скорость: Cs-137 +0.106 %
+   ASN16_Cs137_house__infer_eq               124  ROWS 2, SCREEN 3, rates 43, полосы 73, шапка 3; скорость: Ann-511 +0.457 %, Cs-137 +0.095 %, Backscatter +0.040 %, Xray-Pb -0.039 %
+   ASN16_Cs137_house__infer_eq_compton       114  ROWS 2, SCREEN 3, rates 43, полосы 63, шапка 3; скорость: Ann-511 +0.457 %, Cs-137 +0.095 %, Backscatter +0.040 %, Xray-Pb -0.039 %
+   ASN16_Cs137_house__infer_eq_peak          110  ROWS 2, SCREEN 3, rates 43, полосы 59, шапка 3; скорость: Ann-511 +0.457 %, Cs-137 +0.095 %, Backscatter +0.040 %, Xray-Pb -0.039 %
+   ASN16_Radon_filter2__chain_eq             157  ROWS 7, SCREEN 9, rates 57, полосы 82, шапка 2; скорость: Tl-208 +0.656 %, Th-232 +0.656 %, Th-228 +0.656 %, Rn-220 +0.656 %
+   ASN16_Radon_filter2__chain_noeq           137  ROWS 2, SCREEN 6, rates 95, полосы 32, шапка 2; скорость: Ra-224 +0.932 %, Pb-212 +0.932 %
+   G1S24_Rn222Coal_eq01__sample_eq           173  ROWS 5, SCREEN 10, rates 69, полосы 85, шапка 4; скорость: Rn-222 +0.125 %, Po-214 +0.125 %, Pb-214 +0.125 %, Bi-214 +0.125 %
+   G1S24_Rn222Coal_eq01__sample_noeq         183  ROWS 4, SCREEN 10, rates 92, полосы 73, шапка 4; скорость: Tl-208 -3.915 %, Bi-214 +0.675 %, Pb-214 +0.263 %, Ra-224 +0.051 %
+   ВСЕГО 1190

@@ -115,7 +115,7 @@ namespace BecquerelMonitor
             if (this.maxEnergy == -1 || this.dirty) { this.maxEnergy = this.ChannelToEnergy(this.maxChannels); }
 
             // Проверяются ВСЕ коэффициенты набора, а не только участвующие в
-            // текущей степени: длина набора у степеней 1..4 закреплена ниже
+            // текущей степени: длина набора у всех степеней закреплена ниже
             // (`Coefficients.Length != order + 1` — отказ), так что разницы
             // нет, а набор, пришедший из файла с лишним `NaN` в хвосте,
             // остаётся отвергнутым и после `Downgrade`.
@@ -137,9 +137,25 @@ namespace BecquerelMonitor
                     return false;
                 }
             }
+            // ⛔ (`AMBER269`, дефект 3, 01.11.2026) НУЛЕВОЙ СТАРШИЙ КОЭФФИЦИЕНТ — НЕ
+            // ПОРОК. Здесь у степеней 2…4 стояло `|| Coefficients[k] == 0` (`294f2db0`,
+            // 04.07.2023, «согласованность полинома»): шкала второй степени с a₂ = 0
+            // объявлялась негодной. Её пишет экспорт приложения RadiaCode
+            // («0.0 b 0.0» — прямая тремя числами), прямую тремя числами пишет
+            // AtomSpectra 6.2.3 (дверь N42 потому снимает нули сама, П151), — и
+            // открытие файла спрашивало «Сбросить калибровку в y = x?», а «Да»
+            // понижало степень до первой. Математике нуль не мешает:
+            // `ChannelToEnergy` считает полином как есть, обратное `EnrgToChannel`
+            // при a₂ = 0 решает линейное уравнение (так с 2023 года), у степеней 3 и
+            // 4 корень ищет `FindRoots` на [0, N] — ему безразлично, какой член
+            // нулевой; разбор FSA зовёт обратное самой калибровки
+            // (`CalibrationInverse` берёт лишь степени 3 и 4 и сам проверяет
+            // монотонность). Годность решают длина набора, конечность чисел,
+            // монотонность и диапазон энергий на [0, N] — цикл ниже — и то, что
+            // энергия вообще зависит от канала (проверка после степеней).
             if (this.polynomialOrder == 2)
             {
-                if (this.Coefficients.Length != 3 || this.Coefficients[2] == 0)
+                if (this.Coefficients.Length != 3)
                 {
                     return false;
                 }
@@ -166,19 +182,50 @@ namespace BecquerelMonitor
             }
             if (this.polynomialOrder == 3)
             {
-                if (this.Coefficients.Length != 4 || this.Coefficients[3] == 0)
+                if (this.Coefficients.Length != 4)
                 {
                     return false;
                 }
             }
             if (this.polynomialOrder == 4)
             {
-                if (this.Coefficients.Length != 5 || this.Coefficients[4] == 0)
+                if (this.Coefficients.Length != 5)
                 {
                     return false;
                 }
             }
-            if (this.polynomialOrder > 4 || this.polynomialOrder < 1) { return false; }
+            // ⛔ (`AMBER269`, 01.11.2026) СТЕПЕНИ ВЫШЕ ЧЕТВЁРТОЙ ГОДНЫ НА ТЕХ ЖЕ
+            // УСЛОВИЯХ. Здесь стояло `polynomialOrder > 4 → false`, хотя
+            // `ChannelToEnergy` считает их схемой Горнера, а обратное
+            // (`EnrgToChannel`) ищет корень на [0, N] тем же `FindRoots`, что у
+            // степеней 3 и 4: калибровку пятой степени (её пишет SpectraLine ЛСРМ)
+            // открытие файла объявляло негодной и окно правки ставило y = x. Длина
+            // набора закреплена, как у степеней 1…4 (степень + 1: иначе
+            // `ChannelToEnergy` молча считал бы полином по меньшему набору);
+            // остальное решают общие условия ниже. Замер — проба `A269FixProbe`:
+            // монотонная пятой степени туда-обратно сходится до 1e-6 канала.
+            if (this.polynomialOrder > 4)
+            {
+                if (this.Coefficients.Length != this.polynomialOrder + 1)
+                {
+                    return false;
+                }
+            }
+            if (this.polynomialOrder < 1) { return false; }
+            // Энергия обязана зависеть от канала: цикл ниже пропускает ровную шкалу
+            // (сравнение там нестрогое), а обратное у неё — «канал 0» на любую
+            // энергию (`UnusableCalibration`). Прежде эту шкалу отсекал заслон
+            // «старший коэффициент ≠ 0»; у первой степени он остаётся выше.
+            bool dependsOnChannel = false;
+            for (int i = 1; i <= this.polynomialOrder; i++)
+            {
+                if (this.Coefficients[i] != 0.0)
+                {
+                    dependsOnChannel = true;
+                    break;
+                }
+            }
+            if (!dependsOnChannel) { return false; }
             for (int i = 1; i <= channels; i++)
             {
                 double prevEnrg = this.ChannelToEnergy(i - 1);

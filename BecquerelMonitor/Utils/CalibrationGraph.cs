@@ -9,7 +9,19 @@ using BecquerelMonitor.Properties;
 
 namespace BecquerelMonitor.Utils
 {
-    public partial class CalibrationGraph : Form
+    /// <summary>
+    /// График калибровки по энергии — ВИД окна графиков калибровки
+    /// (<see cref="CalibrationGraphWindow"/>), а не окно.
+    ///
+    /// (`AMBER283`, 02.11.2026) Amber, консоль, дословно: «Графики смотрят в похожие
+    /// классы, их можно объединить в одну кнопку а в самом открытом окне выбирать
+    /// Energy/FWHM в combobox.» Прежде это был отдельный <c>Form</c> со своей кнопкой
+    /// «График» на панели «Калибровка»; теперь — <c>UserControl</c>, который окно
+    /// показывает по выбору «Энергия» в списке. Рисование, оси, точки, подписи,
+    /// перетаскивание точки и контекстное меню («Сохранить новые точки», «Отменить
+    /// изменения») — прежние, без правок. Заголовок окна — <c>Text</c> вида (resx).
+    /// </summary>
+    public partial class CalibrationGraph : UserControl
     {
         public CalibrationGraph()
         {
@@ -18,19 +30,15 @@ namespace BecquerelMonitor.Utils
             SetStyle(ControlStyles.AllPaintingInWmPaint, true);
             SetStyle(ControlStyles.UserPaint, true);
             SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
+            // (`AMBER283`) Вид живёт в окне с изменяемым размером: оси и кривая —
+            // от размера клиента, и при растяжении перерисовывается всё поле.
+            SetStyle(ControlStyles.ResizeRedraw, true);
         }
 
         public CalibrationGraph(MainForm mainForm)
+            : this()
         {
-            InitializeComponent();
-            this.DoubleBuffered = true;
-            SetStyle(ControlStyles.AllPaintingInWmPaint, true);
-            SetStyle(ControlStyles.UserPaint, true);
-            SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
             this.mainForm = mainForm;
-            this.Icon = Resources.becqmoni;
-            this.Size = new Size(this.mainForm.Width * 3 / 4, this.mainForm.Height * 3 / 4);
-
         }
 
         MainForm mainForm;

@@ -222,10 +222,19 @@
   <data name="DCResult_FsaMdaTip" xml:space="preserve">
     <value>a# — предел обнаружения разбора (ISO 11929, Xu 2022) с надувкой √(χ²/ndf). Это не MDA Карри по зоне.</value>
   </data>
+  <data name="DCResult_FsaMdaHeaderRule" xml:space="preserve">
+    <value>МДА, z ≥ {0}</value>
+  </data>
+  <data name="DCResult_FsaMdaTipRule" xml:space="preserve">
+    <value>a# — предел обнаружения разбора (ISO 11929, Xu 2022) под правило обнаружения FSA: строка считается найденной при z ≥ {0} (k_α, α ≈ {1} %), и активность, равная a#, так находится в {2} % измерений (k_β = {3}). С надувкой √(χ²/ndf). Это не MDA Карри по зоне.</value>
+  </data>
   <data name="DCResult_FsaStale" xml:space="preserve">
     <value>(пересчёт…)</value>
   </data>
   <data name="DCResult_FsaError" xml:space="preserve">
     <value>FSA: ошибка</value>
+  </data>
+  <data name="DCResult_FsaContinuumOnly" xml:space="preserve">
+    <value>только по бета</value>
   </data>
 </root>

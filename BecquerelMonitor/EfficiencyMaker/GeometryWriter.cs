@@ -57,6 +57,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             FractionTypeKey = "DS_FractionTypeGap", NamePrefix = "M_DS_Gap",
         };
 
+        // (`AMBER274`, Э1) Капсула точечного источника — наше расширение формата;
+        // блок пишется ТОЛЬКО при ненулевой толщине (см. место записи).
+        static readonly Slot DsSourceCapsule = new Slot
+        {
+            CountKey = "DS_nSourceCapsuleElements", RoKey = "DS_RoSourceCapsule",
+            ZPart = "DS_ZSourceCapsule", FractionsPart = "DS_FractionsSourceCapsule",
+            FractionTypeKey = "DS_FractionTypeSourceCapsule", NamePrefix = "M_DS_SourceCapsule",
+        };
+
         static readonly Slot DsReflector = new Slot
         {
             CountKey = "DS_nCrystalReflectorElements", RoKey = "DS_RoCrystalReflector",
@@ -261,6 +270,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             // Формат `.in` записан в САНТИМЕТРАХ — так его читает GMaster, и
             // единица стоит в самой строке («= 5.03 cm»). Модель держит
             // миллиметры, поэтому пересчёт здесь, один раз на входе.
+            // (`AMBER274`) Умолчание капсулы — по модели в миллиметрах, до пересчёта.
+            // (`Д4`, правило `A94`) Капсула пишется только у точечной сцены: у прочих
+            // её нет, и прежний текст их файлов — байт в байт.
+            bool writeCapsule = model.HasSourceCapsule && !model.IsOsgiCapsule;
+            // (`f8cyl`) Дальнее дно цилиндра — строкой ТОЛЬКО у цилиндра с ненулевым дном:
+            // текст прежних геометрий (и клеймо их матриц) — байт в байт.
+            bool writeFarEnd = model.SourceType == GeometrySourceType.Cylinder && model.BeakerFarEndWallThickness > 0.0;
             model = model.InCentimeters();
             StringBuilder text = new StringBuilder();
             Action<string> line = value => text.Append(value).Append("\r\n");
@@ -342,6 +358,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             cm("SC_BeakerSideWallThickness", model.BeakerSideWallThickness);
             cm("SC_BeakerEndWallThickness", model.BeakerEndWallThickness);
             cm("SC_SourceHeight", model.SourceHeight);
+            if (writeFarEnd)
+            {
+                // (`f8cyl`) Наше расширение формата: донышко со стороны, дальней от детектора.
+                cm("SC_BeakerFarEndWallThickness", model.BeakerFarEndWallThickness);
+            }
+
             line("");
             line("//Marinelli beaker source");
             cm("SM_BeakerToDetectorFrontDistance", model.MarinelliToDetectorDistance);
@@ -518,6 +540,32 @@ namespace BecquerelMonitor.EfficiencyMaker
                 line("// Измерение в защите (наше расширение формата), см.");
                 line("// GeometryModel.InShield.");
                 line("DS_Shield = YES");
+            }
+
+            // (`AMBER274`, Э1) Капсула точечного источника (наше расширение формата):
+            // толщина и вещество. Читает только перенос первичной беты пробы; в
+            // клеймо фотонной части матрицы не входит (`ResponseMatrix.StampView`).
+            // Строки пишутся ТОЛЬКО у капсулы с толщиной: голая точка — текст
+            // прежних геометрий байт в байт.
+            // ⛔ (решение Amber 29.10.2026 «Паспорт ОСГИ») Умолчание — капсула ОСГИ, и у неё
+            // строк нет; иная капсула (и голая точка — толщиной 0) пишется явно.
+            if (writeCapsule)
+            {
+                line("");
+                line("// Капсула точечного источника (наше расширение формата), см.");
+                line("// GeometryModel.SourceCapsule.");
+                cm("DS_SourceCapsuleThickness", model.SourceCapsuleThickness);
+                if (model.SourceCapsuleThickness > 0.0 && model.SourceCapsule != null && !model.SourceCapsule.IsEmpty)
+                {
+                    Material(text, DsSourceCapsule, model.SourceCapsule);
+                }
+
+                if (model.SourceCapsuleRingHeight > 0.0)
+                {
+                    cm("DS_SourceCapsuleRingHeight", model.SourceCapsuleRingHeight);
+                    cm("DS_SourceCapsuleRingInnerDiameter", model.SourceCapsuleRingInnerDiameter);
+                    cm("DS_SourceCapsuleRingOuterDiameter", model.SourceCapsuleRingOuterDiameter);
+                }
             }
 
             if (model.FwhmAt662Percent > 0.0)

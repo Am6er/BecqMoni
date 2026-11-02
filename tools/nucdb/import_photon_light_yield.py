@@ -68,6 +68,18 @@ CURVES = [
      u'LightScaleProbe CeBr3_38x38_point5.in (CeBr3 38x38, точка 5 см), физика 27, kdip=1 ecomp=1, '
      u'кривая электронов payne2014_tableII_20C (eta 0.345, Trap 20, Birks 132.5); 4e6 историй на узел',
      u'AMBER272 29.10.2026: параметры Пейна как в базе, НЕ калиброваны по фотонной нПР'),
+    # (`AMBER272`, полоса `dbdata`, 02.11.2026) решения Amber 29.10.2026 «SrI2(Eu), Payne 2009» и
+    # «Kole & De Angelis»; имя — то, что даёт `ScintillatorNameOf` (вещество `ElectronData`)
+    ('SrI2', 'SrI2', 'SrI2.tsv',
+     u'LightScaleProbe SrI2_38x38_point5.in (SrI2 38x38, точка 5 см), физика 29, kdip=1 ecomp=1, '
+     u'кривая электронов payne2009_tableI_SrI2Eu (eta 0.22, Ons 27.8, Trap 0, Birks 526); 4e6 историй на узел',
+     u'AMBER272 02.11.2026: параметры Payne 2009 (табл. I, SrI2(Eu)) как опубликованы, НЕ калиброваны по фотонной нПР'),
+    ('GAGG', 'GAGG', 'GAGG.tsv',
+     u'LightScaleProbe GAGG_38x38_point5.in (Gd3Al2Ga3O12 38x38, ро 6.63, точка 5 см), физика 29, kdip=1 ecomp=1, '
+     u'кривая электронов dbdata2_fit_kole2025_campana2023 (eta 0.656, Ons 36.4, Trap 0, Birks 70.1); 4e6 историй на узел',
+     u'AMBER272 02.11.2026 (полоса dbdata2): eta и Birks подогнаны сквозь перенос к форме Kole & De Angelis рис. 2 '
+     u'(СКО 0.75 %) и sigma_nPR 2.68 % (цель 2.4-3.0 %, Campana et al.); решение Amber 02.11.2026 «Подогнать в нашей '
+     u'модели»; прежний ряд по kB Kole 0.075 мм/МэВ давал 9.59 % — журнал handover/handover-2026-11-02-amber274-dbdata2.md'),
 ]
 
 SCHEMA = u"""

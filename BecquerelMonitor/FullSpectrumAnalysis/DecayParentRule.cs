@@ -94,6 +94,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             + "     where y.parent_nucid = $n))";
 
         /// <summary>
+        /// ⛔ (`AMBER274`, полоса `f8diag` 02.11.2026; решение Amber вопросником, дословно:
+        /// «Откатить и отсеивать по признаку (Рекомендую)») ВЫХОД-ПРЕДЕЛ — НЕ ВЫХОД. У строк
+        /// поставки NuDat с `intensity_unc` = `LT` или `LE` число в столбце выхода —
+        /// ВЕРХНЯЯ граница, а не измеренный выход: 1282 строки `LT` (из них 449 гамм у 141
+        /// родителя) и 135 `LE` (14 гамм у 7). Строки из базы не удаляются (удаление
+        /// откачено) — их не берут ВЫХОДОМ читатели: довесок к `where` у каждого запроса,
+        /// который складывает выходы в состав, линии или суммы. `GT`/`GE` — нижняя граница
+        /// НАСТОЯЩЕЙ линии, `AP`/`CA`/`SY` — оценка; они берутся, как есть.
+        ///
+        /// Одно правило на проект, тем же доводом, что <see cref="LevelClause"/>: генератор
+        /// корпуса (`tools/CORPUS/scripts/chains.py`) читает этот текст отсюда, а код —
+        /// <see cref="IsUpperLimit"/> (отсев ветвей β, `FsaBetaLibrary.Screen`, и показ
+        /// «Базы изотопов»). Столбец — без алиаса таблицы.
+        /// </summary>
+        public const string NotLimitClause =
+            " and (intensity_unc is null or upper(trim(intensity_unc)) not in ('LT', 'LE'))";
+
+        /// <summary>(`AMBER274`, `f8diag`) Выход строки — верхний предел (`LT`, `LE`), см. <see cref="NotLimitClause"/>.</summary>
+        public static bool IsUpperLimit(string intensityUnc)
+        {
+            string unc = (intensityUnc ?? "").Trim().ToUpperInvariant();
+            return unc == "LT" || unc == "LE";
+        }
+
+        /// <summary>
         /// Довесок к `where` для запроса к `decay_chain`: какая из строк
         /// описывает ФИЗИЧЕСКИЙ распад, а какая — тот же переход у
         /// ВОЗБУЖДЁННОГО уровня. Вопрос свой, отдельный от

@@ -67,7 +67,8 @@ namespace FsaComponentDumpProbe
         // `AMBER52`, формат 10).
         static readonly string[] ChannelNames =
         {
-            "peak", "compton", "esc_se", "esc_xray", "esc_de", "esc_xray_l", "ann_out"
+            "peak", "compton", "esc_se", "esc_xray", "esc_de", "esc_xray_l", "ann_out",
+            "sample_beta"   // (`AMBER274`, `Р9`) восьмой — канал образа: бета пробы
         };
 
         static int Main(string[] args)

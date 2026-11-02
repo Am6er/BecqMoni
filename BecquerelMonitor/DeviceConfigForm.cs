@@ -1105,6 +1105,11 @@ namespace BecquerelMonitor
             this.textBox17.Text = config.BackgroundSpectrumPathname;
 
             this.contentsLoading = false;
+
+            // (`AMBER285`) Пустое «Вещество кристалла» — умолчанием из геометрии
+            // кривых прибора. ПОСЛЕ снятия contentsLoading: выбор в списке
+            // помечает прибор изменённым, в файл он уходит только «Сохранить».
+            this.OfferCrystalFromGeometry(config);
         }
 
         public void LoadPeakFinderPresetContents(DeviceConfigInfo config)
@@ -1565,6 +1570,13 @@ namespace BecquerelMonitor
                     DeviceConfigInfo rejected = this.activeDeviceConfig;
                     DeviceConfigInfo record = this.ManagerRecordOf(rejected);
                     List<string> restored = new List<string>();
+                    // (`AMBER285`) «Нет» при кристалле, подставленном окном из
+                    // геометрии, — отказ и от него: перечитанный ниже прибор
+                    // кристалла снова не получает, пока окно открыто.
+                    if (rejected.Guid != null && rejected.Guid == this.crystalDefaultOffered)
+                    {
+                        this.crystalDefaultDeclined.Add(rejected.Guid);
+                    }
                     if (record == null)
                     {
                         // (`AMBER201`, Р4) Возвращаться НЕКУДА: у отвергнутого
@@ -1788,33 +1800,53 @@ namespace BecquerelMonitor
             object chosen = none;
 
             string wanted = config != null ? config.CrystalMaterialName : null;
-            bool found = false;
             foreach (BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.Entry entry
                      in BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.Of(
                          BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.MaterialKind.Crystal))
             {
                 combo.Items.Add(entry);
-                if (!found && !string.IsNullOrEmpty(wanted)
-                    && string.Equals(entry.Name, wanted, StringComparison.OrdinalIgnoreCase))
-                {
-                    chosen = entry;
-                    found = true;
-                }
             }
 
-            if (!found && !string.IsNullOrEmpty(wanted))
+            if (!string.IsNullOrEmpty(wanted))
             {
-                // Вещество с таким именем в библиотеке ещё есть, но лежит уже не
-                // среди кристаллов, — берём его как есть; нет вовсе — остаётся
-                // само имя, чтобы сохранение его не потеряло.
-                BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.Entry aside =
-                    BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.ByName(wanted);
-                object item = aside != null ? (object)aside : wanted;
-                combo.Items.Add(item);
-                chosen = item;
+                chosen = this.CrystalComboItem(wanted, true);
             }
 
             combo.SelectedItem = chosen;
+        }
+
+        /// <summary>
+        /// Строка списка веществ кристалла для имени вещества — то сопоставление,
+        /// которым <see cref="LoadCrystalMaterial"/> ищет поле прибора, а
+        /// (`AMBER285`) окно — кристалл геометрии: по имени вещества без учёта
+        /// регистра, первая подходящая строка списка (кристаллы библиотеки).
+        /// Нет среди них — запасной путь: вещество с таким именем в библиотеке ещё
+        /// есть, но лежит уже не среди кристаллов, — берётся оно как есть; нет
+        /// вовсе — остаётся само имя, чтобы сохранение его не потеряло. Запасная
+        /// строка добавляется в список, только если <paramref name="add"/>.
+        /// </summary>
+        object CrystalComboItem(string name, bool add)
+        {
+            ComboBox combo = this.crystalMaterialCombo;
+            foreach (object item in combo.Items)
+            {
+                var entry = item as BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.Entry;
+                string itemName = entry != null ? entry.Name : item as string;
+                if (itemName != null && string.Equals(itemName, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return item;
+                }
+            }
+
+            BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.Entry aside =
+                BecquerelMonitor.EfficiencyMaker.GeometryMaterialLibrary.ByName(name);
+            object fallback = aside != null ? (object)aside : name;
+            if (add)
+            {
+                combo.Items.Add(fallback);
+            }
+
+            return fallback;
         }
 
         /// <summary>
@@ -1860,6 +1892,376 @@ namespace BecquerelMonitor
             }
 
             this.SetActiveDeviceConfigDirty();
+        }
+
+        // ------------------------------------------------------------------
+        // ВЕЩЕСТВО КРИСТАЛЛА УМОЛЧАНИЕМ ИЗ ГЕОМЕТРИИ (`AMBER285`, 02.11.2026).
+        //
+        // Amber, консоль, дословно: «Запиши задачу, если в геометрии у прибора,
+        // задаётся кристалл детектора, то брать его умолчанием где указано на
+        // картинке. Если создаётся геометрия с другим кристаллом детектора в этом
+        // приборе, спрашивать про это умолчание.» Вопросником того же дня,
+        // дословно: существующие приборы — «При открытии в окне прибора, файл —
+        // вашим «Сохранить» (Рекомендую)»; когда спрашивать — «При сохранении
+        // новой и изменённой геометрии (Рекомендую)».
+        //
+        // ⛔ Заполняет только ОКНО. Загрузка конфигураций (`DeviceConfigManager`),
+        // пробы и корпус поля не трогают: в файл оно попадает лишь кнопкой
+        // «Сохранить» (или «Да» на «Сохранить изменения?»). Геометрия кривой
+        // спектра первична и для кривой света вкладки FWHM, и для FSA; поле —
+        // их запасной источник (`A276`), порядок не меняется.
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`AMBER285`) Guid приборов, у которых человек В ЭТОМ ОКНЕ отказался от
+        /// кристалла геометрии: ответил «Нет» на «Сохранить изменения?», когда
+        /// кристалл был предложен окном, или «Оставить не заданным» при разных
+        /// кристаллах. Без этого «Нет» не держалось бы: ответ перечитывает прибор
+        /// из файла (<see cref="ConfirmSaveDeviceConfig(bool)"/>), загрузка снова
+        /// подставила бы кристалл и пометила прибор изменённым, и вопрос
+        /// «Сохранить?» вставал бы на каждой смене вкладки. Живёт, пока открыто
+        /// окно; открытое заново предлагает снова.
+        /// </summary>
+        readonly HashSet<string> crystalDefaultDeclined = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>(`AMBER285`) Guid прибора, которому окно последним подставило кристалл геометрии.</summary>
+        string crystalDefaultOffered;
+
+        /// <summary>(`AMBER285`) Guid прибора, для которого выбор из разных кристаллов уже ждёт в очереди окна.</summary>
+        string crystalChoiceQueued;
+
+        /// <summary>(`AMBER285`) Кристалл геометрий прибора и кривые, у которых он стоит.</summary>
+        internal sealed class GeometryCrystal
+        {
+            public string Name;
+            public readonly List<string> Curves = new List<string>();
+        }
+
+        /// <summary>
+        /// (`AMBER285`) Имя вещества кристалла геометрии; пусто — геометрии нет
+        /// или кристалл в ней не назван.
+        /// </summary>
+        internal static string CrystalNameOf(EfficiencyMaker.GeometryModel geometry)
+        {
+            if (geometry == null || geometry.Crystal == null || geometry.Crystal.Name == null)
+            {
+                return "";
+            }
+
+            return geometry.Crystal.Name.Trim();
+        }
+
+        /// <summary>
+        /// (`AMBER285`) Разные кристаллы геометрий кривых прибора — по имени
+        /// вещества без учёта регистра (как сопоставляет <see cref="LoadCrystalMaterial"/>),
+        /// в порядке кривых. Кривые без геометрии и геометрии без названного
+        /// кристалла не в счёт. Без окна — его мерит проба.
+        /// </summary>
+        internal static List<GeometryCrystal> GeometryCrystalsOf(DeviceConfigInfo config)
+        {
+            var list = new List<GeometryCrystal>();
+            if (config == null || config.EfficiencyConfigs == null)
+            {
+                return list;
+            }
+
+            foreach (EfficiencyConfigData curve in config.EfficiencyConfigs)
+            {
+                string name = CrystalNameOf(curve == null ? null : curve.Geometry);
+                if (name.Length == 0)
+                {
+                    continue;
+                }
+
+                GeometryCrystal found = list.Find(
+                    c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+                if (found == null)
+                {
+                    found = new GeometryCrystal { Name = name };
+                    list.Add(found);
+                }
+
+                found.Curves.Add(curve.Name ?? "");
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// (`AMBER285`) Загрузка прибора в окно: поле «Вещество кристалла» пустое,
+        /// а у кривых прибора есть геометрия с кристаллом, — окно показывает этот
+        /// кристалл вместо «(не задано)» и помечает прибор изменённым.
+        ///
+        ///   * кристалл у всех геометрий один — он и ставится;
+        ///   * кристаллы РАЗНЫЕ — окно не выбирает само (решение Amber: «тоже
+        ///     спрашиваем, а не выбираем сами»), а спрашивает, какой взять
+        ///     (<see cref="QueueCrystalChoice"/>); ответ «Оставить не заданным»
+        ///     оставляет поле пустым;
+        ///   * геометрии с кристаллом нет — поле не трогается.
+        ///
+        /// Только у прибора, который окно правит (<see cref="activeDeviceConfig"/>):
+        /// проба, зовущая загрузку отражением на чужом объекте, поля не получает.
+        /// </summary>
+        void OfferCrystalFromGeometry(DeviceConfigInfo config)
+        {
+            if (config == null || !object.ReferenceEquals(config, this.activeDeviceConfig)
+                || !string.IsNullOrEmpty(config.CrystalMaterialName)
+                || (config.Guid != null && this.crystalDefaultDeclined.Contains(config.Guid)))
+            {
+                return;
+            }
+
+            List<GeometryCrystal> crystals = GeometryCrystalsOf(config);
+            if (crystals.Count == 0)
+            {
+                return;
+            }
+
+            if (crystals.Count > 1)
+            {
+                this.QueueCrystalChoice(config.Guid);
+                return;
+            }
+
+            this.SetCrystalFromGeometry(crystals[0].Name);
+        }
+
+        /// <summary>
+        /// (`AMBER285`) Поставить кристалл геометрии в список и пометить прибор
+        /// изменённым (выбор в списке зовёт <see cref="SetActiveDeviceConfigDirty"/>
+        /// и сам; явный вызов — на случай, когда строка уже стояла).
+        /// </summary>
+        void SetCrystalFromGeometry(string crystal)
+        {
+            this.crystalMaterialCombo.SelectedItem = this.CrystalComboItem(crystal, true);
+            if (this.activeDeviceConfig != null)
+            {
+                this.crystalDefaultOffered = this.activeDeviceConfig.Guid;
+            }
+
+            this.SetActiveDeviceConfigDirty();
+        }
+
+        /// <summary>
+        /// (`AMBER285`) Разные кристаллы у кривых — спросить, какой взять. Вопрос
+        /// ставится в очередь окна (<c>BeginInvoke</c>), а не задаётся посреди
+        /// загрузки: загрузку зовут обработчик выбора строки, перестройка списка и
+        /// событие <c>Load</c>, когда окно ещё не на экране. К моменту вопроса
+        /// прибор перечитывается заново — по Guid: строка списка могла получить
+        /// свежий клон.
+        ///
+        /// ⛔ Без окон (`S100`, проба зовёт загрузку отражением — память
+        /// `headless-run-blocks-on-dialog`) вопроса нет: поле остаётся пустым.
+        /// Шов стенда (<see cref="AppUi.Probe"/>) отвечает только «да/нет» — выбора
+        /// из списка он не умеет, и при нём поле тоже остаётся пустым.
+        /// </summary>
+        void QueueCrystalChoice(string guid)
+        {
+            if (!AppUi.HasWindows || AppUi.Probe != null || this.IsDisposed || !this.IsHandleCreated
+                || string.IsNullOrEmpty(guid) || guid == this.crystalChoiceQueued)
+            {
+                return;
+            }
+
+            this.crystalChoiceQueued = guid;
+            this.BeginInvoke((MethodInvoker)delegate
+            {
+                this.crystalChoiceQueued = null;
+                DeviceConfigInfo now = this.activeDeviceConfig;
+                if (this.IsDisposed || !this.Visible || now == null || now.Guid != guid
+                    || !string.IsNullOrEmpty(now.CrystalMaterialName)
+                    || this.CrystalMaterialFromForm().Length > 0
+                    || this.crystalDefaultDeclined.Contains(guid))
+                {
+                    return;
+                }
+
+                List<GeometryCrystal> crystals = GeometryCrystalsOf(now);
+                if (crystals.Count == 0)
+                {
+                    return;
+                }
+
+                string chosen = crystals.Count == 1 ? crystals[0].Name : this.AskCrystalChoice(crystals);
+                if (chosen == null)
+                {
+                    this.crystalDefaultDeclined.Add(guid);
+                    return;
+                }
+
+                this.SetCrystalFromGeometry(chosen);
+            });
+        }
+
+        /// <summary>
+        /// (`AMBER285`) Окно выбора кристалла: по строке на каждый кристалл (имя —
+        /// как в списке «Вещество кристалла», в скобках — кривые с ним) и две
+        /// кнопки. null — «Оставить не заданным» или окно закрыто.
+        /// </summary>
+        string AskCrystalChoice(List<GeometryCrystal> crystals)
+        {
+            using (Form dialog = new Form())
+            {
+                dialog.Text = FormString("crystalFromGeometryChoiceTitle", "Crystal Material");
+                dialog.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dialog.MinimizeBox = false;
+                dialog.MaximizeBox = false;
+                dialog.ShowInTaskbar = false;
+                dialog.StartPosition = FormStartPosition.CenterParent;
+                dialog.Icon = Resources.becqmoni;
+                dialog.AutoSize = true;
+                dialog.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+                dialog.Padding = new Padding(12);
+
+                FlowLayoutPanel column = new FlowLayoutPanel
+                {
+                    FlowDirection = FlowDirection.TopDown,
+                    WrapContents = false,
+                    AutoSize = true,
+                    AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                    Dock = DockStyle.Fill,
+                };
+
+                column.Controls.Add(new Label
+                {
+                    AutoSize = true,
+                    MaximumSize = new Size(440, 0),
+                    Margin = new Padding(0, 0, 0, 8),
+                    Text = FormString("crystalFromGeometryChoicePrompt",
+                        "The geometries of this device's efficiency curves have different crystals."
+                        + " Which one should be the device's crystal material?"),
+                });
+
+                string itemFormat = FormString("crystalFromGeometryChoiceItem", "{0} (curves: {1})");
+                List<RadioButton> options = new List<RadioButton>();
+                foreach (GeometryCrystal crystal in crystals)
+                {
+                    RadioButton option = new RadioButton
+                    {
+                        AutoSize = true,
+                        MaximumSize = new Size(440, 0),
+                        Text = string.Format(CultureInfo.InvariantCulture, itemFormat,
+                                             this.CrystalComboItem(crystal.Name, false),
+                                             string.Join(", ", crystal.Curves.ToArray())),
+                        Tag = crystal.Name,
+                        Checked = options.Count == 0,
+                    };
+                    options.Add(option);
+                    column.Controls.Add(option);
+                }
+
+                FlowLayoutPanel buttons = new FlowLayoutPanel
+                {
+                    FlowDirection = FlowDirection.RightToLeft,
+                    AutoSize = true,
+                    AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                    Anchor = AnchorStyles.Right,
+                    Margin = new Padding(0, 12, 0, 0),
+                };
+                Button leave = new Button
+                {
+                    AutoSize = true,
+                    Text = FormString("crystalFromGeometryChoiceLeave", "Leave not specified"),
+                    DialogResult = DialogResult.Cancel,
+                };
+                Button take = new Button
+                {
+                    AutoSize = true,
+                    Text = FormString("crystalFromGeometryChoiceTake", "Use selected"),
+                    DialogResult = DialogResult.OK,
+                };
+                buttons.Controls.Add(leave);
+                buttons.Controls.Add(take);
+                column.Controls.Add(buttons);
+
+                dialog.Controls.Add(column);
+                dialog.AcceptButton = take;
+                dialog.CancelButton = leave;
+
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                {
+                    return null;
+                }
+
+                foreach (RadioButton option in options)
+                {
+                    if (option.Checked)
+                    {
+                        return option.Tag as string;
+                    }
+                }
+
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER285`) «Сохранить» конструктора кривой положил в прибор
+        /// геометрию с НОВЫМ для кривой кристаллом X (кривая была без геометрии
+        /// или с другим кристаллом, <see cref="EfficiencyMakerForm.SavedCrystalIsNew"/>):
+        ///
+        ///   * поле прибора пустое — X ставится без вопроса;
+        ///   * поле Y непустое и не X — вопрос «У геометрии кристалл X, у прибора —
+        ///     Y. Сделать X веществом прибора?»; «Да» ставит X и помечает прибор
+        ///     изменённым, «Нет» поле не трогает;
+        ///   * поле уже X — ничего.
+        ///
+        /// Имена в вопросе — как в списке «Вещество кристалла». Без окон вопроса
+        /// нет (`S100`): поле остаётся прежним.
+        /// </summary>
+        void OfferCrystalOfSavedGeometry(IWin32Window owner, EfficiencyConfigData curve)
+        {
+            string crystal = CrystalNameOf(curve == null ? null : curve.Geometry);
+            if (crystal.Length == 0 || this.activeDeviceConfig == null)
+            {
+                return;
+            }
+
+            string field = this.CrystalMaterialFromForm();
+            if (string.Equals(field, crystal, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (field.Length > 0)
+            {
+                if (!AppUi.HasWindows || this.IsDisposed || !this.Visible)
+                {
+                    return;
+                }
+
+                string shown = Convert.ToString(this.CrystalComboItem(crystal, false), CultureInfo.InvariantCulture);
+                string current = Convert.ToString(this.crystalMaterialCombo.SelectedItem, CultureInfo.InvariantCulture);
+                string question = string.Format(CultureInfo.InvariantCulture,
+                    FormString("crystalFromGeometryQuestion",
+                        "The geometry has crystal {0}, the device has {1}. Make {0} the device's crystal material?"),
+                    shown, current);
+                if (!AppUi.AskYesNo(owner ?? this, question, Resources.ConfirmationDialogTitle,
+                                    MessageBoxIcon.Question, false))
+                {
+                    return;
+                }
+            }
+
+            this.SetCrystalFromGeometry(crystal);
+        }
+
+        /// <summary>
+        /// Строка из ресурсов САМОЙ ФОРМЫ (<c>DeviceConfigForm.resx</c> /
+        /// <c>DeviceConfigForm.ru.resx</c>), как <see cref="CrystalMaterialNotSetCaption"/>;
+        /// нет её — английский запасной текст.
+        /// </summary>
+        static string FormString(string key, string fallback)
+        {
+            try
+            {
+                string value = new ComponentResourceManager(typeof(DeviceConfigForm)).GetString(key);
+                return string.IsNullOrEmpty(value) ? fallback : value;
+            }
+            catch (Exception)
+            {
+                return fallback;
+            }
         }
 
         // ⛔ (`AMBER280`, 29.10.2026) Ручной ввод коэффициентов шкалы снят: поля

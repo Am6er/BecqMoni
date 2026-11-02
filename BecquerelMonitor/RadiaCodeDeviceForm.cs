@@ -189,12 +189,15 @@ namespace BecquerelMonitor
             DialogResult dialogResult = MessageBox.Show(string.Format(Resources.LoadDefaultPeakFinderSettingsQuestion, model), Resources.LoadDefaultPeakFinderSettingsQuestionTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (dialogResult == DialogResult.Yes)
             {
+                // (`AMBER269`) Кривая FWHM заготовки строится по её трём числам на
+                //   шкале этого прибора (см. RadiacodePresets).
+                EnergyCalibration scale = deviceConfigForm.ActiveDeviceConfig.EnergyCalibration;
                 switch (model)
                 {
-                    case "RadiaCode-101": deviceConfigForm.ActiveDeviceConfig.PeakDetectionMethodConfig = RadiacodePresets.RC101_FWHM_Preset(); break;
-                    case "RadiaCode-102": deviceConfigForm.ActiveDeviceConfig.PeakDetectionMethodConfig = RadiacodePresets.RC102_FWHM_Preset(); break;
-                    case "RadiaCode-103": deviceConfigForm.ActiveDeviceConfig.PeakDetectionMethodConfig = RadiacodePresets.RC103_FWHM_Preset(); break;
-                    case "RadiaCode-110": deviceConfigForm.ActiveDeviceConfig.PeakDetectionMethodConfig = RadiacodePresets.RC103_FWHM_Preset(); break;
+                    case "RadiaCode-101": deviceConfigForm.ActiveDeviceConfig.PeakDetectionMethodConfig = RadiacodePresets.RC101_FWHM_Preset(scale); break;
+                    case "RadiaCode-102": deviceConfigForm.ActiveDeviceConfig.PeakDetectionMethodConfig = RadiacodePresets.RC102_FWHM_Preset(scale); break;
+                    case "RadiaCode-103": deviceConfigForm.ActiveDeviceConfig.PeakDetectionMethodConfig = RadiacodePresets.RC103_FWHM_Preset(scale); break;
+                    case "RadiaCode-110": deviceConfigForm.ActiveDeviceConfig.PeakDetectionMethodConfig = RadiacodePresets.RC103_FWHM_Preset(scale); break;
                 }
                 
                 deviceConfigForm.LoadPeakFinderPresetContents(deviceConfigForm.ActiveDeviceConfig);
@@ -351,9 +354,22 @@ namespace BecquerelMonitor
         }
     }
 
+    /// <summary>
+    /// Заготовки настроек поиска пиков RadiaCode.
+    ///
+    /// ⛔ (`AMBER269`, 01.11.2026) КРИВАЯ FWHM ЗАГОТОВКИ — ПО ЕЁ ТРЁМ ЧИСЛАМ. Три
+    /// числа ставятся свойствами ПОСЛЕ конструктора, а кривую конструктор уже
+    /// построил по своим начальным 15/3756/103 — и прибор, заведённый заготовкой,
+    /// носил эту заглушку при числах 4/266/26: «Применить» и новый спектр давали
+    /// её, открытие файла — кривую по трём числам. Решение Amber 01.11.2026
+    /// вопросником, дословно: «Строить по трём числам (Рекомендую)». Правило
+    /// кривой — то же, что у спектра без своей кривой
+    /// (<c>FwhmCalibration.DefaultCalibration</c>, его зовёт и
+    /// <c>DocumentManager.StandInFwhm</c>), на шкале прибора, если её дали.
+    /// </summary>
     public class RadiacodePresets
     {
-        public static FWHMPeakDetectionMethodConfig RC101_FWHM_Preset()
+        public static FWHMPeakDetectionMethodConfig RC101_FWHM_Preset(EnergyCalibration scale = null)
         {
             FWHMPeakDetectionMethodConfig config = new FWHMPeakDetectionMethodConfig();
             config.Ch_Concat = 1024;
@@ -364,10 +380,10 @@ namespace BecquerelMonitor
             config.Width_Fwhm = 31;
             config.Min_Range = 15;
 
-            return config;
+            return WithCurveOfItsNumbers(config, scale);
         }
 
-        public static FWHMPeakDetectionMethodConfig RC102_FWHM_Preset()
+        public static FWHMPeakDetectionMethodConfig RC102_FWHM_Preset(EnergyCalibration scale = null)
         {
             FWHMPeakDetectionMethodConfig config = new FWHMPeakDetectionMethodConfig();
             config.Ch_Concat = 1024;
@@ -378,10 +394,10 @@ namespace BecquerelMonitor
             config.Width_Fwhm = 20;
             config.Min_Range = 15;
 
-            return config;
+            return WithCurveOfItsNumbers(config, scale);
         }
 
-        public static FWHMPeakDetectionMethodConfig RC103_FWHM_Preset()
+        public static FWHMPeakDetectionMethodConfig RC103_FWHM_Preset(EnergyCalibration scale = null)
         {
             FWHMPeakDetectionMethodConfig config = new FWHMPeakDetectionMethodConfig();
             config.Ch_Concat = 1024;
@@ -392,6 +408,21 @@ namespace BecquerelMonitor
             config.Width_Fwhm = 26;
             config.Min_Range = 10;
 
+            return WithCurveOfItsNumbers(config, scale);
+        }
+
+        /// <summary>
+        /// Кривая по трём числам заготовки. Числа заготовок дают растущую кривую при
+        /// любой шкале, так что отказа здесь не бывает; случись он — остаётся
+        /// кривая конструктора, а не пустота (окну прибора пустая кривая не годна).
+        /// </summary>
+        static FWHMPeakDetectionMethodConfig WithCurveOfItsNumbers(FWHMPeakDetectionMethodConfig config, EnergyCalibration scale)
+        {
+            FwhmCalibration curve = FwhmCalibration.DefaultCalibration(config, scale ?? new PolynomialEnergyCalibration());
+            if (curve != null)
+            {
+                config.FwhmCalibration = curve;
+            }
             return config;
         }
     }

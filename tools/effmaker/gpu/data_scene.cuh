@@ -96,6 +96,17 @@ struct ScatterElementG
     real Z13;
     real ZZ1;
     bool Mott;
+    // (`AMBER274`, физика 29, `phys29b`) = ScatterElement.MottFit / MottCoef: поправка Мотта
+    // при Z > 30 подгонкой Geant4 (MottData.cs), R_eff = sum_j x^j sum_k c[j*6+k] (beta - 0.7181228)^k.
+    bool MottFit;
+    real MottCoef[30];
+    // (`AMBER274`, физика 30, `phys29c`) = ScatterElement.Part: 0 — Z(Z+1) вместе (как было), 1 — ядерная Z²,
+    // 2 — электронная Z (e–e, Мольер). = ScatterElement.DpwaEl / DpwaPos (Ф1): узлы DPWA в арене R по 10 чисел
+    // на узел — ln T, ln a, c0…c4, жёсткое Σc_j h_j, мягкое Σc_j s_j, мажоранта P (Len = 10·n; 0 — нет) и
+    // (n − 1)/(ln T_n − ln T_1) прямого поиска узла.
+    int Part;
+    int DpwaEl; int DpwaElLen; real DpwaElInv;
+    int DpwaPos; int DpwaPosLen; real DpwaPosInv;
 };
 
 // = `EfficiencySimulator.Region` (EfficiencySimulator.cs:2023) БЕЗ кэшей на
@@ -158,4 +169,16 @@ struct SceneG
     int waterTable;           // = WaterTable() (:7683) → D.electronMats — таблица пустоты
     bool crystalHasPartials;  // :1646
     real crystalRadiationLength; // = CrystalRadiationLength() (ElectronTransport.cs:156), г/см²
+
+    // (`AMBER274`, Э1 + физика 28) Капсула точечного источника и воздух до корпуса —
+    // `EfficiencySimulator.CapsuleExit` (геометрия симулятора — уже в см).
+    bool capsulePoint;        // SourceType == Point && Scene == None
+    real capsuleRingHalf, capsuleRingRIn, capsuleRingROut;   // ½ высоты, радиусы кольца, см
+    int capsuleRingMedium;    // = CarryMedium(OsgiRingMaterial()) → D.electronMats, −1 — нет кольца
+    real capsuleRingDensity;
+    real capsuleThickness;    // плёнка, см
+    int capsuleFilmMedium;    // = CarryMedium(SourceCapsule) → D.electronMats, −1 — нет плёнки
+    real capsuleFilmDensity;
+    real pointAirCm;          // = pointAirCm симулятора
+    bool capsuleAir;          // = CapsuleAir симулятора
 };

@@ -37,6 +37,9 @@ namespace BecquerelMonitor
             this.backscatterCheckBox = new System.Windows.Forms.CheckBox();
             this.escapeCheckBox = new System.Windows.Forms.CheckBox();
             this.pileUpCheckBox = new System.Windows.Forms.CheckBox();
+            this.fitLowerBoundFlow = new System.Windows.Forms.FlowLayoutPanel();
+            this.fitLowerBoundLabel = new System.Windows.Forms.Label();
+            this.fitLowerBoundUpDown = new InvariantNumericUpDown();
             this.residualBandCheckBox = new System.Windows.Forms.CheckBox();
             this.spectralDataCheckBox = new System.Windows.Forms.CheckBox();
             this.matrixLayerLabel = new System.Windows.Forms.Label();
@@ -55,7 +58,9 @@ namespace BecquerelMonitor
             this.chainFlow.SuspendLayout();
             this.extrasGroupBox.SuspendLayout();
             this.extrasFlow.SuspendLayout();
+            this.fitLowerBoundFlow.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.reportTable)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.fitLowerBoundUpDown)).BeginInit();
             this.SuspendLayout();
             //
             // sourceGroupBox
@@ -183,6 +188,7 @@ namespace BecquerelMonitor
             this.extrasFlow.Controls.Add(this.backscatterCheckBox);
             this.extrasFlow.Controls.Add(this.escapeCheckBox);
             this.extrasFlow.Controls.Add(this.pileUpCheckBox);
+            this.extrasFlow.Controls.Add(this.fitLowerBoundFlow);
             this.extrasFlow.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
             this.extrasFlow.Name = "extrasFlow";
             this.extrasFlow.WrapContents = false;
@@ -231,6 +237,33 @@ namespace BecquerelMonitor
             this.pileUpCheckBox.Name = "pileUpCheckBox";
             this.pileUpCheckBox.UseVisualStyleBackColor = true;
             this.pileUpCheckBox.CheckedChanged += new System.EventHandler(this.pileUpCheckBox_CheckedChanged);
+            //
+            // fitLowerBoundFlow
+            //
+            // (`AMBER269`, 02.11.2026) нижняя граница разбора, кэВ — расчётное поле; 0 — правило порога.
+            // Подпись и поле — ОДНОЙ строкой: двумя строками окно отнимало у таблицы 45 px, и проба
+            // окна (раздел 12) видела таблицу ниже 150 px.
+            //
+            resources.ApplyResources(this.fitLowerBoundFlow, "fitLowerBoundFlow");
+            this.fitLowerBoundFlow.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.fitLowerBoundFlow.Controls.Add(this.fitLowerBoundLabel);
+            this.fitLowerBoundFlow.Controls.Add(this.fitLowerBoundUpDown);
+            this.fitLowerBoundFlow.Name = "fitLowerBoundFlow";
+            this.fitLowerBoundFlow.WrapContents = false;
+            //
+            // fitLowerBoundLabel
+            //
+            resources.ApplyResources(this.fitLowerBoundLabel, "fitLowerBoundLabel");
+            this.fitLowerBoundLabel.Name = "fitLowerBoundLabel";
+            //
+            // fitLowerBoundUpDown
+            //
+            resources.ApplyResources(this.fitLowerBoundUpDown, "fitLowerBoundUpDown");
+            this.fitLowerBoundUpDown.DecimalPlaces = 1;
+            this.fitLowerBoundUpDown.Maximum = new decimal(new int[] { 3000, 0, 0, 0 });
+            this.fitLowerBoundUpDown.Name = "fitLowerBoundUpDown";
+            this.fitLowerBoundUpDown.Value = new decimal(new int[] { 0, 0, 0, 0 });
+            this.fitLowerBoundUpDown.ValueChanged += new System.EventHandler(this.fitLowerBoundUpDown_ValueChanged);
             //
             // residualBandCheckBox
             //
@@ -340,7 +373,10 @@ namespace BecquerelMonitor
             this.extrasGroupBox.PerformLayout();
             this.extrasFlow.ResumeLayout(false);
             this.extrasFlow.PerformLayout();
+            this.fitLowerBoundFlow.ResumeLayout(false);
+            this.fitLowerBoundFlow.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.reportTable)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.fitLowerBoundUpDown)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -367,6 +403,9 @@ namespace BecquerelMonitor
         private System.Windows.Forms.CheckBox backscatterCheckBox;
         private System.Windows.Forms.CheckBox escapeCheckBox;
         private System.Windows.Forms.CheckBox pileUpCheckBox;
+        private System.Windows.Forms.FlowLayoutPanel fitLowerBoundFlow;
+        private System.Windows.Forms.Label fitLowerBoundLabel;
+        private InvariantNumericUpDown fitLowerBoundUpDown;
         private System.Windows.Forms.CheckBox residualBandCheckBox;
         private System.Windows.Forms.CheckBox spectralDataCheckBox;
         private System.Windows.Forms.Label matrixLayerLabel;

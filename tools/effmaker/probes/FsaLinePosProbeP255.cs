@@ -149,6 +149,14 @@ namespace BecquerelMonitor.Probes
 
             Console.WriteLine("χ²/ndf Пуассона {0}", F(result.Chi2NdfPoisson, "F2"));
             Console.WriteLine("привязка: {0}", result.AnchorNote);
+            // (`AMBER269`, дефект 4) откат (А2) — словами окна отчёта, en и ru: та же подпись, что в таблице
+            foreach (string culture in new[] { "en", "ru-RU" })
+            {
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+                Console.WriteLine("откат в отчёте [{0}]: {1}", culture, FSAReportView.AnchorRollbackCaption(result) ?? "нет");
+            }
+
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
             Console.WriteLine("ход привязки: {0}", an.ScaleAnchorStats);
             foreach (FsaScaleAnchor anchor in result.ScaleAnchors)
             {

@@ -59,13 +59,19 @@ MIN_YIELD_PCT = 1.0
 def _lines(nucids, db=passport.NUCDB):
     uri = 'file:%s?mode=ro' % os.path.abspath(db).replace('\\', '/')
     c = sqlite3.connect(uri, uri=True)
+    # (`AMBER274`, `f8diag`) строка-предел (`LT`/`LE`) — не выход: правило приложения
+    # `DecayParentRule.NotLimitClause`, прочитанное `chains.NOT_LIMIT` (каталог скриптов — в
+    # путь явно: при `python -I` каталог самого скрипта в `sys.path` не кладётся)
+    if HERE not in sys.path:
+        sys.path.insert(0, HERE)
+    from chains import NOT_LIMIT
     try:
         out = []
         for name, nid in nucids:
             for t, e, i in c.execute(
                     "select type_a, energy_num, intensity_num from decay_radiations "
                     "where parent_nucid=? and type_a in ('G','X') and energy_num>=? "
-                    "and energy_num<? and intensity_num>=? order by energy_num",
+                    "and energy_num<? and intensity_num>=?" + NOT_LIMIT + " order by energy_num",
                     (nid, LIB_FLOOR_KEV, FLOOR_KEV, MIN_YIELD_PCT)):
                 out.append((name, t, e, i))
         return out

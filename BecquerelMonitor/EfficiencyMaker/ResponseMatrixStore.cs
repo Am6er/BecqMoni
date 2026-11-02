@@ -145,7 +145,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 EfficiencyGuid = efficiencyGuid,
                 Stamp = matrix != null ? matrix.Stamp : "",
-                Format = ResponseMatrix.FormatVersion,
+                // (`AMBER274`, `Д6`) Формат ФАЙЛА (11 или 12), а не нынешний номер кода.
+                Format = raw.Length >= 8 ? BitConverter.ToInt32(raw, 4) : ResponseMatrix.FormatVersion,
                 Length = raw.LongLength,
                 Sha256 = Hash(raw),
                 Data = Convert.ToBase64String(packed, Base64FormattingOptions.InsertLineBreaks),

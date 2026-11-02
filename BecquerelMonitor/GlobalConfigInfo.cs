@@ -589,6 +589,19 @@ namespace BecquerelMonitor
 
         public bool PileUpForFsa { get; set; } = true;
 
+        /// <summary>
+        /// (`AMBER269`; решение Amber 02.11.2026 вопросником, дословно: «Да, настройкой FSA с
+        /// умолчанием 40 (Рекомендую)»; число понижено решением Amber 02.11.2026, дословно: «Слой FSA:
+        /// граница 40 кэВ - это оставь, но понизь до 28 kev»; `AMBER274` — умолчание снято до нуля
+        /// решением Amber 03.11.2026 вопросником, дословно: «Правило порога + откат с шириной
+        /// (Рекомендую)», числа — у <see cref="FullSpectrumAnalysis.FsaBand.ShippedFitLowerBoundKev"/>)
+        /// НИЖНЯЯ ГРАНИЦА РАЗБОРА FSA, кэВ — поле окна FSA Report, настройка остаётся;
+        /// 0 — прежнее правило пола по порогу АЦП. Старые файлы без элемента получают умолчание
+        /// поставки (<see cref="FullSpectrumAnalysis.FsaBand.ShippedFitLowerBoundKev"/>). В копию
+        /// конфигурации спектра не пишется: это настройка приложения.
+        /// </summary>
+        public double FitLowerBoundKev { get; set; } = FullSpectrumAnalysis.FsaBand.ShippedFitLowerBoundKev;
+
         /// <summary>Записать семь значений в копию конфигурации спектра.</summary>
         public void CopyTo(FWHMPeakDetectionMethodConfig config)
         {
@@ -635,6 +648,7 @@ namespace BecquerelMonitor
                 Backscatter = this.BackscatterForFsa,
                 EscapeAndAnnihilation = this.EscapeAndAnnihilationForFsa,
                 PileUp = this.PileUpForFsa,
+                FitLowerBoundKev = this.FitLowerBoundKev > 0.0 ? this.FitLowerBoundKev : 0.0,
             };
         }
     }

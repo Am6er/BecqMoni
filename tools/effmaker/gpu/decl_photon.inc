@@ -59,6 +59,7 @@ bool lastCascadeRolled;
 int lastVacancyLine;
 bool lastVacancyRolled;
 real pendingCascadeKev;
+int pendingCascadeShell;    // (`AMBER274`, физика 30, `ckv`) = C# pendingCascadeShell
 int annihilationEscapes;
 // Свет истории (:8155). ⚠ float: несколько слагаемых на историю — годен (map_data §4 п.17);
 // по историям копит полоса Д в double.
@@ -99,9 +100,9 @@ RM_DEVF void PositronStop(real te, real& x, real& y, real& z);
 // --- электрон в кристалле, разрядка атома ---
 RM_DEVF real ElectronLoss(real x, real y, real z, real te, int depth);
 RM_DEVF real ElectronLoss(real x, real y, real z, real te, int depth,
-                          ElectronBirth birth, real rx, real ry, real rz);
+                          ElectronBirth birth, real rx, real ry, real rz, bool positron = false);
 RM_DEVF real PhotoElectronsSplit(real x, real y, real z, real e, int atomZ, int shell,
-                                 real xray, int kLine, real casc, bool cascadeRolled, int depth,
+                                 real xray, int kLine, real casc, int cascShell, bool cascadeRolled, int depth,
                                  real ux, real uy, real uz);
 RM_DEVF real VacancyElectronsSplit(real x, real y, real z, real total, int atomZ,
                                    real bindingKev, real xray, int kLine, bool rolled, int depth,
@@ -109,7 +110,7 @@ RM_DEVF real VacancyElectronsSplit(real x, real y, real z, real total, int atomZ
 // `relax` — индекс в D.relax (C# `MaterialDatabase.Relaxation`).
 RM_DEVF real RelaxationElectrons(real x, real y, real z, int relax,
                                  int shell, real budgetKev, real xray, int kLine, real casc,
-                                 bool cascadeRolled, int depth, bool selfRolled = true);
+                                 int cascShell, bool cascadeRolled, int depth, bool selfRolled = true);
 // Индекс в D.relax, −1 = null.
 RM_DEV int RelaxationOf(int z);
 RM_DEV void AddLight(real deposited, real te);

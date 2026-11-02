@@ -62,7 +62,6 @@ namespace BecquerelMonitor.Utils
             // 
             resources.ApplyResources(this, "$this");
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.MinimizeBox = false;
             this.Name = "CalibrationGraph";
             this.MouseClick += new System.Windows.Forms.MouseEventHandler(this.CalibrationGraph_MouseClick);
             this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.CalibrationGraph_MouseMove);

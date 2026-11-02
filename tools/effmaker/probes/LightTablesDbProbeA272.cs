@@ -24,9 +24,11 @@ namespace LightTablesDbProbeA272
     /// 2. `CurveFor("LaBr3:Ce")`, `CurveFor("CeBr3")` — не null (новые вещества записью в базу).
     /// 3. Отпечаток переноса `SimulatorDataFingerprint` до и после записи — равен.
     /// 4. Положительный контроль: копия базы с подменённым узлом обязана дать расхождение.
-    /// 5. `--electron-out`: кривые электронов LaBr3:Ce/CeBr3 табличной формы
+    /// 5. `--electron-out`: кривые электронов LaBr3:Ce, CeBr3, SrI2, GAGG табличной формы
     ///    (`LightYieldPayne` без продолжения и обрыва, тормозная по составу) — узлы как есть,
-    ///    для варианта развилки «строками в scint_electron_light_yield» (в базу НЕ пишутся).
+    ///    G17 (круговая запись double); ряды `tools/nucdb/data/electron_light/*.tsv` для
+    ///    `import_light_yield.py` (`AMBER272`, полоса `dbdata`, 02.11.2026: решение Amber
+    ///    29.10.2026 «Записать и пересчитать склад»; имя файла — вещество с «:» → «_»).
     ///
     /// Код возврата: 0 — всё сошлось и контроль пойман; 1 — расхождение; 2 — ошибка запуска.
     /// </summary>
@@ -138,7 +140,7 @@ namespace LightTablesDbProbeA272
 
             if (electronOut != null)
             {
-                foreach (string m in new[] { "LaBr3:Ce", "CeBr3" })
+                foreach (string m in new[] { "LaBr3:Ce", "CeBr3", "SrI2", "GAGG" })
                 {
                     WriteElectron(m, electronOut);
                 }
@@ -318,7 +320,9 @@ namespace LightTablesDbProbeA272
             foreach (string n in names)
             {
                 string got = FsaCascadeSummer.PhotonCurveFor(n);
-                string want = OldCurveFor(n);
+                // (`AMBER272`, полоса `dbdata2`, 02.11.2026) SrI2 и GAGG получили СВОИ кривые записью
+                // полосы `dbdata` 02.11.2026 — прежнее правило (null) для них устарело по решению Amber.
+                string want = n == "SrI2" || n == "GAGG" ? n : OldCurveFor(n);
                 if (got != want)
                 {
                     bad++;
@@ -343,14 +347,15 @@ namespace LightTablesDbProbeA272
             FieldInfo fy = typeof(MaterialDatabase.LightYieldCurve).GetField("yieldRel", BindingFlags.NonPublic | BindingFlags.Instance);
             var e = (double[])fe.GetValue(curve);
             var y = (double[])fy.GetValue(curve);
-            string path = Path.Combine(dir, material.Replace(':', '_') + "_electron_table.tsv");
+            string path = Path.Combine(dir, material.Replace(':', '_') + ".tsv");
             using (var w = new StreamWriter(path, false, new UTF8Encoding(false)))
             {
                 w.WriteLine("# {0} [{1}] — табличная форма LightYieldPayne(η базы, без продолжения ниже 1 кэВ и обрыва, тормозная по составу)", material, curve.Variant);
                 w.WriteLine("energy_kev\tyield_rel");
                 for (int i = 0; i < e.Length; i++)
                 {
-                    w.WriteLine("{0}\t{1}", e[i].ToString("R", CultureInfo.InvariantCulture), y[i].ToString("R", CultureInfo.InvariantCulture));
+                    // G17, а не R: в .NET 4.8 «R» не всегда круговой (журнал AMBER272 §8)
+                    w.WriteLine("{0}\t{1}", e[i].ToString("G17", CultureInfo.InvariantCulture), y[i].ToString("G17", CultureInfo.InvariantCulture));
                 }
             }
 

@@ -8509,7 +8509,7 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
     <value>NO BACKGROUND SUBTRACTED</value>
   </data>
   <data name="FSABackgroundRejectedMark" xml:space="preserve">
-    <value> (bg rejected)</value>
+    <value> (bg not subtracted)</value>
   </data>
   <data name="FSABackgroundNoCounts" xml:space="preserve">
     <value>the background spectrum carries no counts</value>
@@ -8524,7 +8524,7 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
     <value> · summing</value>
   </data>
   <data name="FSASuppressedMark" xml:space="preserve">
-    <value> · suppressed</value>
+    <value> · instrument dominates</value>
     <comment>S104: one instrument image outweighs the whole nuclide composition</comment>
   </data>
   <data name="FSAXrayName" xml:space="preserve">
@@ -8537,6 +8537,26 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   </data>
   <data name="FSASumPeakRow" xml:space="preserve">
     <value>{0} — sum peak</value>
+  </data>
+  <data name="FSASumPeakLineRow" xml:space="preserve">
+    <value>Σ {0} keV = {1}</value>
+    <comment>AMBER286: one sum peak under the "— sum peak" row of the FSA report; {0} sum energy, {1} the pair (triple) of quanta</comment>
+  </data>
+  <data name="FSASumPeakLineMore" xml:space="preserve">
+    <value>{0} and {1} more</value>
+    <comment>AMBER286: sum peaks merged within FWHM; {0} the strongest pair, {1} how many other pairs</comment>
+  </data>
+  <data name="FSASumPeakLineCounts" xml:space="preserve">
+    <value>{0} counts</value>
+    <comment>AMBER286: area of the sum peak in the spectrum, model counts</comment>
+  </data>
+  <data name="FSASumPeakLineHintPair" xml:space="preserve">
+    <value>{0}: {1} = {2} keV — {3} counts</value>
+    <comment>AMBER286: tooltip line per pair; {0} nuclide, {1} pair, {2} sum, {3} counts</comment>
+  </data>
+  <data name="FSASumPeakLineHintSigma" xml:space="preserve">
+    <value>Shown because the area is at least 3σ of the measured spectrum within ±FWHM: {0} counts</value>
+    <comment>AMBER286: the noticeability threshold of the row</comment>
   </data>
   <data name="EfficiencyMakerCalcRestored" xml:space="preserve">
     <value>Calculation parameters restored from the existing curve: {0}</value>
@@ -8580,10 +8600,10 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
     <value>&lt; {0} %</value>
   </data>
   <data name="FSANotResolvedNoShare" xml:space="preserve">
-    <value>not resolved</value>
+    <value>not found</value>
   </data>
   <data name="FSANotResolvedHint" xml:space="preserve">
-    <value>The image was offered to the fit and got zero: the model continuum holds that band. Its size needs the detector geometry.</value>
+    <value>The analysis looked for this component and did not find it: the baseline explains its whole region. A detector geometry is needed to estimate the detection limit.</value>
   </data>
   <data name="FSAContinuumLayerHint" xml:space="preserve">
     <value>Model baseline that belongs to no nuclide: above the highest line of the composition there is nothing to attribute it to.</value>
@@ -8592,7 +8612,7 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
     <value>Model baseline that belongs to no nuclide: below {0} keV the response matrix is not trusted (ADC threshold, shielding X-rays, room return), and above the highest line of the composition there is nothing to attribute it to. Above {0} keV the baseline is spread over the nuclide layers.</value>
   </data>
   <data name="FSAUndetectedFoldedRow" xml:space="preserve">
-    <value>not determined ({0})</value>
+    <value>below the detection limit ({0})</value>
   </data>
   <data name="FSAChainMemberRow" xml:space="preserve">
     <value>{0} — {1} chain</value>
@@ -41922,6 +41942,18 @@ A file re-imported into a NEW document therefore has no activity of the selectio
   <data name="ERRChannelEdgesInvalidSpecUtils" xml:space="preserve">
     <value>channel energy boundaries in the file are invalid ({0}); they were not used, and the scale stayed y = x, i.e. the channel number is declared to be the energy (measurements: {1})</value>
   </data>
+  <data name="MSGScaleNotFromFileSpecUtils" xml:space="preserve">
+    <value>The spectrum's energy calibration was not taken from the file ({0}): {1}. With such a calibration, peak labels, the library composition and the decomposition will come out plausible and foreign — check the calibration before computing.</value>
+  </data>
+  <data name="MSGScaleSubstitutedSpecUtils" xml:space="preserve">
+    <value>the file has no energy calibration, or SpecUtils did not accept it (for example, a non-monotonic polynomial), and the SpecUtils default was substituted (measurements: {0})</value>
+  </data>
+  <data name="MSGScaleInvalidSpecUtils" xml:space="preserve">
+    <value>the energy calibration record in the file is invalid (measurements: {0})</value>
+  </data>
+  <data name="MSGScaleIdentitySpecUtils" xml:space="preserve">
+    <value>the calibration was not read and the scale stayed y = x, i.e. the channel number is declared to be the energy (measurements: {0})</value>
+  </data>
   <data name="ERRNoEnergyCalibrationN42" xml:space="preserve">
     <value>The N42 file has no EnergyCalibration element. Using the default calibration y=x: the channel number is taken as the energy.</value>
   </data>
@@ -41940,14 +41972,8 @@ A file re-imported into a NEW document therefore has no activity of the selectio
   <data name="ERRCalibrationReferenceNotFoundN42" xml:space="preserve">
     <value>In {0} measurement(s) of the N42 file the spectrum refers to an energy calibration that is not in the file (first reference: {1}); the calibration was taken by the measurement number instead. Check the energy scale of these spectra.</value>
   </data>
-  <data name="ERRUnsupportedPolynomialOrderN42" xml:space="preserve">
-    <value>The N42 energy calibration is a polynomial of order {0}, and the application reads polynomials up to order 4.</value>
-  </data>
   <data name="ERRUnsupportedCalibrationMethod" xml:space="preserve">
-    <value>Unsupported calibration method polynom order {0}. Only 2,3,4,5 points exist.</value>
-  </data>
-  <data name="ERRUnsupportedCalibrationOrder" xml:space="preserve">
-    <value>Unsupported calibration points number. Got polynom order = {0}</value>
+    <value>Unsupported energy calibration: polynomial order {0}. The order must be 1 or higher.</value>
   </data>
   <data name="ERRUpdateApp" xml:space="preserve">
     <value>This application works in standalone mode. If you want to use update re-install it.</value>
@@ -42130,8 +42156,30 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="ERRSpectrumCheck" xml:space="preserve">
     <value>Error while check document content: calibration, spectrum, channels</value>
   </data>
-  <data name="CalcResetQuestion" xml:space="preserve">
-    <value>Do you want to reset spectrum to default calibration y = x? Otherwise spectrum will not be loaded.</value>
+  <data name="CalcRepairQuestion" xml:space="preserve">
+    <value>Answer Yes to correct it as follows; otherwise the spectrum will not be opened.
+{0}</value>
+  </data>
+  <data name="CalcRepairNothing" xml:space="preserve">
+    <value>Automatic correction cannot fix this. Answer Yes to open the file as it is; otherwise it will not be opened.</value>
+  </data>
+  <data name="CalcRepairCalibrationLine" xml:space="preserve">
+    <value>{0}: energy calibration {1} → {2}</value>
+  </data>
+  <data name="CalcRepairNoCalibration" xml:space="preserve">
+    <value>none</value>
+  </data>
+  <data name="CalcRepairIdentityNote" xml:space="preserve">
+    <value>y = x (the channel number is taken as the energy)</value>
+  </data>
+  <data name="CalcRepairBackgroundRemoved" xml:space="preserve">
+    <value>{0}: the background has no histogram and will be removed</value>
+  </data>
+  <data name="CalcRepairBackgroundOf" xml:space="preserve">
+    <value>{0}, background</value>
+  </data>
+  <data name="MSGDeviceMatchAmbiguous" xml:space="preserve">
+    <value>No device configuration has been assigned to spectrum {0}: the file names the device "{1}" without a configuration identifier known here (serial number: {2}), and several configurations fit it equally: {3}. Choose the device in the Measurement Control panel.</value>
   </data>
   <data name="ResetCalibrationQuestion" xml:space="preserve">
     <value>Reset calibration question</value>
@@ -42305,7 +42353,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>BecqMoni already running! To avoid layout config files damage this app start is canceled. Check task manager for running processes BecquerelMonitor.exe!</value>
   </data>
   <data name="MinPeaksRequirement" xml:space="preserve">
-    <value>Minimum peaks requirement: {0}</value>
+    <value>Min. peaks: {0}</value>
   </data>
   <data name="MSGSaveFWHMCalibration" xml:space="preserve">
     <value>Save FWHM calibration to current device configuration?</value>
@@ -43725,7 +43773,7 @@ Turn it on in Windows settings and search again.</value>
     <value>Full-spectrum decomposition: the efficiency curve is refused — {0}</value>
   </data>
   <data name="FSALibraryEmptied" xml:space="preserve">
-    <value>Full-spectrum decomposition: no component of the composition is left to fit — with a response matrix the crystal's own X-ray and escape images are carried by the matrix; add a nuclide to the composition</value>
+    <value>Full-spectrum decomposition: no nuclides are left in the composition — the crystal X-rays and escape peaks are already accounted for by the response matrix; add a nuclide to the composition</value>
   </data>
   <data name="FSABandTooNarrow" xml:space="preserve">
     <value>Full-spectrum decomposition: the fit band is {0} channels or fewer — widen the peak-search energy range or check the fit floor and the energy calibration</value>
@@ -43734,7 +43782,7 @@ Turn it on in Windows settings and search again.</value>
     <value>Full-spectrum decomposition needs at least {0} channels in the spectrum</value>
   </data>
   <data name="FSANoFit" xml:space="preserve">
-    <value>Full-spectrum decomposition: no fit converged on the drift grid for this spectrum</value>
+    <value>Full-spectrum decomposition: the fit did not converge — check the energy calibration and the composition</value>
   </data>
   <data name="FSANoCalibration" xml:space="preserve">
     <value>Full-spectrum decomposition needs an energy calibration and an FWHM calibration of the spectrum</value>
@@ -43749,7 +43797,7 @@ Turn it on in Windows settings and search again.</value>
     <value>Nuclear data databases not read — the analysis ran without part of the data (lines of a nuclide or the coincidence correction); they are read again at the next recalculation</value>
   </data>
   <data name="FSAAnnihilationDegenerate" xml:space="preserve">
-    <value>{0}: annihilation is its only measurable radiation — the other lines in the fit band yield {1} % per decay, below the {2} % floor; the free 511 image and the nuclide are one column, so the free image is dropped</value>
+    <value>{0}: visible in the spectrum only through 511 keV annihilation (other lines give {1} % per decay, threshold {2} %); the separate 511 keV component is removed so as not to duplicate the nuclide</value>
   </data>
   <data name="FSAReportEfficiencyFieldCurve" xml:space="preserve">
     <value>used as a shape: field-scene curve (cm² per unit fluence); becquerels are not derived from it</value>
@@ -44973,5 +45021,14 @@ Entered: {0}</value>
   </data>
   <data name="EfficiencyMakerLsrmFieldScene" xml:space="preserve">
     <value>The LSRM curve cannot be saved with a field scene (ISO): the LSRM efficiency is per emitted quantum, not per unit fluence, and the dose rate would have no scale. Choose a source scene for this curve, or calculate the curve from this geometry.</value>
+  </data>
+  <data name="MSGFwhmFileStandInReplaced" xml:space="preserve">
+    <value>The spectrum carries the default FWHM calibration; the device's FWHM calibration was used instead.</value>
+  </data>
+  <data name="MSGFwhmDeviceNotFoundBuiltIn" xml:space="preserve">
+    <value>The spectrum carries the default FWHM calibration. This will degrade the FSA decomposition and the activity calculation. Please calibrate FWHM.</value>
+  </data>
+  <data name="MSGFwhmSpectraCount" xml:space="preserve">
+    <value>{0} of {1}:</value>
   </data>
 </root>

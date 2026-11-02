@@ -26,5 +26,12 @@
         public double Coefficient { get; set; }
 
         public double CoefficientError { get; set; }
+
+        /// <summary>
+        /// (`AMBER274`, Ф14) Пометка строки при имени — «по сплошному спектру» у чистого
+        /// бета-излучателя; пусто — пометки нет. Имя (<see cref="Name"/>) остаётся именем
+        /// нуклида: по нему ищется период, подсвечивается слой графика и переносится выбор.
+        /// </summary>
+        public string Note { get; set; }
     }
 }

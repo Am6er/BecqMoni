@@ -48,9 +48,8 @@
             this.numericUpDown5 = new System.Windows.Forms.TextBox();
             this.tractCurvatureLabel = new System.Windows.Forms.Label();
             this.tractCurvatureTextBox = new System.Windows.Forms.TextBox();
-            this.tractCurvatureSourceLabel = new System.Windows.Forms.Label();
             this.panel1 = new System.Windows.Forms.Panel();
-            this.viewEnergyGraphButton = new System.Windows.Forms.Button();
+            this.viewCalibrationButton = new System.Windows.Forms.Button();
             this.getAllPeaksButton = new System.Windows.Forms.Button();
             this.checkBox2 = new System.Windows.Forms.CheckBox();
             this.label37 = new System.Windows.Forms.Label();
@@ -69,13 +68,13 @@
             this.addPeakButton = new System.Windows.Forms.Button();
             this.removePeakButton = new System.Windows.Forms.Button();
             this.calibrationProcessingPanel = new System.Windows.Forms.Panel();
+            this.fwhmGroupBox = new System.Windows.Forms.GroupBox();
             this.label2 = new System.Windows.Forms.Label();
             this.selectCurveComboBox = new System.Windows.Forms.ComboBox();
-            this.viewCalibrationButton = new System.Windows.Forms.Button();
             this.label3 = new System.Windows.Forms.Label();
             this.curveFormulaLabel = new System.Windows.Forms.Label();
             this.minPeaksRequirementLabel = new System.Windows.Forms.Label();
-            this.peakShapeInfoGroupBox = new System.Windows.Forms.GroupBox();
+            this.peakShapeInfoPanel = new System.Windows.Forms.Panel();
             this.viewPeakShapeButton = new System.Windows.Forms.Button();
             this.peakShapeSecondParameterValueLabel = new System.Windows.Forms.Label();
             this.peakShapeFirstParameterValueLabel = new System.Windows.Forms.Label();
@@ -90,13 +89,15 @@
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown6)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.CollectedPeaksTable)).BeginInit();
             this.calibrationProcessingPanel.SuspendLayout();
-            this.peakShapeInfoGroupBox.SuspendLayout();
+            this.fwhmGroupBox.SuspendLayout();
+            this.peakShapeInfoPanel.SuspendLayout();
             this.SuspendLayout();
             //
             // label1
             //
             resources.ApplyResources(this.label1, "label1");
             this.label1.Name = "label1";
+            this.toolTip1.SetToolTip(this.label1, resources.GetString("label1.ToolTip"));
             //
             // textBox15
             //
@@ -123,7 +124,9 @@
             this.groupBox1.Controls.Add(this.numericUpDown5);
             this.groupBox1.Controls.Add(this.tractCurvatureLabel);
             this.groupBox1.Controls.Add(this.tractCurvatureTextBox);
-            this.groupBox1.Controls.Add(this.tractCurvatureSourceLabel);
+            this.groupBox1.Controls.Add(this.label37);
+            this.groupBox1.Controls.Add(this.numericUpDown6);
+            this.groupBox1.Controls.Add(this.checkBox2);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.TabStop = false;
             //
@@ -131,26 +134,31 @@
             //
             resources.ApplyResources(this.label6, "label6");
             this.label6.Name = "label6";
+            this.toolTip1.SetToolTip(this.label6, resources.GetString("label6.ToolTip"));
             //
             // label7
             //
             resources.ApplyResources(this.label7, "label7");
             this.label7.Name = "label7";
+            this.toolTip1.SetToolTip(this.label7, resources.GetString("label7.ToolTip"));
             //
             // label4
             //
             resources.ApplyResources(this.label4, "label4");
             this.label4.Name = "label4";
+            this.toolTip1.SetToolTip(this.label4, resources.GetString("label4.ToolTip"));
             //
             // offsetLabel
             //
             resources.ApplyResources(this.offsetLabel, "offsetLabel");
             this.offsetLabel.Name = "offsetLabel";
+            this.toolTip1.SetToolTip(this.offsetLabel, resources.GetString("offsetLabel.ToolTip"));
             //
             // coeff1Label
             //
             resources.ApplyResources(this.coeff1Label, "coeff1Label");
             this.coeff1Label.Name = "coeff1Label";
+            this.toolTip1.SetToolTip(this.coeff1Label, resources.GetString("coeff1Label.ToolTip"));
             //
             // button1
             //
@@ -164,6 +172,7 @@
             //
             resources.ApplyResources(this.numericUpDown1, "numericUpDown1");
             this.numericUpDown1.Name = "numericUpDown1";
+            this.toolTip1.SetToolTip(this.numericUpDown1, resources.GetString("numericUpDown1.ToolTip"));
             this.numericUpDown1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.numericUpDown1_KeyDown);
             this.numericUpDown1.Leave += new System.EventHandler(this.numericUpDown1_Leave);
             //
@@ -171,6 +180,7 @@
             //
             resources.ApplyResources(this.numericUpDown2, "numericUpDown2");
             this.numericUpDown2.Name = "numericUpDown2";
+            this.toolTip1.SetToolTip(this.numericUpDown2, resources.GetString("numericUpDown2.ToolTip"));
             this.numericUpDown2.KeyDown += new System.Windows.Forms.KeyEventHandler(this.numericUpDown2_KeyDown);
             this.numericUpDown2.Leave += new System.EventHandler(this.numericUpDown2_Leave);
             //
@@ -178,6 +188,7 @@
             //
             resources.ApplyResources(this.numericUpDown3, "numericUpDown3");
             this.numericUpDown3.Name = "numericUpDown3";
+            this.toolTip1.SetToolTip(this.numericUpDown3, resources.GetString("numericUpDown3.ToolTip"));
             this.numericUpDown3.KeyDown += new System.Windows.Forms.KeyEventHandler(this.numericUpDown3_KeyDown);
             this.numericUpDown3.Leave += new System.EventHandler(this.numericUpDown3_Leave);
             //
@@ -185,6 +196,7 @@
             //
             resources.ApplyResources(this.numericUpDown4, "numericUpDown4");
             this.numericUpDown4.Name = "numericUpDown4";
+            this.toolTip1.SetToolTip(this.numericUpDown4, resources.GetString("numericUpDown4.ToolTip"));
             this.numericUpDown4.KeyDown += new System.Windows.Forms.KeyEventHandler(this.numericUpDown4_KeyDown);
             this.numericUpDown4.Leave += new System.EventHandler(this.numericUpDown4_Leave);
             //
@@ -192,6 +204,7 @@
             //
             resources.ApplyResources(this.numericUpDown5, "numericUpDown5");
             this.numericUpDown5.Name = "numericUpDown5";
+            this.toolTip1.SetToolTip(this.numericUpDown5, resources.GetString("numericUpDown5.ToolTip"));
             this.numericUpDown5.KeyDown += new System.Windows.Forms.KeyEventHandler(this.numericUpDown5_KeyDown);
             this.numericUpDown5.Leave += new System.EventHandler(this.numericUpDown5_Leave);
             //
@@ -209,35 +222,28 @@
             this.tractCurvatureTextBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.tractCurvatureTextBox_KeyDown);
             this.tractCurvatureTextBox.Leave += new System.EventHandler(this.tractCurvatureTextBox_Leave);
             //
-            // tractCurvatureSourceLabel
-            //
-            resources.ApplyResources(this.tractCurvatureSourceLabel, "tractCurvatureSourceLabel");
-            this.tractCurvatureSourceLabel.Name = "tractCurvatureSourceLabel";
-            //
             // panel1
             //
             resources.ApplyResources(this.panel1, "panel1");
             this.panel1.BackColor = System.Drawing.SystemColors.ControlLight;
-            this.panel1.Controls.Add(this.viewEnergyGraphButton);
+            this.panel1.Controls.Add(this.viewCalibrationButton);
             this.panel1.Controls.Add(this.getAllPeaksButton);
-            this.panel1.Controls.Add(this.checkBox2);
-            this.panel1.Controls.Add(this.label37);
-            this.panel1.Controls.Add(this.numericUpDown6);
             this.panel1.Controls.Add(this.label36);
             this.panel1.Controls.Add(this.cancelAddPeakButton);
             this.panel1.Controls.Add(this.executeCalibrationButton);
             this.panel1.Controls.Add(this.CollectedPeaksTable);
             this.panel1.Controls.Add(this.addPeakButton);
             this.panel1.Controls.Add(this.removePeakButton);
+            this.panel1.Controls.Add(this.saveToDeviceCfgButton);
             this.panel1.Name = "panel1";
             //
-            // viewEnergyGraphButton
+            // viewCalibrationButton
             //
-            resources.ApplyResources(this.viewEnergyGraphButton, "viewEnergyGraphButton");
-            this.viewEnergyGraphButton.Name = "viewEnergyGraphButton";
-            this.toolTip1.SetToolTip(this.viewEnergyGraphButton, resources.GetString("viewEnergyGraphButton.ToolTip"));
-            this.viewEnergyGraphButton.UseVisualStyleBackColor = true;
-            this.viewEnergyGraphButton.Click += new System.EventHandler(this.ViewEnergyGraphButton_Click);
+            resources.ApplyResources(this.viewCalibrationButton, "viewCalibrationButton");
+            this.viewCalibrationButton.Name = "viewCalibrationButton";
+            this.toolTip1.SetToolTip(this.viewCalibrationButton, resources.GetString("viewCalibrationButton.ToolTip"));
+            this.viewCalibrationButton.UseVisualStyleBackColor = true;
+            this.viewCalibrationButton.Click += new System.EventHandler(this.ViewCalibrationButton_Click);
             //
             // getAllPeaksButton
             //
@@ -388,14 +394,22 @@
             // calibrationProcessingPanel
             //
             resources.ApplyResources(this.calibrationProcessingPanel, "calibrationProcessingPanel");
-            this.calibrationProcessingPanel.Controls.Add(this.label2);
-            this.calibrationProcessingPanel.Controls.Add(this.selectCurveComboBox);
-            this.calibrationProcessingPanel.Controls.Add(this.viewCalibrationButton);
-            this.calibrationProcessingPanel.Controls.Add(this.label3);
-            this.calibrationProcessingPanel.Controls.Add(this.curveFormulaLabel);
-            this.calibrationProcessingPanel.Controls.Add(this.minPeaksRequirementLabel);
-            this.calibrationProcessingPanel.Controls.Add(this.peakShapeInfoGroupBox);
+            this.calibrationProcessingPanel.Controls.Add(this.fwhmGroupBox);
             this.calibrationProcessingPanel.Name = "calibrationProcessingPanel";
+            //
+            // fwhmGroupBox
+            //
+            resources.ApplyResources(this.fwhmGroupBox, "fwhmGroupBox");
+            this.fwhmGroupBox.Controls.Add(this.label2);
+            this.fwhmGroupBox.Controls.Add(this.selectCurveComboBox);
+            this.fwhmGroupBox.Controls.Add(this.label3);
+            this.fwhmGroupBox.Controls.Add(this.curveFormulaLabel);
+            this.fwhmGroupBox.Controls.Add(this.minPeaksRequirementLabel);
+            this.fwhmGroupBox.Controls.Add(this.peakShapeTypeLabel);
+            this.fwhmGroupBox.Controls.Add(this.peakShapeTypeValueLabel);
+            this.fwhmGroupBox.Controls.Add(this.peakShapeInfoPanel);
+            this.fwhmGroupBox.Name = "fwhmGroupBox";
+            this.fwhmGroupBox.TabStop = false;
             //
             // label2
             //
@@ -415,14 +429,6 @@
             this.toolTip1.SetToolTip(this.selectCurveComboBox, resources.GetString("selectCurveComboBox.ToolTip"));
             this.selectCurveComboBox.SelectedIndexChanged += new System.EventHandler(this.SelectCurveComboBox_SelectedIndexChanged);
             //
-            // viewCalibrationButton
-            //
-            resources.ApplyResources(this.viewCalibrationButton, "viewCalibrationButton");
-            this.viewCalibrationButton.Name = "viewCalibrationButton";
-            this.toolTip1.SetToolTip(this.viewCalibrationButton, resources.GetString("viewCalibrationButton.ToolTip"));
-            this.viewCalibrationButton.UseVisualStyleBackColor = true;
-            this.viewCalibrationButton.Click += new System.EventHandler(this.ViewCalibrationButton_Click);
-            //
             // label3
             //
             resources.ApplyResources(this.label3, "label3");
@@ -439,23 +445,21 @@
             this.minPeaksRequirementLabel.Name = "minPeaksRequirementLabel";
             this.toolTip1.SetToolTip(this.minPeaksRequirementLabel, resources.GetString("minPeaksRequirementLabel.ToolTip"));
             //
-            // peakShapeInfoGroupBox
+            // peakShapeInfoPanel
             //
-            resources.ApplyResources(this.peakShapeInfoGroupBox, "peakShapeInfoGroupBox");
-            this.peakShapeInfoGroupBox.Controls.Add(this.viewPeakShapeButton);
-            this.peakShapeInfoGroupBox.Controls.Add(this.peakShapeSecondParameterValueLabel);
-            this.peakShapeInfoGroupBox.Controls.Add(this.peakShapeFirstParameterValueLabel);
-            this.peakShapeInfoGroupBox.Controls.Add(this.peakShapeSecondParameterLabel);
-            this.peakShapeInfoGroupBox.Controls.Add(this.peakShapeFirstParameterLabel);
-            this.peakShapeInfoGroupBox.Controls.Add(this.peakShapeTypeValueLabel);
-            this.peakShapeInfoGroupBox.Controls.Add(this.peakShapeTypeLabel);
-            this.peakShapeInfoGroupBox.Name = "peakShapeInfoGroupBox";
-            this.peakShapeInfoGroupBox.TabStop = false;
+            resources.ApplyResources(this.peakShapeInfoPanel, "peakShapeInfoPanel");
+            this.peakShapeInfoPanel.Controls.Add(this.viewPeakShapeButton);
+            this.peakShapeInfoPanel.Controls.Add(this.peakShapeSecondParameterValueLabel);
+            this.peakShapeInfoPanel.Controls.Add(this.peakShapeFirstParameterValueLabel);
+            this.peakShapeInfoPanel.Controls.Add(this.peakShapeSecondParameterLabel);
+            this.peakShapeInfoPanel.Controls.Add(this.peakShapeFirstParameterLabel);
+            this.peakShapeInfoPanel.Name = "peakShapeInfoPanel";
             //
             // viewPeakShapeButton
             //
             resources.ApplyResources(this.viewPeakShapeButton, "viewPeakShapeButton");
             this.viewPeakShapeButton.Name = "viewPeakShapeButton";
+            this.toolTip1.SetToolTip(this.viewPeakShapeButton, resources.GetString("viewPeakShapeButton.ToolTip"));
             this.viewPeakShapeButton.UseVisualStyleBackColor = true;
             this.viewPeakShapeButton.Click += new System.EventHandler(this.ViewPeakShapeButton_Click);
             //
@@ -505,7 +509,6 @@
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.calibrationProcessingPanel);
-            this.Controls.Add(this.saveToDeviceCfgButton);
             this.HideOnClose = true;
             this.Name = "DCFwhmCalibrationView";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.DCFwhmCalibrationView_FormClosing);
@@ -517,9 +520,10 @@
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown6)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.CollectedPeaksTable)).EndInit();
             this.calibrationProcessingPanel.ResumeLayout(false);
-            this.calibrationProcessingPanel.PerformLayout();
-            this.peakShapeInfoGroupBox.ResumeLayout(false);
-            this.peakShapeInfoGroupBox.PerformLayout();
+            this.fwhmGroupBox.ResumeLayout(false);
+            this.fwhmGroupBox.PerformLayout();
+            this.peakShapeInfoPanel.ResumeLayout(false);
+            this.peakShapeInfoPanel.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -543,9 +547,8 @@
         private System.Windows.Forms.TextBox numericUpDown5;
         private System.Windows.Forms.Label tractCurvatureLabel;
         private System.Windows.Forms.TextBox tractCurvatureTextBox;
-        private System.Windows.Forms.Label tractCurvatureSourceLabel;
         private System.Windows.Forms.Panel panel1;
-        private System.Windows.Forms.Button viewEnergyGraphButton;
+        private System.Windows.Forms.Button viewCalibrationButton;
         private System.Windows.Forms.Button getAllPeaksButton;
         private System.Windows.Forms.CheckBox checkBox2;
         private System.Windows.Forms.Label label37;
@@ -564,13 +567,13 @@
         private System.Windows.Forms.Button addPeakButton;
         private System.Windows.Forms.Button removePeakButton;
         private System.Windows.Forms.Panel calibrationProcessingPanel;
+        private System.Windows.Forms.GroupBox fwhmGroupBox;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.ComboBox selectCurveComboBox;
-        private System.Windows.Forms.Button viewCalibrationButton;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label curveFormulaLabel;
         private System.Windows.Forms.Label minPeaksRequirementLabel;
-        private System.Windows.Forms.GroupBox peakShapeInfoGroupBox;
+        private System.Windows.Forms.Panel peakShapeInfoPanel;
         private System.Windows.Forms.Button viewPeakShapeButton;
         private System.Windows.Forms.Label peakShapeSecondParameterValueLabel;
         private System.Windows.Forms.Label peakShapeFirstParameterValueLabel;

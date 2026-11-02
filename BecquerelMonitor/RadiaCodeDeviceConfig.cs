@@ -45,5 +45,12 @@
         {
             return 5.0E-06;
         }
+
+        /// <summary>(`AMBER269`) Номер прибора — тот же, что экспорт RadiaCode пишет в <c>EnergySpectrum/SerialNumber</c>.</summary>
+        [System.Xml.Serialization.XmlIgnore]
+        public override string InstrumentSerialNumber
+        {
+            get { return this.device_serial; }
+        }
     }
 }

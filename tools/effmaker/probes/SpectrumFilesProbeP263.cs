@@ -355,8 +355,14 @@ static class SpectrumFilesProbeP263
                 }
                 catch (Exception ex)
                 {
-                    // Вопрос «сбросить калибровку?» без окон — бросок двери AppUi.AskYesNo:
-                    // в окне человек ответил бы сам. Это не отказ чтения, считается отдельно.
+                    // Вопрос о правке калибровки (заголовок прежний — ResetCalibrationQuestion)
+                    // без окон — бросок двери AppUi.AskYesNo: в окне человек ответил бы сам.
+                    // Это не отказ чтения, считается отдельно.
+                    // ⚠ (`AMBER269`) Счёт ожидаемо упал: 14.10.2026 — 33 вопроса на 819
+                    // файлах; 02.11.2026 на 827 (корпус 136 и 691 рабочий спектр) — 34 на
+                    // снимке до правки и 4 после. Ушли 29 файлов со шкалой второй степени
+                    // при a₂ = 0 и один пятой степени: такие шкалы годны (CheckCalibration),
+                    // окно остаётся только у негодных (немонотонных, вне диапазона).
                     if (ex.Message.Contains("Reset calibration question") || ex.Message.Contains("сбросу калибровки")) askRefused++;
                     else refused++;
                     string why = ex.InnerException != null ? ex.InnerException.GetType().Name : ex.GetType().Name;
@@ -450,7 +456,7 @@ static class SpectrumFilesProbeP263
             }
         }
         Console.WriteLine();
-        Console.WriteLine("открыто " + opened.ToString(Inv) + ", вопрос «сбросить калибровку?» (без окон — отказ) " + askRefused.ToString(Inv) + ", иной отказ открытия " + refused.ToString(Inv)
+        Console.WriteLine("открыто " + opened.ToString(Inv) + ", вопрос о правке калибровки (без окон — отказ) " + askRefused.ToString(Inv) + ", иной отказ открытия " + refused.ToString(Inv)
             + ", круг разошёлся " + bad.ToString(Inv) + ", сериализация разошлась " + canonDiff.ToString(Inv)
             + ", байты второго сохранения другие " + bytesDiff.ToString(Inv));
         Console.WriteLine("файлов с <ROIConfigReference>: " + roiRef.ToString(Inv) + " (все прочитаны, если отказов нет), без <FormatVersion>: " + noFormat.ToString(Inv));

@@ -261,6 +261,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                 w.Reals(logs.Energy);
                 w.Reals(logs.Range);
                 w.Reals(logs.Yield);
+                // (`AMBER274`, физика 28) Страгглинг потерь: I вещества (0 — разброса нет), доля
+                // радиационной тормозной и её логарифмы, постоянные модели Урбана — готовыми,
+                // тем же кодом ЦП (`EfficiencySimulator.UrbanParams`).
+                w.Real(m.PotentialEv);
+                w.Reals(m.RadShare);
+                w.Reals(logs.RadShare);
+                double[] urban = m.PotentialEv > 0.0 ? EfficiencySimulator.UrbanParams(m) : new double[8];
+                for (int u = 0; u < 8; u++)
+                {
+                    w.Real(urban[u]);
+                }
+
                 w.End();
             }
         }

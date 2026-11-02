@@ -1043,6 +1043,68 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return t.radFrom[t.radFrom.Length - 1];
             }
 
+            /// <summary>
+            /// (`AMBER274`, физика 30, <see cref="EfficiencySimulator.CascadeCkVacancy"/>) ПЕРЕХОД
+            /// КОСТЕРА—КРОНИГА с вакансии <paramref name="shell"/> на подоболочку
+            /// <paramref name="toShell"/>, когда переезд уже решён переносом (`LSubshellAfterCk`):
+            /// разыгрывается по вероятностям EADL среди безрадиационных переходов вакансии, у которых
+            /// электрон приходит с <paramref name="toShell"/> (так EADL пишет L2–L3·X: `from` = L3,
+            /// `ejected` = X). <paramref name="kev"/> — энергия электрона, <paramref name="hole"/> —
+            /// его дырка. Ложь — таких переходов нет (энергия перехода тогда остаётся невязкой).
+            /// </summary>
+            public bool CosterKronig(int shell, int toShell, double u, out double kev, out int hole)
+            {
+                kev = 0.0;
+                hole = 0;
+                Transitions t = this.TransitionsOf(shell);
+                if (t == null || t.augCum == null || t.augCum.Length == 0)
+                {
+                    return false;
+                }
+
+                double sum = 0.0;
+                double previous = 0.0;
+                for (int i = 0; i < t.augCum.Length; i++)
+                {
+                    if (t.augFrom[i] == toShell)
+                    {
+                        sum += t.augCum[i] - previous;
+                    }
+
+                    previous = t.augCum[i];
+                }
+
+                if (!(sum > 0.0))
+                {
+                    return false;
+                }
+
+                double pick = u * sum;
+                double acc = 0.0;
+                int last = -1;
+                previous = 0.0;
+                for (int i = 0; i < t.augCum.Length; i++)
+                {
+                    double p = t.augCum[i] - previous;
+                    previous = t.augCum[i];
+                    if (t.augFrom[i] != toShell)
+                    {
+                        continue;
+                    }
+
+                    acc += p;
+                    last = i;
+                    if (pick < acc)
+                    {
+                        break;
+                    }
+                }
+
+                kev = t.augKev[last];
+                hole = t.augEjected[last];
+                return true;
+            }
+
             /// <summary>Есть ли у подоболочки хоть один переход.</summary>
             public bool HasTransitions(int shell)
             {
@@ -1684,6 +1746,116 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// ⛔ (`AMBER274`, физика 30, Ф1; решение Amber 02.11.2026 вопросником, дословно: «Сейчас, до
+        /// склада (Рекомендую)») УЗЛЫ ЭКРАНИРОВАНИЯ УПРУГОГО РАССЕЯНИЯ ПО DPWA — таблица
+        /// `elastic_screening_dpwa` (`tools/nucdb/import_dpwa_screening.py`, данные и постановка —
+        /// `tools/nucdb/build_dpwa_screening.py`, журнал `handover/handover-2026-11-02-amber274-screen29.md`).
+        /// Ядерная часть: dσ/dμ = C(T)·Z²·P(√μ)/(μ + a)², P(x) = Σ c_j x^j; между узлами — линейно по
+        /// ln T от ln a и c_j, вне сетки — крайний узел. Узлы одного элемента и частицы, по возрастанию
+        /// энергии. Читает перенос — таблица стоит в <see cref="SimulatorTables"/>.
+        /// </summary>
+        public sealed class ElasticScreeningNodes
+        {
+            /// <summary>ln T узлов, T в кэВ.</summary>
+            public double[] LnT;
+
+            /// <summary>ln a узлов.</summary>
+            public double[] LnA;
+
+            /// <summary>c0…c4 узла k — на местах 5k…5k + 4.</summary>
+            public double[] C;
+        }
+
+        static readonly Dictionary<int, ElasticScreeningNodes> elasticScreening =
+            new Dictionary<int, ElasticScreeningNodes>();
+
+        /// <summary>
+        /// (`AMBER274`, физика 30, Ф1) Узлы экранирования DPWA элемента <paramref name="z"/> для электрона
+        /// или позитрона (<paramref name="positron"/>); null — таблицы в базе нет или нет строк этого Z
+        /// (ответ кэшируется). Ключ <see cref="EfficiencySimulator.ElectronScreeningDpwa"/> на таком ответе
+        /// ОТКАЗЫВАЕТ, а не молча считает прежним экранированием (клеймо `dpwa=1` лгало бы).
+        /// </summary>
+        public static ElasticScreeningNodes ElasticScreeningOf(int z, bool positron)
+        {
+            int key = positron ? -z : z;
+            lock (Gate)
+            {
+                ElasticScreeningNodes cached;
+                if (elasticScreening.TryGetValue(key, out cached))
+                {
+                    return cached;
+                }
+
+                string path = DatabasePath();
+                if (!File.Exists(path))
+                {
+                    throw new FileNotFoundException("matdb.sqlite не найдена рядом с программой: " + path, path);
+                }
+
+                ElasticScreeningNodes nodes = null;
+                try
+                {
+                    using (SqliteConnection connection = new SqliteConnection(
+                        MaterialDatabase.ReadOnlyConnection(path, true)))
+                    {
+                        connection.Open();
+                        bool present;
+                        using (SqliteCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText =
+                                "select count(*) from sqlite_master where type = 'table' and name = 'elastic_screening_dpwa'";
+                            present = Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture) > 0;
+                        }
+
+                        if (present)
+                        {
+                            var lnT = new List<double>();
+                            var lnA = new List<double>();
+                            var c = new List<double>();
+                            using (SqliteCommand command = connection.CreateCommand())
+                            {
+                                command.CommandText =
+                                    "select energy_kev, a, c0, c1, c2, c3, c4 from elastic_screening_dpwa"
+                                    + " where particle = $p and z = $z order by energy_kev";
+                                command.Parameters.AddWithValue("$p", positron ? "e+" : "e-");
+                                command.Parameters.AddWithValue("$z", z);
+                                using (SqliteDataReader reader = command.ExecuteReader())
+                                {
+                                    while (reader.Read())
+                                    {
+                                        lnT.Add(Math.Log(reader.GetDouble(0)));
+                                        lnA.Add(Math.Log(reader.GetDouble(1)));
+                                        for (int j = 0; j < 5; j++)
+                                        {
+                                            c.Add(reader.GetDouble(2 + j));
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (lnT.Count >= 2)
+                            {
+                                nodes = new ElasticScreeningNodes
+                                {
+                                    LnT = lnT.ToArray(),
+                                    LnA = lnA.ToArray(),
+                                    C = c.ToArray(),
+                                };
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw Refuse("экранирование DPWA Z=" + z.ToString(CultureInfo.InvariantCulture), path, ex);
+                }
+
+                elasticScreening[key] = nodes;
+                return nodes;
+            }
+        }
+
+        /// <summary>
         /// (`F11` (а), П17) Разрядка атома Z по EADL; null, если у элемента
         /// нет ни одного перехода в базе. Грузится лениво и по одному
         /// элементу, кэшируется, включая отрицательный ответ.
@@ -2037,6 +2209,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             "compton_profile", "compton_profile_momentum", "compton_profile_shell",
             "coster_kronig", "eadl_auger", "eadl_binding", "eadl_radiative",
+            // (`AMBER274`, физика 30, Ф1) экранирование упругого рассеяния по DPWA — читает перенос.
+            "elastic_screening_dpwa",
             "epdl_form_factor", "epdl_scattering_function",
             "epics_photo_fit", "epics_photo_meta", "epics_photo_subshell",
             "estar_collision_stopping", "estar_element_potential", "estar_radiative_stopping",

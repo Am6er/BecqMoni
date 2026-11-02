@@ -587,7 +587,13 @@ namespace DoseSumProbeP171
             using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 var file = (ResultDataFile)new XmlSerializer(typeof(ResultDataFile)).Deserialize(fs);
-                return file.ResultDataList.Count > 0 ? file.ResultDataList[0] : null;
+                ResultData data = file.ResultDataList.Count > 0 ? file.ResultDataList[0] : null;
+                // (`AMBER269`, 02.11.2026, полоса a269fix6) встроенная заглушка FWHM 15/3756/103 в
+                // файле — не своя ширина спектра, а её отсутствие, как при открытии файла
+                // (`DocumentManager.ForgetFileStandInFwhm`); без своей ширины проба берёт ширину
+                // `manifest.csv`. Корпус заглушки не несёт — числа прежние.
+                DocumentManager.ForgetFileStandInFwhm(data);
+                return data;
             }
         }
 

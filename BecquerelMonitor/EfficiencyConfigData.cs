@@ -182,6 +182,27 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// ⛔ (`AMBER269` дефект 5, полоса `phys29b` 02.11.2026) Расхождение отпечатка
+        /// (<see cref="CurveGeometryMismatch"/>) — НЕ правка геометрии: отпечаток при кривой
+        /// равен отпечатку этой же геометрии без строки сдвига точки в капсуле
+        /// (<see cref="ResponseMatrix.GeometryFingerprintBeforeSourceOffset"/>). Кривая
+        /// посчитана прежней версией программы — до того, как точку источника отодвинули
+        /// от корпуса (Ф6, 30.10.2026), — и
+        /// предупреждение обязано назвать эту причину, а не «геометрию правили после расчёта».
+        /// </summary>
+        [XmlIgnore]
+        public bool CurveBeforeSourceOffset
+        {
+            get
+            {
+                return this.CurveGeometryMismatch
+                       && string.Equals(this.geometryFingerprint,
+                                        ResponseMatrix.GeometryFingerprintBeforeSourceOffset(this.geometry),
+                                        StringComparison.Ordinal);
+            }
+        }
+
+        /// <summary>
         /// Пускать ли матрицу отклика этой кривой в полноспектральный разбор
         /// (W11): раньше годная матрица включалась сама и выключателя не было.
         /// Галка в форме «Матрица отклика» снята 07.10.2026 (П242, Amber: «Эту

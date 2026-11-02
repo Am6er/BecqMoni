@@ -401,7 +401,9 @@ namespace BecquerelMonitor
                 : versionsMatch
                     ? Resources.ResponseMatrixStateStale
                     : Resources.ResponseMatrixStateStaleVersions;
-            this.ShowVersions(physics, ResponseMatrix.FormatVersion, !versionsMatch);
+            // (`AMBER274`, `Д6`) Формат — ФАЙЛА (11 без раздела электронов, 12 с ним), а не
+            // нынешний номер кода: прежде у файла формата 11 окно печатало «формат 12».
+            this.ShowVersions(physics, fileFormat, !versionsMatch);
             this.computeButton.Text = Resources.ResponseMatrixRecompute;
 
             // Поля выставляются по тому, чем матрица посчитана, — чтобы
@@ -598,7 +600,7 @@ namespace BecquerelMonitor
                     this.stateLabel.Text = Resources.ResponseMatrixStateUnreadable;
                     this.ShowVersions(headerPhysics, header ? headerFormat : 0,
                                       header && (headerPhysics != ResponseMatrix.PhysicsVersion
-                                                 || headerFormat != ResponseMatrix.FormatVersion));
+                                                 || !ResponseMatrix.IsCurrentFormat(headerFormat)));
                     this.computeButton.Text = Resources.ResponseMatrixRecompute;
                     break;
 
@@ -787,6 +789,36 @@ namespace BecquerelMonitor
                                  made, matrix.Options.NodeCount);
         }
 
+        /// <summary>
+        /// (`AMBER274`, `Р1`) Перенести в только что посчитанную матрицу раздел электронов
+        /// прежней (той, что показывало окно), если он посчитан для того же клейма фотонной
+        /// части: раздел от фотонных строк не зависит, а пересчёт с тем же рецептом не
+        /// должен его стирать. Отказ чтения прежней — молча: переносить нечего.
+        /// </summary>
+        static void CarryElectronSection(ResponseMatrix matrix, string guid, ResponseMatrixSource source)
+        {
+            if (matrix == null || matrix.ElectronSection != null || string.IsNullOrEmpty(matrix.Stamp))
+            {
+                return;
+            }
+
+            try
+            {
+                MatrixRefusal refusal;
+                int format;
+                ResponseMatrix previous = ResponseMatrixStore.Load(guid, source, out refusal, out format);
+                ResponseElectronSection section = previous != null ? previous.ElectronSection : null;
+                if (section != null && string.Equals(section.ForMatrixStamp, matrix.Stamp, StringComparison.Ordinal))
+                {
+                    matrix.ElectronSection = section;
+                }
+            }
+            catch (Exception)
+            {
+                // Прежней матрицы нет или она не читается — переносить нечего.
+            }
+        }
+
         string Describe(ResponseMatrix matrix)
         {
             // ⛔ (П292, находка П291; решение Amber 14.10.2026 вопросником, дословно:
@@ -965,6 +997,11 @@ namespace BecquerelMonitor
                     },
                     token);
 
+                // (`AMBER274`, `Р1`) Раздел электронов, дописанный к прежней матрице, при
+                // пересчёте не стирается молча: годный для новой (то же клеймо фотонной части)
+                // переносится в неё. Негодный (клеймо разошлось) ей и не нужен — строка отчёта
+                // FSA скажет, что раздела нет.
+                CarryElectronSection(matrix, this.config.Guid, this.shownSource);
                 this.computed = matrix;
                 this.progressBar.Value = this.progressBar.Maximum;
                 this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
@@ -973,7 +1010,7 @@ namespace BecquerelMonitor
 
                 this.SetDetails(this.Describe(matrix));
                 this.stateLabel.Text = Resources.ResponseMatrixStateValid;
-                this.ShowVersions(ResponseMatrix.PhysicsVersion, ResponseMatrix.FormatVersion, false);
+                this.ShowVersions(ResponseMatrix.PhysicsVersion, matrix.WrittenFormatVersion, false);
             }
             // ⛔ (П291, Н6, находка П253; решение Amber 14.10.2026 вопросником,
             // дословно: «Вернуть прежний результат» — «Прежний несохранённый результат

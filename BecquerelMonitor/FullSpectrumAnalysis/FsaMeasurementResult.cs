@@ -33,7 +33,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Ключ источника коллекции — окно сравнивает по нему «та же ли коллекция».</summary>
         public const string ConfigGuid = "fsa-measurement-result";
 
-        /// <summary>Квантиль ISO 11929 при α = β = 5 %, та же, что у разбора.</summary>
+        /// <summary>
+        /// Квантиль ISO 11929 при α = 5 % — запасной k_α для строки предела без своего
+        /// (<see cref="FsaCharacteristicLimit.DecisionQuantile"/>, `AMBER274`).
+        /// </summary>
         const double LimitQuantileK = 1.6449;
 
         /// <summary>Почему беккерели скрыты.</summary>
@@ -110,6 +113,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public string ReasonOrigin = "кривая без абсолютного уровня ({0})";
             public string ReasonNoResult = "разбора нет";
             public string Details = "строк {0}, не обнаружено {1}, связанных рядов {2}";
+            /// <summary>(`AMBER274`, Ф14) Пометка строки чистого бета-излучателя (`AMBER284`: «только по бета»).</summary>
+            public string ContinuumOnly = "только по бета";
 
             /// <summary>
             /// (П254) Название происхождения кривой для заголовка и причины — из ресурсов
@@ -368,7 +373,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     double mda = limitRate > 0.0 && !double.IsNaN(limitRate) ? limitRate * own : 0.0;
                     // (П278) строка ряда — сам корень, её период свой; свободный член — период корня
                     string root = chain ? null : MemberRootOf(component.DecayChainRoot, component.Name, definitions);
-                    collection.ResultList.Add(new MeasurementResult(Line(name, root, absolute, definitions),
+                    MeasurementLine line = Line(name, root, absolute, definitions);
+                    line.Note = component.BetaOnly ? texts.ContinuumOnly : null;      // (`AMBER274`, Ф14)
+                    collection.ResultList.Add(new MeasurementResult(line,
                                                                     rate * countingTime, sigma * countingTime, mda * countingTime));
                     summary.Rows++;
                     if (chain)
@@ -389,13 +396,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // (П254) у не обнаруженного члена ряда — те же свои распады, что у обнаруженного
                 double own = limit.Kind == FsaComponentKind.Chain ? 1.0 : FsaAnalysisSession.MemberActivityRatio(result, limit.Name);
                 double rate = double.IsNaN(limit.CountRate) || limit.CountRate < 0.0 ? 0.0 : limit.CountRate * own;
+                // (`AMBER274`, «MDA под порог z ≥ 3») σ₀ — порог решения на ЕГО квантиль k_α (порог
+                // окна), а не на квантиль β: иначе σ не обнаруженного выросла бы вместе с порогом
+                double kAlpha = limit.DecisionQuantile > 0.0 ? limit.DecisionQuantile : LimitQuantileK;
                 double sigma = !double.IsNaN(limit.DecisionThresholdRate) && limit.DecisionThresholdRate > 0.0
-                    ? limit.DecisionThresholdRate * own / LimitQuantileK
+                    ? limit.DecisionThresholdRate * own / kAlpha
                     : rate;
                 double mda = !double.IsNaN(limit.DetectionLimitRate) && limit.DetectionLimitRate > 0.0
                     ? limit.DetectionLimitRate * own : 0.0;
                 string root = limit.Kind == FsaComponentKind.Chain ? null : MemberRootOf(limit.DecayChainRoot, limit.Name, definitions);
-                collection.ResultList.Add(new MeasurementResult(Line(limit.Name, root, absolute, definitions),
+                MeasurementLine limitLine = Line(limit.Name, root, absolute, definitions);
+                limitLine.Note = limit.BetaOnly ? texts.ContinuumOnly : null;          // (`AMBER274`, Ф14)
+                collection.ResultList.Add(new MeasurementResult(limitLine,
                                                                 rate * countingTime, sigma * countingTime, mda * countingTime));
                 summary.Rows++;
                 summary.Undetected++;

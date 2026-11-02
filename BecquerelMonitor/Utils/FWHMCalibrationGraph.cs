@@ -7,7 +7,17 @@ using BecquerelMonitor.Properties;
 
 namespace BecquerelMonitor.Utils
 {
-    public partial class FWHMCalibrationGraph : Form
+    /// <summary>
+    /// График кривой FWHM — ВИД окна графиков калибровки
+    /// (<see cref="CalibrationGraphWindow"/>), а не окно (`AMBER283`, 02.11.2026: одна
+    /// кнопка «График» на панели «Калибровка», в окне выбор Energy/FWHM; см.
+    /// <see cref="CalibrationGraph"/>). Рисование, оси, точки, подписи, перетаскивание
+    /// опоры и контекстное меню — прежние. «Сохранить новые точки» по-прежнему сразу
+    /// пишет опоры в документ; что это было, панель узнаёт у
+    /// <see cref="PointsUpdated"/> после закрытия окна (прежде — по
+    /// <c>DialogResult.Yes</c> своего окна).
+    /// </summary>
+    public partial class FWHMCalibrationGraph : UserControl
     {
         public FWHMCalibrationGraph()
         {
@@ -16,18 +26,23 @@ namespace BecquerelMonitor.Utils
             SetStyle(ControlStyles.AllPaintingInWmPaint, true);
             SetStyle(ControlStyles.UserPaint, true);
             SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
+            // (`AMBER283`) Вид живёт в окне с изменяемым размером — см. `CalibrationGraph`.
+            SetStyle(ControlStyles.ResizeRedraw, true);
         }
 
         public FWHMCalibrationGraph(MainForm mainForm)
+            : this()
         {
-            InitializeComponent();
-            this.DoubleBuffered = true;
-            SetStyle(ControlStyles.AllPaintingInWmPaint, true);
-            SetStyle(ControlStyles.UserPaint, true);
-            SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
             this.mainForm = mainForm;
-            this.Icon = Resources.becqmoni;
-            this.Size = new Size(this.mainForm.Width * 3 / 4, this.mainForm.Height * 3 / 4);
+        }
+
+        /// <summary>
+        /// «Сохранить новые точки калибровки» хоть раз переписало опоры документа
+        /// (<see cref="updateCalibrationPointsToolStripMenuItem_Click"/>).
+        /// </summary>
+        public bool PointsUpdated
+        {
+            get { return this.result == DialogResult.Yes; }
         }
 
         MainForm mainForm;
@@ -431,11 +446,6 @@ namespace BecquerelMonitor.Utils
             this.fwhmCalibration.CalibrationPeaks = this.points;
             this.recalcCurve = true;
             base.Invalidate();
-        }
-
-        private void FWHMCalibrationGraph_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            this.DialogResult = result;
         }
 
         private void FWHMCalibrationGraph_MouseClick(object sender, MouseEventArgs e)

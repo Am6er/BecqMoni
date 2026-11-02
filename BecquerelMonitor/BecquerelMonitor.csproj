@@ -311,6 +311,7 @@
     <Compile Include="EfficiencyMaker\AttenuationData.cs" />
     <Compile Include="EfficiencyMaker\ElectronData.cs" />
     <Compile Include="EfficiencyMaker\ElectronTransport.cs" />
+    <Compile Include="EfficiencyMaker\MottData.cs" />
     <Compile Include="EfficiencyMaker\EstarCalculator.cs" />
     <Compile Include="EfficiencyMaker\EfficiencyCalculation.cs" />
     <Compile Include="EfficiencyMaker\EfficiencyCurveIo.cs" />
@@ -727,15 +728,21 @@
     <Compile Include="USBThermometerConfig.cs" />
     <Compile Include="Hash\Crc32.cs" />
     <Compile Include="Utils\CalibrationGraph.cs">
-      <SubType>Form</SubType>
+      <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="Utils\CalibrationGraph.Designer.cs">
       <DependentUpon>CalibrationGraph.cs</DependentUpon>
     </Compile>
+    <Compile Include="Utils\CalibrationGraphWindow.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Utils\CalibrationGraphWindow.Designer.cs">
+      <DependentUpon>CalibrationGraphWindow.cs</DependentUpon>
+    </Compile>
     <Compile Include="Utils\AtomicFileWriter.cs" />
     <Compile Include="Utils\CalibrationSolver.cs" />
     <Compile Include="Utils\FWHMCalibrationGraph.cs">
-      <SubType>Form</SubType>
+      <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="Utils\FWHMCalibrationGraph.Designer.cs">
       <DependentUpon>FWHMCalibrationGraph.cs</DependentUpon>
@@ -1215,6 +1222,12 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Utils\CalibrationGraph.ru.resx">
       <DependentUpon>CalibrationGraph.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Utils\CalibrationGraphWindow.resx">
+      <DependentUpon>CalibrationGraphWindow.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Utils\CalibrationGraphWindow.ru.resx">
+      <DependentUpon>CalibrationGraphWindow.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Utils\FWHMCalibrationGraph.resx">
       <DependentUpon>FWHMCalibrationGraph.cs</DependentUpon>

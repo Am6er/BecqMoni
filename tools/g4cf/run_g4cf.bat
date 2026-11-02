@@ -45,4 +45,11 @@ set "G4CHANNELINGDATA=%G4ROOT%\G4CHANNELING2.0"
 set "G4NUDEXLIBDATA=%G4ROOT%\G4NUDEXLIB1.0"
 set "G4URRPTDATA=%G4ROOT%\G4URRPT1.1"
 set "G4TENDLDATA=%G4ROOT%\G4TENDL1.4"
-"C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\tools\g4cf\build\g4cf.exe" %*
+rem (AMBER274, physics 29, lane phys29, 01.11.2026) The exe is taken NEXT TO this file
+rem (build\g4cf.exe of the same tree), not by an absolute path into one checkout: a worktree
+rem or another lane used to launch the main tree's exe silently. Override: set G4CF_EXE.
+rem A stale build\g4cf.exe does not know the keys electron/espec and silently runs the
+rem built-in scene (critic of physics, 30.10.2026) - rebuild with cmake after editing g4cf.cc.
+if not defined G4CF_EXE set "G4CF_EXE=%~dp0build\g4cf.exe"
+if not exist "%G4CF_EXE%" ( echo [g4cf] no %G4CF_EXE% - build tools\g4cf with cmake first>&2 & exit /b 2 )
+"%G4CF_EXE%" %*

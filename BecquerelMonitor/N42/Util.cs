@@ -662,7 +662,12 @@ namespace BecquerelMonitor.N42
                             + ", порядок " + calibration.PolynomialOrder.ToString(CultureInfo.InvariantCulture)
                             + "). Дальше по этому спектру считать нельзя: энергетическая шкала негодна.");
                     }
-                    AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
+                    // ⛔ (`AMBER269`, 02.11.2026) В ОКНАХ ЗДЕСЬ НЕ ГОВОРИТСЯ — говорит
+                    //    дверь (`DocumentManager.ImportDocumentN42`): CheckDocument
+                    //    видит ту же шкалу и показывает окно правки «было → станет»
+                    //    (`RepairQuestion`). Прежде перед ним шло это уведомление
+                    //    («функция калибровки…»), и одна беда давала ДВА окна подряд.
+                    //    Безоконный отказ выше (`A217`) остаётся.
                 }
             }
             else
@@ -823,20 +828,14 @@ namespace BecquerelMonitor.N42
             }
             int PolynomialOrder = enCalibrationCoeff.Length - 1;
 
-            // PolynomialEnergyCalibration supports order 4 at most (see ChannelToEnergy);
-            // the old check allowed order 5, which later failed outside the import's
-            // try/catch at draw time.
-            //
-            // ⛔ `A151`: ТЕКСТ ИЗ РЕСУРСА, А НЕ АНГЛИЙСКИЙ ЛИТЕРАЛ. После `A136`
-            //    оконная дверь берёт причину из сообщения исключения, а причины
-            //    `A140` написаны по-русски — то есть в ОДНОМ окне человек читал то
-            //    русскую причину, то английскую, смотря какая беда с файлом. Ключ
-            //    заводится в обе культуры, как у `A135`.
-            if (PolynomialOrder > 4)
-            {
-                throw new Exception(string.Format(CultureInfo.InvariantCulture, Resources.ERRUnsupportedPolynomialOrderN42, PolynomialOrder));
-            }
-
+            // ⛔ (`AMBER269`, 02.11.2026) СТЕПЕНЬ ВЫШЕ ЧЕТВЁРТОЙ ЧИТАЕТСЯ ЦЕЛИКОМ. Здесь
+            //    стоял отказ `ERRUnsupportedPolynomialOrderN42` («приложение читает
+            //    полиномы не выше четвёртого», `A151`): тогда `ChannelToEnergy` такую
+            //    степень не считал. Теперь считает (Горнер по всему набору), обратное
+            //    ищет корень на [0, N], и `CheckCalibration` судит её теми же
+            //    условиями, что степени 1…4. Годная шкала идёт в документ как есть;
+            //    негодная — тем же путём, что негодная второй степени: отказ без окон
+            //    ниже (`A217`), в окнах — окно правки двери (`ImportDocumentN42`).
             double[] coefficients = new double[PolynomialOrder + 1];
 
             for (int k = 0; k < coefficients.Length; k++)
@@ -927,7 +926,8 @@ namespace BecquerelMonitor.N42
                         + " (N42, " + AppUi.Where(filename) + ", порядок " + PolynomialOrder.ToString(CultureInfo.InvariantCulture)
                         + "). Дальше по этому спектру считать нельзя: энергетическая шкала негодна.");
                 }
-                AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
+                // (`AMBER269`, 02.11.2026) В окнах говорит дверь — окно правки
+                // `RepairQuestion` у ImportDocumentN42; см. разбор RadiologicalInstrumentData.
             }
 
             // ==========================================================
@@ -1431,13 +1431,9 @@ namespace BecquerelMonitor.N42
                     }
                     PolynomialOrder = n42CalibrationCoeff.Length - 1;
 
-                    // Max supported order is 4 (see PolynomialEnergyCalibration).
-                    // `A151`: тот же ключ, что и у разбора 2006 года выше, — беда
-                    // одна, и текст у неё обязан быть один.
-                    if (PolynomialOrder > 4)
-                    {
-                        throw new Exception(string.Format(CultureInfo.InvariantCulture, Resources.ERRUnsupportedPolynomialOrderN42, PolynomialOrder));
-                    }
+                    // (`AMBER269`, 02.11.2026) Степень выше четвёртой — целиком, как у
+                    // разбора 2006 года выше: отказ `ERRUnsupportedPolynomialOrderN42`
+                    // снят, годность судит `CheckCalibration` ниже.
 
                     coefficients = new double[PolynomialOrder + 1];
 
@@ -1512,7 +1508,8 @@ namespace BecquerelMonitor.N42
                                 + " (N42-2012, " + AppUi.Where(filename) + ", порядок " + PolynomialOrder.ToString(CultureInfo.InvariantCulture)
                                 + "). Дальше по этому спектру считать нельзя: энергетическая шкала негодна.");
                         }
-                        AppUi.Report(Resources.CalibrationFunctionError, "", MessageBoxIcon.None);
+                        // (`AMBER269`, 02.11.2026) В окнах говорит дверь — окно правки
+                        // `RepairQuestion` у ImportDocumentN42; см. разбор RadiologicalInstrumentData.
                     }
                 }
                 catch (Exception ex)

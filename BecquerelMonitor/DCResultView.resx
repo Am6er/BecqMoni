@@ -4641,10 +4641,19 @@
   <data name="DCResult_FsaMdaTip" xml:space="preserve">
     <value>a# — detection limit of the decomposition (ISO 11929, Xu 2022), inflated by √(χ²/ndf). Not the Currie MDA of a zone.</value>
   </data>
+  <data name="DCResult_FsaMdaHeaderRule" xml:space="preserve">
+    <value>MDA, z ≥ {0}</value>
+  </data>
+  <data name="DCResult_FsaMdaTipRule" xml:space="preserve">
+    <value>a# — detection limit of the decomposition (ISO 11929, Xu 2022) for the FSA detection rule: a row is found at z ≥ {0} (k_α, α ≈ {1} %), and an activity equal to a# is found that way in {2} % of measurements (k_β = {3}). Inflated by √(χ²/ndf). Not the Currie MDA of a zone.</value>
+  </data>
   <data name="DCResult_FsaStale" xml:space="preserve">
     <value>(recomputing…)</value>
   </data>
   <data name="DCResult_FsaError" xml:space="preserve">
     <value>FSA: error</value>
+  </data>
+  <data name="DCResult_FsaContinuumOnly" xml:space="preserve">
+    <value>beta only</value>
   </data>
 </root>

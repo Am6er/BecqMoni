@@ -193,7 +193,7 @@
     <value>Top</value>
   </data>
   <data name="displayGroupBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>0, 233</value>
+    <value>0, 253</value>
   </data>
   <data name="displayGroupBox.Padding" type="System.Windows.Forms.Padding, System.Windows.Forms">
     <value>6, 3, 6, 4</value>
@@ -331,7 +331,7 @@
     <value>6, 3, 6, 4</value>
   </data>
   <data name="extrasGroupBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>320, 139</value>
+    <value>320, 159</value>
   </data>
   <data name="extrasGroupBox.TabIndex" type="System.Int32, mscorlib">
     <value>2</value>
@@ -349,7 +349,7 @@
     <value>6, 16</value>
   </data>
   <data name="extrasFlow.Size" type="System.Drawing.Size, System.Drawing">
-    <value>308, 117</value>
+    <value>308, 137</value>
   </data>
   <data name="extrasFlow.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
@@ -428,6 +428,51 @@
   </data>
   <data name="pileUpCheckBox.Text" xml:space="preserve">
     <value>Pulse pile-up</value>
+  </data>
+  <data name="fitLowerBoundFlow.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="fitLowerBoundFlow.Location" type="System.Drawing.Point, System.Drawing">
+    <value>0, 115</value>
+  </data>
+  <data name="fitLowerBoundFlow.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
+    <value>0, 0, 0, 0</value>
+  </data>
+  <data name="fitLowerBoundFlow.Size" type="System.Drawing.Size, System.Drawing">
+    <value>198, 20</value>
+  </data>
+  <data name="fitLowerBoundFlow.TabIndex" type="System.Int32, mscorlib">
+    <value>5</value>
+  </data>
+  <data name="fitLowerBoundLabel.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="fitLowerBoundLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>3, 4</value>
+  </data>
+  <data name="fitLowerBoundLabel.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
+    <value>3, 4, 3, 0</value>
+  </data>
+  <data name="fitLowerBoundLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>106, 13</value>
+  </data>
+  <data name="fitLowerBoundLabel.TabIndex" type="System.Int32, mscorlib">
+    <value>0</value>
+  </data>
+  <data name="fitLowerBoundLabel.Text" xml:space="preserve">
+    <value>Fit lower bound, keV</value>
+  </data>
+  <data name="fitLowerBoundUpDown.Location" type="System.Drawing.Point, System.Drawing">
+    <value>115, 0</value>
+  </data>
+  <data name="fitLowerBoundUpDown.Margin" type="System.Windows.Forms.Padding, System.Windows.Forms">
+    <value>3, 0, 3, 0</value>
+  </data>
+  <data name="fitLowerBoundUpDown.Size" type="System.Drawing.Size, System.Drawing">
+    <value>80, 20</value>
+  </data>
+  <data name="fitLowerBoundUpDown.TabIndex" type="System.Int32, mscorlib">
+    <value>1</value>
   </data>
   <data name="residualBandCheckBox.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -5040,6 +5085,42 @@
   <data name="&gt;&gt;pileUpCheckBox.ZOrder" xml:space="preserve">
     <value>4</value>
   </data>
+  <data name="&gt;&gt;fitLowerBoundFlow.Name" xml:space="preserve">
+    <value>fitLowerBoundFlow</value>
+  </data>
+  <data name="&gt;&gt;fitLowerBoundFlow.Type" xml:space="preserve">
+    <value>System.Windows.Forms.FlowLayoutPanel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;fitLowerBoundFlow.Parent" xml:space="preserve">
+    <value>extrasFlow</value>
+  </data>
+  <data name="&gt;&gt;fitLowerBoundFlow.ZOrder" xml:space="preserve">
+    <value>5</value>
+  </data>
+  <data name="&gt;&gt;fitLowerBoundLabel.Name" xml:space="preserve">
+    <value>fitLowerBoundLabel</value>
+  </data>
+  <data name="&gt;&gt;fitLowerBoundLabel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;fitLowerBoundLabel.Parent" xml:space="preserve">
+    <value>fitLowerBoundFlow</value>
+  </data>
+  <data name="&gt;&gt;fitLowerBoundLabel.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="&gt;&gt;fitLowerBoundUpDown.Name" xml:space="preserve">
+    <value>fitLowerBoundUpDown</value>
+  </data>
+  <data name="&gt;&gt;fitLowerBoundUpDown.Type" xml:space="preserve">
+    <value>BecquerelMonitor.InvariantNumericUpDown, BecquerelMonitor, Version=2026.11.2.1, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="&gt;&gt;fitLowerBoundUpDown.Parent" xml:space="preserve">
+    <value>fitLowerBoundFlow</value>
+  </data>
+  <data name="&gt;&gt;fitLowerBoundUpDown.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
   <data name="&gt;&gt;residualBandCheckBox.Name" xml:space="preserve">
     <value>residualBandCheckBox</value>
   </data>
@@ -5146,10 +5227,10 @@
     <value>Analysis quality</value>
   </data>
   <data name="FSAReport_ResidualRow" xml:space="preserve">
-    <value>Residual: + excess / − missing</value>
+    <value>Difference between model and spectrum: + / −</value>
   </data>
   <data name="FSAReport_ResidualClamped" xml:space="preserve">
-    <value>display clipped on {0} channels</value>
+    <value>clipped below zero on the chart: {0} channels</value>
   </data>
   <data name="FSAReport_ResidualClampedTip" xml:space="preserve">
     <value>The number is measured on the fit curve, without clipping. The band on the chart is drawn against the displayed curve, where negative counts are clipped to zero on {0} channels, so the band covers less area than the number states.</value>
@@ -5161,13 +5242,22 @@
     <value>The number counts channels from the detector's lower range {0} keV upwards, where the fit is judged. Below it the band is still drawn on the chart, but it is not included in the percentage.</value>
   </data>
   <data name="FSAReport_Chi2Row" xml:space="preserve">
-    <value>χ²/ndf, goodness of fit (Poisson statistics)</value>
+    <value>Goodness of fit χ²/ndf</value>
   </data>
   <data name="FSAReport_InflationRow" xml:space="preserve">
-    <value>σ×, uncertainty inflation</value>
+    <value>Uncertainty correction for the fit quality, ×</value>
   </data>
   <data name="FSAReport_InflationTip" xml:space="preserve">
     <value>Component uncertainties are multiplied by this factor whenever the fit is worse than Poisson statistics alone. It is the square root of the solver's own χ²/ndf, computed with its robust (Huber) weights, so it does not equal the square root of the Poisson χ²/ndf shown above. A significance threshold of 3 therefore means 3 × this factor of raw sigmas. 1.000 means no inflation.</value>
+  </data>
+  <data name="FSAReport_LimitRuleRow" xml:space="preserve">
+    <value>Nuclide is found if significance</value>
+  </data>
+  <data name="FSAReport_LimitRuleValue" xml:space="preserve">
+    <value>z ≥ {0}</value>
+  </data>
+  <data name="FSAReport_LimitRuleTip" xml:space="preserve">
+    <value>The limits are computed by ISO 11929 for the FSA detection rule itself. Decision threshold a* = k_α·σ₀ with k_α = {0}: the significance z a composition row must reach to be reported as found (α ≈ {1} %). Detection limit a# = a* + k_β·σ(a#) with k_β = {2}: an activity equal to a# is found this way in all but {3} % of measurements. Both are inflated by √(χ²/ndf), like the uncertainties.</value>
   </data>
   <data name="FSAReport_MatrixRow" xml:space="preserve">
     <value>Response matrix</value>
@@ -5177,6 +5267,9 @@
   </data>
   <data name="FSAReport_MatrixNotUsed" xml:space="preserve">
     <value>not used</value>
+  </data>
+  <data name="FSAReport_MatrixNotUsedTip" xml:space="preserve">
+    <value>Without a response matrix cascade summing is not applied: nuclides with cascade gamma rays read low, by up to 11 %. The model has no Compton part of the spectrum and no escape peaks, and the energy scale is adjusted on the peaks alone. Build the matrix from the geometry.</value>
   </data>
   <data name="FSAReport_MatrixOldFormat" xml:space="preserve">
     <value>old format</value>
@@ -5212,25 +5305,25 @@
     <value>not applied: no response matrix</value>
   </data>
 <data name="FSAReport_DriftRow" xml:space="preserve">
-    <value>Scale drift fit</value>
+    <value>Scale drift</value>
   </data>
   <data name="FSAReport_DriftEdge" xml:space="preserve">
-    <value>at grid edge</value>
+    <value>at the range limit</value>
   </data>
   <data name="FSAReport_AnchorRow" xml:space="preserve">
-    <value>Scale anchoring, anchors</value>
+    <value>Reference peaks for the scale</value>
   </data>
   <data name="FSAReport_AnchorGainRow" xml:space="preserve">
-    <value>Gain from anchors, %</value>
+    <value>Scale stretch, %</value>
   </data>
   <data name="FSAReport_AnchorZeroRow" xml:space="preserve">
-    <value>Zero from anchors, keV</value>
+    <value>Scale shift, keV</value>
   </data>
   <data name="FSAReport_AnchorNone" xml:space="preserve">
     <value>none</value>
   </data>
   <data name="FSAReport_AnchorTip" xml:space="preserve">
-    <value>Full-absorption peaks the scale was tied to (+ used, - rejected): component, model centre keV, residual keV, peak share, reason</value>
+    <value>Reference peaks the scale was adjusted on (+ taken, - rejected): component, model centre keV, residual keV, peak share, reason</value>
   </data>
   <data name="FSAReport_AnchorTipLine" xml:space="preserve">
     <value>{0} {1} {2} keV, residual {3} keV, share {4} {5}</value>
@@ -5238,11 +5331,26 @@
   <data name="FSAReport_AnchorTipLight" xml:space="preserve">
     <value>, light {0} keV</value>
   </data>
+  <data name="FSAReport_AnchorRolledBack" xml:space="preserve">
+    <value>rolled back</value>
+  </data>
+  <data name="FSAReport_AnchorRollbackRow" xml:space="preserve">
+    <value>File scale kept: adjusting it on {0} peaks ({1} %) made the fit worse: χ²/ndf {2} against {3}</value>
+  </data>
+  <data name="FSAReport_AnchorRollbackRowOne" xml:space="preserve">
+    <value>File scale kept: adjusting it on {0} peak ({1} %) made the fit worse: χ²/ndf {2} against {3}</value>
+  </data>
+  <data name="FSAReport_AnchorRollbackValue" xml:space="preserve">
+    <value>file scale</value>
+  </data>
+  <data name="FSAReport_AnchorRollbackTip" xml:space="preserve">
+    <value>Reference peaks of the cancelled adjustment (+ taken, - rejected):</value>
+  </data>
   <data name="FSAReport_SuppressedRow" xml:space="preserve">
-    <value>Composition suppressed by</value>
+    <value>The counts are explained not by a nuclide but by</value>
   </data>
   <data name="FSAReport_BackgroundRejectedRow" xml:space="preserve">
-    <value>Background rejected</value>
+    <value>Background spectrum not subtracted</value>
   </data>
   <data name="FSAReport_ResidualBandTip" xml:space="preserve">
     <value>Changes only the chart: nothing is recomputed.</value>
@@ -5280,35 +5388,71 @@
   <data name="FSAReport_MatrixLayerAnnihilationOutside" xml:space="preserve">
     <value>Annihilation outside the crystal (511 and its Compton)</value>
   </data>
+  <data name="FSAReport_MatrixLayerSampleBeta" xml:space="preserve">
+    <value>Sample beta (electrons from the sample)</value>
+  </data>
+  <data name="FSAReport_SampleBetaRow" xml:space="preserve">
+    <value>Sample beta radiation</value>
+  </data>
+  <data name="FSAReport_SampleBetaUsed" xml:space="preserve">
+    <value>{0} counts</value>
+  </data>
+  <data name="FSAReport_SampleBetaTip" xml:space="preserve">
+    <value>Counts the model attributes to beta electrons from the sample: {0}. The electron section of the response matrix is computed on {1} energy nodes.</value>
+  </data>
+  <data name="FSAReport_SampleBetaKeyOff" xml:space="preserve">
+    <value>switched off</value>
+  </data>
+  <data name="FSAReport_SampleBetaRefused" xml:space="preserve">
+    <value>not used: {0}</value>
+  </data>
+  <data name="FSAReport_SampleBetaDamaged" xml:space="preserve">
+    <value>the section in the matrix file is damaged</value>
+  </data>
+  <data name="FSAReport_SampleBetaOtherMatrix" xml:space="preserve">
+    <value>the section was computed for another matrix</value>
+  </data>
+  <data name="FSAReport_SampleBetaOtherPhysics" xml:space="preserve">
+    <value>the section was computed by older physics — recompute it</value>
+  </data>
+  <data name="FSAReport_SampleBetaOtherCapsule" xml:space="preserve">
+    <value>the section was computed for another source capsule ({0})</value>
+  </data>
+  <data name="FSAReport_SampleBetaIsoScene" xml:space="preserve">
+    <value>an isotropic field scene has no sample electrons</value>
+  </data>
+  <data name="FSAReport_SampleBetaNoScene" xml:space="preserve">
+    <value>the scene of the analysis is unknown</value>
+  </data>
   <data name="FSAReport_SupplyRow" xml:space="preserve">
-    <value>Decay data sources disagree</value>
+    <value>Decay data references disagree</value>
   </data>
   <data name="FSAReport_SupplyTip" xml:space="preserve">
-    <value>Two decay-data supplies disagree for these nuclides, and the analysis had to choose. What was taken:</value>
+    <value>Two decay-data references disagree for these nuclides, and the analysis had to choose. What was taken:</value>
   </data>
   <data name="FSAReport_SupplyBetaPlusMode" xml:space="preserve">
-    <value>{0} → {1}: decay_chain gives {2} % for the β⁺ mode alone, not for the ε+β⁺ branch; the branch is taken as the remainder, {4} %</value>
+    <value>{0} → {1}: the decay chain gives {2} % for the β⁺ mode alone, not for the ε+β⁺ branch; the branch is taken as the remainder, {4} %</value>
   </data>
   <data name="FSAReport_SupplyOtherMode" xml:space="preserve">
-    <value>{0} → {1}: branch share in decay_chain {2} % is below the positron sum {3} % of decay_radiations; read as the share of the other mode, branch taken as {4} %</value>
+    <value>{0} → {1}: the branch share in the decay chain {2} % is below the positron sum {3} % of the radiation table; read as the share of the other mode, the branch is taken as {4} %</value>
   </data>
   <data name="FSAReport_SupplyExcess" xml:space="preserve">
-    <value>{0} → {1}: positron sum {3} % of decay_radiations exceeds what the other branches leave ({4} %); supply excess, clamped</value>
+    <value>{0} → {1}: the positron sum {3} % of the radiation table exceeds what the other branches leave ({4} %); the excess of the reference is clamped</value>
   </data>
   <data name="FSAReport_SupplyClamped" xml:space="preserve">
-    <value>{0} → {1}: positron sum {3} % of decay_radiations exceeds the branch share {2} %; clamped to it</value>
+    <value>{0} → {1}: the positron sum {3} % of the radiation table exceeds the branch share {2} %; clamped to it</value>
   </data>
   <data name="FSAReport_SupplyShareScaled" xml:space="preserve">
-    <value>{0} → {1}: β⁺ fraction of the branch {2} (decay_radiations) vs {3} (ENSDF), {4} %; level-by-level shares scaled to decay_radiations</value>
+    <value>{0} → {1}: β⁺ fraction of the branch {2} (radiation table) vs {3} (ENSDF), {4} %; level-by-level shares scaled to the radiation table</value>
   </data>
   <data name="FSAReport_SupplyShareKept" xml:space="preserve">
-    <value>{0} → {1}: β⁺ fraction of the branch {2} (decay_radiations) vs {3} (ENSDF), {4} %; the branch share is saturated, level-by-level shares kept from ENSDF</value>
+    <value>{0} → {1}: β⁺ fraction of the branch {2} (radiation table) vs {3} (ENSDF), {4} %; the branch share has reached the branch share in the chain, level-by-level shares kept from ENSDF</value>
   </data>
   <data name="FSAReport_PileUpCapRow" xml:space="preserve">
-    <value>Pile-up column capped at R·τ: the fit asked for {0:F0} pairs, the dead time allows {1:F0} — the excess is not pile-up</value>
+    <value>Pulse pile-up limited by the count rate: the fit asked for {0:F0} pairs, at this rate no more than {1:F0} are possible; the excess is not pile-up</value>
   </data>
   <data name="FSAReport_PileUpCapValue" xml:space="preserve">
-    <value>capped</value>
+    <value>limited</value>
   </data>
   <data name="FSAReport_InterferenceRow" xml:space="preserve">
     <value>{0} keV: {1} is not in the composition — at the natural {1}/{2} ratio the row {3} is overestimated up to ×{4}</value>
@@ -5335,7 +5479,7 @@
     <value>enriched</value>
   </data>
   <data name="FSAReport_UncoveredRow" xml:space="preserve">
-    <value>{0} keV: peak outside the composition — {1} % above the model, z {2}; library lines nearby: {3}</value>
+    <value>{0} keV: peak not explained by the analysis nuclides — {1} % above the model (z {2}); nearby in the library: {3}</value>
   </data>
   <data name="FSAReport_UncoveredValue" xml:space="preserve">
     <value>not in set</value>
@@ -5343,11 +5487,38 @@
   <data name="FSAReport_UncoveredNone" xml:space="preserve">
     <value>none</value>
   </data>
+  <data name="FSAReport_BackgroundAboveRow" xml:space="preserve">
+    <value>Background exceeds the spectrum at {0}–{1} keV: probably taken without the sample (empty vessel) or in a different setup</value>
+  </data>
+  <data name="FSAReport_BackgroundAboveValue" xml:space="preserve">
+    <value>check background</value>
+  </data>
+  <data name="FSAReport_BackgroundAboveTip" xml:space="preserve">
+    <value>z {0}; background ×{1} of the measured spectrum in this band</value>
+  </data>
+  <data name="FSAReport_FitBoundRow" xml:space="preserve">
+    <value>Fit lower bound, keV</value>
+  </data>
+  <data name="FSAReport_FitBoundTipSetting" xml:space="preserve">
+    <value>Channels below {0} keV are not fitted: lower bound set in the FSA window (0 — by the ADC threshold)</value>
+  </data>
+  <data name="FSAReport_FitBoundTipRule" xml:space="preserve">
+    <value>Lower bound in the FSA window is 0: the fit starts at {0} keV by the ADC threshold rule</value>
+  </data>
+  <data name="FSAReport_ImagesAboveRow" xml:space="preserve">
+    <value>Model above the spectrum at {0}–{1} keV ({2} times): the low part of the spectrum is not described</value>
+  </data>
+  <data name="FSAReport_ImagesAboveValue" xml:space="preserve">
+    <value>low end not described</value>
+  </data>
+  <data name="FSAReport_ImagesAboveTip" xml:space="preserve">
+    <value>z {0}; the nuclide models are above the whole measured spectrum in this band</value>
+  </data>
   <data name="FSAReport_SetOmittedRow" xml:space="preserve">
-    <value>{0}: in the nuclide set, not in the composition — {1}</value>
+    <value>{0}: in the set, but not found by the FSA analysis — {1}</value>
   </data>
   <data name="FSAReport_SetOmittedValue" xml:space="preserve">
-    <value>not fitted</value>
+    <value>not found</value>
   </data>
   <data name="FSAReport_SetOmittedNoPeak" xml:space="preserve">
     <value>no detected peak is labelled by it</value>
@@ -5365,24 +5536,78 @@
     <value>its confirmed lines are already explained by the composition</value>
   </data>
   <data name="FSAReport_ResidualNoise" xml:space="preserve">
-    <value>noise floor {0} %</value>
+    <value>noise level {0} %</value>
   </data>
   <data name="FSAReport_ResidualNoiseTip" xml:space="preserve">
-    <value>A model without a single error still shows about {0} % in each half: this is the Poisson noise of the band (the expected positive deviation of every channel from a perfect model, summed, over the measured counts of the same band). A residual near this floor does not tell the model from a perfect one; only what is above it is left undescribed.</value>
-  </data>
-  <data name="FSAReport_NoMatrixWarnRow" xml:space="preserve">
-    <value>No response matrix: cascade summing is not applied — cascade nuclides read low by CF − 1 (corpus: −3…−11 % at 5 cm, −4…−7 % in Marinelli and Petri); the images carry no Compton continuum and no escape peaks; the scale is anchored on bare peaks. Build the matrix from the geometry.</value>
-  </data>
-  <data name="FSAReport_NoMatrixWarnValue" xml:space="preserve">
-    <value>up to −11 %</value>
+    <value>A model without a single error still shows about {0} % in each half: this is the Poisson noise of the band (the expected positive deviation of every channel from a perfect model, summed, over the measured counts of the same band). A difference near this noise level does not tell the model from a perfect one; only what is above it is left undescribed.</value>
   </data>
   <data name="FSAReport_CurveOutsideRow" xml:space="preserve">
-    <value>Efficiency curve {0}…{1} keV — lines outside it are excluded from the images: {2}</value>
+    <value>Lines outside the efficiency curve ({0}…{1} keV) are not counted: {2}</value>
   </data>
   <data name="FSAReport_CurveOutsideValue" xml:space="preserve">
-    <value>excluded</value>
+    <value>not counted</value>
   </data>
   <data name="FSAReport_DensityRow" xml:space="preserve">
     <value>Sample density {0} g/cm³, scene {1} g/cm³, difference {2} % — efficiency at 60 keV {3} %, at 662 keV {4} % (estimate for a 1 L Marinelli; activity not corrected)</value>
+  </data>
+  <data name="FSAReport_BetaOnlyMark" xml:space="preserve">
+    <value>beta only</value>
+  </data>
+  <data name="FSAReport_BetaOnlyRemovedRow" xml:space="preserve">
+    <value>Nuclides without gamma lines removed: {0}</value>
+  </data>
+  <data name="FSAReport_BetaOnlyRemovedValue" xml:space="preserve">
+    <value>removed</value>
+  </data>
+  <data name="FSAReport_BetaOnlyNoMatrix" xml:space="preserve">
+    <value>no response matrix: the beta spectrum is built only from the electron section of a matrix</value>
+  </data>
+  <data name="FSAReport_BetaOnlyKeyOff" xml:space="preserve">
+    <value>sample beta radiation is switched off</value>
+  </data>
+  <data name="FSAReport_BetaOnlyNoSection" xml:space="preserve">
+    <value>the response matrix has no electron section; recompute it with the sample beta layer</value>
+  </data>
+  <data name="FSAReport_BetaOnlyMasked" xml:space="preserve">
+    <value>the beta channel is masked</value>
+  </data>
+  <data name="FSAReport_BetaOnlyRefusal" xml:space="preserve">
+    <value>Nuclides without gamma lines ({0}) removed: {1}.</value>
+  </data>
+  <data name="FSAReport_BetaBranchExcessRow" xml:space="preserve">
+    <value>Beta branches in the database sum to more than 100 %: {0}</value>
+  </data>
+  <data name="FSAReport_BetaBranchExcessValue" xml:space="preserve">
+    <value>beta overstated</value>
+  </data>
+  <data name="FSAReport_BetaKnotRow" xml:space="preserve">
+    <value>Baseline under the nuclides without gamma lines: knots every {0}·FWHM, VIF {1} (limit {2})</value>
+  </data>
+  <data name="FSAReport_BetaKnotVifOverRow" xml:space="preserve">
+    <value>The beta spectrum of the nuclides without gamma lines cannot be told from the baseline: their activity is unreliable</value>
+  </data>
+  <data name="FSAReport_BetaKnotVifOverValue" xml:space="preserve">
+    <value>unreliable</value>
+  </data>
+  <data name="FSAReport_BetaKnotSecondRefusedRow" xml:space="preserve">
+    <value>Nuclides with gamma lines are computed by the first, coarser pass: the second pass failed</value>
+  </data>
+  <data name="FSAReport_BetaKnotSecondRefusedValue" xml:space="preserve">
+    <value>coarser</value>
+  </data>
+  <data name="FSAReport_BetaKnotVifOver" xml:space="preserve">
+    <value> — above the limit even at the sparsest step</value>
+  </data>
+  <data name="FSAReport_BetaKnotSecondPass" xml:space="preserve">
+    <value>; gamma rows by a second pass with knots every {0}·FWHM</value>
+  </data>
+  <data name="FSAReport_BetaKnotOnePass" xml:space="preserve">
+    <value>; one pass: the step is the ordinary one</value>
+  </data>
+  <data name="FSAReport_BetaKnotSecondRefused" xml:space="preserve">
+    <value>; the second pass failed, gamma rows are from the first pass</value>
+  </data>
+  <data name="FSAReport_BetaKnotNoGamma" xml:space="preserve">
+    <value>; one pass: no gamma rows in the composition</value>
   </data>
 </root>

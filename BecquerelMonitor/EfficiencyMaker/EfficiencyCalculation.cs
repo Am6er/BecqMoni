@@ -705,6 +705,20 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // (2BS) — тем же путём, от умолчания настроек склада (ВЫКЛ до
                 // решения Amber о едином счёте).
                 ElectronLayerBremAngular2BS = storePhysics.ElectronLayerBremAngular2BS,
+                // (`AMBER274`, физика 28) Страгглинг потерь электрона — тем же путём, от
+                // умолчания настроек склада: кривая и склад считают одну физику.
+                ElectronStraggling = storePhysics.ElectronStraggling,
+                // (`AMBER274`, физика 29) Перенос электрона, сходящийся по шагу — тем же
+                // путём, от умолчания настроек склада: кривая и склад считают одну физику.
+                ElectronMixedTransport = storePhysics.ElectronMixedTransport,
+                // (`AMBER274`, физика 29, `phys29b`) Поправка Мотта при Z > 30 — тем же путём,
+                // от умолчания настроек склада: кривая и склад считают одну физику.
+                ElectronMottHeavy = storePhysics.ElectronMottHeavy,
+                // (`AMBER274`, физика 30) Правки критиков физики 29 и ядерная часть по DPWA — тем же
+                // путём, от умолчания настроек склада: кривая и склад считают одну физику.
+                ElectronElasticRefine = storePhysics.ElectronElasticRefine,
+                ElectronScreeningDpwa = storePhysics.ElectronScreeningDpwa,
+                CascadeCkVacancy = storePhysics.CascadeCkVacancy,
                 // (`AMBER80`, П147 24.09.2026, физика 24) Пороговая форма пар —
                 // тем же путём, от умолчания настроек склада (ВКЛ с физики 24,
                 // решение Amber 24.09.2026): кривая и склад считают одно сечение.
@@ -855,6 +869,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                         ElectronLayerMixedScattering = simulator.ElectronLayerMixedScattering,
                         ElectronLayerBremAlongPath = simulator.ElectronLayerBremAlongPath,
                         ElectronLayerBremAngular2BS = simulator.ElectronLayerBremAngular2BS,
+                        ElectronStraggling = simulator.ElectronStraggling,
+                        ElectronMixedTransport = simulator.ElectronMixedTransport,
+                        ElectronMottHeavy = simulator.ElectronMottHeavy,
+                        ElectronElasticRefine = simulator.ElectronElasticRefine,
+                        ElectronScreeningDpwa = simulator.ElectronScreeningDpwa,
+                        CascadeCkVacancy = simulator.CascadeCkVacancy,
                         XcomPairThreshold = simulator.XcomPairThreshold,
                     };
                 },
@@ -1018,6 +1038,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             // 2BS, тем же именем, что у клейма матрицы, только включённым; с
             // физики 22 (П114, 19–21.09.2026) ключ ВКЛ умолчанием склада, и
             // у кривой он в клейме всегда.
+            // `; estr=1` (`AMBER274`, физика 28, 30.10.2026) — страгглинг потерь
+            // электрона, тем же именем, что у клейма матрицы, только включённым; с
+            // физики 28 ключ ВКЛ умолчанием склада, и у кривой он в клейме всегда.
+            // `; mott=1` (`AMBER274`, физика 29, полоса `phys29b` 02.11.2026) — поправка
+            // Мотта при Z > 30, тем же именем, что у клейма матрицы, только включённой; ВКЛ
+            // умолчанием склада, и у кривой она в клейме всегда.
             // `; pairth=1` (`AMBER80`, П147 24.09.2026) — пороговая форма пар,
             // тем же именем, что у клейма матрицы, только включённым; с физики
             // 24 ключ ВКЛ умолчанием склада, и у кривой он в клейме всегда.
@@ -1042,7 +1068,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             // правда другая, иначе кривая посимвольно прежняя (`T42`).
             bool resolutionWindow = PeakWindowExpected(geometry);
             result.ComputeStamp = string.Format(CultureInfo.InvariantCulture,
-                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}{18}{19}{20}{21}{22}{23}",
+                "phys={0}; hist={1}; grid={2:0.#}-{3:0.#} keV/{4} {5}{6}{7}{8}{9}{10}{11}{12}{13}{14}{15}{16}{17}{18}{19}{20}{21}{22}{23}{24}{25}{26}{27}{28}{29}",
                 ResponseMatrix.PhysicsVersion, simulator.Histories,
                 result.MinEnergy, result.MaxEnergy, result.Curve.Count,
                 gridUsed == EfficiencyGridMode.Standard ? "std" : "log",
@@ -1069,6 +1095,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 storePhysics.ElectronLayerMixedScattering ? "; elmix=1" : "",
                 storePhysics.ElectronLayerBremAlongPath ? "; lbrem=1" : "",
                 storePhysics.ElectronLayerBremAngular2BS ? "; lbang=1" : "",
+                storePhysics.ElectronStraggling ? "; estr=1" : "",
+                storePhysics.ElectronMixedTransport ? "; emix=1" : "",
+                storePhysics.ElectronMottHeavy ? "; mott=1" : "",
+                // (`AMBER274`, физика 30) — тем же именем, что у клейма матрицы, только включёнными.
+                storePhysics.ElectronElasticRefine ? "; eref=1" : "",
+                storePhysics.ElectronScreeningDpwa ? "; dpwa=1" : "",
+                storePhysics.CascadeCkVacancy ? "; ckv=1" : "",
                 storePhysics.XcomPairThreshold ? "; pairth=1" : "",
                 resolutionWindow ? "; " + PeakWindowStamp : "",
                 VesselStampExpected(geometry) ? "; " + VesselStamp : "",

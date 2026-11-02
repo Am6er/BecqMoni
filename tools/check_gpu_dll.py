@@ -10,7 +10,7 @@ u"""Сторож поставочной GPU-библиотеки `BecquerelMonit
 Поэтому сборка (`build_gpu.cmd`) вшивает в `rm_build_info()` отпечаток исходников и
 поколение физики, а этот сторож пересчитывает отпечаток по дереву и сверяет.
 
-Шесть сверок, каждая — отказ:
+Семь сверок, каждая — отказ:
   1. `src=` в паспорте DLL == sha256 (16 знаков) файлов `*.cu *.cuh *.h *.inc` каталога
      `tools/effmaker/gpu`, отсортированных по имени порядково без учёта регистра и
      склеенных подряд (то же правило — `tools/effmaker/gpu/src_hash.ps1`);
@@ -33,7 +33,15 @@ u"""Сторож поставочной GPU-библиотеки `BecquerelMonit
      паспорте DLL. Предпроверка драйвера идёт ДО загрузки библиотеки (рантайм 13.4 без
      драйвера падает) и потому знает нужную версию из константы, а не из паспорта; константа,
      отставшая от пересборки, пускала бы рантайм к драйверу, которого ему мало, или гасила бы
-     годный.
+     годный;
+  7. (`AMBER274`, физика 30, Н6 критика кода 02.11.2026) ПОСТОЯННЫЕ ЯДРА, повторённые в
+     `decl_electron.inc` строками `static constexpr <вид> <Имя> = <число>;`, == одноимённые `const` C#
+     (`CONSTANTS` ниже: потолки шагов, Мотт, порог переноса, страгглинг, биты частей физики 30, массы и
+     постоянные). Прежде их не сверял никто: потолок `TransportMaxStepsMixed`, поднятый в C# без ядра,
+     проходил все сторожа (отпечаток исходников сходится сам с собой), а GPU считал прежний;
+  8. (`AMBER274`, физика 30, Н7) `cfg=` в паспорте DLL == отпечаток списка полей `cfg.h` (FNV-1a 64 строки
+     «вид:имя;» в порядке `RM_CFG_FIELDS`) — тот же, что приложение сверяет в `RmGpu.Probe`
+     (`RmGpu.SettingsFingerprint`); паспорт без `cfg=` — сборка до физики 30.
 
 Паспорт читается из самой DLL (`ctypes`): она слинкована со статическим рантаймом CUDA и
 зависит только от KERNEL32, а `rm_build_info` устройства не трогает — сторож идёт и на
@@ -174,6 +182,26 @@ def cfg_fields(text):
     return dict((n, k) for k, n in re.findall(r'X\(([BILD]), (\w+)\)', text))
 
 
+def cfg_fingerprint(text):
+    u"""(`AMBER274`, Н7) FNV-1a 64 строки «вид:имя;» полей `cfg.h` в порядке `RM_CFG_FIELDS` — как `rm_build_info`."""
+    h = 14695981039346656037
+    for k, n in re.findall(r'X\(([BILD]), (\w+)\)', text):
+        for ch in (u'%s:%s;' % (k, n)).encode('ascii'):
+            h ^= ch
+            h = (h * 1099511628211) & 0xFFFFFFFFFFFFFFFF
+    return u'%016x' % h
+
+
+def cfg_passport_problems(fields, want):
+    u"""(`AMBER274`, Н7) Восьмая сверка: `cfg=` паспорта == отпечаток `cfg.h`."""
+    got = fields.get(u'cfg')
+    if not got:
+        return [u'паспорт DLL без cfg= (отпечатка состава настроек) — сборка до физики 30, пересобрать build_gpu.cmd']
+    if got != want:
+        return [u'DLL собрана с другим составом настроек: cfg=%s, cfg.h даёт %s — пересобрать build_gpu.cmd' % (got, want)]
+    return []
+
+
 def cfg_problems(sim, cfg):
     u"""(П253, 14.10.2026) Четвёртая сверка: настройки ядра (`cfg.h`) == открытые простые поля
     симулятора. Поле, заведённое в C# без `gen_cfg.ps1`, сторож прежде не видел: исходники ядра
@@ -234,6 +262,82 @@ def cudart_problems(fields, want):
         return []
     return [u'DLL слинкована с рантаймом CUDA %d, build_gpu.cmd закрепляет %d — собрана мимо закрепления; '
             u'пересобрать build_gpu.cmd (рантайм задаёт наименьший драйвер у людей, README «Сборка»)' % (got, want)]
+
+
+# (`AMBER274`, физика 30, Н6) Постоянные ядра и их оригиналы в C#: имя в decl_electron.inc → (файл C#, имя).
+DECL_ELECTRON = os.path.join(GPU_DIR, 'decl_electron.inc')
+EM_DIR = os.path.join(REPO, 'BecquerelMonitor', 'EfficiencyMaker')
+CONSTANTS = [
+    (u'TransportCutKev', u'ElectronTransport.cs', u'TransportCutKev'),
+    (u'TransportMaxSteps', u'ElectronTransport.cs', u'TransportMaxSteps'),
+    (u'TransportMaxStepsMixed', u'ElectronTransport.cs', u'TransportMaxStepsMixed'),
+    (u'MottMaxZ', u'ElectronTransport.cs', u'MottMaxZ'),
+    (u'MottMaxTries', u'ElectronTransport.cs', u'MottMaxTries'),
+    (u'MottBetaShift', u'MottData.cs', u'BetaShift'),
+    (u'StragglingMinLossKev', u'ElectronTransport.cs', u'StragglingMinLossKev'),
+    (u'StragglingE0Kev', u'ElectronTransport.cs', u'StragglingE0Kev'),
+    (u'StragglingLowestKev', u'ElectronTransport.cs', u'StragglingLowestKev'),
+    (u'UrbanRate', u'ElectronTransport.cs', u'UrbanRate'),
+    (u'UrbanFw', u'ElectronTransport.cs', u'UrbanFw'),
+    (u'UrbanA0', u'ElectronTransport.cs', u'UrbanA0'),
+    (u'UrbanNmaxCont', u'ElectronTransport.cs', u'UrbanNmaxCont'),
+    (u'RefineEeLimit', u'ElectronTransport.cs', u'RefineEeLimit'),
+    (u'RefineMottAllZ', u'ElectronTransport.cs', u'RefineMottAllZ'),
+    (u'RefinePositron', u'ElectronTransport.cs', u'RefinePositron'),
+    (u'RefineShareRecompute', u'ElectronTransport.cs', u'RefineShareRecompute'),
+    (u'RefineStepMajorant', u'ElectronTransport.cs', u'RefineStepMajorant'),
+    (u'RefineLayerStepLimit', u'ElectronTransport.cs', u'RefineLayerStepLimit'),
+    (u'ElectronMassKev', u'EfficiencySimulator.cs', u'ElectronMassKev'),
+    (u'ClassicalRadiusCm', u'EfficiencySimulator.cs', u'ClassicalRadiusCm'),
+    (u'Avogadro', u'EfficiencySimulator.cs', u'Avogadro'),
+    (u'FineStructure', u'ScatteringData.cs', u'FineStructure'),
+    (u'AirDensity', u'EfficiencySimulator.cs', u'AirDensity'),
+]
+NUM = r'([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)'
+
+
+def kernel_constants(text):
+    u"""{имя: число} строк `static constexpr <вид> <Имя> = [(real)]<число>;` ядра."""
+    out = {}
+    for m in re.finditer(r'static\s+constexpr\s+[\w ]+?\s+(\w+)\s*=\s*(?:\(real\))?' + NUM + r'\s*;', text):
+        out[m.group(1)] = float(m.group(2))
+    return out
+
+
+def cs_constant(text, name):
+    u"""Число `const`-объявления C# с именем `name` (в том числе в списке `const int A = 1, B = 2;`)."""
+    for m in re.finditer(r'\bconst\s+\w+\s+([^;]*);', text):
+        for part in m.group(1).split(u','):
+            mm = re.match(r'\s*(\w+)\s*=\s*' + NUM + r'\s*$', part)
+            if mm and mm.group(1) == name:
+                return float(mm.group(2))
+    return None
+
+
+def constant_problems(kernel, cs_texts):
+    u"""(`AMBER274`, Н6) Седьмая сверка: постоянные ядра == `const` C#."""
+    problems = []
+    for gname, cs_file, cs_name in CONSTANTS:
+        g = kernel.get(gname)
+        c = cs_constant(cs_texts.get(cs_file, u''), cs_name)
+        if g is None:
+            problems.append(u'постоянной %s нет в decl_electron.inc (ждёт сверка CONSTANTS)' % gname)
+        elif c is None:
+            problems.append(u'постоянной %s нет в %s (оригинал %s ядра)' % (cs_name, cs_file, gname))
+        elif g != c:
+            problems.append(u'постоянная ядра %s = %r, а %s %s = %r — перенести правку в ядро'
+                            % (gname, g, cs_file, cs_name, c))
+    return problems
+
+
+def read_constants():
+    kernel = kernel_constants(io.open(DECL_ELECTRON, encoding='utf-8').read())
+    cs = {}
+    for _, f, _ in CONSTANTS:
+        if f not in cs:
+            path = os.path.join(EM_DIR, f)
+            cs[f] = io.open(path, encoding='utf-8-sig').read() if os.path.isfile(path) else u''
+    return kernel, cs
 
 
 def judge(info, src, phys_h, phys_cs, cudart_want, linked):
@@ -340,6 +444,37 @@ def selftest():
         ok = got == want
         bad += 0 if ok else 1
         print(u'  %s %s → %s' % (u'✓' if ok else u'✗', what, u'отказ' if got else u'сходится'))
+    # (`AMBER274`, Н6) Постоянные ядра: дерево сходится; потолок, поднятый в C# мимо ядра, и бит части,
+    # сдвинутый в ядре, — отказ. Порча — на копиях текста.
+    kernel, cs = read_constants()
+    et = cs.get(u'ElectronTransport.cs', u'')
+    cs_cap = dict(cs)
+    cs_cap[u'ElectronTransport.cs'] = et.replace(u'const int TransportMaxStepsMixed = 4000;',
+                                                 u'const int TransportMaxStepsMixed = 8000;', 1)
+    kernel_bit = dict(kernel)
+    kernel_bit[u'RefineStepMajorant'] = 64.0
+    kernel_gone = dict(kernel)
+    kernel_gone.pop(u'MottMaxTries', None)
+    const_cases = [
+        (kernel, cs, 0, u'постоянные ядра: дерево (%d сверок)' % len(CONSTANTS)),
+        (kernel, cs_cap, 1, u'постоянные: TransportMaxStepsMixed поднят в C# мимо ядра'),
+        (kernel_bit, cs, 1, u'постоянные: бит RefineStepMajorant сдвинут в ядре'),
+        (kernel_gone, cs, 1, u'постоянные: MottMaxTries пропала из ядра'),
+    ]
+    for kk, cc, want, what in const_cases:
+        got = 1 if constant_problems(kk, cc) else 0
+        ok = got == want
+        bad += 0 if ok else 1
+        print(u'  %s %s → %s' % (u'✓' if ok else u'✗', what, u'отказ' if got else u'сходится'))
+    # (`AMBER274`, Н7) cfg= паспорта: свой — сходится; чужой и отсутствующий — отказ.
+    cw8 = cfg_fingerprint(io.open(CFG_H, encoding='utf-8').read())
+    for fields8, want8, what8 in (({u'cfg': cw8}, 0, u'cfg= паспорта = cfg.h'),
+                                  ({u'cfg': u'0' * 16}, 1, u'cfg= паспорта чужой'),
+                                  ({}, 1, u'паспорт без cfg=')):
+        got8 = 1 if cfg_passport_problems(fields8, cw8) else 0
+        ok8 = got8 == want8
+        bad += 0 if ok8 else 1
+        print(u'  %s %s → %s' % (u'✓' if ok8 else u'✗', what8, u'отказ' if got8 else u'сходится'))
     print(u'самопроверка: %s' % (u'ПРОЙДЕНА' if bad == 0 else u'ПРОВАЛЕНА (%d)' % bad))
     return 0 if bad == 0 else 1
 
@@ -381,6 +516,16 @@ def main(argv):
     if not cfgp:
         print(u'настройки ядра (cfg.h) = открытые простые поля EfficiencySimulator: %d' % len(cfg))
     problems.extend(cfgp)
+    kernel, cs = read_constants()
+    constp = constant_problems(kernel, cs)
+    if not constp:
+        print(u'постоянные ядра (decl_electron.inc) = const C#: %d сверок' % len(CONSTANTS))
+    problems.extend(constp)
+    cfgw = cfg_fingerprint(io.open(CFG_H, encoding='utf-8').read())
+    cfgpp = cfg_passport_problems(parse_info(info), cfgw)
+    if not cfgpp:
+        print(u'состав настроек паспорта (cfg=%s) = cfg.h' % cfgw)
+    problems.extend(cfgpp)
     for p in problems:
         print(u'⛔ ' + p)
     print(u'положительный контроль этой проверки: python tools/check_gpu_dll.py --selftest')

@@ -567,7 +567,9 @@ namespace BecquerelMonitor
             {
                 return null;
             }
-            DocEnergySpectrum docEnergySpectrum = this.documentManager.OpenDocument(documentPath);
+            // (`AMBER269`, полоса a269fix6) Восстановление прошлого сеанса, не открытие руками:
+            // голос о подменённой ширине пиков — только в журнал (решение Amber 02.11.2026).
+            DocEnergySpectrum docEnergySpectrum = this.documentManager.OpenDocument(documentPath, true);
             this.SubscribeDocumentEvent(docEnergySpectrum);
             if (docEnergySpectrum == null)
             {
@@ -2273,6 +2275,7 @@ namespace BecquerelMonitor
             doc.ShowEnergyCalibrationView += this.DocEnergySpectrum_ShowEnergyCalibrationView;
             doc.AddSpectrumToDocument += this.DocEnergySpectrum_AddSpectrumToDocument;
             doc.EfficiencyChanged += this.DocEnergySpectrum_EfficiencyChanged;
+            doc.FwhmCalibrationChanged += this.DocEnergySpectrum_FwhmCalibrationChanged;
             doc.FsaModeEntered += this.DocEnergySpectrum_FsaModeEntered;
             foreach (ResultData resultData in doc.ResultDataFile.ResultDataList)
             {
@@ -2297,11 +2300,26 @@ namespace BecquerelMonitor
             doc.ShowEnergyCalibrationView -= this.DocEnergySpectrum_ShowEnergyCalibrationView;
             doc.AddSpectrumToDocument -= this.DocEnergySpectrum_AddSpectrumToDocument;
             doc.EfficiencyChanged -= this.DocEnergySpectrum_EfficiencyChanged;
+            doc.FwhmCalibrationChanged -= this.DocEnergySpectrum_FwhmCalibrationChanged;
             doc.FsaModeEntered -= this.DocEnergySpectrum_FsaModeEntered;
             foreach (ResultData resultData in doc.ResultDataFile.ResultDataList)
             {
                 this.CleanupMeasurementController(resultData.MeasurementController);
             }
+        }
+
+        /// <summary>
+        /// (`AMBER269`, полоса a269fix5) Кривую FWHM спектра поставил документ — выбором
+        /// прибора перед разложением. Вкладка «Калибровка» показывает её только после
+        /// обновления; прежде до смены документа на ней оставалось «кривой нет».
+        /// </summary>
+        void DocEnergySpectrum_FwhmCalibrationChanged(object sender, EventArgs e)
+        {
+            if (sender != this.activeDocument)
+            {
+                return;
+            }
+            UpdateFwhmCalibrationView();
         }
 
         /// <summary>
@@ -3240,7 +3258,10 @@ namespace BecquerelMonitor
         /// <see cref="FWHMPeakDetectionMethodConfig.AdoptFrom"/>. Калибровки,
         /// энергетическая и ПШПВ, здесь тоже не трогаются: они принадлежат
         /// спектру и подбираются по нему, а перенести их из прибора можно
-        /// нарочно — выбором конфигурации в панели управления измерением.
+        /// нарочно — кнопкой «Применить» (↻) панели управления измерением.
+        /// Выбор прибора в списке «Устройство» той же панели калибровки и фон
+        /// спектра с данными не переносит (`AMBER269`, 01.11.2026): там прибор
+        /// лишь умолчание для того, чего у спектра своего нет.
         /// </summary>
         void ApplyDeviceConfigToDocuments(string guid)
         {

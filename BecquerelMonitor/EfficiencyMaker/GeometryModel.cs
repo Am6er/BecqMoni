@@ -849,6 +849,30 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double BeakerEndWallThickness;
         public double SourceHeight;
 
+        /// <summary>
+        /// (`AMBER274`, полоса `f8cyl` 02.11.2026) ДАЛЬНЕЕ ДНО ЦИЛИНДРА, мм — донышко сосуда со
+        /// стороны, ДАЛЬНЕЙ от детектора, того же вещества, что стенка (<see cref="BeakerWall"/>).
+        /// Решение Amber 30.10.2026 вопросником, дословно: «Завести поле цилиндру
+        /// (Рекомендую)»; повод — критик бета-спектрометра 30.10.2026: металлическое дно
+        /// чашки 0.8 мм (решение Amber «Сталь (магнит липнет)») в сцену не входило, а бета пробы
+        /// обратно рассеивается и тормозит в нём (+8.9 % у Sr-90 5 г). Поле — по образцу
+        /// <see cref="MarinelliEndWallThickness"/> (`AMBER205`): сосуд высотой
+        /// <see cref="BeakerHeight"/> (снаружи) кончается этим дном; запас стенки над пробой —
+        /// <c>BeakerHeight − BeakerEndWallThickness − SourceHeight − BeakerFarEndWallThickness</c>;
+        /// сосуд короче — дно вплотную к пробе. Раскладка — <c>EfficiencySimulator.CylinderVessel</c>
+        /// (сцена счёта, клеймо и эскиз — одна). Дно видят и фотон, и электрон (это область сцены).
+        /// ⛔ Ноль — умолчание: дна нет, сцена, клеймо, отпечаток геометрии, текст `.in` и XML
+        /// побайтно прежние (в `.in` ключ `SC_BeakerFarEndWallThickness` и в XML элемент — только
+        /// при ненулевом значении).
+        /// </summary>
+        public double BeakerFarEndWallThickness;
+
+        /// <summary>(`f8cyl`) XML — только при ненулевом дальнем дне: прежние конфигурации прежними до знака.</summary>
+        public bool ShouldSerializeBeakerFarEndWallThickness()
+        {
+            return this.BeakerFarEndWallThickness > 0.0;
+        }
+
         public double MarinelliBeakerDiameter;
         public double MarinelliBeakerHeight;
         public double MarinelliHoleDiameter;
@@ -955,6 +979,182 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
         public GeometryMaterial BeakerWall = new GeometryMaterial();
         public GeometryMaterial Source = new GeometryMaterial();
+
+        /// <summary>
+        /// (`AMBER274`, Э1 29.10.2026) КАПСУЛА ТОЧЕЧНОГО ИСТОЧНИКА — вещество плоской
+        /// оболочки активного пятна (плёнка или диск по обе стороны точки) и её
+        /// толщина <see cref="SourceCapsuleThickness"/>, мм. Вещество плёнки и кольца
+        /// читает ТОЛЬКО перенос первичной частицы пробы (строки электрона матрицы, слой
+        /// «Бета»): потеря энергии бетой на пути t/|cos θ| до входа в сцену. Фотонный
+        /// перенос вещества капсулы не видит, и в клеймо фотонной части матрицы оно НЕ
+        /// входит (<c>ResponseMatrix.StampView</c>) — его ослабление фотонов при
+        /// толщинах 0.1…1 мм пластика меньше 0.5 % выше 60 кэВ. ⛔ Видит фотонный
+        /// перенос СДВИГ точки в капсуле (<see cref="SourceCapsuleOffset"/>, `Ф6`), и он в
+        /// клейме есть. В XML — только у точечной сцены с капсулой не ОСГИ (`Д4`).
+        ///
+        /// ⛔ Умолчание — КАПСУЛА ОСГИ (решение Amber 29.10.2026 вопросником, дословно:
+        /// «Паспорт ОСГИ»): полиимидная плёнка 0.05 мм к детектору и алюминиевое кольцо
+        /// Ø25 × 3 мм вокруг активного пятна (<see cref="OsgiCapsule"/>). Так читается
+        /// всякая точечная сцена БЕЗ ключа `DS_SourceCapsuleThickness` (все прежние файлы и
+        /// файлы ЛСРМ); голая точка — ключ с нулём. Фотонной части матрицы умолчание не
+        /// касается (клеймо его не видит).
+        /// </summary>
+        public GeometryMaterial SourceCapsule = OsgiFilm();
+
+        /// <summary>(`AMBER274`) Толщина плёнки капсулы к детектору, мм; 0 — голая точка.</summary>
+        public double SourceCapsuleThickness = OsgiFilmMm;
+
+        /// <summary>
+        /// (`AMBER274`) Кольцо-держатель капсулы (алюминий): высота вдоль оси, мм (0 —
+        /// кольца нет), внутренний и внешний диаметры, мм. Частица, вылетевшая ближе к
+        /// плоскости капсулы, чем край кольца, проходит его стенку радиально.
+        /// </summary>
+        public double SourceCapsuleRingHeight = OsgiRingHeightMm;
+
+        public double SourceCapsuleRingInnerDiameter = OsgiRingInnerMm;
+
+        public double SourceCapsuleRingOuterDiameter = OsgiRingOuterMm;
+
+        /// <summary>
+        /// (`AMBER274`) Устройство ОСГИ по описаниям типа (журнал `AMBER274` Э1, шаг 4):
+        /// активная часть Ø ≤ 3 мм запаяна между двумя полиимидными плёнками не тоньше 50 мкм
+        /// каждая, держатель — алюминиевое кольцо Ø25 × 3 мм. ⚠ Внутренний диаметр кольца в
+        /// описаниях не назван — 20 мм допущением.
+        /// </summary>
+        public const double OsgiFilmMm = 0.05, OsgiRingHeightMm = 3.0, OsgiRingInnerMm = 20.0, OsgiRingOuterMm = 25.0;
+
+        /// <summary>(`AMBER274`) Полиимид (NIST «Kapton polyimide film»): 1.42 г/см³.</summary>
+        public static GeometryMaterial OsgiFilm()
+        {
+            var m = new GeometryMaterial { Name = "Kapton polyimide film", Density = 1.42 };
+            m.Fractions[1] = 0.026362;
+            m.Fractions[6] = 0.691133;
+            m.Fractions[7] = 0.073270;
+            m.Fractions[8] = 0.209235;
+            return m;
+        }
+
+        /// <summary>(`AMBER274`) Алюминий кольца капсулы.</summary>
+        public static GeometryMaterial OsgiRingMaterial()
+        {
+            var m = new GeometryMaterial { Name = "Aluminum", Density = 2.699 };
+            m.Fractions[13] = 1.0;
+            return m;
+        }
+
+        /// <summary>
+        /// (`AMBER274`) Сцена, у которой капсула ЕСТЬ: точечный источник обычной сцены
+        /// (у изотропного поля форма тоже «точка», но источника в сцене нет).
+        /// </summary>
+        [XmlIgnore]
+        public bool HasSourceCapsule
+        {
+            get { return this.SourceType == GeometrySourceType.Point && this.Scene == GeometrySceneKind.None; }
+        }
+
+        /// <summary>
+        /// (`AMBER274` Ф6, решение Amber 30.10.2026 вопросником, дословно: «На 1.5 мм и для
+        /// фотонов (Рекомендую)») СДВИГ ТОЧКИ ОТ ПЛОСКОСТИ КАПСУЛЫ, в единицах модели (мм; у
+        /// копии в сантиметрах — см): расстояние точечной сцены <see cref="PointDistance"/>
+        /// — от плоскости капсулы, а сама точка внутри неё. С кольцом — середина кольца
+        /// (h/2; у ОСГИ 1.5 мм), но не ближе плёнки; без кольца — за плёнкой (t); голая точка
+        /// и не точечная сцена — 0, и тогда сцена прежняя до бита. Сдвиг видят И ФОТОНЫ
+        /// (точка сцены, <c>EfficiencySimulator</c>), поэтому он входит в фотонное клеймо
+        /// (<c>ResponseMatrix.GeometryText</c>); вещество плёнки и кольца фотоны не видят.
+        ///
+        /// ⛔ ОТКАТ Ф6 (критик `critpt30`, 02.11.2026; правило Amber 02.11.2026, дословно: «корпус у
+        /// нас сейчас СТАБИЛЕН. Если появляется новый прибор - он должен доказать, что нужно менять
+        /// весь корпус.», «Если есть сомнения у критиков - пусть отменяют свои решения»). Сдвиг
+        /// НУЛЕВОЙ: точка сцены стоит на <see cref="PointDistance"/>, как до 30.10.2026, у фотона и у
+        /// электрона. Почему: (1) положение пятна ОСГИ по высоте кольца в описаниях типа не названо —
+        /// 1.5 мм было допущением «середина кольца», не замером; (2) расстояния точечных сцен корпуса
+        /// и глубина кристалла шаблона «RadiaCode-103» (5.5 мм, П73) ИЗМЕРЕНЫ или подобраны по
+        /// паспорту голой точкой (П71 +7 мм, П73, П219, П228) — положение пятна в них уже сидит, и
+        /// сдвиг клал его второй раз; (3) неподогнанная контактная мерка `AS80_Cs137_0cm` (зазор
+        /// 21.7 мм — слово Amber, не подбор) — 0.995 паспорта без сдвига и 1.076 со сдвигом; контакт
+        /// ASN16 и без сдвига 1.17 (П99), со сдвигом 1.52. Перенос сдвиг считал верно (Geant4 `g4cf`:
+        /// ОСГИ/голая 0.762 против нашей 0.758 на 662 кэВ у `RC103_point0`) — неверным было само
+        /// положение точки. Вещество плёнки и кольца (раздел электрона) — как было; ветвь строки
+        /// `srcoff` в <c>ResponseMatrix.GeometryText</c> и признак «кривая до сдвига точки» при
+        /// нулевом сдвиге не срабатывают, и фотонное клеймо точечной сцены — прежнее, как у голой точки.
+        /// </summary>
+        [XmlIgnore]
+        public double SourceCapsuleOffset
+        {
+            get
+            {
+                return 0.0;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Д4) Капсула уходит в XML конфигурации и спектра ТОЛЬКО у точечной
+        /// сцены и только отличной от умолчания ОСГИ — иначе каждое «открыть — сохранить»
+        /// дописало бы пять полей во все прежние файлы (правило «конфигурации прежними до
+        /// знака», как у <see cref="RawList"/>). Нет элементов — читается умолчание ОСГИ.
+        /// </summary>
+        bool CapsuleToXml
+        {
+            get { return this.HasSourceCapsule && !this.IsOsgiCapsule; }
+        }
+
+        /// <summary>(`AMBER274`, Д4) Образец `XmlSerializer` «ShouldSerialize&lt;имя&gt;».</summary>
+        public bool ShouldSerializeSourceCapsule()
+        {
+            return this.CapsuleToXml;
+        }
+
+        public bool ShouldSerializeSourceCapsuleThickness()
+        {
+            return this.CapsuleToXml;
+        }
+
+        public bool ShouldSerializeSourceCapsuleRingHeight()
+        {
+            return this.CapsuleToXml;
+        }
+
+        public bool ShouldSerializeSourceCapsuleRingInnerDiameter()
+        {
+            return this.CapsuleToXml;
+        }
+
+        public bool ShouldSerializeSourceCapsuleRingOuterDiameter()
+        {
+            return this.CapsuleToXml;
+        }
+
+        /// <summary>(`AMBER274`) Капсула — ровно умолчание ОСГИ (тогда в `.in` её строк нет).</summary>
+        [XmlIgnore]
+        public bool IsOsgiCapsule
+        {
+            get
+            {
+                if (this.SourceCapsuleThickness != OsgiFilmMm || this.SourceCapsuleRingHeight != OsgiRingHeightMm
+                    || this.SourceCapsuleRingInnerDiameter != OsgiRingInnerMm
+                    || this.SourceCapsuleRingOuterDiameter != OsgiRingOuterMm || this.SourceCapsule == null)
+                {
+                    return false;
+                }
+
+                GeometryMaterial f = OsgiFilm();
+                if (this.SourceCapsule.Density != f.Density || this.SourceCapsule.Fractions.Count != f.Fractions.Count)
+                {
+                    return false;
+                }
+
+                foreach (KeyValuePair<int, double> kv in f.Fractions)
+                {
+                    double v;
+                    if (!this.SourceCapsule.Fractions.TryGetValue(kv.Key, out v) || v != kv.Value)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
 
         /// <summary>
         /// Наибольшая плотность, при которой проба считается ВОЗДУХОМ, г/см³
@@ -1076,6 +1276,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             copy.Cladding = this.Cladding.Clone();
             copy.BeakerWall = this.BeakerWall.Clone();
             copy.Source = this.Source.Clone();
+            copy.SourceCapsule = this.SourceCapsule != null ? this.SourceCapsule.Clone() : new GeometryMaterial();
             // Свои словарь и список, а не общие с исходником: копия для того и
             // делается, чтобы две геометрии не правились за одну.
             copy.Raw = new Dictionary<string, string>(this.Raw, StringComparer.OrdinalIgnoreCase);
@@ -1127,7 +1328,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.BeakerHeight *= factor;
             g.BeakerSideWallThickness *= factor;
             g.BeakerEndWallThickness *= factor;
+            g.BeakerFarEndWallThickness *= factor;    // (`f8cyl`)
             g.SourceHeight *= factor;
+            g.SourceCapsuleThickness *= factor;    // (`AMBER274`)
+            g.SourceCapsuleRingHeight *= factor;
+            g.SourceCapsuleRingInnerDiameter *= factor;
+            g.SourceCapsuleRingOuterDiameter *= factor;
 
             g.MarinelliBeakerDiameter *= factor;
             g.MarinelliBeakerHeight *= factor;
@@ -1506,6 +1712,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.BeakerSideWallThickness = Len(kv, "SC_BeakerSideWallThickness");
             g.BeakerEndWallThickness = Len(kv, "SC_BeakerEndWallThickness");
             g.SourceHeight = Len(kv, "SC_SourceHeight");
+            // (`f8cyl`) Дальнее дно цилиндра — наше расширение формата; нет ключа — дна нет.
+            g.BeakerFarEndWallThickness = Len(kv, "SC_BeakerFarEndWallThickness");
 
             g.MarinelliBeakerDiameter = Len(kv, "SM_BeakerDiameter");
             g.MarinelliBeakerHeight = Len(kv, "SM_BeakerHeight");
@@ -1563,6 +1771,21 @@ namespace BecquerelMonitor.EfficiencyMaker
             // файла. Измерено пробой `GapDefaultProbe` на 61 файле `.in`.
             g.Gap = Material(kv, "DS_", "CrystalGap", "M_DS_Gap.MName",
                              "DS_FractionTypeGap", g.ParseWarnings);
+            // (`AMBER274`, Э1) Капсула точечного источника — наше расширение формата.
+            // ⛔ Ключа нет — умолчание ОСГИ (поля уже стоят им): так читаются все прежние
+            // файлы и файлы ЛСРМ; ключ есть — капсула из файла, ноль — голая точка;
+            // кольцо — своими ключами, нет ключа — кольца нет.
+            if (kv.ContainsKey("DS_SourceCapsuleThickness"))
+            {
+                g.SourceCapsuleThickness = Len(kv, "DS_SourceCapsuleThickness");
+                g.SourceCapsuleRingHeight = Len(kv, "DS_SourceCapsuleRingHeight");
+                g.SourceCapsuleRingInnerDiameter = Len(kv, "DS_SourceCapsuleRingInnerDiameter");
+                g.SourceCapsuleRingOuterDiameter = Len(kv, "DS_SourceCapsuleRingOuterDiameter");
+                g.SourceCapsule = g.SourceCapsuleThickness > 0.0
+                    ? Material(kv, "DS_", "SourceCapsule", "M_DS_SourceCapsule.MName",
+                               "DS_FractionTypeSourceCapsule", g.ParseWarnings)
+                    : new GeometryMaterial();
+            }
             g.ApplyGapDefault();
 
             string prefix = g.SourceType == GeometrySourceType.Marinelli ? "SM_" : "SC_";
@@ -1716,7 +1939,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     wall = Math.Max(this.BoxSideWallThickness, this.BoxEndWallThickness);
                     break;
                 case GeometrySourceType.Cylinder:
-                    wall = Math.Max(this.BeakerSideWallThickness, this.BeakerEndWallThickness);
+                    wall = Math.Max(Math.Max(this.BeakerSideWallThickness, this.BeakerEndWallThickness),
+                                    this.BeakerFarEndWallThickness);
                     break;
                 default:
                     wall = 0.0;        // точечный источник вещества не имеет

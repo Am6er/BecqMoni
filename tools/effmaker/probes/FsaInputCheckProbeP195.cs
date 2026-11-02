@@ -24,7 +24,8 @@ namespace FsaInputCheckProbeP195
     ///     маринелли; отрицательные — плотность сцены и нулевые W, V.
     ///   * `AMBER157` — кривая обрезана выше 1250 кэВ, разбор без матрицы:
     ///     строка «кривая … вне: K-40 1460.8»; контроль — полная кривая.
-    ///   * `AMBER156` (в) — разбор без матрицы: строка-предупреждение; контроль —
+    ///   * `AMBER156` (в) — разбор без матрицы: предупреждение (с `AMBER284` — красная строка
+    ///     «Матрица отклика» с ценой в подсказке, отдельной строки нет); контроль —
     ///     матричный разбор того же спектра.
     ///   * П281 (решение Amber 14.10.2026 «Молчать у краёв комптона (Рекомендую)») —
     ///     в сцене (2) без матрицы уступ комптона K-40 не назван «пиком вне состава»
@@ -148,7 +149,10 @@ namespace FsaInputCheckProbeP195
                 List<string[]> rows = Window(report, session, rd, "с матрицей, W/V 1.3");
                 Same("(1) матричный разбор", true, session.Result != null && session.Result.ResponseMatrixUsed);
                 Same("(1) строка плотности в окне, красная", true, Has(rows, "1.30", true));
-                Same("(1) строки «без матрицы» нет", false, Has(rows, Own("FSAReport_NoMatrixWarnValue"), true));
+                // (`AMBER284`) цена разбора без матрицы — подсказкой строки «Матрица отклика», а не
+                // своей строкой: у матричного разбора подсказки нет и строка не красная
+                Same("(1) у строки «Матрица отклика» нет подсказки «без матрицы»", false,
+                     MatrixRowWarned(rows));
                 Same("(1) строки «вне кривой» нет", false, Has(rows, Own("FSAReport_CurveOutsideValue"), true));
 
                 // (2) без матрицы, полная кривая, карточка пуста: предупреждение «без матрицы»,
@@ -159,7 +163,13 @@ namespace FsaInputCheckProbeP195
                 session.Reset();
                 rows = Window(report, session, rd, "без матрицы, кривая полная, W = V = 0");
                 Same("(2) разбор без матрицы", true, session.Result != null && !session.Result.ResponseMatrixUsed);
-                Same("(2) предупреждение «без матрицы» в окне", true, Has(rows, Own("FSAReport_NoMatrixWarnValue"), true));
+                // (`AMBER284`, решение Amber 02.11.2026 «Объединить со строкой выше, где уже написано -
+                // нет Матрицы отклика. Остальное убрать в подсказку.») предупреждение — красная строка
+                // «Матрица отклика | не учтена» с ценой в подсказке; отдельной строки нет
+                Same("(2) предупреждение «без матрицы» — подсказкой красной строки «Матрица отклика»", true,
+                     MatrixRowWarned(rows));
+                Same("(2) отдельной строки с ценой «без матрицы» нет (подпись строки — не её текст)", false,
+                     Has(rows, Own("FSAReport_MatrixNotUsedTip"), false));
                 Same("(2) строки «вне кривой» нет", false, Has(rows, Own("FSAReport_CurveOutsideValue"), true));
                 Same("(2) строки плотности нет", false, Has(rows, "g/cm", false) || Has(rows, "г/см", false));
                 Same("(2) привязка без матрицы: опоры есть", true, session.Result != null && session.Result.ScaleAnchorsUsed > 0);
@@ -229,11 +239,28 @@ namespace FsaInputCheckProbeP195
                 string name = model.Rows[i].Cells[0].Text, value = model.Rows[i].Cells[1].Text;
                 if (name.Length == 0 && value.Length == 0) continue;
                 bool red = tag.Warning;
-                rows.Add(new[] { name, value, red ? "red" : "" });
+                rows.Add(new[] { name, value, red ? "red" : "", model.Rows[i].Cells[0].ToolTipText ?? string.Empty });
                 Console.WriteLine("  «{0}» | {1}{2}", name, value, red ? "  [внимание]" : "");
             }
 
             return rows;
+        }
+
+        /// <summary>
+        /// (`AMBER284`) Строка «Матрица отклика» красная (признак происшествия) и её подсказка —
+        /// цена разбора без матрицы словами окна (`FSAReport_MatrixNotUsedTip`).
+        /// </summary>
+        static bool MatrixRowWarned(List<string[]> rows)
+        {
+            foreach (string[] r in rows)
+            {
+                if (r[0] == Own("FSAReport_MatrixRow"))
+                {
+                    return r[2] == "red" && r[3] == Own("FSAReport_MatrixNotUsedTip");
+                }
+            }
+
+            return false;
         }
 
         static bool Has(List<string[]> rows, string text, bool redOnly)

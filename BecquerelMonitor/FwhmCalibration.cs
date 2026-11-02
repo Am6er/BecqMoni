@@ -144,6 +144,172 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// ⛔ (`AMBER269`, 02.11.2026) КРИВАЯ FWHM, ПОДСТАВЛЕННАЯ ПО ПРИБОРУ, — ОДНО
+        /// ПРАВИЛО НА ВСЕ ДВЕРИ. Умолчание по трём числам настроек поиска пиков
+        /// (<see cref="DefaultCalibration(FWHMPeakDetectionMethodConfig, EnergyCalibration, out string)"/>)
+        /// и ФОРМА ПИКА кривой тех же настроек — вид пика, хвосты ExpGaussExp,
+        /// параметры Фойгта (<see cref="CopyPeakShape"/>).
+        ///
+        /// Было: умолчание всегда гауссово. Открытие файла без своей кривой
+        /// (`DocumentManager.StandInFwhm`) давало спектру гауссов пик, а кнопка
+        /// «Применить» той же панели — кривую прибора с его формой пика (у прибора
+        /// с видом пика Фойгта — Фойгта). Модель формы пика зависела от того, каким
+        /// движением спектр пришёл к прибору. Правило Amber: «у спектра своя,
+        /// прибор — умолчание» — форма прибора и есть умолчание.
+        ///
+        /// Зовут: <see cref="DeviceConfigInfo.ResolveBuiltInFwhm"/> (заглушка в
+        /// конфигурации прибора) и <see cref="StandInFromDevice"/> — с 02.11.2026 только
+        /// тогда, когда по сохранённой кривой прибора подставить нельзя (открытие, все
+        /// импорты, выбор прибора в панели, оснастка и пробы идут через него). Кривой у
+        /// настроек нет — форма гауссова, как прежде. Числа кривой (опоры, коэффициенты)
+        /// те же, что у <see cref="DefaultCalibration(FWHMPeakDetectionMethodConfig, EnergyCalibration, out string)"/>, до бита.
+        /// </summary>
+        public static SimpleSqrtFwhmCalibration StandInCalibration(FWHMPeakDetectionMethodConfig fwhmConfig, EnergyCalibration energyCalibration, out string refusal)
+        {
+            SimpleSqrtFwhmCalibration curve = DefaultCalibration(fwhmConfig, energyCalibration, out refusal);
+            if (curve != null)
+            {
+                CopyPeakShape(fwhmConfig.FwhmCalibration, curve);
+            }
+            return curve;
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER269`, 02.11.2026) КРИВАЯ FWHM СПЕКТРА, У КОТОРОГО СВОЕЙ НЕТ, — СОХРАНЁННАЯ
+        /// КРИВАЯ ПРИБОРА. Решение Amber 02.11.2026 вопросником, дословно: «Кривую прибора
+        /// (Рекомендую)». Прежде открытие файла без своей кривой строило её по ТРЁМ ЧИСЛАМ
+        /// прибора (<see cref="StandInCalibration"/>), а кнопка «Применить» панели, новый
+        /// спектр (<c>DocEnergySpectrum.CreateResultData</c>), вкладка FWHM и выбор прибора
+        /// для FSA брали СОХРАНЁННУЮ кривую прибора. У прибора, чья кривая подогнана по
+        /// пикам, один спектр получал разные модели разрешения в зависимости от движения.
+        /// Теперь открытие = «Применить»: копия кривой прибора — побитово, с опорами, их
+        /// энергиями (это энергии линий, по которым кривую подгоняли, а не шкала спектра)
+        /// и формой пика.
+        ///
+        /// ЕДИНИЦЫ. Кривая живёт в КАНАЛАХ сетки прибора: опора — номер канала и FWHM в
+        /// каналах, <see cref="ChannelToFwhm"/> берёт канал, коэффициенты от шкалы энергий
+        /// не зависят. Энергия опоры — только подпись. Поэтому:
+        /// <list type="number">
+        /// <item>сетка спектра = сетке прибора (<paramref name="deviceChannels"/> =
+        /// <paramref name="spectrumChannels"/>) — копия кривой как есть;</item>
+        /// <item>сетка другая — кривая переносится на сетку спектра ТЕМ ЖЕ правилом, что у
+        /// «Спектр → Изменить число каналов» (<see cref="RecalcWithNewChannelNum"/>: канал j
+        /// спектра лежит на канале m·j + (m − 1)/2 прибора, ширина делится на m,
+        /// m = <paramref name="deviceChannels"/>/<paramref name="spectrumChannels"/>; у
+        /// корневых форм без опор — точно, с опорами — подгонкой по перенесённым опорам).
+        /// Предпосылка — та же шкала АЦП, поделённая на другое число каналов. Копировать
+        /// кривую в каналах прибора на чужую сетку нельзя: ширина в кэВ разошлась бы в m
+        /// раз. «Применить» на такой сетке сначала стирает или пересобирает спектр под
+        /// сетку прибора — то есть при открытии ему равенства нет и быть не может;</item>
+        /// <item>подставить по кривой прибора НЕЛЬЗЯ — прежнее правило, три числа прибора и
+        /// форма пика его кривой (<see cref="StandInCalibration"/>). Таких случаев три:
+        /// кривой нет; кривая — встроенная заглушка 15/3756/103
+        /// (<see cref="FWHMPeakDetectionMethodConfig.IsBuiltInStandIn"/>: её заменяет при
+        /// чтении <c>DeviceConfigInfo.ResolveBuiltInFwhm</c>, и остаётся она, только если
+        /// три числа кривую не строят — тогда и здесь отказ с причиной, выдуманная кривая не
+        /// подставляется, `A257`); кривая — пустышка: коэффициенты не числа, «не
+        /// откалибрована» (нули) или ширина не положительна даже на последнем канале
+        /// (<see cref="UsableOn"/>). «Применить» в двух последних случаях ставит саму
+        /// заглушку или нули — открытие этого нарочно не повторяет.</item>
+        /// </list>
+        /// Зовут: <c>DocumentManager.StandInFwhm</c> (открытие, все импорты, выбор прибора
+        /// в панели), <c>EfficiencyCurveIo.LoadResultData</c>, <c>ProbeDeviceConfig.Attach</c>,
+        /// <c>tools\pie</c>. Сохранённая кривая не меняется — отдаётся копия.
+        /// С 02.11.2026 (полоса a269fix6) спектр, в ФАЙЛЕ которого вместо своей кривой лежит та
+        /// же встроенная заглушка, идёт сюда как спектр без кривой: заглушку снимает
+        /// <c>DocumentManager.ForgetFileStandInFwhm</c> у каждой из этих дверей.
+        /// </summary>
+        public static FwhmCalibration StandInFromDevice(FWHMPeakDetectionMethodConfig deviceConfig, int deviceChannels,
+                                                        EnergyCalibration spectrumCalibration, int spectrumChannels,
+                                                        out string refusal)
+        {
+            refusal = null;
+            if (deviceConfig == null)
+            {
+                return null;
+            }
+            FwhmCalibration saved = deviceConfig.FwhmCalibration;
+            if (saved != null && !FWHMPeakDetectionMethodConfig.IsBuiltInStandIn(saved)
+                && UsableOn(saved, deviceChannels > 0 ? deviceChannels : spectrumChannels))
+            {
+                if (deviceChannels <= 0 || spectrumChannels <= 0 || deviceChannels == spectrumChannels)
+                {
+                    return saved.Clone();
+                }
+                FwhmCalibration moved = saved.RecalcWithNewChannelNum(deviceChannels, spectrumChannels);
+                if (UsableOn(moved, spectrumChannels))
+                {
+                    return moved;
+                }
+            }
+            return StandInCalibration(deviceConfig, spectrumCalibration, out refusal);
+        }
+
+        /// <summary>
+        /// (`AMBER269`) Кривая — не пустышка на сетке из <paramref name="channels"/> каналов:
+        /// коэффициенты — конечные числа, кривая не «нули» (<see cref="NotCalibrated"/>),
+        /// ширина конечна на всех каналах и положительна на последнем. Положительность на
+        /// КАЖДОМ канале нарочно не требуется: подогнанная корневая кривая с отрицательным
+        /// свободным членом даёт ширину 0 ниже первых опор (такие кривые в рабочих
+        /// конфигурациях встречаются — замер 02.11.2026), и «Применить» её ставит — решение
+        /// Amber требует, чтобы открытие давало то же.
+        /// Монотонность не судится — её проверяет подгонка.
+        /// </summary>
+        internal static bool UsableOn(FwhmCalibration curve, int channels)
+        {
+            if (curve == null || curve.Coefficients == null)
+            {
+                return false;
+            }
+            try
+            {
+                foreach (double v in curve.Coefficients)
+                {
+                    if (double.IsNaN(v) || double.IsInfinity(v))
+                    {
+                        return false;
+                    }
+                }
+                if (curve.NotCalibrated())
+                {
+                    return false;
+                }
+                int n = Math.Max(2, channels);
+                for (int ch = 0; ch < n; ch++)
+                {
+                    double w = curve.ChannelToFwhm(ch);
+                    if (double.IsNaN(w) || double.IsInfinity(w))
+                    {
+                        return false;
+                    }
+                }
+                return curve.ChannelToFwhm(n - 1) > 0.0;
+            }
+            catch (IndexOutOfRangeException)
+            {
+                // Набор коэффициентов короче формы (файл правили руками).
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Форма пика (вид, хвосты ExpGaussExp, параметры Фойгта) — с одной кривой на
+        /// другую. Опоры и коэффициенты не трогаются. Источника нет — ничего не меняется.
+        /// </summary>
+        public static void CopyPeakShape(FwhmCalibration source, FwhmCalibration target)
+        {
+            if (source == null || target == null)
+            {
+                return;
+            }
+            target.PeakType = source.PeakType;
+            target.ExpGaussExpLeftTail = source.ExpGaussExpLeftTail;
+            target.ExpGaussExpRightTail = source.ExpGaussExpRightTail;
+            target.VoigtSigma = source.VoigtSigma;
+            target.VoigtGamma = source.VoigtGamma;
+        }
+
         public abstract double ChannelToFwhm(double channel);
 
         public abstract double FwhmToChannel(double fwhm);

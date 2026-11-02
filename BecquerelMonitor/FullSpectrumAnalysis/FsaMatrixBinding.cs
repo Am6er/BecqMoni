@@ -52,6 +52,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // только у матрицы, собранной руками (пробы); состояние видно
             // пробам (`AngularQk`).
             analyzer.AngularQk = matrix.AngularQk;
+
+            // ⛔ (`AMBER274`, `Д2` критика 30.10.2026) РАЗДЕЛ ЭЛЕКТРОНА — СВЕРКОЙ С ЭТОЙ
+            // СЦЕНОЙ: собственное клеймо раздела (физика, матрица, шаг, капсула) против
+            // геометрии разбора. Фотонное клеймо капсулу не видит, и без этой сверки раздел
+            // другой капсулы брался молча. Отказ — причиной, которую печатает отчёт FSA.
+            EfficiencyMaker.ElectronSectionRefusal refusal = EfficiencyMaker.ElectronSectionRefusal.Missing;
+            EfficiencyMaker.ResponseElectronSection section = geometry != null
+                ? matrix.ElectronSectionFor(geometry, out refusal)
+                : null;
+            if (geometry == null)
+            {
+                refusal = matrix.ElectronSection != null
+                    ? EfficiencyMaker.ElectronSectionRefusal.NoScene
+                    : EfficiencyMaker.ElectronSectionRefusal.Missing;
+            }
+
+            analyzer.SampleBetaSection = section;
+            analyzer.SampleBetaRefusal = refusal;
         }
     }
 }

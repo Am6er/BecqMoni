@@ -127,7 +127,9 @@ namespace FsaChannelSplitProbe
             "полное поглощение", "комптон", "вылет аннигиляции одиночный",
             "вылет K-рентгена", "вылет аннигиляции двойной", "вылет L-рентгена",
             // (`AMBER52`, П125, формат 10) седьмой — постоянной энергии
-            "аннигиляция вне кристалла"
+            "аннигиляция вне кристалла",
+            // (`AMBER274`, `Р9`) восьмой — канал ОБРАЗА, не симулятора: бета пробы
+            "бета пробы"
         };
 
         [STAThread]
@@ -552,9 +554,14 @@ namespace FsaChannelSplitProbe
                     continue;
                 }
 
+                // (`AMBER274` Ф8, `f8diag`) Канал «Бета пробы» при строках ветвей раздела
+                // ЗНАКОПЕРЕМЕННЫЙ по построению («событие − каскад»: вынос совпавших с бетой
+                // квантов из пиков — минусом), и знак у него не дефект; тождество и «не выше
+                // ленты» с него спрашиваются, как с прочих.
+                bool signedChannel = c == FsaAnalyzer.BetaChannel;
                 for (int i = 0; i < row.Length; i++)
                 {
-                    if (row[i] < negative)
+                    if (!signedChannel && row[i] < negative)
                     {
                         negative = row[i];
                         negativeName = ChannelNames[c];
@@ -696,7 +703,9 @@ namespace FsaChannelSplitProbe
 
                     if (byChannel == null)
                     {
-                        byChannel = new double[child.ChannelCurves.Length][];
+                        // (`AMBER274`, `Д3`/`Р9`) Длина — все каналы образа, а не первого
+                        // дочернего: у члена без беты их семь, с бетой восемь.
+                        byChannel = new double[Math.Max(child.ChannelCurves.Length, FsaMatrixLayers.Channels.Length)][];
                         for (int c = 0; c < byChannel.Length; c++)
                         {
                             byChannel[c] = new double[channels];
@@ -1064,8 +1073,9 @@ namespace FsaChannelSplitProbe
             double measuredArea = 0.0, measuredMoment = 0.0;
             double modelArea = 0.0, modelMoment = 0.0;
             double netArea = 0.0, netMoment = 0.0;
-            double[] channelArea = new double[EfficiencySimulator.ResponseChannelCount];
-            double[] channelMoment = new double[EfficiencySimulator.ResponseChannelCount];
+            // (`AMBER274`, `Р9`) Каналов образа восемь (бета пробы), симулятора — семь.
+            double[] channelArea = new double[FsaMatrixLayers.Channels.Length];
+            double[] channelMoment = new double[FsaMatrixLayers.Channels.Length];
             double sumPeakArea = 0.0, sumPeakMoment = 0.0;
             double continuumArea = 0.0, continuumMoment = 0.0;
 

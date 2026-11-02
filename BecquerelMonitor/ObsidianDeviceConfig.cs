@@ -44,5 +44,12 @@ namespace BecquerelMonitor
         {
             return 5.0E-06;
         }
+
+        /// <summary>(`AMBER269`) Номер прибора для сопоставления файла спектра с конфигурацией.</summary>
+        [System.Xml.Serialization.XmlIgnore]
+        public override string InstrumentSerialNumber
+        {
+            get { return device_serial; }
+        }
     }
 }

@@ -1,0 +1,9 @@
+# LNHB/DDEP, Table de Radionucleides: Cs-137 (137CS)
+# https://www.lnhb.fr/nuclides/Cs-137_tables.pdf, sha256 6d2d2df01ea0254fa06cc5a85a38e32aa115a8c81cb8872fc9942fbbac71bb00 (снято 01.11.2026)
+# оценка: LNE-LNHB / S. Leblond, 02/12/2021 - 18/07/2023; X. Mougeot et al., Metrologia 62 (2025) 029002
+# Q- LNHB, кэВ: 1175.63
+# раздел «Gamma Emissions», фотонов на 100 распадов
+label	energy_kev	energy_unc	intensity	intensity_unc
+γ1,0(Ba)	283.46	7	0.0006	1
+γ2,1(Ba)	378.20	7	0.0000106	9
+γ2,0(Ba)	661.655	3	85.01	20

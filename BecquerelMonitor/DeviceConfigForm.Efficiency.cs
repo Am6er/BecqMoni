@@ -581,6 +581,21 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// ⛔ (`AMBER269` дефект 5, полоса `phys29b` 02.11.2026) Подпись «кривая посчитана до
+        /// сдвига точки в капсуле» (<see cref="EfficiencyConfigData.CurveBeforeSourceOffset"/>):
+        /// строка своя у формы (`DeviceConfigForm*.resx`, `EfficiencyCurveBeforeSourceOffset`),
+        /// сдвиг — в миллиметрах, точкой.
+        /// </summary>
+        internal static string CurveBeforeSourceOffsetNote(EfficiencyConfigData config)
+        {
+            string format = new System.ComponentModel.ComponentResourceManager(typeof(DeviceConfigForm))
+                .GetString("EfficiencyCurveBeforeSourceOffset") ?? "";
+            double offset = config != null && config.HasGeometry ? config.Geometry.SourceCapsuleOffset : 0.0;
+            return string.Format(CultureInfo.InvariantCulture, format,
+                                 offset.ToString("0.0##", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
         /// Та часть <see cref="GeometryNotes"/>, которая говорит о КРИВОЙ —
         /// «посчитана для другой геометрии» и «прежняя сцена сосуда»; без
         /// предупреждений о слоях самой геометрии. Вынесена отдельно
@@ -598,7 +613,11 @@ namespace BecquerelMonitor
 
             if (config.CurveGeometryMismatch)
             {
-                notes.Add(Resources.EfficiencyCurveOtherGeometry);
+                // ⛔ (`AMBER269` дефект 5, `phys29b`) Отпечаток разошёлся из-за строки сдвига
+                // точки в капсуле (Ф6, 30.10.2026), а не правки геометрии — так и сказать.
+                notes.Add(config.CurveBeforeSourceOffset
+                    ? CurveBeforeSourceOffsetNote(config)
+                    : Resources.EfficiencyCurveOtherGeometry);
             }
 
             // ⛔ (`AMBER205`, П235 05.10.2026) Сцена сосуда полной высоты. Матрица
@@ -927,11 +946,25 @@ namespace BecquerelMonitor
 
             // `A244`: числа — инвариантной культурой, точка и никакой
             // группировки разрядов (решение Amber 05.09.2026).
+            // ⛔ (`AMBER274`, физика 30, Н7 критика кода 02.11.2026) Поколение судится по ПОЛНОМУ СОСТАВУ
+            // физики, а не только по `phys=`: ключ физики, ВКЛ умолчанием склада, которого нет в клейме
+            // кривой того же поколения (так было с `mott=1` физики 29 — версию не поднимали), значит, что
+            // кривая посчитана прежней физикой. Та же строка «пересчитайте», поколение — с недостающими
+            // ключами в скобках (без новой строки ресурсов).
+            List<string> missing = curvePhysics == buildPhysics ? MissingPhysicsTokens(computeStamp) : null;
             if (curvePhysics != buildPhysics)
             {
                 notes.Add(string.Format(CultureInfo.InvariantCulture,
                                         Resources.EfficiencyTabCurveOldPhysics,
                                         curvePhysics, buildPhysics));
+            }
+            else if (missing != null && missing.Count > 0)
+            {
+                notes.Add(string.Format(CultureInfo.InvariantCulture,
+                                        Resources.EfficiencyTabCurveOldPhysics,
+                                        curvePhysics.ToString(CultureInfo.InvariantCulture)
+                                            + " [−" + string.Join(", −", missing.ToArray()) + "]",
+                                        buildPhysics));
             }
             else if (peakWindowExpected
                      && computeStamp.IndexOf(EfficiencyCalculation.PeakWindowStamp,
@@ -962,6 +995,36 @@ namespace BecquerelMonitor
             }
 
             return notes;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, физика 30, Н7) Ключи физики переноса, ВКЛ умолчанием склада
+        /// (<see cref="ResponseMatrixOptions"/>), которых нет в клейме кривой — тем же именем, что пишет
+        /// `EfficiencyCalculation.Run` (`; estr=1`, `; emix=1`, `; mott=1`, `; eref=1`, `; dpwa=1`, `; ckv=1`).
+        /// </summary>
+        internal static List<string> MissingPhysicsTokens(string computeStamp)
+        {
+            var missing = new List<string>();
+            string stamp = computeStamp ?? "";
+            var o = new ResponseMatrixOptions();
+            var keys = new List<KeyValuePair<bool, string>>
+            {
+                new KeyValuePair<bool, string>(o.ElectronStraggling, "estr=1"),
+                new KeyValuePair<bool, string>(o.ElectronMixedTransport, "emix=1"),
+                new KeyValuePair<bool, string>(o.ElectronMottHeavy, "mott=1"),
+                new KeyValuePair<bool, string>(o.ElectronElasticRefine, "eref=1"),
+                new KeyValuePair<bool, string>(o.ElectronScreeningDpwa, "dpwa=1"),
+                new KeyValuePair<bool, string>(o.CascadeCkVacancy, "ckv=1"),
+            };
+            foreach (KeyValuePair<bool, string> k in keys)
+            {
+                if (k.Key && stamp.IndexOf("; " + k.Value, StringComparison.Ordinal) < 0)
+                {
+                    missing.Add(k.Value);
+                }
+            }
+
+            return missing;
         }
 
         void efficiencyCombo_SelectedIndexChanged(object sender, EventArgs e)
@@ -1248,6 +1311,13 @@ namespace BecquerelMonitor
                 EfficiencyConfigData selectedNow = this.SelectedEfficiency();
                 this.RefreshEfficiencyList(selectedNow == null ? null : selectedNow.Guid);
                 this.SetActiveDeviceConfigDirty();
+                // (`AMBER285`) Геометрия принесла в кривую новый кристалл — он
+                // умолчание поля «Вещество кристалла»: пустое заполняется, другое
+                // — вопросом над окном конструктора.
+                if (maker.SavedCrystalIsNew)
+                {
+                    this.OfferCrystalOfSavedGeometry(maker, maker.BoundConfig);
+                }
             };
 
             this.openEfficiencyMakers.Add(maker);

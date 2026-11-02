@@ -1,0 +1,8 @@
+# LNHB/DDEP, Table de Radionucleides: K-40 (40K)
+# https://www.lnhb.fr/nuclides/K-40_tables.pdf, sha256 95785b8239574a58e4d7df42daad60208ef5900fb00fb363e9f9c3fbfbda7a62 (снято 01.11.2026)
+# оценка: CEA-LNHB / X. Mougeot, 15/07/1998 - 31/05/2025; X. Mougeot et al., Metrologia 63 (2026) 019001
+# Q- LNHB, кэВ: 1310.91
+# раздел 2.x «β Transitions» (граница, вероятность) и «Electron Emissions» (avg)
+label	type	max_kev	max_unc	prob	prob_unc	avg_kev	avg_unc	nature
+β−0,0	B-	1310.91	6	89.56	7	582.898	26	Unique 3rd Forbidden
+β+0,0	B+	482.40	6	0.00103	13	251.757	28	Unique 3rd Forbidden

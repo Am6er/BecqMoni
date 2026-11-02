@@ -141,6 +141,14 @@ struct ElectronMaterialG
     int logsEnergy; int logsEnergyLen;
     int logsRange; int logsRangeLen;
     int logsYield; int logsYieldLen;
+    // (`AMBER274`, физика 28) Страгглинг потерь: I вещества, эВ (0 — без разброса), доля
+    // радиационной тормозной S_rad/S_tot на той же сетке и её логарифмы, постоянные модели
+    // Урбана (`EfficiencySimulator.UrbanParams`: I, ln I, f1, f2, E1, E2, ln E1, ln E2, кэВ —
+    // считает ЦП, упаковщик кладёт готовыми).
+    real PotentialEv;
+    int RadShare; int RadShareLen;
+    int logsRadShare; int logsRadShareLen;
+    real Urban[8];
 };
 
 // = BremsstrahlungData.cs:265 ThickTargetBrem

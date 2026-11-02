@@ -391,7 +391,8 @@ namespace BecquerelMonitor.Probes
                 var fit = (DCFwhmCalibrationView.TractCurvatureFit)Field(view, "lastTractFit");
                 double after = active.TractCurvature;
                 string status = ((System.Windows.Forms.ToolStripStatusLabel)Field(form, "toolStripStatusLabel1")).Text;
-                string note = ((System.Windows.Forms.Label)Field(view, "tractCurvatureSourceLabel")).Text;
+                // (`AMBER283`) подпись поля κ — не строка под полем, а подсказка поля; её текст — поле вида
+                string note = (string)Field(view, "tractCurvatureNote");
                 var cal = (PolynomialEnergyCalibration)active.EnergySpectrum.EnergyCalibration;
                 Console.WriteLine("вещество: «{0}»; прибор «{1}», κ прибора {2} 1/МэВ; κ спектра до {3} ({4}); линий {5}; полином степени {6}",
                                   material, active.DeviceConfig != null ? active.DeviceConfig.Name : "",

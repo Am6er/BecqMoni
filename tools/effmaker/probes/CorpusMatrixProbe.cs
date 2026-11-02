@@ -40,7 +40,8 @@ using System.Threading;
 //                     [--pairth=1] [--positron=1] [--posoffset=0] [--rayl2=1]
 //                     [--cone=1] [--peakw=1] [--peakb=1] [--xrkl=1] [--kdip=1] [--eta=0.33]
 //                     [--lbin=1] [--pkch=1] [--lys=1|2] [--etr=1] [--imp=1]
-//                     [--ecomp=1] [--bpath=0|1|2] [--eltr=1] [--elmix=1] [--lbrem=1] [--lbang=0|1]
+//                     [--ecomp=1] [--bpath=0|1|2] [--eltr=1] [--elmix=1] [--lbrem=1] [--lbang=0|1] [--estr=0|1] [--emix=0|1] [--mott=0|1]
+//                     [--eref=0|1] [--dpwa=0|1] [--ckv=0|1]
 //                     [--xray=0] [--coh=0] [--brem=0] [--bremsb=0]
 //                     [--gpu | --gpu=<dll>] [--gpu-check=N [--gpu-branch=0,1] [--gpu-node=i,j]]
 //
@@ -502,6 +503,63 @@ class CorpusMatrixProbe
                 // (П114, 19–21.09.2026); `--lbang=0` — абляция, матрица
                 // честно другая по клейму (без `lbang=1;`).
                 options.ElectronLayerBremAngular2BS = Flag(a, 8);
+            else if (a.StartsWith("--estr=", StringComparison.Ordinal))
+                // ⛔ `AMBER274`, физика 28: страгглинг потерь электрона по модели
+                // Урбана у всех электронов переноса; входит в клеймо (`estr=1`),
+                // хвост `ESTR`. ВКЛ умолчанием с физики 28; `--estr=0` — абляция:
+                // тело матрицы побайтно = физика 27 (положительный контроль подъёма).
+                options.ElectronStraggling = Flag(a, 7);
+            else if (a.StartsWith("--emix=", StringComparison.Ordinal))
+                // ⛔ `AMBER274`, физика 29: перенос электрона, сходящийся по шагу —
+                // сечения слоёв в середине шага и смешанная схема в кристалле; входит в
+                // клеймо (`emix=1`), хвост `EMIX`. ВКЛ умолчанием с физики 29;
+                // `--emix=0 --mott=0` (с физики 30 — и `--eref=0 --dpwa=0 --ckv=0`) — абляция: тело матрицы
+                // побайтно = физика 28 (одно `--emix=0` при mott=1 — НЕТ: Мотт и в слоях, Н2 критика кода).
+                options.ElectronMixedTransport = Flag(a, 7);
+            else if (a.StartsWith("--mott=", StringComparison.Ordinal))
+                // ⛔ `AMBER274`, физика 29, полоса `phys29b`: поправка Мотта при Z > 30
+                // (подгонка `G4MottData.hh`); входит в клеймо (`mott=1`), хвост `MOTT`. ВКЛ
+                // умолчанием; `--mott=0` — абляция: тело матрицы = физика 29 полосы `phys29`.
+                options.ElectronMottHeavy = Flag(a, 7);
+            else if (a.StartsWith("--eref=", StringComparison.Ordinal))
+                // ⛔ `AMBER274`, физика 30, полоса `phys29c`: правки критиков физики 29 (части Z² и Z
+                // порознь, предел e–e, Мотт у всех Z, позитрон, пересчёт долей, мажоранта шага); клеймо
+                // `eref=1`, хвост `EREF`. ВКЛ умолчанием; `--eref=0 --dpwa=0 --ckv=0` — тело = физика 29.
+                options.ElectronElasticRefine = Flag(a, 7);
+            else if (a.StartsWith("--dpwa=", StringComparison.Ordinal))
+                // ⛔ `AMBER274`, физика 30, Ф1: ядерная часть упругого рассеяния по DPWA (таблица
+                // `matdb.elastic_screening_dpwa`); клеймо `dpwa=1`, хвост `DPWA`. ВКЛ умолчанием.
+                options.ElectronScreeningDpwa = Flag(a, 7);
+            else if (a.StartsWith("--ckv=", StringComparison.Ordinal))
+                // ⛔ `AMBER274`, физика 30: вакансия L-кванта после перехода Костера—Кронига (Kα2 → L2 → L3);
+                // клеймо `ckv=1`, хвост `CKVA`. ВКЛ умолчанием.
+                options.CascadeCkVacancy = Flag(a, 6);
+            else if (a.StartsWith("--sim-cstep=", StringComparison.Ordinal)
+                     || a.StartsWith("--sim-rparts=", StringComparison.Ordinal))
+            {
+                // (`AMBER274`, физика 30) РЫЧАГИ ЗАМЕРА симулятора (доля шага кристалла, части
+                // ElectronRefineParts) через `ResponseMatrixBuilder.ProbeTweak` — цена и смещение на ЦП и GPU;
+                // матрица с ними — замер, не склад (клеймо их не знает).
+                bool cstep = a.StartsWith("--sim-cstep=", StringComparison.Ordinal);
+                string v = a.Substring(cstep ? 12 : 13);
+                var field = typeof(ResponseMatrixBuilder).GetField("ProbeTweak",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+                var prev = (Action<EfficiencySimulator>)field.GetValue(null);
+                Action<EfficiencySimulator> next;
+                if (cstep)
+                {
+                    double f = double.Parse(v, CultureInfo.InvariantCulture);
+                    next = s => s.ElectronCrystalStepFraction = f;
+                }
+                else
+                {
+                    int r = int.Parse(v, CultureInfo.InvariantCulture);
+                    next = s => s.ElectronRefineParts = r;
+                }
+
+                field.SetValue(null, prev == null ? next : (Action<EfficiencySimulator>)(s => { prev(s); next(s); }));
+                Console.WriteLine("⚠ рычаг замера " + a + " — матрица НЕ для склада");
+            }
             else if (a.StartsWith("--bpath=", StringComparison.Ordinal))
             {
                 // `M3`, П44: тормозное вдоль пути переноса, уровень 0/1/2;

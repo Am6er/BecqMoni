@@ -219,6 +219,10 @@ namespace BecquerelMonitor
             this.suppressChanged = true;
             try
             {
+                // (`f8diag`) Запомненные размеры сосуда — про ПРЕЖНЮЮ геометрию.
+                this.vesselBeforeScene.Clear();
+                this.sceneWritten.Clear();
+                this.shownScene = GeometrySceneKind.None;
                 this.model = source == null ? Blank() : source.Clone();
                 this.LoadFromModel();
                 // Список шаблонов помнит выбранный (`AMBER24`), но помнит его
@@ -985,6 +989,11 @@ namespace BecquerelMonitor
             this.pointPanel = new Panel { Location = new Point(0, SourceFieldsTop), Width = 620 };
             int y = 0;
             this.Row(this.pointPanel, ref y, "PointDistance", Resources.GeometryEditorPointDistance);
+            // (`AMBER274`, решение Amber 29.10.2026 «Паспорт ОСГИ») Плёнка капсулы точечного
+            // источника к детектору, мм: умолчание — ОСГИ (полиимид 0.05 мм, кольцо Al Ø25 × 3),
+            // ноль — голая точка. Подпись — строкой ресурса `GeometryEditorSourceCapsule`;
+            // пока строки нет, — английской по умолчанию (ключ внесёт распорядитель).
+            this.Row(this.pointPanel, ref y, "SourceCapsuleThickness", CapsuleCaption());
             // (`AMBER13` (б)) Радиус сферы изотропного поля — строка той же
             // панели: у поля форма точечная. Показывается ТОЛЬКО у сцены поля,
             // а расстояние до детектора у неё снимается (ApplySceneFields).
@@ -1001,6 +1010,7 @@ namespace BecquerelMonitor
             this.Row(this.cylinderPanel, ref y, "BeakerHeight", Resources.GeometryEditorBeakerHeight);
             this.Row(this.cylinderPanel, ref y, "BeakerSideWallThickness", Resources.GeometryEditorBeakerSideWall);
             this.Row(this.cylinderPanel, ref y, "BeakerEndWallThickness", Resources.GeometryEditorBeakerEndWall);
+            this.Row(this.cylinderPanel, ref y, "BeakerFarEndWallThickness", FarEndCaption());   // (`f8cyl`)
             this.Row(this.cylinderPanel, ref y, "SourceHeight", Resources.GeometryEditorSourceHeight);
             this.Row(this.cylinderPanel, ref y, "BeakerToDetectorDistance", Resources.GeometryEditorBeakerToDetector);
             page.Controls.Add(this.cylinderPanel);
@@ -1088,6 +1098,35 @@ namespace BecquerelMonitor
         /// просвет от списка форм (76 − 12) сохранён.
         /// </summary>
         const int SourceFieldsTop = SourceTypeTop + 64;
+
+        /// <summary>(`AMBER274`) Подпись строки капсулы: ресурс, а без него — английская.</summary>
+        /// <summary>
+        /// (`AMBER274`, полоса `f8cyl` 02.11.2026) Подпись строки «дальнее дно» цилиндра
+        /// (<see cref="GeometryModel.BeakerFarEndWallThickness"/>). ⛔ `Properties/Resources*` в этой
+        /// волне занят другой полосой — строка своя у формы прибора (`DeviceConfigForm.resx` /
+        /// `.ru.resx`, ключ `GeometryEditorBeakerFarEndWall`), как у `phys29b`
+        /// (`EfficiencyCurveBeforeSourceOffset`); нет ключа — английская по умолчанию.
+        /// </summary>
+        static string FarEndCaption()
+        {
+            string text = null;
+            try
+            {
+                text = new System.ComponentModel.ComponentResourceManager(typeof(DeviceConfigForm))
+                    .GetString("GeometryEditorBeakerFarEndWall");
+            }
+            catch (System.Resources.MissingManifestResourceException)
+            {
+            }
+
+            return string.IsNullOrEmpty(text) ? "Beaker far end wall thickness" : text;
+        }
+
+        static string CapsuleCaption()
+        {
+            string text = Resources.ResourceManager.GetString("GeometryEditorSourceCapsule", Resources.Culture);
+            return string.IsNullOrEmpty(text) ? "Source capsule film (0 = bare point)" : text;
+        }
 
         /// <summary>Строка «подпись — поле — см».</summary>
         void Row(Control parent, ref int y, string key, string caption)
@@ -1467,6 +1506,35 @@ namespace BecquerelMonitor
             add("FwhmAt662Percent", g => g.FwhmAt662Percent, (g, v) => g.FwhmAt662Percent = v);
 
             add("PointDistance", g => g.PointDistance, (g, v) => g.PointDistance = v);
+            // (`AMBER274`) Плёнка капсулы точечного источника. Ноль — голая точка: вещество
+            // и кольцо снимаются вместе с ней. Ненулевая после голой точки — капсула ОСГИ
+            // целиком, с кольцом (`Р6`: прежде кольцо не возвращалось); у капсулы с плёнкой
+            // меняется только толщина. Отрицательная пишется как есть — её останавливает
+            // проверка длин (`GeometryScenes.Inconsistencies`), а не тихий ноль. ⛔ (`A94`) У
+            // не точечной сцены поле в модель не пишется: капсула остаётся умолчанием и в
+            // файл не уезжает.
+            add("SourceCapsuleThickness", g => g.SourceCapsuleThickness, (g, v) =>
+            {
+                if (!g.HasSourceCapsule)
+                {
+                    return;
+                }
+
+                bool wasBare = g.SourceCapsule == null || g.SourceCapsule.IsEmpty || !(g.SourceCapsuleThickness > 0.0);
+                g.SourceCapsuleThickness = v;
+                if (v == 0.0)
+                {
+                    g.SourceCapsule = new GeometryMaterial();
+                    g.SourceCapsuleRingHeight = 0.0;
+                }
+                else if (v > 0.0 && wasBare)
+                {
+                    g.SourceCapsule = GeometryModel.OsgiFilm();
+                    g.SourceCapsuleRingHeight = GeometryModel.OsgiRingHeightMm;
+                    g.SourceCapsuleRingInnerDiameter = GeometryModel.OsgiRingInnerMm;
+                    g.SourceCapsuleRingOuterDiameter = GeometryModel.OsgiRingOuterMm;
+                }
+            });
             // (`AMBER13` (б)) Радиус сферы поля — читается и пишется только у
             // сцены поля: у прочих в модели остаётся ноль, и ключ в файл не
             // уезжает (клеймо прежних сцен не меняется).
@@ -1477,6 +1545,11 @@ namespace BecquerelMonitor
             add("BeakerHeight", g => g.BeakerHeight, (g, v) => g.BeakerHeight = v);
             add("BeakerSideWallThickness", g => g.BeakerSideWallThickness, (g, v) => g.BeakerSideWallThickness = v);
             add("BeakerEndWallThickness", g => g.BeakerEndWallThickness, (g, v) => g.BeakerEndWallThickness = v);
+            // (`f8cyl`) Дальнее дно — только у цилиндра-сосуда (`A94`, `A134`: вид источника решён
+            // до полей): у грунта и прочих видов в модели ноль, и строки в `.in` нет.
+            add("BeakerFarEndWallThickness", g => g.BeakerFarEndWallThickness,
+                (g, v) => g.BeakerFarEndWallThickness =
+                    g.SourceType == GeometrySourceType.Cylinder && g.Scene == GeometrySceneKind.None ? v : 0.0);
             add("SourceHeight", g => g.SourceHeight, (g, v) => g.SourceHeight = v);
             add("BeakerToDetectorDistance", g => g.BeakerToDetectorDistance,
                 (g, v) => g.BeakerToDetectorDistance = v);
@@ -2882,6 +2955,125 @@ namespace BecquerelMonitor
         bool applyingScene;
 
         /// <summary>
+        /// ⛔ (`AMBER274`, полоса `f8diag` 02.11.2026) ВОЗВРАТ ИЗ ПОЛЕВОЙ СЦЕНЫ К СОСУДУ НЕ
+        /// ПЕРЕНОСИТ РАЗМЕРЫ СЦЕНЫ В СОСУД. Поля сосуда и сцены — одни и те же
+        /// (`BeakerDiameter` у цилиндра и у «на земле», поля маринелли у «в лунке»,
+        /// `PointDistance` у точки и у поля ISO), и формула сцены
+        /// (<see cref="GeometryScenes.Apply"/>) их переписывает. Обратного хода не было с
+        /// `E27` (16.08.2026): цилиндр 70×20 → «на земле» → «цилиндр» давал «сосуд»
+        /// Ø 3719.8 × 881.9 мм грунта без стенок и без зазора (RC-103, верх 3000 кэВ; замер
+        /// `GeometrySceneReturnProbeF8`, так же на снимке до Э1), проверка
+        /// <see cref="Validate"/> его пропускала, и кривая считалась по такой «пробе» молча, а
+        /// набранные человеком размеры сосуда терялись. Теперь при выборе сцены человеком
+        /// поля, которые она переписывает, запоминаются (<see cref="vesselBeforeScene"/>), и
+        /// при выборе человеком сосуда возвращаются; своих чисел нет (геометрию открыли
+        /// сценой, сцену принёс шаблон) — встают числа заготовки <see cref="Blank"/>.
+        /// Вещество пробы, подменённое сцене грунтом (<see cref="GeometryScenes.EnsureSample"/>,
+        /// только у газовой пробы, и сказано на экране), не возвращается.
+        /// </summary>
+        readonly Dictionary<string, string> vesselBeforeScene = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>(`f8diag`) Поля, в которых сейчас стоят числа полевой сцены.</summary>
+        readonly HashSet<string> sceneWritten = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>(`f8diag`) Вид съёмки строки списка, показанной до нынешней смены.</summary>
+        GeometrySceneKind shownScene = GeometrySceneKind.None;
+
+        /// <summary>
+        /// (`f8diag`) Поля, которые переписывает формула сцены — ровно присваивания
+        /// <c>GeometryScenes.Ground</c> / <c>Borehole</c> / <c>Iso</c> (радиус поля ISO —
+        /// своё поле сцены, у сосуда его нет). Новое присваивание там — строка здесь.
+        /// </summary>
+        static string[] SceneFields(GeometrySceneKind scene)
+        {
+            switch (scene)
+            {
+                case GeometrySceneKind.Ground:
+                    return new[]
+                    {
+                        "BeakerToDetectorDistance", "BeakerSideWallThickness", "BeakerEndWallThickness",
+                        "BeakerFarEndWallThickness", "SourceHeight", "BeakerDiameter", "BeakerHeight",
+                    };
+
+                case GeometrySceneKind.Borehole:
+                    return new[]
+                    {
+                        "MarinelliHoleDiameter", "MarinelliToDetectorDistance", "MarinelliHoleHeight",
+                        "MarinelliSourceHeight", "MarinelliBeakerDiameter", "MarinelliBeakerHeight",
+                        "MarinelliSideThickness", "MarinelliEndWallThickness", "MarinelliHoleSideThickness",
+                        "MarinelliHoleEndWallThickness",
+                    };
+
+                case GeometrySceneKind.Iso:
+                    return new[] { "PointDistance" };
+
+                default:
+                    return new string[0];
+            }
+        }
+
+        /// <summary>
+        /// (`f8diag`) Сцена сейчас перепишет свои поля: отметить их, а при выборе ЧЕЛОВЕКОМ
+        /// (<paramref name="remember"/>) — запомнить, что в них стояло до первой записи сцены.
+        /// Уже отмеченное не перезапоминается: в нём число сцены, а не сосуда.
+        /// </summary>
+        void NoteSceneFields(GeometrySceneKind scene, bool remember)
+        {
+            foreach (string key in SceneFields(scene))
+            {
+                TextBox box;
+                if (this.sceneWritten.Add(key) && remember && this.fields.TryGetValue(key, out box))
+                {
+                    this.vesselBeforeScene[key] = box.Text;
+                }
+            }
+        }
+
+        /// <summary>
+        /// (`f8diag`) Человек ушёл из полевой сцены к сосуду: поля, переписанные сценой, —
+        /// обратно (запомненное или число заготовки).
+        /// </summary>
+        void RestoreVesselFields()
+        {
+            if (this.sceneWritten.Count == 0)
+            {
+                return;
+            }
+
+            GeometryModel blank = Blank();
+            this.loading = true;
+            try
+            {
+                foreach (string key in this.sceneWritten)
+                {
+                    string text;
+                    if (!this.vesselBeforeScene.TryGetValue(key, out text))
+                    {
+                        FieldMap field = Find(key);
+                        if (field == null)
+                        {
+                            continue;
+                        }
+
+                        text = field.Read(blank).ToString("G8", CultureInfo.InvariantCulture);
+                    }
+
+                    TextBox box;
+                    if (this.fields.TryGetValue(key, out box))
+                    {
+                        box.Text = text;
+                    }
+                }
+            }
+            finally
+            {
+                this.loading = false;
+            }
+
+            this.MarkBadValues();
+        }
+
+        /// <summary>
         /// Поля ДЕТЕКТОРА, из которых формула считает размеры сцены (E32).
         ///
         /// Список поимённый, а не «все поля»: пересчёт переписывает размеры
@@ -3051,6 +3243,10 @@ namespace BecquerelMonitor
 
             GeometrySourceType type = SourceKinds[index].Key;
             GeometrySceneKind scene = SourceKinds[index].Value;
+            // (`f8diag`) Строку выбрал человек — событие списка вне загрузки и пересчёта; хвост
+            // `LoadFromModel` зовёт обработчик с пустым отправителем.
+            bool byPerson = sender != null && !this.loading && !this.applyingScene && !this.suppressChanged;
+            GeometrySceneKind previous = this.shownScene;
 
             // Выбрали съёмку в поле (E27) — размеры считаются формулой ЗДЕСЬ,
             // при выборе, а не потом: смысл этих двух строк списка ровно в том,
@@ -3060,6 +3256,9 @@ namespace BecquerelMonitor
             if (scene != GeometrySceneKind.None && !this.loading && !this.applyingScene
                 && !this.suppressChanged)
             {
+                // (`f8diag`) Размеры сосуда, которые сцена сейчас перепишет, — запомнить.
+                this.NoteSceneFields(scene, byPerson);
+
                 // Сторож против рекурсии: LoadFromModel в конце сам зовёт этот
                 // обработчик, и без него пересчёт вызывал бы сам себя без конца.
                 this.applyingScene = true;
@@ -3081,6 +3280,25 @@ namespace BecquerelMonitor
                 return;
             }
 
+            // (`f8diag`) Человек ушёл из полевой сцены к сосуду — размеры сцены в сосуд не
+            // переезжают. Сосуд показан — числа в полях его; сцена показана (открыта,
+            // принесена шаблоном) — её поля отмечаются, запомнить из них нечего.
+            if (scene == GeometrySceneKind.None && byPerson && previous != GeometrySceneKind.None)
+            {
+                this.RestoreVesselFields();
+            }
+
+            if (scene == GeometrySceneKind.None)
+            {
+                this.sceneWritten.Clear();
+                this.vesselBeforeScene.Clear();
+            }
+            else
+            {
+                this.NoteSceneFields(scene, false);
+            }
+
+            this.shownScene = scene;
             this.model.Scene = scene;
             this.pointPanel.Visible = type == GeometrySourceType.Point;
             this.cylinderPanel.Visible = type == GeometrySourceType.Cylinder;
@@ -3125,12 +3343,14 @@ namespace BecquerelMonitor
             // «проба из воздуха». Само вещество в модели остаётся нетронутым,
             // как и стенка сосуда у грунта.
             this.ShowRow("PointDistance", !iso, null);
+            this.ShowRow("SourceCapsuleThickness", !iso, null);    // (`AMBER274`)
             this.ShowRow("FieldRadius", iso, null);
             this.Reflow(this.pointPanel);
 
             this.ShowRow("BeakerHeight", vessel, null);
             this.ShowRow("BeakerSideWallThickness", vessel, null);
             this.ShowRow("BeakerEndWallThickness", vessel, null);
+            this.ShowRow("BeakerFarEndWallThickness", vessel, null);    // (`f8cyl`)
             this.ShowRow("BeakerDiameter", true,
                          ground ? Resources.GeometryEditorSceneDiameter : null);
             this.ShowRow("SourceHeight", true,

@@ -5139,4 +5139,49 @@
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
     <value>System.Windows.Forms.Form, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="NucLib_UpdateFromDb" xml:space="preserve">
+    <value>Update from database</value>
+  </data>
+  <data name="NucLib_DbLinked" xml:space="preserve">
+    <value>From the nuclide database (row {0}): fields taken from the database are not editable.</value>
+  </data>
+  <data name="NucLib_DbNotLinked" xml:space="preserve">
+    <value>the line has no database row.</value>
+  </data>
+  <data name="NucLib_DbGone" xml:space="preserve">
+    <value>database row #{0} is no longer in the nuclide database.</value>
+  </data>
+  <data name="NucLib_DbXrayGone" xml:space="preserve">
+    <value>X-ray line {0} is no longer in the material database.</value>
+  </data>
+  <data name="NucLib_DbUnreadable" xml:space="preserve">
+    <value>the nuclide database could not be read: </value>
+  </data>
+  <data name="NucLib_DbChangedEnergy" xml:space="preserve">
+    <value>energy {0} → {1} keV</value>
+  </data>
+  <data name="NucLib_DbChangedHalfLife" xml:space="preserve">
+    <value>half-life {0} → {1} y</value>
+  </data>
+  <data name="NucLib_DbChangedIntensity" xml:space="preserve">
+    <value>yield {0} → {1} %</value>
+  </data>
+  <data name="NucLib_DbChanged" xml:space="preserve">
+    <value>Database row {0} has changed: {1}. Press «Update from database».</value>
+  </data>
+  <data name="NucLib_DbAmbiguous" xml:space="preserve">
+    <value>{0}: more than one database line within ±{2} keV of {1} keV — cannot tell which one.</value>
+  </data>
+  <data name="NucLib_DbNoXray" xml:space="preserve">
+    <value>{0}: no X-ray line of the element within ±{2} keV of {1} keV in the material database — entered by hand?</value>
+  </data>
+  <data name="NucLib_DbNoParent" xml:space="preserve">
+    <value>{0}: no such nuclide (or none of its lines) in the nuclide database — entered by hand?</value>
+  </data>
+  <data name="NucLib_DbNoLine" xml:space="preserve">
+    <value>{0}: no database line within ±{2} keV of {1} keV — entered by hand?</value>
+  </data>
+  <data name="NucLib_DbHalfLife" xml:space="preserve">
+    <value>{0} {1} keV: half-life {2} y differs from the database ({3} y).</value>
+  </data>
 </root>

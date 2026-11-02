@@ -1,0 +1,9 @@
+# LNHB/DDEP, Table de Radionucleides: Pb-212 (212PB)
+# https://www.lnhb.fr/nuclides/Pb-212_tables.pdf, sha256 0d35704a56a2d0339f15ccbbd4731baa27d62721bc2f7f4ec55ca3fb88aef19e (снято 01.11.2026)
+# оценка: NIST / B.E. Zimmerman, 14/05/2024 - 31/05/2025; X. Mougeot et al., Metrologia 63 (2026) 019001
+# Q- LNHB, кэВ: 569.0
+# раздел 2.x «β Transitions» (граница, вероятность) и «Electron Emissions» (avg)
+label	type	max_kev	max_unc	prob	prob_unc	avg_kev	avg_unc	nature
+β−0,0	B-	569.0	18	14.4	14	170.6	6	1st Forbidden
+β−0,2	B-	330.4	18	80.8	14	92.7	6	1st Forbidden
+β−0,3	B-	153.7	18	4.92	8	40.6	5	1st Forbidden

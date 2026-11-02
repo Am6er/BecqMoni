@@ -670,6 +670,12 @@ namespace MatrixRecomputeProbe
                             job.Curve.Curve = points;
                             job.Curve.Origin = EfficiencyOrigin.Simulation;
                             job.Curve.ComputeStamp = result.ComputeStamp ?? "";
+                            // ⛔ (`AMBER269` дефект 5, полоса `phys29b` 02.11.2026) Отпечаток геометрии —
+                            // вместе с кривой, как у окна (`EfficiencyMakerForm`: `lastResult.GeometryFingerprint`).
+                            // Прежде пересчёт оставлял отпечаток прежнего счёта: у точечных сцен склада,
+                            // пересчитанного после 30.10.2026, вкладка и дальше говорила бы «посчитана до
+                            // сдвига точки в капсуле», хотя кривая уже пересчитана.
+                            job.Curve.GeometryFingerprint = result.GeometryFingerprint ?? "";
                             job.Curve.LastUpdated = DateTime.Now;
                             cCount = result.Curve.Count;
                             cLo = result.MinEnergy;

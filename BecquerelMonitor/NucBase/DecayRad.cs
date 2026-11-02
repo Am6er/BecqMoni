@@ -10,6 +10,21 @@ namespace BecquerelMonitor.NucBase
 {
     public class DecayRad
     {
+        /// <summary>
+        /// (`AMBER281`, 02.11.2026) Номер строки `decay_radiations.dr_pk`; 0 — строки
+        /// распада нет (рентген элемента из matdb). Импорт пишет его в линию библиотеки,
+        /// по нему линия потом сверяется с базой (полоса `dbdata2`: номера не
+        /// перенумеровываются и не переиспользуются).
+        /// </summary>
+        public long DrPk { get; set; }
+
+        /// <summary>
+        /// (`AMBER274`, полоса `f8diag` 02.11.2026) Выход строки — ВЕРХНИЙ ПРЕДЕЛ
+        /// (`intensity_unc` = `LT`/`LE`, <see cref="FullSpectrumAnalysis.DecayParentRule.IsUpperLimit"/>):
+        /// показывается как «&lt; число», к импорту не помечается.
+        /// </summary>
+        public bool IntensityIsLimit { get; set; }
+
         public double Energy
         {
             get

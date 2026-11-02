@@ -294,6 +294,45 @@ MATRIX = [
      u'19–21.09.2026 (физика 22, П114; решение Amber 19.09.2026 по приёмке П111 «ВКЛ единым счётом '
      u'ночью»); --lbang=0 — абляция «как физика 21»: тело побитово = склад rev31. Путь КРИВОЙ берёт ключ от '
      u'этого же умолчания (реестр 3)'),
+    (u'ElectronStraggling', True, u'--estr=', None, u'намеренно',
+     u'AMBER274, физика 28 (полоса amber274p28, 30.10.2026; решение Amber «У всех электронов переноса»): '
+     u'СТРАГГЛИНГ ПОТЕРЬ электрона по модели Урбана (как G4UniversalFluctuation/G4UrbanFluctuation эталона '
+     u'option4) у всех электронов переноса — кристалл, слои обвязки, капсула и воздух у точки. Двигает строки '
+     u'и поток случайных чисел, поэтому входит в клеймо (estr=1) и пишется хвостом ESTR — только включённым '
+     u'(T42); ВКЛ умолчанием с физики 28; --estr=0 — абляция «как физика 27»: тело побитово = физика 27 '
+     u'(четыре сцены, журнал физики 28). Путь КРИВОЙ берёт ключ от этого же умолчания (реестр 3)'),
+    (u'ElectronMixedTransport', True, u'--emix=', None, u'намеренно',
+     u'AMBER274, физика 29 (полоса phys29, 01.11.2026; решение Amber «Слои + кристалл сразу»): ПЕРЕНОС '
+     u'ЭЛЕКТРОНА, СХОДЯЩИЙСЯ ПО ШАГУ — в слоях сечения смешанной схемы при энергии середины шага, в '
+     u'кристалле смешанная схема вместо Хайленда на шаг. Двигает строки и поток случайных чисел, поэтому '
+     u'входит в клеймо (emix=1) и пишется хвостом EMIX — только включённым (T42); ВКЛ умолчанием с физики '
+     u'29; --emix=0 --mott=0 — абляция «как физика 28» (Н2 критика кода 02.11.2026: при mott=1 поправка Мотта '
+     u'работает и в слоях, и одно --emix=0 физикой 28 НЕ является; с физики 30 — ещё --eref=0 --dpwa=0 --ckv=0). '
+     u'Путь КРИВОЙ берёт ключ от этого же умолчания (реестр 3)'),
+    (u'ElectronMottHeavy', True, u'--mott=', None, u'намеренно',
+     u'AMBER274, физика 29 (полоса phys29b, 02.11.2026; решение Amber «Сейчас, в физику 29 (Рекомендую)»): '
+     u'ПОПРАВКА МОТТА ПРИ Z > 30 — отношение Мотта к Резерфорду подгонкой G4MottData.hh (Boschini et al.) в '
+     u'смешанной схеме кристалла и слоёв. Двигает строки и поток случайных чисел, поэтому входит в клеймо '
+     u'(mott=1) и пишется хвостом MOTT — только включённым (T42); ВКЛ умолчанием, PhysicsVersion не поднят — '
+     u'матрицы физики 29 без поправки отвергаются клеймом; --mott=0 — абляция: тело побитово = физика 29 полосы '
+     u'phys29. Путь КРИВОЙ берёт ключ от этого же умолчания (реестр 3)'),
+    (u'ElectronElasticRefine', True, u'--eref=', None, u'намеренно',
+     u'AMBER274, физика 30 (полоса phys29c, 02.11.2026): ПРАВКИ ТРЁХ КРИТИКОВ ФИЗИКИ 29 — части Z² и Z упругого '
+     u'рассеяния порознь, предел угла e–e (Ф2), подгонка Мотта у всех Z (Ф3), позитрон (Ф4), пересчёт затёртых '
+     u'долей (Ф6), мажоранта шага (Ф7), предел шага в слое (находка k40rc50). Двигает строки и поток случайных '
+     u'чисел — клеймо eref=1, хвост EREF, только включённым (T42); ВКЛ умолчанием с физики 30; --eref=0 --dpwa=0 --ckv=0 '
+     u'— абляция: тело побитово = физика 29. Путь КРИВОЙ берёт ключ от этого же умолчания (реестр 3)'),
+    (u'ElectronScreeningDpwa', True, u'--dpwa=', None, u'намеренно',
+     u'AMBER274, физика 30, Ф1 (решение Amber 02.11.2026 «Сейчас, до склада (Рекомендую)»): ЯДЕРНАЯ ЧАСТЬ '
+     u'УПРУГОГО РАССЕЯНИЯ ПО DPWA (таблица matdb.elastic_screening_dpwa, e⁻ и e⁺). Клеймо dpwa=1, хвост DPWA, '
+     u'только включённым (T42); таблица — в отпечатке mdb=. ВКЛ умолчанием с физики 30; --dpwa=0 — абляция. '
+     u'Путь КРИВОЙ берёт ключ от этого же умолчания (реестр 3)'),
+    (u'CascadeCkVacancy', True, u'--ckv=', None, u'намеренно',
+     u'AMBER274, физика 30 (phys29c, «каскад не сошёлся» GAGG): ВАКАНСИЯ L-КВАНТА ПОСЛЕ ПЕРЕХОДА '
+     u'КОСТЕРА—КРОНИГА — Kα2 → L2 → L3 разряжается переходом EADL L2–L3·X и вакансией L3-линии. Двигает поток '
+     u'случайных чисел — клеймо ckv=1, хвост CKVA, только включённым (T42); ВКЛ умолчанием с физики 30; '
+     u'--ckv=0 — абляция (с --eref=0 --dpwa=0 тело = физика 29). Путь КРИВОЙ берёт ключ от этого же умолчания '
+     u'(реестр 3)'),
     (u'Seed', True, u'--seed=', None, u'намеренно',
      u'T43: независимая выборка тем же кодом, мерка «в пределах шума ГСЧ»'),
     (u'ResolveEdges', False, u'--edges=', None, u'намеренно',
@@ -495,6 +534,45 @@ SIM = [
      u'путём, что ElectronLayerBremAlongPath) — ВЫКЛ до единого счёта, ВКЛ умолчанием с 19–21.09.2026 '
      u'(физика 22, П114); в клеймо кривой — lbang=1 только включённым. Умолчание поля симулятора — умолчание '
      u'склада (правило I)'),
+    (u'ElectronStraggling', True, True, u'общая',
+     u'AMBER274, физика 28: страгглинг потерь электрона (модель Урбана) у всех электронов переноса. Матрица '
+     u'от своих настроек (MakeSimulator), кривая от их умолчания (EfficiencyCalculation.Run, тем же путём, что '
+     u'ElectronLayerBremAngular2BS) — ВКЛ умолчанием с физики 28; в клеймо кривой — estr=1 только включённым. '
+     u'Умолчание поля симулятора — умолчание склада (правило I)'),
+    (u'ElectronMixedTransport', True, True, u'общая',
+     u'AMBER274, физика 29: перенос электрона, сходящийся по шагу (сечения слоёв в середине шага, смешанная '
+     u'схема в кристалле). Матрица от своих настроек (MakeSimulator), кривая от их умолчания '
+     u'(EfficiencyCalculation.Run, тем же путём, что ElectronStraggling) — ВКЛ умолчанием с физики 29; в клеймо '
+     u'кривой — emix=1 только включённым. Умолчание поля симулятора — умолчание склада (правило I)'),
+    (u'ElectronMottHeavy', True, True, u'общая',
+     u'AMBER274, физика 29 (phys29b): поправка Мотта при Z > 30. Матрица от своих настроек (MakeSimulator), '
+     u'кривая от их умолчания (EfficiencyCalculation.Run, тем же путём, что ElectronMixedTransport) — ВКЛ '
+     u'умолчанием; в клеймо кривой — mott=1 только включённой. Умолчание поля симулятора — умолчание склада '
+     u'(правило I)'),
+    (u'ElectronElasticRefine', True, True, u'общая',
+     u'AMBER274, физика 30 (phys29c): правки критиков физики 29. Матрица от своих настроек (MakeSimulator), кривая '
+     u'от их умолчания (EfficiencyCalculation.Run, тем же путём, что ElectronMottHeavy) — ВКЛ умолчанием; в клеймо '
+     u'кривой — eref=1 только включённым. Умолчание поля симулятора — умолчание склада (правило I)'),
+    (u'ElectronScreeningDpwa', True, True, u'общая',
+     u'AMBER274, физика 30, Ф1: ядерная часть упругого рассеяния по DPWA. Матрица от своих настроек '
+     u'(MakeSimulator), кривая от их умолчания (EfficiencyCalculation.Run) — ВКЛ умолчанием; в клеймо кривой — '
+     u'dpwa=1 только включённым. Умолчание поля симулятора — умолчание склада (правило I)'),
+    (u'CascadeCkVacancy', True, True, u'общая',
+     u'AMBER274, физика 30: вакансия L-кванта после перехода Костера—Кронига. Матрица от своих настроек '
+     u'(MakeSimulator), кривая от их умолчания (EfficiencyCalculation.Run) — ВКЛ умолчанием; в клеймо кривой — '
+     u'ckv=1 только включённым. Умолчание поля симулятора — умолчание склада (правило I)'),
+    (u'ElectronRefineParts', False, False, u'неприменимо',
+     u'AMBER274, физика 30: рычаг замера — какие части ElectronElasticRefine действуют (1 Ф2, 2 Ф3, 4 Ф4, 8 Ф6, '
+     u'16 Ф7, 32 предел шага в слое; умолчание 63 — все); двигают BetaSectionProbeA274 --rparts= и '
+     u'StepConvergenceProbeP29 --rparts=; в клеймо не входит — единый счёт идёт умолчанием'),
+    (u'ElectronLayerStepMaxFraction', False, False, u'неприменимо',
+     u'AMBER274, физика 30 (находка k40rc50): предел шага в слое — доля толщины тела области (DSMAX PENELOPE, '
+     u'умолчание 0.1) под битом 32 ElectronRefineParts; режим замера сходимости, в клеймо не входит — единый '
+     u'счёт идёт умолчанием (как ElectronStepFraction)'),
+    (u'ElectronMixedParts', False, False, u'неприменимо',
+     u'AMBER274, физика 29: рычаг замера — какие половины ElectronMixedTransport действуют (бит 1 слои, бит 2 '
+     u'кристалл; умолчание 3 — обе); двигают BetaSectionProbeA274 --parts= и StepConvergenceProbeP29 --parts=; '
+     u'в клеймо не входит — единый счёт идёт умолчанием'),
     (u'LayerHardCutoffDeg', False, False, u'неприменимо',
      u'M13, П100: угол отсечки жёстких столкновений смешанной схемы (умолчание 20°) — режим замера '
      u'независимости η от отсечки; двигает LayerReturnProbe --cutoff=; в клеймо не входит — единый счёт '
@@ -527,6 +605,10 @@ SIM = [
     (u'ElectronStepFraction', False, False, u'неприменимо',
      u'A72, П27: доля остаточного пробега на шаг переноса электрона (сходимость по шагу); двигает '
      u'G4RawProbe --etr-step=; в клеймо не входит — единый счёт идёт умолчанием 0.1'),
+    (u'ElectronCrystalStepFraction', False, False, u'неприменимо',
+     u'AMBER274, физика 29: доля остаточного пробега на шаг переноса В КРИСТАЛЛЕ под ElectronMixedTransport '
+     u'(сходимость η по шагу, умолчание 0.05); двигают BetaSectionProbeA274 --cstep= и StepConvergenceProbeP29 '
+     u'--cstep=; в клеймо не входит — единый счёт идёт умолчанием'),
     (u'ElectronTransportNoEarlyExit', False, False, u'неприменимо',
      u'M3, П44: режим замера — без раннего выхода по ближайшей грани; двигает BremPathProbe'),
     (u'ElectronCarryDetour', False, False, u'неприменимо', u'калибровка заноса; двигает CoincCfProbe'),
@@ -615,6 +697,16 @@ SIM_NOT_SETTINGS = set([
     # (`M13`, П100) Счётчики смешанной схемы в слоях -- шагов и жёстких
     # столкновений; читаются `G4RawProbe`/`LayerReturnProbe` после прогона.
     u'CountLayerSteps', u'CountLayerHardCollisions',
+    # (`AMBER274`, физика 29) Счётчики переноса в кристалле -- шагов, жёстких столкновений
+    # смешанной схемы и упоров в потолок шагов; читают BetaSectionProbeA274 и StepConvergenceProbeP29.
+    u'CountCrystalSteps', u'CountCrystalHardCollisions', u'CountTransportStepCap',
+    # (`AMBER274`, физика 29, phys29b) Счётчики отбора угла с поправкой Мотта при Z > 30 --
+    # отвергнутых кандидатов, превышений мажоранты (обязан быть 0), выбравших предел попыток
+    # (обязан быть 0); читает BetaSectionProbeA274 --backscatter.
+    u'CountMottRejected', u'CountMottMajorantExceeded', u'CountMottTriesCap',
+    # (`AMBER274`, физика 30, phys29c) Пустые столкновения мажоранты шага (Ф7), пересчёты затёртых долей
+    # (Ф6) и шаги, укороченные пределом в слое; читает BetaSectionProbeA274 --backscatter.
+    u'CountMajorantEmpty', u'CountShareRecomputed', u'CountLayerStepLimited',
     # (`M13`, П106) Счётчики населений возврата -- вылеты/возвраты занесённого,
     # возвраты своего по граням, списанные рычагом; читает `G4RawProbe`.
     u'CountLayerEscapesCarried', u'CountLayerReturnsCarried', u'CountLayerBorn',
@@ -642,6 +734,63 @@ SIM_NOT_SETTINGS = set([
 ])
 
 REASONS = (u'общая', u'намеренно', u'забыто', u'неприменимо')
+
+# ---------------------------------------------------------------------------
+# РЕЕСТР 5 (правило D2, `AMBER274`, Н5 критика кода 02.11.2026). ЛИТЕРАЛ СТРОКИ КЛЕЙМА
+# булевых ключей: `ComputeStamp` обязан нести блок `if (options.<Имя>) { sb.Append("<строка>") }`,
+# и ПЕРВЫЙ литерал блока -- ровно эта строка; строки разных ключей различны. Прежде правило D
+# видело лишь УПОМИНАНИЕ `options.X` в теле метода и пропускало пустой `if` (строка клейма снята)
+# и подмену `"mott=1;"` на `"emix=1;"` -- клейма mott1/emix0 и mott0/emix1 совпадали
+# (положительные контроли критика `ck_pc2.txt`, `ck_pc2c.txt`; здесь -- самопроверка).
+# ---------------------------------------------------------------------------
+STAMP_TOKENS = {
+    u'XcomPairThreshold': u'pairth=1;', u'PositronTransport': u'e+tr=1;',
+    u'RayleighToCrystal': u'rayl2=1;', u'AnalogConeSampling': u'cone=1;',
+    u'ImportanceSampling': u'imp=1;', u'PeakToleranceFromGeometry': u'peakw=1;',
+    u'PeakToleranceHalfBin': u'peakb=1;', u'SplitXrayShells': u'xrkl=1;',
+    u'LightBinUnified': u'lbin=1;', u'PeakChannelByTolerance': u'pkch=1;',
+    u'ElectronTransport': u'etr=1;', u'ElectronAnyMaterial': u'ecomp=1;',
+    u'ElectronLayerTransport': u'eltr=1;', u'ElectronLayerMixedScattering': u'elmix=1;',
+    u'ElectronLayerBremAlongPath': u'lbrem=1;', u'ElectronLayerBremAngular2BS': u'lbang=1;',
+    u'ElectronStraggling': u'estr=1;', u'ElectronMixedTransport': u'emix=1;',
+    u'ElectronMottHeavy': u'mott=1;', u'ElectronElasticRefine': u'eref=1;',
+    u'ElectronScreeningDpwa': u'dpwa=1;', u'CascadeCkVacancy': u'ckv=1;',
+}
+
+
+def strip_comments(text):
+    u"""Убрать комментарии, ОСТАВИВ строковые литералы (правилу D2 нужны именно они)."""
+    out = []
+    i, n = 0, len(text)
+    while i < n:
+        c = text[i]
+        if c == u'/' and i + 1 < n and text[i + 1] == u'/':
+            j = text.find(u'\n', i)
+            i = n if j < 0 else j
+            continue
+        if c == u'/' and i + 1 < n and text[i + 1] == u'*':
+            j = text.find(u'*/', i + 2)
+            i = n if j < 0 else j + 2
+            continue
+        if c == u'"':
+            j = i + 1
+            while j < n and text[j] != u'"':
+                j += 2 if text[j] == u'\\' else 1
+            out.append(text[i:j + 1])
+            i = j + 1
+            continue
+        out.append(c)
+        i += 1
+    return u''.join(out)
+
+
+def stamp_blocks(rm_raw):
+    u"""{имя ключа: [литералы sb.Append(...) в блоке if (options.<имя>)]} тела `ComputeStamp`."""
+    body = block(strip_comments(rm_raw), r'static\s+string\s+ComputeStamp')
+    found = {}
+    for m in re.finditer(r'if\s*\(\s*options\.(\w+)\s*\)\s*\{([^{}]*)\}', body):
+        found.setdefault(m.group(1), []).extend(re.findall(r'sb\.Append\("([^"]*)"\)', m.group(2)))
+    return found
 
 # ---------------------------------------------------------------------------
 # РЕЕСТР 4 (правило I). Поля `EfficiencySimulator`, чьё умолчание ОБЯЗАНО быть
@@ -692,6 +841,20 @@ ONE_TRUTH = (
     # (`M13`, П111 19.09.2026) Ключ, заведённый ВЫКЛ до единого счёта физики 22
     # (П114, 19–21.09.2026): то же правило -- пробы прямого вызова берут умолчание склада.
     (u'ElectronLayerBremAngular2BS', u'ElectronLayerBremAngular2BS', None),
+    # (`AMBER274`, физика 28) Страгглинг потерь электрона, ВКЛ умолчанием с физики 28:
+    # то же правило -- пробы прямого вызова берут умолчание склада.
+    (u'ElectronStraggling', u'ElectronStraggling', None),
+    # (`AMBER274`, физика 29) Перенос электрона, сходящийся по шагу, ВКЛ умолчанием с физики 29:
+    # то же правило -- пробы прямого вызова берут умолчание склада.
+    (u'ElectronMixedTransport', u'ElectronMixedTransport', None),
+    # (`AMBER274`, физика 29, phys29b) Поправка Мотта при Z > 30, ВКЛ умолчанием: то же правило --
+    # пробы прямого вызова берут умолчание склада.
+    (u'ElectronMottHeavy', u'ElectronMottHeavy', None),
+    # (`AMBER274`, физика 30, phys29c) Правки критиков и ядерная часть по DPWA, ВКЛ умолчанием: то же
+    # правило -- пробы прямого вызова берут умолчание склада.
+    (u'ElectronElasticRefine', u'ElectronElasticRefine', None),
+    (u'ElectronScreeningDpwa', u'ElectronScreeningDpwa', None),
+    (u'CascadeCkVacancy', u'CascadeCkVacancy', None),
     # (`AMBER80`, П147 24.09.2026) Ключ пар, ВКЛ умолчанием с физики 24 (решение Amber
     # 24.09.2026): то же правило -- пробы прямого вызова берут умолчание склада.
     (u'XcomPairThreshold', u'XcomPairThreshold', None),
@@ -912,6 +1075,33 @@ def judge(src):
                        u'ResponseMatrixOptions.%s -- значение до построителя не доедет.'
                        % (field, name))
 
+    # --- правило D2 (Н5): литерал строки клейма в блоке своего ключа, строки различны ----
+    blocks = stamp_blocks(src[RM])
+    for name, token in sorted(STAMP_TOKENS.items()):
+        got = blocks.get(name)
+        if got is None:
+            bad.append(u'D2: в ComputeStamp нет блока «if (options.%s) { sb.Append(...) }» -- строка клейма '
+                       u'%s не пишется или пишется иначе, чем ждёт реестр STAMP_TOKENS.' % (name, token))
+        elif not got:
+            bad.append(u'D2: блок «if (options.%s)» в ComputeStamp ничего не пишет -- строка клейма %s снята, '
+                       u'матрицы с ключом и без него неразличимы.' % (name, token))
+        elif got[0] != token:
+            bad.append(u'D2: ключ %s пишет в клеймо «%s», а реестр ждёт «%s».' % (name, got[0], token))
+    firsts = {}
+    for name, lits in blocks.items():
+        if lits:
+            firsts.setdefault(lits[0], []).append(name)
+    for token, names in sorted(firsts.items()):
+        if len(names) > 1:
+            bad.append(u'D2: строку клейма «%s» пишут %d ключа (%s) -- клейма разных настроек совпадут.'
+                       % (token, len(names), u', '.join(sorted(names))))
+    reg = {}
+    for name, token in STAMP_TOKENS.items():
+        reg.setdefault(token, []).append(name)
+    for token, names in sorted(reg.items()):
+        if len(names) > 1:
+            bad.append(u'D2: реестр STAMP_TOKENS даёт строку «%s» ключам %s.' % (token, u', '.join(sorted(names))))
+
     # --- правило E: умолчание поля формы равно умолчанию класса -----------
     defaults = dict(class_fields(rm, u'ResponseMatrixOptions'))
     layout = strip(rmfl)
@@ -1042,7 +1232,7 @@ def judge(src):
 # ---------------------------------------------------------------------------
 
 
-SPOILS = 10   # сколько порч подставляет selftest(); печать сверяется с этим числом
+SPOILS = 12   # сколько порч подставляет selftest(); печать сверяется с этим числом
 
 
 def selftest(src):
@@ -1104,6 +1294,12 @@ def selftest(src):
     spoiled(ES, u'public bool SplitXrayShells = new ResponseMatrixOptions().SplitXrayShells;',
             u'public bool SplitXrayShells;',
             u'умолчание EfficiencySimulator.SplitXrayShells снова пустое (false)')
+    # D2 (Н5, контроли критика `ck_pc2.txt`, `ck_pc2c.txt`): строка клейма снята при живом `if`;
+    # строка одного ключа подменена строкой другого.
+    spoiled(RM, u'sb.Append("mott=1;");', u'',
+            u'строка клейма mott=1 снята, блок if (options.ElectronMottHeavy) пуст')
+    spoiled(RM, u'sb.Append("mott=1;");', u'sb.Append("emix=1;");',
+            u'строка клейма mott=1 подменена на emix=1 (клейма mott1/emix0 и mott0/emix1 совпали бы)')
     if len(planted) != SPOILS:
         missed.append(u'самопроверка подставила %d порч, а печать обещает %d -- поправить SPOILS'
                       % (len(planted), SPOILS))

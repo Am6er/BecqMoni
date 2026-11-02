@@ -23,7 +23,7 @@ namespace FsaReportViewProbe
     /// корпуса, снимки берутся `DrawToBitmap` с формы-носителя.
     ///
     ///     fsareportviewprobe --spectrum=&lt;спектр с рядом Th-232&gt; --control=&lt;спектр без ряда&gt;
-    ///                        [--out=&lt;каталог снимков&gt;]
+    ///                        [--out=&lt;каталог снимков&gt;] [--store=&lt;склад матриц по guid кривой&gt;]
     ///
     /// Разделы — по критериям документа `handover/a145-fsa-display-groups.md`:
     ///
@@ -89,6 +89,16 @@ namespace FsaReportViewProbe
     ///      Контроли: тот же спектр с одним лишь полным временем разбирается
     ///      (живое — ноль, знаменатель — полное, `AMBER35`); с возвращённым
     ///      временем скорости и доли равны разбору нетронутого клона до бита.
+    ///  16. СУММ-ПИКИ ПОИМЁННО (`AMBER286`, 02.11.2026): под строкой «— сумм-пик» —
+    ///      строки пиков с отступом, по энергии; пики ближе FWHM — одной строкой со
+    ///      средневзвешенной энергией и всеми парами в подсказке; только заметные
+    ///      (площадь ≥ 3σ счёта окна ±FWHM). Собранная сцена тория (Ac-228, Tl-208,
+    ///      пара, слитая пара, тройка, слабый пик) в обоих языках и в родительской
+    ///      группировке; положительный контроль — слабый пик строки не получает, тот же
+    ///      пик сильнее порога — получает; без дисперсии фита строк нет. Живой разбор
+    ///      `--spectrum` с матрицей из `--store=` (в память, `AMBER202`): строки пиков у
+    ///      каждого слоя с сумм-пиками — ровно заметные группы, отсчёты строк сходятся с
+    ///      нарисованным подслоем сумм.
     ///
     /// Состояния таблицы (документ, «Состояния таблицы») — отдельным разделом.
     /// ⛔ У каждого раздела, где это возможно, ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ.
@@ -99,6 +109,13 @@ namespace FsaReportViewProbe
     {
         static int bad;
         static string outDir = ".";
+
+        /// <summary>
+        /// (`AMBER286`) Склад матриц корпуса по guid кривой (`--store=`): живой разбор тория с
+        /// матрицей в разделе сумм-пиков; null — живая часть раздела не мерится (сказано
+        /// словами), собранная сцена мерится всегда.
+        /// </summary>
+        static string storeDir;
 
         [STAThread]
         static int Main(string[] args)
@@ -118,6 +135,7 @@ namespace FsaReportViewProbe
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
                 else if (a.StartsWith("--control=", StringComparison.Ordinal)) controlPath = a.Substring(10);
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) outDir = a.Substring(6);
+                else if (a.StartsWith("--store=", StringComparison.Ordinal)) storeDir = a.Substring(8);
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
 
@@ -214,7 +232,10 @@ namespace FsaReportViewProbe
             RowKindsSection(mainForm, thorium, control);
             StatesSection(mainForm, thorium);
             QualitySection(mainForm, thorium);
+            CurveCauseSection(mainForm, thorium);
             UncoveredSection(mainForm, thorium);
+            BandWarningSection(mainForm, thorium);
+            FitBoundSection(mainForm, thorium);
             GroupingAndFlagsSection(mainForm, thorium);
             ParentsSection(mainForm, thorium, control);
             NeighbourSection(mainForm, thorium, control);
@@ -222,6 +243,7 @@ namespace FsaReportViewProbe
             SnapshotSection(mainForm, thorium);
             RefusalSection(mainForm, controlPath, nuclides);
             NoLiveTimeSection(mainForm, controlPath, nuclides);
+            SumPeakRowsSection(mainForm, thorium, spectrumPath, nuclides);
 
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : "НЕ СОШЛОСЬ: " + bad);
@@ -762,8 +784,12 @@ namespace FsaReportViewProbe
                 AnchorOffsetKev = -0.5,
                 CascadeSummingUsed = true,
                 ResidualExcessShare = real.ResidualExcessShare,
-                ResidualMissingShare = real.ResidualMissingShare
+                ResidualMissingShare = real.ResidualMissingShare,
+                // (`AMBER286`) полоса и дисперсия — чтобы у сцены был и род SumPeakLine
+                FirstChannel = real.FirstChannel,
+                LastChannel = real.LastChannel
             };
+            bool lined = false;
             foreach (FsaComponentResult c in real.Components)
             {
                 if (c.SumPeakCurve == null && c.Curve != null)
@@ -773,7 +799,31 @@ namespace FsaReportViewProbe
                     c.SumPeakCurve = sums;
                 }
 
-                result.Components.Add(c);
+                // (`AMBER286`) Один заметный сумм-пик поимённо — у КОПИИ первого нуклидного
+                // компонента: живой результат, из которого сцена сделана, читают и следующие
+                // разделы, и строка пика у него появилась бы и там.
+                FsaComponentResult add = c;
+                if (!lined && c.Kind != FsaComponentKind.Nuisance && c.Curve != null && real.Model != null)
+                {
+                    add = ShallowCopy(c);
+                    add.SumPeakLines = new List<FsaSumPeakLine>
+                    {
+                        new FsaSumPeakLine
+                        {
+                            Nuclide = c.Name, FromKev = 795.0, WithKev = 270.2, EnergyKev = 1065.2, Counts = 1000.0,
+                            Channel = 0.5 * (real.FirstChannel + real.LastChannel), FwhmChannels = 10.0
+                        }
+                    };
+                    lined = true;
+                }
+
+                result.Components.Add(add);
+            }
+
+            if (real.Model != null)
+            {
+                result.FitVariance = new double[real.Model.Length];
+                for (int i = 0; i < result.FitVariance.Length; i++) result.FitVariance[i] = 1.0;
             }
 
             result.CharacteristicLimits.Add(new FsaCharacteristicLimit
@@ -860,6 +910,173 @@ namespace FsaReportViewProbe
                             Same(lang + ": пик без кандидатов пишет «" + Own("FSAReport_UncoveredNone") + "»", true,
                                  second.Contains("351.9") && second.EndsWith(Own("FSAReport_UncoveredNone")));
                         }
+                    }
+                }
+            }
+        }
+
+        // ------------------------------------------------------------------
+        /// <summary>
+        /// (`AMBER269`; решение Amber 02.11.2026 вопросником, дословно: «Да, по признакам
+        /// (Рекомендую)») Синтетический результат с признаками «фон перевычтен» и «модель не
+        /// описывает низ спектра» даёт в блоке пометок по красной строке на признак: полоса в
+        /// кэВ и z, у второго — отношение образов к спектру; подпись — та же, что у открытого
+        /// построителя окна. Положительные контроли: без признаков строк нет вовсе; один признак —
+        /// одна строка, другой не появляется; ключ вместо перевода — отказ.
+        /// </summary>
+        static void BandWarningSection(MainForm mainForm, DocEnergySpectrum doc)
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== предупреждения по полосе (AMBER269): «фон перевычтен», «модель не описывает низ» ===");
+            foreach (string lang in new[] { "ru-RU", "en-US" })
+            {
+                Language(lang);
+                foreach (int mask in new[] { 0, 1, 2, 3 })
+                {
+                    // Сцена — как у раздела пиков вне состава: без опор привязки.
+                    FsaResult scene = new FsaResult
+                    {
+                        Chi2Ndf = 2.5, Chi2NdfPoisson = 2.5, BackgroundUsed = true, ResponseMatrixUsed = false,
+                        EfficiencyUsed = false, CascadeSummingUsed = true
+                    };
+                    if ((mask & 1) != 0)
+                    {
+                        scene.BackgroundOversubtracted = new FsaBandWarning { LoKev = 44.2, HiKev = 63.8, Z = 7.31, Ratio = 1.12, Bands = 1 };
+                    }
+                    if ((mask & 2) != 0)
+                    {
+                        scene.ImagesAboveSpectrum = new FsaBandWarning { LoKev = 8.4, HiKev = 30.2, Z = 25.04, Ratio = 1.524, Bands = 2 };
+                    }
+                    var session = new FsaAnalysisSession();
+                    Plant(session, scene, "bandwarn" + mask);
+                    using (var report = new FSAReportView(mainForm))
+                    {
+                        // не потребитель — блок читается с подсаженной сцены (довод — у раздела пиков вне состава)
+                        report.SetProbeSource(session, doc.ActiveResultData);
+                        Row neg = null, img = null;
+                        int negRows = 0, imgRows = 0;
+                        foreach (Row row in report.ReportTable.TableModel.Rows)
+                        {
+                            if (row.Cells.Count < 2) continue;
+                            if (row.Cells[1].Text == Own("FSAReport_BackgroundAboveValue")) { neg = row; negRows++; }
+                            if (row.Cells[1].Text == Own("FSAReport_ImagesAboveValue")) { img = row; imgRows++; }
+                        }
+                        Same(lang + ": признаки " + mask + " — строк «" + Own("FSAReport_BackgroundAboveValue") + "»",
+                             (mask & 1) != 0 ? 1 : 0, negRows);
+                        Same(lang + ": признаки " + mask + " — строк «" + Own("FSAReport_ImagesAboveValue") + "»",
+                             (mask & 2) != 0 ? 1 : 0, imgRows);
+                        if (negRows != ((mask & 1) != 0 ? 1 : 0) || imgRows != ((mask & 2) != 0 ? 1 : 0))
+                        {
+                            ShowBlock(report, lang);
+                        }
+                        if (neg != null)
+                        {
+                            string caption = neg.Cells[0].Text;
+                            Console.WriteLine("    {0}", caption);
+                            Same(lang + ": «фон больше спектра» называет полосу 44–64 кэВ, z в подписи нет", true,
+                                 caption.Contains("44") && caption.Contains("64") && !caption.Contains("7.3"));
+                            Same(lang + ": подпись — та же, что у построителя окна", FSAReportView.BackgroundOversubtractedText(scene), caption);
+                            Same(lang + ": z 7.3 и отношение 1.120 — в подсказке строки", true,
+                                 neg.Cells[0].ToolTipText != null && neg.Cells[0].ToolTipText.Contains("7.3")
+                                 && neg.Cells[0].ToolTipText.Contains("1.120"));
+                            Same(lang + ": слово состояния «фон больше спектра» красное", Paint(BadColor), Paint(neg.Cells[1].ForeColor));
+                            Denies(lang + ": контроль — ключ вместо перевода в строке «фон больше спектра»",
+                                   caption.Contains("FSAReport_") || (neg.Cells[0].ToolTipText ?? "").Contains("FSAReport_"));
+                        }
+                        if (img != null)
+                        {
+                            string caption = img.Cells[0].Text;
+                            Console.WriteLine("    {0}", caption);
+                            // (`AMBER284`, решение Amber 02.11.2026 «Модель выше спектра в … (в … раза)»,
+                            // z — в подсказку) полоса и отношение — в подписи, z 25.0 — только в подсказке
+                            Same(lang + ": «модель выше спектра» называет полосу 8–30 кэВ и 1.52 раза, z в подписи нет", true,
+                                 caption.Contains("8") && caption.Contains("30") && caption.Contains("1.52") && !caption.Contains("25.0"));
+                            Same(lang + ": подпись — та же, что у построителя окна", FSAReportView.ImagesAboveSpectrumText(scene), caption);
+                            Same(lang + ": z 25.0 — в подсказке строки, та же, что у построителя окна", true,
+                                 img.Cells[0].ToolTipText != null && img.Cells[0].ToolTipText.Contains("25.0")
+                                 && img.Cells[0].ToolTipText == FSAReportView.ImagesAboveSpectrumTip(scene));
+                            Same(lang + ": слово состояния «модель выше спектра» красное", Paint(BadColor), Paint(img.Cells[1].ForeColor));
+                            Denies(lang + ": контроль — ключ вместо перевода в строке «модель выше спектра»",
+                                   caption.Contains("FSAReport_") || (img.Cells[0].ToolTipText ?? "").Contains("FSAReport_"));
+                        }
+                    }
+                }
+            }
+        }
+
+        // ------------------------------------------------------------------
+        /// <summary>
+        /// (`AMBER269`; решение Amber 02.11.2026 вопросником, дословно: «Да, настройкой FSA с
+        /// умолчанием 40 (Рекомендую)»; понижено до 28 — решение Amber 02.11.2026; снято до нуля — решение Amber 03.11.2026
+        /// вопросником, дословно: «Правило порога + откат с шириной (Рекомендую)», `AMBER274`) НИЖНЯЯ ГРАНИЦА РАЗБОРА: поле окна есть,
+        /// умолчание — нуль (правило порога),
+        /// подпись поля на обоих языках; строка блока качества называет границу числом, подсказка —
+        /// источник (поле окна или правило порога при нуле).
+        /// </summary>
+        static void FitBoundSection(MainForm mainForm, DocEnergySpectrum doc)
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== нижняя граница разбора (AMBER269, AMBER274): поле окна, умолчание 0 (правило порога), строка блока качества ===");
+            Same("умолчание поставки — 0, правило порога (решение Amber 03.11.2026 «Правило порога + откат с шириной (Рекомендую)»)", 0.0, FsaBand.ShippedFitLowerBoundKev);
+            Same("умолчание анализатора — то же число", FsaBand.ShippedFitLowerBoundKev, new FsaAnalyzer().FitLowerBoundKev);
+            Same("умолчание снимка настроек — то же число", FsaBand.ShippedFitLowerBoundKev, new FsaCalculationOptions().FitLowerBoundKev);
+            Same("умолчание настройки приложения — то же число", FsaBand.ShippedFitLowerBoundKev,
+                 new BecquerelMonitor.FsaCalculationSettings().FitLowerBoundKev);
+            var a = new FsaCalculationOptions { FitLowerBoundKev = 40.0 };
+            var b = new FsaCalculationOptions { FitLowerBoundKev = 0.0 };
+            Same("граница входит в отпечаток настроек", false, a.Stamp == b.Stamp);
+            foreach (string lang in new[] { "ru-RU", "en-US" })
+            {
+                Language(lang);
+                using (var report = new FSAReportView(mainForm))
+                {
+                    report.SetProbeSource(doc.FsaSession, doc.ActiveResultData);
+                    var updown = Control<NumericUpDown>(report, "fitLowerBoundUpDown");
+                    var label = Control<Label>(report, "fitLowerBoundLabel");
+                    if (updown != null && label != null)
+                    {
+                        Console.WriteLine("    {0}: поле «{1}» = {2}", lang, label.Text, updown.Value);
+                        Same(lang + ": поле границы — общее поле с инвариантной культурой", true, updown is InvariantNumericUpDown);
+                        Same(lang + ": поле показывает умолчание 0 (правило порога)", 0m, updown.Value);
+                        Same(lang + ": подпись поля переведена", lang == "ru-RU" ? "Нижняя граница разбора, кэВ" : "Fit lower bound, keV", label.Text);
+                        Same(lang + ": поле лежит в расчётной группе (своя строка в extrasFlow)", "extrasFlow",
+                             updown.Parent != null && updown.Parent.Parent != null ? updown.Parent.Parent.Name : null);
+                        Same(lang + ": подпись и поле — одной строкой", true, updown.Parent == label.Parent);
+                    }
+                }
+
+                foreach (double bound in new[] { 40.0, 0.0 })
+                {
+                    FsaResult scene = new FsaResult
+                    {
+                        Chi2Ndf = 2.5, Chi2NdfPoisson = 2.5, BackgroundUsed = true, ResponseMatrixUsed = false,
+                        EfficiencyUsed = false, CascadeSummingUsed = true,
+                        FitLowerBoundKev = bound, FitStartKev = bound > 0.0 ? 40.37 : 6.39
+                    };
+                    var session = new FsaAnalysisSession();
+                    Plant(session, scene, "fitbound" + bound.ToString(CultureInfo.InvariantCulture));
+                    using (var report = new FSAReportView(mainForm))
+                    {
+                        report.SetProbeSource(session, doc.ActiveResultData);
+                        Row found = null;
+                        foreach (Row row in report.ReportTable.TableModel.Rows)
+                        {
+                            if (row.Cells.Count > 0 && row.Cells[0].Text == Own("FSAReport_FitBoundRow")) found = row;
+                        }
+                        Same(lang + ": граница " + bound.ToString(CultureInfo.InvariantCulture) + " — строка «" + Own("FSAReport_FitBoundRow") + "» есть", true, found != null);
+                        if (found == null)
+                        {
+                            ShowBlock(report, lang);
+                            continue;
+                        }
+
+                        string want = bound > 0.0 ? "40.0" : "6.4";
+                        Same(lang + ": значение — граница, с которой шёл разбор", want, found.Cells[1].Text);
+                        string tip = found.Cells[1].ToolTipText;
+                        if (string.IsNullOrEmpty(tip)) tip = found.Cells[0].ToolTipText ?? "";
+                        Console.WriteLine("    {0}: подсказка «{1}»", lang, tip);
+                        Same(lang + ": подсказка несёт текст построителя окна", true, tip.Contains(FSAReportView.FitBoundTip(scene)));
+                        Denies(lang + ": контроль — ключ вместо перевода в подсказке", tip.Contains("FSAReport_"));
                     }
                 }
             }
@@ -999,6 +1216,21 @@ namespace FsaReportViewProbe
                     ShowBlock(report, lang);
                     Same(lang + ": блок «Качество разбора» собран верно", string.Empty,
                          string.Join("; ", BlockProblems(report, "1234.57", marks)));
+
+                    // ⛔ (`AMBER284`, решение Amber 02.11.2026 — 28 фраз окна FSA в человекочитаемый
+                    // вид) ПРЕЖНИХ ФРАЗ В ОКНЕ НЕТ — и ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: прежняя подпись
+                    // χ²/ndf, подброшенная в ячейку, обязана быть поймана и сканером прежних фраз, и
+                    // сверкой блока.
+                    NoOldPhrases(report, lang, "сцена «подавлен»");
+                    Row oldChi = report.ReportTable.TableModel.Rows[Chi2Row(report)];
+                    string chiCaption = oldChi.Cells[0].Text;
+                    oldChi.Cells[0].Text = lang == "ru-RU" ? "χ²/ndf, качество подгонки (по статистике Пуассона)"
+                                                           : "χ²/ndf, goodness of fit (Poisson statistics)";
+                    Denies(lang + ": контроль AMBER284 — прежняя подпись χ²/ndf не поймана сканером прежних фраз",
+                           OldPhraseHits(report).Count == 0);
+                    Denies(lang + ": контроль AMBER284 — прежняя подпись χ²/ndf проходит сверку блока",
+                           BlockProblems(report, "1234.57", marks).Count == 0);
+                    oldChi.Cells[0].Text = chiCaption;
 
                     // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ ПЕРВЫЙ: убрана строка χ²/ndf.
                     // Проверка, не отказывающая на заведомо неверном составе,
@@ -1212,6 +1444,724 @@ namespace FsaReportViewProbe
                     AnchorMarks(miscounted, anchored, "1", "+1.23", "-0.50");
                     Denies(lang + ": контроль — «1» опора вместо двух проверку не проходит",
                            BlockProblems(report, "1234.57", miscounted).Count == 0);
+                }
+
+                // (`AMBER269`, дефект 4; `AMBER274`, решения Amber 02.11.2026 «Редкие узлы + два
+                // захода», «MDA под порог z ≥ 3») ЧЕТВЁРТАЯ СЦЕНА — ОТКАТ ПРИВЯЗКИ (А2), ПРАВИЛО MDA
+                // И ДВА ЗАХОДА СТРОКИ БЕТЫ. Прежде откат жил только в служебной `AnchorNote`, и окно
+                // писало «опор: нет»; правило MDA и шаг узлов под бетой окно не называло вовсе.
+                // Ожидание — рукой, по числам сцены: строка правила MDA сразу под σ×; строка шага
+                // узлов зелёная (VIF в пределе, два захода); строка опор — слово «откат», под ней —
+                // красная строка отката с числами отменённого разбора.
+                var rolled = new FsaResult
+                {
+                    Chi2Ndf = chi2, Chi2NdfPoisson = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
+                    EfficiencyUsed = true, CascadeSummingUsed = true,
+                    AnchorRolledBack = true, AnchorRollbackAnchors = 3, AnchorRollbackGain = 1.0244,
+                    AnchorRollbackChi2NdfPoisson = 2924.96,
+                    LimitDecisionQuantile = 3.0, LimitDetectionQuantile = 1.6449,
+                    BetaKnotFwhm = 16.0, BetaKnotVif = 5.57, BetaKnotVifMax = 10.0, BetaKnotVifMet = true,
+                    BetaTwoPass = true, GammaKnotFwhm = 4.0
+                };
+                rolled.AnchorRollbackScaleAnchors = new List<FsaScaleAnchor>
+                {
+                    new FsaScaleAnchor { Component = "L1", ModelKev = 2614.5, ShiftKev = 1.5, PeakShare = 0.9, Used = true }
+                };
+                var rolledSession = new FsaAnalysisSession();
+                Plant(rolledSession, rolled, "quality-rolled");
+                using (var report = new FSAReportView(mainForm))
+                {
+                    report.SetProbeSource(rolledSession, doc.ActiveResultData);
+                    string rollback = string.Format(CultureInfo.InvariantCulture, Own("FSAReport_AnchorRollbackRow"),
+                                                    "3", "+2.44", "2924.96", "1234.57");
+                    // ⛔ (`AMBER284`, решение Amber 02.11.2026 «Убрать строку в подсказку строки
+                    // бета-нуклидов (Рекомендую)»: на виду — только предупреждение, если VIF выше
+                    // предела) VIF здесь в пределе — строки шага узлов в блоке НЕТ; до AMBER284 она
+                    // стояла здесь зелёной «два захода».
+                    var rolledMarks = new List<string[]>
+                    {
+                        new[] { Own("FSAReport_LimitRuleRow"),
+                                string.Format(CultureInfo.InvariantCulture, Own("FSAReport_LimitRuleValue"), "3"), Plain },
+                        new[] { Own("FSAReport_MatrixRow"), Own("FSAReport_MatrixUsed"), Good },
+                        new[] { Own("FSAReport_EfficiencyRow"), Own("FSAReport_EfficiencyUsed"), Good },
+                        new[] { Own("FSAReport_SummingRow"), Own("FSAReport_SummingUsed"), Good },
+                        new[] { Own("FSAReport_AnchorRow"), Own("FSAReport_AnchorRolledBack"), Plain },
+                        new[] { rollback, Own("FSAReport_AnchorRollbackValue"), Bad }
+                    };
+
+                    ShowBlock(report, lang);
+                    Same(lang + ": откат привязки и правило MDA названы в блоке, строки шага узлов нет (VIF в пределе)",
+                         string.Empty, string.Join("; ", BlockProblems(report, "1234.57", rolledMarks)));
+                    NoOldPhrases(report, lang, "откат привязки");
+
+                    // подсказка строки опор — опоры ОТМЕНЁННОГО разбора: без них «откат» неотличим от «опор нет»
+                    Row anchorRow = report.ReportTable.TableModel.Rows[Chi2Row(report) + 2 + 4];
+                    string tip = anchorRow.Cells[0].ToolTipText ?? string.Empty;
+                    Same(lang + ": в подсказке строки опор — опора отменённого разбора", true,
+                         tip.Contains(Own("FSAReport_AnchorRollbackTip")) && tip.Contains("+ L1 2614.5"));
+
+                    // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ (`AMBER284`): прежнее ожидание — зелёная строка шага
+                    // узлов «два захода» после суммирования — на этой сцене отказ
+                    string knots = string.Format(CultureInfo.InvariantCulture, Own("FSAReport_BetaKnotRow"), "16", "5.6", "10")
+                                   + string.Format(CultureInfo.InvariantCulture, Own("FSAReport_BetaKnotSecondPass"), "4");
+                    var oldKnots = new List<string[]>(rolledMarks);
+                    oldKnots.Insert(4, new[] { knots, lang == "ru-RU" ? "два захода" : "two passes", Good });
+                    Denies(lang + ": контроль — прежняя строка шага узлов «два захода» в блоке проверку не проходит",
+                           BlockProblems(report, "1234.57", oldKnots).Count == 0);
+
+                    // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: прежнее ожидание «опор нет» без строки отката — отказ
+                    var silent = new List<string[]>(rolledMarks.GetRange(0, 4));
+                    silent.Add(new[] { Own("FSAReport_AnchorRow"), Own("FSAReport_AnchorNone"), Plain });
+                    Denies(lang + ": контроль — «опор нет» без строки отката на сцене с откатом проверку не проходит",
+                           BlockProblems(report, "1234.57", silent).Count == 0);
+
+                    // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: без строки правила MDA — отказ
+                    var noRule = new List<string[]>(rolledMarks.GetRange(1, rolledMarks.Count - 1));
+                    Denies(lang + ": контроль — блок без строки правила MDA проверку не проходит",
+                           BlockProblems(report, "1234.57", noRule).Count == 0);
+                }
+
+                BetaKnotVifSection(mainForm, doc, lang, chi2);
+                NoMatrixTipSection(mainForm, doc, lang, chi2);
+                SecondPassRefusedSection(mainForm, doc, lang, chi2);
+                RollbackDeclensionSection(mainForm, doc, lang, chi2);
+                NotResolvedSection(mainForm, doc, lang, chi2);
+                ScrollReachSection(mainForm, doc, lang, chi2);
+            }
+
+            Language("en-US");
+        }
+
+        /// <summary>
+        /// (`AMBER284`, решения Amber 02.11.2026 вопросником, дословно: «Убрать строку в подсказку
+        /// строки бета-нуклидов (Рекомендую)» — на виду только предупреждение, если VIF выше
+        /// предела; «"Бета-излучение пробы: 1234 отсч." Остальное в подсказку»; капсула — «Убрать
+        /// из строки и подсказки, оставить в отказе (Рекомендую)») ПЯТАЯ СЦЕНА: бета пробы легла,
+        /// VIF выше предела и на самом редком шаге. Ожидание — рукой: строка «бета-излучение
+        /// пробы» — одни отсчёты, узлы — в подсказке, капсулы нет нигде; красная строка
+        /// предупреждения VIF с текстом шага узлов в подсказке. Подсказка строки «только по
+        /// бета» — её подпись и тот же текст шага узлов (`FSAReportView.BetaOnlyRowTip`).
+        /// Положительные контроли: прежняя строка беты с узлами и капсулой — отказ; блок без
+        /// строки VIF — отказ.
+        /// </summary>
+        static void BetaKnotVifSection(MainForm mainForm, DocEnergySpectrum doc, string lang, double chi2)
+        {
+            const string capsule = "CAPSULE-A284";
+            var beta = new FsaResult
+            {
+                Chi2Ndf = chi2, Chi2NdfPoisson = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
+                EfficiencyUsed = true, CascadeSummingUsed = true,
+                SampleBetaKeyOn = true, SampleBetaRefusal = BecquerelMonitor.EfficiencyMaker.ElectronSectionRefusal.None,
+                SampleBetaCounts = 1234.4, SampleBetaNodes = 40, SampleBetaCapsule = capsule,
+                BetaKnotFwhm = 32.0, BetaKnotVif = 14.2, BetaKnotVifMax = 10.0, BetaKnotVifMet = false,
+                BetaTwoPass = true, GammaKnotFwhm = 4.0
+            };
+            var session = new FsaAnalysisSession();
+            Plant(session, beta, "quality-beta-vif");
+            using (var report = new FSAReportView(mainForm))
+            {
+                report.SetProbeSource(session, doc.ActiveResultData);
+                var marks = new List<string[]>
+                {
+                    new[] { Own("FSAReport_MatrixRow"), Own("FSAReport_MatrixUsed"), Good },
+                    new[] { Own("FSAReport_EfficiencyRow"), Own("FSAReport_EfficiencyUsed"), Good },
+                    new[] { Own("FSAReport_SummingRow"), Own("FSAReport_SummingUsed"), Good },
+                    new[] { Own("FSAReport_SampleBetaRow"),
+                            string.Format(CultureInfo.InvariantCulture, Own("FSAReport_SampleBetaUsed"), "1234"), Good },
+                    new[] { Own("FSAReport_BetaKnotVifOverRow"), Own("FSAReport_BetaKnotVifOverValue"), Bad }
+                };
+                AnchorMarks(marks, beta, null, null, null);
+
+                ShowBlock(report, lang);
+                Same(lang + ": бета пробы — одни отсчёты, предупреждение VIF — красной строкой", string.Empty,
+                     string.Join("; ", BlockProblems(report, "1234.57", marks)));
+                NoOldPhrases(report, lang, "бета пробы и VIF");
+
+                int chi = Chi2Row(report);
+                Row betaRow = report.ReportTable.TableModel.Rows[chi + 2 + 3];
+                string betaTip = betaRow.Cells[0].ToolTipText ?? string.Empty;
+                Console.WriteLine("    подсказка беты пробы: {0}", betaTip);
+                Same(lang + ": подсказка беты пробы — та же, что у построителя окна, с отсчётами и 40 узлами", true,
+                     betaTip == FSAReportView.SampleBetaTip(beta) && betaTip.Contains("1234") && betaTip.Contains("40"));
+                Same(lang + ": капсулы нет ни в строке беты, ни в её подсказке", false,
+                     betaRow.Cells[0].Text.Contains(capsule) || betaRow.Cells[1].Text.Contains(capsule)
+                     || betaTip.Contains(capsule) || (betaRow.Cells[1].ToolTipText ?? "").Contains(capsule));
+
+                Row vifRow = report.ReportTable.TableModel.Rows[chi + 2 + 4];
+                string vifTip = vifRow.Cells[0].ToolTipText ?? string.Empty;
+                Console.WriteLine("    подсказка VIF: {0}", vifTip);
+                Same(lang + ": подсказка строки VIF — текст шага узлов построителя окна (VIF 14.2, предел 10)", true,
+                     vifTip == FSAReportView.BetaKnotCaption(beta) && vifTip.Contains("14.2") && vifTip.Contains("10"));
+
+                // строка «только по бета» — подсказка: подпись и тот же текст шага узлов
+                var sr90 = new FsaReportRow { Kind = FsaReportRowKind.Layer, Name = "Sr-90", BetaOnly = true };
+                string rowTip = FSAReportView.BetaOnlyRowTip(sr90, beta);
+                Console.WriteLine("    подсказка строки «только по бета»: {0}", rowTip);
+                Same(lang + ": подсказка строки «только по бета» — подпись с пометкой и шаг узлов", true,
+                     rowTip == FSAReportView.RowCaption(sr90) + Environment.NewLine + FSAReportView.BetaKnotCaption(beta)
+                     && FSAReportView.RowCaption(sr90).EndsWith(Own("FSAReport_BetaOnlyMark")));
+                Same(lang + ": у строки не по бета своей подсказки шага узлов нет", true,
+                     FSAReportView.BetaOnlyRowTip(new FsaReportRow { Kind = FsaReportRowKind.Layer, Name = "Cs-137" }, beta) == null);
+
+                // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: прежняя строка беты (узлы и капсула в значении) — отказ
+                var oldBeta = new List<string[]>(marks);
+                oldBeta[3] = new[] { Own("FSAReport_SampleBetaRow"),
+                                     lang == "ru-RU" ? "в образах 1234 отсч.; раздел 40 узлов; капсула источника " + capsule
+                                                     : "in images 1234 counts; section of 40 nodes; source capsule " + capsule, Good };
+                Denies(lang + ": контроль — прежняя строка беты с узлами и капсулой проверку не проходит",
+                       BlockProblems(report, "1234.57", oldBeta).Count == 0);
+
+                // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: блок без строки VIF при VIF выше предела — отказ
+                var noVif = new List<string[]>(marks);
+                noVif.RemoveAt(4);
+                Denies(lang + ": контроль — блок без строки VIF при VIF выше предела проверку не проходит",
+                       BlockProblems(report, "1234.57", noVif).Count == 0);
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER284`, решение Amber 02.11.2026 вопросником, дословно: «Объединить со строкой
+        /// выше, где уже написано - нет Матрицы отклика. Остальное убрать в подсказку.») ШЕСТАЯ
+        /// СЦЕНА: разбор с кривой и без матрицы. Ожидание — рукой: строка «Матрица отклика |
+        /// не учтена» красная и с признаком происшествия, её подсказка — цена разбора без матрицы
+        /// словами окна (`FSAReport_MatrixNotUsedTip`); отдельной строки-предупреждения нет —
+        /// пометок ровно четыре (матрица, кривая, суммирование, опоры). Положительный контроль:
+        /// прежний блок с отдельной строкой «до −11 %» — отказ.
+        /// </summary>
+        static void NoMatrixTipSection(MainForm mainForm, DocEnergySpectrum doc, string lang, double chi2)
+        {
+            var scene = new FsaResult
+            {
+                Chi2Ndf = chi2, Chi2NdfPoisson = chi2, BackgroundUsed = true, ResponseMatrixUsed = false,
+                EfficiencyUsed = true, CascadeSummingUsed = false
+            };
+            var session = new FsaAnalysisSession();
+            Plant(session, scene, "quality-nomatrix");
+            using (var report = new FSAReportView(mainForm))
+            {
+                report.SetProbeSource(session, doc.ActiveResultData);
+                // привязка без матрицы идёт по пикам кривой (`AMBER156` (а)) — строка опор есть
+                var marks = new List<string[]>
+                {
+                    new[] { Own("FSAReport_MatrixRow"), Own("FSAReport_MatrixNotUsed"), Bad },
+                    new[] { Own("FSAReport_EfficiencyRow"), Own("FSAReport_EfficiencyUsed"), Good },
+                    new[] { Own("FSAReport_SummingRow"), Own("FSAReport_SummingNoMatrix"), Bad },
+                    new[] { Own("FSAReport_AnchorRow"), Own("FSAReport_AnchorNone"), Plain }
+                };
+
+                ShowBlock(report, lang);
+                Same(lang + ": без матрицы — отдельной строки-предупреждения нет, пометок четыре", string.Empty,
+                     string.Join("; ", BlockProblems(report, "1234.57", marks)));
+                NoOldPhrases(report, lang, "без матрицы");
+
+                Row matrixRow = report.ReportTable.TableModel.Rows[Chi2Row(report) + 2];
+                string tip = matrixRow.Cells[0].ToolTipText ?? string.Empty;
+                Console.WriteLine("    подсказка строки «Матрица отклика»: {0}", tip);
+                Same(lang + ": подсказка строки «Матрица отклика» — цена разбора без матрицы", Own("FSAReport_MatrixNotUsedTip"), tip);
+                Same(lang + ": та же подсказка у значения", tip, matrixRow.Cells[1].ToolTipText ?? string.Empty);
+                Same(lang + ": подсказка — та же, что у построителя окна", FSAReportView.MatrixNotUsedTip(scene), tip);
+                Same(lang + ": в подсказке цена 11 % и совет построить матрицу", true, tip.Contains("11"));
+                Same(lang + ": строка «Матрица отклика» — происшествие (признак Warning)", true,
+                     ((FsaReportRow)matrixRow.Tag).Warning);
+
+                // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: прежний блок с отдельной строкой «… | до −11 %» — отказ
+                var old = new List<string[]>(marks);
+                old.Insert(3, new[] { lang == "ru-RU" ? "Нет матрицы отклика: каскадное суммирование не учтено"
+                                                      : "No response matrix: cascade summing is not applied",
+                                      lang == "ru-RU" ? "до −11 %" : "up to −11 %", Bad });
+                Denies(lang + ": контроль — прежняя отдельная строка «без матрицы» проверку не проходит",
+                       BlockProblems(report, "1234.57", old).Count == 0);
+            }
+
+            // контроль условия: у матричного разбора подсказки нет
+            Same(lang + ": у матричного разбора подсказки «без матрицы» нет", true,
+                 FSAReportView.MatrixNotUsedTip(new FsaResult { ResponseMatrixUsed = true, EfficiencyUsed = true }) == null);
+        }
+
+        /// <summary>
+        /// (`AMBER284`, решение Amber 02.11.2026 вопросником, дословно: «Вернуть красной строкой
+        /// (Рекомендую)») СЕДЬМАЯ СЦЕНА: строка беты дошла до фита, VIF В ПРЕДЕЛЕ, второй заход
+        /// гамма-строк ОТКАЗАЛ («NoFit»). Ожидание — рукой: на виду красная строка «нуклиды с
+        /// гамма-линиями посчитаны первым, более грубым заходом» | «грубее»; её подсказка — текст
+        /// шага узлов построителя окна, в нём причина словами окна (текст отказа «подгонка не
+        /// сошлась» сеанса), а не имя члена перечисления «NoFit». Положительные контроли: прежнее
+        /// (полосы `a284`) ожидание без этой строки — отказ; та же сцена без отказа — строки нет;
+        /// при VIF выше предела и отказе — обе красные строки, порознь.
+        /// </summary>
+        static void SecondPassRefusedSection(MainForm mainForm, DocEnergySpectrum doc, string lang, double chi2)
+        {
+            Func<string, bool, FsaResult> scene = (refusal, vifMet) => new FsaResult
+            {
+                Chi2Ndf = chi2, Chi2NdfPoisson = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
+                EfficiencyUsed = true, CascadeSummingUsed = true,
+                BetaKnotFwhm = 16.0, BetaKnotVif = vifMet ? 5.57 : 14.2, BetaKnotVifMax = 10.0, BetaKnotVifMet = vifMet,
+                BetaTwoPass = false, BetaGammaPassRefusal = refusal
+            };
+            // подписи и значения — рукой, по решению Amber и тексту полосы a284b
+            string row = lang == "ru-RU"
+                ? "Нуклиды с гамма-линиями посчитаны первым, более грубым заходом: второй заход не состоялся"
+                : "Nuclides with gamma lines are computed by the first, coarser pass: the second pass failed";
+            string value = lang == "ru-RU" ? "грубее" : "coarser";
+            string reason = lang == "ru-RU"
+                ? "Полноспектральное разложение: подгонка не сошлась — проверьте энергетическую калибровку и состав"
+                : "Full-spectrum decomposition: the fit did not converge — check the energy calibration and the composition";
+            Same(lang + ": подпись отказа второго захода в resx — та, что записана рукой", row,
+                 Own("FSAReport_BetaKnotSecondRefusedRow"));
+            Same(lang + ": значение отказа второго захода в resx — то, что записано рукой", value,
+                 Own("FSAReport_BetaKnotSecondRefusedValue"));
+            Same(lang + ": причина «NoFit» словами окна — текст отказа сеанса", reason,
+                 FSAReportView.SecondPassRefusalText(scene("NoFit", true)));
+            Same(lang + ": причина «LibraryEmptied» словами окна — текст отказа сеанса",
+                 BecquerelMonitor.Properties.Resources.FSALibraryEmptied,
+                 FSAReportView.SecondPassRefusalText(scene("LibraryEmptied", true)));
+            Same(lang + ": имя, которого перечисление не знает, — как есть", "Strange42",
+                 FSAReportView.SecondPassRefusalText(scene("Strange42", true)));
+            Same(lang + ": отказа нет — причины нет", true, FSAReportView.SecondPassRefusalText(scene(null, true)) == null);
+
+            FsaResult refused = scene("NoFit", true);
+            var session = new FsaAnalysisSession();
+            Plant(session, refused, "quality-second-refused");
+            using (var report = new FSAReportView(mainForm))
+            {
+                report.SetProbeSource(session, doc.ActiveResultData);
+                var marks = new List<string[]>
+                {
+                    new[] { Own("FSAReport_MatrixRow"), Own("FSAReport_MatrixUsed"), Good },
+                    new[] { Own("FSAReport_EfficiencyRow"), Own("FSAReport_EfficiencyUsed"), Good },
+                    new[] { Own("FSAReport_SummingRow"), Own("FSAReport_SummingUsed"), Good },
+                    new[] { row, value, Bad }
+                };
+                AnchorMarks(marks, refused, null, null, null);
+
+                ShowBlock(report, lang);
+                Same(lang + ": отказ второго захода при VIF в пределе — красной строкой", string.Empty,
+                     string.Join("; ", BlockProblems(report, "1234.57", marks)));
+                NoOldPhrases(report, lang, "отказ второго захода");
+
+                Row refusedRow = report.ReportTable.TableModel.Rows[Chi2Row(report) + 2 + 3];
+                string tip = refusedRow.Cells[0].ToolTipText ?? string.Empty;
+                Console.WriteLine("    подсказка строки отказа: {0}", tip.Replace(Environment.NewLine, " ⏎ "));
+                Same(lang + ": подсказка строки отказа — текст шага узлов построителя окна",
+                     FSAReportView.BetaKnotCaption(refused), tip);
+                Same(lang + ": та же подсказка у значения", tip, refusedRow.Cells[1].ToolTipText ?? string.Empty);
+                Same(lang + ": в подсказке — причина словами окна своей строкой", true,
+                     tip.EndsWith(Environment.NewLine + reason, StringComparison.Ordinal)
+                     && tip.Contains(Own("FSAReport_BetaKnotSecondRefused")));
+                Same(lang + ": имени члена перечисления «NoFit» в подсказке нет", false, tip.Contains("NoFit"));
+                Same(lang + ": строка отказа — происшествие (признак Warning)", true, ((FsaReportRow)refusedRow.Tag).Warning);
+
+                // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: прежнее ожидание полосы a284 — отказ виден только в
+                // подсказке, строки на виду нет — обязано отказать
+                var hidden = new List<string[]>(marks);
+                hidden.RemoveAt(3);
+                Denies(lang + ": контроль — блок без строки отказа второго захода проверку не проходит",
+                       BlockProblems(report, "1234.57", hidden).Count == 0);
+            }
+
+            // ⛔ КОНТРОЛЬ УСЛОВИЯ: та же сцена без отказа — строки нет (VIF в пределе, строк беты нет)
+            FsaResult clean = scene(null, true);
+            var cleanSession = new FsaAnalysisSession();
+            Plant(cleanSession, clean, "quality-second-clean");
+            using (var report = new FSAReportView(mainForm))
+            {
+                report.SetProbeSource(cleanSession, doc.ActiveResultData);
+                var marks = new List<string[]>
+                {
+                    new[] { Own("FSAReport_MatrixRow"), Own("FSAReport_MatrixUsed"), Good },
+                    new[] { Own("FSAReport_EfficiencyRow"), Own("FSAReport_EfficiencyUsed"), Good },
+                    new[] { Own("FSAReport_SummingRow"), Own("FSAReport_SummingUsed"), Good }
+                };
+                AnchorMarks(marks, clean, null, null, null);
+                Same(lang + ": без отказа второго захода строки отказа нет", string.Empty,
+                     string.Join("; ", BlockProblems(report, "1234.57", marks)));
+                var phantom = new List<string[]>(marks);
+                phantom.Insert(3, new[] { row, value, Bad });
+                Denies(lang + ": контроль — строка отказа на сцене без отказа проверку не проходит",
+                       BlockProblems(report, "1234.57", phantom).Count == 0);
+            }
+
+            // VIF выше предела И отказ: оба факта на виду, порознь — сначала VIF, затем отказ
+            FsaResult both = scene("NoFit", false);
+            var bothSession = new FsaAnalysisSession();
+            Plant(bothSession, both, "quality-second-both");
+            using (var report = new FSAReportView(mainForm))
+            {
+                report.SetProbeSource(bothSession, doc.ActiveResultData);
+                var marks = new List<string[]>
+                {
+                    new[] { Own("FSAReport_MatrixRow"), Own("FSAReport_MatrixUsed"), Good },
+                    new[] { Own("FSAReport_EfficiencyRow"), Own("FSAReport_EfficiencyUsed"), Good },
+                    new[] { Own("FSAReport_SummingRow"), Own("FSAReport_SummingUsed"), Good },
+                    new[] { Own("FSAReport_BetaKnotVifOverRow"), Own("FSAReport_BetaKnotVifOverValue"), Bad },
+                    new[] { row, value, Bad }
+                };
+                AnchorMarks(marks, both, null, null, null);
+                Same(lang + ": VIF выше предела и отказ второго захода — две красные строки", string.Empty,
+                     string.Join("; ", BlockProblems(report, "1234.57", marks)));
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER284`, решение Amber 02.11.2026, дословно по заданию: «при 1 выходит „по 1 пикам“.
+        /// Склонять по числу: 1, 21, 31… — „пику“; прочие — „пикам“. Слова Amber не менять. EN —
+        /// „peak“/„peaks“.») ВОСЬМАЯ СЦЕНА — подпись строки «Оставлена шкала файла» по числу
+        /// пиков. Ожидание — рукой, кусками текста: по-русски 1, 21, 101 — «пику», 2, 3, 11, 111 —
+        /// «пикам»; по-английски 1 — «peak», прочие — «peaks». Плюс окно со сценой отката по одному
+        /// пику: в ячейке — «по 1 пику». Положительный контроль: прежняя подпись «по 1 пикам» в
+        /// ячейке — отказ сверки.
+        /// </summary>
+        static void RollbackDeclensionSection(MainForm mainForm, DocEnergySpectrum doc, string lang, double chi2)
+        {
+            Func<int, FsaResult> scene = n => new FsaResult
+            {
+                Chi2Ndf = chi2, Chi2NdfPoisson = chi2, BackgroundUsed = true, ResponseMatrixUsed = true,
+                EfficiencyUsed = true, CascadeSummingUsed = true,
+                AnchorRolledBack = true, AnchorRollbackAnchors = n, AnchorRollbackGain = 1.0158,
+                AnchorRollbackChi2NdfPoisson = 2380.71,
+                LimitDecisionQuantile = 3.0, LimitDetectionQuantile = 1.6449
+            };
+            bool ru = lang == "ru-RU";
+            var cases = new[] { 1, 2, 3, 5, 11, 12, 21, 22, 101, 111 };
+            foreach (int n in cases)
+            {
+                bool one = ru ? (n == 1 || n == 21 || n == 101) : n == 1;
+                string want = ru
+                    ? "Оставлена шкала файла: подстройка по " + n + (one ? " пику" : " пикам") + " (+1.58 %) ухудшила подгонку: χ²/ndf 2380.71 против 1234.57"
+                    : "File scale kept: adjusting it on " + n + (one ? " peak" : " peaks") + " (+1.58 %) made the fit worse: χ²/ndf 2380.71 against 1234.57";
+                Same(lang + ": откат по " + n + " — «" + (ru ? (one ? "пику" : "пикам") : (one ? "peak" : "peaks")) + "»",
+                     want, FSAReportView.AnchorRollbackCaption(scene(n)));
+            }
+
+            FsaResult single = scene(1);
+            var session = new FsaAnalysisSession();
+            Plant(session, single, "quality-rollback-one");
+            using (var report = new FSAReportView(mainForm))
+            {
+                report.SetProbeSource(session, doc.ActiveResultData);
+                string caption = ru
+                    ? "Оставлена шкала файла: подстройка по 1 пику (+1.58 %) ухудшила подгонку: χ²/ndf 2380.71 против 1234.57"
+                    : "File scale kept: adjusting it on 1 peak (+1.58 %) made the fit worse: χ²/ndf 2380.71 against 1234.57";
+                var marks = new List<string[]>
+                {
+                    new[] { Own("FSAReport_LimitRuleRow"),
+                            string.Format(CultureInfo.InvariantCulture, Own("FSAReport_LimitRuleValue"), "3"), Plain },
+                    new[] { Own("FSAReport_MatrixRow"), Own("FSAReport_MatrixUsed"), Good },
+                    new[] { Own("FSAReport_EfficiencyRow"), Own("FSAReport_EfficiencyUsed"), Good },
+                    new[] { Own("FSAReport_SummingRow"), Own("FSAReport_SummingUsed"), Good },
+                    new[] { Own("FSAReport_AnchorRow"), Own("FSAReport_AnchorRolledBack"), Plain },
+                    new[] { caption, Own("FSAReport_AnchorRollbackValue"), Bad }
+                };
+                ShowBlock(report, lang);
+                Same(lang + ": откат по одному пику — в окне «" + (ru ? "по 1 пику" : "on 1 peak") + "»", string.Empty,
+                     string.Join("; ", BlockProblems(report, "1234.57", marks)));
+
+                // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: прежняя подпись «по 1 пикам» / «on 1 peaks» — отказ
+                var old = new List<string[]>(marks);
+                old[5] = new[] { ru ? caption.Replace("по 1 пику", "по 1 пикам") : caption.Replace("on 1 peak", "on 1 peaks"),
+                                 Own("FSAReport_AnchorRollbackValue"), Bad };
+                Denies(lang + ": контроль — прежняя подпись «" + (ru ? "по 1 пикам" : "on 1 peaks") + "» проверку не проходит",
+                       BlockProblems(report, "1234.57", old).Count == 0);
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER284`, полоса a284b, находка экранной приёмки 02.11.2026) ДЕСЯТАЯ СЦЕНА — ПОСЛЕДНЯЯ
+        /// СТРОКА ОКНА ДОСТУПНА ПРОКРУТКЕ. Замер экраном: диск Th-232 без матрицы, окно гида —
+        /// колесо на 10 щелчков сдвигало таблицу на одну строку, и низ строки «… рядом в библиотеке:
+        /// Pb-214 …» оставался обрезан: предел прокрутки XPTable считался по числу строк, влезающих
+        /// от ВЕРХНЕЙ строки, а внизу у окна высокие строки блока качества. Сцена — разбор без
+        /// матрицы с откатом шкалы, отказом второго захода и пиком вне состава (внизу три высокие
+        /// строки) в окне 320×700 (поле данных таблицы — около двухсот точек). Ожидание: на упоре прокрутки строки от верхней видимой до
+        /// последней целиком умещаются в поле данных. ⛔ Положительный контроль: прежний предел (по
+        /// строкам от верха) на этой же сцене последнюю строку не умещает — иначе сцена не ловит
+        /// дефект и проверка пуста.
+        /// </summary>
+        static void ScrollReachSection(MainForm mainForm, DocEnergySpectrum doc, string lang, double chi2)
+        {
+            var scene = new FsaResult
+            {
+                Chi2Ndf = chi2, Chi2NdfPoisson = chi2, BackgroundUsed = true, ResponseMatrixUsed = false,
+                EfficiencyUsed = true, CascadeSummingUsed = false,
+                AnchorRolledBack = true, AnchorRollbackAnchors = 4, AnchorRollbackGain = 0.9996,
+                AnchorRollbackChi2NdfPoisson = 2.81,
+                BetaKnotFwhm = 16.0, BetaKnotVif = 5.57, BetaKnotVifMax = 10.0, BetaKnotVifMet = true,
+                BetaTwoPass = false, BetaGammaPassRefusal = "NoFit"
+            };
+            var uncovered = new FsaUncoveredPeak { EnergyKev = 353.5, WidthKev = 30.0, ExcessCounts = 12345.0, ExcessShare = 0.18, Z = 42.2 };
+            uncovered.Candidates.Add(new FsaUncoveredCandidate { Nuclide = "Pb-214", EnergyKev = 351.93 });
+            scene.UncoveredPeaks.Add(uncovered);
+            var session = new FsaAnalysisSession();
+            Plant(session, scene, "scroll-reach");
+            using (var report = new FSAReportView(mainForm))
+            {
+                report.SetProbeSource(session, doc.ActiveResultData);
+                using (Form host = Host(report, 320, 700))
+                {
+                    report.RefreshReport();
+                    Application.DoEvents();
+                    XPTable.Models.Table table = report.ReportTable;
+                    var rows = table.TableModel.Rows;
+                    int height = table.CellDataRect.Height;
+                    int total = 0;
+                    for (int i = 0; i < rows.Count; i++) total += rows[i].Height;
+                    Console.WriteLine("    окно 320×700: поле данных таблицы {0} px, строк {1} общей высотой {2} px", height, rows.Count, total);
+                    Same(lang + ": окно 320×700 — поле данных есть, строки в него не влезают, полоса есть", true,
+                         height > 0 && total > height && table.VScroll);
+
+                    VScrollBar bar = table.VerticalScrollBar;
+                    int maxValue = bar.Maximum - bar.LargeChange + 1;
+                    bar.Value = Math.Max(bar.Minimum, maxValue);
+                    Application.DoEvents();
+                    int top = table.TopIndex;
+                    int tail = 0;
+                    for (int i = top; i < rows.Count; i++) tail += rows[i].Height;
+                    Console.WriteLine("    поле данных {0} px; строк {1}; на упоре верхняя {2}, высота строк от неё до конца {3} px; последняя строка {4} px",
+                                      height, rows.Count, top, tail, rows[rows.Count - 1].Height);
+                    Same(lang + ": на упоре прокрутки последняя строка видна целиком", true, tail <= height);
+
+                    // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: прежний предел — по строкам, влезающим от ВЕРХА таблицы
+                    int fromTop = 0, sum = 0;
+                    for (int i = 0; i < rows.Count; i++)
+                    {
+                        sum += rows[i].Height;
+                        if (sum < height) fromTop++; else break;
+                    }
+
+                    int oldTop = rows.Count - fromTop;
+                    int oldTail = 0;
+                    for (int i = Math.Max(0, oldTop); i < rows.Count; i++) oldTail += rows[i].Height;
+                    Console.WriteLine("    прежний предел: верхняя {0}, высота от неё {1} px", oldTop, oldTail);
+                    Denies(lang + ": контроль — прежний предел (строки от верха) умещает последнюю строку",
+                           oldTail <= height);
+                }
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER284`, решение Amber 02.11.2026 вопросником, дословно: «"не найдено" / "искал эту
+        /// составляющую" (Рекомендую)») ДЕВЯТАЯ СЦЕНА — строка образа «Обратное рассеяние»,
+        /// предъявленного фиту и не выделившегося: значение «не найдено», подсказка «Разбор искал
+        /// эту составляющую…». Строка с этим значением бывает только у образа, а не у нуклида,
+        /// поэтому прежнее «не найден» / «искал этот нуклид» на экране читалось неверно. Ожидание
+        /// — рукой, полным текстом обоих языков; строка ищется в ТАБЛИЦЕ окна. Положительный
+        /// контроль: прежние тексты полосы `a284` с ячейками не совпадают.
+        /// </summary>
+        static void NotResolvedSection(MainForm mainForm, DocEnergySpectrum doc, string lang, double chi2)
+        {
+            bool ru = lang == "ru-RU";
+            string value = ru ? "не найдено" : "not found";
+            string hint = ru
+                ? "Разбор искал эту составляющую и не нашёл: её область целиком объясняет подложка. Чтобы оценить предел обнаружения, нужна геометрия детектора."
+                : "The analysis looked for this component and did not find it: the baseline explains its whole region. A detector geometry is needed to estimate the detection limit.";
+            var dropped = new FsaResult
+            {
+                Chi2Ndf = chi2, Chi2NdfPoisson = chi2, BackgroundUsed = true, ResponseMatrixUsed = false, EfficiencyUsed = true
+            };
+            dropped.SuppressedImages.Add(new FsaSuppressedImage
+            {
+                Name = FsaResult.BackscatterLayerName,
+                Kind = FsaComponentKind.Nuisance,
+                Z = 0.0
+            });
+
+            var session = new FsaAnalysisSession();
+            Plant(session, dropped, "not-resolved");
+            using (var report = new FSAReportView(mainForm))
+            {
+                report.SetProbeSource(session, doc.ActiveResultData);
+                string shown = FsaPalette.DisplayName(FsaResult.BackscatterLayerName);
+                Row found = null;
+                int count = 0;
+                foreach (Row r in report.ReportTable.TableModel.Rows)
+                {
+                    if (r.Cells[0].Text == shown)
+                    {
+                        found = r;
+                        count++;
+                    }
+                }
+
+                Same(lang + ": строка «" + shown + "» в таблице окна одна", 1, count);
+                if (found == null)
+                {
+                    return;
+                }
+
+                Console.WriteLine("    «{0}» | {1} — {2}", found.Cells[0].Text, found.Cells[1].Text, found.Cells[0].ToolTipText);
+                Same(lang + ": значение — «" + value + "»", value, found.Cells[1].Text);
+                Same(lang + ": подсказка — «искал эту составляющую»", hint, found.Cells[0].ToolTipText);
+                NoOldPhrases(report, lang, "не выделившееся рассеяние");
+
+                // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: прежние тексты полосы a284 обязаны НЕ совпасть
+                string oldValue = ru ? "не найден" : "not found (nuclide)";
+                string oldHint = ru
+                    ? "Разбор искал этот нуклид и не нашёл: его область целиком объясняет подложка. Чтобы оценить предел обнаружения, нужна геометрия детектора."
+                    : "The analysis looked for this nuclide and did not find it: the baseline explains its whole region. A detector geometry is needed to estimate the detection limit.";
+                Denies(lang + ": контроль — прежняя подсказка «искал этот нуклид» с ячейкой совпала",
+                       found.Cells[0].ToolTipText == oldHint);
+                if (ru)
+                {
+                    Denies(lang + ": контроль — прежнее значение «не найден» с ячейкой совпало", found.Cells[1].Text == oldValue);
+                }
+
+                string saved = found.Cells[0].ToolTipText;
+                found.Cells[0].ToolTipText = oldHint;
+                Denies(lang + ": контроль — прежняя подсказка, подброшенная в ячейку, не поймана сканером прежних фраз",
+                       OldPhraseHits(report).Count == 0);
+                found.Cells[0].ToolTipText = saved;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER284`) ПРЕЖНИЕ ФРАЗЫ ОКНА — отличительные куски 28 фраз, заменённых решением Amber
+        /// 02.11.2026 (журнал `handover/handover-2026-11-02-amber284-texts.md`), обоих языков. Окно,
+        /// где хоть одна встретилась в подписи, значении или подсказке, — отказ: это ровно тот
+        /// случай, когда ключ переименован, а старый текст остался в коде или в одной из `resx`.
+        /// </summary>
+        static readonly string[] OldPhrases =
+        {
+            "Невязка: + лишнее", "χ²/ndf, качество подгонки", "σ×, во сколько раз", "Правило MDA",
+            "Привязка шкалы, опор", "Усиление по опорам", "Ноль по опорам", "Откат привязки шкалы",
+            "Подгонка дрейфа шкалы", "край сетки", "пик вне состава", "есть в сете, нет в составе", "не разложен",
+            "Состав пересилен", " · подавлен", "Фон не взят", "фон не взят", "Нет матрицы отклика:",
+            "исключены из образов", "Модель не описывает", "Колонка наложений", "Поставки данных распада",
+            "decay_chain", "decay_radiations", "Бета пробы (раздел", "; капсула источника", "по сплошному спектру",
+            "Подложка под строками", "два захода", "не выделено", "шумовой пол", "показ подрезан",
+            "не определяются", "Ветви β в базе", "образ беты завышен",
+            "Residual: + excess", "goodness of fit (Poisson", "σ×, uncertainty", "MDA rule", "Scale anchoring",
+            "Gain from anchors", "Zero from anchors", "Scale drift fit", "at grid edge",
+            "peak outside the composition", "in the nuclide set, not in the composition",
+            "Composition suppressed", " · suppressed", "Background rejected", "bg rejected", "No response matrix:",
+            "excluded from the images", "Model does not describe", "Pile-up column", "Decay data sources",
+            "electron section of the matrix)", "; source capsule", "by the continuum", "Continuum-only", "Continuum under the beta", "two passes",
+            "not resolved", "noise floor", "display clipped", "not determined", "branches summing above",
+            "beta image overstated",
+            // (`AMBER284`, полоса a284b, решение Amber 02.11.2026 «"не найдено" / "искал эту
+            // составляющую"») подсказка строки образа, не нуклида
+            "искал этот нуклид", "looked for this nuclide"
+        };
+
+        /// <summary>(`AMBER284`) Куски прежних фраз, найденные в окне: «строка: кусок».</summary>
+        static List<string> OldPhraseHits(FSAReportView report)
+        {
+            var hits = new List<string>();
+            TableModel model = report.ReportTable.TableModel;
+            for (int i = 0; i < model.Rows.Count; i++)
+            {
+                foreach (Cell cell in model.Rows[i].Cells)
+                {
+                    string all = (cell.Text ?? string.Empty) + "\n" + (cell.ToolTipText ?? string.Empty);
+                    foreach (string old in OldPhrases)
+                    {
+                        if (all.Contains(old))
+                        {
+                            hits.Add(i + ": «" + old + "»");
+                        }
+                    }
+                }
+            }
+
+            return hits;
+        }
+
+        /// <summary>(`AMBER284`) Проверка «прежних фраз в окне нет» с печатью находок.</summary>
+        static void NoOldPhrases(FSAReportView report, string lang, string what)
+        {
+            Same(lang + ": прежних фраз AMBER284 в окне нет (" + what + ")", string.Empty,
+                 string.Join("; ", OldPhraseHits(report)));
+        }
+
+        // ------------------------------------------------------------------
+        // 6в. ПРИЧИНА ПОМЕТКИ КРИВОЙ (`AMBER269`, дефект 5)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`AMBER269` дефект 5, 02.11.2026) Пометка «кривая посчитана для другой
+        /// геометрии» в блоке качества называет ПРИЧИНУ так же, как вкладка прибора
+        /// (`DeviceConfigForm.GeometryNotes`): кривая точечной сцены, посчитанная до сдвига
+        /// точки в капсуле, — «до сдвига точки … мм», а не «геометрию правили после
+        /// расчёта». Три сцены на копии спектра (документ не трогается): отпечаток без
+        /// строки сдвига — причина сдвиг; та же кривая при правке расстояния — прежняя
+        /// подпись; свежий отпечаток — пометки нет (контроль). Ожидание — рукой: формат
+        /// из ресурса формы прибора и сдвиг точки, а не вызовом окна.
+        /// </summary>
+        static void CurveCauseSection(MainForm mainForm, DocEnergySpectrum doc)
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== 6в. пометка кривой «для другой геометрии»: причина — как на вкладке прибора (AMBER269) ===");
+            GeometryModel point = new GeometryModel();
+            GeometryPresets.Items[0].Apply(point);
+            point.SourceType = GeometrySourceType.Point;
+            string now = ResponseMatrix.GeometryFingerprint(point);
+            string before = ResponseMatrix.GeometryFingerprintBeforeSourceOffset(point);
+            GeometryModel edited = point.Clone();
+            edited.PointDistance = edited.PointDistance + 10.0;
+            // ⛔ Откат Ф6 (`critpt30`, 02.11.2026): сдвига точки нет — отпечатка «до сдвига» нет,
+            // пометка «до сдвига точки» не рождается; правка расстояния — прежняя подпись.
+            Same("сцена: у точечной заготовки сдвига точки нет (откат Ф6)", "0.0",
+                 point.SourceCapsuleOffset.ToString("0.0##", CultureInfo.InvariantCulture));
+            Same("сцена: отпечатка «до сдвига» нет (откат Ф6)", string.Empty, before);
+
+            foreach (string lang in new[] { "ru-RU", "en-US" })
+            {
+                Language(lang);
+                string format = new ComponentResourceManager(typeof(DeviceConfigForm)).GetString("EfficiencyCurveBeforeSourceOffset") ?? "";
+                string offsetNote = string.Format(CultureInfo.InvariantCulture, format, "1.5");
+                string otherGeometry = BecquerelMonitor.Properties.Resources.EfficiencyCurveOtherGeometry;
+                string value = BecquerelMonitor.Properties.Resources.FSAReportCurveOtherGeometryValue;
+                Same(lang + ": подпись «до сдвига» из ресурса формы прибора прочитана и отлична от прежней", true,
+                     format.Length > 0 && offsetNote != otherGeometry);
+                // (`AMBER269`, полоса a269fix5, критик кода физики 29, Н8) причина — прежняя
+                // версия программы, а не дата: признак судит по отпечатку, не по дню счёта.
+                Same(lang + ": подпись «до сдвига» называет прежнюю версию программы, а не дату", true,
+                     format.IndexOf("30.10", StringComparison.Ordinal) < 0
+                     && format.IndexOf(lang == "ru-RU" ? "прежней версией" : "earlier version", StringComparison.Ordinal) >= 0);
+
+                var scenes = new[]
+                {
+                    new { What = "правка расстояния после счёта", Geometry = edited, Print = now, Want = otherGeometry },
+                    new { What = "свежий отпечаток (контроль)", Geometry = point, Print = now, Want = (string)null },
+                };
+                foreach (var scene in scenes)
+                {
+                    ResultData rd = doc.ActiveResultData.Clone();
+                    var eff = new EfficiencyConfigData();
+                    eff.Geometry = scene.Geometry;
+                    eff.Curve = new List<ROIEfficiencyData>
+                    {
+                        new ROIEfficiencyData { Energy = 100.0, Efficiency = 0.3 },
+                        new ROIEfficiencyData { Energy = 662.0, Efficiency = 0.1 },
+                    };
+                    eff.GeometryFingerprint = scene.Print;
+                    rd.Efficiency = eff;
+
+                    var session = new FsaAnalysisSession();
+                    Plant(session, new FsaResult { Chi2Ndf = 1.0, Chi2NdfPoisson = 1.0, BackgroundUsed = true, EfficiencyUsed = true },
+                          "curve-cause");
+                    using (var report = new FSAReportView(mainForm))
+                    {
+                        report.SetProbeSource(session, rd);
+                        TableModel model = report.ReportTable.TableModel;
+                        var marked = new List<string>();
+                        bool valueRight = true;
+                        for (int i = 0; i < model.Rows.Count; i++)
+                        {
+                            string caption = model.Rows[i].Cells[0].Text;
+                            if (caption == offsetNote || caption == otherGeometry)
+                            {
+                                marked.Add(caption);
+                                valueRight &= model.Rows[i].Cells[1].Text == value;
+                            }
+                        }
+                        Console.WriteLine("  {0}: {1} — пометки: {2}", lang, scene.What,
+                                          marked.Count == 0 ? "нет" : "«" + string.Join("» «", marked) + "»");
+                        Same(lang + ": " + scene.What + " — пометка кривой", scene.Want ?? "нет",
+                             marked.Count == 0 ? "нет" : string.Join(" | ", marked));
+                        if (scene.Want != null)
+                        {
+                            Same(lang + ": " + scene.What + " — слово справа прежнее", true, valueRight);
+                        }
+                    }
                 }
             }
 
@@ -1539,8 +2489,21 @@ namespace FsaReportViewProbe
                     CheckBox xray = Control<CheckBox>(report, "atomicXrayCheckBox");
                     var cfg = (FWHMPeakDetectionMethodConfig)doc.ActiveResultData.PeakDetectionMethodConfig;
                     bool was = cfg.AtomicXrayForFsa;
-                    DeviceConfigInfo device;
-                    DeviceConfigManager.GetInstance().DeviceConfigMap.TryGetValue(doc.ActiveResultData.DeviceConfigReference.Guid, out device);
+                    // (`AMBER269`, 02.11.2026) Прибор спектра — правилом открытия файла
+                    // (`DocumentManager.AttachDeviceConfig`: Guid, затем номер, затем имя), а
+                    // не одним Guid. Зовётся на ПОДСТАВНОМ спектре с той же ссылкой и тем же
+                    // спектром (номер прибора — в нём): вызов ставит найденному спектру
+                    // свежую копию настроек прибора, а у живого документа настройки свои
+                    // (флаги, переключённые разделами выше) — подменять их нельзя.
+                    var lookup = new ResultData
+                    {
+                        DeviceConfigReference = doc.ActiveResultData.DeviceConfigReference,
+                        EnergySpectrum = doc.ActiveResultData.EnergySpectrum
+                    };
+                    DocumentManager.DeviceMatch how;
+                    List<DeviceConfigInfo> candidates;
+                    DeviceConfigInfo device = DocumentManager.AttachDeviceConfig(
+                        lookup, DeviceConfigManager.GetInstance().DeviceConfigList, out how, out candidates);
                     bool? deviceWas = device != null ? ((FWHMPeakDetectionMethodConfig)device.PeakDetectionMethodConfig).AtomicXrayForFsa : (bool?)null;
                     xray.Checked = !was;
                     WaitIdle(session);
@@ -2627,6 +3590,11 @@ namespace FsaReportViewProbe
                 // усиление и ноль. Без матрицы — ни одной.
                 if (result.ResponseMatrixUsed) marks += result.ScaleAnchorsUsed > 0 ? 3 : 1;
                 if (result.CompositionSuppressed) marks++;
+                // (`AMBER269`, 02.11.2026) предупреждения по полосе — по строке на признак
+                if (result.BackgroundOversubtracted != null) marks++;
+                if (result.ImagesAboveSpectrum != null) marks++;
+                // (`AMBER269`) нижняя граница разбора — строкой блока, когда она известна
+                if (FSAReportView.FitBoundText(result) != null) marks++;
             }
 
             var kinds = new List<FsaReportRowKind>();
@@ -2891,6 +3859,514 @@ namespace FsaReportViewProbe
             }
 
             return string.Empty;
+        }
+
+        // ------------------------------------------------------------------
+        // 16. (`AMBER286`) СУММ-ПИКИ ПОИМЁННО ПОД СТРОКОЙ НУКЛИДА
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`AMBER286`) Вопрос Amber 02.11.2026 к снимку тория на AS80, дословно: «Почему
+        /// указанных пиков нет в легенде?»; решения вопросником того же дня: «Должны быть видны
+        /// в легенде Отчет FSA, где остальные сумм пики живут», «Под строкой нуклида — строки
+        /// пиков (Рекомендую)», «Только заметные: видны на графике (Рекомендую)».
+        /// </summary>
+        static void SumPeakRowsSection(MainForm mainForm, DocEnergySpectrum doc, string spectrumPath,
+                                       NuclideDefinitionManager nuclides)
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== 16. сумм-пики поимённо (AMBER286): строки под строкой нуклида, слияние в FWHM, только заметные ===");
+            SumPeakSceneSection(mainForm, doc);
+            SumPeakLiveSection(mainForm, spectrumPath, nuclides);
+        }
+
+        const int SumSceneChannels = 4096;
+        const double SumSceneFwhm = 20.0;       // каналов; шкала сцены — 1 кэВ на канал
+        const double SumSceneVariance = 100.0;  // на канал: σ окна ±FWHM (41–42 канала) ≈ 64, 3σ ≈ 192–194
+
+        static FsaSumPeakLine SumSceneLine(string nuclide, double from, double with, double third, double counts)
+        {
+            double sum = from + with + third;
+            return new FsaSumPeakLine
+            {
+                Nuclide = nuclide, FromKev = from, WithKev = with, ThirdKev = third, EnergyKev = sum,
+                Counts = counts, Channel = sum, FwhmChannels = SumSceneFwhm
+            };
+        }
+
+        static void AddGauss(double[] target, double centre, double area, double fwhm)
+        {
+            double sigma = fwhm / 2.3548;
+            for (int i = 0; i < target.Length; i++)
+            {
+                double x = (i - centre) / sigma;
+                if (Math.Abs(x) < 8.0)
+                {
+                    target[i] += area * Math.Exp(-0.5 * x * x) / (sigma * Math.Sqrt(2.0 * Math.PI));
+                }
+            }
+        }
+
+        static FsaComponentResult SumSceneMember(string name, double lineChannel, List<FsaSumPeakLine> lines)
+        {
+            var curve = new double[SumSceneChannels];
+            var sums = new double[SumSceneChannels];
+            AddGauss(curve, lineChannel, 200000.0, SumSceneFwhm);
+            foreach (FsaSumPeakLine line in lines)
+            {
+                AddGauss(sums, line.Channel, line.Counts, line.FwhmChannels);
+            }
+
+            for (int i = 0; i < curve.Length; i++) curve[i] += sums[i];
+            return new FsaComponentResult
+            {
+                Name = name, Kind = FsaComponentKind.Single, ChainRoot = "Th-232", DecayChainRoot = "Th-232",
+                Curve = curve, SumPeakCurve = sums, SumPeakLines = lines, CountRate = 10.0, Z = 50.0
+            };
+        }
+
+        /// <summary>
+        /// Сцена тория с каскадами: у Ac-228 — пара 1065 (заметна), две пары ближе FWHM (1110.6 и
+        /// 1123.0 — одна строка), слабая пара 1500 (<paramref name="weakCounts"/>) и тройка 1957.4;
+        /// у Tl-208 — пара 1094.0. <paramref name="variance"/> = false — без дисперсии фита.
+        /// </summary>
+        static FsaResult SumScene(double weakCounts, bool variance)
+        {
+            var result = new FsaResult
+            {
+                FirstChannel = 20, LastChannel = 3000, Chi2Ndf = 1.5, Chi2NdfPoisson = 1.5, BackgroundUsed = true,
+                ResponseMatrixUsed = true, EfficiencyUsed = true, CascadeSummingUsed = true,
+                Model = new double[SumSceneChannels], Continuum = new double[SumSceneChannels]
+            };
+            result.Components.Add(SumSceneMember("Ac-228", 911.2, new List<FsaSumPeakLine>
+            {
+                SumSceneLine("Ac-228", 795.0, 270.2, 0.0, 1000.0),
+                SumSceneLine("Ac-228", 772.3, 338.3, 0.0, 500.0),
+                SumSceneLine("Ac-228", 795.0, 328.0, 0.0, 400.0),
+                SumSceneLine("Ac-228", 1000.0, 500.0, 0.0, weakCounts),
+                SumSceneLine("Ac-228", 911.2, 463.0, 583.2, 300.0)
+            }));
+            result.Components.Add(SumSceneMember("Tl-208", 583.2, new List<FsaSumPeakLine>
+            {
+                SumSceneLine("Tl-208", 583.2, 510.8, 0.0, 300.0)
+            }));
+            foreach (FsaComponentResult c in result.Components)
+            {
+                for (int i = 0; i < SumSceneChannels; i++) result.Model[i] += c.Curve[i];
+            }
+
+            if (variance)
+            {
+                result.FitVariance = new double[SumSceneChannels];
+                for (int i = 0; i < SumSceneChannels; i++) result.FitVariance[i] = SumSceneVariance;
+            }
+
+            return result;
+        }
+
+        /// <summary>Строки рода SumPeakLine сразу под строкой «— сумм-пик» слоя <paramref name="layer"/>.</summary>
+        static List<FsaReportRow> LinesUnder(List<FsaReportRow> rows, string layer)
+        {
+            var found = new List<FsaReportRow>();
+            for (int i = 0; i < rows.Count; i++)
+            {
+                if (rows[i].Kind != FsaReportRowKind.SumPeaks || rows[i].Layer == null || rows[i].Layer.Name != layer)
+                {
+                    continue;
+                }
+
+                for (int j = i + 1; j < rows.Count && rows[j].Kind == FsaReportRowKind.SumPeakLine; j++)
+                {
+                    found.Add(rows[j]);
+                }
+            }
+
+            return found;
+        }
+
+        static string Names(List<FsaReportRow> rows)
+        {
+            var names = new List<string>();
+            foreach (FsaReportRow row in rows) names.Add(row.Name + " | " + row.Value);
+            return string.Join(" ; ", names.ToArray());
+        }
+
+        static void SumPeakSceneSection(MainForm mainForm, DocEnergySpectrum doc)
+        {
+            // σ окна сцены: ±FWHM вокруг центра, √(n·100). У 1500 (целый центр) n = 41: σ = 64.03, 3σ = 192.1.
+            foreach (string lang in new[] { "en-US", "ru-RU" })
+            {
+                Language(lang);
+                string kev = lang == "ru-RU" ? "кэВ" : "keV";
+                string counts = lang == "ru-RU" ? "отсч." : "counts";
+
+                // (1) слабый пик 1500 — 100 отсчётов, ниже 3σ = 192: строки нет
+                FsaResult weak = SumScene(100.0, true);
+                FsaPresentation daughters = FsaPresentationBuilder.Build(weak, FsaGrouping.Daughters, false);
+                List<FsaReportRow> ac = LinesUnder(daughters.Rows, "Ac-228");
+                List<FsaReportRow> tl = LinesUnder(daughters.Rows, "Tl-208");
+                Console.WriteLine("  {0} Ac-228: {1}", lang, Names(ac));
+                Console.WriteLine("  {0} Tl-208: {1}", lang, Names(tl));
+                Same(lang + ": под Ac-228 три строки (1065, слитые 1111+1123, тройка 1957; слабой 1500 нет)", 3, ac.Count);
+                Same(lang + ": под Tl-208 одна строка (1094)", 1, tl.Count);
+                if (ac.Count == 3)
+                {
+                    Same(lang + ": первая — «Σ 1065 " + kev + " = 795.0 + 270.2»", "Σ 1065 " + kev + " = 795.0 + 270.2", ac[0].Name);
+                    Same(lang + ": её значение — «1000 " + counts + "»", "1000 " + counts, ac[0].Value);
+                    Same(lang + ": слитая — средневзвешенная 1116, сильнейшая пара и «ещё 1»",
+                         lang == "ru-RU" ? "Σ 1116 кэВ = 772.3 + 338.3 и ещё 1" : "Σ 1116 keV = 772.3 + 338.3 and 1 more",
+                         ac[1].Name);
+                    Same(lang + ": слитая — площадь 900", "900 " + counts, ac[1].Value);
+                    Same(lang + ": в подсказке слитой — обе пары с суммами", true,
+                         ac[1].Hint != null && ac[1].Hint.Contains("772.3 + 338.3 = 1110.6")
+                         && ac[1].Hint.Contains("795.0 + 328.0 = 1123.0"));
+                    Same(lang + ": в подсказке — порог 3σ числом (194 у окна 1046–1086…)", true,
+                         ac[1].Hint != null && ac[1].Hint.Contains("3σ"));
+                    Same(lang + ": тройная — тремя слагаемыми", "Σ 1957 " + kev + " = 911.2 + 463.0 + 583.2", ac[2].Name);
+                    Same(lang + ": строки пиков — по энергии", true,
+                         ac[0].Name.Contains("1065") && ac[1].Name.Contains("1116") && ac[2].Name.Contains("1957"));
+                    Same(lang + ": строка пика — с отступом и своим слоем", true,
+                         ac[0].Indent == 1 && ac[0].Layer != null && ac[0].Layer.Name == "Ac-228"
+                         && ac[0].Swatch == FsaSwatchKind.None);
+                    Denies(lang + ": контроль — слабый пик 1500 (100 < 3σ) строку получил", Names(ac).Contains("1500"));
+                }
+
+                if (tl.Count == 1)
+                {
+                    Same(lang + ": Tl-208 — «Σ 1094 " + kev + " = 583.2 + 510.8»", "Σ 1094 " + kev + " = 583.2 + 510.8", tl[0].Name);
+                }
+
+                // Группы — тем же построителем, что таблица: σ и признак заметности.
+                List<FsaSumPeakGroup> groups = FsaPresentationBuilder.SumPeakGroups(weak, weak.Components[0].SumPeakLines);
+                FsaSumPeakGroup g1500 = null;
+                foreach (FsaSumPeakGroup g in groups) if (Math.Abs(g.EnergyKev - 1500.0) < 0.01) g1500 = g;
+                Same(lang + ": групп у Ac-228 четыре (1065, 1111+1123, 1500, 1957)", 4, groups.Count);
+                Same(lang + ": у слабой группы σ окна = √(41·100)", true,
+                     g1500 != null && Math.Abs(g1500.Sigma - Math.Sqrt(41.0 * SumSceneVariance)) < 1e-9);
+                Same(lang + ": слабая группа незаметна", false, g1500 != null && g1500.Shown);
+
+                // (2) ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: тот же пик 250 отсчётов (≥ 192) — строка есть
+                FsaResult strong = SumScene(250.0, true);
+                List<FsaReportRow> acStrong = LinesUnder(FsaPresentationBuilder.Build(strong, FsaGrouping.Daughters, false).Rows, "Ac-228");
+                Same(lang + ": контроль — тот же пик 1500 выше 3σ (250) строку получает", true,
+                     acStrong.Count == 4 && acStrong[2].Name == "Σ 1500 " + kev + " = 1000.0 + 500.0"
+                     && acStrong[2].Value == "250 " + counts);
+
+                // (3) порог — ровно 3σ: на пороге строка есть, чуть ниже — нет
+                double threshold = FsaPresentationBuilder.SumPeakMinSigmas * Math.Sqrt(41.0 * SumSceneVariance);
+                Same(lang + ": на пороге 3σ строка есть", 4,
+                     LinesUnder(FsaPresentationBuilder.Build(SumScene(threshold, true), FsaGrouping.Daughters, false).Rows, "Ac-228").Count);
+                Same(lang + ": на 0.999 порога строки нет", 3,
+                     LinesUnder(FsaPresentationBuilder.Build(SumScene(0.999 * threshold, true), FsaGrouping.Daughters, false).Rows, "Ac-228").Count);
+
+                // (4) без дисперсии фита заметность судить нечем — строк пиков нет, строка нуклида есть
+                FsaPresentation blind = FsaPresentationBuilder.Build(SumScene(250.0, false), FsaGrouping.Daughters, false);
+                int sumRows = 0, lineRows = 0;
+                foreach (FsaReportRow row in blind.Rows)
+                {
+                    if (row.Kind == FsaReportRowKind.SumPeaks) sumRows++;
+                    if (row.Kind == FsaReportRowKind.SumPeakLine) lineRows++;
+                }
+
+                Same(lang + ": без дисперсии фита — строк пиков нет", 0, lineRows);
+                Same(lang + ": без дисперсии фита — строки «— сумм-пик» на месте", 2, sumRows);
+
+                // (5) РОДИТЕЛИ: пики членов — под строкой родителя, слиты по FWHM уже вместе
+                FsaPresentation parents = FsaPresentationBuilder.Build(weak, FsaGrouping.Parents, false);
+                Same(lang + ": родители допустимы и применены", FsaGrouping.Parents, parents.Grouping);
+                List<FsaReportRow> th = LinesUnder(parents.Rows, "Th-232");
+                Console.WriteLine("  {0} Th-232 (родители): {1}", lang, Names(th));
+                Same(lang + ": под Th-232 три строки (1065; 1094+1111+1123 слиты; 1957)", 3, th.Count);
+                if (th.Count == 3)
+                {
+                    Same(lang + ": слитая у родителя — средневзвешенная 1111 и «ещё 2»",
+                         lang == "ru-RU" ? "Σ 1111 кэВ = 772.3 + 338.3 и ещё 2" : "Σ 1111 keV = 772.3 + 338.3 and 2 more",
+                         th[1].Name);
+                    Same(lang + ": слитая у родителя — площадь 1200", "1200 " + counts, th[1].Value);
+                    Same(lang + ": в подсказке родителя — пара Tl-208 с именем нуклида", true,
+                         th[1].Hint != null && th[1].Hint.Contains("Tl-208: 583.2 + 510.8 = 1094.0"));
+                    Same(lang + ": строка пика родителя — слой родителя", "Th-232", th[1].Layer != null ? th[1].Layer.Name : null);
+                }
+
+                int memberLines = LinesUnder(parents.Rows, "Ac-228").Count + LinesUnder(parents.Rows, "Tl-208").Count;
+                Same(lang + ": у родителей под членами строк пиков нет (членов в стеке нет)", 0, memberLines);
+
+                // (6) ОКНО: строки в таблице — те же, с отступом и подсказкой
+                var session = new FsaAnalysisSession();
+                Plant(session, weak, "amber286-" + lang);
+                using (var report = new FSAReportView(mainForm))
+                {
+                    report.SetProbeSource(session, doc.ActiveResultData);
+                    var lines = new List<Row>();
+                    foreach (Row row in report.ReportTable.TableModel.Rows)
+                    {
+                        var model = row.Tag as FsaReportRow;
+                        if (model != null && model.Kind == FsaReportRowKind.SumPeakLine) lines.Add(row);
+                    }
+
+                    Same(lang + ": окно — строк пиков 4 (Ac-228 три, Tl-208 одна)", 4, lines.Count);
+                    bool cells = lines.Count > 0;
+                    int indent = -1;
+                    foreach (Row row in lines)
+                    {
+                        var model = (FsaReportRow)row.Tag;
+                        cells &= row.Cells[0].Text == model.Name && row.Cells[1].Text == model.Value
+                                 && row.Cells[0].ToolTipText == model.Hint;
+                        indent = row.Cells[0].Padding.Left;
+                    }
+
+                    Same(lang + ": окно — подпись, значение и подсказка ячеек = модели", true, cells);
+                    Same(lang + ": окно — отступ подписи строки пика 36 пикселей (образец + шаг)", 36, indent);
+                    Denies(lang + ": контроль — ключ ресурса вместо перевода в строке пика",
+                           lines.Count > 0 && (lines[0].Cells[0].Text.Contains("FSASumPeak") || lines[0].Cells[1].Text.Contains("FSASumPeak")));
+                }
+            }
+
+            Language("en-US");
+        }
+
+        /// <summary>
+        /// Живой разбор `--spectrum` с матрицей кривой из `--store=` в памяти: строки пиков у
+        /// каждого слоя с сумм-пиками — ровно заметные группы того же построителя, в обоих
+        /// режимах группировки; отсчёты пиков сходятся с нарисованным подслоем сумм.
+        /// </summary>
+        static void SumPeakLiveSection(MainForm mainForm, string spectrumPath, NuclideDefinitionManager nuclides)
+        {
+            if (string.IsNullOrEmpty(storeDir))
+            {
+                Console.WriteLine("  (живой торий с матрицей НЕ мерится: склад не дан ключом --store=; сцена выше мерится всегда)");
+                return;
+            }
+
+            Language("en-US");
+            DocEnergySpectrum doc = Open(spectrumPath, nuclides);
+            if (doc == null)
+            {
+                Same("живой торий: спектр открылся", true, false);
+                return;
+            }
+
+            try
+            {
+                ResultData rd = doc.ActiveResultData;
+                string source = AttachMatrix(rd.Efficiency);
+                Console.WriteLine("  матрица живого тория: {0}", source ?? "НЕТ");
+                Same("живой торий: матрица кривой нашлась в --store", true, source != null);
+                if (source == null)
+                {
+                    return;
+                }
+
+                rd.Efficiency.UseResponseMatrix = true;
+                SetSource(doc, true);
+                doc.FsaSession.Reset();
+                doc.EnergySpectrumView.BackgroundMode = BackgroundMode.ShowFSA;
+                using (var report = new FSAReportView(mainForm))
+                {
+                    report.ProbeConsumer = true;
+                    report.SetDocument(doc);
+                    var watch = System.Diagnostics.Stopwatch.StartNew();
+                    for (int i = 0; i < 12000 && doc.FsaSession.IsRunning; i++)
+                    {
+                        Thread.Sleep(50);
+                        Application.DoEvents();
+                    }
+
+                    Application.DoEvents();
+                    report.RefreshReport();
+                    FsaResult result = doc.FsaSession.Result;
+                    Console.WriteLine("  разбор живого тория: {0:F1} с, состояние «{1}»", watch.Elapsed.TotalSeconds,
+                                      doc.FsaSession.Status ?? "");
+                    Same("живой торий: разбор есть, сеанс в покое", true, result != null && !doc.FsaSession.IsRunning);
+                    if (result == null)
+                    {
+                        return;
+                    }
+
+                    Same("живой торий: матрица в разборе", true, result.ResponseMatrixUsed);
+                    Same("живой торий: каскадное суммирование сработало", true, result.CascadeSummingUsed);
+                    Same("живой торий: дисперсия фита в результате, длиной в модель", true,
+                         result.FitVariance != null && result.Model != null && result.FitVariance.Length == result.Model.Length);
+
+                    // Компоненты: пики поимённо есть ровно у тех, у кого есть подслой сумм; их
+                    // отсчёты — та же величина, что нарисована подслоем (сумма по полосе).
+                    int withLines = 0;
+                    bool pairing = true;
+                    foreach (FsaComponentResult c in result.Components)
+                    {
+                        pairing &= (c.SumPeakCurve != null) == (c.SumPeakLines != null && c.SumPeakLines.Count > 0);
+                        if (c.SumPeakLines == null) continue;
+                        withLines++;
+
+                        // Подслой нарисован в полосе фита; пик у её края лежит в ней долей. Доля —
+                        // гауссом с FWHM пика (форма матрицы близка к нему). Мерено 03.11.2026 на
+                        // медальоне: у Tl-208 пять пиков из 22 стоят центром выше верхнего края
+                        // полосы (суммы с 2614.5), и без поправки отношение 0.958, с ней 1.0022;
+                        // у Ac-228, Pb-212, Bi-212 таких нет — 1.0000, 1.0000, 0.9998.
+                        double lines = 0.0, inBand = 0.0, drawn = 0.0;
+                        int outside = 0;
+                        foreach (FsaSumPeakLine line in c.SumPeakLines)
+                        {
+                            double sigma = line.FwhmChannels / 2.3548;
+                            double share = Phi((result.LastChannel + 0.5 - line.Channel) / sigma)
+                                           - Phi((result.FirstChannel - 0.5 - line.Channel) / sigma);
+                            lines += line.Counts;
+                            inBand += line.Counts * share;
+                            if (line.Channel < result.FirstChannel || line.Channel > result.LastChannel) outside++;
+                        }
+
+                        for (int i = result.FirstChannel; i <= result.LastChannel && i < c.SumPeakCurve.Length; i++) drawn += c.SumPeakCurve[i];
+                        Console.WriteLine("SUMLINES\t{0}\tпиков {1} (центром вне полосы {2})\tΣ по пикам {3:F1}\tв полосе {4:F1}\tподслой {5:F1}\tотношение {6:F4}\tчлен ряда {7}",
+                                          c.Name, c.SumPeakLines.Count, outside, lines, inBand, drawn,
+                                          drawn > 0.0 ? inBand / drawn : double.NaN, c.ChainRoot ?? "—");
+                        Same("живой торий: " + c.Name + " — отсчёты пиков в полосе сходятся с подслоем сумм (±1 %)", true,
+                             drawn > 0.0 && Math.Abs(inBand / drawn - 1.0) <= 0.01);
+                        Denies("живой торий: " + c.Name + " — контроль: отсчёты пиков ×1.02 сверку проходят",
+                               drawn > 0.0 && Math.Abs(1.02 * inBand / drawn - 1.0) <= 0.01);
+                    }
+
+                    Same("живой торий: пики поимённо есть ровно у компонентов с подслоем сумм", true, pairing);
+                    Same("живой торий: компонентов с сумм-пиками поимённо хотя бы один", true, withLines > 0);
+
+                    // Строки: у каждого слоя — ровно заметные группы того же построителя, по энергии.
+                    int shownTotal = 0;
+                    foreach (FsaGrouping grouping in new[] { FsaGrouping.Daughters, FsaGrouping.Parents })
+                    {
+                        FsaPresentation presentation = FsaPresentationBuilder.Build(result, grouping, false);
+                        foreach (FsaStackLayer layer in presentation.Layers)
+                        {
+                            if (layer.SumPeakCurve == null) continue;
+                            int shown = 0;
+                            var hidden = new List<string>();
+                            foreach (FsaSumPeakGroup g in FsaPresentationBuilder.SumPeakGroups(result, layer.SumPeakLines))
+                            {
+                                if (g.Shown) shown++;
+                                else hidden.Add(string.Format(CultureInfo.InvariantCulture, "{0:F0}({1:F0}<{2:F0})",
+                                                              g.EnergyKev, g.Counts, FsaPresentationBuilder.SumPeakMinSigmas * g.Sigma));
+                            }
+
+                            List<FsaReportRow> under = LinesUnder(presentation.Rows, layer.Name);
+                            Console.WriteLine("  {0} {1}: строк пиков {2}: {3}", grouping, layer.Name, under.Count, Names(under));
+                            Console.WriteLine("  {0} {1}: незаметные группы ({2}): {3}", grouping, layer.Name, hidden.Count,
+                                              string.Join(" ", hidden.ToArray()));
+                            foreach (FsaReportRow row in under)
+                            {
+                                Console.WriteLine("    подсказка «{0}»: {1}", row.Name,
+                                                  (row.Hint ?? string.Empty).Replace(Environment.NewLine, " / "));
+                            }
+                            Same("живой торий, " + grouping + ": " + layer.Name + " — строк пиков столько, сколько заметных групп", shown, under.Count);
+                            bool ascending = true;
+                            for (int i = 1; i < under.Count; i++)
+                            {
+                                ascending &= SumRowKev(under[i - 1]) <= SumRowKev(under[i]);
+                            }
+
+                            Same("живой торий, " + grouping + ": " + layer.Name + " — строки по энергии", true, ascending);
+                            if (grouping == FsaGrouping.Daughters) shownTotal += under.Count;
+                        }
+                    }
+
+                    Same("живой торий: строк пиков в легенде хотя бы одна (торий с каскадами)", true, shownTotal > 0);
+
+                    // В окне — то же, что в модели.
+                    int tableLines = 0, modelLines = 0;
+                    foreach (Row row in report.ReportTable.TableModel.Rows)
+                    {
+                        var model = row.Tag as FsaReportRow;
+                        if (model != null && model.Kind == FsaReportRowKind.SumPeakLine) tableLines++;
+                    }
+
+                    foreach (FsaReportRow row in report.BuildRows())
+                    {
+                        if (row.Kind == FsaReportRowKind.SumPeakLine) modelLines++;
+                    }
+
+                    Same("живой торий: строк пиков в окне столько же, сколько в модели", modelLines, tableLines);
+                    report.SetDocument(null);
+                }
+            }
+            finally
+            {
+                doc.Dispose();
+            }
+        }
+
+        /// <summary>Функция нормального распределения (erf по Абрамовицу — Стигану 7.1.26, ошибка 1.5e-7).</summary>
+        static double Phi(double x)
+        {
+            double z = Math.Abs(x) / Math.Sqrt(2.0);
+            double t = 1.0 / (1.0 + 0.3275911 * z);
+            double erf = 1.0 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592)
+                               * t * Math.Exp(-z * z);
+            return x >= 0.0 ? 0.5 * (1.0 + erf) : 0.5 * (1.0 - erf);
+        }
+
+        /// <summary>Энергия строки пика из её подписи («Σ 1065 keV = …» → 1065).</summary>
+        static double SumRowKev(FsaReportRow row)
+        {
+            string name = row.Name ?? string.Empty;
+            int start = name.IndexOf(' ') + 1;
+            int end = start > 0 ? name.IndexOf(' ', start) : -1;
+            double kev;
+            return end > start && double.TryParse(name.Substring(start, end - start), NumberStyles.Float,
+                                                  CultureInfo.InvariantCulture, out kev) ? kev : double.NaN;
+        }
+
+        /// <summary>Мелкая копия строки состава (все свойства с чтением и записью) — чтобы не трогать живой результат.</summary>
+        static FsaComponentResult ShallowCopy(FsaComponentResult source)
+        {
+            var copy = new FsaComponentResult();
+            foreach (PropertyInfo p in typeof(FsaComponentResult).GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            {
+                if (p.CanRead && p.CanWrite && p.GetIndexParameters().Length == 0)
+                {
+                    p.SetValue(copy, p.GetValue(source, null), null);
+                }
+            }
+
+            return copy;
+        }
+
+        /// <summary>
+        /// Матрица кривой из `--store=` — в память блоком «матрица из файла спектра» (`AMBER202`),
+        /// тем же путём, что у `FsaInputCheckProbeP195`. null — годной нет (причина напечатана).
+        /// </summary>
+        static string AttachMatrix(EfficiencyConfigData efficiency)
+        {
+            if (efficiency == null || string.IsNullOrEmpty(efficiency.Guid))
+            {
+                Console.WriteLine("  у спектра нет кривой — матрицу класть некуда");
+                return null;
+            }
+
+            string file = Path.Combine(storeDir, efficiency.Guid + ".rmx");
+            if (!File.Exists(file))
+            {
+                Console.WriteLine("  в --store нет матрицы кривой: {0}", file);
+                return null;
+            }
+
+            ResponseMatrix matrix = ResponseMatrix.Load(file);
+            if (matrix == null || !matrix.IsValidFor(efficiency.Geometry))
+            {
+                Console.WriteLine("  матрица {0} {1}", file, matrix == null ? "не читается этой сборкой" : "негодна для геометрии кривой");
+                return null;
+            }
+
+            efficiency.EmbeddedMatrix = EmbeddedResponseMatrix.FromFile(efficiency.Guid, file, matrix);
+            MatrixRefusal refusal;
+            int format;
+            ResponseMatrixSource source;
+            string spectrumRefusal;
+            ResponseMatrix carried = ResponseMatrixStore.Resolve(efficiency, out refusal, out format, out source,
+                                                                 out spectrumRefusal);
+            if (carried == null || source != ResponseMatrixSource.Spectrum)
+            {
+                Console.WriteLine("  матрица из --store положена в кривую, но разбор её не берёт ({0}; {1})", source, spectrumRefusal);
+                return null;
+            }
+
+            return file + " → в память (AMBER202), клеймо " + matrix.Stamp;
         }
 
         static void Same(string what, object expected, object got)

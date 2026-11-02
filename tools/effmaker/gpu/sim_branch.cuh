@@ -933,6 +933,373 @@ RM_DEVF bool Sim::AnalogStep(AnalogWalk& w)
 }
 
 // =====================================================================================
+// (`AMBER274`, Э1 + физика 28) Раздел электрона пробы — первичный электрон/позитрон из
+// точки пробы (EfficiencySimulator.cs: ElectronSourceResponse / ElectronSourceHistory /
+// ElectronHistoryFrom / CapsuleExit / PositronSourceDeposit / FlushEscapesToQueue).
+// Решение Amber 29.10.2026 вопросником, дословно: «Портировать на GPU». Очередь квантов
+// после электрона ведёт тот же обход, что у кванта узла (`AnalogStep`), — второго
+// проводника нет (`S37`).
+// =====================================================================================
+
+// = EfficiencySimulator.cs ElectronHistoryFrom (обход очереди — `AnalogStep`, как цикл
+// `AnalogTransportFrom` с уже набранным заносом).
+RM_DEVF real Sim::ElectronHistoryFrom(real te, bool positron, real x, real y, real z,
+                                      real ux, real uy, real uz, EsrcStats& st)
+{
+    ForgetRay();
+    real limit = PathLimit(x, y, z);
+    lossAnnihilation = (real)0.0;
+    annihilationEscapes = 0;
+    lossXray = (real)0.0;
+    lossXrayK = (real)0.0;
+    lossXrayL = (real)0.0;
+    lightDeposit = (real)0.0;
+    // не перенесено: ResetTrace() — трассировка каналов.
+    fromOutsideAnnihilation = false;
+    pendCount = 0;
+
+    real t = CapsuleExit(te, uz);
+    if (!(t > (real)0.0))
+    {
+        st.stoppedInCapsule++;
+    }
+
+    int here = At(x, y, z);
+    int material = here >= 0 ? D.regions[here].Material : -1;
+    // (`AMBER274`, Р7) «Вошло» — только первичная частица: разность счётчика до обхода очереди.
+    long long carriesBefore = CountLayerCarries;
+    real deposited = positron
+        ? PositronSourceDeposit(x, y, z, t, ux, uy, uz, material, st)
+        : t > (real)0.0
+            ? CarriedElectronDeposit(x, y, z, ElectronBirth::Given, t, ux, uy, uz, material, pushAnalog)
+            : (real)0.0;
+    if (CountLayerCarries > carriesBefore)
+    {
+        st.entered++;
+    }
+
+    if (pendCount > 0)
+    {
+        st.queuedPhotons += pendCount;
+        int k = --pendCount;
+        fromOutsideAnnihilation = pendFromOutsideAnnihilation[k];
+        AnalogWalk w;
+        w.x = pendX[k]; w.y = pendY[k]; w.z = pendZ[k];
+        w.ux = pendUx[k]; w.uy = pendUy[k]; w.uz = pendUz[k];
+        w.e = pendE[k];
+        w.deposited = deposited;
+        w.depositedOutside = (real)0.0;
+        w.travelled = (real)0.0;
+        w.limit = limit;
+        w.guard = 0;
+        w.comptonOutside = false;
+        while (!AnalogStep(w))
+        {
+        }
+
+        deposited = w.deposited;
+    }
+
+    return deposited;
+}
+
+// = EfficiencySimulator.cs CapsuleExit. Капсула и воздух — поля сцены (`SceneG.capsule*`,
+// упаковщик `GpuPackScene.cs`); геометрия — уже в сантиметрах (`Д1`).
+RM_DEVF real Sim::CapsuleExit(real te, real uz)
+{
+    const SceneG& sc = *D.scene;
+    if (!sc.capsulePoint || !(te > (real)0.0))
+    {
+        return te;
+    }
+
+    real cos = M_Abs(uz);
+    real sin = M_Sqrt(M_Max((real)0.0, (real)1.0 - cos * cos));
+    real t = te;
+    real half = sc.capsuleRingHalf, rIn = sc.capsuleRingRIn, rOut = sc.capsuleRingROut;
+    if (half > (real)0.0 && rIn > (real)0.0 && rOut > rIn && cos * rIn < half * sin && sc.capsuleRingMedium >= 0)
+    {
+        real wallCm = (rOut - rIn) / M_Max(sin, (real)1e-6);
+        const ElectronMaterialG& al = D.electronMats[sc.capsuleRingMedium];
+        real left = ResidualAfter(al, t, RangeOf(al, t), wallCm * sc.capsuleRingDensity);
+        t = left > (real)0.0 ? EnergyOfRange(al, left) : (real)0.0;
+    }
+    else if (sc.capsuleThickness > (real)0.0 && sc.capsuleFilmMedium >= 0 && sc.capsuleFilmDensity > (real)0.0)
+    {
+        real pathCm = sc.capsuleThickness / M_Max(cos, (real)0.05);
+        const ElectronMaterialG& medium = D.electronMats[sc.capsuleFilmMedium];
+        real residual = ResidualAfter(medium, t, RangeOf(medium, t), pathCm * sc.capsuleFilmDensity);
+        t = residual > (real)0.0 ? EnergyOfRange(medium, residual) : (real)0.0;
+    }
+
+    if (t > (real)0.0 && uz > (real)0.0 && sc.pointAirCm > (real)0.0 && sc.capsuleAir)
+    {
+        real airCm = sc.pointAirCm / M_Max(uz, (real)0.05);
+        const ElectronMaterialG& water = D.electronMats[sc.waterTable];
+        real residual = ResidualAfter(water, t, RangeOf(water, t), airCm * AirDensity);
+        t = residual > (real)0.0 ? EnergyOfRange(water, residual) : (real)0.0;
+    }
+
+    return t;
+}
+
+// = EfficiencySimulator.cs PositronSourceDeposit
+RM_DEVF real Sim::PositronSourceDeposit(real x, real y, real z, real t, real ux, real uy, real uz,
+                                        int material, EsrcStats& st)
+{
+    real px = x, py = y, pz = z;
+    real deposited = (real)0.0;
+    bool inCrystal = false;
+    if (t > (real)0.0)
+    {
+        real xIn, yIn, zIn, uxIn, uyIn, uzIn, tIn;
+        bool entered = CarriedElectronEnters(x, y, z, ElectronBirth::Given, t, ux, uy, uz, material,
+                                             pushAnalog, xIn, yIn, zIn, uxIn, uyIn, uzIn, tIn, true);
+        px = xIn;
+        py = yIn;
+        pz = zIn;
+        if (entered)
+        {
+            inCrystal = true;
+            // (`AMBER274`, Р11) Вошёл не выше порога переноса — оседает на месте входа.
+            if (!(tIn > TransportCutKev))
+            {
+                if (tIn > (real)0.0)
+                {
+                    AddLight(tIn, tIn);
+                    deposited = tIn;
+                }
+            }
+            else
+            {
+                escapeCount = 0;
+                escapeLost = 0;
+                escapeCollect = true;
+                carriedInCrystal = true;
+                real lost = ElectronLoss(xIn, yIn, zIn, tIn, 0, ElectronBirth::Given, uxIn, uyIn, uzIn, true);
+                carriedInCrystal = false;
+                escapeCollect = false;
+                FlushEscapesToQueue();
+                deposited = M_Max((real)0.0, tIn - lost);
+                if (C.PositronOffset)
+                {
+                    PositronStop(tIn, px, py, pz);
+                }
+            }
+        }
+        else if (layersLeftScene)
+        {
+            return (real)0.0;       // ушёл из сцены (исход переноса в слоях) — аннигилирует вне её
+        }
+    }
+
+    st.annihilations++;
+    real ax, ay, az;
+    Isotropic(ax, ay, az);
+    if (!inCrystal)
+    {
+        PushPending(px, py, pz, ax, ay, az, (real)ElectronMassKev);
+        PushPending(px, py, pz, -ax, -ay, -az, (real)ElectronMassKev);
+        return deposited;
+    }
+
+    for (int q = 0; q < 2; q++)
+    {
+        real sign = q == 0 ? (real)1.0 : (real)-1.0;
+        escapeCount = 0;
+        escapeLost = 0;
+        escapeCollect = true;
+        real escaped = InCrystal(px, py, pz, sign * ax, sign * ay, sign * az, (real)ElectronMassKev, 0);
+        escapeCollect = false;
+        FlushEscapesToQueue();
+        if ((real)ElectronMassKev - escaped > (real)0.0)
+        {
+            deposited += (real)ElectronMassKev - escaped;
+        }
+    }
+
+    return deposited;
+}
+
+// = EfficiencySimulator.cs FlushEscapesToQueue
+RM_DEVF void Sim::FlushEscapesToQueue()
+{
+    for (int k = 0; k < escapeCount; k++)
+    {
+        PushPending(escX[k], escY[k], escZ[k], escUx[k], escUy[k], escUz[k], escE[k]);
+    }
+
+    CountEscapeDropped += escapeLost;
+}
+
+// =====================================================================================
+// (`AMBER274` Ф8, полоса `f8cyl` 02.11.2026) ШОВ СОБЫТИЯ ЦЕЛИКОМ — строка ветви: бета ветви и
+// кванты каскада её уровня одной историей (= EfficiencySimulator.cs BranchEventFrom). Решение
+// Amber 30.10.2026 вопросником, дословно: «В Э1 событием целиком (Рекомендую)». Порядок
+// розыгрышей — ровно C#; обход очереди — тот же `AnalogStep`, что у узла.
+// =====================================================================================
+
+// = EfficiencySimulator.cs WalkPendingFrom: снять верхний квант очереди и вести обход с уже
+// набранным заносом (тот же блок, что в конце ElectronHistoryFrom).
+RM_DEVF real Sim::WalkPendingFrom(real limit, real deposited)
+{
+    if (pendCount <= 0)
+    {
+        return deposited;
+    }
+
+    int k = --pendCount;
+    fromOutsideAnnihilation = pendFromOutsideAnnihilation[k];
+    AnalogWalk w;
+    w.x = pendX[k]; w.y = pendY[k]; w.z = pendZ[k];
+    w.ux = pendUx[k]; w.uy = pendUy[k]; w.uz = pendUz[k];
+    w.e = pendE[k];
+    w.deposited = deposited;
+    w.depositedOutside = (real)0.0;
+    w.travelled = (real)0.0;
+    w.limit = limit;
+    w.guard = 0;
+    w.comptonOutside = false;
+    while (!AnalogStep(w))
+    {
+    }
+
+    return w.deposited;
+}
+
+// = EfficiencySimulator.cs SampleBranchBeta: узел — двоичным поиском, внутри — равномерно.
+RM_DEV real SampleBranchBeta(const Sim::BranchTabG& tab, real u)
+{
+    int lo = 0, hi = tab.betaN - 1;
+    while (hi - lo > 1)
+    {
+        int mid = (lo + hi) >> 1;
+        if (tab.betaCdf[mid] <= u)
+        {
+            lo = mid;
+        }
+        else
+        {
+            hi = mid;
+        }
+    }
+
+    real span = tab.betaCdf[hi] - tab.betaCdf[lo];
+    real frac = span > (real)0.0 ? (u - tab.betaCdf[lo]) / span : (real)0.5;
+    if (frac < (real)0.0)
+    {
+        frac = (real)0.0;
+    }
+    else if (frac > (real)1.0)
+    {
+        frac = (real)1.0;
+    }
+
+    return tab.betaT[lo] + frac * (tab.betaT[hi] - tab.betaT[lo]);
+}
+
+// = EfficiencySimulator.cs BranchEventFrom.
+RM_DEVF real Sim::BranchEventFrom(const BranchTabG& tab, real x, real y, real z, real ux, real uy, real uz,
+                                  BranchStats& st, real& gammaDeposit, real& gammaLight)
+{
+    ForgetRay();
+    real limit = PathLimit(x, y, z);
+    lossAnnihilation = (real)0.0;
+    annihilationEscapes = 0;
+    lossXray = (real)0.0;
+    lossXrayK = (real)0.0;
+    lossXrayL = (real)0.0;
+    lightDeposit = (real)0.0;
+    // не перенесено: ResetTrace() — трассировка каналов.
+    fromOutsideAnnihilation = false;
+    pendCount = 0;
+
+    real te = SampleBranchBeta(tab, Uniform());
+    real t = CapsuleExit(te, uz);
+    if (!(t > (real)0.0))
+    {
+        st.stoppedInCapsule++;
+    }
+
+    int here = At(x, y, z);
+    int material = here >= 0 ? D.regions[here].Material : -1;
+    long long carriesBefore = CountLayerCarries;
+    real deposited = t > (real)0.0
+        ? CarriedElectronDeposit(x, y, z, ElectronBirth::Given, t, ux, uy, uz, material, pushAnalog)
+        : (real)0.0;
+    if (CountLayerCarries > carriesBefore)
+    {
+        st.entered++;
+    }
+
+    deposited = WalkPendingFrom(limit, deposited);
+    real betaDeposit = deposited, betaLight = lightDeposit;
+
+    // Каскад — из точки распада, после обхода беты (C#: тот же порядок).
+    fromOutsideAnnihilation = false;
+    ForgetRay();
+    int level = tab.startLevel;
+    int steps = 0;
+    for (; steps < 64; steps++)
+    {
+        int count = tab.levelCount[level];
+        if (count <= 0)
+        {
+            break;
+        }
+
+        int first = tab.levelFirst[level];
+        real u = Uniform();
+        int tr = first;
+        while (tr < first + count - 1 && u >= tab.trCdf[tr])
+        {
+            tr++;
+        }
+
+        real v = Uniform();
+        int kind = 0;
+        while (kind < 4 && v >= tab.emitCdf[tr * 5 + kind])
+        {
+            kind++;
+        }
+
+        real e = tab.emitKev[tr * 5 + kind];
+        level = tab.trTo[tr];
+        if (!(e > (real)0.0))
+        {
+            continue;
+        }
+
+        real ax, ay, az;
+        Isotropic(ax, ay, az);
+        st.cascadeQuanta++;
+        if (kind == 0)
+        {
+            PushPending(x, y, z, ax, ay, az, e);
+            continue;
+        }
+
+        st.cascadeElectrons++;
+        real tc = CapsuleExit(e, az);
+        if (tc > (real)0.0)
+        {
+            ForgetRay();
+            deposited += CarriedElectronDeposit(x, y, z, ElectronBirth::Given, tc, ax, ay, az, material, pushAnalog);
+        }
+    }
+
+    if (steps >= 64)
+    {
+        st.cascadeCut++;
+    }
+
+    deposited = WalkPendingFrom(limit, deposited);
+    gammaDeposit = deposited - betaDeposit;
+    gammaLight = lightDeposit - betaLight;
+    return deposited;
+}
+
+// =====================================================================================
 // Счёт: бины, каналы, свет
 // =====================================================================================
 

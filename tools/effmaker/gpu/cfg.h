@@ -22,6 +22,7 @@ struct Cfg
     double ElectronEscapeCurve;
     bool ElectronTransport;
     double ElectronStepFraction;
+    double ElectronCrystalStepFraction;
     bool ElectronTransportNoEarlyExit;
     bool ElectronAnyMaterial;
     int BremAlongPath;
@@ -29,6 +30,15 @@ struct Cfg
     bool ElectronLayerMixedScattering;
     bool ElectronLayerBremAlongPath;
     bool ElectronLayerBremAngular2BS;
+    bool ElectronStraggling;
+    bool ElectronMixedTransport;
+    int ElectronMixedParts;
+    bool ElectronMottHeavy;
+    bool ElectronElasticRefine;
+    int ElectronRefineParts;
+    double ElectronLayerStepMaxFraction;
+    bool ElectronScreeningDpwa;
+    bool CascadeCkVacancy;
     double LayerHardCutoffDeg;
     bool LayerReturnOwn;
     bool LayerReturnCarried;
@@ -94,6 +104,7 @@ struct Cfg
     X(D, ElectronEscapeCurve) \
     X(B, ElectronTransport) \
     X(D, ElectronStepFraction) \
+    X(D, ElectronCrystalStepFraction) \
     X(B, ElectronTransportNoEarlyExit) \
     X(B, ElectronAnyMaterial) \
     X(I, BremAlongPath) \
@@ -101,6 +112,15 @@ struct Cfg
     X(B, ElectronLayerMixedScattering) \
     X(B, ElectronLayerBremAlongPath) \
     X(B, ElectronLayerBremAngular2BS) \
+    X(B, ElectronStraggling) \
+    X(B, ElectronMixedTransport) \
+    X(I, ElectronMixedParts) \
+    X(B, ElectronMottHeavy) \
+    X(B, ElectronElasticRefine) \
+    X(I, ElectronRefineParts) \
+    X(D, ElectronLayerStepMaxFraction) \
+    X(B, ElectronScreeningDpwa) \
+    X(B, CascadeCkVacancy) \
     X(D, LayerHardCutoffDeg) \
     X(B, LayerReturnOwn) \
     X(B, LayerReturnCarried) \

@@ -90,7 +90,9 @@ namespace FsaChannelShot
             "вылет аннигиляции двойной (DE)", "вылет L-рентгена кристалла",
             // (`AMBER52`, П125, формат 10) седьмой — постоянной энергии;
             // подпись — как в приложении (`AMBER256`: линии 1022 в канале нет)
-            "аннигиляция вне кристалла (511 и её комптон)"
+            "аннигиляция вне кристалла (511 и её комптон)",
+            // (`AMBER274`, `Р9`) восьмой — канал образа: бета пробы (раздел электронов)
+            "бета пробы (электроны из пробы)"
         };
 
         static readonly Color[] ChannelColors =
@@ -101,7 +103,8 @@ namespace FsaChannelShot
             Color.FromArgb(210, 205, 50, 60),    // вылет K-рентгена — красный
             Color.FromArgb(210, 90, 30, 130),    // двойной вылет — тёмно-фиолетовый
             Color.FromArgb(210, 120, 20, 30),    // вылет L-рентгена — тёмно-красный
-            Color.FromArgb(210, 30, 140, 120)    // аннигиляция вне кристалла — бирюзовый
+            Color.FromArgb(210, 30, 140, 120),   // аннигиляция вне кристалла — бирюзовый
+            Color.FromArgb(210, 120, 120, 120)   // (`AMBER274`) бета пробы — серый
         };
 
         [STAThread]
@@ -302,7 +305,8 @@ namespace FsaChannelShot
 
             // ---- суммы каналов по всем компонентам -------------------------
             int channels = result.Model.Length;
-            int count = EfficiencySimulator.ResponseChannelCount;
+            // (`AMBER274`, `Р9`) Каналов образа восемь: семь исхода фотона и бета пробы.
+            int count = FsaMatrixLayers.Channels.Length;
             double[][] byChannel = new double[count][];
             for (int c = 0; c < count; c++)
             {

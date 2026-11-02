@@ -45,6 +45,22 @@ enum AnalogSlot
     A_SLOTS
 };
 
+// (`AMBER274`, Э1 + физика 28) Скаляры раздела электрона пробы (`ElectronSourceKernel`,
+// = `EfficiencySimulator.ElectronSourceStats` и счётчики симулятора).
+enum EsrcSlot
+{
+    E_SCORED = 0,                 // stats.Scored
+    E_ENTERED,                    // stats.Entered (первичная вошла в кристалл)
+    E_QUEUED,                     // stats.QueuedPhotons
+    E_ANNIHILATIONS,              // stats.Annihilations
+    E_STOPPED_CAPSULE,            // stats.StoppedInCapsule
+    E_SUM_DEPOSIT,                // Σ weight·deposited (stats.MeanDepositKev · n)
+    E_COUNT_PENDING_DROPPED,
+    E_COUNT_ESCAPE_DROPPED,
+    E_COUNT_LAYER_LEFT_SCENE,     // CountLayerLeftScene (диагностика паритета)
+    E_SLOTS
+};
+
 // Выход ОДНОЙ истории — для ступени 1 приёмки (сверка с CPU по историям).
 struct HistoryOut
 {
@@ -83,4 +99,8 @@ struct NodeArgs
 
     HistoryOut* perHistory; // не null — писать выход каждой истории (ступень 1)
     int resetMask;          // замер: сброс переживающего историю состояния (kernels.cuh, ResetCarried)
+    // (`AMBER274`) Раздел электрона пробы (`ElectronSourceKernel`): частица — позитрон, свет
+    // пика 662 на кэВ (шкала строки; ≤ 0 — оставленная энергия). Прочие ядра не читают.
+    int positron;
+    real lightPerKev;
 };

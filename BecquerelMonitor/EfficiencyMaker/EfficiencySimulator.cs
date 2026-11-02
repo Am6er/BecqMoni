@@ -280,8 +280,27 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// (<see cref="ElectronTransport"/>). Калибровка сходимости по шагу
         /// (П27 §3: 0.05 / 0.1 / 0.2 на RC103 1461 кэВ); двигает `G4RawProbe
         /// --etr-step=`. В клеймо не входит: единый счёт идёт умолчанием.
+        /// ⚠ (`AMBER274`, физика 29) Под ключом <see cref="ElectronMixedTransport"/> доля
+        /// действует только в СЛОЯХ обвязки и пробе (`TransportInLayers`; там перенос
+        /// сходится уже при 0.2: доля вошедших 624 кэВ у RC103 0.2 / 0.1 / 0.05 —
+        /// 5.176 / 5.168 / 5.169·10⁻²); в кристалле — <see cref="ElectronCrystalStepFraction"/>.
+        /// Без ключа — везде эта доля, как было (физика 28).
         /// </summary>
         public double ElectronStepFraction = 0.1;
+
+        /// <summary>
+        /// (`AMBER274`, физика 29, полоса `phys29` 01.11.2026) Доля остаточного пробега на
+        /// шаг переноса В КРИСТАЛЛЕ под ключом <see cref="ElectronMixedTransport"/> (без
+        /// ключа не читается — в кристалле <see cref="ElectronStepFraction"/>, как было).
+        /// Выбрана по сходимости, правилом Amber 30.10.2026 «|Δ| ≤ 0.5 % между f и f/2»:
+        /// пучок по нормали на толстую пластину, η и доля полного поглощения (журнал
+        /// `handover/handover-2026-11-01-amber274-phys29.md`): у CsI при 1–2 МэВ между 0.1 и
+        /// 0.05 η уходит на 1.5–2 %, между 0.05 и 0.025 — не больше 0.55 % (у NaI и Al —
+        /// не больше 0.6 % в пределах шума). В клеймо не входит, как и доля слоёв: единый счёт
+        /// идёт умолчанием, смена его — смена поколения физики. Двигают пробы
+        /// (`BetaSectionProbeA274 --cstep=`, `StepConvergenceProbeP29 --cstep=`).
+        /// </summary>
+        public double ElectronCrystalStepFraction = 0.05;
 
         /// <summary>
         /// (`M3`, П44) РЕЖИМ ЗАМЕРА, не настройка: не пользоваться ранним
@@ -441,6 +460,131 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool ElectronLayerBremAngular2BS = new ResponseMatrixOptions().ElectronLayerBremAngular2BS;
 
         /// <summary>
+        /// (`AMBER274`, физика 28, 30.10.2026; решение Amber вопросником, дословно: «У всех
+        /// электронов переноса») СТРАГГЛИНГ ПОТЕРЬ ЭЛЕКТРОНА — у всех электронов переноса: в
+        /// кристалле (<see cref="TransportElectron"/>), в слоях обвязки и пробе
+        /// (<see cref="TransportInLayers"/>), в капсуле точечного источника и воздухе до
+        /// корпуса (<see cref="CapsuleExit"/>). На отрезке пути — средняя потеря по CSDA
+        /// (разность остаточных пробегов ESTAR), её ионизационная часть заменяется
+        /// разыгранной по модели Урбана (`G4UniversalFluctuation` + `G4UrbanFluctuation`
+        /// Geant4 11.4, как у эталона option4: два уровня возбуждения и ионизация, режим
+        /// Ландау; гауссов Бор — только для тяжёлых частиц и не берётся), радиационная
+        /// остаётся средней; остаток пробега — от НОВОЙ энергии (<see cref="ResidualAfter"/>).
+        /// Умолчание ПОЛЯ — умолчание СКЛАДА (<see cref="ResponseMatrixOptions.ElectronStraggling"/>).
+        /// Выключенный — прежний ход физики 27 до последнего бита и без единого лишнего
+        /// случайного числа (положительный контроль подъёма версии: `--estr=0`).
+        /// </summary>
+        public bool ElectronStraggling = new ResponseMatrixOptions().ElectronStraggling;
+
+        /// <summary>
+        /// (`AMBER274`, физика 29, полоса `phys29` 01.11.2026; решение Amber 30.10.2026
+        /// вопросником, дословно: «Слои + кристалл сразу») ПЕРЕНОС ЭЛЕКТРОНА, СХОДЯЩИЙСЯ ПО
+        /// ШАГУ. Две правки одним ключом:
+        /// * в слоях обвязки и пробе (<see cref="TransportInLayers"/>, смешанная схема
+        ///   <see cref="ElectronLayerMixedScattering"/>) сечения упругого рассеяния — при
+        ///   энергии СЕРЕДИНЫ шага, а не начала (у начала рассеяние шага занижено на ~6 %
+        ///   при доле шага 0.1, и доля вошедших в кристалл 624 кэВ у RC103 шла от шага);
+        /// * в кристалле (<see cref="TransportElectron"/>) угол шага — та же смешанная
+        ///   схема, что в слоях: жёсткие столкновения выше отсечки
+        ///   (<see cref="LayerHardCutoffDeg"/>) по одному, экранированным Резерфордом
+        ///   (поправка Мотта — при Z ≤ 30), мягкий шарнир — по транспортному сечению ниже
+        ///   отсечки, 1 − exp(−s·Σnσ_tr) (аддитивно по пути), сечения при энергии середины
+        ///   шага. Формула Хайленда на шаг не аддитивна (обратное рассеяние η голого CsI
+        ///   при 1 МэВ шло 0.389 / 0.354 / 0.313 при доле шага 0.1 / 0.05 / 0.02).
+        /// Потолок шагов переноса под ключом — <see cref="TransportMaxStepsMixed"/>
+        /// (жёсткие столкновения дробят шаги). Умолчание ПОЛЯ — умолчание СКЛАДА
+        /// (<see cref="ResponseMatrixOptions.ElectronMixedTransport"/>, правило I).
+        /// Выключенный — прежний ход физики 28 до последнего бита и без единого лишнего
+        /// случайного числа (положительный контроль подъёма версии: `--emix=0 --mott=0`, с физики 30 — и
+        /// `--eref=0 --dpwa=0 --ckv=0`; Н2 критика кода 02.11.2026: при `mott=1` поправка Мотта работает и в слоях).
+        /// </summary>
+        public bool ElectronMixedTransport = new ResponseMatrixOptions().ElectronMixedTransport;
+
+        /// <summary>
+        /// (`AMBER274`, физика 29) РЕЖИМ ЗАМЕРА, не настройка: какие половины
+        /// <see cref="ElectronMixedTransport"/> действуют — бит 1 — сечения слоёв в середине
+        /// шага, бит 2 — смешанная схема в кристалле; умолчание 3 — обе. Нужен разбору
+        /// вклада каждой половины (`StepConvergenceProbeP29 --parts=`); ни один штатный путь
+        /// его не ставит, в клеймо не входит.
+        /// </summary>
+        public int ElectronMixedParts = 3;
+
+        /// <summary>
+        /// (`AMBER274`, физика 29, полоса `phys29b` 02.11.2026; решение Amber 02.11.2026
+        /// вопросником, дословно: «Сейчас, в физику 29 (Рекомендую)») ПОПРАВКА МОТТА ПРИ
+        /// Z &gt; 30 в смешанной схеме упругого рассеяния (кристалл и слои): отношение Мотта к
+        /// Резерфорду — аналитическая подгонка Boschini et al. / Lijian et al., числа
+        /// `G4MottData.hh` Geant4 11.4.2 без правок (<see cref="MottData"/>); к ядерной части
+        /// Z², в жёсткой части — точное сечение и отбор угла, в мягкой — транспортное сечение
+        /// с той же поправкой. Z ≤ 30 — Мак-Кинли—Фешбах, как было. Умолчание ПОЛЯ —
+        /// умолчание СКЛАДА (<see cref="ResponseMatrixOptions.ElectronMottHeavy"/>, правило I).
+        /// Выключенный — физика 29 полосы `phys29` до последнего бита и без единого лишнего
+        /// случайного числа (положительный контроль: `--mott=0`).
+        /// </summary>
+        public bool ElectronMottHeavy = new ResponseMatrixOptions().ElectronMottHeavy;
+
+        /// <summary>
+        /// ⛔ (`AMBER274`, физика 30, полоса `phys29c` 02.11.2026; распоряжение распорядителя «все правки
+        /// трёх критиков физики 29 до общего счёта склада») ПРАВКИ УПРУГОГО РАССЕЯНИЯ И ШАГА ЭЛЕКТРОНА
+        /// ПО КРИТИКАМ ФИЗИКИ 29 — шапка раздела `M13` в `ElectronTransport.cs`: части Z² и Z
+        /// порознь (<see cref="ScatterElement.Part"/>); Ф2 — предел угла e–e; Ф3 — подгонка Мотта у
+        /// всех Z; Ф4 — позитрон без поправки электрона (Мак-Кинли—Фешбах позитрона); Ф6 — пересчёт
+        /// затёртых вложенным переносом долей элементов; Ф7 — сечения шага на концах полного шага с
+        /// мажорантой и пустыми столкновениями. Части — биты рычага замера
+        /// <see cref="ElectronRefineParts"/>. Умолчание ПОЛЯ — умолчание СКЛАДА
+        /// (<see cref="ResponseMatrixOptions.ElectronElasticRefine"/>, правило I). Выключенный —
+        /// физика 29 до последнего бита и без единого лишнего случайного числа (положительный
+        /// контроль: `--eref=0`).
+        /// </summary>
+        public bool ElectronElasticRefine = new ResponseMatrixOptions().ElectronElasticRefine;
+
+        /// <summary>
+        /// (`AMBER274`, физика 30) РЕЖИМ ЗАМЕРА, не настройка: какие части
+        /// <see cref="ElectronElasticRefine"/> действуют — 1 Ф2 (предел e–e), 2 Ф3 (подгонка у всех Z),
+        /// 4 Ф4 (позитрон), 8 Ф6 (пересчёт долей), 16 Ф7 (мажоранта шага), 32 — предел шага в слое долей
+        /// его толщины (находка полосы `k40rc50`, <see cref="ElectronLayerStepMaxFraction"/>); умолчание 63 — все. Нужен
+        /// разбору вклада каждой (`BetaSectionProbeA274 --rparts=`, `StepConvergenceProbeP29
+        /// --rparts=`); ни один штатный путь его не ставит, в клеймо не входит.
+        /// </summary>
+        public int ElectronRefineParts = 63;
+
+        /// <summary>
+        /// (`AMBER274`, физика 30, бит 32 рычага <see cref="ElectronRefineParts"/>; находка полосы `k40rc50`)
+        /// Предел шага переноса В СЛОЕ — доля толщины тела области (`RegionThicknessCm`), как DSMAX
+        /// PENELOPE: 0.1 — десять шарниров на толщину. Режим замера сходимости, в клеймо не входит —
+        /// единый счёт идёт умолчанием (как <see cref="ElectronStepFraction"/>).
+        /// </summary>
+        public double ElectronLayerStepMaxFraction = 0.1;
+
+        /// <summary>
+        /// ⛔ (`AMBER274`, физика 30, Ф1; решение Amber 02.11.2026 вопросником, дословно: «Сейчас, до склада
+        /// (Рекомендую)») ЯДЕРНАЯ ЧАСТЬ УПРУГОГО РАССЕЯНИЯ ПО DPWA — экранирование и форма dσ/dμ
+        /// подгонкой к DPWA (таблица `matdb.elastic_screening_dpwa`, задел полосы `screen29`), для
+        /// электрона и позитрона; вместо Мольера, подгонки Мотта и Мак-Кинли—Фешбаха. Электронная
+        /// часть Z — по-прежнему Мольер (<see cref="ScatterElement.Part"/> 2). Таблицы в базе нет —
+        /// отказ словами. Умолчание ПОЛЯ — умолчание СКЛАДА
+        /// (<see cref="ResponseMatrixOptions.ElectronScreeningDpwa"/>, правило I). Выключенный — без
+        /// единого лишнего случайного числа (положительный контроль: `--dpwa=0`).
+        /// </summary>
+        public bool ElectronScreeningDpwa = new ResponseMatrixOptions().ElectronScreeningDpwa;
+
+        /// <summary>
+        /// ⛔ (`AMBER274`, физика 30, полоса `phys29c`; «каскад не сошёлся» GAGG, вопрос распорядителя
+        /// 02.11.2026) ВАКАНСИЯ L-КВАНТА ПОСЛЕ ПЕРЕХОДА КОСТЕРА—КРОНИГА. Каскад K→L
+        /// (<see cref="CascadeAfterK"/>) разыгрывает L-линию той подоболочки, КУДА доехала дырка Kα2
+        /// (`LSubshellAfterCk`: L2 → L3 с весом f23·ω3), а раздельный каскад
+        /// (<see cref="RelaxationElectrons"/>) искал её вакансию среди переходов L2 — ближайший по
+        /// энергии переход чужой подоболочки. Вакансия выходила не та, а энергия перехода L2→L3
+        /// (у Gd 0.70 кэВ, у Bi 2.3 кэВ) оставалась невязкой баланса — она садилась в сгусток, и
+        /// невязка больше 0.5 кэВ печаталась «каскад не сошёлся» (GAGG на 50.4…60 кэВ, 1.2…1.7·10⁻⁴
+        /// на историю). С ключом переход Костера—Кронига L2–L3·X разыгрывается по EADL (электрон и
+        /// дырка X), а вакансия ищется среди переходов L3. Умолчание ПОЛЯ — умолчание СКЛАДА
+        /// (<see cref="ResponseMatrixOptions.CascadeCkVacancy"/>, правило I). Выключенный — без
+        /// единого лишнего случайного числа (положительный контроль: `--ckv=0`).
+        /// </summary>
+        public bool CascadeCkVacancy = new ResponseMatrixOptions().CascadeCkVacancy;
+
+        /// <summary>
         /// (`M13`, П100) Угол отсечки смешанной схемы в слоях, градусы:
         /// столкновения с отклонением больше него — жёсткие, по одному. Режим
         /// ЗАМЕРА, не настройка: двигает `LayerReturnProbe --cutoff=` для
@@ -474,6 +618,31 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// считаются).
         /// </summary>
         public long CountLayerSteps, CountLayerHardCollisions;
+
+        /// <summary>
+        /// (`AMBER274`, физика 30) Счётчики правок критиков — читаются пробами; не настройки:
+        /// пустых столкновений мажоранты шага (Ф7) и пересчётов долей, затёртых вложенным
+        /// переносом (Ф6).
+        /// </summary>
+        public long CountMajorantEmpty, CountShareRecomputed, CountLayerStepLimited;
+
+        /// <summary>
+        /// (`AMBER274`, физика 29) Счётчики переноса электрона в КРИСТАЛЛЕ — читаются
+        /// пробами после прогона; не настройки: шагов переноса по кристаллу, жёстких
+        /// столкновений смешанной схемы среди них (пустые мажоранты Мотта не считаются) и
+        /// треков, упёршихся в потолок шагов (кристалл и слои вместе) — мера «потолок по
+        /// нужде» (`TransportMaxStepsMixed`).
+        /// </summary>
+        public long CountCrystalSteps, CountCrystalHardCollisions, CountTransportStepCap;
+
+        /// <summary>
+        /// (`AMBER274`, физика 29, ключ <see cref="ElectronMottHeavy"/>) Счётчики отбора угла
+        /// с поправкой Мотта при Z &gt; 30 — читаются пробами; не настройки: отвергнутых
+        /// кандидатов, кандидатов, у которых R_eff превысил мажоранту (обязан быть 0 — иначе
+        /// граница `MottMajorant` не верхняя), и столкновений, выбравших предел попыток
+        /// (`MottMaxTries`, обязан быть 0).
+        /// </summary>
+        public long CountMottRejected, CountMottMajorantExceeded, CountMottTriesCap;
 
         /// <summary>
         /// (`M13`, П106 19.09.2026) РЫЧАГИ ЗАМЕРА, не настройки: состав
@@ -2730,7 +2899,23 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public static bool CylinderVessel(GeometryModel g, out double headspace)
         {
+            double farEnd;
+            return CylinderVessel(g, out headspace, out farEnd);
+        }
+
+        /// <summary>
+        /// (`AMBER274`, полоса `f8cyl` 02.11.2026) То же с ДАЛЬНИМ ДНОМ цилиндра
+        /// (<see cref="GeometryModel.BeakerFarEndWallThickness"/>; решение Amber 30.10.2026
+        /// вопросником, дословно: «Завести поле цилиндру (Рекомендую)»). Сосуд высотой
+        /// `BeakerHeight` кончается дном толщины <paramref name="farEnd"/> со стороны, дальней от
+        /// детектора; запас стенки над пробой — `BeakerHeight − донышко − проба − дно`, а сосуд
+        /// короче — дно вплотную к пробе (как донышко маринелли, `AMBER205`). Дно тоньше `Eps`
+        /// `Add` не положит — его и нет; у прежних сцен (поле 0) раскладка до бита прежняя.
+        /// </summary>
+        public static bool CylinderVessel(GeometryModel g, out double headspace, out double farEnd)
+        {
             headspace = 0.0;
+            farEnd = 0.0;
             if (g == null)
             {
                 return false;
@@ -2740,13 +2925,16 @@ namespace BecquerelMonitor.EfficiencyMaker
             // `Add` не кладёт, запаса у неё нет.
             double rOut = 0.5 * g.BeakerDiameter;
             double rIn = Math.Max(0.0, rOut - g.BeakerSideWallThickness);
-            double extra = g.BeakerHeight - g.BeakerEndWallThickness - g.SourceHeight;
+            double far = g.SourceType == GeometrySourceType.Cylinder && g.BeakerFarEndWallThickness > Eps
+                ? g.BeakerFarEndWallThickness : 0.0;
+            double extra = g.BeakerHeight - g.BeakerEndWallThickness - g.SourceHeight - far;
             if (rOut > rIn + Eps && extra > VesselTolerance)
             {
                 headspace = extra;
             }
 
-            return headspace > 0.0;
+            farEnd = rOut > Eps ? far : 0.0;
+            return headspace > 0.0 || farEnd > 0.0;
         }
 
         /// <summary>
@@ -3025,7 +3213,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             switch (g.SourceType)
             {
                 case GeometrySourceType.Point:
-                    this.source = new PointSampler(zFace - g.PointDistance);
+                    // (`AMBER274` Ф6, решение Amber 30.10.2026 вопросником, дословно: «На 1.5 мм
+                    // и для фотонов (Рекомендую)») Расстояние точечной сцены — от ПЛОСКОСТИ
+                    // КАПСУЛЫ, а сама точка — внутри неё (`SourceCapsuleOffset`: у ОСГИ —
+                    // середина кольца 3 мм, 1.5 мм). Голая точка — сдвиг 0, сцена прежняя
+                    // до бита. Фотонное клеймо сдвиг несёт (`ResponseMatrix.GeometryText`).
+                    // ⛔ ОТКАТ Ф6 (`critpt30`, 02.11.2026): `SourceCapsuleOffset` = 0 у всякой
+                    // сцены — точка на `PointDistance`, как до 30.10.2026 (причины — у свойства).
+                    this.pointAirCm = g.PointDistance + g.SourceCapsuleOffset;
+                    this.source = new PointSampler(zFace - this.pointAirCm);
                     break;
 
                 case GeometrySourceType.Box:
@@ -3067,11 +3263,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // и над пробой, со стороны, дальней от детектора. Крышки у
                     // цилиндра нет (поля для неё нет). Сосуд без запаса над
                     // пробой (`headspace` = 0) строится до бита прежним.
-                    double headspace;
-                    CylinderVessel(g, out headspace);
+                    double headspace, farEnd;
+                    CylinderVessel(g, out headspace, out farEnd);
                     this.Add(0.0, rOut, zWallBottom, zWallTop, beakerWall, false);
                     this.Add(rIn, rOut, zSrcBottom - headspace, zSrcTop, beakerWall, false);
                     this.Add(0.0, rIn, zSrcBottom, zSrcTop, sample, false);
+                    // (`f8cyl`) Дальнее дно — ПОСЛЕДНЕЙ областью, за пробой и запасом: прежние
+                    // три стоят на своих местах, и сцена без дна побитово та же (`Add` нулевой
+                    // толщины не кладёт). Его видят фотон и электрон — это область сцены.
+                    if (farEnd > 0.0)
+                    {
+                        double zFar1 = zSrcBottom - headspace;
+                        this.Add(0.0, rOut, zFar1 - farEnd, zFar1, beakerWall, false);
+                    }
                     Sampler cylinder = new CylinderSampler(rIn, zSrcBottom, zSrcTop);
                     // (`E29`) Важностный розыгрыш — ключом, поверх прежнего:
                     // глубина у цилиндра — от верхней грани, обращённой к
@@ -4113,6 +4317,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Читатель обязан забрать его сразу после вызова и обнулить.
         /// </summary>
         double pendingCascadeKev;
+
+        /// <summary>
+        /// (`AMBER274`, физика 30, <see cref="CascadeCkVacancy"/>) Подоболочка EADL (3/5/6 = L1/L2/L3),
+        /// ОТКУДА пришёл каскадный квант <see cref="pendingCascadeKev"/>, — после переходов
+        /// Костера—Кронига; 0 — кванта нет. Тот же уклад: обнуляется в начале каждого
+        /// <see cref="SampleFluorescence"/>, забирается сразу после вызова, до рекурсии.
+        /// </summary>
+        int pendingCascadeShell;
 
         /// <summary>
         /// Из выброшенных — только те, что КОМПТОН-РАССЕЯЛИСЬ вне кристалла
@@ -5476,6 +5688,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // и весь код ниже вырождается в прежний.
                     double casc = this.pendingCascadeKev;
                     this.pendingCascadeKev = 0.0;
+                    // (`AMBER274`, физика 30, `ckv`) Подоболочка каскадного кванта — тем же укладом.
+                    int cascShell = this.pendingCascadeShell;
+                    this.pendingCascadeShell = 0;
                     // (`AMBER16` п. 1) Серия ЭТОГО кванта — забирается здесь же
                     // и по той же причине: рекурсия `InCrystal` ниже разыграет
                     // свою флуоресценцию и перетрёт признак.
@@ -5507,7 +5722,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // по Заутеру относительно него; без ключа не читается.
                         double electron = this.LightCascadeSplit && absorbZ > 0 && absorbShell > 0
                             ? this.PhotoElectronsSplit(x, y, z, e, absorbZ, absorbShell,
-                                                       xray, kLine, casc, cascadeRolled, depth,
+                                                       xray, kLine, casc, cascShell, cascadeRolled, depth,
                                                        ux, uy, uz)
                             : this.ElectronLoss(x, y, z, e - xray - casc, depth,
                                                 ElectronBirth.Photo, ux, uy, uz);
@@ -5558,7 +5773,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     if (this.LightCascadeSplit && absorbZ > 0 && absorbShell > 0)
                     {
                         return lost + this.PhotoElectronsSplit(x, y, z, e, absorbZ, absorbShell,
-                                                               0.0, -1, 0.0, false, depth,
+                                                               0.0, -1, 0.0, 0, false, depth,
                                                                ux, uy, uz);
                     }
 
@@ -5686,7 +5901,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                            + this.ElectronLoss(x, y, z, kinetic * share, depth,
                                                ElectronBirth.Pair, ux, uy, uz)
                            + this.ElectronLoss(x, y, z, kinetic * (1.0 - share), depth,
-                                               ElectronBirth.Pair, ux, uy, uz);
+                                               ElectronBirth.Pair, ux, uy, uz, true);
                     if (this.PositronOffset)
                     {
                         this.PositronStop(kinetic * (1.0 - share),
@@ -5837,6 +6052,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         double ElectronLoss(double x, double y, double z, double te, int depth,
                             ElectronBirth birth, double rx, double ry, double rz)
         {
+            return this.ElectronLoss(x, y, z, te, depth, birth, rx, ry, rz, false);
+        }
+
+        /// <summary>
+        /// (`AMBER274`, физика 30, Ф4) То же для частицы с зарядом: <paramref name="positron"/> —
+        /// позитрон (пары, β⁺ пробы); доезжает до упругого рассеяния переноса
+        /// (<see cref="TransportElectron"/>, <see cref="TransportInLayers"/>), где под ключом
+        /// <see cref="ElectronElasticRefine"/> (бит 4) или <see cref="ElectronScreeningDpwa"/> у позитрона
+        /// своё сечение. Без ключей признак не читается.
+        /// </summary>
+        double ElectronLoss(double x, double y, double z, double te, int depth,
+                            ElectronBirth birth, double rx, double ry, double rz, bool positron)
+        {
             if (this.electron == null || !(te > 1.0) || depth > 12)
             {
                 // электрон осел целиком там, где родился
@@ -5912,7 +6140,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double ux, uy, uz;
                 this.ElectronBirthDirection(birth, te, rx, ry, rz, out ux, out uy, out uz);
                 escapedSelf = this.TransportElectron(x, y, z, ux, uy, uz, te, alongPath, depth,
-                                                     ref radiated, ref lost);
+                                                     ref radiated, ref lost, positron);
                 lost += escapedSelf;
             }
             else if (this.ElectronEscape)
@@ -5973,7 +6201,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// (рассогласование таблиц) — прежний один кусок.
         /// </summary>
         double PhotoElectronsSplit(double x, double y, double z, double e, int atomZ, int shell,
-                                   double xray, int kLine, double casc, bool cascadeRolled, int depth,
+                                   double xray, int kLine, double casc, int cascShell, bool cascadeRolled, int depth,
                                    double ux, double uy, double uz)
         {
             // (`A72`, П27) Фотоэлектрон — по Заутеру относительно кванта
@@ -5987,7 +6215,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             double lost = this.ElectronLoss(x, y, z, e - binding, depth, ElectronBirth.Photo, ux, uy, uz);
             lost += this.RelaxationElectrons(x, y, z, relax, shell, binding - xray - casc,
-                                             xray, kLine, casc, cascadeRolled, depth);
+                                             xray, kLine, casc, cascShell, cascadeRolled, depth);
             return lost;
         }
 
@@ -6017,7 +6245,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             double lost = this.ElectronLoss(x, y, z, total - binding, depth, ElectronBirth.Given, edx, edy, edz);
             lost += this.RelaxationElectrons(x, y, z, relax, shell, binding - xray,
-                                             xray, kLine, 0.0, false, depth, rolled);
+                                             xray, kLine, 0.0, 0, false, depth, rolled);
             return lost;
         }
 
@@ -6050,7 +6278,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         double RelaxationElectrons(double x, double y, double z, MaterialDatabase.Relaxation relax,
                                    int shell, double budgetKev, double xray, int kLine, double casc,
-                                   bool cascadeRolled, int depth, bool selfRolled = true)
+                                   int cascShell, bool cascadeRolled, int depth, bool selfRolled = true)
         {
             if (!(budgetKev > 0.0))
             {
@@ -6063,6 +6291,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             int top = bottom;
             bool firstNonRadiative = false;
             int seed = shell;
+            // (`AMBER274`, физика 30, `ckv`) Переход Костера—Кронига перед каскадным квантом:
+            // электрон и его дырка, разыгранные до стека, кладутся в него следом за затравкой.
+            bool ck = false;
+            double ckKev = 0.0;
+            int ckHole = 0;
             if (xray > 0.0)
             {
                 // квант уже разыгран переносом: дырка переехала
@@ -6078,7 +6311,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                 seed = next;
                 if (casc > 0.0)
                 {
-                    int after = relax.VacancyAfterPhoton(next, casc, this.Uniform());
+                    // ⛔ (`AMBER274`, физика 30, `ckv`) Квант каскада пришёл с подоболочки, куда дырка
+                    // доехала переходом Костера—Кронига (`LSubshellAfterCk`), — его вакансия ищется
+                    // среди переходов ТОЙ подоболочки, а сам переход — электроном и дыркой EADL.
+                    // Прежде — среди переходов `next`: вакансия чужая, энергия перехода — в невязку.
+                    int lineShell = next;
+                    if (this.CascadeCkVacancy && cascShell > 0 && cascShell != next)
+                    {
+                        ck = relax.CosterKronig(next, cascShell, this.Uniform(), out ckKev, out ckHole);
+                        lineShell = cascShell;
+                    }
+
+                    int after = relax.VacancyAfterPhoton(lineShell, casc, this.Uniform());
                     if (after <= 0)
                     {
                         this.AddLight(budgetKev, budgetKev);
@@ -6107,6 +6351,33 @@ namespace BecquerelMonitor.EfficiencyMaker
             double lost = 0.0;
             double blob = 0.0;
             double scored = 0.0;
+            if (ck)
+            {
+                // (`AMBER274`, `ckv`) Электрон Костера—Кронига (L2–L3·X: энергия B(L2) − B(L3) − B(X)),
+                // его дырка X — в стек выше затравки; электрон ≥ 1 кэВ ведётся, как прочие.
+                if (ckHole > 0)
+                {
+                    if (top + 1 > stack.Length)
+                    {
+                        this.CountCascadeOverflow++;
+                    }
+                    else
+                    {
+                        stack[top++] = ckHole;
+                    }
+                }
+
+                scored += ckKev;
+                if (ckKev >= 1.0)
+                {
+                    lost += this.CascadeElectronLoss(x, y, z, ckKev, depth, bottom, top);
+                }
+                else if (ckKev > 0.0)
+                {
+                    blob += ckKev;
+                }
+            }
+
             bool first = true;
             while (top > bottom)
             {
@@ -6251,6 +6522,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             // забытое обнуление отдало бы прошлый квант чужому поглощению —
             // отказ, которого не видно ничем.
             this.pendingCascadeKev = 0.0;
+            this.pendingCascadeShell = 0;
             // (`AMBER16` п. 1) Серия принадлежит ТОЛЬКО этому вызову, по тому
             // же доводу, что и каскадный квант строкой выше: у функции три
             // места вызова, и оставленный прошлый признак отдал бы L-метку
@@ -6593,6 +6865,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             int emit = this.LSubshellAfterCk(f, li);
             this.pendingCascadeKev =
                 PickLine(this.Uniform(), f.LineKevL[emit], f.LineWeightL[emit]);
+            // (`AMBER274`, физика 30, `ckv`) Откуда квант — для вакансии раздельного каскада
+            // (EADL: L1=3, L2=5, L3=6). Присваивание розыгрыш не двигает.
+            this.pendingCascadeShell = emit == 0 ? 3 : (emit == 1 ? 5 : 6);
         }
 
         /// <summary>
@@ -7776,9 +8051,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                                    double rx, double ry, double rz, GeometryMaterial material,
                                    Action<double, double, double, double, double, double, double> push,
                                    out double xIn, out double yIn, out double zIn,
-                                   out double uxIn, out double uyIn, out double uzIn, out double tIn)
+                                   out double uxIn, out double uyIn, out double uzIn, out double tIn,
+                                   bool positron = false)
         {
             xIn = x; yIn = y; zIn = z;
+            this.layersLeftScene = false;
             tIn = te - this.OutsideBremsstrahlung(x, y, z, te, material, push);
             // Рычаг абляции `--detour=0` (П92) значит «заноса нет» в обоих
             // режимах: под ключом доля пробега по прямой не читается, но ноль
@@ -7800,7 +8077,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.layerBremPush = push;
             this.layerBremEnabled = this.LayerBornBremsstrahlung;
             this.CountLayerBorn++;
-            bool entered = this.TransportInLayers(ref xIn, ref yIn, ref zIn, ref uxIn, ref uyIn, ref uzIn, ref tIn, 0);
+            bool entered = this.TransportInLayers(ref xIn, ref yIn, ref zIn, ref uxIn, ref uyIn, ref uzIn, ref tIn, 0, positron);
             this.layerBremPush = null;
             this.RestoreRay();
             if (!entered)
@@ -7868,6 +8145,714 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.CountEscapeDropped += this.escapeLost;
             double deposit = tIn - lost;
             return deposit > 0.0 ? deposit : 0.0;
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER274`, Э1 29.10.2026) ПЕРВИЧНЫЙ ЭЛЕКТРОН И ПОЗИТРОН ПРОБЫ
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`AMBER274`, Э1) Что набрал прогон строки электрона пробы
+        /// (<see cref="ElectronSourceResponse"/>): истории, вошедшие в кристалл
+        /// электроны, засчитанные истории, кванты очереди после переноса
+        /// электрона (тормозное и вылеты), аннигиляции позитрона в сцене, средний
+        /// занос на испущенную частицу (кэВ) и цена прогона.
+        /// </summary>
+        public sealed class ElectronSourceStats
+        {
+            public long Histories, Entered, Scored, QueuedPhotons, Annihilations, StoppedInCapsule;
+            public double MeanDepositKev, Seconds;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Э1 29.10.2026) СТРОКА ПЕРВИЧНОГО ЭЛЕКТРОНА ПРОБЫ — распределение
+        /// энергии, оставленной в кристалле частицей кинетической энергии
+        /// <paramref name="te"/>, вылетевшей ИЗОТРОПНО из точки пробы (тот же розыгрыш
+        /// точки, что у кванта узла), доля на бин на ИСПУЩЕННУЮ частицу.
+        ///
+        /// Решение Amber 29.10.2026 вопросником, дословно: «Бета пробы первой
+        /// (Рекомендую)» (слой «Бета» пробы, `AMBER274` Э1; разбор — журнал `AMBER273`).
+        /// Перенос — ТОТ ЖЕ, что у вторичного электрона, рождённого фотоном в пробе
+        /// и обвязке (<see cref="CarriedElectronDeposit"/>: тормозное слоя, перенос в
+        /// слоях шагом и шарниром, перенос по кристаллу <see cref="ElectronLoss"/>);
+        /// кванты, вышедшие при этом в очередь истории (тормозное по пути, вылеты из
+        /// кристалла, аннигиляция позитрона), ведёт фотонный обход
+        /// (<see cref="AnalogTransportFrom"/>). Второй копии переноса нет (`S37`).
+        ///
+        /// Позитрон (<paramref name="positron"/>) — тем же переносом (у переноса нет
+        /// различия потерь e⁻/e⁺) и АННИГИЛЯЦИЕЙ В ТОЧКЕ ОСТАНОВКИ: в слое, где он
+        /// остановился, — два встречных кванта 511 в очередь; в кристалле — от
+        /// конца эффективного пробега (<see cref="PositronStop"/>, как у позитрона
+        /// пары); ушёл из сцены — аннигиляции в сцене нет.
+        ///
+        /// Шкала строки: при кривой света кристалла — СВЕТ истории, делённый на свет
+        /// пика полного поглощения на кэВ при 661.657 кэВ (<paramref name="lightPerKev"/>,
+        /// <see cref="LastPhotonLightScale"/> узла 661.657), то есть энергия на шкале
+        /// прибора, откалиброванного по фотонам 662 кэВ; без кривой (или
+        /// <paramref name="lightPerKev"/> ≤ 0) — оставленная энергия.
+        ///
+        /// Капсула точечного источника (<see cref="GeometryModel.SourceCapsuleThickness"/>,
+        /// умолчание — ОСГИ) и воздух до корпуса — потерей по CSDA до переноса
+        /// (<see cref="CapsuleExit"/>); вещество капсулы фотонный перенос не видит, сдвиг
+        /// точки в ней (<see cref="GeometryModel.SourceCapsuleOffset"/>) — видит.
+        ///
+        /// ⛔ Сцена изотропного поля (`Iso`) строки электрона не имеет (`Ф5`): её «источник»
+        /// — ламбертова сфера радиуса поля в пустоте, и электрон с неё — не бета пробы, а
+        /// бессмыслица. Отказ — исключением.
+        /// </summary>
+        public double[] ElectronSourceResponse(double te, bool positron, double binKev, double lightPerKev,
+                                               out ElectronSourceStats stats)
+        {
+            if (!(te > 0.0) || !(binKev > 0.0))
+            {
+                throw new ArgumentOutOfRangeException("te");
+            }
+
+            if (this.geometry != null && this.geometry.Scene == GeometrySceneKind.Iso)
+            {
+                throw new InvalidOperationException("isotropic field scene has no sample electrons (AMBER274 F5)");
+            }
+
+            this.EnsureBuilt();
+            stats = new ElectronSourceStats();
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            int n = Math.Max(1000, this.Histories);
+            double top = (te + (positron ? 2.0 * ElectronMassKev : 0.0)) * 1.5;
+            int length = (int)Math.Ceiling(top / binKev) + 2;
+            double[] hist = new double[length];
+            bool light = this.lightYield != null && lightPerKev > 0.0;
+            double sumDeposit = 0.0;
+            this.source.Retune(this, te);
+            for (int i = 0; i < n; i++)
+            {
+                this.PollCancel(i);
+                double x, y, z;
+                double weight = this.source.NextWeighted(this, out x, out y, out z);
+                double deposited = this.ElectronSourceHistory(te, positron, x, y, z, ref weight, stats);
+                if (!(deposited > 0.0) || !(weight > 0.0))
+                {
+                    continue;
+                }
+
+                double value = light ? this.lightDeposit / lightPerKev : deposited;
+                int bin = (int)(value / binKev + 0.5);
+                if (bin < 0)
+                {
+                    bin = 0;
+                }
+
+                if (bin >= length)
+                {
+                    bin = length - 1;
+                }
+
+                hist[bin] += weight;
+                stats.Scored++;
+                sumDeposit += weight * deposited;
+            }
+
+            for (int b = 0; b < length; b++)
+            {
+                hist[b] /= n;
+            }
+
+            stats.Histories = n;
+            stats.MeanDepositKev = sumDeposit / n;
+            stats.Seconds = watch.Elapsed.TotalSeconds;
+            return hist;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Э1) Одна история первичной частицы пробы: метки, свет и очередь
+        /// сбрасываются, как в начале <see cref="AnalogTransport"/>; направление
+        /// изотропное; капсула; перенос электрона (позитрона); очередь квантов —
+        /// фотонным обходом. Возвращает занос истории в кристалл, кэВ.
+        /// </summary>
+        double ElectronSourceHistory(double te, bool positron, double x, double y, double z,
+                                     ref double weight, ElectronSourceStats stats)
+        {
+            double ux, uy, uz;
+            this.Isotropic(out ux, out uy, out uz);
+            weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
+            return this.ElectronHistoryFrom(te, positron, x, y, z, ux, uy, uz, stats);
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Ф9 — положительный контроль переноса) Та же история первичной
+        /// частицы, но с ЗАДАННЫМ направлением (пучок): проба
+        /// `BetaSectionProbeA274 --backscatter` бьёт им по пластине кристалла и мерит
+        /// долю отражённых против опыта. Возвращает занос в кристалл, кэВ;
+        /// <paramref name="lightOut"/> — свет истории.
+        /// </summary>
+        internal double ElectronBeamHistory(double te, bool positron, double x, double y, double z,
+                                            double ux, double uy, double uz, ElectronSourceStats stats,
+                                            out double lightOut)
+        {
+            this.EnsureBuilt();
+            double deposited = this.ElectronHistoryFrom(te, positron, x, y, z, ux, uy, uz, stats);
+            lightOut = this.lightDeposit;
+            return deposited;
+        }
+
+        /// <summary>(`AMBER274`, проба) Построить сцену заранее — контроль капсулы читает точку источника.</summary>
+        public void EnsureBuiltForProbe()
+        {
+            this.EnsureBuilt();
+        }
+
+        /// <summary>(`Ф9`, проба) Пучок электронов по оси сцены из точки (0, 0, <paramref name="z"/>) — <see cref="ElectronBeamHistory"/>.</summary>
+        public double ElectronBeamHistoryForProbe(double te, double z, ElectronSourceStats stats, out double light)
+        {
+            return this.ElectronBeamHistory(te, false, 0.0, 0.0, z, 0.0, 0.0, 1.0, stats, out light);
+        }
+
+        double ElectronHistoryFrom(double te, bool positron, double x, double y, double z,
+                                   double ux, double uy, double uz, ElectronSourceStats stats)
+        {
+            this.ForgetRay();
+            double limit = this.PathLimit(x, y, z);
+            this.lossAnnihilation = 0.0;
+            this.annihilationEscapes = 0;
+            this.lossXray = 0.0;
+            this.lossXrayK = 0.0;
+            this.lossXrayL = 0.0;
+            this.lightDeposit = 0.0;
+            this.ResetTrace();
+            this.fromOutsideAnnihilation = false;
+            this.pendCount = 0;
+
+            double t = this.CapsuleExit(te, uz);
+            if (!(t > 0.0))
+            {
+                stats.StoppedInCapsule++;
+            }
+
+            Region here = this.At(x, y, z);
+            GeometryMaterial material = here != null ? here.Material : null;
+            // (`AMBER274`, Р7) «Вошло в кристалл» — только ПЕРВИЧНАЯ частица: счётчик
+            // заноса растёт и у электронов, выбитых квантами очереди (у позитрона
+            // прежде выходило «вошло» ≈ 0.001 — это комптон 511), поэтому снимается
+            // разностью ДО обхода очереди.
+            long carriesBefore = this.CountLayerCarries;
+            double deposited = positron
+                ? this.PositronSourceDeposit(x, y, z, t, ux, uy, uz, material, stats)
+                : t > 0.0
+                    ? this.CarriedElectronDeposit(x, y, z, ElectronBirth.Given, t, ux, uy, uz,
+                                                  material, this.pushAnalog)
+                    : 0.0;
+            if (this.CountLayerCarries > carriesBefore)
+            {
+                stats.Entered++;
+            }
+
+            // ⚡ (`AMBER274` Ф8, решение Amber 30.10.2026 «В Э1 событием целиком
+            // (Рекомендую)», делает следующая полоса) ШОВ СОБЫТИЯ ЦЕЛИКОМ: здесь, в одной
+            // истории с бетой, ляжут кванты каскада ветви (2614/583 у Tl-208 и т. д.) —
+            // очередью `PushPending` из точки распада до обхода ниже, и тогда совпадения
+            // бета–гамма (пик ниже на P совпадения, сумма в континууме) выйдут из того же
+            // обхода, что сейчас ведёт тормозное и аннигиляцию. Строка такого события —
+            // уже не строка узла T, а строка ВЕТВИ (журнал `AMBER274` Э1, «Исправления по
+            // критикам», Ф8).
+            if (this.pendCount > 0)
+            {
+                stats.QueuedPhotons += this.pendCount;
+                int k = --this.pendCount;
+                this.fromOutsideAnnihilation = this.pendFromOutsideAnnihilation[k];
+                double depositedOutside = 0.0;
+                bool comptonOutside = false;
+                deposited = this.AnalogTransportFrom(this.pendX[k], this.pendY[k], this.pendZ[k],
+                                                     this.pendUx[k], this.pendUy[k], this.pendUz[k],
+                                                     this.pendE[k], limit, deposited,
+                                                     ref depositedOutside, ref comptonOutside);
+            }
+
+            return deposited;
+        }
+
+        /// <summary>(`AMBER274`) Алюминий кольца капсулы — один на симулятор.</summary>
+        GeometryMaterial ringMaterial;
+
+        /// <summary>(`AMBER274`, GPU) Алюминий кольца капсулы — тот же объект, что прочтёт <see cref="CapsuleExit"/>.</summary>
+        internal GeometryMaterial CapsuleRingMaterial()
+        {
+            if (this.ringMaterial == null)
+            {
+                this.ringMaterial = GeometryModel.OsgiRingMaterial();
+            }
+
+            return this.ringMaterial;
+        }
+
+        /// <summary>
+        /// (`AMBER274` Ф12) Путь от точки источника до плоскости лица корпуса по оси, см
+        /// (расстояние сцены плюс сдвиг точки в капсуле); 0 — не точечная сцена.
+        /// </summary>
+        internal double pointAirCm;
+
+        /// <summary>
+        /// (`AMBER274`, Э1) Энергия частицы на выходе из капсулы точечного источника и
+        /// воздуха до корпуса. ⛔ Геометрия симулятора — УЖЕ В САНТИМЕТРАХ
+        /// (<see cref="GeometryModel.InCentimeters"/> в конструкторе пересчитывает и поля
+        /// капсулы, <see cref="GeometryModel.Scaled"/>): делить их на 10 второй раз нельзя
+        /// (`Д1` критика 30.10.2026 — капсула выходила в 10 раз тоньше; контроль —
+        /// `BetaSectionProbeA274 --capsule-control`).
+        ///
+        /// Кольцо-держатель (решение Amber «Паспорт ОСГИ»): частица, вылетевшая ближе к
+        /// плоскости капсулы, чем край кольца (tg θ больше R_вн/(h/2) — точка в середине
+        /// кольца), проходит его стенку радиально — путь (R_внеш − R_вн)/sin θ в алюминии;
+        /// прочие — плёнку t/|cos θ| (плоская капсула, путь зажат 20·t у скользящих). Остаток
+        /// пробега CSDA вещества (<see cref="CarryMedium"/>). Затем (`Ф12`) ВОЗДУХ между
+        /// капсулой и корпусом — у направлений к детектору (uz &gt; 0) на пути
+        /// <see cref="pointAirCm"/>/uz (зажат 20×): перенос в слоях пустоту проходит без
+        /// потерь, а у точки на 5 см это ≈ 6 мг/см². Воздух — таблицей воды плотности
+        /// воздуха, как у прежнего обхода заноса (<see cref="ElectronWalkToCrystal"/>).
+        /// Только у точечной сцены; ни одного случайного числа без страгглинга, с ним
+        /// (`AMBER274`, физика 28) потеря каждого отрезка — разыгранная
+        /// (<see cref="ResidualAfter"/>). 0 — частица осталась.
+        /// </summary>
+        internal double CapsuleExit(double te, double uz)
+        {
+            GeometryModel g = this.geometry;
+            if (g == null || g.SourceType != GeometrySourceType.Point || g.Scene != GeometrySceneKind.None
+                || !(te > 0.0))
+            {
+                return te;
+            }
+
+            double cos = Math.Abs(uz);
+            double sin = Math.Sqrt(Math.Max(0.0, 1.0 - cos * cos));
+            double t = te;
+            double half = 0.5 * g.SourceCapsuleRingHeight, rIn = 0.5 * g.SourceCapsuleRingInnerDiameter;
+            double rOut = 0.5 * g.SourceCapsuleRingOuterDiameter;
+            if (half > 0.0 && rIn > 0.0 && rOut > rIn && cos * rIn < half * sin)
+            {
+                if (this.ringMaterial == null)
+                {
+                    this.ringMaterial = GeometryModel.OsgiRingMaterial();
+                }
+
+                double wallCm = (rOut - rIn) / Math.Max(sin, 1e-6);
+                ElectronData.Material al = this.CarryMedium(this.ringMaterial);
+                double left = this.ResidualAfter(al, t, ElectronData.RangeOf(al, t), wallCm * this.ringMaterial.Density);
+                t = left > 0.0 ? ElectronData.EnergyOfRange(al, left) : 0.0;
+            }
+            else if (g.SourceCapsuleThickness > 0.0 && g.SourceCapsule != null && g.SourceCapsule.Density > 0.0)
+            {
+                double pathCm = g.SourceCapsuleThickness / Math.Max(cos, 0.05);
+                ElectronData.Material medium = this.CarryMedium(g.SourceCapsule);
+                double residual = this.ResidualAfter(medium, t, ElectronData.RangeOf(medium, t),
+                                                     pathCm * g.SourceCapsule.Density);
+                t = residual > 0.0 ? ElectronData.EnergyOfRange(medium, residual) : 0.0;
+            }
+
+            if (t > 0.0 && uz > 0.0 && this.pointAirCm > 0.0 && this.CapsuleAir)
+            {
+                double airCm = this.pointAirCm / Math.Max(uz, 0.05);
+                ElectronData.Material water = this.WaterTable();
+                double residual = this.ResidualAfter(water, t, ElectronData.RangeOf(water, t), airCm * AirDensity);
+                t = residual > 0.0 ? ElectronData.EnergyOfRange(water, residual) : 0.0;
+            }
+
+            return t;
+        }
+
+        /// <summary>
+        /// (`AMBER274` Ф12) Рычаг замера: учитывать воздух между точкой и корпусом у
+        /// первичной частицы пробы. Умолчание ВКЛ; выключенный — плечо «пустота», как
+        /// у переноса в слоях.
+        /// </summary>
+        public bool CapsuleAir { get; set; } = true;
+
+        /// <summary>
+        /// (`AMBER274`, Э1) Позитрон пробы: перенос заноса (<see cref="CarriedElectronEnters"/>),
+        /// в кристалле — <see cref="ElectronLoss"/> с направлением входа; затем
+        /// аннигиляция там, где он остановился: в кристалле — два встречных кванта
+        /// 511 от конца эффективного пробега (<see cref="PositronStop"/> при
+        /// <see cref="PositronOffset"/>, как у позитрона пары) через
+        /// <see cref="InCrystal"/>, вылеты — в очередь; вне кристалла — оба кванта в
+        /// очередь из точки остановки в слое; ушёл из сцены — аннигиляции в сцене
+        /// нет. Возвращает занос в кристалле до очереди, кэВ.
+        /// </summary>
+        double PositronSourceDeposit(double x, double y, double z, double t,
+                                     double ux, double uy, double uz, GeometryMaterial material,
+                                     ElectronSourceStats stats)
+        {
+            double px = x, py = y, pz = z;
+            double deposited = 0.0;
+            bool inCrystal = false;
+            if (t > 0.0)
+            {
+                double xIn, yIn, zIn, uxIn, uyIn, uzIn, tIn;
+                bool entered = this.CarriedElectronEnters(x, y, z, ElectronBirth.Given, t, ux, uy, uz, material,
+                                                          this.pushAnalog, out xIn, out yIn, out zIn,
+                                                          out uxIn, out uyIn, out uzIn, out tIn, true);
+                px = xIn;
+                py = yIn;
+                pz = zIn;
+                if (entered)
+                {
+                    inCrystal = true;
+                    // (`AMBER274`, Р11) Вошёл с энергией не выше порога переноса — оседает
+                    // на месте входа целиком (прежде кинетика терялась, а свет не шёл).
+                    if (!(tIn > TransportCutKev))
+                    {
+                        if (tIn > 0.0)
+                        {
+                            this.AddLight(tIn, tIn);
+                            deposited = tIn;
+                        }
+                    }
+                    else
+                    {
+                        this.escapeCount = 0;
+                        this.escapeLost = 0;
+                        this.escapeCollect = true;
+                        this.carriedInCrystal = true;
+                        double lost = this.ElectronLoss(xIn, yIn, zIn, tIn, 0, ElectronBirth.Given, uxIn, uyIn, uzIn, true);
+                        this.carriedInCrystal = false;
+                        this.escapeCollect = false;
+                        this.FlushEscapesToQueue();
+                        deposited = Math.Max(0.0, tIn - lost);
+                        if (this.PositronOffset)
+                        {
+                            this.PositronStop(tIn, ref px, ref py, ref pz);
+                        }
+                    }
+                }
+                else if (this.layersLeftScene)
+                {
+                    // (`AMBER274`, физика 28) «Ушёл из сцены» — по исходу переноса в слоях,
+                    // а не повторным запросом геометрии из точки остановки (тот во float GPU
+                    // расходился с ЦП). Позитрон ниже 20 кэВ, которого перенос не ведёт,
+                    // аннигилирует в точке вылета (прежде при луче без границ — «ушёл»).
+                    return 0.0;             // ушёл из сцены — аннигилирует вне её
+                }
+            }
+
+            stats.Annihilations++;
+            double ax, ay, az;
+            this.Isotropic(out ax, out ay, out az);
+            if (!inCrystal)
+            {
+                this.PushPending(px, py, pz, ax, ay, az, ElectronMassKev);
+                this.PushPending(px, py, pz, -ax, -ay, -az, ElectronMassKev);
+                return deposited;
+            }
+
+            for (int q = 0; q < 2; q++)
+            {
+                double sign = q == 0 ? 1.0 : -1.0;
+                this.escapeCount = 0;
+                this.escapeLost = 0;
+                this.escapeCollect = true;
+                double escaped = this.InCrystal(px, py, pz, sign * ax, sign * ay, sign * az, ElectronMassKev, 0);
+                this.escapeCollect = false;
+                this.FlushEscapesToQueue();
+                if (ElectronMassKev - escaped > 0.0)
+                {
+                    deposited += ElectronMassKev - escaped;
+                }
+            }
+
+            return deposited;
+        }
+
+        /// <summary>(`AMBER274`) Вылеты из кристалла, собранные за перенос, — в очередь истории.</summary>
+        void FlushEscapesToQueue()
+        {
+            for (int k = 0; k < this.escapeCount; k++)
+            {
+                this.PushPending(this.escX[k], this.escY[k], this.escZ[k],
+                                 this.escUx[k], this.escUy[k], this.escUz[k], this.escE[k]);
+            }
+
+            this.CountEscapeDropped += this.escapeLost;
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER274` Ф8, полоса `f8cyl` 02.11.2026) ШОВ СОБЫТИЯ ЦЕЛИКОМ
+        // ------------------------------------------------------------------
+
+        /// <summary>(`Ф8`) Что набрал прогон строки ветви (<see cref="BranchEventResponse"/>).</summary>
+        public sealed class BranchEventStats
+        {
+            public long Histories, Entered, Scored, ScoredGamma, CascadeQuanta, CascadeElectrons, StoppedInCapsule, CascadeCut;
+
+            /// <summary>Цена прогона, с (свойство, а не поле: поле класса сторож `check_matrix_keys` счёл бы настройкой симулятора).</summary>
+            public double Seconds { get; set; }
+        }
+
+        /// <summary>(`Ф8`) Предел шагов каскада одной истории (уровней в схеме больше не бывает; упор — счётчик `CascadeCut`).</summary>
+        const int CascadeMaxSteps = 64;
+
+        /// <summary>
+        /// (`AMBER274` Ф8, полоса `f8cyl` 02.11.2026) СТРОКА ВЕТВИ — СОБЫТИЕ ЦЕЛИКОМ. Решение Amber
+        /// 30.10.2026 вопросником, дословно: «В Э1 событием целиком (Рекомендую)». Одна история —
+        /// один распад ветвью <paramref name="spec"/>: из точки пробы (тот же розыгрыш точки и
+        /// направления, что у строки узла, <see cref="ElectronSourceResponse"/>) летит бета с
+        /// энергией по форме ветви, и в ТУ ЖЕ историю ложатся кванты каскада уровня, который ветвь
+        /// питает (<see cref="ElectronBranchSpec"/>): гамма — очередью <see cref="PushPending"/> из
+        /// точки распада, электроны конверсии — тем же переносом, что бета. Обход — тот же
+        /// (<see cref="AnalogTransportFrom"/>), второго проводника нет (`S37`).
+        ///
+        /// Две гистограммы ОДНИХ И ТЕХ ЖЕ историй (доля на бин на распад ветвью): [0] — весь
+        /// занос события (бета, её тормозное и вылеты, весь каскад — совпадения бета–гамма и
+        /// гамма–гамма), [1] — занос одного каскада (разность заноса и света до и после каскада:
+        /// обход беты кончается раньше, чем ложится каскад). Разность [0] − [1] — «что меняет
+        /// бета»: её спектр плюс вынос совпавших с ней квантов из их пиков и сумма выше; её берёт
+        /// FSA (<see cref="ResponseElectronSection.BranchWeights"/>), а гамма-линии и их гамма–гамма
+        /// суммирование остаются за фотонными строками и <c>FsaCascadeSummer</c>. Шкала — как у
+        /// строки узла (свет / <paramref name="lightPerKev"/>, иначе оставленная энергия).
+        /// </summary>
+        public double[][] BranchEventResponse(ElectronBranchSpec spec, double binKev, double lightPerKev,
+                                              out BranchEventStats stats)
+        {
+            if (spec == null || !(binKev > 0.0))
+            {
+                throw new ArgumentNullException("spec");
+            }
+
+            string problem = spec.Problem();
+            if (problem != null)
+            {
+                throw new ArgumentException("ветвь " + spec.Key + ": " + problem);
+            }
+
+            if (this.geometry != null && this.geometry.Scene == GeometrySceneKind.Iso)
+            {
+                throw new InvalidOperationException("isotropic field scene has no sample electrons (AMBER274 F5)");
+            }
+
+            this.EnsureBuilt();
+            stats = new BranchEventStats();
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            int n = Math.Max(1000, this.Histories);
+            int length = BranchRowLength(spec, binKev);
+            double[] events = new double[length];
+            double[] cascade = new double[length];
+            bool light = this.lightYield != null && lightPerKev > 0.0;
+            this.source.Retune(this, spec.EndpointKev);
+            for (int i = 0; i < n; i++)
+            {
+                this.PollCancel(i);
+                double x, y, z;
+                double weight = this.source.NextWeighted(this, out x, out y, out z);
+                double ux, uy, uz;
+                this.Isotropic(out ux, out uy, out uz);
+                weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
+                double gammaDeposit, gammaLight;
+                double deposited = this.BranchEventFrom(spec, x, y, z, ux, uy, uz, stats, out gammaDeposit, out gammaLight);
+                if (!(weight > 0.0))
+                {
+                    continue;
+                }
+
+                if (deposited > 0.0)
+                {
+                    events[BinOf(light ? this.lightDeposit / lightPerKev : deposited, binKev, length)] += weight;
+                    stats.Scored++;
+                }
+
+                if (gammaDeposit > BranchDepositFloorKev)
+                {
+                    cascade[BinOf(light ? gammaLight / lightPerKev : gammaDeposit, binKev, length)] += weight;
+                    stats.ScoredGamma++;
+                }
+            }
+
+            for (int b = 0; b < length; b++)
+            {
+                events[b] /= n;
+                cascade[b] /= n;
+            }
+
+            stats.Histories = n;
+            stats.Seconds = watch.Elapsed.TotalSeconds;
+            return new[] { events, cascade };
+        }
+
+        /// <summary>(`Ф8`) Занос каскада меньше этого — счёт с плавающей точкой (разность до и после), а не вклад, кэВ.</summary>
+        internal const double BranchDepositFloorKev = 1e-6;
+
+        /// <summary>(`Ф8`) Длина строки ветви: (граница беты + уровень) × 1.5 — выше быть нечему.</summary>
+        internal static int BranchRowLength(ElectronBranchSpec spec, double binKev)
+        {
+            double top = (spec.EndpointKev + Math.Max(0.0, spec.LevelKev)) * 1.5;
+            return (int)Math.Ceiling(top / binKev) + 2;
+        }
+
+        static int BinOf(double value, double binKev, int length)
+        {
+            int bin = (int)(value / binKev + 0.5);
+            return bin < 0 ? 0 : bin >= length ? length - 1 : bin;
+        }
+
+        /// <summary>
+        /// (`Ф8`) Одна история события ветви: сброс, как у <see cref="ElectronHistoryFrom"/>;
+        /// энергия беты — одним равномерным по функции распределения формы; капсула и перенос
+        /// беты; обход её очереди; затем каскад и обход его очереди. Возвращает весь занос, кэВ;
+        /// <paramref name="gammaDeposit"/>, <paramref name="gammaLight"/> — занос и свет одного
+        /// каскада.
+        /// </summary>
+        double BranchEventFrom(ElectronBranchSpec spec, double x, double y, double z,
+                               double ux, double uy, double uz, BranchEventStats stats,
+                               out double gammaDeposit, out double gammaLight)
+        {
+            this.ForgetRay();
+            double limit = this.PathLimit(x, y, z);
+            this.lossAnnihilation = 0.0;
+            this.annihilationEscapes = 0;
+            this.lossXray = 0.0;
+            this.lossXrayK = 0.0;
+            this.lossXrayL = 0.0;
+            this.lightDeposit = 0.0;
+            this.ResetTrace();
+            this.fromOutsideAnnihilation = false;
+            this.pendCount = 0;
+
+            double te = SampleBranchBeta(spec, this.Uniform());
+            double t = this.CapsuleExit(te, uz);
+            if (!(t > 0.0))
+            {
+                stats.StoppedInCapsule++;
+            }
+
+            Region here = this.At(x, y, z);
+            GeometryMaterial material = here != null ? here.Material : null;
+            long carriesBefore = this.CountLayerCarries;
+            double deposited = t > 0.0
+                ? this.CarriedElectronDeposit(x, y, z, ElectronBirth.Given, t, ux, uy, uz, material, this.pushAnalog)
+                : 0.0;
+            if (this.CountLayerCarries > carriesBefore)
+            {
+                stats.Entered++;
+            }
+
+            deposited = this.WalkPendingFrom(limit, deposited);
+            double betaDeposit = deposited, betaLight = this.lightDeposit;
+
+            // Каскад — из точки распада, после обхода беты: очередь пуста, признак
+            // происхождения снят (кванты каскада — первичные, не потомки аннигиляции).
+            this.fromOutsideAnnihilation = false;
+            this.ForgetRay();
+            int level = spec.StartLevel;
+            int steps = 0;
+            for (; steps < CascadeMaxSteps; steps++)
+            {
+                int count = spec.LevelCount[level];
+                if (count <= 0)
+                {
+                    break;
+                }
+
+                int first = spec.LevelFirst[level];
+                double u = this.Uniform();
+                int tr = first;
+                while (tr < first + count - 1 && u >= spec.TransitionCdf[tr])
+                {
+                    tr++;
+                }
+
+                double v = this.Uniform();
+                int kind = 0;
+                while (kind < ElectronBranchSpec.EmitKinds - 1 && v >= spec.EmitCdf[tr * ElectronBranchSpec.EmitKinds + kind])
+                {
+                    kind++;
+                }
+
+                double e = spec.EmitKev[tr * ElectronBranchSpec.EmitKinds + kind];
+                level = spec.TransitionTo[tr];
+                if (!(e > 0.0))
+                {
+                    continue;
+                }
+
+                double ax, ay, az;
+                this.Isotropic(out ax, out ay, out az);
+                stats.CascadeQuanta++;
+                if (kind == 0)
+                {
+                    this.PushPending(x, y, z, ax, ay, az, e);
+                    continue;
+                }
+
+                // Электрон конверсии — тем же переносом, что бета (капсула, воздух, слои, кристалл).
+                stats.CascadeElectrons++;
+                double tc = this.CapsuleExit(e, az);
+                if (tc > 0.0)
+                {
+                    this.ForgetRay();
+                    deposited += this.CarriedElectronDeposit(x, y, z, ElectronBirth.Given, tc, ax, ay, az,
+                                                             material, this.pushAnalog);
+                }
+            }
+
+            if (steps >= CascadeMaxSteps)
+            {
+                stats.CascadeCut++;
+            }
+
+            deposited = this.WalkPendingFrom(limit, deposited);
+            gammaDeposit = deposited - betaDeposit;
+            gammaLight = this.lightDeposit - betaLight;
+            return deposited;
+        }
+
+        /// <summary>
+        /// (`Ф8`) Обход очереди истории, если в ней что-то есть: тот же блок, что в конце
+        /// <see cref="ElectronHistoryFrom"/> (снять верхний квант с его признаком и вести
+        /// <see cref="AnalogTransportFrom"/> с уже набранным заносом).
+        /// </summary>
+        double WalkPendingFrom(double limit, double deposited)
+        {
+            if (this.pendCount <= 0)
+            {
+                return deposited;
+            }
+
+            int k = --this.pendCount;
+            this.fromOutsideAnnihilation = this.pendFromOutsideAnnihilation[k];
+            double depositedOutside = 0.0;
+            bool comptonOutside = false;
+            return this.AnalogTransportFrom(this.pendX[k], this.pendY[k], this.pendZ[k],
+                                            this.pendUx[k], this.pendUy[k], this.pendUz[k],
+                                            this.pendE[k], limit, deposited,
+                                            ref depositedOutside, ref comptonOutside);
+        }
+
+        /// <summary>
+        /// (`Ф8`) Энергия беты по функции распределения формы: узел — двоичным поиском, внутри
+        /// узла — равномерно (линейно по функции распределения). <paramref name="u"/> — равномерное.
+        /// </summary>
+        internal static double SampleBranchBeta(ElectronBranchSpec spec, double u)
+        {
+            double[] t = spec.BetaT, c = spec.BetaCdf;
+            int lo = 0, hi = t.Length - 1;
+            while (hi - lo > 1)
+            {
+                int mid = (lo + hi) >> 1;
+                if (c[mid] <= u)
+                {
+                    lo = mid;
+                }
+                else
+                {
+                    hi = mid;
+                }
+            }
+
+            double span = c[hi] - c[lo];
+            double frac = span > 0.0 ? (u - c[lo]) / span : 0.5;
+            if (frac < 0.0)
+            {
+                frac = 0.0;
+            }
+            else if (frac > 1.0)
+            {
+                frac = 1.0;
+            }
+
+            return t[lo] + frac * (t[hi] - t[lo]);
         }
 
         bool ElectronWalkToCrystal(double x, double y, double z,
@@ -10073,8 +11058,6 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.lightDeposit = 0.0;
             this.ResetTrace();
 
-            double e = energyKev;
-            double deposited = 0.0;
             // (`AMBER52`, П125) Часть заноса, принесённая квантами аннигиляции
             // извне (признак `fromOutsideAnnihilation` у текущего кванта). Каждое
             // `deposited += …` ниже дублируется в неё ПОД признаком — восемь
@@ -10082,7 +11065,6 @@ namespace BecquerelMonitor.EfficiencyMaker
             // depositedOutside)`.
             depositedOutside = 0.0;
             this.fromOutsideAnnihilation = false;
-            double travelled = 0.0;
             comptonOutside = false;        // замер `S55`, см. счётчики
 
             // ⛔ ОЧЕРЕДЬ КВАНТОВ ИСТОРИИ (`A52`, расширена `A55`). Обход
@@ -10093,6 +11075,26 @@ namespace BecquerelMonitor.EfficiencyMaker
             // проводник нельзя (`S37` — две копии одного счёта однажды
             // разъедутся молча).
             this.pendCount = 0;
+            return this.AnalogTransportFrom(x, y, z, ux, uy, uz, energyKev, limit, 0.0,
+                                            ref depositedOutside, ref comptonOutside);
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Э1 29.10.2026) ЦИКЛ ОБХОДА <see cref="AnalogTransport"/> — вынесен
+        /// без единой правки арифметики и порядка розыгрышей: метки истории, свет и
+        /// очередь квантов сброшены ВЫЗЫВАЮЩИМ. Второй читатель — первичный электрон
+        /// пробы (<see cref="ElectronSourceHistory"/>): его история начинается не с
+        /// кванта, а с переноса электрона, и кванты (тормозное, вылет из кристалла,
+        /// аннигиляция позитрона) ждут в той же очереди, что у кванта узла. Второго
+        /// проводника не заводится (`S37`). <paramref name="deposited"/> — занос,
+        /// уже набранный историей до цикла.
+        /// </summary>
+        double AnalogTransportFrom(double x, double y, double z, double ux, double uy, double uz,
+                                   double energyKev, double limit, double deposited,
+                                   ref double depositedOutside, ref bool comptonOutside)
+        {
+            double e = energyKev;
+            double travelled = 0.0;
             while (true)
             {
                 for (int guard = 0; guard < 400 && e > 1.0; guard++)

@@ -600,6 +600,64 @@ namespace BecquerelMonitor
             this.backgroundSpectrumPathname = old.BackgroundSpectrumPathname;
         }
 
+        /// <summary>
+        /// ⛔ (`AMBER269`, 01.11.2026) КРИВАЯ FWHM ПРИБОРА, РАВНАЯ ВСТРОЕННОЙ ЗАГЛУШКЕ,
+        /// СЧИТАЕТСЯ ПО ТРЁМ ЧИСЛАМ ПРИБОРА. Решение Amber 01.11.2026 вопросником,
+        /// дословно: «Строить по трём числам (Рекомендую)».
+        ///
+        /// Было: у прибора, заведённого заготовкой RadiaCode, и у прибора, в файле
+        /// которого элемента кривой нет вовсе, кривая оставалась встроенной
+        /// 15/3756/103 (<see cref="FWHMPeakDetectionMethodConfig.IsBuiltInStandIn"/>),
+        /// а три числа прибора — свои (у заготовки RadiaCode-103/110 — 4/266/26).
+        /// «Применить» и новый документ ставили спектру эту заглушку, а открытие
+        /// файла того же спектра — кривую по трём числам: модель разрешения зависела
+        /// от того, каким движением спектр к прибору пришёл.
+        ///
+        /// Стало: заглушка заменяется кривой по трём числам — ТЕМ ЖЕ правилом, что
+        /// у спектра без своей кривой (<see cref="FwhmCalibration.DefaultCalibration(FWHMPeakDetectionMethodConfig, EnergyCalibration, out string)"/>,
+        /// его зовёт и <c>DocumentManager.StandInFwhm</c>), на шкале прибора; форма
+        /// пика (вид, хвосты, параметры Фойгта) переносится с заглушки — её правят в
+        /// окне прибора отдельно от кривой. Настоящая кривая (любая другая) не
+        /// трогается. Три числа, по которым кривая не строится (ширина убывает),
+        /// заглушку оставляют: пустая кривая прибора окну прибора не годна, а
+        /// спектр без своей кривой и так узнаёт причину при открытии.
+        ///
+        /// Зовёт чтение конфигураций (<see cref="DeviceConfigManager.LoadAllConfigFiles"/>);
+        /// файл конфигурации НЕ переписывается — новая кривая уйдёт в него, когда
+        /// человек сам сохранит прибор. Возвращает true, если кривая заменена.
+        ///
+        /// ⚠ (`AMBER269`, 02.11.2026) С решением Amber «Кривую прибора» спектр без своей
+        /// кривой получает СОХРАНЁННУЮ кривую прибора (<see cref="FwhmCalibration.StandInFromDevice"/>)
+        /// — то есть ровно ту, что оставила здесь эта замена; правило одно: у прибора с
+        /// заглушкой это кривая по трём числам, у прибора с подогнанной — подогнанная.
+        /// Заглушка, которую замена оставила (три числа кривую не строят), спектру не
+        /// подставляется — там отказ с причиной, как прежде.
+        ///
+        /// ⚠ (`AMBER269`, 02.11.2026, полоса a269fix6) Та же заглушка в ФАЙЛЕ СПЕКТРА
+        /// снимается при чтении спектра (<see cref="DocumentManager.ForgetFileStandInFwhm"/>),
+        /// и спектр получает кривую прибора по правилу выше; файл спектра, как и файл
+        /// прибора, не переписывается.
+        /// </summary>
+        public bool ResolveBuiltInFwhm()
+        {
+            FWHMPeakDetectionMethodConfig cfg = this.peakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            if (cfg == null || this.energyCalibration == null
+                || !FWHMPeakDetectionMethodConfig.IsBuiltInStandIn(cfg.FwhmCalibration))
+            {
+                return false;
+            }
+            string refusal;
+            // Форма пика — с заглушки (cfg.FwhmCalibration), тем же правилом, что у
+            // спектра без своей кривой (`FwhmCalibration.StandInCalibration`).
+            FwhmCalibration built = FwhmCalibration.StandInCalibration(cfg, this.energyCalibration, out refusal);
+            if (built == null)
+            {
+                return false;
+            }
+            cfg.FwhmCalibration = built;
+            return true;
+        }
+
         // Token: 0x06000C27 RID: 3111 RVA: 0x00048748 File Offset: 0x00046948
         public DeviceConfigReference CreateReference()
         {

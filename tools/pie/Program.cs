@@ -1581,21 +1581,45 @@ namespace Pie
             EnsureSpectrumIntegrity(resultData.EnergySpectrum);
             EnsureSpectrumIntegrity(resultData.BackgroundEnergySpectrum);
 
-            DeviceConfigInfo deviceConfig = DeviceConfigManager.GetInstance().DeviceConfigList
-                .FirstOrDefault(candidate => candidate.Guid == resultData.DeviceConfigReference.Guid);
+            // ⛔ (`AMBER269`, 02.11.2026) ПРИБОР — ПРАВИЛОМ ОТКРЫТИЯ ФАЙЛА
+            //    (`DocumentManager.AttachDeviceConfig`: Guid, затем серийный номер,
+            //    затем имя; решения Amber 01.11.2026 «По серийному номеру», «По номеру,
+            //    затем имени»), а не одним Guid: экспорт RadiaCode несёт в ссылке одно
+            //    имя модели. Найденный прибор ставится спектру с копией его настроек
+            //    поиска, как в приложении.
+            DocumentManager.DeviceMatch how;
+            List<DeviceConfigInfo> candidates;
+            DeviceConfigInfo deviceConfig = DocumentManager.AttachDeviceConfig(
+                resultData, DeviceConfigManager.GetInstance().DeviceConfigList, out how, out candidates);
             if (deviceConfig == null)
             {
-                throw new InvalidOperationException("Device config not found for " + resultData.DeviceConfigReference.Guid);
+                string named = resultData.DeviceConfigReference != null
+                    ? resultData.DeviceConfigReference.Name + " (" + resultData.DeviceConfigReference.Guid + ")"
+                    : "(no reference)";
+                throw new InvalidOperationException(how == DocumentManager.DeviceMatch.Ambiguous
+                    ? DocumentManager.DescribeDeviceAmbiguity(resultData, resultIndex, candidates)
+                    : "Device config not found for " + named);
             }
-            resultData.DeviceConfig = deviceConfig;
 
+            // (`AMBER269`, 02.11.2026, полоса a269fix6) встроенная заглушка FWHM 15/3756/103 в
+            // файле — не своя кривая, а её отсутствие, как при открытии файла
+            // (`DocumentManager.ForgetFileStandInFwhm`); снятая называется в потоке ошибок.
+            if (DocumentManager.ForgetFileStandInFwhm(resultData))
+            {
+                Console.Error.WriteLine("pie: " + spectrumFile + ": кривая FWHM файла — встроенная заглушка 15/3756/103, не принята; взята кривая прибора");
+            }
             if (resultData.FwhmCalibration == null)
             {
-                FWHMPeakDetectionMethodConfig fwhmPeakConfig =
-                    (FWHMPeakDetectionMethodConfig)deviceConfig.PeakDetectionMethodConfig;
-                resultData.FwhmCalibration = fwhmPeakConfig.FwhmCalibration != null
-                    ? fwhmPeakConfig.FwhmCalibration.Clone()
-                    : FwhmCalibration.DefaultCalibration(fwhmPeakConfig, resultData.EnergySpectrum.EnergyCalibration);
+                // (`AMBER269`, решение Amber 02.11.2026 «Кривую прибора») то же правило,
+                // что у открытия файла: сохранённая кривая прибора, на чужой сетке —
+                // перенесённая, иначе три числа (`FwhmCalibration.StandInFromDevice`).
+                string refusal;
+                resultData.FwhmCalibration = FwhmCalibration.StandInFromDevice(
+                    (FWHMPeakDetectionMethodConfig)deviceConfig.PeakDetectionMethodConfig,
+                    deviceConfig.NumberOfChannels,
+                    resultData.EnergySpectrum.EnergyCalibration,
+                    resultData.EnergySpectrum.NumberOfChannels,
+                    out refusal);
             }
             if (resultData.FwhmCalibration == null)
             {

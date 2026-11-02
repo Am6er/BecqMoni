@@ -265,11 +265,74 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Do you want to reset spectrum to default calibration y = x? Otherwise spectrum will not be loaded..
+        ///   Looks up a localized string similar to Answer Yes to correct it as follows; otherwise the spectrum will not be opened. {0}.
         /// </summary>
-        public static string CalcResetQuestion {
+        public static string CalcRepairQuestion {
             get {
-                return ResourceManager.GetString("CalcResetQuestion", resourceCulture);
+                return ResourceManager.GetString("CalcRepairQuestion", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Automatic correction cannot fix this. Answer Yes to open the file as it is; otherwise it will not be opened..
+        /// </summary>
+        public static string CalcRepairNothing {
+            get {
+                return ResourceManager.GetString("CalcRepairNothing", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0}: energy calibration {1} → {2}.
+        /// </summary>
+        public static string CalcRepairCalibrationLine {
+            get {
+                return ResourceManager.GetString("CalcRepairCalibrationLine", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to none.
+        /// </summary>
+        public static string CalcRepairNoCalibration {
+            get {
+                return ResourceManager.GetString("CalcRepairNoCalibration", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to y = x (the channel number is taken as the energy).
+        /// </summary>
+        public static string CalcRepairIdentityNote {
+            get {
+                return ResourceManager.GetString("CalcRepairIdentityNote", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0}: the background has no histogram and will be removed.
+        /// </summary>
+        public static string CalcRepairBackgroundRemoved {
+            get {
+                return ResourceManager.GetString("CalcRepairBackgroundRemoved", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0}, background.
+        /// </summary>
+        public static string CalcRepairBackgroundOf {
+            get {
+                return ResourceManager.GetString("CalcRepairBackgroundOf", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to No device configuration has been assigned to spectrum {0}: the file names the device &quot;{1}&quot; without a configuration identifier known here (serial number: {2}), and several configurations fit it equally: {3}. Choose the device in the Measurement Control panel..
+        /// </summary>
+        public static string MSGDeviceMatchAmbiguous {
+            get {
+                return ResourceManager.GetString("MSGDeviceMatchAmbiguous", resourceCulture);
             }
         }
         
@@ -1332,6 +1395,42 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("ERRChannelEdgesInvalidSpecUtils", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The spectrum&apos;s energy calibration was not taken from the file ({0}): {1}. With such a calibration, peak labels, the library composition and the decomposition will come out plausible and foreign — check the calibration before computing.
+        /// </summary>
+        public static string MSGScaleNotFromFileSpecUtils {
+            get {
+                return ResourceManager.GetString("MSGScaleNotFromFileSpecUtils", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the file has no energy calibration, or SpecUtils did not accept it (for example, a non-monotonic polynomial), and the SpecUtils default was substituted (measurements: {0}).
+        /// </summary>
+        public static string MSGScaleSubstitutedSpecUtils {
+            get {
+                return ResourceManager.GetString("MSGScaleSubstitutedSpecUtils", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the energy calibration record in the file is invalid (measurements: {0}).
+        /// </summary>
+        public static string MSGScaleInvalidSpecUtils {
+            get {
+                return ResourceManager.GetString("MSGScaleInvalidSpecUtils", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to the calibration was not read and the scale stayed y = x, i.e. the channel number is declared to be the energy (measurements: {0}).
+        /// </summary>
+        public static string MSGScaleIdentitySpecUtils {
+            get {
+                return ResourceManager.GetString("MSGScaleIdentitySpecUtils", resourceCulture);
+            }
+        }
 
         /// <summary>
         ///   Looks up a localized string similar to boundary #{0} is not a finite number: {1}.
@@ -1406,29 +1505,11 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The N42 energy calibration is a polynomial of order {0}, and the application reads polynomials up to order 4..
-        /// </summary>
-        public static string ERRUnsupportedPolynomialOrderN42 {
-            get {
-                return ResourceManager.GetString("ERRUnsupportedPolynomialOrderN42", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Unsupported calibration method polynom order {0}. Only 2,3,4,5 points exist..
+        ///   Looks up a localized string similar to Unsupported energy calibration: polynomial order {0}. The order must be 1 or higher..
         /// </summary>
         public static string ERRUnsupportedCalibrationMethod {
             get {
                 return ResourceManager.GetString("ERRUnsupportedCalibrationMethod", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Unsupported calibration points number. Got polynom order = {0}.
-        /// </summary>
-        public static string ERRUnsupportedCalibrationOrder {
-            get {
-                return ResourceManager.GetString("ERRUnsupportedCalibrationOrder", resourceCulture);
             }
         }
         
@@ -1734,7 +1815,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Minimum peaks requirement: {0}.
+        ///   Looks up a localized string similar to Min. peaks: {0}.
         /// </summary>
         public static string MinPeaksRequirement {
             get {
@@ -1836,6 +1917,33 @@ namespace BecquerelMonitor.Properties {
         public static string MSGFwhmPeaksOtherGridSkipped {
             get {
                 return ResourceManager.GetString("MSGFwhmPeaksOtherGridSkipped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The spectrum carries the default FWHM calibration; the device&apos;s FWHM calibration was used instead..
+        /// </summary>
+        public static string MSGFwhmFileStandInReplaced {
+            get {
+                return ResourceManager.GetString("MSGFwhmFileStandInReplaced", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The spectrum carries the default FWHM calibration. This will degrade the FSA decomposition and the activity calculation. Please calibrate FWHM..
+        /// </summary>
+        public static string MSGFwhmDeviceNotFoundBuiltIn {
+            get {
+                return ResourceManager.GetString("MSGFwhmDeviceNotFoundBuiltIn", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} of {1}:.
+        /// </summary>
+        public static string MSGFwhmSpectraCount {
+            get {
+                return ResourceManager.GetString("MSGFwhmSpectraCount", resourceCulture);
             }
         }
         
@@ -3121,7 +3229,7 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to  (bg rejected).
+        ///   Looks up a localized string similar to  (bg not subtracted).
         /// </summary>
         public static string FSABackgroundRejectedMark {
             get {
@@ -3166,7 +3274,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to · suppressed.
+        ///   Looks up a localized string similar to  · instrument dominates.
         /// </summary>
         public static string FSASuppressedMark {
             get {
@@ -3200,7 +3308,52 @@ namespace BecquerelMonitor.Properties {
                 return ResourceManager.GetString("FSASumPeakRow", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Σ {0} keV = {1}.
+        /// </summary>
+        public static string FSASumPeakLineRow {
+            get {
+                return ResourceManager.GetString("FSASumPeakLineRow", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} and {1} more.
+        /// </summary>
+        public static string FSASumPeakLineMore {
+            get {
+                return ResourceManager.GetString("FSASumPeakLineMore", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} counts.
+        /// </summary>
+        public static string FSASumPeakLineCounts {
+            get {
+                return ResourceManager.GetString("FSASumPeakLineCounts", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0}: {1} = {2} keV — {3} counts.
+        /// </summary>
+        public static string FSASumPeakLineHintPair {
+            get {
+                return ResourceManager.GetString("FSASumPeakLineHintPair", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Shown because the area is at least 3σ of the measured spectrum within ±FWHM: {0} counts.
+        /// </summary>
+        public static string FSASumPeakLineHintSigma {
+            get {
+                return ResourceManager.GetString("FSASumPeakLineHintSigma", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to {0} — {1} chain.
         /// </summary>
@@ -3336,7 +3489,7 @@ namespace BecquerelMonitor.Properties {
             }
         }
         /// <summary>
-        ///   Looks up a localized string similar to not resolved.
+        ///   Looks up a localized string similar to not found.
         /// </summary>
         public static string FSANotResolvedNoShare {
             get {
@@ -3345,7 +3498,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The image was offered to the fit and got zero: the model continuum holds that band. Its size needs the detector geometry..
+        ///   Looks up a localized string similar to The analysis looked for this component and did not find it: the baseline explains its whole region. A detector geometry is needed to estimate the detection limit..
         /// </summary>
         public static string FSANotResolvedHint {
             get {
@@ -3381,7 +3534,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to FSAUndetectedFoldedRow.
+        ///   Looks up a localized string similar to below the detection limit ({0}).
         /// </summary>
         public static string FSAUndetectedFoldedRow {
             get {
@@ -6664,7 +6817,7 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to {0}: annihilation is its only measurable radiation — the other lines in the fit band yield {1} % per decay, below the {2} % floor; the free 511 image and the nuclide are one column, so the free image is dropped.
+        ///   Looks up a localized string similar to {0}: visible in the spectrum only through 511 keV annihilation (other lines give {1} % per decay, threshold {2} %); the separate 511 keV component is removed so as not to duplicate the nuclide.
         /// </summary>
         public static string FSAAnnihilationDegenerate {
             get {

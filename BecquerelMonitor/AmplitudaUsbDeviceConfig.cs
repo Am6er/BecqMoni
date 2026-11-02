@@ -75,5 +75,12 @@
         {
             return deadTimeMicroseconds * 1.0E-06;
         }
+
+        // (`AMBER269`) The unit's serial for matching a spectrum file to this config; empty = none.
+        [System.Xml.Serialization.XmlIgnore]
+        public override string InstrumentSerialNumber
+        {
+            get { return serialNumber; }
+        }
     }
 }

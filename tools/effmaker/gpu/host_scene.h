@@ -186,6 +186,22 @@ inline void Read_scatterElements(BlobReader& r)
         e.Z13 = r.Real();
         e.ZZ1 = r.Real();
         e.Mott = r.Bool();
+        e.MottFit = r.Bool();
+        for (int k = 0; k < 30; k++)
+        {
+            e.MottCoef[k] = r.Real();
+        }
+        // (`AMBER274`, физика 30, `phys29c`) часть множителя и узлы DPWA (e⁻, e⁺) — GpuPackScene.cs.
+        e.Part = r.Int();
+        e.DpwaEl = r.Reals(e.DpwaElLen);
+        e.DpwaElInv = r.Real();
+        e.DpwaPos = r.Reals(e.DpwaPosLen);
+        e.DpwaPosInv = r.Real();
+        if (e.DpwaElLen % 10 != 0 || e.DpwaPosLen % 10 != 0 || (e.DpwaElLen > 0 && e.DpwaElLen < 20)
+            || (e.DpwaPosLen > 0 && e.DpwaPosLen < 20))
+        {
+            r.Fail("узлы DPWA элемента рассеяния: длина не кратна 10 или меньше двух узлов");
+        }
         r.End();
         h.scatterElements.push_back(e);
     }
@@ -291,6 +307,18 @@ inline void Read_scene(BlobReader& r)
     s.waterTable = r.Int();
     s.crystalHasPartials = r.Bool();
     s.crystalRadiationLength = r.Real();
+    // (`AMBER274`) Капсула точечного источника и воздух до корпуса.
+    s.capsulePoint = r.Bool();
+    s.capsuleRingHalf = r.Real();
+    s.capsuleRingRIn = r.Real();
+    s.capsuleRingROut = r.Real();
+    s.capsuleRingMedium = r.Int();
+    s.capsuleRingDensity = r.Real();
+    s.capsuleThickness = r.Real();
+    s.capsuleFilmMedium = r.Int();
+    s.capsuleFilmDensity = r.Real();
+    s.pointAirCm = r.Real();
+    s.capsuleAir = r.Bool();
     r.End();
 
     // Ветка «кристалл без парциальных сечений» (`CrystalChannels`, :3673–3693) на

@@ -390,7 +390,14 @@ namespace BecquerelMonitor
 
         static string NameText(MeasurementResult result)
         {
-            return result.Line != null ? result.Line.Name ?? string.Empty : string.Empty;
+            if (result.Line == null)
+            {
+                return string.Empty;
+            }
+
+            // (`AMBER274`, Ф14) пометка «по сплошному спектру» — при имени, имя строки то же
+            string name = result.Line.Name ?? string.Empty;
+            return string.IsNullOrEmpty(result.Line.Note) ? name : name + " — " + result.Line.Note;
         }
 
         static Cell NameCell(MeasurementResult result)
@@ -498,8 +505,13 @@ namespace BecquerelMonitor
         const string KeyFsaDetails = "DCResult_FsaDetails";
         const string KeyFsaMdaHeader = "DCResult_FsaMdaHeader";
         const string KeyFsaMdaTip = "DCResult_FsaMdaTip";
+        // (`AMBER274`, «MDA под порог z ≥ 3») правило MDA этого разбора — в заголовке и подсказке
+        const string KeyFsaMdaHeaderRule = "DCResult_FsaMdaHeaderRule";
+        const string KeyFsaMdaTipRule = "DCResult_FsaMdaTipRule";
         const string KeyFsaStale = "DCResult_FsaStale";
         const string KeyFsaError = "DCResult_FsaError";
+        // (`AMBER274`, Ф14) пометка строки чистого бета-излучателя
+        const string KeyFsaContinuumOnly = "DCResult_FsaContinuumOnly";
 
         FullSpectrumAnalysis.FsaMeasurementResult.Texts FsaTexts()
         {
@@ -514,6 +526,7 @@ namespace BecquerelMonitor
                 ReasonOrigin = OwnText(KeyFsaReasonOrigin),
                 ReasonNoResult = OwnText(KeyFsaReasonNoResult),
                 Details = OwnText(KeyFsaDetails),
+                ContinuumOnly = OwnText(KeyFsaContinuumOnly),
                 // (П254) происхождение кривой словами окна: ключи DCResult_FsaOrigin<член>
                 // (en + ru); нет ключа — имя члена перечисления, как прежде
                 OriginName = origin => OwnResources.GetString(KeyFsaOriginPrefix + origin)
@@ -663,6 +676,58 @@ namespace BecquerelMonitor
             document.EnergySpectrumView.SetFsaHighlight(layer, true);
         }
 
+        /// <summary>
+        /// ⛔ (`AMBER274`, решение Amber 02.11.2026 вопросником, дословно: «MDA под порог z ≥ 3
+        /// (Рекомендую)») ЗАГОЛОВОК КОЛОНКИ MDA НАЗЫВАЕТ ПРАВИЛО: MDA разбора посчитан под порог,
+        /// которым FSA признаёт строку найденной (k_α — порог отсева значимостью), и человек
+        /// обязан видеть, ЧТО обещает число: «найдётся так в 1 − β измерений». Подсказка —
+        /// квантили и уровни словами (<see cref="FsaMdaRuleTip"/>). Квантилей у результата нет
+        /// (пределов не считали) — прежние «MDA» и подсказка. Колонка растёт под текст, как
+        /// первая (<see cref="SetFsaHeader"/>), но не сжимается: ширину решает человек.
+        /// </summary>
+        void SetFsaMdaHeader(FullSpectrumAnalysis.FsaResult result)
+        {
+            Column column = this.columnModel1.Columns[3];
+            string tip = FsaMdaRuleTip(result);
+            if (tip == null)
+            {
+                column.Text = OwnText(KeyFsaMdaHeader);
+                column.ToolTipText = OwnText(KeyFsaMdaTip);
+                return;
+            }
+
+            column.Text = string.Format(CultureInfo.InvariantCulture, OwnText(KeyFsaMdaHeaderRule),
+                                        result.LimitDecisionQuantile.ToString("0.##", CultureInfo.InvariantCulture));
+            column.ToolTipText = tip;
+            System.Drawing.Font font = this.table1.HeaderFont ?? this.table1.Font;
+            int needed = System.Windows.Forms.TextRenderer.MeasureText(column.Text, font).Width + 12;
+            if (column.Width < needed)
+            {
+                column.Width = needed;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER274`) Подсказка колонки MDA словами окна: порог z (k_α) и его α, β и k_β — по
+        /// квантилям результата; null — квантилей нет. Открыта пробе. Числа — инвариантной
+        /// культурой (`A242`).
+        /// </summary>
+        public static string FsaMdaRuleTip(FullSpectrumAnalysis.FsaResult result)
+        {
+            if (result == null || !(result.LimitDecisionQuantile > 0.0) || !(result.LimitDetectionQuantile > 0.0))
+            {
+                return null;
+            }
+
+            double alpha = 50.0 * MathNet.Numerics.SpecialFunctions.Erfc(result.LimitDecisionQuantile / Math.Sqrt(2.0));
+            double power = 100.0 - 50.0 * MathNet.Numerics.SpecialFunctions.Erfc(result.LimitDetectionQuantile / Math.Sqrt(2.0));
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyFsaMdaTipRule),
+                                 result.LimitDecisionQuantile.ToString("0.##", CultureInfo.InvariantCulture),
+                                 alpha.ToString("0.###", CultureInfo.InvariantCulture),
+                                 power.ToString("0.#", CultureInfo.InvariantCulture),
+                                 result.LimitDetectionQuantile.ToString("0.###", CultureInfo.InvariantCulture));
+        }
+
         void SetFsaHeader(string text, string tip)
         {
             Column column = this.columnModel1.Columns[0];
@@ -718,8 +783,10 @@ namespace BecquerelMonitor
             // (`AMBER211`, решение Amber 07.10.2026 вопросником, дословно: «Окно
             // результата читает сеанс документа») СЕАНС — ДОКУМЕНТА, тот же, что у
             // графика и окна отчёта: один расчёт на спектр, и настройки разбора у
-            // всех трёх одни — галочки отчёта FSA (состав «из сета» и равновесие —
-            // их умолчания, `FromSetForFsa` / `ChainEquilibrium`). Прежний СВОЙ сеанс
+            // всех трёх одни — семь расчётных переключателей окна отчёта FSA, общая
+            // настройка приложения (`GlobalConfigInfo.FsaCalculation`, `AMBER212`:
+            // источник состава `DbLookupsForFsa` — умолчание «From NucBase», равновесие
+            // `ChainEquilibrium` и прочие; состава «из сета» среди них нет). Прежний СВОЙ сеанс
             // (П236, «Два, как сейчас») снят: на каждое обновление спектра шло два
             // расчёта по секундам, а при записи спектра — непрерывно (пауза при
             // записи — у сеанса, `FsaAnalysisSession.EnsureUpToDate`). Сеанс
@@ -806,6 +873,7 @@ namespace BecquerelMonitor
             // прежнему разбору, и заголовок говорит об этом.
             string head = summary.Describe(texts) + (running ? " " + OwnText(KeyFsaStale) : "");
             this.SetFsaHeader(head, summary.Details(texts));
+            this.SetFsaMdaHeader(result);
             return built ?? StatusCollection(rd, OwnText(KeyFsaReasonNoResult));
         }
 

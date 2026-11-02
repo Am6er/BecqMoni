@@ -324,6 +324,21 @@ DS_CrystalBoxZ = 6 cm
 // GeometryModel.InShield.
 DS_Shield = YES
 
+// Капсула точечного источника (наше расширение формата), см.
+// GeometryModel.SourceCapsule.
+DS_SourceCapsuleThickness = 0.1 cm
+DS_nSourceCapsuleElements = 2
+DS_RoSourceCapsule = 1.06
+DS_ZSourceCapsule[0] = 1
+DS_FractionsSourceCapsule[0] = 0.0774182
+DS_ZSourceCapsule[1] = 6
+DS_FractionsSourceCapsule[1] = 0.922582
+DS_FractionTypeSourceCapsule = MASS
+M_DS_SourceCapsule.MName = Polystyrene
+M_DS_SourceCapsule.Nmaterials = 1
+M_DS_SourceCapsule.Name[0] = Polystyrene                              
+M_DS_SourceCapsule.MatRelWeight[0] = 1
+
 // Разрешение прибора (наше расширение формата): допуск
 // поправки на однократное рассеяние, см. GeometryModel.FwhmAt662Percent.
 DS_Fwhm662 = 6.66 %

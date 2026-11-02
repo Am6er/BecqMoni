@@ -44,6 +44,17 @@ u"""Сторож ВИТРИНЫ FSA (`T260`): картинка разбора н
 `--rel=`/`--abs=` — только для замера разброса, не для приёмки. Строки `ROW`
 и `SCREEN` (имя, значение, подсказка) сравниваются дословно.
 
+(`AMBER274`, полоса gc5 03.11.2026) Подсказка окна многострочная
+(`AppUi.WrapWords`, `AMBER264`), а проба печатала её как есть: продолжения
+уходили в журнал пробы отдельными строками, и сторож судил только ПЕРВУЮ
+строку подсказки — правка во второй строке проходила молча. Теперь поля
+`SCREEN` приходят экранированными (`FsaStackShot.ScreenField`: перевод строки —
+`\\n`, табуляция — `\\t`, косая — `\\\\`) после метки `SCREEN_FORMAT\\tescaped-v1`;
+строки без метки (или с другой) — отказ стенда, код 2, а не тихое сравнение
+обрезков. В таблице текстовое расхождение печатается окном вокруг ПЕРВОГО
+различающегося знака — иначе правка в хвосте длинной подсказки была бы в
+таблице двумя одинаковыми строками.
+
 ⛔ Отказ печатает ТАБЛИЦУ «спектр — режим — полоса — компонент — было — стало —
 Δ»: это и есть материал приёмки правки отображения. Правка того, что видит
 человек, принимается переобъявлением эталона с этой таблицей в отчёте полосы
@@ -74,7 +85,10 @@ u"""Сторож ВИТРИНЫ FSA (`T260`): картинка разбора н
       лентой невязки, мимо серого слоя) — ОБЯЗАН отказать, и среди строк
       таблицы обязана быть полоса 30–100 кэВ;
   (б) подсаженный эталон: доля `share_pct` первого компонента +1 % и слой в
-      полосе 300–700 кэВ ×1.01 — ОБЯЗАН отказать.
+      полосе 300–700 кэВ ×1.01 — ОБЯЗАН отказать;
+  (г) (gc5) подсаженный эталон: в первой строке `SCREEN` с многострочной
+      подсказкой подменён знак ПОСЛЕ первого перевода строки — ОБЯЗАН отказать
+      (прежний сторож этой подсадки не видел: печатается, видел бы ли).
 
   python tools/check_fsa_showcase.py [--probes=<каталог проб>] [--only=<ключ>[,…]]
                                      [--snapshot] [--selftest] [--rel=1e-9] [--abs=1e-6]
@@ -134,6 +148,11 @@ DUMP_FIXED = (u'net', u'model', u'continuum_raw', u'untied_tail', u'fit')
 RATES_NUMERIC = (u'count_rate', u'z', u'decision_threshold_rate', u'detection_limit_rate',
                  u'peak_counts', u'share_pct', u'total_yield_pct', u'limit_peak_counts',
                  u'degenerate', u'collinearity')
+# Вид строк `SCREEN` пробы (`FsaStackShot.ScreenFormat`, gc5): поля экранированы,
+# многострочная подсказка — одной строкой журнала. Другой вид — отказ стенда.
+SCREEN_FORMAT = u'escaped-v1'
+# Ширина окна текстового расхождения в таблице (знаков вокруг первого различия).
+TEXT_WINDOW = 120
 
 
 def _utf8_console():
@@ -530,6 +549,8 @@ def summarize(text, dump, rates, bands):
     for line in text.splitlines():
         if line.startswith(u'ROW\t'):
             result[u'rows'].append(line.split(u'\t')[1:])
+        elif line.startswith(u'SCREEN_FORMAT\t'):
+            result[u'_screen_format'] = line.split(u'\t', 1)[1].strip()
         elif line.startswith(u'SCREEN\t'):
             parts = line.split(u'\t')
             result[u'screen'].append([parts[1] if len(parts) > 1 else u'', parts[2] if len(parts) > 2 else u'',
@@ -580,6 +601,23 @@ def fmt(v):
     return u'%s' % (v,)
 
 
+def clip_pair(x, y, width=TEXT_WINDOW):
+    u"""(gc5) Две строки → окна не длиннее `width`, начатые чуть раньше ПЕРВОГО
+    различающегося знака: правка в хвосте длинной подсказки иначе печаталась бы
+    двумя одинаковыми обрезками. `None` — строки нет (печатается «—»)."""
+    if x is None or y is None:
+        return (u'—' if x is None else x[:width]), (u'—' if y is None else y[:width])
+    i = 0
+    n = min(len(x), len(y))
+    while i < n and x[i] == y[i]:
+        i += 1
+    lead = 30
+    if i <= width - lead:
+        return x[:width], y[:width]
+    start = i - lead
+    return u'…' + x[start:start + width - 1], u'…' + y[start:start + width - 1]
+
+
 def compare(ref, now, rel, abs_tol):
     u"""Список расхождений: (полоса/раздел, компонент, было, стало)."""
     diffs = []
@@ -615,8 +653,8 @@ def compare(ref, now, rel, abs_tol):
                 x = r[i] if i < len(r) else None
                 y = n[i] if i < len(n) else None
                 if x != y:
-                    diffs.append((what.upper(), u'строка %d' % (i + 1),
-                                  u' | '.join(x)[:90] if x else u'—', u' | '.join(y)[:90] if y else u'—'))
+                    cx, cy = clip_pair(u' | '.join(x) if x else None, u' | '.join(y) if y else None)
+                    diffs.append((what.upper(), u'строка %d' % (i + 1), cx, cy))
     # У эталона строки шапки лежат в `head_lines` (`head` там — ревизия git), у
     # свежей свёртки — в `head`; оба вида принимаются, чтобы сравнивать и эталон с
     # прогоном, и эталон с эталоном (подсадка в самопроверке).
@@ -626,7 +664,8 @@ def compare(ref, now, rel, abs_tol):
         now.get(u'head') if isinstance(now.get(u'head'), dict) else {})
     for k in sorted(set(rh) | set(nh)):
         if rh.get(k) != nh.get(k):
-            diffs.append((u'шапка', k, (rh.get(k) or u'—')[:90], (nh.get(k) or u'—')[:90]))
+            cx, cy = clip_pair(rh.get(k), nh.get(k))
+            diffs.append((u'шапка', k, cx, cy))
     return diffs
 
 
@@ -652,8 +691,17 @@ def print_diffs(member_key, mode, diffs, limit=None):
             delta = fmt(d) + pct
         else:
             delta = u'≠'
+        ta, tb = fmt(a), fmt(b)
+        if not (isinstance(a, float) and isinstance(b, float)) and (len(ta) > 18 or len(tb) > 18):
+            # (gc5) Текст длиннее столбца — целым окном ниже строки таблицы
+            # (`clip_pair` уже начал его у первого различия), а не 18 знаками.
+            say(u'  %-22s %-14s %-16s %-28s %18s %18s %14s' % (member_key[:22], mode[:14], band[:16], comp[:28],
+                                                                 u'↓', u'↓', delta))
+            say(u'      было : ' + ta)
+            say(u'      стало: ' + tb)
+            continue
         say(u'  %-22s %-14s %-16s %-28s %18s %18s %14s' % (member_key[:22], mode[:14], band[:16], comp[:28],
-                                                             fmt(a)[:18], fmt(b)[:18], delta))
+                                                             ta[:18], tb[:18], delta))
 
 
 def ref_path(member_key, mode):
@@ -681,7 +729,16 @@ def run_pairs(manifest, members, rel, abs_tol, extra_by_member=None, tag=u''):
             if code != 0 or not (dump and os.path.isfile(dump) and os.path.isfile(rates)):
                 tail = u'\n'.join(u'      ' + l for l in text.strip().splitlines()[-15:])
                 return None, (u'%s / %s: FsaStackShot вернул код %d (%.1f с):\n%s' % (member[u'key'], mode, code, dt, tail))
-            results[(member[u'key'], mode)] = (summarize(text, dump, rates, bands), dt)
+            summary = summarize(text, dump, rates, bands)
+            fmt_seen = summary.pop(u'_screen_format', None)
+            if summary[u'screen'] and fmt_seen != SCREEN_FORMAT:
+                # (gc5) Строки окна без метки вида — проба печатает их не тем видом,
+                # что судит сторож (до 03.11.2026 — многострочная подсказка как
+                # есть, продолжения мимо `SCREEN`): сравнение обрезков — не приговор.
+                return None, (u'%s / %s: строки окна (SCREEN) пришли видом «%s», сторож судит «%s» — '
+                              u'проба собрана из другого FsaStackShot.cs; пересобрать build_all.ps1'
+                              % (member[u'key'], mode, fmt_seen or u'без метки SCREEN_FORMAT', SCREEN_FORMAT))
+            results[(member[u'key'], mode)] = (summary, dt)
             say(u'  %s / %s: %.1f с' % (member[u'key'], mode, dt))
     return results, None
 
@@ -982,9 +1039,41 @@ def selftest(manifest, members, results, inputs, args):
     else:
         ok = False
         say(u'⛔ (б) подсаженный эталон НЕ отвергнут: расхождений %d, ждали %s' % (len(diffs), u', '.join(sorted(want))))
+    # (г) правка во ВТОРОЙ строке подсказки (gc5, `AMBER274`): прежний сторож видел
+    #     только первую строку многострочной подсказки — подсадка в хвосте обязана
+    #     отказать; печатается и то, увидел бы её прежний вид (первая строка) или нет.
+    now = results[(member[u'key'], mode)][0]
+    nl = u'\\n'
+    hit = None
+    for i, row in enumerate(now.get(u'screen', [])):
+        hint = row[2] if len(row) > 2 else u''
+        if nl in hint and len(hint) > hint.index(nl) + len(nl):
+            hit = i
+            break
+    if hit is None:
+        ok = False
+        say(u'⛔ (г) в строках окна нет многострочной подсказки — правку во второй строке проверить нечем')
+    else:
+        planted = json.loads(json.dumps(now))
+        hint = planted[u'screen'][hit][2]
+        pos = hint.index(nl) + len(nl)
+        ch = hint[pos]
+        planted[u'screen'][hit][2] = hint[:pos] + (u'Ы' if ch != u'Ы' else u'Ж') + hint[pos + 1:]
+        diffs = compare(planted, now, rel, abs_tol)
+        caught = [d for d in diffs if d[0] == u'SCREEN' and d[1] == u'строка %d' % (hit + 1)]
+        first_line_blind = planted[u'screen'][hit][2].split(nl)[0] == now[u'screen'][hit][2].split(nl)[0]
+        if caught and len(diffs) == len(caught):
+            say(u'✅ (г) правка во второй строке подсказки (строка окна %d, знак %d) поймана; '
+                u'прежний вид (только первая строка) её %s'
+                % (hit + 1, pos, u'НЕ видел бы' if first_line_blind else u'видел бы'))
+            print_diffs(member[u'key'], mode, caught, 2)
+        else:
+            ok = False
+            say(u'⛔ (г) правка во второй строке подсказки НЕ поймана (или поймано лишнее): расхождений %d, '
+                u'в строке %d — %d' % (len(diffs), hit + 1, len(caught)))
     say(u'')
-    say(u'САМОПРОВЕРКА %s' % (u'ПРОШЛА: сторож проходит на своём эталоне и отказывает на яме и на подсадке'
-                               if ok else u'НЕ ПРОШЛА'))
+    say(u'САМОПРОВЕРКА %s' % (u'ПРОШЛА: сторож проходит на своём эталоне и отказывает на яме, на подсадке '
+                               u'и на правке во второй строке подсказки' if ok else u'НЕ ПРОШЛА'))
     return 0 if ok else 1
 
 

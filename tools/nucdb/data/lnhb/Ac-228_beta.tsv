@@ -1,0 +1,59 @@
+# LNHB/DDEP, Table de Radionucleides: Ac-228 (228AC)
+# https://www.lnhb.fr/nuclides/Ac-228_tables.pdf, sha256 fab57d776f09213d741b63109be828d713bfc44560db1389f7f4d672d38438b5 (снято 01.11.2026)
+# оценка: NPL / A. Pearce, 20/04/2009 - 12/1/2010
+# Q- LNHB, кэВ: 2123.8
+# раздел 2.x «β Transitions» (граница, вероятность) и «Electron Emissions» (avg)
+label	type	max_kev	max_unc	prob	prob_unc	avg_kev	avg_unc	nature
+β−0,1	B-	2066.0	27	6	4	742.8	11	Allowed
+β−0,2	B-	1937.0	27	0.6	5	690.2	11	Allowed
+β−0,3	B-	1795.8	27	0.72	23	605.4	11	Unique 1st Forbidden
+β−0,4	B-	1745.6	27	0.147	21	587.3	11	Unique 2nd Forbidden
+β−0,5	B-	1727.7	27	12.4	5	605.7	11	1st Forbidden
+β−0,8	B-	1249.3	27	0.17	10	417.2	11	Allowed
+β−0,10	B-	1179.6	27	0.087	16	390.6	11	Allowed or 1st Forbidden
+β−0,11	B-	1155.4	27	0.18	3	381.4	11	1st Forbidden
+β−0,12	B-	1154.8	27	31	4	381.1	11	Allowed
+β−0,13	B-	1144.3	27	0.238	20	377.1	11	Allowed
+β−0,14	B-	1107.4	27	0.39	6	363.1	11	Allowed or 1st Forbidden
+β−0,15	B-	1101.3	27	3.0	4	360.8	11	Allowed
+β−0,16	B-	1063.9	27	0.099	11	346.7	11	1st Forbidden
+β−0,18	B-	1000.8	27	6.67	18	323.2	10	1st Forbidden
+β−0,19	B-	970.3	27	6	3	311.9	10	Allowed
+β−0,20	B-	955.4	27	3.39	13	306.4	10	1st Forbidden
+β−0,22	B-	948.4	27	0.166	19	303.9	10	Allowed
+β−0,23	B-	897.2	27	0.67	8	285.1	10	1st Forbidden
+β−0,24	B-	826.4	27	1.46	11	259.4	10	1st Forbidden Unique
+β−0,25	B-	779.7	27	0.208	18	242.7	10	1st Forbidden
+β−0,26	B-	707.7	27	0.060	8	217.3	10	Allowed or First Forbidden
+β−0,27	B-	691.8	27	1.6	5	211.8	10	Allowed
+β−0,30	B-	584.6	27	0.030	6	175.0	9	Allowed
+β−0,31	B-	535.5	27	8.8	23	158.5	9	1st Forbidden
+β−0,32	B-	506.0	27	0.071	10	148.7	9	Allowed
+β−0,33	B-	485.5	27	1.23	6	142.0	9	Allowed
+β−0,34	B-	480.7	27	0.82	3	140.4	9	1st Forbidden
+β−0,35	B-	477.8	27	4.12	20	139.5	9	Allowed
+β−0,36	B-	441.0	27	1.21	4	127.5	9	Allowed
+β−0,37	B-	440.0	27	0.20	3	127.2	9	1st Forbidden
+β−0,38	B-	435.4	27	2.50	16	125.7	9	Allowed
+β−0,39	B-	399.5	27	1.93	8	114.3	9	Allowed
+β−0,40	B-	388.4	27	0.149	11	110.7	9	Allowed
+β−0,41	B-	379.9	27	0.378	16	108.1	9	Allowed
+β−0,42	B-	365.6	27	0.060	8	103.6	9	Allowed
+β−0,43	B-	363.6	27	0.139	12	103.0	9	Allowed
+β−0,44	B-	327.9	27	0.035	6	91.9	8	Allowed
+β−0,45	B-	326.2	27	0.051	8	91.4	8	Allowed
+β−0,46	B-	230.8	27	0.109	8	62.8	8	Allowed
+β−0,47	B-	223.9	27	0.069	8	60.8	8	Allowed
+β−0,48	B-	217.2	27	0.025	5	58.8	8	Allowed
+β−0,49	B-	195.2	27	0.061	8	52.5	8	Allowed
+β−0,50	B-	186.6	27	0.053	6	50.0	8	Allowed
+β−0,51	B-	178.9	27	0.307	22	47.8	8	Allowed
+β−0,52	B-	165.1	27	0.0038	8	43.9	8	Allowed
+β−0,53	B-	158.8	27	0.0132	14	42.2	8	Allowed
+β−0,54	B-	136.3	27	0.07	4	35.9	8	Allowed
+β−0,55	B-	113.7	27	0.238	15	29.7	8	Allowed
+β−0,56	B-	110.2	27	0.0032	10	28.7	7	Allowed
+β−0,57	B-	101.0	27	0.061	6	26.2	7	Allowed or 1st Forbidden
+β−0,58	B-	94.0	27	0.026	4	24.3	7	Allowed
+β−0,59	B-	86.8	27	0.0069	11	22.4	8	Allowed
+β−0,60	B-	0.7	27	0.0047	11	0.18	68	Allowed
