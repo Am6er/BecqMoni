@@ -726,3 +726,146 @@ __global__ void AnalogKernelRegen(NodeArgs a, unsigned long long* next, int pois
     AddSlot(q, A_COUNT_ESCAPE_DROPPED, (double)s.CountEscapeDropped);
     AddSlot(q, A_COUNT_PENDING_DROPPED, (double)s.CountPendingDropped);
 }
+
+// =====================================================================================
+// (`AMBER274`, Э1 + физика 28) Раздел электрона пробы: тело цикла
+// `EfficiencySimulator.ElectronSourceResponse` для истории i — точка источника, изотропное
+// направление и его вес, история `ElectronHistoryFrom`, счёт по шкале света (свет истории /
+// свет пика 662 на кэВ) или оставленной энергии. Гистограмма — a.hist (длина a.bins, хост
+// делит на n и обрезает хвост, как `ResponseElectronSection.Trim`); скаляры — a.scal (E_*).
+// Нить — история (ядро без подкачки: электронов пробы мало, и их история короткая).
+// =====================================================================================
+__global__ void ElectronSourceKernel(NodeArgs a)
+{
+    Sim s;
+    InitThread(s);
+    s.channelHistograms = nullptr;
+    s.channelBins = 0;
+    s.lightSum = nullptr;
+    s.lightSumLen = 0;
+
+    // = `this.source.Retune(this, te)` — раз до цикла.
+    s.SourceRetune(a.energyKev);
+    bool light = D.scene->lightYield >= 0 && a.lightPerKev > (real)0.0;
+    Sim::EsrcStats st;
+    st.entered = st.queuedPhotons = st.annihilations = st.stoppedInCapsule = 0;
+    long long scored = 0;
+    double sumDeposit = 0.0;
+    long long gid = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    long long stride = (long long)gridDim.x * blockDim.x;
+    for (long long i = gid; i < a.n; i += stride)
+    {
+        SetHistoryRng(s, a, i);
+        real x, y, z;
+        real weight = s.SourceNextWeighted(x, y, z);
+        // = ElectronSourceHistory: изотропное направление и вес направления источника.
+        real ux, uy, uz;
+        s.Isotropic(ux, uy, uz);
+        weight *= s.SourceDirectionWeight(x, y, z, ux, uy, uz);
+        real deposited = s.ElectronHistoryFrom(a.energyKev, a.positron != 0, x, y, z, ux, uy, uz, st);
+        if (!(deposited > (real)0.0) || !(weight > (real)0.0))
+        {
+            continue;
+        }
+
+        real value = light ? s.lightDeposit / a.lightPerKev : deposited;
+        int bin = (int)(value / a.binKev + (real)0.5);
+        if (bin < 0)
+        {
+            bin = 0;
+        }
+
+        if (bin >= a.bins)
+        {
+            bin = a.bins - 1;
+        }
+
+        atomicAdd(a.hist + bin, (double)weight);
+        scored++;
+        sumDeposit += (double)weight * (double)deposited;
+    }
+
+    double* q = a.scal;
+    AddSlot(q, E_SCORED, (double)scored);
+    AddSlot(q, E_ENTERED, (double)st.entered);
+    AddSlot(q, E_QUEUED, (double)st.queuedPhotons);
+    AddSlot(q, E_ANNIHILATIONS, (double)st.annihilations);
+    AddSlot(q, E_STOPPED_CAPSULE, (double)st.stoppedInCapsule);
+    AddSlot(q, E_SUM_DEPOSIT, sumDeposit);
+    AddSlot(q, E_COUNT_PENDING_DROPPED, (double)s.CountPendingDropped);
+    AddSlot(q, E_COUNT_ESCAPE_DROPPED, (double)s.CountEscapeDropped);
+    AddSlot(q, E_COUNT_LAYER_LEFT_SCENE, (double)s.CountLayerLeftScene);
+}
+
+// =====================================================================================
+// (`AMBER274` Ф8, полоса `f8cyl` 02.11.2026) ЯДРО СТРОКИ ВЕТВИ — событие целиком (= C#
+// `EfficiencySimulator.BranchEventResponse`): точка источника, изотропное направление и его
+// вес, история `BranchEventFrom`; две гистограммы ОДНИХ историй — весь занос (a.hist) и занос
+// одного каскада (histGamma). Скаляры — слоты E_* с иным смыслом (их читает
+// `RmGpu.ElectronBranchRows`): E_SCORED — засчитано событий, E_ENTERED — бета вошла,
+// E_QUEUED — квантов каскада, E_ANNIHILATIONS — засчитано каскадов, E_STOPPED_CAPSULE —
+// бета осталась в капсуле, E_SUM_DEPOSIT — упоров каскада.
+// =====================================================================================
+__global__ void ElectronBranchKernel(NodeArgs a, Sim::BranchTabG tab, double* histGamma)
+{
+    Sim s;
+    InitThread(s);
+    s.channelHistograms = nullptr;
+    s.channelBins = 0;
+    s.lightSum = nullptr;
+    s.lightSumLen = 0;
+
+    // = `this.source.Retune(this, spec.EndpointKev)` — раз до цикла.
+    s.SourceRetune(a.energyKev);
+    bool light = D.scene->lightYield >= 0 && a.lightPerKev > (real)0.0;
+    Sim::BranchStats st;
+    st.entered = st.cascadeQuanta = st.cascadeElectrons = st.stoppedInCapsule = st.cascadeCut = 0;
+    long long scored = 0, scoredGamma = 0;
+    long long gid = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    long long stride = (long long)gridDim.x * blockDim.x;
+    for (long long i = gid; i < a.n; i += stride)
+    {
+        SetHistoryRng(s, a, i);
+        real x, y, z;
+        real weight = s.SourceNextWeighted(x, y, z);
+        real ux, uy, uz;
+        s.Isotropic(ux, uy, uz);
+        weight *= s.SourceDirectionWeight(x, y, z, ux, uy, uz);
+        real gammaDeposit, gammaLight;
+        real deposited = s.BranchEventFrom(tab, x, y, z, ux, uy, uz, st, gammaDeposit, gammaLight);
+        if (!(weight > (real)0.0))
+        {
+            continue;
+        }
+
+        if (deposited > (real)0.0)
+        {
+            real value = light ? s.lightDeposit / a.lightPerKev : deposited;
+            int bin = (int)(value / a.binKev + (real)0.5);
+            bin = bin < 0 ? 0 : (bin >= a.bins ? a.bins - 1 : bin);
+            atomicAdd(a.hist + bin, (double)weight);
+            scored++;
+        }
+
+        // = `BranchDepositFloorKev` (1e-6 кэВ): разность «после каскада − до» без вклада — ноль.
+        if (gammaDeposit > (real)1.0e-6)
+        {
+            real value = light ? gammaLight / a.lightPerKev : gammaDeposit;
+            int bin = (int)(value / a.binKev + (real)0.5);
+            bin = bin < 0 ? 0 : (bin >= a.bins ? a.bins - 1 : bin);
+            atomicAdd(histGamma + bin, (double)weight);
+            scoredGamma++;
+        }
+    }
+
+    double* q = a.scal;
+    AddSlot(q, E_SCORED, (double)scored);
+    AddSlot(q, E_ENTERED, (double)st.entered);
+    AddSlot(q, E_QUEUED, (double)st.cascadeQuanta);
+    AddSlot(q, E_ANNIHILATIONS, (double)scoredGamma);
+    AddSlot(q, E_STOPPED_CAPSULE, (double)st.stoppedInCapsule);
+    AddSlot(q, E_SUM_DEPOSIT, (double)st.cascadeCut);
+    AddSlot(q, E_COUNT_PENDING_DROPPED, (double)s.CountPendingDropped);
+    AddSlot(q, E_COUNT_ESCAPE_DROPPED, (double)s.CountEscapeDropped);
+    AddSlot(q, E_COUNT_LAYER_LEFT_SCENE, (double)s.CountLayerLeftScene);
+}

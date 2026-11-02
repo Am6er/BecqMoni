@@ -43,7 +43,9 @@ P195 не звал никто, и все три были красны на чи�
 2. Прогон четырёх проб из каталога проб (параллельно; каждая пишет снимки во
    временный каталог системы, снимается после прогона, `--keep` оставляет; в
    дерево и в каталог проб не пишется ничего):
-     report — `FsaReportViewProbe --spectrum=AS80_Th232Medal --control=AS80_Cs137_0cm`;
+     report — `FsaReportViewProbe --spectrum=AS80_Th232Medal --control=AS80_Cs137_0cm
+              --store=<склад матриц корпуса>` (`AMBER286`: раздел 16 разбирает торий с
+              матрицей кривой из склада — в память, склад не пишется);
      f16    — `FsaSelectionProbeF16 --spectrum=AS80_Th232Medal`;
      f21    — `FsaResidualProbeF21 --spectrum=AS80_Th232Medal`;
      p195   — `FsaInputCheckProbeP195 --spectrum=G1S16_K40_Mar
@@ -84,7 +86,8 @@ P195 не звал никто, и все три были красны на чи�
   --spectrum=/--control=  другая пара для report, F16 и F21 (у `--spectrum` обязан
                     быть ряд Th-232 и состав NucBase+равновесие, у `--control` —
                     ряда быть не должно);
-  --store=          склад матриц по guid кривой для P195 (умолчание — склад корпуса);
+  --store=          склад матриц по guid кривой для P195 и раздела 16 report (`AMBER286`)
+                    (умолчание — склад корпуса);
   --only=           гнать только названные пробы (свежесть судится по ним же);
   --skip-freshness  НЕ судить свежесть каталога проб (только стенд полосы, где каталог
                     собран из ДРУГОГО дерева — worktree; в приёмку не годится);
@@ -291,8 +294,9 @@ $out = [ordered]@{ bad = @($bad); note = @($note) }
 def probe_args(probe, plan, out_dir):
     u"""Доводы пробы; пути абсолютные (конфиг приложение читает от каталога exe, не от cwd)."""
     if probe.name == u'report':
+        # (`AMBER286`) склад — живому торию с матрицей в разделе 16
         return [u'--spectrum=' + plan['spectrum'], u'--control=' + plan['control'],
-                u'--out=' + os.path.join(out_dir, u'report')]
+                u'--out=' + os.path.join(out_dir, u'report'), u'--store=' + plan['store']]
     if probe.name == u'f16':
         args = [u'--spectrum=' + plan['spectrum'], u'--out=' + os.path.join(out_dir, u'f16')]
         if plan.get('f16_layer'):
@@ -309,7 +313,8 @@ def probe_args(probe, plan, out_dir):
 def inputs_of(probe, plan):
     u"""Входные файлы и каталоги пробы — (что, путь, каталог?) — для отказа «стенд»."""
     if probe.name == u'report':
-        return [(u'спектр', plan['spectrum'], False), (u'контроль', plan['control'], False)]
+        return [(u'спектр', plan['spectrum'], False), (u'контроль', plan['control'], False),
+                (u'склад матриц корпуса (вне git, tools/CORPUS/README.md §1.5)', plan['store'], True)]
     if probe.name in (u'f16', u'f21'):
         return [(u'спектр', plan['spectrum'], False)]
     return [(u'спектр P195', plan['p195_spectrum'], False),

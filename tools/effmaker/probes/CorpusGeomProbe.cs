@@ -167,6 +167,12 @@ class CorpusGeomProbe
         public GeometryDetectorFacing Facing = GeometryDetectorFacing.Front;
 
         /// <summary>
+        /// (`AMBER274`, правка Б критика `critpt30`) Точечная сцена ЧЕК-ИСТОЧНИКА Cs-137
+        /// (9.25 кБк, не ОСГИ): капсула — <see cref="CheckSourceCapsule"/>, а не умолчание ОСГИ.
+        /// </summary>
+        public bool CheckSource;
+
+        /// <summary>
         /// ЗАКРЕПЛЁННАЯ сцена: путь источника от корня `tools/CORPUS`, файл
         /// переносится в выход байт в байт, модель не строится, объём не
         /// проверяется (его проверять не по чему — сцена не из паспорта).
@@ -231,6 +237,72 @@ class CorpusGeomProbe
 
     /// <summary>Действующая глубина кристалла G1S этого прогона (умолчание — <see cref="G1SCrystalDepthMm"/>).</summary>
     static double g1sDepthMm = G1SCrystalDepthMm;
+
+    // ----------------------------------------------------------------------
+    // ⛔ КАПСУЛА ЧЕК-ИСТОЧНИКА Cs-137 (`AMBER274`, правка Б критика `critpt30`
+    // 02.11.2026; решение Amber 02.11.2026 вопросником, дословно: «Да, капсула
+    // полистирол 1 мм (Рекомендую)»). Сцены `RC103_point0`, `RC103_point50`,
+    // `ASN16_point0_house`, `ASN16_point10_house`, `AS80_point0` сняты ОДНИМ
+    // чек-источником 9.25 кБк (критик Н8), а не ОСГИ АСПЕКТ: умолчание капсулы
+    // ОСГИ (плёнка полиимида 0.05 мм + кольцо Al, `GeometryModel.OsgiCapsule`)
+    // к нему не относится, и раздел электрона пробы с ним корпус не подтверждает
+    // (`RC103_Cs137_0cm` 0.967 → 0.881…0.915 паспорта, χ² Пуассона хуже на 8–21 %;
+    // критик Н4). Капсула чек-источника — полистирол 1.06 г/см³, 1 мм к детектору,
+    // кольца нет: бета пробы до кристалла не доходит, фото сцены прежнее до бита
+    // (вещество капсулы фотонный перенос не видит, сдвиг точки — ноль, откат Ф6).
+    // ⚠ Устройство чек-источника не установлено (критик Н8): 1 мм пластика —
+    // допущение «бета не доходит», а не замер. Вещество — ВШИТАЯ библиотека
+    // (`GeometryMaterialLibrary.Seed`), а не файл библиотеки пользователя: сцена
+    // корпуса не должна зависеть от чужой правки веществ.
+    // ----------------------------------------------------------------------
+
+    /// <summary>Вещество капсулы чек-источника — имя во вшитой библиотеке.</summary>
+    const string CheckSourceCapsuleMaterial = "Polystyrene";
+
+    /// <summary>Плотность вещества капсулы чек-источника, г/см³ (обязана совпасть со вшитой).</summary>
+    const double CheckSourceCapsuleDensity = 1.06;
+
+    /// <summary>Толщина капсулы чек-источника к детектору, мм; кольца нет.</summary>
+    const double CheckSourceCapsuleMm = 1.0;
+
+    /// <summary>
+    /// Капсула чек-источника на точечную сцену. Отказ словами — не точка, нет вещества во
+    /// вшитой библиотеке или его плотность не та: молча поставить другое значило бы сцену
+    /// с другим клеймом раздела.
+    /// </summary>
+    static string ApplyCheckSourceCapsule(GeometryModel g)
+    {
+        if (!g.HasSourceCapsule)
+        {
+            return "чек-источник, а сцена не точечная — капсулы у неё нет";
+        }
+
+        GeometryMaterialLibrary.Entry entry = GeometryMaterialLibrary.Seed()
+            .FirstOrDefault(e => string.Equals(e.Name, CheckSourceCapsuleMaterial, StringComparison.Ordinal));
+        if (entry == null)
+        {
+            return "во вшитой библиотеке нет вещества «" + CheckSourceCapsuleMaterial + "»";
+        }
+
+        if (entry.Density != CheckSourceCapsuleDensity)
+        {
+            return string.Format(CultureInfo.InvariantCulture,
+                                 "плотность «{0}» во вшитой библиотеке {1}, а капсуле назначено {2}",
+                                 CheckSourceCapsuleMaterial, entry.Density, CheckSourceCapsuleDensity);
+        }
+
+        g.SourceCapsule = GeometryMaterialLibrary.Make(entry, CheckSourceCapsuleDensity, name => null);
+        g.SourceCapsuleThickness = CheckSourceCapsuleMm;
+        g.SourceCapsuleRingHeight = 0.0;
+        g.SourceCapsuleRingInnerDiameter = 0.0;
+        g.SourceCapsuleRingOuterDiameter = 0.0;
+        if (g.IsOsgiCapsule || g.SourceCapsule.IsEmpty)
+        {
+            return "капсула чек-источника не легла: состав пуст или совпал с ОСГИ";
+        }
+
+        return null;
+    }
 
     const string G1SPresetName = "Gamma-1S UDS-GC 63x63";
 
@@ -402,6 +474,17 @@ class CorpusGeomProbe
                 return 1;
             }
 
+            if (spec.CheckSource)
+            {
+                // (`AMBER274`, правка Б `critpt30`) капсула чек-источника Cs-137
+                string refusal = ApplyCheckSourceCapsule(g);
+                if (refusal != null)
+                {
+                    Console.Error.WriteLine(spec.Key + ": " + refusal);
+                    return 1;
+                }
+            }
+
             double volumeMm3 = SampleVolumeMm3(g);
             double volumeMl = volumeMm3 / 1000.0;
 
@@ -492,6 +575,13 @@ class CorpusGeomProbe
             {
                 Console.WriteLine("   принято  : ничего — точечный источник, задано только"
                                   + " расстояние {0:0.#} мм", g.PointDistance);
+                Console.WriteLine("   капсула  : {0}",
+                                  spec.CheckSource
+                                      ? string.Format(CultureInfo.InvariantCulture,
+                                                      "ЧЕК-ИСТОЧНИК — {0} {1:0.###} мм, {2:0.###} г/см3, без кольца"
+                                                      + " (AMBER274, правка Б critpt30; устройство источника не установлено)",
+                                                      g.SourceCapsule.Name, g.SourceCapsuleThickness, g.SourceCapsule.Density)
+                                      : g.IsOsgiCapsule ? "умолчание ОСГИ (строк в .in нет)" : "своя, из шаблона");
             }
 
             if (!dry)
@@ -1068,6 +1158,7 @@ class CorpusGeomProbe
         list.Add(new Geom
         {
             Key = "AS80_point0",
+            CheckSource = true,                 // (`AMBER274`, правка Б `critpt30`) капсула чек-источника
             Preset = "Atom Spectra Pro 80x80",
             Vessel = "точечный источник, вплотную к торцу",
             // `AS80_Am241` добавлен 08.09.2026: америциевых источников ТРИ, но
@@ -1095,6 +1186,7 @@ class CorpusGeomProbe
         list.Add(new Geom
         {
             Key = "RC103_point0",
+            CheckSource = true,                 // (`AMBER274`, правка Б `critpt30`) капсула чек-источника
             Preset = RC103,
             Vessel = "точечный источник, вплотную к торцу",
             Spectra = new[] { "RC103_Cs137_0cm" },
@@ -1308,6 +1400,7 @@ class CorpusGeomProbe
         list.Add(new Geom
         {
             Key = "RC103_point50",
+            CheckSource = true,                 // (`AMBER274`, правка Б `critpt30`) капсула чек-источника
             Preset = RC103,
             Vessel = "точечный источник, 50 мм от торца корпуса",
             Spectra = new[] { "RC103_Cs137_50mm" },
@@ -1341,6 +1434,7 @@ class CorpusGeomProbe
         list.Add(new Geom
         {
             Key = "ASN16_point0_house",
+            CheckSource = true,                 // (`AMBER274`, правка Б `critpt30`) капсула чек-источника
             Preset = ASN16,
             Vessel = "точечный источник, вплотную к торцу, в свинцовом домике",
             Spectra = new[] { "ASN16_Cs137" },
@@ -1355,6 +1449,7 @@ class CorpusGeomProbe
         list.Add(new Geom
         {
             Key = "ASN16_point10_house",
+            CheckSource = true,                 // (`AMBER274`, правка Б `critpt30`) капсула чек-источника
             Preset = ASN16,
             Vessel = "точечный источник, 10 см от торца корпуса, в свинцовом домике",
             Spectra = new[] { "ASN16_Cs137_10cm" },

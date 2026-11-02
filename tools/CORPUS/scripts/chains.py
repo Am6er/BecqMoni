@@ -115,6 +115,32 @@ def _sql_literals(body, what):
 LEVEL_CLAUSE = _level_clause()
 
 
+def _not_limit_clause(path=None):
+    u"""(`AMBER274`, полоса `f8diag` 02.11.2026) Вынуть `DecayParentRule.NotLimitClause` из
+    исходника приложения: строка с `intensity_unc` = `LT`/`LE` несёт ВЕРХНИЙ ПРЕДЕЛ, а не
+    выход (решение Amber вопросником, дословно: «Откатить и отсеивать по признаку
+    (Рекомендую)»). Читается, а не копируется, — тем же доводом, что `LEVEL_CLAUSE` (`T74`)."""
+    path = path or os.environ.get('LFL_DECAY_RULE_CS') or _RULE_CS
+    with io.open(path, encoding='utf-8-sig') as handle:
+        text = handle.read()
+    body = re.search(r'const\s+string\s+NotLimitClause\s*=(.*?);', text, re.S)
+    if not body:
+        raise RuntimeError('в %s не найдено объявление const string NotLimitClause — '
+                           'правило «предел — не выход» читать нечем (AMBER274).' % path)
+    clause = _sql_literals(body.group(1), 'NotLimitClause')
+    for must in ('intensity_unc', "'LT'", "'LE'"):
+        if must not in clause:
+            raise RuntimeError('NotLimitClause разобран неправдоподобно (нет %r): %r' % (must, clause))
+    return clause
+
+
+#: (`AMBER274`, `f8diag`) Довесок к `where` у каждого запроса, который берёт из
+#: `decay_radiations` ВЫХОД: строки-пределы (`LT`/`LE`) выходом не идут. Замер 02.11.2026
+#: по базе основного дерева: у нуклидов корпуса и всех их потомков по `decay_chain` (106)
+#: строк-пределов типа `G`/`X` нет — корпус правилом не затронут.
+NOT_LIMIT = _not_limit_clause()
+
+
 # ---------------------------------------------------------------------------
 # Зажим по уровню в `decay_chain`: тоже ОДНО правило, и тоже НЕ ЗДЕСЬ (`T78`)
 # ---------------------------------------------------------------------------
@@ -624,7 +650,7 @@ def chain_lines(root, kinds=('G',), e_min=10.0, e_max=3200.0):
             "select energy_num, intensity_num, type_a, type_c from decay_radiations "
             "where parent_nucid = $n and type_a in (%s) "
             "and energy_num not null and intensity_num not null" % placeholders
-            + SUPPLY_ONLY
+            + SUPPLY_ONLY + NOT_LIMIT
             + LEVEL_CLAUSE, params).fetchall()
         rows = drop_superseded_l(rows, lambda r: r[3] if r[2] == 'X' else None)
         # (`S209`) Kβ один раз, группа K-M на центре тяжести — правило приложения.

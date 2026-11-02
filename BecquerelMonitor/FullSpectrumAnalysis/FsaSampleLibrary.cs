@@ -944,12 +944,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // родительские линии пиков вылета. При равновесии член ряда лежит в
             // колонке корня, и искать его под собственным именем уже нельзя.
             var componentOf = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var lineless = new List<KeyValuePair<string, double>>();
 
             foreach (KeyValuePair<string, double> member in branch)
             {
                 List<double[]> lines = DecayLines(member.Key, report);
                 if (lines.Count == 0)
                 {
+                    // (`AMBER274`, Э1; `Р3`) Член ряда без линий, но с бетой (Bi-210, Sr-90
+                    // в ряду) — после обхода: колонка хозяина могла ещё не родиться, и
+                    // порядок обхода решал бы, ляжет ли бета вовсе.
+                    lineless.Add(member);
                     continue;
                 }
 
@@ -1021,15 +1026,69 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     AddLine(component, self, line[0], line[1] * member.Value,
                             line.Length > 2 ? line[2] * member.Value : 0.0);
                 }
+
+                // (`AMBER274`, Э1) Бета-ветви члена — тем же весом (равновесное
+                // отношение к корню), что его линии, и под его именем.
+                AddBetas(component, self, member.Key, member.Value);
             }
+
+            // (`AMBER274`, `Р3`) Бета члена без линий — в колонку его ряда при связке
+            // равновесием: колонка корня (ряд из двух и более излучающих членов) или
+            // единственного излучающего члена. Ряд без излучающих членов (чистые
+            // бета-излучатели: Sr-90 сам по себе, Bi-210 без Pb-210) хозяина не находит —
+            // такой член уходит в строку по сплошному спектру ниже (`Ф14`).
+            var hostOf = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var orphans = new List<KeyValuePair<string, double>>();
+            foreach (KeyValuePair<string, double> member in lineless)
+            {
+                if (FsaBetaLibrary.Branches(member.Key).Count == 0)
+                {
+                    continue;
+                }
+
+                FsaComponent host = null;
+                if (spec.Equilibrium)
+                {
+                    string betaRoot = OwnerOf(owner, member.Key);
+                    if (GroupCount(groupSize, betaRoot) > 1)
+                    {
+                        byName.TryGetValue(PrettyName(betaRoot), out host);
+                    }
+                    else
+                    {
+                        foreach (KeyValuePair<string, string> placed in componentOf)
+                        {
+                            if (string.Equals(OwnerOf(owner, placed.Key), betaRoot, StringComparison.OrdinalIgnoreCase)
+                                && byName.TryGetValue(placed.Value, out host))
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (host != null)
+                {
+                    AddBetas(host, PrettyName(member.Key), member.Key, member.Value);
+                    hostOf[member.Key] = host.Name;
+                }
+                else
+                {
+                    orphans.Add(member);
+                }
+            }
+
+            // (`AMBER274`, Ф14) СТРОКИ ПО СПЛОШНОМУ СПЕКТРУ — колонки чистых бета-излучателей.
+            BetaOnlyColumns(spec, branch, owner, componentOf, hostOf, orphans, byName, order, report);
 
             // Образы без единой линии в окне выбрасываются здесь, а не при
             // сборке: у члена ряда линии могут быть все выше потолка прибора, и
-            // пустой образ в NNLS — вырожденный столбец.
+            // пустой образ в NNLS — вырожденный столбец. (`AMBER274`, Ф14) Строка по
+            // сплошному спектру линий не имеет нарочно: её образ — бета.
             foreach (string name in order)
             {
                 FsaComponent component = byName[name];
-                if (component.Lines.Count > 0)
+                if (component.Lines.Count > 0 || component.BetaOnly)
                 {
                     result.Add(component);
                     report.DecayComponents++;
@@ -3096,11 +3155,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // (`AMBER54`) Строки `B+` — тем же запросом: у них
                     // `energy_num` — средняя энергия позитрона, и она здесь не
                     // нужна, поэтому зажим «энергия не пуста» к ним не относится.
+                    // ⛔ (`AMBER274`, `f8diag`) Строка-предел (`LT`/`LE`) — не выход: ни
+                    // гамма, ни рентген, ни позитроны β⁺ (`DecayParentRule.NotLimitClause`).
                     command.CommandText =
                         "select type_a, type_c, energy_num, intensity_num, dec_type"
                         + " from decay_radiations"
                         + " where parent_nucid = $n and type_a in ('G', 'X', 'B+')"
                         + " and (energy_num not null or type_a = 'B+') and intensity_num > 0"
+                        + DecayParentRule.NotLimitClause
                         + DecayParentRule.LevelClause;
                     command.Parameters.AddWithValue("$n", nucid);
                     using (SqliteDataReader reader = command.ExecuteReader())
@@ -4744,6 +4806,230 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// записан — сам себе хозяин (так выходит у одиночных нуклидов и у
         /// читателей, которым хозяин не нужен).
         /// </summary>
+        /// <summary>
+        /// (`AMBER274`, Ф14) ПОЛ ФОТОННОГО ВЫХОДА ЧИСТОГО БЕТА-ИЗЛУЧАТЕЛЯ, % на собственный
+        /// распад (Σ линий `G` и `X` нуклида, <see cref="FsaComponent.TotalYieldPercent"/>).
+        /// Колонка, у которой выход каждого излучающего члена ниже пола, а бета есть, —
+        /// строка ПО СПЛОШНОМУ СПЕКТРУ: её следовые линии амплитуду не держат, держит бета.
+        ///
+        /// ⛔ Своего соглашения о «заметном выходе» здесь не заводится: 0.01 % на распад —
+        /// ПОЛ ПОЛНОТЫ САМОЙ БАЗЫ, решение Amber 01.10.2026 по добору слабых гамм
+        /// (`AMBER151`, дословно: «≥ 0.01 % после ускорения сумматора»; `database/scheme.md`
+        /// §2) — линий слабее база не добирала, и следовая линия ниже пола линией базы не
+        /// является. Мерено по `nucdb` 01.11.2026: у чистых излучателей Σ фотонов —
+        /// Sr-90, Bi-210, P-32, C-14, H-3 — 0; Y-90 0.0095 %, Sr-89 0.0096 %, Pm-147 0.006 %,
+        /// Pu-241 0.004 %, Tc-99 0.0015 % (следовые гамма- и K-линии); ближайшие сверху — уже
+        /// излучатели со своей гаммой: Cl-36 0.15 %, Y-91 0.26 %, Tl-207 0.27 %, Kr-85 0.44 %.
+        /// </summary>
+        public const double PureBetaPhotonFloorPercent = 0.01;
+
+        /// <summary>(`AMBER274`, Ф14) Есть ли у нуклида сплошная бета (ветвь с выходом, не линия конверсии).</summary>
+        public static bool HasContinuousBeta(string nucid)
+        {
+            return HasContinuousBeta(FsaBetaLibrary.Branches(nucid));
+        }
+
+        static bool HasContinuousBeta(List<FsaBeta> betas)
+        {
+            foreach (FsaBeta beta in betas)
+            {
+                if (!beta.IsLine && beta.Intensity > 0.0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Ф14) СТРОКИ ПО СПЛОШНОМУ СПЕКТРУ. Решение Amber 30.10.2026
+        /// вопросником, дословно: «Строка без линий по набору (Рекомендую)» — чистый
+        /// бета-излучатель входит в состав только объявленным составом (набором или
+        /// пробой), строка с одним бета-образом, пределы как у прочих, пометка «по
+        /// сплошному спектру».
+        ///
+        /// Кто идёт в такую строку: (а) член с бетой без линий, которому не нашлось
+        /// хозяина (`Р3`): Sr-90 объявлен сам по себе, Bi-210 без Pb-210; (б) члены колонки,
+        /// чей фотонный выход ниже <see cref="PureBetaPhotonFloorPercent"/>, — их следовые
+        /// линии снимаются (Y-90: 2186 кэВ 1.4·10⁻⁶ %, K-линии 0.009 %; Po-210 в ряду
+        /// Bi-210: 803 кэВ 0.001 %), колонка строится заново. Члены без сплошной беты
+        /// (Po-210 — альфа) в строку не идут: им нечем в ней быть.
+        ///
+        /// Группировка — как у колонок с линиями: при равновесии члены одного ряда — одна
+        /// колонка корня (ряд Sr-90: Sr-90 и Y-90 — колонка «Sr-90» вида ряда), без него —
+        /// по колонке на член (происхождение — корень, если бета-членов в ряду больше
+        /// одного, `A169`). Вес беты члена — его равновесное отношение к корню, как у линий
+        /// (<see cref="AddBetas"/>). Выход <see cref="FsaComponent.TotalYieldPercent"/> у
+        /// строки — NaN: правило `S69` («априори не может показать себя гаммой») её не
+        /// сворачивает — она показывает себя бетой.
+        ///
+        /// ⛔ ТОЛЬКО РЯД БЕЗ НАСТОЯЩЕГО ИЗЛУЧАТЕЛЯ. И (а), и (б) берутся, лишь когда ни у одного
+        /// члена того же ряда (корень — <see cref="OwnerOf"/>) фотонный выход не достигает пола:
+        /// «Bi-210 без Pb-210» — слово решения. В ряду Ra-226 при выключенном равновесии Bi-210
+        /// тоже остаётся без хозяина, но ряд излучает (Pb-210 46.5 кэВ, Bi-214…), и Bi-210 там не
+        /// чистый излучатель пробы, а член ряда, у которого своей колонки нет, — заметка, как до
+        /// 01.11.2026, без строки (витрина: радоновый фильтр, ряд Ra-226 без равновесия, —
+        /// строка «сняты: Bi-210» на каждом разборе была бы шумом).
+        ///
+        /// Состав без таких членов не меняется ни на бит: колонки (б) у прочих составов нет
+        /// по построению (выход не ниже пола либо беты нет), а (а) до 01.11.2026 давало
+        /// только заметку «бета X без линий — колонки нет».
+        /// </summary>
+        static void BetaOnlyColumns(FsaSampleSpec spec, Dictionary<string, double> branch,
+                                    Dictionary<string, string> owner, Dictionary<string, string> componentOf,
+                                    Dictionary<string, string> hostOf, List<KeyValuePair<string, double>> orphans,
+                                    Dictionary<string, FsaComponent> byName, List<string> order, Report report)
+        {
+            // Ряды, где есть настоящий излучатель: член с фотонным выходом не ниже пола.
+            var emitting = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, double> member in branch)
+            {
+                double yield = 0.0;
+                foreach (double[] line in DecayLines(member.Key, report))
+                {
+                    yield += line[1];
+                }
+
+                if (yield >= PureBetaPhotonFloorPercent)
+                {
+                    emitting.Add(OwnerOf(owner, member.Key));
+                }
+            }
+
+            var converted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string name in order)
+            {
+                FsaComponent c = byName[name];
+                if (c.Kind == FsaComponentKind.Nuisance || !(c.TotalYieldPercent < PureBetaPhotonFloorPercent)
+                    || !HasContinuousBeta(c.Betas))
+                {
+                    continue;
+                }
+
+                bool inEmitting = false;
+                foreach (KeyValuePair<string, string> placed in componentOf)
+                {
+                    if (string.Equals(placed.Value, name, StringComparison.OrdinalIgnoreCase)
+                        && emitting.Contains(OwnerOf(owner, placed.Key)))
+                    {
+                        inEmitting = true;
+                    }
+                }
+
+                if (!inEmitting)
+                {
+                    converted.Add(name);
+                }
+            }
+
+            var orphanSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, double> member in orphans)
+            {
+                if (emitting.Contains(OwnerOf(owner, member.Key)))
+                {
+                    // член излучающего ряда без своей колонки — заметка, как до 01.11.2026
+                    report.Notes.Add("бета " + PrettyName(member.Key) + " без линий — колонки нет, образа беты нет");
+                    continue;
+                }
+
+                orphanSet.Add(member.Key);
+            }
+
+            if (converted.Count == 0 && orphanSet.Count == 0)
+            {
+                return;
+            }
+
+            var members = new List<KeyValuePair<string, double>>();
+            foreach (KeyValuePair<string, double> member in branch)
+            {
+                string placed;
+                bool inConverted = (componentOf.TryGetValue(member.Key, out placed) && converted.Contains(placed))
+                                   || (hostOf.TryGetValue(member.Key, out placed) && converted.Contains(placed));
+                if ((inConverted || orphanSet.Contains(member.Key)) && HasContinuousBeta(member.Key))
+                {
+                    members.Add(member);
+                }
+            }
+
+            foreach (string name in converted)
+            {
+                byName.Remove(name);
+                order.Remove(name);
+                report.Notes.Add("следовые линии колонки " + name + " ниже пола "
+                                 + PureBetaPhotonFloorPercent.ToString("0.###", CultureInfo.InvariantCulture)
+                                 + " % — колонка по сплошному спектру");
+            }
+
+            var stale = new List<string>();
+            foreach (KeyValuePair<string, string> placed in componentOf)
+            {
+                if (converted.Contains(placed.Value))
+                {
+                    stale.Add(placed.Key);
+                }
+            }
+
+            foreach (string key in stale)
+            {
+                componentOf.Remove(key);
+            }
+
+            // Ключ строки: корень ряда при равновесии, сам член без него; бета-членов на корень.
+            var keys = new List<string>();
+            var groups = new Dictionary<string, List<KeyValuePair<string, double>>>(StringComparer.OrdinalIgnoreCase);
+            var perRoot = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, double> member in members)
+            {
+                string root = OwnerOf(owner, member.Key);
+                int had;
+                perRoot[root] = perRoot.TryGetValue(root, out had) ? had + 1 : 1;
+                string key = spec.Equilibrium ? root : member.Key;
+                List<KeyValuePair<string, double>> group;
+                if (!groups.TryGetValue(key, out group))
+                {
+                    group = new List<KeyValuePair<string, double>>();
+                    groups[key] = group;
+                    keys.Add(key);
+                }
+
+                group.Add(member);
+            }
+
+            foreach (string key in keys)
+            {
+                List<KeyValuePair<string, double>> group = groups[key];
+                bool chain = group.Count > 1;
+                string name = PrettyName(chain ? key : group[0].Key);
+                bool fresh = !byName.ContainsKey(name);
+                FsaComponent component = Take(byName, order, name, chain ? FsaComponentKind.Chain : FsaComponentKind.Single);
+                if (fresh)
+                {
+                    component.TotalYieldPercent = double.NaN;
+                }
+
+                var names = new List<string>();
+                foreach (KeyValuePair<string, double> member in group)
+                {
+                    AddBetas(component, PrettyName(member.Key), member.Key, member.Value);
+                    componentOf[member.Key] = name;
+                    names.Add(PrettyName(member.Key));
+                    string root = OwnerOf(owner, member.Key);
+                    if (component.DecayChainRoot == null && GroupCount(perRoot, root) > 1)
+                    {
+                        component.DecayChainRoot = PrettyName(root);
+                    }
+                }
+
+                // Колонка с линиями того же имени (столкновение имён) остаётся колонкой с
+                // линиями: бета ложится в неё, как у хозяина `Р3`.
+                component.BetaOnly = component.Lines.Count == 0;
+                report.Notes.Add((component.BetaOnly ? "по сплошному спектру: " : "бета без линий в колонку с линиями: ")
+                                 + name + " (бета " + string.Join(", ", names.ToArray()) + ")");
+            }
+        }
+
         static string OwnerOf(Dictionary<string, string> owner, string nucid)
         {
             string root;
@@ -4768,6 +5054,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return component;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Э1) Бета-ветви нуклида <paramref name="nucid"/> — в компонент под
+        /// именем <paramref name="self"/>, выход × <paramref name="weight"/>. Читает их
+        /// только образ по матрице с разделом строк электрона; линии конверсии (`Ф4`) — тем же
+        /// списком.
+        /// </summary>
+        static void AddBetas(FsaComponent component, string self, string nucid, double weight)
+        {
+            if (component == null || !(weight > 0.0))
+            {
+                return;
+            }
+
+            foreach (FsaBeta beta in FsaBetaLibrary.Branches(nucid))
+            {
+                component.Betas.Add(beta.Scaled(self, weight));
+            }
         }
 
         /// <summary>
@@ -5225,6 +5530,1926 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<string> sink = collected ?? new List<string>();
             collected = null;
             return sink;
+        }
+    }
+    /// <summary>
+    /// (`AMBER274`, Э1 29.10.2026) ЭЛЕКТРОНЫ РАСПАДА: БЕТА-ВЕТВИ И ЛИНИИ КОНВЕРСИИ — для
+    /// образа «бета пробы» (слой «Бета» матрицы отклика). Решения Amber вопросником,
+    /// дословно: 29.10.2026 «Код + BetaShape для кристалла (Рекомендую)»; 30.10.2026 —
+    /// «Таблицы BetaShape/LNHB в nucdb (Рекомендую)» (`Ф1`/`Ф2`: формы неуникальных
+    /// запретов и опытные факторы формы — таблицей `nucdb.beta_shapes`) и «Включить в Э1
+    /// (Рекомендую)» (`Ф4`: электроны внутренней конверсии тем же слоем).
+    ///
+    /// Данные — только чтение: ветви `B-`/`B+` из `nucdb.decay_radiations` (граница,
+    /// выход, средняя энергия; у `B+` поле `endpoint` — энергия ЗАХВАТА на уровень,
+    /// граница позитрона — она минус 2mc²), заряд и Jπ родителя — `nucdb.nuclides`, Q и
+    /// Jπ уровня дочернего ядра — `schemedb.ensdf_datasets`/`ensdf_levels` (уровень ветви
+    /// — по энергии Q + E_уровня родителя − E₀ у β⁻ и Q_EC + E_родителя − E_захвата у β⁺;
+    /// энергия изомерного уровня родителя — `schemedb.g4_level` по периоду, `Ф7`), форма
+    /// — `nucdb.beta_shapes`/`beta_shape_points`, если ветвь там есть. Линии конверсии —
+    /// из гамма-линий распада (`decay_radiations`, `G`): α — `schemedb.ensdf_gammas.conv_coef`
+    /// (нет — `g4_gamma.icc_total`), доли K/L/M/внешних — `schemedb.g4_gamma`, энергии
+    /// связи оболочек дочернего атома — `matdb.eadl_binding`.
+    ///
+    /// Форма ветви без таблицы: N(T) ∝ p·W·q²·F₀(Z, W)·Sₙ(p, q) — W, p, q в единицах mₑc
+    /// (q = W₀ − W); F₀ — релятивистская функция Ферми точечного ядра R = 1.2·A^⅓ фм; Sₙ —
+    /// фактор уникального n-го запрета Σₖ p²ᵏq²⁽ⁿ⁻ᵏ⁾/((2k+1)!(2n−2k+1)!), λₖ = 1. Характер
+    /// перехода — по ΔJ и ЧЕТНОСТИ (`Ф1`): разрешённый; первый неуникальный (ΔJ ≤ 1 со
+    /// сменой чётности) — разрешённой формой (ξ-приближение); уникальный n-й (ΔJ = n + 1,
+    /// Δπ = (−1)ⁿ) — Sₙ; неуникальный k-й (ΔJ = k, иная чётность) — формой уникального
+    /// (k − 1)-го (ξ-приближение, так же считает BetaShape без опытного фактора). Где
+    /// ξ-приближение заведомо не работает (Cs-137 на основное, Bi-210), форма — из таблицы.
+    /// Экранирования, конечного размера ядра в L₀, радиационных поправок нет — сверка
+    /// средней с LNHB печатается пробой `BetaSectionProbeA274 --shapes`.
+    ///
+    /// ⛔ Имён нуклидов в коде нет (правило «имён нуклидов в коде FSA быть не должно»):
+    /// всё, что отличает нуклид, — из базы.
+    /// </summary>
+    public static class FsaBetaLibrary
+    {
+        const double ElectronMassKev = 510.99895;
+        const double FineStructure = 1.0 / 137.035999084;
+        const double ComptonFm = 386.15926796;   // ħ/(mₑc), фм
+
+        /// <summary>(`Ф4`) Ниже этого выхода линия конверсии в образ не идёт, % на распад.</summary>
+        public const double MinConversionPercent = 1.0e-3;
+
+        /// <summary>(`Ф4`) Ниже этой энергии линия конверсии не берётся: ни одна обвязка её не пропустит, кэВ.</summary>
+        public const double MinConversionKev = 20.0;
+
+        static readonly object Gate = new object();
+        static readonly Dictionary<string, List<FsaBeta>> Cache =
+            new Dictionary<string, List<FsaBeta>>(StringComparer.OrdinalIgnoreCase);
+        static readonly Dictionary<string, string> NoteCache =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Электроны распада нуклида: бета-ветви (`B-`, `B+`) и линии конверсии
+        /// (<see cref="FsaBeta.IsLine"/>), выход — % на распад ЭТОГО нуклида. Ветвь без
+        /// границы в базе пропускается (форму строить не по чему) и называется в
+        /// <see cref="Note"/>. Отказ чтения базы — запись в <see cref="FsaDatabaseFailures"/>
+        /// С ИМЕНЕМ ТОЙ БАЗЫ, что отказала (`Р4`), и список без того, что не прочлось;
+        /// ⛔ отказ НЕ кэшируется (`Р4`): следующий разбор читает базу заново, как и
+        /// прочие читатели (`FsaDatabaseFailures` — «кэш не пишется»).
+        /// </summary>
+        public static List<FsaBeta> Branches(string nucid)
+        {
+            if (string.IsNullOrEmpty(nucid))
+            {
+                return new List<FsaBeta>();
+            }
+
+            lock (Gate)
+            {
+                List<FsaBeta> cached;
+                if (Cache.TryGetValue(nucid, out cached))
+                {
+                    return cached;
+                }
+            }
+
+            var note = new StringBuilder();
+            bool failed = false;
+            List<FsaBeta> list;
+            var check = new BranchCheck();
+            try
+            {
+                list = Read(nucid, note, ref failed, check);
+            }
+            catch (Exception error)
+            {
+                FsaDatabaseFailures.Note("nucdb.sqlite", nucid, error);
+                list = new List<FsaBeta>();
+                note.Append("отказ чтения nucdb: ").Append(error.Message);
+                failed = true;
+            }
+
+            lock (Gate)
+            {
+                NoteCache[nucid] = note.ToString();
+                if (!failed)
+                {
+                    Cache[nucid] = list;
+                    CheckCache[nucid] = check;
+                }
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, К3 критика кода 30.10.2026) ЗАПАС СУММЫ ВЕТВЕЙ, %: Σ выходов β⁻ и β⁺
+        /// нуклида выше 100 % на больше, чем этот запас, — либо дубли двух оценок, либо
+        /// поставка противоречит сама себе, и об этом говорит отчёт. Запас — округление
+        /// выходов поставки: у нуклидов без пределов и дублей сумма доходит до 101 %
+        /// (`233PA` 101.7 %, `146PR` 101.46 %); 101 % — та же мерка, какой критик насчитал
+        /// 179 нуклидов из 1617 с ветвями.
+        /// </summary>
+        public const double BranchSumTolerancePercent = 1.0;
+
+        /// <summary>
+        /// (`AMBER274`, К3) ДУБЛЬ ДВУХ ОЦЕНОК — пара строк одного вида (β⁻ или β⁺) с границей в
+        /// допуске max(<see cref="DuplicateEndpointKev"/>, <see cref="DuplicateEndpointShare"/>·E₀)
+        /// и выходами в <see cref="DuplicateIntensityRatio"/> раза. Ищется ТОЛЬКО у нуклида,
+        /// чья сумма ветвей (без пределов `LT`) выше 100 % + <see cref="BranchSumTolerancePercent"/>:
+        /// две близкие ветви на соседние уровни бывают и честно (`234PA` 472 кэВ: уровни
+        /// 1722.9 и 1723.45 кэВ, 12.4 и 33 % по ENSDF), но у них выходы разные, а сумма в норме.
+        /// Мерено на всей базе: `225RA` 316/356 кэВ (68.8 + 31.2 %) и 320/356 кэВ (69.5 + 30.5 %)
+        /// — два набора одного распада, граница первой ветви расходится на 4 кэВ (Q наборов
+        /// разные), отсюда допуск 2 %; у `20NA` — три пары β⁺ (3613/3612, 6464/6465,
+        /// 12252/12253 кэВ). Из пары берётся строка, стоящая раньше в поставке (`dr_pk`).
+        /// </summary>
+        public const double DuplicateEndpointKev = 5.0;
+
+        /// <summary>(`AMBER274`, К3) Доля границы в допуске дубля (см. <see cref="DuplicateEndpointKev"/>).</summary>
+        public const double DuplicateEndpointShare = 0.02;
+
+        /// <summary>(`AMBER274`, К3) Во сколько раз могут разниться выходы дублей (см. <see cref="DuplicateEndpointKev"/>).</summary>
+        public const double DuplicateIntensityRatio = 1.25;
+
+        /// <summary>
+        /// (`AMBER274`, К3) Проверка суммы ветвей нуклида: что отброшено при чтении и какая
+        /// сумма осталась. Заполняется <see cref="Branches"/> (кэш вместе с ветвями).
+        /// </summary>
+        public sealed class BranchCheck
+        {
+            /// <summary>Σ выходов β⁻ и β⁺ после отсева пределов и дублей, % на распад.</summary>
+            public double SumPercent;
+
+            /// <summary>Строк-пределов (`LT`, `LE` в `intensity_unc`), отброшенных, и их Σ, %.</summary>
+            public int LimitRows;
+
+            public double LimitPercent;
+
+            /// <summary>Строк-дублей второй оценки, отброшенных, и их Σ, %.</summary>
+            public int DuplicateRows;
+
+            public double DuplicatePercent;
+
+            /// <summary>Сумма и после отсева выше 100 % + <see cref="BranchSumTolerancePercent"/>.</summary>
+            public bool Excess
+            {
+                get { return this.SumPercent > 100.0 + BranchSumTolerancePercent; }
+            }
+        }
+
+        static readonly Dictionary<string, BranchCheck> CheckCache =
+            new Dictionary<string, BranchCheck>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>(`AMBER274`, К3) Проверка суммы ветвей нуклида; null — база не прочлась.</summary>
+        public static BranchCheck Check(string nucid)
+        {
+            Branches(nucid);
+            lock (Gate)
+            {
+                BranchCheck check;
+                return CheckCache.TryGetValue(nucid ?? "", out check) ? check : null;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER274`, К3) Отсев строк ветвей ДО построения форм: (1) строки-ВЕРХНИЕ ПРЕДЕЛЫ
+        /// (`intensity_unc` = `LT` или `LE`) — выход у них не значение, а граница сверху, и
+        /// сложенные как значения они дают у `234PA` 24.6 % лишних (Σ 129.47 → 104.87 %);
+        /// (2) при сумме выше 100 % + <see cref="BranchSumTolerancePercent"/> — дубли второй
+        /// оценки (<see cref="DuplicateEndpointKev"/>). Порядок прочих строк не меняется.
+        /// </summary>
+        static void Screen(List<object[]> rows, StringBuilder note, BranchCheck check)
+        {
+            for (int i = rows.Count - 1; i >= 0; i--)
+            {
+                string unc = ((string)rows[i][5] ?? "").Trim().ToUpperInvariant();
+                // (`f8diag`) правило одно на проект — `DecayParentRule.IsUpperLimit`
+                if (DecayParentRule.IsUpperLimit(unc))
+                {
+                    check.LimitRows++;
+                    check.LimitPercent += (double)rows[i][3];
+                    note.Append((string)rows[i][0] == "B+" ? "β⁺ " : "β⁻ ").Append((string)rows[i][2])
+                        .Append(" кэВ — выход ").Append(((double)rows[i][3]).ToString("G4", CultureInfo.InvariantCulture))
+                        .Append(" % ").Append(unc).Append(" (верхний предел) отброшен; ");
+                    rows.RemoveAt(i);
+                }
+            }
+
+            double sum = 0.0;
+            foreach (object[] row in rows)
+            {
+                sum += (double)row[3];
+            }
+
+            if (sum > 100.0 + BranchSumTolerancePercent)
+            {
+                // Пары — по порядку поставки: строка с бо́льшим `dr_pk` ищет себе пару среди
+                // взятых раньше; у каждой взятой — не больше одного дубля.
+                var order = new List<int>();
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    order.Add(i);
+                }
+
+                order.Sort((a, b) =>
+                {
+                    int c = ((long)rows[a][6]).CompareTo((long)rows[b][6]);
+                    return c != 0 ? c : a.CompareTo(b);
+                });
+                var kept = new List<int>();
+                var paired = new HashSet<int>();
+                var drop = new HashSet<int>();
+                double logRatio = Math.Log(DuplicateIntensityRatio);
+                foreach (int i in order)
+                {
+                    double e = Number((string)rows[i][2]);
+                    double y = (double)rows[i][3];
+                    int partner = -1;
+                    foreach (int k in kept)
+                    {
+                        if (paired.Contains(k) || !string.Equals((string)rows[k][0], (string)rows[i][0], StringComparison.Ordinal))
+                        {
+                            continue;
+                        }
+
+                        double ek = Number((string)rows[k][2]);
+                        double yk = (double)rows[k][3];
+                        if (e > 0.0 && ek > 0.0 && y > 0.0 && yk > 0.0
+                            && Math.Abs(e - ek) <= Math.Max(DuplicateEndpointKev, DuplicateEndpointShare * Math.Max(e, ek))
+                            && Math.Abs(Math.Log(y / yk)) <= logRatio)
+                        {
+                            partner = k;
+                            break;
+                        }
+                    }
+
+                    if (partner >= 0)
+                    {
+                        paired.Add(partner);
+                        drop.Add(i);
+                        check.DuplicateRows++;
+                        check.DuplicatePercent += y;
+                        note.Append((string)rows[i][0] == "B+" ? "β⁺ " : "β⁻ ").Append((string)rows[i][2])
+                            .Append(" кэВ ").Append(y.ToString("G4", CultureInfo.InvariantCulture))
+                            .Append(" % — дубль ветви ").Append((string)rows[partner][2]).Append(" кэВ ")
+                            .Append(((double)rows[partner][3]).ToString("G4", CultureInfo.InvariantCulture))
+                            .Append(" % второй оценки, не сложен; ");
+                    }
+                    else
+                    {
+                        kept.Add(i);
+                    }
+                }
+
+                for (int i = rows.Count - 1; i >= 0; i--)
+                {
+                    if (drop.Contains(i))
+                    {
+                        sum -= (double)rows[i][3];
+                        rows.RemoveAt(i);
+                    }
+                }
+            }
+
+            check.SumPercent = sum;
+            if (check.Excess)
+            {
+                note.Append("Σ ветвей β ").Append(sum.ToString("F2", CultureInfo.InvariantCulture))
+                    .Append(" % > 100 % — поставка противоречит себе; ");
+            }
+        }
+
+        /// <summary>Как разобраны электроны нуклида: уровень, Jπ, характер перехода, форма, конверсия, пропуски.</summary>
+        public static string Note(string nucid)
+        {
+            Branches(nucid);
+            lock (Gate)
+            {
+                string note;
+                return NoteCache.TryGetValue(nucid, out note) ? note : "";
+            }
+        }
+
+        /// <summary>(`Р4`, проба) Сбросить кэш — чтобы проба отказа базы видела повторное чтение.</summary>
+        public static void ResetCache()
+        {
+            lock (Gate)
+            {
+                Cache.Clear();
+                NoteCache.Clear();
+                CheckCache.Clear();
+                LevelCache.Clear();
+                SchemeCache.Clear();
+            }
+
+            lock (WeightGate)
+            {
+                WeightCache.Clear();
+            }
+        }
+
+        /// <summary>Путь базы рядом с приложением (тот же, что у прочих читателей).</summary>
+        static string DatabasePath(string file)
+        {
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, file);
+        }
+
+        sealed class TableShape
+        {
+            public int Id;
+            public string TypeA;
+            public double EndpointKev;
+            public string Transition;
+            public string Kind;
+            public double[] Factor;
+            public string Source;
+            public double[] T;
+            public double[] Density;
+        }
+
+        static List<FsaBeta> Read(string nucid, StringBuilder note, ref bool failed, BranchCheck check)
+        {
+            var list = new List<FsaBeta>();
+            int massNumber = 0, i0 = 0;
+            while (i0 < nucid.Length && char.IsDigit(nucid[i0]))
+            {
+                massNumber = massNumber * 10 + (nucid[i0] - '0');
+                i0++;
+            }
+
+            // Родитель в `schemedb` — без метки изомера (`234PAm1` → `234PA`).
+            string scheme = nucid;
+            int m = nucid.IndexOf('m', i0);
+            bool isomer = m > 0;
+            if (isomer)
+            {
+                scheme = nucid.Substring(0, m);
+            }
+
+            int parentZ = -1;
+            string parentJp = null;
+            double parentHalfLife = double.NaN;
+            var rows = new List<object[]>();
+            var gammas = new List<double[]>();
+            var shapes = new List<TableShape>();
+            using (SqliteConnection connection = OpenRead(DatabasePath("nucdb.sqlite")))
+            {
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "select z, jp, half_life_sec from nuclides where nucid = $n order by l_seqno desc limit 1";
+                    command.Parameters.AddWithValue("$n", nucid);
+                    using (SqliteDataReader r = command.ExecuteReader())
+                    {
+                        if (r.Read())
+                        {
+                            parentZ = r.IsDBNull(0) ? -1 : Convert.ToInt32(r.GetValue(0), CultureInfo.InvariantCulture);
+                            parentJp = r.IsDBNull(1) ? null : r.GetString(1);
+                            double hl;
+                            if (!r.IsDBNull(2) && double.TryParse(Convert.ToString(r.GetValue(2), CultureInfo.InvariantCulture),
+                                                                  NumberStyles.Float, CultureInfo.InvariantCulture, out hl))
+                            {
+                                parentHalfLife = hl;
+                            }
+                        }
+                    }
+                }
+
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    // (`AMBER274`, К3) `intensity_unc` — пометка верхнего предела (`LT`), `dr_pk` —
+                    // порядок строк поставки для дублей; порядок самих строк — прежний (без
+                    // `order by`): по нему складываются ветви образа, и у нуклидов без пределов и
+                    // дублей образ обязан остаться побитово тем же.
+                    command.CommandText =
+                        "select type_a, energy_num, endpoint, intensity_num, parent_l_seqno, dec_type, intensity_unc, dr_pk"
+                        + " from decay_radiations"
+                        + " where parent_nucid = $n and type_a in ('B-', 'B+', 'G') and intensity_num > 0"
+                        + DecayParentRule.LevelClause;
+                    command.Parameters.AddWithValue("$n", nucid);
+                    using (SqliteDataReader r = command.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            string type = r.IsDBNull(0) ? "" : r.GetString(0);
+                            if (type == "G")
+                            {
+                                // (`AMBER274`, `f8diag`) Гамма-предел — не выход, и линий
+                                // конверсии от неё нет (`DecayParentRule.IsUpperLimit`).
+                                if (!r.IsDBNull(6) && DecayParentRule.IsUpperLimit(
+                                        Convert.ToString(r.GetValue(6), CultureInfo.InvariantCulture)))
+                                {
+                                    continue;
+                                }
+
+                                int decType;
+                                gammas.Add(new[]
+                                {
+                                    r.IsDBNull(1) ? double.NaN : r.GetDouble(1),
+                                    r.IsDBNull(3) ? 0.0 : r.GetDouble(3),
+                                    !r.IsDBNull(5) && int.TryParse(Convert.ToString(r.GetValue(5), CultureInfo.InvariantCulture),
+                                                                   NumberStyles.Integer, CultureInfo.InvariantCulture, out decType)
+                                        ? decType : -1,
+                                });
+                                continue;
+                            }
+
+                            rows.Add(new object[]
+                            {
+                                type,
+                                r.IsDBNull(1) ? double.NaN : r.GetDouble(1),
+                                r.IsDBNull(2) ? "" : r.GetString(2),
+                                r.IsDBNull(3) ? 0.0 : r.GetDouble(3),
+                                r.IsDBNull(4) ? 0 : Convert.ToInt32(r.GetValue(4), CultureInfo.InvariantCulture),
+                                r.IsDBNull(6) ? "" : Convert.ToString(r.GetValue(6), CultureInfo.InvariantCulture),
+                                r.IsDBNull(7) ? 0L : Convert.ToInt64(r.GetValue(7), CultureInfo.InvariantCulture),
+                            });
+                        }
+                    }
+                }
+
+                // (`Ф1`/`Ф2`) Формы ветвей таблицей. У базы до 30.10.2026 таблиц нет — это не
+                // отказ, а «форм таблицей нет»: ветви строятся кодом.
+                if (rows.Count > 0 && HasTable(connection, "beta_shapes") && HasTable(connection, "beta_shape_points"))
+                {
+                    ReadShapes(connection, nucid, shapes);
+                }
+            }
+
+            // (`AMBER274`, К3) Пределы `LT` и дубли второй оценки — до форм и схемы.
+            Screen(rows, note, check);
+
+            if (parentZ < 0)
+            {
+                if (rows.Count > 0 || gammas.Count > 0)
+                {
+                    note.Append("нет заряда родителя в nuclides; ");
+                }
+
+                return list;
+            }
+
+            // Схема: датасеты β⁻ и захвата/β⁺ родителя — с тем же уровнем родителя,
+            // ближайшие по периоду (у 90Y два датасета β⁻ на основном уровне).
+            DataSet minus = null, plus = null;
+            var levels = new Dictionary<int, List<KeyValuePair<double, string>>>();
+            var alphas = new List<double[]>();
+            var g4 = new List<double[]>();
+            double parentLevelKev = 0.0;
+            bool schemeOk = false;
+            string schemePath = DatabasePath("schemedb.sqlite");
+            if (!File.Exists(schemePath))
+            {
+                // (`Р4`) Нет базы — отказ, видимый человеку, а не тихие разрешённые формы.
+                FsaDatabaseFailures.Note("schemedb.sqlite", nucid, new FileNotFoundException("schemedb.sqlite not found", schemePath));
+                note.Append("нет schemedb.sqlite — формы разрешённые, конверсии нет; ");
+                failed = true;
+            }
+            else
+            {
+                try
+                {
+                    ReadScheme(schemePath, scheme, parentZ, massNumber, isomer, parentHalfLife, rows, gammas,
+                               out minus, out plus, levels, alphas, g4, out parentLevelKev, note);
+                    schemeOk = true;
+                }
+                catch (Exception error)
+                {
+                    // (`Р4`) Отказ `schemedb` — под СВОИМ именем, не `nucdb`.
+                    FsaDatabaseFailures.Note("schemedb.sqlite", nucid, error);
+                    note.Append("отказ чтения schemedb: ").Append(error.Message).Append("; ");
+                    failed = true;
+                    minus = plus = null;
+                    levels.Clear();
+                    alphas.Clear();
+                    g4.Clear();
+                }
+            }
+
+            double parentJ;
+            int parentParity;
+            bool parentKnown = TryJ(parentJp, out parentJ);
+            bool parentParityKnown = TryParity(parentJp, out parentParity);
+            foreach (object[] row in rows)
+            {
+                bool positron = (string)row[0] == "B+";
+                double field = Number((string)row[2]);
+                if (!(field > 0.0))
+                {
+                    note.Append(positron ? "β⁺" : "β⁻").Append(" без границы (выход ")
+                        .Append(((double)row[3]).ToString("G4", CultureInfo.InvariantCulture)).Append(" %) пропущена; ");
+                    continue;
+                }
+
+                double endpoint = positron ? field - 2.0 * ElectronMassKev : field;
+                if (!(endpoint > 0.5))
+                {
+                    note.Append("β⁺ ниже порога пропущена; ");
+                    continue;
+                }
+
+                DataSet set = positron ? plus : minus;
+                int order = 0;
+                string transition = "allowed";
+                string levelText = "?";
+                // (`AMBER274` Ф8, `f8cyl`) Уровень, который питает ветвь, — для строки «событие
+                // целиком» (`EventSpec`): по балансу Q датасета, уточнённый уровнем схемы.
+                double levelForEvent = set != null
+                    ? (positron ? set.Q + parentLevelKev - field : set.Q + parentLevelKev - endpoint)
+                    : double.NaN;
+                if (set != null && parentKnown)
+                {
+                    // (`Ф7`) Энергия уровня родителя входит в баланс: у изомера Q датасета
+                    // — от основного состояния.
+                    double levelKev = positron ? set.Q + parentLevelKev - field : set.Q + parentLevelKev - endpoint;
+                    double tolerance = Math.Max(5.0, 0.01 * set.Q);
+                    double found = levelKev;
+                    string jpi = ByEndpoint(levels[set.Id], endpoint, Math.Max(2.0, 0.01 * endpoint));
+                    if (jpi == null)
+                    {
+                        jpi = levelKev < -tolerance
+                            ? null      // (`Ф7`) отрицательный уровень — отказ, а не «ближайший»
+                            : NearestLevel(levels[set.Id], Math.Max(0.0, levelKev), tolerance, out found);
+                    }
+
+                    double daughterJ;
+                    if (jpi != null && TryJ(jpi, out daughterJ))
+                    {
+                        int daughterParity;
+                        bool parityKnown = parentParityKnown & TryParity(jpi, out daughterParity);
+                        bool parityChange = parityKnown && daughterParity != parentParity;
+                        Classify((int)Math.Round(Math.Abs(daughterJ - parentJ)), parityKnown, parityChange,
+                                 out order, out transition);
+                        levelText = found.ToString("F1", CultureInfo.InvariantCulture) + " " + jpi;
+                        levelForEvent = found;
+                    }
+                    else
+                    {
+                        levelText = "уровень " + levelKev.ToString("F1", CultureInfo.InvariantCulture)
+                                    + (levelKev < -tolerance ? " < 0 — отвергнут" : " не найден");
+                    }
+                }
+
+                int daughterZ = positron ? parentZ - 1 : parentZ + 1;
+                var beta = new FsaBeta(nucid, endpoint, (double)row[3], daughterZ, massNumber, order, positron, (double)row[1])
+                    .WithTransition(transition);
+                TableShape table = MatchShape(shapes, positron ? "B+" : "B-", field);
+                if (table != null)
+                {
+                    beta = beta.WithShape(table.Transition, table.Id, table.Source, table.T, table.Density,
+                                          table.T != null && table.T.Length > 0 ? table.T[table.T.Length - 1] : 0.0,
+                                          table.Factor);
+                }
+
+                list.Add(beta);
+                lock (Gate)
+                {
+                    LevelCache[LevelKey(nucid, endpoint)] = levelForEvent;
+                }
+
+                note.Append(positron ? "β⁺ " : "β⁻ ").Append(endpoint.ToString("F1", CultureInfo.InvariantCulture))
+                    .Append(" кэВ ").Append(((double)row[3]).ToString("G4", CultureInfo.InvariantCulture)).Append(" % → ")
+                    .Append(levelText).Append(" (").Append(parentJp ?? "?").Append("), ").Append(beta.Transition)
+                    .Append(", форма ")
+                    .Append(table != null
+                        ? "таблицей #" + table.Id.ToString(CultureInfo.InvariantCulture) + " (" + table.Kind + ")"
+                        : order == 0 ? "разрешённая" : "уник. " + order.ToString(CultureInfo.InvariantCulture))
+                    .Append("; ");
+            }
+
+            if (schemeOk && gammas.Count > 0)
+            {
+                try
+                {
+                    AddConversion(nucid, parentZ, massNumber, gammas, alphas, g4, list, note);
+                }
+                catch (Exception error)
+                {
+                    FsaDatabaseFailures.Note("matdb.sqlite", nucid, error);
+                    note.Append("отказ чтения matdb (энергии связи): ").Append(error.Message).Append("; ");
+                    failed = true;
+                }
+            }
+
+            // (`AMBER274`, К3) Сумма ветвей — при каждой ветви: отчёт называет нуклид, чья бета
+            // легла в образ с суммой выше 100 %.
+            for (int i = 0; i < list.Count; i++)
+            {
+                list[i] = list[i].WithBranchSum(check.SumPercent);
+            }
+
+            return list;
+        }
+
+        static bool HasTable(SqliteConnection connection, string table)
+        {
+            using (SqliteCommand command = connection.CreateCommand())
+            {
+                command.CommandText = "select count(*) from sqlite_master where type = 'table' and name = $t";
+                command.Parameters.AddWithValue("$t", table);
+                return Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture) > 0;
+            }
+        }
+
+        static void ReadShapes(SqliteConnection connection, string nucid, List<TableShape> shapes)
+        {
+            using (SqliteCommand command = connection.CreateCommand())
+            {
+                command.CommandText = "select id, type_a, endpoint_kev, transition, kind, a0, a1, a2, a3, source"
+                                      + " from beta_shapes where parent_nucid = $n order by id";
+                command.Parameters.AddWithValue("$n", nucid);
+                using (SqliteDataReader r = command.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        var shape = new TableShape
+                        {
+                            Id = Convert.ToInt32(r.GetValue(0), CultureInfo.InvariantCulture),
+                            TypeA = r.GetString(1),
+                            EndpointKev = r.GetDouble(2),
+                            Transition = r.IsDBNull(3) ? "" : r.GetString(3),
+                            Kind = r.IsDBNull(4) ? "" : r.GetString(4),
+                            Source = r.IsDBNull(9) ? "" : r.GetString(9),
+                        };
+                        if (string.Equals(shape.Kind, "factor", StringComparison.OrdinalIgnoreCase))
+                        {
+                            shape.Factor = new[]
+                            {
+                                r.IsDBNull(5) ? 0.0 : r.GetDouble(5), r.IsDBNull(6) ? 0.0 : r.GetDouble(6),
+                                r.IsDBNull(7) ? 0.0 : r.GetDouble(7), r.IsDBNull(8) ? 0.0 : r.GetDouble(8),
+                            };
+                        }
+
+                        shapes.Add(shape);
+                    }
+                }
+            }
+
+            foreach (TableShape shape in shapes)
+            {
+                if (!string.Equals(shape.Kind, "points", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var t = new List<double>();
+                var d = new List<double>();
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "select t_kev, density from beta_shape_points where shape_id = $s order by t_kev";
+                    command.Parameters.AddWithValue("$s", shape.Id);
+                    using (SqliteDataReader r = command.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            t.Add(r.GetDouble(0));
+                            d.Add(r.GetDouble(1));
+                        }
+                    }
+                }
+
+                if (t.Count >= 2)
+                {
+                    shape.T = t.ToArray();
+                    shape.Density = d.ToArray();
+                }
+            }
+        }
+
+        /// <summary>Строка таблицы форм для ветви базы: тот же вид и граница в допуске max(2 кэВ, 0.5 %).</summary>
+        static TableShape MatchShape(List<TableShape> shapes, string typeA, double field)
+        {
+            TableShape best = null;
+            double distance = Math.Max(2.0, 0.005 * field);
+            foreach (TableShape shape in shapes)
+            {
+                if (!string.Equals(shape.TypeA, typeA, StringComparison.Ordinal)
+                    || (shape.T == null && shape.Factor == null))
+                {
+                    continue;
+                }
+
+                double d = Math.Abs(shape.EndpointKev - field);
+                if (d <= distance)
+                {
+                    distance = d;
+                    best = shape;
+                }
+            }
+
+            return best;
+        }
+
+        static void ReadScheme(string schemePath, string scheme, int parentZ, int massNumber, bool isomer,
+                               double parentHalfLife, List<object[]> rows, List<double[]> gammas,
+                               out DataSet minus, out DataSet plus,
+                               Dictionary<int, List<KeyValuePair<double, string>>> levels,
+                               List<double[]> alphas, List<double[]> g4, out double parentLevelKev,
+                               StringBuilder note)
+        {
+            minus = plus = null;
+            parentLevelKev = 0.0;
+            using (SqliteConnection connection = OpenRead(schemePath))
+            {
+                var sets = new List<DataSet>();
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "select id, dsid, q_value_kev, parent_l_seqno, parent_hl_sec from ensdf_datasets"
+                                          + " where upper(parent_nucid) = upper($p) and q_value_kev is not null";
+                    command.Parameters.AddWithValue("$p", scheme);
+                    using (SqliteDataReader r = command.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            sets.Add(new DataSet
+                            {
+                                Id = Convert.ToInt32(r.GetValue(0), CultureInfo.InvariantCulture),
+                                Dsid = r.IsDBNull(1) ? "" : r.GetString(1),
+                                Q = Convert.ToDouble(r.GetValue(2), CultureInfo.InvariantCulture),
+                                Level = r.IsDBNull(3) ? 0 : Convert.ToInt32(r.GetValue(3), CultureInfo.InvariantCulture),
+                                HalfLife = r.IsDBNull(4) ? double.NaN : Convert.ToDouble(r.GetValue(4), CultureInfo.InvariantCulture),
+                            });
+                        }
+                    }
+                }
+
+                // (`Ф7`) Энергия изомерного уровня родителя — уровень ядра (Z, A) с тем же
+                // периодом (в полтора раза), `g4_level`. У основного состояния — ноль.
+                if (isomer && parentHalfLife > 0.0)
+                {
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = "select energy_ev, half_life_sec from g4_level where z = $z and a = $a"
+                                              + " and seq > 0 and half_life_sec > 0";
+                        command.Parameters.AddWithValue("$z", parentZ);
+                        command.Parameters.AddWithValue("$a", massNumber);
+                        double best = Math.Log(1.5);
+                        using (SqliteDataReader r = command.ExecuteReader())
+                        {
+                            while (r.Read())
+                            {
+                                double hl = Convert.ToDouble(r.GetValue(1), CultureInfo.InvariantCulture);
+                                double d = Math.Abs(Math.Log(hl / parentHalfLife));
+                                if (d < best)
+                                {
+                                    best = d;
+                                    parentLevelKev = Convert.ToDouble(r.GetValue(0), CultureInfo.InvariantCulture) / 1000.0;
+                                }
+                            }
+                        }
+                    }
+
+                    note.Append("уровень родителя ").Append(parentLevelKev.ToString("F2", CultureInfo.InvariantCulture))
+                        .Append(" кэВ; ");
+                }
+
+                if (rows.Count > 0)
+                {
+                    int level = (int)rows[0][4];
+                    minus = Pick(sets, " B- DECAY", null, level, parentHalfLife);
+                    plus = Pick(sets, " EC DECAY", " B+ DECAY", level, parentHalfLife);
+                    foreach (DataSet set in new[] { minus, plus })
+                    {
+                        if (set == null || levels.ContainsKey(set.Id))
+                        {
+                            continue;
+                        }
+
+                        levels[set.Id] = ReadLevels(connection, set.Id);
+                    }
+                }
+
+                if (gammas.Count == 0)
+                {
+                    return;
+                }
+
+                // (`Ф4`) α конверсии по гамма-линиям датасетов родителя.
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "select g.energy_kev, g.conv_coef from ensdf_gammas g join ensdf_datasets d"
+                                          + " on d.id = g.dataset_id where upper(d.parent_nucid) = upper($p)"
+                                          + " and g.conv_coef > 0 and g.energy_kev is not null";
+                    command.Parameters.AddWithValue("$p", scheme);
+                    using (SqliteDataReader r = command.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            alphas.Add(new[] { r.GetDouble(0), r.GetDouble(1) });
+                        }
+                    }
+                }
+
+                // Доли оболочек — `g4_gamma` дочерних ядер всех мод распада линий.
+                var nuclei = new HashSet<long>();
+                foreach (double[] gamma in gammas)
+                {
+                    int z, a;
+                    if (Daughter((int)gamma[2], parentZ, massNumber, out z, out a))
+                    {
+                        nuclei.Add(z * 1000L + a);
+                    }
+                }
+
+                foreach (long key in nuclei)
+                {
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = "select energy_ev, icc_total, icc_k_ppm, icc_l_ppm, icc_m_ppm, icc_outer_ppm"
+                                              + " from g4_gamma where z = $z and a = $a and icc_total > 0";
+                        command.Parameters.AddWithValue("$z", (int)(key / 1000));
+                        command.Parameters.AddWithValue("$a", (int)(key % 1000));
+                        using (SqliteDataReader r = command.ExecuteReader())
+                        {
+                            while (r.Read())
+                            {
+                                g4.Add(new[]
+                                {
+                                    key, Convert.ToDouble(r.GetValue(0), CultureInfo.InvariantCulture) / 1000.0, r.GetDouble(1),
+                                    r.IsDBNull(2) ? -1.0 : Convert.ToDouble(r.GetValue(2), CultureInfo.InvariantCulture),
+                                    r.IsDBNull(3) ? -1.0 : Convert.ToDouble(r.GetValue(3), CultureInfo.InvariantCulture),
+                                    r.IsDBNull(4) ? -1.0 : Convert.ToDouble(r.GetValue(4), CultureInfo.InvariantCulture),
+                                    r.IsDBNull(5) ? -1.0 : Convert.ToDouble(r.GetValue(5), CultureInfo.InvariantCulture),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        static List<KeyValuePair<double, string>> ReadLevels(SqliteConnection connection, int datasetId)
+        {
+            var list = new List<KeyValuePair<double, string>>();
+            using (SqliteCommand command = connection.CreateCommand())
+            {
+                // Уровни, у которых в датасете ЕСТЬ питание ветвью, — первыми
+                // (у 234TH у 73.9 кэВ два уровня, питается изомер 0−): поиск
+                // ближайшего идёт сперва среди них (<see cref="NearestLevel"/>).
+                command.CommandText = "select l.energy_kev, l.jpi, exists(select 1 from ensdf_feedings f"
+                                      + " where f.dataset_id = l.dataset_id and f.level_seq = l.seq) from ensdf_levels l"
+                                      + " where l.dataset_id = $d order by 3 desc";
+                command.Parameters.AddWithValue("$d", datasetId);
+                using (SqliteDataReader r = command.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        if (!r.IsDBNull(0))
+                        {
+                            bool fed = !r.IsDBNull(2) && Convert.ToInt64(r.GetValue(2), CultureInfo.InvariantCulture) != 0;
+                            list.Add(new KeyValuePair<double, string>(r.GetDouble(0),
+                                                                      (fed ? "F" : "-") + (r.IsDBNull(1) ? "" : r.GetString(1))));
+                        }
+                    }
+                }
+            }
+
+            // (`AMBER274`) Питание ветвью с ГРАНИЦЕЙ в записи ENSDF — сверка
+            // прямо по границе (у 234TH уровень изомера 73.92+X без энергии).
+            using (SqliteCommand command = connection.CreateCommand())
+            {
+                command.CommandText = "select f.energy_kev, l.jpi from ensdf_feedings f join ensdf_levels l"
+                                      + " on l.dataset_id = f.dataset_id and l.seq = f.level_seq"
+                                      + " where f.dataset_id = $d and f.energy_kev is not null";
+                command.Parameters.AddWithValue("$d", datasetId);
+                using (SqliteDataReader r = command.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        list.Add(new KeyValuePair<double, string>(-r.GetDouble(0), "E" + (r.IsDBNull(1) ? "" : r.GetString(1))));
+                    }
+                }
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// Дочернее ядро линии по коду моды распада `dec_type` (`database/scheme.md`):
+        /// 0 — α, 1/7/15/50 — захват и β⁺, 2 — β⁻, 3 — изомерный переход; прочие — нет.
+        /// </summary>
+        static bool Daughter(int decType, int parentZ, int massNumber, out int z, out int a)
+        {
+            z = parentZ;
+            a = massNumber;
+            switch (decType)
+            {
+                case 0: z = parentZ - 2; a = massNumber - 4; return true;
+                case 1:
+                case 7:
+                case 15:
+                case 50: z = parentZ - 1; return true;
+                case 2: z = parentZ + 1; return true;
+                case 3: return true;
+                default: return false;
+            }
+        }
+
+        /// <summary>
+        /// (`Ф4`) Линии электронов конверсии по гамма-линиям распада: выход оболочки —
+        /// I_γ·α·f_оболочки (α — ENSDF датасета родителя, нет — Geant4; доли — Geant4
+        /// дочернего ядра), энергия — E_γ − E_связи (K; средняя по L1–L3; средняя по
+        /// M1–M5; внешние — E_γ) дочернего атома по EADL. Оже-электроны не берутся: их
+        /// энергии ниже <see cref="MinConversionKev"/> у всех Z ниже 92 по K-серии — кроме
+        /// тяжёлых, где выход оже по K мал (ω_K ≥ 0.95), — и ниже нижнего узла сетки раздела.
+        /// </summary>
+        static void AddConversion(string nucid, int parentZ, int massNumber, List<double[]> gammas,
+                                  List<double[]> alphas, List<double[]> g4, List<FsaBeta> list, StringBuilder note)
+        {
+            if (g4.Count == 0)
+            {
+                return;
+            }
+
+            var binding = new Dictionary<int, double[]>();
+            int added = 0;
+            double total = 0.0;
+            foreach (double[] gamma in gammas)
+            {
+                double energy = gamma[0], intensity = gamma[1];
+                int z, a;
+                if (!(energy > MinConversionKev) || !(intensity > 0.0) || !Daughter((int)gamma[2], parentZ, massNumber, out z, out a))
+                {
+                    continue;
+                }
+
+                double[] shells = null;
+                double distance = 0.5;
+                long key = z * 1000L + a;
+                foreach (double[] row in g4)
+                {
+                    if ((long)row[0] != key)
+                    {
+                        continue;
+                    }
+
+                    double d = Math.Abs(row[1] - energy);
+                    if (d <= distance)
+                    {
+                        distance = d;
+                        shells = row;
+                    }
+                }
+
+                if (shells == null || !(shells[3] >= 0.0))
+                {
+                    continue;
+                }
+
+                double alpha = shells[2];
+                double best = 0.5;
+                foreach (double[] row in alphas)
+                {
+                    double d = Math.Abs(row[0] - energy);
+                    if (d <= best)
+                    {
+                        best = d;
+                        alpha = row[1];
+                    }
+                }
+
+                double[] bind;
+                if (!binding.TryGetValue(z, out bind))
+                {
+                    bind = Binding(z);
+                    binding[z] = bind;
+                }
+
+                string[] names = { "K", "L", "M", "N+" };
+                for (int s = 0; s < 4; s++)
+                {
+                    double share = shells[3 + s];
+                    if (!(share > 0.0))
+                    {
+                        continue;
+                    }
+
+                    double yield = intensity * alpha * share / 1.0e6;
+                    double kev = energy - (s < 3 ? bind[s] : 0.0);
+                    if (!(yield >= MinConversionPercent) || !(kev > MinConversionKev) || (s < 3 && !(bind[s] > 0.0)))
+                    {
+                        continue;
+                    }
+
+                    list.Add(FsaBeta.Line(nucid, kev, yield, names[s]));
+                    added++;
+                    total += yield;
+                }
+            }
+
+            if (added > 0)
+            {
+                note.Append("конверсия: ").Append(added.ToString(CultureInfo.InvariantCulture)).Append(" линий, ")
+                    .Append(total.ToString("G4", CultureInfo.InvariantCulture)).Append(" % на распад; ");
+            }
+        }
+
+        /// <summary>(`Ф4`) Энергии связи K, средняя L1–L3, средняя M1–M5 атома Z, кэВ (`matdb.eadl_binding`).</summary>
+        static double[] Binding(int z)
+        {
+            var result = new double[3];
+            var sums = new double[3];
+            var counts = new int[3];
+            using (SqliteConnection connection = OpenRead(DatabasePath("matdb.sqlite")))
+            using (SqliteCommand command = connection.CreateCommand())
+            {
+                command.CommandText = "select shell_id, binding_ev from eadl_binding where z = $z";
+                command.Parameters.AddWithValue("$z", z);
+                using (SqliteDataReader r = command.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        int id = Convert.ToInt32(r.GetValue(0), CultureInfo.InvariantCulture);
+                        double kev = Convert.ToDouble(r.GetValue(1), CultureInfo.InvariantCulture) / 1000.0;
+                        int group = id == 1 ? 0 : id == 3 || id == 5 || id == 6 ? 1 : id == 8 || id == 10 || id == 11 || id == 13 || id == 14 ? 2 : -1;
+                        if (group >= 0)
+                        {
+                            sums[group] += kev;
+                            counts[group]++;
+                        }
+                    }
+                }
+            }
+
+            for (int g = 0; g < 3; g++)
+            {
+                result[g] = counts[g] > 0 ? sums[g] / counts[g] : 0.0;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// (`Ф1`) Характер перехода по ΔJ и чётности. Порядок формы <paramref name="order"/>:
+        /// 0 — разрешённая (и первый неуникальный, ξ-приближение); n — уникальный n-й; у
+        /// неуникального k-го (k ≥ 2) — форма уникального (k − 1)-го (ξ-приближение).
+        /// Чётность неизвестна — по одному ΔJ, как прежде.
+        /// </summary>
+        static void Classify(int dj, bool parityKnown, bool parityChange, out int order, out string transition)
+        {
+            if (dj <= 1)
+            {
+                order = 0;
+                transition = parityKnown && parityChange ? "1st non-unique" : parityKnown ? "allowed" : "allowed (π?)";
+                return;
+            }
+
+            order = dj - 1;
+            int n = dj - 1;
+            bool uniqueParity = n % 2 == 1;        // уникальный n-й: Δπ = (−1)ⁿ
+            if (!parityKnown)
+            {
+                transition = "ΔJ=" + dj.ToString(CultureInfo.InvariantCulture) + " (π?)";
+            }
+            else if (parityChange == uniqueParity)
+            {
+                transition = Ordinal(n) + " unique";
+            }
+            else
+            {
+                transition = Ordinal(dj) + " non-unique";
+            }
+        }
+
+        static string Ordinal(int n)
+        {
+            string s = n.ToString(CultureInfo.InvariantCulture);
+            return n == 1 ? "1st" : n == 2 ? "2nd" : n == 3 ? "3rd" : s + "th";
+        }
+
+        sealed class DataSet
+        {
+            public int Id;
+            public string Dsid;
+            public double Q;
+            public int Level;
+            public double HalfLife;
+        }
+
+        static DataSet Pick(List<DataSet> sets, string kind, string altKind, int level, double halfLife)
+        {
+            DataSet best = null;
+            double bestScore = double.MaxValue;
+            foreach (DataSet s in sets)
+            {
+                bool kindOk = s.Dsid.IndexOf(kind, StringComparison.OrdinalIgnoreCase) >= 0
+                              || (altKind != null && s.Dsid.IndexOf(altKind, StringComparison.OrdinalIgnoreCase) >= 0);
+                if (!kindOk || s.Level != level)
+                {
+                    continue;
+                }
+
+                double score = halfLife > 0.0 && s.HalfLife > 0.0 ? Math.Abs(Math.Log(s.HalfLife / halfLife)) : 0.0;
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    best = s;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Jπ уровня, чьё питание в ENSDF записано С ГРАНИЦЕЙ, равной границе ветви
+        /// базы (записи с меткой `E`, ключ — минус граница); null — такой записи нет.
+        /// </summary>
+        static string ByEndpoint(List<KeyValuePair<double, string>> levels, double endpoint, double tolerance)
+        {
+            string best = null;
+            double distance = tolerance;
+            foreach (KeyValuePair<double, string> level in levels)
+            {
+                if (!level.Value.StartsWith("E", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                double d = Math.Abs(-level.Key - endpoint);
+                if (d <= distance)
+                {
+                    distance = d;
+                    best = level.Value.Substring(1);
+                }
+            }
+
+            return string.IsNullOrEmpty(best) ? null : best;
+        }
+
+        /// <summary>
+        /// Jπ ближайшего уровня в допуске: сперва среди уровней с питанием ветвью
+        /// (метка `F` в начале записи), затем среди всех; null — нет в допуске.
+        /// </summary>
+        static string NearestLevel(List<KeyValuePair<double, string>> levels, double kev, double tolerance, out double found)
+        {
+            found = double.NaN;
+            for (int pass = 0; pass < 2; pass++)
+            {
+                string best = null;
+                double distance = tolerance;
+                foreach (KeyValuePair<double, string> level in levels)
+                {
+                    if (level.Value.StartsWith("E", StringComparison.Ordinal)
+                        || (pass == 0 && !level.Value.StartsWith("F", StringComparison.Ordinal)))
+                    {
+                        continue;
+                    }
+
+                    double d = Math.Abs(level.Key - kev);
+                    if (d <= distance)
+                    {
+                        distance = d;
+                        best = level.Value.Substring(1);
+                        found = level.Key;
+                    }
+                }
+
+                if (best != null)
+                {
+                    return best.Length > 0 ? best : null;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>Спин из записи Jπ ENSDF: «11/2-», «(4+)», «(4+,5+)» — первый вариант.</summary>
+        static bool TryJ(string jpi, out double j)
+        {
+            j = double.NaN;
+            if (string.IsNullOrEmpty(jpi))
+            {
+                return false;
+            }
+
+            var sb = new StringBuilder();
+            foreach (char c in jpi)
+            {
+                if (c == ',' || c == ' ' && sb.Length > 0)
+                {
+                    break;
+                }
+
+                if (char.IsDigit(c) || c == '/')
+                {
+                    sb.Append(c);
+                }
+            }
+
+            string text = sb.ToString();
+            if (text.Length == 0)
+            {
+                return false;
+            }
+
+            int slash = text.IndexOf('/');
+            double a, b = 1.0;
+            if (slash > 0)
+            {
+                if (!double.TryParse(text.Substring(0, slash), NumberStyles.Integer, CultureInfo.InvariantCulture, out a)
+                    || !double.TryParse(text.Substring(slash + 1), NumberStyles.Integer, CultureInfo.InvariantCulture, out b)
+                    || !(b > 0.0))
+                {
+                    return false;
+                }
+            }
+            else if (!double.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out a))
+            {
+                return false;
+            }
+
+            j = a / b;
+            return true;
+        }
+
+        /// <summary>(`Ф1`) Чётность из записи Jπ: знак при первом варианте («7/2+», «(4-)», «(4+,5+)»).</summary>
+        static bool TryParity(string jpi, out int parity)
+        {
+            parity = 0;
+            if (string.IsNullOrEmpty(jpi))
+            {
+                return false;
+            }
+
+            foreach (char c in jpi)
+            {
+                if (c == ',')
+                {
+                    break;
+                }
+
+                if (c == '+' || c == '-')
+                {
+                    parity = c == '+' ? 1 : -1;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        static double Number(string text)
+        {
+            string t = (text ?? "").Trim().Trim('(', ')', ' ');
+            double v;
+            return double.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out v) ? v : double.NaN;
+        }
+
+        static SqliteConnection OpenRead(string path)
+        {
+            SqliteConnection connection = new SqliteConnection(
+                EfficiencyMaker.MaterialDatabase.ReadOnlyConnection(path, true));
+            connection.Open();
+            return connection;
+        }
+
+        // ------------------------------------------------------------------ форма
+
+        /// <summary>
+        /// Плотность спектра N(T) ветви, ненормированная (на кэВ). Таблица (`Ф1`/`Ф2`) —
+        /// линейно по её узлам и до её границы; фактор — разрешённая форма × C(W); иначе —
+        /// форма кодом.
+        /// У линии конверсии — нуль (её образ — «шапочки» узла, <see cref="Weights"/>).
+        /// </summary>
+        public static double Density(FsaBeta beta, double t)
+        {
+            if (beta == null || beta.IsLine || !(t > 0.0) || !(t < beta.EndpointKev))
+            {
+                return 0.0;
+            }
+
+            if (beta.ShapeT != null && beta.ShapeDensity != null && beta.ShapeEndpointKev > 0.0)
+            {
+                // Узлы таблицы — как есть, без растяжки к границе базы: у Pa-234m граница
+                // базы 2290 кэВ против 2269 у LNHB, и растяжка сдвигала среднюю на +1.4 %
+                // (замер `BetaSectionProbeA274 --shapes`); форма и её граница — из одного
+                // источника. Выше границы таблицы — нуль.
+                return Interpolate(beta.ShapeT, beta.ShapeDensity, t);
+            }
+
+            double w = 1.0 + t / ElectronMassKev;
+            double w0 = 1.0 + beta.EndpointKev / ElectronMassKev;
+            double p = Math.Sqrt(w * w - 1.0);
+            double q = w0 - w;
+            double f = Fermi(beta.DaughterZ, beta.MassNumber, w, p, beta.Positron);
+            double s = beta.ShapeFactor != null
+                ? Math.Max(0.0, beta.ShapeFactor[0] + beta.ShapeFactor[1] * w + beta.ShapeFactor[2] / w
+                                + beta.ShapeFactor[3] * w * w)
+                : UniqueShape(beta.UniqueOrder, p, q);
+            double value = p * w * q * q * f * s;
+            return value > 0.0 && !double.IsInfinity(value) ? value : 0.0;
+        }
+
+        static double Interpolate(double[] x, double[] y, double at)
+        {
+            int n = x.Length;
+            if (!(at > x[0]) || !(at < x[n - 1]))
+            {
+                return at == x[0] ? Math.Max(0.0, y[0]) : 0.0;
+            }
+
+            int lo = 0, hi = n - 1;
+            while (hi - lo > 1)
+            {
+                int mid = (lo + hi) / 2;
+                if (x[mid] <= at)
+                {
+                    lo = mid;
+                }
+                else
+                {
+                    hi = mid;
+                }
+            }
+
+            double span = x[hi] - x[lo];
+            double v = span > 0.0 ? y[lo] + (y[hi] - y[lo]) * (at - x[lo]) / span : y[lo];
+            return v > 0.0 ? v : 0.0;
+        }
+
+        /// <summary>∫ N(T) dT и средняя энергия формы, кэВ (Симпсон, 2048 отрезков); у линии — 1 и её энергия.</summary>
+        public static double Integral(FsaBeta beta, out double meanKev)
+        {
+            meanKev = double.NaN;
+            if (beta == null || !(beta.EndpointKev > 0.0))
+            {
+                return 0.0;
+            }
+
+            if (beta.IsLine)
+            {
+                meanKev = beta.EndpointKev;
+                return 1.0;
+            }
+
+            const int Steps = 2048;
+            double h = beta.EndpointKev / Steps, sum = 0.0, first = 0.0;
+            for (int i = 0; i <= Steps; i++)
+            {
+                double t = i == 0 ? 1e-6 * beta.EndpointKev : (i == Steps ? beta.EndpointKev * (1.0 - 1e-9) : h * i);
+                double f = Density(beta, t);
+                double c = i == 0 || i == Steps ? 1.0 : (i % 2 == 1 ? 4.0 : 2.0);
+                sum += c * f;
+                first += c * f * t;
+            }
+
+            sum *= h / 3.0;
+            first *= h / 3.0;
+            meanKev = sum > 0.0 ? first / sum : double.NaN;
+            return sum;
+        }
+
+        /// <summary>
+        /// Фактор формы уникального n-го запрета: Σₖ p²ᵏq²⁽ⁿ⁻ᵏ⁾/((2k+1)!(2n−2k+1)!),
+        /// нормированный на коэффициент при q²ⁿ; n = 0 — единица.
+        /// </summary>
+        static double UniqueShape(int n, double p, double q)
+        {
+            if (n <= 0)
+            {
+                return 1.0;
+            }
+
+            double lead = 1.0 / (Factorial(1) * Factorial(2 * n + 1));
+            double s = 0.0;
+            for (int k = 0; k <= n; k++)
+            {
+                s += Math.Pow(p, 2 * k) * Math.Pow(q, 2 * (n - k)) / (Factorial(2 * k + 1) * Factorial(2 * n - 2 * k + 1));
+            }
+
+            return s / lead;
+        }
+
+        static double Factorial(int n)
+        {
+            double f = 1.0;
+            for (int i = 2; i <= n; i++)
+            {
+                f *= i;
+            }
+
+            return f;
+        }
+
+        /// <summary>
+        /// Релятивистская функция Ферми точечного ядра радиуса R:
+        /// F₀ = 2(1+γ)(2pR)^{2(γ−1)} e^{πη} |Γ(γ+iη)|² / Γ(2γ+1)², γ = √(1 − (αZ)²),
+        /// η = ±αZW/p (β⁻ +, β⁺ −).
+        /// </summary>
+        static double Fermi(int z, int massNumber, double w, double p, bool positron)
+        {
+            if (z <= 0 || !(p > 0.0))
+            {
+                return 1.0;
+            }
+
+            double az = FineStructure * z;
+            if (az >= 0.99)
+            {
+                az = 0.99;
+            }
+
+            double gamma = Math.Sqrt(1.0 - az * az);
+            double eta = (positron ? -1.0 : 1.0) * az * w / p;
+            double radius = 1.2 * Math.Pow(Math.Max(1, massNumber), 1.0 / 3.0) / ComptonFm;
+            double log = Math.Log(2.0 * (1.0 + gamma)) + 2.0 * (gamma - 1.0) * Math.Log(2.0 * p * radius)
+                         + Math.PI * eta + 2.0 * ReLnGamma(gamma, eta) - 2.0 * ReLnGamma(2.0 * gamma + 1.0, 0.0);
+            return Math.Exp(log);
+        }
+
+        /// <summary>Re ln Γ(x + iy) при x &gt; 0 — приближение Ланцоша (g = 7, 9 членов).</summary>
+        static double ReLnGamma(double x, double y)
+        {
+            double[] c =
+            {
+                0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
+                -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6,
+                1.5056327351493116e-7,
+            };
+            double zr = x - 1.0, zi = y;
+            double ar = c[0], ai = 0.0;
+            for (int k = 1; k < c.Length; k++)
+            {
+                double dr = zr + k;
+                double d = dr * dr + zi * zi;
+                ar += c[k] * dr / d;
+                ai -= c[k] * zi / d;
+            }
+
+            double tr = zr + 7.5, ti = zi;
+            double lnr = 0.5 * Math.Log(tr * tr + ti * ti);
+            double theta = Math.Atan2(ti, tr);
+            return 0.5 * Math.Log(2.0 * Math.PI) + (zr + 0.5) * lnr - zi * theta - tr + 0.5 * Math.Log(ar * ar + ai * ai);
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER274` Ф8, полоса `f8cyl` 02.11.2026) ВЕТВЬ — СОБЫТИЕМ ЦЕЛИКОМ
+        // ------------------------------------------------------------------
+
+        /// <summary>(`Ф8`) Уровень дочки, который питает ветвь, кэВ, — по ключу «нуклид|граница» (заполняет `Read`).</summary>
+        static readonly Dictionary<string, double> LevelCache = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>(`Ф8`) Схема уровней дочки (Z, A) из `schemedb.g4_level`/`g4_gamma` — кэш.</summary>
+        static readonly Dictionary<long, G4Scheme> SchemeCache = new Dictionary<long, G4Scheme>();
+
+        static string LevelKey(string nucid, double endpointKev)
+        {
+            return (nucid ?? "") + "|" + endpointKev.ToString("R", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>(`Ф8`) Ветвь на уровень ниже этого — на основное состояние: каскада нет, кэВ.</summary>
+        public const double GroundLevelKev = 1.0;
+
+        /// <summary>
+        /// (`Ф8`) Уровень Geant4 ищется у энергии ветви в этом допуске: max(2 кэВ, 0.2 % уровня) —
+        /// уровни ENSDF и PhotonEvaporation 6.1.2 одной оценки расходятся на доли кэВ.
+        /// </summary>
+        public const double SchemeLevelToleranceKev = 2.0;
+
+        /// <summary>(`Ф8`) Коэффициент конверсии выше этого — переход «целиком конверсионный» (поставка пишет до 10²²): зажим.</summary>
+        public const double ConversionAlphaCap = 1.0e4;
+
+        sealed class G4Level
+        {
+            public int Seq;
+            public double Kev;
+            public double HalfLifeSec;
+            public readonly List<double[]> Transitions = new List<double[]>();   // to, Eγ, Iγ, α, K, L, M, внешние
+        }
+
+        sealed class G4Scheme
+        {
+            public readonly SortedDictionary<int, G4Level> Levels = new SortedDictionary<int, G4Level>();
+        }
+
+        /// <summary>
+        /// (`AMBER274` Ф8, полоса `f8cyl` 02.11.2026) ТАБЛИЦЫ СТРОКИ ВЕТВИ «событие целиком» для
+        /// β⁻-ветви <paramref name="beta"/> (решение Amber 30.10.2026 вопросником, дословно: «В Э1
+        /// событием целиком (Рекомендую)»): функция распределения формы — той же
+        /// <see cref="Density"/>, что у образа FSA; каскад — схема Geant4 дочки
+        /// (`schemedb.g4_level`/`g4_gamma`, PhotonEvaporation 6.1.2) от уровня, который питает
+        /// ветвь (баланс Q датасета, уточнённый уровнем ENSDF, — `Read`), с вероятностями
+        /// переходов ∝ Iγ·(1 + α) и долями конверсии K/L/M/внешних, как `G4LevelReader`; энергии
+        /// связи — `matdb.eadl_binding` (<see cref="Binding"/>). null — строки нет, причина — в
+        /// <paramref name="reason"/>: позитрон (строки позитрона разбор по умолчанию не читает,
+        /// `SamplePositronAtStop` ВЫКЛ), ветвь на основное состояние (совпадать не с чем), уровня в
+        /// схеме нет, каскад с уровня — отдельное событие (изомер дольше
+        /// <see cref="EfficiencyMaker.ElectronBranchSpec.PromptHalfLifeSec"/>).
+        /// </summary>
+        public static EfficiencyMaker.ElectronBranchSpec EventSpec(FsaBeta beta, out string reason)
+        {
+            reason = null;
+            if (beta == null || beta.IsLine || !(beta.EndpointKev > 0.0))
+            {
+                reason = "не ветвь";
+                return null;
+            }
+
+            if (beta.Positron)
+            {
+                reason = "β⁺ — строкой ветви не считается";
+                return null;
+            }
+
+            double level;
+            lock (Gate)
+            {
+                if (!LevelCache.TryGetValue(LevelKey(beta.Nuclide, beta.EndpointKev), out level))
+                {
+                    level = double.NaN;
+                }
+            }
+
+            if (double.IsNaN(level))
+            {
+                reason = "уровень ветви не найден (нет датасета распада)";
+                return null;
+            }
+
+            if (level < GroundLevelKev)
+            {
+                reason = "ветвь на основное состояние — совпадать не с чем";
+                return null;
+            }
+
+            G4Scheme scheme = SchemeOf(beta.DaughterZ, beta.MassNumber);
+            if (scheme == null || scheme.Levels.Count == 0)
+            {
+                reason = "схемы уровней дочки в schemedb нет";
+                return null;
+            }
+
+            // Допуск — и от погрешности ГРАНИЦЫ: уровень посчитан балансом Q − E₀, а граница в
+            // поставке округлена (у 214PB 666 кэВ против 672 у ENSDF — уровень 357 вместо 351.93);
+            // та же мерка max(2 кэВ, 1 % E₀), что у сверки ветви с питанием (`ByEndpoint`).
+            G4Level start = null;
+            double distance = Math.Max(Math.Max(SchemeLevelToleranceKev, 0.002 * level), 0.01 * beta.EndpointKev);
+            foreach (G4Level l in scheme.Levels.Values)
+            {
+                double d = Math.Abs(l.Kev - level);
+                if (d <= distance)
+                {
+                    distance = d;
+                    start = l;
+                }
+            }
+
+            if (start == null)
+            {
+                reason = "уровня " + level.ToString("F2", CultureInfo.InvariantCulture) + " кэВ в схеме Geant4 нет";
+                return null;
+            }
+
+            if (start.Seq == 0)
+            {
+                reason = "ветвь на основное состояние — совпадать не с чем";
+                return null;
+            }
+
+            // Достижимые с начального уровня — по возрастанию номера (энергии): переход ведёт только вниз.
+            var reach = new SortedSet<int>();
+            var stack = new Stack<int>();
+            stack.Push(start.Seq);
+            while (stack.Count > 0)
+            {
+                int seq = stack.Pop();
+                G4Level l;
+                if (!reach.Add(seq) || !scheme.Levels.TryGetValue(seq, out l) || Terminal(l, start))
+                {
+                    continue;
+                }
+
+                foreach (double[] t in l.Transitions)
+                {
+                    int to = (int)t[0];
+                    if (to < seq && scheme.Levels.ContainsKey(to))
+                    {
+                        stack.Push(to);
+                    }
+                }
+            }
+
+            var index = new Dictionary<int, int>();
+            foreach (int seq in reach)
+            {
+                index[seq] = index.Count;
+            }
+
+            int levels = index.Count;
+            var first = new int[levels];
+            var count = new int[levels];
+            var energies = new double[levels];
+            var trCdf = new List<double>();
+            var trTo = new List<int>();
+            var emitCdf = new List<double>();
+            var emitKev = new List<double>();
+            double[] bind = Binding(beta.DaughterZ);
+            foreach (int seq in reach)
+            {
+                G4Level l = scheme.Levels[seq];
+                int i = index[seq];
+                energies[i] = l.Kev;
+                first[i] = trTo.Count;
+                if (Terminal(l, start))
+                {
+                    continue;
+                }
+
+                var weights = new List<double>();
+                var rows = new List<double[]>();
+                foreach (double[] t in l.Transitions)
+                {
+                    int to = (int)t[0];
+                    if (!(to < seq) || !index.ContainsKey(to))
+                    {
+                        continue;
+                    }
+
+                    double alpha = Math.Min(Math.Max(t[3], 0.0), ConversionAlphaCap);
+                    double w = Math.Max(t[2], 0.0) * (1.0 + alpha);
+                    if (!(w > 0.0))
+                    {
+                        continue;
+                    }
+
+                    weights.Add(w);
+                    rows.Add(t);
+                }
+
+                double total = 0.0;
+                foreach (double w in weights)
+                {
+                    total += w;
+                }
+
+                double run = 0.0;
+                for (int k = 0; k < rows.Count; k++)
+                {
+                    double[] t = rows[k];
+                    run += weights[k] / total;
+                    trCdf.Add(k == rows.Count - 1 ? 1.0 : run);
+                    trTo.Add(index[(int)t[0]]);
+                    double eg = t[1];
+                    double alpha = Math.Min(Math.Max(t[3], 0.0), ConversionAlphaCap);
+                    double shares = Math.Max(t[4], 0.0) + Math.Max(t[5], 0.0) + Math.Max(t[6], 0.0) + Math.Max(t[7], 0.0);
+                    double pGamma = 1.0 / (1.0 + alpha);
+                    double cum = pGamma;
+                    emitCdf.Add(cum);
+                    emitKev.Add(eg);
+                    for (int s = 0; s < 4; s++)
+                    {
+                        double share = shares > 0.0 ? Math.Max(t[4 + s], 0.0) / shares : (s == 3 ? 1.0 : 0.0);
+                        cum += (1.0 - pGamma) * share;
+                        emitCdf.Add(s == 3 ? 1.0 : cum);
+                        double b = s < 3 ? bind[s] : 0.0;
+                        emitKev.Add(s < 3 && !(b > 0.0) ? 0.0 : eg - b);
+                    }
+                }
+
+                count[i] = rows.Count;
+            }
+
+            var spec = new EfficiencyMaker.ElectronBranchSpec
+            {
+                Nuclide = beta.Nuclide,
+                EndpointKev = beta.EndpointKev,
+                Intensity = beta.Intensity,
+                LevelKev = start.Kev,
+                StartLevel = index[start.Seq],
+                LevelFirst = first,
+                LevelCount = count,
+                LevelEnergy = energies,
+                TransitionCdf = trCdf.ToArray(),
+                TransitionTo = trTo.ToArray(),
+                EmitCdf = emitCdf.ToArray(),
+                EmitKev = emitKev.ToArray(),
+            };
+            double[] tGrid, cdf;
+            BetaCdf(beta, out tGrid, out cdf);
+            spec.BetaT = tGrid;
+            spec.BetaCdf = cdf;
+            if (!spec.HasCascade)
+            {
+                reason = "уровень " + start.Kev.ToString("F2", CultureInfo.InvariantCulture)
+                         + " кэВ — изомер или без переходов: каскад — отдельное событие";
+                return null;
+            }
+
+            reason = spec.Problem();
+            return reason == null ? spec : null;
+        }
+
+        /// <summary>(`Ф8`) Каскад кончается на уровне: основное состояние или изомер дольше порога (кроме начального — тот разбирает `HasCascade`).</summary>
+        static bool Terminal(G4Level l, G4Level start)
+        {
+            return l.Seq == 0 || l.Transitions.Count == 0
+                   || l.HalfLifeSec > EfficiencyMaker.ElectronBranchSpec.PromptHalfLifeSec;
+        }
+
+        /// <summary>
+        /// (`Ф8`) Функция распределения формы ветви: узлы 0…E₀ с шагом не крупнее 1 кэВ (не меньше
+        /// 200 и не больше 4000 узлов), плотность — <see cref="Density"/>, накопление — трапециями,
+        /// нормировка на последний узел.
+        /// </summary>
+        static void BetaCdf(FsaBeta beta, out double[] t, out double[] cdf)
+        {
+            int n = (int)Math.Ceiling(beta.EndpointKev);
+            n = Math.Max(200, Math.Min(4000, n));
+            t = new double[n + 1];
+            cdf = new double[n + 1];
+            double prev = 0.0, sum = 0.0;
+            for (int i = 0; i <= n; i++)
+            {
+                t[i] = i == n ? beta.EndpointKev : beta.EndpointKev * i / n;
+                double f = i == 0 || i == n ? 0.0 : Density(beta, t[i]);
+                if (i > 0)
+                {
+                    sum += 0.5 * (prev + f) * (t[i] - t[i - 1]);
+                }
+
+                cdf[i] = sum;
+                prev = f;
+            }
+
+            for (int i = 0; i <= n; i++)
+            {
+                cdf[i] = sum > 0.0 ? cdf[i] / sum : (double)i / n;
+            }
+
+            cdf[n] = 1.0;
+        }
+
+        /// <summary>(`Ф8`) Схема уровней ядра (Z, A) из `schemedb` — кэш; отказ чтения — запись в <see cref="FsaDatabaseFailures"/>, null.</summary>
+        static G4Scheme SchemeOf(int z, int a)
+        {
+            long key = z * 1000L + a;
+            lock (Gate)
+            {
+                G4Scheme cached;
+                if (SchemeCache.TryGetValue(key, out cached))
+                {
+                    return cached;
+                }
+            }
+
+            string path = DatabasePath("schemedb.sqlite");
+            if (!File.Exists(path))
+            {
+                FsaDatabaseFailures.Note("schemedb.sqlite", z.ToString(CultureInfo.InvariantCulture) + "/" + a.ToString(CultureInfo.InvariantCulture),
+                                         new FileNotFoundException("schemedb.sqlite not found", path));
+                return null;
+            }
+
+            var scheme = new G4Scheme();
+            try
+            {
+                using (SqliteConnection connection = OpenRead(path))
+                {
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = "select seq, energy_ev, half_life_sec from g4_level where z = $z and a = $a";
+                        command.Parameters.AddWithValue("$z", z);
+                        command.Parameters.AddWithValue("$a", a);
+                        using (SqliteDataReader r = command.ExecuteReader())
+                        {
+                            while (r.Read())
+                            {
+                                var l = new G4Level
+                                {
+                                    Seq = Convert.ToInt32(r.GetValue(0), CultureInfo.InvariantCulture),
+                                    Kev = Convert.ToDouble(r.GetValue(1), CultureInfo.InvariantCulture) / 1000.0,
+                                    HalfLifeSec = r.IsDBNull(2) ? 0.0 : Convert.ToDouble(r.GetValue(2), CultureInfo.InvariantCulture),
+                                };
+                                scheme.Levels[l.Seq] = l;
+                            }
+                        }
+                    }
+
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = "select from_seq, to_seq, energy_ev, intensity_ppm, icc_total, icc_k_ppm, icc_l_ppm,"
+                                              + " icc_m_ppm, icc_outer_ppm from g4_gamma where z = $z and a = $a order by from_seq, idx";
+                        command.Parameters.AddWithValue("$z", z);
+                        command.Parameters.AddWithValue("$a", a);
+                        using (SqliteDataReader r = command.ExecuteReader())
+                        {
+                            while (r.Read())
+                            {
+                                G4Level l;
+                                int from = Convert.ToInt32(r.GetValue(0), CultureInfo.InvariantCulture);
+                                if (!scheme.Levels.TryGetValue(from, out l))
+                                {
+                                    continue;
+                                }
+
+                                Func<int, double> num = i => r.IsDBNull(i) ? 0.0 : Convert.ToDouble(r.GetValue(i), CultureInfo.InvariantCulture);
+                                l.Transitions.Add(new[]
+                                {
+                                    num(1), num(2) / 1000.0, num(3), num(4), num(5), num(6), num(7), num(8),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception error)
+            {
+                FsaDatabaseFailures.Note("schemedb.sqlite", z.ToString(CultureInfo.InvariantCulture) + "/" + a.ToString(CultureInfo.InvariantCulture), error);
+                return null;
+            }
+
+            lock (Gate)
+            {
+                SchemeCache[key] = scheme;
+            }
+
+            return scheme;
+        }
+
+        static readonly Dictionary<string, double[]> WeightCache = new Dictionary<string, double[]>(StringComparer.Ordinal);
+        static readonly object WeightGate = new object();
+
+        /// <summary>
+        /// (`AMBER274`, полоса a269fix5) Имя, которым раздел подписывает строку ветви
+        /// (`nucid` библиотеки, `208TL`), для беты под именем компонента («Tl-208»);
+        /// не разобралось — то же имя.
+        /// </summary>
+        static string BranchNucid(string nuclide)
+        {
+            string nucid = FsaSampleLibrary.NucidOf(nuclide);
+            return string.IsNullOrEmpty(nucid) ? nuclide : nucid;
+        }
+
+        /// <summary>
+        /// Веса узлов раздела для ветви (доля ЕДИНИЧНОГО спектра на «шапочку» узла) или
+        /// для линии конверсии (строка на её энергии, нет — линейная доля двух соседей по
+        /// объединённой сетке узлов и строк линий; ниже нижнего узла — нуль: ни одна обвязка
+        /// склада её не пропускает); кэш по разделу и форме.
+        /// </summary>
+        public static double[] Weights(EfficiencyMaker.ResponseElectronSection section, FsaBeta beta)
+        {
+            if (section == null || beta == null)
+            {
+                return null;
+            }
+
+            // (`Ф8`, `f8cyl`) Ключ — и по нуклиду и рычагу шва: строка ветви своя у каждого нуклида.
+            string key = section.Stamp + "|" + (beta.IsLine ? "L" : "B") + beta.EndpointKev.ToString("R", CultureInfo.InvariantCulture)
+                         + "|" + beta.DaughterZ.ToString(CultureInfo.InvariantCulture) + "|" + beta.MassNumber.ToString(CultureInfo.InvariantCulture)
+                         + "|" + beta.UniqueOrder.ToString(CultureInfo.InvariantCulture) + (beta.Positron ? "+" : "-")
+                         + "|" + beta.ShapeId.ToString(CultureInfo.InvariantCulture)
+                         + "|" + beta.Nuclide + (EfficiencyMaker.ResponseElectronSection.BranchEvents ? "|E" : "|-");
+            lock (WeightGate)
+            {
+                double[] cached;
+                if (WeightCache.TryGetValue(key, out cached))
+                {
+                    return cached;
+                }
+            }
+
+            double[] w;
+            if (beta.IsLine)
+            {
+                // (`AMBER274`, физика 28) Строка на ТОЧНОЙ энергии линии, если раздел её несёт;
+                // иначе — линейная доля соседей по объединённой сетке узлов и строк линий
+                // (`ResponseElectronSection.LineWeights`). Прежде — только соседние узлы, и у
+                // RC103 конверсия 624/656 в полосе 300–400 кэВ выходила в 2.2 раза выше
+                // точного счёта (критик несходимости 30.10.2026).
+                w = section.LineWeights(beta.EndpointKev);
+            }
+            else if ((w = section.BranchWeights(beta.Nuclide, beta.EndpointKev)) != null
+                     || (w = section.BranchWeights(BranchNucid(beta.Nuclide), beta.EndpointKev)) != null)
+            {
+                // (`AMBER274` Ф8, `f8cyl`) У ветви есть строка «событие целиком» — вес 1 у неё:
+                // образ — разность «событие − каскад» той же строки (доля на распад ветвью).
+                //
+                // ⛔ (`AMBER274`, полоса a269fix5, 02.11.2026) СТРОКА ВЕТВИ ИЩЕТСЯ И ПО `nucid`.
+                //    Раздел подписывает строку ветви именем библиотеки (`208TL`,
+                //    `FsaBetaLibrary.Branches` → `EventSpec`), а компонент разбора несёт бету под
+                //    своим именем (`FsaSampleLibrary.AddBetas` → `FsaBeta.Scaled(PrettyName)`,
+                //    «Tl-208»). Прежде поиск шёл только по имени компонента и в приложении не
+                //    находил ни одной строки: у ряда Th-232 на матрице RC103 с разделом из 116
+                //    строк ветвей образ брал строку у 0 ветвей из 24 со строкой — бета ложилась
+                //    весами узлов, без выноса из пиков и суммы с гаммой (слой «Бета пробы»
+                //    положителен всюду и пуст выше 1.1 МэВ). Проба `--fsa-branch-control` этого не
+                //    видела: она берёт ветви из `FsaBetaLibrary.Branches` прямо, с именем `nucid`.
+            }
+            else
+            {
+                double mean;
+                double norm = Integral(beta, out mean);
+                w = section.NodeWeights(t => Density(beta, t), beta.EndpointKev);
+                if (norm > 0.0)
+                {
+                    for (int k = 0; k < w.Length; k++)
+                    {
+                        w[k] /= norm;
+                    }
+                }
+            }
+
+            lock (WeightGate)
+            {
+                WeightCache[key] = w;
+            }
+
+            return w;
         }
     }
 }

@@ -170,9 +170,25 @@ RM_API const char* rm_build_info()
     static std::string info;
     if (info.empty())
     {
+        // (`AMBER274`, физика 30, Н7 критика кода) `cfg=` — отпечаток СОСТАВА настроек ядра: FNV-1a 64 строки
+        // «вид:имя;» полей cfg.h в их порядке (= RmGpu.SettingsFingerprint приложения по полям
+        // EfficiencySimulator). Библиотека, собранная до нового ключа, отказывает при проверке словами, а не
+        // «контрольным словом» при распаковке.
+#define RM_CFG_NAME(k, n) #k ":" #n ";"
+        const char* cfgList = RM_CFG_FIELDS(RM_CFG_NAME);
+#undef RM_CFG_NAME
+        unsigned long long h = 14695981039346656037ULL;
+        for (const char* c = cfgList; *c; ++c)
+        {
+            h ^= (unsigned char)*c;
+            h *= 1099511628211ULL;
+        }
+
+        char cfgHex[17];
+        std::snprintf(cfgHex, sizeof(cfgHex), "%016llx", h);
         info = std::string("src=") + RM_SRC_HASH + ";phys=" + std::to_string(RM_PHYSICS_VERSION)
              + ";arch=" + RM_ARCH + ";real=" + (sizeof(real) == 4 ? "float" : "double")
-             + ";cudart=" + std::to_string(CUDART_VERSION) + ";";
+             + ";cudart=" + std::to_string(CUDART_VERSION) + ";cfg=" + cfgHex + ";";
     }
 
     return info.c_str();
@@ -510,9 +526,167 @@ RM_API int rm_run(int branch, double energyKev, double binKev, int bins,
     }
 }
 
+// (`AMBER274`, Э1 + физика 28) Раздел электрона пробы: `ElectronSourceKernel` на n историй
+// частицы кинетической энергии te (positron ≠ 0 — позитрон с аннигиляцией в точке
+// остановки), шкала — свет истории / lightPerKev (≤ 0 — оставленная энергия). Накопители —
+// хостовые массивы вызывающего: hist — bins, scal — E_SLOTS; ядро ПРИБАВЛЯЕТ (узел можно
+// дробить на порции: Philox считает историю по first + i). Только рабочий генератор
+// (rngMode 1): паритет с ЦП — статистикой, а не по историям.
+RM_API int rm_esrc(double te, int positron, double binKev, double lightPerKev, int bins,
+                   long long n, long long first, unsigned int key0, unsigned int key1,
+                   double* hist, double* scal, int scalCount, int threads)
+{
+    std::vector<void*> tmp;
+    try
+    {
+        if (!loaded) throw std::runtime_error("rm_esrc до rm_load");
+        if (!cfgReady) throw std::runtime_error("rm_esrc до rm_cfg_commit");
+        if (scalCount != (int)E_SLOTS) throw std::runtime_error("scal: длина " + std::to_string(scalCount)
+                                                                + ", ядро ждёт " + std::to_string((int)E_SLOTS));
+        if (bins < 1) throw std::runtime_error("rm_esrc: бинов " + std::to_string(bins));
+        auto alloc = [&](size_t bytes) { void* p = nullptr; Check(cudaMalloc(&p, bytes), "cudaMalloc"); tmp.push_back(p); Check(cudaMemset(p, 0, bytes), "cudaMemset"); return p; };
+
+        NodeArgs a;
+        std::memset(&a, 0, sizeof(a));
+        a.energyKev = (real)te;
+        a.binKev = (real)binKev;
+        a.bins = bins;
+        a.n = n;
+        a.first = first;
+        a.rngMode = 1;
+        a.key0 = key0;
+        a.key1 = key1;
+        a.positron = positron;
+        a.lightPerKev = (real)lightPerKev;
+        a.hist = (double*)alloc(sizeof(double) * (size_t)bins);
+        a.scal = (double*)alloc(sizeof(double) * (size_t)scalCount);
+        if (threads <= 0) threads = 128;
+        long long need = (n + threads - 1) / threads;
+        int blocks = (int)(need < 1 ? 1 : (need > 0x7FFFFFFFLL ? 0x7FFFFFFFLL : need));
+        ElectronSourceKernel<<<blocks, threads>>>(a);
+        Check(cudaGetLastError(), "запуск ядра раздела");
+        Check(cudaDeviceSynchronize(), "ядро раздела");
+
+        auto add = [&](double* host, const double* dev, size_t count, const char* what)
+        {
+            if (host == nullptr) return;
+            std::vector<double> v(count);
+            Check(cudaMemcpy(v.data(), dev, sizeof(double) * count, cudaMemcpyDeviceToHost), what);
+            for (size_t i = 0; i < count; i++) host[i] += v[i];
+        };
+
+        add(hist, a.hist, (size_t)bins, "hist");
+        add(scal, a.scal, (size_t)scalCount, "scal");
+        for (void* p : tmp) cudaFree(p);
+        return 0;
+    }
+    catch (const std::exception& e)
+    {
+        for (void* p : tmp) cudaFree(p);
+        return Fail(e);
+    }
+}
+
+// (`AMBER274` Ф8, полоса `f8cyl` 02.11.2026) Строка ветви — событие целиком (`ElectronBranchKernel`).
+// Таблицы ветви (= `ElectronBranchSpec`) приходят с хоста в double и int и кладутся в память
+// устройства на время вызова (в `real`); hist — весь занос, histGamma — занос каскада, scal —
+// E_SLOTS (смысл слотов — у ядра). Ядро ПРИБАВЛЯЕТ к массивам вызывающего (порции историй).
+RM_API int rm_ebranch(double endpointKev, double binKev, double lightPerKev, int bins,
+                      long long n, long long first, unsigned int key0, unsigned int key1,
+                      const double* betaT, const double* betaCdf, int betaN,
+                      const int* levelFirst, const int* levelCount, int levels, int startLevel,
+                      const double* trCdf, const int* trTo, int transitions,
+                      const double* emitCdf, const double* emitKev,
+                      double* hist, double* histGamma, double* scal, int scalCount, int threads)
+{
+    std::vector<void*> tmp;
+    try
+    {
+        if (!loaded) throw std::runtime_error("rm_ebranch до rm_load");
+        if (!cfgReady) throw std::runtime_error("rm_ebranch до rm_cfg_commit");
+        if (scalCount != (int)E_SLOTS) throw std::runtime_error("scal: длина " + std::to_string(scalCount)
+                                                                + ", ядро ждёт " + std::to_string((int)E_SLOTS));
+        if (bins < 1) throw std::runtime_error("rm_ebranch: бинов " + std::to_string(bins));
+        if (betaN < 2 || levels < 1 || startLevel < 0 || startLevel >= levels || transitions < 0)
+            throw std::runtime_error("rm_ebranch: таблицы ветви пусты или не согласованы");
+        auto alloc = [&](size_t bytes) { void* p = nullptr; Check(cudaMalloc(&p, bytes < 4 ? 4 : bytes), "cudaMalloc"); tmp.push_back(p); Check(cudaMemset(p, 0, bytes < 4 ? 4 : bytes), "cudaMemset"); return p; };
+        auto upReal = [&](const double* src, int count) -> const real*
+        {
+            std::vector<real> v((size_t)(count > 0 ? count : 1));
+            for (int i = 0; i < count; i++) v[(size_t)i] = (real)src[i];
+            real* d = (real*)alloc(sizeof(real) * v.size());
+            Check(cudaMemcpy(d, v.data(), sizeof(real) * v.size(), cudaMemcpyHostToDevice), "таблица ветви");
+            return d;
+        };
+        auto upInt = [&](const int* src, int count) -> const int*
+        {
+            std::vector<int> v((size_t)(count > 0 ? count : 1));
+            for (int i = 0; i < count; i++) v[(size_t)i] = src[i];
+            int* d = (int*)alloc(sizeof(int) * v.size());
+            Check(cudaMemcpy(d, v.data(), sizeof(int) * v.size(), cudaMemcpyHostToDevice), "таблица ветви");
+            return d;
+        };
+
+        Sim::BranchTabG tab;
+        tab.betaT = upReal(betaT, betaN);
+        tab.betaCdf = upReal(betaCdf, betaN);
+        tab.betaN = betaN;
+        tab.levelFirst = upInt(levelFirst, levels);
+        tab.levelCount = upInt(levelCount, levels);
+        tab.levels = levels;
+        tab.startLevel = startLevel;
+        tab.trCdf = upReal(trCdf, transitions);
+        tab.trTo = upInt(trTo, transitions);
+        tab.transitions = transitions;
+        tab.emitCdf = upReal(emitCdf, transitions * 5);
+        tab.emitKev = upReal(emitKev, transitions * 5);
+
+        NodeArgs a;
+        std::memset(&a, 0, sizeof(a));
+        a.energyKev = (real)endpointKev;
+        a.binKev = (real)binKev;
+        a.bins = bins;
+        a.n = n;
+        a.first = first;
+        a.rngMode = 1;
+        a.key0 = key0;
+        a.key1 = key1;
+        a.positron = 0;
+        a.lightPerKev = (real)lightPerKev;
+        a.hist = (double*)alloc(sizeof(double) * (size_t)bins);
+        double* gammaDev = (double*)alloc(sizeof(double) * (size_t)bins);
+        a.scal = (double*)alloc(sizeof(double) * (size_t)scalCount);
+        if (threads <= 0) threads = 128;
+        long long need = (n + threads - 1) / threads;
+        int blocks = (int)(need < 1 ? 1 : (need > 0x7FFFFFFFLL ? 0x7FFFFFFFLL : need));
+        ElectronBranchKernel<<<blocks, threads>>>(a, tab, gammaDev);
+        Check(cudaGetLastError(), "запуск ядра строки ветви");
+        Check(cudaDeviceSynchronize(), "ядро строки ветви");
+
+        auto add = [&](double* host, const double* dev, size_t count, const char* what)
+        {
+            if (host == nullptr) return;
+            std::vector<double> v(count);
+            Check(cudaMemcpy(v.data(), dev, sizeof(double) * count, cudaMemcpyDeviceToHost), what);
+            for (size_t i = 0; i < count; i++) host[i] += v[i];
+        };
+
+        add(hist, a.hist, (size_t)bins, "hist");
+        add(histGamma, gammaDev, (size_t)bins, "histGamma");
+        add(scal, a.scal, (size_t)scalCount, "scal");
+        for (void* p : tmp) cudaFree(p);
+        return 0;
+    }
+    catch (const std::exception& e)
+    {
+        for (void* p : tmp) cudaFree(p);
+        return Fail(e);
+    }
+}
+
 RM_API int rm_sizeof_history_out() { return (int)sizeof(HistoryOut); }
 RM_API int rm_real_bytes() { return (int)sizeof(real); }
-RM_API int rm_slots(int branch) { return branch == 0 ? (int)W_SLOTS : (int)A_SLOTS; }
+RM_API int rm_slots(int branch) { return branch == 0 ? (int)W_SLOTS : branch == 2 ? (int)E_SLOTS : (int)A_SLOTS; }
 
 RM_API void rm_shutdown()
 {

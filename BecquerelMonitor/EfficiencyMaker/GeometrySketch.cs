@@ -788,8 +788,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // задаёт ширина. Отдельное решение, отдельная строка.
                     double rOut = 0.5 * Math.Max(m.BeakerDiameter, 0.0);
                     double zTop = zFace - Math.Max(m.BeakerToDetectorDistance, 0.0);
-                    double reserve = Math.Max(Math.Max(m.BeakerHeight, 0.0),
-                                              Math.Max(m.BeakerEndWallThickness, 0.0));
+                    // (`f8cyl`) Дальнее дно рисуется за пробой: кадр накрывает и его (у
+                    // сосуда без дна — то же число, что прежде).
+                    double reserve = Math.Max(Math.Max(Math.Max(m.BeakerHeight, 0.0),
+                                                       Math.Max(m.BeakerEndWallThickness, 0.0)),
+                                              Math.Max(m.BeakerEndWallThickness, 0.0) + CylinderFarEnd(m));
                     left = -rOut;
                     right = rOut;
                     top = zTop - reserve - Math.Max(m.SourceHeight, 0.0);
@@ -843,6 +846,19 @@ namespace BecquerelMonitor.EfficiencyMaker
             double headspace;
             EfficiencySimulator.CylinderVessel(m, out headspace);
             return headspace;
+        }
+
+        /// <summary>
+        /// (`f8cyl`) Дальнее дно цилиндра, мм, той же раскладкой, что сцена счёта
+        /// (<see cref="EfficiencySimulator.CylinderVessel(GeometryModel, out double, out double)"/>):
+        /// прежде чертёж обводил дальний край пробы линией, будто дно там есть, а в перенос
+        /// оно не входило.
+        /// </summary>
+        static double CylinderFarEnd(GeometryModel m)
+        {
+            double headspace, farEnd;
+            EfficiencySimulator.CylinderVessel(m, out headspace, out farEnd);
+            return farEnd;
         }
 
         void DrawSource(Graphics g, GeometryModel m, double zFace)
@@ -924,17 +940,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // пробой пуст (крышки нет) — той же раскладкой, что сцена
                     // счёта (`EfficiencySimulator.CylinderVessel`).
                     double headspace = CylinderHeadspace(m);
-                    double zBody = zSrcTop - hs - headspace;
-                    Fill(g, WallColor, -rOut, zBody, 2.0 * rOut, hs + end + headspace);
+                    // (`f8cyl`) Дальнее дно — цветом стенки за запасом (у сосуда без дна — ноль).
+                    double farEnd = CylinderFarEnd(m);
+                    double zBody = zSrcTop - hs - headspace - farEnd;
+                    Fill(g, WallColor, -rOut, zBody, 2.0 * rOut, hs + end + headspace + farEnd);
                     if (headspace > 0.0)
                     {
-                        Fill(g, Canvas, -(rOut - wall), zBody, 2.0 * (rOut - wall), headspace);
+                        Fill(g, Canvas, -(rOut - wall), zBody + farEnd, 2.0 * (rOut - wall), headspace);
                     }
 
                     Fill(g, SampleColor, -(rOut - wall), zSrcTop - hs, 2.0 * (rOut - wall), hs);
                     using (Pen pen = new Pen(Ink, 1.2f))
                     {
-                        Outline(g, pen, -rOut, zBody, 2.0 * rOut, hs + end + headspace);
+                        Outline(g, pen, -rOut, zBody, 2.0 * rOut, hs + end + headspace + farEnd);
                     }
 
                     return;
@@ -1086,10 +1104,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // у сцены «на земле» стенок нет ни боковой, ни донышка
                         // (грунт — не стакан), а у сосуда без стенок высоты нет
                         // как размера, есть только пустое поле модели.
-                        if (VesselExists(wall, end))
+                        double farEnd = CylinderFarEnd(m);
+                        if (farEnd > 0.0)
                         {
-                            // (`AMBER205`) Сосуд — с запасом стенки над пробой.
-                            this.DimV(g, pen, ink, rOut * 0.72, zSrcTop - hs - CylinderHeadspace(m), zWallTop,
+                            // (`f8cyl`) Дальнее дно — за пробой и запасом.
+                            double zFar1 = zSrcTop - hs - CylinderHeadspace(m);
+                            this.DimV(g, pen, ink, -rOut * 0.55, zFar1 - farEnd, zFar1, farEnd,
+                                      "BeakerFarEndWallThickness");
+                        }
+
+                        if (VesselExists(wall, Math.Max(end, farEnd)))
+                        {
+                            // (`AMBER205`) Сосуд — с запасом стенки над пробой (и дальним дном, `f8cyl`).
+                            this.DimV(g, pen, ink, rOut * 0.72, zSrcTop - hs - CylinderHeadspace(m) - farEnd, zWallTop,
                                       Math.Max(m.BeakerHeight, 0.0), "BeakerHeight");
                         }
 

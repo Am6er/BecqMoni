@@ -303,6 +303,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.BeakerToDetectorDistance = 0.0;
             g.BeakerSideWallThickness = 0.0;
             g.BeakerEndWallThickness = 0.0;
+            g.BeakerFarEndWallThickness = 0.0;      // (`f8cyl`) у грунта дна нет
             g.SourceHeight = GroundDepthMfp * mfp;
             g.BeakerDiameter = 2.0 * (GroundRadiusMfp * mfp + GroundRadiusPerHeight * height);
             // Высота сосуда = высоте пробы: стенок нет, и сцена счёта с
@@ -679,6 +680,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                         list.Add(Length("PointDistance", g.PointDistance));
                     }
 
+                    // (`AMBER274`, `Р6`) Плёнка капсулы точки: минус — отказ, а не тихая голая точка.
+                    if (g.HasSourceCapsule)
+                    {
+                        list.Add(Length("SourceCapsuleThickness", g.SourceCapsuleThickness));
+                    }
+
                     break;
 
                 case GeometrySourceType.Cylinder:
@@ -686,6 +693,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     list.Add(Length("BeakerHeight", g.BeakerHeight));
                     list.Add(Length("BeakerSideWallThickness", g.BeakerSideWallThickness));
                     list.Add(Length("BeakerEndWallThickness", g.BeakerEndWallThickness));
+                    list.Add(Length("BeakerFarEndWallThickness", g.BeakerFarEndWallThickness));   // (`f8cyl`)
                     list.Add(Length("SourceHeight", g.SourceHeight));
                     list.Add(Length("BeakerToDetectorDistance", g.BeakerToDetectorDistance));
                     break;

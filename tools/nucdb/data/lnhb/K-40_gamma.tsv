@@ -1,0 +1,8 @@
+# LNHB/DDEP, Table de Radionucleides: K-40 (40K)
+# https://www.lnhb.fr/nuclides/K-40_tables.pdf, sha256 95785b8239574a58e4d7df42daad60208ef5900fb00fb363e9f9c3fbfbda7a62 (снято 01.11.2026)
+# оценка: CEA-LNHB / X. Mougeot, 15/07/1998 - 31/05/2025; X. Mougeot et al., Metrologia 63 (2026) 019001
+# Q- LNHB, кэВ: 1310.91
+# раздел «Gamma Emissions», фотонов на 100 распадов
+label	energy_kev	energy_unc	intensity	intensity_unc
+γ±	511		0.00359	25
+γ1,0(Ar)	1460.822	6	10.34	7

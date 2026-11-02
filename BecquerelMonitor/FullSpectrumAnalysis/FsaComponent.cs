@@ -56,6 +56,166 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     }
 
     /// <summary>
+    /// (`AMBER274`, Э1 29.10.2026) БЕТА-ВЕТВЬ компонента — сплошной спектр, образ
+    /// которого строится по разделу строк электрона матрицы
+    /// (<c>EfficiencyMaker.ResponseElectronSection</c>, слой «Бета» пробы). Решения
+    /// Amber 29.10.2026 вопросником, дословно: «Бета пробы первой (Рекомендую)»,
+    /// «Код + BetaShape для кристалла (Рекомендую)» — форма в коде
+    /// (<see cref="FsaBetaLibrary"/>: разрешённая с функцией Ферми, уникальные
+    /// запреты по ΔJπ).
+    /// </summary>
+    public sealed class FsaBeta
+    {
+        public FsaBeta(string nuclide, double endpointKev, double intensity, int daughterZ, int massNumber,
+                       int uniqueOrder, bool positron, double meanKev)
+        {
+            this.Nuclide = nuclide ?? "";
+            this.EndpointKev = endpointKev;
+            this.Intensity = intensity;
+            this.DaughterZ = daughterZ;
+            this.MassNumber = massNumber;
+            this.UniqueOrder = uniqueOrder;
+            this.Positron = positron;
+            this.MeanKev = meanKev;
+        }
+
+        /// <summary>Нуклид ветви — тем же именем, что у линий его распада.</summary>
+        public string Nuclide { get; private set; }
+
+        /// <summary>Граница спектра E₀, кэВ.</summary>
+        public double EndpointKev { get; private set; }
+
+        /// <summary>Выход ветви, % на распад РОДИТЕЛЯ компонента (с равновесием ряда, как у линий).</summary>
+        public double Intensity { get; private set; }
+
+        /// <summary>Заряд дочернего ядра (функция Ферми).</summary>
+        public int DaughterZ { get; private set; }
+
+        /// <summary>Массовое число (радиус ядра в функции Ферми).</summary>
+        public int MassNumber { get; private set; }
+
+        /// <summary>Порядок уникального запрета формы: 0 — разрешённая, n — уникальный n-го.</summary>
+        public int UniqueOrder { get; private set; }
+
+        /// <summary>β⁺ (позитрон).</summary>
+        public bool Positron { get; private set; }
+
+        /// <summary>Средняя энергия ветви по базе, кэВ (сверка формы).</summary>
+        public double MeanKev { get; private set; }
+
+        /// <summary>
+        /// (`AMBER274` Ф4, решение Amber 30.10.2026 вопросником, дословно: «Включить в Э1
+        /// (Рекомендую)») ЛИНИЯ ЭЛЕКТРОНА КОНВЕРСИИ, а не сплошной спектр: энергия —
+        /// <see cref="EndpointKev"/>, выход — <see cref="Intensity"/>, оболочка —
+        /// <see cref="Shell"/>. Образ — строка узла при этой энергии («шапочки» сетки).
+        /// </summary>
+        public bool IsLine { get; private set; }
+
+        /// <summary>(`Ф4`) Оболочка линии конверсии: K, L, M, N+; у ветви — пусто.</summary>
+        public string Shell { get; private set; }
+
+        /// <summary>
+        /// (`Ф1`/`Ф2`, решение Amber 30.10.2026 вопросником, дословно: «Таблицы
+        /// BetaShape/LNHB в nucdb (Рекомендую)») Характер перехода словами по ΔJπ:
+        /// `allowed`, `1st non-unique`, `1st unique`, `2nd non-unique`… (у формы из таблицы
+        /// — как записан в таблице).
+        /// </summary>
+        public string Transition { get; private set; }
+
+        /// <summary>
+        /// (`Ф1`/`Ф2`) Форма из таблицы `nucdb.beta_shapes`: узлы dN/dT (вид `points`),
+        /// граница таблицы <see cref="ShapeEndpointKev"/>; null — формы таблицей нет.
+        /// </summary>
+        public double[] ShapeT { get; private set; }
+
+        public double[] ShapeDensity { get; private set; }
+
+        public double ShapeEndpointKev { get; private set; }
+
+        /// <summary>(`Ф1`/`Ф2`) Фактор формы C(W) = a0 + a1·W + a2/W + a3·W² к разрешённой (вид `factor`); null — нет.</summary>
+        public double[] ShapeFactor { get; private set; }
+
+        /// <summary>
+        /// (`AMBER274`, К3) Σ выходов ветвей β⁻ и β⁺ нуклида после отсева пределов `LT` и дублей
+        /// второй оценки, % на его распад (<c>FsaBetaLibrary.BranchCheck</c>); NaN — не считалась.
+        /// Выше 100 % + <c>FsaBetaLibrary.BranchSumTolerancePercent</c> — поставка противоречит
+        /// себе, и отчёт FSA это называет.
+        /// </summary>
+        public double BranchSumPercent { get; private set; } = double.NaN;
+
+        /// <summary>(`AMBER274`, К3) Та же ветвь с проверенной суммой ветвей нуклида.</summary>
+        public FsaBeta WithBranchSum(double sumPercent)
+        {
+            FsaBeta copy = this.Copy(this.Nuclide, 1.0);
+            copy.BranchSumPercent = sumPercent;
+            return copy;
+        }
+
+        /// <summary>(`Ф1`/`Ф2`) Номер строки `beta_shapes` (0 — форма кодом) и её источник.</summary>
+        public int ShapeId { get; private set; }
+
+        public string ShapeSource { get; private set; }
+
+        /// <summary>(`Ф4`) Линия электрона конверсии: энергия, выход (% на распад), оболочка.</summary>
+        public static FsaBeta Line(string nuclide, double energyKev, double intensity, string shell)
+        {
+            return new FsaBeta(nuclide, energyKev, intensity, 0, 0, 0, false, energyKev)
+            {
+                IsLine = true,
+                Shell = shell ?? "",
+                Transition = "conversion",
+            };
+        }
+
+        /// <summary>(`Ф1`/`Ф2`) Та же ветвь с формой из таблицы и словом перехода.</summary>
+        public FsaBeta WithShape(string transition, int shapeId, string source, double[] t, double[] density,
+                                 double tableEndpointKev, double[] factor)
+        {
+            FsaBeta copy = this.Copy(this.Nuclide, 1.0);
+            copy.Transition = transition;
+            copy.ShapeId = shapeId;
+            copy.ShapeSource = source;
+            copy.ShapeT = t;
+            copy.ShapeDensity = density;
+            copy.ShapeEndpointKev = tableEndpointKev;
+            copy.ShapeFactor = factor;
+            return copy;
+        }
+
+        /// <summary>(`Ф1`/`Ф2`) Та же ветвь со словом перехода (форма кодом).</summary>
+        public FsaBeta WithTransition(string transition)
+        {
+            FsaBeta copy = this.Copy(this.Nuclide, 1.0);
+            copy.Transition = transition;
+            return copy;
+        }
+
+        /// <summary>Та же ветвь с выходом, умноженным на равновесное отношение члена ряда.</summary>
+        public FsaBeta Scaled(string nuclide, double factor)
+        {
+            return this.Copy(nuclide, factor);
+        }
+
+        FsaBeta Copy(string nuclide, double factor)
+        {
+            return new FsaBeta(nuclide, this.EndpointKev, this.Intensity * factor, this.DaughterZ, this.MassNumber,
+                               this.UniqueOrder, this.Positron, this.MeanKev)
+            {
+                IsLine = this.IsLine,
+                Shell = this.Shell,
+                Transition = this.Transition,
+                ShapeT = this.ShapeT,
+                ShapeDensity = this.ShapeDensity,
+                ShapeEndpointKev = this.ShapeEndpointKev,
+                ShapeFactor = this.ShapeFactor,
+                ShapeId = this.ShapeId,
+                ShapeSource = this.ShapeSource,
+                BranchSumPercent = this.BranchSumPercent,
+            };
+        }
+    }
+
+    /// <summary>
     /// (`S171`) ПРИВЯЗКА ВЫРОЖДЕННОГО ЧЛЕНА РЯДА: член, чья колонка в режиме
     /// без связки равновесия неотличима от колонок других членов ТОГО ЖЕ
     /// ряда, своей свободной амплитуды не получает, а идёт с амплитудой
@@ -168,6 +328,45 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.Name = name;
             this.Kind = kind;
             this.Lines = new List<FsaLine>();
+            this.Betas = new List<FsaBeta>();
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Э1) Бета-ветви компонента (по членам, тем же весом, что их
+        /// линии). Читает их только образ по матрице С РАЗДЕЛОМ строк электрона;
+        /// без раздела список не влияет ни на одно число разбора.
+        /// </summary>
+        public List<FsaBeta> Betas { get; private set; }
+
+        /// <summary>
+        /// (`AMBER274`, Ф14) СТРОКА ПО СПЛОШНОМУ СПЕКТРУ — колонка чистого бета-излучателя:
+        /// линий нет (<see cref="Lines"/> пуст), образ — одна бета её членов
+        /// (<see cref="Betas"/>), амплитуда свободная против сплайна. Решение Amber
+        /// 30.10.2026 вопросником, дословно: «Строка без линий по набору (Рекомендую)» —
+        /// в состав входит только набором или пробой (объявленным составом), пределы —
+        /// как у прочих, пометка «по сплошному спектру». Собирает её
+        /// <c>FsaSampleLibrary.Build</c> (правило — <c>FsaSampleLibrary.PureBetaPhotonFloorPercent</c>);
+        /// без годного раздела электрона матрицы анализатор снимает её до фита с причиной
+        /// (<c>FsaAnalyzer.BetaOnlyRemoved</c>). Имён нуклидов признак не несёт: чистый ли
+        /// излучатель — говорит база.
+        /// </summary>
+        public bool BetaOnly { get; set; }
+
+        /// <summary>(`AMBER274`) Перенести бета-ветви нуклида <paramref name="nuclide"/> (null — все) из <paramref name="source"/>.</summary>
+        public void CopyBetas(FsaComponent source, string nuclide)
+        {
+            if (source == null || source.Betas == null)
+            {
+                return;
+            }
+
+            foreach (FsaBeta beta in source.Betas)
+            {
+                if (nuclide == null || string.Equals(beta.Nuclide, nuclide, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    this.Betas.Add(beta);
+                }
+            }
         }
 
         public string Name { get; private set; }

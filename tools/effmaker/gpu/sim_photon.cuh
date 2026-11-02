@@ -50,6 +50,7 @@ RM_DEV void Sim::InitPhoton()
     lastVacancyLine = 0;
     lastVacancyRolled = false;
     pendingCascadeKev = 0;
+    pendingCascadeShell = 0;
     annihilationEscapes = 0;
     lightDeposit = 0;
     // cascadeStack не обнуляется: C# читает только записанное (`top`).
@@ -168,6 +169,9 @@ RM_DEVF real Sim::InCrystal(real x, real y, real z, real ux, real uy, real uz,
             // (`A101`) Второй квант каскада K→L — забирается СРАЗУ, до рекурсии.
             real casc = pendingCascadeKev;
             pendingCascadeKev = (real)0.0;
+            // (`AMBER274`, физика 30, `ckv`) Подоболочка каскадного кванта — тем же укладом.
+            int cascShell = pendingCascadeShell;
+            pendingCascadeShell = 0;
             // (`AMBER16` п. 1) Серия ЭТОГО кванта — до рекурсии.
             bool xrayIsL = lastXrayIsL;
             // (`F11` (а), П17) Место поглощения и решения переноса — до рекурсии.
@@ -182,7 +186,7 @@ RM_DEVF real Sim::InCrystal(real x, real y, real z, real ux, real uy, real uz,
                 // Порядок вызовов тот же: сначала электрон, потом рентгеновский квант.
                 real electron = C.LightCascadeSplit && absorbZ > 0 && absorbShell > 0
                     ? PhotoElectronsSplit(x, y, z, e, absorbZ, absorbShell,
-                                          xray, kLine, casc, cascadeRolled, depth,
+                                          xray, kLine, casc, cascShell, cascadeRolled, depth,
                                           ux, uy, uz)
                     : ElectronLoss(x, y, z, e - xray - casc, depth,
                                    ElectronBirth::Photo, ux, uy, uz);
@@ -217,7 +221,7 @@ RM_DEVF real Sim::InCrystal(real x, real y, real z, real ux, real uy, real uz,
             if (C.LightCascadeSplit && absorbZ > 0 && absorbShell > 0)
             {
                 return lost + PhotoElectronsSplit(x, y, z, e, absorbZ, absorbShell,
-                                                  (real)0.0, -1, (real)0.0, false, depth,
+                                                  (real)0.0, -1, (real)0.0, 0, false, depth,
                                                   ux, uy, uz);
             }
 
@@ -315,7 +319,7 @@ RM_DEVF real Sim::InCrystal(real x, real y, real z, real ux, real uy, real uz,
             real lossA = ElectronLoss(x, y, z, kinetic * share, depth,
                                       ElectronBirth::Pair, ux, uy, uz);
             real lossB = ElectronLoss(x, y, z, kinetic * ((real)1.0 - share), depth,
-                                      ElectronBirth::Pair, ux, uy, uz);
+                                      ElectronBirth::Pair, ux, uy, uz, true);   // (физика 30, Ф4) позитрон
             escaped = lost + lossA + lossB;
             if (C.PositronOffset)
             {
@@ -529,7 +533,7 @@ RM_DEVF real Sim::ElectronLoss(real x, real y, real z, real te, int depth)
 
 // = EfficiencySimulator.cs:5640 ElectronLoss
 RM_DEVF real Sim::ElectronLoss(real x, real y, real z, real te, int depth,
-                               ElectronBirth birth, real rx, real ry, real rz)
+                               ElectronBirth birth, real rx, real ry, real rz, bool positron)
 {
     if (D.scene->electron < 0 || !(te > (real)1.0) || depth > 12)
     {
@@ -589,7 +593,7 @@ RM_DEVF real Sim::ElectronLoss(real x, real y, real z, real te, int depth,
         real ux, uy, uz;
         ElectronBirthDirection(birth, te, rx, ry, rz, ux, uy, uz);
         escapedSelf = TransportElectron(x, y, z, ux, uy, uz, te, alongPath, depth,
-                                        radiated, lost);
+                                        radiated, lost, positron);
         lost += escapedSelf;
     }
     else if (C.ElectronEscape)
@@ -629,7 +633,7 @@ RM_DEVF real Sim::ElectronLoss(real x, real y, real z, real te, int depth,
 
 // = EfficiencySimulator.cs:5778 PhotoElectronsSplit
 RM_DEVF real Sim::PhotoElectronsSplit(real x, real y, real z, real e, int atomZ, int shell,
-                                      real xray, int kLine, real casc, bool cascadeRolled, int depth,
+                                      real xray, int kLine, real casc, int cascShell, bool cascadeRolled, int depth,
                                       real ux, real uy, real uz)
 {
     int relax = RelaxationOf(atomZ);
@@ -641,7 +645,7 @@ RM_DEVF real Sim::PhotoElectronsSplit(real x, real y, real z, real e, int atomZ,
 
     real lost = ElectronLoss(x, y, z, e - binding, depth, ElectronBirth::Photo, ux, uy, uz);
     lost += RelaxationElectrons(x, y, z, relax, shell, binding - xray - casc,
-                                xray, kLine, casc, cascadeRolled, depth);
+                                xray, kLine, casc, cascShell, cascadeRolled, depth);
     return lost;
 }
 
@@ -660,7 +664,7 @@ RM_DEVF real Sim::VacancyElectronsSplit(real x, real y, real z, real total, int 
 
     real lost = ElectronLoss(x, y, z, total - binding, depth, ElectronBirth::Given, edx, edy, edz);
     lost += RelaxationElectrons(x, y, z, relax, shell, binding - xray,
-                                xray, kLine, (real)0.0, false, depth, rolled);
+                                xray, kLine, (real)0.0, 0, false, depth, rolled);
     return lost;
 }
 
@@ -672,7 +676,7 @@ RM_DEVF real Sim::VacancyElectronsSplit(real x, real y, real z, real total, int 
 // диагностика, на розыгрыш не влияют).
 RM_DEVF real Sim::RelaxationElectrons(real x, real y, real z, int relaxIndex,
                                       int shell, real budgetKev, real xray, int kLine, real casc,
-                                      bool cascadeRolled, int depth, bool selfRolled)
+                                      int cascShell, bool cascadeRolled, int depth, bool selfRolled)
 {
     if (!(budgetKev > (real)0.0))
     {
@@ -685,6 +689,10 @@ RM_DEVF real Sim::RelaxationElectrons(real x, real y, real z, int relaxIndex,
     int top = bottom;
     bool firstNonRadiative = false;
     int seed = shell;
+    // (`AMBER274`, физика 30, `ckv`) Переход Костера—Кронига перед каскадным квантом (= C#).
+    bool ck = false;
+    real ckKev = (real)0.0;
+    int ckHole = 0;
     if (xray > (real)0.0)
     {
         // квант уже разыгран переносом: дырка переехала
@@ -700,7 +708,16 @@ RM_DEVF real Sim::RelaxationElectrons(real x, real y, real z, int relaxIndex,
         seed = next;
         if (casc > (real)0.0)
         {
-            int after = ::VacancyAfterPhoton(relax, next, casc, Uniform());
+            // ⛔ (`AMBER274`, `ckv`) Вакансия кванта — среди переходов подоболочки, куда дырка доехала
+            // переходом Костера—Кронига; сам переход — электроном и дыркой EADL (= C#).
+            int lineShell = next;
+            if (C.CascadeCkVacancy && cascShell > 0 && cascShell != next)
+            {
+                ck = ::CosterKronig(relax, next, cascShell, Uniform(), ckKev, ckHole);
+                lineShell = cascShell;
+            }
+
+            int after = ::VacancyAfterPhoton(relax, lineShell, casc, Uniform());
             if (after <= 0)
             {
                 AddLight(budgetKev, budgetKev);
@@ -723,6 +740,35 @@ RM_DEVF real Sim::RelaxationElectrons(real x, real y, real z, int relaxIndex,
     real lost = (real)0.0;
     real blob = (real)0.0;
     real scored = (real)0.0;
+    if (ck)
+    {
+        // (`AMBER274`, `ckv`) Электрон Костера—Кронига и его дырка (= C#).
+        if (ckHole > 0)
+        {
+            if (top + 1 > CascadeStackSize)
+            {
+                CountCascadeOverflow++;
+            }
+            else
+            {
+                stack[top++] = ckHole;
+            }
+        }
+
+        scored += ckKev;
+        if (ckKev >= (real)1.0)
+        {
+            int saved = cascadeUsed;   // (`A314`) = C# CascadeElectronLoss
+            cascadeUsed = top;
+            lost += ElectronLoss(x, y, z, ckKev, depth);
+            cascadeUsed = saved;
+        }
+        else if (ckKev > (real)0.0)
+        {
+            blob += ckKev;
+        }
+    }
+
     bool first = true;
     while (top > bottom)
     {
@@ -873,6 +919,7 @@ RM_DEVF real Sim::SampleFluorescence(int region, real energyKev)
     const MaterialG& mg = D.materials[material];
     // (`A101`, `AMBER16`, `F11`) Признаки принадлежат ТОЛЬКО этому вызову.
     pendingCascadeKev = (real)0.0;
+    pendingCascadeShell = 0;
     lastXrayIsL = false;
     lastAbsorbZ = 0;
     lastAbsorbShell = 0;
@@ -1141,6 +1188,8 @@ RM_DEVF void Sim::CascadeAfterK(int fIndex, int shell, int kLine, real energyKev
         PickLine(Uniform(),
                  ::TblRow(f.LineKevL, f.LineKevLOff, emit), ::TblRowLen(f.LineKevLOff, emit),
                  ::TblRow(f.LineWeightL, f.LineWeightLOff, emit), ::TblRowLen(f.LineWeightLOff, emit));
+    // (`AMBER274`, физика 30, `ckv`) Откуда квант (EADL: L1=3, L2=5, L3=6) = C#.
+    pendingCascadeShell = emit == 0 ? 3 : (emit == 1 ? 5 : 6);
 }
 
 // = EfficiencySimulator.cs:6371 LSubshellAfterCk

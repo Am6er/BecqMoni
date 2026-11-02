@@ -120,6 +120,9 @@ namespace BecquerelMonitor
                         }
                         deviceConfigInfo.OriginalFilename = Path.GetFileName(path);
                         deviceConfigInfo.Filename = Path.GetFileName(path);
+                        // (`AMBER269`, 01.11.2026) Встроенная заглушка кривой FWHM —
+                        // кривой по трём числам прибора; файл не переписывается.
+                        deviceConfigInfo.ResolveBuiltInFwhm();
                         if (this.deviceConfigMap.ContainsKey(deviceConfigInfo.Guid))
                         {
                             AppUi.Report(string.Format(Resources.ERRDuplicateDeviceConfigGUID, deviceConfigInfo.Filename), Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);

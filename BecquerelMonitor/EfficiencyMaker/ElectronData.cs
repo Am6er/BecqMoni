@@ -91,6 +91,29 @@ namespace BecquerelMonitor.EfficiencyMaker
             public double[] Range;       // г/см²
             public double[] Yield;       // доля энергии в тормозное излучение
 
+            /// <summary>
+            /// (`AMBER274`, физика 28) Средняя энергия возбуждения, которой ESTAR считал
+            /// пробег, эВ; 0 — неизвестна (вшитый эталон сверки): страгглинга у такого
+            /// вещества нет (<see cref="EfficiencySimulator.ElectronStraggling"/>).
+            /// </summary>
+            public double PotentialEv;
+
+            /// <summary>(`AMBER274`, физика 28) Z_эфф по массовым долям — уровни модели Урбана.</summary>
+            public double ZeffMass;
+
+            /// <summary>
+            /// (`AMBER274`, физика 28) Доля радиационной тормозной способности S_rad/S_tot на
+            /// сетке <see cref="Energy"/>; null — нет (флуктуирует вся средняя потеря).
+            /// </summary>
+            public double[] RadShare;
+
+            /// <summary>
+            /// (`AMBER274`, физика 28) Постоянные модели флуктуаций Урбана вещества
+            /// (`G4IonisParamMat::ComputeFluctModel`) — считаются один раз
+            /// (<see cref="EfficiencySimulator.UrbanParams"/>); null — ещё нет.
+            /// </summary>
+            internal double[] Urban;
+
             // ⚡ (`A43`, П45) Логарифмы трёх таблиц, посчитанные один раз.
             // `LogLog` брал пять логарифмов на вызов, четыре из них — от чисел
             // таблицы, которые не меняются; перенос электрона зовёт
@@ -101,17 +124,19 @@ namespace BecquerelMonitor.EfficiencyMaker
             // же функция от того же аргумента (приём `T43`, `Element.LogEnergyKev`).
             internal sealed class Logs
             {
-                public readonly double[] SourceEnergy, SourceRange, SourceYield;
-                public readonly double[] Energy, Range, Yield;
+                public readonly double[] SourceEnergy, SourceRange, SourceYield, SourceRadShare;
+                public readonly double[] Energy, Range, Yield, RadShare;
 
-                public Logs(double[] energy, double[] range, double[] yield)
+                public Logs(double[] energy, double[] range, double[] yield, double[] radShare)
                 {
                     this.SourceEnergy = energy;
                     this.SourceRange = range;
                     this.SourceYield = yield;
+                    this.SourceRadShare = radShare;
                     this.Energy = Of(energy);
                     this.Range = Of(range);
                     this.Yield = Of(yield);
+                    this.RadShare = Of(radShare);
                 }
 
                 static double[] Of(double[] t)
@@ -138,9 +163,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Logs l = this.logs;
                 if (l == null || !ReferenceEquals(l.SourceEnergy, this.Energy)
                     || !ReferenceEquals(l.SourceRange, this.Range)
-                    || !ReferenceEquals(l.SourceYield, this.Yield))
+                    || !ReferenceEquals(l.SourceYield, this.Yield)
+                    || !ReferenceEquals(l.SourceRadShare, this.RadShare))
                 {
-                    l = new Logs(this.Energy, this.Range, this.Yield);
+                    l = new Logs(this.Energy, this.Range, this.Yield, this.RadShare);
                     this.logs = l;
                 }
 
@@ -583,13 +609,48 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         };
 
+        // (`AMBER272`, полоса `dbdata`, 02.11.2026) GAGG:Ce, Gd3Al2Ga3O12 (Ga:Al 3:2), ρ 6.63 —
+        // решение Amber 29.10.2026 «Kole & De Angelis»; блок снят `tools/estar/gen_cs.py`
+        // (`estar.py`, WANTED), как и девять прочих блоков своей реализации ESTAR.
+        static readonly Material Gagg = new Material
+        {
+            Name = "GAGG",
+            Energy = Grid,
+            Range = new double[]
+            {
+                1.204E-05, 1.822E-05, 2.476E-05, 3.172E-05, 3.912E-05, 5.525E-05,
+                7.316E-05, 9.281E-05, 1.142E-04, 1.372E-04, 1.619E-04, 1.881E-04,
+                2.160E-04, 2.764E-04, 3.427E-04, 4.149E-04, 4.928E-04, 7.115E-04,
+                9.630E-04, 1.246E-03, 1.559E-03, 2.271E-03, 3.092E-03, 4.015E-03,
+                5.035E-03, 6.148E-03, 7.348E-03, 8.631E-03, 9.996E-03, 1.295E-02,
+                1.619E-02, 1.970E-02, 2.344E-02, 3.378E-02, 4.531E-02, 5.787E-02,
+                7.132E-02, 1.004E-01, 1.319E-01, 1.652E-01, 1.998E-01, 2.355E-01,
+                2.721E-01, 3.094E-01, 3.471E-01, 4.238E-01, 5.013E-01, 5.793E-01,
+                6.576E-01, 8.526E-01, 1.046E+00, 1.236E+00, 1.423E+00, 1.787E+00,
+                2.139E+00
+            },
+            Yield = new double[]
+            {
+                5.238E-05, 6.470E-05, 7.638E-05, 8.803E-05, 9.985E-05, 1.241E-04,
+                1.492E-04, 1.749E-04, 2.011E-04, 2.278E-04, 2.547E-04, 2.819E-04,
+                3.092E-04, 3.643E-04, 4.198E-04, 4.754E-04, 5.311E-04, 6.700E-04,
+                8.082E-04, 9.454E-04, 1.081E-03, 1.349E-03, 1.612E-03, 1.870E-03,
+                2.123E-03, 2.371E-03, 2.616E-03, 2.856E-03, 3.093E-03, 3.556E-03,
+                4.006E-03, 4.444E-03, 4.871E-03, 5.895E-03, 6.861E-03, 7.778E-03,
+                8.652E-03, 1.029E-02, 1.182E-02, 1.327E-02, 1.464E-02, 1.597E-02,
+                1.725E-02, 1.850E-02, 1.972E-02, 2.210E-02, 2.442E-02, 2.668E-02,
+                2.891E-02, 3.436E-02, 3.971E-02, 4.497E-02, 5.018E-02, 6.042E-02,
+                7.046E-02
+            }
+        };
+
         /// <summary>
         /// ВШИТАЯ таблица — эталон сверки, а не рабочие числа. Порядок тот же,
         /// что у <see cref="Signatures"/> и <see cref="Compositions"/>.
         /// </summary>
         static readonly Material[] Builtin =
         {
-            CsI, NaI, Bgo, LaBr3, CeBr3, SrI2, CdTe, Czt, Gso, Ge, Al, Ptfe, Water
+            CsI, NaI, Bgo, LaBr3, CeBr3, SrI2, CdTe, Czt, Gso, Ge, Al, Ptfe, Water, Gagg
         };
 
         /// <summary>
@@ -599,6 +660,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// ⛔ Список закрыт намеренно (`N9`). Считать умеет любой состав, но
         /// пустить сюда произвольную оправу, стенку и пробу — это `N4`: физика
         /// поменяется, и все посчитанные матрицы отклика придётся пересчитать.
+        /// ➕ (`AMBER272`, 02.11.2026) Четырнадцатым — КРИСТАЛЛ GAGG:Ce по решению
+        /// Amber 29.10.2026 («Kole & De Angelis»): его опознаёт <see cref="Match"/>,
+        /// и <c>EfficiencySimulator.ScintillatorNameOf</c> даёт кривую света «GAGG»
+        /// (`scint_npsm_params`); матриц склада это не трогает — кристаллов GAGG там нет.
         ///
         /// Плотности — те же, с которыми считались вшитые числа: у десяти
         /// кристаллов они записаны в `tools/estar/estar.py`, у Al, PTFE и воды
@@ -626,6 +691,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             Compound("Al",    2.699, new[] { 13 },          new[] { 1.0 }),
             Compound("PTFE",  2.2,   new[] { 6, 9 },        new[] { 2.0, 4.0 }),
             Compound("Water", 1.0,   new[] { 1, 8 },        new[] { 2.0, 1.0 }),
+            // (`AMBER272`, 02.11.2026) кристалл GAGG:Ce; I — по Брэггу (в `star_materials` его нет)
+            Compound("GAGG",  6.63,  new[] { 64, 13, 31, 8 }, new[] { 3.0, 2.0, 3.0, 12.0 }),
         };
 
         static EstarCalculator.Compound Compound(string name, double density,
@@ -677,6 +744,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                         Energy = Grid,
                         Range = result.RangeGCm2,
                         Yield = result.Yield,
+                        PotentialEv = result.PotentialEv,
+                        ZeffMass = result.ZeffMass,
+                        RadShare = result.RadiativeShare,
                     };
                 }
 
@@ -716,7 +786,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             return null;
         }
 
-        /// <summary>Имена всех тринадцати веществ, в порядке таблицы.</summary>
+        /// <summary>Имена всех веществ (четырнадцать с GAGG, `AMBER272`), в порядке таблицы.</summary>
         public static string[] Names()
         {
             string[] names = new string[Compositions.Length];
@@ -743,7 +813,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             new int[] { 32 },            // Ge (в том числе HPGe)
             new int[] { 13 },            // Al
             new int[] { 6, 9 },          // PTFE (C2F4)
-            new int[] { 1, 8 }           // вода
+            new int[] { 1, 8 },          // вода
+            new int[] { 8, 13, 31, 64 }  // GAGG (Gd3Al2Ga3O12; `AMBER272`)
         };
 
         /// <summary>
@@ -898,6 +969,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                         Energy = Grid,
                         Range = result.RangeGCm2,
                         Yield = result.Yield,
+                        PotentialEv = result.PotentialEv,
+                        ZeffMass = result.ZeffMass,
+                        RadShare = result.RadiativeShare,
                     };
                 }
 
@@ -918,6 +992,22 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             Material.Logs l = m.LogsNow();
             return LogLog(m.Energy, l.Energy, m.Yield, l.Yield, energyKev * 1e-3);
+        }
+
+        /// <summary>
+        /// (`AMBER274`, физика 28) Доля радиационной тормозной способности S_rad/S_tot при
+        /// энергии <paramref name="energyKev"/>; 0 — таблицы нет (флуктуирует вся потеря).
+        /// </summary>
+        public static double RadShareOf(Material m, double energyKev)
+        {
+            if (m.RadShare == null)
+            {
+                return 0.0;
+            }
+
+            Material.Logs l = m.LogsNow();
+            double share = LogLog(m.Energy, l.Energy, m.RadShare, l.RadShare, energyKev * 1e-3);
+            return share < 1.0 ? share : 1.0;
         }
 
         /// <summary>

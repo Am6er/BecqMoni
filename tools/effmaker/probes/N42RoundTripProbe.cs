@@ -72,7 +72,8 @@ namespace N42RoundTripProbe
     ///                    кривой, слово) и импортируются в ОТКРЫТЫЙ документ, как это
     ///                    делает пункт меню. Ожидание после правки: импорт Atom
     ///                    Spectra — 1, импорт CSV — 1; исправная конфигурация —
-    ///                    0/0/0/0/0.
+    ///                    0/0/0/0/0. ⚠ С П263 у CSV сверх этого ВСЕГДА один голос
+    ///                    `A207` «нет времени начала» — ожидание CSV 2 и 1 (a269fix3).
     ///
     /// Проба безоконная (входная сборка не BecquerelMonitor.exe), то есть
     /// AppUi.HasWindows == false и мерится ОТКАЗНАЯ половина всех дверей.
@@ -1098,8 +1099,15 @@ namespace N42RoundTripProbe
                 finally { Console.SetError(warmErr); }
             }
 
+            // ⚠ (`AMBER269`, полоса a269fix3, 02.11.2026) У ИМПОРТА CSV — ПЛЮС ОДИН голос НЕ О
+            //    КРИВОЙ: с П263 (14.10.2026) дверь CSV говорит «в файле нет времени начала
+            //    набора» (`A207`, `ReportCsvStartTimeUnknown`) — один раз на файл, всегда:
+            //    у CSV с энергиями времени нет по формату. Ожидание CSV поднято на эту
+            //    единицу (0 → 1, 1 → 2); голос о кривой по-прежнему один. До поправки
+            //    плечо краснело на снимке 02.11.2026 обоими итогами: «импорт csv 1
+            //    (ожидалось 0)» и «2 (ожидалось 1)».
             int rc = 0;
-            rc |= OneVoiceArm("КОНФИГУРАЦИЯ ИСПРАВНА", Path.Combine(dir, "g11_ok.xml"), 0, 0, 0, 0, 0);
+            rc |= OneVoiceArm("КОНФИГУРАЦИЯ ИСПРАВНА", Path.Combine(dir, "g11_ok.xml"), 0, 0, 0, 0, 1);
 
             FWHMPeakDetectionMethodConfig broken =
                 (FWHMPeakDetectionMethodConfig)dcm.DeviceConfigList[0].PeakDetectionMethodConfig;
@@ -1115,7 +1123,7 @@ namespace N42RoundTripProbe
                                   + (FwhmCalibration.DefaultCalibration(broken, new PolynomialEnergyCalibration()) == null
                                      ? "null" : "кривая построилась — ПЛЕЧО НЕ МЕРИТ") + " ---");
                 Console.WriteLine();
-                rc |= OneVoiceArm("УМОЛЧАНИЕ НЕ СТРОИТСЯ", Path.Combine(dir, "g11_broken.xml"), 1, 1, 0, 1, 1);
+                rc |= OneVoiceArm("УМОЛЧАНИЕ НЕ СТРОИТСЯ", Path.Combine(dir, "g11_broken.xml"), 1, 1, 0, 1, 2);
             }
             finally
             {

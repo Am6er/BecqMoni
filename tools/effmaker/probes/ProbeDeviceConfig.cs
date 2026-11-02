@@ -10,9 +10,9 @@ using System;
 // ⛔ ЗАЧЕМ. `ResultData.PeakDetectionMethodConfig` помечен `[XmlIgnore]` — в
 // файле спектра его НЕТ НИКОГДА, ни у одного спектра, ни у корпусного, ни у
 // пользовательского. В приложении его ставит `DocumentManager.PrepareDeviceConfig`
-// при открытии документа: ссылка `DeviceConfigReference.Guid` ищется в
-// `DeviceConfigManager`, найденный прибор кладётся в `ResultData.DeviceConfig`, и
-// его настройки поиска пиков клонируются спектру.
+// при открытии документа: прибор ищется `DocumentManager.AttachDeviceConfig` (Guid
+// ссылки, затем серийный номер, затем имя — `AMBER269`), найденный кладётся в
+// `ResultData.DeviceConfig`, и его настройки поиска пиков клонируются спектру.
 //
 // Пробы этого не делали. `ResultData.DeviceConfig` тоже `[XmlIgnore]` и заведён
 // полем `= new DeviceConfigInfo()`, то есть после чтения файла там лежит ПУСТОЙ
@@ -40,9 +40,10 @@ static class ProbeDeviceConfig
     /// у корпусной пробы 126 спектров, и печатать построчно решает она.
     ///
     /// ⛔ (`AMBER269`, 29.10.2026) ЗДЕСЬ ЖЕ — КРИВАЯ FWHM, ТЕМ ЖЕ ПРАВИЛОМ, ЧТО У
-    /// `DocumentManager.CheckDocument`: у спектра без своей кривой приложение строит
-    /// умолчание из трёх чисел настроек прибора (`FwhmCalibration.DefaultCalibration`),
-    /// а НЕ берёт кривую, сохранённую в его настройках поиска. Пробы брали её
+    /// `DocumentManager.CheckDocument`: у спектра без своей кривой приложение строило
+    /// (до 02.11.2026, см. последний абзац) умолчание из трёх чисел настроек прибора
+    /// (`FwhmCalibration.DefaultCalibration`), а НЕ брало кривую, сохранённую в его
+    /// настройках поиска. Пробы брали её
     /// (`cfg.FwhmCalibration`, блок после этого вызова в каждой из ~60 проб), и на
     /// трёх чужих RC-110 без своей кривой разбор пробы расходился с окном: у прибора
     /// лежала встроенная кривая 15/103 при числах 4/266/26 — пик шире на треть
@@ -51,17 +52,71 @@ static class ProbeDeviceConfig
     /// этой правки блоки проб ниже холостые: кривая уже стоит. Корпус не задет — все
     /// 136 его спектров несут свою кривую, и ни у одного из 24 его приборов
     /// сохранённой кривой нет (проверено 29.10.2026).
+    ///
+    /// ⛔ (`AMBER269`, 02.11.2026) ПРИБОР — ТЕМ ЖЕ ВЫЗОВОМ, ЧТО У ДВЕРИ ОТКРЫТИЯ
+    /// (`DocumentManager.AttachDeviceConfig` → `MatchDeviceConfig`: Guid, затем
+    /// серийный номер, затем имя; решения Amber 01.11.2026 вопросником, дословно:
+    /// «По серийному номеру (Рекомендую)», «По номеру, затем имени (Рекомендую)»).
+    /// Прежде здесь был поиск только по Guid, и экспорт RadiaCode (в ссылке одно
+    /// имя модели, номер — в спектре) проба разбирала без прибора, на умолчаниях
+    /// библиотеки, а окно — с прибором; для замера таким файлам подкладывали
+    /// `_dev.xml` с Guid. И настройки поиска — КОПИЕЙ настроек прибора, как в
+    /// приложении, а не `AdoptFrom`: у прочитанного спектра настройки не пусты, а
+    /// заведены полем (`new FWHMPeakDetectionMethodConfig()`), и `AdoptFrom`
+    /// оставлял спектру встроенную заглушку кривой 15/3756/103 вместо кривой
+    /// прибора — с её формой пика. Кривая FWHM — тем же правилом, что
+    /// `DocumentManager.StandInFwhm` (`FwhmCalibration.StandInCalibration`: три числа
+    /// и форма пика прибора).
+    ///
+    /// ⛔ (`AMBER269`, 02.11.2026, позже того же дня) Правило открытия сменилось: решение
+    /// Amber вопросником, дословно: «Кривую прибора (Рекомендую)» — спектр без своей
+    /// кривой получает СОХРАНЁННУЮ кривую прибора, как от «Применить»
+    /// (`FwhmCalibration.StandInFromDevice`: копия; на чужой сетке каналов —
+    /// перенесённая; если по ней нельзя — три числа). Проба зовёт тот же вызов с теми
+    /// же сетками, что `DocumentManager.StandInFwhm`. Корпус не задет: кривая своя у
+    /// всех его спектров.
+    ///
+    /// ⛔ (`AMBER269`, 02.11.2026, полоса a269fix6) ВСТРОЕННАЯ ЗАГЛУШКА FWHM 15/3756/103 В
+    /// ФАЙЛЕ СПЕКТРА — не своя кривая, а её отсутствие, как при открытии
+    /// (`DocumentManager.ForgetFileStandInFwhm`). Прежде проба брала её своей кривой: съёмка
+    /// RC-110 тория в Маринелли разбиралась с пиками в 1.5–1.8 раза шире данных. Снятая
+    /// заглушка называется в строке, которую печатает вызывающий; корпус не задет — заглушки
+    /// нет ни у одного из 136 спектров (замер 02.11.2026).
     /// </summary>
     public static string Attach(ResultData rd)
     {
         string said = AttachDevice(rd);
+        bool fileStandIn = DocumentManager.ForgetFileStandInFwhm(rd);
+        string refusal = null;
         if (rd != null && rd.FwhmCalibration == null && rd.EnergySpectrum != null
             && rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig cfg)
         {
-            rd.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, rd.EnergySpectrum.EnergyCalibration);
+            rd.FwhmCalibration = FwhmCalibration.StandInFromDevice(cfg,
+                                                                   rd.DeviceConfig != null ? rd.DeviceConfig.NumberOfChannels : 0,
+                                                                   rd.EnergySpectrum.EnergyCalibration,
+                                                                   rd.EnergySpectrum.NumberOfChannels,
+                                                                   out refusal);
+        }
+        if (fileStandIn)
+        {
+            // ⚠ Строчными: вызывающие ищут в этой строке «НЕТ» (отказ прибора).
+            said += "; кривая FWHM файла — встроенная заглушка 15/3756/103, не принята; "
+                    + (rd.FwhmCalibration == null
+                       ? "модели разрешения нет" + (string.IsNullOrEmpty(refusal) ? "" : ": " + refusal)
+                       : IsStandIn(rd.FwhmCalibration)
+                         ? "прибора нет — та же заглушка по встроенным числам, как у спектра без кривой"
+                         : "взята кривая прибора");
         }
 
         return said;
+    }
+
+    /// <summary>Кривая — встроенная заглушка (правилом приложения, через его открытый вызов).</summary>
+    static bool IsStandIn(FwhmCalibration curve)
+    {
+        ResultData probe = new ResultData();
+        probe.FwhmCalibration = curve.Clone();
+        return DocumentManager.ForgetFileStandInFwhm(probe);
     }
 
     static string AttachDevice(ResultData rd)
@@ -71,32 +126,30 @@ static class ProbeDeviceConfig
             return "спектра нет";
         }
 
-        if (rd.DeviceConfigReference == null || string.IsNullOrEmpty(rd.DeviceConfigReference.Guid))
+        DocumentManager.DeviceMatch how;
+        System.Collections.Generic.List<DeviceConfigInfo> candidates;
+        DeviceConfigInfo device = DocumentManager.AttachDeviceConfig(
+            rd, DeviceConfigManager.GetInstance().DeviceConfigList, out how, out candidates);
+        if (device != null)
+        {
+            return how == DocumentManager.DeviceMatch.Guid
+                ? device.Name
+                : device.Name + " (найден " + (how == DocumentManager.DeviceMatch.Serial ? "по серийному номеру" : "по имени") + ")";
+        }
+
+        string name = rd.DeviceConfigReference != null ? rd.DeviceConfigReference.Name : null;
+        string guid = rd.DeviceConfigReference != null ? rd.DeviceConfigReference.Guid : null;
+        if (how == DocumentManager.DeviceMatch.Ambiguous)
+        {
+            // «НЕТ» в начале — его ищут вызывающие (`note.IndexOf("НЕТ")`), как у отказа ниже.
+            return "прибора НЕТ, подходят несколько: " + DocumentManager.DescribeDeviceAmbiguity(rd, 0, candidates)
+                   + " — настройки поиска остаются умолчанием библиотеки";
+        }
+        if (string.IsNullOrEmpty(name) && string.IsNullOrEmpty(guid))
         {
             return "ссылки на прибор в файле нет — настройки поиска остаются умолчанием библиотеки";
         }
-
-        DeviceConfigInfo device;
-        if (!DeviceConfigManager.GetInstance().DeviceConfigMap.TryGetValue(
-                rd.DeviceConfigReference.Guid, out device)
-            || device == null)
-        {
-            return "прибора «" + rd.DeviceConfigReference.Name + "» ("
-                   + rd.DeviceConfigReference.Guid
-                   + ") в конфигурации НЕТ — настройки поиска остаются умолчанием библиотеки";
-        }
-
-        rd.DeviceConfig = device;
-
-        // `AdoptFrom`, а не голый `Clone`: это каноническое правило приложения —
-        // из прибора берётся всё, кроме того, что принадлежит СПЕКТРУ (модель
-        // ПШПВ и галка Enabled). Сейчас у прочитанного спектра своей копии не
-        // бывает вовсе, и `AdoptFrom(прибор, null)` равен клону; правило же
-        // останется верным и в тот день, когда копия появится.
-        rd.PeakDetectionMethodConfig = FWHMPeakDetectionMethodConfig.AdoptFrom(
-            device.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig,
-            rd.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig);
-
-        return device.Name;
+        return "прибора «" + name + "» (" + (string.IsNullOrEmpty(guid) ? "без Guid" : guid)
+               + ") в конфигурации НЕТ ни по Guid, ни по номеру, ни по имени — настройки поиска остаются умолчанием библиотеки";
     }
 }

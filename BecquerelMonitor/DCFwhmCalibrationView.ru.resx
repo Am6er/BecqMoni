@@ -118,61 +118,61 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="label1.Text" xml:space="preserve">
-    <value>Выделите пик на спектре и введите энергию его линии: строка с введённой энергией идёт и в калибровку по энергии, и в калибровку FWHM. Серая энергия (пик выделен, но энергия не введена; строка от прибора или из файла прежней версии) — только в FWHM, пока энергию не введут.</value>
+    <value>Выделите пик на спектре и введите энергию его линии. Серая энергия идёт только в FWHM, пока её не введут.</value>
   </data>
   <data name="textBox15.Text" xml:space="preserve">
     <value>Энергия[кэВ] = ax^4 + bx^3 + cx^2 + dx + e (x = номер канала)</value>
   </data>
   <data name="label6.Size" type="System.Drawing.Size, System.Drawing">
-    <value>57, 13</value>
+    <value>13, 13</value>
   </data>
   <data name="label6.Text" xml:space="preserve">
-    <value>4 коэф.(a)</value>
+    <value>a</value>
   </data>
   <data name="label7.Size" type="System.Drawing.Size, System.Drawing">
-    <value>57, 13</value>
+    <value>13, 13</value>
   </data>
   <data name="label7.Text" xml:space="preserve">
-    <value>3 коэф.(b)</value>
+    <value>b</value>
   </data>
   <data name="label4.Size" type="System.Drawing.Size, System.Drawing">
-    <value>57, 13</value>
+    <value>13, 13</value>
   </data>
   <data name="label4.Text" xml:space="preserve">
-    <value>2 коэф.(c)</value>
+    <value>c</value>
   </data>
   <data name="offsetLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>76, 13</value>
+    <value>13, 13</value>
   </data>
   <data name="offsetLabel.Text" xml:space="preserve">
-    <value>Смещение (e)</value>
+    <value>e</value>
   </data>
   <data name="tractCurvatureLabel.Text" xml:space="preserve">
-    <value>κ, 1/МэВ</value>
+    <value>κ</value>
   </data>
   <data name="tractCurvatureLabel.ToolTip" xml:space="preserve">
-    <value>Кривизна тракта спектра, 1/МэВ: насколько тракт (ФЭУ, АЦП) отходит от прямой «свет → канал» в полноспектральном разборе, c = c0 + v·(1 + κ·L/1000). «Выполнить калибровку» подгоняет её по линиям энергии и фотонной кривой света вещества кристалла — только если среди линий есть линия от 2000 кэВ, канал линии — центр масс её пика; её можно и вписать. «Сброс» возвращает значение прибора, «Сохр. в конф. устр.» пишет её в прибор.</value>
+    <value>Кривизна тракта спектра, 1/МэВ: насколько тракт (ФЭУ, АЦП) отходит от прямой «свет → канал» в полноспектральном разборе, c = c0 + v·(1 + κ·L/1000). «Выполнить калибровку» подгоняет её по линиям энергии и фотонной кривой света вещества кристалла — только если среди линий есть линия от 2000 кэВ, канал линии — центр масс её пика; её можно и вписать. «Сброс» возвращает значение прибора, «Сохр. в конф. устр.» пишет её в прибор. Серое число — значение прибора, чёрное — своё у спектра.</value>
   </data>
   <data name="tractCurvatureTextBox.ToolTip" xml:space="preserve">
-    <value>Кривизна тракта спектра, 1/МэВ: насколько тракт (ФЭУ, АЦП) отходит от прямой «свет → канал» в полноспектральном разборе, c = c0 + v·(1 + κ·L/1000). «Выполнить калибровку» подгоняет её по линиям энергии и фотонной кривой света вещества кристалла — только если среди линий есть линия от 2000 кэВ, канал линии — центр масс её пика; её можно и вписать. «Сброс» возвращает значение прибора, «Сохр. в конф. устр.» пишет её в прибор.</value>
+    <value>Кривизна тракта спектра, 1/МэВ: насколько тракт (ФЭУ, АЦП) отходит от прямой «свет → канал» в полноспектральном разборе, c = c0 + v·(1 + κ·L/1000). «Выполнить калибровку» подгоняет её по линиям энергии и фотонной кривой света вещества кристалла — только если среди линий есть линия от 2000 кэВ, канал линии — центр масс её пика; её можно и вписать. «Сброс» возвращает значение прибора, «Сохр. в конф. устр.» пишет её в прибор. Серое число — значение прибора, чёрное — своё у спектра.</value>
   </data>
   <data name="coeff1Label.Size" type="System.Drawing.Size, System.Drawing">
-    <value>57, 13</value>
+    <value>13, 13</value>
   </data>
   <data name="coeff1Label.Text" xml:space="preserve">
-    <value>1 коэф.(d)</value>
+    <value>d</value>
   </data>
   <data name="button1.Text" xml:space="preserve">
     <value>Сброс</value>
   </data>
   <data name="button1.ToolTip" xml:space="preserve">
-    <value>Сбросить калибровку по энергии к калибровке прибора</value>
+    <value>Сбросить калибровку по энергии и кривизну тракта κ к значениям прибора</value>
   </data>
-  <data name="viewEnergyGraphButton.Text" xml:space="preserve">
+  <data name="viewCalibrationButton.Text" xml:space="preserve">
     <value>График</value>
   </data>
-  <data name="viewEnergyGraphButton.ToolTip" xml:space="preserve">
-    <value>Показать калибровку по энергии и её линии на графике</value>
+  <data name="viewCalibrationButton.ToolTip" xml:space="preserve">
+    <value>Показать графики калибровки: калибровку по энергии с её линиями, кривую FWHM с её строками и функцию пика со сравнением форм пика; переключение — в окне графика</value>
   </data>
   <data name="getAllPeaksButton.Text" xml:space="preserve">
     <value>Собрать всё</value>
@@ -181,7 +181,7 @@
     <value>Собрать в эту таблицу строки калибровки всех открытых спектров с тем же числом каналов</value>
   </data>
   <data name="checkBox2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>334, 34</value>
+    <value>308, 70</value>
   </data>
   <data name="checkBox2.Size" type="System.Drawing.Size, System.Drawing">
     <value>51, 17</value>
@@ -198,11 +198,14 @@
   <data name="label37.Text" xml:space="preserve">
     <value>Полином:</value>
   </data>
+  <data name="numericUpDown6.Location" type="System.Drawing.Point, System.Drawing">
+    <value>364, 43</value>
+  </data>
   <data name="numericUpDown6.ToolTip" xml:space="preserve">
     <value>Степень полинома энергии (понижается сама, если кривая между линиями гнётся слишком далеко)</value>
   </data>
   <data name="label36.Size" type="System.Drawing.Size, System.Drawing">
-    <value>245, 13</value>
+    <value>387, 26</value>
   </data>
   <data name="label36.Text" xml:space="preserve">
     <value>Изменить значения и нажать кнопку выполнить.</value>
@@ -246,26 +249,23 @@
   <data name="selectCurveComboBox.ToolTip" xml:space="preserve">
     <value>Выбрать кривую калибровки</value>
   </data>
-  <data name="viewCalibrationButton.Text" xml:space="preserve">
-    <value>Просмотр ...</value>
-  </data>
-  <data name="viewCalibrationButton.ToolTip" xml:space="preserve">
-    <value>Показать кривую FWHM и её строки на графике</value>
-  </data>
   <data name="label3.Text" xml:space="preserve">
     <value>Формула:</value>
+  </data>
+  <data name="curveFormulaLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>255, 21</value>
+  </data>
+  <data name="curveFormulaLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>150, 13</value>
   </data>
   <data name="curveFormulaLabel.Text" xml:space="preserve">
     <value>FWHM = √(a * ch² + b * ch + c)</value>
   </data>
   <data name="minPeaksRequirementLabel.Text" xml:space="preserve">
-    <value>Мин. количество пиков: 3</value>
+    <value>Мин. пиков: 3</value>
   </data>
   <data name="minPeaksRequirementLabel.ToolTip" xml:space="preserve">
     <value>Мин. количество пиков для использования этой кривой в FWHM калибровке</value>
-  </data>
-  <data name="peakShapeInfoGroupBox.Text" xml:space="preserve">
-    <value>Выбранная функция пика</value>
   </data>
   <data name="viewPeakShapeButton.Text" xml:space="preserve">
     <value>Просмотр</value>
@@ -282,11 +282,17 @@
   <data name="peakShapeFirstParameterLabel.Text" xml:space="preserve">
     <value>Левый перекос</value>
   </data>
+  <data name="peakShapeTypeValueLabel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>87, 47</value>
+  </data>
   <data name="peakShapeTypeValueLabel.Text" xml:space="preserve">
     <value>Гауссиана</value>
   </data>
+  <data name="peakShapeTypeLabel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>82, 13</value>
+  </data>
   <data name="peakShapeTypeLabel.Text" xml:space="preserve">
-    <value>Тип пика</value>
+    <value>Функция пика:</value>
   </data>
   <data name="saveToDeviceCfgButton.Text" xml:space="preserve">
     <value>Сохр. в конф. устр.</value>
@@ -4595,5 +4601,71 @@
         RrBvRPQxtOxH2AvsBfYBB9hhAtS/bLe4ff4Tv0VkGbGrSmRNhDUldkWJvSLYZ0TUs8ry3EZZPSdP/tT6
         nR7OG23/P+lc/Y4dBvlpAAAAAElFTkSuQmCC
 </value>
+  </data>
+  <data name="viewPeakShapeButton.ToolTip" xml:space="preserve">
+    <value>Показать выбранную функцию пика</value>
+  </data>
+  <data name="PeakShapePreviewTitle" xml:space="preserve">
+    <value>Выбранная функция пика</value>
+  </data>
+  <data name="label1.ToolTip" xml:space="preserve">
+    <value>Выделите пик на спектре и введите энергию его линии: строка с введённой энергией идёт и в калибровку по энергии, и в калибровку FWHM. Серая энергия (пик выделен, но энергия не введена; строка от прибора или из файла прежней версии) — только в FWHM, пока энергию не введут.</value>
+  </data>
+  <data name="groupBox1.Text" xml:space="preserve">
+    <value>Энергия[кэВ] = ax⁴ + bx³ + cx² + dx + e  (x — канал)</value>
+  </data>
+  <data name="label6.ToolTip" xml:space="preserve">
+    <value>4-й коэффициент (a): при x⁴</value>
+  </data>
+  <data name="numericUpDown4.ToolTip" xml:space="preserve">
+    <value>4-й коэффициент (a): при x⁴</value>
+  </data>
+  <data name="label7.ToolTip" xml:space="preserve">
+    <value>3-й коэффициент (b): при x³</value>
+  </data>
+  <data name="numericUpDown5.ToolTip" xml:space="preserve">
+    <value>3-й коэффициент (b): при x³</value>
+  </data>
+  <data name="label4.ToolTip" xml:space="preserve">
+    <value>2-й коэффициент (c): при x²</value>
+  </data>
+  <data name="numericUpDown1.ToolTip" xml:space="preserve">
+    <value>2-й коэффициент (c): при x²</value>
+  </data>
+  <data name="coeff1Label.ToolTip" xml:space="preserve">
+    <value>1-й коэффициент (d): при x</value>
+  </data>
+  <data name="numericUpDown2.ToolTip" xml:space="preserve">
+    <value>1-й коэффициент (d): при x</value>
+  </data>
+  <data name="offsetLabel.ToolTip" xml:space="preserve">
+    <value>Смещение (e)</value>
+  </data>
+  <data name="numericUpDown3.ToolTip" xml:space="preserve">
+    <value>Смещение (e)</value>
+  </data>
+  <data name="fwhmGroupBox.Text" xml:space="preserve">
+    <value>Кривая калибровки FWHM</value>
+  </data>
+  <data name="SummaryPartlyDone" xml:space="preserve">
+    <value>Калибровка выполнена частично.</value>
+  </data>
+  <data name="SummaryNotDone" xml:space="preserve">
+    <value>Калибровка не выполнена.</value>
+  </data>
+  <data name="SummaryRefused" xml:space="preserve">
+    <value>отказ</value>
+  </data>
+  <data name="SummaryMseShort" xml:space="preserve">
+    <value>СКО</value>
+  </data>
+  <data name="SummaryPeakShape" xml:space="preserve">
+    <value>форма пика: {0}</value>
+  </data>
+  <data name="PickupNextPeak" xml:space="preserve">
+    <value>Выделяйте пики на спектре один за другим; закончить — «Отмена».</value>
+  </data>
+  <data name="PeakShapeComparisonPending" xml:space="preserve">
+    <value>Сравнение форм пика появится здесь после «Выполнить калибровку», если у всех строк таблицы измерена форма пика (строки, выделенные на спектре).</value>
   </data>
 </root>

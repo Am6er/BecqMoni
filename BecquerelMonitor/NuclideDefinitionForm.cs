@@ -38,12 +38,139 @@ namespace BecquerelMonitor
             // напечатанного. Поэтому Enter в нетронутой ячейке период не округляет (класс П266):
             // проверено пробой `NuclideEditProbeP266` на этой правке.
             this.textColumn3.Format = "G6";
+            this.CreateDbControls();
             this.DisableForm();
         }
 
         // Token: 0x060000C3 RID: 195 RVA: 0x00003DD0 File Offset: 0x00001FD0
         void NuclideDefinitionForm_Load(object sender, EventArgs e)
         {
+            this.RefreshDbMarks();
+            this.ListupNuclideDefinitions();
+        }
+
+        /// <summary>
+        /// (`AMBER281`) Сверка библиотеки с базой (<see cref="NuclideDbLink.Refresh"/>):
+        /// наполнение номеров и метки. Номер, найденный наполнением, лежит в линии и уйдёт в
+        /// файл со следующим сохранением библиотеки; несохранённой правкой линия от этого не
+        /// становится — вопрос «Сохранить?» о правке, которой человек не делал, был бы ложью.
+        /// </summary>
+        internal NuclideDbLink.Outcome RefreshDbMarks()
+        {
+            try
+            {
+                return NuclideDbLink.Refresh(this.manager.NuclideDefinitions);
+            }
+            catch (Exception ex)
+            {
+                // База не открылась — метки не ставятся, окно работает как прежде.
+                System.Diagnostics.Trace.WriteLine("NuclideDbLink.Refresh: " + AppUi.Reason(ex));
+                return null;
+            }
+        }
+
+        /// <summary>(`AMBER281`) Строка состояния линии над полями и кнопка «Обновить из базы».</summary>
+        Label dbStateLabel;
+        Button dbUpdateButton;
+        ToolTip dbToolTip;
+
+        void CreateDbControls()
+        {
+            this.dbStateLabel = new Label
+            {
+                Name = "dbStateLabel",
+                Location = new System.Drawing.Point(17, 6),
+                Size = new System.Drawing.Size(300, 16),
+                AutoEllipsis = true,
+            };
+            this.dbUpdateButton = new Button
+            {
+                Name = "dbUpdateButton",
+                Location = new System.Drawing.Point(101, 330),
+                Size = new System.Drawing.Size(210, 23),
+                Text = DbText("NucLib_UpdateFromDb", "Update from database"),
+                UseVisualStyleBackColor = true,
+                Visible = false,
+            };
+            this.dbUpdateButton.Click += this.dbUpdateButton_Click;
+            this.dbToolTip = new ToolTip();
+            this.tabPage1.Controls.Add(this.dbStateLabel);
+            this.tabPage1.Controls.Add(this.dbUpdateButton);
+            this.table1.EnableToolTips = true;
+        }
+
+        static string DbText(string key, string fallback)
+        {
+            try
+            {
+                string text = new System.ComponentModel.ComponentResourceManager(typeof(NuclideDefinitionForm)).GetString(key);
+                return string.IsNullOrEmpty(text) ? fallback : text;
+            }
+            catch (System.Resources.MissingManifestResourceException)
+            {
+                return fallback;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER281`) Поля, взятые из базы, у линии с номером не правятся — решение Amber
+        /// «Запретить правку импортов из базы»: имя, ряд, энергия, период, выход. Цвет,
+        /// видимость, сеты и заметка правятся как прежде (толкование распорядителя).
+        /// </summary>
+        void ShowDbState(NuclideDefinition nuclide)
+        {
+            bool linked = nuclide != null && nuclide.IsDbLinked;
+            this.textBox1.ReadOnly = linked;
+            this.chainTextBox.ReadOnly = linked;
+            this.doubleTextBox1.ReadOnly = linked;
+            this.doubleTextBox2.ReadOnly = linked;
+            this.intensityTextBox.ReadOnly = linked;
+            string state = "";
+            if (nuclide != null && nuclide.DbMark != NuclideDbMark.None)
+            {
+                state = nuclide.DbMarkText ?? "";
+            }
+            else if (linked)
+            {
+                state = string.Format(CultureInfo.InvariantCulture,
+                    DbText("NucLib_DbLinked", "From the nuclide database (row {0}): fields taken from the database are not editable."),
+                    nuclide.DbRow > 0 ? "#" + nuclide.DbRow.ToString(CultureInfo.InvariantCulture) : nuclide.DbXray);
+            }
+
+            this.dbStateLabel.Text = state;
+            this.dbStateLabel.ForeColor = nuclide != null && nuclide.DbMark == NuclideDbMark.Missing
+                ? System.Drawing.Color.Red
+                : (nuclide != null && nuclide.DbMark == NuclideDbMark.Changed ? LibraryNameCellRenderer.ChangedColor : System.Drawing.SystemColors.GrayText);
+            this.dbToolTip.SetToolTip(this.dbStateLabel, AppUi.WrapTip(state));
+            string lockedTip = linked ? AppUi.WrapTip(state) : string.Empty;
+            this.dbToolTip.SetToolTip(this.textBox1, lockedTip);
+            this.dbToolTip.SetToolTip(this.doubleTextBox1, lockedTip);
+            this.dbToolTip.SetToolTip(this.doubleTextBox2, lockedTip);
+            this.dbToolTip.SetToolTip(this.intensityTextBox, lockedTip);
+            this.dbToolTip.SetToolTip(this.chainTextBox, lockedTip);
+            this.dbUpdateButton.Visible = nuclide != null && nuclide.DbMark == NuclideDbMark.Changed;
+        }
+
+        /// <summary>(`AMBER281`) «Обновить из базы»: энергия, выход и период — из строки по номеру.</summary>
+        void dbUpdateButton_Click(object sender, EventArgs e)
+        {
+            NuclideDefinition nuclide = this.activeNuclide;
+            if (nuclide == null)
+            {
+                return;
+            }
+
+            this.RememberBeforeEdit(nuclide);
+            string error;
+            if (!NuclideDbLink.UpdateFromDb(nuclide, out error))
+            {
+                AppUi.Report(error, Resources.ConfirmationDialogTitle, MessageBoxIcon.Warning);
+                return;
+            }
+
+            this.NoteEdited(nuclide);
+            this.SetActiveNuclideDirty();
+            this.LoadFormContents(nuclide);
             this.ListupNuclideDefinitions();
         }
 
@@ -86,6 +213,23 @@ namespace BecquerelMonitor
                     row.Cells.Add(new Cell(nuclideDefinition.Energy.ToString(CultureInfo.InvariantCulture), nuclideDefinition.Energy, visibilitycellStyle));
                     row.Cells.Add(new Cell(nuclideDefinition.HalfLife.ToString(CultureInfo.InvariantCulture), nuclideDefinition.HalfLife, visibilitycellStyle));
                 }
+                // (`AMBER281`) Метка сверки с базой — перед именем (рисует
+                // `LibraryNameCellRenderer` в отступе ячейки), причина — подсказкой.
+                // У линии из базы поля из базы в таблице не правятся.
+                if (nuclideDefinition.DbMark != NuclideDbMark.None)
+                {
+                    row.Cells[0].Padding = new XPTable.Models.CellPadding(this.table1.RowHeight + 3, 0, 0, 0);
+                    row.Cells[0].ToolTipText = AppUi.WrapTip(nuclideDefinition.DbMarkText ?? "");
+                }
+
+                if (nuclideDefinition.IsDbLinked)
+                {
+                    foreach (Cell cell in row.Cells)
+                    {
+                        cell.Editable = false;
+                    }
+                }
+
                 row.Tag = nuclideDefinition;
                 this.tableModel1.Rows.Add(row);
                 if (listedActive != null && ReferenceEquals(nuclideDefinition, listedActive))
@@ -145,6 +289,7 @@ namespace BecquerelMonitor
             this.colorComboBox1.SelectedColor = nuclide.NuclideColor.Color;
             this.checkBox1.Checked = nuclide.Visible;
             this.colorComboBox1.Refresh();
+            this.ShowDbState(nuclide);
             this.contentsLoading = false;
         }
 
@@ -1077,5 +1222,90 @@ namespace BecquerelMonitor
         /// <see cref="ReloadUntouchedFields"/>.
         /// </summary>
         LineValues shownValues;
+    }
+
+    /// <summary>
+    /// (`AMBER281`) Колонка имени окна библиотеки: та же текстовая, но с меткой сверки с
+    /// базой перед именем (<see cref="LibraryNameCellRenderer"/>). Своё имя рисовальщика
+    /// нарочно: таблица хранит рисовальщиков по имени, и «TEXT» отдал бы обычный.
+    /// </summary>
+    public class LibraryNameColumn : XPTable.Models.TextColumn
+    {
+        public override string GetDefaultRendererName()
+        {
+            return "NUCLIBNAME";
+        }
+
+        public override XPTable.Renderers.ICellRenderer CreateDefaultRenderer()
+        {
+            return new LibraryNameCellRenderer();
+        }
+    }
+
+    /// <summary>
+    /// ⛔ (`AMBER281`, 02.11.2026) МЕТКА ЛИНИИ БИБЛИОТЕКИ ПО СВЕРКЕ С БАЗОЙ — перед именем, в
+    /// отступе ячейки. Amber, дословно: «Цветовое оформление восклицательного знака возьми
+    /// из цветового оформления выбранной геометрии, когда например у неё нет матрицы
+    /// отклика актуальной».
+    /// <list type="bullet">
+    /// <item>строки базы нет (вбита руками, строка снята, найти нельзя) — ТА ЖЕ метка, что у
+    /// геометрии: <c>DeviceConfigForm.DrawStaleMark</c>, белый «!» на красном квадрате;</item>
+    /// <item>строка базы изменилась (решение Amber «Отдельная метка и «Обновить»») — та же
+    /// форма на ОРАНЖЕВОЙ подложке (<see cref="ChangedColor"/>): красный в приложении
+    /// значит «так считать нельзя», а линия с изменившейся строкой считается верно, только по
+    /// прежним числам — это предупреждение «обнови», а не отказ; оранжевый — общепринятый
+    /// цвет предупреждения, рядом с красным различим и при красно-зелёной слепоте (разница
+    /// по яркости).</item>
+    /// </list>
+    /// </summary>
+    public class LibraryNameCellRenderer : XPTable.Renderers.TextCellRenderer
+    {
+        /// <summary>Подложка метки «строка базы изменилась».</summary>
+        public static readonly System.Drawing.Color ChangedColor = System.Drawing.Color.DarkOrange;
+
+        protected override void OnPaint(XPTable.Events.PaintCellEventArgs e)
+        {
+            base.OnPaint(e);
+            NuclideDefinition line = e.Cell != null && e.Cell.Row != null ? e.Cell.Row.Tag as NuclideDefinition : null;
+            if (line == null || line.DbMark == NuclideDbMark.None)
+            {
+                return;
+            }
+
+            System.Drawing.Rectangle bounds = new System.Drawing.Rectangle(
+                e.CellRect.X, e.CellRect.Y, Math.Max(4, e.CellRect.Height), e.CellRect.Height);
+            if (line.DbMark == NuclideDbMark.Missing)
+            {
+                DeviceConfigForm.DrawStaleMark(e.Graphics, bounds, this.Font);
+            }
+            else
+            {
+                DrawChangedMark(e.Graphics, bounds, this.Font);
+            }
+        }
+
+        /// <summary>
+        /// Метка «строка изменилась»: та же геометрия, что у <c>DrawStaleMark</c> (квадрат
+        /// высотой в строку без двух точек, белый жирный «!» по центру), другая подложка.
+        /// Статический — проба рисует его в картинку и считает точки.
+        /// </summary>
+        public static int DrawChangedMark(System.Drawing.Graphics graphics, System.Drawing.Rectangle bounds, System.Drawing.Font font)
+        {
+            int side = Math.Max(4, bounds.Height - 2);
+            System.Drawing.Rectangle square = new System.Drawing.Rectangle(bounds.X + 1, bounds.Y + (bounds.Height - side) / 2, side, side);
+            using (System.Drawing.SolidBrush brush = new System.Drawing.SolidBrush(ChangedColor))
+            {
+                graphics.FillRectangle(brush, square);
+            }
+
+            using (System.Drawing.Font bold = new System.Drawing.Font(font, System.Drawing.FontStyle.Bold))
+            {
+                TextRenderer.DrawText(graphics, "!", bold, square, System.Drawing.Color.White,
+                                      TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter
+                                      | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
+            }
+
+            return 1 + side + 4;
+        }
     }
 }

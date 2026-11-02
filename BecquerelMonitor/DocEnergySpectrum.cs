@@ -55,6 +55,14 @@ namespace BecquerelMonitor
         /// </summary>
         public event EventHandler EfficiencyChanged;
 
+        /// <summary>
+        /// (`AMBER269`, полоса a269fix5) Кривую FWHM спектра поставил документ — выбором
+        /// прибора перед разложением (<see cref="EnsureFsaFwhm"/>). Вкладка «Калибровка»
+        /// показывает кривую спектра и обновляется по событиям главной формы; без этого
+        /// события она до смены документа говорила «кривой нет» при работающей кривой.
+        /// </summary>
+        public event EventHandler FwhmCalibrationChanged;
+
         // Token: 0x1700013F RID: 319
         // (get) Token: 0x06000308 RID: 776 RVA: 0x0000F704 File Offset: 0x0000D904
         // (set) Token: 0x06000309 RID: 777 RVA: 0x0000F70C File Offset: 0x0000D90C
@@ -1201,13 +1209,23 @@ namespace BecquerelMonitor
             //    `Width_Fwhm`) отвечают на него, и взять их больше негде: ни на
             //    одной форме их нет, они приходят из `config\device\*.xml`.
             //    Голос при этом ОСТАЁТСЯ ОДИН — не добавлен, а дополнен.
+            //
+            // ⛔ (`AMBER269`, 02.11.2026, полоса a269fix5) КРИВАЯ ВЫБРАННОГО ПРИБОРА —
+            //    ТЕМ ЖЕ ПРАВИЛОМ, ЧТО ПРИ ОТКРЫТИИ ФАЙЛА (`FwhmCalibration.StandInFromDevice`;
+            //    решение Amber 02.11.2026 «Кривую прибора (Рекомендую)»): сохранённая кривая
+            //    прибора; на сетке спектра, отличной от сетки прибора, — перенесённая
+            //    (`RecalcWithNewChannelNum`); если по ней нельзя (нет, встроенная заглушка
+            //    15/3756/103, пустышка) — три числа прибора с формой его пика. Прежде здесь
+            //    стояла копия кривой прибора как есть: спектр в 64 канала после импорта с
+            //    пустой конфигурацией получал кривую в каналах прибора на 1024 канала —
+            //    ширину канала 30 прибора на канале 30 спектра, — и FSA раскладывал по ней
+            //    молча.
             string fwhmRefusal = null;
             FwhmCalibration calibration = peakConfig == null
                 ? null
-                : (peakConfig.FwhmCalibration != null
-                    ? peakConfig.FwhmCalibration.Clone()
-                    : FwhmCalibration.DefaultCalibration(peakConfig,
-                        active.EnergySpectrum.EnergyCalibration, out fwhmRefusal));
+                : FwhmCalibration.StandInFromDevice(peakConfig, chosen.NumberOfChannels,
+                    active.EnergySpectrum.EnergyCalibration, active.EnergySpectrum.NumberOfChannels,
+                    out fwhmRefusal);
             if (calibration == null)
             {
                 // Выбранная конфигурация не помогла — сказать об этом, а не
@@ -1242,6 +1260,14 @@ namespace BecquerelMonitor
 
             active.FwhmCalibration = calibration;
             this.Dirty = true;
+            // (`AMBER269`, полоса a269fix5) Вкладка «Калибровка» показывает кривую спектра, а
+            // узнаёт о ней только при смене документа: после выбора прибора здесь она
+            // продолжала говорить «у спектра нет калибровки FWHM», пока человек не
+            // переключал вкладки документов (замечено экраном 02.11.2026).
+            if (this.FwhmCalibrationChanged != null)
+            {
+                this.FwhmCalibrationChanged(this, EventArgs.Empty);
+            }
             return true;
         }
 

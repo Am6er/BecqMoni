@@ -25,7 +25,14 @@ namespace LightScaleProbe
     ///     lightscaleprobe --geometry=X.in [--energies=10,20,...]
     ///                     [--n=400000] [--bin=1] [--off]
     ///                     [--kdip=0|1|2|3] [--eta=η] [--eq=кэВ] [--eqp=p] [--curve=файл]
-    ///                     [--ecomp=0|1]
+    ///                     [--ecomp=0|1] [--ckv=0|1] [--lys=0|1|2]
+    ///
+    /// `--ckv=`, `--lys=` (`AMBER274`, физика 30, полоса `phys29c`): вакансия L-кванта после перехода
+    /// Костера—Кронига (<see cref="EfficiencySimulator.CascadeCkVacancy"/>) и уровень выходов L
+    /// (<see cref="EfficiencySimulator.LYieldSupply"/>); без ключей — умолчание склада. Последняя
+    /// колонка — `CountCascadeOverflow`: стек каскада переполнен ЛИБО баланс каскада разошёлся больше
+    /// чем на 0.5 кэВ (до `ckv=1` у Gd, Eu, Lu, W, Bi — вакансия Kα2 → L2 → L3 искалась среди
+    /// переходов L2, невязка до 0.75 кэВ у Gd и 2.6 кэВ у Bi садилась в сгусток).
     ///
     /// ⛔ УМОЛЧАНИЕ `--kdip=` — СКЛАДА (`ResponseMatrixOptions.KDipLight`, 1 с
     /// 12.09.2026), половины — той же раскладкой `KDipCurveHalf`/`KDipCascadeHalf`,
@@ -68,6 +75,8 @@ namespace LightScaleProbe
             var store = new ResponseMatrixOptions();
             int kdip = store.KDipLight;                 // умолчание склада (правило I)
             bool ecomp = store.ElectronAnyMaterial;     // `F11` (г), П44
+            bool ckv = store.CascadeCkVacancy;          // `AMBER274`, физика 30
+            int lys = store.LYieldSupply;               // `M9`; рычаг замера `phys29c`
             double eta = 0.0;
             double trackEnd = double.NaN;
             double trackEndPower = double.NaN;      // `S198`, П180: показатель обрыва (--eqp=)
@@ -89,6 +98,8 @@ namespace LightScaleProbe
                 else if (a.StartsWith("--eq=", StringComparison.Ordinal)) trackEnd = double.Parse(a.Substring(5), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--eqp=", StringComparison.Ordinal)) trackEndPower = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--curve=", StringComparison.Ordinal)) curvePath = a.Substring(8);
+                else if (a.StartsWith("--ckv=", StringComparison.Ordinal)) ckv = a.Substring(6) != "0";
+                else if (a.StartsWith("--lys=", StringComparison.Ordinal)) lys = int.Parse(a.Substring(6), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--ecomp=", StringComparison.Ordinal))
                 {
                     string v = a.Substring(8);
@@ -129,6 +140,8 @@ namespace LightScaleProbe
                 sim.LightCascadeSplit = ResponseMatrixOptions.KDipCascadeHalf(kdip);
                 sim.LightEtaEh = eta;
                 sim.ElectronAnyMaterial = ecomp;        // `F11` (г), П44
+                sim.CascadeCkVacancy = ckv;             // `AMBER274`, физика 30
+                sim.LYieldSupply = lys;
                 if (!double.IsNaN(trackEnd))
                 {
                     sim.LightTrackEndKev = trackEnd;
@@ -197,7 +210,7 @@ namespace LightScaleProbe
                     scale > 0.0 ? scale.ToString("F4", CultureInfo.InvariantCulture) : "  —  ",
                     err,
                     sim.CountCascadeOverflow > 0
-                        ? "   ⚠ каскад не сошёлся: " + sim.CountCascadeOverflow.ToString(CultureInfo.InvariantCulture)
+                        ? "   ⚠ каскад (стек или баланс > 0.5 кэВ): " + sim.CountCascadeOverflow.ToString(CultureInfo.InvariantCulture)
                         : "");
             }
 

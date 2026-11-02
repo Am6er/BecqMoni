@@ -1,5 +1,6 @@
 using BecquerelMonitor;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Serialization;
@@ -45,19 +46,44 @@ class PeakFinderProbe
         }
 
         ResultData rd = file.ResultDataList.First();
-        DeviceConfigInfo device = DeviceConfigManager.GetInstance().DeviceConfigList
-            .FirstOrDefault(d => d.Guid == rd.DeviceConfigReference.Guid);
+        // (`AMBER269`, 02.11.2026) Прибор — правилом двери открытия
+        // (`DocumentManager.AttachDeviceConfig`: Guid, затем серийный номер, затем имя),
+        // а не одним Guid: иначе экспорт RadiaCode (в ссылке только имя модели) проба
+        // отвергала, а окно открывало с прибором. Настройки поиска — копия настроек прибора.
+        DocumentManager.DeviceMatch how;
+        List<DeviceConfigInfo> candidates;
+        DeviceConfigInfo device = DocumentManager.AttachDeviceConfig(
+            rd, DeviceConfigManager.GetInstance().DeviceConfigList, out how, out candidates);
         if (device == null)
         {
-            Console.Error.WriteLine("нет конфигурации устройства для GUID " + rd.DeviceConfigReference.Guid);
+            Console.Error.WriteLine(how == DocumentManager.DeviceMatch.Ambiguous
+                ? DocumentManager.DescribeDeviceAmbiguity(rd, 0, candidates)
+                : "нет конфигурации устройства для «"
+                  + (rd.DeviceConfigReference != null ? rd.DeviceConfigReference.Name + "» (" + rd.DeviceConfigReference.Guid + ")" : "»"));
             return 1;
         }
 
-        var config = (FWHMPeakDetectionMethodConfig)
-            ((FWHMPeakDetectionMethodConfig)device.PeakDetectionMethodConfig).Clone();
+        var config = (FWHMPeakDetectionMethodConfig)rd.PeakDetectionMethodConfig;
         EnergySpectrum es = rd.EnergySpectrum;
-        rd.DeviceConfig = device;
-        rd.PeakDetectionMethodConfig = config;
+        // (`AMBER269`, 02.11.2026, полоса a269fix6) кривая FWHM — правилом двери открытия: встроенная
+        // заглушка 15/3756/103 в файле — не своя кривая (`DocumentManager.ForgetFileStandInFwhm`), и
+        // спектр без своей кривой получает кривую прибора (`FwhmCalibration.StandInFromDevice`).
+        // Прежде проба брала заглушку как есть, а спектру без своей кривой кривой не ставила.
+        if (DocumentManager.ForgetFileStandInFwhm(rd))
+        {
+            Console.WriteLine("FWHM-файл    встроенная заглушка 15/3756/103, не принята");
+        }
+        if (rd.FwhmCalibration == null)
+        {
+            string refusal;
+            rd.FwhmCalibration = FwhmCalibration.StandInFromDevice(config, device.NumberOfChannels,
+                                                                   es.EnergyCalibration, es.NumberOfChannels, out refusal);
+            if (rd.FwhmCalibration == null)
+            {
+                Console.Error.WriteLine("нет модели разрешения: " + refusal);
+                return 1;
+            }
+        }
 
         Console.WriteLine("устройство   {0}", device.Name);
         Console.WriteLine("спектр       {0} каналов, {1} отсчётов, фон {2}",

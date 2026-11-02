@@ -41,6 +41,14 @@
 //
 //  Ожидание: «catchValid = 0», код 0. Код 1 — расхождение с ожиданием
 //  (в том числе catchValid > 0 — тогда дефект доказан и строка чинится).
+//
+//  ⚠ (`AMBER269`, 01.11.2026) ОЖИДАНИЯ ГОДНОСТИ ПЕРЕВЁРНУТЫ. `CheckCalibration`
+//  больше не отвергает ни степени выше 4-й (обратное ход у них работает — это и
+//  мерят §1 и §8), ни нулевой старший коэффициент при годных младших. Отсюда:
+//  §1 — все монотонные шкалы порядков 1…6 годны; §4 — «порядок 5 с c5 = 0» и
+//  «порядок 3 с c3 = 0» годны (плоские по-прежнему нет); §8 — степень 5 из XML
+//  годна, `CheckDocument` её принимает, `OpenDocument` без окон открывает файл
+//  без вопроса. Немонотонные (§5) отвергаются, как прежде.
 // ═══════════════════════════════════════════════════════════════════════════
 
 using System;
@@ -325,7 +333,8 @@ static class CalibrationInverseProbeP78
         {
             Console.WriteLine("  " + Describe(s));
             Check(s.Monotone, "§1: сцена " + s.Name + " немонотонна — сцена построена неверно");
-            Check(s.Valid == (s.Order <= 4), "§1: CheckCalibration у " + s.Name + " порядка " + I(s.Order) + " = " + s.Valid + " (ждали " + (s.Order <= 4) + ")");
+            // (`AMBER269`) Монотонная шкала годна при любой степени — прежде ждали «≤ 4».
+            Check(s.Valid, "§1: CheckCalibration у " + s.Name + " порядка " + I(s.Order) + " = " + s.Valid + " (ждали True)");
             Sweep(s, true, "§1 " + s.Name + "/N=" + I(s.N));
         }
         Console.WriteLine("  вызовов решателя на допустимых числах после §1: " + I(solverCallsValid) + ", отказов: " + I(catchValid));
@@ -436,11 +445,13 @@ static class CalibrationInverseProbeP78
             // Нулевой старший коэффициент при годных младших — так пишет файл, где 5-й коэффициент = 0.
             Scene zeroTop5 = Make("порядок 5 с c5 = 0", 5, n, new[] { -9.5, 0.3895, 3.95e-6, -1e-11, 2e-16, 0.0 });
             Console.WriteLine("  " + Describe(zeroTop5));
-            Check(!zeroTop5.Valid, "§4: порядок 5 прошёл CheckCalibration");
+            // (`AMBER269`) Годна: степень выше 4-й и нулевой старший коэффициент — не порок.
+            Check(zeroTop5.Valid, "§4: порядок 5 с c5=0 при годных младших отвергнут CheckCalibration");
             Sweep(zeroTop5, true, "§4 c5=0");
             Scene zeroTop3 = Make("порядок 3 с c3 = 0", 3, n, new[] { -9.5, 0.3895, 3.95e-6, 0.0 });
             Console.WriteLine("  " + Describe(zeroTop3));
-            Check(!zeroTop3.Valid, "§4: порядок 3 с c3=0 прошёл CheckCalibration (заслон Coefficients[3]==0)");
+            // (`AMBER269`, 01.11.2026) Заслон `Coefficients[3] == 0` снят: шкала годна.
+            Check(zeroTop3.Valid, "§4: порядок 3 с c3=0 при годных младших отвергнут CheckCalibration");
             Sweep(zeroTop3, true, "§4 c3=0");
         }
         Console.WriteLine();
@@ -565,7 +576,8 @@ static class CalibrationInverseProbeP78
             bool v = fromXml.CheckCalibration(n);
             Console.WriteLine("  (1) XML-фрагмент калибровки порядка 5: PolynomialOrder=" + I(fromXml.PolynomialOrder) + ", коэффициентов " + I(fromXml.Coefficients.Length)
                 + ", CheckCalibration(" + I(n) + ") = " + v);
-            Check(fromXml.PolynomialOrder == 5 && fromXml.Coefficients.Length == 6 && !v, "§8(1): степень 5 из XML прошла CheckCalibration или не дочиталась");
+            // (`AMBER269`) Степень 5 годна: прежде здесь ждали отказа.
+            Check(fromXml.PolynomialOrder == 5 && fromXml.Coefficients.Length == 6 && v, "§8(1): степень 5 из XML отвергнута CheckCalibration или не дочиталась");
             double ch5 = fromXml.EnergyToChannel(1000.0, n);
             Console.WriteLine("      и при этом EnergyToChannel(1000) на ней РАБОТАЕТ: канал " + F(ch5) + " (обратно " + F(Poly(c5, 5, ch5)) + " кэВ)");
             Check(Math.Abs(Poly(c5, 5, ch5) - 1000.0) < 1e-6, "§8(1): обратный ход степени 5 из XML не сошёлся");
@@ -591,14 +603,15 @@ static class CalibrationInverseProbeP78
             {
                 DocumentManager dm = DocumentManager.GetInstance();
                 bool ok = (bool)checkDoc.Invoke(dm, new object[] { rdf, false });
-                Console.WriteLine("      CheckDocument(doCorrections:false) = " + ok + " — дверь документа степень 5 ОТКАЗЫВАЕТ");
-                Check(!ok, "§8(2): CheckDocument принял документ со степенью 5");
+                Console.WriteLine("      CheckDocument(doCorrections:false) = " + ok + (ok ? " — дверь документа степень 5 ПРИНИМАЕТ" : " — дверь документа степень 5 ОТКАЗЫВАЕТ"));
+                // (`AMBER269`) Прежде ждали отказа; теперь степень 5 годна и вопроса нет.
+                Check(ok, "§8(2): CheckDocument отверг документ со степенью 5");
                 bool ok2 = (bool)checkDoc.Invoke(dm, new object[] { rdf, true });
                 PolynomialEnergyCalibration after = (PolynomialEnergyCalibration)rdf.ResultDataList[0].EnergySpectrum.EnergyCalibration;
-                Console.WriteLine("      CheckDocument(doCorrections:true) = " + ok2 + "; шкала после «Да» на вопрос о сбросе: порядок " + I(after.PolynomialOrder)
-                    + ", коэффициенты [" + string.Join(", ", after.Coefficients.Select(F)) + "] — то есть " + (after.PolynomialOrder == 1 && after.Coefficients[1] == 1.0 && after.Coefficients[0] == 0.0 ? "заготовка y = x" : "понижена"));
-                Check(after.PolynomialOrder <= 4, "§8(2): после исправления в документе осталась степень " + I(after.PolynomialOrder));
-                // OpenDocument без окон: вопрос «сбросить калибровку?» задать некому — ожидаем исключение AskYesNo.
+                Console.WriteLine("      CheckDocument(doCorrections:true) = " + ok2 + "; шкала после правки: порядок " + I(after.PolynomialOrder)
+                    + ", коэффициенты [" + string.Join(", ", after.Coefficients.Select(F)) + "]");
+                Check(after.PolynomialOrder == 5 && after.Coefficients.SequenceEqual(c5), "§8(2): правка тронула годную шкалу степени 5: порядок " + I(after.PolynomialOrder));
+                // OpenDocument без окон: вопроса нет — документ открывается со своей шкалой.
                 string openMsg;
                 try
                 {
@@ -607,7 +620,7 @@ static class CalibrationInverseProbeP78
                 }
                 catch (Exception ex) { openMsg = ex.GetType().Name + ": " + ex.Message; }
                 Console.WriteLine("      OpenDocument(order5.xml) без окон: " + openMsg);
-                Check(openMsg.Contains("без окон некому") || openMsg.Contains("вернул null"), "§8(2): OpenDocument без окон не остановился на вопросе о сбросе: " + openMsg);
+                Check(openMsg == "ОТКРЫЛ документ, степень 5", "§8(2): OpenDocument без окон не открыл документ степени 5 своей шкалой: " + openMsg);
             }
 
             // (3) Конфигурация прибора — заслона при загрузке нет (DeviceConfigManager.LoadAllConfigFiles).
@@ -631,9 +644,11 @@ static class CalibrationInverseProbeP78
                 Sweep(devScene, true, "§8(3) конфиг прибора");
                 Console.WriteLine("      отказов решателя на этой шкале: " + I(catchValid - before) + " — ветка > 4 на ней РАБОТАЕТ");
             }
-            Console.WriteLine("  (4) N42 (Util.cs:715, :1255): степень > 4 → исключение ERRUnsupportedPolynomialOrderN42; границы каналов → подгонка 4-й степени (:1530).");
-            Console.WriteLine("  (5) Atom Spectra текст (DocumentManager.cs:1747): степень > 4 → исключение ERRUnsupportedCalibrationOrder.");
-            Console.WriteLine("  (6) SpecUtils (DocumentManager.cs:1233): cal_size > 5 → приближение 4-й степенью (A216); cal_size ≤ 5 → степень ≤ 4.");
+            // (`AMBER269`, 02.11.2026) Двери импорта берут степень > 4 целиком; ключи
+            //   ERRUnsupportedPolynomialOrderN42 и ERRUnsupportedCalibrationOrder сняты.
+            Console.WriteLine("  (4) N42 (Util.ImportFromN42, 2006 и 2012): степень > 4 — целиком, годность судит CheckCalibration; границы каналов → подгонка 4-й степени (FitEnergyBoundaryValues).");
+            Console.WriteLine("  (5) Atom Spectra текст (ImportDocumentAtomSpectra): степень > 4 — целиком; негодная шкала — окно правки RepairQuestion.");
+            Console.WriteLine("  (6) SpecUtils (ImportDocumentSpecUtils): полином файла целиком при любом cal_size; негодная шкала — окно правки RepairQuestion.");
             Console.WriteLine("  (7) Подгонка по пикам (CalibrationSolver.Solve, DCEnergyCalibrationView, DeviceConfigForm): степень ≤ 4 по числу полей формы.");
         }
         Console.WriteLine();

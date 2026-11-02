@@ -69,12 +69,28 @@ namespace BecquerelMonitor.EfficiencyMaker
                 polynomial.CheckCalibration(data.EnergySpectrum.NumberOfChannels);
             }
 
+            // ⛔ (`AMBER269`, 02.11.2026) ПРИБОР — ПРАВИЛОМ ОТКРЫТИЯ ФАЙЛА, а не одним
+            //    Guid: `DocumentManager.AttachDeviceConfig` (Guid, затем серийный
+            //    номер, затем имя; решения Amber 01.11.2026 вопросником, дословно:
+            //    «По серийному номеру (Рекомендую)», «По номеру, затем имени
+            //    (Рекомендую)»). Прежде здесь стояло `c.Guid == ссылка.Guid`, и экспорт
+            //    RadiaCode (в ссылке имя модели без Guid) загрузчик отвергал «прибора
+            //    нет», хотя окно тот же файл открывает с прибором. Найденный прибор
+            //    ставится спектру, как при открытии.
+            List<DeviceConfigInfo> devices = DeviceConfigManager.GetInstance().DeviceConfigList;
+            DocumentManager.DeviceMatch how;
+            List<DeviceConfigInfo> candidates;
+            DeviceConfigInfo device = DocumentManager.AttachDeviceConfig(data, devices, out how, out candidates);
+
+            // ⛔ (`AMBER269`, 02.11.2026, полоса a269fix6) Встроенная заглушка FWHM 15/3756/103
+            //    в файле — не своя кривая спектра, а её отсутствие, как при открытии
+            //    (`DocumentManager.ForgetFileStandInFwhm`): дальше то же правило, что у спектра
+            //    без кривой. Прежде загрузчик брал заглушку как есть — пики в 1.5–1.8 раза шире.
+            DocumentManager.ForgetFileStandInFwhm(data);
+
             string fwhmRefusal = null;
             if (data.FwhmCalibration == null)
             {
-                List<DeviceConfigInfo> devices = DeviceConfigManager.GetInstance().DeviceConfigList;
-                DeviceConfigInfo device = devices
-                    .FirstOrDefault(c => c.Guid == data.DeviceConfigReference.Guid);
                 if (device == null && !string.IsNullOrEmpty(fallbackDeviceGuid))
                 {
                     device = devices.FirstOrDefault(c => string.Equals(
@@ -83,8 +99,10 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 if (device == null)
                 {
-                    throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture,
-                        Resources.EfficiencyMakerNoDeviceConfig, data.DeviceConfigReference.Name));
+                    throw new InvalidOperationException(how == DocumentManager.DeviceMatch.Ambiguous
+                        ? DocumentManager.DescribeDeviceAmbiguity(data, resultIndex >= 0 && resultIndex < file.ResultDataList.Count ? resultIndex : 0, candidates)
+                        : string.Format(CultureInfo.InvariantCulture, Resources.EfficiencyMakerNoDeviceConfig,
+                                        data.DeviceConfigReference != null ? data.DeviceConfigReference.Name : ""));
                 }
 
                 FWHMPeakDetectionMethodConfig peakConfig =
@@ -98,9 +116,21 @@ namespace BecquerelMonitor.EfficiencyMaker
                 //    (`FWHM_AT_0`, `Ch_Fwhm`, `Width_Fwhm`) называют, ЧТО именно
                 //    чинить, и взять их человеку больше негде — на формах их нет.
                 //    ⚠ Голос не добавлен, а дополнен: окно по-прежнему одно.
-                data.FwhmCalibration = peakConfig.FwhmCalibration != null
-                    ? peakConfig.FwhmCalibration.Clone()
-                    : FwhmCalibration.DefaultCalibration(peakConfig, data.EnergySpectrum.EnergyCalibration, out fwhmRefusal);
+                // ⛔ (`AMBER269`, 02.11.2026) Кривая — ПРАВИЛОМ ОТКРЫТИЯ ФАЙЛА
+                //    (`DocumentManager.StandInFwhm` → `FwhmCalibration.StandInCalibration`):
+                //    три числа прибора и форма пика его кривой. Прежде здесь бралась
+                //    СОХРАНЁННАЯ кривая прибора, а окно тот же файл открывает с кривой по
+                //    трём числам: у прибора со своей подогнанной кривой загрузчик и экран
+                //    давали спектру разные модели разрешения.
+                //    ⛔ (`AMBER269`, 02.11.2026, позже того же дня) Теперь и окно берёт
+                //    СОХРАНЁННУЮ кривую прибора (решение Amber вопросником, дословно:
+                //    «Кривую прибора (Рекомендую)») — правило одно:
+                //    `FwhmCalibration.StandInFromDevice` (копия кривой прибора; на чужой
+                //    сетке каналов — перенесённая; если по ней нельзя — три числа).
+                data.FwhmCalibration = FwhmCalibration.StandInFromDevice(peakConfig, device.NumberOfChannels,
+                                                                         data.EnergySpectrum.EnergyCalibration,
+                                                                         data.EnergySpectrum.NumberOfChannels,
+                                                                         out fwhmRefusal);
             }
 
             if (data.FwhmCalibration == null)

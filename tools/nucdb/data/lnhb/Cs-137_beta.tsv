@@ -1,0 +1,9 @@
+# LNHB/DDEP, Table de Radionucleides: Cs-137 (137CS)
+# https://www.lnhb.fr/nuclides/Cs-137_tables.pdf, sha256 6d2d2df01ea0254fa06cc5a85a38e32aa115a8c81cb8872fc9942fbbac71bb00 (снято 01.11.2026)
+# оценка: LNE-LNHB / S. Leblond, 02/12/2021 - 18/07/2023; X. Mougeot et al., Metrologia 62 (2025) 029002
+# Q- LNHB, кэВ: 1175.63
+# раздел 2.x «β Transitions» (граница, вероятность) и «Electron Emissions» (avg)
+label	type	max_kev	max_unc	prob	prob_unc	avg_kev	avg_unc	nature
+β−0,0	B-	1175.63	17	5.43	26	284.90	5	Forbidden 2nd non-unique
+β−0,1	B-	892.17	18	0.0006	1	332.51	7	Forbidden 2nd unique
+β−0,2	B-	513.97	17	94.57	26	173.67	6	Forbidden 1st unique

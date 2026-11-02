@@ -180,4 +180,49 @@
   <data name="label4.Text" xml:space="preserve">
     <value>кэВ</value>
   </data>
+  <data name="NucLib_UpdateFromDb" xml:space="preserve">
+    <value>Обновить из базы</value>
+  </data>
+  <data name="NucLib_DbLinked" xml:space="preserve">
+    <value>Из базы нуклидов (строка {0}): поля, взятые из базы, не правятся.</value>
+  </data>
+  <data name="NucLib_DbNotLinked" xml:space="preserve">
+    <value>у линии нет строки базы.</value>
+  </data>
+  <data name="NucLib_DbGone" xml:space="preserve">
+    <value>строки базы №{0} в базе нуклидов больше нет.</value>
+  </data>
+  <data name="NucLib_DbXrayGone" xml:space="preserve">
+    <value>линии рентгена {0} в базе веществ больше нет.</value>
+  </data>
+  <data name="NucLib_DbUnreadable" xml:space="preserve">
+    <value>база нуклидов не прочиталась: </value>
+  </data>
+  <data name="NucLib_DbChangedEnergy" xml:space="preserve">
+    <value>энергия {0} → {1} кэВ</value>
+  </data>
+  <data name="NucLib_DbChangedHalfLife" xml:space="preserve">
+    <value>период {0} → {1} лет</value>
+  </data>
+  <data name="NucLib_DbChangedIntensity" xml:space="preserve">
+    <value>выход {0} → {1} %</value>
+  </data>
+  <data name="NucLib_DbChanged" xml:space="preserve">
+    <value>Строка базы {0} изменилась: {1}. Нажмите «Обновить из базы».</value>
+  </data>
+  <data name="NucLib_DbAmbiguous" xml:space="preserve">
+    <value>{0}: в базе больше одной линии в ±{2} кэВ от {1} кэВ — какая из них, не понять.</value>
+  </data>
+  <data name="NucLib_DbNoXray" xml:space="preserve">
+    <value>{0}: в базе веществ нет линии рентгена элемента в ±{2} кэВ от {1} кэВ — вбита руками?</value>
+  </data>
+  <data name="NucLib_DbNoParent" xml:space="preserve">
+    <value>{0}: такого нуклида (или его линий) в базе нуклидов нет — вбит руками?</value>
+  </data>
+  <data name="NucLib_DbNoLine" xml:space="preserve">
+    <value>{0}: в базе нет линии в ±{2} кэВ от {1} кэВ — вбита руками?</value>
+  </data>
+  <data name="NucLib_DbHalfLife" xml:space="preserve">
+    <value>{0} {1} кэВ: период {2} лет не совпал с базой ({3} лет).</value>
+  </data>
 </root>

@@ -471,7 +471,7 @@
     <value>ФОН НЕ ВЫЧТЕН</value>
   </data>
   <data name="FSABackgroundRejectedMark" xml:space="preserve">
-    <value> (фон не взят)</value>
+    <value> (фон не вычтен)</value>
   </data>
   <data name="FSABackgroundNoCounts" xml:space="preserve">
     <value>у фонового спектра нет отсчётов</value>
@@ -486,7 +486,7 @@
     <value> · суммирование</value>
   </data>
   <data name="FSASuppressedMark" xml:space="preserve">
-    <value> · подавлен</value>
+    <value> · преобладает приборное</value>
     <comment>S104: one instrument image outweighs the whole nuclide composition</comment>
   </data>
   <data name="FSAXrayName" xml:space="preserve">
@@ -499,6 +499,21 @@
   </data>
   <data name="FSASumPeakRow" xml:space="preserve">
     <value>{0} — сумм-пик</value>
+  </data>
+  <data name="FSASumPeakLineRow" xml:space="preserve">
+    <value>Σ {0} кэВ = {1}</value>
+  </data>
+  <data name="FSASumPeakLineMore" xml:space="preserve">
+    <value>{0} и ещё {1}</value>
+  </data>
+  <data name="FSASumPeakLineCounts" xml:space="preserve">
+    <value>{0} отсч.</value>
+  </data>
+  <data name="FSASumPeakLineHintPair" xml:space="preserve">
+    <value>{0}: {1} = {2} кэВ — {3} отсч.</value>
+  </data>
+  <data name="FSASumPeakLineHintSigma" xml:space="preserve">
+    <value>Показан, потому что площадь не меньше 3σ измеренного спектра в ±FWHM: {0} отсч.</value>
   </data>
   <data name="EfficiencyMakerCalcRestored" xml:space="preserve">
     <value>Параметры расчёта восстановлены по готовой кривой: {0}</value>
@@ -542,10 +557,10 @@
     <value>&lt; {0} %</value>
   </data>
   <data name="FSANotResolvedNoShare" xml:space="preserve">
-    <value>не выделено</value>
+    <value>не найдено</value>
   </data>
   <data name="FSANotResolvedHint" xml:space="preserve">
-    <value>Образ предъявлен фиту и получил ноль: полосу держит континуум модели. Величина требует геометрии детектора.</value>
+    <value>Разбор искал эту составляющую и не нашёл: её область целиком объясняет подложка. Чтобы оценить предел обнаружения, нужна геометрия детектора.</value>
   </data>
   <data name="FSAContinuumLayerHint" xml:space="preserve">
     <value>Подложка модели, не принадлежащая ни одному нуклиду: выше самой верхней линии состава приписать её некому.</value>
@@ -554,7 +569,7 @@
     <value>Подложка модели, не принадлежащая ни одному нуклиду: ниже {0} кэВ матрице отклика нет доверия (порог АЦП, рентген защиты, возврат из домика), а выше самой верхней линии состава приписать её некому. Выше {0} кэВ подложка разнесена по слоям нуклидов.</value>
   </data>
   <data name="FSAUndetectedFoldedRow" xml:space="preserve">
-    <value>не определяются ({0})</value>
+    <value>ниже предела обнаружения ({0})</value>
   </data>
   <data name="FSAChainMemberRow" xml:space="preserve">
     <value>{0} — ряд {1}</value>
@@ -682,6 +697,18 @@
   <data name="ERRChannelEdgesInvalidSpecUtils" xml:space="preserve">
     <value>границы энергий каналов в файле негодны ({0}), в шкалу они не взяты, и осталась y = x, то есть номер канала объявлен энергией (измерений: {1})</value>
   </data>
+  <data name="MSGScaleNotFromFileSpecUtils" xml:space="preserve">
+    <value>Энергетическая шкала спектра взята не из файла ({0}): {1}. По такой шкале подписи пиков, состав библиотеки и разложение выйдут правдоподобными и чужими — сверьте калибровку прежде, чем считать.</value>
+  </data>
+  <data name="MSGScaleSubstitutedSpecUtils" xml:space="preserve">
+    <value>энергетической шкалы в файле нет или SpecUtils её не приняла (например, немонотонный полином), и подставлено умолчание SpecUtils (измерений: {0})</value>
+  </data>
+  <data name="MSGScaleInvalidSpecUtils" xml:space="preserve">
+    <value>запись энергетической шкалы в файле негодна (измерений: {0})</value>
+  </data>
+  <data name="MSGScaleIdentitySpecUtils" xml:space="preserve">
+    <value>шкала не прочитана, и осталась y = x, то есть номер канала объявлен энергией (измерений: {0})</value>
+  </data>
   <data name="ERRNoEnergyCalibrationN42" xml:space="preserve">
     <value>В файле N42 нет объекта EnergyCalibration. Подставлена калибровка по умолчанию y=x: номер канала принят за энергию.</value>
   </data>
@@ -700,14 +727,8 @@
   <data name="ERRCalibrationReferenceNotFoundN42" xml:space="preserve">
     <value>В файле N42 спектр ссылается на энергетическую калибровку, которой в файле нет (таких измерений: {0}, первая ссылка: {1}); калибровка взята по номеру измерения. Проверьте шкалу энергий этих спектров.</value>
   </data>
-  <data name="ERRUnsupportedPolynomialOrderN42" xml:space="preserve">
-    <value>Энергетическая шкала в файле N42 задана полиномом {0}-го порядка, а приложение читает полиномы не выше четвёртого.</value>
-  </data>
   <data name="ERRUnsupportedCalibrationMethod" xml:space="preserve">
-    <value>Не поддерживаемый метод калибровки полиномом {0} порядка. Поддерживаются полиномы 1,2,3,4 порядков.</value>
-  </data>
-  <data name="ERRUnsupportedCalibrationOrder" xml:space="preserve">
-    <value>Не поддерживается такое количество точек калибровки. Порядок полинома получается: {0}. Должен быть 1,2,3,4 порядка.</value>
+    <value>Калибровка по энергии не поддерживается: полином порядка {0}. Порядок должен быть не ниже первого.</value>
   </data>
   <data name="ERRUpdateApp" xml:space="preserve">
     <value>Этот экземпляр приложения работает в ограниченном режиме. Такое приложение не будет обновляться. Необходимо установить приложение через setup.exe.</value>
@@ -836,8 +857,30 @@
   <data name="ERRSpectrumCheck" xml:space="preserve">
     <value>Ошибка при проверке контента файла спектра: калибровки, гистограммы, количества каналов</value>
   </data>
-  <data name="CalcResetQuestion" xml:space="preserve">
-    <value>Сбросить калибровку спектра в y = x? Иначе спектр не будет открыт в приложении.</value>
+  <data name="CalcRepairQuestion" xml:space="preserve">
+    <value>«Да» исправит это так; иначе спектр не будет открыт.
+{0}</value>
+  </data>
+  <data name="CalcRepairNothing" xml:space="preserve">
+    <value>Автоматическая правка здесь ничего не исправит. «Да» откроет файл как есть; иначе он не будет открыт.</value>
+  </data>
+  <data name="CalcRepairCalibrationLine" xml:space="preserve">
+    <value>{0}: калибровка по энергии {1} → {2}</value>
+  </data>
+  <data name="CalcRepairNoCalibration" xml:space="preserve">
+    <value>нет</value>
+  </data>
+  <data name="CalcRepairIdentityNote" xml:space="preserve">
+    <value>y = x (номер канала вместо энергии)</value>
+  </data>
+  <data name="CalcRepairBackgroundRemoved" xml:space="preserve">
+    <value>{0}: у фона нет гистограммы, фон будет снят</value>
+  </data>
+  <data name="CalcRepairBackgroundOf" xml:space="preserve">
+    <value>{0}, фон</value>
+  </data>
+  <data name="MSGDeviceMatchAmbiguous" xml:space="preserve">
+    <value>Спектру {0} конфигурация прибора не назначена: файл называет прибор «{1}» без идентификатора конфигурации, известного здесь (серийный номер: {2}), и ему одинаково подходят несколько конфигураций: {3}. Выберите прибор в панели «Управление измерением».</value>
   </data>
   <data name="ResetCalibrationQuestion" xml:space="preserve">
     <value>Вопрос по сбросу калибровки</value>
@@ -963,7 +1006,7 @@
     <value>Приложение BecqMoni уже запущено! Чтобы избежать проблем с конфигурационными файлами, этот запуск приложения отменяется. Проверьте диспетчер задач на запущенные процессы BecquerelMonitor.exe!</value>
   </data>
   <data name="MinPeaksRequirement" xml:space="preserve">
-    <value>Минимальное кол-во пиков: {0}</value>
+    <value>Мин. пиков: {0}</value>
   </data>
   <data name="MSGSaveFWHMCalibration" xml:space="preserve">
     <value>Сохранить параметры калибровки по FWHM в текущей конфигурации устройства?</value>
@@ -2490,7 +2533,7 @@ http://xptable.sourceforge.net/</value>
     <value>Полноспектральный разбор: кривая эффективности отвергнута — {0}</value>
   </data>
   <data name="FSALibraryEmptied" xml:space="preserve">
-    <value>Полноспектральное разложение: в составе не осталось ни одной компоненты для фита — при матрице отклика собственный рентген и вылет кристалла несёт матрица; добавьте нуклид в состав</value>
+    <value>Полноспектральное разложение: в составе не осталось нуклидов — рентген и пики вылета кристалла уже учтены матрицей отклика; добавьте нуклид в состав</value>
   </data>
   <data name="FSABandTooNarrow" xml:space="preserve">
     <value>Полноспектральное разложение: полоса фита не длиннее {0} каналов — расширьте диапазон энергий поиска пиков или проверьте пол фита и энергетическую калибровку</value>
@@ -2499,7 +2542,7 @@ http://xptable.sourceforge.net/</value>
     <value>Полноспектральному разложению нужно не меньше {0} каналов в спектре</value>
   </data>
   <data name="FSANoFit" xml:space="preserve">
-    <value>Полноспектральное разложение: ни один узел сетки дрейфа не дал решения для этого спектра</value>
+    <value>Полноспектральное разложение: подгонка не сошлась — проверьте энергетическую калибровку и состав</value>
   </data>
   <data name="FSANoCalibration" xml:space="preserve">
     <value>Полноспектральному разложению нужны энергетическая калибровка и калибровка FWHM спектра</value>
@@ -2514,7 +2557,7 @@ http://xptable.sourceforge.net/</value>
     <value>Базы ядерных данных не прочитаны — разбор шёл без части данных (линии нуклида или поправка на совпадения); при следующем пересчёте они читаются снова</value>
   </data>
   <data name="FSAAnnihilationDegenerate" xml:space="preserve">
-    <value>{0}: аннигиляция — единственное его измеримое излучение: прочие линии в полосе фита дают {1} % на распад при поле {2} %; свободный образ 511 и нуклид — один столбец, свободный образ снят</value>
+    <value>{0}: в спектре виден только по аннигиляции 511 кэВ (прочие линии — {1} % на распад при пороге {2} %); отдельная составляющая 511 кэВ убрана, чтобы не дублировать нуклид</value>
   </data>
   <data name="FSAReportEfficiencyFieldCurve" xml:space="preserve">
     <value>учтена формой: кривая сцены поля (см² на единичный флюенс); беккерели по ней не выводятся</value>
@@ -3738,5 +3781,14 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="EfficiencyMakerLsrmFieldScene" xml:space="preserve">
     <value>Кривую LSRM нельзя сохранить со сценой поля (ISO): эффективность ЛСРМ нормирована на испущенный квант, а не на единичный флюенс, и у мощности дозы не будет масштаба. Выберите для кривой сцену источника или посчитайте кривую из этой геометрии.</value>
+  </data>
+  <data name="MSGFwhmFileStandInReplaced" xml:space="preserve">
+    <value>В спектре обнаружена калибровка по умолчанию, взята калибровка FWHM прибора.</value>
+  </data>
+  <data name="MSGFwhmDeviceNotFoundBuiltIn" xml:space="preserve">
+    <value>В спектре обнаружена калибровка по умолчанию. Это негативно скажется на разборе FSA и расчёте активности. Необходимо провести калибровку по FWHM</value>
+  </data>
+  <data name="MSGFwhmSpectraCount" xml:space="preserve">
+    <value>{0} из {1}:</value>
   </data>
 </root>

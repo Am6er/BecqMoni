@@ -255,14 +255,22 @@ namespace BecquerelMonitor.Probes
                 // б. ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: нынешний формат, клеймо сходится — годная.
                 Synthetic(config.Geometry, options, null).Save(path);
                 int fileFormat, physics;
+                // (`AMBER274`, `Р1`/`Р11`) Матрица без раздела электронов пишется форматом 11
+                // (байты прежние), с разделом — 12; оба нынешние.
                 Check(ResponseMatrix.PeekVersions(path, out fileFormat, out physics)
-                      && fileFormat == ResponseMatrix.FormatVersion && physics == ResponseMatrix.PhysicsVersion,
-                      "б. записанная матрица читается заголовком как нынешняя");
-                MatrixCase("б. годная матрица нынешнего формата", config, false);
+                      && fileFormat == ResponseMatrix.CompatibleFormatVersion && physics == ResponseMatrix.PhysicsVersion,
+                      "б. записанная матрица без раздела читается заголовком как нынешняя формата 11");
+                MatrixCase("б. годная матрица нынешнего формата 11", config, false);
 
-                // в. Прежний формат файла.
-                WriteFormat(path, ResponseMatrix.FormatVersion - 2);
-                MatrixCase("в. формат " + (ResponseMatrix.FormatVersion - 2).ToString(CultureInfo.InvariantCulture),
+                // б2. (`Р2`) Заголовок 12, а раздела в конце нет (обрубок раздела) — матрица
+                // годна, снимается только раздел.
+                WriteFormat(path, ResponseMatrix.FormatVersion);
+                MatrixCase("б2. формат 12 без раздела (порча раздела) — годная", config, false);
+
+                // в. Прежний формат файла: 9 — ниже обоих читаемых (11, 12) и ниже допущенного
+                // ради сравнения (10).
+                WriteFormat(path, ResponseMatrix.PreviousFormatVersion - 1);
+                MatrixCase("в. формат " + (ResponseMatrix.PreviousFormatVersion - 1).ToString(CultureInfo.InvariantCulture),
                            config, true);
                 WriteFormat(path, ResponseMatrix.PreviousFormatVersion);
                 MatrixCase("в2. предыдущий формат " + ResponseMatrix.PreviousFormatVersion.ToString(CultureInfo.InvariantCulture),

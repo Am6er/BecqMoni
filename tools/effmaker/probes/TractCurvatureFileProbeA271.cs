@@ -419,6 +419,9 @@ namespace BecquerelMonitor.Probes
             rd.PeakDetectionMethodConfig = FWHMPeakDetectionMethodConfig.AdoptFrom(
                 device.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig,
                 rd.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig);
+            // (`AMBER269`, a269fix6) встроенная заглушка FWHM 15/3756/103 в файле — не своя кривая
+            // спектра, а её отсутствие, как при открытии файла (`DocumentManager.ForgetFileStandInFwhm`).
+            DocumentManager.ForgetFileStandInFwhm(rd);
             if (rd.FwhmCalibration == null && rd.PeakDetectionMethodConfig is FWHMPeakDetectionMethodConfig cfg)
             {
                 rd.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, rd.EnergySpectrum.EnergyCalibration);

@@ -154,7 +154,10 @@ namespace FsaStackShot
     /// подсказка), `SCREEN\t<имя>\t<значение>\t<подсказка>`; читается с того же
     /// окна, что снято на PNG. Заведён под ~~`AMBER6`~~: свёрнутая строка
     /// «не определяются (N)» обязана называть свёрнутых в подсказке, а по
-    /// картинке подсказки не видно.
+    /// картинке подсказки не видно. Поля экранированы (`ScreenField`: перевод
+    /// строки — `\n`), перед строками — метка `SCREEN_FORMAT\tescaped-v1`
+    /// (`AMBER274`, gc5 03.11.2026: многострочная подсказка печаталась как есть,
+    /// и сторож витрины видел только её первую строку).
     ///
     /// `--select=<от>..<до>` — выделенная область в кэВ, ровно то, что человек
     /// тянет мышью. Заведён `A27`: заливка выделения бралась у ПОЛНОГО спектра,
@@ -1598,19 +1601,78 @@ namespace FsaStackShot
                     // ячеек «Компонент» и «Значение» и подсказка ячейки имени.
                     // Своей сборки представления здесь нет нарочно — иначе
                     // строки могли бы разойтись с картинкой.
+                    // (`AMBER274`, полоса gc5 03.11.2026) Поля — ЭКРАНИРОВАННЫМИ
+                    // (`ScreenField`): подсказка окна многострочная (`AppUi.WrapWords`,
+                    // `AMBER264`), и до этой правки продолжения уходили в журнал
+                    // отдельными строками — сторож витрины видел только первую строку
+                    // подсказки. Метка `SCREEN_FORMAT` — вид строк; без неё сторож
+                    // строки не судит (старая проба печатала бы их обрезанными молча).
+                    Console.WriteLine("SCREEN_FORMAT\t{0}", ScreenFormat);
                     foreach (XPTable.Models.Row row in report.ReportTable.TableModel.Rows)
                     {
                         string name = row.Cells.Count > 0 && row.Cells[0] != null ? row.Cells[0].Text : "";
                         string value = row.Cells.Count > 1 && row.Cells[1] != null ? row.Cells[1].Text : "";
                         string hint = row.Cells.Count > 0 && row.Cells[0] != null ? row.Cells[0].ToolTipText : "";
-                        Console.WriteLine("SCREEN\t{0}\t{1}\t{2}", name ?? "", value ?? "",
-                                          string.Equals(hint, name, StringComparison.Ordinal) ? "" : (hint ?? ""));
+                        Console.WriteLine("SCREEN\t{0}\t{1}\t{2}", ScreenField(name), ScreenField(value),
+                                          string.Equals(hint, name, StringComparison.Ordinal) ? "" : ScreenField(hint));
                     }
                 }
 
                 host.Hide();
                 return combined;
             }
+        }
+
+        /// <summary>Вид строк `SCREEN` (`ScreenField`); сторож витрины требует ровно его.</summary>
+        const string ScreenFormat = "escaped-v1";
+
+        /// <summary>
+        /// (`AMBER274`, полоса gc5) Поле строки `SCREEN` — ОДНОЙ строкой журнала: обратная
+        /// косая → `\\`, перевод строки (CRLF или LF) → `\n`, одиночный CR → `\r`,
+        /// табуляция → `\t`, прочие управляющие и разделители строк Юникода → `\uXXXX`.
+        /// Обратимо и однозначно; сторож сравнивает поле целиком, дословно.
+        /// </summary>
+        static string ScreenField(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return "";
+            }
+
+            var sb = new StringBuilder(text.Length + 16);
+            for (int i = 0; i < text.Length; i++)
+            {
+                char c = text[i];
+                switch (c)
+                {
+                    case '\\': sb.Append("\\\\"); break;
+                    case '\r':
+                        if (i + 1 < text.Length && text[i + 1] == '\n')
+                        {
+                            sb.Append("\\n");
+                            i++;
+                        }
+                        else
+                        {
+                            sb.Append("\\r");
+                        }
+                        break;
+                    case '\n': sb.Append("\\n"); break;
+                    case '\t': sb.Append("\\t"); break;
+                    default:
+                        if (c < ' ' || c == (char)0x85 || c == (char)0x2028 || c == (char)0x2029)
+                        {
+                            sb.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
+                        }
+                        else
+                        {
+                            sb.Append(c);
+                        }
+                        break;
+                }
+            }
+
+            return sb.ToString();
         }
 
         /// <summary>

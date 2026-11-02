@@ -980,6 +980,17 @@ namespace BecquerelMonitor
         /// </summary>
         public event EventHandler SavedIntoConfig;
 
+        /// <summary>
+        /// (`AMBER285`) Последнее «Сохранить» принесло в кривую НОВЫЙ кристалл:
+        /// геометрии у кривой не было, или вещество кристалла в ней сменилось
+        /// (сравнение имён без учёта регистра). Читает форма прибора в
+        /// <see cref="SavedIntoConfig"/> — решение Amber 02.11.2026 «При сохранении
+        /// новой и изменённой геометрии (Рекомендую)»: о своём умолчании прибор
+        /// спрашивает, когда «создаётся геометрия с другим кристаллом детектора»,
+        /// а пересохранение той же геометрии (кривая, размеры) вопроса не повторяет.
+        /// </summary>
+        public bool SavedCrystalIsNew { get; private set; }
+
         /// <summary>Конфигурация прибора, к которой привязано окно.</summary>
         public DeviceConfigInfo BoundDevice
         {
@@ -1145,7 +1156,15 @@ namespace BecquerelMonitor
             // и после первого «Сохранить» такая правка без второго «Сохранить»
             // уже сидела в конфигурации прибора и уходила на диск с её
             // сохранением.
+            // (`AMBER285`) Кристалл кривой ДО записи: форма прибора спрашивает о
+            // своём умолчании, когда геометрия приносит в кривую НОВЫЙ кристалл.
+            string crystalBefore = this.boundConfig.HasGeometry
+                ? DeviceConfigForm.CrystalNameOf(this.boundConfig.Geometry)
+                : null;
             this.boundConfig.Geometry = this.geometryPanel.Model.Clone();
+            this.SavedCrystalIsNew = crystalBefore == null
+                || !string.Equals(crystalBefore, DeviceConfigForm.CrystalNameOf(this.boundConfig.Geometry),
+                                  StringComparison.OrdinalIgnoreCase);
             if (this.lastResult != null && this.lastResult.Ok)
             {
                 List<ROIEfficiencyData> curve = new List<ROIEfficiencyData>();
@@ -1186,7 +1205,11 @@ namespace BecquerelMonitor
             // этом нельзя — вкладка эффективности и окно отчёта FSA скажут то же.
             if (this.boundConfig.CurveGeometryMismatch)
             {
-                AppendLog(Resources.EfficiencyCurveOtherGeometry);
+                // ⛔ (`AMBER269` дефект 5, `phys29b`) Причина — сдвиг точки в капсуле, если
+                // отпечаток разошёлся только строкой `srcoff`.
+                AppendLog(this.boundConfig.CurveBeforeSourceOffset
+                    ? DeviceConfigForm.CurveBeforeSourceOffsetNote(this.boundConfig)
+                    : Resources.EfficiencyCurveOtherGeometry);
             }
 
             this.boundConfig.LastUpdated = DateTime.Now;
@@ -1591,7 +1614,17 @@ namespace BecquerelMonitor
                 header.Add("origin: " + this.boundConfig.Origin);
                 header.Add("stamp: " + (this.boundConfig.ComputeStamp ?? ""));
                 header.Add("saved: " + this.boundConfig.LastUpdated.ToString("yyyy-MM-dd HH:mm:ss", inv));
-                if (this.boundConfig.CurveGeometryMismatch)
+                if (this.boundConfig.CurveBeforeSourceOffset)
+                {
+                    // (`AMBER269` дефект 5, `phys29b`) Отпечаток разошёлся строкой `srcoff`.
+                    // (`AMBER269`, полоса a269fix5) Причина — версия программы, а не дата: признак
+                    // судит по отпечатку, и кривая, посчитанная после 30.10.2026 прежней версией,
+                    // несёт тот же отпечаток без строки `srcoff`.
+                    header.Add("warning: this curve was computed by an earlier version of the program, before the source point inside the capsule was moved "
+                               + this.boundConfig.Geometry.SourceCapsuleOffset.ToString("0.0##", inv)
+                               + " mm farther from the housing; the geometry itself was not edited");
+                }
+                else if (this.boundConfig.CurveGeometryMismatch)
                 {
                     header.Add("warning: the geometry of the configuration was edited after this curve was computed");
                 }

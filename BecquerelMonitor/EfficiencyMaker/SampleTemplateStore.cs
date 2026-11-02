@@ -50,6 +50,15 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double BeakerEndWallThickness;
         public double SourceHeight;
 
+        /// <summary>(`f8cyl`) Дальнее дно цилиндра, мм (<see cref="GeometryModel.BeakerFarEndWallThickness"/>).</summary>
+        public double BeakerFarEndWallThickness;
+
+        /// <summary>(`f8cyl`) В файл шаблонов — только ненулевое: прежние шаблоны прежними до знака.</summary>
+        public bool ShouldSerializeBeakerFarEndWallThickness()
+        {
+            return this.BeakerFarEndWallThickness > 0.0;
+        }
+
         public double MarinelliBeakerDiameter;
         public double MarinelliBeakerHeight;
         public double MarinelliHoleDiameter;
@@ -102,6 +111,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.BeakerHeight = g.BeakerHeight;
             this.BeakerSideWallThickness = g.BeakerSideWallThickness;
             this.BeakerEndWallThickness = g.BeakerEndWallThickness;
+            this.BeakerFarEndWallThickness = g.BeakerFarEndWallThickness;
             this.SourceHeight = g.SourceHeight;
 
             this.MarinelliBeakerDiameter = g.MarinelliBeakerDiameter;
@@ -145,6 +155,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.BeakerHeight = this.BeakerHeight;
             g.BeakerSideWallThickness = this.BeakerSideWallThickness;
             g.BeakerEndWallThickness = this.BeakerEndWallThickness;
+            g.BeakerFarEndWallThickness = this.BeakerFarEndWallThickness;
             g.SourceHeight = this.SourceHeight;
 
             g.MarinelliBeakerDiameter = this.MarinelliBeakerDiameter;
@@ -226,6 +237,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             foreach (double v in values)
             {
                 sb.Append(';').Append(v.ToString("R", ic));
+            }
+
+            // (`f8cyl`) Дальнее дно — только ненулевое: строка прежних шаблонов та же.
+            if (g.BeakerFarEndWallThickness > 0.0)
+            {
+                sb.Append(";far=").Append(g.BeakerFarEndWallThickness.ToString("R", ic));
             }
 
             Describe(sb, "wall", g.BeakerWall);

@@ -175,28 +175,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         DateTime lastStartUtc = DateTime.MinValue;
 
         /// <summary>
-        /// (`AMBER269`) Энергии найденных пиков (центры, кэВ по калибровке файла) — для
-        /// <see cref="FsaAnalyzer.DetectedPeakKev"/>; пик с нечисловой или неположительной
-        /// энергией пропускается.
-        /// </summary>
-        public static double[] PeakEnergiesOf(List<Peak> peaks)
-        {
-            var energies = new List<double>();
-            if (peaks != null)
-            {
-                foreach (Peak peak in peaks)
-                {
-                    if (peak != null && peak.Energy > 0.0 && !double.IsInfinity(peak.Energy))
-                    {
-                        energies.Add(peak.Energy);
-                    }
-                }
-            }
-
-            return energies.ToArray();
-        }
-
-        /// <summary>
         /// (`AMBER210`) Линии библиотеки приложения — имя и энергия каждого определения — для
         /// <see cref="FsaAnalyzer.LibraryLines"/>. Выход у определения не хранится, поэтому
         /// интенсивность линии нуль; определение без имени или с неположительной энергией пропускается.
@@ -894,10 +872,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // имён в коде нет, всё из определений менеджера
             analyzer.LibraryLines = LibraryLinesOf(job.Definitions);
 
-            // (`AMBER269`, (Б)) найденные пики — подтверждать опоры шкалы (читает
-            // только `AnchorConfirmByPeaks`)
-            analyzer.DetectedPeakKev = PeakEnergiesOf(job.Peaks);
-
             Action<FsaAnalyzer> probeHook = ProbeAnalyzerHook;
 
             // (`A320`, П323 15.10.2026; решение Amber вопросником, дословно: «Только
@@ -1149,6 +1123,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         // отказе принято ОДНИМ местом (`FsaAnalyzer.Refuse`,
                         // причина — `FsaAnalyzer.Refusal`), здесь только слова.
                         message = RefusalText(job.Analyzer.Refusal, job.EfficiencyRefusal, job.UncomputedCurve);
+                        // (`AMBER274`, Ф14) состав опустел снятием строк по сплошному спектру —
+                        // назвать их и причину, иначе «состав пуст» при объявленном Sr-90
+                        string betaOnly = job.Analyzer.Refusal == FsaRefusal.LibraryEmptied
+                            ? BecquerelMonitor.FSAReportView.BetaOnlyRefusalText(job.Analyzer.BetaOnlyRemoved,
+                                                                                  job.Analyzer.BetaOnlyRemovedReason,
+                                                                                  job.Analyzer.BetaOnlySectionRefusal)
+                            : null;
+                        if (betaOnly != null)
+                        {
+                            message += " " + betaOnly;
+                        }
                         Trace.WriteLine("FSA refused: " + job.Analyzer.Refusal
                                         + (job.Analyzer.RefusalNote != null ? " — " + job.Analyzer.RefusalNote : ""));
                     }
@@ -1216,6 +1201,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 var report = new FsaSampleLibrary.Report();
                 foreach (FsaComponent component in library)
                 {
+                    // (`AMBER274`, Ф14) у строки по сплошному спектру линий нет — доля по бете
+                    if (component != null && component.BetaOnly)
+                    {
+                        BetaOnlyRatios(component, definitions, ratios);
+                        continue;
+                    }
+
                     if (component == null || component.Kind == FsaComponentKind.Nuisance || component.Lines.Count == 0)
                     {
                         continue;
@@ -1265,6 +1257,51 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return ratios;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Ф14) Доля «свой распад на единицу амплитуды» у членов строки по
+        /// сплошному спектру — тем же смыслом, что по линиям (П254), но по ВЕТВЯМ беты:
+        /// Σ выходов сплошных ветвей члена в образе / Σ выходов его ветвей на собственный распад
+        /// (<see cref="FsaBetaLibrary.Branches"/>). Только у члена ряда (<see cref="IsChainMember"/>):
+        /// строка ряда Sr-90 при выключенном равновесии печатает Y-90 в его собственных распадах.
+        /// </summary>
+        static void BetaOnlyRatios(FsaComponent component, List<NuclideDefinition> definitions,
+                                   Dictionary<string, double> ratios)
+        {
+            var inImage = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            foreach (FsaBeta beta in component.Betas)
+            {
+                if (!beta.IsLine && beta.Intensity > 0.0)
+                {
+                    double had;
+                    inImage[beta.Nuclide] = (inImage.TryGetValue(beta.Nuclide, out had) ? had : 0.0) + beta.Intensity;
+                }
+            }
+
+            foreach (KeyValuePair<string, double> member in inImage)
+            {
+                string nucid = FsaSampleLibrary.NucidOf(member.Key);
+                if (nucid.Length == 0 || ratios.ContainsKey(member.Key) || !IsChainMember(component, nucid, definitions))
+                {
+                    continue;
+                }
+
+                double own = 0.0;
+                foreach (FsaBeta beta in FsaBetaLibrary.Branches(nucid))
+                {
+                    if (!beta.IsLine && beta.Intensity > 0.0)
+                    {
+                        own += beta.Intensity;
+                    }
+                }
+
+                double ratio = own > 0.0 ? member.Value / own : 0.0;
+                if (ratio > 0.0 && !double.IsInfinity(ratio))
+                {
+                    ratios[member.Key] = ratio;
+                }
+            }
         }
 
         /// <summary>

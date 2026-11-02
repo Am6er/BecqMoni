@@ -86,6 +86,21 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             /// <summary>Средняя энергия возбуждения, которой считали, эВ.</summary>
             public double PotentialEv;
+
+            /// <summary>
+            /// (`AMBER274`, физика 28) Доля РАДИАЦИОННОЙ тормозной способности в полной,
+            /// S_rad/(S_col + S_rad), на той же сетке, что пробег: страгглинг потерь (модель
+            /// Урбана, <see cref="EfficiencySimulator.ElectronStraggling"/>) разыгрывает
+            /// флуктуацию только ИОНИЗАЦИОННОЙ части средней потери шага, радиационная
+            /// остаётся средней (её кванты разыгрывает тормозное).
+            /// </summary>
+            public double[] RadiativeShare;
+
+            /// <summary>
+            /// (`AMBER274`, физика 28) Эффективный Z по МАССОВЫМ долям, Σ wᵢ·Zᵢ — как у
+            /// `G4IonisParamMat::ComputeFluctModel` (уровни возбуждения модели Урбана).
+            /// </summary>
+            public double ZeffMass;
         }
 
         /// <summary>
@@ -183,12 +198,35 @@ namespace BecquerelMonitor.EfficiencyMaker
                 outYield[i] = Math.Exp(yieldSpline.Evaluate(l));
             }
 
+            // (`AMBER274`, физика 28) Доля радиационной тормозной — сплайном ln(S_rad/S_tot)
+            // по ln T на той же сетке, что пробег; Z_эфф — по массовым долям.
+            double[] logShare = new double[n];
+            for (int i = 0; i < n; i++)
+            {
+                logShare[i] = Math.Log(radiative[i] / (collision[i] + radiative[i]));
+            }
+
+            CubicSpline shareSpline = new CubicSpline(logT, logShare);
+            double[] outShare = new double[outGridMev.Length];
+            for (int i = 0; i < outGridMev.Length; i++)
+            {
+                outShare[i] = Math.Exp(shareSpline.Evaluate(Math.Log(outGridMev[i])));
+            }
+
+            double zeff = 0.0;
+            foreach (KeyValuePair<int, double> pair in MassFractions(compound))
+            {
+                zeff += pair.Value * pair.Key;
+            }
+
             return new Result
             {
                 EnergyMev = (double[])outGridMev.Clone(),
                 RangeGCm2 = outRange,
                 Yield = outYield,
                 PotentialEv = potential,
+                RadiativeShare = outShare,
+                ZeffMass = zeff,
             };
         }
 

@@ -133,15 +133,18 @@
     <value>Top, Left, Right</value>
   </data>
   <data name="label1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>12, 9</value>
+    <value>12, 6</value>
   </data>
   <data name="label1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>404, 52</value>
+    <value>404, 26</value>
   </data>
   <data name="label1.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
   </data>
   <data name="label1.Text" xml:space="preserve">
+    <value>Drag across a peak on the spectrum and enter its line energy. A grey energy goes to FWHM only, until you enter it.</value>
+  </data>
+  <data name="label1.ToolTip" xml:space="preserve">
     <value>Drag across a peak on the spectrum and enter the energy of its line: a row with an entered energy goes into both the energy and the FWHM calibration. A grey energy (a peak selected but its energy not entered yet; a row from the device or from a file of an older version) is used for FWHM only until you enter it.</value>
   </data>
   <data name="&gt;&gt;label1.Name" xml:space="preserve">
@@ -177,6 +180,9 @@
   <data name="textBox15.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
     <value>Center</value>
   </data>
+  <data name="textBox15.Visible" type="System.Boolean, mscorlib">
+    <value>False</value>
+  </data>
   <data name="&gt;&gt;textBox15.Name" xml:space="preserve">
     <value>textBox15</value>
   </data>
@@ -193,13 +199,16 @@
     <value>Top, Left, Right</value>
   </data>
   <data name="groupBox1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>12, 84</value>
+    <value>12, 252</value>
   </data>
   <data name="groupBox1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>407, 151</value>
+    <value>407, 98</value>
   </data>
   <data name="groupBox1.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
+    <value>3</value>
+  </data>
+  <data name="groupBox1.Text" xml:space="preserve">
+    <value>Energy[keV] = ax⁴ + bx³ + cx² + dx + e  (x = channel)</value>
   </data>
   <data name="&gt;&gt;groupBox1.Name" xml:space="preserve">
     <value>groupBox1</value>
@@ -217,16 +226,19 @@
     <value>True</value>
   </data>
   <data name="label6.Location" type="System.Drawing.Point, System.Drawing">
-    <value>11, 15</value>
+    <value>8, 20</value>
   </data>
   <data name="label6.Size" type="System.Drawing.Size, System.Drawing">
-    <value>65, 13</value>
+    <value>13, 13</value>
   </data>
   <data name="label6.TabIndex" type="System.Int32, mscorlib">
     <value>20</value>
   </data>
   <data name="label6.Text" xml:space="preserve">
-    <value>4th Coeff.(a)</value>
+    <value>a</value>
+  </data>
+  <data name="label6.ToolTip" xml:space="preserve">
+    <value>4th coefficient (a): at x⁴</value>
   </data>
   <data name="&gt;&gt;label6.Name" xml:space="preserve">
     <value>label6</value>
@@ -244,16 +256,19 @@
     <value>True</value>
   </data>
   <data name="label7.Location" type="System.Drawing.Point, System.Drawing">
-    <value>11, 44</value>
+    <value>158, 20</value>
   </data>
   <data name="label7.Size" type="System.Drawing.Size, System.Drawing">
-    <value>65, 13</value>
+    <value>13, 13</value>
   </data>
   <data name="label7.TabIndex" type="System.Int32, mscorlib">
     <value>20</value>
   </data>
   <data name="label7.Text" xml:space="preserve">
-    <value>3rd Coeff.(b)</value>
+    <value>b</value>
+  </data>
+  <data name="label7.ToolTip" xml:space="preserve">
+    <value>3rd coefficient (b): at x³</value>
   </data>
   <data name="&gt;&gt;label7.Name" xml:space="preserve">
     <value>label7</value>
@@ -271,16 +286,19 @@
     <value>True</value>
   </data>
   <data name="label4.Location" type="System.Drawing.Point, System.Drawing">
-    <value>11, 73</value>
+    <value>8, 46</value>
   </data>
   <data name="label4.Size" type="System.Drawing.Size, System.Drawing">
-    <value>68, 13</value>
+    <value>13, 13</value>
   </data>
   <data name="label4.TabIndex" type="System.Int32, mscorlib">
     <value>20</value>
   </data>
   <data name="label4.Text" xml:space="preserve">
-    <value>2nd Coeff.(c)</value>
+    <value>c</value>
+  </data>
+  <data name="label4.ToolTip" xml:space="preserve">
+    <value>2nd coefficient (c): at x²</value>
   </data>
   <data name="&gt;&gt;label4.Name" xml:space="preserve">
     <value>label4</value>
@@ -298,15 +316,18 @@
     <value>True</value>
   </data>
   <data name="offsetLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>11, 131</value>
+    <value>8, 72</value>
   </data>
   <data name="offsetLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>50, 13</value>
+    <value>13, 13</value>
   </data>
   <data name="offsetLabel.TabIndex" type="System.Int32, mscorlib">
     <value>15</value>
   </data>
   <data name="offsetLabel.Text" xml:space="preserve">
+    <value>e</value>
+  </data>
+  <data name="offsetLabel.ToolTip" xml:space="preserve">
     <value>Offset (e)</value>
   </data>
   <data name="&gt;&gt;offsetLabel.Name" xml:space="preserve">
@@ -325,16 +346,19 @@
     <value>True</value>
   </data>
   <data name="coeff1Label.Location" type="System.Drawing.Point, System.Drawing">
-    <value>11, 102</value>
+    <value>158, 46</value>
   </data>
   <data name="coeff1Label.Size" type="System.Drawing.Size, System.Drawing">
-    <value>64, 13</value>
+    <value>13, 13</value>
   </data>
   <data name="coeff1Label.TabIndex" type="System.Int32, mscorlib">
     <value>14</value>
   </data>
   <data name="coeff1Label.Text" xml:space="preserve">
-    <value>1st Coeff.(d)</value>
+    <value>d</value>
+  </data>
+  <data name="coeff1Label.ToolTip" xml:space="preserve">
+    <value>1st coefficient (d): at x</value>
   </data>
   <data name="&gt;&gt;coeff1Label.Name" xml:space="preserve">
     <value>coeff1Label</value>
@@ -349,19 +373,19 @@
     <value>4</value>
   </data>
   <data name="button1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>235, 68</value>
+    <value>306, 15</value>
   </data>
   <data name="button1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>56, 23</value>
+    <value>72, 23</value>
   </data>
   <data name="button1.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
+    <value>7</value>
   </data>
   <data name="button1.Text" xml:space="preserve">
     <value>Reset</value>
   </data>
   <data name="button1.ToolTip" xml:space="preserve">
-    <value>Reset the energy calibration to the device calibration</value>
+    <value>Reset the energy calibration and the tract curvature κ to the device values</value>
   </data>
   <data name="&gt;&gt;button1.Name" xml:space="preserve">
     <value>button1</value>
@@ -376,13 +400,16 @@
     <value>5</value>
   </data>
   <data name="numericUpDown1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>89, 71</value>
+    <value>22, 43</value>
   </data>
   <data name="numericUpDown1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>140, 20</value>
+    <value>128, 20</value>
   </data>
   <data name="numericUpDown1.TabIndex" type="System.Int32, mscorlib">
-    <value>1</value>
+    <value>3</value>
+  </data>
+  <data name="numericUpDown1.ToolTip" xml:space="preserve">
+    <value>2nd coefficient (c): at x²</value>
   </data>
   <data name="&gt;&gt;numericUpDown1.Name" xml:space="preserve">
     <value>numericUpDown1</value>
@@ -397,13 +424,16 @@
     <value>6</value>
   </data>
   <data name="numericUpDown2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>89, 100</value>
+    <value>172, 43</value>
   </data>
   <data name="numericUpDown2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>140, 20</value>
+    <value>128, 20</value>
   </data>
   <data name="numericUpDown2.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
+    <value>4</value>
+  </data>
+  <data name="numericUpDown2.ToolTip" xml:space="preserve">
+    <value>1st coefficient (d): at x</value>
   </data>
   <data name="&gt;&gt;numericUpDown2.Name" xml:space="preserve">
     <value>numericUpDown2</value>
@@ -418,13 +448,16 @@
     <value>7</value>
   </data>
   <data name="numericUpDown3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>89, 129</value>
+    <value>22, 69</value>
   </data>
   <data name="numericUpDown3.Size" type="System.Drawing.Size, System.Drawing">
-    <value>140, 20</value>
+    <value>128, 20</value>
   </data>
   <data name="numericUpDown3.TabIndex" type="System.Int32, mscorlib">
     <value>5</value>
+  </data>
+  <data name="numericUpDown3.ToolTip" xml:space="preserve">
+    <value>Offset (e)</value>
   </data>
   <data name="&gt;&gt;numericUpDown3.Name" xml:space="preserve">
     <value>numericUpDown3</value>
@@ -439,13 +472,16 @@
     <value>8</value>
   </data>
   <data name="numericUpDown4.Location" type="System.Drawing.Point, System.Drawing">
-    <value>89, 13</value>
+    <value>22, 17</value>
   </data>
   <data name="numericUpDown4.Size" type="System.Drawing.Size, System.Drawing">
-    <value>140, 20</value>
+    <value>128, 20</value>
   </data>
   <data name="numericUpDown4.TabIndex" type="System.Int32, mscorlib">
     <value>1</value>
+  </data>
+  <data name="numericUpDown4.ToolTip" xml:space="preserve">
+    <value>4th coefficient (a): at x⁴</value>
   </data>
   <data name="&gt;&gt;numericUpDown4.Name" xml:space="preserve">
     <value>numericUpDown4</value>
@@ -460,13 +496,16 @@
     <value>9</value>
   </data>
   <data name="numericUpDown5.Location" type="System.Drawing.Point, System.Drawing">
-    <value>89, 42</value>
+    <value>172, 17</value>
   </data>
   <data name="numericUpDown5.Size" type="System.Drawing.Size, System.Drawing">
-    <value>140, 20</value>
+    <value>128, 20</value>
   </data>
   <data name="numericUpDown5.TabIndex" type="System.Int32, mscorlib">
-    <value>1</value>
+    <value>2</value>
+  </data>
+  <data name="numericUpDown5.ToolTip" xml:space="preserve">
+    <value>3rd coefficient (b): at x³</value>
   </data>
   <data name="&gt;&gt;numericUpDown5.Name" xml:space="preserve">
     <value>numericUpDown5</value>
@@ -484,19 +523,19 @@
     <value>True</value>
   </data>
   <data name="tractCurvatureLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>235, 103</value>
+    <value>158, 72</value>
   </data>
   <data name="tractCurvatureLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>52, 13</value>
+    <value>13, 13</value>
   </data>
   <data name="tractCurvatureLabel.TabIndex" type="System.Int32, mscorlib">
     <value>21</value>
   </data>
   <data name="tractCurvatureLabel.Text" xml:space="preserve">
-    <value>κ, 1/MeV</value>
+    <value>κ</value>
   </data>
   <data name="tractCurvatureLabel.ToolTip" xml:space="preserve">
-    <value>Tract curvature of the spectrum, 1/MeV: how the tract (PMT, ADC) departs from a straight light-to-channel line in the full-spectrum analysis, c = c0 + v·(1 + κ·L/1000). “Execute Calibration” fits it from the energy lines and the photon light curve of the crystal material — only when one of the lines is at 2000 keV or above, and with each line at the centre of mass of its peak; you can also type it. “Reset” returns the device value; “Save to Device Cfg.” writes it into the device.</value>
+    <value>Tract curvature of the spectrum, 1/MeV: how the tract (PMT, ADC) departs from a straight light-to-channel line in the full-spectrum analysis, c = c0 + v·(1 + κ·L/1000). “Execute Calibration” fits it from the energy lines and the photon light curve of the crystal material — only when one of the lines is at 2000 keV or above, and with each line at the centre of mass of its peak; you can also type it. “Reset” returns the device value; “Save to Device Cfg.” writes it into the device. A grey value is the device value, a black one is the spectrum’s own.</value>
   </data>
   <data name="&gt;&gt;tractCurvatureLabel.Name" xml:space="preserve">
     <value>tractCurvatureLabel</value>
@@ -511,16 +550,16 @@
     <value>11</value>
   </data>
   <data name="tractCurvatureTextBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>297, 100</value>
+    <value>172, 69</value>
   </data>
   <data name="tractCurvatureTextBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>98, 20</value>
+    <value>128, 20</value>
   </data>
   <data name="tractCurvatureTextBox.TabIndex" type="System.Int32, mscorlib">
-    <value>22</value>
+    <value>6</value>
   </data>
   <data name="tractCurvatureTextBox.ToolTip" xml:space="preserve">
-    <value>Tract curvature of the spectrum, 1/MeV: how the tract (PMT, ADC) departs from a straight light-to-channel line in the full-spectrum analysis, c = c0 + v·(1 + κ·L/1000). “Execute Calibration” fits it from the energy lines and the photon light curve of the crystal material — only when one of the lines is at 2000 keV or above, and with each line at the centre of mass of its peak; you can also type it. “Reset” returns the device value; “Save to Device Cfg.” writes it into the device.</value>
+    <value>Tract curvature of the spectrum, 1/MeV: how the tract (PMT, ADC) departs from a straight light-to-channel line in the full-spectrum analysis, c = c0 + v·(1 + κ·L/1000). “Execute Calibration” fits it from the energy lines and the photon light curve of the crystal material — only when one of the lines is at 2000 keV or above, and with each line at the centre of mass of its peak; you can also type it. “Reset” returns the device value; “Save to Device Cfg.” writes it into the device. A grey value is the device value, a black one is the spectrum’s own.</value>
   </data>
   <data name="&gt;&gt;tractCurvatureTextBox.Name" xml:space="preserve">
     <value>tractCurvatureTextBox</value>
@@ -534,44 +573,17 @@
   <data name="&gt;&gt;tractCurvatureTextBox.ZOrder" xml:space="preserve">
     <value>12</value>
   </data>
-  <data name="tractCurvatureSourceLabel.AutoEllipsis" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="tractCurvatureSourceLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>235, 126</value>
-  </data>
-  <data name="tractCurvatureSourceLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>166, 22</value>
-  </data>
-  <data name="tractCurvatureSourceLabel.TabIndex" type="System.Int32, mscorlib">
-    <value>23</value>
-  </data>
-  <data name="tractCurvatureSourceLabel.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
-    <value>MiddleLeft</value>
-  </data>
-  <data name="&gt;&gt;tractCurvatureSourceLabel.Name" xml:space="preserve">
-    <value>tractCurvatureSourceLabel</value>
-  </data>
-  <data name="&gt;&gt;tractCurvatureSourceLabel.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;tractCurvatureSourceLabel.Parent" xml:space="preserve">
-    <value>groupBox1</value>
-  </data>
-  <data name="&gt;&gt;tractCurvatureSourceLabel.ZOrder" xml:space="preserve">
-    <value>13</value>
-  </data>
   <data name="panel1.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
   </data>
   <data name="panel1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>14, 241</value>
+    <value>14, 36</value>
   </data>
   <data name="panel1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>405, 206</value>
+    <value>405, 212</value>
   </data>
   <data name="panel1.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
+    <value>2</value>
   </data>
   <data name="&gt;&gt;panel1.Name" xml:space="preserve">
     <value>panel1</value>
@@ -585,34 +597,34 @@
   <data name="&gt;&gt;panel1.ZOrder" xml:space="preserve">
     <value>3</value>
   </data>
-  <data name="viewEnergyGraphButton.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+  <data name="viewCalibrationButton.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Right</value>
   </data>
-  <data name="viewEnergyGraphButton.Location" type="System.Drawing.Point, System.Drawing">
-    <value>320, 123</value>
+  <data name="viewCalibrationButton.Location" type="System.Drawing.Point, System.Drawing">
+    <value>320, 75</value>
   </data>
-  <data name="viewEnergyGraphButton.Size" type="System.Drawing.Size, System.Drawing">
+  <data name="viewCalibrationButton.Size" type="System.Drawing.Size, System.Drawing">
     <value>76, 23</value>
   </data>
-  <data name="viewEnergyGraphButton.TabIndex" type="System.Int32, mscorlib">
-    <value>9</value>
+  <data name="viewCalibrationButton.TabIndex" type="System.Int32, mscorlib">
+    <value>5</value>
   </data>
-  <data name="viewEnergyGraphButton.Text" xml:space="preserve">
+  <data name="viewCalibrationButton.Text" xml:space="preserve">
     <value>Graph</value>
   </data>
-  <data name="viewEnergyGraphButton.ToolTip" xml:space="preserve">
-    <value>Show the energy calibration and its lines in graphic mode</value>
+  <data name="viewCalibrationButton.ToolTip" xml:space="preserve">
+    <value>Show the calibration graphs: the energy calibration with its lines, the FWHM curve with its rows and the peak function with the comparison of the peak shapes; switch between them in the graph window</value>
   </data>
-  <data name="&gt;&gt;viewEnergyGraphButton.Name" xml:space="preserve">
-    <value>viewEnergyGraphButton</value>
+  <data name="&gt;&gt;viewCalibrationButton.Name" xml:space="preserve">
+    <value>viewCalibrationButton</value>
   </data>
-  <data name="&gt;&gt;viewEnergyGraphButton.Type" xml:space="preserve">
+  <data name="&gt;&gt;viewCalibrationButton.Type" xml:space="preserve">
     <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;viewEnergyGraphButton.Parent" xml:space="preserve">
+  <data name="&gt;&gt;viewCalibrationButton.Parent" xml:space="preserve">
     <value>panel1</value>
   </data>
-  <data name="&gt;&gt;viewEnergyGraphButton.ZOrder" xml:space="preserve">
+  <data name="&gt;&gt;viewCalibrationButton.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
   <data name="getAllPeaksButton.Location" type="System.Drawing.Point, System.Drawing">
@@ -643,19 +655,19 @@
     <value>1</value>
   </data>
   <data name="checkBox2.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Right</value>
+    <value>Top, Left</value>
   </data>
   <data name="checkBox2.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="checkBox2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>320, 34</value>
+    <value>308, 70</value>
   </data>
   <data name="checkBox2.Size" type="System.Drawing.Size, System.Drawing">
     <value>65, 17</value>
   </data>
   <data name="checkBox2.TabIndex" type="System.Int32, mscorlib">
-    <value>5</value>
+    <value>9</value>
   </data>
   <data name="checkBox2.Text" xml:space="preserve">
     <value>Weights</value>
@@ -670,16 +682,16 @@
     <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;checkBox2.Parent" xml:space="preserve">
-    <value>panel1</value>
+    <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;checkBox2.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>15</value>
   </data>
   <data name="label37.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="label37.Location" type="System.Drawing.Point, System.Drawing">
-    <value>275, 8</value>
+    <value>306, 46</value>
   </data>
   <data name="label37.Size" type="System.Drawing.Size, System.Drawing">
     <value>50, 13</value>
@@ -697,19 +709,19 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;label37.Parent" xml:space="preserve">
-    <value>panel1</value>
+    <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;label37.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>13</value>
   </data>
   <data name="numericUpDown6.Location" type="System.Drawing.Point, System.Drawing">
-    <value>335, 5</value>
+    <value>358, 43</value>
   </data>
   <data name="numericUpDown6.Size" type="System.Drawing.Size, System.Drawing">
-    <value>30, 20</value>
+    <value>32, 20</value>
   </data>
   <data name="numericUpDown6.TabIndex" type="System.Int32, mscorlib">
-    <value>3</value>
+    <value>8</value>
   </data>
   <data name="numericUpDown6.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
     <value>Right</value>
@@ -724,22 +736,28 @@
     <value>BecquerelMonitor.InvariantNumericUpDown, BecquerelMonitor, Version=2026.6.19.1, Culture=neutral, PublicKeyToken=null</value>
   </data>
   <data name="&gt;&gt;numericUpDown6.Parent" xml:space="preserve">
-    <value>panel1</value>
+    <value>groupBox1</value>
   </data>
   <data name="&gt;&gt;numericUpDown6.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>14</value>
   </data>
   <data name="label36.AutoSize" type="System.Boolean, mscorlib">
+    <value>False</value>
+  </data>
+  <data name="label36.AutoEllipsis" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
+  <data name="label36.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Left, Right</value>
+  </data>
   <data name="label36.Location" type="System.Drawing.Point, System.Drawing">
-    <value>9, 186</value>
+    <value>9, 183</value>
   </data>
   <data name="label36.Size" type="System.Drawing.Size, System.Drawing">
-    <value>192, 13</value>
+    <value>387, 26</value>
   </data>
   <data name="label36.TabIndex" type="System.Int32, mscorlib">
-    <value>10</value>
+    <value>9</value>
   </data>
   <data name="label36.Text" xml:space="preserve">
     <value>Modify values and push execution button.</value>
@@ -754,7 +772,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;label36.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>2</value>
   </data>
   <data name="cancelAddPeakButton.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Right</value>
@@ -763,13 +781,13 @@
     <value>False</value>
   </data>
   <data name="cancelAddPeakButton.Location" type="System.Drawing.Point, System.Drawing">
-    <value>320, 94</value>
+    <value>320, 145</value>
   </data>
   <data name="cancelAddPeakButton.Size" type="System.Drawing.Size, System.Drawing">
     <value>76, 23</value>
   </data>
   <data name="cancelAddPeakButton.TabIndex" type="System.Int32, mscorlib">
-    <value>8</value>
+    <value>7</value>
   </data>
   <data name="cancelAddPeakButton.Text" xml:space="preserve">
     <value>Cancel</value>
@@ -784,19 +802,19 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;cancelAddPeakButton.ZOrder" xml:space="preserve">
-    <value>6</value>
+    <value>3</value>
   </data>
   <data name="executeCalibrationButton.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Right</value>
   </data>
   <data name="executeCalibrationButton.Location" type="System.Drawing.Point, System.Drawing">
-    <value>320, 54</value>
+    <value>320, 34</value>
   </data>
   <data name="executeCalibrationButton.Size" type="System.Drawing.Size, System.Drawing">
     <value>76, 35</value>
   </data>
   <data name="executeCalibrationButton.TabIndex" type="System.Int32, mscorlib">
-    <value>6</value>
+    <value>4</value>
   </data>
   <data name="executeCalibrationButton.Text" xml:space="preserve">
     <value>Execute Calibration</value>
@@ -814,7 +832,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;executeCalibrationButton.ZOrder" xml:space="preserve">
-    <value>7</value>
+    <value>4</value>
   </data>
   <data name="CollectedPeaksTable.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
@@ -829,7 +847,7 @@
     <value>299, 146</value>
   </data>
   <data name="CollectedPeaksTable.TabIndex" type="System.Int32, mscorlib">
-    <value>4</value>
+    <value>3</value>
   </data>
   <data name="CollectedPeaksTable.Text" xml:space="preserve">
     <value>table1</value>
@@ -844,7 +862,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;CollectedPeaksTable.ZOrder" xml:space="preserve">
-    <value>8</value>
+    <value>5</value>
   </data>
   <data name="addPeakButton.Location" type="System.Drawing.Point, System.Drawing">
     <value>11, 5</value>
@@ -871,7 +889,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;addPeakButton.ZOrder" xml:space="preserve">
-    <value>9</value>
+    <value>6</value>
   </data>
   <data name="removePeakButton.Location" type="System.Drawing.Point, System.Drawing">
     <value>115, 5</value>
@@ -895,16 +913,16 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;removePeakButton.ZOrder" xml:space="preserve">
-    <value>10</value>
+    <value>7</value>
   </data>
   <data name="calibrationProcessingPanel.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
   </data>
   <data name="calibrationProcessingPanel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>14, 452</value>
+    <value>12, 354</value>
   </data>
   <data name="calibrationProcessingPanel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>405, 176</value>
+    <value>407, 72</value>
   </data>
   <data name="calibrationProcessingPanel.TabIndex" type="System.Int32, mscorlib">
     <value>4</value>
@@ -921,6 +939,33 @@
   <data name="&gt;&gt;calibrationProcessingPanel.ZOrder" xml:space="preserve">
     <value>4</value>
   </data>
+  <data name="fwhmGroupBox.Dock" type="System.Windows.Forms.DockStyle, System.Windows.Forms">
+    <value>Fill</value>
+  </data>
+  <data name="fwhmGroupBox.Location" type="System.Drawing.Point, System.Drawing">
+    <value>0, 0</value>
+  </data>
+  <data name="fwhmGroupBox.Size" type="System.Drawing.Size, System.Drawing">
+    <value>407, 72</value>
+  </data>
+  <data name="fwhmGroupBox.TabIndex" type="System.Int32, mscorlib">
+    <value>0</value>
+  </data>
+  <data name="fwhmGroupBox.Text" xml:space="preserve">
+    <value>FWHM calibration curve</value>
+  </data>
+  <data name="&gt;&gt;fwhmGroupBox.Name" xml:space="preserve">
+    <value>fwhmGroupBox</value>
+  </data>
+  <data name="&gt;&gt;fwhmGroupBox.Type" xml:space="preserve">
+    <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;fwhmGroupBox.Parent" xml:space="preserve">
+    <value>calibrationProcessingPanel</value>
+  </data>
+  <data name="&gt;&gt;fwhmGroupBox.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
   <data name="label2.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
@@ -936,6 +981,9 @@
   <data name="label2.Text" xml:space="preserve">
     <value>FWHM calibration curve:</value>
   </data>
+  <data name="label2.Visible" type="System.Boolean, mscorlib">
+    <value>False</value>
+  </data>
   <data name="&gt;&gt;label2.Name" xml:space="preserve">
     <value>label2</value>
   </data>
@@ -943,13 +991,13 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;label2.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
+    <value>fwhmGroupBox</value>
   </data>
   <data name="&gt;&gt;label2.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
   <data name="selectCurveComboBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>8, 23</value>
+    <value>8, 17</value>
   </data>
   <data name="selectCurveComboBox.Size" type="System.Drawing.Size, System.Drawing">
     <value>180, 21</value>
@@ -976,46 +1024,16 @@
     <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;selectCurveComboBox.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
+    <value>fwhmGroupBox</value>
   </data>
   <data name="&gt;&gt;selectCurveComboBox.ZOrder" xml:space="preserve">
     <value>1</value>
-  </data>
-  <data name="viewCalibrationButton.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Right</value>
-  </data>
-  <data name="viewCalibrationButton.Location" type="System.Drawing.Point, System.Drawing">
-    <value>300, 22</value>
-  </data>
-  <data name="viewCalibrationButton.Size" type="System.Drawing.Size, System.Drawing">
-    <value>97, 23</value>
-  </data>
-  <data name="viewCalibrationButton.TabIndex" type="System.Int32, mscorlib">
-    <value>2</value>
-  </data>
-  <data name="viewCalibrationButton.Text" xml:space="preserve">
-    <value>View ...</value>
-  </data>
-  <data name="viewCalibrationButton.ToolTip" xml:space="preserve">
-    <value>Show the FWHM curve and its rows in graphic mode</value>
-  </data>
-  <data name="&gt;&gt;viewCalibrationButton.Name" xml:space="preserve">
-    <value>viewCalibrationButton</value>
-  </data>
-  <data name="&gt;&gt;viewCalibrationButton.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;viewCalibrationButton.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;viewCalibrationButton.ZOrder" xml:space="preserve">
-    <value>2</value>
   </data>
   <data name="label3.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="label3.Location" type="System.Drawing.Point, System.Drawing">
-    <value>8, 53</value>
+    <value>196, 21</value>
   </data>
   <data name="label3.Size" type="System.Drawing.Size, System.Drawing">
     <value>47, 13</value>
@@ -1033,19 +1051,19 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;label3.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
+    <value>fwhmGroupBox</value>
   </data>
   <data name="&gt;&gt;label3.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>2</value>
   </data>
   <data name="curveFormulaLabel.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
   </data>
   <data name="curveFormulaLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>65, 53</value>
+    <value>245, 21</value>
   </data>
   <data name="curveFormulaLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>330, 32</value>
+    <value>158, 13</value>
   </data>
   <data name="curveFormulaLabel.TabIndex" type="System.Int32, mscorlib">
     <value>4</value>
@@ -1060,16 +1078,16 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;curveFormulaLabel.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
+    <value>fwhmGroupBox</value>
   </data>
   <data name="&gt;&gt;curveFormulaLabel.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>3</value>
   </data>
   <data name="minPeaksRequirementLabel.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="minPeaksRequirementLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>8, 87</value>
+    <value>206, 47</value>
   </data>
   <data name="minPeaksRequirementLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>150, 13</value>
@@ -1078,7 +1096,7 @@
     <value>5</value>
   </data>
   <data name="minPeaksRequirementLabel.Text" xml:space="preserve">
-    <value>Minimum peaks requirement: 3</value>
+    <value>Min. peaks: 3</value>
   </data>
   <data name="minPeaksRequirementLabel.ToolTip" xml:space="preserve">
     <value>Minimum peaks required for use this curve for FWHM calibration</value>
@@ -1090,43 +1108,40 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;minPeaksRequirementLabel.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
+    <value>fwhmGroupBox</value>
   </data>
   <data name="&gt;&gt;minPeaksRequirementLabel.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>4</value>
   </data>
-  <data name="peakShapeInfoGroupBox.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+  <data name="peakShapeInfoPanel.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
   </data>
-  <data name="peakShapeInfoGroupBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>8, 106</value>
+  <data name="peakShapeInfoPanel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>3, 64</value>
   </data>
-  <data name="peakShapeInfoGroupBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>389, 64</value>
+  <data name="peakShapeInfoPanel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>398, 22</value>
   </data>
-  <data name="peakShapeInfoGroupBox.TabIndex" type="System.Int32, mscorlib">
-    <value>6</value>
+  <data name="peakShapeInfoPanel.TabIndex" type="System.Int32, mscorlib">
+    <value>5</value>
   </data>
-  <data name="peakShapeInfoGroupBox.Text" xml:space="preserve">
-    <value>Selected peak function</value>
+  <data name="&gt;&gt;peakShapeInfoPanel.Name" xml:space="preserve">
+    <value>peakShapeInfoPanel</value>
   </data>
-  <data name="&gt;&gt;peakShapeInfoGroupBox.Name" xml:space="preserve">
-    <value>peakShapeInfoGroupBox</value>
+  <data name="&gt;&gt;peakShapeInfoPanel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
-  <data name="&gt;&gt;peakShapeInfoGroupBox.Type" xml:space="preserve">
-    <value>System.Windows.Forms.GroupBox, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  <data name="&gt;&gt;peakShapeInfoPanel.Parent" xml:space="preserve">
+    <value>fwhmGroupBox</value>
   </data>
-  <data name="&gt;&gt;peakShapeInfoGroupBox.Parent" xml:space="preserve">
-    <value>calibrationProcessingPanel</value>
-  </data>
-  <data name="&gt;&gt;peakShapeInfoGroupBox.ZOrder" xml:space="preserve">
-    <value>6</value>
+  <data name="&gt;&gt;peakShapeInfoPanel.ZOrder" xml:space="preserve">
+    <value>7</value>
   </data>
   <data name="viewPeakShapeButton.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
-    <value>Top, Right</value>
+    <value>Top, Left</value>
   </data>
   <data name="viewPeakShapeButton.Location" type="System.Drawing.Point, System.Drawing">
-    <value>306, 16</value>
+    <value>186, 3</value>
   </data>
   <data name="viewPeakShapeButton.Size" type="System.Drawing.Size, System.Drawing">
     <value>75, 23</value>
@@ -1137,6 +1152,12 @@
   <data name="viewPeakShapeButton.Text" xml:space="preserve">
     <value>View</value>
   </data>
+  <data name="viewPeakShapeButton.ToolTip" xml:space="preserve">
+    <value>Show the selected peak function</value>
+  </data>
+  <data name="viewPeakShapeButton.Visible" type="System.Boolean, mscorlib">
+    <value>False</value>
+  </data>
   <data name="&gt;&gt;viewPeakShapeButton.Name" xml:space="preserve">
     <value>viewPeakShapeButton</value>
   </data>
@@ -1144,7 +1165,7 @@
     <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;viewPeakShapeButton.Parent" xml:space="preserve">
-    <value>peakShapeInfoGroupBox</value>
+    <value>peakShapeInfoPanel</value>
   </data>
   <data name="&gt;&gt;viewPeakShapeButton.ZOrder" xml:space="preserve">
     <value>0</value>
@@ -1153,7 +1174,7 @@
     <value>True</value>
   </data>
   <data name="peakShapeSecondParameterValueLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>250, 42</value>
+    <value>300, 5</value>
   </data>
   <data name="peakShapeSecondParameterValueLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>22, 13</value>
@@ -1171,7 +1192,7 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;peakShapeSecondParameterValueLabel.Parent" xml:space="preserve">
-    <value>peakShapeInfoGroupBox</value>
+    <value>peakShapeInfoPanel</value>
   </data>
   <data name="&gt;&gt;peakShapeSecondParameterValueLabel.ZOrder" xml:space="preserve">
     <value>1</value>
@@ -1180,7 +1201,7 @@
     <value>True</value>
   </data>
   <data name="peakShapeFirstParameterValueLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>96, 42</value>
+    <value>93, 5</value>
   </data>
   <data name="peakShapeFirstParameterValueLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>22, 13</value>
@@ -1198,7 +1219,7 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;peakShapeFirstParameterValueLabel.Parent" xml:space="preserve">
-    <value>peakShapeInfoGroupBox</value>
+    <value>peakShapeInfoPanel</value>
   </data>
   <data name="&gt;&gt;peakShapeFirstParameterValueLabel.ZOrder" xml:space="preserve">
     <value>2</value>
@@ -1207,7 +1228,7 @@
     <value>True</value>
   </data>
   <data name="peakShapeSecondParameterLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>155, 42</value>
+    <value>203, 5</value>
   </data>
   <data name="peakShapeSecondParameterLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>60, 13</value>
@@ -1225,7 +1246,7 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;peakShapeSecondParameterLabel.Parent" xml:space="preserve">
-    <value>peakShapeInfoGroupBox</value>
+    <value>peakShapeInfoPanel</value>
   </data>
   <data name="&gt;&gt;peakShapeSecondParameterLabel.ZOrder" xml:space="preserve">
     <value>3</value>
@@ -1234,7 +1255,7 @@
     <value>True</value>
   </data>
   <data name="peakShapeFirstParameterLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>8, 42</value>
+    <value>5, 5</value>
   </data>
   <data name="peakShapeFirstParameterLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>53, 13</value>
@@ -1252,7 +1273,7 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;peakShapeFirstParameterLabel.Parent" xml:space="preserve">
-    <value>peakShapeInfoGroupBox</value>
+    <value>peakShapeInfoPanel</value>
   </data>
   <data name="&gt;&gt;peakShapeFirstParameterLabel.ZOrder" xml:space="preserve">
     <value>4</value>
@@ -1261,7 +1282,7 @@
     <value>True</value>
   </data>
   <data name="peakShapeTypeValueLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>72, 20</value>
+    <value>81, 47</value>
   </data>
   <data name="peakShapeTypeValueLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>51, 13</value>
@@ -1279,25 +1300,25 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;peakShapeTypeValueLabel.Parent" xml:space="preserve">
-    <value>peakShapeInfoGroupBox</value>
+    <value>fwhmGroupBox</value>
   </data>
   <data name="&gt;&gt;peakShapeTypeValueLabel.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>6</value>
   </data>
   <data name="peakShapeTypeLabel.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="peakShapeTypeLabel.Location" type="System.Drawing.Point, System.Drawing">
-    <value>8, 20</value>
+    <value>8, 47</value>
   </data>
   <data name="peakShapeTypeLabel.Size" type="System.Drawing.Size, System.Drawing">
-    <value>55, 13</value>
+    <value>75, 13</value>
   </data>
   <data name="peakShapeTypeLabel.TabIndex" type="System.Int32, mscorlib">
     <value>0</value>
   </data>
   <data name="peakShapeTypeLabel.Text" xml:space="preserve">
-    <value>Peak type</value>
+    <value>Peak function:</value>
   </data>
   <data name="&gt;&gt;peakShapeTypeLabel.Name" xml:space="preserve">
     <value>peakShapeTypeLabel</value>
@@ -1306,22 +1327,22 @@
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;peakShapeTypeLabel.Parent" xml:space="preserve">
-    <value>peakShapeInfoGroupBox</value>
+    <value>fwhmGroupBox</value>
   </data>
   <data name="&gt;&gt;peakShapeTypeLabel.ZOrder" xml:space="preserve">
-    <value>6</value>
+    <value>5</value>
   </data>
   <data name="saveToDeviceCfgButton.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Right</value>
   </data>
   <data name="saveToDeviceCfgButton.Location" type="System.Drawing.Point, System.Drawing">
-    <value>292, 637</value>
+    <value>320, 104</value>
   </data>
   <data name="saveToDeviceCfgButton.Size" type="System.Drawing.Size, System.Drawing">
-    <value>124, 23</value>
+    <value>76, 35</value>
   </data>
   <data name="saveToDeviceCfgButton.TabIndex" type="System.Int32, mscorlib">
-    <value>7</value>
+    <value>6</value>
   </data>
   <data name="saveToDeviceCfgButton.Text" xml:space="preserve">
     <value>Save to Device Cfg.</value>
@@ -1336,10 +1357,10 @@
     <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;saveToDeviceCfgButton.Parent" xml:space="preserve">
-    <value>$this</value>
+    <value>panel1</value>
   </data>
   <data name="&gt;&gt;saveToDeviceCfgButton.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>8</value>
   </data>
   <data name="positionColumn.Text" xml:space="preserve">
     <value>#</value>
@@ -1438,10 +1459,10 @@
     <value>True</value>
   </data>
   <data name="$this.AutoScrollMinSize" type="System.Drawing.Size, System.Drawing">
-    <value>420, 662</value>
+    <value>420, 428</value>
   </data>
   <data name="$this.ClientSize" type="System.Drawing.Size, System.Drawing">
-    <value>432, 664</value>
+    <value>432, 430</value>
   </data>
   <data name="$this.Font" type="System.Drawing.Font, System.Drawing">
     <value>Microsoft Sans Serif, 8pt</value>
@@ -5726,5 +5747,29 @@
   </data>
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
     <value>BecquerelMonitor.ToolWindow, BecquerelMonitor, Version=2026.6.19.1, Culture=neutral, PublicKeyToken=null</value>
+  </data>
+  <data name="PeakShapePreviewTitle" xml:space="preserve">
+    <value>Selected peak function</value>
+  </data>
+  <data name="SummaryPartlyDone" xml:space="preserve">
+    <value>Calibration partly done.</value>
+  </data>
+  <data name="SummaryNotDone" xml:space="preserve">
+    <value>Calibration not done.</value>
+  </data>
+  <data name="SummaryRefused" xml:space="preserve">
+    <value>refused</value>
+  </data>
+  <data name="SummaryMseShort" xml:space="preserve">
+    <value>MSE</value>
+  </data>
+  <data name="SummaryPeakShape" xml:space="preserve">
+    <value>peak shape: {0}</value>
+  </data>
+  <data name="PickupNextPeak" xml:space="preserve">
+    <value>Drag across the peaks on the spectrum one after another; “Cancel” ends.</value>
+  </data>
+  <data name="PeakShapeComparisonPending" xml:space="preserve">
+    <value>The comparison of the peak shapes appears here after “Execute Calibration”, when every row of the table has its peak shape measured (rows selected on the spectrum).</value>
   </data>
 </root>

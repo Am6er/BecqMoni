@@ -77,6 +77,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool PileUp = true;
 
         /// <summary>
+        /// (`AMBER269`; решение Amber 02.11.2026 вопросником, дословно: «Да, настройкой FSA с
+        /// умолчанием 40 (Рекомендую)»; `AMBER274` — умолчание поставки снято до нуля решением Amber
+        /// 03.11.2026 вопросником, дословно: «Правило порога + откат с шириной (Рекомендую)», числа —
+        /// у <see cref="FsaBand.ShippedFitLowerBoundKev"/>) Нижняя граница разбора, кэВ
+        /// (<see cref="FsaAnalyzer.FitLowerBoundKev"/>); нуль — пол полосы фита по правилу порога.
+        /// В приложении — с общей настройки (<c>FsaCalculationSettings.FitLowerBoundKev</c>); у
+        /// копии конфигурации спектра такого поля нет, и снимок с неё (<see cref="FromConfig"/>,
+        /// пробы) несёт умолчание поставки — то же, что у анализатора.
+        /// </summary>
+        public double FitLowerBoundKev = FsaBand.ShippedFitLowerBoundKev;
+
+        /// <summary>
         /// Снимок с конфигурации поиска пиков спектра. <c>null</c> — умолчания
         /// (состав по пикам, равновесие и все пять компонентов включены), ровно
         /// то, что читалось до `A145`, когда конфигурации у спектра не было.
@@ -153,6 +165,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             analyzer.BackscatterWithMatrix = false;
             analyzer.EscapeAndAnnihilation = this.EscapeAndAnnihilation;
             analyzer.PileUp = this.PileUp;
+            // (`AMBER269`) нижняя граница разбора — настройкой окна FSA
+            analyzer.FitLowerBoundKev = this.FitLowerBoundKev > 0.0 ? this.FitLowerBoundKev : 0.0;
         }
 
         /// <summary>
@@ -185,7 +199,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// Часть отпечатка разбора: семь букв, по одной на настройку, в
+        /// Часть отпечатка разбора: семь букв, по одной на настройку, и нижняя граница разбора, в
         /// постоянном порядке. Любое переключение меняет строку; две разные
         /// раскладки никогда не дают одну строку.
         /// </summary>
@@ -201,6 +215,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 stamp.Append('|').Append(this.Backscatter ? "bs" : "-bs");
                 stamp.Append('|').Append(this.EscapeAndAnnihilation ? "esc" : "-esc");
                 stamp.Append('|').Append(this.PileUp ? "pu" : "-pu");
+                // (`AMBER269`) нижняя граница разбора — граница меняет счёт
+                stamp.Append("|lo").Append((this.FitLowerBoundKev > 0.0 ? this.FitLowerBoundKev : 0.0)
+                                            .ToString("R", System.Globalization.CultureInfo.InvariantCulture));
                 return stamp.ToString();
             }
         }

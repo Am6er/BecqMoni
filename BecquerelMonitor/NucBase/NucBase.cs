@@ -109,6 +109,20 @@ namespace BecquerelMonitor.NucBase
 
         void ResultDataGridView_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
+            // (`AMBER274`, `f8diag`) Выход-предел (`LT`/`LE` поставки) — «< число»: в ячейке
+            // остаётся само число (сортировка, импорт), знак — только при показе.
+            if (e.ColumnIndex == IntencityColumnIdx && e.RowIndex >= 0 && e.Value is double)
+            {
+                DecayRad source = this.ResultDataGridView.Rows[e.RowIndex].Tag as DecayRad;
+                if (source != null && source.IntensityIsLimit)
+                {
+                    e.Value = IntensityLimitCaption((double)e.Value);
+                    e.FormattingApplied = true;
+                }
+
+                return;
+            }
+
             string cell = e.ColumnIndex == HalfLifeColumnIdx ? e.Value as string : null;
             if (cell == null)
             {
@@ -117,6 +131,16 @@ namespace BecquerelMonitor.NucBase
 
             e.Value = HalfLifeCellCaption(cell);
             e.FormattingApplied = true;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, полоса `f8diag` 02.11.2026) Показ выхода-предела: «&lt; 0.075». Знак —
+        /// тот же <see cref="NucBaseFramework.UpperLimitMark"/>, что у периода-предела карточки;
+        /// число — инвариантной культурой, как у прочих ячеек выхода. Открыт ради пробы.
+        /// </summary>
+        public static string IntensityLimitCaption(double value)
+        {
+            return NucBaseFramework.UpperLimitMark + value.ToString(CultureInfo.InvariantCulture);
         }
 
         /// <summary>
@@ -866,6 +890,14 @@ namespace BecquerelMonitor.NucBase
             // всех линий рентгена, когда искали именно рентген элемента.
             bool isGamma = decrad.DecayLine == "G"
                            || decrad.DecayLine == NucBaseFramework.FluorescenceLine;
+            // ⛔ (`AMBER274`, полоса `f8diag` 02.11.2026; решение Amber «Откатить и отсеивать по
+            // признаку») ВЫХОД-ПРЕДЕЛ (`LT`/`LE`) — НЕ ВЫХОД: строка показывается («< 0.075»,
+            // серым), но к импорту НЕ помечается. Импортированная, она легла бы в библиотеку
+            // выходом, и активность по этой линии вышла бы занижена во столько раз, во сколько
+            // настоящий выход ниже предела, — без единого слова. Взять её человек вправе, как и
+            // лишнюю половину Kβ (`D33`), но только нарочно; номер строки (`DbRow`, `AMBER281`) у
+            // неё пишется так же, как у прочих, и сверка с базой идёт тем же путём.
+            bool checkedByDefault = isGamma && !decrad.IntensityIsLimit;
             // ⛔ Kβ лежит в базе ДВАЖДЫ — итогом `KB` и разложением `KpB1`+`KpB2`
             // (`D33`). У лишней при сложении половины в колонке серии стоит знак
             // суммы: складывать её с соседями значит считать Kβ дважды, на
@@ -885,7 +917,10 @@ namespace BecquerelMonitor.NucBase
             // точке разом.
             string hl = decrad.HalfLife.ToString(CultureInfo.InvariantCulture)
                         + "(" + decrad.HalfLifeUnit + ")";
-            int index = this.ResultDataGridView.Rows.Add(isGamma, decrad.Name, decrad.DecayLine, decrad.Energy, decrad.Intensity, series, decrad.DecayTypeString, hl);
+            int index = this.ResultDataGridView.Rows.Add(checkedByDefault, decrad.Name, decrad.DecayLine, decrad.Energy, decrad.Intensity, series, decrad.DecayTypeString, hl);
+            // (`AMBER281`) Строка базы, из которой взята строка таблицы: импорт пишет её
+            // номер (`dr_pk`, у рентгена элемента — элемент и серию) в линию библиотеки.
+            this.ResultDataGridView.Rows[index].Tag = decrad;
             if (decrad.Redundant)
             {
                 DataGridViewRow added = this.ResultDataGridView.Rows[index];
@@ -897,6 +932,11 @@ namespace BecquerelMonitor.NucBase
                     ? Resources.NucBase_LSeriesRedundantHint
                     : Resources.NucBase_KSeriesRedundantHint);
                 added.DefaultCellStyle.ForeColor = System.Drawing.SystemColors.GrayText;
+            }
+            else if (decrad.IntensityIsLimit)
+            {
+                // (`f8diag`) Предел — серым, как лишняя строка серии: не выход.
+                this.ResultDataGridView.Rows[index].DefaultCellStyle.ForeColor = System.Drawing.SystemColors.GrayText;
             }
         }
 
@@ -1320,9 +1360,17 @@ namespace BecquerelMonitor.NucBase
                     NuclideDefinition existingDef = defManager.NuclideDefinitions.Concat(plan.Created).FirstOrDefault(
                         def => def.Energy == energy
                                && LineIdentity(def.NuclideName, def.IsElementXray) == rowIdentity);
+                    // (`AMBER281`, 02.11.2026) Номер строки базы — в линию: решение Amber
+                    // «в изотоп добавляй строку из базы (индекс) чтобы быть точно уверенным в
+                    // будущем». У рентгена элемента строки распада нет — ссылка «элемент:серия».
+                    DecayRad source = row.Tag as DecayRad;
+                    long dbRow = !fluorescence && source != null ? source.DrPk : 0L;
+                    string dbXray = fluorescence && source != null
+                        ? NuclideDbLink.XrayReference(name, source.XrayType)
+                        : "";
                     if (existingDef != null && checkBoxOverwriteDef.Checked)
                     {
-                        plan.Overwrite(existingDef, formattedName, intencity, halfLifeYears, rowChain);
+                        plan.Overwrite(existingDef, formattedName, intencity, halfLifeYears, rowChain, dbRow, dbXray);
                     }
 
                     if (existingDef == null)
@@ -1335,7 +1383,9 @@ namespace BecquerelMonitor.NucBase
                             Intencity = intencity,
                             HalfLife = halfLifeYears,
                             Visible = true,
-                            NuclideColor = new SerializableColor(System.Drawing.Color.Green)
+                            NuclideColor = new SerializableColor(System.Drawing.Color.Green),
+                            DbRow = dbRow,
+                            DbXray = dbXray
                         });
                     }
                 }
@@ -1372,12 +1422,14 @@ namespace BecquerelMonitor.NucBase
             /// правится сразу — в библиотеку она ляжет уже такой; линия
             /// библиотеки — при <see cref="Apply"/>.
             /// </summary>
-            public void Overwrite(NuclideDefinition target, string name, double intencity, double halfLife, string chain)
+            public void Overwrite(NuclideDefinition target, string name, double intencity, double halfLife, string chain,
+                                  long dbRow, string dbXray)
             {
                 this.UpdatedCount++;
                 ImportOverwrite change = new ImportOverwrite
                 {
-                    Target = target, Name = name, Intencity = intencity, HalfLife = halfLife, Chain = chain
+                    Target = target, Name = name, Intencity = intencity, HalfLife = halfLife, Chain = chain,
+                    DbRow = dbRow, DbXray = dbXray
                 };
                 if (this.Created.Any(created => ReferenceEquals(created, target)))
                 {
@@ -1417,10 +1469,15 @@ namespace BecquerelMonitor.NucBase
             public double Intencity;
             public double HalfLife;
             public string Chain;
+            /// <summary>(`AMBER281`) Номер строки базы и ссылка рентгена элемента — тоже переписываются.</summary>
+            public long DbRow;
+            public string DbXray;
             string oldName;
             double oldIntencity;
             double oldHalfLife;
             string oldChain;
+            long oldDbRow;
+            string oldDbXray;
 
             public void Remember()
             {
@@ -1428,6 +1485,8 @@ namespace BecquerelMonitor.NucBase
                 this.oldIntencity = this.Target.Intencity;
                 this.oldHalfLife = this.Target.HalfLife;
                 this.oldChain = this.Target.Chain;
+                this.oldDbRow = this.Target.DbRow;
+                this.oldDbXray = this.Target.DbXray;
             }
 
             public void Put()
@@ -1436,6 +1495,8 @@ namespace BecquerelMonitor.NucBase
                 this.Target.Intencity = this.Intencity;
                 this.Target.HalfLife = this.HalfLife;
                 this.Target.Chain = this.Chain;
+                this.Target.DbRow = this.DbRow;
+                this.Target.DbXray = this.DbXray;
             }
 
             public void Undo()
@@ -1444,6 +1505,8 @@ namespace BecquerelMonitor.NucBase
                 this.Target.Intencity = this.oldIntencity;
                 this.Target.HalfLife = this.oldHalfLife;
                 this.Target.Chain = this.oldChain;
+                this.Target.DbRow = this.oldDbRow;
+                this.Target.DbXray = this.oldDbXray;
             }
         }
 

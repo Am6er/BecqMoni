@@ -821,9 +821,12 @@ namespace CorpusFsaProbe
     ///                  [--dump-curves=&lt;каталог&gt;] [--knot-fwhm=&lt;ПШПВ&gt;]
     ///                  [--dump-bits=&lt;каталог&gt;]  (П241: полный снимок результата, числа битами)
     ///                  [--band-audit=&lt;файл.csv&gt;]
-    ///                  [--anchor-rollback=0|1] [--anchor-confirm-peaks=0|1] [--anchor-joint-shift=0|1]
-    ///                  [--anchor-free-amp=0|1] [--anchor-joint-outliers=0|1]   (`AMBER269`: плечи (А2) — умолчание вкл., (Б), (Г), (Д-амп), (Д2))
+    ///                  [--anchor-rollback=0|1]
+    ///                  [--beta-two-pass=0|1] [--limit-free-hats=0|1] [--limit-window=0|1]   (`AMBER274`: два захода строки беты, шапки в оценщик пределов, MDA под порог окна — умолчание вкл.)
+    ///                  [--anchor-free-amp=0|1] [--anchor-joint-outliers=0|1]   (`AMBER269`: плечи (А2) — умолчание вкл., (Д-амп), (Д2); (Б) и (Г) сняты 01.11.2026)
     ///                  [--anchor-passes]   (`AMBER269`: опоры каждого прохода привязки — в вывод)
+    ///                  [--untie-low=0|1] [--anchor-rollback-width=0|1]   (`AMBER269`, Н3/Н5 02.11.2026: нож порога доверия целиком — умолчание выкл. с 02.11.2026, критик `critfsa30`; откат с шириной опор — умолчание вкл. с 03.11.2026, решение Amber, `AMBER274`)
+    ///                  [--band-warn-ramp=0|1]   (`AMBER269`: предупреждения по полосе от верха рампы порога — умолчание вкл.; 0 — вся полоса фита)
     ///                  [--band=whole|fit|library|curve|share] [--band-floor=&lt;кэВ&gt;]
     ///                  [--floor-frac=&lt;доля&gt;] [--share-thr=&lt;0…1&gt;] [--band-selftest]
     ///                  [--spoil=manager|key]  (порча: поднять менеджер — ОБЯЗАН кончиться кодом 12;
@@ -1021,6 +1024,12 @@ namespace CorpusFsaProbe
                     continue;
                 }
                 if (a == "--no-pileup") { o.PileUp = false; continue; }
+                // (`AMBER274`, Э1) Бета пробы по разделу строк электрона матрицы:
+                // `--sample-beta=0` — рычаг выключения (разбор как без раздела),
+                // `--positron-stop=1` — β⁺ строками позитрона (аннигиляция в точке
+                // остановки, 511 своей аннигиляции снимается).
+                if (a.StartsWith("--sample-beta=", StringComparison.Ordinal)) { o.SampleBeta = a.Substring(14) != "0"; continue; }
+                if (a.StartsWith("--positron-stop=", StringComparison.Ordinal)) { o.PositronStop = a.Substring(16) != "0"; continue; }
                 // (`S107`, П10 12.09.2026) Форма образа наложений по свету:
                 // `0` — выкл (умолчание анализатора), `1` — кривая по веществу
                 // кристалла, `energy` — той же формой, но координата
@@ -1212,8 +1221,31 @@ namespace CorpusFsaProbe
                     o.AnchorCoreOwner = v == "1" ? 1 : 0;
                     continue;
                 }
-                // (`AMBER269`) плечи привязки шкалы: (А2) откат (умолчание — вкл.), (Б) опоры,
-                // подтверждённые поиском пиков, (Г) нож промаха в совместном шаге, (Д) свободная амплитуда
+                // (`AMBER269`) плечи привязки шкалы: (А2) откат (умолчание — вкл.), (Д) свободная
+                // амплитуда; (Б) и (Г) сняты из кода решением Amber 01.11.2026
+                // (`AMBER274`) плечи замера: два захода строки беты, шапки подложки в оценщике
+                // пределов, порог решения пределов — порогом окна
+                if (a.StartsWith("--beta-two-pass=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(16);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--beta-two-pass=0|1"); }
+                    o.BetaTwoPass = v == "1" ? 1 : 0;
+                    continue;
+                }
+                if (a.StartsWith("--limit-free-hats=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(18);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--limit-free-hats=0|1"); }
+                    o.LimitFreeHats = v == "1" ? 1 : 0;
+                    continue;
+                }
+                if (a.StartsWith("--limit-window=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(15);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--limit-window=0|1"); }
+                    o.LimitWindow = v == "1" ? 1 : 0;
+                    continue;
+                }
                 if (a.StartsWith("--anchor-rollback=", StringComparison.Ordinal))
                 {
                     string v = a.Substring(18);
@@ -1221,18 +1253,28 @@ namespace CorpusFsaProbe
                     o.AnchorRollback = v == "1" ? 1 : 0;
                     continue;
                 }
-                if (a.StartsWith("--anchor-confirm-peaks=", StringComparison.Ordinal))
+                // (`AMBER269`, Н3) нож порога доверия целиком; обратное плечо — 0
+                if (a.StartsWith("--untie-low=", StringComparison.Ordinal))
                 {
-                    string v = a.Substring(23);
-                    if (v != "0" && v != "1") { throw new ArgumentException("--anchor-confirm-peaks=0|1"); }
-                    o.AnchorConfirm = v == "1" ? 1 : 0;
+                    string v = a.Substring(12);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--untie-low=0|1"); }
+                    o.UntieLow = v == "1" ? 1 : 0;
                     continue;
                 }
-                if (a.StartsWith("--anchor-joint-shift=", StringComparison.Ordinal))
+                // (`AMBER269`, Н5) откат оставляет ширину опор; обратное плечо — 0
+                if (a.StartsWith("--anchor-rollback-width=", StringComparison.Ordinal))
                 {
-                    string v = a.Substring(21);
-                    if (v != "0" && v != "1") { throw new ArgumentException("--anchor-joint-shift=0|1"); }
-                    o.AnchorJointShift = v == "1" ? 1 : 0;
+                    string v = a.Substring(24);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--anchor-rollback-width=0|1"); }
+                    o.AnchorRollbackWidth = v == "1" ? 1 : 0;
+                    continue;
+                }
+                // (`AMBER269`) предупреждения по полосе — от верха рампы порога; 0 — вся полоса фита
+                if (a.StartsWith("--band-warn-ramp=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(17);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--band-warn-ramp=0|1"); }
+                    o.BandWarnRamp = v == "1" ? 1 : 0;
                     continue;
                 }
                 if (a == "--anchor-passes")
@@ -2506,7 +2548,19 @@ namespace CorpusFsaProbe
                 EscapeAndAnnihilation = o.Escape,
                 PileUp = o.PileUp
             }.ApplyTo(analyzer);
+            // ⛔ (`AMBER269`; решение Amber 02.11.2026 «Да, настройкой FSA с умолчанием 40
+            // (Рекомендую)») НИЖНЯЯ ГРАНИЦА РАЗБОРА — тем же фасадом, умолчание приложения. Ключ
+            // `--fit-floor=` (плечо A/B пола) старше умолчания: при нём граница снимается, и пол
+            // назначает статика, как до правки (`--fit-floor=threshold` — прежнее правило побитово).
+            // Список корпуса (`--fit-floor-by=`) старше обоих — ставится в `RunOne` на спектр.
+            if (o.FitFloorName != null)
+            {
+                analyzer.FitLowerBoundKev = 0.0;
+            }
+
             analyzer.CascadeXrayPartners = o.Xray;
+            analyzer.SampleBeta = o.SampleBeta;                 // (`AMBER274`)
+            analyzer.SamplePositronAtStop = o.PositronStop;     // (`AMBER274`)
             analyzer.CascadeDecayTimeProbability = o.DecayTimeProbability;
             analyzer.CascadeAnnihilationPartners = o.Annihilation;
             analyzer.CascadeIsomerPartners = o.Isomers;
@@ -2675,19 +2729,41 @@ namespace CorpusFsaProbe
                 analyzer.AnchorRollback = o.AnchorRollback == 1;
             }
 
-            if (o.AnchorConfirm >= 0)
+            // (`AMBER269`, Н3/Н5 02.11.2026) нож целиком и ширина опор при откате
+            if (o.UntieLow >= 0)
             {
-                analyzer.AnchorConfirmByPeaks = o.AnchorConfirm == 1;
+                analyzer.UntieBelowTrustFloorWhenStrongAbove = o.UntieLow == 1;
             }
 
-            if (o.AnchorJointShift >= 0)
+            if (o.AnchorRollbackWidth >= 0)
             {
-                analyzer.AnchorJointShiftKnife = o.AnchorJointShift == 1;
+                analyzer.AnchorRollbackKeepsWidth = o.AnchorRollbackWidth == 1;
+            }
+
+            if (o.BandWarnRamp >= 0)
+            {
+                analyzer.BandWarningAboveRamp = o.BandWarnRamp == 1;
             }
 
             if (o.AnchorFreeAmp >= 0)
             {
                 analyzer.AnchorShiftFreeAmplitude = o.AnchorFreeAmp == 1;
+            }
+
+            // (`AMBER274`) плечи двух заходов и правила пределов
+            if (o.BetaTwoPass >= 0)
+            {
+                analyzer.BetaTwoPass = o.BetaTwoPass == 1;
+            }
+
+            if (o.LimitFreeHats >= 0)
+            {
+                analyzer.LimitFreeContinuum = o.LimitFreeHats == 1;
+            }
+
+            if (o.LimitWindow >= 0)
+            {
+                analyzer.LimitAtWindowThreshold = o.LimitWindow == 1;
             }
 
             if (o.AnchorJointOut >= 0)
@@ -2935,6 +3011,17 @@ namespace CorpusFsaProbe
                                                           "{0:F2} кэВ числом",
                                                           FsaBand.DefaultFitFloorKev),
                               shippedFloor ? " (поставочный)" : " (НЕ умолчание, A/B)");
+            // (`AMBER269`) Нижняя граница разбора — настройка FSA, вслух всегда.
+            Console.WriteLine("НИЖНЯЯ ГРАНИЦА РАЗБОРА (настройка FSA, AMBER269): {0}",
+                              head.FitLowerBoundKev > 0.0
+                                  ? string.Format(CultureInfo.InvariantCulture,
+                                                  "{0:F1} кэВ (умолчание приложения {1:F1}) — вместо пола выше;"
+                                                  + " спектрам из списка — пол списка",
+                                                  head.FitLowerBoundKev, FsaBand.ShippedFitLowerBoundKev)
+                                  : o.FitFloorName != null
+                                      ? "снята (ключ --fit-floor=) — пол назначает правило выше"
+                                      // (`AMBER274`, решение Amber 03.11.2026) умолчание поставки — нуль
+                                      : "нет (умолчание приложения 0, AMBER274) — пол назначает правило выше");
             // (`AMBER153` (б)) Пол ПО СПИСКУ — вслух всегда, «нет» в том числе.
             Console.WriteLine("пол ПОЛОСЫ ФИТА ПО СПИСКУ: {0}",
                               fitFloorBy == null
@@ -3318,6 +3405,9 @@ namespace CorpusFsaProbe
         /// <summary>(`AMBER153` (б)) Скольким спектрам пол по списку поставлен.</summary>
         static int fitFloorByApplied;
 
+        /// <summary>(`AMBER269`) Идёт спектр из списка `AMBER153` (б): его пол старше нижней границы разбора.</summary>
+        static bool fitFloorListActive;
+
         /// <summary>
         /// (`AMBER153` (б)) Список пола по спектрам: csv с заголовком, столбцы
         /// `spectrum` и `floor_kev` (прочие — пояснения, не читаются). Число —
@@ -3405,12 +3495,14 @@ namespace CorpusFsaProbe
             fitFloorByApplied++;
             Console.WriteLine("{0,-22} пол фита {1:F1} кэВ по списку (правило корпуса AMBER153 (б))",
                               sample.Key, kev);
+            fitFloorListActive = true;
             try
             {
                 return RunOne(sample, o);
             }
             finally
             {
+                fitFloorListActive = false;
                 FsaBand.DefaultFitFloor = source;
                 FsaBand.DefaultFitFloorKev = sourceKev;
             }
@@ -3566,8 +3658,12 @@ namespace CorpusFsaProbe
                 // (`T65`) Настройки прогона — ОДНИМ местом, тем же, из
                 // которого их берёт на печать шапка.
                 FsaAnalyzer analyzer = NewAnalyzer(o);
-                // (`AMBER269`, (Б)) найденные пики — тем же помощником, что в сеансе приложения
-                analyzer.DetectedPeakKev = FsaAnalysisSession.PeakEnergiesOf(peaks);
+                // (`AMBER269`) спектр из списка корпуса `AMBER153` (б): пол — число списка
+                // (статика ставится в `RunOneFloored`), нижняя граница разбора снимается
+                if (fitFloorListActive)
+                {
+                    analyzer.FitLowerBoundKev = 0.0;
+                }
                 // (`AMBER155` (в), П220) свойства прибора — тем же местом, что в
                 // приложении; ключ `--adc-curvature=` перекрывает для плеча.
                 // (`AMBER271`) кривизна — спектра, если она есть в его файле, иначе прибора.
@@ -5732,7 +5828,16 @@ namespace CorpusFsaProbe
                 // на пик (энергия, ширина, избыток, доля, z, кандидаты библиотеки через `;`); в
                 // `runs` — только их число (`uncovered_peaks`).
                 using (var uncovered = new StreamWriter(prefix + "_uncovered.csv", false, new UTF8Encoding(true)))
+                // (`AMBER269`, 02.11.2026) Предупреждения по полосе («фон перевычтен», «модель не
+                // описывает низ») и нож порога доверия — СВОЙ файл, строка на спектр, по доводу
+                // `S173`: `runs` читает чужой разбор, и контроль «ключи выкл. — побитово» обязан
+                // сверять его целиком. Наибольшая значимость окна пишется всегда — порог
+                // проверяется на базе без перепрогона.
+                using (var bandwarn = new StreamWriter(prefix + "_bandwarn.csv", false, new UTF8Encoding(true)))
                 {
+                    bandwarn.WriteLine("spectrum,det,part,neg_worst_z,neg_flag,neg_lo_kev,neg_hi_kev,neg_z,neg_ratio,neg_bands,"
+                                       + "img_worst_z,img_flag,img_lo_kev,img_hi_kev,img_z,img_ratio,img_bands,"
+                                       + "knife_untied,knife_below,knife_images,knife_whole");
                     // (`S175`) `placement` — В КОНЕЦ: где хвост лежит
                     // (`layer` — в слое и доле своего образа, умолчание;
                     // `continuum` — образа в составе нет; `residual` — ключ).
@@ -5806,7 +5911,7 @@ namespace CorpusFsaProbe
                     // поделена на него, и читать одну без другого нельзя —
                     // z = 3.0 при inflate 1.0 и при 8.2 говорят о разном.
                     comps.WriteLine("spectrum,det,part,component,kind,share_pct,z,inflate,decay_s,peak_counts,"
-                                    + "dt_decay_s,mda_decay_s,zone_chi2ndf,zone_dd,zone_n,peak_share_pct");
+                                    + "dt_decay_s,mda_decay_s,zone_chi2ndf,zone_dd,zone_n,peak_share_pct,beta_counts");
                     // Пределы S9 — по ВСЕМ кандидатам библиотеки, включая не
                     // вошедших в состав: у «не обнаружен» без МДА нет смысла.
                     // `mda_peak_counts` (`S68`) — отсчёты образа в его пиковых окнах
@@ -5906,6 +6011,26 @@ namespace CorpusFsaProbe
                                 F(100.0 * r.Result.ResidualExcessShare, "F3")));
                         }
 
+                        {
+                            // (`AMBER269`) предупреждения по полосе и нож — строка на спектр
+                            FsaBandWarning neg = r.Result.BackgroundOversubtracted;
+                            FsaBandWarning img = r.Result.ImagesAboveSpectrum;
+                            bandwarn.WriteLine(string.Join(",",
+                                Csv(r.Key), Csv(r.Det), Csv(r.Part),
+                                F(r.Result.BackgroundOversubtractedWorstZ, "F2"), neg != null ? "1" : "0",
+                                neg != null ? F(neg.LoKev, "F1") : "", neg != null ? F(neg.HiKev, "F1") : "",
+                                neg != null ? F(neg.Z, "F2") : "", neg != null ? F(neg.Ratio, "F4") : "",
+                                neg != null ? neg.Bands.ToString(CultureInfo.InvariantCulture) : "",
+                                F(r.Result.ImagesAboveSpectrumWorstZ, "F2"), img != null ? "1" : "0",
+                                img != null ? F(img.LoKev, "F1") : "", img != null ? F(img.HiKev, "F1") : "",
+                                img != null ? F(img.Z, "F2") : "", img != null ? F(img.Ratio, "F4") : "",
+                                img != null ? img.Bands.ToString(CultureInfo.InvariantCulture) : "",
+                                r.Result.KnifeUntiedBins.ToString(CultureInfo.InvariantCulture),
+                                r.Result.KnifeBinsBelow.ToString(CultureInfo.InvariantCulture),
+                                r.Result.KnifeImages.ToString(CultureInfo.InvariantCulture),
+                                r.Result.KnifeImagesWhole.ToString(CultureInfo.InvariantCulture)));
+                        }
+
                         if (r.Result.UntiedTails != null)
                         {
                             foreach (FsaUntiedTail tail in r.Result.UntiedTails)
@@ -5959,7 +6084,9 @@ namespace CorpusFsaProbe
                                 F(c.DecisionThresholdRate, "E4"), F(c.DetectionLimitRate, "E4"),
                                 F(c.ZoneChi2Ndf, "F3"), F(c.ZoneDeltaD, "F2"),
                                 c.ZoneChannels.ToString(CultureInfo.InvariantCulture),
-                                F(c.PeakSharePercent, "F3")));
+                                F(c.PeakSharePercent, "F3"),
+                                // (`AMBER274`, `З2`) отсчёты беты пробы в образе компонента — последним столбцом
+                                F(c.BetaCounts, "F1")));
                         }
 
                         foreach (FsaCharacteristicLimit L in r.Result.CharacteristicLimits)
@@ -6388,6 +6515,8 @@ namespace CorpusFsaProbe
             public bool DecayTimeProbability = true;  // A289: время жизни уровня вероятностно
             public double WindowSec;            // S27: окно совпадения, с; 0 — умолчание
             public bool PileUp = true;
+            public bool SampleBeta = true;      // (`AMBER274`) умолчание анализатора
+            public bool PositronStop;           // (`AMBER274`) умолчание анализатора
             public bool Backscatter = true;
             public bool BackscatterWithMatrix = false;
             public bool Background = true;
@@ -6472,9 +6601,13 @@ namespace CorpusFsaProbe
             public int AnchorCoreOwner = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора
             public int AnchorShareNet = -1;    // (`AMBER142`, П222) −1 — умолчание анализатора
             public int AnchorRollback = -1;    // (`AMBER269`, (А2)) −1 — умолчание анализатора
-            public int AnchorConfirm = -1;     // (`AMBER269`, (Б)) −1 — умолчание анализатора
-            public int AnchorJointShift = -1;  // (`AMBER269`, (Г)) −1 — умолчание анализатора
+            public int UntieLow = -1;          // (`AMBER269`, Н3) −1 — умолчание анализатора
+            public int AnchorRollbackWidth = -1;   // (`AMBER269`, Н5) −1 — умолчание анализатора
+            public int BandWarnRamp = -1;          // (`AMBER269`, предупреждения) −1 — умолчание анализатора
             public int AnchorFreeAmp = -1;     // (`AMBER269`, (Д-амп)) −1 — умолчание анализатора
+            public int BetaTwoPass = -1;       // (`AMBER274`) −1 — умолчание анализатора
+            public int LimitFreeHats = -1;     // (`AMBER274`) −1 — умолчание анализатора
+            public int LimitWindow = -1;       // (`AMBER274`) −1 — умолчание анализатора
             public int AnchorJointOut = -1;    // (`AMBER269`, (Д2)) −1 — умолчание анализатора
             public int AnchorWidthFreeze = -1; // (`AMBER142`, П222) −1 — умолчание анализатора
             public int TailEscape = -1;        // (`AMBER142` (6), П226) −1 — умолчание анализатора

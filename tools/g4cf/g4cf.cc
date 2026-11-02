@@ -73,6 +73,38 @@
 // сравнивала эффект возврата ×0.34…0.53 разными населениями). Описание
 // рычагов — у флагов ниже; читатели — `SETUP …` и строка `ESCPOP` в конце.
 //
+// ✅ (`AMBER274`, физика 28, полоса `amber274p28` 30.10.2026) ЭТАЛОН ДЛЯ БЕТЫ И КОНВЕРСИИ.
+// Разбор критика несходимости Cs-137 (30.10.2026): RadioactiveDecay6.1.2 испускает ветвь
+// Cs-137 1176 кэВ (второй неуникальный запрет) РАЗРЕШЁННОЙ формой — флага запрета у неё
+// нет, у `secondForbidden` множитель 1; то же у Bi-210. Поэтому эталон для ветвей с
+// опытной формой (`nucdb.beta_shapes`: Cs-137 1176, Bi-210, Pa-234m, …) — НЕ ион, а
+// первичные электроны по спектру LNHB/BetaShape, изомер — отдельным ионом. Рычаги (стоят
+// перед `scene`, в любом порядке, как `vacuum`):
+//   `electron`        — первичка сценного генератора — ЭЛЕКТРОН (энергия — `hist <E>` или
+//                       из `espec`), а не квант; точка — та же копия сэмплеров;
+//   `hemi`            — только вперёд (cos > 0); нормировка у читателя — на 2N;
+//   `espec <файл>`    — энергия первичного электрона из таблицы строк «кэВ_лево кэВ_право
+//                       вес» (внутри бина — равномерно), печать `SETUP espec bins= weight=`;
+//                       таблицу пишет `BetaSectionProbeA274 --spectrum=` из той же формы,
+//                       что у образа FSA;
+//   `ionex <кэВ>`     — у `ion <Z> <A>` — возбуждённое ядро (изомер) энергии уровня:
+//                       Ba-137m — `ion 56 137 <N>` с `ionex 661.659`; так изомер считается
+//                       отдельно от беты родителя;
+//   `emite`           — спектр ИСПУСКАНИЯ e- распадом первички (вторичные гасятся,
+//                       детектор не нужен): `EMITEBEGIN`…`EMITEEND`, шаг 1 кэВ;
+//   `twin <нс>`       — окно совпадений: вклады события в кристалл группируются по времени
+//                       (разрыв больше окна — новая регистрация); группы от момента
+//                       распада первички — `HISTA` (в окне) и `HISTB` (позже: изомер);
+//   `nofluct`         — флуктуации потерь ВЫКЛ (`SetLossFluctuations(false)`) — плечо
+//                       контроля страгглинга модели (`--estr=0`);
+//   `nomsc`           — многократное рассеяние e± выключено (`/process/inactivate msc`);
+//   `phys <opt0|opt3|opt4|ss|liv|pen>` — физлист ЭМ (умолчание opt4) — разброс эталона;
+//   `plane <z_см>`    — энергия первичного электрона при первом пересечении плоскости
+//                       вперёд (`PLANE…`) и на входе в кристалл (`ENTER…`), с косинусами.
+// Читатель — `SETUP critic electron= hemi= phys= lossFluct= nomsc= plane=` (флуктуации —
+// обратно из `G4EmParameters`). Рецепт сверки — журнал `handover/handover-2026-10-29-
+// amber274-e1-sample-beta.md`, раздел «Физика 28: страгглинг и GPU».
+//
 // Сборка — build_g4cf.bat рядом (vcvars64 обязан звать bat, не ps1: %PATH%
 // в cmd разворачивается при разборе строки). Прогон — run_g4cf.bat (env на
 // датасеты поставки). Сборка CF из логов — g4_cf.py, родные p_k — g4_pk.py.
@@ -89,6 +121,11 @@
 #include "G4VProcess.hh"
 #include "G4VModularPhysicsList.hh"
 #include "G4EmStandardPhysics_option4.hh"
+#include "G4EmStandardPhysics.hh"
+#include "G4EmStandardPhysics_option3.hh"
+#include "G4EmStandardPhysicsSS.hh"
+#include "G4EmLivermorePhysics.hh"
+#include "G4EmPenelopePhysics.hh"
 #include "G4DecayPhysics.hh"
 #include "G4RadioactiveDecayPhysics.hh"
 #include "G4EmParameters.hh"
@@ -155,6 +192,48 @@ namespace
     // подпиковой полке приходится делить между «у нас нет обстановки» и «у нас
     // нет физики» на глазок. Ключ `vacuum` разводит их замером.
     bool gVacuumWorld = false;
+
+    // ⛔ (`AMBER274`, оснастка критика замеров 30.10.2026) ЯДРО ОТДАЧИ РАСПАДАЕТСЯ НА
+    // МЕСТЕ. В пустом мире (`vacuum`) ион отдачи бета-распада (Ba-137 с изомером
+    // 661.66 кэВ, 2.55 мин; Pa-234m и прочие изомеры) летит без потерь и УХОДИТ ИЗ МИРА
+    // раньше распада: у Ba-137m пик 662 на распад Cs-137 выходил 1.244e-2 против
+    // 2.537e-2 в воздухе — половина распадов изомера терялась молча. В веществе ион
+    // останавливается за микроны, и распад на месте рождения — то, что делает и наша
+    // сцена (событие в точке пробы). Поэтому у ВТОРИЧНОГО ядра (A > 4: не α, не p/d/t/³He)
+    // кинетическая энергия снимается до переноса (`StackingAction`), и он распадается
+    // покоящимся. Умолчание — ВКЛ в пустом мире, ВЫКЛ в воздушном (там прежние числа
+    // побитово); ключ `ionfly` — прежнее поведение и в пустоте (плечо замера). Читатель
+    // — `SETUP … ionAtRest=` и строка `IONREST <число остановленных>` в конце прогона.
+    bool gIonAtRest = false;
+    bool gIonFly = false;
+    std::atomic<long> gIonsStopped{0};
+
+    // (`AMBER274`, физика 28; рычаги критика несходимости Cs-137, 30.10.2026) Первичный
+    // ЭЛЕКТРОН сценного генератора вместо кванта,
+    // рычаги физики и спектры энергии первички на плоскости и на входе в кристалл.
+    bool gPrimaryElectron = false;
+    bool gHemi = false;          // только вперёд (cos > 0), норма — на 2N
+    bool gNoFluct = false;
+    bool gNoMsc = false;
+    std::string gPhys = "opt4";
+    double gPlaneZcm = -1e9;     // плоскость z (см сцены): энергия первички при первом пересечении вперёд
+    const int kEnterBins = 3000; // шаг 1 кэВ
+    std::atomic<long> gEnterHist[3000];
+    std::atomic<long> gPlaneHist[3000];
+    std::atomic<long> gEnterCosHist[20];
+    std::atomic<long> gPlaneCosHist[20];
+    std::atomic<long> gEnterN{0}, gPlaneN{0};
+    G4ThreadLocal bool gEnteredThisEvent = false;
+    G4ThreadLocal bool gPlaneThisEvent = false;
+    double gTwinNs = 0.0;              // окно совпадений, нс; 0 — событие целиком (как было)
+    std::atomic<long> gHistA[3001];    // группа 0 (первая по времени)
+    std::atomic<long> gHistB[3001];    // группы >= 1
+    std::atomic<long> gClusters{0}, gEventsSplit{0};
+    G4ThreadLocal double gT0 = 1e300;  // момент распада первички (время первого её вторичного)
+    bool gEmitE = false;
+    std::atomic<long> gEmitEHist[3001];
+    std::atomic<long> gEmitEN{0};
+    std::vector<double> gSpecLo, gSpecHi, gSpecCdf;   // `espec`
 
     // Угловые γ–γ корреляции каскада в RDM (ключ `corr`, П85 `AMBER42`);
     // умолчание — изотропно, как было всегда.
@@ -723,7 +802,12 @@ class Physics : public G4VModularPhysicsList
 public:
     Physics()
     {
-        RegisterPhysics(new G4EmStandardPhysics_option4());
+        if (gPhys == "opt0") RegisterPhysics(new G4EmStandardPhysics());
+        else if (gPhys == "opt3") RegisterPhysics(new G4EmStandardPhysics_option3());
+        else if (gPhys == "ss") RegisterPhysics(new G4EmStandardPhysicsSS());
+        else if (gPhys == "liv") RegisterPhysics(new G4EmLivermorePhysics());
+        else if (gPhys == "pen") RegisterPhysics(new G4EmPenelopePhysics());
+        else RegisterPhysics(new G4EmStandardPhysics_option4());
         RegisterPhysics(new G4DecayPhysics());
         RegisterPhysics(new G4RadioactiveDecayPhysics());
     }
@@ -744,6 +828,8 @@ namespace
     double gSceneEnergyKev = 0.0;
     bool gSceneIon = false;
     int gSceneZ = 0, gSceneA = 0;
+    // (`AMBER274`) `ionex <кэВ>` — энергия возбуждения иона первички (изомер отдельным ионом).
+    double gIonExKev = 0.0;
 }
 
 /// Генератор сценного режима: положение — ТОЧНАЯ копия сэмплеров
@@ -803,7 +889,7 @@ public:
             G4ThreeVector(x * cm, y * cm, z * cm), 0.0);
         if (gSceneIon)
         {
-            auto ion = G4IonTable::GetIonTable()->GetIon(gSceneZ, gSceneA, 0.0);
+            auto ion = G4IonTable::GetIonTable()->GetIon(gSceneZ, gSceneA, gIonExKev * keV);
             auto particle = new G4PrimaryParticle(ion);
             particle->SetKineticEnergy(0.0);
             particle->SetCharge(0.0);
@@ -811,15 +897,30 @@ public:
         }
         else
         {
-            double cosT = 2.0 * G4UniformRand() - 1.0;
+            double cosT = gHemi ? G4UniformRand() : 2.0 * G4UniformRand() - 1.0;
             double sinT = std::sqrt(std::max(0.0, 1.0 - cosT * cosT));
             double phi = 2.0 * CLHEP::pi * G4UniformRand();
             gPrimaryCos = cosT;
+            double pScale = 1.0;
+            double tKev = gSceneEnergyKev;
+            if (gPrimaryElectron && !gSpecCdf.empty())
+            {
+                double u = G4UniformRand() * gSpecCdf.back();
+                size_t i = std::lower_bound(gSpecCdf.begin(), gSpecCdf.end(), u) - gSpecCdf.begin();
+                if (i >= gSpecCdf.size()) i = gSpecCdf.size() - 1;
+                tKev = gSpecLo[i] + (gSpecHi[i] - gSpecLo[i]) * G4UniformRand();
+            }
+            if (gPrimaryElectron)
+            {
+                double t = tKev * keV, m = CLHEP::electron_mass_c2;
+                pScale = std::sqrt(t * (t + 2.0 * m)) / t;
+            }
             auto particle = new G4PrimaryParticle(
-                G4Gamma::GammaDefinition(),
-                sinT * std::cos(phi) * gSceneEnergyKev * keV,
-                sinT * std::sin(phi) * gSceneEnergyKev * keV,
-                cosT * gSceneEnergyKev * keV);
+                gPrimaryElectron ? static_cast<G4ParticleDefinition*>(G4Electron::Definition())
+                                 : static_cast<G4ParticleDefinition*>(G4Gamma::GammaDefinition()),
+                sinT * std::cos(phi) * tKev * keV * pScale,
+                sinT * std::sin(phi) * tKev * keV * pScale,
+                cosT * tKev * keV * pScale);
             vertex->SetPrimary(particle);
         }
 
@@ -1133,7 +1234,11 @@ public:
 
     void BeginOfEventAction(const G4Event*) override
     {
+        gEnteredThisEvent = false;
+        gPlaneThisEvent = false;
+        gT0 = 1e300;
         fEdepKev = 0.0;
+        fTimed.clear();
         fGammas.clear();
         fGammaDep.clear();
         fAncestor.clear();
@@ -1198,7 +1303,44 @@ public:
             return;
         }
 
-        fRun->Count(fEdepKev);
+        if (gTwinNs > 0.0)
+        {
+            std::sort(fTimed.begin(), fTimed.end());
+            double sum = 0.0, last = -1e300, start = 0.0;
+            int k = 0;
+            bool open = false;
+            auto flush = [&](double t0, double e)
+            {
+                if (e <= 1e-3) return;
+                fRun->Count(e);
+                int b = int(e / gHistBinKev + 0.5);
+                if (b > 3000) b = 3000;
+                if (b < 0) b = 0;
+                bool prompt = gT0 > 1e299 || t0 - gT0 <= gTwinNs;
+                if (prompt) gHistA[b]++; else gHistB[b]++;
+                gClusters++;
+            };
+            for (auto& td : fTimed)
+            {
+                if (open && td.first - last > gTwinNs)
+                {
+                    flush(start, sum);
+                    ++k;
+                    sum = 0.0;
+                    open = false;
+                }
+                if (!open) start = td.first;
+                sum += td.second;
+                last = td.first;
+                open = true;
+            }
+            if (open) flush(start, sum);
+            if (k > 0) gEventsSplit++;
+        }
+        else
+        {
+            fRun->Count(fEdepKev);
+        }
         if (gTagMode)
         {
             Tag();
@@ -1206,6 +1348,8 @@ public:
     }
 
     void Add(double edepKev) { fEdepKev += edepKev; }
+
+    void AddTimed(double tNs, double edepKev) { fTimed.emplace_back(tNs, edepKev); }
 
     void AddGamma(double eKev, const G4ThreeVector& dir) { fGammas.emplace_back(eKev, dir); }
 
@@ -1391,6 +1535,7 @@ private:
     std::set<int> fEscLineage;                        // (П106) родословная вылетевших своих e-
     std::map<int, int> fExitFace;                     // (П106) трек → грань последнего выхода
     std::set<int> fOutLeptons;                        // (П106) e-/e+, рождённые вне кристалла
+    std::vector<std::pair<double, double>> fTimed;    // (`AMBER274`, `twin`) время, нс — вклад, кэВ
 };
 
 namespace
@@ -1416,6 +1561,31 @@ public:
 
     G4ClassificationOfNewTrack ClassifyNewTrack(const G4Track* track) override
     {
+        if (track->GetParentID() == 1 && track->GetGlobalTime() < gT0)
+        {
+            gT0 = track->GetGlobalTime() / ns;
+        }
+        if (gEmitE && track->GetParentID() > 0)
+        {
+            if (track->GetParentID() == 1 && track->GetDefinition() == G4Electron::Definition())
+            {
+                int b = int(track->GetKineticEnergy() / keV);
+                if (b >= 0 && b <= 3000) gEmitEHist[b]++;
+                gEmitEN++;
+            }
+            return fKill;
+        }
+        // (`AMBER274`) Ядро отдачи — покоящимся: распад на месте рождения (см. `gIonAtRest`).
+        if (gIonAtRest && track->GetParentID() > 0 && track->GetKineticEnergy() > 0.0)
+        {
+            const G4ParticleDefinition* d = track->GetDefinition();
+            if (d->GetParticleType() == "nucleus" && d->GetBaryonNumber() > 4)
+            {
+                const_cast<G4Track*>(track)->SetKineticEnergy(0.0);
+                gIonsStopped++;
+            }
+        }
+
         // (П106) Родословная вылетевшего своего e-: потомок, РОЖДЁННЫЙ ВНЕ
         // кристалла, наследует метку, считается (квант / лептон) и по рычагу
         // гасится. Потомок, рождённый в кристалле (тормозное вернувшегося e-),
@@ -1571,9 +1741,42 @@ public:
 
         bool preInCrystal = step->GetPreStepPoint()->GetTouchableHandle()->GetVolume()
                 ->GetLogicalVolume() == Detector::fCrystal;
+        if (gPrimaryElectron && step->GetTrack()->GetTrackID() == 1)
+        {
+            const G4StepPoint* post = step->GetPostStepPoint();
+            auto pv = post->GetTouchableHandle()->GetVolume();
+            bool postIn = pv != nullptr && pv->GetLogicalVolume() == Detector::fCrystal;
+            if (!preInCrystal && postIn && !gEnteredThisEvent)
+            {
+                gEnteredThisEvent = true;
+                int b = int(post->GetKineticEnergy() / keV);
+                if (b >= 0 && b < kEnterBins) { gEnterHist[b]++; }
+                int c = int((post->GetMomentumDirection().z() + 1.0) * 10.0);
+                if (c < 0) c = 0;
+                if (c > 19) c = 19;
+                gEnterCosHist[c]++;
+                gEnterN++;
+            }
+            double zPre = step->GetPreStepPoint()->GetPosition().z() / cm, zPost = post->GetPosition().z() / cm;
+            if (!gPlaneThisEvent && zPre < gPlaneZcm - 1e-7 && zPost >= gPlaneZcm - 1e-7)
+            {
+                gPlaneThisEvent = true;
+                int b = int(post->GetKineticEnergy() / keV);
+                if (b >= 0 && b < kEnterBins) { gPlaneHist[b]++; }
+                int c = int((post->GetMomentumDirection().z() + 1.0) * 10.0);
+                if (c < 0) c = 0;
+                if (c > 19) c = 19;
+                gPlaneCosHist[c]++;
+                gPlaneN++;
+            }
+        }
         if (preInCrystal)
         {
             fEvent->Add(step->GetTotalEnergyDeposit() / keV);
+            if (gTwinNs > 0.0 && step->GetTotalEnergyDeposit() > 0.0)
+            {
+                fEvent->AddTimed(step->GetPreStepPoint()->GetGlobalTime() / ns, step->GetTotalEnergyDeposit() / keV);
+            }
             if (gTagMode)
             {
                 fEvent->AddTo(step->GetTrack()->GetTrackID(), step->GetTotalEnergyDeposit() / keV);
@@ -1732,6 +1935,7 @@ int main(int argc, char** argv)
     //      `killescdelta` — там же, в любом порядке; грани — только со сценой.
     int base = 1;
     while (argc > base && (std::strcmp(argv[base], "vacuum") == 0 || std::strcmp(argv[base], "corr") == 0
+                           || std::strcmp(argv[base], "ionfly") == 0
                            || std::strcmp(argv[base], "killesc") == 0 || std::strcmp(argv[base], "killcarry") == 0
                            || std::strcmp(argv[base], "fullcarry") == 0 || std::strcmp(argv[base], "iontag") == 0
                            || std::strcmp(argv[base], "escpop") == 0 || std::strcmp(argv[base], "killescown") == 0
@@ -1740,6 +1944,14 @@ int main(int argc, char** argv)
                            || std::strcmp(argv[base], "killescbrem") == 0 || std::strcmp(argv[base], "killescdelta") == 0
                            || std::strcmp(argv[base], "killoutbrem") == 0
                            || std::strcmp(argv[base], "nogp") == 0 || std::strcmp(argv[base], "norayl") == 0
+                           || std::strcmp(argv[base], "electron") == 0 || std::strcmp(argv[base], "hemi") == 0
+                           || std::strcmp(argv[base], "nofluct") == 0 || std::strcmp(argv[base], "nomsc") == 0
+                           || (std::strcmp(argv[base], "phys") == 0 && argc > base + 1)
+                           || (std::strcmp(argv[base], "plane") == 0 && argc > base + 1)
+                           || (std::strcmp(argv[base], "twin") == 0 && argc > base + 1)
+                           || std::strcmp(argv[base], "emite") == 0
+                           || (std::strcmp(argv[base], "espec") == 0 && argc > base + 1)
+                           || (std::strcmp(argv[base], "ionex") == 0 && argc > base + 1)
                            || (std::strcmp(argv[base], "emitpair") == 0 && argc > base + 1)
                            || (std::strcmp(argv[base], "seed") == 0 && argc > base + 1)
                            || (std::strcmp(argv[base], "ionhist") == 0 && argc > base + 2)))
@@ -1747,6 +1959,31 @@ int main(int argc, char** argv)
         if (std::strcmp(argv[base], "vacuum") == 0)
         {
             gVacuumWorld = true;
+        }
+        else if (std::strcmp(argv[base], "ionfly") == 0) { gIonFly = true; }
+        else if (std::strcmp(argv[base], "electron") == 0) { gPrimaryElectron = true; }
+        else if (std::strcmp(argv[base], "hemi") == 0) { gHemi = true; }
+        else if (std::strcmp(argv[base], "nofluct") == 0) { gNoFluct = true; }
+        else if (std::strcmp(argv[base], "nomsc") == 0) { gNoMsc = true; }
+        else if (std::strcmp(argv[base], "phys") == 0) { gPhys = argv[base + 1]; base++; }
+        else if (std::strcmp(argv[base], "plane") == 0) { gPlaneZcm = std::atof(argv[base + 1]); base++; }
+        else if (std::strcmp(argv[base], "twin") == 0) { gTwinNs = std::atof(argv[base + 1]); base++; }
+        else if (std::strcmp(argv[base], "emite") == 0) { gEmitE = true; }
+        else if (std::strcmp(argv[base], "ionex") == 0) { gIonExKev = std::atof(argv[base + 1]); base++; }
+        else if (std::strcmp(argv[base], "espec") == 0)
+        {
+            std::ifstream sf(argv[base + 1]);
+            double lo, hi, w, acc = 0.0;
+            while (sf >> lo >> hi >> w)
+            {
+                if (w <= 0.0) continue;
+                acc += w;
+                gSpecLo.push_back(lo);
+                gSpecHi.push_back(hi);
+                gSpecCdf.push_back(acc);
+            }
+            std::printf("SETUP espec bins=%zu weight=%.6e file=%s\n", gSpecCdf.size(), acc, argv[base + 1]);
+            base++;
         }
         else if (std::strcmp(argv[base], "escpop") == 0) { gEscPop = true; }
         else if (std::strcmp(argv[base], "nogp") == 0) { gNoGeneralProcess = true; }
@@ -1847,7 +2084,7 @@ int main(int argc, char** argv)
 
     if (argc < base + 3)
     {
-        std::fprintf(stderr, "g4cf [vacuum] [corr] [nogp] [norayl] [seed <N>] [ionhist <bin_keV> <Emax_keV>] [iontag] [killesc] [killcarry] [fullcarry] [scene <file>] mono <E_keV> <N>"
+        std::fprintf(stderr, "g4cf [vacuum] [corr] [nogp] [norayl] [seed <N>] [electron] [hemi] [espec <file>] [ionex <keV>] [emite] [twin <ns>] [nofluct] [nomsc] [phys <opt0|opt3|opt4|ss|liv|pen>] [plane <z_cm>] [ionhist <bin_keV> <Emax_keV>] [iontag] [killesc] [killcarry] [fullcarry] [scene <file>] mono <E_keV> <N>"
                              " | ion <Z> <A> <N> <windows...> | hist <E_keV> <N> <bin_keV>\n"
                              "  vacuum: empty world instead of air. MANDATORY for bare-crystal"
                              " checks (T133): air gives 8.232e-4 vs 5.794e-4 in 55...59 keV.\n"
@@ -1948,8 +2185,21 @@ int main(int argc, char** argv)
         G4EmParameters::Instance()->SetGeneralProcessActive(false);
     }
 
+    if (gNoFluct)
+    {
+        G4EmParameters::Instance()->SetLossFluctuations(false);
+    }
+
     auto ui = G4UImanager::GetUIpointer();
     ui->ApplyCommand("/run/initialize");
+    if (gNoMsc)
+    {
+        ui->ApplyCommand("/process/inactivate msc e-");
+        ui->ApplyCommand("/process/inactivate msc e+");
+    }
+
+    std::printf("SETUP critic electron=%d hemi=%d phys=%s lossFluct=%d nomsc=%d plane=%.4f ionex=%.3f\n", gPrimaryElectron ? 1 : 0,
+                gHemi ? 1 : 0, gPhys.c_str(), G4EmParameters::Instance()->LossFluctuation() ? 1 : 0, gNoMsc ? 1 : 0, gPlaneZcm, gIonExKev);
     if (gNoRayleigh)
     {
         // Команда рассылается рабочим потокам; доехала ли — видно по RAYLSTEPS.
@@ -1958,6 +2208,9 @@ int main(int argc, char** argv)
 
     std::printf("SETUP nogp=%d norayl=%d generalProcess=%d\n", gNoGeneralProcess ? 1 : 0, gNoRayleigh ? 1 : 0,
                 G4EmParameters::Instance()->GeneralProcessActive() ? 1 : 0);
+    // (`AMBER274`) Ядро отдачи покоящимся — в пустом мире, если не просили `ionfly`.
+    gIonAtRest = gVacuumWorld && !gIonFly;
+    std::printf("SETUP ionAtRest=%d\n", gIonAtRest ? 1 : 0);
     std::fflush(stdout);
     // Читатель флага: значение берётся ОБРАТНО из параметров, а не из ключа —
     // если Set… не доехал (заперт, перезаписан умолчанием), здесь будет 0.
@@ -2033,6 +2286,40 @@ int main(int argc, char** argv)
         std::fflush(stdout);
     }
 
+    if (gEmitE)
+    {
+        std::printf("EMITEBEGIN n=%ld decays=%ld bin_kev=1\n", gEmitEN.load(), decays);
+        for (int i = 0; i <= 3000; ++i) if (gEmitEHist[i].load() > 0) std::printf("EMITE %d %ld\n", i, gEmitEHist[i].load());
+        std::printf("EMITEEND\n");
+    }
+
+    if (gTwinNs > 0.0)
+    {
+        std::printf("TWIN window_ns=%.1f clusters=%ld events_split=%ld\n", gTwinNs, gClusters.load(), gEventsSplit.load());
+        std::printf("HISTABEGIN decays=%ld bin_kev=%.6f\n", decays, gHistBinKev);
+        for (int i = 0; i <= 3000; ++i) if (gHistA[i].load() > 0) std::printf("HISTA %d %ld\n", i, gHistA[i].load());
+        std::printf("HISTAEND\n");
+        std::printf("HISTBBEGIN decays=%ld bin_kev=%.6f\n", decays, gHistBinKev);
+        for (int i = 0; i <= 3000; ++i) if (gHistB[i].load() > 0) std::printf("HISTB %d %ld\n", i, gHistB[i].load());
+        std::printf("HISTBEND\n");
+        std::fflush(stdout);
+    }
+
+    if (gPrimaryElectron)
+    {
+        std::printf("ENTERBEGIN n=%ld decays=%ld bin_kev=1\n", gEnterN.load(), decays);
+        for (int i = 0; i < kEnterBins; ++i) if (gEnterHist[i].load() > 0) std::printf("ENTER %d %ld\n", i, gEnterHist[i].load());
+        for (int i = 0; i < 20; ++i) std::printf("ENTERCOS %d %ld\n", i, gEnterCosHist[i].load());
+        std::printf("ENTEREND\n");
+        std::printf("PLANEBEGIN n=%ld decays=%ld bin_kev=1 z=%.4f\n", gPlaneN.load(), decays, gPlaneZcm);
+        for (int i = 0; i < kEnterBins; ++i) if (gPlaneHist[i].load() > 0) std::printf("PLANE %d %ld\n", i, gPlaneHist[i].load());
+        for (int i = 0; i < 20; ++i) std::printf("PLANECOS %d %ld\n", i, gPlaneCosHist[i].load());
+        std::printf("PLANEEND\n");
+        std::fflush(stdout);
+    }
+
     delete runManager;
+    // (`AMBER274`) Читатель рычага ядра отдачи.
+    std::printf("IONREST %ld\n", gIonsStopped.load());
     return 0;
 }

@@ -48,6 +48,9 @@ namespace BecquerelMonitor.Probes
             for (int i = 0; i < model.Rows.Count; i++)
             {
                 var def = (NuclideDefinition)model.Rows[i].Tag;
+                // (`AMBER281`, полоса a269fix5) Линия из базы нуклидов в таблице не правится
+                // (решение Amber «Запретить правку импортов из базы») — берутся вбитые руками.
+                if (def.IsDbLinked) continue;
                 if (big < 0 && def.Energy > 100.0 && def.HalfLife > 100.0) big = i;
                 if (small < 0 && def.Energy > 0.0 && def.Energy < 100.0 && def.HalfLife > 0.0 && def.HalfLife < 100.0) small = i;
             }

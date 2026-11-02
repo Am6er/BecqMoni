@@ -572,8 +572,11 @@ namespace BecquerelMonitor.NucBase
             // ⛔ Соединения с `nuclides` здесь БОЛЬШЕ НЕТ — оно троило линии
             // изомера (`D43`, довод в примечании к методу). Период приезжает
             // отдельным запросом, а уровень строки нужен, чтобы его выбрать.
+            // (`AMBER281`) `dr_pk` — номер строки: импорт пишет его в линию библиотеки.
+            // (`AMBER274`, `f8diag`) `intensity_unc` — признак выхода-предела (`LT`/`LE`): строка
+            // показывается, но как предел (`DecayRad.IntensityIsLimit`).
             string sql = "select dr.parent_nucid, dr.energy_num, dr.intensity_num, dr.type_a,"
-                       + " dr.type_c, dr.dec_type, dr.parent_l_seqno"
+                       + " dr.type_c, dr.dec_type, dr.parent_l_seqno, dr.dr_pk, dr.intensity_unc"
                        + " from decay_radiations as dr where dr.type_a in ('G', 'X')";
             if (named)
             {
@@ -632,6 +635,8 @@ namespace BecquerelMonitor.NucBase
                     decrad.DecayLine = Text(reader, 3);
                     decrad.XrayType = Text(reader, 4);
                     decrad.DecayType = Integer(Text(reader, 5));
+                    decrad.DrPk = reader.IsDBNull(7) ? 0L : reader.GetInt64(7);
+                    decrad.IntensityIsLimit = FullSpectrumAnalysis.DecayParentRule.IsUpperLimit(Text(reader, 8));
 
                     HalfLifeRow life = PickHalfLife(halfLives, decrad.Name,
                                                     reader.IsDBNull(6) ? int.MinValue : reader.GetInt32(6));
@@ -674,6 +679,62 @@ namespace BecquerelMonitor.NucBase
             MarkRedundantKSeries(decayRads);
             MarkRedundantLSeries(decayRads);
             return decayRads;
+        }
+
+        /// <summary>
+        /// (`AMBER281`, 02.11.2026) Строка `decay_radiations` по её номеру `dr_pk` — в том же
+        /// виде, что отдаёт <see cref="getDecayRad"/> (период — уровня строки, теми же
+        /// <see cref="ReadHalfLives"/> и <see cref="PickHalfLife"/>). null — строки с таким
+        /// номером нет; отказ базы — тоже null, причина в <see cref="LastError"/>.
+        /// </summary>
+        public DecayRad GetDecayRadByRow(long drPk)
+        {
+            this.LastError = null;
+            DataBase db = null;
+            DecayRad found = null;
+            try
+            {
+                db = new DataBase();
+                SqliteDataReader reader = db.ReadData(
+                    "select parent_nucid, energy_num, intensity_num, type_a, type_c, dec_type, parent_l_seqno, dr_pk, intensity_unc"
+                    + " from decay_radiations where dr_pk = $k",
+                    new[] { DataBase.Param("$k", drPk) });
+                int level = int.MinValue;
+                if (reader.Read())
+                {
+                    found = new DecayRad();
+                    found.Name = Text(reader, 0);
+                    found.Energy = reader.IsDBNull(1) ? 0.0 : reader.GetDouble(1);
+                    found.Intensity = reader.IsDBNull(2) ? 0.0 : reader.GetDouble(2);
+                    found.DecayLine = Text(reader, 3);
+                    found.XrayType = Text(reader, 4);
+                    found.DecayType = Integer(Text(reader, 5));
+                    level = reader.IsDBNull(6) ? int.MinValue : reader.GetInt32(6);
+                    found.DrPk = reader.IsDBNull(7) ? 0L : reader.GetInt64(7);
+                    found.IntensityIsLimit = FullSpectrumAnalysis.DecayParentRule.IsUpperLimit(Text(reader, 8));
+                }
+
+                reader.Close();
+                if (found != null)
+                {
+                    HalfLifeRow life = PickHalfLife(ReadHalfLives(db, found.Name), found.Name, level);
+                    found.HalfLife = Number(life.Text);
+                    found.HalfLifeUnit = life.Unit;
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine("GetDecayRadByRow: " + AppUi.Reason(ex));
+                this.LastError = AppUi.Reason(ex);
+                found = null;
+            }
+
+            if (db != null)
+            {
+                db.Close();
+            }
+
+            return found;
         }
 
         /// <summary>

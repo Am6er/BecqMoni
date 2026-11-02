@@ -354,7 +354,7 @@ namespace MatrixAuditProbe
                 if (!quiet)
                 {
                     Console.WriteLine("{0,-38} {1,5} {2,6} {3,10} {4,5} {5,4} {6,7:F2}% {7,7:F2}% {8,5}",
-                                      Trim(name, 38), ResponseMatrix.FormatVersion, phys,
+                                      Trim(name, 38), fileFormat, phys,
                                       m.Histories, nodes, chans, med, worst, cone ? "да" : "нет");
                 }
 
@@ -596,14 +596,14 @@ namespace MatrixAuditProbe
             {
                 case MatrixRefusal.OldFormat:
                     return string.Format(CultureInfo.InvariantCulture,
-                                         "прежний формат {0}, эта сборка читает {1} — пересчитать",
-                                         fileFormat, ResponseMatrix.FormatVersion);
+                                         "прежний формат {0}, эта сборка читает {1} и {2} — пересчитать",
+                                         fileFormat, ResponseMatrix.CompatibleFormatVersion, ResponseMatrix.FormatVersion);
                 case MatrixRefusal.NotOurs:
                     return "не наш файл (нет метки BQRM)";
                 case MatrixRefusal.Unreadable:
                     return string.Format(CultureInfo.InvariantCulture,
                                          "формат {0} наш, а чтение оборвалось — обрубок",
-                                         ResponseMatrix.FormatVersion);
+                                         fileFormat);
                 case MatrixRefusal.NoFile:
                     return "файла нет";
                 default:

@@ -37,7 +37,7 @@ namespace BecquerelMonitor
             this.label5 = new System.Windows.Forms.Label();
             this.table1 = new XPTable.Models.Table();
             this.columnModel1 = new XPTable.Models.ColumnModel();
-            this.textColumn1 = new XPTable.Models.TextColumn();
+            this.textColumn1 = new BecquerelMonitor.LibraryNameColumn();
             this.textColumn2 = new XPTable.Models.NumberColumn();
             this.textColumn3 = new XPTable.Models.NumberColumn();
             this.tableModel1 = new XPTable.Models.TableModel();
@@ -310,7 +310,7 @@ namespace BecquerelMonitor
         private System.Windows.Forms.Label label5;
         private XPTable.Models.Table table1;
         private XPTable.Models.ColumnModel columnModel1;
-        private XPTable.Models.TextColumn textColumn1;
+        private BecquerelMonitor.LibraryNameColumn textColumn1;
         private XPTable.Models.NumberColumn textColumn2;
         private XPTable.Models.NumberColumn textColumn3;
         private XPTable.Models.TableModel tableModel1;

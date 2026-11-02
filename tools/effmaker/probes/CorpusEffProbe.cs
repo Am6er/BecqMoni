@@ -64,6 +64,12 @@ using System.Xml.Serialization;
 // как есть — те самые строки, что видит человек в окне «Посчитать из
 // геометрии», включая сводку разброса и предупреждение о шумной кривой.
 //
+// ⛔ (`AMBER274`, Н6 критика `critpt30` 02.11.2026) Гвард «кривая свежая» судит ещё и
+// ОТПЕЧАТОК ГЕОМЕТРИИ (`ResponseMatrix.GeometryFingerprint` — фотонная сцена со сдвигом
+// точки `srcoff`), который проба теперь пишет в узел, как приложение; и свежая кривая
+// больше не пропускает сцену целиком: `response\<guid>.rmx` сверяется с `<ключ>.rmx`
+// побайтно и при расхождении заменяется — с отметкой в печати и итогом.
+//
 // `--imp=0|1` (`E29`) — важностный розыгрыш точки вылета на пути КРИВОЙ,
 // ЯВНЫМ значением: оно сильнее автоматики в обе стороны. Без ключа — то, чем
 // считает приложение (`EfficiencyCalculation.ImportanceSamplingFor`, П43,
@@ -177,6 +183,7 @@ class CorpusEffProbe
         bool ok = true;
         int attached = 0;
         int skippedCurves = 0;
+        int responseRefreshed = 0;   // (Н6 `critpt30`) старых `response\<guid>.rmx` при свежей кривой
 
         Console.WriteLine("Привязка кривой и матрицы к спектрам понятной части (B1)");
         Console.WriteLine("кривая: {0:F0}-{1:F0} кэВ, {2} историй на узел; розыгрыш точки вылета: {3};"
@@ -253,13 +260,29 @@ class CorpusEffProbe
             // физики — не сойдётся сразу у всех, и пересчёт станет глобальным
             // сам, без ключа: ровно тот случай, ради которого глобальный и
             // нужен.
+            string staleWhy = null;
             if (!force && CurveIsCurrent(spectraDir, byGeometry[key], geometry, guid, options,
-                                         curveImportance))
+                                         curveImportance, out staleWhy))
             {
-                Console.WriteLine("   пропущена: клеймо и геометрия сошлись у всех её спектров");
+                Console.WriteLine("   пропущена: клеймо, геометрия и её отпечаток сошлись у всех её спектров");
+                // ⛔ (`AMBER274`, Н6 критика `critpt30` 02.11.2026) КРИВАЯ СВЕЖАЯ — НЕ ЗНАЧИТ
+                // «МАТРИЦА В response СВЕЖАЯ». Прежде пропуск кривой пропускал сцену ЦЕЛИКОМ, и
+                // матрица, пересчитанная после кривой (раздел электрона, откат Ф6), в
+                // `response\<guid>.rmx` не доезжала — разбор читал старую молча. Теперь
+                // `response` сверяется с `<ключ>.rmx` побайтно и при расхождении заменяется.
+                if (!SyncResponse(matrixPath, responseDir, key, guid, dry, ref responseRefreshed))
+                {
+                    ok = false;
+                }
+
                 Console.WriteLine();
                 skippedCurves++;
                 continue;
+            }
+
+            if (!force && staleWhy != null)
+            {
+                Console.WriteLine("   пересчёт : {0}", staleWhy);
             }
 
             Action<string> log = null;
@@ -310,6 +333,12 @@ class CorpusEffProbe
                 Geometry = geometry,
                 Curve = result.Curve,
                 ComputeStamp = result.ComputeStamp ?? "",
+                // (`AMBER274`, Н6 `critpt30`) Отпечаток геометрии, ДЛЯ КОТОРОЙ кривая посчитана
+                // (`ResponseMatrix.GeometryFingerprint`: фотонный текст сцены со строкой сдвига
+                // точки `srcoff`) — как его пишет приложение (`EfficiencyCalculation.Run` →
+                // `EfficiencyConfigData.GeometryFingerprint`). Без него гвард ниже не отличал
+                // кривую до сдвига точки от кривой после: текст `.in` у них один.
+                GeometryFingerprint = result.GeometryFingerprint ?? "",
                 UseResponseMatrix = true,
             };
 
@@ -371,7 +400,16 @@ class CorpusEffProbe
         }
         else if (skippedCurves == taken && taken > 0)
         {
-            Console.WriteLine("ничего не изменилось — пересчитывать было нечего");
+            Console.WriteLine(responseRefreshed == 0
+                                  ? "ничего не изменилось — пересчитывать было нечего"
+                                  : "кривые пересчитывать было нечего");
+        }
+
+        if (responseRefreshed > 0)
+        {
+            // (Н6 `critpt30`) не молча: число замен печатается итогом
+            Console.WriteLine("матриц в response при свежей кривой {0}: {1} (были старше `<ключ>.rmx`)",
+                              dry ? "БЫЛО БЫ заменено (--dry)" : "заменено", responseRefreshed);
         }
         if (noisyCurves > 0)
         {
@@ -410,8 +448,9 @@ class CorpusEffProbe
     /// </summary>
     static bool CurveIsCurrent(string spectraDir, List<string> spectra,
                                GeometryModel geometry, string guid,
-                               EfficiencyCalculationOptions options, bool importance)
+                               EfficiencyCalculationOptions options, bool importance, out string why)
     {
+        why = null;
         string want;
         try
         {
@@ -419,8 +458,18 @@ class CorpusEffProbe
         }
         catch (Exception)
         {
+            why = "геометрия сцены не отрисовывается";
             return false;
         }
+
+        // ⛔ (`AMBER274`, Н6 критика `critpt30` 02.11.2026) ОТПЕЧАТОК ГЕОМЕТРИИ — фотонный
+        // текст сцены СО СТРОКОЙ СДВИГА ТОЧКИ В КАПСУЛЕ (`srcoff`, Ф6), тот же, что несёт
+        // клеймо матрицы (`ResponseMatrix.GeometryFingerprint`). Текст `.in` (сверка ниже)
+        // сдвига не несёт: он выводится кодом из капсулы, и при Ф6 и при его откате файл
+        // сцены один — а кривая и матрица разные. Прежде гвард судил только текст `.in` и
+        // клеймо, и кривая, посчитанная до сдвига (или до его отката), считалась свежей.
+        string fingerprintWant = ResponseMatrix.GeometryFingerprint(geometry);
+        bool sceneHasOffset = !string.IsNullOrEmpty(ResponseMatrix.GeometryFingerprintBeforeSourceOffset(geometry));
 
         string physWant = "phys=" + ResponseMatrix.PhysicsVersion.ToString(CultureInfo.InvariantCulture) + ";";
         string histWant = "hist=" + options.Histories.ToString(CultureInfo.InvariantCulture) + ";";
@@ -430,17 +479,20 @@ class CorpusEffProbe
             string path = Path.Combine(spectraDir, spectrum + ".xml");
             if (!File.Exists(path))
             {
+                why = spectrum + ": спектра нет";
                 return false;
             }
 
             EfficiencyConfigData have = ReadNode(path);
             if (have == null || have.Geometry == null)
             {
+                why = spectrum + ": узла кривой нет";
                 return false;
             }
 
             if (!string.Equals(have.Guid, guid, StringComparison.OrdinalIgnoreCase))
             {
+                why = spectrum + ": guid кривой чужой";
                 return false;
             }
 
@@ -448,6 +500,7 @@ class CorpusEffProbe
             if (stamp.IndexOf(physWant, StringComparison.Ordinal) < 0
                 || stamp.IndexOf(histWant, StringComparison.Ordinal) < 0)
             {
+                why = spectrum + ": клеймо другой физики или другого числа историй";
                 return false;
             }
 
@@ -455,6 +508,7 @@ class CorpusEffProbe
             // включённым; кривая с другим розыгрышем — другая кривая.
             if ((stamp.IndexOf("imp=1", StringComparison.Ordinal) >= 0) != importance)
             {
+                why = spectrum + ": другой розыгрыш точки вылета";
                 return false;
             }
 
@@ -464,6 +518,7 @@ class CorpusEffProbe
             if ((stamp.IndexOf(EfficiencyCalculation.PeakWindowStamp, StringComparison.Ordinal) >= 0)
                 != EfficiencyCalculation.PeakWindowExpected(geometry))
             {
+                why = spectrum + ": прежнее определение пика";
                 return false;
             }
 
@@ -473,6 +528,7 @@ class CorpusEffProbe
             if ((stamp.IndexOf(EfficiencyCalculation.VesselStamp, StringComparison.Ordinal) >= 0)
                 != EfficiencyCalculation.VesselStampExpected(geometry))
             {
+                why = spectrum + ": прежняя сцена сосуда";
                 return false;
             }
 
@@ -480,16 +536,104 @@ class CorpusEffProbe
             {
                 if (!string.Equals(GeometryWriter.Render(have.Geometry), want, StringComparison.Ordinal))
                 {
+                    why = spectrum + ": геометрия в узле кривой не та, что у сцены";
                     return false;
                 }
             }
             catch (Exception)
             {
+                why = spectrum + ": геометрия в узле кривой не отрисовывается";
+                return false;
+            }
+
+            // (Н6) Отпечаток при кривой записан — он обязан совпасть с нынешним. Не записан
+            // (кривые этой пробы до 02.11.2026: она его не переносила) — кривая годна, только
+            // если у сцены сдвига точки НЕТ: тогда отпечаток без сдвига и есть нынешний, и
+            // сказать «кривая посчитана для другой сцены» нечем. Со сдвигом кривая без
+            // отпечатка — не доказана, пересчёт.
+            string fingerprintHave = have.GeometryFingerprint ?? "";
+            if (fingerprintHave.Length > 0)
+            {
+                if (!string.Equals(fingerprintHave, fingerprintWant, StringComparison.Ordinal))
+                {
+                    why = string.Format(CultureInfo.InvariantCulture,
+                                        "{0}: отпечаток геометрии при кривой {1}, у сцены {2} — кривая посчитана для другой фотонной сцены{3}",
+                                        spectrum, fingerprintHave, fingerprintWant,
+                                        string.Equals(fingerprintHave,
+                                                      ResponseMatrix.GeometryFingerprintBeforeSourceOffset(geometry),
+                                                      StringComparison.Ordinal)
+                                            ? " (до сдвига точки в капсуле, Ф6)" : "");
+                    return false;
+                }
+            }
+            else if (sceneHasOffset)
+            {
+                why = spectrum + ": отпечатка геометрии при кривой нет, а у сцены есть сдвиг точки в капсуле (srcoff) — "
+                      + "посчитана ли кривая с ним, не доказано";
                 return false;
             }
         }
 
-        return spectra.Count > 0;
+        if (spectra.Count == 0)
+        {
+            why = "у сцены нет спектров";
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// (`AMBER274`, Н6 критика `critpt30`) Матрица разбора `response\&lt;guid&gt;.rmx` — побайтно
+    /// `&lt;ключ&gt;.rmx` сцены. Нет её или она другая — заменяется копией (в `--dry` только
+    /// называется) и считается в <paramref name="refreshed"/>; нет `&lt;ключ&gt;.rmx` — отказ
+    /// (false), как у пути расчёта кривой.
+    /// </summary>
+    static bool SyncResponse(string matrixPath, string responseDir, string key, string guid, bool dry,
+                             ref int refreshed)
+    {
+        if (!File.Exists(matrixPath))
+        {
+            Console.WriteLine("   МАТРИЦЫ НЕТ ({0}) — сначала corpusmatrixprobe", matrixPath);
+            return false;
+        }
+
+        string target = Path.Combine(responseDir, guid + ".rmx");
+        string have = File.Exists(target) ? Sha256(target) : null;
+        string want = Sha256(matrixPath);
+        if (string.Equals(have, want, StringComparison.Ordinal))
+        {
+            Console.WriteLine("   матрица  : response\\{0}.rmx = {1}.rmx побайтно ({2})", guid, key, want.Substring(0, 12));
+            return true;
+        }
+
+        refreshed++;
+        Console.WriteLine("   ⚠ матрица: response\\{0}.rmx {1} — {2} копией {3}.rmx ({4})",
+                          guid, have == null ? "НЕТ" : "СТАРАЯ (" + have.Substring(0, 12) + ")",
+                          dry ? "БЫЛА БЫ заменена (--dry)" : "заменена", key, want.Substring(0, 12));
+        if (!dry)
+        {
+            Directory.CreateDirectory(responseDir);
+            File.Copy(matrixPath, target, true);
+        }
+
+        return true;
+    }
+
+    static string Sha256(string path)
+    {
+        using (SHA256 sha = SHA256.Create())
+        using (FileStream stream = File.OpenRead(path))
+        {
+            byte[] hash = sha.ComputeHash(stream);
+            var hex = new StringBuilder(64);
+            foreach (byte b in hash)
+            {
+                hex.Append(b.ToString("x2", CultureInfo.InvariantCulture));
+            }
+
+            return hex.ToString();
+        }
     }
 
     /// <summary>Узел `&lt;Efficiency&gt;` первой записи спектра; null, если его нет.</summary>

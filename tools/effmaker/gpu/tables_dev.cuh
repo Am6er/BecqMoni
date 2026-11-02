@@ -831,6 +831,64 @@ RM_DEVF int VacancyAfterPhoton(const RelaxationG& r, int shell, real lineKev, re
     return radFrom[t->radFromLen - 1];
 }
 
+// = MaterialDatabase.cs Relaxation.CosterKronig (`AMBER274`, физика 30, `ckv`): переход
+// Костера—Кронига вакансии `shell` на `toShell` (EADL: from = toShell, ejected = дырка) по
+// вероятностям — разностям накоплений augCum, как в C#. Ложь — таких переходов нет.
+RM_DEVF bool CosterKronig(const RelaxationG& r, int shell, int toShell, real u, real& kev, int& hole)
+{
+    kev = 0;
+    hole = 0;
+    const TransitionsG* t = TransitionsOf(r, shell);
+    if (t == nullptr || t->augCumLen == 0)
+    {
+        return false;
+    }
+
+    const real* augCum = RR(t->augCum);
+    const int* augFrom = II(t->augFrom);
+    real sum = (real)0.0;
+    real previous = (real)0.0;
+    for (int i = 0; i < t->augCumLen; i++)
+    {
+        if (augFrom[i] == toShell)
+        {
+            sum += augCum[i] - previous;
+        }
+
+        previous = augCum[i];
+    }
+
+    if (!(sum > (real)0.0))
+    {
+        return false;
+    }
+
+    real pick = u * sum;
+    real acc = (real)0.0;
+    int last = -1;
+    previous = (real)0.0;
+    for (int i = 0; i < t->augCumLen; i++)
+    {
+        real p = augCum[i] - previous;
+        previous = augCum[i];
+        if (augFrom[i] != toShell)
+        {
+            continue;
+        }
+
+        acc += p;
+        last = i;
+        if (pick < acc)
+        {
+            break;
+        }
+    }
+
+    kev = RR(t->augKev)[last];
+    hole = II(t->augEjected)[last];
+    return true;
+}
+
 // = MaterialDatabase.cs:1047 Relaxation.HasTransitions
 RM_DEV bool HasTransitions(const RelaxationG& r, int shell)
 {
@@ -1450,6 +1508,20 @@ RM_DEVF real YieldOf(const ElectronMaterialG& m, real energyKev)
     return ElectronData::LogLog(RR(m.Energy), ElectronLogOrNull(m.logsEnergy, m.logsEnergyLen),
                                 RR(m.Yield), ElectronLogOrNull(m.logsYield, m.logsYieldLen),
                                 m.EnergyLen, energyKev * (real)1e-3);
+}
+
+// = ElectronData.cs RadShareOf (`AMBER274`, физика 28) — доля радиационной тормозной; нет таблицы — 0.
+RM_DEVF real RadShareOf(const ElectronMaterialG& m, real energyKev)
+{
+    if (m.RadShareLen <= 0)
+    {
+        return 0;
+    }
+
+    real share = ElectronData::LogLog(RR(m.Energy), ElectronLogOrNull(m.logsEnergy, m.logsEnergyLen),
+                                      RR(m.RadShare), ElectronLogOrNull(m.logsRadShare, m.logsRadShareLen),
+                                      m.EnergyLen, energyKev * (real)1e-3);
+    return share < (real)1 ? share : (real)1;
 }
 
 // = ElectronData.cs:928 ElectronData.EnergyOfRange

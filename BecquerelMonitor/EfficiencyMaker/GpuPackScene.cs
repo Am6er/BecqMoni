@@ -96,6 +96,20 @@ namespace BecquerelMonitor.EfficiencyMaker
             // Объекты сцены, на которые ссылается `SceneG` (EfficiencySimulator.cs:1647-1657, 7683).
             reg.Add("electronMats", sim.electron);
             reg.Add("electronMats", sim.WaterTable());
+            // (`AMBER274`) Таблицы ESTAR капсулы точечного источника: кольцо и плёнка
+            // (`CapsuleExit` — тем же `CarryMedium`, что у симулятора).
+            GeometryMaterial ring, film;
+            CapsuleMaterials(sim, out ring, out film);
+            if (ring != null)
+            {
+                reg.Add("electronMats", sim.CarryMedium(ring));
+            }
+
+            if (film != null)
+            {
+                reg.Add("electronMats", sim.CarryMedium(film));
+            }
+
             reg.Add("brems", sim.bremTable);
             reg.Add("lightYields", sim.lightYield);
 
@@ -247,6 +261,22 @@ namespace BecquerelMonitor.EfficiencyMaker
                 w.Real(e.Z13);
                 w.Real(e.ZZ1);
                 w.Bool(e.Mott);
+                // (`AMBER274`, физика 29, `phys29b`) Поправка Мотта при Z > 30: признак и
+                // 30 коэффициентов R_eff (нули без признака — запись постоянной длины).
+                w.Bool(e.MottFit);
+                for (int k = 0; k < 30; k++)
+                {
+                    w.Real(e.MottFit ? e.MottCoef[k] : 0.0);
+                }
+
+                // (`AMBER274`, физика 30, `phys29c`) Часть множителя Z(Z+1) и узлы DPWA ядерной части (e⁻,
+                // e⁺): по 10 чисел на узел — ln T, ln a, c0…c4, жёсткое, мягкое, мажоранта (те же, что
+                // `DpwaElement`), и (n − 1)/(ln T_n − ln T_1). Нет узлов — пустой массив и ноль.
+                w.Int(e.Part);
+                w.Reals(DpwaNodesFlat(e.DpwaEl));
+                w.Real(e.DpwaEl != null ? e.DpwaEl.InvStep : 0.0);
+                w.Reals(DpwaNodesFlat(e.DpwaPos));
+                w.Real(e.DpwaPos != null ? e.DpwaPos.InvStep : 0.0);
                 w.End();
             }
 
@@ -332,7 +362,84 @@ namespace BecquerelMonitor.EfficiencyMaker
             w.Int(reg.Of("electronMats", sim.WaterTable()));
             w.Bool(sim.crystalHasPartials);
             w.Real(sim.CrystalRadiationLength());
+            // (`AMBER274`, Э1 + физика 28) Капсула точечного источника и воздух до корпуса —
+            // те же поля, что читает `EfficiencySimulator.CapsuleExit`.
+            GeometryMaterial ringMaterial, filmMaterial;
+            bool capsulePoint = CapsuleMaterials(sim, out ringMaterial, out filmMaterial);
+            w.Bool(capsulePoint);
+            w.Real(capsulePoint ? 0.5 * geometry.SourceCapsuleRingHeight : 0.0);
+            w.Real(capsulePoint ? 0.5 * geometry.SourceCapsuleRingInnerDiameter : 0.0);
+            w.Real(capsulePoint ? 0.5 * geometry.SourceCapsuleRingOuterDiameter : 0.0);
+            w.Int(ringMaterial != null ? reg.Of("electronMats", sim.CarryMedium(ringMaterial)) : -1);
+            w.Real(ringMaterial != null ? ringMaterial.Density : 0.0);
+            w.Real(capsulePoint ? geometry.SourceCapsuleThickness : 0.0);
+            w.Int(filmMaterial != null ? reg.Of("electronMats", sim.CarryMedium(filmMaterial)) : -1);
+            w.Real(filmMaterial != null ? filmMaterial.Density : 0.0);
+            w.Real(sim.pointAirCm);
+            w.Bool(sim.CapsuleAir);
             w.End();
+        }
+
+        /// <summary>
+        /// (`AMBER274`) Вещества капсулы точечного источника, которые прочтёт
+        /// <see cref="EfficiencySimulator.CapsuleExit"/>: кольцо (Al ОСГИ) — когда у сцены есть
+        /// кольцо, плёнка — когда у неё есть толщина и плотность. Возвращает, точечная ли сцена
+        /// без поля (у прочих капсулы нет вовсе).
+        /// </summary>
+        static bool CapsuleMaterials(EfficiencySimulator sim, out GeometryMaterial ring, out GeometryMaterial film)
+        {
+            ring = null;
+            film = null;
+            GeometryModel g = sim.geometry;
+            if (g == null || g.SourceType != GeometrySourceType.Point || g.Scene != GeometrySceneKind.None)
+            {
+                return false;
+            }
+
+            if (g.SourceCapsuleRingHeight > 0.0 && g.SourceCapsuleRingInnerDiameter > 0.0
+                && g.SourceCapsuleRingOuterDiameter > g.SourceCapsuleRingInnerDiameter)
+            {
+                ring = sim.CapsuleRingMaterial();
+            }
+
+            if (g.SourceCapsuleThickness > 0.0 && g.SourceCapsule != null && g.SourceCapsule.Density > 0.0)
+            {
+                film = g.SourceCapsule;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, физика 30, Ф1) Узлы DPWA элемента плоским массивом для ядра: по 10 чисел на узел —
+        /// ln T, ln a, c0…c4, жёсткое, мягкое, мажоранта (`ScatterElementG.DpwaEl`, sim_electron.cuh
+        /// `RefinedElasticStep`/`RefinedAngle`). null — узлов нет (ключ DPWA выключен или часть e–e).
+        /// </summary>
+        static double[] DpwaNodesFlat(EfficiencySimulator.DpwaElement d)
+        {
+            if (d == null)
+            {
+                return null;
+            }
+
+            int n = d.LnT.Length;
+            var flat = new double[10 * n];
+            for (int k = 0; k < n; k++)
+            {
+                int o = 10 * k;
+                flat[o] = d.LnT[k];
+                flat[o + 1] = d.LnA[k];
+                for (int j = 0; j < 5; j++)
+                {
+                    flat[o + 2 + j] = d.C[5 * k + j];
+                }
+
+                flat[o + 7] = d.Hard[k];
+                flat[o + 8] = d.Soft[k];
+                flat[o + 9] = d.Major[k];
+            }
+
+            return flat;
         }
     }
 }

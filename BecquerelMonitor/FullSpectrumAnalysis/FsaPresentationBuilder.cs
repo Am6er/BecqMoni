@@ -173,11 +173,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         // подпись «ряд X» (`S72`) читается по этому полю.
                         ChainRoot = layer.DecayChainRoot,
                         DecayChainRoot = layer.DecayChainRoot,
+                        // (`AMBER274`, Ф14) родитель — по сплошному спектру, если все члены такие
+                        BetaOnly = layer.BetaOnly,
                         Curve = new double[channels]
                     };
                     byRoot[layer.DecayChainRoot] = parent;
                     merged.Add(parent);
                 }
+
+                parent.BetaOnly &= layer.BetaOnly;
 
                 double[] curve = parent.Curve;
                 AddInto(ref curve, layer.Curve, channels);
@@ -189,6 +193,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     parent.SumPeakCurve = sums;
                 }
 
+                // (`AMBER286`) пики членов — под строку родителя, тем же движением, что подслой
+                AddLinesInto(parent, layer);
                 AddChannelsInto(parent, layer, channels);
                 parent.SharePercent += layer.SharePercent;
             }
@@ -254,6 +260,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         other.SumPeakCurve = sums;
                     }
 
+                    AddLinesInto(other, layer);
                     AddChannelsInto(other, layer, channels);
                     other.SharePercent += layer.SharePercent;
                 }
@@ -288,6 +295,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return ordered;
+        }
+
+        /// <summary>(`AMBER286`) Сумм-пики слагаемого — в список приёмника (записи общие, их никто не пишет).</summary>
+        static void AddLinesInto(FsaStackLayer target, FsaStackLayer source)
+        {
+            if (source.SumPeakLines == null || source.SumPeakLines.Count == 0)
+            {
+                return;
+            }
+
+            if (target.SumPeakLines == null)
+            {
+                target.SumPeakLines = new List<FsaSumPeakLine>();
+            }
+
+            target.SumPeakLines.AddRange(source.SumPeakLines);
         }
 
         static void AddInto(ref double[] target, double[] source, int channels)
@@ -339,6 +362,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (target.ChannelCurves == null)
             {
                 target.ChannelCurves = new double[source.ChannelCurves.Length][];
+            }
+            else if (target.ChannelCurves.Length < source.ChannelCurves.Length)
+            {
+                // ⛔ (`AMBER274`, `Д3`) Восьмой канал (бета пробы) у второго слагаемого при
+                // семи у первого — длину берёт большее, иначе канал теряется и Σ каналов
+                // расходится с лентой.
+                double[][] grown = target.ChannelCurves;
+                Array.Resize(ref grown, source.ChannelCurves.Length);
+                target.ChannelCurves = grown;
             }
 
             for (int c = 0; c < source.ChannelCurves.Length && c < target.ChannelCurves.Length; c++)
@@ -394,6 +426,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Swatch = FsaSwatchKind.Solid,
                     Color = presentation.ColorOf(layer.Name),
                     Layer = layer,
+                    BetaOnly = layer.BetaOnly,      // (`AMBER274`, Ф14)
                     // (`S174`, решение Amber 14.09.2026) Серый слой «континуум» —
                     // не компонент: у него нет нуклида и амплитуды, и человек,
                     // прочитавший «континуум 41 %», обязан узнать, ЧТО это.
@@ -435,6 +468,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Color = presentation.ColorOf(layer.Name),
                     Layer = layer
                 });
+
+                // (`AMBER286`) Под строкой нуклида — его ЗАМЕТНЫЕ сумм-пики поимённо, с
+                // отступом и по энергии. Решения Amber 02.11.2026 вопросником, дословно:
+                // «Под строкой нуклида — строки пиков (Рекомендую)», «Только заметные: видны
+                // на графике (Рекомендую)». Доля и здесь не печатается — только отсчёты
+                // самого пика: они уже внутри доли нуклида.
+                foreach (FsaSumPeakGroup group in SumPeakGroups(result, layer.SumPeakLines))
+                {
+                    if (group.Shown)
+                    {
+                        rows.Add(SumPeakLineRow(group, layer, presentation.ColorOf(layer.Name)));
+                    }
+                }
             }
 
             // 3. «Не обнаружен» с пределом обнаружения (S9): имя серым — у
@@ -450,7 +496,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                    limit.Kind == FsaComponentKind.Chain ? limit.Name : null,
                                    limit.TiedTo),
                     Value = LimitText(LimitSharePercent(result, limit.DetectionLimitPeakCounts)),
-                    Muted = true
+                    Muted = true,
+                    BetaOnly = limit.BetaOnly       // (`AMBER274`, Ф14)
                 });
             }
 
@@ -624,6 +671,181 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             });
 
             return rows;
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER286`) Строки сумм-пиков поимённо
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`AMBER286`) Порог заметности строки сумм-пика, в σ счёта измеренного спектра в окне
+        /// ±FWHM пика. Решение Amber 02.11.2026 вопросником, дословно: «Только заметные: видны на
+        /// графике (Рекомендую)»; три сигмы — постановка распорядителя по этому решению. σ — та
+        /// же, какой разбор судит значимость окна (`Σr/√ΣD` пиков вне состава и предупреждений
+        /// по полосе): `√ΣD` по каналам окна, `D` — дисперсия фита (<see cref="FsaResult.FitVariance"/>).
+        /// </summary>
+        public const double SumPeakMinSigmas = 3.0;
+
+        /// <summary>
+        /// (`AMBER286`) Сумм-пики слоя, сведённые в строки: пики, чьи центры ближе FWHM на этой
+        /// энергии, — одна строка (решение того же дня: «пики одной энергии в пределах FWHM —
+        /// одной строкой, все пары — в подсказке»); порядок — по энергии. У каждой группы —
+        /// площадь, средневзвешенные энергия и место, σ окна и признак «заметна»
+        /// (<see cref="FsaSumPeakGroup.Shown"/>: площадь ≥ <see cref="SumPeakMinSigmas"/>·σ).
+        ///
+        /// Слияние — жадное по возрастанию канала: пик входит в группу, если от её
+        /// средневзвешенного центра до него меньше средневзвешенной FWHM группы. Сравнение
+        /// с центром, а не с соседом, нарочно: цепочка пиков через 0.9 FWHM иначе слилась бы в
+        /// одну строку шириной во много FWHM.
+        ///
+        /// Пусто — пиков нет, ни один не лёг в полосу фита либо у результата нет дисперсии
+        /// (<see cref="FsaResult.FitVariance"/> не заполнена — заметность судить нечем, и строки
+        /// без неё не ставятся). Открыт пробе: приёмка судит ТЕ ЖЕ группы, что таблица.
+        /// </summary>
+        public static List<FsaSumPeakGroup> SumPeakGroups(FsaResult result, IList<FsaSumPeakLine> lines)
+        {
+            var groups = new List<FsaSumPeakGroup>();
+            double[] variance = result != null ? result.FitVariance : null;
+            if (lines == null || lines.Count == 0 || variance == null)
+            {
+                return groups;
+            }
+
+            int first = Math.Max(0, result.FirstChannel);
+            int last = Math.Min(result.LastChannel, variance.Length - 1);
+            var inBand = new List<FsaSumPeakLine>(lines.Count);
+            foreach (FsaSumPeakLine line in lines)
+            {
+                if (line != null && line.Counts > 0.0 && line.FwhmChannels > 0.0
+                    && !double.IsInfinity(line.Counts) && !double.IsInfinity(line.FwhmChannels)
+                    && line.Channel >= first && line.Channel <= last)
+                {
+                    inBand.Add(line);
+                }
+            }
+
+            // Устойчивый порядок: по каналу, затем по сумме квантов.
+            var order = new int[inBand.Count];
+            for (int k = 0; k < order.Length; k++)
+            {
+                order[k] = k;
+            }
+
+            Array.Sort(order, (x, y) =>
+            {
+                int c = inBand[x].Channel.CompareTo(inBand[y].Channel);
+                if (c == 0)
+                {
+                    c = inBand[x].SumKev.CompareTo(inBand[y].SumKev);
+                }
+
+                return c != 0 ? c : x.CompareTo(y);
+            });
+
+            FsaSumPeakGroup open = null;
+            foreach (int k in order)
+            {
+                FsaSumPeakLine line = inBand[k];
+                if (open != null && line.Channel - open.Channel < open.FwhmChannels)
+                {
+                    open.Add(line);
+                    continue;
+                }
+
+                open = new FsaSumPeakGroup();
+                open.Add(line);
+                groups.Add(open);
+            }
+
+            foreach (FsaSumPeakGroup group in groups)
+            {
+                int from = (int)Math.Floor(group.Channel - group.FwhmChannels);
+                int to = (int)Math.Ceiling(group.Channel + group.FwhmChannels);
+                double sum = 0.0;
+                for (int i = Math.Max(from, first); i <= Math.Min(to, last); i++)
+                {
+                    if (variance[i] > 0.0)
+                    {
+                        sum += variance[i];
+                    }
+                }
+
+                group.FirstChannel = Math.Max(from, first);
+                group.LastChannel = Math.Min(to, last);
+                group.Sigma = Math.Sqrt(sum);
+                group.Shown = group.Sigma > 0.0 && group.Counts >= SumPeakMinSigmas * group.Sigma;
+                group.Lines.Sort((x, y) =>
+                {
+                    int c = y.Counts.CompareTo(x.Counts);
+                    return c != 0 ? c : x.SumKev.CompareTo(y.SumKev);
+                });
+            }
+
+            return groups;
+        }
+
+        /// <summary>
+        /// (`AMBER286`) Строка группы: «Σ 1065 кэВ = 795.0 + 270.2 | N отсч.»; у слитой —
+        /// сильнейшая пара и «и ещё k». Отступ под строкой нуклида — признаком
+        /// <see cref="FsaReportRow.Indent"/> (рисует окно). Подсказка — все пары группы с
+        /// нуклидом, суммой и отсчётами, и порог заметности числом. Числа — инвариантной
+        /// культурой (`A242`), группировки разрядов нет (`A244`).
+        /// </summary>
+        static FsaReportRow SumPeakLineRow(FsaSumPeakGroup group, FsaStackLayer layer, Color color)
+        {
+            FsaSumPeakLine strongest = group.Lines[0];
+            string pairs = PairText(strongest);
+            if (group.Lines.Count > 1)
+            {
+                pairs = string.Format(CultureInfo.InvariantCulture, Resources.FSASumPeakLineMore,
+                                      pairs, group.Lines.Count - 1);
+            }
+
+            var hint = new List<string>(group.Lines.Count + 1);
+            foreach (FsaSumPeakLine line in group.Lines)
+            {
+                hint.Add(string.Format(CultureInfo.InvariantCulture, Resources.FSASumPeakLineHintPair,
+                                       string.IsNullOrEmpty(line.Nuclide) ? FsaPalette.DisplayName(layer.Name) : line.Nuclide,
+                                       PairText(line),
+                                       line.SumKev.ToString("f1", CultureInfo.InvariantCulture),
+                                       line.Counts.ToString("f0", CultureInfo.InvariantCulture)));
+            }
+
+            hint.Add(string.Format(CultureInfo.InvariantCulture, Resources.FSASumPeakLineHintSigma,
+                                   (SumPeakMinSigmas * group.Sigma).ToString("f0", CultureInfo.InvariantCulture)));
+
+            return new FsaReportRow
+            {
+                Kind = FsaReportRowKind.SumPeakLine,
+                Name = string.Format(CultureInfo.InvariantCulture, Resources.FSASumPeakLineRow,
+                                     group.EnergyKev.ToString("f0", CultureInfo.InvariantCulture), pairs),
+                Value = string.Format(CultureInfo.InvariantCulture, Resources.FSASumPeakLineCounts,
+                                      group.Counts.ToString("f0", CultureInfo.InvariantCulture)),
+                Swatch = FsaSwatchKind.None,
+                Color = color,
+                Layer = layer,
+                Indent = 1,
+                Hint = string.Join(Environment.NewLine, hint.ToArray())
+            };
+        }
+
+        /// <summary>(`AMBER286`) «795.0 + 270.2» (тройная — тремя слагаемыми), кэВ с десятыми.</summary>
+        public static string PairText(FsaSumPeakLine line)
+        {
+            if (!(line.FromKev > 0.0) || !(line.WithKev > 0.0))
+            {
+                // пара не названа (суммирователь без разбора пар) — только сумма
+                return line.SumKev.ToString("f1", CultureInfo.InvariantCulture);
+            }
+
+            string text = line.FromKev.ToString("f1", CultureInfo.InvariantCulture)
+                          + " + " + line.WithKev.ToString("f1", CultureInfo.InvariantCulture);
+            if (line.ThirdKev > 0.0)
+            {
+                text += " + " + line.ThirdKev.ToString("f1", CultureInfo.InvariantCulture);
+            }
+
+            return text;
         }
 
         /// <summary>

@@ -184,6 +184,30 @@
   <data name="crystalMaterialNotSet" xml:space="preserve">
     <value>(не задано)</value>
   </data>
+  <data name="crystalFromGeometryQuestion" xml:space="preserve">
+    <value>У геометрии кристалл {0}, у прибора — {1}. Сделать {0} веществом прибора?</value>
+  </data>
+  <data name="crystalFromGeometryChoiceTitle" xml:space="preserve">
+    <value>Вещество кристалла</value>
+  </data>
+  <data name="crystalFromGeometryChoicePrompt" xml:space="preserve">
+    <value>У геометрий кривых эффективности этого прибора разные кристаллы. Какой из них сделать веществом кристалла прибора?</value>
+  </data>
+  <data name="crystalFromGeometryChoiceItem" xml:space="preserve">
+    <value>{0} (кривые: {1})</value>
+  </data>
+  <data name="crystalFromGeometryChoiceTake" xml:space="preserve">
+    <value>Взять выбранный</value>
+  </data>
+  <data name="crystalFromGeometryChoiceLeave" xml:space="preserve">
+    <value>Оставить не заданным</value>
+  </data>
+  <data name="EfficiencyCurveBeforeSourceOffset" xml:space="preserve">
+    <value>Кривая эффективности посчитана прежней версией программы — до того, как точку источника в капсуле отодвинули от корпуса на {0} мм; саму геометрию не правили. Пересчитайте кривую.</value>
+  </data>
+  <data name="GeometryEditorBeakerFarEndWall" xml:space="preserve">
+    <value>Стенка сосуда с дальнего торца</value>
+  </data>
   <data name="tractCurvatureLabel.Size" type="System.Drawing.Size, System.Drawing">
     <value>93, 13</value>
   </data>

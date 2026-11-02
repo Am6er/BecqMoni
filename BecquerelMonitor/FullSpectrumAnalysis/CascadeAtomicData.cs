@@ -1214,10 +1214,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // канала в таблице ЕСТЬ, и без неё принадлежность гаммы ветви
                 // решал порядок строк, которого запрос без `order by` вообще не
                 // обещает: у SQLite он свойство плана, а не данных.
+                // ⛔ (`AMBER274`, `f8diag`) Строка-предел (`LT`/`LE`) — не выход, тем же
+                // довеском, что у библиотеки (`DecayParentRule.NotLimitClause`): иначе
+                // сумматор и библиотека разошлись бы в составе (`S89`).
                 command.CommandText =
                     "select type_a, type_c, energy_num, intensity_num, dec_type"
                     + " from decay_radiations"
                     + " where parent_nucid = $n and intensity_num > 0"
+                    + DecayParentRule.NotLimitClause
                     + DecayParentRule.LevelClause
                     + " order by dr_pk";
                 command.Parameters.AddWithValue("$n", nucid);

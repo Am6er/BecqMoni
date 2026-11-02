@@ -115,12 +115,40 @@ K-края в переносе выходит ступенькой ВВЕРХ, �
 элементам). Ниже 1 кэВ интеграл доводится членом l(S(1 кэВ))·1 кэВ — перенос
 электроны ниже 1 кэВ всё равно не различает.
 
-Кривые LaBr3:Ce и CeBr3 не считаются: у NIST ESTAR нет этих соединений в
-списке готовых, а мешать элементные тормозные аддитивностью Брэгга без
-проверки не стал — параметры лежат в таблице, кривая появится вместе с
-тормозной (строка в TODO).
+Кривые соединений БЕЗ таблицы NIST (LaBr3:Ce, CeBr3, SrI2, GAGG) здесь НЕ считаются, а
+берутся ГОТОВЫМИ рядами (`AMBER272`, полоса `dbdata`, 02.11.2026; решение Amber 29.10.2026
+вопросником, дословно: «Записать и пересчитать склад»): тормозная у них — счёт ESTAR из базы
+по составу (`EstarCalculator.Stopping`, C#), и ряд — табличная форма той самой кривой, что
+перенос строит в коде (`MaterialDatabase.LightYieldPayne` с η базы, без продолжения ниже 1 кэВ
+и обрыва, `computedStopping`), снятая пробой `LightTablesDbProbeA272 --electron-out=` в
+`data/electron_light/<вещество>.tsv` (G17 — круговая запись double; «R» в .NET 4.8 не всегда
+круговой). Числа берутся ТЕКСТОМ (`float(text)` — тот же double). Ряд зависит от строк
+`scint_npsm_params`, поэтому новое вещество пишется в два шага: `--without-ready` (параметры;
+прежние готовые ряды сохраняются как были), сборка, проба, полный прогон.
 
-    python import_light_yield.py <matdb.sqlite>
+⚠ Эти ряды — вход только абляции `--kdip=0`: штатный перенос (`kdip=1`) кривую электронов
+считает в коде из `scint_npsm_params`. Но таблица входит в отпечаток переноса (`mdb=`
+клейма ВСЕХ матриц и кривых, `MaterialDatabase.SimulatorTables`): строка любого вещества
+меняет клеймо всего склада — пересчёт склада и переобъявление базы (решение Amber
+29.10.2026 «Записать и пересчитать склад»).
+
+SrI2 (решение Amber 29.10.2026, дословно: «SrI2(Eu), Payne 2009 (Рекомендую)»): Payne et al.,
+IEEE TNS 56 (2009) 2506, табл. I, SrI2(Eu): (dE/dx)Ons 27.8 МэВ/см, η 22 %, (dE/dx)Birks
+526 МэВ/см (ρ 4.6, I 0.513 кэВ). Модель части I — без члена ловушек (при S_Trap 0 форма базы
+сводится к ур. 9 части I дословно) и со СВОИМ S_Ons, поэтому у строки свой
+`dedx_ons_mev_cm`, а не общий 36.4. ⚠ Подгонка части I шла с тормозной Бете — Блоха c = 2.8,
+перенос считает ESTAR по составу — параметры взяты как опубликованы, без перекалибровки.
+GAGG (решение Amber 29.10.2026, дословно: «Kole & De Angelis (Рекомендую)»): Kole & De Angelis,
+arXiv:2510.02920v2 (NIM A 1084 (2026) 171206), закон Биркса по рентгену 20–80 кэВ, kB 0.075 мм/МэВ
+→ в форме Пейна η 0, S_Trap 0, S_Birks = 1/kB = 133.33 МэВ/см (S_Ons при η 0 не работает —
+общий 36.4). ⛔ С 02.11.2026 (полоса `dbdata2`) эта строка — история (`is_default 0`): в модели базы
+(гашение по средней тормозной вдоль трека CSDA) kB Kole даёт σ_nPR 9.59 % против 2.4–3.0 %. Решение Amber
+02.11.2026 вопросником, дословно: «Подогнать в нашей модели (Рекомендую)» — η и S_Birks подогнаны сквозь
+перенос (коэффициенты `LightFitP200 --jac`) к форме Kole рис. 2 и к σ_nPR вместе; строка
+`dbdata2_fit_kole2025_campana2023`, журнал `handover/handover-2026-11-02-amber274-dbdata2.md`.
+
+    python import_light_yield.py <matdb.sqlite>                   # всё, готовые ряды обязательны
+    python import_light_yield.py <matdb.sqlite> --without-ready   # шаг 1 нового вещества
 """
 import math
 import os
@@ -174,6 +202,23 @@ PARAMS = [
      "таблица II, интерполяция 0/+40 C: Birks 440/490, Trap 0, eta 18 %"),
     ("CeBr3", "payne2014_tableII_20C", 1, 20.0, 0.345, 20.0, 132.5,
      "таблица II, интерполяция 0/+40 C: Birks 128/137, Trap 20/20, eta 34.5 %"),
+    # (`AMBER272`, 02.11.2026) девятый элемент строки — свой S_Ons (иначе DEDX_ONS)
+    ("SrI2", "payne2009_tableI_SrI2Eu", 1, 20.0, 0.22, 0.0, 526.0,
+     "Payne et al., IEEE TNS 56 (2009) 2506, табл. I, SrI2(Eu): (dE/dx)Ons 27.8, eta 22 %, (dE/dx)Birks 526 "
+     "МэВ/см, rho 4.6, I 0.513 кэВ; модель части I без ловушек, тормозная Бете-Блоха c=2.8; решение Amber "
+     "29.10.2026 'SrI2(Eu), Payne 2009'", 27.8),
+    # (`AMBER272`, полоса `dbdata2`, 02.11.2026) подгонка в модели базы: форма Kole & De Angelis рис. 2
+    # (25.7-75.7 кэВ) и σ_nPR 2.4-3.0 % (Breitenmoser табл. 4.1 по Campana et al.) ВМЕСТЕ — решение Amber
+    # 02.11.2026 вопросником «Подогнать в нашей модели (Рекомендую)»; строка Kole — история (is_default 0)
+    ("GAGG", "dbdata2_fit_kole2025_campana2023", 1, 20.0, 0.656, 0.0, 70.1,
+     "AMBER272 dbdata2 02.11.2026: eta/S_Birks (S_Ons 36.4, S_Trap 0.0) сквозь перенос физики 29 по форме Kole & "
+     "De Angelis arXiv:2510.02920 рис. 2 (25.7-75.7 кэВ, СКО 0.75 %) и sigma_nPR 2.70 % (цель 2.4-3.0 %, Breitenmoser "
+     "табл. 4.1 по Campana et al., NIM A 1056 (2023)); kB Kole 0.075 мм/МэВ в модели базы давал 9.59 %; решение Amber "
+     "02.11.2026 'Подогнать в нашей модели'"),
+    ("GAGG", "kole2025_birks_xray", 0, 20.0, 0.0, 0.0, 1.0 / 0.0075,
+     "Kole & De Angelis, arXiv:2510.02920v2 (NIM A 1084 (2026) 171206): закон Биркса по рентгену 20-80 кэВ, "
+     "kB 0.075 мм/МэВ (лучшие 70-80 мкм/МэВ; 72 при Ga:Al 2.4:2.6) -> eta 0, Trap 0, Birks 1/kB; решение Amber "
+     "29.10.2026 'Kole & De Angelis'"),
 ]
 
 # материал кривой -> (файл ESTAR, star_materials.id)
@@ -183,7 +228,31 @@ CURVES = {
     "NaI:Tl": ("estar_252_nai.txt", 252),
 }
 
+# (`AMBER272`, 02.11.2026) вещество без таблицы NIST -> готовый ряд кривой электронов
+READY = {
+    "LaBr3:Ce": "LaBr3_Ce.tsv",
+    "CeBr3": "CeBr3.tsv",
+    "SrI2": "SrI2.tsv",
+    "GAGG": "GAGG.tsv",
+}
+
 NORM_KEV = 661.657
+
+
+def read_ready(path):
+    """Ряд «energy_kev<TAB>yield_rel» (шапка `#`); число — текстом записи."""
+    rows = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or line.startswith("energy_kev"):
+                continue
+            e, y = line.split("\t")
+            rows.append((float(e), float(y)))
+    if len(rows) < 2 or any(b[0] <= a[0] for a, b in zip(rows, rows[1:])) \
+            or any(not (y > 0.0) or math.isinf(y) for _, y in rows):
+        raise SystemExit("готовый ряд негоден: %s" % path)
+    return rows
 
 
 # ---------------------------------------------------------------- ESTAR
@@ -276,9 +345,20 @@ def build_curve(estar_rows, density, eta, trap, birks):
 # ---------------------------------------------------------------- база
 
 def main():
-    if len(sys.argv) != 2:
+    args = sys.argv[1:]
+    without_ready = "--without-ready" in args
+    args = [a for a in args if a != "--without-ready"]
+    if len(args) != 1:
         raise SystemExit(__doc__)
-    db = sqlite3.connect(sys.argv[1])
+    db = sqlite3.connect(args[0])
+    kept = []
+    if without_ready:
+        # шаг 1 нового вещества: прежние готовые ряды (если есть) остаются как были
+        try:
+            kept = db.execute("select material, energy_kev, yield_rel from scint_electron_light_yield"
+                              " where material in (%s)" % ",".join("?" * len(READY)), sorted(READY)).fetchall()
+        except sqlite3.OperationalError:
+            kept = []
     cur = db.cursor()
 
     cur.executescript("""
@@ -315,10 +395,12 @@ def main():
         ) without rowid;
     """)
 
-    for mat, source, default, temp, eta, trap, birks, note in PARAMS:
+    for row in PARAMS:
+        mat, source, default, temp, eta, trap, birks, note = row[:8]
+        ons = row[8] if len(row) > 8 else DEDX_ONS
         cur.execute(
             "insert into scint_npsm_params values (?,?,?,?,?,?,?,?,?)",
-            (mat, source, default, temp, eta, DEDX_ONS, trap, birks, note))
+            (mat, source, default, temp, eta, ons, trap, birks, note))
 
     stored_star = set()
     for mat, (fname, star_id) in sorted(CURVES.items()):
@@ -352,6 +434,25 @@ def main():
               % (mat, peak[1], peak[0], at(3), at(10), at(60), at(100), at(3000)))
         if not (1.0 < peak[1] < 1.6 and 3.0 <= peak[0] <= 300.0):
             raise SystemExit("кривая %s не похожа на щёлочно-галоидную" % mat)
+
+    if without_ready:
+        cur.executemany("insert into scint_electron_light_yield values (?,?,?)", kept)
+        print("готовые ряды не тронуты (--without-ready): строк %d" % len(kept))
+    else:
+        for mat, fname in sorted(READY.items()):
+            if not any(p[0] == mat and p[2] == 1 for p in PARAMS):
+                raise SystemExit("готовый ряд %s без строки параметров по умолчанию" % mat)
+            curve = read_ready(os.path.join(HERE, "data", "electron_light", fname))
+            norm = interp_loglog([p[0] for p in curve], [p[1] for p in curve], NORM_KEV)
+            if abs(norm - 1.0) > 1e-3:
+                raise SystemExit("готовый ряд %s не нормирован на 661.657 кэВ: %.6f" % (mat, norm))
+            cur.executemany("insert into scint_electron_light_yield values (?,?,?)",
+                            [(mat, e, y) for e, y in curve])
+            xs = [p[0] for p in curve]
+            ys = [p[1] for p in curve]
+            print("%-8s готовый ряд %s: %d узлов; 3 кэВ %.3f, 10 кэВ %.3f, 60 кэВ %.3f, 100 кэВ %.3f, 3 МэВ %.3f"
+                  % (mat, fname, len(curve), interp_loglog(xs, ys, 3), interp_loglog(xs, ys, 10),
+                     interp_loglog(xs, ys, 60), interp_loglog(xs, ys, 100), interp_loglog(xs, ys, 3000)))
 
     db.commit()
     for row in cur.execute(

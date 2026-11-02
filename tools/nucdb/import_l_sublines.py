@@ -68,11 +68,20 @@ K-вакансий, ни сопоставленной конверсии, и к�
 уже стоит у всех читателей: `FsaSampleLibrary.DecayLines` (`AMBER68`), редактор базы
 (`NucBaseFramework`: сводная получает пометку ∑ и галочку снятой), оснастка корпуса
 (`chains.drop_superseded_l`). Так выбор обратим (`--apply` снимает свои строки и пишет
-заново) и не путает провенанс: свои строки — `dr_pk` от `OWN_PK_BASE` (200001).
+заново) и не путает провенанс: свои строки — `dr_pk` от `OWN_PK_BASE` (200001) до `OWN_PK_END`
+(300000, не включая). ⛔ (`AMBER274`, полоса `dbdata`, 02.11.2026) Верхней границы до того НЕ БЫЛО:
+`--apply` снимал всё от 200001, а с 01.11.2026 там же, от 300001, лежат строки LNHB
+`tools/nucdb/correct_lnhb.py` — ВЕСЬ набор ветвей β⁻ шести нуклидов (Pa-234m, Ac-228, Cs-137, K-40,
+Pb-212, Bi-214) и добавленные гамма-линии. Замер на копии базы: повторный `--apply` снёс 163 строки
+LNHB, у Ac-228 не осталось ни одной ветви β⁻ — молча, отпечаток судил только строки ниже 200001.
+Теперь отпечаток «чужих» строк — всё вне своего диапазона, и снятие — только своё.
 
 ПОРЯДОК. Конверсия считается по ВСЕМ гамма-строкам базы, включая добранные
-`import_weak_gammas.py` (у Am-241 33.2 кэВ — 0.126 % γ при α = 185, это 17 % L-вакансий):
-сперва добор слабых линий, потом этот скрипт. `import_weak_gammas.py --apply` своих строк
+`import_weak_gammas.py` (у Am-241 33.2 кэВ — 0.126 % γ при α = 185, это 17 % L-вакансий) и строки
+LNHB `correct_lnhb.py`: сперва добор слабых линий, потом правка по LNHB, потом этот скрипт
+(`AMBER274`, полоса `dbdata2`, 02.11.2026: подлинии пересчитаны у всех по базе после снятия пределов
+ENSDF — решение Amber «Пересчитать у всех (Рекомендую)»; сравнивать прогоны — по содержимому, не по
+`dr_pk`: вставка строки сдвигает номера всех следующих). `import_weak_gammas.py --apply` своих строк
 этого скрипта не трогает (снимает только `dr_pk` от 100001 до 199999).
 
 ⛔ ЗАПИСЬ — ПО РЕШЕНИЮ AMBER 01.10.2026 ВОПРОСНИКОМ, дословно: «Разрешаю писать агенту»
@@ -98,6 +107,7 @@ DEFAULT_MATDB = os.path.join(ROOT, "BecquerelMonitor", "matdb.sqlite")
 DEFAULT_SCHEMEDB = os.path.join(ROOT, "BecquerelMonitor", "schemedb.sqlite")
 
 OWN_PK_BASE = 200001     # dr_pk своих строк; у добора слабых гамм — 100001…199999
+OWN_PK_END = 300000      # не включая: от 300001 — строки LNHB `correct_lnhb.py` (`AMBER274`)
 WEAK_PK_BASE = 100001    # строки ниже — поставка
 MIN_KEV = 1.0            # строка `L` ниже — не раскладывается (Z < 30, приборы не видят)
 MIN_SHARE = 0.002        # линия слабее этой доли суммы L — не пишется (остальные нормируются)
@@ -544,7 +554,8 @@ def plan(nuc, mat, sch):
 def fingerprint(con):
     h = hashlib.sha256()
     n = 0
-    for row in con.execute("select * from decay_radiations where dr_pk < ? order by dr_pk", (OWN_PK_BASE,)):
+    for row in con.execute("select * from decay_radiations where dr_pk < ? or dr_pk >= ? order by dr_pk",
+                           (OWN_PK_BASE, OWN_PK_END)):
         h.update(repr(row).encode("utf-8"))
         n += 1
     return n, h.hexdigest()[:16]
@@ -559,6 +570,8 @@ def main():
     p.add_argument("--list", default="", help=u"родители через запятую — построчно")
     p.add_argument("--corpus", action="store_true", help=u"сводка по нуклидам корпуса")
     p.add_argument("--all-skipped", action="store_true", help=u"печатать все пропуски")
+    p.add_argument("--retired", default=None, help=u"реестр снятых dr_pk (по умолчанию: дерева для базы дерева, "
+                                                     u"иначе <база>.retired.tsv) — `dr_pk_ledger.py`")
     a = p.parse_args()
 
     nuc = connect(a.nucdb, a.apply)
@@ -566,10 +579,11 @@ def main():
     sch = connect(a.schemedb)
     w(u"nucdb: %s (%s)", a.nucdb, u"ЗАПИСЬ" if a.apply else u"mode=ro, без записи")
     n0, fp0 = fingerprint(nuc)
-    own0 = nuc.execute("select count(*) from decay_radiations where dr_pk >= ?", (OWN_PK_BASE,)).fetchone()[0]
+    own0 = nuc.execute("select count(*) from decay_radiations where dr_pk >= ? and dr_pk < ?",
+                       (OWN_PK_BASE, OWN_PK_END)).fetchone()[0]
     sup = nuc.execute("select count(*) from decay_radiations where dr_pk < ?", (WEAK_PK_BASE,)).fetchone()[0]
-    w(u"строк ниже dr_pk %d (поставка %d + добор слабых γ %d): отпечаток %s; своих строк до прогона: %d",
-      OWN_PK_BASE, sup, n0 - sup, fp0, own0)
+    w(u"строк вне своих dr_pk %d…%d (поставка %d + добор слабых γ и строки LNHB %d): отпечаток %s; своих строк до прогона: %d",
+      OWN_PK_BASE, OWN_PK_END - 1, sup, n0 - sup, fp0, own0)
 
     rows, report, skipped = plan(nuc, mat, sch)
     nl = nuc.execute("select count(*) from decay_radiations where type_a = 'X' and type_c = 'L' and dr_pk < ?",
@@ -642,28 +656,44 @@ def main():
         w(u"⛔ ЗАПИСИ НЕ БЫЛО: база открыта `mode=ro`, ключ `--apply` не назван.")
         return 0
 
+    # ⛔ (`AMBER281`, полоса `dbdata2`, 02.11.2026) Номер строки НЕ перенумеровывается: решение Amber 02.11.2026,
+    # дословно: «в изотоп добавляй строку из базы (индекс) чтобы быть точно уверенным в будущем». Лежащая строка
+    # с тем же естественным ключом (родитель, уровень, канал, переход; повтор ключа — по порядку) правится на
+    # месте, новая получает номер выше наибольшего занятого или снятого в диапазоне, снятая уходит в реестр
+    # снятых (`dr_pk_ledger.py`). Прежде диапазон снимался и вставлялся заново подряд — вставка одной строки
+    # сдвигала номера всех следующих.
+    if HERE not in sys.path:
+        sys.path.insert(0, HERE)
+    import dr_pk_ledger as ledger
+    retired_path = ledger.retired_path_for(a.nucdb, a.retired)
+    retired = ledger.read_retired(retired_path)
+    planned = []
+    for plseq, pnucid, code, name, e, y in sorted(rows, key=lambda r: (r[1], r[0] if r[0] is not None else -1, r[2], r[4])):
+        planned.append(((pnucid, plseq, code, name), (plseq, pnucid, code, 'X', name, num_text(y), None,
+                        float(num_text(y)), float(energy_text(e)), energy_text(e), None, None, None)))
+    existing = nuc.execute("select %s, dr_pk from decay_radiations where dr_pk >= ? and dr_pk < ? order by dr_pk"
+                           % ", ".join(ledger.COLUMNS), (OWN_PK_BASE, OWN_PK_END)).fetchall()
+    key = lambda r: (r[1], r[0], r[2], r[4])
+    keep, upd, ins, dele = ledger.sync(nuc, existing, planned, key, OWN_PK_BASE, OWN_PK_END - 1, retired)
+    w(u"номера dr_pk: сохранено %d (из них правлено на месте %d), заведено %d (с %s), снято %d",
+      len(keep) + len(upd), len(upd), len(ins), ins[0][0] if ins else u"—", len(dele))
     cur = nuc.cursor()
     cur.execute("BEGIN")
     try:
-        cur.execute("delete from decay_radiations where dr_pk >= ?", (OWN_PK_BASE,))
-        for k, (plseq, pnucid, code, name, e, y) in enumerate(sorted(rows, key=lambda r: (r[1], r[0] if r[0] is not None else -1, r[2], r[4]))):
-            cur.execute(
-                "insert into decay_radiations (parent_l_seqno, parent_nucid, dec_type, type_a, type_c, intensity,"
-                " intensity_unc, intensity_num, energy_num, energy, energy_unc, endpoint, endpoint_unc, dr_pk)"
-                " values (?, ?, ?, 'X', ?, ?, null, ?, ?, ?, null, null, null, ?)",
-                (plseq, pnucid, code, name, num_text(y), float(num_text(y)), float(energy_text(e)), energy_text(e),
-                 OWN_PK_BASE + k))
+        ledger.execute(cur, upd, ins, dele)
         n1, fp1 = fingerprint(nuc)
         if (n1, fp1) != (n0, fp0):
-            raise RuntimeError(u"строки ниже %d изменились: %d/%s → %d/%s" % (OWN_PK_BASE, n0, fp0, n1, fp1))
-        own1 = cur.execute("select count(*) from decay_radiations where dr_pk >= ?", (OWN_PK_BASE,)).fetchone()[0]
+            raise RuntimeError(u"строки вне своих dr_pk изменились: %d/%s → %d/%s" % (n0, fp0, n1, fp1))
+        own1 = cur.execute("select count(*) from decay_radiations where dr_pk >= ? and dr_pk < ?",
+                           (OWN_PK_BASE, OWN_PK_END)).fetchone()[0]
         nuc.commit()
     except Exception:
         nuc.rollback()
         raise
+    n_ret = ledger.append_retired(retired_path, dele, u"import_l_sublines.py: подлиния не выходит пересчётом")
     integrity = nuc.execute("PRAGMA integrity_check").fetchone()[0]
-    w(u"ЗАПИСАНО: своих строк %d (было %d); строк ниже %d — %d, отпечаток %s — тот же; integrity_check %s",
-      own1, own0, OWN_PK_BASE, n1, fp1, integrity)
+    w(u"ЗАПИСАНО: своих строк %d (было %d); строк вне своих dr_pk — %d, отпечаток %s — тот же; integrity_check %s;"
+      u" в реестр снятых (%s) — %d", own1, own0, n1, fp1, integrity, retired_path, n_ret)
     return 0 if integrity == "ok" else 1
 
 

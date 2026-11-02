@@ -131,7 +131,8 @@ namespace FsaChannelViewProbe
 
             // 0. Перечисление привязано к каналам симулятора.
             Console.WriteLine("=== 0. FsaMatrixLayer против ResponseChannel ===");
-            Same("число каналов", EfficiencySimulator.ResponseChannelCount, FsaMatrixLayers.Channels.Length);
+            // (`AMBER274`) Каналов комбо — семь каналов исхода фотона плюс бета пробы.
+            Same("число каналов", EfficiencySimulator.ResponseChannelCount + 1, FsaMatrixLayers.Channels.Length);
             for (int c = 0; c < FsaMatrixLayers.Channels.Length; c++)
             {
                 Same("номер канала " + FsaMatrixLayers.Channels[c], c, (int)FsaMatrixLayers.Channels[c]);

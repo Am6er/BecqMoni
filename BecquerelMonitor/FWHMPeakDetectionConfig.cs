@@ -1,4 +1,5 @@
-﻿using System.Xml.Serialization;
+﻿using System;
+using System.Xml.Serialization;
 
 namespace BecquerelMonitor
 {
@@ -341,6 +342,60 @@ namespace BecquerelMonitor
         public FWHMPeakDetectionMethodConfig()
         {
             this.fwhmCalibration = FwhmCalibration.DefaultCalibration(this, new PolynomialEnergyCalibration());
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER269`, 01.11.2026) ВСТРОЕННАЯ ЗАГЛУШКА КРИВОЙ FWHM — та, что
+        /// ставит конструктор выше: умолчание по НАЧАЛЬНЫМ значениям полей
+        /// (15 каналов у нуля, 103 на канале 3756) и шкале y = x, а не по числам
+        /// прибора. Она переживает всё, что приходит после конструктора:
+        /// заготовку, которая ставит три числа свойствами (прежде
+        /// <c>RadiacodePresets</c>), и файл конфигурации прибора без элемента
+        /// кривой (у <c>XmlSerializer</c> конструктор идёт первым, а элемента нет).
+        /// Так прибор с числами 4/266/26 носил кривую 15/3756/103: «Применить» и
+        /// новый спектр давали её, а открытие файла — кривую по трём числам.
+        ///
+        /// Сравнивается сама кривая — вид, опоры (канал и FWHM) и коэффициенты; энергии
+        /// опор и форма пика — нет: энергии зависят от шкалы, которой кривую строили,
+        /// а форму пика правят отдельно (окно прибора). Чтецы — <see cref="DeviceConfigInfo.ResolveBuiltInFwhm"/>
+        /// (заглушка в конфигурации прибора) и, с 02.11.2026 (полоса a269fix6),
+        /// <see cref="DocumentManager.ForgetFileStandInFwhm"/> — заглушка в ФАЙЛЕ СПЕКТРА: она тоже не
+        /// своя кривая, а её отсутствие (съёмка RC-110 тория в Маринелли несла её — 79 кэВ на 662 кэВ
+        /// против настоящих 53).
+        /// </summary>
+        internal static bool IsBuiltInStandIn(FwhmCalibration curve)
+        {
+            SimpleSqrtFwhmCalibration own = curve as SimpleSqrtFwhmCalibration;
+            if (own == null || curve.GetType() != typeof(SimpleSqrtFwhmCalibration)
+                || own.CalibrationPeaks == null || own.Coefficients == null)
+            {
+                return false;
+            }
+            FwhmCalibration builtIn = new FWHMPeakDetectionMethodConfig().FwhmCalibration;
+            if (builtIn == null || own.CalibrationPeaks.Count != builtIn.CalibrationPeaks.Count
+                || own.Coefficients.Length != builtIn.Coefficients.Length)
+            {
+                return false;
+            }
+            for (int i = 0; i < own.CalibrationPeaks.Count; i++)
+            {
+                CalibrationPeak a = own.CalibrationPeaks[i];
+                CalibrationPeak b = builtIn.CalibrationPeaks[i];
+                if (a == null || a.Channel != b.Channel || a.FWHM != b.FWHM)
+                {
+                    return false;
+                }
+            }
+            for (int i = 0; i < own.Coefficients.Length; i++)
+            {
+                double x = own.Coefficients[i];
+                double y = builtIn.Coefficients[i];
+                if (!(Math.Abs(x - y) <= 1e-9 * Math.Max(Math.Abs(x), Math.Abs(y))))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public FWHMPeakDetectionMethodConfig(FWHMPeakDetectionMethodConfig config)

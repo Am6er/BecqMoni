@@ -1,0 +1,11 @@
+# LNHB/DDEP, Table de Radionucleides: Pb-212 (212PB)
+# https://www.lnhb.fr/nuclides/Pb-212_tables.pdf, sha256 0d35704a56a2d0339f15ccbbd4731baa27d62721bc2f7f4ec55ca3fb88aef19e (снято 01.11.2026)
+# оценка: NIST / B.E. Zimmerman, 14/05/2024 - 31/05/2025; X. Mougeot et al., Metrologia 63 (2026) 019001
+# Q- LNHB, кэВ: 569.0
+# раздел «Gamma Emissions», фотонов на 100 распадов
+label	energy_kev	energy_unc	intensity	intensity_unc
+γ1,0(Bi)	115.183	5	0.5862	61
+γ3,2(Bi)	176.640	9	0.0537	21
+γ2,0(Bi)	238.632	2	43.26	42
+γ3,1(Bi)	300.089	10	3.238	31
+γ3,0(Bi)	415.272	9	0.013	3

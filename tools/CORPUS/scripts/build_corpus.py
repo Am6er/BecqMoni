@@ -64,7 +64,7 @@ import corpus_stamp                                  # noqa: E402
 from corpus_paths import resolve                     # noqa: E402
 from spectrum import Spectrum                        # noqa: E402
 from chains import (chain_lines, CHAINS,             # noqa: E402
-                    LEVEL_CLAUSE, LEVEL_PARAM, SUPPLY_ONLY,
+                    LEVEL_CLAUSE, LEVEL_PARAM, SUPPLY_ONLY, NOT_LIMIT,
                     warn_level_fallback as chains_warn_level_fallback)
 import sqlite3                                       # noqa: E402
 
@@ -238,7 +238,7 @@ def nuclide_lines(nucid):
         "select energy_num, intensity_num from decay_radiations "
         "where parent_nucid = $n and type_a = 'G' and energy_num not null "
         "and intensity_num not null and intensity_num > 0.5"
-        + SUPPLY_ONLY + LEVEL_CLAUSE, {LEVEL_PARAM: nucid}).fetchall()
+        + SUPPLY_ONLY + NOT_LIMIT + LEVEL_CLAUSE, {LEVEL_PARAM: nucid}).fetchall()
     c.close()
     from chains import pretty
     out = [(float(e), float(i), pretty(nucid)) for e, i in rows]
@@ -317,7 +317,7 @@ def xray_lines(nucid):
         "select energy_num, intensity_num, type_c from decay_radiations "
         "where parent_nucid = $n and type_a = 'X' and energy_num not null "
         "and intensity_num not null"
-        + SUPPLY_ONLY + LEVEL_CLAUSE, {LEVEL_PARAM: nucid}).fetchall()
+        + SUPPLY_ONLY + NOT_LIMIT + LEVEL_CLAUSE, {LEVEL_PARAM: nucid}).fetchall()
     c.close()
     from chains import drop_superseded_l, k_series_rule
     rows = drop_superseded_l(rows, lambda r: r[2])

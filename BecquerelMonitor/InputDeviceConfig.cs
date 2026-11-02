@@ -37,5 +37,26 @@ namespace BecquerelMonitor
         {
             get { return false; }
         }
+
+        /// <summary>
+        /// (`AMBER269`, 01.11.2026) Серийный номер ФИЗИЧЕСКОГО прибора, к которому
+        /// привязана конфигурация, — или <c>null</c>, если конфигурация его не хранит.
+        ///
+        /// Читатель — сопоставление файла спектра с прибором
+        /// (<c>DocumentManager.MatchDeviceConfig</c>): экспорт приложения RadiaCode
+        /// несёт в <c>DeviceConfigReference</c> только имя модели, без Guid, а номер
+        /// прибора — в <c>EnergySpectrum/SerialNumber</c>. Решение Amber 01.11.2026
+        /// вопросником, дословно: «По серийному номеру (Рекомендую)».
+        ///
+        /// Номер хранят RadiaCode и Obsidian (<c>DeviceSerial</c>, приходит при выборе
+        /// прибора в его окне) и Amplituda USB (<c>SerialNumber</c>). AtomSpectra номер
+        /// лишь показывает при проверке связи и в конфигурации не держит — у неё
+        /// <c>null</c>, как у прочих. Только для чтения — в файл не пишется.
+        /// </summary>
+        [XmlIgnore]
+        public virtual string InstrumentSerialNumber
+        {
+            get { return null; }
+        }
     }
 }

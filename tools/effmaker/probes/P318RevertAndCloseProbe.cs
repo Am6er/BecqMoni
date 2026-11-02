@@ -463,7 +463,8 @@ static class P318RevertAndCloseProbe
         for (int i = 0; i < m.Rows.Count; i++)
         {
             NuclideDefinition d = m.Rows[i].Tag as NuclideDefinition;
-            if (d != null && ok(d) && seen++ >= skip) return i;
+            // (`AMBER281`, полоса a269fix5) Линия из базы нуклидов не правится — берутся вбитые руками.
+            if (d != null && !d.IsDbLinked && ok(d) && seen++ >= skip) return i;
         }
         throw new InvalidOperationException("в таблице нет подходящей строки");
     }

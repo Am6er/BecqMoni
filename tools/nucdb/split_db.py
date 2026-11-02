@@ -86,6 +86,8 @@ PIECES = {
         "nuclides", "decay_chain", "decay_radiations", "l_decays",
         "thermal_cross_sect", "cumulative_fission",
         "gamma_coincidence", "gamma_coincidence_line", "gamma_coincidence_parent",
+        # (`AMBER274`, 30.10.2026) формы бета-спектров ветвей, `scheme.md` §8а.
+        "beta_shapes", "beta_shape_points",
     ],
 }
 

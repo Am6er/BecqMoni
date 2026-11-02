@@ -110,6 +110,9 @@ namespace BecquerelMonitor.Probes
             // сторожа peps=fwhm») Определение пика кривой — кусок клейма
             // `EfficiencyCalculation.PeakWindowStamp` у геометрии с разрешением.
             PeakCases();
+
+            // 13. (`AMBER274`, физика 30, Н7) Поколение то же, ключа физики в клейме нет.
+            TokenCase();
         }
 
         /// <summary>
@@ -157,11 +160,90 @@ namespace BecquerelMonitor.Probes
             Check(got.Count == 2, "12. отставшая физика — «пересчитайте» и про матрицу, про пик не дублируем");
         }
 
-        /// <summary>Клеймо кривой того же вида, что печатает `EfficiencyCalculation`.</summary>
+        /// <summary>
+        /// Клеймо кривой того же вида, что печатает `EfficiencyCalculation`.
+        ///
+        /// ⛔ (`AMBER274`, физика 30, полоса `gc3a` 02.11.2026) С КЛЮЧАМИ ФИЗИКИ, ВКЛ
+        /// УМОЛЧАНИЕМ СКЛАДА. С физики 30 (Н7 критика кода 02.11.2026) решение судит поколение
+        /// по ПОЛНОМУ СОСТАВУ: кривая того же `phys=`, у которой в клейме нет ключа, ВКЛ
+        /// умолчанием (`; estr=1`, `; mott=1`, …), — посчитана прежней физикой
+        /// (<c>DeviceConfigForm.MissingPhysicsTokens</c>). Прежнее клеймо пробы
+        /// («phys=N; hist=…; grid=…» без ключей) стало клеймом СТАРОЙ кривой, и проба краснела
+        /// шестью расхождениями (случаи 1, 4, 9, 10, 11 и вкладка) — правило приложения верное,
+        /// устарел вход. Ключи берутся у самого приложения (что ему не хватает у пустого
+        /// клейма), а не списком здесь: список здесь устарел бы с первым новым ключом. Случай
+        /// 13 — положительный контроль самого правила ключей.
+        /// </summary>
         static string Stamp(int physics)
         {
-            return string.Format(CultureInfo.InvariantCulture,
-                                 "phys={0}; hist=200000; grid=40-3000 keV/34 std", physics);
+            return StampWithout(physics, null);
+        }
+
+        /// <summary>То же клеймо без одного ключа физики (<paramref name="drop"/>; null — все на месте).</summary>
+        static string StampWithout(int physics, string drop)
+        {
+            var sb = new StringBuilder(string.Format(CultureInfo.InvariantCulture,
+                                                     "phys={0}; hist=200000; grid=40-3000 keV/34 std", physics));
+            foreach (string token in PhysicsTokens())
+            {
+                if (token != drop)
+                {
+                    sb.Append("; ").Append(token);
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        static readonly MethodInfo Missing = typeof(DeviceConfigForm).GetMethod(
+            "MissingPhysicsTokens", BindingFlags.NonPublic | BindingFlags.Static);
+
+        /// <summary>Ключи физики, ВКЛ умолчанием склада, — у приложения: чего недостаёт пустому клейму.</summary>
+        static List<string> PhysicsTokens()
+        {
+            if (Missing == null)
+            {
+                return new List<string>();
+            }
+
+            return (List<string>)Missing.Invoke(null, new object[] { "" });
+        }
+
+        /// <summary>
+        /// 13. (`AMBER274`, физика 30, Н7) Поколение то же, но в клейме нет ключа физики, ВКЛ
+        /// умолчанием склада: кривая посчитана прежней физикой — ОДНО сообщение «пересчитайте»,
+        /// и в нём назван недостающий ключ. ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ правила ключей: без него
+        /// случаи 1…12 прошли бы и на правиле, которое ключей не читает вовсе. Ключ — последний
+        /// из списка приложения, не именем здесь.
+        /// </summary>
+        static void TokenCase()
+        {
+            int build = ResponseMatrix.PhysicsVersion;
+            List<string> tokens = PhysicsTokens();
+            Console.WriteLine("  ключи физики ВКЛ умолчанием склада (у приложения): {0}",
+                              tokens.Count == 0 ? "—" : string.Join(", ", tokens.ToArray()));
+            Check(Missing != null, "13. DeviceConfigForm.MissingPhysicsTokens есть");
+            Check(tokens.Count > 0, "13. у приложения есть ключи физики ВКЛ умолчанием — правилу ключей есть что судить");
+            if (tokens.Count == 0)
+            {
+                return;
+            }
+
+            string drop = tokens[tokens.Count - 1];
+            List<string> got = Ask(StampWithout(build, drop), build, build, false);
+            Console.WriteLine("  {0,-34} -> сообщений {1}", "13. нет ключа " + drop,
+                              got.Count.ToString(CultureInfo.InvariantCulture));
+            foreach (string line in got)
+            {
+                Console.WriteLine("        {0}", line);
+            }
+
+            Check(got.Count == 1, "13. кривая без ключа «" + drop + "» того же поколения — одно сообщение «пересчитайте»");
+            if (got.Count == 1)
+            {
+                Check(HasNumber(got[0], build) && got[0].IndexOf("−" + drop, StringComparison.Ordinal) >= 0,
+                      "13. сообщение называет поколение и недостающий ключ «−" + drop + "»");
+            }
         }
 
         /// <summary>

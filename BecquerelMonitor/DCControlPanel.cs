@@ -472,7 +472,9 @@ namespace BecquerelMonitor
             activeResultData.DeviceConfigReference = activeResultData.DeviceConfig.CreateReference();
             if (deviceConfig.Guid != activeResultData.DeviceConfig.Guid)
             {
-                if (!this.ApplyDeviceConfigChange())
+                // (`AMBER269`, дефект 2) Назначение прибора спектру: калибровки
+                //   спектра с данными остаются его (см. ApplyDeviceConfigChange).
+                if (!this.ApplyDeviceConfigChange(takeDeviceCalibration: false))
                 {
                     activeResultData.DeviceConfig = deviceConfig;
                     activeResultData.DeviceConfigReference = activeResultData.DeviceConfig.CreateReference();
@@ -769,12 +771,53 @@ namespace BecquerelMonitor
         // Token: 0x060002A0 RID: 672 RVA: 0x0000BF8C File Offset: 0x0000A18C
         void button5_Click(object sender, EventArgs e)
         {
-            this.ApplyDeviceConfigChange();
+            // «Применить изменения из конфигурации устройства к текущему спектру» —
+            // нарочное движение: калибровки прибора идут в спектр (так же
+            // спектру возвращают κ прибора, `AMBER271`).
+            this.ApplyDeviceConfigChange(takeDeviceCalibration: true);
             this.mainForm.ShowMeasurementResult(true);
         }
 
+        /// <summary>
+        /// Конфигурация прибора — активному спектру.
+        ///
+        /// ⛔ (`AMBER269`, дефект 2, 01.11.2026) ВЫБОР ПРИБОРА В СПИСКЕ НЕ ЗАТИРАЕТ
+        /// КАЛИБРОВКУ СПЕКТРА. Прежде оба движения панели — кнопка «Применить» и
+        /// выбор в списке «Устройство» — ставили спектру калибровку по энергии и
+        /// кривую FWHM прибора. Замер 01.11.2026 экраном: экспорт RadiaCode со
+        /// спектром K-40 после выбора прибора получал шкалу прибора вместо своей,
+        /// и пик K-40 уезжал с 1457.9 на 1375.8 кэВ (−5.8 %); кривая FWHM становилась сохранённой кривой
+        /// прибора, а открытие того же файла строит умолчание по трём числам —
+        /// два пути давали спектру разную модель разрешения.
+        ///
+        /// Правило Amber: калибровка СПЕКТРА первична, прибор — умолчание
+        /// (`AMBER271`, вопросником 29.10.2026, дословно: «Спектра, прибор —
+        /// умолчание (Рекомендую)», вариант «Как кривая FWHM: у спектра своя. У
+        /// старых файлов без неё берётся значение прибора»). Отсюда:
+        /// <list type="bullet">
+        /// <item><paramref name="takeDeviceCalibration"/> = <c>false</c> (выбор в
+        /// списке) у спектра с данными и своей шкалой (не y = x) оставляет шкалу
+        /// энергии и свою κ; своя кривая FWHM остаётся, подставленная при открытии
+        /// (<see cref="DocumentManager.HasStandInFwhm"/>) ставится заново от
+        /// нового прибора — тем же правилом, что при открытии файла
+        /// (<see cref="DocumentManager.StandInFwhm"/>; с 02.11.2026 — сохранённая
+        /// кривая прибора, решение Amber «Кривую прибора»);</item>
+        /// <item>пустой спектр (новый документ под измерение) и спектр, который
+        /// пересобран или стёрт под сетку каналов прибора, берут калибровки
+        /// прибора, как прежде: снят он будет этим прибором;</item>
+        /// <item><paramref name="takeDeviceCalibration"/> = <c>true</c> (кнопка
+        /// «Применить») — калибровки прибора всегда, как прежде: это и есть её
+        /// назначение.</item>
+        /// </list>
+        /// Фон — тем же правилом (решение Amber 01.11.2026 вопросником, дословно:
+        /// «Фон спектра (Рекомендую)»): выбор в списке оставляет спектру с данными
+        /// его фон (<see cref="SpectrumHasOwnBackground"/>), фон прибора берётся,
+        /// только если своего нет; «Применить» ставит фон прибора всегда.
+        /// Остальное (настройки поиска пиков, ссылка на прибор) идёт от прибора в
+        /// обоих случаях, как прежде.
+        /// </summary>
         // Token: 0x060002A1 RID: 673 RVA: 0x0000BFA4 File Offset: 0x0000A1A4
-        bool ApplyDeviceConfigChange()
+        bool ApplyDeviceConfigChange(bool takeDeviceCalibration)
         {
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             if (activeDocument == null)
@@ -801,10 +844,19 @@ namespace BecquerelMonitor
                 activeResultData.EnergySpectrum.ChannelPitch = activeResultData.DeviceConfig.ChannelPitch;
             }
 
+            // (`AMBER269`) Своя шкала спектра и свой фон — до возможной пересборки ниже.
+            bool keepSpectrumCalibration = !takeDeviceCalibration && SpectrumHasOwnCalibration(activeResultData);
+            bool keepSpectrumBackground = !takeDeviceCalibration && SpectrumHasOwnBackground(activeResultData);
             int numberOfChannels = activeResultData.EnergySpectrum.NumberOfChannels;
             double channelPitch = activeResultData.EnergySpectrum.ChannelPitch;
             if (numberOfChannels != activeResultData.DeviceConfig.NumberOfChannels || channelPitch != activeResultData.DeviceConfig.ChannelPitch)
             {
+                // Спектр стирается или пересобирается под сетку каналов прибора:
+                // его прежняя шкала к новой сетке не относится, и фон его — тоже
+                // (стёртый спектр своего не имеет, пересобранный — снят этим
+                // сеансом, и его фон был фоном прежнего прибора).
+                keepSpectrumCalibration = false;
+                keepSpectrumBackground = false;
                 if (activeResultData.EnergySpectrum.MeasurementTime > 0)
                 {
                     DialogResult dialogResult = MessageBox.Show(Resources.MSGInitializingSpectrum,
@@ -827,15 +879,32 @@ namespace BecquerelMonitor
                     this.RebuildSpectrum(activeResultData);
                 }
             }
-            activeResultData.EnergySpectrum.EnergyCalibration = activeResultData.DeviceConfig.EnergyCalibration.Clone();
-            // (`AMBER271`) калибровка — от прибора, и кривизна тракта с ней: своя κ
-            // спектра (пришедшая в файле) снимается, разбор берёт κ этого прибора
-            activeResultData.ForgetTractCurvature();
+            if (!keepSpectrumCalibration)
+            {
+                activeResultData.EnergySpectrum.EnergyCalibration = activeResultData.DeviceConfig.EnergyCalibration.Clone();
+                // (`AMBER271`) калибровка — от прибора, и кривизна тракта с ней: своя κ
+                // спектра (пришедшая в файле) снимается, разбор берёт κ этого прибора
+                activeResultData.ForgetTractCurvature();
+            }
+            // иначе шкала и своя κ спектра остаются; спектр без своей κ берёт κ
+            // нового прибора сам (`ResultData.TractCurvature` — «прибор — умолчание»)
             this.mainForm.UpdateEnergyCalibrationView();
             FWHMPeakDetectionMethodConfig FWHMPeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)activeResultData.DeviceConfig.PeakDetectionMethodConfig;
             activeResultData.PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)FWHMPeakDetectionMethodConfig.Clone();
             FwhmCalibration fwhmCalibration = FWHMPeakDetectionMethodConfig.FwhmCalibration;
-            if (fwhmCalibration == null)
+            if (keepSpectrumCalibration)
+            {
+                // Своя кривая спектра остаётся; подставленная (или никакой) —
+                // кривая НОВОГО прибора тем же правилом, что при открытии файла
+                // (`DocumentManager.StandInFwhm`: сохранённая кривая прибора, а
+                // если по ней нельзя — его три числа).
+                if (activeResultData.FwhmCalibration == null || this.documentManager.HasStandInFwhm(activeResultData))
+                {
+                    activeResultData.FwhmCalibration =
+                        this.DefaultFwhmOrSay(FWHMPeakDetectionMethodConfig, activeResultData);
+                }
+            }
+            else if (fwhmCalibration == null)
             {
                 activeResultData.FwhmCalibration =
                     this.DefaultFwhmOrSay(FWHMPeakDetectionMethodConfig, activeResultData);
@@ -844,15 +913,25 @@ namespace BecquerelMonitor
                 activeResultData.FwhmCalibration = fwhmCalibration.Clone();
             }
             this.mainForm.UpdateFwhmCalibrationView();
-            string backgroundSpectrumFile = activeResultData.BackgroundSpectrumFile;
-            string fileName = Path.GetFileName(activeResultData.DeviceConfig.BackgroundSpectrumPathname);
-            activeResultData.BackgroundSpectrumFile = fileName;
-            activeResultData.BackgroundSpectrumPathname = activeResultData.DeviceConfig.BackgroundSpectrumPathname;
-            activeResultData.BackgroundEnergySpectrum = null;
-            // (`AMBER256`, решение Amber 20.10.2026 «Принимать везде») Фон с
-            // другим числом каналов здесь прежде МОЛЧА снимался; теперь его
-            // перекладывает по энергии сам `LoadBackgroundSpectrum`.
-            this.documentManager.LoadBackgroundSpectrum(activeResultData);
+            // ⛔ (`AMBER269`, 01.11.2026) ФОН: СВОЙ ФОН СПЕКТРА ВЫБОРОМ ПРИБОРА НЕ
+            // ЗАТИРАЕТСЯ. Прежде оба движения панели ставили фон прибора: спектр,
+            // открытый со встроенным в файл фоном, после выбора прибора в списке
+            // терял его — вычитался другой фон (или никакой, если у прибора его
+            // нет), и числа спектра менялись без слова. Решение Amber 01.11.2026
+            // вопросником, дословно: «Фон спектра (Рекомендую)» — свой фон спектра
+            // остаётся, фон прибора берётся, только если своего нет; кнопка
+            // «Применить» по-прежнему ставит фон прибора.
+            if (!keepSpectrumBackground)
+            {
+                string fileName = Path.GetFileName(activeResultData.DeviceConfig.BackgroundSpectrumPathname);
+                activeResultData.BackgroundSpectrumFile = fileName;
+                activeResultData.BackgroundSpectrumPathname = activeResultData.DeviceConfig.BackgroundSpectrumPathname;
+                activeResultData.BackgroundEnergySpectrum = null;
+                // (`AMBER256`, решение Amber 20.10.2026 «Принимать везде») Фон с
+                // другим числом каналов здесь прежде МОЛЧА снимался; теперь его
+                // перекладывает по энергии сам `LoadBackgroundSpectrum`.
+                this.documentManager.LoadBackgroundSpectrum(activeResultData);
+            }
             this.ShowDocumentStatus();
             this.mainForm.UpdateDetectedPeakView();
             activeDocument.UpdateEnergySpectrum();
@@ -909,8 +988,11 @@ namespace BecquerelMonitor
         FwhmCalibration DefaultFwhmOrSay(FWHMPeakDetectionMethodConfig cfg, ResultData data)
         {
             string refusal;
-            FwhmCalibration curve = FwhmCalibration.DefaultCalibration(
-                cfg, data.EnergySpectrum.EnergyCalibration, out refusal);
+            // (`AMBER269`, дефект 2) Умолчание строит ОДНО правило с открытием файла
+            //   (`DocumentManager.StandInFwhm`: с 02.11.2026 — сохранённая кривая
+            //   прибора, а если по ней нельзя — DefaultCalibration по трём числам),
+            //   и оно же помечает кривую подставленной.
+            FwhmCalibration curve = this.documentManager.StandInFwhm(data, cfg, out refusal);
             if (curve == null && !string.IsNullOrEmpty(refusal))
             {
                 // ⛔ КУЛЬТУРА ИНВАРИАНТНАЯ, А НЕ ПОТОКА (`A242`): три числа
@@ -923,6 +1005,57 @@ namespace BecquerelMonitor
                              "", MessageBoxIcon.None);
             }
             return curve;
+        }
+
+        /// <summary>
+        /// (`AMBER269`, дефект 2) У спектра своя шкала энергии: в нём есть отсчёты, и
+        /// шкала не y = x (так выглядит «никакая» — <c>new PolynomialEnergyCalibration()</c>,
+        /// которой спектр без калибровки получает при открытии). Пустой спектр —
+        /// новый документ под измерение — своей шкалы не имеет: её даст прибор.
+        /// </summary>
+        static bool SpectrumHasOwnCalibration(ResultData data)
+        {
+            EnergySpectrum spectrum = data != null ? data.EnergySpectrum : null;
+            if (spectrum == null || spectrum.EnergyCalibration == null
+                || DocumentManager.IsIdentityCalibration(spectrum.EnergyCalibration))
+            {
+                return false;
+            }
+            return SpectrumHasCounts(spectrum);
+        }
+
+        /// <summary>
+        /// (`AMBER269`, 01.11.2026) У спектра свой фон: в спектре есть отсчёты, и фон
+        /// у него загружен (<c>BackgroundEnergySpectrum</c> — встроенный в файл или
+        /// взятый из файла фона). Пустой спектр — новый документ под измерение —
+        /// своего фона не имеет: тот, что у него есть, поставлен при создании
+        /// документа от прибора (<c>DocumentManager.CreateDocument</c>), и при
+        /// смене прибора берётся фон нового — так же, как его калибровки.
+        /// </summary>
+        static bool SpectrumHasOwnBackground(ResultData data)
+        {
+            return data != null && data.BackgroundEnergySpectrum != null
+                   && data.EnergySpectrum != null && SpectrumHasCounts(data.EnergySpectrum);
+        }
+
+        /// <summary>В спектре есть отсчёты — он снят, а не заведён под измерение.</summary>
+        static bool SpectrumHasCounts(EnergySpectrum spectrum)
+        {
+            if (spectrum.TotalPulseCount > 0 || spectrum.ValidPulseCount > 0)
+            {
+                return true;
+            }
+            if (spectrum.Spectrum != null)
+            {
+                for (int i = 0; i < spectrum.Spectrum.Length; i++)
+                {
+                    if (spectrum.Spectrum[i] != 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         // Token: 0x060002A2 RID: 674 RVA: 0x0000C1E8 File Offset: 0x0000A3E8

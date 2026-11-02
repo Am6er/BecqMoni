@@ -32,6 +32,9 @@ public static class TemplateWidthP191
         ResultDataFile file;
         using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)) file = (ResultDataFile)serializer.Deserialize(stream);
         ResultData rd = file.ResultDataList[0];
+        // (`AMBER269`, a269fix6) встроенная заглушка FWHM 15/3756/103 в файле — не своя кривая
+        // спектра (`DocumentManager.ForgetFileStandInFwhm`), как при открытии файла.
+        DocumentManager.ForgetFileStandInFwhm(rd);
         var cal0 = (PolynomialEnergyCalibration)rd.EnergySpectrum.EnergyCalibration;
         var cfg = rd.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
         var pf0 = (PowerFwhmCalibration)(rd.FwhmCalibration ?? (cfg != null ? cfg.FwhmCalibration : null));

@@ -118,6 +118,13 @@ namespace BecquerelMonitor
         const int SwatchHeight = 10;
         const int SwatchGap = 4;
 
+        /// <summary>
+        /// (`AMBER286`) Шаг отступа подписи (<see cref="FsaReportRow.Indent"/>), пикселей: на
+        /// один образец с зазором — строка пика встаёт текстом под текст строки нуклида и ещё
+        /// на шаг правее.
+        /// </summary>
+        const int IndentStep = SwatchWidth + SwatchGap;
+
         /// <summary>Ширина колонки значения, пикселей: «+12,3 / −45,6 %» помещается с запасом.</summary>
         const int ValueColumnWidth = 92;
 
@@ -256,6 +263,7 @@ namespace BecquerelMonitor
                 case FsaMatrixLayer.EscapeAnnihilationDouble: return "FSAReport_MatrixLayerEscapeAnnihilationDouble";
                 case FsaMatrixLayer.EscapeXrayL: return "FSAReport_MatrixLayerEscapeXrayL";
                 case FsaMatrixLayer.AnnihilationOutside: return "FSAReport_MatrixLayerAnnihilationOutside";
+                case FsaMatrixLayer.SampleBeta: return "FSAReport_MatrixLayerSampleBeta";      // (`AMBER274`)
                 default: return "FSAReport_MatrixLayerAll";
             }
         }
@@ -337,6 +345,15 @@ namespace BecquerelMonitor
         const string KeyMatrixRow = "FSAReport_MatrixRow";
         const string KeyMatrixUsed = "FSAReport_MatrixUsed";
         const string KeyMatrixNotUsed = "FSAReport_MatrixNotUsed";
+
+        /// <summary>
+        /// (`AMBER284`, решение Amber 02.11.2026 вопросником, дословно: «Объединить со строкой
+        /// выше, где уже написано - нет Матрицы отклика. Остальное убрать в подсказку.»)
+        /// Подсказка строки «Матрица отклика: не учтена» — то, что прежде было отдельной
+        /// строкой-предупреждением `FSAReport_NoMatrixWarnRow` (`AMBER156` (в), П195): цена
+        /// разбора без матрицы словами, без жаргона.
+        /// </summary>
+        const string KeyMatrixNotUsedTip = "FSAReport_MatrixNotUsedTip";
         const string KeyMatrixOldFormat = "FSAReport_MatrixOldFormat";
         const string KeyMatrixStale = "FSAReport_MatrixStale";
         const string KeyMatrixStaleRow = "FSAReport_MatrixStaleRow";
@@ -373,6 +390,14 @@ namespace BecquerelMonitor
         const string KeyAnchorTip = "FSAReport_AnchorTip";
         const string KeyAnchorTipLine = "FSAReport_AnchorTipLine";
         const string KeyAnchorTipLight = "FSAReport_AnchorTipLight";
+        // (`AMBER269`, дефект 4) откат привязки (А2): слово в строке опор, строка с числами
+        // отменённого разбора, её значение, шапка опор отменённого разбора в подсказке
+        const string KeyAnchorRolledBack = "FSAReport_AnchorRolledBack";
+        const string KeyAnchorRollbackRow = "FSAReport_AnchorRollbackRow";
+        // (`AMBER284`) та же подпись с «по {0} пику» — для 1, 21, 31… (<see cref="OnePeakForm"/>)
+        const string KeyAnchorRollbackRowOne = "FSAReport_AnchorRollbackRowOne";
+        const string KeyAnchorRollbackValue = "FSAReport_AnchorRollbackValue";
+        const string KeyAnchorRollbackTip = "FSAReport_AnchorRollbackTip";
         const string KeySuppressedRow = "FSAReport_SuppressedRow";
         const string KeyBackgroundRejectedRow = "FSAReport_BackgroundRejectedRow";
 
@@ -405,6 +430,18 @@ namespace BecquerelMonitor
         const string KeyUncoveredRow = "FSAReport_UncoveredRow";
         const string KeyUncoveredValue = "FSAReport_UncoveredValue";
         const string KeyUncoveredNone = "FSAReport_UncoveredNone";
+        // (`AMBER269`) предупреждения по полосе: фон больше спектра (z — в подсказке); образы выше
+        // всего спектра; нижняя граница разбора (строка блока и подсказки двух её родов)
+        const string KeyBackgroundAboveRow = "FSAReport_BackgroundAboveRow";
+        const string KeyBackgroundAboveValue = "FSAReport_BackgroundAboveValue";
+        const string KeyBackgroundAboveTip = "FSAReport_BackgroundAboveTip";
+        const string KeyImagesAboveRow = "FSAReport_ImagesAboveRow";
+        const string KeyImagesAboveValue = "FSAReport_ImagesAboveValue";
+        // (`AMBER284`) z «модель выше спектра» — в подсказку, не в подпись
+        const string KeyImagesAboveTip = "FSAReport_ImagesAboveTip";
+        const string KeyFitBoundRow = "FSAReport_FitBoundRow";
+        const string KeyFitBoundTipSetting = "FSAReport_FitBoundTipSetting";
+        const string KeyFitBoundTipRule = "FSAReport_FitBoundTipRule";
         // (`AMBER221`) родитель сета вне состава: строка, слово состояния, причины
         const string KeySetOmittedRow = "FSAReport_SetOmittedRow";
         const string KeySetOmittedValue = "FSAReport_SetOmittedValue";
@@ -415,13 +452,380 @@ namespace BecquerelMonitor
         const string KeySetOmittedNotNovel = "FSAReport_SetOmittedNotNovel";
         const string KeyResidualNoise = "FSAReport_ResidualNoise";
         const string KeyResidualNoiseTip = "FSAReport_ResidualNoiseTip";
-        // (`AMBER156`, `AMBER157`, `AMBER159`; П195 01.10.2026) Разбор без
-        // матрицы; линии вне кривой эффективности; плотность пробы против сцены.
-        const string KeyNoMatrixWarnRow = "FSAReport_NoMatrixWarnRow";
-        const string KeyNoMatrixWarnValue = "FSAReport_NoMatrixWarnValue";
+        // (`AMBER157`, `AMBER159`; П195 01.10.2026) Линии вне кривой эффективности;
+        // плотность пробы против сцены. (Разбор без матрицы `AMBER156` (в) — с `AMBER284`
+        // подсказкой строки «Матрица отклика», <see cref="KeyMatrixNotUsedTip"/>.)
         const string KeyCurveOutsideRow = "FSAReport_CurveOutsideRow";
         const string KeyCurveOutsideValue = "FSAReport_CurveOutsideValue";
         const string KeyDensityRow = "FSAReport_DensityRow";
+        // (`AMBER274`, `Р5`/`Д2`) Бета пробы: строка, «легла», выключена, не взята (причины).
+        const string KeySampleBetaRow = "FSAReport_SampleBetaRow";
+        const string KeySampleBetaUsed = "FSAReport_SampleBetaUsed";
+        // (`AMBER284`, решение Amber 02.11.2026: «"Бета-излучение пробы: 1234 отсч." Остальное в
+        // подсказку»; капсула — «Убрать из строки и подсказки, оставить в отказе») число узлов
+        // раздела — в подсказке; капсула — только в причине отказа `KeySampleBetaOtherCapsule`
+        const string KeySampleBetaTip = "FSAReport_SampleBetaTip";
+        const string KeySampleBetaKeyOff = "FSAReport_SampleBetaKeyOff";
+        const string KeySampleBetaRefused = "FSAReport_SampleBetaRefused";
+        const string KeySampleBetaDamaged = "FSAReport_SampleBetaDamaged";
+        const string KeySampleBetaOtherMatrix = "FSAReport_SampleBetaOtherMatrix";
+        const string KeySampleBetaOtherPhysics = "FSAReport_SampleBetaOtherPhysics";
+        const string KeySampleBetaOtherCapsule = "FSAReport_SampleBetaOtherCapsule";
+        const string KeySampleBetaIsoScene = "FSAReport_SampleBetaIsoScene";
+        const string KeySampleBetaNoScene = "FSAReport_SampleBetaNoScene";
+
+        /// <summary>
+        /// (`AMBER274`, `Р5`) Значение строки «бета пробы» словами окна; null — строки нет
+        /// (разбор без матрицы или у матрицы нет раздела электронов). Открыта пробе: приёмка
+        /// читает ТУ ЖЕ строку, что окно. Числа — инвариантной культурой (`A242`).
+        /// </summary>
+        public static string SampleBetaText(FsaResult result)
+        {
+            if (result == null || !result.ResponseMatrixUsed
+                || result.SampleBetaRefusal == EfficiencyMaker.ElectronSectionRefusal.Missing)
+            {
+                return null;
+            }
+
+            string capsule = string.IsNullOrEmpty(result.SampleBetaCapsule) ? "none" : result.SampleBetaCapsule;
+            if (!result.SampleBetaKeyOn)
+            {
+                return OwnText(KeySampleBetaKeyOff);
+            }
+
+            string reason;
+            switch (result.SampleBetaRefusal)
+            {
+                case EfficiencyMaker.ElectronSectionRefusal.None:
+                    // (`AMBER284`) в строке — только отсчёты; узлы — в подсказке, капсула — нигде
+                    return string.Format(CultureInfo.InvariantCulture, OwnText(KeySampleBetaUsed),
+                                         result.SampleBetaCounts.ToString("F0", CultureInfo.InvariantCulture));
+                case EfficiencyMaker.ElectronSectionRefusal.Damaged:
+                    reason = OwnText(KeySampleBetaDamaged);
+                    break;
+                case EfficiencyMaker.ElectronSectionRefusal.OtherPhysics:
+                    reason = OwnText(KeySampleBetaOtherPhysics);
+                    break;
+                case EfficiencyMaker.ElectronSectionRefusal.OtherCapsule:
+                    reason = string.Format(CultureInfo.InvariantCulture, OwnText(KeySampleBetaOtherCapsule), capsule);
+                    break;
+                case EfficiencyMaker.ElectronSectionRefusal.IsoScene:
+                    reason = OwnText(KeySampleBetaIsoScene);
+                    break;
+                case EfficiencyMaker.ElectronSectionRefusal.NoScene:
+                    reason = OwnText(KeySampleBetaNoScene);
+                    break;
+                default:
+                    reason = OwnText(KeySampleBetaOtherMatrix);
+                    break;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeySampleBetaRefused), reason);
+        }
+
+        /// <summary>
+        /// (`AMBER284`) Подсказка строки «бета-излучение пробы», когда бета легла: отсчёты и
+        /// число узлов раздела электронов матрицы; null — бета не легла (строки нет, выключена
+        /// или не взята — тогда подсказка строки — её же текст). Открыта пробе. Числа —
+        /// инвариантной культурой (`A242`).
+        /// </summary>
+        public static string SampleBetaTip(FsaResult result)
+        {
+            if (result == null || !result.ResponseMatrixUsed || !result.SampleBetaKeyOn
+                || result.SampleBetaRefusal != EfficiencyMaker.ElectronSectionRefusal.None)
+            {
+                return null;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeySampleBetaTip),
+                                 result.SampleBetaCounts.ToString("F0", CultureInfo.InvariantCulture),
+                                 result.SampleBetaNodes.ToString(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// (`AMBER284`, решение Amber 02.11.2026 «Объединить со строкой выше, где уже написано -
+        /// нет Матрицы отклика. Остальное убрать в подсказку.») Подсказка строки «Матрица
+        /// отклика» у разбора с кривой и без матрицы — прежняя отдельная строка `AMBER156` (в)
+        /// словами без жаргона; null — матрица учтена или кривой нет (без кривой разбор не
+        /// судит о цене в процентах). Условие — то же, что было у снятой строки. Открыта пробе.
+        /// </summary>
+        public static string MatrixNotUsedTip(FsaResult result)
+        {
+            return result != null && result.EfficiencyUsed && !result.ResponseMatrixUsed
+                ? OwnText(KeyMatrixNotUsedTip)
+                : null;
+        }
+
+        // (`AMBER274`, Ф14, К3) Строка по сплошному спектру: пометка при имени, снятие без
+        // раздела электрона (причины), отказ разбора, когда снятые были всем составом; ветви β
+        // с суммой выше 100 %.
+        const string KeyBetaOnlyMark = "FSAReport_BetaOnlyMark";
+        const string KeyBetaOnlyRemovedRow = "FSAReport_BetaOnlyRemovedRow";
+        const string KeyBetaOnlyRemovedValue = "FSAReport_BetaOnlyRemovedValue";
+        const string KeyBetaOnlyNoMatrix = "FSAReport_BetaOnlyNoMatrix";
+        const string KeyBetaOnlyKeyOff = "FSAReport_BetaOnlyKeyOff";
+        const string KeyBetaOnlyNoSection = "FSAReport_BetaOnlyNoSection";
+        const string KeyBetaOnlyMasked = "FSAReport_BetaOnlyMasked";
+        const string KeyBetaOnlyRefusal = "FSAReport_BetaOnlyRefusal";
+        const string KeyBetaBranchExcessRow = "FSAReport_BetaBranchExcessRow";
+        const string KeyBetaBranchExcessValue = "FSAReport_BetaBranchExcessValue";
+        // (`AMBER274`, два захода) шаг узлов под строкой беты: подпись, хвосты подписи, значения
+        const string KeyBetaKnotRow = "FSAReport_BetaKnotRow";
+        // (`AMBER274`, «MDA под порог z ≥ 3») правило пределов: подпись, значение, подсказка
+        const string KeyLimitRuleRow = "FSAReport_LimitRuleRow";
+        const string KeyLimitRuleValue = "FSAReport_LimitRuleValue";
+        const string KeyLimitRuleTip = "FSAReport_LimitRuleTip";
+
+        /// <summary>
+        /// (`AMBER274`, «MDA под порог z ≥ 3») Значение строки «правило MDA»: порог z, под который
+        /// посчитаны пределы (k_α); null — пределов не считали. Открыта пробе.
+        /// </summary>
+        public static string LimitRuleText(FsaResult result)
+        {
+            if (result == null || !(result.LimitDecisionQuantile > 0.0) || !(result.LimitDetectionQuantile > 0.0))
+            {
+                return null;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyLimitRuleValue),
+                                 result.LimitDecisionQuantile.ToString("0.##", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// (`AMBER274`) Подсказка строки «правило MDA»: k_α и α, k_β и β словами окна; null —
+        /// пределов не считали. Открыта пробе. Числа — инвариантной культурой (`A242`).
+        /// </summary>
+        public static string LimitRuleTip(FsaResult result)
+        {
+            if (result == null || !(result.LimitDecisionQuantile > 0.0) || !(result.LimitDetectionQuantile > 0.0))
+            {
+                return null;
+            }
+
+            double alpha = 50.0 * MathNet.Numerics.SpecialFunctions.Erfc(result.LimitDecisionQuantile / Math.Sqrt(2.0));
+            double beta = 50.0 * MathNet.Numerics.SpecialFunctions.Erfc(result.LimitDetectionQuantile / Math.Sqrt(2.0));
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyLimitRuleTip),
+                                 result.LimitDecisionQuantile.ToString("0.##", CultureInfo.InvariantCulture),
+                                 alpha.ToString("0.###", CultureInfo.InvariantCulture),
+                                 result.LimitDetectionQuantile.ToString("0.###", CultureInfo.InvariantCulture),
+                                 beta.ToString("0.#", CultureInfo.InvariantCulture));
+        }
+        const string KeyBetaKnotVifOver = "FSAReport_BetaKnotVifOver";
+        const string KeyBetaKnotSecondPass = "FSAReport_BetaKnotSecondPass";
+        const string KeyBetaKnotOnePass = "FSAReport_BetaKnotOnePass";
+        const string KeyBetaKnotSecondRefused = "FSAReport_BetaKnotSecondRefused";
+        const string KeyBetaKnotNoGamma = "FSAReport_BetaKnotNoGamma";
+        // (`AMBER284`, решение Amber 02.11.2026 «Убрать строку в подсказку строки бета-нуклидов
+        // (Рекомендую)»: на виду — только предупреждение, если VIF выше предела) подпись и
+        // значение этого предупреждения; шаг узлов, VIF и заходы — подсказкой (`BetaKnotCaption`)
+        const string KeyBetaKnotVifOverRow = "FSAReport_BetaKnotVifOverRow";
+        const string KeyBetaKnotVifOverValue = "FSAReport_BetaKnotVifOverValue";
+        // (`AMBER284`, решение Amber 02.11.2026 вопросником «Вернуть красной строкой (Рекомендую)»)
+        // отказ второго захода гамма-строк — снова красной строкой на виду: подпись и значение
+        const string KeyBetaKnotSecondRefusedRow = "FSAReport_BetaKnotSecondRefusedRow";
+        const string KeyBetaKnotSecondRefusedValue = "FSAReport_BetaKnotSecondRefusedValue";
+
+        /// <summary>
+        /// (`AMBER284`, решение Amber 02.11.2026 «Вернуть красной строкой (Рекомендую)») Причина
+        /// отказа второго захода гамма-строк СЛОВАМИ ОКНА: <see cref="FsaResult.BetaGammaPassRefusal"/>
+        /// хранит имя члена <see cref="FsaRefusal"/> («NoFit»), а человеку нужен тот же текст, каким
+        /// сеанс называет такой отказ всего разбора (<see cref="FsaAnalysisSession.RefusalText(FsaRefusal, string)"/>).
+        /// Имя, которого перечисление не знает, печатается как есть. null — отказа не было.
+        /// Открыта пробе.
+        /// </summary>
+        public static string SecondPassRefusalText(FsaResult result)
+        {
+            if (result == null || string.IsNullOrEmpty(result.BetaGammaPassRefusal))
+            {
+                return null;
+            }
+
+            FsaRefusal refusal;
+            return Enum.TryParse(result.BetaGammaPassRefusal, false, out refusal)
+                   && Enum.IsDefined(typeof(FsaRefusal), refusal) && refusal != FsaRefusal.None
+                ? FsaAnalysisSession.RefusalText(refusal, null)
+                : result.BetaGammaPassRefusal;
+        }
+
+        /// <summary>
+        /// (`AMBER284`) Подсказка строки состава «только по бета»: своя подсказка строки (или её
+        /// подпись), а под ней — <see cref="BetaKnotCaption"/> (шаг узлов подложки, VIF, заходы).
+        /// null — строка не по бета или подложку не подбирали. Открыта пробе: приёмка читает ТУ
+        /// ЖЕ подсказку, что таблица.
+        /// </summary>
+        public static string BetaOnlyRowTip(FsaReportRow row, FsaResult result)
+        {
+            if (row == null || !row.BetaOnly)
+            {
+                return null;
+            }
+
+            string knots = BetaKnotCaption(result);
+            if (knots == null)
+            {
+                return null;
+            }
+
+            string own = string.IsNullOrEmpty(row.Hint) ? RowCaption(row) : row.Hint;
+            return own + Environment.NewLine + knots;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, решение Amber 02.11.2026 «Редкие узлы + два захода (Рекомендую)»; с
+        /// `AMBER284` — подсказка строк «только по бета» и красного предупреждения о VIF, а не
+        /// своя строка блока) Текст «подложка под нуклидами только по бета»: шаг узлов и VIF
+        /// строки беты против шапок, предел VIF, и чем посчитаны гамма-строки — вторым заходом с
+        /// обычным шагом, одним заходом (шаг подбора и есть обычный) или первым заходом при
+        /// отказе второго. null — строки беты в фите не было. Открыта пробе. Числа —
+        /// инвариантной культурой (`A242`).
+        /// </summary>
+        public static string BetaKnotCaption(FsaResult result)
+        {
+            if (result == null || double.IsNaN(result.BetaKnotFwhm))
+            {
+                return null;
+            }
+
+            string text = string.Format(CultureInfo.InvariantCulture, OwnText(KeyBetaKnotRow),
+                                        result.BetaKnotFwhm.ToString("0.##", CultureInfo.InvariantCulture),
+                                        result.BetaKnotVif.ToString("F1", CultureInfo.InvariantCulture),
+                                        result.BetaKnotVifMax.ToString("0.##", CultureInfo.InvariantCulture));
+            if (!result.BetaKnotVifMet)
+            {
+                text += OwnText(KeyBetaKnotVifOver);
+            }
+
+            if (result.BetaTwoPass)
+            {
+                text += string.Format(CultureInfo.InvariantCulture, OwnText(KeyBetaKnotSecondPass),
+                                      result.GammaKnotFwhm.ToString("0.##", CultureInfo.InvariantCulture));
+            }
+            else if (result.BetaGammaPassRefusal != null)
+            {
+                // (`AMBER284`) причина — своей строкой и словами окна, а не именем члена
+                // перечисления («NoFit») в скобках
+                text += OwnText(KeyBetaKnotSecondRefused) + Environment.NewLine + SecondPassRefusalText(result);
+            }
+            else if (result.BetaNoGammaRows)
+            {
+                text += OwnText(KeyBetaKnotNoGamma);
+            }
+            else
+            {
+                text += OwnText(KeyBetaKnotOnePass);
+            }
+
+            return text;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Ф14) Подпись строки отчёта: имя, а у строки по сплошному спектру — с
+        /// пометкой словами окна («только по бета» с `AMBER284`, прежде «по сплошному спектру»).
+        /// Открыта пробе: приёмка читает ТУ ЖЕ подпись, что таблица.
+        /// </summary>
+        public static string RowCaption(FsaReportRow row)
+        {
+            if (row == null)
+            {
+                return string.Empty;
+            }
+
+            string name = row.Name ?? string.Empty;
+            return row.BetaOnly ? name + " — " + OwnText(KeyBetaOnlyMark) : name;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Ф14) Почему строки по сплошному спектру сняты — словами окна; причина
+        /// «раздел» — словами строки «Бета пробы» (те же ключи), у отсутствующего раздела —
+        /// своим советом пересчитать матрицу.
+        /// </summary>
+        public static string BetaOnlyReasonText(FsaBetaOnlyRemoval reason,
+                                                EfficiencyMaker.ElectronSectionRefusal refusal, string capsule)
+        {
+            switch (reason)
+            {
+                case FsaBetaOnlyRemoval.NoMatrix:
+                    return OwnText(KeyBetaOnlyNoMatrix);
+                case FsaBetaOnlyRemoval.KeyOff:
+                    return OwnText(KeyBetaOnlyKeyOff);
+                case FsaBetaOnlyRemoval.ChannelMasked:
+                    return OwnText(KeyBetaOnlyMasked);
+            }
+
+            switch (refusal)
+            {
+                case EfficiencyMaker.ElectronSectionRefusal.Damaged:
+                    return OwnText(KeySampleBetaDamaged);
+                case EfficiencyMaker.ElectronSectionRefusal.OtherPhysics:
+                    return OwnText(KeySampleBetaOtherPhysics);
+                case EfficiencyMaker.ElectronSectionRefusal.OtherCapsule:
+                    return string.Format(CultureInfo.InvariantCulture, OwnText(KeySampleBetaOtherCapsule),
+                                         string.IsNullOrEmpty(capsule) ? "none" : capsule);
+                case EfficiencyMaker.ElectronSectionRefusal.IsoScene:
+                    return OwnText(KeySampleBetaIsoScene);
+                case EfficiencyMaker.ElectronSectionRefusal.NoScene:
+                    return OwnText(KeySampleBetaNoScene);
+                case EfficiencyMaker.ElectronSectionRefusal.OtherMatrix:
+                    return OwnText(KeySampleBetaOtherMatrix);
+                default:
+                    return OwnText(KeyBetaOnlyNoSection);
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Ф14) Подпись строки «сняты» блока качества; null — не снимали. Открыта
+        /// пробе.
+        /// </summary>
+        public static string BetaOnlyRemovedCaption(FsaResult result)
+        {
+            if (result == null || result.BetaOnlyRemoved == null || result.BetaOnlyRemoved.Count == 0)
+            {
+                return null;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyBetaOnlyRemovedRow),
+                                 string.Join(", ", result.BetaOnlyRemoved.ToArray()))
+                   + " — " + BetaOnlyReasonText(result.BetaOnlyRemovedReason, result.BetaOnlySectionRefusal,
+                                                result.SampleBetaCapsule);
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Ф14) Приписка к отказу разбора, когда снятые строки по сплошному спектру
+        /// были ВСЕМ составом (<c>FsaRefusal.LibraryEmptied</c>): иначе человек читает «состав
+        /// пуст» при объявленном Sr-90. null — снятых нет.
+        /// </summary>
+        public static string BetaOnlyRefusalText(List<string> removed, FsaBetaOnlyRemoval reason,
+                                                 EfficiencyMaker.ElectronSectionRefusal refusal)
+        {
+            if (removed == null || removed.Count == 0)
+            {
+                return null;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyBetaOnlyRefusal),
+                                 string.Join(", ", removed.ToArray()), BetaOnlyReasonText(reason, refusal, null));
+        }
+
+        /// <summary>
+        /// (`AMBER274`, К3) Подпись строки «ветви β с суммой выше 100 %»: «Pa-234 104.87 %, …»;
+        /// null — таких нет. Числа — инвариантной культурой (`A242`).
+        /// </summary>
+        public static string BetaBranchExcessCaption(FsaResult result)
+        {
+            if (result == null || result.BetaBranchExcess == null || result.BetaBranchExcess.Count == 0)
+            {
+                return null;
+            }
+
+            var parts = new List<string>();
+            foreach (KeyValuePair<string, double> item in result.BetaBranchExcess)
+            {
+                parts.Add(item.Key + " " + item.Value.ToString("F2", CultureInfo.InvariantCulture) + " %");
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyBetaBranchExcessRow),
+                                 string.Join(", ", parts.ToArray()));
+        }
 
         /// <summary>(`AMBER157`) Сколько исключённых линий называется в подписи поимённо.</summary>
         const int CurveOutsideShown = 6;
@@ -547,7 +951,7 @@ namespace BecquerelMonitor
             this.headerFont = new Font(this.Font, FontStyle.Bold);
 
             // (`AMBER45`) Пункты комбо «Matrix layer» — кодом, из собственных
-            // ресурсов окна: «All» первым, за ним семь каналов по номеру
+            // ресурсов окна: «All» первым, за ним восемь каналов по номеру (`AMBER274`: бета пробы)
             // (<see cref="FsaMatrixLayers.Channels"/>). Список каналов один на
             // проект — здесь он только подписывается.
             this.loading = true;
@@ -722,6 +1126,10 @@ namespace BecquerelMonitor
                 this.backscatterCheckBox.Checked = options.Backscatter;
                 this.escapeCheckBox.Checked = options.EscapeAndAnnihilation;
                 this.pileUpCheckBox.Checked = options.PileUp;
+                // (`AMBER269`) нижняя граница разбора — 0 значит правило порога
+                decimal bound = (decimal)Math.Max(0.0, Math.Min((double)this.fitLowerBoundUpDown.Maximum,
+                                                                options.FitLowerBoundKev));
+                this.fitLowerBoundUpDown.Value = bound;
             }
             finally
             {
@@ -955,6 +1363,17 @@ namespace BecquerelMonitor
         void equilibriumCheckBox_CheckedChanged(object sender, EventArgs e)
         {
             this.ApplyCalculationChange(cfg => cfg.ChainEquilibrium = this.equilibriumCheckBox.Checked);
+        }
+
+        /// <summary>
+        /// (`AMBER269`; решение Amber 02.11.2026 «Да, настройкой FSA с умолчанием 40 (Рекомендую)»)
+        /// Поле «Нижняя граница разбора, кэВ» — расчётное, той же дверью, что семь переключателей:
+        /// пишется в общую настройку приложения; у копии конфигурации спектра поля нет.
+        /// </summary>
+        void fitLowerBoundUpDown_ValueChanged(object sender, EventArgs e)
+        {
+            double kev = (double)this.fitLowerBoundUpDown.Value;
+            this.ApplyCalculationChange(cfg => { }, settings => settings.FitLowerBoundKev = kev);
         }
 
         void atomicXrayCheckBox_CheckedChanged(object sender, EventArgs e)
@@ -1272,6 +1691,16 @@ namespace BecquerelMonitor
         /// </summary>
         void ApplyCalculationChange(Action<FWHMPeakDetectionMethodConfig> set)
         {
+            this.ApplyCalculationChange(set, null);
+        }
+
+        /// <summary>
+        /// (`AMBER269`) То же, с настройкой, которой у копии спектра нет (нижняя граница разбора):
+        /// <paramref name="setGlobal"/> пишет её в общую настройку приложения; без источника
+        /// приложения (пробы) писать её некуда, и пересчёт идёт с прежним значением.
+        /// </summary>
+        void ApplyCalculationChange(Action<FWHMPeakDetectionMethodConfig> set, Action<FsaCalculationSettings> setGlobal)
+        {
             if (this.loading)
             {
                 return;
@@ -1293,6 +1722,11 @@ namespace BecquerelMonitor
                 settings.CopyTo(scratch);
                 set(scratch);
                 settings.CopyFrom(scratch);
+                if (setGlobal != null)
+                {
+                    setGlobal(settings);
+                }
+
                 manager.SaveConfigFile();
             }
             else
@@ -1669,6 +2103,7 @@ namespace BecquerelMonitor
             string residualHint = residualTips.Count > 0
                 ? string.Join(Environment.NewLine, residualTips.ToArray()) : null;
 
+            FsaResult shownSource = this.presentation != null ? this.presentation.Source : null;
             string keep = this.selectedLayer;
             this.suspendSelection = true;
             this.reportTable.BeginUpdate();
@@ -1696,8 +2131,10 @@ namespace BecquerelMonitor
                     }
 
                     bool residual = row.Kind == FsaReportRowKind.Residual;
+                    // (`AMBER284`) у строки «только по бета» — шаг узлов подложки в подсказке
                     this.tableModel.Rows.Add(this.MakeRow(
-                        row, residual ? residualCaption : null, residual ? residualHint : null));
+                        row, residual ? residualCaption : null,
+                        residual ? residualHint : BetaOnlyRowTip(row, shownSource)));
                 }
             }
             finally
@@ -1795,6 +2232,25 @@ namespace BecquerelMonitor
                 result.SigmaInflation.ToString("F3", CultureInfo.InvariantCulture),
                 OwnText(KeyInflationTip)));
 
+            // ⛔ (`AMBER274`, решение Amber 02.11.2026 вопросником, дословно: «MDA под порог z ≥ 3
+            // (Рекомендую)») ПРАВИЛО ПРЕДЕЛОВ НАЗВАНО — сразу под множителем, которым пределы
+            // надуты: порог решения — порог отсева значимостью (тот, которым строка состава
+            // признаётся найденной), β — квантилем ISO. Значение — сам порог, подсказка — уровни.
+            string limitRule = LimitRuleText(result);
+            if (limitRule != null)
+            {
+                made.Add(this.MakeNumberRow(KeyLimitRuleRow, limitRule, LimitRuleTip(result)));
+            }
+
+            // (`AMBER269`; решение Amber 02.11.2026 «Да, настройкой FSA с умолчанием 40 (Рекомендую)»)
+            // С КАКОЙ ГРАНИЦЫ ШЁЛ РАЗБОР — числом; подсказка называет источник: поле окна или
+            // правило порога (поле равно нулю).
+            string fitBound = FitBoundText(result);
+            if (fitBound != null)
+            {
+                made.Add(this.MakeNumberRow(KeyFitBoundRow, fitBound, FitBoundTip(result)));
+            }
+
             bool oldFormat = this.presentation.MatrixOldFormat;
             // (`AMBER208` (в), П236) матрица склада ЕСТЬ, но посчитана по другой
             // геометрии, чем кривая разбора (KCl: кривая из файла спектра старше
@@ -1804,15 +2260,28 @@ namespace BecquerelMonitor
             // (`AMBER202`) матрица, приехавшая В ФАЙЛЕ СПЕКТРА, называет источник
             bool matrixFromSpectrum = result.ResponseMatrixUsed && this.session != null
                                       && this.session.ResponseMatrixFromSpectrum;
-            made.Add(this.MakeMarkRow(KeyMatrixRow,
-                                      matrixFromSpectrum
-                                          ? Resources.FSAReportMatrixUsedFromSpectrum
-                                          : OwnText(result.ResponseMatrixUsed
-                                                        ? KeyMatrixUsed
-                                                        : matrixStale ? KeyMatrixStale
-                                                        : oldFormat ? KeyMatrixOldFormat : KeyMatrixNotUsed),
-                                      result.ResponseMatrixUsed,
-                                      false));
+            // ⛔ (`AMBER284`, решение Amber 02.11.2026 вопросником, дословно: «Объединить со строкой
+            // выше, где уже написано - нет Матрицы отклика. Остальное убрать в подсказку.») Отдельной
+            // строки-предупреждения «Нет матрицы отклика: …» (`AMBER156` (в), П195) больше нет: её
+            // цена словами — подсказкой этой строки, а признак происшествия (красное значение и
+            // `Warning` у строки) — здесь же, при том же условии: разбор с кривой и без матрицы.
+            string matrixTip = MatrixNotUsedTip(result);
+            Row matrixRow = this.MakeMarkRow(KeyMatrixRow,
+                                             matrixFromSpectrum
+                                                 ? Resources.FSAReportMatrixUsedFromSpectrum
+                                                 : OwnText(result.ResponseMatrixUsed
+                                                               ? KeyMatrixUsed
+                                                               : matrixStale ? KeyMatrixStale
+                                                               : oldFormat ? KeyMatrixOldFormat : KeyMatrixNotUsed),
+                                             result.ResponseMatrixUsed,
+                                             matrixTip != null);
+            if (matrixTip != null)
+            {
+                matrixRow.Cells[0].ToolTipText = matrixTip;
+                matrixRow.Cells[1].ToolTipText = matrixTip;
+            }
+
+            made.Add(matrixRow);
             // (`AMBER202`) матрица из файла спектра ОТВЕРГНУТА — причина словами
             string spectrumMatrixRefusal = this.session != null ? this.session.SpectrumMatrixRefusal : "";
             if (!result.ResponseMatrixUsed && !string.IsNullOrEmpty(spectrumMatrixRefusal))
@@ -1854,15 +2323,76 @@ namespace BecquerelMonitor
                                       result.CascadeSummingUsed,
                                       result.CascadeSummingRefusedFieldMatrix));
 
-            // (`AMBER156` (в), П195) РАЗБОР БЕЗ МАТРИЦЫ — предупреждение словами
-            // и с величиной, а не одна пометка «не учтено» у суммирования:
-            // старый формат, выключенная галка или несчитанная матрица — обычный
-            // путь человека, и до 01.10.2026 он получал заниженные активности
-            // без единого слова. Стоит ПОСЛЕ трёх строк, печатаемых всегда, —
-            // это происшествие, а не состояние.
-            if (result.EfficiencyUsed && !result.ResponseMatrixUsed)
+            // (`AMBER274`, `Р5`/`Д2`) БЕТА ПРОБЫ — когда у матрицы ЕСТЬ раздел электронов
+            // (или он был и испорчен): легла ли бета, сколько отсчётов в образах, какая
+            // капсула; не взята — почему. У матрицы без раздела строки нет: сказать нечего,
+            // разбор идёт прежним путём побитово.
+            string sampleBeta = SampleBetaText(result);
+            if (sampleBeta != null)
             {
-                made.Add(this.MakeMarkRowText(OwnText(KeyNoMatrixWarnRow), OwnText(KeyNoMatrixWarnValue), false, true));
+                bool betaUsed = result.SampleBetaKeyOn
+                                && result.SampleBetaRefusal == EfficiencyMaker.ElectronSectionRefusal.None;
+                Row betaRow = this.MakeMarkRow(KeySampleBetaRow, sampleBeta, betaUsed,
+                                               result.SampleBetaKeyOn && !betaUsed);
+                // (`AMBER284`) число узлов раздела — в подсказке легшей беты
+                string betaTip = SampleBetaTip(result);
+                if (betaTip != null)
+                {
+                    betaRow.Cells[0].ToolTipText = betaTip;
+                    betaRow.Cells[1].ToolTipText = betaTip;
+                }
+
+                made.Add(betaRow);
+            }
+
+            // (`AMBER274`, Ф14) СТРОКИ ПО СПЛОШНОМУ СПЕКТРУ, СНЯТЫЕ ДО ФИТА — происшествие, только
+            // когда было: имена и причина (матрицы нет, бета выключена, раздела нет или он не
+            // годен), красным: объявленного в составе нуклида в таблице нет.
+            string betaOnlyRemoved = BetaOnlyRemovedCaption(result);
+            if (betaOnlyRemoved != null)
+            {
+                made.Add(this.MakeMarkRowText(betaOnlyRemoved, OwnText(KeyBetaOnlyRemovedValue), false, true));
+            }
+
+            // (`AMBER274`, решение Amber 02.11.2026 «Редкие узлы + два захода (Рекомендую)») ШАГ
+            // УЗЛОВ ПОДЛОЖКИ ПОД СТРОКОЙ БЕТЫ и второй заход гамма-строк — только когда строка
+            // беты дошла до фита.
+            // ⛔ (`AMBER284`, решение Amber 02.11.2026 «Убрать строку в подсказку строки
+            // бета-нуклидов (Рекомендую)»: на виду — только предупреждение, если VIF выше предела)
+            // Своей строки блока у шага узлов больше нет: он — подсказкой строк «только по бета»
+            // (<see cref="BetaOnlyRowTip"/>). Красная строка — только когда VIF не достиг предела и
+            // на самом редком шаге; её подсказка — тот же текст шага узлов.
+            string betaKnots = BetaKnotCaption(result);
+            if (betaKnots != null && !result.BetaKnotVifMet)
+            {
+                Row vif = this.MakeMarkRowText(OwnText(KeyBetaKnotVifOverRow), OwnText(KeyBetaKnotVifOverValue),
+                                               false, true);
+                vif.Cells[0].ToolTipText = betaKnots;
+                vif.Cells[1].ToolTipText = betaKnots;
+                made.Add(vif);
+            }
+
+            // ⛔ (`AMBER284`, решение Amber 02.11.2026 вопросником «Вернуть красной строкой
+            // (Рекомендую)») ОТКАЗ ВТОРОГО ЗАХОДА ГАММА-СТРОК — на виду, красной строкой: активности
+            // нуклидов с гамма-линиями взяты из первого, более грубого захода (подложка с редкими
+            // узлами строки беты). До AMBER284 этот отказ красил строку шага узлов; с её уходом в
+            // подсказку он остался только в подсказке. Строка — независимо от VIF: при VIF выше
+            // предела рядом стоит и его предупреждение — это два разных факта (бета ненадёжна;
+            // гамма грубее). Подсказка — тот же текст шага узлов с причиной словами окна.
+            if (betaKnots != null && result.BetaGammaPassRefusal != null)
+            {
+                Row refused = this.MakeMarkRowText(OwnText(KeyBetaKnotSecondRefusedRow), OwnText(KeyBetaKnotSecondRefusedValue),
+                                                   false, true);
+                refused.Cells[0].ToolTipText = betaKnots;
+                refused.Cells[1].ToolTipText = betaKnots;
+                made.Add(refused);
+            }
+
+            // (`AMBER274`, К3) ВЕТВИ β С СУММОЙ ВЫШЕ 100 % у нуклидов, чья бета легла в образ.
+            string branchExcess = BetaBranchExcessCaption(result);
+            if (branchExcess != null)
+            {
+                made.Add(this.MakeMarkRowText(branchExcess, OwnText(KeyBetaBranchExcessValue), false, true));
             }
 
             // (`AMBER157`, П195; решение Amber 01.10.2026 «Исключать с
@@ -1896,10 +2426,16 @@ namespace BecquerelMonitor
             // КРИВАЯ ПОСЧИТАНА ДЛЯ ДРУГОЙ ГЕОМЕТРИИ — отпечаток при кривой не
             // сходится с геометрией конфигурации спектра. Происшествие, только
             // когда было; у кривой без отпечатка (до 05.10.2026) — молчим.
+            // ⛔ (`AMBER269` дефект 5, 02.11.2026) ПРИЧИНА — ТА ЖЕ, ЧТО НА ВКЛАДКЕ
+            // ПРИБОРА (`DeviceConfigForm.GeometryNotes`): кривая, посчитанная до
+            // сдвига точки в капсуле, помечается этой причиной, а не «геометрию
+            // правили после расчёта» — отпечаток расходится только строкой сдвига.
             ResultData shown = this.ActiveResultData;
             if (shown != null && shown.Efficiency != null && shown.Efficiency.CurveGeometryMismatch)
             {
-                made.Add(this.MakeMarkRowText(Resources.EfficiencyCurveOtherGeometry,
+                made.Add(this.MakeMarkRowText(shown.Efficiency.CurveBeforeSourceOffset
+                                                  ? DeviceConfigForm.CurveBeforeSourceOffsetNote(shown.Efficiency)
+                                                  : Resources.EfficiencyCurveOtherGeometry,
                                               Resources.FSAReportCurveOtherGeometryValue, false, true));
             }
 
@@ -2034,6 +2570,34 @@ namespace BecquerelMonitor
                 }
             }
 
+            // ⛔ (`AMBER269`; решения Amber 02.11.2026 вопросником, дословно: «Да, по признакам
+            // (Рекомендую)», «Вариант 1. Только заменить фразу фон перевычтен на более понятную
+            // человеку», «Фон больше спектра» (Рекомендую)) ДВА ПРЕДУПРЕЖДЕНИЯ ПО ПОЛОСЕ —
+            // красным, без отказа: «фон больше спектра» (после вычета фона счёт ниже нуля; z — в
+            // подсказке) и «модель не описывает низ спектра» (образы выше всего измеренного
+            // спектра). Правило — у `FsaAnalyzer.JudgeBandWarnings`; числа — инвариантной
+            // культурой (`A242`).
+            string backgroundAbove = BackgroundOversubtractedText(result);
+            if (backgroundAbove != null)
+            {
+                Row above = this.MakeMarkRowText(backgroundAbove, OwnText(KeyBackgroundAboveValue), false, true);
+                string tip = BackgroundOversubtractedTip(result);
+                above.Cells[0].ToolTipText = tip;
+                above.Cells[1].ToolTipText = tip;
+                made.Add(above);
+            }
+
+            string imagesAbove = ImagesAboveSpectrumText(result);
+            if (imagesAbove != null)
+            {
+                // (`AMBER284`) z — в подсказке, как у «фон больше спектра»
+                Row images = this.MakeMarkRowText(imagesAbove, OwnText(KeyImagesAboveValue), false, true);
+                string tip = ImagesAboveSpectrumTip(result);
+                images.Cells[0].ToolTipText = tip;
+                images.Cells[1].ToolTipText = tip;
+                made.Add(images);
+            }
+
             // (`AMBER210`, П238; решение Amber 07.10.2026 вопросником, дословно: «Только
             // отчёт FSA, строка на пик») ПИК В ПОЛОСЕ, НЕ ПОКРЫТЫЙ СОСТАВОМ: энергия,
             // избыток над моделью в процентах, значимость и линии библиотеки приложения
@@ -2075,6 +2639,111 @@ namespace BecquerelMonitor
             }
 
             return made;
+        }
+
+        /// <summary>
+        /// (`AMBER269`; решение Amber 02.11.2026 «Фон больше спектра» (Рекомендую)) Подпись строки
+        /// «фон больше спектра» словами окна — полоса и вероятная причина, без z (z — в подсказке,
+        /// <see cref="BackgroundOversubtractedTip"/>); null — признака нет. Открыта пробе: приёмка
+        /// читает ТУ ЖЕ подпись, что таблица. Числа — инвариантной культурой (`A242`).
+        /// </summary>
+        public static string BackgroundOversubtractedText(FsaResult result)
+        {
+            FsaBandWarning flag = result != null ? result.BackgroundOversubtracted : null;
+            if (flag == null)
+            {
+                return null;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyBackgroundAboveRow),
+                                 flag.LoKev.ToString("F0", CultureInfo.InvariantCulture),
+                                 flag.HiKev.ToString("F0", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// (`AMBER269`) Подсказка строки «фон больше спектра»: значимость окна и во сколько раз фон в
+        /// нём больше измеренного; null — признака нет. Открыта пробе.
+        /// </summary>
+        public static string BackgroundOversubtractedTip(FsaResult result)
+        {
+            FsaBandWarning flag = result != null ? result.BackgroundOversubtracted : null;
+            if (flag == null)
+            {
+                return null;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyBackgroundAboveTip),
+                                 flag.Z.ToString("F1", CultureInfo.InvariantCulture),
+                                 flag.Ratio.ToString("F3", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// (`AMBER269`; решение Amber 02.11.2026 «Да, настройкой FSA с умолчанием 40 (Рекомендую)»)
+        /// Значение строки «нижняя граница разбора»: энергия, с которой шёл разбор, кэВ (первый канал
+        /// фита); null — у результата её нет. Открыта пробе. Числа — инвариантной культурой (`A242`).
+        /// </summary>
+        public static string FitBoundText(FsaResult result)
+        {
+            if (result == null)
+            {
+                return null;
+            }
+
+            double kev = result.FitLowerBoundKev > 0.0 ? result.FitLowerBoundKev : result.FitStartKev;
+            return double.IsNaN(kev) ? null : kev.ToString("F1", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>(`AMBER269`) Подсказка строки «нижняя граница разбора»: настройка окна или правило порога.</summary>
+        public static string FitBoundTip(FsaResult result)
+        {
+            if (result == null)
+            {
+                return null;
+            }
+
+            return result.FitLowerBoundKev > 0.0
+                ? string.Format(CultureInfo.InvariantCulture, OwnText(KeyFitBoundTipSetting),
+                                result.FitLowerBoundKev.ToString("F1", CultureInfo.InvariantCulture))
+                : string.Format(CultureInfo.InvariantCulture, OwnText(KeyFitBoundTipRule),
+                                double.IsNaN(result.FitStartKev) ? "—"
+                                    : result.FitStartKev.ToString("F1", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// (`AMBER269`; `AMBER284`, решение Amber 02.11.2026 «Модель выше спектра в 30.6–42.7 кэВ
+        /// (в 2.06 раза) (Рекомендую)», продолжение «: низ спектра не описан», z — в подсказку)
+        /// Подпись строки «модель выше спектра» словами окна: полоса и во сколько раз, без z
+        /// (<see cref="ImagesAboveSpectrumTip"/>); null — признака нет. Открыта пробе. Числа —
+        /// инвариантной культурой (`A242`).
+        /// </summary>
+        public static string ImagesAboveSpectrumText(FsaResult result)
+        {
+            FsaBandWarning flag = result != null ? result.ImagesAboveSpectrum : null;
+            if (flag == null)
+            {
+                return null;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyImagesAboveRow),
+                                 flag.LoKev.ToString("F0", CultureInfo.InvariantCulture),
+                                 flag.HiKev.ToString("F0", CultureInfo.InvariantCulture),
+                                 flag.Ratio.ToString("F2", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// (`AMBER284`) Подсказка строки «модель выше спектра»: значимость окна; null — признака
+        /// нет. Открыта пробе.
+        /// </summary>
+        public static string ImagesAboveSpectrumTip(FsaResult result)
+        {
+            FsaBandWarning flag = result != null ? result.ImagesAboveSpectrum : null;
+            if (flag == null)
+            {
+                return null;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyImagesAboveTip),
+                                 flag.Z.ToString("F1", CultureInfo.InvariantCulture));
         }
 
         /// <summary>
@@ -2234,36 +2903,33 @@ namespace BecquerelMonitor
         /// </summary>
         void AddAnchorRow(List<Row> made, FsaResult result)
         {
+            // (`AMBER269`, дефект 4) при откате (А2) опор у отданного разбора нет, но это не
+            // «опор нет»: привязка нашлась и отменена как ухудшившая разбор — своё слово
             string value = result.ScaleAnchorsUsed > 0
                 ? result.ScaleAnchorsUsed.ToString(CultureInfo.InvariantCulture)
-                : OwnText(KeyAnchorNone);
+                : OwnText(result.AnchorRolledBack ? KeyAnchorRolledBack : KeyAnchorNone);
 
             var tip = new System.Text.StringBuilder(OwnText(KeyAnchorTip));
-            if (result.ScaleAnchors != null)
+            AppendAnchorLines(tip, result.ScaleAnchors);
+            string rollback = AnchorRollbackCaption(result);
+            if (rollback != null)
             {
-                foreach (FsaScaleAnchor anchor in result.ScaleAnchors)
-                {
-                    tip.AppendLine();
-                    tip.Append(string.Format(CultureInfo.InvariantCulture, OwnText(KeyAnchorTipLine),
-                                             anchor.Used ? "+" : "-",
-                                             anchor.Component ?? string.Empty,
-                                             anchor.ModelKev.ToString("F1", CultureInfo.InvariantCulture),
-                                             anchor.ShiftKev.ToString("+0.00;-0.00", CultureInfo.InvariantCulture),
-                                             anchor.PeakShare.ToString("F2", CultureInfo.InvariantCulture),
-                                             anchor.Refusal ?? string.Empty));
-                    // (`F11` (в), П18) у ПРИНЯТОЙ опоры со сдвигом по свету —
-                    // сам сдвиг: человек видит, что положение линии модели
-                    // здесь не табличное, а световое. Нуль (координата
-                    // выключена) не печатается — строка остаётся прежней.
-                    if (anchor.Used && anchor.LightShiftKev != 0.0)
-                    {
-                        tip.Append(string.Format(CultureInfo.InvariantCulture, OwnText(KeyAnchorTipLight),
-                                                 anchor.LightShiftKev.ToString("+0.00;-0.00", CultureInfo.InvariantCulture)));
-                    }
-                }
+                tip.AppendLine();
+                tip.AppendLine();
+                tip.Append(rollback);
+                tip.AppendLine();
+                tip.Append(OwnText(KeyAnchorRollbackTip));
+                AppendAnchorLines(tip, result.AnchorRollbackScaleAnchors);
             }
 
             made.Add(this.MakeNumberRow(KeyAnchorRow, value, tip.ToString()));
+            if (rollback != null)
+            {
+                Row rolled = this.MakeMarkRowText(rollback, OwnText(KeyAnchorRollbackValue), false, true);
+                rolled.Cells[0].ToolTipText = tip.ToString();
+                made.Add(rolled);
+            }
+
             if (result.ScaleAnchorsUsed > 0)
             {
                 made.Add(this.MakeNumberRow(
@@ -2275,6 +2941,77 @@ namespace BecquerelMonitor
                     result.AnchorOffsetKev.ToString("+0.00;-0.00", CultureInfo.InvariantCulture),
                     tip.ToString()));
             }
+        }
+
+        /// <summary>(`AMBER17`) Строки опор в подсказку: знак, компонент, центр, остаток, доля, причина.</summary>
+        static void AppendAnchorLines(System.Text.StringBuilder tip, List<FsaScaleAnchor> anchors)
+        {
+            if (anchors == null)
+            {
+                return;
+            }
+
+            foreach (FsaScaleAnchor anchor in anchors)
+            {
+                tip.AppendLine();
+                tip.Append(string.Format(CultureInfo.InvariantCulture, OwnText(KeyAnchorTipLine),
+                                         anchor.Used ? "+" : "-",
+                                         anchor.Component ?? string.Empty,
+                                         anchor.ModelKev.ToString("F1", CultureInfo.InvariantCulture),
+                                         anchor.ShiftKev.ToString("+0.00;-0.00", CultureInfo.InvariantCulture),
+                                         anchor.PeakShare.ToString("F2", CultureInfo.InvariantCulture),
+                                         anchor.Refusal ?? string.Empty));
+                // (`F11` (в), П18) у ПРИНЯТОЙ опоры со сдвигом по свету —
+                // сам сдвиг: человек видит, что положение линии модели
+                // здесь не табличное, а световое. Нуль (координата
+                // выключена) не печатается — строка остаётся прежней.
+                if (anchor.Used && anchor.LightShiftKev != 0.0)
+                {
+                    tip.Append(string.Format(CultureInfo.InvariantCulture, OwnText(KeyAnchorTipLight),
+                                             anchor.LightShiftKev.ToString("+0.00;-0.00", CultureInfo.InvariantCulture)));
+                }
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER269`, дефект 4) Подпись строки «откат привязки» словами окна: сколько опор и
+        /// какое усиление было у отменённого разбора и чем он хуже — χ²/ndf Пуассона с привязкой
+        /// и без; null — отката не было. Открыта пробе: приёмка читает ТУ ЖЕ подпись, что
+        /// таблица. Числа — инвариантной культурой (`A242`).
+        /// </summary>
+        public static string AnchorRollbackCaption(FsaResult result)
+        {
+            if (result == null || !result.AnchorRolledBack)
+            {
+                return null;
+            }
+
+            // (`AMBER284`, решение Amber 02.11.2026: «по 1 пикам» склонять по числу) форма «пику» —
+            // своим ключом, правило выбора — языка окна (<see cref="OnePeakForm"/>)
+            return string.Format(CultureInfo.InvariantCulture,
+                                 OwnText(OnePeakForm(result.AnchorRollbackAnchors) ? KeyAnchorRollbackRowOne : KeyAnchorRollbackRow),
+                                 result.AnchorRollbackAnchors.ToString(CultureInfo.InvariantCulture),
+                                 (100.0 * (result.AnchorRollbackGain - 1.0)).ToString("+0.00;-0.00", CultureInfo.InvariantCulture),
+                                 result.AnchorRollbackChi2NdfPoisson.ToString("F2", CultureInfo.InvariantCulture),
+                                 result.Chi2NdfPoisson.ToString("F2", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// (`AMBER284`, решение Amber 02.11.2026: «Склонять по числу: 1, 21, 31… — «пику»; прочие —
+        /// «пикам». EN — «peak»/«peaks».») Нужна ли форма единственного числа
+        /// (`FSAReport_AnchorRollbackRowOne`) при <paramref name="count"/> пиках. Правило — языка
+        /// окна (`CurrentUICulture`, им же <c>OwnText</c> выбирает `resx`): по-русски 1, 21, 31…, но
+        /// не 11, 111 («по 11 пикам»); иначе — только 1. Открыта пробе.
+        /// </summary>
+        public static bool OnePeakForm(int count)
+        {
+            if (CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru")
+            {
+                int n = Math.Abs(count);
+                return n % 10 == 1 && n % 100 != 11;
+            }
+
+            return count == 1;
         }
 
         /// <summary>
@@ -2542,10 +3279,16 @@ namespace BecquerelMonitor
             // (`AMBER217`) Образец — картинкой ПЕРЕД подписью, в той же ячейке:
             // отступ слева освобождает ему место, текст и его перенос остаются
             // штатными (<see cref="SwatchTextCellRenderer"/>).
-            var name = new Cell(caption ?? row.Name ?? string.Empty, this.SwatchOf(row));
+            // (`AMBER274`, Ф14) подпись — с пометкой строки по сплошному спектру
+            var name = new Cell(caption ?? RowCaption(row), this.SwatchOf(row));
             if (name.Image != null)
             {
                 name.Padding = new CellPadding(SwatchWidth + SwatchGap, 0, 0, 0);
+            }
+            else if (row.Indent > 0)
+            {
+                // (`AMBER286`) строка под строкой нуклида: текст — под его текстом и на шаг правее
+                name.Padding = new CellPadding(SwatchWidth + SwatchGap + IndentStep * row.Indent, 0, 0, 0);
             }
 
             var value = new Cell(row.Value ?? string.Empty);
@@ -2708,6 +3451,7 @@ namespace BecquerelMonitor
             this.backscatterCheckBox.Enabled = has;
             this.escapeCheckBox.Enabled = has;
             this.pileUpCheckBox.Enabled = has;
+            this.fitLowerBoundUpDown.Enabled = has;
             this.residualBandCheckBox.Enabled = has;
             this.reportTable.Enabled = has;
 
@@ -2819,6 +3563,8 @@ namespace BecquerelMonitor
             this.SetTip(this.backscatterCheckBox, Resources.FSAReportTipCalculation);
             this.SetTip(this.escapeCheckBox, Resources.FSAReportTipCalculation);
             this.SetTip(this.pileUpCheckBox, Resources.FSAReportTipCalculation);
+            this.SetTip(this.fitLowerBoundUpDown, Resources.FSAReportTipCalculation);
+            this.SetTip(this.fitLowerBoundLabel, Resources.FSAReportTipCalculation);
 
             // (`A248`) Лента невязки расчёта НЕ меняет, и подсказка обязана
             // сказать это прямо: подпись, по решению Amber, ничего не

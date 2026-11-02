@@ -1907,6 +1907,44 @@ namespace XPTable.Models
         }
 
         /// <summary>
+        /// (`AMBER284`, полоса a284b, 02.11.2026) Сколько строк ЦЕЛИКОМ помещается, если считать
+        /// С КОНЦА таблицы. Предел прокрутки (<c>Maximum - LargeChange + 1</c>) брался из
+        /// <see cref="VisibleRowCountExact"/> — числа строк, влезающих от ВЕРХНЕЙ строки. У таблицы
+        /// с переносом по словам строки разной высоты: вверху окна «Отчёт FSA» — короткие строки
+        /// состава, внизу — строки блока качества в три-четыре строки текста. Верхних влезает
+        /// больше, предел прокрутки выходил меньше нужного, и последняя строка блока не доезжала
+        /// до вида даже на упоре (замерено экраном: разбор диска Th-232 без матрицы — колесо на
+        /// 10 щелчков сдвигало таблицу на одну строку, низ «рядом в библиотеке: Pb-214 …»
+        /// оставался обрезан). Не меньше одной строки: иначе верхней строкой стала бы
+        /// несуществующая.
+        /// </summary>
+        private int VisibleRowCountFromBottom()
+        {
+            RowCollection rows = this.TableModel.Rows;
+            int visibleHeight = this.CellDataRect.Height;
+            int ydiff = 0;
+            int count = 0;
+            for (int i = rows.Count - 1; i >= 0; i--)
+            {
+                Row row = rows[i];
+                if (row != null && (row.Parent == null || row.Parent.ExpandSubRows))
+                {
+                    ydiff += row.Height;
+                    if (ydiff <= visibleHeight)
+                    {
+                        count++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+
+            return Math.Max(1, count);
+        }
+
+        /// <summary>
         /// Returns the number of visible rows, determined by iterating over all visible rows.
         /// Copes with word-wrapped rows.
         /// </summary>
@@ -2680,6 +2718,14 @@ namespace XPTable.Models
                 vScrollBar.Maximum = rowcount;
 
                 int visibleRowCount = this.GetVisibleRowCount(hscroll, true);
+                // (`AMBER284`, a284b) с переносом по словам предел прокрутки — по строкам С КОНЦА
+                // таблицы (<see cref="VisibleRowCountFromBottom"/>): иначе высокие нижние строки
+                // недоступны прокрутке. Меньшее из двух — предел только растёт.
+                if (this.EnableWordWrap)
+                {
+                    visibleRowCount = Math.Min(visibleRowCount, this.VisibleRowCountFromBottom());
+                }
+
                 vScrollBar.LargeChange = visibleRowCount < 0 ? 0 : visibleRowCount + 1;
             }
             else

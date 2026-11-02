@@ -834,6 +834,30 @@
   <data name="crystalMaterialNotSet" xml:space="preserve">
     <value>(not specified)</value>
   </data>
+  <data name="crystalFromGeometryQuestion" xml:space="preserve">
+    <value>The geometry has crystal {0}, the device has {1}. Make {0} the device's crystal material?</value>
+  </data>
+  <data name="crystalFromGeometryChoiceTitle" xml:space="preserve">
+    <value>Crystal Material</value>
+  </data>
+  <data name="crystalFromGeometryChoicePrompt" xml:space="preserve">
+    <value>The geometries of this device's efficiency curves have different crystals. Which one should be the device's crystal material?</value>
+  </data>
+  <data name="crystalFromGeometryChoiceItem" xml:space="preserve">
+    <value>{0} (curves: {1})</value>
+  </data>
+  <data name="crystalFromGeometryChoiceTake" xml:space="preserve">
+    <value>Use selected</value>
+  </data>
+  <data name="crystalFromGeometryChoiceLeave" xml:space="preserve">
+    <value>Leave not specified</value>
+  </data>
+  <data name="EfficiencyCurveBeforeSourceOffset" xml:space="preserve">
+    <value>The efficiency curve was computed by an earlier version of the program, before the source point inside the capsule was moved {0} mm farther from the housing; the geometry itself was not edited. Recalculate the curve.</value>
+  </data>
+  <data name="GeometryEditorBeakerFarEndWall" xml:space="preserve">
+    <value>Beaker far end wall thickness</value>
+  </data>
   <data name="&gt;&gt;crystalMaterialLabel.Name" xml:space="preserve">
     <value>crystalMaterialLabel</value>
   </data>

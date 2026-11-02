@@ -102,6 +102,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                            ulong[] states, uint key0, uint key1,
                            double[] hist, double[] hist2, double[] chan, double[] light, double[] scal, int scalCount,
                            [In, Out] GpuHistoryOut[] perHistory, int blocks, int threads);
+        // (`AMBER274`) Раздел электрона пробы — `rm_esrc` (api.cu).
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        delegate int EsrcFn(double te, int positron, double binKev, double lightPerKev, int bins, long n, long first,
+                            uint key0, uint key1, double[] hist, double[] scal, int scalCount, int threads);
+        // (`AMBER274` Ф8, полоса `f8cyl`) Строка ветви — событие целиком — `rm_ebranch` (api.cu).
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        delegate int EbranchFn(double endpointKev, double binKev, double lightPerKev, int bins, long n, long first,
+                               uint key0, uint key1,
+                               double[] betaT, double[] betaCdf, int betaN,
+                               int[] levelFirst, int[] levelCount, int levels, int startLevel,
+                               double[] trCdf, int[] trTo, int transitions,
+                               double[] emitCdf, double[] emitKev,
+                               double[] hist, double[] histGamma, double[] scal, int scalCount, int threads);
 
         readonly VoidFn shutdown;
         readonly LastErrorFn lastError;
@@ -110,6 +123,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         readonly VoidIntFn cfgCommit;
         readonly LoadFn load;
         readonly RunFn run;
+        readonly EsrcFn esrc;
+        readonly EbranchFn ebranch;
         readonly SlotsFn slots;
         readonly VoidIntFn sizeofHistory;
         readonly VoidIntFn realBytes;
@@ -169,6 +184,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.cfgCommit = Get<VoidIntFn>(h, "rm_cfg_commit");
             this.load = Get<LoadFn>(h, "rm_load");
             this.run = Get<RunFn>(h, "rm_run");
+            // (`AMBER274`) Необязательная точка: у DLL до физики 28 её нет — отказ только при вызове.
+            IntPtr esrcPtr = GetProcAddress(h, "rm_esrc");
+            this.esrc = esrcPtr != IntPtr.Zero ? Marshal.GetDelegateForFunctionPointer(esrcPtr, typeof(EsrcFn)) as EsrcFn : null;
+            // (`Ф8`) Необязательная точка: у DLL до шва события её нет — отказ только при вызове.
+            IntPtr ebranchPtr = GetProcAddress(h, "rm_ebranch");
+            this.ebranch = ebranchPtr != IntPtr.Zero
+                ? Marshal.GetDelegateForFunctionPointer(ebranchPtr, typeof(EbranchFn)) as EbranchFn : null;
             this.slots = Get<SlotsFn>(h, "rm_slots");
             this.sizeofHistory = Get<VoidIntFn>(h, "rm_sizeof_history_out");
             this.realBytes = Get<VoidIntFn>(h, "rm_real_bytes");
@@ -283,6 +305,23 @@ namespace BecquerelMonitor.EfficiencyMaker
                     r.Reason = "library " + FileName + " was built for transport physics "
                                + physics.ToString(CultureInfo.InvariantCulture) + ", this build is physics "
                                + ResponseMatrix.PhysicsVersion.ToString(CultureInfo.InvariantCulture) + " — rebuild it";
+                    r.ReasonCode = GpuProbeReason.PhysicsMismatch;
+                    return r;
+                }
+
+                // ⛔ (`AMBER274`, физика 30, Н7 критика кода 02.11.2026) СОСТАВ НАСТРОЕК, а не только `phys=`:
+                // библиотека знает те настройки симулятора, что были в `cfg.h` при её сборке. Ключ физики,
+                // заведённый без подъёма поколения (так было с `mott` физики 29), библиотека прежней сборки
+                // не знает, и прежде она отказывала только при распаковке — невнятным «контрольное слово не
+                // сошлось». Отпечаток списка полей `cfg=` (вид:имя;… в порядке `cfg.h`, FNV-1a 64) сверяется
+                // с тем же отпечатком полей этой сборки (<see cref="SettingsFingerprint"/>).
+                string libCfg = BuildInfoText(r.BuildInfo, "cfg");
+                string appCfg = SettingsFingerprint();
+                if (libCfg != appCfg)
+                {
+                    r.Reason = "library " + FileName + " was built for another set of transport settings (cfg="
+                               + (string.IsNullOrEmpty(libCfg) ? "none" : libCfg) + ", this build has cfg=" + appCfg
+                               + ") — rebuild it";
                     r.ReasonCode = GpuProbeReason.PhysicsMismatch;
                     return r;
                 }
@@ -748,6 +787,58 @@ namespace BecquerelMonitor.EfficiencyMaker
             return (v / 1000).ToString(CultureInfo.InvariantCulture) + "." + ((v % 1000) / 10).ToString(CultureInfo.InvariantCulture);
         }
 
+        /// <summary>(`AMBER274`, физика 30, Н7) Поле `имя=значение;` строки `rm_build_info` текстом; нет — пусто.</summary>
+        public static string BuildInfoText(string info, string key)
+        {
+            if (string.IsNullOrEmpty(info)) return "";
+            foreach (string part in info.Split(';'))
+            {
+                int eq = part.IndexOf('=');
+                if (eq > 0 && part.Substring(0, eq) == key)
+                {
+                    return part.Substring(eq + 1);
+                }
+            }
+
+            return "";
+        }
+
+        /// <summary>
+        /// (`AMBER274`, физика 30, Н7) Отпечаток списка настроек симулятора, которые шлёт ядру упаковщик
+        /// (`GpuPack.Settings`, `gen_cfg.ps1`): открытые экземплярные поля примитивных видов, кроме
+        /// счётчиков `Count*`/`Sum*`/`Last*`/`Weight*`, в порядке объявления, строкой «вид:имя;» (B, I, L,
+        /// D) — FNV-1a 64, 16 шестнадцатеричных знаков. Ядро печатает тот же отпечаток своего `cfg.h`
+        /// (`rm_build_info`, `cfg=`); сторож `tools/check_gpu_dll.py` сверяет его с деревом.
+        /// </summary>
+        public static string SettingsFingerprint()
+        {
+            var text = new StringBuilder();
+            foreach (System.Reflection.FieldInfo f in typeof(EfficiencySimulator).GetFields(
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public))
+            {
+                if (!f.FieldType.IsPrimitive) continue;
+                string n = f.Name;
+                if (n.StartsWith("Count", StringComparison.Ordinal) || n.StartsWith("Sum", StringComparison.Ordinal)
+                    || n.StartsWith("Last", StringComparison.Ordinal) || n.StartsWith("Weight", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                char kind = f.FieldType == typeof(bool) ? 'B' : f.FieldType == typeof(int) ? 'I'
+                          : f.FieldType == typeof(long) ? 'L' : f.FieldType == typeof(double) ? 'D' : '?';
+                text.Append(kind).Append(':').Append(n).Append(';');
+            }
+
+            ulong h = 14695981039346656037UL;
+            foreach (char c in text.ToString())
+            {
+                h ^= (byte)c;
+                h *= 1099511628211UL;
+            }
+
+            return h.ToString("x16", CultureInfo.InvariantCulture);
+        }
+
         /// <summary>Поле `имя=значение;` из строки `rm_build_info`; нет поля или не число — −1.</summary>
         public static int BuildInfoInt(string info, string key)
         {
@@ -974,6 +1065,113 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
+        /// <summary>
+        /// (`AMBER274`, Э1 + физика 28) Строка раздела электрона пробы на GPU (`rm_esrc`):
+        /// <paramref name="n"/> историй частицы кинетической энергии <paramref name="te"/>
+        /// порциями (как <see cref="RunChunked"/>; Philox считает историю по номеру), шкала —
+        /// свет истории / <paramref name="lightPerKev"/> (≤ 0 — оставленная энергия). Возврат —
+        /// доля на бин на испущенную частицу (как `ElectronSourceResponse`); скаляры E_* —
+        /// суммы по историям. Старая DLL без `rm_esrc` — отказ словами.
+        /// </summary>
+        public double[] ElectronSourceRow(double te, bool positron, double binKev, double lightPerKev, long n,
+                                          uint key0, uint key1, out double[] scal, CancellationToken cancellation)
+        {
+            this.Alive();
+            if (this.esrc == null)
+            {
+                throw new InvalidOperationException("GPU-путь: в " + FileName + " нет rm_esrc (раздел электрона пробы) — "
+                                                    + "пересобрать tools\\effmaker\\gpu\\build_gpu.cmd");
+            }
+
+            double top = (te + (positron ? 2.0 * 510.99895 : 0.0)) * 1.5;
+            int length = (int)Math.Ceiling(top / binKev) + 2;
+            double[] hist = new double[length];
+            scal = new double[GpuSlots.E_SLOTS];
+            long chunk = Math.Max(ChunkFloor, Math.Min(ChunkCeiling, this.EsrcChunk));
+            long done = 0;
+            while (done < n)
+            {
+                cancellation.ThrowIfCancellationRequested();
+                long m = Math.Min(chunk, n - done);
+                var watch = Stopwatch.StartNew();
+                this.Ok(this.esrc(te, positron ? 1 : 0, binKev, lightPerKev, length, m, done, key0, key1,
+                                  hist, scal, scal.Length, this.Threads), "rm_esrc");
+                done += m;
+                double seconds = watch.Elapsed.TotalSeconds;
+                this.KernelSeconds += seconds;
+                if (seconds > 0.0)
+                {
+                    chunk = Math.Max(ChunkFloor, Math.Min(ChunkCeiling, (long)(m * ChunkTargetSeconds / seconds)));
+                    this.EsrcChunk = chunk;
+                }
+            }
+
+            for (int b = 0; b < length; b++)
+            {
+                hist[b] /= n;
+            }
+
+            return hist;
+        }
+
+        /// <summary>(`AMBER274`) Порция историй `rm_esrc` — подбирается по времени предыдущей.</summary>
+        public long EsrcChunk = 1L << 18;
+
+        /// <summary>
+        /// (`AMBER274` Ф8, полоса `f8cyl` 02.11.2026) Строка ветви на GPU (`rm_ebranch`) — зеркало
+        /// <see cref="EfficiencySimulator.BranchEventResponse"/>: <paramref name="n"/> историй
+        /// события ветви <paramref name="spec"/> порциями (Philox считает историю по номеру).
+        /// Возврат — [0] весь занос, [1] занос каскада, доля на бин на распад ветвью. Скаляры E_* —
+        /// со смыслом ядра строки ветви: E_SCORED — событий, E_ENTERED — бета вошла, E_QUEUED —
+        /// квантов каскада, E_ANNIHILATIONS — засчитано каскадов, E_STOPPED_CAPSULE — бета в
+        /// капсуле, E_SUM_DEPOSIT — упоров каскада. Старая DLL без `rm_ebranch` — отказ словами.
+        /// </summary>
+        public double[][] ElectronBranchRows(ElectronBranchSpec spec, double binKev, double lightPerKev, long n,
+                                             uint key0, uint key1, out double[] scal, CancellationToken cancellation)
+        {
+            this.Alive();
+            if (this.ebranch == null)
+            {
+                throw new InvalidOperationException("GPU-путь: в " + FileName + " нет rm_ebranch (строки ветвей, шов события) — "
+                                                    + "пересобрать tools\\effmaker\\gpu\\build_gpu.cmd");
+            }
+
+            int length = EfficiencySimulator.BranchRowLength(spec, binKev);
+            double[] hist = new double[length];
+            double[] gamma = new double[length];
+            scal = new double[GpuSlots.E_SLOTS];
+            long chunk = Math.Max(ChunkFloor, Math.Min(ChunkCeiling, this.EsrcChunk));
+            long done = 0;
+            while (done < n)
+            {
+                cancellation.ThrowIfCancellationRequested();
+                long m = Math.Min(chunk, n - done);
+                var watch = Stopwatch.StartNew();
+                this.Ok(this.ebranch(spec.EndpointKev, binKev, lightPerKev, length, m, done, key0, key1,
+                                     spec.BetaT, spec.BetaCdf, spec.BetaT.Length,
+                                     spec.LevelFirst, spec.LevelCount, spec.LevelCount.Length, spec.StartLevel,
+                                     spec.TransitionCdf, spec.TransitionTo, spec.TransitionCount,
+                                     spec.EmitCdf, spec.EmitKev,
+                                     hist, gamma, scal, scal.Length, this.Threads), "rm_ebranch");
+                done += m;
+                double seconds = watch.Elapsed.TotalSeconds;
+                this.KernelSeconds += seconds;
+                if (seconds > 0.0)
+                {
+                    chunk = Math.Max(ChunkFloor, Math.Min(ChunkCeiling, (long)(m * ChunkTargetSeconds / seconds)));
+                    this.EsrcChunk = chunk;
+                }
+            }
+
+            for (int b = 0; b < length; b++)
+            {
+                hist[b] /= n;
+                gamma[b] /= n;
+            }
+
+            return new[] { hist, gamma };
+        }
+
         static string Len(double[] a) { return a == null ? "-1" : a.Length.ToString(System.Globalization.CultureInfo.InvariantCulture); }
 
         static double SumOf(double[] a)
@@ -1038,6 +1236,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             A_COUNT_PEAK_BIN_DROPPED = 5, A_WEIGHT_PEAK_BIN_DROPPED = 6, A_COUNT_PEAK_BIN_DROPPED_SCATTERED = 7,
             A_COUNT_PEAK_OUT_OF_CONE = 8, A_COUNT_PATH_LIMIT_CUT = 9, A_COUNT_CASCADE_OVERFLOW = 10,
             A_COUNT_ESCAPE_DROPPED = 11, A_COUNT_PENDING_DROPPED = 12, A_SLOTS = 13;
+
+        // (`AMBER274`) Раздел электрона пробы (`EsrcSlot`, tally.cuh).
+        public const int E_SCORED = 0, E_ENTERED = 1, E_QUEUED = 2, E_ANNIHILATIONS = 3, E_STOPPED_CAPSULE = 4,
+            E_SUM_DEPOSIT = 5, E_COUNT_PENDING_DROPPED = 6, E_COUNT_ESCAPE_DROPPED = 7, E_COUNT_LAYER_LEFT_SCENE = 8,
+            E_SLOTS = 9;
     }
 
     /// <summary>Один узел матрицы на GPU — замена `ResponseByChannel`.</summary>
@@ -1464,6 +1667,189 @@ namespace BecquerelMonitor.EfficiencyMaker
             watch.Stop();
             matrix.BuildSeconds = watch.Elapsed.TotalSeconds;
             return matrix;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Э1 + физика 28; решение Amber 29.10.2026 вопросником, дословно:
+        /// «Портировать на GPU») РАЗДЕЛ ЭЛЕКТРОНА ПРОБЫ НА GPU — зеркало
+        /// <see cref="ResponseMatrixBuilder.BuildElectronSection(GeometryModel, ResponseMatrix, double[], int, int, bool, int, CancellationToken, Action{string}, double[])"/>:
+        /// те же отказы, та же сетка и строки линий конверсии на точной энергии, тот же якорь
+        /// шкалы (свет пика 661.657 кэВ — на ЦП, 20 000 историй), те же настройки симулятора
+        /// (<see cref="ResponseMatrixBuilder.MakeSimulator"/> с настройками матрицы); строка —
+        /// ядро `ElectronSourceKernel` (`rm_esrc`) порциями историй, ключ Philox — от номера
+        /// строки (узел 7001 + i, линия 8001 + j). Поток случайных чисел другой, чем у ЦП, —
+        /// паритет статистикой (`BetaSectionProbeA274 --parity`). Клеймо раздела — то же, что у
+        /// ЦП (раздел ЦП и GPU взаимозаменяемы), движок — <c>gpu</c>.
+        /// </summary>
+        public static ResponseElectronSection BuildElectronSection(RmGpu gpu, GeometryModel geometry, ResponseMatrix matrix,
+                                                                   double[] grid, int histories, int seed, bool positron,
+                                                                   double[] lines, CancellationToken cancellation,
+                                                                   Action<string> log)
+        {
+            return BuildElectronSection(gpu, geometry, matrix, grid, histories, seed, positron, lines, null, cancellation, log);
+        }
+
+        /// <summary>
+        /// (`AMBER274` Ф8, полоса `f8cyl` 02.11.2026) То же со СТРОКАМИ ВЕТВЕЙ — шов события
+        /// целиком (зеркало ЦП: те же ветви, `CleanBranches`, то же клеймо; ядро
+        /// `ElectronBranchKernel` (`rm_ebranch`), ключ Philox — от номера строки 9001 + j).
+        /// </summary>
+        public static ResponseElectronSection BuildElectronSection(RmGpu gpu, GeometryModel geometry, ResponseMatrix matrix,
+                                                                   double[] grid, int histories, int seed, bool positron,
+                                                                   double[] lines, IList<ElectronBranchSpec> branches,
+                                                                   CancellationToken cancellation, Action<string> log)
+        {
+            if (gpu == null) throw new ArgumentNullException("gpu");
+            if (geometry == null || matrix == null || matrix.Options == null) throw new ArgumentNullException("matrix");
+            if (!matrix.IsValidFor(geometry))
+            {
+                throw new InvalidOperationException("матрица не годна для сцены " + geometry.Name + ": клеймо фотонной части не сошлось");
+            }
+
+            if (geometry.Scene == GeometrySceneKind.Iso)
+            {
+                throw new InvalidOperationException("сцена изотропного поля " + geometry.Name
+                                                    + ": раздела электрона пробы у неё нет (AMBER274 Ф5)");
+            }
+
+            ResponseMatrixOptions options = matrix.Options.Clone();
+            string sceneProblem = GpuPack.SceneProblem(geometry, options);
+            if (sceneProblem != null) throw new NotSupportedException(sceneProblem);
+            if (grid == null || grid.Length < 2) grid = ResponseElectronSection.DefaultGrid();
+            double bin = matrix.BinKev > 0.0 ? matrix.BinKev : options.BinKev;
+            var watch = Stopwatch.StartNew();
+
+            double lightPerKev = 0.0;
+            if (options.LightNonproportionality)
+            {
+                EfficiencySimulator anchor = ResponseMatrixBuilder.MakeSimulator(geometry, options, 7000, 661.657);
+                anchor.Histories = 20000;
+                double anchorError;
+                anchor.Response(661.657, bin, out anchorError);
+                lightPerKev = anchor.LastPhotonLightScale;
+            }
+
+            int n = grid.Length;
+            double[] lineEnergies = ResponseElectronSection.CleanLines(lines, grid);
+            int nl = lineEnergies != null ? lineEnergies.Length : 0;
+            List<ElectronBranchSpec> branchList = ResponseMatrixBuilder.CleanBranches(branches, log);
+            int nb = branchList.Count;
+            var section = new ResponseElectronSection
+            {
+                Stamp = ResponseElectronSection.ComputeStamp(geometry, matrix.Stamp, grid, histories, seed, positron, bin, lineEnergies,
+                                                             branchList),
+                ForMatrixStamp = matrix.Stamp,
+                BinKev = bin,
+                Energies = (double[])grid.Clone(),
+                Electron = new float[n][],
+                Positron = positron ? new float[n][] : null,
+                Histories = new long[n],
+                EnteredElectron = new double[n],
+                EnteredPositron = new double[n],
+                NodeSeconds = new double[n],
+                LightPerKev = lightPerKev,
+                Capsule = ResponseElectronSection.CapsuleText(geometry),
+                Engine = "gpu",
+                CreatedUtc = DateTime.UtcNow,
+                LineEnergies = lineEnergies,
+                LineElectron = nl > 0 ? new float[nl][] : null,
+                LineHistories = nl > 0 ? new long[nl] : null,
+                LineEntered = nl > 0 ? new double[nl] : null,
+            };
+
+            // Ключ Philox строки — от зерна раздела (0 — зерно матрицы/симулятора) и номера строки.
+            ResponseMatrixOptions keyOptions = options.Clone();
+            if (seed != 0)
+            {
+                keyOptions.Seed = seed;
+            }
+
+            gpu.ForgetBlob();
+            for (int k = 0; k < n + nl; k++)
+            {
+                cancellation.ThrowIfCancellationRequested();
+                bool isLine = k >= n;
+                double te = isLine ? lineEnergies[k - n] : grid[k];
+                int index = isLine ? 8001 + (k - n) : 7001 + k;
+                long t0 = Stopwatch.GetTimestamp();
+                EfficiencySimulator sim = ResponseMatrixBuilder.MakeSimulator(geometry, options, index, te);
+                int nHist = Math.Max(1000, histories);
+                gpu.Prepare(sim, true);
+                uint key0, key1;
+                GpuNode.NodeKey(keyOptions, sim, index, out key0, out key1);
+                double[] scal;
+                double[] e = gpu.ElectronSourceRow(te, false, bin, lightPerKev, nHist, key0, key1, out scal, cancellation);
+                if (isLine)
+                {
+                    section.LineElectron[k - n] = ResponseElectronSection.Trim(e);
+                    section.LineHistories[k - n] = nHist;
+                    section.LineEntered[k - n] = scal[GpuSlots.E_ENTERED] / nHist;
+                }
+                else
+                {
+                    section.Electron[k] = ResponseElectronSection.Trim(e);
+                    section.Histories[k] = nHist;
+                    section.EnteredElectron[k] = scal[GpuSlots.E_ENTERED] / nHist;
+                    if (positron)
+                    {
+                        // Позитрон — свой ключ (строка узла + 500), чтобы поток не совпал с электроном.
+                        GpuNode.NodeKey(keyOptions, sim, index + 500, out key0, out key1);
+                        double[] ps;
+                        double[] p = gpu.ElectronSourceRow(te, true, bin, lightPerKev, nHist, key0, key1, out ps, cancellation);
+                        section.Positron[k] = ResponseElectronSection.Trim(p);
+                        section.EnteredPositron[k] = ps[GpuSlots.E_ENTERED] / nHist;
+                    }
+
+                    section.NodeSeconds[k] = (double)(Stopwatch.GetTimestamp() - t0) / Stopwatch.Frequency;
+                }
+
+                if (k == n + nl - 1) gpu.AssertSameBlob(sim, "раздел " + te.ToString("F3", CultureInfo.InvariantCulture) + " кэВ");
+            }
+
+            // (`AMBER274` Ф8, `f8cyl`) Строки ветвей — событие целиком; ключ — от номера 9001 + j.
+            if (nb > 0)
+            {
+                ResponseMatrixBuilder.AllocateBranches(section, branchList);
+                for (int j = 0; j < nb; j++)
+                {
+                    cancellation.ThrowIfCancellationRequested();
+                    ElectronBranchSpec spec = branchList[j];
+                    int index = 9001 + j;
+                    long t0 = Stopwatch.GetTimestamp();
+                    EfficiencySimulator sim = ResponseMatrixBuilder.MakeSimulator(geometry, options, index, spec.EndpointKev);
+                    int nHist = Math.Max(1000, histories);
+                    gpu.Prepare(sim, true);
+                    uint key0, key1;
+                    GpuNode.NodeKey(keyOptions, sim, index, out key0, out key1);
+                    double[] scal;
+                    double[][] rows = gpu.ElectronBranchRows(spec, bin, lightPerKev, nHist, key0, key1, out scal, cancellation);
+                    section.BranchEvent[j] = ResponseElectronSection.Trim(rows[0]);
+                    section.BranchGamma[j] = ResponseElectronSection.Trim(rows[1]);
+                    section.BranchHistories[j] = nHist;
+                    section.BranchEntered[j] = scal[GpuSlots.E_ENTERED] / nHist;
+                    if (log != null)
+                    {
+                        log(string.Format(CultureInfo.InvariantCulture,
+                            "  ветвь {0,3} {1} {2:F1} кэВ → уровень {3:F1} (GPU): бета вошла {4:F5}, квантов каскада {5:F3} на распад, " +
+                            "событие {6:E3}, каскад {7:E3} на распад; упоров каскада {8}; {9:F1} с",
+                            j, spec.Nuclide, spec.EndpointKev, spec.LevelKev, section.BranchEntered[j],
+                            scal[GpuSlots.E_QUEUED] / nHist, ResponseMatrixBuilder.SumRow(section.BranchEvent[j]),
+                            ResponseMatrixBuilder.SumRow(section.BranchGamma[j]), scal[GpuSlots.E_SUM_DEPOSIT],
+                            (double)(Stopwatch.GetTimestamp() - t0) / Stopwatch.Frequency));
+                    }
+
+                    if (j == nb - 1) gpu.AssertSameBlob(sim, "строка ветви " + spec.Key);
+                }
+            }
+
+            if (log != null)
+            {
+                log(string.Format(CultureInfo.InvariantCulture,
+                    "  раздел на GPU: {0} узлов, {1} строк линий и {6} строк ветвей, {2} историй на строку, свет 662 на кэВ {3:F6}, капсула {4}, {5:F1} с",
+                    n, nl, histories, lightPerKev, section.Capsule, watch.Elapsed.TotalSeconds, nb));
+            }
+
+            return section;
         }
 
         /// <summary>

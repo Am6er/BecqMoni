@@ -48,6 +48,119 @@
 отвергнутые пути (`__noinline__`, подкачка без пачки, потолки регистров) — журнал
 `handover/handover-2026-10-03-p227-gpu-event.md`.
 
+## Физика 28: страгглинг и раздел электрона пробы (`AMBER274`, полоса `amber274p28`, 30.10.2026)
+
+Решения Amber вопросником, дословно: «У всех электронов переноса» (страгглинг) и «Портировать на
+GPU» (раздел электрона пробы). Журнал — `handover/handover-2026-10-29-amber274-e1-sample-beta.md`,
+раздел «Физика 28: страгглинг и GPU».
+
+* **Страгглинг** — `ResidualAfter`/`UrbanLoss`/`UrbanExcitation`/`UrbanGauss`/`Gaussian`/`PoissonG4`
+  (`sim_electron.cuh`) — построчный перенос `ElectronTransport.cs`; во всех местах, где электрон
+  теряет энергию на отрезке (`TransportElectron`, `TransportInLayers`, `CapsuleExit`). Арифметика
+  модели — в `double` и во float-сборке (обращение Пуассона и суммы `w3/(1 − w·u)` во float теряли
+  бы хвост). Ключ — `ElectronStraggling` (cfg.h); ВЫКЛ — прежняя арифметика физики 27. Данные
+  вещества (I, доля радиационной тормозной и её логарифмы, постоянные Урбана) — поля
+  `ElectronMaterialG`, их кладёт упаковщик ЦП (`GpuPackTables.WriteElectronMats`). Ступень 1
+  (`rmgpu.dll`, xorshift, `CorpusMatrixProbe --gpu-check=20000`) — 0 развилок по историям.
+* **Раздел электрона пробы** — точка `rm_esrc` (api.cu), ядро `ElectronSourceKernel`
+  (kernels.cuh, «нить — история»), методы `ElectronHistoryFrom`/`CapsuleExit`/
+  `PositronSourceDeposit`/`FlushEscapesToQueue` (sim_branch.cuh); очередь квантов ведёт тот же
+  `AnalogStep`, что у узла. Капсула и воздух — поля `SceneG.capsule*`. Только Philox (паритет с ЦП —
+  статистикой). Хост — `RmGpu.ElectronSourceRow` и `GpuBuild.BuildElectronSection`
+  (`GpuMatrixRun.cs`), проба — `BetaSectionProbeA274 --parity --gpu=<dll>` (`--gpu=cpu` — нулевое
+  плечо) и `--scene= --matrix= --out= --gpu=` (раздел склада на GPU).
+
+## Физика 29: перенос электрона, сходящийся по шагу (`AMBER274`, полоса `phys29`, 01.11.2026)
+
+Решение Amber 30.10.2026 вопросником, дословно: «Слои + кристалл сразу». Журнал —
+`handover/handover-2026-11-01-amber274-phys29.md`.
+
+* **Ключ** `ElectronMixedTransport` (cfg.h; ВЫКЛ вместе с `ElectronMottHeavy` — арифметика и поток физики 28
+  до бита; ⚠ одно `--emix=0` при `mott=1` — НЕ физика 28: поправка Мотта работает и в слоях, Н2 критика кода) и рычаг
+  замера `ElectronMixedParts` (бит 1 — слои, бит 2 — кристалл): в `TransportInLayers` сечения
+  смешанной схемы — при энергии середины шага; в `TransportElectron` — та же смешанная схема, что в
+  слоях (элементы вещества кристалла — `LayerScatterElements(D.scene->crystalMaterial)`, путь до
+  жёсткого столкновения, мягкий шарнир `1 − exp(−s·Σnσ_tr,soft)`, жёсткое столкновение в конце
+  оборванного шага — после раннего выхода), доля шага — `ElectronCrystalStepFraction` (cfg.h,
+  0.05); потолок шагов под ключом — `TransportMaxStepsMixed` = 4000 (decl_electron.inc).
+  Рабочий массив долей — тот же `layerHardShare`. ⚠ Довод «между розыгрышем пути и столкновением шаг по
+  кристаллу ничего не зовёт» неверен (Н1 критика кода, Ф6 критика физики): тормозное шага
+  (`StepBremsstrahlung` → `InCrystal(depth + 1)`) рождает вторичный электрон, и его перенос пишет в тот же
+  массив — с физики 30 затёртые доли пересчитываются (`layerShareWrites`, `CrystalHardCollision`). `physics.h` — 29.
+* **Ступень 1** (`rmgpu.dll`, `CorpusMatrixProbe --gpu=…\rmgpu.dll --gpu-check=20000`): `RC103_point0`
+  и `ASN16_point0_house`, узлы 5 / 37.9 / 344.9 / 3000 кэВ, обе ветви — 0 развилок.
+* **Раздел электрона пробы** (`BetaSectionProbeA274 --parity`, 200 000 историй на строку): у
+  `RC103_point0` и `ASN16_point0_house` Σχ²/Σn 0.995 / 1.008 (нулевое плечо 1.000 / 0.971), худший
+  |Δ/σ| вошедших 3.17 / 2.61 (нулевое 3.30 / 2.19).
+
+### Физика 29, поправка Мотта при Z > 30 (`AMBER274`, полоса `phys29b`, 02.11.2026)
+
+Решение Amber 02.11.2026 вопросником, дословно: «Сейчас, в физику 29 (Рекомендую)». Журнал —
+`handover/handover-2026-11-02-amber274-phys29b.md`. `physics.h` — по-прежнему 29: ключ входит в клеймо
+матрицы (`mott=1`), а не в номер поколения.
+
+* **Ключ** `ElectronMottHeavy` (cfg.h, 74 поля; в ядре сам не читается — до ядра доезжает через
+  упаковку сцены): `ScatterElementG` несёт `MottFit` и 30 коэффициентов `MottCoef` (R_eff = (Z·R + 1)/(Z + 1)
+  подгонки `G4MottData.hh`, считает C#, `GpuPackScene` пишет, `host_scene.h` читает; запись элемента
+  постоянной длины — без признака коэффициенты нулевые). Ключ ВЫКЛ — `MottFit` ложь у всех элементов, ход
+  и поток физики 29 полосы `phys29` до бита.
+* **`sim_electron.cuh`**: `MottTerms` (c_j(β) Горнером), `MottMoments` (замкнутые формы жёсткого и
+  мягкого транспортного сечения с R_eff), `MottMajorant` (33 узла на [x_c, √2] плюс h²/8·max|p″|) — тем
+  же порядком действий, что в C#; `LayerElasticStep` у элемента с `MottFit` берёт точные сечения,
+  `LayerHardCollision` — отбор угла до принятия (`MottMaxTries` = 1000 в `decl_electron.inc`).
+* **Счётчики** `CountCrystalSteps`, `CountCrystalHardCollisions`, `CountTransportStepCap` (физика 29) и
+  `CountMottRejected`, `CountMottMajorantExceeded`, `CountMottTriesCap` перенесены в ядро (на ход и ГСЧ
+  не влияют; наружу, как и прочие счётчики ядра, не выдаются).
+
+### Шов события целиком — строки ветвей раздела (`AMBER274` Ф8, полоса `f8cyl`, 02.11.2026)
+
+Решение Amber 30.10.2026 вопросником, дословно: «В Э1 событием целиком (Рекомендую)». Журнал —
+`handover/handover-2026-11-02-amber274-f8cyl.md`. `physics.h` — 29 без изменений: поколение переноса то
+же, строки ветвей — версия физики РАЗДЕЛА (`esec=4`, клеймо раздела `br=<число>,<хеш>`).
+
+* **Точка** `rm_ebranch` (api.cu): таблицы ветви (`ElectronBranchSpec`: функция распределения формы беты,
+  уровни, переходы, виды испускания) приходят с хоста в double/int и лежат в памяти устройства на время
+  вызова (в `real`); ядро `ElectronBranchKernel` (kernels.cuh) — одна история на распад ветвью, две
+  гистограммы одних историй (весь занос и занос каскада); слоты E_* — со смыслом строки ветви (шапка ядра).
+* **`sim_branch.cuh`**: `BranchEventFrom` (= C# `EfficiencySimulator.BranchEventFrom`), `WalkPendingFrom`
+  (тот же обход очереди `AnalogStep`, что в конце `ElectronHistoryFrom`), `SampleBranchBeta` — тем же
+  порядком розыгрышей, что в C#; электроны конверсии — `CapsuleExit` + `CarriedElectronDeposit`.
+* **Хост** — `RmGpu.ElectronBranchRows` (порции по времени, как `ElectronSourceRow`; DLL без `rm_ebranch` —
+  отказ словами), `GpuBuild.BuildElectronSection(…, branches, …)`: ключ Philox строки ветви j — от
+  номера 9001 + j. Ступени 1 у раздела нет (ядро только Philox), паритет — статистикой
+  (`BetaSectionProbeA274 --parity --branches=…`).
+
+## Физика 30: правки критиков физики 29 и ядерная часть по DPWA (`AMBER274`, полоса `phys29c`, 02.11.2026)
+
+Журнал — `handover/handover-2026-11-02-amber274-phys29c.md`. `physics.h` — 30 (`ResponseMatrix.PhysicsVersion`).
+
+* **Ключи** (cfg.h, 79 полей): `ElectronElasticRefine` и рычаг замера `ElectronRefineParts` (1 Ф2 — предел угла
+  e–e, 2 Ф3 — подгонка Мотта у всех Z, 4 Ф4 — позитрон, 8 Ф6 — пересчёт затёртых долей, 16 Ф7 — мажоранта
+  шага, 32 — предел шага в слое долей толщины тела области, `ElectronLayerStepMaxFraction`); `ElectronScreeningDpwa`
+  (Ф1). Биты — `RefineEeLimit`…`RefineLayerStepLimit` в `decl_electron.inc` (сверка с C# —
+  `tools/check_gpu_dll.py`, седьмая).
+* **`CascadeCkVacancy`** (клеймо `ckv=1`; «каскад не сошёлся» GAGG): дырка Kα2 на L2, переехавшая на L3
+  (`LSubshellAfterCk`) и ответившая L3-линией, разряжается в `RelaxationElectrons` переходом Костера—Кронига
+  EADL (`CosterKronig`, `tables_dev.cuh`: электрон и дырка) и вакансией среди переходов L3 —
+  `pendingCascadeShell` несёт подоболочку кванта от `CascadeAfterK`, как `pendingCascadeKev`. Порядок
+  розыгрышей — как в C#: число перехода, затем число `VacancyAfterPhoton`.
+* **Части Z² и Z порознь.** Под ключами `ScatterElementG.Part` = 1 (ядерная, Z²) или 2 (электронная, Z; Мольер без
+  поправки; жёсткая — точным интегралом до предела e–e). Ядерная: DPWA (`DpwaEl`/`DpwaPos` — узлы в арене R по 10
+  чисел: ln T, ln a, c0…c4, жёсткое, мягкое, мажоранта; пакует `GpuPackScene.DpwaNodesFlat`), иначе подгонка
+  Мотта (сам R), иначе у позитрона Мак-Кинли—Фешбах позитрона, иначе электрона. Записей элементов вдвое больше —
+  `RM_LAYER_SCATTER_MAX` 32 → 48.
+* **Функции** (`sim_electron.cuh`, перенос `ElectronTransport.cs` тем же порядком розыгрышей): `RefinedElasticStep`,
+  `RefinedHardCollision` (элемент и пустое столкновение мажоранты — одним равномерным числом), `RefinedAngle`,
+  `CrystalHardCollision` (кристалл и слои), `EeLimitMu`, `SoftScreened` (ряд при a ≫ μ_c), `DpwaLocate`;
+  `TransportElectron`/`TransportInLayers` — Ф7 (сечения на концах полного шага, мажоранта, мягкое — среднее
+  линейного по пройденной части) и предел шага в слое; признак позитрона — параметром `positron` от
+  `ElectronLoss` (пара — вторая частица; β⁺ пробы — `PositronSourceDeposit`) через `EscapeOrReturn`,
+  `TransportInLayers`, `CarriedElectronEnters`.
+* **Н4 (float):** `MottMoments` при a > 0.05 считает в double (`MottMomentsD`) — у 1–3 кэВ замкнутые формы
+  вычитали близкие числа; сборка `rmgpu.dll` (double) не задета.
+* **Н7:** `rm_build_info` несёт `cfg=` — отпечаток списка полей `cfg.h` (FNV-1a 64 строки «вид:имя;»); приложение
+  (`RmGpu.Probe`) сверяет его с полями своей сборки (`RmGpu.SettingsFingerprint`) и отказывает словами.
+
 ## Соглашения переноса (обязательны для всех файлов `*.cuh`)
 
 * Тип с плавающей точкой — `real` (`common.cuh`); `double` — только там, где он нужен

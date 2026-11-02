@@ -128,6 +128,45 @@ RM_DEVF real AnalogTransport(real x, real y, real z, real ux, real uy, real uz,
                              real& depositedOutside, bool& comptonOutside);
 
 // (`AMBER161`, П227) Состояние AnalogTransport между шагами (локальные C# :9750-9772).
+// (`AMBER274`, Э1 + физика 28) = `EfficiencySimulator.ElectronSourceStats` — счётчики
+// раздела электрона пробы, суммы нити (ядро сбрасывает их в слоты E_*).
+struct EsrcStats
+{
+    long long entered, queuedPhotons, annihilations, stoppedInCapsule;
+};
+RM_DEVF real ElectronHistoryFrom(real te, bool positron, real x, real y, real z,
+                                 real ux, real uy, real uz, EsrcStats& st);
+RM_DEVF real CapsuleExit(real te, real uz);
+RM_DEVF real PositronSourceDeposit(real x, real y, real z, real t, real ux, real uy, real uz,
+                                   int material, EsrcStats& st);
+RM_DEVF void FlushEscapesToQueue();
+
+// (`AMBER274` Ф8, полоса `f8cyl` 02.11.2026) Строка ветви — событие целиком
+// (= EfficiencySimulator.cs BranchEventFrom / WalkPendingFrom / SampleBranchBeta). Таблицы
+// ветви — память устройства, указатели ставит `rm_ebranch` (= `ElectronBranchSpec`).
+struct BranchTabG
+{
+    const real* betaT;          // узлы энергии беты, кэВ
+    const real* betaCdf;        // функция распределения формы в узлах
+    int betaN;
+    const int* levelFirst;      // первый переход уровня
+    const int* levelCount;      // переходов уровня (0 — каскад кончается)
+    int levels;
+    int startLevel;
+    const real* trCdf;          // накопленная вероятность перехода в своём уровне
+    const int* trTo;            // уровень, куда ведёт переход
+    int transitions;
+    const real* emitCdf;        // [переход·5 + вид] накопленная вероятность вида (гамма, K, L, M, внешние)
+    const real* emitKev;        // [переход·5 + вид] энергия частицы, кэВ
+};
+struct BranchStats
+{
+    long long entered, cascadeQuanta, cascadeElectrons, stoppedInCapsule, cascadeCut;
+};
+RM_DEVF real BranchEventFrom(const BranchTabG& tab, real x, real y, real z, real ux, real uy, real uz,
+                             BranchStats& st, real& gammaDeposit, real& gammaLight);
+RM_DEVF real WalkPendingFrom(real limit, real deposited);
+
 struct AnalogWalk
 {
     real x, y, z, ux, uy, uz;

@@ -88,10 +88,10 @@ namespace BecquerelMonitor
             DocEnergySpectrum docEnergySpectrum = new DocEnergySpectrum(filename);
             if (!this.CheckDocument(docEnergySpectrum.ResultDataFile))
             {
-                string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+                string text = RepairQuestion(docEnergySpectrum.ResultDataFile, filename);
                 // Вопрос идёт через ЕДИНСТВЕННУЮ дверь: без окон отвечать за
-                // человека нельзя — «Да» подставляет калибровку y = x, «Нет»
-                // возвращает null. См. AppUi.AskYesNo.
+                // человека нельзя — «Да» правит калибровку так, как сказано в
+                // окне (`AMBER269`), «Нет» возвращает null. См. AppUi.AskYesNo.
                 if (!AppUi.AskYesNo(text, Resources.ResetCalibrationQuestion)) return null;
                 this.CheckDocument(docEnergySpectrum.ResultDataFile, doCorrections: true);
                 docEnergySpectrum.Dirty = true;
@@ -174,35 +174,10 @@ namespace BecquerelMonitor
                     {
                         if (doCorrections)
                         {
-                            int zerosCount = 0;
-                            for (int i = pol.Coefficients.Length - 1; i >= 0; i--)
-                            {
-                                if(pol.Coefficients[i] == 0.0)
-                                {
-                                    zerosCount++;
-                                } else
-                                {
-                                    break;
-                                }
-                            }
-                            if (zerosCount > pol.Coefficients.Length - 2 || zerosCount == 0 || (pol.Coefficients.Length == 2 && zerosCount > 0))
-                            {
-                                data.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
-                            } else
-                            {
-                                // Downgrade takes the TARGET polynomial order, not the number of
-                                // trailing zero coefficients (passing zerosCount silently discarded
-                                // valid middle terms, e.g. order-4 with one zero -> linear).
-                                PolynomialEnergyCalibration downgraded = (PolynomialEnergyCalibration)pol.Downgrade(pol.Coefficients.Length - 1 - zerosCount);
-                                if (downgraded.CheckCalibration(channels: data.EnergySpectrum.NumberOfChannels))
-                                {
-                                    data.EnergySpectrum.EnergyCalibration = downgraded;
-                                }
-                                else
-                                {
-                                    data.EnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
-                                }
-                            }
+                            // (`AMBER269`, дефект 3) Чем заменить — решает ОДИН метод,
+                            //   его же спрашивает вопрос перед правкой (RepairQuestion):
+                            //   окно говорит ровно то, что сделает «Да».
+                            data.EnergySpectrum.EnergyCalibration = RepairedCalibration(pol, data.EnergySpectrum.NumberOfChannels);
                         } else
                         {
                             return false;
@@ -210,20 +185,22 @@ namespace BecquerelMonitor
                     }
 
                     //Same checks for Background
+                    // (`AMBER269`) Фон без гистограммы снимается, и проверка спектра идёт
+                    //   ДАЛЬШЕ: здесь стоял `continue`, и у такого спектра не строилась
+                    //   кривая FWHM ниже — после «Да» он оставался без модели разрешения.
+                    if (data.BackgroundEnergySpectrum != null && data.BackgroundEnergySpectrum.Spectrum == null)
+                    {
+                        if (doCorrections)
+                        {
+                            data.BackgroundEnergySpectrum = null;
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
                     if (data.BackgroundEnergySpectrum != null)
                     {
-                        //Check Spectrum
-                        if (data.BackgroundEnergySpectrum.Spectrum == null)
-                        {
-                            if (doCorrections)
-                            {
-                                data.BackgroundEnergySpectrum = null;
-                                continue;
-                            } else
-                            {
-                                return false;
-                            }
-                        }
                         if (data.BackgroundEnergySpectrum.Spectrum.Length != data.BackgroundEnergySpectrum.NumberOfChannels)
                         {
                             data.BackgroundEnergySpectrum.NumberOfChannels = data.BackgroundEnergySpectrum.Spectrum.Length;
@@ -246,36 +223,8 @@ namespace BecquerelMonitor
                         {
                             if (doCorrections)
                             {
-                                int zerosCount = 0;
-                                for (int i = pol.Coefficients.Length - 1; i >= 0; i--)
-                                {
-                                    if (pol.Coefficients[i] == 0.0)
-                                    {
-                                        zerosCount++;
-                                    }
-                                    else
-                                    {
-                                        break;
-                                    }
-                                }
-                                if (zerosCount > pol.Coefficients.Length - 2 || zerosCount == 0)
-                                {
-                                    data.BackgroundEnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
-                                }
-                                else
-                                {
-                                    // See the foreground branch above: Downgrade expects the
-                                    // target order, not zerosCount.
-                                    PolynomialEnergyCalibration downgraded = (PolynomialEnergyCalibration)pol.Downgrade(pol.Coefficients.Length - 1 - zerosCount);
-                                    if (downgraded.CheckCalibration(channels: data.BackgroundEnergySpectrum.NumberOfChannels))
-                                    {
-                                        data.BackgroundEnergySpectrum.EnergyCalibration = downgraded;
-                                    }
-                                    else
-                                    {
-                                        data.BackgroundEnergySpectrum.EnergyCalibration = new PolynomialEnergyCalibration();
-                                    }
-                                }
+                                // См. ветвь спектра выше: тот же метод, тот же вопрос.
+                                data.BackgroundEnergySpectrum.EnergyCalibration = RepairedCalibration(pol, data.BackgroundEnergySpectrum.NumberOfChannels);
                             }
                             else
                             {
@@ -287,6 +236,15 @@ namespace BecquerelMonitor
                         // числом каналов перекладывается в шкалу спектра. Дверь
                         // открытия и всех импортов; см. AlignBackgroundChannels.
                         AlignBackgroundChannels(data);
+                    }
+                    // ⛔ (`AMBER269`, 02.11.2026, полоса a269fix6) ВСТРОЕННАЯ ЗАГЛУШКА
+                    //   15/3756/103 В ФАЙЛЕ — НЕ СВОЯ КРИВАЯ СПЕКТРА (ForgetFileStandInFwhm):
+                    //   она снимается, и ниже идёт то же правило, что у спектра без кривой.
+                    //   Пометка — для голоса двери (ReportFileStandInFwhm).
+                    if (ForgetFileStandInFwhm(data))
+                    {
+                        this.fileStandIns.Remove(data);
+                        this.fileStandIns.Add(data, FileStandInMark);
                     }
                     // Add fwhm calibration if it doesn't exist
                     if (data.FwhmCalibration == null && data.DeviceConfigWiped)
@@ -318,7 +276,11 @@ namespace BecquerelMonitor
                         //   кривую, а не переспрашивает. Второго голоса здесь быть
                         //   не должно: замер `N42RoundTripProbe --mode=onevoice`.
                         string refusal;
-                        data.FwhmCalibration = FwhmCalibration.DefaultCalibration(cfg, data.EnergySpectrum.EnergyCalibration, out refusal);
+                        // (`AMBER269`, дефект 2) Правило — одно с назначением прибора
+                        //   в панели измерения (DCControlPanel.ApplyDeviceConfigChange):
+                        //   см. StandInFwhm. С 02.11.2026 — сохранённая кривая прибора
+                        //   (решение Amber «Кривую прибора»), то есть то же, что «Применить».
+                        data.FwhmCalibration = this.StandInFwhm(data, cfg, out refusal);
                         RememberFwhmRefusal(data, refusal);
                     }
                 }
@@ -328,6 +290,439 @@ namespace BecquerelMonitor
                 return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// (`AMBER269`, дефект 3, 01.11.2026) ЧЕМ ЗАМЕНИТЬ НЕГОДНУЮ КАЛИБРОВКУ ПО
+        /// ЭНЕРГИИ — один ответ на два вопроса: что делает
+        /// <see cref="CheckDocument"/> с <c>doCorrections</c> и что об этом говорит
+        /// окно (<see cref="RepairQuestion"/>). Прежде окно спрашивало «Сбросить
+        /// калибровку спектра в y = x?», а «Да» иногда понижало степень: полином
+        /// второй степени с a₂ = 0 становился прямой, а не y = x.
+        ///
+        /// Правило прежнее, слово в слово: точные нули в хвосте набора
+        /// коэффициентов снимаются (степень — до старшего ненулевого), и если такая
+        /// шкала годна — она и ставится; иначе y = x. С 01.11.2026 нулевой старший
+        /// коэффициент сам по себе шкалу не портит
+        /// (<see cref="PolynomialEnergyCalibration.CheckCalibration"/>), так что
+        /// снятие нулей помогает лишь набору, длина которого не сходится со
+        /// степенью; шкала при этом та, что в формуле окна.
+        /// </summary>
+        internal static PolynomialEnergyCalibration RepairedCalibration(PolynomialEnergyCalibration pol, int channels)
+        {
+            if (pol == null || pol.Coefficients == null)
+            {
+                return new PolynomialEnergyCalibration();
+            }
+            double[] c = pol.Coefficients;
+            int zerosCount = 0;
+            for (int i = c.Length - 1; i >= 0 && c[i] == 0.0; i--)
+            {
+                zerosCount++;
+            }
+            if (zerosCount == 0 || zerosCount > c.Length - 2)
+            {
+                return new PolynomialEnergyCalibration();
+            }
+            // Downgrade takes the TARGET polynomial order, not the number of
+            // trailing zero coefficients (passing zerosCount silently discarded
+            // valid middle terms, e.g. order-4 with one zero -> linear).
+            PolynomialEnergyCalibration downgraded = (PolynomialEnergyCalibration)pol.Downgrade(c.Length - 1 - zerosCount);
+            return downgraded.CheckCalibration(channels: channels) ? downgraded : new PolynomialEnergyCalibration();
+        }
+
+        /// <summary>
+        /// (`AMBER269`, дефект 3) Текст вопроса перед правкой файла, который не
+        /// прошёл <see cref="CheckDocument"/>: шапка прежняя («файл не может быть
+        /// открыт»), а ниже — ровно то, что сделает ответ «Да»: по каждому спектру и
+        /// фону — прежняя формула калибровки и та, что встанет
+        /// (<see cref="RepairedCalibration"/>), или «фон будет снят». Если правке
+        /// нечего исправить (повреждён сам спектр), окно так и говорит: «Да»
+        /// откроет файл как есть — именно это и происходит у вызывающих.
+        ///
+        /// Зовут все семь дверей, где прежде стоял <c>CalcResetQuestion</c>:
+        /// создание, открытие, добавление спектра, формат 0.93b, импорт N42,
+        /// импорт AtomSpectra и загрузка фона.
+        /// </summary>
+        internal static string RepairQuestion(ResultDataFile file, string shownName)
+        {
+            string head = string.Format(Resources.ERRFileOpenFailure, shownName, Resources.ERRSpectrumCheck);
+            List<string> plan = DescribeRepairs(file);
+            if (plan.Count == 0)
+            {
+                return head + "\n" + Resources.CalcRepairNothing;
+            }
+            return head + "\n" + string.Format(Resources.CalcRepairQuestion, string.Join("\n", plan));
+        }
+
+        /// <summary>
+        /// (`AMBER269`) Строки плана правки — по тем же условиям и в том же порядке,
+        /// что у <see cref="CheckDocument"/> с <c>doCorrections</c>. Ничего не меняет.
+        /// </summary>
+        internal static List<string> DescribeRepairs(ResultDataFile file)
+        {
+            List<string> lines = new List<string>();
+            if (file == null || file.ResultDataList == null)
+            {
+                return lines;
+            }
+            int count = file.ResultDataList.Count;
+            for (int k = 0; k < count; k++)
+            {
+                ResultData data = file.ResultDataList[k];
+                if (data == null || data.EnergySpectrum == null || data.EnergySpectrum.Spectrum == null)
+                {
+                    continue;
+                }
+                string who = SpectrumLabel(data, k);
+                DescribeCalibrationRepair(lines, who, data.EnergySpectrum);
+                EnergySpectrum background = data.BackgroundEnergySpectrum;
+                if (background != null)
+                {
+                    if (background.Spectrum == null)
+                    {
+                        lines.Add(string.Format(Resources.CalcRepairBackgroundRemoved, who));
+                    }
+                    else
+                    {
+                        DescribeCalibrationRepair(lines, string.Format(Resources.CalcRepairBackgroundOf, who), background);
+                    }
+                }
+            }
+            return lines;
+        }
+
+        static void DescribeCalibrationRepair(List<string> lines, string who, EnergySpectrum spectrum)
+        {
+            int channels = spectrum.Spectrum.Length;
+            if (spectrum.EnergyCalibration == null)
+            {
+                lines.Add(string.Format(Resources.CalcRepairCalibrationLine, who, Resources.CalcRepairNoCalibration,
+                                        FormulaOf(new PolynomialEnergyCalibration())));
+                return;
+            }
+            PolynomialEnergyCalibration pol = spectrum.EnergyCalibration as PolynomialEnergyCalibration;
+            if (pol == null)
+            {
+                return;
+            }
+            if (pol.Coefficients == null)
+            {
+                // Копию такой не снять (конструктор копии читает набор) — правка
+                // ставит y = x (RepairedCalibration), так и сказано.
+                lines.Add(string.Format(Resources.CalcRepairCalibrationLine, who, Resources.CalcRepairNoCalibration,
+                                        FormulaOf(new PolynomialEnergyCalibration())));
+                return;
+            }
+            // Проверка — на КОПИИ: `CheckCalibration` ставит калибровке число
+            // каналов, а описание ничего менять не должно.
+            PolynomialEnergyCalibration probe = (PolynomialEnergyCalibration)pol.Clone();
+            bool usable;
+            try
+            {
+                usable = probe.Coefficients != null && probe.CheckCalibration(channels: channels);
+            }
+            catch (Exception)
+            {
+                usable = false;
+            }
+            if (usable)
+            {
+                return;
+            }
+            lines.Add(string.Format(Resources.CalcRepairCalibrationLine, who, FormulaOf(pol),
+                                    FormulaOf(RepairedCalibration(probe, channels))));
+        }
+
+        /// <summary>Формула шкалы для окна; y = x — с пояснением, что это номер канала.</summary>
+        static string FormulaOf(PolynomialEnergyCalibration pol)
+        {
+            if (pol == null || pol.Coefficients == null)
+            {
+                return Resources.CalcRepairNoCalibration;
+            }
+            if (IsIdentityCalibration(pol))
+            {
+                return Resources.CalcRepairIdentityNote;
+            }
+            string text = pol.ToString();
+            return text.StartsWith("y = +", StringComparison.Ordinal) ? "y = " + text.Substring(5) : text;
+        }
+
+        /// <summary>
+        /// (`AMBER269`) Шкала y = x: номер канала объявлен энергией. Так выглядит
+        /// калибровка «никакая» — <c>new PolynomialEnergyCalibration()</c> (`A95`,
+        /// `A137`); своей калибровкой спектра она не считается.
+        /// </summary>
+        internal static bool IsIdentityCalibration(EnergyCalibration calibration)
+        {
+            PolynomialEnergyCalibration pol = calibration as PolynomialEnergyCalibration;
+            if (pol == null || pol.Coefficients == null || pol.Coefficients.Length < 2)
+            {
+                return false;
+            }
+            double[] c = pol.Coefficients;
+            if (c[0] != 0.0 || c[1] != 1.0)
+            {
+                return false;
+            }
+            for (int i = 2; i < c.Length; i++)
+            {
+                if (c[i] != 0.0)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        static string SpectrumLabel(ResultData data, int index)
+        {
+            string name = data.SampleInfo != null && data.SampleInfo.Name != null ? data.SampleInfo.Name.ToString() : null;
+            string number = "#" + (index + 1).ToString(CultureInfo.InvariantCulture);
+            return string.IsNullOrWhiteSpace(name) ? number : number + " (" + name.Trim() + ")";
+        }
+
+        /// <summary>
+        /// (`AMBER269`, дефект 2) Кривые FWHM, которые спектру ПОДСТАВЛЕНЫ, а не
+        /// его собственные: умолчание по трём числам настроек прибора, построенное
+        /// потому, что своей кривой у спектра не было (файл без неё — экспорт
+        /// RadiaCode, старый файл). Ключ — спектр, значение — тот самый объект
+        /// кривой: своей кривая становится, как только на её место ставят
+        /// другую (калибровка FWHM, «Применить» в панели), — сравнение по ссылке,
+        /// как у <c>ResultData.FileEfficiency</c>.
+        /// </summary>
+        readonly ConditionalWeakTable<ResultData, FwhmCalibration> fwhmStandIns = new ConditionalWeakTable<ResultData, FwhmCalibration>();
+
+        /// <summary>
+        /// (`AMBER269`, дефект 2, 01.11.2026) ПРАВИЛО КРИВОЙ FWHM СПЕКТРА, У КОТОРОГО
+        /// СВОЕЙ НЕТ, — ОДНО ДЛЯ ОТКРЫТИЯ ФАЙЛА И ДЛЯ НАЗНАЧЕНИЯ ПРИБОРА В ПАНЕЛИ.
+        /// С 02.11.2026 — сохранённая кривая прибора (последний абзац); история ниже —
+        /// как правило было устроено до того: умолчание по трём числам настроек поиска
+        /// пиков прибора (FWHM у нуля, канал, FWHM на нём) и шкале энергии спектра —
+        /// <see cref="FwhmCalibration.DefaultCalibration(FWHMPeakDetectionMethodConfig, EnergyCalibration, out string)"/>.
+        ///
+        /// Прежде пути расходились: открытие строило это умолчание, а выбор прибора
+        /// в панели брал СОХРАНЁННУЮ кривую прибора. У приборов, заведённых
+        /// заготовкой RadiaCode, сохранённая кривая была встроенной
+        /// 15/3756/103 конструктора настроек, а не кривой трёх чисел заготовки
+        /// (у заготовки RadiaCode-103/110 — 4/266/26), поэтому один и тот же спектр получал разную
+        /// модель разрешения в зависимости от пути. С 01.11.2026 (решение Amber
+        /// «Строить по трём числам») заготовка строит кривую по своим числам, а
+        /// заглушка в прочитанной конфигурации заменяется кривой по трём числам
+        /// прибора (<see cref="DeviceConfigInfo.ResolveBuiltInFwhm"/>) — тем же
+        /// <c>DefaultCalibration</c>, что здесь. Правило открытия выбрано
+        /// потому, что по нему посчитаны замеры `AMBER269` и по нему же строят
+        /// кривую пробы (`ProbeDeviceConfig.Attach`), а числа корпуса от него не
+        /// зависят: у всех 136 спектров корпуса кривая своя.
+        ///
+        /// Построенная кривая помечается подставленной (<see cref="HasStandInFwhm"/>):
+        /// смена прибора в панели ставит её заново от нового прибора, а
+        /// своя кривая спектра остаётся.
+        ///
+        /// ⛔ (`AMBER269`, 02.11.2026) ФОРМА ПИКА — ПРИБОРА, а не гауссова: кривая
+        /// строится <see cref="FwhmCalibration.StandInCalibration"/> — три числа и
+        /// форма пика кривой настроек <paramref name="cfg"/> (у открытого файла это
+        /// копия настроек прибора, `PrepareDeviceConfig`). Прежде открытие давало
+        /// гауссов пик, а «Применить» — форму пика прибора. Опоры и коэффициенты
+        /// кривой прежние до бита.
+        ///
+        /// ⛔ (`AMBER269`, 02.11.2026, позже того же дня) КРИВАЯ — СОХРАНЁННАЯ КРИВАЯ
+        /// ПРИБОРА, а не три его числа. Решение Amber 02.11.2026 вопросником, дословно:
+        /// «Кривую прибора (Рекомендую)». У прибора, чья кривая подогнана по пикам,
+        /// открытие строило кривую по трём числам, а «Применить» ставило подогнанную —
+        /// теперь открытие = «Применить»: <see cref="FwhmCalibration.StandInFromDevice"/>
+        /// (копия кривой прибора; на чужой сетке каналов — перенесённая; если по ней
+        /// нельзя — прежние три числа). Сетка прибора — <c>DeviceConfig.NumberOfChannels</c>
+        /// спектра (прибор ему уже назначен, <see cref="AttachDeviceConfig"/>).
+        /// </summary>
+        internal FwhmCalibration StandInFwhm(ResultData data, FWHMPeakDetectionMethodConfig cfg, out string refusal)
+        {
+            FwhmCalibration curve = FwhmCalibration.StandInFromDevice(cfg,
+                                                                      data.DeviceConfig != null ? data.DeviceConfig.NumberOfChannels : 0,
+                                                                      data.EnergySpectrum.EnergyCalibration,
+                                                                      data.EnergySpectrum.NumberOfChannels,
+                                                                      out refusal);
+            this.fwhmStandIns.Remove(data);
+            if (curve != null)
+            {
+                this.fwhmStandIns.Add(data, curve);
+            }
+            return curve;
+        }
+
+        /// <summary>
+        /// (`AMBER269`) Кривая FWHM спектра подставлена (<see cref="StandInFwhm"/>), а не своя.
+        /// С 02.11.2026 (полоса a269fix6) подставленной считается и встроенная заглушка
+        /// 15/3756/103, как бы она ни попала к спектру (<see cref="ForgetFileStandInFwhm"/>):
+        /// своей кривой она не бывает, и смена прибора в панели ставит вместо неё кривую прибора.
+        /// </summary>
+        public bool HasStandInFwhm(ResultData data)
+        {
+            FwhmCalibration standIn;
+            return data != null && data.FwhmCalibration != null
+                   && ((this.fwhmStandIns.TryGetValue(data, out standIn)
+                        && object.ReferenceEquals(standIn, data.FwhmCalibration))
+                       || FWHMPeakDetectionMethodConfig.IsBuiltInStandIn(data.FwhmCalibration));
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER269`, 02.11.2026, полоса a269fix6) ВСТРОЕННАЯ ЗАГЛУШКА FWHM В ФАЙЛЕ
+        /// СПЕКТРА — НЕ СВОЯ КРИВАЯ, А ЕЁ ОТСУТСТВИЕ. Заглушка — кривая
+        /// <c>new FWHMPeakDetectionMethodConfig()</c> по начальным значениям полей
+        /// (15 каналов у нуля, 103 на канале 3756), узнаёт её
+        /// <see cref="FWHMPeakDetectionMethodConfig.IsBuiltInStandIn"/> по виду, опорам и
+        /// коэффициентам. Какая программа кладёт её в файл, не установлено; так выглядит кривая
+        /// настроек поиска пиков, у которых своей кривой нет. Найдено полосой `rc110mar` на съёмке
+        /// RC-110 тория в Маринелли — 79 кэВ на 662 кэВ против 53 по вершинам данных, пики модели в
+        /// 1.5–1.8 раза шире данных. Замер 02.11.2026: из 136 спектров корпуса заглушки нет ни у
+        /// одного, из восьми файлов RC-110 — у одного. Приложение принимало её
+        /// своей кривой спектра (<see cref="CheckDocument"/> строил кривую, только если её нет), а
+        /// у конфигураций приборов ту же заглушку уже заменял
+        /// <see cref="DeviceConfigInfo.ResolveBuiltInFwhm"/>.
+        ///
+        /// Решение Amber 02.11.2026 вопросником, дословно: «Кривую прибора (Рекомендую)».
+        /// Заглушка снимается, и дальше идёт ТО ЖЕ правило, что у спектра без своей кривой:
+        /// сохранённая кривая прибора (<see cref="StandInFwhm"/> →
+        /// <see cref="FwhmCalibration.StandInFromDevice"/>; на чужой сетке — перенесённая; по ней
+        /// нельзя — три числа прибора; не строятся и они — «нет модели разрешения» с причиной).
+        ///
+        /// ФАЙЛ НЕ ПЕРЕПИСЫВАЕТСЯ — как у конфигурации прибора: открытие файл только читает
+        /// (`T266`), а документ не помечается изменённым — та же кривая получилась бы у спектра без
+        /// своей кривой, и это не правка человека. В файл кривая прибора уйдёт, только если
+        /// человек сам сохранит документ; голос двери (<see cref="ReportFileStandInFwhm"/>) это
+        /// говорит.
+        ///
+        /// Зовут: <see cref="CheckDocument"/> (открытие, добавление спектра из файла, загрузка
+        /// фона), <c>EfficiencyCurveIo.LoadResultData</c>, <c>ProbeDeviceConfig.Attach</c>,
+        /// <c>tools\pie</c> — до своего «кривой нет — подставить». Возвращает <c>true</c>, если
+        /// заглушка была и снята.
+        /// </summary>
+        public static bool ForgetFileStandInFwhm(ResultData data)
+        {
+            if (data == null || data.FwhmCalibration == null
+                || !FWHMPeakDetectionMethodConfig.IsBuiltInStandIn(data.FwhmCalibration))
+            {
+                return false;
+            }
+            data.FwhmCalibration = null;
+            return true;
+        }
+
+        /// <summary>
+        /// (`AMBER269`, полоса a269fix6) Спектры, у которых <see cref="CheckDocument"/> снял
+        /// заглушку FWHM из файла (<see cref="ForgetFileStandInFwhm"/>). Читатель —
+        /// <see cref="ReportFileStandInFwhm"/>; слабая таблица, как <see cref="fwhmStandIns"/>.
+        /// </summary>
+        readonly ConditionalWeakTable<ResultData, object> fileStandIns = new ConditionalWeakTable<ResultData, object>();
+
+        static readonly object FileStandInMark = new object();
+
+        /// <summary>
+        /// (`AMBER269`, полоса a269fix6) Спектры файла, которым дверь открытия прибор НЕ нашла
+        /// (<see cref="PrepareDeviceConfig"/>: <see cref="DeviceMatch.None"/>). Читатель —
+        /// <see cref="ReportFileStandInFwhm"/>. Неоднозначный прибор (<see cref="DeviceMatch.Ambiguous"/>)
+        /// сюда не пишется: о нём уже говорит своё окно (<c>MSGDeviceMatchAmbiguous</c>, «выберите
+        /// прибор»), и второе окно об одном спектре было бы лишним.
+        /// </summary>
+        readonly ConditionalWeakTable<ResultData, object> devicesNotFound = new ConditionalWeakTable<ResultData, object>();
+
+        /// <summary>
+        /// ⛔ (`AMBER269`, 02.11.2026, полоса a269fix6) ШИРИНА ПИКОВ, ВЗЯТАЯ НЕ ИЗ ФАЙЛА И НЕ
+        /// СВОЯ, — ГОЛОС ОДИН РАЗ НА ФАЙЛ, работа продолжается. Соглашение то же, что у прочих
+        /// значений, взятых не из файла: шкала SpecUtils (`A216`, <c>MSGScaleNotFromFileSpecUtils</c>),
+        /// время начала набора (П263, <c>ERRMissingStartDateTime</c>). Две части, одно окно:
+        /// <list type="number">
+        /// <item><c>MSGFwhmFileStandInReplaced</c> — заглушка 15/3756/103 из файла снята, и встала
+        /// ДРУГАЯ кривая (прибора);</item>
+        /// <item><c>MSGFwhmDeviceNotFoundBuiltIn</c> — прибор не найден, и кривую дверь построила по
+        /// встроенным числам 15/3756/103 (у файла без кривой или с той же заглушкой). Решение Amber
+        /// 02.11.2026 вопросником, дословно: «Строить по числам, но сказать»: кривая остаётся,
+        /// голос говорит, что в спектре калибровка по умолчанию и нужна калибровка по FWHM (текст
+        /// Amber того же дня, дословно).
+        /// Спектр с заглушкой и без прибора считается здесь, а не в п. 1 — одно окно, не два.</item>
+        /// </list>
+        /// Спектр, оставшийся без кривой вовсе, называет <see cref="ReportMissingFwhmCalibration"/> —
+        /// второго голоса об одном событии нет. Спектр со своей (не заглушка) кривой молчит, найден
+        /// прибор или нет: ширина его.
+        ///
+        /// ⛔ ВОССТАНОВЛЕНИЕ СЕАНСА — БЕЗ ОКНА (решение Amber 02.11.2026 вопросником, дословно:
+        /// «Окном, но не при восстановлении сеанса (Рекомендую)»). Окно — когда файл открывают
+        /// руками; при восстановлении (<paramref name="restoringSession"/>, раскладка открывает
+        /// вкладки прошлого сеанса — <see cref="OpenDocument(string, bool)"/>) замена идёт молча.
+        /// Запись в журнал программы (<c>becqmoni.log</c>, через <see cref="System.Diagnostics.Trace"/>)
+        /// идёт в обоих случаях — у восстановления она единственный след.
+        /// </summary>
+        void ReportFileStandInFwhm(ResultDataFile file, string path, bool restoringSession)
+        {
+            if (file == null || file.ResultDataList == null)
+            {
+                return;
+            }
+            int total = 0;
+            int replaced = 0;
+            int builtIn = 0;
+            foreach (ResultData data in file.ResultDataList)
+            {
+                if (data == null || data.EnergySpectrum == null)
+                {
+                    continue;
+                }
+                total++;
+                object mark;
+                FwhmCalibration standIn;
+                if (data.FwhmCalibration == null)
+                {
+                    continue;
+                }
+                if (FWHMPeakDetectionMethodConfig.IsBuiltInStandIn(data.FwhmCalibration))
+                {
+                    // кривую по встроенным числам построила дверь (а не принесла копия)
+                    if (this.devicesNotFound.TryGetValue(data, out mark)
+                        && this.fwhmStandIns.TryGetValue(data, out standIn)
+                        && object.ReferenceEquals(standIn, data.FwhmCalibration))
+                    {
+                        builtIn++;
+                    }
+                }
+                else if (this.fileStandIns.TryGetValue(data, out mark))
+                {
+                    replaced++;
+                }
+            }
+            if (replaced == 0 && builtIn == 0)
+            {
+                return;
+            }
+            // Тексты — короткие, решение Amber 02.11.2026 вопросником, дословно: «Ваш текст — А,
+            // короткий — Б (Рекомендую)»: А — её текст (прибор не найден, ширина по встроенным
+            // числам), Б — короткий (заглушка заменена кривой прибора). Счёт «{0} из {1}:» — только у
+            // файла из нескольких спектров. Обе части — двумя строками одного окна, А первой.
+            List<string> parts = new List<string>();
+            if (builtIn > 0)
+            {
+                parts.Add(CountPrefix(builtIn, total) + Resources.MSGFwhmDeviceNotFoundBuiltIn);
+            }
+            if (replaced > 0)
+            {
+                parts.Add(CountPrefix(replaced, total) + Resources.MSGFwhmFileStandInReplaced);
+            }
+            // Оправа «путь: текст» переводу не подлежит — переведены части.
+            string text = AppUi.Where(path) + ":\n" + string.Join("\n", parts.ToArray());
+            System.Diagnostics.Trace.WriteLine("FWHM" + (restoringSession ? " (восстановление сеанса, без окна)" : "")
+                                               + ": " + text.Replace("\r", " ").Replace("\n", " "));
+            if (!restoringSession)
+            {
+                AppUi.Report(text, "", MessageBoxIcon.None);
+            }
+        }
+
+        /// <summary>(`AMBER269`) Приставка «{0} из {1}: » — только у файла из нескольких спектров.</summary>
+        static string CountPrefix(int count, int total)
+        {
+            return total > 1
+                ? string.Format(CultureInfo.InvariantCulture, Resources.MSGFwhmSpectraCount, count, total) + " "
+                : string.Empty;
         }
 
         /*
@@ -350,6 +745,20 @@ namespace BecquerelMonitor
 
         // Token: 0x0600026E RID: 622 RVA: 0x0000960C File Offset: 0x0000780C
         public DocEnergySpectrum OpenDocument(string filename)
+        {
+            return this.OpenDocument(filename, false);
+        }
+
+        /// <summary>
+        /// Открыть файл спектра. <paramref name="restoringSession"/> — файл открывает не человек,
+        /// а восстановление прошлого сеанса (раскладка окна, <c>MainForm.GetContentFromPersistString</c>).
+        /// ⛔ (`AMBER269`, 02.11.2026, полоса a269fix6) Признак заведён решением Amber 02.11.2026
+        /// вопросником, дословно: «Окном, но не при восстановлении сеанса (Рекомендую)»: голос о
+        /// подменённой ширине пиков (<see cref="ReportFileStandInFwhm"/>) при восстановлении окна не
+        /// поднимает и пишется только в журнал программы. Прежде открытие руками и восстановление
+        /// сеанса шли одним вызовом, и отличить их было нечем. Прочие голоса двери — прежние.
+        /// </summary>
+        public DocEnergySpectrum OpenDocument(string filename, bool restoringSession)
         {
             foreach (DocEnergySpectrum docEnergySpectrum in this.documentList)
             {
@@ -374,6 +783,7 @@ namespace BecquerelMonitor
             DocEnergySpectrum docEnergySpectrum2 = new DocEnergySpectrum(filename);
             Cursor.Current = Cursors.WaitCursor;
             int unknownStarts = 0;
+            string deviceAmbiguity = null;
             try
             {
                 // ⛔ `T266`: файл спектра — ТОЛЬКО НА ЧТЕНИЕ. Прежний голый
@@ -417,10 +827,10 @@ namespace BecquerelMonitor
                 //    которой умолчание не строится, открытие давало «кривая
                 //    есть [0:15 3756:103]» и 0 голосов; после — «без кривой»
                 //    и 1 голос.
-                this.PrepareDeviceConfig(docEnergySpectrum2.ResultDataFile);
+                deviceAmbiguity = this.PrepareDeviceConfig(docEnergySpectrum2.ResultDataFile);
                 if (!this.CheckDocument(docEnergySpectrum2.ResultDataFile))
                 {
-                    string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+                    string text = RepairQuestion(docEnergySpectrum2.ResultDataFile, filename);
                     // Дверь та же (AppUi.AskYesNo): без окон отвечать некому.
                     if (!AppUi.AskYesNo(text, Resources.ResetCalibrationQuestion)) return null;
                     this.CheckDocument(docEnergySpectrum2.ResultDataFile, doCorrections: true);
@@ -513,7 +923,10 @@ namespace BecquerelMonitor
             //    (tools\CORPUS\corpus\spectra) открываются этой дверью с НУЛЁМ
             //    голосов — у всех кривая строится по конфигурации прибора.
             this.ReportMissingFwhmCalibration(docEnergySpectrum2, filename);
+            // (`AMBER269`, полоса a269fix6) Заглушка FWHM из файла не принята — один голос на файл.
+            this.ReportFileStandInFwhm(docEnergySpectrum2.ResultDataFile, filename, restoringSession);
             ReportUnknownStarts(unknownStarts);
+            ReportDeviceAmbiguity(deviceAmbiguity);
             return docEnergySpectrum2;
         }
 
@@ -814,6 +1227,7 @@ namespace BecquerelMonitor
             Cursor.Current = Cursors.WaitCursor;
             ResultDataFile resultDataFile;
             int unknownStarts = 0;
+            string deviceAmbiguity = null;
             try
             {
                 // `T266`: только на чтение — довод в OpenDocument выше (поток
@@ -824,10 +1238,10 @@ namespace BecquerelMonitor
 
                 // Настройки прибора — ДО проверки, по той же причине, что в
                 // OpenDocument (`A240`, восьмое место, G11).
-                this.PrepareDeviceConfig(resultDataFile);
+                deviceAmbiguity = this.PrepareDeviceConfig(resultDataFile);
                 if (!this.CheckDocument(resultDataFile))
                 {
-                    string text = String.Format(Resources.ERRFileOpenFailure, pathname, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+                    string text = RepairQuestion(resultDataFile, pathname);
                     // Дверь та же (AppUi.AskYesNo): без окон отвечать некому.
                     if (!AppUi.AskYesNo(text, Resources.ResetCalibrationQuestion)) return null;
                     this.CheckDocument(resultDataFile, doCorrections: true);
@@ -885,7 +1299,10 @@ namespace BecquerelMonitor
             {
                 resultDataFile.ResultDataList[0].Selected = true;
             }
+            // (`AMBER269`, полоса a269fix6) Та же дверь файла, что у открытия: заглушка FWHM не принята.
+            this.ReportFileStandInFwhm(resultDataFile, pathname, false);
             ReportUnknownStarts(unknownStarts);
+            ReportDeviceAmbiguity(deviceAmbiguity);
             return resultDataFile;
         }
 
@@ -964,6 +1381,7 @@ namespace BecquerelMonitor
                 }
             }
             DocEnergySpectrum docEnergySpectrum2 = new DocEnergySpectrum(filename);
+            string deviceAmbiguity = null;
             try
             {
                 Cursor.Current = Cursors.WaitCursor;
@@ -980,10 +1398,10 @@ namespace BecquerelMonitor
                 // CheckDocument с тем же вопросом. Прежде эта дверь проверку не
                 // звала вовсе: число каналов не сверялось со спектром, кривая
                 // разрешения не строилась, и документ открывался без неё молча.
-                this.PrepareDeviceConfig(docEnergySpectrum2.ResultDataFile);
+                deviceAmbiguity = this.PrepareDeviceConfig(docEnergySpectrum2.ResultDataFile);
                 if (!this.CheckDocument(docEnergySpectrum2.ResultDataFile))
                 {
-                    string check = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+                    string check = RepairQuestion(docEnergySpectrum2.ResultDataFile, filename);
                     if (!AppUi.AskYesNo(check, Resources.ResetCalibrationQuestion))
                     {
                         Cursor.Current = Cursors.Default;
@@ -1046,6 +1464,7 @@ namespace BecquerelMonitor
             //    (tools\CORPUS\corpus\spectra) открываются этой дверью с НУЛЁМ
             //    голосов — у всех кривая строится по конфигурации прибора.
             this.ReportMissingFwhmCalibration(docEnergySpectrum2, filename);
+            ReportDeviceAmbiguity(deviceAmbiguity);
             return docEnergySpectrum2;
         }
 
@@ -1538,14 +1957,22 @@ namespace BecquerelMonitor
                 // а не файла: при 8192 → 1024 ширины окна поиска пиков завышались
                 // в восемь раз, молча. Сверяется первое измерение файла: шкала
                 // документа одна, остальные спектры наследуют его настройку.
-                if (!importWithEmtyConfig)
+                // ⛔ (`AMBER269`, 02.11.2026, полоса a269fix5) «ИМПОРТ С ПУСТОЙ
+                //    КОНФИГУРАЦИЕЙ» — СБРОС ПОД ФАЙЛ, как у двери N42 (П319) и Atom
+                //    Spectra: прибор снимается вместе с его кривой FWHM и настройками
+                //    поиска пиков (`A260`), спектр помечается `DeviceConfigWiped`, и
+                //    `CheckDocument` кривую не выдумывает. Прежде в этом режиме сверка
+                //    каналов выключалась целиком, а прибор обнулялся только ниже, в
+                //    цикле (`new DeviceConfigInfo()`), — и в каждый спектр файла
+                //    копировалась кривая документа, то есть ПРИБОРА, в его каналах, при
+                //    любом числе каналов файла: файл на 64 канала получал кривую прибора
+                //    на 1024 канала, а окно о пропавшей модели разрешения молчало.
+                //    Ноль каналов — «не сбрасывать», разбор ниже откажет своими словами.
+                IntPtr firstFile = file_h;
+                int firstChannels = ChannelsOrZero(() => SpecUtilsNative.GetChannelCount(firstFile, 0));
+                if ((importWithEmtyConfig && firstChannels > 0) || this.ResetForChannelMismatch(doc, firstChannels))
                 {
-                    IntPtr firstFile = file_h;
-                    int firstChannels = ChannelsOrZero(() => SpecUtilsNative.GetChannelCount(firstFile, 0));
-                    if (this.ResetForChannelMismatch(doc, firstChannels))
-                    {
-                        this.ResetSpectrumConfig(doc.ActiveResultData, firstChannels);
-                    }
+                    this.ResetSpectrumConfig(doc.ActiveResultData, firstChannels);
                 }
                 FwhmCalibration fwhmCalibration = doc.ActiveResultData.FwhmCalibration != null
                                                   ? doc.ActiveResultData.FwhmCalibration.Clone()
@@ -1579,14 +2006,14 @@ namespace BecquerelMonitor
                 //   и подставила своё умолчание; invalidScale — запись шкалы в
                 //   файле негодна; identityScale — ни коэффициентов, ни границ
                 //   прочесть не удалось, и в документе осталась y = x, то есть
-                //   номер канала объявлен энергией (`A141`); approximatedScale —
-                //   шкала в файле есть, но полином выше четвёртого порядка, и он
-                //   ПРИБЛИЖЁН четвёртым. Голоса по этим счётчикам звучат ОДИН
-                //   РАЗ на файл, ниже.
+                //   номер канала объявлен энергией (`A141`). Голоса по этим
+                //   счётчикам звучат ОДИН РАЗ на файл, ниже. (Четвёртого,
+                //   approximatedScale — «полином выше четвёртой степени ПРИБЛИЖЁН
+                //   четвёртым», — с `AMBER269` 02.11.2026 нет: такой полином
+                //   берётся целиком.)
                 int substitutedScale = 0;
                 int invalidScale = 0;
                 int identityScale = 0;
-                int approximatedScale = 0;
                 // `A254`: у скольких измерений границы энергий каналов в файле
                 //   НЕГОДНЫ (не возрастают, не число) — и первая причина словами.
                 int badEdgesScale = 0;
@@ -1884,47 +2311,21 @@ namespace BecquerelMonitor
 
                                 PolynomialEnergyCalibration calibration = new PolynomialEnergyCalibration();
 
-                                // if callibration order > 4th poly
-                                if (cal_size > 5)
-                                {
-                                    List<CalibrationPoint> listCalibration = new List<CalibrationPoint>();
-
-                                    for (int ch = 0; ch < spec_size; ch++)
-                                    {
-                                        CalibrationPoint calibrationPoint = new CalibrationPoint(ch, CalibrationSolver.getEnergyFromNthPoly(cal, ch), energySpectrum.Spectrum[ch]);
-                                        listCalibration.Add(calibrationPoint);
-                                    }
-
-                                    if (listCalibration.Count >= 5)
-                                    {
-                                        // ⛔ `AMBER73` (П138, 22.09.2026): ТОТ ЖЕ
-                                        //    СДВИГ, ЧТО И У ПОЛИНОМА ПОПРОЩЕ НИЖЕ.
-                                        //    Точки набраны как (ch, poly(ch)) по
-                                        //    полиному ФАЙЛА, то есть это НИЖНИЕ
-                                        //    КРАЯ каналов, а приложение читает номер
-                                        //    канала центром. Перекладка идёт ПОСЛЕ
-                                        //    подгонки и тем же вызовом, что у двери
-                                        //    N42, — разойтись дверям нельзя (`A253`).
-                                        //    ⚠ `AMBER86` (П146): только у N42 —
-                                        //    см. `toAppChannels` в начале метода.
-                                        double[] matrix = toAppChannels(
-                                            CalibrationSolver.Solve(listCalibration, 4));
-                                        calibration.Coefficients = new double[matrix.Length];
-                                        calibration.Coefficients = matrix;
-                                        calibration.PolynomialOrder = matrix.Length - 1;
-                                        // `A216`: шкала из файла ЕСТЬ, но она выше
-                                        //   четвёртого порядка и ПРИБЛИЖЕНА. Дверь
-                                        //   N42 такой файл отказывает словами
-                                        //   (`A151`); здесь он импортируется — но с
-                                        //   другой шкалой, и молчать об этом
-                                        //   нельзя.
-                                        approximatedScale++;
-                                    }
-                                    else
-                                    {
-                                        identityScale++;
-                                    }
-                                } else
+                                // ⛔ (`AMBER269`, 02.11.2026) ПОЛИНОМ ВЫШЕ ЧЕТВЁРТОЙ СТЕПЕНИ —
+                                //    ЦЕЛИКОМ, как у полинома попроще. Здесь при cal_size > 5
+                                //    шкала ПРИБЛИЖАЛАСЬ четвёртой степенью подгонкой по
+                                //    точкам (ch, poly(ch)) и звучал голос `A216` «ПРИБЛИЖЕНА
+                                //    четвёртым»: тогда приложение выше четвёртой степени не
+                                //    считало. Теперь считает, а SpecUtils отдаёт ВЕСЬ набор
+                                //    коэффициентов файла (замер `A269Fix3Probe`: N42 пятой
+                                //    степени — cal_size 6, числа файла с точностью float, как
+                                //    у любой степени этой двери; на «прибор-подобной» пятой
+                                //    степени шкала расходится с дверью N42 на 1.1E-4 кэВ).
+                                //    Подгонка давала другую шкалу: на `case3_order5`
+                                //    (`N42RoundTripProbe --mode=cases`, «1 2 3 4 5 6» на 64
+                                //    каналах) E(0) = 1.5E+7 кэВ вместо 3.75 кэВ файла. Годность
+                                //    шкалы судит окно правки после разбора — ниже, у всех
+                                //    степеней разом.
                                 {
                                     // (`AMBER201`, подозрение 2, 05.10.2026) «Шкала есть» —
                                     // хоть один ненулевой коэффициент, а не ненулевая СУММА:
@@ -2130,11 +2531,11 @@ namespace BecquerelMonitor
                 //    они разные, и починка у них разная. Соглашение о голосе —
                 //    то же, что двумя проверками выше (`A160`, `A175`, `A207`):
                 //    один раз на файл, работа продолжается.
-                //    ⚠ Текст здесь СТРОКОЙ, а не ресурсом: `Properties\Resources*.resx`
-                //    правит соседняя полоса, и заводить ключ пришлось бы в её файле.
-                //    Тот же приём и по той же причине стоит у отказов `A208`/`A213`
-                //    в `N42\Util.cs`.
-                if (substitutedScale + invalidScale + identityScale + approximatedScale + badEdgesScale > 0)
+                //    ⛔ (`AMBER269`, 02.11.2026) Текст — КЛЮЧАМИ РЕСУРСА, обе культуры
+                //    (`MSGScale*SpecUtils`). Прежде он стоял здесь русской строкой
+                //    («resx правит соседняя полоса»), и в английском интерфейсе окно
+                //    говорило по-русски; найдено проверкой экраном на двух языках.
+                if (substitutedScale + invalidScale + identityScale + badEdgesScale > 0)
                 {
                     List<string> scaleTrouble = new List<string>();
                     if (badEdgesScale > 0)
@@ -2148,32 +2549,28 @@ namespace BecquerelMonitor
                     }
                     if (substitutedScale > 0)
                     {
-                        scaleTrouble.Add("энергетической шкалы в файле нет, и подставлено умолчание SpecUtils (измерений: "
-                                         + substitutedScale.ToString(CultureInfo.InvariantCulture) + ")");
+                        // (`AMBER269`, 02.11.2026) «Нет ИЛИ не принята»: замер `A269Fix3Probe` —
+                        //   немонотонный полином в файле SpecUtils отвергает сама и отдаёт тот же
+                        //   признак 3, что у файла без шкалы. Прежний текст «шкалы в файле нет»
+                        //   говорил неправду о файле, где шкала есть.
+                        scaleTrouble.Add(string.Format(CultureInfo.InvariantCulture,
+                                                       Resources.MSGScaleSubstitutedSpecUtils, substitutedScale));
                     }
                     if (invalidScale > 0)
                     {
-                        scaleTrouble.Add("запись энергетической шкалы в файле негодна (измерений: "
-                                         + invalidScale.ToString(CultureInfo.InvariantCulture) + ")");
+                        scaleTrouble.Add(string.Format(CultureInfo.InvariantCulture,
+                                                       Resources.MSGScaleInvalidSpecUtils, invalidScale));
                     }
                     if (identityScale > 0)
                     {
-                        scaleTrouble.Add("шкала не прочитана, и осталась y = x, то есть номер канала объявлен энергией (измерений: "
-                                         + identityScale.ToString(CultureInfo.InvariantCulture) + ")");
-                    }
-                    if (approximatedScale > 0)
-                    {
-                        scaleTrouble.Add("шкала в файле задана полиномом выше четвёртого порядка и ПРИБЛИЖЕНА четвёртым (измерений: "
-                                         + approximatedScale.ToString(CultureInfo.InvariantCulture) + ")");
+                        scaleTrouble.Add(string.Format(CultureInfo.InvariantCulture,
+                                                       Resources.MSGScaleIdentitySpecUtils, identityScale));
                     }
                     // ⚠ Без приставки «BecqMoni: » — её без окон дописывает сам
                     //   AppUi.Report, а в окне сообщение показывается как есть.
                     AppUi.Report(
-                        "Энергетическая шкала спектра взята не из файла ("
-                        + AppUi.Where(filepath) + "): "
-                        + string.Join("; ", scaleTrouble.ToArray())
-                        + ". По такой шкале подписи пиков, состав библиотеки и разложение "
-                        + "выйдут правдоподобными и чужими — сверьте калибровку прежде, чем считать.",
+                        string.Format(CultureInfo.InvariantCulture, Resources.MSGScaleNotFromFileSpecUtils,
+                                      AppUi.Where(filepath), string.Join("; ", scaleTrouble.ToArray())),
                         "", MessageBoxIcon.None);
                 }
 
@@ -2193,6 +2590,28 @@ namespace BecquerelMonitor
                              + ", а приложение импортирует только передние и фоновые"
                            : ": импортируемых измерений в файле нет")
                         + " — документ остался бы пустым, и считать по нему нечего");
+                }
+
+                // ⛔ (`AMBER269`, 02.11.2026) НЕГОДНАЯ ШКАЛА — ОБЫЧНЫМ ОКНОМ ПРАВКИ, как у
+                //    дверей N42, Atom Spectra и «Открыть»: «было → станет» (`RepairQuestion`),
+                //    «Да» ставит ровно сказанное (`CheckDocument` с правкой). Прежде дверь
+                //    ответ проверки шкалы не читала (`AMBER112`: «нового отказа здесь
+                //    нет»), и полином, негодный на [0, N], уходил в документ молча; выше
+                //    четвёртой степени он ещё и приближался четвёртой. Теперь полином
+                //    файла берётся целиком, и негодный не проходит молча. Окно звучит,
+                //    ТОЛЬКО когда править есть что (`DescribeRepairs`): годная шкала идёт
+                //    прежним путём, без `CheckDocument`, — числа и голоса прежние.
+                //    Без окон — отказ: вопрос задать некому (`AppUi.AskYesNo`).
+                if (DescribeRepairs(doc.ResultDataFile).Count > 0)
+                {
+                    string repair = RepairQuestion(doc.ResultDataFile, filepath);
+                    if (!AppUi.AskYesNo(repair, Resources.ResetCalibrationQuestion))
+                    {
+                        Cursor.Current = Cursors.Default;
+                        return;
+                    }
+                    this.CheckDocument(doc.ResultDataFile, doCorrections: true);
+                    doc.Dirty = true;
                 }
 
                 // `A234`: та же дверь, что у импорта N42 — одна на обе.
@@ -2425,7 +2844,7 @@ namespace BecquerelMonitor
                 }
                 if (!this.CheckDocument(doc.ResultDataFile))
                 {
-                    string text = String.Format(Resources.ERRFileOpenFailure, filePath, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+                    string text = RepairQuestion(doc.ResultDataFile, filePath);
                     // Дверь та же (AppUi.AskYesNo): без окон отвечать некому.
                     if (!AppUi.AskYesNo(text, Resources.ResetCalibrationQuestion)) return;
                     this.CheckDocument(doc.ResultDataFile, doCorrections: true);
@@ -2541,11 +2960,11 @@ namespace BecquerelMonitor
                         int NumberOfChanels = int.Parse(streamReader.ReadLine(), NumberStyles.Integer, CultureInfo.InvariantCulture);
                         int PolynomialOrder = int.Parse(streamReader.ReadLine(), NumberStyles.Integer, CultureInfo.InvariantCulture);
 
-                        if (PolynomialOrder > 4)
-                        {
-                            throw new Exception(String.Format(CultureInfo.InvariantCulture, Resources.ERRUnsupportedCalibrationOrder, PolynomialOrder));
-                        }
-
+                        // ⛔ (`AMBER269`, 02.11.2026) СТЕПЕНЬ ВЫШЕ ЧЕТВЁРТОЙ — ЦЕЛИКОМ. Здесь
+                        //    стоял отказ `ERRUnsupportedCalibrationOrder` («такое количество
+                        //    точек калибровки не поддерживается»): `ChannelToEnergy` тогда
+                        //    такую степень не считал. Теперь считает, и годность судит
+                        //    `CheckCalibration` ниже — теми же условиями, что у степеней 1…4.
                         double[] coefficients = new double[PolynomialOrder + 1];
 
                         for (int i = 0; i < coefficients.Length; i++)
@@ -2584,18 +3003,24 @@ namespace BecquerelMonitor
 
                         if (!energyCalibration.CheckCalibration(channels: energySpectrum.NumberOfChannels))
                         {
-                            // ОТКАЗ без окон: спектр уже лёг в документ, а
-                            // шкала энергий у него негодна — считать по такому
-                            // спектру значит выдать чужие числа.
-                            if (!AppUi.HasWindows)
+                            // ⛔ (`AMBER269`, 02.11.2026) НЕГОДНАЯ ШКАЛА — ОБЫЧНЫМ ОКНОМ
+                            //    ПРАВКИ, как у двери N42 и у «Открыть»: «было → станет»
+                            //    (`RepairQuestion`), «Да» ставит ровно то, что сказано
+                            //    (`CheckDocument` с правкой). Прежде здесь было окно «функция
+                            //    калибровки должна монотонно возрастать», и спектр оставался
+                            //    в документе с негодной шкалой: проверка `CheckDocument`
+                            //    этой двери стоит ДО чтения файла и шкалу файла не видела.
+                            //    Без окон — тот же отказ, что прежде: вопрос задать некому
+                            //    (`AppUi.AskYesNo` бросает с текстом вопроса), и считать по
+                            //    такому спектру нельзя.
+                            string repair = RepairQuestion(doc.ResultDataFile, filePath);
+                            if (!AppUi.AskYesNo(repair, Resources.ResetCalibrationQuestion))
                             {
-                                throw new InvalidOperationException(
-                                    "BecqMoni: " + Resources.CalibrationFunctionError
-                                    + " (Atom Spectra, " + AppUi.Where(filePath) + ", порядок "
-                                    + energyCalibration.PolynomialOrder.ToString(CultureInfo.InvariantCulture)
-                                    + "). Дальше по этому спектру считать нельзя: шкала энергий негодна.");
+                                Cursor.Current = Cursors.Default;
+                                return;
                             }
-                            AppUi.Report(Resources.CalibrationFunctionError, Resources.ErrorDialogTitle, MessageBoxIcon.Error); // П319 Н6: отказ — с заголовком
+                            this.CheckDocument(doc.ResultDataFile, doCorrections: true);
+                            doc.Dirty = true;
                         }
 
                     }
@@ -2817,7 +3242,7 @@ namespace BecquerelMonitor
 
                 if (!this.CheckDocument(doc.ResultDataFile))
                 {
-                    string text = String.Format(Resources.ERRFileOpenFailure, filename, Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+                    string text = RepairQuestion(doc.ResultDataFile, filename);
                     // Дверь та же (AppUi.AskYesNo): без окон отвечать некому.
                     if (!AppUi.AskYesNo(text, Resources.ResetCalibrationQuestion)) return;
                     this.CheckDocument(doc.ResultDataFile, doCorrections: true);
@@ -3206,6 +3631,9 @@ namespace BecquerelMonitor
             foreach (ResultData written in resultDataFile.ResultDataList)
             {
                 written.KeepWrittenTractCurvature();
+                // (`AMBER269`) Так же и кривая FWHM: записанная в файл — своя у
+                // спектра, и смена прибора в панели её больше не перестраивает.
+                this.fwhmStandIns.Remove(written);
             }
             // A document stays dirty if ANY of its spectra is still recording,
             // not only the active one.
@@ -3261,29 +3689,243 @@ namespace BecquerelMonitor
             return false;
         }
 
+        /// <summary>
+        /// Подставить спектрам прочитанного файла их конфигурацию прибора
+        /// (<see cref="MatchDeviceConfig"/>). Возвращает текст о неоднозначности —
+        /// какому спектру прибор НЕ назначен, потому что подходят несколько
+        /// конфигураций, — или <c>null</c>. Говорит его дверь, один раз на файл
+        /// (<see cref="ReportDeviceAmbiguity"/>), после открытия.
+        /// </summary>
         // Token: 0x06000275 RID: 629 RVA: 0x0000A19C File Offset: 0x0000839C
-        void PrepareDeviceConfig(ResultDataFile resultDataFile)
+        string PrepareDeviceConfig(ResultDataFile resultDataFile)
         {
             DeviceConfigManager deviceConfigManager = DeviceConfigManager.GetInstance();
-            foreach (ResultData resultData in resultDataFile.ResultDataList)
+            List<string> ambiguous = new List<string>();
+            for (int k = 0; k < resultDataFile.ResultDataList.Count; k++)
             {
-                for (int i = 0; i < deviceConfigManager.DeviceConfigList.Count; i++)
+                ResultData resultData = resultDataFile.ResultDataList[k];
+                DeviceMatch how;
+                List<DeviceConfigInfo> candidates;
+                DeviceConfigInfo deviceConfigInfo = AttachDeviceConfig(resultData, deviceConfigManager.DeviceConfigList, out how, out candidates);
+                if (deviceConfigInfo == null && how == DeviceMatch.Ambiguous)
                 {
-                    DeviceConfigInfo deviceConfigInfo = deviceConfigManager.DeviceConfigList[i];
-                    if (resultData.DeviceConfigReference.Guid == deviceConfigInfo.Guid)
-                    {
-                        resultData.DeviceConfig = deviceConfigInfo;
-                        FWHMPeakDetectionMethodConfig simplePeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)deviceConfigInfo.PeakDetectionMethodConfig;
-                        resultData.PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)simplePeakDetectionMethodConfig.Clone();
-                        // `A260`: прибор у спектра снова есть, и настройки поиска
-                        //   пиков теперь ЕГО — значит запрет строить умолчание
-                        //   снимается вместе с пометкой. Иначе спектр, однажды
-                        //   прошедший сброс, остался бы без кривой навсегда.
-                        resultData.DeviceConfigWiped = false;
-                        break;
-                    }
+                    ambiguous.Add(DescribeDeviceAmbiguity(resultData, k, candidates));
+                }
+                // (`AMBER269`, полоса a269fix6) прибор не найден — для голоса об условной ширине
+                // пиков (ReportFileStandInFwhm, решение Amber «Строить по числам, но сказать»)
+                this.devicesNotFound.Remove(resultData);
+                if (deviceConfigInfo == null && how == DeviceMatch.None)
+                {
+                    this.devicesNotFound.Add(resultData, FileStandInMark);
                 }
             }
+            return ambiguous.Count == 0 ? null : string.Join("\n\n", ambiguous);
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER269`, 02.11.2026) ПРИБОР СПЕКТРА ИЗ ФАЙЛА — ОДНО ДВИЖЕНИЕ НА ВСЕХ:
+        /// дверь открытия (<see cref="PrepareDeviceConfig"/>), загрузчик оснастки
+        /// (<c>EfficiencyCurveIo.LoadResultData</c>) и пробы
+        /// (<c>ProbeDeviceConfig.Attach</c>). Прибор ищется
+        /// <see cref="MatchDeviceConfig"/> (Guid, затем номер, затем имя); найденный
+        /// становится прибором спектра, его настройки поиска пиков — копией у
+        /// спектра, пометка сброса снимается. Прежде загрузчик и пробы искали только
+        /// по Guid, и экспорт RadiaCode (в ссылке одно имя модели, номер — в
+        /// спектре) проба разбирала без прибора, а окно — с прибором: проба ≠ экран.
+        /// Не найден — спектр не трогается (<paramref name="how"/> говорит, почему:
+        /// <see cref="DeviceMatch.None"/> или <see cref="DeviceMatch.Ambiguous"/> с
+        /// кандидатами). Без окон и без голоса — говорит вызывающий.
+        /// </summary>
+        public static DeviceConfigInfo AttachDeviceConfig(ResultData resultData, IList<DeviceConfigInfo> devices,
+                                                          out DeviceMatch how, out List<DeviceConfigInfo> candidates)
+        {
+            DeviceConfigInfo deviceConfigInfo = MatchDeviceConfig(resultData, devices, out how, out candidates);
+            if (deviceConfigInfo == null)
+            {
+                return null;
+            }
+            resultData.DeviceConfig = deviceConfigInfo;
+            if (how != DeviceMatch.Guid)
+            {
+                // Найден не по Guid — ссылка спектра становится ссылкой на этот
+                // прибор: панель («Применить», выбор фона), список кривых,
+                // «Нормировать», окно выбора прибора и правка прибора
+                // (`MainForm.ApplyDeviceConfigToDocuments`) узнают прибор
+                // спектра по Guid ссылки. В файл она уйдёт при записи — как
+                // после выбора прибора в панели руками.
+                resultData.DeviceConfigReference = deviceConfigInfo.CreateReference();
+            }
+            FWHMPeakDetectionMethodConfig simplePeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)deviceConfigInfo.PeakDetectionMethodConfig;
+            resultData.PeakDetectionMethodConfig = (FWHMPeakDetectionMethodConfig)simplePeakDetectionMethodConfig.Clone();
+            // `A260`: прибор у спектра снова есть, и настройки поиска
+            //   пиков теперь ЕГО — значит запрет строить умолчание
+            //   снимается вместе с пометкой. Иначе спектр, однажды
+            //   прошедший сброс, остался бы без кривой навсегда.
+            resultData.DeviceConfigWiped = false;
+            return deviceConfigInfo;
+        }
+
+        /// <summary>
+        /// (`AMBER269`) Текст о неоднозначном приборе — спектр <paramref name="index"/>
+        /// (с нуля), имя и номер из файла, кандидаты (<see cref="AttachDeviceConfig"/>).
+        /// </summary>
+        public static string DescribeDeviceAmbiguity(ResultData resultData, int index, IEnumerable<DeviceConfigInfo> candidates)
+        {
+            string serial = SerialOfSpectrum(resultData);
+            return string.Format(Resources.MSGDeviceMatchAmbiguous,
+                SpectrumLabel(resultData, index),
+                resultData.DeviceConfigReference != null ? resultData.DeviceConfigReference.Name : "",
+                serial ?? "—",
+                string.Join("; ", (candidates ?? Enumerable.Empty<DeviceConfigInfo>()).Select(c => c.Name)));
+        }
+
+        /// <summary>(`AMBER269`) Голос о неоднозначном приборе — один раз на файл.</summary>
+        static void ReportDeviceAmbiguity(string text)
+        {
+            if (!string.IsNullOrEmpty(text))
+            {
+                AppUi.Report(text, "", MessageBoxIcon.Exclamation);
+            }
+        }
+
+        /// <summary>Как найден прибор спектра (<see cref="MatchDeviceConfig"/>).</summary>
+        public enum DeviceMatch
+        {
+            None,
+            Guid,
+            Serial,
+            Name,
+            Ambiguous
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER269`, дефект 1, 01.11.2026) КАКАЯ КОНФИГУРАЦИЯ ПРИБОРА У СПЕКТРА
+        /// ИЗ ФАЙЛА. Прежде — только по Guid ссылки (<c>DeviceConfigReference</c>), а
+        /// экспорт приложения RadiaCode несёт в ссылке одно имя модели
+        /// («RadiaCode-110»), без Guid; номер прибора лежит в
+        /// <c>EnergySpectrum/SerialNumber</c>. Спектр открывался со встроенными
+        /// настройками (FWHM 15/3756/103, κ = 0, без кристалла и кривой), и FSA
+        /// отказывал: «нужна геометрия прибора».
+        ///
+        /// Решение Amber 01.11.2026 вопросником, дословно: «По серийному номеру
+        /// (Рекомендую)» — нет Guid, ищется прибор с тем же серийным номером, затем
+        /// по имени. Порядок:
+        /// <list type="number">
+        /// <item>Guid в ссылке есть и такая конфигурация здесь есть — она, как
+        /// прежде; имя и номер в файле тогда не смотрятся.</item>
+        /// <item>Guid, которого здесь НЕТ (файл снят на другом компьютере), — та же
+        /// цепочка, что для файла без Guid: номер, затем имя. Решение Amber
+        /// 01.11.2026 вопросником, дословно: «По номеру, затем имени
+        /// (Рекомендую)». Прежде такой Guid прибора не давал вовсе, и спектр с
+        /// чужой машины открывался со встроенными настройками, хотя его прибор
+        /// здесь заведён. Прибор с другим номером не подхватывается (пункт 4), а
+        /// ссылка спектра переписывается на найденный прибор
+        /// (<see cref="PrepareDeviceConfig"/>), как у файла без Guid.</item>
+        /// <item>Номер в файле есть — конфигурация с тем же номером
+        /// (<see cref="InputDeviceConfig.InstrumentSerialNumber"/>; без учёта
+        /// регистра и пробелов по краям). Одна — она. Несколько (у одного прибора
+        /// бывает по конфигурации на геометрию) — та из них, чьё имя совпало с
+        /// именем в ссылке, если такая одна; иначе неоднозначность.</item>
+        /// <item>Тем же номером не нашлось — по имени, и только при ОДНОМ
+        /// совпадении. ⛔ Конфигурация с ДРУГИМ номером в имя-кандидаты не
+        /// входит: это чужой прибор той же модели (замер 01.11.2026: два файла из
+        /// семи сняты другим экземпляром той же модели, и к конфигурации прибора
+        /// владельца они не относятся).</item>
+        /// <item>Неоднозначность — прибор НЕ подставляется (<see cref="DeviceMatch.Ambiguous"/>,
+        /// кандидаты — в <paramref name="candidates"/>), дверь говорит это окном.</item>
+        /// </list>
+        /// Статический и без окон — чтобы его мерила проба.
+        /// </summary>
+        internal static DeviceConfigInfo MatchDeviceConfig(ResultData data, IList<DeviceConfigInfo> devices,
+                                                           out DeviceMatch how, out List<DeviceConfigInfo> candidates)
+        {
+            how = DeviceMatch.None;
+            candidates = new List<DeviceConfigInfo>();
+            if (data == null || devices == null)
+            {
+                return null;
+            }
+            DeviceConfigReference reference = data.DeviceConfigReference;
+            string guid = reference != null ? reference.Guid : null;
+            if (!string.IsNullOrEmpty(guid))
+            {
+                foreach (DeviceConfigInfo device in devices)
+                {
+                    if (device != null && device.Guid == guid)
+                    {
+                        how = DeviceMatch.Guid;
+                        return device;
+                    }
+                }
+                // Guid здесь неизвестен — дальше та же цепочка, что у файла без Guid.
+            }
+
+            string serial = SerialOfSpectrum(data);
+            string name = Clean(reference != null ? reference.Name : null);
+            if (serial != null)
+            {
+                List<DeviceConfigInfo> bySerial = devices.Where(d => d != null && SameText(SerialOfDevice(d), serial)).ToList();
+                if (bySerial.Count == 1)
+                {
+                    how = DeviceMatch.Serial;
+                    return bySerial[0];
+                }
+                if (bySerial.Count > 1)
+                {
+                    List<DeviceConfigInfo> alsoByName = name == null
+                        ? new List<DeviceConfigInfo>()
+                        : bySerial.Where(d => SameText(d.Name, name)).ToList();
+                    if (alsoByName.Count == 1)
+                    {
+                        how = DeviceMatch.Serial;
+                        return alsoByName[0];
+                    }
+                    how = DeviceMatch.Ambiguous;
+                    candidates = bySerial;
+                    return null;
+                }
+            }
+
+            if (name == null)
+            {
+                return null;
+            }
+            // Тем же номером не нашлось: конфигурация, у которой номер ЕСТЬ, — чужой
+            // прибор (свой нашёлся бы выше); по имени — только без номера.
+            List<DeviceConfigInfo> byName = devices.Where(d => d != null && SameText(d.Name, name)
+                                                               && (serial == null || SerialOfDevice(d) == null)).ToList();
+            if (byName.Count == 1)
+            {
+                how = DeviceMatch.Name;
+                return byName[0];
+            }
+            if (byName.Count > 1)
+            {
+                how = DeviceMatch.Ambiguous;
+                candidates = byName;
+            }
+            return null;
+        }
+
+        static string SerialOfSpectrum(ResultData data)
+        {
+            EnergySpectrum spectrum = data != null ? data.EnergySpectrum : null;
+            return spectrum != null && spectrum.SerialNumber != null ? Clean(spectrum.SerialNumber.ToString()) : null;
+        }
+
+        static string SerialOfDevice(DeviceConfigInfo device)
+        {
+            return device.InputDeviceConfig != null ? Clean(device.InputDeviceConfig.InstrumentSerialNumber) : null;
+        }
+
+        static string Clean(string text)
+        {
+            return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+        }
+
+        static bool SameText(string a, string b)
+        {
+            return a != null && b != null && string.Equals(a.Trim(), b.Trim(), StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -3334,8 +3976,7 @@ namespace BecquerelMonitor
 
                     if (!this.CheckDocument(resultDataFile))
                     {
-                        string text = String.Format(Resources.ERRFileOpenFailure, Path.GetFileName(backgroundSpectrumPathname),
-                            Resources.ERRSpectrumCheck) + "\n" + Resources.CalcResetQuestion;
+                        string text = RepairQuestion(resultDataFile, Path.GetFileName(backgroundSpectrumPathname));
                         // Дверь та же (AppUi.AskYesNo): без окон отвечать некому.
                         if (!AppUi.AskYesNo(text, Resources.ResetCalibrationQuestion)) return;
                         this.CheckDocument(resultDataFile, doCorrections: true);

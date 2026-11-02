@@ -189,7 +189,53 @@ namespace BecquerelMonitor.EfficiencyMaker
         //     клейме стоит `phys=`, остаются годными. Цена: склад (49 сцен),
         //     витрина и рабочие матрицы Amber — ночным пересчётом по её команде;
         //     до него разбор печатает «без матрицы — прежний формат».
-        public const int FormatVersion = 11;
+        // 12 — РАЗДЕЛ СТРОК ЭЛЕКТРОНА ПРОБЫ (`AMBER274`, Э1 29.10.2026; решения Amber
+        //     29.10.2026 вопросником, дословно: «Бета пробы первой (Рекомендую)», «Код +
+        //     BetaShape для кристалла (Рекомендую)»). Блок `ELSC` — ПОСЛЕДНИМ, за всеми
+        //     хвостами файла, со своим отпечатком SHA-256 и концевой меткой (`Р2`
+        //     критика 30.10.2026: обрубок или порча раздела снимает ТОЛЬКО раздел,
+        //     матрица остаётся годной). Раздел — отклик на первичный электрон (и
+        //     позитрон) кинетической энергии узла, вылетевший изотропно из точки
+        //     пробы (`ResponseElectronSection`); его читает FSA образом сплошного
+        //     спектра беты и электронов конверсии нуклидов состава. Тело (сетка и
+        //     фотонные строки по каналам), его отпечаток `BODY` и клеймо фотонной
+        //     части от раздела НЕ ЗАВИСЯТ: раздел несёт СВОЁ клеймо
+        //     (`ResponseElectronSection.ComputeStamp`) и клеймо матрицы, для которой
+        //     посчитан, — поэтому он ДОПИСЫВАЕТСЯ к готовой матрице (проба
+        //     `BetaSectionProbeA274`).
+        //     ⛔ Формат 11 ЧИТАЕТСЯ как годный (`CompatibleFormatVersion`), и матрица
+        //     БЕЗ раздела ПИШЕТСЯ форматом 11 (`Р1`): байты её файла — ровно прежние,
+        //     и прежний exe её читает. Номер 12 стоит только у файла С разделом —
+        //     прежний exe его отвергает `OldFormat` с номером, а не читает молча.
+        //     ➕ (`AMBER274`, физика 28, 30.10.2026) Формат НЕ поднят: (а) хвост `ESTR`
+        //     (страгглинг, клеймо `estr=1`) — за `LBAN`, перед `ELSC`; у файла без него
+        //     поле — умолчание класса, все такие файлы негодны по `phys=`; (б) содержимое
+        //     `ELSC` получило блок СТРОК ЛИНИЙ КОНВЕРСИИ за строками узлов (число, энергия,
+        //     истории и доля вошедших каждой, строки) — раздел версии 2 кончается раньше и
+        //     читается без блока; годность раздела решает его `esec=3`.
+        public const int FormatVersion = 12;
+
+        /// <summary>
+        /// (`AMBER274`) Номер формата, которым читается или пишется ЭТА матрица: 12 —
+        /// с годным к записи разделом электрона, 11 — без него (байты прежние, `Р1`).
+        /// </summary>
+        public int WrittenFormatVersion
+        {
+            get { return ResponseElectronSection.HasRows(this.ElectronSection) ? FormatVersion : CompatibleFormatVersion; }
+        }
+
+        /// <summary>(`AMBER274`, `Д6`) Читается ли файл этого формата как нынешний (11 или 12).</summary>
+        public static bool IsCurrentFormat(int format)
+        {
+            return format == FormatVersion || format == CompatibleFormatVersion;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Э1) Формат, который читается КАК ГОДНЫЙ наравне с
+        /// <see cref="FormatVersion"/>: 11 — то же тело и те же блоки, без раздела
+        /// строк электрона. Читается с <see cref="ElectronSection"/> = null.
+        /// </summary>
+        public const int CompatibleFormatVersion = 11;
 
         /// <summary>
         /// Прежний формат, который <see cref="Load(string, out MatrixRefusal, out int, int)"/>
@@ -853,7 +899,72 @@ namespace BecquerelMonitor.EfficiencyMaker
         //      едет только с подъёмом поколения. GPU-ядро таблиц ESTAR не
         //      считает (их выгружает ЦП, `GpuPackTables.WriteElectronMats`):
         //      поднято лишь `RM_PHYSICS_VERSION` в `tools/effmaker/gpu/physics.h`.
-        public const int PhysicsVersion = 27;
+        // 28 — (`AMBER274`, этап Э1, полоса `amber274p28`, 30.10.2026; решение Amber
+        //      30.10.2026 вопросником, дословно: «У всех электронов переноса»; склад,
+        //      кривые и корпус пересчитывает распорядитель общим счётом). Журнал —
+        //      `handover/handover-2026-10-29-amber274-e1-sample-beta.md`, раздел
+        //      «Физика 28: страгглинг и GPU».
+        //      `estr=1` — СТРАГГЛИНГ ПОТЕРЬ электрона по модели Урбана (как
+        //        `G4UniversalFluctuation`/`G4UrbanFluctuation` эталона option4) у ВСЕХ
+        //        электронов переноса: в кристалле, в слоях обвязки и пробе, в капсуле
+        //        точечного источника и воздухе до корпуса
+        //        (`EfficiencySimulator.ResidualAfter`); средняя потеря шага — по CSDA,
+        //        её ионизационная часть разыгрывается, остаток пробега — от новой
+        //        энергии. Найдено критиком несходимости Cs-137 (30.10.2026): полоса
+        //        300–400 кэВ RC103 (конверсия 624/656 через лицо) у модели 0.19 против
+        //        Geant4, а Geant4 без флуктуаций совпадал с моделью; у фотонов разница
+        //        меньше процента, но поток случайных чисел другой. Клеймо ключ пишет
+        //        ВКЛЮЧЁННЫМ (`estr=1;`), хвост `ESTR`; `--estr=0` — абляция, тело
+        //        матрицы побайтно = физика 27. В ядре GPU — та же правка (`sim_electron.cuh`,
+        //        `RM_PHYSICS_VERSION` 28), таблицы веществ несут I, Z_эфф и долю
+        //        радиационной тормозной (`ElectronData.Material`, `GpuPackTables`).
+        // 29 — (`AMBER274`, полоса `phys29`, 01.11.2026; решение Amber 30.10.2026
+        //      вопросником, дословно: «Слои + кристалл сразу»; эталон сходимости —
+        //      «Среднее шести физлистов (Рекомендую)»; склад, кривые и корпус
+        //      пересчитывает распорядитель общим счётом). Журнал —
+        //      `handover/handover-2026-11-01-amber274-phys29.md`.
+        //      `emix=1` — ПЕРЕНОС ЭЛЕКТРОНА, СХОДЯЩИЙСЯ ПО ШАГУ. Найдено критиками
+        //        несходимости (30.10.2026): доля вошедших в кристалл 624 кэВ у RC103
+        //        менялась на 6 % между долей шага 0.1 и 0.01, обратное рассеяние η голого
+        //        CsI — на 30 %. Две причины: (а) в слоях сечения смешанной схемы брались
+        //        при энергии НАЧАЛА шага — теперь середины; (б) в кристалле угол шага
+        //        считался формулой Хайленда, не аддитивной по пути, — теперь та же
+        //        смешанная схема, что в слоях (жёсткие столкновения выше 20° по одному,
+        //        мягкий шарнир — по транспортному сечению ниже отсечки), сечения тоже при
+        //        энергии середины шага. Клеймо ключ пишет ВКЛЮЧЁННЫМ (`emix=1;`), хвост
+        //        `EMIX`; `--emix=0 --mott=0` — абляция, тело матрицы побайтно = физика 28. В ядре
+        //        GPU — та же правка (`sim_electron.cuh`, `RM_PHYSICS_VERSION` 29).
+        //      `mott=1` (полоса `phys29b`, 02.11.2026; решение Amber 02.11.2026
+        //        вопросником, дословно: «Сейчас, в физику 29 (Рекомендую)») — ПОПРАВКА
+        //        МОТТА ПРИ Z > 30 в смешанной схеме упругого рассеяния: отношение Мотта к
+        //        Резерфорду — подгонка Boschini et al. / Lijian et al. из `G4MottData.hh`
+        //        Geant4 11.4.2 без правок (`MottData`). Повод — η голых CsI и NaI на 3–4 %
+        //        ниже среднего шести физлистов Geant4 при чистом Резерфорде у Cs и I. Версия
+        //        НЕ поднята: ключ в клейме (`mott=1;`), хвост `MOTT`, и матрицы физики 29 без
+        //        поправки клеймом отвергаются; `--mott=0` — абляция, тело = физика 29 полосы
+        //        `phys29`. Журнал — `handover/handover-2026-11-02-amber274-phys29b.md`.
+        //        ⚠ (Н2 критика кода) `--emix=0` при `mott=1` — НЕ физика 28: поправка Мотта
+        //        работает и в слоях (смешанная схема `elmix`); физика 28 — `--emix=0 --mott=0`
+        //        (и, с физики 30, `--eref=0 --dpwa=0 --ckv=0`).
+        // 30 — (`AMBER274`, полоса `phys29c`, 02.11.2026; распоряжение распорядителя «все
+        //      правки трёх критиков физики 29 до общего счёта склада»; Ф1 — решение Amber
+        //      02.11.2026 вопросником, дословно: «Сейчас, до склада (Рекомендую)»). Журнал —
+        //      `handover/handover-2026-11-02-amber274-phys29c.md`.
+        //      `eref=1` — ПРАВКИ КРИТИКОВ: части Z² и Z упругого рассеяния порознь, предел угла
+        //        e–e (Ф2), подгонка Мотта у всех Z (Ф3), позитрон без поправки электрона (Ф4),
+        //        пересчёт затёртых вложенным переносом долей (Ф6), сечения шага на концах
+        //        полного шага с мажорантой (Ф7). Клеймо `eref=1;`, хвост `EREF`.
+        //      `dpwa=1` — ЯДЕРНАЯ ЧАСТЬ ПО DPWA (Ф1): экранирование и форма dσ/dμ подгонкой к
+        //        DPWA, таблица `matdb.elastic_screening_dpwa` (e⁻ и e⁺). Клеймо `dpwa=1;`, хвост
+        //        `DPWA`, таблица — в отпечатке `mdb=`.
+        //      `ckv=1` — ВАКАНСИЯ L-КВАНТА ПОСЛЕ ПЕРЕХОДА КОСТЕРА—КРОНИГА: Kα2 → L2 → L3 разряжается
+        //        переходом EADL L2–L3·X и вакансией L3-линии, а не ближайшим переходом L2 (у Gd
+        //        расхождение баланса до 0.75 кэВ — «каскад не сошёлся» GAGG). Клеймо `ckv=1;`, хвост `CKVA`.
+        //      ВЕРСИЯ ПОДНЯТА (Н7 критика кода): у `mott=1` она поднята не была, и кривая физики
+        //        29 без поправки Мотта вкладкой не помечалась, а GPU-библиотека до Мотта
+        //        отказывала невнятным «контрольное слово не сошлось». `--eref=0 --dpwa=0 --ckv=0` —
+        //        абляция, тело матрицы побайтно = физика 29, клеймо отличается `phys=`.
+        public const int PhysicsVersion = 30;
 
         /// <summary>Узлы сетки входных энергий, кэВ, по возрастанию.</summary>
         public double[] Energies { get; set; }
@@ -969,6 +1080,100 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// файл формата 9 таблицу несут всегда.
         /// </summary>
         public AngularAttenuation AngularQk { get; set; }
+
+        /// <summary>
+        /// (`AMBER274`, Э1) Раздел строк ПЕРВИЧНОГО ЭЛЕКТРОНА пробы (слой «Бета» пробы);
+        /// null — раздела нет (формат 11 или не посчитан), и FSA строит образы как
+        /// прежде, побитово. Годен для этой матрицы, только если посчитан для неё
+        /// (<see cref="UsableElectronSection"/>).
+        /// </summary>
+        public ResponseElectronSection ElectronSection { get; set; }
+
+        /// <summary>
+        /// (`AMBER274`, `Р2`) Раздел в файле был, но не прочитан (обрубок, отпечаток не
+        /// сошёлся): причина словами для проб и окна; null — порчи нет. Матрица при
+        /// этом годна — снимается только раздел.
+        /// </summary>
+        public string ElectronSectionDamage { get; set; }
+
+        /// <summary>
+        /// (`AMBER274`) Раздел электрона, если он есть И годен для ЭТОЙ матрицы без
+        /// знания сцены: посчитан для неё (<see cref="ResponseElectronSection.ForMatrixStamp"/>
+        /// = <see cref="Stamp"/>), версия физики раздела и физика матрицы — нынешние, шаг
+        /// бина тот же. ⛔ Капсулу сцены так не сверить — разбор берёт раздел только
+        /// через <see cref="ElectronSectionFor"/> (`Д2`).
+        /// </summary>
+        public ResponseElectronSection UsableElectronSection
+        {
+            get
+            {
+                ElectronSectionRefusal refusal;
+                return this.ElectronSectionFor(null, out refusal);
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER274`, `Д2` критика 30.10.2026) Раздел электрона, ГОДНЫЙ ДЛЯ СЦЕНЫ
+        /// <paramref name="geometry"/>, — иначе null и причина. Прежде сверялось только
+        /// «посчитан для этой матрицы»: фотонное клеймо капсулы не видит, и раздел другой
+        /// капсулы (или прежней физики раздела) брался молча. Сверяется собственное
+        /// клеймо раздела: `esec=` — нынешняя <see cref="ResponseElectronSection.SectionPhysics"/>,
+        /// `phys=` — нынешняя <see cref="PhysicsVersion"/>, `for=` — хеш клейма этой
+        /// матрицы, `bin=` — её шаг, `cap=` — капсула сцены словами
+        /// (<see cref="ResponseElectronSection.CapsuleText"/>); у сцены изотропного поля
+        /// раздела нет вовсе (`Ф5`). <paramref name="geometry"/> null — капсула не
+        /// сверяется (проба, знающая сцену сама).
+        /// </summary>
+        public ResponseElectronSection ElectronSectionFor(GeometryModel geometry, out ElectronSectionRefusal refusal)
+        {
+            ResponseElectronSection e = this.ElectronSection;
+            if (e == null || e.NodeCount == 0)
+            {
+                refusal = this.ElectronSectionDamage != null ? ElectronSectionRefusal.Damaged : ElectronSectionRefusal.Missing;
+                return null;
+            }
+
+            if (geometry != null && geometry.Scene == GeometrySceneKind.Iso)
+            {
+                refusal = ElectronSectionRefusal.IsoScene;
+                return null;
+            }
+
+            if (string.IsNullOrEmpty(this.Stamp) || !string.Equals(e.ForMatrixStamp, this.Stamp, StringComparison.Ordinal)
+                || e.StampField("for") != ResponseElectronSection.ShortHash(this.Stamp))
+            {
+                refusal = ElectronSectionRefusal.OtherMatrix;
+                return null;
+            }
+
+            if (e.StampField("esec") != ResponseElectronSection.SectionPhysics.ToString(CultureInfo.InvariantCulture)
+                || e.StampField("phys") != PhysicsVersion.ToString(CultureInfo.InvariantCulture)
+                || PhysicsFromStamp(this.Stamp) != PhysicsVersion)
+            {
+                refusal = ElectronSectionRefusal.OtherPhysics;
+                return null;
+            }
+
+            if (!(e.BinKev > 0.0) || e.BinKev != this.BinKev
+                || e.StampField("bin") != this.BinKev.ToString("R", CultureInfo.InvariantCulture))
+            {
+                refusal = ElectronSectionRefusal.OtherMatrix;
+                return null;
+            }
+
+            if (geometry != null)
+            {
+                string capsule = ResponseElectronSection.CapsuleText(geometry);
+                if (e.StampField("cap") != capsule || !string.Equals(e.Capsule, capsule, StringComparison.Ordinal))
+                {
+                    refusal = ElectronSectionRefusal.OtherCapsule;
+                    return null;
+                }
+            }
+
+            refusal = ElectronSectionRefusal.None;
+            return e;
+        }
 
         /// <summary>
         /// ⚡ МНОЖИТЕЛЬ СОВМЕСТНОЙ ЭФФЕКТИВНОСТИ ПАРЫ (`S112`).
@@ -1834,6 +2039,61 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     sb.Append("lbang=1;");
                 }
+
+                // ⛔ (`AMBER274`, физика 28, 30.10.2026) Страгглинг потерь электрона —
+                // тем же правилом `T42`: пишется, ТОЛЬКО когда включён. Двигает строки
+                // и поток случайных чисел; ВКЛ умолчанием с физики 28 — у всего склада
+                // `estr=1;` в клейме; выключенный (`--estr=0`, абляция) — ни строки,
+                // тело матрицы побайтно = физика 27, клеймо отличается только `phys=`.
+                if (options.ElectronStraggling)
+                {
+                    sb.Append("estr=1;");
+                }
+
+                // ⛔ (`AMBER274`, физика 29, 01.11.2026) Перенос электрона, сходящийся по
+                // шагу (сечения слоёв в середине шага, смешанная схема в кристалле) — тем
+                // же правилом `T42`: пишется, ТОЛЬКО когда включён. ВКЛ умолчанием с
+                // физики 29 — у всего склада `emix=1;`; выключенный вместе с Моттом (`--emix=0 --mott=0`,
+                // а с физики 30 и `--eref=0 --dpwa=0 --ckv=0`; одно `--emix=0` при `mott=1` — НЕ физика 28: Мотт
+                // работает и в слоях, Н2 критика кода 02.11.2026) —
+                // ни строки, тело матрицы побайтно = физика 28, клеймо отличается только `phys=`.
+                if (options.ElectronMixedTransport)
+                {
+                    sb.Append("emix=1;");
+                }
+
+                // ⛔ (`AMBER274`, физика 29, полоса `phys29b` 02.11.2026) Поправка Мотта при
+                // Z > 30 — тем же правилом `T42`: пишется, ТОЛЬКО когда включена. ВКЛ
+                // умолчанием — у всего склада `mott=1;`, и матрицы физики 29 без неё (полоса
+                // `phys29`, только на D:) клеймом отвергаются; выключенная (`--mott=0`,
+                // абляция) — ни строки, тело матрицы побайтно = физика 29 без Мотта.
+                if (options.ElectronMottHeavy)
+                {
+                    sb.Append("mott=1;");
+                }
+
+                // ⛔ (`AMBER274`, физика 30, полоса `phys29c` 02.11.2026) Правки критиков физики 29 —
+                // тем же правилом `T42`: пишется, ТОЛЬКО когда включены. ВКЛ умолчанием с физики 30;
+                // выключенные вместе с DPWA (`--eref=0 --dpwa=0 --ckv=0`, абляция) — ни строки, тело матрицы
+                // побайтно = физика 29, клеймо отличается только `phys=`.
+                if (options.ElectronElasticRefine)
+                {
+                    sb.Append("eref=1;");
+                }
+
+                // ⛔ (`AMBER274`, физика 30, Ф1) Ядерная часть упругого рассеяния по DPWA — тем же
+                // правилом `T42`. Сама таблица — в отпечатке `mdb=` ниже.
+                if (options.ElectronScreeningDpwa)
+                {
+                    sb.Append("dpwa=1;");
+                }
+
+                // ⛔ (`AMBER274`, физика 30) Вакансия L-кванта после перехода Костера—Кронига — тем же
+                // правилом `T42`: строка только включённым.
+                if (options.CascadeCkVacancy)
+                {
+                    sb.Append("ckv=1;");
+                }
             }
 
             // (`AMBER13` (б)) Нормировка — тем же правилом `T42`: строка
@@ -1887,14 +2147,33 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public static string GeometryFingerprint(GeometryModel geometry)
         {
-            if (geometry == null)
+            return geometry == null ? "" : FingerprintOf(GeometryText(geometry, true));
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER269` дефект 5, полоса `phys29b` 02.11.2026) Отпечаток той же геометрии
+        /// БЕЗ строки сдвига точки в капсуле (`srcoff`, <see cref="GeometryText(GeometryModel, bool)"/>)
+        /// — так его писали кривые, посчитанные до 30.10.2026 (Ф6). Совпал с отпечатком при
+        /// кривой, а нынешний — нет: геометрию НЕ правили, кривая посчитана до сдвига точки, и
+        /// говорить надо это, а не «геометрию правили после расчёта». Пусто, если сдвига нет
+        /// (тогда тексты совпадают и различать нечего) или геометрии нет.
+        /// </summary>
+        public static string GeometryFingerprintBeforeSourceOffset(GeometryModel geometry)
+        {
+            if (geometry == null || !(geometry.SourceCapsuleOffset > 0.0))
             {
                 return "";
             }
 
+            return FingerprintOf(GeometryText(geometry, false));
+        }
+
+        /// <summary>Первые 16 знаков SHA-256 текста `geom=` + <paramref name="text"/>.</summary>
+        static string FingerprintOf(string text)
+        {
             using (SHA256 sha = SHA256.Create())
             {
-                byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes("geom=" + GeometryText(geometry)));
+                byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes("geom=" + text));
                 var hex = new StringBuilder(16);
                 for (int i = 0; i < 8; i++)
                 {
@@ -1916,14 +2195,39 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         static string GeometryText(GeometryModel geometry)
         {
+            return GeometryText(geometry, true);
+        }
+
+        /// <summary>
+        /// (`AMBER269` дефект 5) Тот же текст; <paramref name="withSourceOffset"/> = false —
+        /// без строки `srcoff`, как до 30.10.2026 (<see cref="GeometryFingerprintBeforeSourceOffset"/>).
+        /// </summary>
+        static string GeometryText(GeometryModel geometry, bool withSourceOffset)
+        {
+            string text;
             try
             {
-                return GeometryWriter.Render(StampView(geometry));
+                text = GeometryWriter.Render(StampView(geometry));
             }
             catch (Exception)
             {
-                return geometry.Describe();
+                text = geometry.Describe();
             }
+
+            // ⛔ (`AMBER274` Ф6, решение Amber 30.10.2026 вопросником, дословно: «На 1.5 мм и
+            // для фотонов (Рекомендую)») СДВИГ ТОЧКИ В КАПСУЛЕ — часть фотонной сцены
+            // (<see cref="GeometryModel.SourceCapsuleOffset"/>), и клеймо обязано его нести:
+            // точка ОСГИ стоит на 1.5 мм дальше от корпуса, чем у матриц до 30.10.2026, и
+            // те матрицы для неё НЕ годны — честно. Вещество капсулы фотоны не видят, его
+            // `StampView` приводит к ОСГИ. Сдвиг 0 (голая точка, не точечная сцена) —
+            // строки нет, и клеймо прежнее побайтно.
+            double offset = geometry != null ? geometry.SourceCapsuleOffset : 0.0;
+            if (offset > 0.0 && withSourceOffset)
+            {
+                text += "\r\n// srcoff=" + offset.ToString("R", CultureInfo.InvariantCulture) + " mm";
+            }
+
+            return text;
         }
 
         /// <summary>
@@ -1967,7 +2271,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             // и файл без блока обязаны давать ОДНО клеймо (`AMBER1`).
             bool dropGap = !(geometry.FrontGapThickness > 0.0
                              || geometry.SideGapThickness > 0.0);
-            if (!dropGap && !geometry.InShield)
+            // (`AMBER274`, Э1) ВЕЩЕСТВО капсулы точечного источника — поле переноса
+            // ПЕРВИЧНОЙ БЕТЫ, а не фотонов: в фотонное клеймо оно не входит (клеймо раздела
+            // электрона несёт его само). Сдвиг точки в капсуле фотоны видят — он входит
+            // строкой `srcoff` (<see cref="GeometryText"/>, `Ф6`).
+            bool dropCapsule = !geometry.IsOsgiCapsule;
+            if (!dropGap && !geometry.InShield && !dropCapsule)
             {
                 return geometry;
             }
@@ -1985,6 +2294,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             // корпусные сцены в пересчёт из-за галки, которую читает
             // ТОЛЬКО разбор.
             view.InShield = false;
+            // (`AMBER274`) Капсула — к умолчанию ОСГИ: у него строк в тексте нет, и
+            // фотонное клеймо любой капсулы равно клейму прежних файлов.
+            view.SourceCapsuleThickness = GeometryModel.OsgiFilmMm;
+            view.SourceCapsule = GeometryModel.OsgiFilm();
+            view.SourceCapsuleRingHeight = GeometryModel.OsgiRingHeightMm;
+            view.SourceCapsuleRingInnerDiameter = GeometryModel.OsgiRingInnerMm;
+            view.SourceCapsuleRingOuterDiameter = GeometryModel.OsgiRingOuterMm;
             return view;
         }
 
@@ -1999,6 +2315,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             return this.Options != null && this.IsValidFor(geometry, this.Options);
         }
+
 
         // ------------------------------------------------------------------
         // Чтение отклика
@@ -3051,7 +3368,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             using (var writer = new BinaryWriter(stream, Encoding.UTF8))
             {
                 writer.Write(Encoding.ASCII.GetBytes("BQRM"));
-                writer.Write(FormatVersion);
+                // (`AMBER274`, `Р1`) Без раздела электрона — формат 11, байты прежние.
+                writer.Write(this.WrittenFormatVersion);
                 writer.Write(this.Stamp ?? "");
                 writer.Write(this.BinKev);
                 writer.Write(this.Histories);
@@ -3496,6 +3814,59 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // как `LBRM` при переходе 20 → 21.
                 writer.Write(Encoding.ASCII.GetBytes("LBAN"));
                 writer.Write(flags.ElectronLayerBremAngular2BS);
+
+                // ⛔ ДВАДЦАТЬ ЧЕТВЁРТЫЙ ХВОСТ — `ESTR` (`AMBER274`, физика 28,
+                // 30.10.2026: страгглинг потерь электрона). Те же два довода: ключ
+                // входит в клеймо (`estr=1`), и без хвоста матрица не сходилась бы сама
+                // с собой. Формат НЕ поднят: у файла без хвоста поле остаётся
+                // УМОЛЧАНИЕМ КЛАССА (`true`) — все такие файлы старше физики 28 и
+                // негодны по версии раньше, чем дойдут до клейма. Раздел `ELSC` —
+                // по-прежнему ПОСЛЕДНИМ (ниже).
+                writer.Write(Encoding.ASCII.GetBytes("ESTR"));
+                writer.Write(flags.ElectronStraggling);
+
+                // ⛔ ДВАДЦАТЬ ПЯТЫЙ ХВОСТ — `EMIX` (`AMBER274`, физика 29, 01.11.2026:
+                // перенос электрона, сходящийся по шагу). Те же два довода: ключ входит в
+                // клеймо (`emix=1`), и без хвоста матрица не сходилась бы сама с собой.
+                // Формат НЕ поднят: у файла без хвоста поле остаётся УМОЛЧАНИЕМ КЛАССА
+                // (`true`) — все такие файлы старше физики 29 и негодны по версии раньше,
+                // чем дойдут до клейма.
+                writer.Write(Encoding.ASCII.GetBytes("EMIX"));
+                writer.Write(flags.ElectronMixedTransport);
+
+                // ⛔ ДВАДЦАТЬ ШЕСТОЙ ХВОСТ — `MOTT` (`AMBER274`, физика 29, полоса `phys29b`
+                // 02.11.2026: поправка Мотта при Z > 30). Те же два довода: ключ входит в
+                // клеймо (`mott=1`), и без хвоста матрица не сходилась бы сама с собой.
+                // Формат и `PhysicsVersion` НЕ подняты: у файла без хвоста поле остаётся
+                // УМОЛЧАНИЕМ КЛАССА (`true`), а клеймо такого файла `mott=1` не несёт — он
+                // негоден по клейму (физика 29 полосы `phys29`, только на D:), как и задумано.
+                writer.Write(Encoding.ASCII.GetBytes("MOTT"));
+                writer.Write(flags.ElectronMottHeavy);
+
+                // ⛔ ДВАДЦАТЬ СЕДЬМОЙ И ДВАДЦАТЬ ВОСЬМОЙ ХВОСТЫ — `EREF` и `DPWA` (`AMBER274`, физика
+                // 30, полоса `phys29c` 02.11.2026: правки критиков физики 29 и ядерная часть по DPWA).
+                // Те же два довода: ключи входят в клеймо (`eref=1`, `dpwa=1`), и без хвостов матрица
+                // не сходилась бы сама с собой. Формат НЕ поднят: у файла без хвостов поля остаются
+                // УМОЛЧАНИЕМ КЛАССА (`true`) — все такие файлы старше физики 30 и негодны по версии.
+                writer.Write(Encoding.ASCII.GetBytes("EREF"));
+                writer.Write(flags.ElectronElasticRefine);
+                writer.Write(Encoding.ASCII.GetBytes("DPWA"));
+                writer.Write(flags.ElectronScreeningDpwa);
+
+                // ⛔ ДВАДЦАТЬ ДЕВЯТЫЙ ХВОСТ — `CKVA` (`AMBER274`, физика 30: вакансия L-кванта после
+                // перехода Костера—Кронига). Те же два довода и то же умолчание класса у файла без него.
+                writer.Write(Encoding.ASCII.GetBytes("CKVA"));
+                writer.Write(flags.CascadeCkVacancy);
+
+                // ⛔ РАЗДЕЛ `ELSC` (`AMBER274`, формат 12) — ПОСЛЕДНИМ, за всеми хвостами,
+                // со своим отпечатком и концевой меткой (`Р2`): читается с конца файла и
+                // от цепочки хвостов не зависит, его порча снимает только раздел. В тело не
+                // входит: отпечаток `BODY` от раздела не зависит. Новый хвост фотонной части
+                // дописывать ВЫШЕ этой строки — раздел обязан оставаться последним.
+                if (this.WrittenFormatVersion == FormatVersion)
+                {
+                    ResponseElectronSection.WriteTrailer(writer, this.ElectronSection);
+                }
             }
 
             // (`AMBER201`, Р4, подозрение полосы 9) ЗАМЕНОЙ, а не «удалить, потом
@@ -3916,6 +4287,69 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                                                 && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "LBAN")
                                                                             {
                                                                                 matrix.Options.ElectronLayerBremAngular2BS = reader.ReadBoolean();
+
+                                                                                // ⛔ ХВОСТ `ESTR` (`AMBER274`,
+                                                                                // физика 28): у файлов до него
+                                                                                // поле остаётся умолчанием класса
+                                                                                // (`true`); все такие файлы старше
+                                                                                // физики 28 и негодны по версии.
+                                                                                // ⚠ У файла формата 12 следом идёт
+                                                                                // метка раздела `ELSC` — она не
+                                                                                // `ESTR`, поле остаётся умолчанием,
+                                                                                // а раздел читается с конца файла.
+                                                                                if (stream.Length - stream.Position >= 5
+                                                                                    && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "ESTR")
+                                                                                {
+                                                                                    matrix.Options.ElectronStraggling = reader.ReadBoolean();
+
+                                                                                    // ⛔ ХВОСТ `EMIX` (`AMBER274`,
+                                                                                    // физика 29): у файлов до него поле
+                                                                                    // остаётся умолчанием класса (`true`);
+                                                                                    // все такие файлы старше физики 29 и
+                                                                                    // негодны по версии. У файла формата
+                                                                                    // 12 на этом месте может стоять метка
+                                                                                    // `ELSC` — она не `EMIX`, раздел
+                                                                                    // читается с конца файла.
+                                                                                    if (stream.Length - stream.Position >= 5
+                                                                                        && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "EMIX")
+                                                                                    {
+                                                                                        matrix.Options.ElectronMixedTransport = reader.ReadBoolean();
+
+                                                                                        // ⛔ ХВОСТ `MOTT` (`AMBER274`, физика 29,
+                                                                                        // `phys29b`): у файлов до него поле
+                                                                                        // остаётся умолчанием класса (`true`),
+                                                                                        // клеймо их `mott=1` не несёт — негодны
+                                                                                        // по клейму. На этом месте может стоять
+                                                                                        // `ELSC` — раздел читается с конца файла.
+                                                                                        if (stream.Length - stream.Position >= 5
+                                                                                            && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "MOTT")
+                                                                                        {
+                                                                                            matrix.Options.ElectronMottHeavy = reader.ReadBoolean();
+
+                                                                                            // ⛔ ХВОСТЫ `EREF` и `DPWA` (`AMBER274`,
+                                                                                            // физика 30): у файлов до них поля —
+                                                                                            // умолчание класса (`true`); все они старше
+                                                                                            // физики 30 и негодны по версии. На этом
+                                                                                            // месте может стоять `ELSC` — раздел
+                                                                                            // читается с конца файла.
+                                                                                            if (stream.Length - stream.Position >= 5
+                                                                                                && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "EREF")
+                                                                                            {
+                                                                                                matrix.Options.ElectronElasticRefine = reader.ReadBoolean();
+                                                                                                if (stream.Length - stream.Position >= 5
+                                                                                                    && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "DPWA")
+                                                                                                {
+                                                                                                    matrix.Options.ElectronScreeningDpwa = reader.ReadBoolean();
+                                                                                                    if (stream.Length - stream.Position >= 5
+                                                                                                        && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "CKVA")
+                                                                                                    {
+                                                                                                        matrix.Options.CascadeCkVacancy = reader.ReadBoolean();
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
                                                                             }
                                                                         }
                                                                     }
@@ -4106,7 +4540,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                     int format = reader.ReadInt32();
                     bool legacy = format == PreviousFormatVersion
                                   && legacyFormatForComparison == PreviousFormatVersion;
-                    if (format != FormatVersion && !legacy)
+                    // (`AMBER274`) Формат 11 — годный наравне с 12: раздела электрона у
+                    // него нет, остальное то же.
+                    if (format != FormatVersion && format != CompatibleFormatVersion && !legacy)
                     {
                         refusal = MatrixRefusal.OldFormat;
                         fileFormat = format;
@@ -4273,6 +4709,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         matrix.JointRawMaxNoise = reader.ReadDouble();
                         matrix.JointCellsCounted = reader.ReadInt32();
                         matrix.JointSubstituted = reader.ReadInt32();
+
                     }
                     else if (matrix.Options != null)
                     {
@@ -4389,6 +4826,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                     catch (Exception)
                     {
                         matrix.BodyFingerprint = null;
+                    }
+
+                    // (`AMBER274`, формат 12, `Р2`) Раздел электрона — с КОНЦА файла, своим
+                    // отпечатком. Порча раздела снимает только раздел (причина — в
+                    // `ElectronSectionDamage`), матрица остаётся годной.
+                    if (format >= FormatVersion)
+                    {
+                        string damage;
+                        matrix.ElectronSection = ResponseElectronSection.ReadTrailer(stream, bodyEnd, out damage);
+                        matrix.ElectronSectionDamage = damage;
                     }
 
                     if (format < 11)
@@ -5598,6 +6045,123 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public bool ElectronLayerBremAngular2BS = true;
 
+        /// <summary>
+        /// (`AMBER274`, физика 28, 30.10.2026; решение Amber вопросником, дословно: «У всех
+        /// электронов переноса») СТРАГГЛИНГ ПОТЕРЬ электрона по модели Урбана во всём
+        /// переносе — что делает, у <see cref="EfficiencySimulator.ElectronStraggling"/>.
+        ///
+        /// ⛔ Ключ двигает ВСЕ строки (вылет электронов из кристалла, занос, возврат —
+        /// у фотонов меньше процента, замер критика 30.10.2026) и ПОТОК случайных чисел,
+        /// поэтому входит в клеймо (`estr=1`) и пишется хвостом `ESTR` — только
+        /// включённым (`T42`). ВКЛ умолчанием вместе с подъёмом
+        /// <see cref="ResponseMatrix.PhysicsVersion"/> 27 → 28 (склад пересчитывается
+        /// общим счётом распорядителя). Обратный ключ (`--estr=0`) — абляция и
+        /// положительный контроль подъёма: тело матрицы побайтно = физика 27, клеймо
+        /// отличается только `phys=`. Рычаги — `CorpusMatrixProbe --estr=0|1`,
+        /// `BetaSectionProbeA274 --estr=0|1`.
+        ///
+        /// ⚠ Файлы матриц БЕЗ хвоста `ESTR` при чтении остаются умолчанием класса
+        /// (`true`); все они старше физики 28 и негодны по версии.
+        /// ⚠ Путь КРИВОЙ берёт ключ отсюда же (`EfficiencyCalculation.Run`) — «одна
+        /// физика для кривой и матрицы»; в клеймо кривой уходит `estr=1` только
+        /// включённым.
+        /// </summary>
+        public bool ElectronStraggling = true;
+
+        /// <summary>
+        /// (`AMBER274`, физика 29, полоса `phys29` 01.11.2026; решение Amber 30.10.2026
+        /// вопросником, дословно: «Слои + кристалл сразу») ПЕРЕНОС ЭЛЕКТРОНА, СХОДЯЩИЙСЯ ПО
+        /// ШАГУ — что делает, у <see cref="EfficiencySimulator.ElectronMixedTransport"/>: в
+        /// слоях сечения смешанной схемы — при энергии середины шага, в кристалле — та же
+        /// смешанная схема (жёсткие по одному, мягкий шарнир по транспортному сечению)
+        /// вместо Хайленда на шаг.
+        ///
+        /// ⛔ Ключ двигает ВСЕ строки и ПОТОК случайных чисел, поэтому входит в клеймо
+        /// (`emix=1`) и пишется хвостом `EMIX` — только включённым (`T42`). ВКЛ умолчанием
+        /// вместе с подъёмом <see cref="ResponseMatrix.PhysicsVersion"/> 28 → 29 (склад
+        /// пересчитывается общим счётом распорядителя). Обратный ключ (`--emix=0` вместе с `--mott=0`, с
+        /// физики 30 — и `--eref=0 --dpwa=0 --ckv=0`; Н2 критика кода: одно `--emix=0` при `mott=1` — не физика 28) — абляция
+        /// и положительный контроль подъёма: тело матрицы побайтно = физика 28, клеймо
+        /// отличается только `phys=`. Рычаги — `CorpusMatrixProbe --emix=0|1`,
+        /// `BetaSectionProbeA274 --emix=0|1`.
+        ///
+        /// ⚠ Файлы матриц БЕЗ хвоста `EMIX` при чтении остаются умолчанием класса
+        /// (`true`); все они старше физики 29 и негодны по версии.
+        /// ⚠ Путь КРИВОЙ берёт ключ отсюда же (`EfficiencyCalculation.Run`) — «одна
+        /// физика для кривой и матрицы»; в клеймо кривой уходит `emix=1` только
+        /// включённым.
+        /// </summary>
+        public bool ElectronMixedTransport = true;
+
+        /// <summary>
+        /// (`AMBER274`, физика 29, полоса `phys29b` 02.11.2026; решение Amber 02.11.2026
+        /// вопросником, дословно: «Сейчас, в физику 29 (Рекомендую)») ПОПРАВКА МОТТА ПРИ
+        /// Z &gt; 30 — что делает, у <see cref="EfficiencySimulator.ElectronMottHeavy"/>:
+        /// отношение Мотта к Резерфорду подгонкой Geant4 (`G4MottData.hh`, Boschini et al.)
+        /// в смешанной схеме упругого рассеяния кристалла и слоёв.
+        ///
+        /// ⛔ Ключ двигает строки и ПОТОК случайных чисел, поэтому входит в клеймо
+        /// (`mott=1`) и пишется хвостом `MOTT` — только включённым (`T42`). ВКЛ умолчанием;
+        /// <see cref="ResponseMatrix.PhysicsVersion"/> НЕ поднят (решение распорядителя):
+        /// матрицы физики 29 без поправки клеймом отвергаются. Обратный ключ (`--mott=0`) —
+        /// абляция и положительный контроль: тело матрицы побайтно = физика 29 полосы
+        /// `phys29`. Рычаги — `CorpusMatrixProbe --mott=0|1`, `BetaSectionProbeA274
+        /// --mott=0|1`, `StepConvergenceProbeP29 --mott=0|1`.
+        ///
+        /// ⚠ Файлы матриц БЕЗ хвоста `MOTT` при чтении остаются умолчанием класса
+        /// (`true`), а клеймо их `mott=1` не несёт — негодны по клейму.
+        /// ⚠ Путь КРИВОЙ берёт ключ отсюда же (`EfficiencyCalculation.Run`); в клеймо
+        /// кривой уходит `mott=1` только включённым.
+        /// </summary>
+        public bool ElectronMottHeavy = true;
+
+        /// <summary>
+        /// (`AMBER274`, физика 30, полоса `phys29c` 02.11.2026) ПРАВКИ ТРЁХ КРИТИКОВ ФИЗИКИ 29 —
+        /// что делает, у <see cref="EfficiencySimulator.ElectronElasticRefine"/>: ядерная Z² и
+        /// электронная Z части упругого рассеяния порознь, предел угла e–e (Ф2), подгонка Мотта у всех
+        /// Z (Ф3), позитрон без поправки электрона (Ф4), пересчёт затёртых долей элементов (Ф6),
+        /// сечения шага на концах полного шага с мажорантой и пустыми столкновениями (Ф7).
+        ///
+        /// ⛔ Ключ двигает строки и ПОТОК случайных чисел, поэтому входит в клеймо (`eref=1`) и
+        /// пишется хвостом `EREF` — только включённым (`T42`). ВКЛ умолчанием вместе с подъёмом
+        /// <see cref="ResponseMatrix.PhysicsVersion"/> 29 → 30. Обратный ключ (`--eref=0`, с
+        /// `--dpwa=0`) — абляция и положительный контроль: тело матрицы побайтно = физика 29,
+        /// клеймо отличается `phys=`. Рычаги — `CorpusMatrixProbe --eref=0|1`, `BetaSectionProbeA274
+        /// --eref=0|1`, `StepConvergenceProbeP29 --eref=0|1`.
+        ///
+        /// ⚠ Файлы без хвоста `EREF` при чтении остаются умолчанием класса (`true`); все они старше
+        /// физики 30 и негодны по версии. ⚠ Путь КРИВОЙ берёт ключ отсюда же
+        /// (`EfficiencyCalculation.Run`); в клеймо кривой — `eref=1` только включённым.
+        /// </summary>
+        public bool ElectronElasticRefine = true;
+
+        /// <summary>
+        /// (`AMBER274`, физика 30, Ф1; решение Amber 02.11.2026 вопросником, дословно: «Сейчас, до склада
+        /// (Рекомендую)») ЯДЕРНАЯ ЧАСТЬ УПРУГОГО РАССЕЯНИЯ ПО DPWA — что делает, у
+        /// <see cref="EfficiencySimulator.ElectronScreeningDpwa"/>: экранирование и форма dσ/dμ ядерной
+        /// части по таблице `matdb.elastic_screening_dpwa` (e⁻ и e⁺).
+        ///
+        /// ⛔ Ключ двигает строки и ПОТОК случайных чисел — клеймо `dpwa=1`, хвост `DPWA`, только
+        /// включённым (`T42`); таблица — в отпечатке `mdb=` (`MaterialDatabase.SimulatorTables`). ВКЛ
+        /// умолчанием с физики 30; `--dpwa=0` — абляция. Рычаги — те же пробы, `--dpwa=0|1`.
+        /// ⚠ Файлы без хвоста `DPWA` — умолчание класса (`true`), все старше физики 30.
+        /// </summary>
+        public bool ElectronScreeningDpwa = true;
+
+        /// <summary>
+        /// (`AMBER274`, физика 30, полоса `phys29c`; вопрос распорядителя 02.11.2026 о «каскад не
+        /// сошёлся» у GAGG) ВАКАНСИЯ L-КВАНТА ПОСЛЕ ПЕРЕХОДА КОСТЕРА—КРОНИГА — что делает, у
+        /// <see cref="EfficiencySimulator.CascadeCkVacancy"/>: дырка Kα2 на L2, переехавшая на L3
+        /// (`LSubshellAfterCk`) и ответившая L3-линией, разряжается переходом Костера—Кронига EADL
+        /// (электрон и дырка) и вакансией той L3-линии, а не ближайшим по энергии переходом L2.
+        ///
+        /// ⛔ Ключ двигает ПОТОК случайных чисел (одно число на такой каскад) — клеймо `ckv=1`, хвост
+        /// `CKVA`, только включённым (`T42`). ВКЛ умолчанием с физики 30; `--ckv=0` — абляция.
+        /// Рычаги — `CorpusMatrixProbe --ckv=0|1`, `LightScaleProbe --ckv=0|1`.
+        /// ⚠ Файлы без хвоста `CKVA` — умолчание класса (`true`), все старше физики 30.
+        /// </summary>
+        public bool CascadeCkVacancy = true;
+
         /// <summary>Потоков; 0 — по числу ядер минус один.</summary>
         public int Threads;
 
@@ -5766,6 +6330,1593 @@ namespace BecquerelMonitor.EfficiencyMaker
             List<double> nodes = new List<double>(grid);
             EfficiencyCalculationOptions.AddSampleEdges(nodes, geometry, lo, hi, null);
             return nodes.ToArray();
+        }
+    }
+    /// <summary>
+    /// (`AMBER274`, `Д2`) Почему раздел электрона матрицы не взят разбором
+    /// (<see cref="ResponseMatrix.ElectronSectionFor"/>); строка отчёта FSA называет её словами.
+    /// </summary>
+    public enum ElectronSectionRefusal
+    {
+        /// <summary>Раздел годен.</summary>
+        None,
+
+        /// <summary>Раздела у матрицы нет (формат 11, не посчитан).</summary>
+        Missing,
+
+        /// <summary>Раздел в файле есть, но испорчен (обрубок, отпечаток).</summary>
+        Damaged,
+
+        /// <summary>Посчитан для другой матрицы (клеймо фотонной части, шаг бина).</summary>
+        OtherMatrix,
+
+        /// <summary>Посчитан прежней физикой раздела или переноса.</summary>
+        OtherPhysics,
+
+        /// <summary>Посчитан для другой капсулы точечного источника.</summary>
+        OtherCapsule,
+
+        /// <summary>Сцена изотропного поля — электронов пробы у неё нет (`Ф5`).</summary>
+        IsoScene,
+
+        /// <summary>Сцена разбора неизвестна — капсулу сверить не с чем (матрица положена мимо `FsaMatrixBinding`).</summary>
+        NoScene
+    }
+
+    /// <summary>
+    /// (`AMBER274`, Э1 29.10.2026) РАЗДЕЛ СТРОК ПЕРВИЧНОГО ЭЛЕКТРОНА ПРОБЫ — слой «Бета»
+    /// пробы матрицы отклика. Решения Amber 29.10.2026 вопросником, дословно: «Бета
+    /// пробы первой (Рекомендую)», «Код + BetaShape для кристалла (Рекомендую)»; разбор
+    /// — журнал `handover/handover-2026-10-29-amber273-alpha-beta-in-matrix.md`, этап —
+    /// `handover/handover-2026-10-29-amber274-e1-sample-beta.md`.
+    ///
+    /// Строка узла — распределение по шкале прибора энергии, оставленной в кристалле
+    /// электроном (позитроном) кинетической энергии узла, вылетевшим ИЗОТРОПНО из точки
+    /// пробы, — доля на бин на ИСПУЩЕННУЮ частицу
+    /// (<see cref="EfficiencySimulator.ElectronSourceResponse"/>). Образ сплошного
+    /// спектра беты ветви N(T) — Σₖ wₖ·Rₖ, wₖ = ∫ N(T)·φₖ(T) dT по «шапочкам» φₖ сетки
+    /// (<see cref="NodeWeights"/>); строит его FSA.
+    ///
+    /// ⛔ Раздел НЕ трогает фотонную часть: тело, его отпечаток и клеймо матрицы
+    /// прежние. Своё клеймо (<see cref="Stamp"/>) и клеймо матрицы, для которой раздел
+    /// посчитан (<see cref="ForMatrixStamp"/>), лежат при нём — раздел дописывается к
+    /// готовой матрице и годен, только пока она та же.
+    /// </summary>
+    public sealed class ResponseElectronSection
+    {
+        /// <summary>
+        /// Версия физики РАЗДЕЛА (входит в его клеймо `esec=`; разбор берёт только
+        /// нынешнюю, <see cref="ResponseMatrix.ElectronSectionFor"/>). 1 — первая (Э1):
+        /// перенос заноса физики матрицы. 2 — исправления по критикам 30.10.2026: капсула в
+        /// сантиметрах (`Д1`, прежде в 10 раз тоньше), воздух до корпуса (`Ф12`), сдвиг точки
+        /// в капсуле (`Ф6`), «вошло» — только первичная (`Р7`), позитрон ниже порога переноса
+        /// оседает (`Р11`), сетка 80 узлов (`Ф13`). Разделы версии 1 негодны.
+        /// 3 — физика 28 (`AMBER274`, полоса `amber274p28`, 30.10.2026): страгглинг потерь у
+        /// всех электронов переноса (клеймо матрицы `estr=1`) и СТРОКИ ЛИНИЙ КОНВЕРСИИ НА
+        /// ТОЧНОЙ ЭНЕРГИИ (<see cref="LineEnergies"/>; находка критика несходимости Cs-137:
+        /// интерполяция узлов давала в полосе 300–400 кэВ RC103 в 2.2 раза больше точного
+        /// расчёта на энергии линии). Разделы версии 2 негодны.
+        /// 4 — ШОВ СОБЫТИЯ ЦЕЛИКОМ (`AMBER274` Ф8, полоса `f8cyl` 02.11.2026; решение Amber
+        /// 30.10.2026 вопросником, дословно: «В Э1 событием целиком (Рекомендую)»): СТРОКИ
+        /// ВЕТВЕЙ (<see cref="BranchNuclides"/>) — бета ветви и кванты её каскада одной
+        /// историей; клеймо несёт `br=<число>,<хеш>`. Физика узлов и строк линий та же, что у
+        /// версии 3 (строки побайтно прежние при том же зерне), но разделы версии 3 негодны:
+        /// у них нет строк ветвей, и разбор по ним молча терял бы совпадения беты с гаммой.
+        /// </summary>
+        public const int SectionPhysics = 4;
+
+        /// <summary>
+        /// (`AMBER274`, физика 28) Линия конверсии берёт строку раздела, посчитанную на её
+        /// энергии, если та ближе этого допуска, кэВ (энергии линий в базе — до 0.01 кэВ).
+        /// </summary>
+        public const double LineToleranceKev = 0.05;
+
+        /// <summary>
+        /// Сетка энергий электрона по умолчанию: <see cref="DefaultNodes"/> узлов от 60 до
+        /// 3600 кэВ геометрически (при 80 — шаг 5.3 %). Низ — ни одна обвязка склада не пропускает
+        /// электрон 60 кэВ (пробег в полиэтилене ≈ 7 мг/см² против 0.154 г/см² у самого
+        /// тонкого лица, RC103; у голого кристалла склада сцен нет), верх — выше границы
+        /// самой жёсткой беты рядов корпуса (Bi-214, 3270 кэВ). Шаг: у порога прохода
+        /// корпуса (RC103: 500…700 кэВ, замер `AMBER273` §3) — три узла; образ беты —
+        /// интеграл по T, и «шапочки» соседних узлов ошибаются на кривизне доли прохода,
+        /// а не на её уровне.
+        /// </summary>
+        public static double[] DefaultGrid()
+        {
+            return Grid(DefaultNodes, 60.0, 3600.0);
+        }
+
+        /// <summary>
+        /// (`Ф13` критика физики 30.10.2026) Узлов сетки по умолчанию. При 40 (шаг 11 %) у
+        /// ветвей с границей у порога прохода корпуса образ шапочками завышен на 6…10 %
+        /// против 160 узлов (доля прохода у порога выпукла, линейная шапочка её
+        /// переоценивает); 80 — замер журнала `AMBER274` Э1, «Исправления по критикам».
+        /// </summary>
+        public const int DefaultNodes = 80;
+
+        /// <summary>
+        /// Геометрическая сетка из <paramref name="count"/> узлов. Края — РОВНО
+        /// <paramref name="minKev"/> и <paramref name="maxKev"/>, внутренние узлы округлены
+        /// до 0.001 кэВ: `exp(log(60))` даёт 59.999999999999986, и в клейме раздела вставал
+        /// хвост машинной арифметики вместо числа сетки (`Р11`, стиль).
+        /// </summary>
+        public static double[] Grid(int count, double minKev, double maxKev)
+        {
+            count = Math.Max(2, count);
+            double[] grid = new double[count];
+            double a = Math.Log(minKev), b = Math.Log(maxKev);
+            for (int i = 0; i < count; i++)
+            {
+                grid[i] = i == 0 ? minKev
+                    : i == count - 1 ? maxKev
+                    : Math.Round(Math.Exp(a + (b - a) * i / (count - 1)), 3);
+            }
+
+            return grid;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, физика 28) Энергии строк линий для построителя: только внутри сетки
+        /// узлов, по возрастанию, ближе <see cref="LineToleranceKev"/> — одной строкой; null —
+        /// нечего считать.
+        /// </summary>
+        public static double[] CleanLines(double[] lines, double[] grid)
+        {
+            if (lines == null || lines.Length == 0 || grid == null || grid.Length < 2)
+            {
+                return null;
+            }
+
+            var sorted = new List<double>();
+            foreach (double e in lines)
+            {
+                if (e >= grid[0] && e <= grid[grid.Length - 1])
+                {
+                    sorted.Add(Math.Round(e, 3));
+                }
+            }
+
+            sorted.Sort();
+            var result = new List<double>();
+            foreach (double e in sorted)
+            {
+                if (result.Count == 0 || e - result[result.Count - 1] > LineToleranceKev)
+                {
+                    result.Add(e);
+                }
+            }
+
+            return result.Count > 0 ? result.ToArray() : null;
+        }
+
+        /// <summary>(`AMBER274`) У раздела есть строки для записи (иначе файл пишется форматом 11).</summary>
+        public static bool HasRows(ResponseElectronSection section)
+        {
+            return section != null && section.NodeCount > 0 && section.Electron != null
+                   && section.Electron.Length == section.NodeCount;
+        }
+
+        /// <summary>
+        /// (`Д2`) Поле собственного клейма раздела по имени: `esec`, `phys`, `for`, `grid`,
+        /// `n`, `seed`, `e+`, `bin`, `cap`. ⚠ `cap` — последнее поле, и его значение само
+        /// несёт `;` и `:` (кольцо и плёнка), поэтому берётся до конца клейма. Нет поля —
+        /// null.
+        /// </summary>
+        public string StampField(string name)
+        {
+            string stamp = this.Stamp ?? "";
+            const string CapKey = ";cap=";
+            int cap = stamp.IndexOf(CapKey, StringComparison.Ordinal);
+            if (name == "cap")
+            {
+                return cap >= 0 ? stamp.Substring(cap + CapKey.Length) : null;
+            }
+
+            string head = cap >= 0 ? stamp.Substring(0, cap) : stamp;
+            foreach (string part in head.Split(';'))
+            {
+                int eq = part.IndexOf('=');
+                if (eq > 0 && string.Equals(part.Substring(0, eq), name, StringComparison.Ordinal))
+                {
+                    return part.Substring(eq + 1);
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>Клеймо раздела: рецепт счёта (см. <see cref="ComputeStamp"/>).</summary>
+        public string Stamp { get; set; }
+
+        /// <summary>Клеймо матрицы (фотонной части), для которой раздел посчитан.</summary>
+        public string ForMatrixStamp { get; set; }
+
+        /// <summary>Шаг бина строк, кэВ (тот же, что у матрицы).</summary>
+        public double BinKev { get; set; }
+
+        /// <summary>Кинетические энергии узлов, кэВ, по возрастанию.</summary>
+        public double[] Energies { get; set; }
+
+        /// <summary>Строки электрона [узел][бин], доля на испущенную частицу.</summary>
+        public float[][] Electron { get; set; }
+
+        /// <summary>Строки позитрона [узел][бин] (с аннигиляцией в точке остановки); null — не считались.</summary>
+        public float[][] Positron { get; set; }
+
+        /// <summary>
+        /// (`AMBER274`, физика 28) Энергии СТРОК ЛИНИЙ КОНВЕРСИИ, кэВ, по возрастанию —
+        /// моноэнергетический электрон на точной энергии линии (решение распорядителя по
+        /// разбору критика несходимости 30.10.2026: «строки конверсионных линий — на точной
+        /// энергии линии, без интерполяции узлов»). Список задаёт построитель
+        /// (`BetaSectionProbeA274 --lines=`; умолчание — линии рядов библиотеки нуклидов с
+        /// выходом ≥ 1 %); линия без своей строки интерполируется по объединённой сетке
+        /// узлов и строк линий (<see cref="LineWeights"/>). null — строк линий нет.
+        /// </summary>
+        public double[] LineEnergies { get; set; }
+
+        /// <summary>(`AMBER274`, физика 28) Строки электрона линий [линия][бин], доля на испущенный электрон.</summary>
+        public float[][] LineElectron { get; set; }
+
+        /// <summary>(`AMBER274`, физика 28) Историй и доля вошедших у строк линий.</summary>
+        public long[] LineHistories { get; set; }
+
+        public double[] LineEntered { get; set; }
+
+        /// <summary>(`AMBER274`, физика 28) Строк линий в разделе.</summary>
+        public int LineCount
+        {
+            get
+            {
+                return this.LineEnergies != null && this.LineElectron != null
+                       && this.LineElectron.Length == this.LineEnergies.Length ? this.LineEnergies.Length : 0;
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER274` Ф8, полоса `f8cyl` 02.11.2026) СТРОКИ ВЕТВЕЙ — ШОВ СОБЫТИЯ ЦЕЛИКОМ
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`Ф8`) Нуклид каждой строки ветви — тем же именем, что у ветви FSA
+        /// (<c>FsaBeta.Nuclide</c>), по возрастанию номера строки; null — строк ветвей нет.
+        /// Строка ветви — ОДНА ИСТОРИЯ НА РАСПАД ВЕТВЬЮ: бета с энергией по форме ветви и все
+        /// кванты (гамма, электроны конверсии) каскада уровня, который ветвь питает, — из одной
+        /// точки пробы, одним обходом (<c>EfficiencySimulator.BranchEventResponse</c>). Две
+        /// гистограммы одних и тех же историй: <see cref="BranchEvent"/> — весь занос события,
+        /// <see cref="BranchGamma"/> — занос одного каскада (без беты и её тормозного).
+        /// </summary>
+        public string[] BranchNuclides { get; set; }
+
+        /// <summary>(`Ф8`) Граница беты строки ветви, кэВ (как у <c>FsaBeta.EndpointKev</c>).</summary>
+        public double[] BranchEndpoints { get; set; }
+
+        /// <summary>(`Ф8`) Энергия уровня дочки, который питает ветвь, кэВ (начало каскада).</summary>
+        public double[] BranchLevels { get; set; }
+
+        /// <summary>(`Ф8`) Историй строки ветви и доля историй, где бета вошла в кристалл.</summary>
+        public long[] BranchHistories { get; set; }
+
+        public double[] BranchEntered { get; set; }
+
+        /// <summary>(`Ф8`) Хеш таблиц ветви (форма, каскад) — входит в клеймо раздела.</summary>
+        public string[] BranchHashes { get; set; }
+
+        /// <summary>(`Ф8`) Весь занос события [ветвь][бин], доля на распад ветвью.</summary>
+        public float[][] BranchEvent { get; set; }
+
+        /// <summary>(`Ф8`) Занос одного каскада тех же историй [ветвь][бин], доля на распад ветвью.</summary>
+        public float[][] BranchGamma { get; set; }
+
+        /// <summary>(`Ф8`) Строк ветвей в разделе.</summary>
+        public int BranchCount
+        {
+            get
+            {
+                int n = this.BranchNuclides != null ? this.BranchNuclides.Length : 0;
+                return n > 0 && this.BranchEndpoints != null && this.BranchEndpoints.Length == n
+                       && this.BranchEvent != null && this.BranchEvent.Length == n
+                       && this.BranchGamma != null && this.BranchGamma.Length == n ? n : 0;
+            }
+        }
+
+        /// <summary>
+        /// (`Ф8`) РЫЧАГ ЗАМЕРА, не настройка: true (умолчание) — бета ветви, у которой в разделе
+        /// есть строка ветви, ложится в образ FSA разностью «событие − каскад» той же строки
+        /// (<see cref="BranchWeights"/>): бета вместе с её совпадениями с гаммой (вынос из
+        /// пиков и сумма в континууме); false — прежние веса узлов (бета без совпадений).
+        /// Кэш весов FSA рычаг знает (ключ <c>FsaBetaLibrary.Weights</c>). Ни один штатный путь
+        /// рычаг не ставит.
+        /// </summary>
+        public static bool BranchEvents = true;
+
+        /// <summary>(`Ф8`) Допуск сверки границы беты строки ветви с ветвью FSA, кэВ.</summary>
+        public const double BranchToleranceKev = 0.05;
+
+        /// <summary>(`Ф8`) Номер строки ветви нуклида <paramref name="nuclide"/> с границей <paramref name="endpointKev"/>; −1 — нет.</summary>
+        public int BranchIndex(string nuclide, double endpointKev)
+        {
+            int n = this.BranchCount;
+            for (int j = 0; j < n; j++)
+            {
+                if (string.Equals(this.BranchNuclides[j], nuclide, StringComparison.OrdinalIgnoreCase)
+                    && Math.Abs(this.BranchEndpoints[j] - endpointKev) <= BranchToleranceKev)
+                {
+                    return j;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// (`Ф8`) Веса для ветви С СТРОКОЙ ВЕТВИ: длина — узлы, строки линий и строки ветвей
+        /// (строки ветвей — за строками линий, в порядке <see cref="BranchNuclides"/>), вес 1 у
+        /// строки этой ветви. <see cref="Accumulate"/> кладёт её РАЗНОСТЬЮ «событие − каскад»
+        /// (знакопеременной: вынос совпавших с бетой квантов из их пиков — минусом, сумма —
+        /// плюсом); гамма-линии каскада у FSA — в образе фотонных строк, как прежде, и их
+        /// гамма-гамма суммирование — за <c>FsaCascadeSummer</c>. null — строки нет или рычаг
+        /// <see cref="BranchEvents"/> выключен.
+        /// </summary>
+        public double[] BranchWeights(string nuclide, double endpointKev)
+        {
+            if (!BranchEvents)
+            {
+                return null;
+            }
+
+            int j = this.BranchIndex(nuclide, endpointKev);
+            if (j < 0)
+            {
+                return null;
+            }
+
+            double[] w = new double[this.UnionLength];
+            w[this.NodeCount + this.LineCount + j] = 1.0;
+            return w;
+        }
+
+        /// <summary>(`Ф8`) Длина весов «узлы + строки линий + строки ветвей».</summary>
+        int UnionLength
+        {
+            get { return this.NodeCount + this.LineCount + this.BranchCount; }
+        }
+
+        /// <summary>(`Ф8`) Веса несут строки ветвей (длина <see cref="UnionLength"/> при ветвях).</summary>
+        bool IsBranchWeights(double[] weights)
+        {
+            return weights != null && this.BranchCount > 0 && weights.Length == this.UnionLength;
+        }
+
+        /// <summary>Историй на узел.</summary>
+        public long[] Histories { get; set; }
+
+        /// <summary>Доля электронов (позитронов), вошедших в кристалл, по узлам — диагностика.</summary>
+        public double[] EnteredElectron { get; set; }
+
+        public double[] EnteredPositron { get; set; }
+
+        /// <summary>Секунд счёта на узел (электрон и позитрон вместе).</summary>
+        public double[] NodeSeconds { get; set; }
+
+        /// <summary>
+        /// Свет пика полного поглощения на кэВ при 661.657 кэВ, которым поделён свет
+        /// истории (шкала строк — прибор, откалиброванный по фотонам 662 кэВ); 0 —
+        /// строки в оставленной энергии (у кристалла нет кривой света).
+        /// </summary>
+        public double LightPerKev { get; set; }
+
+        /// <summary>Капсула точечного источника словами (`none` — голая точка).</summary>
+        public string Capsule { get; set; }
+
+        /// <summary>Чем посчитан: `cpu` или `gpu`.</summary>
+        public string Engine { get; set; }
+
+        public DateTime CreatedUtc { get; set; }
+
+        public int NodeCount
+        {
+            get { return this.Energies != null ? this.Energies.Length : 0; }
+        }
+
+        public bool HasPositron
+        {
+            get { return this.Positron != null && this.Positron.Length == this.NodeCount; }
+        }
+
+        /// <summary>Капсула сцены словами — ровно так, как она входит в клеймо раздела.</summary>
+        public static string CapsuleText(GeometryModel geometry)
+        {
+            if (geometry == null || geometry.SourceType != GeometrySourceType.Point)
+            {
+                return "none";
+            }
+
+            var sb = new StringBuilder();
+            if (geometry.SourceCapsuleRingHeight > 0.0)
+            {
+                sb.Append("ring:").Append(geometry.SourceCapsuleRingHeight.ToString("R", CultureInfo.InvariantCulture)).Append(':')
+                  .Append(geometry.SourceCapsuleRingInnerDiameter.ToString("R", CultureInfo.InvariantCulture)).Append(':')
+                  .Append(geometry.SourceCapsuleRingOuterDiameter.ToString("R", CultureInfo.InvariantCulture)).Append(';');
+            }
+
+            if (!(geometry.SourceCapsuleThickness > 0.0) || geometry.SourceCapsule == null || geometry.SourceCapsule.IsEmpty)
+            {
+                return sb.Length > 0 ? sb.Append("film:none").ToString() : "none";
+            }
+
+            sb.Append(geometry.SourceCapsule.Name).Append(':')
+              .Append(geometry.SourceCapsuleThickness.ToString("R", CultureInfo.InvariantCulture)).Append("mm:")
+              .Append(geometry.SourceCapsule.Density.ToString("R", CultureInfo.InvariantCulture));
+            var zs = new List<int>(geometry.SourceCapsule.Fractions.Keys);
+            zs.Sort();
+            foreach (int z in zs)
+            {
+                sb.Append(':').Append(z.ToString(CultureInfo.InvariantCulture)).Append('=')
+                  .Append(geometry.SourceCapsule.Fractions[z].ToString("R", CultureInfo.InvariantCulture));
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Клеймо раздела: версия его физики, физика и клеймо матрицы (хешем), сетка,
+        /// историй на узел, зерно, позитрон, бин, капсула. Ключи переноса (`eltr`,
+        /// `ecomp`, `bpath`, …) входят через клеймо матрицы: раздел считается теми же
+        /// настройками.
+        /// </summary>
+        public static string ComputeStamp(GeometryModel geometry, string matrixStamp, double[] grid,
+                                          int histories, int seed, bool positron, double binKev)
+        {
+            return ComputeStamp(geometry, matrixStamp, grid, histories, seed, positron, binKev, null);
+        }
+
+        /// <summary>
+        /// (`AMBER274`, физика 28) То же с энергиями строк линий: поле `lines=<число>,<хеш>`
+        /// перед `cap=` (оно последнее); нет строк линий — поля нет.
+        /// </summary>
+        public static string ComputeStamp(GeometryModel geometry, string matrixStamp, double[] grid,
+                                          int histories, int seed, bool positron, double binKev, double[] lines)
+        {
+            return ComputeStamp(geometry, matrixStamp, grid, histories, seed, positron, binKev, lines, null);
+        }
+
+        /// <summary>
+        /// (`AMBER274` Ф8, `f8cyl`) То же со СТРОКАМИ ВЕТВЕЙ: поле `br=<число>,<хеш>` (хеш ключей
+        /// и таблиц ветвей, <see cref="ElectronBranchSpec.Hash"/>) перед `cap=`; нет строк ветвей —
+        /// поля нет (ключ шва ВЫКЛ — клеймо прежнего вида, но `esec=4`).
+        /// </summary>
+        public static string ComputeStamp(GeometryModel geometry, string matrixStamp, double[] grid,
+                                          int histories, int seed, bool positron, double binKev, double[] lines,
+                                          IList<ElectronBranchSpec> branches)
+        {
+            var sb = new StringBuilder();
+            sb.Append("esec=").Append(SectionPhysics.ToString(CultureInfo.InvariantCulture))
+              .Append(";phys=").Append(ResponseMatrix.PhysicsVersion.ToString(CultureInfo.InvariantCulture))
+              .Append(";for=").Append(ShortHash(matrixStamp ?? ""))
+              .Append(";grid=").Append(grid != null ? grid.Length.ToString(CultureInfo.InvariantCulture) : "0");
+            if (grid != null && grid.Length > 0)
+            {
+                sb.Append(',').Append(grid[0].ToString("R", CultureInfo.InvariantCulture))
+                  .Append(',').Append(grid[grid.Length - 1].ToString("R", CultureInfo.InvariantCulture))
+                  .Append(',').Append(ShortHash(string.Join(",", Array.ConvertAll(grid, e => e.ToString("R", CultureInfo.InvariantCulture)))));
+            }
+
+            sb.Append(";n=").Append(histories.ToString(CultureInfo.InvariantCulture))
+              .Append(";seed=").Append(seed.ToString(CultureInfo.InvariantCulture))
+              .Append(";e+=").Append(positron ? '1' : '0')
+              .Append(";bin=").Append(binKev.ToString("R", CultureInfo.InvariantCulture));
+            if (lines != null && lines.Length > 0)
+            {
+                sb.Append(";lines=").Append(lines.Length.ToString(CultureInfo.InvariantCulture)).Append(',')
+                  .Append(ShortHash(string.Join(",", Array.ConvertAll(lines, e => e.ToString("R", CultureInfo.InvariantCulture)))));
+            }
+
+            if (branches != null && branches.Count > 0)
+            {
+                var keys = new StringBuilder();
+                foreach (ElectronBranchSpec b in branches)
+                {
+                    keys.Append(b.Key).Append('#').Append(b.Hash).Append(',');
+                }
+
+                sb.Append(";br=").Append(branches.Count.ToString(CultureInfo.InvariantCulture)).Append(',')
+                  .Append(ShortHash(keys.ToString()));
+            }
+
+            sb.Append(";cap=").Append(CapsuleText(geometry));
+            return sb.ToString();
+        }
+
+        /// <summary>Первые 16 знаков SHA-256 текста — поле `for=` клейма раздела.</summary>
+        internal static string ShortHash(string text)
+        {
+            using (SHA256 sha = SHA256.Create())
+            {
+                byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes(text));
+                var hex = new StringBuilder(16);
+                for (int i = 0; i < 8; i++)
+                {
+                    hex.Append(hash[i].ToString("x2", CultureInfo.InvariantCulture));
+                }
+
+                return hex.ToString();
+            }
+        }
+
+        /// <summary>
+        /// Веса узлов спектра N(T) (плотность на кэВ, <paramref name="density"/>) по
+        /// «шапочкам» сетки: wₖ = ∫ N(T)·φₖ(T) dT, φₖ — линейная от соседних узлов.
+        /// Ниже первого узла спектр не берётся (там не проходит ни одна обвязка, см.
+        /// <see cref="DefaultGrid"/>); выше последнего — тоже (границы бет склада ниже
+        /// верха сетки). Интеграл — Симпсоном по 16 отрезкам на промежуток.
+        ///
+        /// ⛔ (`AMBER274`, полоса `phys29b` 02.11.2026) РАСТЯГИВАЮЩАЯ ИНТЕРПОЛЯЦИЯ СТРОК
+        /// (<see cref="ScaleMorph"/>, умолчание). Шапочка смешивает строки соседних узлов
+        /// как есть, а доля электронов, прошедших корпус с малой потерей, у верха беты круто
+        /// растёт с T: строка узла выше T несёт оставленную энергию до своего узла, и полоса у
+        /// края беты выходила завышенной — K-40 RC103 1000–1400 кэВ 1.886 против Geant4 при 80
+        /// узлах и 1.180 при 320 (журнал `handover/handover-2026-11-01-amber274-phys29.md` §4).
+        /// Теперь вклад энергии T в строку узла Eₖ — та же строка, РАСТЯНУТАЯ по оси
+        /// оставленной энергии в T/Eₖ раз (у верхнего соседа — сжатая): пик полного
+        /// поглощения после корпуса встаёт у T, а низ строки (обратное рассеяние, порог 40
+        /// кэВ) почти не сдвигается. Доля вклада узла — прежняя шапочка, полная площадь та
+        /// же. Растяжение задаётся слотом: у каждого узла <see cref="MorphSlots"/> весов —
+        /// множители (Eₖ₋₁/Eₖ)^(i/J) … 1 … (Eₖ₊₁/Eₖ)^(i/J), J = <see cref="MorphHalf"/>, вклад
+        /// делится между соседними слотами линейно по log σ. Массив весов — длины
+        /// NodeCount·MorphSlots; <see cref="Accumulate"/> узнаёт его по длине. Замер полосы
+        /// (плотная сетка 249 узлов, каждый 4-й — штатная): K-40 1000–1400 кэВ — шапочка 1.834,
+        /// растяжение 1.132, сходящееся значение плотной сетки 1.10…1.14; прочие полосы K-40,
+        /// Cs-137 и Y-90 — в 0.5 % от плотной. Обрезка шапочки границей беты (узел выше
+        /// T_max без веса) проверена тем же замером и отвергнута: 1.776.
+        /// </summary>
+        public double[] NodeWeights(Func<double, double> density, double endpointKev)
+        {
+            int n = this.NodeCount;
+            bool morph = ScaleMorph;
+            double[] w = new double[morph ? n * MorphSlots : n];
+            if (density == null || n < 2 || !(endpointKev > 0.0))
+            {
+                return w;
+            }
+
+            const int Steps = 16;
+            for (int k = 0; k + 1 < n; k++)
+            {
+                double a = this.Energies[k], b = Math.Min(this.Energies[k + 1], endpointKev);
+                if (!(b > a))
+                {
+                    break;
+                }
+
+                double span = this.Energies[k + 1] - this.Energies[k];
+                double logUp = Math.Log(this.Energies[k + 1] / this.Energies[k]);
+                double h = (b - a) / Steps;
+                double lower = 0.0, upper = 0.0;
+                for (int i = 0; i <= Steps; i++)
+                {
+                    double t = a + h * i;
+                    double f = density(t);
+                    if (!(f > 0.0))
+                    {
+                        continue;
+                    }
+
+                    double c = i == 0 || i == Steps ? 1.0 : (i % 2 == 1 ? 4.0 : 2.0);
+                    double up = (t - this.Energies[k]) / span;
+                    if (!morph)
+                    {
+                        upper += c * f * up;
+                        lower += c * f * (1.0 - up);
+                        continue;
+                    }
+
+                    // Растяжение: у нижнего узла σ = t/Eₖ ∈ [1, Eₖ₊₁/Eₖ] — слоты 0…+J, у
+                    // верхнего σ = t/Eₖ₊₁ ∈ [Eₖ/Eₖ₊₁, 1] — слоты −J…0; положение слота — по log σ.
+                    double mass = c * f * h / 3.0;
+                    double p = MorphHalf * Math.Log(t / this.Energies[k]) / logUp;
+                    AddSlot(w, k, p, mass * (1.0 - up));
+                    AddSlot(w, k + 1, p - MorphHalf, mass * up);
+                }
+
+                if (!morph)
+                {
+                    w[k] += lower * h / 3.0;
+                    w[k + 1] += upper * h / 3.0;
+                }
+            }
+
+            return w;
+        }
+
+        /// <summary>(`phys29b`) Половина слотов растяжения на узел: J; слотов на узел — 2J + 1.</summary>
+        public const int MorphHalf = 8;
+
+        /// <summary>(`phys29b`) Слотов растяжения на узел (<see cref="NodeWeights"/>).</summary>
+        public const int MorphSlots = 2 * MorphHalf + 1;
+
+        /// <summary>
+        /// (`AMBER274`, полоса `phys29b`) РЫЧАГ ЗАМЕРА, не настройка: true (умолчание) —
+        /// <see cref="NodeWeights"/> растягивает строки соседних узлов к энергии T; false —
+        /// прежняя шапочка (строки как есть), плечо сравнения `BetaSectionProbeA274 --direct
+        /// --morph=0,1`. Кэш весов FSA (`FsaBetaLibrary.Weights`) рычага не знает: проба
+        /// меняет клеймо раздела между плечами. Ни один штатный путь рычаг не ставит.
+        /// </summary>
+        public static bool ScaleMorph = true;
+
+        /// <summary>
+        /// (`phys29b`) Вклад <paramref name="mass"/> в слот растяжения <paramref name="position"/>
+        /// (−J…+J, дробный) узла <paramref name="node"/> — линейно между соседними слотами.
+        /// </summary>
+        static void AddSlot(double[] w, int node, double position, double mass)
+        {
+            if (!(mass > 0.0))
+            {
+                return;
+            }
+
+            double q = position + MorphHalf;
+            if (q < 0.0)
+            {
+                q = 0.0;
+            }
+            else if (q > 2 * MorphHalf)
+            {
+                q = 2 * MorphHalf;
+            }
+
+            int lo = (int)Math.Floor(q);
+            if (lo >= 2 * MorphHalf)
+            {
+                lo = 2 * MorphHalf - 1;
+            }
+
+            double frac = q - lo;
+            w[node * MorphSlots + lo] += mass * (1.0 - frac);
+            w[node * MorphSlots + lo + 1] += mass * frac;
+        }
+
+        /// <summary>
+        /// (`phys29b`) Множитель оси слота <paramref name="slot"/> (0…2J) узла
+        /// <paramref name="node"/>: (Eₖ₋₁/Eₖ)^((J−slot)/J) ниже середины, (Eₖ₊₁/Eₖ)^((slot−J)/J)
+        /// выше; у крайних узлов недостающая сторона — 1 (весов там нет).
+        /// </summary>
+        double SlotScale(int node, int slot)
+        {
+            int j = slot - MorphHalf;
+            if (j == 0)
+            {
+                return 1.0;
+            }
+
+            int other = j > 0 ? node + 1 : node - 1;
+            if (other < 0 || other >= this.NodeCount)
+            {
+                return 1.0;
+            }
+
+            return Math.Exp(Math.Log(this.Energies[other] / this.Energies[node]) * Math.Abs(j) / MorphHalf);
+        }
+
+        /// <summary>
+        /// (`AMBER274`, физика 28) Веса строк для ЛИНИИ конверсии энергии
+        /// <paramref name="energyKev"/>: длина — узлы плюс строки линий (строки линий — за
+        /// узлами, в порядке <see cref="LineEnergies"/>). Есть строка на энергии линии (в
+        /// <see cref="LineToleranceKev"/>) — вес 1 у неё; нет — линейная доля двух соседей
+        /// по ОБЪЕДИНЁННОЙ сетке узлов и строк линий; ниже нижнего узла и выше верхнего —
+        /// нули (ни одна обвязка склада такую линию не пропустит / выше сетки).
+        /// </summary>
+        public double[] LineWeights(double energyKev)
+        {
+            int nodes = this.NodeCount, lines = this.LineCount;
+            double[] w = new double[nodes + lines];
+            for (int j = 0; j < lines; j++)
+            {
+                if (Math.Abs(this.LineEnergies[j] - energyKev) <= LineToleranceKev)
+                {
+                    w[nodes + j] = 1.0;
+                    return w;
+                }
+            }
+
+            // Соседи по объединённой сетке: ближайший снизу и ближайший сверху.
+            int lo = -1, hi = -1;
+            double loE = double.NegativeInfinity, hiE = double.PositiveInfinity;
+            for (int k = 0; k < nodes + lines; k++)
+            {
+                double e = k < nodes ? this.Energies[k] : this.LineEnergies[k - nodes];
+                if (e <= energyKev && e > loE)
+                {
+                    loE = e;
+                    lo = k;
+                }
+
+                if (e >= energyKev && e < hiE)
+                {
+                    hiE = e;
+                    hi = k;
+                }
+            }
+
+            if (nodes < 2 || lo < 0 || hi < 0 || energyKev < this.Energies[0] || energyKev > this.Energies[nodes - 1])
+            {
+                return w;
+            }
+
+            if (hi == lo || !(hiE > loE))
+            {
+                w[lo] = 1.0;
+                return w;
+            }
+
+            w[lo] = (hiE - energyKev) / (hiE - loE);
+            w[hi] = (energyKev - loE) / (hiE - loE);
+            return w;
+        }
+
+        /// <summary>
+        /// Добавить Σₖ wₖ·Rₖ (электрон или позитрон) в гистограмму поглощения
+        /// <paramref name="target"/> того же шага бина; положение бина умножается на
+        /// <paramref name="positionScale"/> (поправка света FSA, 1 — как в строке), вес
+        /// делится между двумя соседними бинами; выход за край зажимается в последний.
+        /// Возвращает добавленную площадь (на распад).
+        /// </summary>
+        public double Accumulate(double[] target, double[] nodeWeights, bool positron, double positionScale)
+        {
+            float[][] rows = positron ? this.Positron : this.Electron;
+            if (target == null || target.Length == 0 || nodeWeights == null || rows == null)
+            {
+                return 0.0;
+            }
+
+            double scale = positionScale > 0.0 ? positionScale : 1.0;
+            double area = 0.0;
+            int last = target.Length - 1;
+
+            // (`AMBER274` Ф8, `f8cyl`) Веса со строками ветвей (`BranchWeights`): строка ветви j
+            // ложится РАЗНОСТЬЮ «событие − каскад» (знакопеременной); узлы и строки линий того
+            // же массива — как прежде.
+            if (!positron && this.IsBranchWeights(nodeWeights))
+            {
+                int skip = this.NodeCount + this.LineCount;
+                for (int j = 0; j < this.BranchCount; j++)
+                {
+                    double w = nodeWeights[skip + j];
+                    if (!(w > 0.0))
+                    {
+                        continue;
+                    }
+
+                    area += AddRowSigned(target, this.BranchEvent[j], w, scale, last);
+                    area += AddRowSigned(target, this.BranchGamma[j], -w, scale, last);
+                }
+
+                double[] head = new double[skip];
+                Array.Copy(nodeWeights, head, skip);
+                bool any = false;
+                foreach (double v in head)
+                {
+                    any |= v > 0.0;
+                }
+
+                return any ? area + this.Accumulate(target, head, false, positionScale) : area;
+            }
+
+            // (`AMBER274`, `phys29b`) Веса растягивающей интерполяции (`NodeWeights`, длина
+            // NodeCount·MorphSlots): строка узла k со слотом s ложится с осью × SlotScale(k, s).
+            if (this.IsMorphWeights(nodeWeights))
+            {
+                for (int k = 0; k < rows.Length && k < this.NodeCount; k++)
+                {
+                    float[] row = rows[k];
+                    if (row == null)
+                    {
+                        continue;
+                    }
+
+                    for (int s = 0; s < MorphSlots; s++)
+                    {
+                        double w = nodeWeights[k * MorphSlots + s];
+                        if (!(w > 0.0))
+                        {
+                            continue;
+                        }
+
+                        // ⛔ (`AMBER274`, физика 30, Ф5/Н3 критиков физики 29) Строки ПОЗИТРОНА не
+                        // растягиваются: в них аннигиляция 511/1022 кэВ стоит на постоянном месте, и
+                        // растяжение клало Eₖ + 1022 в T + 1022·σ (разброс до 27 кэВ). Ось × 1, доли
+                        // слотов — те же (у позитрона это прежняя шапочка). Путь живёт только при
+                        // `SamplePositronAtStop` (умолчание ВЫКЛ); строки электрона — как были.
+                        double stretch = scale * (positron ? 1.0 : this.SlotScale(k, s));
+                        area += AddRow(target, row, w, stretch, last);
+                    }
+                }
+
+                return area;
+            }
+
+            // (`AMBER274`, физика 28) За строками узлов — строки линий (только электрон): вес
+            // строки линии j — `nodeWeights[NodeCount + j]` (<see cref="LineWeights"/>).
+            int lineRows = positron ? 0 : this.LineCount;
+            for (int k = 0; k < rows.Length + lineRows && k < nodeWeights.Length; k++)
+            {
+                double w = nodeWeights[k];
+                float[] row = k < rows.Length ? rows[k] : this.LineElectron[k - rows.Length];
+                if (!(w > 0.0) || row == null)
+                {
+                    continue;
+                }
+
+                for (int b = 0; b < row.Length; b++)
+                {
+                    double v = row[b];
+                    if (!(v > 0.0))
+                    {
+                        continue;
+                    }
+
+                    double value = w * v;
+                    double position = b * scale;
+                    int at = (int)position;
+                    double frac = position - at;
+                    if (at >= last)
+                    {
+                        target[last] += value;
+                    }
+                    else
+                    {
+                        target[at] += value * (1.0 - frac);
+                        target[at + 1] += value * frac;
+                    }
+
+                    area += value;
+                }
+            }
+
+            return area;
+        }
+
+        /// <summary>
+        /// Наибольший непустой бин строк узлов, которые получают вес у спектра с границей
+        /// <paramref name="endpointKev"/> (для длины гистограммы образа). Вес у «шапочек»
+        /// идёт до первого узла не ниже границы (<see cref="NodeWeights"/>), выше — нуль, и
+        /// строки верхних узлов длину образа не задают (`Р8`: у Cs-137 гистограмма
+        /// компонента прежде тянулась до 3.6 МэВ строкой верхнего узла).
+        /// </summary>
+        public int TopBin(bool positron, double endpointKev)
+        {
+            float[][] rows = positron ? this.Positron : this.Electron;
+            int top = 0;
+            // (`Ф8`, `f8cyl`) Строки ветвей с этой границей — событие тянется до E₀ + Σ квантов
+            // каскада (у Co-60 — до 2.8 МэВ): длина образа берётся и по ним.
+            for (int j = 0; !positron && BranchEvents && j < this.BranchCount; j++)
+            {
+                if (Math.Abs(this.BranchEndpoints[j] - endpointKev) <= BranchToleranceKev && this.BranchEvent[j] != null
+                    && this.BranchEvent[j].Length > top)
+                {
+                    top = this.BranchEvent[j].Length;
+                }
+            }
+
+            // (`AMBER274`, физика 28) Строки линий не выше границы — тоже (у линии граница —
+            // её энергия).
+            for (int j = 0; !positron && j < this.LineCount; j++)
+            {
+                if (this.LineEnergies[j] <= endpointKev + LineToleranceKev && this.LineElectron[j] != null
+                    && this.LineElectron[j].Length > top)
+                {
+                    top = this.LineElectron[j].Length;
+                }
+            }
+
+            if (rows != null && this.Energies != null)
+            {
+                for (int k = 0; k < rows.Length && k < this.Energies.Length; k++)
+                {
+                    float[] row = rows[k];
+                    // (`phys29b`) Под растяжением (`ScaleMorph`) строка узла ниже границы ложится с
+                    // осью до × Eₖ₊₁/Eₖ — длина образа берётся с этим запасом.
+                    int length = row == null ? 0 : row.Length;
+                    if (ScaleMorph && row != null && this.Energies[k] < endpointKev && k + 1 < this.Energies.Length)
+                    {
+                        length = (int)Math.Ceiling(row.Length * this.Energies[k + 1] / this.Energies[k]);
+                    }
+
+                    if (length > top)
+                    {
+                        top = length;
+                    }
+
+                    if (this.Energies[k] >= endpointKev)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            return top;
+        }
+
+        /// <summary>
+        /// (`phys29b`) Веса — растягивающей интерполяции (<see cref="NodeWeights"/>, длина
+        /// NodeCount·MorphSlots), а не узлов (NodeCount) и не узлов со строками линий
+        /// (NodeCount + LineCount, <see cref="LineWeights"/>).
+        /// </summary>
+        bool IsMorphWeights(double[] weights)
+        {
+            return weights != null && this.NodeCount > 0
+                   && weights.Length == this.NodeCount * MorphSlots
+                   && weights.Length != this.NodeCount + this.LineCount
+                   && !this.IsBranchWeights(weights);
+        }
+
+        /// <summary>
+        /// (`Ф8`) Строка <paramref name="row"/> с ЛЮБЫМ знаком веса — в гистограмму: вес делится
+        /// между двумя соседними бинами, выход за край ОТБРАСЫВАЕТСЯ (зажать знакопеременную
+        /// строку в последний бин значило бы сложить там вынос и сумму, которые обязаны лечь
+        /// порознь). Возвращает добавленную площадь со знаком.
+        /// </summary>
+        static double AddRowSigned(double[] target, float[] row, double w, double stretch, int last)
+        {
+            double area = 0.0;
+            if (row == null)
+            {
+                return 0.0;
+            }
+
+            for (int b = 0; b < row.Length; b++)
+            {
+                double v = row[b];
+                if (v == 0.0)
+                {
+                    continue;
+                }
+
+                double value = w * v;
+                double position = b * stretch;
+                int at = (int)position;
+                double frac = position - at;
+                if (at > last)
+                {
+                    continue;
+                }
+
+                if (at == last)
+                {
+                    target[last] += value * (1.0 - frac);
+                }
+                else
+                {
+                    target[at] += value * (1.0 - frac);
+                    target[at + 1] += value * frac;
+                }
+
+                area += value;
+            }
+
+            return area;
+        }
+
+        /// <summary>
+        /// (`phys29b`) Строка <paramref name="row"/> с весом <paramref name="w"/> и осью ×
+        /// <paramref name="stretch"/> — в гистограмму, вес делится между двумя соседними
+        /// бинами, выход за край зажимается в последний (как в <see cref="Accumulate"/>).
+        /// </summary>
+        static double AddRow(double[] target, float[] row, double w, double stretch, int last)
+        {
+            double area = 0.0;
+            for (int b = 0; b < row.Length; b++)
+            {
+                double v = row[b];
+                if (!(v > 0.0))
+                {
+                    continue;
+                }
+
+                double value = w * v;
+                double position = b * stretch;
+                int at = (int)position;
+                double frac = position - at;
+                if (at >= last)
+                {
+                    target[last] += value;
+                }
+                else
+                {
+                    target[at] += value * (1.0 - frac);
+                    target[at + 1] += value * frac;
+                }
+
+                area += value;
+            }
+
+            return area;
+        }
+
+        /// <summary>Строка без нулевого хвоста — в float, как фотонные строки.</summary>
+        public static float[] Trim(double[] row)
+        {
+            int length = row != null ? row.Length : 0;
+            while (length > 0 && !(row[length - 1] > 0.0))
+            {
+                length--;
+            }
+
+            float[] result = new float[length];
+            for (int b = 0; b < length; b++)
+            {
+                result[b] = (float)row[b];
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// (`Р2`) Раздел ХВОСТОМ В КОНЦЕ ФАЙЛА: метка `ELSC`, содержимое, SHA-256
+        /// содержимого (32 байта), длина содержимого (int64) и концевая метка `ELSE`.
+        /// Читатель находит раздел с конца (<see cref="ReadTrailer"/>) — от цепочки хвостов
+        /// фотонной части он не зависит, и отпечаток ловит любую порчу содержимого.
+        /// </summary>
+        internal static void WriteTrailer(BinaryWriter writer, ResponseElectronSection section)
+        {
+            byte[] payload;
+            using (var memory = new MemoryStream())
+            using (var inner = new BinaryWriter(memory, Encoding.UTF8))
+            {
+                Write(inner, section);
+                inner.Flush();
+                payload = memory.ToArray();
+            }
+
+            byte[] digest;
+            using (SHA256 sha = SHA256.Create())
+            {
+                digest = sha.ComputeHash(payload);
+            }
+
+            writer.Write(Encoding.ASCII.GetBytes("ELSC"));
+            writer.Write(payload);
+            writer.Write(digest);
+            writer.Write((long)payload.Length);
+            writer.Write(Encoding.ASCII.GetBytes("ELSE"));
+        }
+
+        /// <summary>
+        /// (`Р2`) Прочитать раздел с конца потока. null — раздела нет или он испорчен:
+        /// причина — в <paramref name="damage"/> (null — порчи нет). Исключений наружу не
+        /// бросает: порча раздела не роняет матрицу.
+        /// </summary>
+        internal static ResponseElectronSection ReadTrailer(Stream stream, long bodyEnd, out string damage)
+        {
+            damage = null;
+            try
+            {
+                const int Tail = 4 + 32 + 8 + 4;
+                long length = stream.Length;
+                if (length - bodyEnd < Tail + 4)
+                {
+                    damage = "ELSC: no trailer";
+                    return null;
+                }
+
+                var reader = new BinaryReader(stream, Encoding.UTF8, true);
+                stream.Position = length - 12;
+                long payloadLength = reader.ReadInt64();
+                if (Encoding.ASCII.GetString(reader.ReadBytes(4)) != "ELSE")
+                {
+                    damage = "ELSC: no end mark";
+                    return null;
+                }
+
+                long payloadStart = length - 12 - 32 - payloadLength;
+                if (payloadLength <= 0 || payloadStart - 4 < bodyEnd)
+                {
+                    damage = "ELSC: bad length " + payloadLength.ToString(CultureInfo.InvariantCulture);
+                    return null;
+                }
+
+                stream.Position = payloadStart - 4;
+                if (Encoding.ASCII.GetString(reader.ReadBytes(4)) != "ELSC")
+                {
+                    damage = "ELSC: no start mark";
+                    return null;
+                }
+
+                byte[] payload = reader.ReadBytes((int)payloadLength);
+                byte[] stored = reader.ReadBytes(32);
+                byte[] digest;
+                using (SHA256 sha = SHA256.Create())
+                {
+                    digest = sha.ComputeHash(payload);
+                }
+
+                if (payload.Length != payloadLength || stored.Length != 32 || Hex(stored) != Hex(digest))
+                {
+                    damage = "ELSC: fingerprint mismatch";
+                    return null;
+                }
+
+                using (var memory = new MemoryStream(payload, false))
+                using (var inner = new BinaryReader(memory, Encoding.UTF8))
+                {
+                    ResponseElectronSection section = Read(inner);
+                    if (section == null)
+                    {
+                        damage = "ELSC: empty";
+                        return null;
+                    }
+
+                    if (memory.Position != memory.Length)
+                    {
+                        damage = "ELSC: trailing bytes";
+                        return null;
+                    }
+
+                    section.Fingerprint = Hex(digest);
+                    return section;
+                }
+            }
+            catch (Exception error)
+            {
+                damage = "ELSC: " + error.Message;
+                return null;
+            }
+        }
+
+        static string Hex(byte[] bytes)
+        {
+            var sb = new StringBuilder(bytes.Length * 2);
+            foreach (byte b in bytes)
+            {
+                sb.Append(b.ToString("x2", CultureInfo.InvariantCulture));
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>(`Р2`) Отпечаток SHA-256 содержимого раздела, как записан и проверен при чтении; null — не читался с диска.</summary>
+        public string Fingerprint { get; set; }
+
+        static void Write(BinaryWriter writer, ResponseElectronSection section)
+        {
+            int nodes = HasRows(section) ? section.NodeCount : 0;
+            writer.Write(nodes);
+            if (nodes == 0)
+            {
+                return;
+            }
+
+            writer.Write(section.Stamp ?? "");
+            writer.Write(section.ForMatrixStamp ?? "");
+            writer.Write(section.BinKev);
+            writer.Write(section.LightPerKev);
+            writer.Write(section.Capsule ?? "none");
+            writer.Write(section.Engine ?? "cpu");
+            writer.Write(section.CreatedUtc.Ticks);
+            bool positron = section.HasPositron;
+            writer.Write(positron);
+            for (int i = 0; i < nodes; i++)
+            {
+                writer.Write(section.Energies[i]);
+                writer.Write(section.Histories != null && i < section.Histories.Length ? section.Histories[i] : 0L);
+                writer.Write(section.EnteredElectron != null && i < section.EnteredElectron.Length ? section.EnteredElectron[i] : 0.0);
+                writer.Write(section.EnteredPositron != null && i < section.EnteredPositron.Length ? section.EnteredPositron[i] : 0.0);
+                writer.Write(section.NodeSeconds != null && i < section.NodeSeconds.Length ? section.NodeSeconds[i] : 0.0);
+            }
+
+            WriteRows(writer, section.Electron);
+            if (positron)
+            {
+                WriteRows(writer, section.Positron);
+            }
+
+            // (`AMBER274`, физика 28) Строки линий — блоком ЗА строками узлов: число, затем
+            // энергия, истории и доля вошедших каждой, затем строки. Раздел без них (версии 2)
+            // кончается раньше — читатель смотрит, остались ли байты.
+            int lines = section.LineCount;
+            int branches = section.BranchCount;
+            if (lines > 0 || branches > 0)
+            {
+                writer.Write(lines);
+                for (int j = 0; j < lines; j++)
+                {
+                    writer.Write(section.LineEnergies[j]);
+                    writer.Write(section.LineHistories != null && j < section.LineHistories.Length ? section.LineHistories[j] : 0L);
+                    writer.Write(section.LineEntered != null && j < section.LineEntered.Length ? section.LineEntered[j] : 0.0);
+                }
+
+                if (lines > 0)
+                {
+                    WriteRows(writer, section.LineElectron);
+                }
+            }
+
+            // (`AMBER274` Ф8, `f8cyl`) Строки ветвей — блоком ЗА строками линий (тогда блок линий
+            // пишется и пустым, числом 0): число, затем у каждой нуклид, граница, уровень,
+            // истории, доля вошедших, хеш таблиц; затем строки события и строки каскада.
+            if (branches > 0)
+            {
+                writer.Write(branches);
+                for (int j = 0; j < branches; j++)
+                {
+                    writer.Write(section.BranchNuclides[j] ?? "");
+                    writer.Write(section.BranchEndpoints[j]);
+                    writer.Write(section.BranchLevels != null && j < section.BranchLevels.Length ? section.BranchLevels[j] : 0.0);
+                    writer.Write(section.BranchHistories != null && j < section.BranchHistories.Length ? section.BranchHistories[j] : 0L);
+                    writer.Write(section.BranchEntered != null && j < section.BranchEntered.Length ? section.BranchEntered[j] : 0.0);
+                    writer.Write(section.BranchHashes != null && j < section.BranchHashes.Length ? section.BranchHashes[j] ?? "" : "");
+                }
+
+                WriteRows(writer, section.BranchEvent);
+                WriteRows(writer, section.BranchGamma);
+            }
+        }
+
+        static void WriteRows(BinaryWriter writer, float[][] rows)
+        {
+            foreach (float[] row in rows)
+            {
+                int length = row != null ? row.Length : 0;
+                writer.Write(length);
+                for (int b = 0; b < length; b++)
+                {
+                    writer.Write(row[b]);
+                }
+            }
+        }
+
+        static ResponseElectronSection Read(BinaryReader reader)
+        {
+            int nodes = reader.ReadInt32();
+            if (nodes < 0 || nodes > 100000)
+            {
+                throw new InvalidDataException("блок ELSC: узлов " + nodes.ToString(CultureInfo.InvariantCulture));
+            }
+
+            if (nodes == 0)
+            {
+                return null;
+            }
+
+            var s = new ResponseElectronSection
+            {
+                Stamp = reader.ReadString(),
+                ForMatrixStamp = reader.ReadString(),
+                BinKev = reader.ReadDouble(),
+                LightPerKev = reader.ReadDouble(),
+                Capsule = reader.ReadString(),
+                Engine = reader.ReadString(),
+                CreatedUtc = new DateTime(reader.ReadInt64(), DateTimeKind.Utc),
+                Energies = new double[nodes],
+                Histories = new long[nodes],
+                EnteredElectron = new double[nodes],
+                EnteredPositron = new double[nodes],
+                NodeSeconds = new double[nodes],
+            };
+            bool positron = reader.ReadBoolean();
+            for (int i = 0; i < nodes; i++)
+            {
+                s.Energies[i] = reader.ReadDouble();
+                s.Histories[i] = reader.ReadInt64();
+                s.EnteredElectron[i] = reader.ReadDouble();
+                s.EnteredPositron[i] = reader.ReadDouble();
+                s.NodeSeconds[i] = reader.ReadDouble();
+            }
+
+            s.Electron = ReadRows(reader, nodes);
+            if (positron)
+            {
+                s.Positron = ReadRows(reader, nodes);
+            }
+
+            // (`AMBER274`, физика 28) Блок строк линий — если байты остались.
+            Stream payload = reader.BaseStream;
+            if (payload.Position < payload.Length)
+            {
+                int lines = reader.ReadInt32();
+                if (lines < 0 || lines > 100000)
+                {
+                    throw new InvalidDataException("блок ELSC: строк линий " + lines.ToString(CultureInfo.InvariantCulture));
+                }
+
+                if (lines > 0)
+                {
+                    s.LineEnergies = new double[lines];
+                    s.LineHistories = new long[lines];
+                    s.LineEntered = new double[lines];
+                    for (int j = 0; j < lines; j++)
+                    {
+                        s.LineEnergies[j] = reader.ReadDouble();
+                        s.LineHistories[j] = reader.ReadInt64();
+                        s.LineEntered[j] = reader.ReadDouble();
+                    }
+
+                    s.LineElectron = ReadRows(reader, lines);
+                }
+            }
+
+            // (`AMBER274` Ф8, `f8cyl`) Блок строк ветвей — если байты остались и за строками линий.
+            if (payload.Position < payload.Length)
+            {
+                int branches = reader.ReadInt32();
+                if (branches < 0 || branches > 100000)
+                {
+                    throw new InvalidDataException("блок ELSC: строк ветвей " + branches.ToString(CultureInfo.InvariantCulture));
+                }
+
+                s.BranchNuclides = new string[branches];
+                s.BranchEndpoints = new double[branches];
+                s.BranchLevels = new double[branches];
+                s.BranchHistories = new long[branches];
+                s.BranchEntered = new double[branches];
+                s.BranchHashes = new string[branches];
+                for (int j = 0; j < branches; j++)
+                {
+                    s.BranchNuclides[j] = reader.ReadString();
+                    s.BranchEndpoints[j] = reader.ReadDouble();
+                    s.BranchLevels[j] = reader.ReadDouble();
+                    s.BranchHistories[j] = reader.ReadInt64();
+                    s.BranchEntered[j] = reader.ReadDouble();
+                    s.BranchHashes[j] = reader.ReadString();
+                }
+
+                s.BranchEvent = ReadRows(reader, branches);
+                s.BranchGamma = ReadRows(reader, branches);
+            }
+
+            return s;
+        }
+
+        static float[][] ReadRows(BinaryReader reader, int nodes)
+        {
+            float[][] rows = new float[nodes][];
+            for (int i = 0; i < nodes; i++)
+            {
+                int length = reader.ReadInt32();
+                if (length < 0 || length > 10000000)
+                {
+                    throw new InvalidDataException("блок ELSC: длина строки " + length.ToString(CultureInfo.InvariantCulture));
+                }
+
+                float[] row = new float[length];
+                for (int b = 0; b < length; b++)
+                {
+                    row[b] = reader.ReadSingle();
+                }
+
+                rows[i] = row;
+            }
+
+            return rows;
+        }
+    }
+
+    /// <summary>
+    /// (`AMBER274` Ф8, полоса `f8cyl` 02.11.2026) ВЕТВЬ РАСПАДА ДЛЯ СТРОКИ «СОБЫТИЕ ЦЕЛИКОМ» —
+    /// решение Amber 30.10.2026 вопросником, дословно: «В Э1 событием целиком (Рекомендую)».
+    /// Данные, которыми симулятор (<see cref="EfficiencySimulator.BranchEventResponse"/>) и ядро
+    /// GPU (`rm_ebranch`) разыгрывают ОДНУ ИСТОРИЮ НА РАСПАД ВЕТВЬЮ: энергию беты — по таблице
+    /// функции распределения формы ветви (<see cref="BetaT"/>, <see cref="BetaCdf"/>; внутри
+    /// узла — равномерно), затем каскад уровня, который ветвь питает, — ходом по уровням схемы
+    /// Geant4 (`schemedb.g4_level`/`g4_gamma`, PhotonEvaporation): с уровня — переход с
+    /// вероятностью ∝ Iγ·(1 + α) (как `G4LevelReader`), из перехода — гамма с вероятностью
+    /// 1/(1 + α) или электрон конверсии оболочки K, L, M, внешних (доли `icc_*`), энергия
+    /// электрона — E − B оболочки; до основного состояния или до уровня с периодом больше
+    /// <see cref="PromptHalfLifeSec"/> (дальше — отдельное событие, не совпадение). Все кванты —
+    /// изотропно, без угловых корреляций (как Geant4 по умолчанию); рентген и Оже после
+    /// конверсии не испускаются (оговорка журнала полосы). Собирает таблицы
+    /// <c>FsaBetaLibrary.EventSpec</c> — имён нуклидов в коде нет.
+    /// </summary>
+    public sealed class ElectronBranchSpec
+    {
+        /// <summary>Каскад обрывается на уровне с периодом больше этого, с (1 мкс — время формирования импульса сцинтиллятора).</summary>
+        public const double PromptHalfLifeSec = 1.0e-6;
+
+        /// <summary>Видов испускания перехода: гамма, K, L, M, внешние.</summary>
+        public const int EmitKinds = 5;
+
+        /// <summary>Нуклид ветви — тем же именем, что у ветви FSA.</summary>
+        public string Nuclide { get; set; }
+
+        /// <summary>Граница беты, кэВ.</summary>
+        public double EndpointKev { get; set; }
+
+        /// <summary>Выход ветви, % на распад нуклида (справочно, в строку не входит).</summary>
+        public double Intensity { get; set; }
+
+        /// <summary>Энергия уровня, который питает ветвь, кэВ.</summary>
+        public double LevelKev { get; set; }
+
+        /// <summary>Узлы энергии беты, кэВ, по возрастанию от 0 до границы.</summary>
+        public double[] BetaT { get; set; }
+
+        /// <summary>Функция распределения формы в узлах (0 … 1).</summary>
+        public double[] BetaCdf { get; set; }
+
+        /// <summary>Номер уровня, с которого начинается каскад.</summary>
+        public int StartLevel { get; set; }
+
+        /// <summary>Первый переход уровня и число переходов (0 — каскад кончается).</summary>
+        public int[] LevelFirst { get; set; }
+
+        public int[] LevelCount { get; set; }
+
+        /// <summary>Энергия уровня, кэВ (справочно).</summary>
+        public double[] LevelEnergy { get; set; }
+
+        /// <summary>Накопленная вероятность перехода в своём уровне (последний — 1).</summary>
+        public double[] TransitionCdf { get; set; }
+
+        /// <summary>Номер уровня, в который ведёт переход.</summary>
+        public int[] TransitionTo { get; set; }
+
+        /// <summary>Накопленная вероятность вида испускания перехода [переход·5 + вид] (последний — 1).</summary>
+        public double[] EmitCdf { get; set; }
+
+        /// <summary>Энергия испускаемой частицы [переход·5 + вид], кэВ (≤ 0 — ничего не летит).</summary>
+        public double[] EmitKev { get; set; }
+
+        /// <summary>Ключ ветви: нуклид и граница.</summary>
+        public string Key
+        {
+            get
+            {
+                return (this.Nuclide ?? "") + "|" + this.EndpointKev.ToString("R", CultureInfo.InvariantCulture);
+            }
+        }
+
+        /// <summary>Переходов в таблице.</summary>
+        public int TransitionCount
+        {
+            get { return this.TransitionTo != null ? this.TransitionTo.Length : 0; }
+        }
+
+        /// <summary>Хеш таблиц (форма, каскад) — первые 16 знаков SHA-256 их текста; входит в клеймо раздела.</summary>
+        public string Hash
+        {
+            get
+            {
+                var sb = new StringBuilder();
+                sb.Append(this.Key).Append(';').Append(this.LevelKev.ToString("R", CultureInfo.InvariantCulture)).Append(';');
+                Append(sb, this.BetaT);
+                Append(sb, this.BetaCdf);
+                sb.Append(this.StartLevel.ToString(CultureInfo.InvariantCulture)).Append(';');
+                Append(sb, this.LevelFirst);
+                Append(sb, this.LevelCount);
+                Append(sb, this.TransitionCdf);
+                Append(sb, this.TransitionTo);
+                Append(sb, this.EmitCdf);
+                Append(sb, this.EmitKev);
+                return ResponseElectronSection.ShortHash(sb.ToString());
+            }
+        }
+
+        static void Append(StringBuilder sb, double[] values)
+        {
+            if (values != null)
+            {
+                foreach (double v in values)
+                {
+                    sb.Append(v.ToString("R", CultureInfo.InvariantCulture)).Append(',');
+                }
+            }
+
+            sb.Append(';');
+        }
+
+        static void Append(StringBuilder sb, int[] values)
+        {
+            if (values != null)
+            {
+                foreach (int v in values)
+                {
+                    sb.Append(v.ToString(CultureInfo.InvariantCulture)).Append(',');
+                }
+            }
+
+            sb.Append(';');
+        }
+
+        /// <summary>Каскад есть: с начального уровня есть хоть один переход.</summary>
+        public bool HasCascade
+        {
+            get
+            {
+                return this.LevelCount != null && this.StartLevel >= 0 && this.StartLevel < this.LevelCount.Length
+                       && this.LevelCount[this.StartLevel] > 0;
+            }
+        }
+
+        /// <summary>Таблицы согласованы (длины, номера в пределах) — иначе строку не считать; null — согласованы.</summary>
+        public string Problem()
+        {
+            if (this.BetaT == null || this.BetaCdf == null || this.BetaT.Length < 2 || this.BetaT.Length != this.BetaCdf.Length)
+            {
+                return "таблица формы беты пуста или разной длины";
+            }
+
+            int levels = this.LevelCount != null ? this.LevelCount.Length : 0;
+            if (this.LevelFirst == null || this.LevelFirst.Length != levels || this.StartLevel < 0 || this.StartLevel >= levels)
+            {
+                return "таблица уровней не согласована";
+            }
+
+            int n = this.TransitionCount;
+            if (this.TransitionCdf == null || this.TransitionCdf.Length != n || this.EmitCdf == null
+                || this.EmitCdf.Length != n * EmitKinds || this.EmitKev == null || this.EmitKev.Length != n * EmitKinds)
+            {
+                return "таблица переходов не согласована";
+            }
+
+            for (int i = 0; i < levels; i++)
+            {
+                if (this.LevelFirst[i] < 0 || this.LevelFirst[i] + this.LevelCount[i] > n)
+                {
+                    return "переходы уровня вне таблицы";
+                }
+            }
+
+            for (int t = 0; t < n; t++)
+            {
+                if (this.TransitionTo[t] < 0 || this.TransitionTo[t] >= levels)
+                {
+                    return "переход в уровень вне таблицы";
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Ожидаемое число частиц на распад ветвью по энергии, ходом по таблице без розыгрыша:
+        /// ключ — энергия, округлённая до 0.01 кэВ, со знаком вида (гамма — плюс, электрон
+        /// конверсии — минус). Для проб: какие линии распада каскад уже несёт.
+        /// ⚠ Уровни таблицы упорядочены по энергии, и переход ведёт только вниз — счёт сверху вниз.
+        /// </summary>
+        public Dictionary<double, double> ExpectedEmissions()
+        {
+            var result = new Dictionary<double, double>();
+            int levels = this.LevelCount != null ? this.LevelCount.Length : 0;
+            if (levels == 0)
+            {
+                return result;
+            }
+
+            var population = new double[levels];
+            population[this.StartLevel] = 1.0;
+            for (int i = levels - 1; i >= 0; i--)
+            {
+                double p = population[i];
+                if (!(p > 0.0))
+                {
+                    continue;
+                }
+
+                double before = 0.0;
+                for (int k = 0; k < this.LevelCount[i]; k++)
+                {
+                    int t = this.LevelFirst[i] + k;
+                    double pt = (this.TransitionCdf[t] - before) * p;
+                    before = this.TransitionCdf[t];
+                    double eb = 0.0;
+                    for (int s = 0; s < EmitKinds; s++)
+                    {
+                        double ps = this.EmitCdf[t * EmitKinds + s] - eb;
+                        eb = this.EmitCdf[t * EmitKinds + s];
+                        double e = this.EmitKev[t * EmitKinds + s];
+                        if (ps > 0.0 && e > 0.0)
+                        {
+                            double key = (s == 0 ? 1.0 : -1.0) * Math.Round(e, 2);
+                            double v;
+                            result.TryGetValue(key, out v);
+                            result[key] = v + pt * ps;
+                        }
+                    }
+
+                    population[this.TransitionTo[t]] += pt;
+                }
+            }
+
+            return result;
         }
     }
 }

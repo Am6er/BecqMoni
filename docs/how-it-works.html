@@ -665,7 +665,7 @@ const HOOD = {ru:{
   '<li>Состав («Из NucBase»): поиск пиков подписывает пики, нуклид принимается, если подтверждено не меньше 30 % его групп линий; затем из базы берётся весь ряд со всеми излучениями. Ряд в равновесии — одна общая амплитуда.</li>'+
   '<li>Фон вычитается измеренный; сверху — неотрицательная кусочно-линейная подложка. Подбор — взвешенный МНК с неотрицательностью (NNLS) и защитой от выбросов (Хубер); слои со значимостью ниже 3 отбрасываются.</li>'+
   '<li>Шкала привязывается по пикам полного поглощения самой модели: усиление, ноль и ширина пересчитываются по центрам пиков. Перебор растяжений шкалы в программе есть, но выключен.</li>'+
-  '<li>Невязка рисуется серой клетчатой лентой обоих знаков; заметный пик вне состава вызывает предупреждение.</li>',
+  '<li>Невязка рисуется серой клетчатой лентой обоих знаков; заметный пик, не объяснённый нуклидами разбора, вызывает предупреждение.</li>',
 5:'<li>Множитель слоя сразу в беккерелях: выходы линий даны на один распад, эффективность уже внутри матрицы. Беккерели показываются при матрице или при кривой, посчитанной из геометрии либо импортированной из ЛСРМ.</li>'+
   '<li>Бк/кг и Бк/л — деление на массу и объём из сведений об образце. Поправка на распад приводит результат к дате отбора.</li>'+
   '<li>± — только статистика подгонки (раздутая, если подгонка хуже чистой статистики). Неточность геометрии и матрицы в ± не входит.</li>'+
@@ -687,7 +687,7 @@ const HOOD = {ru:{
   '<li>Composition ("From NucBase"): peak search labels the peaks, a nuclide is accepted if at least 30 % of its line groups are confirmed; then its whole chain with all radiations is taken from the database. A chain in equilibrium has one shared amplitude.</li>'+
   '<li>The measured background is subtracted; a non-negative piecewise-linear continuum goes on top. The fit is weighted non-negative least squares (NNLS) with outlier protection (Huber); layers with significance below 3 are dropped.</li>'+
   '<li>The scale is anchored on the model\'s own full-energy peaks: gain, zero and width are recomputed from peak centres. A scale-stretch search exists in the app but is switched off.</li>'+
-  '<li>The residual is drawn as a grey checkered band of both signs; a noticeable peak outside the composition raises a warning.</li>',
+  '<li>The residual is drawn as a grey checkered band of both signs; a noticeable peak not explained by the analysis nuclides raises a warning.</li>',
 5:'<li>A layer multiplier is in becquerels right away: line yields are per decay, the efficiency is already inside the matrix. Becquerels are shown with a matrix, or with a curve computed from geometry or imported from LSRM.</li>'+
   '<li>Bq/kg and Bq/l divide by the mass and volume from the sample info. Decay correction brings the result to the sampling date.</li>'+
   '<li>± is the fit statistics only (inflated when the fit is worse than pure statistics). Uncertainty of the geometry and matrix is not included.</li>'+

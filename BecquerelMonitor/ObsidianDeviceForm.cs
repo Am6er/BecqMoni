@@ -375,6 +375,11 @@ namespace BecquerelMonitor
             config.Ch_Fwhm = 291;
             config.Width_Fwhm = 39;
             config.Min_Range = 30;
+            // (`AMBER269`, 01.11.2026) У заготовки Obsidian кривая СВОЯ — подгонка по
+            //   четырём линиям, согласная с её тремя числами (FWHM(0) = √c0 = 5.594,
+            //   опора 291:39 — те же числа), а не встроенная заглушка 15/3756/103. Решение
+            //   Amber «Строить по трём числам» её не касается: настоящая кривая
+            //   остаётся как есть (`DeviceConfigInfo.ResolveBuiltInFwhm`).
             config.FwhmCalibration = CreateSqrtCalibration();
             return config;
         }

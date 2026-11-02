@@ -81,7 +81,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// `AMBER256`). Строкой в
         /// существующем списке, седьмым пунктом комбо, как принято.
         /// </summary>
-        AnnihilationOutside = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.AnnihilationOutside
+        AnnihilationOutside = (int)EfficiencyMaker.EfficiencySimulator.ResponseChannel.AnnihilationOutside,
+
+        /// <summary>
+        /// (`AMBER274`, Э1) Бета пробы — восьмой канал раскладки образа
+        /// (<see cref="FsaAnalyzer.BetaChannel"/>): сплошной спектр беты нуклидов
+        /// состава по разделу строк электрона матрицы. У матрицы без раздела канала нет
+        /// — пункт рисуется пусто. Строкой в существующем списке, восьмым пунктом комбо.
+        /// </summary>
+        SampleBeta = FsaAnalyzer.BetaChannel
     }
 
     /// <summary>
@@ -95,8 +103,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     {
         /// <summary>
         /// Каналы по номеру — порядок пунктов комбо после «All». Длина равна
-        /// <see cref="EfficiencyMaker.EfficiencySimulator.ResponseChannelCount"/>
-        /// (проверяет проба `FsaChannelViewProbe`).
+        /// <see cref="EfficiencyMaker.EfficiencySimulator.ResponseChannelCount"/> + 1:
+        /// семь каналов исхода фотона и (`AMBER274`) бета пробы
+        /// (<see cref="FsaAnalyzer.BetaChannel"/>); проверяет проба `FsaChannelViewProbe`.
         /// </summary>
         public static readonly FsaMatrixLayer[] Channels =
         {
@@ -106,7 +115,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             FsaMatrixLayer.EscapeXrayK,
             FsaMatrixLayer.EscapeAnnihilationDouble,
             FsaMatrixLayer.EscapeXrayL,
-            FsaMatrixLayer.AnnihilationOutside
+            FsaMatrixLayer.AnnihilationOutside,
+            FsaMatrixLayer.SampleBeta     // (`AMBER274`) канал образа, не симулятора фотона
         };
 
         /// <summary>
@@ -253,6 +263,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Штриховка сумм-пиков слоя, без второй доли.</summary>
         SumPeaks,
 
+        /// <summary>
+        /// (`AMBER286`) Один заметный сумм-пик (или группа в пределах FWHM) под строкой
+        /// <see cref="SumPeaks"/> своего слоя, с отступом: «Σ 1065 кэВ = 795.0 + 270.2 | N отсч.».
+        /// </summary>
+        SumPeakLine,
+
         /// <summary>Именованный необнаруженный кандидат серым, «&lt; … %».</summary>
         Undetected,
 
@@ -306,14 +322,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Цвет образца; у строк без образца не читается.</summary>
         public Color Color { get; set; }
 
-        /// <summary>Слой, из которого строка сделана (Layer, SumPeaks); иначе null.</summary>
+        /// <summary>Слой, из которого строка сделана (Layer, SumPeaks, SumPeakLine); иначе null.</summary>
         public FsaStackLayer Layer { get; set; }
+
+        /// <summary>
+        /// (`AMBER286`) Уровень отступа подписи: 0 — как у всех, 1 — строка под строкой
+        /// нуклида (пики сумм под «— сумм-пик»). Рисует окно отчёта, текст строки им не
+        /// меняется: подпись в ячейке — ровно <see cref="Name"/>.
+        /// </summary>
+        public int Indent { get; set; }
 
         /// <summary>Серый текст: у кандидата нет ленты и нет цвета (`S9`).</summary>
         public bool Muted { get; set; }
 
         /// <summary>Красный текст: предупреждение (`S44`).</summary>
         public bool Warning { get; set; }
+
+        /// <summary>
+        /// (`AMBER274`, Ф14) Строка по сплошному спектру (слой или предел кандидата): окно отчёта
+        /// ставит при имени пометку словами своих ресурсов (<c>FSAReportView.RowCaption</c>).
+        /// </summary>
+        public bool BetaOnly { get; set; }
 
         /// <summary>
         /// (`AMBER6`) Подсказка строки — то, чего в самой строке не помещается.
@@ -338,9 +367,69 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 return this.Kind == FsaReportRowKind.Layer
                        || this.Kind == FsaReportRowKind.SumPeaks
+                       || this.Kind == FsaReportRowKind.SumPeakLine
                        || this.Kind == FsaReportRowKind.Undetected
                        || this.Kind == FsaReportRowKind.UndetectedFolded;
             }
+        }
+    }
+
+    /// <summary>
+    /// (`AMBER286`) Группа сумм-пиков одного слоя, чьи центры ближе FWHM, — одна строка
+    /// <see cref="FsaReportRowKind.SumPeakLine"/>. Собирает
+    /// <c>FsaPresentationBuilder.SumPeakGroups</c>; открыта пробам.
+    /// </summary>
+    public sealed class FsaSumPeakGroup
+    {
+        double weightedSum, weightedChannel, weightedFwhm;
+
+        /// <summary>Пики группы; после сборки — по убыванию отсчётов (первым — сильнейший).</summary>
+        public List<FsaSumPeakLine> Lines { get; private set; }
+
+        /// <summary>Площадь группы, отсчёты модели (сумма по пикам).</summary>
+        public double Counts { get; private set; }
+
+        /// <summary>Сумма квантов, средневзвешенная по отсчётам, кэВ.</summary>
+        public double EnergyKev
+        {
+            get { return this.Counts > 0.0 ? this.weightedSum / this.Counts : 0.0; }
+        }
+
+        /// <summary>Центр группы, канал данных, средневзвешенный по отсчётам.</summary>
+        public double Channel
+        {
+            get { return this.Counts > 0.0 ? this.weightedChannel / this.Counts : 0.0; }
+        }
+
+        /// <summary>FWHM в центре группы, каналы, средневзвешенная по отсчётам.</summary>
+        public double FwhmChannels
+        {
+            get { return this.Counts > 0.0 ? this.weightedFwhm / this.Counts : 0.0; }
+        }
+
+        /// <summary>Окно ±FWHM, по которому взята σ, — первый и последний каналы (в полосе фита).</summary>
+        public int FirstChannel { get; internal set; }
+
+        public int LastChannel { get; internal set; }
+
+        /// <summary>σ счёта измеренного спектра в окне: √Σ дисперсии фита, отсчёты.</summary>
+        public double Sigma { get; internal set; }
+
+        /// <summary>Заметна: площадь не меньше трёх σ окна — строка ставится.</summary>
+        public bool Shown { get; internal set; }
+
+        public FsaSumPeakGroup()
+        {
+            this.Lines = new List<FsaSumPeakLine>();
+        }
+
+        internal void Add(FsaSumPeakLine line)
+        {
+            this.Lines.Add(line);
+            this.Counts += line.Counts;
+            this.weightedSum += line.Counts * line.SumKev;
+            this.weightedChannel += line.Counts * line.Channel;
+            this.weightedFwhm += line.Counts * line.FwhmChannels;
         }
     }
 
