@@ -1361,10 +1361,10 @@
     <value>Из калибровки прибора</value>
   </data>
   <data name="GeometryEditorInShield" xml:space="preserve">
-    <value>Измерение в защите (свинцовый домик)</value>
+    <value>Измерение в защите</value>
   </data>
   <data name="GeometryEditorInShieldHint" xml:space="preserve">
-    <value>Домик не входит в сцену расчёта и матрицу отклика не меняет. Признак говорит разбору, что вокруг детектора есть обстановка, в которой квант рассеивается назад, — образ обратного рассеяния остаётся и при матрице.</value>
+    <value>Без слоёв ниже защита не входит в сцену расчёта и матрицу отклика не меняет: признак лишь говорит разбору, что вокруг детектора есть обстановка, в которой квант рассеивается назад, — образ обратного рассеяния остаётся и при матрице. Со слоями защита входит в сцену: её видят фотон и электрон, она входит в клеймо матрицы, и отдельного образа обратного рассеяния разбор не добавляет.</value>
   </data>
   <data name="GeometryEditorUnitDensity" xml:space="preserve">
     <value>г/см3</value>
@@ -3790,5 +3790,113 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="MSGFwhmSpectraCount" xml:space="preserve">
     <value>{0} из {1}:</value>
+  </data>
+  <data name="GeometryEditorHoleShape" xml:space="preserve">
+    <value>Форма колодца в плане</value>
+  </data>
+  <data name="GeometryEditorHoleShapeHint" xml:space="preserve">
+    <value>Круглый — обычный стакан Маринелли. Трапеция — два основания вдоль одного направления и высота между ними; все размеры — просвет колодца, стенка колодца ложится наружу. Прямоугольник — трапеция с равными основаниями. Программа ЛСРМ трапеции не знает и прочтёт файл круглым колодцем той же площади.</value>
+  </data>
+  <data name="GeometryEditorHoleShapeRound" xml:space="preserve">
+    <value>Круглый</value>
+  </data>
+  <data name="GeometryEditorHoleShapeTrapezoid" xml:space="preserve">
+    <value>Трапеция</value>
+  </data>
+  <data name="GeometryEditorHoleBase1" xml:space="preserve">
+    <value>Колодец: основание 1 (просвет)</value>
+  </data>
+  <data name="GeometryEditorHoleBase2" xml:space="preserve">
+    <value>Колодец: основание 2 (просвет)</value>
+  </data>
+  <data name="GeometryEditorHoleWidth" xml:space="preserve">
+    <value>Колодец: высота трапеции (просвет)</value>
+  </data>
+  <data name="GeometryEditorShieldInnerDiameter" xml:space="preserve">
+    <value>Диаметр полости защиты</value>
+  </data>
+  <data name="GeometryEditorShieldInnerHeight" xml:space="preserve">
+    <value>Высота полости (от низа до верха)</value>
+  </data>
+  <data name="GeometryEditorShieldFloorGap" xml:space="preserve">
+    <value>Зазор от пробы до низа защиты</value>
+  </data>
+  <data name="GeometryEditorShieldLayers" xml:space="preserve">
+    <value>Слои защиты изнутри наружу:</value>
+  </data>
+  <data name="GeometryEditorShieldLayerMaterial" xml:space="preserve">
+    <value>Вещество</value>
+  </data>
+  <data name="GeometryEditorShieldLayerSide" xml:space="preserve">
+    <value>Бок</value>
+  </data>
+  <data name="GeometryEditorShieldLayerFloor" xml:space="preserve">
+    <value>Низ</value>
+  </data>
+  <data name="GeometryEditorShieldLayerLid" xml:space="preserve">
+    <value>Верх</value>
+  </data>
+  <data name="GeometryEditorShieldAddLayer" xml:space="preserve">
+    <value>Добавить слой</value>
+  </data>
+  <data name="GeometryEditorShieldRemoveLayerTip" xml:space="preserve">
+    <value>Убрать этот слой защиты</value>
+  </data>
+  <data name="GeometryEditorShieldLayersHint" xml:space="preserve">
+    <value>Первый слой облегает полость, каждый следующий — предыдущий. Бок — кольцом вокруг полости, низ — под пробой, верх — над прибором. Толщины — в мм. Без слоёв защита в расчёт не входит.</value>
+  </data>
+  <data name="GeometryEditorErrorShieldCavity" xml:space="preserve">
+    <value>Защита в расчёте: задайте диаметр и высоту полости, оба больше нуля.</value>
+  </data>
+  <data name="GeometryEditorErrorShieldLayerEmpty" xml:space="preserve">
+    <value>{0}: все толщины нулевые. Задайте толщину или уберите слой.</value>
+  </data>
+  <data name="GeometryEditorErrorShieldNarrow" xml:space="preserve">
+    <value>Диаметр полости защиты меньше сцены внутри: {0:F1} мм против {1:F1} мм.</value>
+  </data>
+  <data name="GeometryEditorErrorShieldLow" xml:space="preserve">
+    <value>Высота полости защиты меньше сцены внутри вместе с зазором до низа: {0:F1} мм против {1:F1} мм.</value>
+  </data>
+  <data name="GeometryEditorShieldLayerCaption" xml:space="preserve">
+    <value>Слой защиты {0}</value>
+  </data>
+  <data name="GeometrySourceTrapezoidHole" xml:space="preserve">
+    <value>, колодец-трапеция {0:F1}/{1:F1} × {2:F1} мм</value>
+  </data>
+  <data name="GeometrySourceShieldLayers" xml:space="preserve">
+    <value>; защита, слоёв: {0}, D = {1:F1}/{2:F1}, H = {3:F1}/{4:F1} мм</value>
+  </data>
+  <data name="EfficiencySketchTrapezoidHole" xml:space="preserve">
+    <value>Колодец-трапеция</value>
+  </data>
+  <data name="EfficiencySketchShield" xml:space="preserve">
+    <value>Защита: слоёв {0}, ⌀{1} × {2} {3}</value>
+  </data>
+  <data name="EfficiencySketchShieldParts" xml:space="preserve">
+    <value>бок / низ / верх</value>
+  </data>
+  <data name="EfficiencySketchShieldOuter" xml:space="preserve">
+    <value>наружн. ⌀{0} × {1} {2}</value>
+  </data>
+  <data name="EfficiencySketchNotToScale" xml:space="preserve">
+    <value>, не в масштабе</value>
+  </data>
+  <data name="EfficiencySketchSideView" xml:space="preserve">
+    <value>Вид сбоку</value>
+  </data>
+  <data name="EfficiencySketchTopView" xml:space="preserve">
+    <value>Вид сверху</value>
+  </data>
+  <data name="GeometryEditorTabShield" xml:space="preserve">
+    <value>Защита</value>
+  </data>
+  <data name="GeometryEditorHoleThrough" xml:space="preserve">
+    <value>Под колодцем пробы нет (колодец насквозь)</value>
+  </data>
+  <data name="GeometryEditorHoleThroughHint" xml:space="preserve">
+    <value>Колодец проходит пробу насквозь: его глубина равна высоте пробы, торца у него нет. Под прибором — воздух до дна сосуда или до низа защиты.</value>
+  </data>
+  <data name="GeometryEditorErrorHoleThroughWall" xml:space="preserve">
+    <value>Колодец во всю высоту пробы, а торец колодца — {0:F2} мм: включите «Под колодцем пробы нет» или сделайте колодец мельче {1:F1} мм.</value>
   </data>
 </root>

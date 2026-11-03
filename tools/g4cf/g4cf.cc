@@ -133,6 +133,9 @@
 #include "G4NistManager.hh"
 #include "G4Box.hh"
 #include "G4Tubs.hh"
+#include "G4ExtrudedSolid.hh"
+#include "G4SubtractionSolid.hh"
+#include "G4TwoVector.hh"
 #include "G4LogicalVolume.hh"
 #include "G4PVPlacement.hh"
 #include "G4GeneralParticleSource.hh"
@@ -392,14 +395,86 @@ namespace
         double a = 0.0, b = 0.0;   // tub: rIn,rOut; box: ax,ay (полуразмеры)
         double z0 = 0.0, z1 = 0.0;
         bool crystal = false;
+
+        // (`AMBER282`) Область ФОРМЫ в плане (`region shaped …`, EfficiencySimulator.Region.Shape):
+        // наружу — круг outerR или выпуклый многоугольник ox/oy (против часовой), дырка — нет, круг
+        // holeR или многоугольник hx/hy. Прежние области — shaped = false, путь у них не меняется.
+        bool shaped = false;
+        double outerR = 0.0, holeR = 0.0;
+        std::vector<double> ox, oy, hx, hy;
     };
 
     struct SceneSource
     {
-        // point | cyl | box | marinelli — как у сэмплеров EfficiencySimulator
+        // point | cyl | box | marinelli — как у сэмплеров EfficiencySimulator;
+        // (`AMBER282`) marinelli-trap: p[0..3] = rOut z0 z1 zCap, контур гильзы — wx/wy.
         std::string kind;
         double p[5] = { 0, 0, 0, 0, 0 };
+        std::vector<double> wx, wy;
     };
+
+    // (`AMBER282`) Точка внутри выпуклого многоугольника (вершины против часовой стрелки):
+    // слева от каждого ребра, с допуском eps наружу.
+    bool InPolygon(const std::vector<double>& xs, const std::vector<double>& ys, double x, double y, double eps)
+    {
+        size_t n = xs.size();
+        for (size_t k = 0; k < n; ++k)
+        {
+            double x0 = xs[k], y0 = ys[k], x1 = xs[(k + 1) % n], y1 = ys[(k + 1) % n];
+            double len = std::sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
+            double cross = ((x1 - x0) * (y - y0) - (y1 - y0) * (x - x0)) / len;   // > 0 — слева
+            if (cross < -eps)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    double PolygonOutRadius(const std::vector<double>& xs, const std::vector<double>& ys)
+    {
+        double r = 0.0;
+        for (size_t k = 0; k < xs.size(); ++k)
+        {
+            r = std::max(r, std::sqrt(xs[k] * xs[k] + ys[k] * ys[k]));
+        }
+
+        return r;
+    }
+
+    bool ReadOutline(std::istringstream& ss, double& radius, std::vector<double>& xs, std::vector<double>& ys)
+    {
+        std::string kind;
+        ss >> kind;
+        if (kind == "none")
+        {
+            return true;
+        }
+
+        if (kind == "disk")
+        {
+            ss >> radius;
+            return true;
+        }
+
+        if (kind == "poly")
+        {
+            int n = 0;
+            ss >> n;
+            for (int k = 0; k < n; ++k)
+            {
+                double x = 0.0, y = 0.0;
+                ss >> x >> y;
+                xs.push_back(x);
+                ys.push_back(y);
+            }
+
+            return n >= 3;
+        }
+
+        return false;
+    }
 
     bool gSceneLoaded = false;
     std::map<std::string, SceneMat> gSceneMats;
@@ -449,16 +524,64 @@ namespace
             {
                 SceneRegion r;
                 std::string shape, flag;
-                ss >> shape >> r.mat >> r.a >> r.b >> r.z0 >> r.z1 >> flag;
-                r.box = shape == "box";
+                ss >> shape;
+                if (shape == "shaped")
+                {
+                    // (`AMBER282`) region shaped m z0 z1 crystal|- outer (disk R | poly n x y …)
+                    //                     hole (none | disk r | poly n x y …)
+                    std::string tag;
+                    ss >> r.mat >> r.z0 >> r.z1 >> flag;
+                    r.shaped = true;
+                    bool ok = (ss >> tag) && tag == "outer" && ReadOutline(ss, r.outerR, r.ox, r.oy)
+                              && (ss >> tag) && tag == "hole" && ReadOutline(ss, r.holeR, r.hx, r.hy);
+                    if (!ok)
+                    {
+                        std::fprintf(stderr, "область формы не разобрана: %s\n", line.c_str());
+                        return false;
+                    }
+                }
+                else
+                {
+                    ss >> r.mat >> r.a >> r.b >> r.z0 >> r.z1 >> flag;
+                    r.box = shape == "box";
+                }
+
                 r.crystal = flag == "crystal";
+                if (r.shaped && r.crystal)
+                {
+                    std::fprintf(stderr, "кристалл формы не поддержан: %s\n", line.c_str());
+                    return false;
+                }
+
                 gSceneRegions.push_back(r);
             }
             else if (word == "source")
             {
                 ss >> gSceneSource.kind;
-                for (int i = 0; i < 5 && (ss >> gSceneSource.p[i]); ++i)
+                if (gSceneSource.kind == "marinelli-trap")
                 {
+                    // (`AMBER282`) marinelli-trap rOut z0 z1 zCap n x y …
+                    int n = 0;
+                    ss >> gSceneSource.p[0] >> gSceneSource.p[1] >> gSceneSource.p[2] >> gSceneSource.p[3] >> n;
+                    for (int k = 0; k < n; ++k)
+                    {
+                        double x = 0.0, y = 0.0;
+                        ss >> x >> y;
+                        gSceneSource.wx.push_back(x);
+                        gSceneSource.wy.push_back(y);
+                    }
+
+                    if (n < 3 || !ss)
+                    {
+                        std::fprintf(stderr, "источник marinelli-trap не разобран: %s\n", line.c_str());
+                        return false;
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < 5 && (ss >> gSceneSource.p[i]); ++i)
+                    {
+                    }
                 }
             }
         }
@@ -475,10 +598,80 @@ namespace
 
     // ---- Геометрические предикаты коаксиальной сцены (всё центрировано).
 
+    // (`AMBER282`) Наружный контур X целиком в дырке H (в плане; все области центрированы на оси).
+    bool WithinHole(const SceneRegion& x, const SceneRegion& h)
+    {
+        const double eps = 1e-9;
+        // вершины наружного контура X; у круга — радиус
+        std::vector<double> vx, vy;
+        double rX = -1.0;
+        if (x.shaped)
+        {
+            if (!x.ox.empty()) { vx = x.ox; vy = x.oy; }
+            else { rX = x.outerR; }
+        }
+        else if (x.box)
+        {
+            vx = { -x.a, x.a, x.a, -x.a };
+            vy = { -x.b, -x.b, x.b, x.b };
+        }
+        else
+        {
+            rX = x.b;
+        }
+
+        double rMax = rX >= 0.0 ? rX : PolygonOutRadius(vx, vy);
+        if (h.shaped && !h.hx.empty())
+        {
+            if (rX >= 0.0)
+            {
+                // круг на оси внутри многоугольника: расстояние от оси до каждого ребра ≥ rX
+                size_t n = h.hx.size();
+                for (size_t k = 0; k < n; ++k)
+                {
+                    double x0 = h.hx[k], y0 = h.hy[k], x1 = h.hx[(k + 1) % n], y1 = h.hy[(k + 1) % n];
+                    double len = std::sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
+                    double dist = ((x1 - x0) * (0.0 - y0) - (y1 - y0) * (0.0 - x0)) / len;
+                    if (dist < rX - eps) return false;
+                }
+
+                return true;
+            }
+
+            for (size_t k = 0; k < vx.size(); ++k)
+            {
+                if (!InPolygon(h.hx, h.hy, vx[k], vy[k], eps)) return false;
+            }
+
+            return true;
+        }
+
+        double holeR = h.shaped ? h.holeR : (h.box ? 0.0 : h.a);
+        return holeR > 0.0 && rMax <= holeR + eps;
+    }
+
+    // (`AMBER282`) Две области, из которых хоть одна — формы, не пересекаются: по z или в плане
+    // (одна в дырке другой). Иначе — «могут пересекаться», и сцена ниже откажет.
+    bool DisjointShaped(const SceneRegion& p, const SceneRegion& q)
+    {
+        const double eps = 1e-9;
+        if (p.z1 <= q.z0 + eps || q.z1 <= p.z0 + eps)
+        {
+            return true;
+        }
+
+        return WithinHole(p, q) || WithinHole(q, p);
+    }
+
     // i целиком внутри j (для вложенной расстановки и сброса затенённых)
     bool Inside(const SceneRegion& i, const SceneRegion& j)
     {
         const double eps = 1e-9;
+        if (i.shaped || j.shaped)
+        {
+            return false;       // (`AMBER282`) области формы не вкладываются: ставятся в мир
+        }
+
         if (i.z0 < j.z0 - eps || i.z1 > j.z1 + eps)
         {
             return false;
@@ -507,6 +700,11 @@ namespace
     bool MayOverlap(const SceneRegion& p, const SceneRegion& q)
     {
         const double eps = 1e-9;
+        if (p.shaped || q.shaped)
+        {
+            return !DisjointShaped(p, q);       // (`AMBER282`)
+        }
+
         if (p.z1 <= q.z0 + eps || q.z1 <= p.z0 + eps)
         {
             return false;
@@ -754,6 +952,39 @@ public:
 
             const SceneRegion& r = gSceneRegions[k];
             std::string name = "r" + std::to_string(k);
+            if (r.shaped)
+            {
+                // (`AMBER282`) Призма формы: наружу — G4Tubs или G4ExtrudedSolid, дырка вычитается
+                // телом на 10 мкм длиннее (без совпадающих торцов у вычитания).
+                double half = 0.5 * (r.z1 - r.z0) * cm;
+                auto prism = [&](const std::string& n, const std::vector<double>& xs, const std::vector<double>& ys, double h)
+                {
+                    std::vector<G4TwoVector> poly;
+                    for (size_t v = xs.size(); v-- > 0;)          // по часовой стрелке
+                    {
+                        poly.emplace_back(xs[v] * cm, ys[v] * cm);
+                    }
+
+                    return static_cast<G4VSolid*>(new G4ExtrudedSolid(n, poly, h, G4TwoVector(), 1.0, G4TwoVector(), 1.0));
+                };
+                G4VSolid* outer = r.ox.empty()
+                    ? static_cast<G4VSolid*>(new G4Tubs(name + "_o", 0.0, r.outerR * cm, half, 0.0, 360.0 * deg))
+                    : prism(name + "_o", r.ox, r.oy, half);
+                G4VSolid* solid = outer;
+                if (!r.hx.empty())
+                {
+                    solid = new G4SubtractionSolid(name, outer, prism(name + "_h", r.hx, r.hy, half + 0.001 * cm));
+                }
+                else if (r.holeR > 0.0)
+                {
+                    solid = new G4SubtractionSolid(name, outer,
+                                                   new G4Tubs(name + "_h", 0.0, r.holeR * cm, half + 0.001 * cm, 0.0, 360.0 * deg));
+                }
+
+                logicals[k] = new G4LogicalVolume(solid, mats[r.mat], name);
+                continue;
+            }
+
             G4VSolid* solid = r.box
                 ? static_cast<G4VSolid*>(new G4Box(name, r.a * cm, r.b * cm,
                                                    0.5 * (r.z1 - r.z0) * cm))
@@ -859,6 +1090,24 @@ public:
             x = s.p[0] * (2.0 * G4UniformRand() - 1.0);
             y = s.p[1] * (2.0 * G4UniformRand() - 1.0);
             z = s.p[2] + (s.p[3] - s.p[2]) * G4UniformRand();
+        }
+        else if (s.kind == "marinelli-trap")
+        {
+            // (`AMBER282`) = TrapezoidMarinelliSampler: равномерно по цилиндру пробы, точка в
+            // наружном контуре гильзы выше её донышка (z ≥ zCap) отвергается.
+            double rOut = s.p[0], z0 = s.p[1], z1 = s.p[2], zCap = s.p[3];
+            for (int attempt = 0; attempt < 100000; ++attempt)
+            {
+                double rr = rOut * std::sqrt(G4UniformRand());
+                double phi = 2.0 * CLHEP::pi * G4UniformRand();
+                z = z0 + (z1 - z0) * G4UniformRand();
+                x = rr * std::cos(phi);
+                y = rr * std::sin(phi);
+                if (z < zCap || !InPolygon(s.wx, s.wy, x, y, 0.0))
+                {
+                    break;
+                }
+            }
         }
         else                                        // marinelli
         {

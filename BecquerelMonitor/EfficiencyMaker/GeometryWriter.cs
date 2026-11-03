@@ -137,6 +137,17 @@ namespace BecquerelMonitor.EfficiencyMaker
             };
         }
 
+        /// <summary>(`AMBER282`) Вещество слоя защиты: ключи `DS_RoShieldLayer0`, `M_DS_ShieldLayer0.MName`, … — их читает `GeometryModel.Load`.</summary>
+        static Slot ShieldSlot(string part)
+        {
+            return new Slot
+            {
+                CountKey = "DS_n" + part + "Elements", RoKey = "DS_Ro" + part,
+                ZPart = "DS_Z" + part, FractionsPart = "DS_Fractions" + part,
+                FractionTypeKey = "DS_FractionType" + part, NamePrefix = "M_DS_" + part,
+            };
+        }
+
         static Slot EmptySpace(string prefix)
         {
             return new Slot
@@ -277,6 +288,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             // (`f8cyl`) Дальнее дно цилиндра — строкой ТОЛЬКО у цилиндра с ненулевым дном:
             // текст прежних геометрий (и клеймо их матриц) — байт в байт.
             bool writeFarEnd = model.SourceType == GeometrySourceType.Cylinder && model.BeakerFarEndWallThickness > 0.0;
+            // (`AMBER282`) Трапеция колодца — строками только у маринелли с трапецией; слои защиты —
+            // только у защиты, входящей в сцену. Текст прежних геометрий (и клеймо их матриц) — байт в байт.
+            bool writeTrapezoid = model.HasTrapezoidHole;
+            bool writeShield = model.ShieldInScene;
             model = model.InCentimeters();
             StringBuilder text = new StringBuilder();
             Action<string> line = value => text.Append(value).Append("\r\n");
@@ -376,6 +391,16 @@ namespace BecquerelMonitor.EfficiencyMaker
             cm("SM_BeakerHoleSideThickness", model.MarinelliHoleSideThickness);
             cm("SM_BeakerHoleEndWallThickness", model.MarinelliHoleEndWallThickness);
             cm("SM_SourceHeight", model.MarinelliSourceHeight);
+            if (writeTrapezoid)
+            {
+                // (`AMBER282`) Наше расширение формата: колодец-трапеция в плане (просвет). Программа
+                // ЛСРМ этих ключей не знает и прочтёт файл как круглый колодец `SM_BeakerHoleDiameter`.
+                line("SM_BeakerHoleShape = TRAPEZOID");
+                cm("SM_BeakerHoleBase1", model.MarinelliHoleBase1);
+                cm("SM_BeakerHoleBase2", model.MarinelliHoleBase2);
+                cm("SM_BeakerHoleWidth", model.MarinelliHoleWidth);
+            }
+
             line("");
             // Прямоугольная кювета — НАШЕ расширение формата, как и
             // DS_CrystalBox*. Программа ЛСРМ этих ключей не знает и такой файл
@@ -540,6 +565,27 @@ namespace BecquerelMonitor.EfficiencyMaker
                 line("// Измерение в защите (наше расширение формата), см.");
                 line("// GeometryModel.InShield.");
                 line("DS_Shield = YES");
+            }
+
+            if (writeShield)
+            {
+                // (`AMBER282`) Защита В РАСЧЁТЕ (наше расширение формата): полость на оси сцены и
+                // слои изнутри наружу — вещество, толщины стенки, дна (за пробой) и крышки (за
+                // детектором). Её видят фотон и электрон, и она входит в клеймо матрицы.
+                line("// Защита в расчёте: полость и слои изнутри наружу, см. GeometryModel.ShieldLayers.");
+                cm("DS_ShieldInnerDiameter", model.ShieldInnerDiameter);
+                cm("DS_ShieldInnerHeight", model.ShieldInnerHeight);
+                cm("DS_ShieldFloorGap", model.ShieldFloorGap);
+                line("DS_nShieldLayers = " + model.ShieldLayers.Count.ToString(CultureInfo.InvariantCulture));
+                for (int i = 0; i < model.ShieldLayers.Count; i++)
+                {
+                    GeometryShieldLayer layer = model.ShieldLayers[i];
+                    string part = GeometryModel.ShieldLayerPart(i);
+                    cm("DS_" + part + "SideThickness", layer.SideThickness);
+                    cm("DS_" + part + "FloorThickness", layer.FloorThickness);
+                    cm("DS_" + part + "LidThickness", layer.LidThickness);
+                    Material(text, ShieldSlot(part), layer.Material ?? new GeometryMaterial());
+                }
             }
 
             // (`AMBER274`, Э1) Капсула точечного источника (наше расширение формата):

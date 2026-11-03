@@ -440,7 +440,11 @@ RM_DEV real Sim::RegionNearestFace(int r, real x, real y, real z)
     const RegionG& rr = D.regions[r];
     real d = M_Min(z - rr.ZMin, rr.ZMax - z);
     real rad = M_Sqrt(x * x + y * y);
-    if (rr.IsBox)
+    if (rr.Shape != 0)
+    {
+        d = M_Min(d, ShapedInnerDistance(rr, x, y, rad));     // (`AMBER282`)
+    }
+    else if (rr.IsBox)
     {
         d = M_Min(d, M_Min(rr.AX - M_Abs(x), rr.AY - M_Abs(y)));
     }
@@ -464,7 +468,11 @@ RM_DEV real Sim::RegionNearestFace(int r, real x, real y, real z)
         const RegionG& h = D.regions[i];
         real dz = M_Max((real)0, M_Max(h.ZMin - z, z - h.ZMax));
         real dxy;
-        if (h.IsBox)
+        if (h.Shape != 0)
+        {
+            dxy = ShapedOuterDistance(h, x, y, rad);           // (`AMBER282`)
+        }
+        else if (h.IsBox)
         {
             real dx = M_Max((real)0, M_Abs(x) - h.AX);
             real dy = M_Max((real)0, M_Abs(y) - h.AY);
@@ -479,6 +487,75 @@ RM_DEV real Sim::RegionNearestFace(int r, real x, real y, real z)
     }
 
     return d > (real)0 ? d : (real)0;
+}
+
+// = ElectronTransport.cs ShapedInnerDistance (`AMBER282`): от точки ВНУТРИ области формы до её
+// границы в плане — по граням наружного многоугольника (d − n·p) или круг; дырка — снаружи:
+// у многоугольника max(n·p − d), у круга rad − RIn.
+RM_DEV real Sim::ShapedInnerDistance(const RegionG& r, real x, real y, real rad)
+{
+    real d;
+    if ((r.Shape & RM_SHAPE_OUTER_POLYGON) != 0)
+    {
+        d = CS_DOUBLE_MAX;
+        const real* p = RR(r.Poly);
+        for (int j = 0; j < r.PolyLen; j++)
+        {
+            d = M_Min(d, p[4 * j + 2] - (p[4 * j] * x + p[4 * j + 1] * y));
+        }
+    }
+    else
+    {
+        d = r.ROut - rad;
+    }
+
+    if ((r.Shape & RM_SHAPE_HOLE_POLYGON) != 0)
+    {
+        d = M_Min(d, PolygonOutsideBound(RR(r.Hole), r.HoleLen, x, y));
+    }
+    else if (r.RIn > (real)0)
+    {
+        d = M_Min(d, rad - r.RIn);
+    }
+
+    return d;
+}
+
+// = ElectronTransport.cs ShapedOuterDistance (`AMBER282`): от точки СНАРУЖИ тела области формы до
+// него (ноль — в теле), нижняя граница.
+RM_DEV real Sim::ShapedOuterDistance(const RegionG& h, real x, real y, real rad)
+{
+    real outside = (h.Shape & RM_SHAPE_OUTER_POLYGON) != 0
+        ? PolygonOutsideBound(RR(h.Poly), h.PolyLen, x, y)
+        : rad - h.ROut;
+    real inHole;
+    if ((h.Shape & RM_SHAPE_HOLE_POLYGON) != 0)
+    {
+        inHole = CS_DOUBLE_MAX;
+        const real* p = RR(h.Hole);
+        for (int j = 0; j < h.HoleLen; j++)
+        {
+            inHole = M_Min(inHole, p[4 * j + 2] - (p[4 * j] * x + p[4 * j + 1] * y));
+        }
+    }
+    else
+    {
+        inHole = h.RIn - rad;
+    }
+
+    return M_Max((real)0, M_Max(outside, inHole));
+}
+
+// = ElectronTransport.cs PolygonOutsideBound (`AMBER282`): max(n·p − d) по граням (по 4 числа).
+RM_DEV real Sim::PolygonOutsideBound(const real* p, int faces, real x, real y)
+{
+    real m = -CS_DOUBLE_MAX;
+    for (int j = 0; j < faces; j++)
+    {
+        m = M_Max(m, p[4 * j] * x + p[4 * j + 1] * y - p[4 * j + 2]);
+    }
+
+    return m;
 }
 
 // = ElectronTransport.cs:567 HighlandTheta0
@@ -1511,6 +1588,10 @@ RM_DEVF bool Sim::TransportInLayers(real& x, real& y, real& z, real& ux, real& u
             real thick = rg.ZMax - rg.ZMin;
             real side = rg.IsBox ? (real)2 * M_Min(rg.AX, rg.AY)
                                  : (rg.RIn > (real)0 ? rg.ROut - rg.RIn : (real)2 * rg.ROut);
+            if (rg.Shape != 0)
+            {
+                side = rg.SideThickness;                       // (`AMBER282`) область формы
+            }
             real capCm = (real)C.ElectronLayerStepMaxFraction * M_Min(thick, side);
             if (capCm > (real)0 && stepCm > capCm)
             {

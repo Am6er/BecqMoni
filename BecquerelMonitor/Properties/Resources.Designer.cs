@@ -10101,5 +10101,329 @@ namespace BecquerelMonitor.Properties {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to Hole shape in plan.
+        /// </summary>
+        public static string GeometryEditorHoleShape {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleShape", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Round is the classic Marinelli beaker. Trapezoid: two bas....
+        /// </summary>
+        public static string GeometryEditorHoleShapeHint {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleShapeHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Round.
+        /// </summary>
+        public static string GeometryEditorHoleShapeRound {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleShapeRound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Trapezoid.
+        /// </summary>
+        public static string GeometryEditorHoleShapeTrapezoid {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleShapeTrapezoid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Hole base 1 (inner).
+        /// </summary>
+        public static string GeometryEditorHoleBase1 {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleBase1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Hole base 2 (inner).
+        /// </summary>
+        public static string GeometryEditorHoleBase2 {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleBase2", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Hole height between the bases (inner).
+        /// </summary>
+        public static string GeometryEditorHoleWidth {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleWidth", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shield cavity diameter.
+        /// </summary>
+        public static string GeometryEditorShieldInnerDiameter {
+            get {
+                return ResourceManager.GetString("GeometryEditorShieldInnerDiameter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shield cavity height (bottom to top).
+        /// </summary>
+        public static string GeometryEditorShieldInnerHeight {
+            get {
+                return ResourceManager.GetString("GeometryEditorShieldInnerHeight", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Gap from the sample to the shield bottom.
+        /// </summary>
+        public static string GeometryEditorShieldFloorGap {
+            get {
+                return ResourceManager.GetString("GeometryEditorShieldFloorGap", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shield layers, from the inside out:.
+        /// </summary>
+        public static string GeometryEditorShieldLayers {
+            get {
+                return ResourceManager.GetString("GeometryEditorShieldLayers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Material.
+        /// </summary>
+        public static string GeometryEditorShieldLayerMaterial {
+            get {
+                return ResourceManager.GetString("GeometryEditorShieldLayerMaterial", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Side.
+        /// </summary>
+        public static string GeometryEditorShieldLayerSide {
+            get {
+                return ResourceManager.GetString("GeometryEditorShieldLayerSide", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Bottom.
+        /// </summary>
+        public static string GeometryEditorShieldLayerFloor {
+            get {
+                return ResourceManager.GetString("GeometryEditorShieldLayerFloor", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Top.
+        /// </summary>
+        public static string GeometryEditorShieldLayerLid {
+            get {
+                return ResourceManager.GetString("GeometryEditorShieldLayerLid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add layer.
+        /// </summary>
+        public static string GeometryEditorShieldAddLayer {
+            get {
+                return ResourceManager.GetString("GeometryEditorShieldAddLayer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove this shield layer.
+        /// </summary>
+        public static string GeometryEditorShieldRemoveLayerTip {
+            get {
+                return ResourceManager.GetString("GeometryEditorShieldRemoveLayerTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The first layer lines the cavity, each next one covers th....
+        /// </summary>
+        public static string GeometryEditorShieldLayersHint {
+            get {
+                return ResourceManager.GetString("GeometryEditorShieldLayersHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shield in the calculation: set the cavity diameter and he....
+        /// </summary>
+        public static string GeometryEditorErrorShieldCavity {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorShieldCavity", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0}: all thicknesses are zero. Set a thickness or remove ....
+        /// </summary>
+        public static string GeometryEditorErrorShieldLayerEmpty {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorShieldLayerEmpty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The shield cavity is narrower than the scene inside it: {....
+        /// </summary>
+        public static string GeometryEditorErrorShieldNarrow {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorShieldNarrow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The shield cavity is lower than the scene inside it toget....
+        /// </summary>
+        public static string GeometryEditorErrorShieldLow {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorShieldLow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shield layer {0}.
+        /// </summary>
+        public static string GeometryEditorShieldLayerCaption {
+            get {
+                return ResourceManager.GetString("GeometryEditorShieldLayerCaption", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to , hole trapezoid {0:F1}/{1:F1} × {2:F1} mm.
+        /// </summary>
+        public static string GeometrySourceTrapezoidHole {
+            get {
+                return ResourceManager.GetString("GeometrySourceTrapezoidHole", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ; shield of {0} layer(s), D = {1:F1}/{2:F1}, H = {3:F1}/{....
+        /// </summary>
+        public static string GeometrySourceShieldLayers {
+            get {
+                return ResourceManager.GetString("GeometrySourceShieldLayers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Trapezoid well.
+        /// </summary>
+        public static string EfficiencySketchTrapezoidHole {
+            get {
+                return ResourceManager.GetString("EfficiencySketchTrapezoidHole", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shield: {0} layer(s), ⌀{1} × {2} {3}.
+        /// </summary>
+        public static string EfficiencySketchShield {
+            get {
+                return ResourceManager.GetString("EfficiencySketchShield", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to side / bottom / top.
+        /// </summary>
+        public static string EfficiencySketchShieldParts {
+            get {
+                return ResourceManager.GetString("EfficiencySketchShieldParts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to outer ⌀{0} × {1} {2}.
+        /// </summary>
+        public static string EfficiencySketchShieldOuter {
+            get {
+                return ResourceManager.GetString("EfficiencySketchShieldOuter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to , not to scale.
+        /// </summary>
+        public static string EfficiencySketchNotToScale {
+            get {
+                return ResourceManager.GetString("EfficiencySketchNotToScale", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Side view.
+        /// </summary>
+        public static string EfficiencySketchSideView {
+            get {
+                return ResourceManager.GetString("EfficiencySketchSideView", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Top view.
+        /// </summary>
+        public static string EfficiencySketchTopView {
+            get {
+                return ResourceManager.GetString("EfficiencySketchTopView", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shield.
+        /// </summary>
+        public static string GeometryEditorTabShield {
+            get {
+                return ResourceManager.GetString("GeometryEditorTabShield", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No sample below the well (through well).
+        /// </summary>
+        public static string GeometryEditorHoleThrough {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleThrough", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The well goes through the whole sample: its depth equals ....
+        /// </summary>
+        public static string GeometryEditorHoleThroughHint {
+            get {
+                return ResourceManager.GetString("GeometryEditorHoleThroughHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The well is as deep as the sample, but its end wall is {0....
+        /// </summary>
+        public static string GeometryEditorErrorHoleThroughWall {
+            get {
+                return ResourceManager.GetString("GeometryEditorErrorHoleThroughWall", resourceCulture);
+            }
+        }
+        
     }
 }

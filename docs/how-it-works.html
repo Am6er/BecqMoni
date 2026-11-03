@@ -650,7 +650,7 @@ Object.assign(T.ru, { 'theme.light': 'Дневная тема', 'theme.dark': '�
 Object.assign(T.en, { 'theme.light': 'Light theme', 'theme.dark': 'Dark theme' });
 const HOOD = {ru:{
 1:'<li>Перенос в программе подробнее, чем здесь: комптон на связанных электронах, рэлей, вылет K- и L-рентгена, пары с переносом позитрона, перенос электронов и тормозное излучение, нелинейность светового выхода.</li>'+
-  '<li>Свинцовый домик в перенос не входит. Слой «Обратное рассеяние» FSA строит без матрицы всегда, а при матрице — только если в геометрии отмечено «Измерение в защите (свинцовый домик)». Слой «Рентген Pb» появляется, когда поиск пиков подписал линии рентгена свинца (флажок «Атомный рентген»).</li>'+
+  '<li>Защита, заданная слоями (вкладка «Защита» редактора геометрии), входит в перенос и в матрицу: её обратное рассеяние уже в матрице, и отдельного слоя FSA не строит. Без слоёв галка «Измерение в защите» — прежний признак: слой «Обратное рассеяние» FSA строит без матрицы всегда, а при матрице — только при этой галке. Слой «Рентген Pb» появляется, когда поиск пиков подписал линии рентгена свинца (флажок «Атомный рентген»).</li>'+
   '<li>Кристалл — цилиндр или брусок, NaI, CsI, LaBr3 или BGO. Есть готовые шаблоны детекторов: RadiaCode-101 и -103, Atom Spectra Nano 16, 40×40 и 80×80, Gamma-1S 63×63, Obsidian.</li>',
 2:'<li>Геометрия задаётся в конфигурации прибора, вкладка «Эффективность»: детектор (кристалл, отражатель, зазор, корпус), проба (точка, банка, маринелли, кювета — вещество и плотность) и расстояние.</li>'+
   '<li>Кнопка «Посчитать из геометрии» считает кривую тем же переносом: 200000 фотонов на точку, точки 5…3000 кэВ, внизу и у K-краёв гуще. Кривую можно и импортировать из ЛСРМ — кнопкой «Импорт из LSRM…» конструктора кривой.</li>'+
@@ -672,7 +672,7 @@ const HOOD = {ru:{
   '<li>Не обнаруженный нуклид выводится строкой с порогом решения и пределом обнаружения по ISO 11929 (α = β = 5 %).</li>'
 },en:{
 1:'<li>The app\'s transport is more detailed than here: Compton on bound electrons, Rayleigh, K and L X-ray escape, pairs with positron transport, electron transport and bremsstrahlung, non-proportional light yield.</li>'+
-  '<li>The lead house is not part of the transport. Without a matrix FSA always builds the "Backscatter" layer; with a matrix only if the geometry has "Measured inside a shield (lead castle)" ticked. The "X-ray Pb" layer appears when the peak search has labelled lead X-ray lines ("Atomic X-rays" box).</li>'+
+  '<li>A shield given as layers (the "Shield" tab of the geometry editor) is part of the transport and of the matrix: its backscatter is already in the matrix, and FSA builds no separate layer for it. Without layers the "Measured inside a shield" box is the old flag: without a matrix FSA always builds the "Backscatter" layer; with a matrix only when this box is ticked. The "X-ray Pb" layer appears when the peak search has labelled lead X-ray lines ("Atomic X-rays" box).</li>'+
   '<li>The crystal is a cylinder or a bar, NaI, CsI, LaBr3 or BGO. Ready detector templates: RadiaCode-101 and -103, Atom Spectra Nano 16, 40×40 and 80×80, Gamma-1S 63×63, Obsidian.</li>',
 2:'<li>The geometry is set in the device configuration, Efficiency section: detector (crystal, reflector, gap, housing), sample (point, jar, Marinelli, cuvette — material and density) and distance.</li>'+
   '<li>"Calculate from geometry" computes the curve with the same transport: 200000 photons per point, points 5…3000 keV, denser at the bottom and near K-edges. A curve can also be imported from LSRM with "Import from LSRM..." in the curve editor.</li>'+
@@ -878,7 +878,7 @@ function dims(G) {
   D.rb = Math.sqrt(R * R + H * H / 4) * 1.002;
   return D;
 }
-const dimsT = () => dims(Object.assign({}, GEO, { shield: false }));   // перенос для кривых и матрицы — без домика, как в программе
+const dimsT = () => dims(Object.assign({}, GEO, { shield: false }));   // перенос для кривых и матрицы — без домика (в программе защита входит в перенос, только если задана слоями)
 function srcVolume(D) { if (D.jar) return Math.PI * D.jar.R * D.jar.R * (D.jar.z1 - D.jar.z0); if (D.mar) { const m = D.mar; return Math.PI * (m.Ro * m.Ro * (m.z1 - m.z0) - m.Ri * m.Ri * (m.z1 - m.zw)); } return 0; }
 function emitPoint(D) {
   if (D.point) return D.point;

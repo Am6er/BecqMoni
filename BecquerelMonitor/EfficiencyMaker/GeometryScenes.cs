@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace BecquerelMonitor.EfficiencyMaker
 {
@@ -547,7 +548,44 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return issues;
             }
 
-            if (g.SourceType == GeometrySourceType.Marinelli)
+            // (`AMBER282`) Сцена обязана влезть в полость защиты — тем же габаритом, что
+            // проверяет перенос (`EfficiencySimulator.AddShield` откажет с числами); здесь —
+            // до расчёта и с подсветкой поля.
+            if (g.ShieldInScene)
+            {
+                double radius, top, bottom;
+                if (SceneEnvelopeMm(g, out radius, out top, out bottom))
+                {
+                    if (2.0 * radius > g.ShieldInnerDiameter + EnvelopeToleranceMm)
+                    {
+                        issues.Add(new Issue
+                        {
+                            Field = "ShieldInnerDiameter",
+                            Resource = "GeometryEditorErrorShieldNarrow",
+                            Value = g.ShieldInnerDiameter,
+                            Limit = 2.0 * radius,
+                        });
+                    }
+
+                    double need = bottom - top + Math.Max(0.0, g.ShieldFloorGap);
+                    if (need > g.ShieldInnerHeight + EnvelopeToleranceMm)
+                    {
+                        issues.Add(new Issue
+                        {
+                            Field = "ShieldInnerHeight",
+                            Resource = "GeometryEditorErrorShieldLow",
+                            Value = g.ShieldInnerHeight,
+                            Limit = need,
+                        });
+                    }
+                }
+            }
+
+            if (g.SourceType == GeometrySourceType.Marinelli && g.HasTrapezoidHole)
+            {
+                TrapezoidIssues(g, issues);
+            }
+            else if (g.SourceType == GeometrySourceType.Marinelli)
             {
                 // (а) В колодец прибор обязан пролезть. У бруска — диагональю:
                 // именно ею он входит в круглую лунку.
@@ -589,6 +627,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                         Value = g.MarinelliHoleHeight,
                         Limit = g.MarinelliSourceHeight,
                     });
+                }
+                // (`AMBER282`) Колодец во всю высоту пробы при стенке у его торца: торец
+                // вылез бы за пробу. Сквозной колодец — это торец 0 (галка «Под колодцем
+                // пробы нет»); отказ — с подсветкой глубины.
+                else if (g.MarinelliHoleHeight >= g.MarinelliSourceHeight && g.MarinelliHoleEndWallThickness > 0.0
+                         && g.MarinelliSourceHeight > 0.0)
+                {
+                    issues.Add(new Issue { Field = "MarinelliHoleHeight", Resource = "GeometryEditorErrorHoleThroughWall",
+                                           Value = g.MarinelliHoleEndWallThickness, Limit = g.MarinelliSourceHeight });
                 }
 
                 // ...а стакан — ниже своей пробы.
@@ -650,6 +697,184 @@ namespace BecquerelMonitor.EfficiencyMaker
             return issues;
         }
 
+        /// <summary>Допуск сравнения габарита сцены с полостью защиты, мм.</summary>
+        const double EnvelopeToleranceMm = 1e-3;
+
+        /// <summary>
+        /// (`AMBER282`) Связки колодца-трапеции: прибор пролезает в просвет, колодец
+        /// со стенкой не вылезает за пробу, колодец не глубже пробы, стакан не ниже
+        /// своей пробы. Последние две — те же, что у круглого.
+        /// </summary>
+        static void TrapezoidIssues(GeometryModel g, List<Issue> issues)
+        {
+            double a = g.MarinelliHoleBase1, b = g.MarinelliHoleBase2, w = g.MarinelliHoleWidth;
+            if (a > 0.0 && b > 0.0 && w > 0.0)
+            {
+                // (а) Прибор в просвете, ось прибора — на оси трапеции. Полуширина
+                // просвета на высоте y: c + k·y, c = (a + b)/4, k = (b − a)/(2w).
+                double c = 0.25 * (a + b), k = (b - a) / (2.0 * w);
+                double toSample, side;
+                WrappingInScene(g, out toSample, out side);
+                if (g.Shape == CrystalShape.Box)
+                {
+                    double hx, hy, depth;
+                    g.CrystalBoxInScene(out hx, out hy, out depth);
+                    double halfX = hx + side, halfY = hy + side;
+                    if (2.0 * halfY > w)
+                    {
+                        issues.Add(new Issue { Field = "MarinelliHoleWidth", Resource = "GeometryEditorErrorHoleNarrow",
+                                               Value = w, Limit = 2.0 * halfY });
+                    }
+                    else if (halfX > c - Math.Abs(k) * halfY)
+                    {
+                        // Узкое основание — то, о которое упирается брусок.
+                        string field = a <= b ? "MarinelliHoleBase1" : "MarinelliHoleBase2";
+                        double narrow = Math.Min(a, b);
+                        double needed = narrow + 2.0 * (halfX - (c - Math.Abs(k) * halfY));
+                        issues.Add(new Issue { Field = field, Resource = "GeometryEditorErrorHoleNarrow",
+                                               Value = narrow, Limit = needed });
+                    }
+                }
+                else
+                {
+                    double r = 0.5 * g.CrystalDiameter + side;
+                    double toEdge = c / Math.Sqrt(1.0 + k * k);
+                    if (2.0 * r > w)
+                    {
+                        issues.Add(new Issue { Field = "MarinelliHoleWidth", Resource = "GeometryEditorErrorHoleNarrow",
+                                               Value = w, Limit = 2.0 * r });
+                    }
+                    else if (r > toEdge)
+                    {
+                        string field = a <= b ? "MarinelliHoleBase1" : "MarinelliHoleBase2";
+                        issues.Add(new Issue { Field = field, Resource = "GeometryEditorErrorHoleNarrow",
+                                               Value = Math.Min(a, b), Limit = Math.Min(a, b) + 2.0 * (r - toEdge) * Math.Sqrt(1.0 + k * k) });
+                    }
+                }
+
+                // (б) Колодец со стенкой — внутри пробы: самая дальняя вершина
+                // наружного контура не дальше просвета стакана.
+                double[] xs = new double[4], ys = new double[4];
+                if (g.TrapezoidHoleVertices(Math.Max(0.0, g.MarinelliHoleSideThickness), xs, ys))
+                {
+                    double reach = 0.0;
+                    for (int i = 0; i < 4; i++)
+                    {
+                        reach = Math.Max(reach, Math.Sqrt(xs[i] * xs[i] + ys[i] * ys[i]));
+                    }
+
+                    double rOut = 0.5 * g.MarinelliBeakerDiameter - g.MarinelliSideThickness;
+                    if (!(rOut > reach))
+                    {
+                        issues.Add(new Issue { Field = "MarinelliBeakerDiameter", Resource = "GeometryEditorErrorRingGone",
+                                               Value = 2.0 * rOut, Limit = 2.0 * reach });
+                    }
+                }
+            }
+
+            if (g.MarinelliHoleHeight > g.MarinelliSourceHeight)
+            {
+                issues.Add(new Issue { Field = "MarinelliHoleHeight", Resource = "GeometryEditorErrorHoleDeeper",
+                                       Value = g.MarinelliHoleHeight, Limit = g.MarinelliSourceHeight });
+            }
+            // (`AMBER282`) Колодец во всю высоту пробы при стенке у его торца: торец
+            // вылез бы за пробу. Сквозной колодец — это торец 0 (галка «Под колодцем
+            // пробы нет»); отказ — с подсветкой глубины.
+            else if (g.MarinelliHoleHeight >= g.MarinelliSourceHeight && g.MarinelliHoleEndWallThickness > 0.0
+                     && g.MarinelliSourceHeight > 0.0)
+            {
+                issues.Add(new Issue { Field = "MarinelliHoleHeight", Resource = "GeometryEditorErrorHoleThroughWall",
+                                       Value = g.MarinelliHoleEndWallThickness, Limit = g.MarinelliSourceHeight });
+            }
+
+            if (g.MarinelliBeakerHeight > 0.0 && g.MarinelliSourceHeight > g.MarinelliBeakerHeight)
+            {
+                issues.Add(new Issue { Field = "MarinelliSourceHeight", Resource = "GeometryEditorErrorSampleTaller",
+                                       Value = g.MarinelliSourceHeight, Limit = g.MarinelliBeakerHeight });
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER282`) Ключ поля редактора у слоя защиты: `ShieldLayer0.Side` и т. п.
+        /// Одно правило редактору (поле и подсветка) и проверке длин здесь.
+        /// </summary>
+        public static string ShieldLayerField(int index, string part)
+        {
+            return "ShieldLayer" + index.ToString(CultureInfo.InvariantCulture) + "." + part;
+        }
+
+        /// <summary>
+        /// (`AMBER282`) Габарит сцены БЕЗ защиты, мм: радиус от оси (самая дальняя
+        /// точка детектора с обвязкой и пробы с сосудом) и пределы по оси — `top`
+        /// со стороны пробы (дальний от детектора край), `bottom` — за детектором.
+        /// Оси те же, что у чертежа (<see cref="GeometrySketch"/>): торец кристалла
+        /// при z = 0, проба — при z &lt; 0. Это та сцена, вокруг которой перенос
+        /// кладёт полость защиты (`EfficiencySimulator.AddShield`: дно — на
+        /// `ShieldFloorGap` дальше дальнего края, крышка — на высоте полости от дна).
+        /// Ложь — габарита нет (кристалл не задан, полевая сцена).
+        /// </summary>
+        public static bool SceneEnvelopeMm(GeometryModel g, out double radius, out double top, out double bottom)
+        {
+            radius = 0.0;
+            top = 0.0;
+            bottom = 0.0;
+            if (g == null || g.Scene != GeometrySceneKind.None)
+            {
+                return false;
+            }
+
+            double toSample, side;
+            WrappingInScene(g, out toSample, out side);
+            double depth;
+            if (g.Shape == CrystalShape.Box)
+            {
+                double hx, hy;
+                g.CrystalBoxInScene(out hx, out hy, out depth);
+            }
+            else
+            {
+                depth = g.CrystalHeight;
+            }
+
+            if (!(depth > 0.0))
+            {
+                return false;
+            }
+
+            double zFace = -Math.Max(0.0, toSample);
+            double zBack = depth + Math.Max(0.0, g.MountingThickness);
+            double left, right, sTop, sBottom;
+            GeometrySketch.SourceBounds(g, zFace, out left, out right, out sTop, out sBottom);
+            top = Math.Min(zFace, sTop);
+            bottom = Math.Max(zBack, sBottom);
+
+            radius = 0.5 * DetectorOuterDiameterMm(g);
+            switch (g.SourceType)
+            {
+                case GeometrySourceType.Point:
+                    if (g.HasSourceCapsule && g.SourceCapsuleRingHeight > 0.0)
+                    {
+                        radius = Math.Max(radius, 0.5 * g.SourceCapsuleRingOuterDiameter);
+                    }
+
+                    break;
+
+                case GeometrySourceType.Cylinder:
+                    radius = Math.Max(radius, 0.5 * g.BeakerDiameter);
+                    break;
+
+                case GeometrySourceType.Box:
+                    radius = Math.Max(radius, 0.5 * Math.Sqrt(g.BoxSourceX * g.BoxSourceX + g.BoxSourceY * g.BoxSourceY));
+                    break;
+
+                case GeometrySourceType.Marinelli:
+                    radius = Math.Max(radius, 0.5 * g.MarinelliBeakerDiameter);
+                    break;
+            }
+
+            return true;
+        }
+
         /// <summary>
         /// Длины, которые читает сцена этого вида источника (`AMBER98`): обвязка
         /// детектора всегда, размеры источника — только своего вида. Размеры
@@ -709,6 +934,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                     list.Add(Length("MarinelliHoleEndWallThickness", g.MarinelliHoleEndWallThickness));
                     list.Add(Length("MarinelliSourceHeight", g.MarinelliSourceHeight));
                     list.Add(Length("MarinelliToDetectorDistance", g.MarinelliToDetectorDistance));
+                    // (`AMBER282`) Трапеция колодца — у трапеции.
+                    if (g.HasTrapezoidHole)
+                    {
+                        list.Add(Length("MarinelliHoleBase1", g.MarinelliHoleBase1));
+                        list.Add(Length("MarinelliHoleBase2", g.MarinelliHoleBase2));
+                        list.Add(Length("MarinelliHoleWidth", g.MarinelliHoleWidth));
+                    }
+
                     break;
 
                 case GeometrySourceType.Box:
@@ -719,6 +952,22 @@ namespace BecquerelMonitor.EfficiencyMaker
                     list.Add(Length("BoxEndWallThickness", g.BoxEndWallThickness));
                     list.Add(Length("BoxToDetectorDistance", g.BoxToDetectorDistance));
                     break;
+            }
+
+            // (`AMBER282`) Защита в расчёте: полость и толщины слоёв — при галке у обычной
+            // сцены со слоями (то, что редактор кладёт в модель).
+            if (g.InShield && g.Scene == GeometrySceneKind.None && g.ShieldLayers != null && g.ShieldLayers.Count > 0)
+            {
+                list.Add(Length("ShieldInnerDiameter", g.ShieldInnerDiameter));
+                list.Add(Length("ShieldInnerHeight", g.ShieldInnerHeight));
+                list.Add(Length("ShieldFloorGap", g.ShieldFloorGap));
+                for (int i = 0; i < g.ShieldLayers.Count; i++)
+                {
+                    GeometryShieldLayer layer = g.ShieldLayers[i];
+                    list.Add(Length(ShieldLayerField(i, "Side"), layer.SideThickness));
+                    list.Add(Length(ShieldLayerField(i, "Floor"), layer.FloorThickness));
+                    list.Add(Length(ShieldLayerField(i, "Lid"), layer.LidThickness));
+                }
             }
 
             return list;
@@ -752,6 +1001,32 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 case GeometrySourceType.Marinelli:
                 {
+                    // (`AMBER282`) Колодец-трапеция: цилиндр пробы радиусом
+                    // max(дальняя вершина гильзы, просвет стакана) минус наружный
+                    // контур гильзы на глубину колодца — ровно так его кладёт
+                    // `EfficiencySimulator.BuildTrapezoidMarinelli`.
+                    if (g.HasTrapezoidHole)
+                    {
+                        double[] xs = new double[4], ys = new double[4];
+                        double ths = Math.Max(0.0, g.MarinelliHoleSideThickness);
+                        if (!g.TrapezoidHoleVertices(ths, xs, ys))
+                        {
+                            return 0.0;
+                        }
+
+                        double reach = 0.0;
+                        for (int i = 0; i < 4; i++)
+                        {
+                            reach = Math.Max(reach, Math.Sqrt(xs[i] * xs[i] + ys[i] * ys[i]));
+                        }
+
+                        double rSrc = Math.Max(reach, 0.5 * g.MarinelliBeakerDiameter - g.MarinelliSideThickness);
+                        double hsT = Math.Max(0.0, g.MarinelliSourceHeight);
+                        double hhT = Math.Max(0.0, g.MarinelliHoleHeight);
+                        double well = g.TrapezoidHoleArea(ths) * Math.Min(hsT, hhT);
+                        return Math.Max(0.0, Math.PI * rSrc * rSrc * hsT - well) / Mm3PerCm3;
+                    }
+
                     // Кольцо идёт на всю высоту пробы, а столб — только ниже
                     // дна колодца: ровно так их кладёт EfficiencySimulator.
                     double rIn = 0.5 * g.MarinelliHoleDiameter + g.MarinelliHoleSideThickness;

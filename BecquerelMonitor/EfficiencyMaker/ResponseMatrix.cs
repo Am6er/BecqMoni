@@ -2276,7 +2276,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             // электрона несёт его само). Сдвиг точки в капсуле фотоны видят — он входит
             // строкой `srcoff` (<see cref="GeometryText"/>, `Ф6`).
             bool dropCapsule = !geometry.IsOsgiCapsule;
-            if (!dropGap && !geometry.InShield && !dropCapsule)
+            // (`AMBER282`) Защита, ВОШЕДШАЯ в сцену переноса (слои), в клейме ОСТАЁТСЯ: её видят
+            // фотон и электрон. Снимается — как прежде — только признак без слоёв.
+            bool dropShield = geometry.InShield && !geometry.ShieldInScene;
+            if (!dropGap && !dropShield && !dropCapsule)
             {
                 return geometry;
             }
@@ -2293,7 +2296,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             // числа, и разъехавшееся клеймо объявило бы их чужими: 44
             // корпусные сцены в пересчёт из-за галки, которую читает
             // ТОЛЬКО разбор.
-            view.InShield = false;
+            // (`AMBER282`) Слои защиты в сцене — признак остаётся: без него слоёв в тексте нет.
+            if (dropShield)
+            {
+                view.InShield = false;
+            }
+
             // (`AMBER274`) Капсула — к умолчанию ОСГИ: у него строк в тексте нет, и
             // фотонное клеймо любой капсулы равно клейму прежних файлов.
             view.SourceCapsuleThickness = GeometryModel.OsgiFilmMm;

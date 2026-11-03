@@ -72,6 +72,132 @@ namespace BecquerelMonitor
         CheckBox shieldCheck;
 
         Panel shieldPanel;
+
+        /// <summary>
+        /// (`AMBER282`) Защита В РАСЧЁТЕ — поля сцены под галкой «в защите». Решение
+        /// Amber 02.11.2026 вопросником, дословно: «При включении галки "в защите"
+        /// добавлять новые поля сцены с материалом»; следом — «Т.е. защита из слоёв
+        /// состоит». Полость (диаметр, высота, зазор до дна) и слои изнутри наружу:
+        /// вещество, плотность, толщины стенки, дна и крышки. Без слоёв галка значит
+        /// прежнее (`AMBER12`): домик в сцену не входит.
+        /// </summary>
+        Panel shieldScenePanel;
+
+        Label shieldLayersTitle, shieldLayersHint, shieldHintLabel;
+        Label[] shieldLayerHeaders;
+        Button shieldAddButton;
+        readonly List<ShieldLayerRow> shieldLayerRows = new List<ShieldLayerRow>();
+        readonly ToolTip shieldTips = new ToolTip();
+
+        /// <summary>
+        /// (`AMBER282`) Показана ли панель защиты в расчёте ПО НАШЕМУ РЕШЕНИЮ — тем же
+        /// доводом, что <see cref="RowControls.Shown"/>: `Visible` у невыбранной вкладки
+        /// ложь у всех.
+        /// </summary>
+        bool shieldSceneShown;
+
+        /// <summary>(`AMBER282`) Подписи полей, у которых нет строки `Row` (слои защиты), — для текста отказа.</summary>
+        readonly Dictionary<string, string> fieldCaptions = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// (`AMBER282`) Форма колодца маринелли в плане: круглый (как было) или
+        /// трапеция (задача Amber 02.11.2026, дословно: «колодец не круглый, а
+        /// трапецевидной формы»). Строка-список в столбике полей маринелли.
+        /// </summary>
+        ComboBox holeShapeCombo;
+
+        /// <summary>(`AMBER282`) «Под колодцем пробы нет (колодец насквозь)».</summary>
+        CheckBox holeThroughCheck;
+
+        sealed class CheckRowControls
+        {
+            public CheckBox Check;
+            public bool Shown = true;
+        }
+
+        readonly Dictionary<string, CheckRowControls> checkRows =
+            new Dictionary<string, CheckRowControls>(StringComparer.Ordinal);
+
+        CheckBox CheckRow(Control parent, ref int y, string key, string caption, string hint)
+        {
+            CheckBox check = new CheckBox { AutoSize = true, Location = new Point(14, y + 2), Text = caption };
+            parent.Controls.Add(check);
+            if (!string.IsNullOrEmpty(hint))
+            {
+                new ToolTip().SetToolTip(check, AppUi.WrapTip(hint));
+            }
+
+            this.checkRows[key] = new CheckRowControls { Check = check };
+            this.rowOrder.Add(new KeyValuePair<Control, string>(parent, key));
+            y += 28;
+            return check;
+        }
+
+        /// <summary>Сквозной колодец включён и применим (маринелли без полевой сцены).</summary>
+        bool HoleThroughOn
+        {
+            get
+            {
+                CheckRowControls row;
+                return this.holeThroughCheck != null && this.holeThroughCheck.Checked
+                       && this.checkRows.TryGetValue("MarinelliHoleThrough", out row) && row.Shown
+                       && this.SelectedSourceType == GeometrySourceType.Marinelli
+                       && this.SelectedScene == GeometrySceneKind.None;
+            }
+        }
+
+        /// <summary>
+        /// Поля глубины и торца колодца при сквозном колодце: глубина следует за высотой
+        /// пробы, торец — ноль, оба недоступны. Числа ставятся под `loading` — это не правка.
+        /// </summary>
+        void ApplyHoleThrough()
+        {
+            TextBox depth, end, height;
+            if (!this.fields.TryGetValue("MarinelliHoleHeight", out depth)
+                || !this.fields.TryGetValue("MarinelliHoleEndWallThickness", out end)
+                || !this.fields.TryGetValue("MarinelliSourceHeight", out height))
+            {
+                return;
+            }
+
+            bool on = this.HoleThroughOn;
+            depth.Enabled = !on;
+            end.Enabled = !on;
+            if (!on)
+            {
+                return;
+            }
+
+            bool wasLoading = this.loading;
+            this.loading = true;
+            try
+            {
+                if (depth.Text != height.Text)
+                {
+                    depth.Text = height.Text;
+                }
+
+                if (end.Text != "0")
+                {
+                    end.Text = "0";
+                }
+            }
+            finally
+            {
+                this.loading = wasLoading;
+            }
+        }
+
+        void HoleThroughChanged(object sender, EventArgs e)
+        {
+            if (this.loading)
+            {
+                return;
+            }
+
+            this.ApplyHoleThrough();
+            this.ValueChanged(sender, e);
+        }
         Panel cylinderSizePanel, boxSizePanel;
 
         // (`AMBER1`) Столбик размеров обвязки и стоящая под ним стопка веществ.
@@ -175,7 +301,14 @@ namespace BecquerelMonitor
         /// </summary>
         double sceneEnergyKev = 3000.0;
 
-        GeometrySketch detectorSketch, sourceSketch;
+        GeometrySketch detectorSketch, sourceSketch, shieldSketch;
+
+        TabControl tabs;
+
+        /// <summary>(`AMBER282`) Вкладка, на которую переключить после отказа: там поле, о котором отказ.</summary>
+        TabPage shieldPage;
+
+        TabPage problemPage;
 
         GeometryModel model;
 
@@ -302,6 +435,7 @@ namespace BecquerelMonitor
                 MessageBox.Show(this, Resources.GeometryEditorErrorNumber,
                                 Resources.GeometryEditorTitle,
                                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                this.ShowProblemPage(PageOf(this.firstBadBox));
                 return false;
             }
 
@@ -311,6 +445,7 @@ namespace BecquerelMonitor
             {
                 MessageBox.Show(this, error, Resources.GeometryEditorTitle,
                                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                this.ShowProblemPage(this.problemPage);
                 return false;
             }
 
@@ -318,6 +453,38 @@ namespace BecquerelMonitor
             this.Dirty = false;
             return true;
         }
+
+        /// <summary>
+        /// (`AMBER282`) Отказ — на вкладку, где стоит поле, о котором он: отказ по защите
+        /// уводит на «Защиту», а не оставляет человека искать поле на «Источнике».
+        /// </summary>
+        void ShowProblemPage(TabPage page)
+        {
+            if (page != null && this.tabs != null && this.tabs.TabPages.Contains(page))
+            {
+                this.tabs.SelectedTab = page;
+            }
+        }
+
+        static TabPage PageOf(Control control)
+        {
+            for (Control c = control; c != null; c = c.Parent)
+            {
+                TabPage page = c as TabPage;
+                if (page != null)
+                {
+                    return page;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>(`AMBER282`) Первое нечитаемое поле последней проверки — на его вкладку и переключаем.</summary>
+        TextBox firstBadBox;
+
+        /// <summary>(`AMBER282`) Первая проблема <see cref="MaterialProblem"/> — у слоя защиты.</summary>
+        bool materialProblemInShield;
 
         void RaiseChanged()
         {
@@ -426,6 +593,13 @@ namespace BecquerelMonitor
 
             this.BuildDetectorTab(detector);
             this.BuildSourceTab(source);
+
+            // (`AMBER282`) Третья вкладка — «Защита».
+            TabPage shield = new TabPage(Resources.GeometryEditorTabShield) { UseVisualStyleBackColor = true };
+            tabs.TabPages.Add(shield);
+            this.BuildShieldTab(shield);
+            this.tabs = tabs;
+            this.sourceSketch.ShowShield = false;
 
         }
 
@@ -694,6 +868,28 @@ namespace BecquerelMonitor
         HashSet<Control> HiddenControls()
         {
             HashSet<Control> hidden = new HashSet<Control>();
+            foreach (CheckRowControls check in this.checkRows.Values)
+            {
+                if (!check.Shown)
+                {
+                    hidden.Add(check.Check);
+                }
+            }
+
+            foreach (ComboRowControls combo in this.comboRows.Values)
+            {
+                if (!combo.Shown)
+                {
+                    hidden.Add(combo.Label);
+                    hidden.Add(combo.Combo);
+                }
+            }
+
+            if (!this.shieldSceneShown && this.shieldScenePanel != null)
+            {
+                hidden.Add(this.shieldScenePanel);
+            }
+
             foreach (RowControls row in this.rows.Values)
             {
                 if (row.Shown)
@@ -808,13 +1004,59 @@ namespace BecquerelMonitor
         /// </summary>
         void ReflowShield()
         {
-            if (this.shieldPanel == null || this.sourceMaterialsPanel == null)
+            if (this.shieldPanel == null)
             {
                 return;
             }
 
-            this.shieldPanel.Top = this.sourceMaterialsPanel.Bottom + SourceMaterialsGap;
+            this.ReflowShieldScene();
             this.FitPanel(this.shieldPanel);
+        }
+
+        /// <summary>Шаг строки слоя защиты (`AMBER282`) — как у строки поля.</summary>
+        const int ShieldLayerStep = 28;
+
+        /// <summary>
+        /// (`AMBER282`) Разложить поля защиты в расчёте: полость тремя строками, под
+        /// ней заголовок слоёв, строки слоёв, кнопка «добавить» и пояснение. Всё
+        /// по счёту, а не числом (`FitPanel`): слоёв столько, сколько набрал человек.
+        /// </summary>
+        void ReflowShieldScene()
+        {
+            if (this.shieldScenePanel == null)
+            {
+                return;
+            }
+
+            this.Reflow(this.shieldScenePanel);
+            int y = 3 * 28 + 4;
+            this.shieldLayersTitle.Top = y;
+            y += 22;
+            foreach (Label header in this.shieldLayerHeaders)
+            {
+                header.Top = y;
+            }
+
+            y += 18;
+            foreach (ShieldLayerRow row in this.shieldLayerRows)
+            {
+                row.Number.Top = y + 4;
+                row.Material.Top = y;
+                row.Density.Top = y;
+                row.Side.Top = y;
+                row.Floor.Top = y;
+                row.Lid.Top = y;
+                row.Remove.Top = y - 1;
+                y += ShieldLayerStep;
+            }
+
+            this.shieldAddButton.Top = y + 2;
+            y = this.shieldAddButton.Bottom + 6;
+            this.shieldLayersHint.Top = y;
+            this.FitPanel(this.shieldScenePanel);
+
+            // Под пояснением галки: оно AutoSize и в русском переносится.
+            this.shieldScenePanel.Top = this.shieldHintLabel.Bottom + 8;
         }
 
         /// <summary>Просвет над стопкой веществ пробы — шире, чем между полями.</summary>
@@ -1019,8 +1261,24 @@ namespace BecquerelMonitor
             y = 0;
             this.Row(this.marinelliPanel, ref y, "MarinelliBeakerDiameter", Resources.GeometryEditorBeakerDiameter);
             this.Row(this.marinelliPanel, ref y, "MarinelliBeakerHeight", Resources.GeometryEditorBeakerHeight);
+            // (`AMBER282`) Форма колодца в плане и размеры трапеции — ПРОСВЕТ, как и
+            // диаметр круглого: стенка колодца ложится наружу. У круглого строки
+            // трапеции сняты, у трапеции — строка диаметра.
+            this.holeShapeCombo = this.ComboRow(this.marinelliPanel, ref y, "MarinelliHoleShape",
+                Resources.GeometryEditorHoleShape, Resources.GeometryEditorHoleShapeHint,
+                Resources.GeometryEditorHoleShapeRound, Resources.GeometryEditorHoleShapeTrapezoid);
+            this.holeShapeCombo.SelectedIndexChanged += this.HoleShapeChanged;
             this.Row(this.marinelliPanel, ref y, "MarinelliHoleDiameter", Resources.GeometryEditorHoleDiameter);
+            this.Row(this.marinelliPanel, ref y, "MarinelliHoleBase1", Resources.GeometryEditorHoleBase1);
+            this.Row(this.marinelliPanel, ref y, "MarinelliHoleBase2", Resources.GeometryEditorHoleBase2);
+            this.Row(this.marinelliPanel, ref y, "MarinelliHoleWidth", Resources.GeometryEditorHoleWidth);
             this.Row(this.marinelliPanel, ref y, "MarinelliHoleHeight", Resources.GeometryEditorHoleHeight);
+            // (`AMBER282`, Amber 03.11.2026: «Добавь отсутствие пробы внизу стакана как
+            // опцию») Сквозной колодец: глубина = высоте пробы, торца нет. Новых полей
+            // модели нет — состояние выводится из глубины и торца.
+            this.holeThroughCheck = this.CheckRow(this.marinelliPanel, ref y, "MarinelliHoleThrough",
+                Resources.GeometryEditorHoleThrough, Resources.GeometryEditorHoleThroughHint);
+            this.holeThroughCheck.CheckedChanged += this.HoleThroughChanged;
             this.Row(this.marinelliPanel, ref y, "MarinelliSideThickness", Resources.GeometryEditorBeakerSideWall);
             this.Row(this.marinelliPanel, ref y, "MarinelliEndWallThickness", Resources.GeometryEditorBeakerEndWall);
             this.Row(this.marinelliPanel, ref y, "MarinelliHoleSideThickness", Resources.GeometryEditorHoleSideWall);
@@ -1055,22 +1313,40 @@ namespace BecquerelMonitor
                              GeometryMaterialLibrary.MaterialKind.Source);
             page.Controls.Add(this.sourceMaterialsPanel);
 
+
+            // Столбик собирается сразу: список форм источника ещё не трогали, а
+            // окно уже может открыться на этой вкладке.
+            this.ReflowSource();
+        }
+
+        /// <summary>
+        /// (`AMBER282`) Вкладка «Защита» — решение Amber 03.11.2026, дословно: «Сделай новую
+        /// вкладку рядом с текущими: Детектор, Источник. Обзови ее Защита. И перенеси все это
+        /// туда». Галка, пояснение, полость и слои; эскиз справа — сцена целиком с защитой
+        /// (виды сбоку и сверху), а на вкладке «Источник» эскиз защиты не рисует.
+        /// </summary>
+        void BuildShieldTab(TabPage tab)
+        {
+            this.shieldSketch = this.AddSketch(tab, GeometrySketch.SketchMode.Source);
+            this.shieldPage = tab;
+            Panel page = FieldColumn(tab);
+
             // (`AMBER12`, задача Amber 09.09.2026) Измерение в защите. Домик
             // в сцену расчёта НЕ кладётся и клейма матрицы не меняет —
             // признак читает только разбор: он говорит, что вокруг детектора
             // есть обстановка, в которой квант рассеивается назад. Такое
             // рассеяние матрица не считает (её сцена — кристалл, обвязка и
             // проба), и при защите образ обратного рассеяния остаётся.
-            this.shieldPanel = new Panel { Location = new Point(0, SourceFieldsTop), Width = 620 };
+            this.shieldPanel = new Panel { Location = new Point(0, 14), Width = 620 };
             this.shieldCheck = new CheckBox
             {
                 AutoSize = true,
                 Location = new Point(14, 0),
                 Text = Resources.GeometryEditorInShield,
             };
-            this.shieldCheck.CheckedChanged += this.ValueChanged;
+            this.shieldCheck.CheckedChanged += this.ShieldCheckChanged;
             this.shieldPanel.Controls.Add(this.shieldCheck);
-            Label shieldHint = new Label
+            this.shieldHintLabel = new Label
             {
                 AutoSize = true,
                 ForeColor = Color.DimGray,
@@ -1078,12 +1354,10 @@ namespace BecquerelMonitor
                 MaximumSize = new Size(570, 0),
                 Text = Resources.GeometryEditorInShieldHint,
             };
-            this.shieldPanel.Controls.Add(shieldHint);
+            this.shieldPanel.Controls.Add(this.shieldHintLabel);
+            this.BuildShieldScene();
             page.Controls.Add(this.shieldPanel);
-
-            // Столбик собирается сразу: список форм источника ещё не трогали, а
-            // окно уже может открыться на этой вкладке.
-            this.ReflowSource();
+            this.ReflowShield();
         }
 
         /// <summary>
@@ -1126,6 +1400,446 @@ namespace BecquerelMonitor
         {
             string text = Resources.ResourceManager.GetString("GeometryEditorSourceCapsule", Resources.Culture);
             return string.IsNullOrEmpty(text) ? "Source capsule film (0 = bare point)" : text;
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER282`) Защита в расчёте
+        // ------------------------------------------------------------------
+
+        /// <summary>Строка слоя защиты: номер, вещество, плотность, три толщины, кнопка «убрать».</summary>
+        sealed class ShieldLayerRow
+        {
+            public Label Number;
+            public ComboBox Material;
+            public TextBox Density, Side, Floor, Lid;
+            public Button Remove;
+
+            /// <summary>
+            /// Вещество, пришедшее с геометрией, — пока человек не выбрал другое из
+            /// списка, в модель идёт ОНО, со своим составом (`A139`), а не строка
+            /// библиотеки того же имени.
+            /// </summary>
+            public GeometryMaterial Loaded;
+
+            public IEnumerable<Control> Controls
+            {
+                get { return new Control[] { this.Number, this.Material, this.Density, this.Side, this.Floor, this.Lid, this.Remove }; }
+            }
+        }
+
+        // Столбцы строки слоя, точек от левого края панели.
+        const int LayerMaterialX = 34, LayerMaterialW = 170;
+        const int LayerDensityX = 210, LayerNumberW = 56;
+        const int LayerSideX = 272, LayerFloorX = 334, LayerLidX = 396, LayerRemoveX = 458;
+
+        void BuildShieldScene()
+        {
+            this.shieldScenePanel = new Panel { Location = new Point(0, 60), Width = 620 };
+            int y = 0;
+            this.Row(this.shieldScenePanel, ref y, "ShieldInnerDiameter", Resources.GeometryEditorShieldInnerDiameter);
+            this.Row(this.shieldScenePanel, ref y, "ShieldInnerHeight", Resources.GeometryEditorShieldInnerHeight);
+            this.Row(this.shieldScenePanel, ref y, "ShieldFloorGap", Resources.GeometryEditorShieldFloorGap);
+
+            this.shieldLayersTitle = new Label
+            {
+                AutoSize = true,
+                Location = new Point(14, y + 4),
+                Text = Resources.GeometryEditorShieldLayers,
+            };
+            this.shieldScenePanel.Controls.Add(this.shieldLayersTitle);
+
+            string[] captions =
+            {
+                Resources.GeometryEditorShieldLayerMaterial, Resources.GeometryEditorUnitDensity,
+                Resources.GeometryEditorShieldLayerSide, Resources.GeometryEditorShieldLayerFloor,
+                Resources.GeometryEditorShieldLayerLid, Resources.GeometryEditorUnitMm,
+            };
+            int[] xs = { LayerMaterialX, LayerDensityX, LayerSideX, LayerFloorX, LayerLidX, LayerRemoveX };
+            this.shieldLayerHeaders = new Label[captions.Length];
+            for (int i = 0; i < captions.Length; i++)
+            {
+                this.shieldLayerHeaders[i] = new Label
+                {
+                    AutoSize = true,
+                    ForeColor = Color.DimGray,
+                    Location = new Point(xs[i], y + 26),
+                    Text = captions[i],
+                };
+                this.shieldScenePanel.Controls.Add(this.shieldLayerHeaders[i]);
+            }
+
+            this.shieldAddButton = new Button
+            {
+                AutoSize = true,
+                Location = new Point(LayerMaterialX, y + 50),
+                Text = Resources.GeometryEditorShieldAddLayer,
+                UseVisualStyleBackColor = true,
+            };
+            this.shieldAddButton.Click += (s, e) => this.AddShieldLayer();
+            this.shieldScenePanel.Controls.Add(this.shieldAddButton);
+
+            this.shieldLayersHint = new Label
+            {
+                AutoSize = true,
+                ForeColor = Color.DimGray,
+                Location = new Point(14, y + 80),
+                MaximumSize = new Size(590, 0),
+                Text = Resources.GeometryEditorShieldLayersHint,
+            };
+            this.shieldScenePanel.Controls.Add(this.shieldLayersHint);
+            this.shieldPanel.Controls.Add(this.shieldScenePanel);
+            this.shieldScenePanel.Visible = false;
+        }
+
+        static string LayerKey(int index, string part)
+        {
+            return GeometryScenes.ShieldLayerField(index, part);
+        }
+
+        /// <summary>
+        /// Поставить строки слоёв заново по списку — при открытии геометрии, при
+        /// добавлении и при снятии слоя. Ключи полей у слоя — по НОМЕРУ
+        /// (`ShieldLayer0.Side`), и после снятия среднего слоя переименовывать
+        /// их по одному значило бы развести ключ и строку; проще и вернее —
+        /// собрать заново из того, что сейчас набрано.
+        /// </summary>
+        void SetShieldLayers(List<GeometryShieldLayer> layers)
+        {
+            bool wasLoading = this.loading;
+            this.loading = true;
+            try
+            {
+                for (int i = 0; i < this.shieldLayerRows.Count; i++)
+                {
+                    foreach (string part in new[] { "Density", "Side", "Floor", "Lid" })
+                    {
+                        this.fields.Remove(LayerKey(i, part));
+                        this.fieldCaptions.Remove(LayerKey(i, part));
+                    }
+
+                    foreach (Control c in this.shieldLayerRows[i].Controls)
+                    {
+                        this.shieldScenePanel.Controls.Remove(c);
+                        c.Dispose();
+                    }
+                }
+
+                this.shieldLayerRows.Clear();
+                if (layers != null)
+                {
+                    foreach (GeometryShieldLayer layer in layers)
+                    {
+                        this.AppendLayerRow(layer ?? new GeometryShieldLayer());
+                    }
+                }
+            }
+            finally
+            {
+                this.loading = wasLoading;
+            }
+
+            this.ReflowShield();
+        }
+
+        void AppendLayerRow(GeometryShieldLayer layer)
+        {
+            int index = this.shieldLayerRows.Count;
+            ShieldLayerRow row = new ShieldLayerRow();
+            row.Number = new Label
+            {
+                AutoSize = true,
+                Location = new Point(14, 0),
+                Text = (index + 1).ToString(CultureInfo.InvariantCulture),
+            };
+            row.Material = new ComboBox
+            {
+                Location = new Point(LayerMaterialX, 0),
+                Size = new Size(LayerMaterialW, 21),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+            };
+            FillMaterialCombo(row.Material, GeometryMaterialLibrary.MaterialKind.Cladding);
+            row.Density = this.LayerBox(row, LayerDensityX, index, "Density", Resources.GeometryEditorUnitDensity);
+            row.Side = this.LayerBox(row, LayerSideX, index, "Side", Resources.GeometryEditorShieldLayerSide);
+            row.Floor = this.LayerBox(row, LayerFloorX, index, "Floor", Resources.GeometryEditorShieldLayerFloor);
+            row.Lid = this.LayerBox(row, LayerLidX, index, "Lid", Resources.GeometryEditorShieldLayerLid);
+            row.Remove = new Button
+            {
+                Location = new Point(LayerRemoveX, 0),
+                Size = new Size(24, 22),
+                Text = "×",
+                UseVisualStyleBackColor = true,
+            };
+            this.shieldTips.SetToolTip(row.Remove, AppUi.WrapTip(Resources.GeometryEditorShieldRemoveLayerTip));
+            row.Remove.Click += (s, e) => this.RemoveShieldLayer(row);
+
+            this.SelectLayerMaterial(row, layer.Material);
+            this.SetBox(row.Side, layer.SideThickness);
+            this.SetBox(row.Floor, layer.FloorThickness);
+            this.SetBox(row.Lid, layer.LidThickness);
+            row.Material.SelectedIndexChanged += (s, e) => this.LayerMaterialChanged(row);
+
+            foreach (Control c in row.Controls)
+            {
+                this.shieldScenePanel.Controls.Add(c);
+            }
+
+            this.shieldLayerRows.Add(row);
+        }
+
+        TextBox LayerBox(ShieldLayerRow row, int x, int index, string part, string caption)
+        {
+            TextBox box = new TextBox
+            {
+                Location = new Point(x, 0),
+                Size = new Size(LayerNumberW, 20),
+                TextAlign = HorizontalAlignment.Right,
+            };
+            string key = LayerKey(index, part);
+            box.TextChanged += this.ValueChanged;
+            box.Enter += (s, e) => this.SetHighlight(key);
+            box.Leave += (s, e) => this.SetHighlight(null);
+            this.fields[key] = box;
+            this.fieldCaptions[key] = string.Format(CultureInfo.InvariantCulture, "{0}: {1}",
+                GeometryModel.ShieldLayerCaption(index), caption.TrimEnd(':', ' ').ToLower(CultureInfo.CurrentUICulture));
+            return box;
+        }
+
+        void SetBox(TextBox box, double value)
+        {
+            box.Text = value.ToString("G8", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// Показать вещество слоя: строка списка по имени (вещество другого вида
+        /// библиотеки добавляется в список, как у прочих строк — П223), состав —
+        /// пришедший (`A139`). Не найденное вещество оставляет список пустым (`A303`).
+        /// </summary>
+        void SelectLayerMaterial(ShieldLayerRow row, GeometryMaterial material)
+        {
+            bool wasLoading = this.loading;
+            this.loading = true;
+            try
+            {
+                int index = -1;
+                if (material != null && !string.IsNullOrEmpty(material.Name))
+                {
+                    for (int i = 0; i < row.Material.Items.Count; i++)
+                    {
+                        if (string.Equals(((GeometryMaterialLibrary.Entry)row.Material.Items[i]).Name, material.Name,
+                                          StringComparison.OrdinalIgnoreCase))
+                        {
+                            index = i;
+                            break;
+                        }
+                    }
+
+                    if (index < 0)
+                    {
+                        GeometryMaterialLibrary.Entry known = GeometryMaterialLibrary.ByName(material.Name);
+                        if (known != null)
+                        {
+                            index = row.Material.Items.Add(known);
+                        }
+                    }
+                }
+
+                row.Loaded = material != null && material.Fractions.Count > 0 ? material.Clone() : null;
+                row.Material.SelectedIndex = index;
+                double density = material != null && material.Density > 0.0
+                    ? material.Density
+                    : (index >= 0 ? ((GeometryMaterialLibrary.Entry)row.Material.Items[index]).Density : 0.0);
+                this.SetBox(row.Density, density);
+                this.UpdateLayerTip(row);
+            }
+            finally
+            {
+                this.loading = wasLoading;
+            }
+        }
+
+        void LayerMaterialChanged(ShieldLayerRow row)
+        {
+            if (this.loading)
+            {
+                return;
+            }
+
+            if (row.Material.SelectedIndex >= 0)
+            {
+                // Выбор из списка — осознанная замена, как у прочих строк веществ.
+                row.Loaded = null;
+                this.SetBox(row.Density, ((GeometryMaterialLibrary.Entry)row.Material.SelectedItem).Density);
+            }
+
+            this.UpdateLayerTip(row);
+            this.ValueChanged(row.Material, EventArgs.Empty);
+        }
+
+        void UpdateLayerTip(ShieldLayerRow row)
+        {
+            double density;
+            double.TryParse((row.Density.Text ?? "").Trim().Replace(',', '.'), NumberStyles.Float,
+                            CultureInfo.InvariantCulture, out density);
+            this.shieldTips.SetToolTip(row.Material, AppUi.WrapTip(GeometryMaterialLibrary.Describe(this.LayerMaterial(row, density))));
+        }
+
+        /// <summary>Вещество слоя по полям строки — как <see cref="MaterialOf"/> у прочих строк.</summary>
+        GeometryMaterial LayerMaterial(ShieldLayerRow row, double density)
+        {
+            if (row.Loaded != null)
+            {
+                GeometryMaterial copy = row.Loaded.Clone();
+                copy.Density = density > 0.0 ? density : row.Loaded.Density;
+                return copy;
+            }
+
+            if (row.Material.SelectedIndex < 0)
+            {
+                return new GeometryMaterial();
+            }
+
+            return GeometryMaterialLibrary.Make((GeometryMaterialLibrary.Entry)row.Material.SelectedItem, density);
+        }
+
+        /// <summary>Слои защиты так, как они сейчас стоят в полях.</summary>
+        List<GeometryShieldLayer> LayersFromRows()
+        {
+            List<GeometryShieldLayer> layers = new List<GeometryShieldLayer>();
+            for (int i = 0; i < this.shieldLayerRows.Count; i++)
+            {
+                ShieldLayerRow row = this.shieldLayerRows[i];
+                layers.Add(new GeometryShieldLayer
+                {
+                    Material = this.LayerMaterial(row, this.Get(LayerKey(i, "Density"))),
+                    SideThickness = this.Get(LayerKey(i, "Side")),
+                    FloorThickness = this.Get(LayerKey(i, "Floor")),
+                    LidThickness = this.Get(LayerKey(i, "Lid")),
+                });
+            }
+
+            return layers;
+        }
+
+        /// <summary>
+        /// Добавить слой снаружи последнего. Новый слой — железо (сталь в
+        /// библиотеке не заведена; углеродистая сталь — это железо на 98–99 %),
+        /// толщина 1 мм со всех сторон: число видно и правится, нулём слой
+        /// молчал бы. У ПЕРВОГО слоя полость, если она ещё нулевая, ставится по
+        /// габариту сцены с округлением вверх до миллиметра — то есть защита
+        /// облегает сцену вплотную, и это видно в полях.
+        /// </summary>
+        void AddShieldLayer()
+        {
+            List<GeometryShieldLayer> layers = this.LayersFromRows();
+            layers.Add(new GeometryShieldLayer
+            {
+                Material = Make("Iron"),
+                SideThickness = 1.0,
+                FloorThickness = 1.0,
+                LidThickness = 1.0,
+            });
+
+            if (layers.Count == 1 && !(this.Get("ShieldInnerDiameter") > 0.0) && !(this.Get("ShieldInnerHeight") > 0.0))
+            {
+                GeometryModel g = this.BuildModel();
+                double radius, top, bottom;
+                if (GeometryScenes.SceneEnvelopeMm(g, out radius, out top, out bottom))
+                {
+                    this.loading = true;
+                    try
+                    {
+                        this.Set("ShieldInnerDiameter", Math.Ceiling(2.0 * radius));
+                        this.Set("ShieldInnerHeight", Math.Ceiling(bottom - top + Math.Max(0.0, this.Get("ShieldFloorGap"))));
+                    }
+                    finally
+                    {
+                        this.loading = false;
+                    }
+                }
+            }
+
+            this.SetShieldLayers(layers);
+            this.ValueChanged(this.shieldAddButton, EventArgs.Empty);
+        }
+
+        void RemoveShieldLayer(ShieldLayerRow row)
+        {
+            int index = this.shieldLayerRows.IndexOf(row);
+            if (index < 0)
+            {
+                return;
+            }
+
+            List<GeometryShieldLayer> layers = this.LayersFromRows();
+            layers.RemoveAt(index);
+            this.SetShieldLayers(layers);
+            this.ValueChanged(this.shieldAddButton, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Галка «в защите»: под ней встают поля защиты в расчёте (решение Amber
+        /// 02.11.2026). У съёмок в поле (грунт, лунка, ISO) защиты в сцене нет —
+        /// там у галки прежний смысл (`AMBER12`), и полей нет тоже.
+        /// </summary>
+        void ShieldCheckChanged(object sender, EventArgs e)
+        {
+            this.UpdateShieldSceneVisibility();
+            this.ReflowShield();
+            this.ValueChanged(sender, e);
+        }
+
+        /// <summary>Сцена, выбранная в списке типов источника.</summary>
+        GeometrySceneKind SelectedScene
+        {
+            get
+            {
+                int index = this.sourceTypeCombo != null ? this.sourceTypeCombo.SelectedIndex : -1;
+                return index >= 0 && index < SourceKinds.Length ? SourceKinds[index].Value : GeometrySceneKind.None;
+            }
+        }
+
+        GeometrySourceType SelectedSourceType
+        {
+            get
+            {
+                int index = this.sourceTypeCombo != null ? this.sourceTypeCombo.SelectedIndex : -1;
+                return index >= 0 && index < SourceKinds.Length ? SourceKinds[index].Key : GeometrySourceType.Point;
+            }
+        }
+
+        void UpdateShieldSceneVisibility()
+        {
+            if (this.shieldScenePanel == null)
+            {
+                return;
+            }
+
+            this.shieldSceneShown = this.shieldCheck != null && this.shieldCheck.Checked
+                                    && this.SelectedScene == GeometrySceneKind.None;
+            this.shieldScenePanel.Visible = this.shieldSceneShown;
+        }
+
+        /// <summary>Колодец-трапеция выбран и применим (маринелли без полевой сцены).</summary>
+        bool TrapezoidSelected
+        {
+            get
+            {
+                return this.holeShapeCombo != null && this.holeShapeCombo.SelectedIndex == 1
+                       && this.SelectedSourceType == GeometrySourceType.Marinelli
+                       && this.SelectedScene == GeometrySceneKind.None;
+            }
+        }
+
+        void HoleShapeChanged(object sender, EventArgs e)
+        {
+            if (this.loading)
+            {
+                return;
+            }
+
+            this.ApplySceneFields(this.SelectedScene);
+            this.ReflowSource();
+            this.ValueChanged(sender, e);
         }
 
         /// <summary>Строка «подпись — поле — см».</summary>
@@ -1209,6 +1923,60 @@ namespace BecquerelMonitor
         readonly Dictionary<string, RowControls> rows =
             new Dictionary<string, RowControls>(StringComparer.Ordinal);
 
+        /// <summary>
+        /// (`AMBER282`) Строка «подпись — список» в столбике полей: стоит в том же
+        /// порядке строк (<see cref="rowOrder"/>) и так же снимается, но числа не
+        /// несёт и в карту полей (<see cref="Map"/>) не входит.
+        /// </summary>
+        sealed class ComboRowControls
+        {
+            public Label Label;
+            public ComboBox Combo;
+            public bool Shown = true;
+        }
+
+        readonly Dictionary<string, ComboRowControls> comboRows =
+            new Dictionary<string, ComboRowControls>(StringComparer.Ordinal);
+
+        /// <summary>(`AMBER282`) Строка «подпись — список»; ширина списка — по самой длинной строке.</summary>
+        ComboBox ComboRow(Control parent, ref int y, string key, string caption, string hint, params string[] items)
+        {
+            Label label = new Label
+            {
+                AutoSize = true,
+                Location = new Point(14, y + 4),
+                Text = caption,
+            };
+            parent.Controls.Add(label);
+
+            ComboBox combo = new ComboBox
+            {
+                Location = new Point(300, y),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+            };
+            int width = 90;
+            foreach (string item in items)
+            {
+                combo.Items.Add(item);
+                width = Math.Max(width, TextRenderer.MeasureText(item, combo.Font).Width + 30);
+            }
+
+            combo.Width = Math.Min(width, 290);
+            combo.SelectedIndex = 0;
+            parent.Controls.Add(combo);
+            if (!string.IsNullOrEmpty(hint))
+            {
+                ToolTip tip = new ToolTip();
+                tip.SetToolTip(label, AppUi.WrapTip(hint));
+                tip.SetToolTip(combo, AppUi.WrapTip(hint));
+            }
+
+            this.comboRows[key] = new ComboRowControls { Label = label, Combo = combo };
+            this.rowOrder.Add(new KeyValuePair<Control, string>(parent, key));
+            y += 28;
+            return combo;
+        }
+
         readonly List<KeyValuePair<Control, string>> rowOrder =
             new List<KeyValuePair<Control, string>>();
 
@@ -1218,6 +1986,23 @@ namespace BecquerelMonitor
         /// </summary>
         void ShowRow(string key, bool visible, string caption)
         {
+            CheckRowControls checkRow;
+            if (this.checkRows.TryGetValue(key, out checkRow))
+            {
+                checkRow.Shown = visible;
+                checkRow.Check.Visible = visible;
+                return;
+            }
+
+            ComboRowControls comboRow;
+            if (this.comboRows.TryGetValue(key, out comboRow))
+            {
+                comboRow.Shown = visible;
+                comboRow.Label.Visible = visible;
+                comboRow.Combo.Visible = visible;
+                return;
+            }
+
             RowControls row;
             if (!this.rows.TryGetValue(key, out row))
             {
@@ -1251,6 +2036,31 @@ namespace BecquerelMonitor
                     continue;
                 }
 
+                CheckRowControls checkRow;
+                if (this.checkRows.TryGetValue(pair.Value, out checkRow))
+                {
+                    if (checkRow.Shown)
+                    {
+                        checkRow.Check.Top = y + 2;
+                        y += 28;
+                    }
+
+                    continue;
+                }
+
+                ComboRowControls comboRow;
+                if (this.comboRows.TryGetValue(pair.Value, out comboRow))
+                {
+                    if (comboRow.Shown)
+                    {
+                        comboRow.Label.Top = y + 4;
+                        comboRow.Combo.Top = y;
+                        y += 28;
+                    }
+
+                    continue;
+                }
+
                 RowControls row = this.rows[pair.Value];
                 if (!row.Shown)
                 {
@@ -1281,6 +2091,18 @@ namespace BecquerelMonitor
             foreach (GeometryMaterialLibrary.Entry entry in GeometryMaterialLibrary.Of(kind))
             {
                 combo.Items.Add(entry);
+            }
+
+            // (`AMBER282`) Стенка сосуда бывает и металлической — гильза колодца пробы
+            // Amber алюминиевая (её слово 02.11.2026: «алюминий толщина 0.45 мм»). Металлы
+            // библиотеки значатся у корпуса, а «прочие» таблицы ЛСРМ одноимённых строк не
+            // несут (их место занято нашими), и выбрать алюминий стенке было нельзя вовсе.
+            if (kind == GeometryMaterialLibrary.MaterialKind.BeakerWall)
+            {
+                foreach (GeometryMaterialLibrary.Entry entry in GeometryMaterialLibrary.Of(GeometryMaterialLibrary.MaterialKind.Cladding))
+                {
+                    combo.Items.Add(entry);
+                }
             }
 
             if (kind == GeometryMaterialLibrary.MaterialKind.Other)
@@ -1569,6 +2391,25 @@ namespace BecquerelMonitor
             add("MarinelliToDetectorDistance", g => g.MarinelliToDetectorDistance,
                 (g, v) => g.MarinelliToDetectorDistance = v);
 
+            // (`AMBER282`) Трапеция колодца — ПРОСВЕТ. ⛔ (`A94`) У круглого колодца поля
+            // в модель не пишутся: модель, XML и `.in` у него побайтно прежние. На чтении
+            // пустая трапеция подсказывает диаметр круглого — квадрат того же просвета.
+            add("MarinelliHoleBase1", g => g.MarinelliHoleBase1 > 0.0 ? g.MarinelliHoleBase1 : g.MarinelliHoleDiameter,
+                (g, v) => g.MarinelliHoleBase1 = g.HasTrapezoidHole ? v : 0.0);
+            add("MarinelliHoleBase2", g => g.MarinelliHoleBase2 > 0.0 ? g.MarinelliHoleBase2 : g.MarinelliHoleDiameter,
+                (g, v) => g.MarinelliHoleBase2 = g.HasTrapezoidHole ? v : 0.0);
+            add("MarinelliHoleWidth", g => g.MarinelliHoleWidth > 0.0 ? g.MarinelliHoleWidth : g.MarinelliHoleDiameter,
+                (g, v) => g.MarinelliHoleWidth = g.HasTrapezoidHole ? v : 0.0);
+
+            // (`AMBER282`) Полость защиты в расчёте — только при галке и у обычной сцены;
+            // иначе ноль, и в XML её нет (слоёв тоже нет — `BuildModel`).
+            add("ShieldInnerDiameter", g => g.ShieldInnerDiameter,
+                (g, v) => g.ShieldInnerDiameter = ShieldFieldsApply(g) ? v : 0.0);
+            add("ShieldInnerHeight", g => g.ShieldInnerHeight,
+                (g, v) => g.ShieldInnerHeight = ShieldFieldsApply(g) ? v : 0.0);
+            add("ShieldFloorGap", g => g.ShieldFloorGap,
+                (g, v) => g.ShieldFloorGap = ShieldFieldsApply(g) ? v : 0.0);
+
             // Прямоугольная кювета. Пока её размеров в модели нет, поля
             // открываются цилиндрическими — так же, как брусок кристалла
             // подставляет габариты цилиндра: иначе переключение типа источника
@@ -1607,6 +2448,12 @@ namespace BecquerelMonitor
                 g => g.BoxToDetectorDistance > 0.0 ? g.BoxToDetectorDistance : g.BeakerToDetectorDistance,
                 (g, v) => g.BoxToDetectorDistance = g.SourceType == GeometrySourceType.Box ? v : 0.0);
             return map;
+        }
+
+        /// <summary>(`AMBER282`) Поля защиты в расчёте относятся к этой модели: галка поднята, сцена обычная.</summary>
+        static bool ShieldFieldsApply(GeometryModel g)
+        {
+            return g.InShield && g.Scene == GeometrySceneKind.None;
         }
 
         static FieldMap Find(string key)
@@ -1665,6 +2512,22 @@ namespace BecquerelMonitor
                 {
                     this.shieldCheck.Checked = g.InShield;
                 }
+
+                // (`AMBER282`) Форма колодца и слои защиты в расчёте.
+                if (this.holeShapeCombo != null)
+                {
+                    this.holeShapeCombo.SelectedIndex = g.MarinelliHoleShape == GeometryHoleShape.Trapezoid ? 1 : 0;
+                }
+
+                // Сквозной колодец — по прежним полям: глубина во всю высоту пробы, торца нет.
+                if (this.holeThroughCheck != null)
+                {
+                    this.holeThroughCheck.Checked = g.SourceType == GeometrySourceType.Marinelli
+                        && g.Scene == GeometrySceneKind.None && g.MarinelliSourceHeight > 0.0
+                        && g.MarinelliHoleHeight >= g.MarinelliSourceHeight && g.MarinelliHoleEndWallThickness == 0.0;
+                }
+
+                this.SetShieldLayers(g.ShieldLayers);
             }
             finally
             {
@@ -1692,6 +2555,11 @@ namespace BecquerelMonitor
             {
                 this.sourceSketch.HighlightKey = key;
             }
+
+            if (this.shieldSketch != null)
+            {
+                this.shieldSketch.HighlightKey = key;
+            }
         }
 
         /// <summary>
@@ -1709,6 +2577,10 @@ namespace BecquerelMonitor
             GeometryModel g = this.BuildModel();
             this.detectorSketch.SetModel(g);
             this.sourceSketch.SetModel(g);
+            if (this.shieldSketch != null)
+            {
+                this.shieldSketch.SetModel(g);
+            }
 
             // Признак правки взводится ЗДЕСЬ, а не в каждом обработчике: через
             // перерисовку чертежа проходит любое изменение геометрии — поле,
@@ -1952,6 +2824,25 @@ namespace BecquerelMonitor
                         sourceTouched = true;
                     }
                 }
+
+                // (`AMBER282`) Списки слоёв защиты — тем же ходом (`A262`): состав из
+                // библиотеки только у вещества, которое правка тронула.
+                foreach (ShieldLayerRow layer in this.shieldLayerRows)
+                {
+                    double density;
+                    double.TryParse((layer.Density.Text ?? "").Trim().Replace(',', '.'), NumberStyles.Float,
+                                    CultureInfo.InvariantCulture, out density);
+                    GeometryMaterial current = this.LayerMaterial(layer, density);
+                    layer.Material.Items.Clear();
+                    FillMaterialCombo(layer.Material, GeometryMaterialLibrary.MaterialKind.Cladding);
+                    bool touched = GeometryMaterialLibrary.CompositionChanged(current.Name, before, after);
+                    this.SelectLayerMaterial(layer, current);
+                    if (touched && layer.Material.SelectedIndex >= 0)
+                    {
+                        layer.Loaded = null;
+                        this.UpdateLayerTip(layer);
+                    }
+                }
             }
             finally
             {
@@ -2031,6 +2922,8 @@ namespace BecquerelMonitor
             {
                 return;
             }
+
+            this.ApplyHoleThrough();
 
             this.MarkBadValues();
             this.UpdateEquivalent();
@@ -3365,7 +4258,16 @@ namespace BecquerelMonitor
             this.ShowRow("MarinelliHoleEndWallThickness", vessel, null);
             this.ShowRow("MarinelliBeakerDiameter", true,
                          hole ? Resources.GeometryEditorSceneDiameter : null);
-            this.ShowRow("MarinelliHoleDiameter", true,
+            // (`AMBER282`) Форма колодца — только у стакана: лунка в грунте круглая по
+            // построению (её размеры ставит формула). У трапеции диаметр снят, у
+            // круга сняты поля трапеции.
+            bool trapezoid = vessel && this.holeShapeCombo != null && this.holeShapeCombo.SelectedIndex == 1;
+            this.ShowRow("MarinelliHoleShape", vessel, null);
+            this.ShowRow("MarinelliHoleThrough", vessel, null);
+            this.ShowRow("MarinelliHoleBase1", trapezoid, null);
+            this.ShowRow("MarinelliHoleBase2", trapezoid, null);
+            this.ShowRow("MarinelliHoleWidth", trapezoid, null);
+            this.ShowRow("MarinelliHoleDiameter", !trapezoid,
                          hole ? Resources.GeometryEditorSceneHoleDiameter : null);
             this.ShowRow("MarinelliHoleHeight", true,
                          hole ? Resources.GeometryEditorSceneHoleDepth : null);
@@ -3379,6 +4281,8 @@ namespace BecquerelMonitor
 
             this.ShowMaterialRow("BeakerWall", vessel);
             this.ShowMaterialRow("Source", !iso);
+            this.UpdateShieldSceneVisibility();
+            this.ApplyHoleThrough();
             this.ReflowMaterials();
         }
 
@@ -3461,6 +4365,12 @@ namespace BecquerelMonitor
                 inactive.Add(this.boxPanel);
             }
 
+            // (`AMBER282`) Поля защиты в расчёте снятые — в модель не идут.
+            if (!this.shieldSceneShown && this.shieldScenePanel != null)
+            {
+                inactive.Add(this.shieldScenePanel);
+            }
+
             bool ok = true;
             foreach (KeyValuePair<string, TextBox> pair in this.fields)
             {
@@ -3469,6 +4379,11 @@ namespace BecquerelMonitor
                 pair.Value.BackColor = good ? SystemColors.Window : BadValueColor;
                 if (!good && !IsUnder(pair.Value, inactive))
                 {
+                    if (ok)
+                    {
+                        this.firstBadBox = pair.Value;
+                    }
+
                     ok = false;
                 }
             }
@@ -3566,10 +4481,39 @@ namespace BecquerelMonitor
             g.SourceType = SourceKinds[kind].Key;
             g.Scene = SourceKinds[kind].Value;
 
+            // (`AMBER282`) Форма колодца — тоже ДО полей (`A134`): поля трапеции
+            // спрашивают у модели, своя ли им строка. У прочих сцен — круг.
+            g.MarinelliHoleShape = this.TrapezoidSelected ? GeometryHoleShape.Trapezoid : GeometryHoleShape.Round;
+
             foreach (FieldMap field in Map)
             {
                 field.Write(g, this.Get(field.Key));
             }
+
+            // (`AMBER282`) У трапеции диаметр круглого колодца не читает ни перенос, ни
+            // чертёж; в `.in` он уходит ключом `SM_BeakerHoleDiameter`, и программа ЛСРМ,
+            // не знающая трапеции, прочтёт файл КРУГЛЫМ колодцем этого диаметра. Пишется
+            // поэтому равноплощадный просвету — тем же правилом, что равнообъёмный
+            // цилиндр у бруска, а не число, набранное когда-то для круга.
+            if (g.HasTrapezoidHole)
+            {
+                double area = g.TrapezoidHoleArea(0.0);
+                if (area > 0.0)
+                {
+                    g.MarinelliHoleDiameter = 2.0 * Math.Sqrt(area / Math.PI);
+                }
+            }
+
+            // (`AMBER282`) Сквозной колодец: глубина — во всю высоту пробы, торца нет.
+            if (this.HoleThroughOn)
+            {
+                g.MarinelliHoleHeight = g.MarinelliSourceHeight;
+                g.MarinelliHoleEndWallThickness = 0.0;
+            }
+
+            // (`AMBER282`) Слои защиты — только при галке и у обычной сцены; иначе пусто,
+            // и модель, XML и `.in` прежние (`AMBER12`).
+            g.ShieldLayers = ShieldFieldsApply(g) ? this.LayersFromRows() : new List<GeometryShieldLayer>();
 
             g.Crystal = this.MaterialOf("Crystal", this.Get("Crystal.Density"));
             g.Reflector = this.MaterialOf("Reflector", this.Get("Reflector.Density"));
@@ -3598,6 +4542,7 @@ namespace BecquerelMonitor
         /// </summary>
         string Validate(GeometryModel g)
         {
+            this.problemPage = null;
             if (g.Shape == CrystalShape.Box)
             {
                 if (!(g.CrystalBoxX > 0.0) || !(g.CrystalBoxY > 0.0) || !(g.CrystalBoxZ > 0.0))
@@ -3615,6 +4560,7 @@ namespace BecquerelMonitor
             string materialProblem = this.MaterialProblem(null);
             if (materialProblem != null)
             {
+                this.problemPage = this.materialProblemInShield ? this.shieldPage : null;
                 return materialProblem;
             }
 
@@ -3640,6 +4586,13 @@ namespace BecquerelMonitor
                 {
                     return Resources.GeometryEditorErrorSourceSize;
                 }
+
+                // (`AMBER282`) Трапеция без размера — не колодец: перенос откажет.
+                if (g.HasTrapezoidHole
+                    && (!(g.MarinelliHoleBase1 > 0.0) || !(g.MarinelliHoleBase2 > 0.0) || !(g.MarinelliHoleWidth > 0.0)))
+                {
+                    return Resources.GeometryEditorErrorSourceSize;
+                }
             }
             else if (g.SourceType == GeometrySourceType.Cylinder
                      && (!(g.BeakerDiameter > 0.0) || !(g.SourceHeight > 0.0)))
@@ -3653,12 +4606,37 @@ namespace BecquerelMonitor
                 return Resources.GeometryEditorErrorSourceSize;
             }
 
+            // (`AMBER282`) Защита в расчёте: со слоями нужна полость, и слой без
+            // единой толщины — не слой. Без слоёв галка значит прежнее (`AMBER12`).
+            if (ShieldFieldsApply(g) && g.ShieldLayers.Count > 0)
+            {
+                if (!(g.ShieldInnerDiameter > 0.0) || !(g.ShieldInnerHeight > 0.0))
+                {
+                    this.problemPage = this.shieldPage;
+                    return Resources.GeometryEditorErrorShieldCavity;
+                }
+
+                for (int i = 0; i < g.ShieldLayers.Count; i++)
+                {
+                    GeometryShieldLayer layer = g.ShieldLayers[i];
+                    if (!(layer.SideThickness > 0.0) && !(layer.FloorThickness > 0.0) && !(layer.LidThickness > 0.0))
+                    {
+                        this.problemPage = this.shieldPage;
+                        return string.Format(CultureInfo.InvariantCulture, Resources.GeometryEditorErrorShieldLayerEmpty,
+                                             GeometryModel.ShieldLayerCaption(i));
+                    }
+                }
+            }
+
             // Связки «детектор — источник» и «сосуд — проба» (E33). Списком, а
             // не первой попавшейся: несогласованность обычно не одна, и человек,
             // поправив названную, тут же получал бы следующую.
             List<GeometryScenes.Issue> issues = GeometryScenes.Inconsistencies(g);
             if (issues.Count > 0)
             {
+                TextBox issueBox;
+                this.problemPage = issues[0].Field != null && this.fields.TryGetValue(issues[0].Field, out issueBox)
+                    ? PageOf(issueBox) : null;
                 StringBuilder text = new StringBuilder(Resources.GeometryEditorErrorLinked);
                 foreach (GeometryScenes.Issue issue in issues)
                 {
@@ -3695,6 +4673,7 @@ namespace BecquerelMonitor
         string MaterialProblem(List<string> badFields)
         {
             string first = null;
+            this.materialProblemInShield = false;
             foreach (string key in new[] { "Crystal", "Reflector", "Gap", "Cladding", "BeakerWall", "Source" })
             {
                 bool shown;
@@ -3743,6 +4722,49 @@ namespace BecquerelMonitor
                 }
             }
 
+            // (`AMBER282`) Слои защиты в расчёте — тем же правилом: плотность > 0 и
+            // состав. Вещество слоя не выбрано — тоже отказ: слой с толщиной и без
+            // вещества посчитался бы пустотой молча.
+            if (this.shieldSceneShown)
+            {
+                for (int i = 0; i < this.shieldLayerRows.Count; i++)
+                {
+                    double density;
+                    if (!this.TryGet(LayerKey(i, "Density"), out density))
+                    {
+                        continue;
+                    }
+
+                    string caption = GeometryModel.ShieldLayerCaption(i);
+                    string problem = null;
+                    if (!(density > 0.0))
+                    {
+                        if (badFields != null)
+                        {
+                            badFields.Add(LayerKey(i, "Density"));
+                        }
+
+                        problem = string.Format(CultureInfo.InvariantCulture, Resources.GeometryEditorErrorDensityField,
+                                                caption, density.ToString("G8", CultureInfo.InvariantCulture));
+                    }
+                    else
+                    {
+                        GeometryMaterial material = this.LayerMaterial(this.shieldLayerRows[i], density);
+                        if (material.Fractions.Count == 0)
+                        {
+                            problem = string.Format(CultureInfo.InvariantCulture, Resources.GeometryEditorErrorMaterialEmpty,
+                                                    caption, material.Name);
+                        }
+                    }
+
+                    if (first == null && problem != null)
+                    {
+                        first = problem;
+                        this.materialProblemInShield = true;
+                    }
+                }
+            }
+
             return first;
         }
 
@@ -3756,8 +4778,10 @@ namespace BecquerelMonitor
             }
 
             RowControls row;
+            string own;
             string caption = issue.Field != null && this.rows.TryGetValue(issue.Field, out row)
-                ? row.Label.Text : issue.Field;
+                ? row.Label.Text
+                : (issue.Field != null && this.fieldCaptions.TryGetValue(issue.Field, out own) ? own : issue.Field);
             return string.Format(CultureInfo.InvariantCulture, format, issue.Value, issue.Limit, caption);
         }
 

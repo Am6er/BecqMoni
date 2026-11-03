@@ -221,6 +221,26 @@ namespace BecquerelMonitor.EfficiencyMaker
             add("Fe", "Iron", "Fe1", 7.874, MaterialKind.Cladding);
             add("C", "Carbon", "C1", 1.7, MaterialKind.Cladding);
 
+            // (`AMBER282`) Углеродистая сталь — защита пробы Amber («Завести «Steel»»,
+            // вопросником 03.11.2026). Готовые данные: PNNL Compendium of Material
+            // Composition Data for Radiation Transport Modeling, PIET-43741-TM-963 /
+            // PNNL-15870 Rev. 1 (04.03.2011), запись 294 «Steel, Carbon», с. 281:
+            // ρ = 7.82 г/см³, массовые доли C 0.005, Fe 0.995 (ссылка в записи — Brewer
+            // 2009). Имя — PNNL, сокращение «Steel» — для списка и легенды эскиза.
+            {
+                Entry steel = new Entry
+                {
+                    Abbr = "Steel", Name = "Steel, Carbon", Formula = "",
+                    Density = 7.82, Kind = MaterialKind.Cladding,
+                };
+                foreach (KeyValuePair<int, double> pair in GeometryMaterialSeed.Fractions("6:0.005 26:0.995"))
+                {
+                    steel.ElementFractions[pair.Key] = pair.Value;
+                }
+
+                list.Add(steel);
+            }
+
             // Стенки сосудов
             add("PET", "Polyethylene terephthalate", "C10 H8 O4", 1.38, MaterialKind.BeakerWall);
             add("PE", "Polyethylene", "C2 H4", 0.94, MaterialKind.BeakerWall);

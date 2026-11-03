@@ -71,6 +71,13 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         public SketchMode Mode { get; set; }
 
+        /// <summary>
+        /// (`AMBER282`) Рисовать ли защиту в расчёте. На вкладке «Источник» редактора — нет:
+        /// защита переехала на свою вкладку (Amber 03.11.2026: «Сделай новую вкладку рядом с
+        /// текущими: Детектор, Источник. Обзови ее Защита. И перенеси все это туда»).
+        /// </summary>
+        public bool ShowShield { get; set; } = true;
+
         public void SetModel(GeometryModel value)
         {
             this.model = value;
@@ -179,8 +186,37 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         float Y(double z)
         {
-            return (float)(this.padTop + (z - this.worldTop) * this.scale);
+            // (`AMBER282`) Условный разрыв воздуха полости защиты: отрезок
+            // [breakZ0, breakZ1] сжат в breakPx точек, всё ниже него сдвинуто вверх.
+            double u;
+            if (this.breakPx > 0f && z > this.breakZ0)
+            {
+                double u0 = (this.breakZ0 - this.worldTop) * this.scale;
+                u = z < this.breakZ1
+                    ? u0 + (z - this.breakZ0) / (this.breakZ1 - this.breakZ0) * this.breakPx
+                    : u0 + this.breakPx + (z - this.breakZ1) * this.scale;
+            }
+            else
+            {
+                u = (z - this.worldTop) * this.scale;
+            }
+
+            // (`AMBER282`, Amber 03.11.2026: «У тебя эскиз верх ногами 🙂 Как ты думаешь,
+            // выпадет ли детектор из домика?») Сцена в защите рисуется дном ВНИЗ: проба
+            // стоит на дне полости, колодец открыт вверх, прибор входит сверху. Ось z
+            // переноса та же (дно — со стороны лица кристалла, −z), чертёж отражён.
+            return this.flipZ ? (float)(this.padTop + this.drawnPx - u) : (float)(this.padTop + u);
         }
+
+        /// <summary>(`AMBER282`) Чертёж отражён по вертикали (сцена в защите, дно внизу) и высота мира на чертеже, точек.</summary>
+        bool flipZ;
+
+        double drawnPx;
+
+        /// <summary>(`AMBER282`) Разрыв воздуха полости защиты (мир, мм) и его высота на чертеже, точек; 0 — разрыва нет.</summary>
+        double breakZ0, breakZ1;
+
+        float breakPx;
 
         float L(double length)
         {
@@ -196,7 +232,16 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>Мировая координата на N точек выше верха поля.</summary>
         double AboveTop(double pixels)
         {
-            return this.worldTop - pixels / this.scale;
+            // (`AMBER282`) Над полосами защиты, которые стоят в точках над миром: у
+            // отражённого чертежа сверху — крышка и мировой низ.
+            float bands = this.shieldPx != null ? (this.flipZ ? this.shieldPx.LidTotal : this.shieldPx.FloorTotal) : 0f;
+            if (this.flipZ)
+            {
+                double zBottom = this.worldTop + (this.drawnPx - this.breakPx) / this.scale + (this.breakZ1 - this.breakZ0);
+                return zBottom + (pixels + bands) / this.scale;
+            }
+
+            return this.worldTop - (pixels + bands) / this.scale;
         }
 
         /// <summary>Мировая координата на N точек правее заданной.</summary>
@@ -217,6 +262,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Canvas);
             this.labels.Clear();
+            this.obstacles.Clear();
             // ⛔ `E40`. Счётчик прижатых чисел живёт РОВНО ОДНУ отрисовку, как
             // и список подписей: иначе он копил бы прижимы прошлых кадров и
             // показывал бы беду там, где её уже нет.
@@ -281,14 +327,29 @@ namespace BecquerelMonitor.EfficiencyMaker
             double zBack = height + tm;
 
             double left = -outerHalf, right = outerHalf, top = zFace, bottom = zBack;
+            // (`AMBER282`, дизайн 03.11.2026) Защита в кадр входит ПОЛОСТЬЮ в мировом
+            // масштабе, а слои — полосами в ТОЧКАХ (`ShieldPx`): честная сталь 38.55 мм
+            // вокруг пробы Ø80 сжимала пробу и прибор в пятно.
+            ShieldBox shield = new ShieldBox();
+            bool hasShield = this.Mode != SketchMode.Detector && this.ShowShield && ShieldInSketch(m, out shield);
+            double envBottom = bottom;
             if (this.Mode != SketchMode.Detector)
             {
                 double sl, sr, st, sb;
-                this.SourceBounds(m, zFace, out sl, out sr, out st, out sb);
+                SourceBounds(m, zFace, out sl, out sr, out st, out sb);
                 left = Math.Min(left, sl);
                 right = Math.Max(right, sr);
                 top = Math.Min(top, st);
                 bottom = Math.Max(bottom, sb);
+                envBottom = bottom;
+
+                if (hasShield)
+                {
+                    left = Math.Min(left, -shield.Cavity);
+                    right = Math.Max(right, shield.Cavity);
+                    top = Math.Min(top, shield.FloorFace);
+                    bottom = Math.Max(bottom, shield.LidFace);
+                }
             }
 
             // Поля под размерные линии: слева и сверху они длиннее, там стоят
@@ -301,6 +362,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             int MarginX = this.Mode == SketchMode.Overview ? 10 : 78;
             int MarginTop = this.Mode == SketchMode.Overview ? 8 : 42;
             int MarginBottom = this.Mode == SketchMode.Overview ? 8 : 30;
+
+            // (`AMBER282`) Под защитой — размер диаметра полости: ему нужна своя полоса;
+            // по бокам толщин больше нет (они в легенде), и поле уже.
+            if (this.Mode == SketchMode.Source && hasShield)
+            {
+                MarginBottom = 46;
+                MarginX = 72;
+            }
 
             // (`AMBER225`) Табличка объёма стоит в левом верхнем углу, а над
             // телом там же идёт верхний размер с числом. Чертёж опускается
@@ -318,9 +387,89 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
             double worldWidth = Math.Max(right - left, 1e-6);
             double worldHeight = Math.Max(bottom - top, 1e-6);
-            double sx = (this.Width - 2.0 * MarginX) / worldWidth;
-            double sy = (this.Height - MarginTop - MarginBottom) / worldHeight;
-            this.scale = Math.Min(sx, sy);
+
+            // (`AMBER282`, Amber 03.11.2026, дословно: «Не нужен колодец "в плане" нужны: вид
+            // сбоку, вид сверху. Причём вид сверху должен полностью описывать геометрию
+            // сверху, не только колодец с детектором, но и саму защиту.») У пробы с защитой
+            // или колодцем-трапецией — ДВА вида одним масштабом: разрез («вид сбоку») и план
+            // («вид сверху»). Друг под другом или рядом — как выходит крупнее. Легенда
+            // защиты — полосой снизу во всю ширину.
+            bool plan = this.Mode == SketchMode.Source && m.Scene == GeometrySceneKind.None
+                        && (hasShield || m.HasTrapezoidHole);
+            double planR = 0.0;
+            if (plan)
+            {
+                double envR, envTop, envBot;
+                GeometryScenes.SceneEnvelopeMm(m, out envR, out envTop, out envBot);
+                planR = Math.Max(envR, hasShield ? shield.Cavity : 0.0);
+                plan = planR > 0.0;
+            }
+
+            this.LayoutSideBlock(g, m, hasShield);
+            float reserveY = this.legendRect.IsEmpty ? 0f : this.legendRect.Height + 8f;
+            const int PlanMarginTop = 34;
+            int planMarginBottom = hasShield ? 50 : 12;
+
+            // Масштаб — по ПОЛОСТИ и по рисуемым полосам слоёв: полосы в точках зависят
+            // от масштаба (тонкий слой — не меньше 3 точек, толстый — не больше предела),
+            // поэтому три прохода; каждый следующий масштаб не меньше предыдущего.
+            this.shieldPx = null;
+            this.breakZ0 = this.breakZ1 = 0.0;
+            this.breakPx = 0f;
+            this.scale = 0.0;
+            this.planStacked = true;
+            for (int pass = 0; pass < 3; pass++)
+            {
+                ShieldPx px = hasShield ? this.BandsPx(m, this.scale) : null;
+                float side = px != null ? px.SideTotal : 0f;
+                float vert = px != null ? px.FloorTotal + px.LidTotal : 0f;
+                double breakLen = this.breakZ1 - this.breakZ0;
+                double sideH = Math.Max(worldHeight - breakLen, 1e-6);
+                double sx = (this.Width - 2.0 * MarginX - 2.0 * side) / worldWidth;
+                double sy = (this.Height - MarginTop - MarginBottom - reserveY - vert - this.breakPx) / sideH;
+                bool vertical = sy < sx;
+                if (!plan)
+                {
+                    this.scale = Math.Min(sx, sy);
+                }
+                else
+                {
+                    double dp = 2.0 * planR;
+                    // Друг под другом.
+                    double sx1 = (this.Width - 2.0 * MarginX - 2.0 * side) / Math.Max(worldWidth, dp);
+                    double sy1 = (this.Height - MarginTop - MarginBottom - PlanMarginTop - planMarginBottom
+                                  - reserveY - vert - 2.0 * side - this.breakPx) / (sideH + dp);
+                    // Рядом.
+                    double sx2 = (this.Width - 3.0 * MarginX - 4.0 * side) / (worldWidth + dp);
+                    double sy2 = Math.Min(sy, (this.Height - PlanMarginTop - planMarginBottom - reserveY - 2.0 * side) / dp);
+                    double s1 = Math.Min(sx1, sy1), s2 = Math.Min(sx2, sy2);
+                    this.planStacked = s1 >= s2;
+                    this.scale = Math.Max(s1, s2);
+                    vertical = this.planStacked ? sy1 < sx1 : sy2 < sx2;
+                }
+
+                this.shieldPx = px;
+
+                // Второй ярус (дизайн, п. 3): кадр упёрся в высоту, а воздух полости между
+                // сценой и крышкой больше 40 % её высоты — воздух сжимается до 24 точек
+                // условным разрывом. Решается один раз, на первом проходе.
+                if (pass == 0 && hasShield && this.Mode == SketchMode.Source && vertical)
+                {
+                    double air = shield.LidFace - envBottom;
+                    if (air > 0.4 * (shield.LidFace - shield.FloorFace))
+                    {
+                        this.breakZ0 = envBottom + 0.1 * air;
+                        this.breakZ1 = shield.LidFace - 0.1 * air;
+                        this.breakPx = 24f;
+                    }
+                }
+            }
+
+            if (hasShield)
+            {
+                this.shieldPx = this.BandsPx(m, this.scale);
+            }
+
             if (!(this.scale > 0.0) || double.IsInfinity(this.scale))
             {
                 return;
@@ -328,9 +477,51 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             this.worldLeft = left;
             this.worldTop = top;
-            this.padLeft = (int)((this.Width - worldWidth * this.scale) / 2.0);
-            this.padTop = MarginTop + (int)((this.Height - MarginTop - MarginBottom
-                                             - worldHeight * this.scale) / 2.0);
+            // (`AMBER282`) Сцена в защите — дном вниз (`flipZ`): сверху полосы крышки.
+            // Так же и на вкладке «Источник», где защита не рисуется: та же проба в той же
+            // установке не должна на соседней вкладке висеть вверх ногами.
+            // И в миниатюре окна прибора (Amber 03.11.2026: «А ты не забыл перевернуть вот
+            // это?») — один вид, но той же ориентации, что вид сбоку редактора.
+            this.flipZ = (this.Mode == SketchMode.Source || this.Mode == SketchMode.Overview) && m.ShieldInScene;
+            float floorPx = this.shieldPx != null ? (this.flipZ ? this.shieldPx.LidTotal : this.shieldPx.FloorTotal) : 0f;
+            float lidPx = this.shieldPx != null ? (this.flipZ ? this.shieldPx.FloorTotal : this.shieldPx.LidTotal) : 0f;
+            float sidePx = this.shieldPx != null ? this.shieldPx.SideTotal : 0f;
+            double drawnHeight = (worldHeight - (this.breakZ1 - this.breakZ0)) * this.scale + this.breakPx;
+            this.drawnPx = drawnHeight;
+            this.planView = plan;
+            this.planRadius = planR;
+            if (!plan)
+            {
+                this.padLeft = (int)((this.Width - worldWidth * this.scale) / 2.0);
+                this.padTop = MarginTop + (int)floorPx + (int)((this.Height - MarginTop - MarginBottom - reserveY
+                                                               - floorPx - lidPx - drawnHeight) / 2.0);
+            }
+            else if (this.planStacked)
+            {
+                double planH = PlanMarginTop + 2.0 * planR * this.scale + 2.0 * sidePx + planMarginBottom;
+                double used = MarginTop + floorPx + drawnHeight + lidPx + MarginBottom + planH;
+                int slack = (int)Math.Max(0.0, (this.Height - reserveY - used) / 2.0);
+                this.padLeft = (int)((this.Width - worldWidth * this.scale) / 2.0);
+                this.padTop = MarginTop + (int)floorPx + slack;
+                float sideBottom = (float)(this.padTop + drawnHeight + lidPx + MarginBottom);
+                this.planCenter = new PointF(0.5f * this.Width,
+                                             (float)(sideBottom + PlanMarginTop + sidePx + planR * this.scale));
+                this.planTitleAt = new PointF(8f, sideBottom + 4f);
+            }
+            else
+            {
+                double content = (worldWidth + 2.0 * planR) * this.scale + 4.0 * sidePx + 3.0 * MarginX;
+                int slack = (int)Math.Max(0.0, (this.Width - content) / 2.0);
+                this.padLeft = slack + MarginX + (int)sidePx;
+                this.padTop = MarginTop + (int)floorPx + (int)((this.Height - MarginTop - MarginBottom - reserveY
+                                                               - floorPx - lidPx - drawnHeight) / 2.0);
+                float sideRight = (float)(this.padLeft + worldWidth * this.scale + sidePx);
+                float cx = (float)(sideRight + MarginX + sidePx + planR * this.scale);
+                float cy = (float)(this.padTop - floorPx + sidePx + planR * this.scale);
+                cy = Math.Max(cy, (float)(PlanMarginTop + sidePx + planR * this.scale));
+                this.planCenter = new PointF(cx, cy);
+                this.planTitleAt = new PointF((float)(cx - planR * this.scale - sidePx), 6f);
+            }
 
             if (this.Mode != SketchMode.Detector)
             {
@@ -346,6 +537,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.DrawVolume(g, volumeText, volumeSize);
             }
 
+            // (`AMBER282`) Подписи двух видов — тоже до размеров.
+            this.DrawViewTitles(g, volumeText != null ? 12f + volumeSize.Width : 0f);
+
             if (this.Mode == SketchMode.Detector)
             {
                 this.Annotate(g, m, halfWidth, height, boxDepthIntoPage,
@@ -354,6 +548,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             else if (this.Mode == SketchMode.Source)
             {
                 this.AnnotateSource(g, m, zFace);
+                this.AnnotateShield(g, m);
+                this.DrawShieldLegend(g, m);
+                this.DrawPlanView(g, m);
             }
             else
             {
@@ -542,7 +739,23 @@ namespace BecquerelMonitor.EfficiencyMaker
                     lines.Add(Dims(Resources.EfficiencySketchMarinelli, "⌀",
                                    Math.Max(m.MarinelliBeakerDiameter, 0.0),
                                    Math.Max(m.MarinelliBeakerHeight, 0.0)));
+                    // (`AMBER282`) Колодец-трапеция — словами: на миниатюре разрез её не выдаёт.
+                    if (m.HasTrapezoidHole)
+                    {
+                        lines.Add(Resources.EfficiencySketchTrapezoidHole + ": "
+                                  + Format(m.MarinelliHoleBase1) + "/" + Format(m.MarinelliHoleBase2)
+                                  + " × " + Format(m.MarinelliHoleWidth) + " " + Resources.GeometryEditorUnitMm);
+                    }
+
                     break;
+            }
+
+            // (`AMBER282`) Защита в расчёте — наружный габарит и число слоёв.
+            if (m.ShieldInScene)
+            {
+                lines.Add(string.Format(CultureInfo.InvariantCulture, Resources.EfficiencySketchShield,
+                                        m.ShieldLayers.Count, Format(m.ShieldOuterDiameter), Format(m.ShieldOuterHeight),
+                                        Resources.GeometryEditorUnitMm));
             }
 
             // Табличка обязана поместиться в отведённое ей поле, а поле у
@@ -728,7 +941,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             radius = 1.35 * Math.Sqrt(halfWidth * halfWidth + halfLength * halfLength);
         }
 
-        void SourceBounds(GeometryModel m, double zFace,
+        /// <remarks>(`AMBER282`) Статический и открытый сборке: тем же габаритом
+        /// <see cref="GeometryScenes.SceneEnvelopeMm"/> кладёт полость защиты, и чертёж с проверкой
+        /// не разойдутся.</remarks>
+        internal static void SourceBounds(GeometryModel m, double zFace,
                           out double left, out double right, out double top, out double bottom)
         {
             // (`AMBER13` (б)) Поле: кадр — окружность вокруг детектора.
@@ -891,6 +1107,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
+            // (`AMBER282`) Защита в расчёте — первой, под всем остальным.
+            this.DrawShield(g, m);
+
             switch (m.SourceType)
             {
                 case GeometrySourceType.Point:
@@ -963,8 +1182,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // Стакан Маринелли: проба охватывает детектор, колодец
                     // открыт снизу — детектор входит в него.
                     double rOut = 0.5 * Math.Max(m.MarinelliBeakerDiameter, 0.0);
-                    double rh = 0.5 * Math.Max(m.MarinelliHoleDiameter, 0.0);
-                    double ths = Math.Max(m.MarinelliHoleSideThickness, 0.0);
+                    // (`AMBER282`) У трапеции — полуширина по середине её высоты: разрез идёт по оси x.
+                    double rh, rhOut;
+                    HoleHalfWidths(m, out rh, out rhOut);
                     double the = Math.Max(m.MarinelliHoleEndWallThickness, 0.0);
                     double side = Math.Max(m.MarinelliSideThickness, 0.0);
                     double endWall = Math.Max(m.MarinelliEndWallThickness, 0.0);
@@ -990,7 +1210,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double farGap = MarinelliFarGap(m);
                     double zTopOuter = zSrc0 - endWall - farGap;
                     Fill(g, WallColor, -rOut, zTopOuter, 2.0 * rOut, body);
-                    double rSrcOut = Math.Max(rh + ths, rOut - side);
+                    double rSrcOut = Math.Max(rhOut, rOut - side);
                     if (farGap > 0.0)
                     {
                         Fill(g, Canvas, -rSrcOut, zTopOuter + endWall, 2.0 * rSrcOut, farGap);
@@ -998,7 +1218,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                     Fill(g, SampleColor, -rSrcOut, zSrc0, 2.0 * rSrcOut, hs);
                     // колодец: вырез в пробе, стенка колодца и пустота внутри
-                    Fill(g, WallColor, -(rh + ths), zCeiling - the, 2.0 * (rh + ths), the + hh);
+                    Fill(g, WallColor, -rhOut, zCeiling - the, 2.0 * rhOut, the + hh);
                     Fill(g, Canvas, -rh, zCeiling, 2.0 * rh, hh);
 
                     using (Pen pen = new Pen(Ink, 1.2f))
@@ -1055,8 +1275,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                         double zSrcTopB = zWallTopB - endB;
                         this.DimH(g, pen, ink, -half, half, this.AboveTop(22),
                                   2.0 * half, "BoxSourceX");
-                        this.DimV(g, pen, ink, this.RightOf(half, 26), zSrcTopB - hsB, zSrcTopB,
-                                  hsB, "BoxSourceHeight");
+                        this.SampleHeightDim(g, pen, ink, half, zSrcTopB - hsB, zSrcTopB, hsB, "BoxSourceHeight",
+                                             this.RightOf(half, 26));
                         this.DimV(g, pen, ink, 0.0, zWallTopB, zFace,
                                   Math.Max(m.BoxToDetectorDistance, 0.0), "BoxToDetectorDistance");
                         this.DimV(g, pen, ink, -half * 0.55, zSrcTopB, zWallTopB, endB,
@@ -1067,8 +1287,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // Слева от тела, на его середине: сверху стоит размер
                         // стороны X, снизу по оси идёт выноска расстояния, а
                         // внутри у левого края — толщина стенки.
-                        this.Note(g, ink, m.BoxSourceY, -half, zSrcTopB - hsB * 0.5,
-                                  -6f, "BoxSourceY", -8f);
+                        // (`AMBER282`) Есть вид сверху — сторона Y стоит на нём размером; надпись
+                        // «Y = …» у тела в защите вытеснялась полосами внутрь пробы.
+                        if (!this.planView)
+                        {
+                            this.Note(g, ink, m.BoxSourceY, -half, zSrcTopB - hsB * 0.5,
+                                      -6f, "BoxSourceY", -8f);
+                        }
+
                         return;
                     }
 
@@ -1082,8 +1308,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                         double zSrcTop = zWallTop - end;
                         this.DimH(g, pen, ink, -rOut, rOut, this.AboveTop(22),
                                   2.0 * rOut, "BeakerDiameter");
-                        this.DimV(g, pen, ink, this.RightOf(rOut, 26), zSrcTop - hs, zSrcTop, hs,
-                                  "SourceHeight");
+                        this.SampleHeightDim(g, pen, ink, rOut, zSrcTop - hs, zSrcTop, hs, "SourceHeight",
+                                             this.RightOf(rOut, 26));
                         this.DimV(g, pen, ink, 0.0, zWallTop, zFace,
                                   Math.Max(m.BeakerToDetectorDistance, 0.0), "BeakerToDetectorDistance");
                         this.DimV(g, pen, ink, -rOut * 0.55, zSrcTop, zWallTop, end, "BeakerEndWallThickness");
@@ -1126,7 +1352,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     default:
                     {
                         double rOut = 0.5 * Math.Max(m.MarinelliBeakerDiameter, 0.0);
-                        double rh = 0.5 * Math.Max(m.MarinelliHoleDiameter, 0.0);
+                        double rh, rhOut;
+                        HoleHalfWidths(m, out rh, out rhOut);
                         double ths = Math.Max(m.MarinelliHoleSideThickness, 0.0);
                         double side = Math.Max(m.MarinelliSideThickness, 0.0);
                         double hs = Math.Max(m.MarinelliSourceHeight, 0.0);
@@ -1139,14 +1366,35 @@ namespace BecquerelMonitor.EfficiencyMaker
                         double body = Math.Max(m.MarinelliBeakerHeight, 0.0);
                         this.DimH(g, pen, ink, -rOut, rOut, this.AboveTop(22),
                                   2.0 * rOut, "MarinelliBeakerDiameter");
-                        this.DimH(g, pen, ink, -rh, rh, zCeiling + hh * 0.55, 2.0 * rh,
-                                  "MarinelliHoleDiameter");
+                        // (`AMBER282`) У трапеции диаметра нет — её размеры стоят на виде в плане.
+                        if (!m.HasTrapezoidHole)
+                        {
+                            this.DimH(g, pen, ink, -rh, rh, zCeiling + hh * 0.55, 2.0 * rh,
+                                      "MarinelliHoleDiameter");
+                        }
                         // 40 точек, а не 30: число DimV пишет СПРАВА от своей
                         // линии, то есть в зазор до стенки стакана. Тридцати
                         // хватало на «5», но не на «12.35» — оно налезало на
                         // тело. В поле (MarginX = 78) сорок помещается.
-                        this.DimV(g, pen, ink, this.LeftOf(-rOut, 40), zSrc0, zSrc0 + hs, hs,
-                                  "MarinelliSourceHeight");
+                        if (this.shieldPx != null)
+                        {
+                            // (`AMBER282`, дизайн п. 5) В защите высота пробы — слева ЗА
+                            // защитой, с выносными линиями от граней пробы.
+                            float xl = this.X(-0.5 * Math.Max(m.ShieldInnerDiameter, 0.0)) - this.shieldPx.SideTotal - 14f;
+                            using (Pen leader = new Pen(Ink, 0.8f))
+                            {
+                                g.DrawLine(leader, this.X(-rOut), this.Y(zSrc0), xl - 3f, this.Y(zSrc0));
+                                g.DrawLine(leader, this.X(-rOut), this.Y(zSrc0 + hs), xl - 3f, this.Y(zSrc0 + hs));
+                            }
+
+                            this.DimVAt(g, pen, ink, xl, this.Y(zSrc0), this.Y(zSrc0 + hs), hs, "MarinelliSourceHeight");
+                        }
+                        else
+                        {
+                            this.DimV(g, pen, ink, this.LeftOf(-rOut, 40), zSrc0, zSrc0 + hs, hs,
+                                      "MarinelliSourceHeight");
+                        }
+
                         this.DimV(g, pen, ink, rh * 0.55, zCeiling, zCeiling + hh, hh, "MarinelliHoleHeight");
                         // Корпус рисуется от zSrc0 - endWall высотой body
                         // (см. DrawSource), выноска обязана мерить ровно то же и
@@ -1176,7 +1424,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // Стенки колодца разведены по высоте и по стороне: при
                         // общем 0.2 их подписи иначе налезают друг на друга и
                         // на выноску диаметра колодца.
-                        this.DimH(g, pen, ink, rh, rh + ths, zCeiling + hh * 0.82, ths,
+                        this.DimH(g, pen, ink, rh, rhOut, zCeiling + hh * 0.82, ths,
                                   "MarinelliHoleSideThickness");
                         this.DimV(g, pen, ink, -rh * 0.55, zCeiling - the, zCeiling, the,
                                   "MarinelliHoleEndWallThickness");
@@ -1187,6 +1435,998 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
                 }
             }
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER282`) Колодец-трапеция и защита в расчёте
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Полуширина колодца в разрезе — просвет и наружный контур гильзы. У круга
+        /// это радиус и радиус плюс стенка (до бита прежние числа чертежа); у
+        /// трапеции — на середине её высоты в плане (y = 0): разрез идёт по оси x,
+        /// вдоль оснований, и видна их средняя ширина.
+        /// </summary>
+        static void HoleHalfWidths(GeometryModel m, out double inner, out double outer)
+        {
+            double ths = Math.Max(m.MarinelliHoleSideThickness, 0.0);
+            double[] xs = new double[4], ys = new double[4], xo = new double[4], yo = new double[4];
+            if (m.TrapezoidHoleVertices(0.0, xs, ys) && m.TrapezoidHoleVertices(ths, xo, yo))
+            {
+                inner = 0.5 * (xs[1] + xs[2]);
+                outer = 0.5 * (xo[1] + xo[2]);
+                return;
+            }
+
+            inner = 0.5 * Math.Max(m.MarinelliHoleDiameter, 0.0);
+            outer = inner + ths;
+        }
+
+        /// <summary>Защита на чертеже: полость в мировых мм (слои рисуются полосами в точках, см. <see cref="ShieldPx"/>).</summary>
+        struct ShieldBox
+        {
+            public double Cavity, FloorFace, LidFace;     // радиус полости, внутренние грани дна и крышки
+        }
+
+        /// <summary>
+        /// Полость защиты тем же правилом, что у переноса (`EfficiencySimulator.AddShield`):
+        /// дно — на <c>ShieldFloorGap</c> дальше дальнего края сцены
+        /// (<see cref="GeometryScenes.SceneEnvelopeMm"/>), крышка — на высоте полости от
+        /// дна. Ложь — защиты в сцене нет.
+        /// </summary>
+        static bool ShieldInSketch(GeometryModel m, out ShieldBox box)
+        {
+            box = new ShieldBox();
+            double radius, top, bottom;
+            if (m == null || !m.ShieldInScene || !GeometryScenes.SceneEnvelopeMm(m, out radius, out top, out bottom))
+            {
+                return false;
+            }
+
+            box.Cavity = 0.5 * m.ShieldInnerDiameter;
+            box.FloorFace = top - Math.Max(0.0, m.ShieldFloorGap);
+            box.LidFace = box.FloorFace + m.ShieldInnerHeight;
+            return true;
+        }
+
+        /// <summary>
+        /// (`AMBER282`, предложение дизайнера 03.11.2026 на замечание Amber «защита на
+        /// скетче выглядит ужасно») Слои защиты — ПОЛОСАМИ В ТОЧКАХ вокруг полости:
+        /// тонкий слой — не меньше <see cref="MinBandPx"/> точек, толстый — не больше
+        /// предела (16 точек у поля уже 400, 20 у широкого, 10 у миниатюры) с условным
+        /// разрывом по ГОСТ 2.305, если честная толщина выходит за предел больше чем на 4
+        /// точки. Честная толщина, которая помещается, рисуется как есть.
+        /// </summary>
+        sealed class ShieldPx
+        {
+            public float[] Side, Floor, Lid;
+            public bool[] SideBroken, FloorBroken, LidBroken;
+            public float SideTotal, FloorTotal, LidTotal;
+
+            /// <summary>Хоть одна полоса не в масштабе (утолщена или с разрывом).</summary>
+            public bool NotToScale;
+        }
+
+        ShieldPx shieldPx;
+
+        const float MinBandPx = 3f;
+
+        float BandCapPx
+        {
+            get { return this.Mode == SketchMode.Overview ? 10f : (this.Width < 400 ? 16f : 20f); }
+        }
+
+        /// <summary>Полосы слоёв при масштабе <paramref name="scale"/>; 0 — масштаба ещё нет, берётся предел (оценка сверху).</summary>
+        ShieldPx BandsPx(GeometryModel m, double scale)
+        {
+            int n = m.ShieldLayers.Count;
+            ShieldPx px = new ShieldPx
+            {
+                Side = new float[n], Floor = new float[n], Lid = new float[n],
+                SideBroken = new bool[n], FloorBroken = new bool[n], LidBroken = new bool[n],
+            };
+            float cap = this.BandCapPx;
+            for (int i = 0; i < n; i++)
+            {
+                GeometryShieldLayer layer = m.ShieldLayers[i];
+                bool broken, thick;
+                px.Side[i] = Band(layer.SideThickness, scale, cap, out broken, out thick);
+                px.SideBroken[i] = broken;
+                px.NotToScale |= broken || thick;
+                px.Floor[i] = Band(layer.FloorThickness, scale, cap, out broken, out thick);
+                px.FloorBroken[i] = broken;
+                px.NotToScale |= broken || thick;
+                px.Lid[i] = Band(layer.LidThickness, scale, cap, out broken, out thick);
+                px.LidBroken[i] = broken;
+                px.NotToScale |= broken || thick;
+                px.SideTotal += px.Side[i];
+                px.FloorTotal += px.Floor[i];
+                px.LidTotal += px.Lid[i];
+            }
+
+            return px;
+        }
+
+        static float Band(double thickness, double scale, float cap, out bool broken, out bool thickened)
+        {
+            broken = false;
+            thickened = false;
+            if (!(thickness > 0.0))
+            {
+                return 0f;
+            }
+
+            if (!(scale > 0.0))
+            {
+                return cap;
+            }
+
+            double honest = thickness * scale;
+            if (honest > cap + 4.0)
+            {
+                broken = true;
+                return cap;
+            }
+
+            if (honest < MinBandPx)
+            {
+                thickened = true;
+                return MinBandPx;
+            }
+
+            return (float)honest;
+        }
+
+        /// <summary>Наружный контур слоя <paramref name="layer"/> (−1 — полость) на экране.</summary>
+        RectangleF ShieldRect(ShieldBox box, int layer)
+        {
+            float left = this.X(-box.Cavity), right = this.X(box.Cavity);
+            float floor = this.FloorEdge(box, layer), lid = this.LidEdge(box, layer);
+            for (int i = 0; i <= layer; i++)
+            {
+                left -= this.shieldPx.Side[i];
+                right += this.shieldPx.Side[i];
+            }
+
+            return RectangleF.FromLTRB(left, Math.Min(floor, lid), right, Math.Max(floor, lid));
+        }
+
+        /// <summary>Наружная грань дна слоя <paramref name="layer"/> (−1 — полость) на экране: вверху, а у отражённого чертежа — внизу.</summary>
+        float FloorEdge(ShieldBox box, int layer)
+        {
+            float y = this.Y(box.FloorFace), d = 0f;
+            for (int i = 0; i <= layer; i++)
+            {
+                d += this.shieldPx.Floor[i];
+            }
+
+            return this.flipZ ? y + d : y - d;
+        }
+
+        /// <summary>Наружная грань крышки слоя на экране.</summary>
+        float LidEdge(ShieldBox box, int layer)
+        {
+            float y = this.Y(box.LidFace), d = 0f;
+            for (int i = 0; i <= layer; i++)
+            {
+                d += this.shieldPx.Lid[i];
+            }
+
+            return this.flipZ ? y - d : y + d;
+        }
+
+        /// <summary>Тяжёлый ли слой (сталь, свинец): у него штриховка, у лёгкого — сплошная светлая заливка.</summary>
+        static bool HeavyLayer(GeometryMaterial material)
+        {
+            return material != null && material.Density >= 5.0;
+        }
+
+        /// <summary>
+        /// Цвет слоя по плотности (дизайн, п. 1): лёгкий металл — #E6EAEE, светлее фона;
+        /// тяжёлый — тёплый серый от #B0ABA0 (ρ 5) до #8C8880 (ρ ≥ 11.3), не путается с
+        /// холодной пробой #78808E. Тёмного варианта нет: чертёж «бумажный» на своём фоне.
+        /// </summary>
+        static Color ShieldColor(GeometryMaterial material)
+        {
+            if (!HeavyLayer(material))
+            {
+                return Color.FromArgb(0xE6, 0xEA, 0xEE);
+            }
+
+            double t = Math.Max(0.0, Math.Min(1.0, (material.Density - 5.0) / (11.3 - 5.0)));
+            Func<int, int, int> mix = (a, b) => (int)Math.Round(a + (b - a) * t);
+            return Color.FromArgb(mix(0xB0, 0x8C), mix(0xAB, 0x88), mix(0xA0, 0x80));
+        }
+
+        static readonly Color ShieldSeam = Color.FromArgb(0x4A, 0x47, 0x40);
+
+        void DrawShield(Graphics g, GeometryModel m)
+        {
+            ShieldBox box;
+            if (this.shieldPx == null || !ShieldInSketch(m, out box))
+            {
+                return;
+            }
+
+            int n = m.ShieldLayers.Count;
+            RectangleF cavity = this.ShieldRect(box, -1);
+
+            // Снаружи внутрь: каждый слой — сплошной прямоугольник своего наружного
+            // контура, следующий внутренний ложится поверх.
+            for (int i = n - 1; i >= 0; i--)
+            {
+                RectangleF outer = this.ShieldRect(box, i);
+                Color fill = ShieldColor(m.ShieldLayers[i].Material);
+                using (Brush brush = new SolidBrush(fill))
+                {
+                    g.FillRectangle(brush, outer);
+                }
+
+                if (HeavyLayer(m.ShieldLayers[i].Material))
+                {
+                    // Штриховка линиями под 45°, 1 точка, шаг 7 — не HatchBrush: его
+                    // сетка 8×8 грубая и спорит с палитрой.
+                    GraphicsState state = g.Save();
+                    g.SetClip(outer);
+                    using (Pen hatch = new Pen(Color.FromArgb(fill.R * 82 / 100, fill.G * 82 / 100, fill.B * 82 / 100), 1f))
+                    {
+                        for (float d = -outer.Height; d < outer.Width; d += 7f)
+                        {
+                            g.DrawLine(hatch, outer.Left + d, outer.Bottom, outer.Left + d + outer.Height, outer.Top);
+                        }
+                    }
+
+                    g.Restore(state);
+                }
+
+                RectangleF inner = this.ShieldRect(box, i - 1);
+                this.obstacles.Add(RectangleF.FromLTRB(outer.Left, outer.Top, outer.Right, inner.Top));
+                this.obstacles.Add(RectangleF.FromLTRB(outer.Left, inner.Bottom, outer.Right, outer.Bottom));
+                this.obstacles.Add(RectangleF.FromLTRB(outer.Left, inner.Top, inner.Left, inner.Bottom));
+                this.obstacles.Add(RectangleF.FromLTRB(inner.Right, inner.Top, outer.Right, inner.Bottom));
+            }
+
+            using (Brush canvas = new SolidBrush(Canvas))
+            {
+                g.FillRectangle(canvas, cavity);
+            }
+
+            using (Pen seam = new Pen(ShieldSeam, 1f))
+            using (Pen ink = new Pen(Ink, 1.2f))
+            {
+                // Швы между слоями, затем условные разрывы укороченных полос.
+                for (int i = 0; i < n - 1; i++)
+                {
+                    RectangleF r = this.ShieldRect(box, i);
+                    g.DrawRectangle(seam, r.X, r.Y, r.Width, r.Height);
+                }
+
+                for (int i = 0; i < n; i++)
+                {
+                    RectangleF outer = this.ShieldRect(box, i), inner = this.ShieldRect(box, i - 1);
+                    if (this.shieldPx.SideBroken[i])
+                    {
+                        float xl = 0.5f * (outer.Left + inner.Left), xr = 0.5f * (outer.Right + inner.Right);
+                        ZigZag(g, seam, false, outer.Top, outer.Bottom, xl);
+                        ZigZag(g, seam, false, outer.Top, outer.Bottom, xr);
+                    }
+
+                    if (this.shieldPx.FloorBroken[i])
+                    {
+                        ZigZag(g, seam, true, outer.Left, outer.Right, 0.5f * (this.FloorEdge(box, i) + this.FloorEdge(box, i - 1)));
+                    }
+
+                    if (this.shieldPx.LidBroken[i])
+                    {
+                        ZigZag(g, seam, true, outer.Left, outer.Right, 0.5f * (this.LidEdge(box, i) + this.LidEdge(box, i - 1)));
+                    }
+                }
+
+                RectangleF all = this.ShieldRect(box, n - 1);
+                g.DrawRectangle(ink, all.X, all.Y, all.Width, all.Height);
+                g.DrawRectangle(ink, cavity.X, cavity.Y, cavity.Width, cavity.Height);
+
+                // Разрыв воздуха полости — две линии поперёк всей защиты.
+                if (this.breakPx > 0f)
+                {
+                    float y0 = Math.Min(this.Y(this.breakZ0), this.Y(this.breakZ1));
+                    ZigZag(g, seam, true, all.Left, all.Right, y0 + 5f);
+                    ZigZag(g, seam, true, all.Left, all.Right, y0 + this.breakPx - 5f);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Линия обрыва по ГОСТ 2.305: тонкая сплошная с изломами (амплитуда ±4, ширина
+        /// 8 точек) через каждые 70 точек, у короткой — один излом посередине.
+        /// </summary>
+        static void ZigZag(Graphics g, Pen pen, bool horizontal, float a, float b, float at)
+        {
+            if (!(b - a > 12f))
+            {
+                return;
+            }
+
+            List<PointF> points = new List<PointF>();
+            Func<float, float, PointF> P = (along, across) => horizontal ? new PointF(along, at + across) : new PointF(at + across, along);
+            points.Add(P(a, 0f));
+            int breaks = Math.Max(1, (int)((b - a) / 70f));
+            float step = (b - a) / breaks;
+            for (int k = 0; k < breaks; k++)
+            {
+                float c = a + step * (k + 0.5f);
+                points.Add(P(c - 4f, 0f));
+                points.Add(P(c - 2f, 4f));
+                points.Add(P(c + 2f, -4f));
+                points.Add(P(c + 4f, 0f));
+            }
+
+            points.Add(P(b, 0f));
+            g.DrawLines(pen, points.ToArray());
+        }
+
+        /// <summary>
+        /// Размеры защиты (дизайн, п. 4): на эскизе — диаметр полости снизу, её высота
+        /// справа с выносными линиями, зазор до дна, если он есть. Толщины слоёв — в
+        /// легенде; на эскизе толщина появляется, только когда её поле в фокусе.
+        /// </summary>
+        void AnnotateShield(Graphics g, GeometryModel m)
+        {
+            ShieldBox box;
+            if (this.shieldPx == null || !ShieldInSketch(m, out box))
+            {
+                return;
+            }
+
+            int n = m.ShieldLayers.Count;
+            RectangleF cavity = this.ShieldRect(box, -1), all = this.ShieldRect(box, n - 1);
+            using (Pen pen = new Pen(Ink, 1f))
+            using (Pen leader = new Pen(Ink, 0.8f))
+            using (Brush ink = new SolidBrush(Ink))
+            {
+                this.DimHAt(g, pen, ink, cavity.Left, cavity.Right, all.Bottom + 14f, m.ShieldInnerDiameter, "ShieldInnerDiameter");
+
+                float xh = all.Right + 14f;
+                g.DrawLine(leader, cavity.Right, cavity.Top, xh + 3f, cavity.Top);
+                g.DrawLine(leader, cavity.Right, cavity.Bottom, xh + 3f, cavity.Bottom);
+                this.DimVAt(g, pen, ink, xh, cavity.Top, cavity.Bottom, m.ShieldInnerHeight, "ShieldInnerHeight");
+
+                // (`AMBER282`, Amber 03.11.2026: «Ошибка в эскизе, внутренняя высота 100, внешняя
+                // 160») Как на чертеже — обе высоты: внутренняя (полость, линией выше) и
+                // НАРУЖНАЯ целиком — все слои низа, полость и все слои верха. Число настоящее,
+                // даже если полосы укорочены разрывом.
+                double floorSum = 0.0, lidSum = 0.0;
+                foreach (GeometryShieldLayer layer in m.ShieldLayers)
+                {
+                    floorSum += Math.Max(0.0, layer.FloorThickness);
+                    lidSum += Math.Max(0.0, layer.LidThickness);
+                }
+
+                float xk = all.Right + 40f;
+                float yFloorOuter = this.FloorEdge(box, n - 1), yLidOuter = this.LidEdge(box, n - 1);
+                g.DrawLine(leader, all.Right, yFloorOuter, xk + 3f, yFloorOuter);
+                g.DrawLine(leader, all.Right, yLidOuter, xk + 3f, yLidOuter);
+                this.DimVAt(g, pen, ink, xk, yFloorOuter, yLidOuter, floorSum + m.ShieldInnerHeight + lidSum, null);
+
+                if (m.ShieldFloorGap > 0.0)
+                {
+                    this.DimV(g, pen, ink, -box.Cavity * 0.85, box.FloorFace, box.FloorFace + m.ShieldFloorGap,
+                              m.ShieldFloorGap, "ShieldFloorGap");
+                }
+
+                for (int i = 0; i < n; i++)
+                {
+                    RectangleF outer = this.ShieldRect(box, i), inner = this.ShieldRect(box, i - 1);
+                    GeometryShieldLayer layer = m.ShieldLayers[i];
+                    string side = GeometryScenes.ShieldLayerField(i, "Side");
+                    string floor = GeometryScenes.ShieldLayerField(i, "Floor");
+                    string lid = GeometryScenes.ShieldLayerField(i, "Lid");
+                    if (this.Lit(side))
+                    {
+                        this.DimHAt(g, pen, ink, inner.Right, outer.Right, 0.5f * (cavity.Top + cavity.Bottom), layer.SideThickness, side);
+                    }
+
+                    if (this.Lit(floor))
+                    {
+                        this.DimVAt(g, pen, ink, 0.5f * (cavity.Left + cavity.Right), this.FloorEdge(box, i), this.FloorEdge(box, i - 1),
+                                    layer.FloorThickness, floor);
+                    }
+
+                    if (this.Lit(lid))
+                    {
+                        this.DimVAt(g, pen, ink, 0.5f * (cavity.Left + cavity.Right), this.LidEdge(box, i - 1), this.LidEdge(box, i),
+                                    layer.LidThickness, lid);
+                    }
+                }
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER282`) Боковой блок: легенда слоёв защиты и вид в плане колодца
+        // ------------------------------------------------------------------
+
+        /// <summary>Строка легенды: образец цвета (пусто — строка без образца), текст, ключ подсветки.</summary>
+        sealed class LegendLine
+        {
+            public GeometryMaterial Swatch;
+            public string Text;
+            public int Layer = -1;
+            public bool Gray;
+
+            /// <summary>Строка наружного габарита: к ней приписывается «не в масштабе».</summary>
+            public bool Outer;
+        }
+
+        readonly List<LegendLine> legend = new List<LegendLine>();
+        readonly List<RectangleF> obstacles = new List<RectangleF>();
+        RectangleF sideBlock, legendRect, insetRect;
+        bool sideBlockRight;
+        float legendLineHeight;
+
+        static string LayerThickness(GeometryShieldLayer layer)
+        {
+            if (layer.SideThickness == layer.FloorThickness && layer.SideThickness == layer.LidThickness)
+            {
+                return Format(layer.SideThickness);
+            }
+
+            return Format(layer.SideThickness) + " / " + Format(layer.FloorThickness) + " / " + Format(layer.LidThickness)
+;
+        }
+
+        static string ShortName(GeometryMaterial material)
+        {
+            if (material == null || string.IsNullOrEmpty(material.Name))
+            {
+                return "?";
+            }
+
+            GeometryMaterialLibrary.Entry entry = GeometryMaterialLibrary.ByName(material.Name);
+            return entry != null && !string.IsNullOrEmpty(entry.Abbr) ? entry.Abbr : material.Name;
+        }
+
+        /// <summary>
+        /// Разложить боковой блок (дизайн, пп. 4 и 6): у высокого поля — снизу во всю
+        /// ширину (легенда, под ней полоса вида в плане 110 точек), у широкого — колонкой
+        /// справа (легенда, под ней квадрат 180). Пустой — ни защиты, ни трапеции.
+        /// </summary>
+        void LayoutSideBlock(Graphics g, GeometryModel m, bool hasShield)
+        {
+            this.legend.Clear();
+            this.sideBlock = this.legendRect = this.insetRect = RectangleF.Empty;
+            this.sideBlockRight = this.Width >= this.Height;
+            if (this.Mode != SketchMode.Source)
+            {
+                return;
+            }
+
+            float legendW = 0f, legendH = 0f;
+            if (hasShield)
+            {
+                this.legend.Add(new LegendLine { Text = Resources.GeometryEditorShieldLayers });
+
+                // Разные бок/низ/верх — подсказка порядка своей строкой, а не хвостом у
+                // каждого слоя: в колонке 280 точек хвост уходил за край (мерка 03.11.2026).
+                bool parts = false;
+                foreach (GeometryShieldLayer layer in m.ShieldLayers)
+                {
+                    parts |= !(layer.SideThickness == layer.FloorThickness && layer.SideThickness == layer.LidThickness);
+                }
+
+                if (parts)
+                {
+                    this.legend.Add(new LegendLine
+                    {
+                        Text = "(" + Resources.EfficiencySketchShieldParts + ", " + Resources.GeometryEditorUnitMm + ")",
+                        Gray = true,
+                    });
+                }
+                for (int i = 0; i < m.ShieldLayers.Count; i++)
+                {
+                    GeometryShieldLayer layer = m.ShieldLayers[i];
+                    this.legend.Add(new LegendLine
+                    {
+                        Swatch = layer.Material ?? new GeometryMaterial(),
+                        Text = (i + 1).ToString(CultureInfo.InvariantCulture) + " " + ShortName(layer.Material) + " — "
+                               + LayerThickness(layer) + (parts ? "" : " " + Resources.GeometryEditorUnitMm),
+                        Layer = i,
+                    });
+                }
+
+                this.legend.Add(new LegendLine
+                {
+                    Text = string.Format(CultureInfo.InvariantCulture, Resources.EfficiencySketchShieldOuter,
+                                         Format(m.ShieldOuterDiameter), Format(m.ShieldOuterHeight), Resources.GeometryEditorUnitMm),
+                    Gray = true,
+                    Outer = true,
+                });
+
+                this.legendLineHeight = 0f;
+                foreach (LegendLine line in this.legend)
+                {
+                    string text = line.Outer ? line.Text + Resources.EfficiencySketchNotToScale : line.Text;
+                    SizeF size = g.MeasureString(text, this.Font);
+                    legendW = Math.Max(legendW, size.Width + (line.Swatch != null ? 16f : 0f));
+                    this.legendLineHeight = Math.Max(this.legendLineHeight, size.Height);
+                }
+
+                legendW += 12f;
+                legendH = this.legendLineHeight * this.legend.Count + 8f;
+            }
+
+            if (legendH <= 0f)
+            {
+                return;
+            }
+
+            // Легенда — полосой снизу (Amber 03.11.2026: виды сбоку и сверху занимают
+            // поле, колонки справа больше нет).
+            this.legendRect = new RectangleF(6f, this.Height - legendH - 6f, Math.Min(legendW, this.Width - 12f), legendH);
+            this.sideBlock = this.legendRect;
+            this.sideBlockRight = false;
+
+            // Числа разреза в легенду не садятся.
+            this.obstacles.Add(this.legendRect);
+        }
+
+        void DrawShieldLegend(Graphics g, GeometryModel m)
+        {
+            if (this.legendRect.IsEmpty)
+            {
+                return;
+            }
+
+            using (Brush plate = new SolidBrush(Color.FromArgb(0xC8, 0xFF, 0xFF, 0xFF)))
+            using (Pen frame = new Pen(Color.FromArgb(0x90, 0x90, 0x90)))
+            using (Brush ink = new SolidBrush(Ink))
+            using (Brush gray = new SolidBrush(Color.FromArgb(0x6A, 0x66, 0x5E)))
+            using (Brush lit = new SolidBrush(LitColor))
+            using (Pen seam = new Pen(ShieldSeam, 1f))
+            {
+                RectangleF r = this.legendRect;
+                g.FillRectangle(plate, r);
+                g.DrawRectangle(frame, r.X, r.Y, r.Width, r.Height);
+                float y = r.Y + 4f;
+                foreach (LegendLine line in this.legend)
+                {
+                    float x = r.X + 6f;
+                    if (line.Swatch != null)
+                    {
+                        RectangleF sw = new RectangleF(x, y + 0.5f * (this.legendLineHeight - 10f), 10f, 10f);
+                        Color fill = ShieldColor(line.Swatch);
+                        using (Brush b = new SolidBrush(fill))
+                        {
+                            g.FillRectangle(b, sw);
+                        }
+
+                        if (HeavyLayer(line.Swatch))
+                        {
+                            using (Pen hatch = new Pen(Color.FromArgb(fill.R * 82 / 100, fill.G * 82 / 100, fill.B * 82 / 100), 1f))
+                            {
+                                g.DrawLine(hatch, sw.Left, sw.Bottom, sw.Right, sw.Top);
+                            }
+                        }
+
+                        g.DrawRectangle(seam, sw.X, sw.Y, sw.Width, sw.Height);
+                        x += 16f;
+                    }
+
+                    bool isLit = line.Layer >= 0
+                                 && (this.Lit(GeometryScenes.ShieldLayerField(line.Layer, "Side"))
+                                     || this.Lit(GeometryScenes.ShieldLayerField(line.Layer, "Floor"))
+                                     || this.Lit(GeometryScenes.ShieldLayerField(line.Layer, "Lid"))
+                                     || this.Lit(GeometryScenes.ShieldLayerField(line.Layer, "Density")));
+                    string text = line.Outer && (this.shieldPx != null && this.shieldPx.NotToScale || this.breakPx > 0f)
+                        ? line.Text + Resources.EfficiencySketchNotToScale : line.Text;
+                    this.Print(g, isLit ? lit : (line.Gray ? gray : ink), text, null, x, y, g.MeasureString(text, this.Font));
+                    y += this.legendLineHeight;
+                }
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER282`) Вид сверху — план сцены целиком: защита, полость, проба,
+        // колодец, прибор. Тем же масштабом, что вид сбоку, и тем же языком:
+        // заливки и штриховка слоёв, тонкий слой — не тоньше MinBandPx.
+        // ------------------------------------------------------------------
+
+        bool planView, planStacked;
+        double planRadius;
+        PointF planCenter, planTitleAt;
+
+        /// <summary>Подписи вида сверху — на светлой плашке: числа стоят на тёмной пробе.</summary>
+        bool plateLabels;
+
+        float PX(double x)
+        {
+            return (float)(this.planCenter.X + x * this.scale);
+        }
+
+        float PY(double y)
+        {
+            return (float)(this.planCenter.Y + y * this.scale);
+        }
+
+        /// <summary>Подписи «Вид сбоку» и «Вид сверху» — до размеров: раскладка чисел их обходит.</summary>
+        void DrawViewTitles(Graphics g, float volumePlateRight)
+        {
+            if (!this.planView)
+            {
+                return;
+            }
+
+            using (Brush ink = new SolidBrush(Ink))
+            using (Font bold = new Font(this.Font, FontStyle.Bold))
+            {
+                SizeF a = g.MeasureString(Resources.EfficiencySketchSideView, bold);
+                this.Print(g, bold, ink, Resources.EfficiencySketchSideView, null,
+                           volumePlateRight > 0f ? volumePlateRight + 8f : 8f, 6f, a);
+                SizeF b = g.MeasureString(Resources.EfficiencySketchTopView, bold);
+                float x = this.planStacked ? 8f : Math.Max(this.planTitleAt.X, volumePlateRight + a.Width + 24f);
+                this.Print(g, bold, ink, Resources.EfficiencySketchTopView, null, x, this.planTitleAt.Y, b);
+            }
+        }
+
+        void FillCircle(Graphics g, Color color, float r)
+        {
+            if (!(r > 0f))
+            {
+                return;
+            }
+
+            using (Brush brush = new SolidBrush(color))
+            {
+                g.FillEllipse(brush, this.planCenter.X - r, this.planCenter.Y - r, 2f * r, 2f * r);
+            }
+        }
+
+        void Circle(Graphics g, Pen pen, float r)
+        {
+            if (r > 0f)
+            {
+                g.DrawEllipse(pen, this.planCenter.X - r, this.planCenter.Y - r, 2f * r, 2f * r);
+            }
+        }
+
+        void DrawPlanView(Graphics g, GeometryModel m)
+        {
+            if (!this.planView)
+            {
+                return;
+            }
+
+            ShieldBox box;
+            bool shield = this.shieldPx != null && ShieldInSketch(m, out box);
+            float cavityPx = shield ? (float)(0.5 * m.ShieldInnerDiameter * this.scale) : 0f;
+            float outerPx = cavityPx;
+
+            using (Pen ink = new Pen(Ink, 1.2f))
+            using (Pen seam = new Pen(ShieldSeam, 1f))
+            {
+                // 1. Кольца защиты снаружи внутрь, затем полость.
+                if (shield)
+                {
+                    int n = m.ShieldLayers.Count;
+                    float[] radii = new float[n];
+                    float r = cavityPx;
+                    for (int i = 0; i < n; i++)
+                    {
+                        r += this.shieldPx.Side[i];
+                        radii[i] = r;
+                    }
+
+                    outerPx = r;
+                    for (int i = n - 1; i >= 0; i--)
+                    {
+                        Color fill = ShieldColor(m.ShieldLayers[i].Material);
+                        this.FillCircle(g, fill, radii[i]);
+                        if (HeavyLayer(m.ShieldLayers[i].Material))
+                        {
+                            using (GraphicsPath path = new GraphicsPath())
+                            {
+                                path.AddEllipse(this.planCenter.X - radii[i], this.planCenter.Y - radii[i], 2f * radii[i], 2f * radii[i]);
+                                GraphicsState state = g.Save();
+                                g.SetClip(path);
+                                using (Pen hatch = new Pen(Color.FromArgb(fill.R * 82 / 100, fill.G * 82 / 100, fill.B * 82 / 100), 1f))
+                                {
+                                    float left = this.planCenter.X - radii[i], bottom = this.planCenter.Y + radii[i];
+                                    for (float d = -2f * radii[i]; d < 2f * radii[i]; d += 7f)
+                                    {
+                                        g.DrawLine(hatch, left + d, bottom, left + d + 2f * radii[i], bottom - 2f * radii[i]);
+                                    }
+                                }
+
+                                g.Restore(state);
+                            }
+                        }
+                    }
+
+                    this.FillCircle(g, Canvas, cavityPx);
+                    for (int i = 0; i < n - 1; i++)
+                    {
+                        this.Circle(g, seam, radii[i]);
+                    }
+
+                    // Условный разрыв укороченного кольца — радиальной линией с изломом на 45°.
+                    for (int i = 0; i < n; i++)
+                    {
+                        if (this.shieldPx.SideBroken[i])
+                        {
+                            float r0 = i == 0 ? cavityPx : radii[i - 1];
+                            float mid = 0.5f * (r0 + radii[i]);
+                            double a = -Math.PI / 4.0;
+                            float cx = this.planCenter.X + (float)(mid * Math.Cos(a)), cy = this.planCenter.Y + (float)(mid * Math.Sin(a));
+                            GraphicsState state = g.Save();
+                            g.TranslateTransform(cx, cy);
+                            g.RotateTransform(-45f);
+                            ZigZag(g, seam, false, -12f, 12f, 0f);
+                            g.Restore(state);
+                        }
+                    }
+
+                    this.Circle(g, ink, outerPx);
+                    this.Circle(g, ink, cavityPx);
+                }
+
+                // 2. Проба и сосуд.
+                double holeOuterReach = 0.0;
+                double[] xi = new double[4], yi = new double[4], xo = new double[4], yo = new double[4];
+                bool trap = m.HasTrapezoidHole && m.TrapezoidHoleVertices(0.0, xi, yi)
+                            && m.TrapezoidHoleVertices(Math.Max(m.MarinelliHoleSideThickness, 0.0), xo, yo);
+                if (trap)
+                {
+                    for (int i = 0; i < 4; i++)
+                    {
+                        holeOuterReach = Math.Max(holeOuterReach, Math.Sqrt(xo[i] * xo[i] + yo[i] * yo[i]));
+                    }
+                }
+
+                float beakerPx = 0f;
+                double boxHalfX = 0.0, boxHalfY = 0.0;
+                switch (m.SourceType)
+                {
+                    case GeometrySourceType.Marinelli:
+                    {
+                        double rOut = 0.5 * Math.Max(m.MarinelliBeakerDiameter, 0.0);
+                        double rh = 0.5 * Math.Max(m.MarinelliHoleDiameter, 0.0);
+                        double ths = Math.Max(m.MarinelliHoleSideThickness, 0.0);
+                        double rSrc = trap ? Math.Max(holeOuterReach, rOut - Math.Max(m.MarinelliSideThickness, 0.0))
+                                           : Math.Max(rh + ths, rOut - Math.Max(m.MarinelliSideThickness, 0.0));
+                        beakerPx = (float)(rOut * this.scale);
+                        this.FillCircle(g, WallColor, beakerPx);
+                        this.FillCircle(g, SampleColor, (float)(rSrc * this.scale));
+                        if (trap)
+                        {
+                            using (Brush wall = new SolidBrush(WallColor))
+                            using (Brush canvas = new SolidBrush(Canvas))
+                            {
+                                g.FillPolygon(wall, this.PlanPoints(xo, yo));
+                                g.FillPolygon(canvas, this.PlanPoints(xi, yi));
+                            }
+
+                            g.DrawPolygon(ink, this.PlanPoints(xi, yi));
+                        }
+                        else
+                        {
+                            this.FillCircle(g, WallColor, (float)((rh + ths) * this.scale));
+                            this.FillCircle(g, Canvas, (float)(rh * this.scale));
+                            this.Circle(g, ink, (float)(rh * this.scale));
+                        }
+
+                        this.Circle(g, ink, beakerPx);
+                        this.DrawPlanDetector(g, m, false);
+                        break;
+                    }
+
+                    case GeometrySourceType.Cylinder:
+                    {
+                        double rOut = 0.5 * Math.Max(m.BeakerDiameter, 0.0);
+                        beakerPx = (float)(rOut * this.scale);
+                        this.FillCircle(g, WallColor, beakerPx);
+                        this.FillCircle(g, SampleColor, (float)(Math.Max(0.0, rOut - m.BeakerSideWallThickness) * this.scale));
+                        this.Circle(g, ink, beakerPx);
+                        this.DrawPlanDetector(g, m, !this.flipZ);
+                        break;
+                    }
+
+                    case GeometrySourceType.Box:
+                    {
+                        double hx = 0.5 * Math.Max(m.BoxSourceX, 0.0), hy = 0.5 * Math.Max(m.BoxSourceY, 0.0);
+                        double w = Math.Max(m.BoxSideWallThickness, 0.0);
+                        using (Brush wall = new SolidBrush(WallColor))
+                        using (Brush sample = new SolidBrush(SampleColor))
+                        {
+                            g.FillRectangle(wall, this.PX(-hx), this.PY(-hy), (float)(2 * hx * this.scale), (float)(2 * hy * this.scale));
+                            g.FillRectangle(sample, this.PX(-hx + w), this.PY(-hy + w), (float)(2 * (hx - w) * this.scale), (float)(2 * (hy - w) * this.scale));
+                        }
+
+                        g.DrawRectangle(ink, this.PX(-hx), this.PY(-hy), (float)(2 * hx * this.scale), (float)(2 * hy * this.scale));
+                        this.DrawPlanDetector(g, m, !this.flipZ);
+                        boxHalfX = hx;
+                        boxHalfY = hy;
+                        break;
+                    }
+
+                    default:
+                        // Точка на расстоянии: у сцены в защите прибор стоит НАД точкой и
+                        // закрывает её сверху — точка показана штриховым кружком поверх.
+                        if (this.flipZ)
+                        {
+                            this.DrawPlanDetector(g, m, false);
+                            using (Pen dash = new Pen(SampleColor, 1.4f) { DashStyle = DashStyle.Dash })
+                            {
+                                g.DrawEllipse(dash, this.planCenter.X - 5f, this.planCenter.Y - 5f, 10f, 10f);
+                            }
+                        }
+                        else
+                        {
+                            this.DrawPlanDetector(g, m, true);
+                            using (Brush b = new SolidBrush(SampleColor))
+                            {
+                                g.FillEllipse(b, this.planCenter.X - 4f, this.planCenter.Y - 4f, 8f, 8f);
+                            }
+                        }
+
+                        break;
+                }
+
+                // 3. Размеры: диаметр сосуда — над планом, полость и наружный — под ним, с
+                // выносными от касательных; трапеция — внутри, на плашках.
+                using (Pen pen = new Pen(Ink, 1f))
+                using (Pen leader = new Pen(Ink, 0.8f))
+                using (Brush text = new SolidBrush(Ink))
+                {
+                    float top = this.planCenter.Y - Math.Max(outerPx, beakerPx);
+                    float bottom = this.planCenter.Y + Math.Max(outerPx, beakerPx);
+                    if (beakerPx > 0f)
+                    {
+                        float y = top - 12f;
+                        g.DrawLine(leader, this.planCenter.X - beakerPx, this.planCenter.Y, this.planCenter.X - beakerPx, y - 3f);
+                        g.DrawLine(leader, this.planCenter.X + beakerPx, this.planCenter.Y, this.planCenter.X + beakerPx, y - 3f);
+                        string key = m.SourceType == GeometrySourceType.Marinelli ? "MarinelliBeakerDiameter" : "BeakerDiameter";
+                        this.DimHAt(g, pen, text, this.planCenter.X - beakerPx, this.planCenter.X + beakerPx, y,
+                                    2.0 * beakerPx / this.scale, key);
+                    }
+
+                    if (shield)
+                    {
+                        float y1 = bottom + 14f, y2 = bottom + 32f;
+                        g.DrawLine(leader, this.planCenter.X - cavityPx, this.planCenter.Y, this.planCenter.X - cavityPx, y1 + 3f);
+                        g.DrawLine(leader, this.planCenter.X + cavityPx, this.planCenter.Y, this.planCenter.X + cavityPx, y1 + 3f);
+                        g.DrawLine(leader, this.planCenter.X - outerPx, this.planCenter.Y, this.planCenter.X - outerPx, y2 + 3f);
+                        g.DrawLine(leader, this.planCenter.X + outerPx, this.planCenter.Y, this.planCenter.X + outerPx, y2 + 3f);
+                        this.DimHAt(g, pen, text, this.planCenter.X - cavityPx, this.planCenter.X + cavityPx, y1,
+                                    m.ShieldInnerDiameter, "ShieldInnerDiameter");
+                        this.DimHAt(g, pen, text, this.planCenter.X - outerPx, this.planCenter.X + outerPx, y2,
+                                    m.ShieldOuterDiameter, null);
+                    }
+
+                    if (boxHalfX > 0.0 && boxHalfY > 0.0)
+                    {
+                        this.plateLabels = true;
+                        try
+                        {
+                            SizeF wy = g.MeasureString(Format(m.BoxSourceY), this.Font);
+                            this.DimHAt(g, pen, text, this.PX(-boxHalfX), this.PX(boxHalfX), this.PY(-boxHalfY) - 6f,
+                                        m.BoxSourceX, "BoxSourceX");
+                            this.DimVAt(g, pen, text, this.PX(-boxHalfX) - 8f - wy.Width, this.PY(-boxHalfY), this.PY(boxHalfY),
+                                        m.BoxSourceY, "BoxSourceY");
+                        }
+                        finally
+                        {
+                            this.plateLabels = false;
+                        }
+                    }
+
+                    if (trap)
+                    {
+                        this.plateLabels = true;
+                        try
+                        {
+                            SizeF b2 = g.MeasureString(Format(m.MarinelliHoleBase2), this.Font);
+                            SizeF wd = g.MeasureString(Format(m.MarinelliHoleWidth), this.Font);
+                            this.DimHAt(g, pen, text, this.PX(xi[0]), this.PX(xi[1]), this.PY(yo[0]) - 6f,
+                                        m.MarinelliHoleBase1, "MarinelliHoleBase1");
+                            this.DimHAt(g, pen, text, this.PX(xi[3]), this.PX(xi[2]), this.PY(yo[2]) + 8f + b2.Height,
+                                        m.MarinelliHoleBase2, "MarinelliHoleBase2");
+                            float xl = this.PX(Math.Min(xo[0], xo[3])) - 8f - wd.Width;
+                            this.DimVAt(g, pen, text, xl, this.PY(yi[0]), this.PY(yi[2]), m.MarinelliHoleWidth, "MarinelliHoleWidth");
+                        }
+                        finally
+                        {
+                            this.plateLabels = false;
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>Сечение прибора на плане: обвязка и кристалл; под пробой (не виден сверху) — штриховым контуром.</summary>
+        void DrawPlanDetector(Graphics g, GeometryModel m, bool hidden)
+        {
+            double toSample, lateral;
+            GeometryScenes.WrappingInScene(m, out toSample, out lateral);
+            double hx, hy;
+            bool box = m.Shape == CrystalShape.Box;
+            if (box)
+            {
+                double depth;
+                m.CrystalBoxInScene(out hx, out hy, out depth);
+            }
+            else
+            {
+                hx = hy = 0.5 * Math.Max(m.CrystalDiameter, 0.0);
+            }
+
+            RectangleF outer = RectangleF.FromLTRB(this.PX(-(hx + lateral)), this.PY(-(hy + lateral)),
+                                                   this.PX(hx + lateral), this.PY(hy + lateral));
+            RectangleF inner = RectangleF.FromLTRB(this.PX(-hx), this.PY(-hy), this.PX(hx), this.PY(hy));
+            if (hidden)
+            {
+                using (Pen dash = new Pen(Ink, 1f) { DashStyle = DashStyle.Dash })
+                {
+                    if (box)
+                    {
+                        g.DrawRectangle(dash, outer.X, outer.Y, outer.Width, outer.Height);
+                    }
+                    else
+                    {
+                        g.DrawEllipse(dash, outer);
+                    }
+                }
+
+                return;
+            }
+
+            using (Brush clad = new SolidBrush(CladdingColor))
+            using (Brush crystal = new SolidBrush(CrystalColor))
+            {
+                if (box)
+                {
+                    g.FillRectangle(clad, outer);
+                    g.FillRectangle(crystal, inner);
+                }
+                else
+                {
+                    g.FillEllipse(clad, outer);
+                    g.FillEllipse(crystal, inner);
+                }
+            }
+        }
+
+        PointF[] PlanPoints(double[] xs, double[] ys)
+        {
+            PointF[] points = new PointF[xs.Length];
+            for (int i = 0; i < xs.Length; i++)
+            {
+                points[i] = new PointF(this.PX(xs[i]), this.PY(ys[i]));
+            }
+
+            return points;
+        }
+
+        /// <summary>
+        /// (`AMBER282`) Высота пробы цилиндра и кюветы: без защиты — справа от тела, как
+        /// было; в защите — слева ЗА защитой с выносными от граней пробы (справа, в зазоре
+        /// между пробой и полостью, ей не хватало места, а там же стоит высота полости).
+        /// </summary>
+        void SampleHeightDim(Graphics g, Pen pen, Brush ink, double halfWidth, double z1, double z2,
+                             double value, string key, double plainX)
+        {
+            if (this.shieldPx == null || !(this.model != null && this.model.ShieldInScene))
+            {
+                this.DimV(g, pen, ink, plainX, z1, z2, value, key);
+                return;
+            }
+
+            float xl = this.X(-0.5 * Math.Max(this.model.ShieldInnerDiameter, 0.0)) - this.shieldPx.SideTotal - 14f;
+            using (Pen leader = new Pen(Ink, 0.8f))
+            {
+                g.DrawLine(leader, this.X(-halfWidth), this.Y(z1), xl - 3f, this.Y(z1));
+                g.DrawLine(leader, this.X(-halfWidth), this.Y(z2), xl - 3f, this.Y(z2));
+            }
+
+            this.DimVAt(g, pen, ink, xl, this.Y(z1), this.Y(z2), value, key);
         }
 
         /// <summary>
@@ -1224,7 +2464,10 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             using (Brush brush = new SolidBrush(color))
             {
-                g.FillRectangle(brush, this.X(x), this.Y(z), this.L(width), this.L(height));
+                // Высота — разностью Y, а не L: у разрыва полости защиты (`AMBER282`)
+                // ось z не линейна.
+                float y1 = this.Y(z), y2 = this.Y(z + height);
+                g.FillRectangle(brush, this.X(x), Math.Min(y1, y2), this.L(width), Math.Abs(y2 - y1));
             }
         }
 
@@ -1235,7 +2478,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            g.DrawRectangle(pen, this.X(x), this.Y(z), this.L(width), this.L(height));
+            float y1 = this.Y(z), y2 = this.Y(z + height);
+            g.DrawRectangle(pen, this.X(x), Math.Min(y1, y2), this.L(width), Math.Abs(y2 - y1));
         }
 
         /// <summary>
@@ -1257,7 +2501,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            float a = this.X(x1), b = this.X(x2), y = this.Y(z);
+            this.DimHAt(g, pen, ink, this.X(x1), this.X(x2), this.Y(z), value, key);
+        }
+
+        /// <summary>(`AMBER282`) Горизонтальный размер по ТОЧКАМ — для размеров у полос защиты, которые стоят в точках.</summary>
+        void DimHAt(Graphics g, Pen pen, Brush ink, float a, float b, float y, double value, string key)
+        {
+            if (!(value > 0.0))
+            {
+                return;
+            }
+
             if (a > b)
             {
                 float t = a;
@@ -1286,7 +2540,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            float a = this.Y(z1), b = this.Y(z2), xx = this.X(x);
+            this.DimVAt(g, pen, ink, this.X(x), this.Y(z1), this.Y(z2), value, key);
+        }
+
+        /// <summary>(`AMBER282`) Вертикальный размер по ТОЧКАМ.</summary>
+        void DimVAt(Graphics g, Pen pen, Brush ink, float xx, float a, float b, double value, string key)
+        {
+            if (!(value > 0.0))
+            {
+                return;
+            }
+
             if (a > b)
             {
                 float t = a;
@@ -1320,6 +2584,15 @@ namespace BecquerelMonitor.EfficiencyMaker
         void Print(Graphics g, Font font, Brush ink, string text, string key,
                    float x, float y, SizeF size)
         {
+            if (this.plateLabels)
+            {
+                // (`AMBER282`) Число вида сверху на тёмной пробе — на светлой плашке.
+                using (Brush plate = new SolidBrush(Color.FromArgb(0xD8, 0xFF, 0xFF, 0xFF)))
+                {
+                    g.FillRectangle(plate, x - 1f, y, size.Width + 2f, size.Height);
+                }
+            }
+
             g.DrawString(text, font, ink, x, y);
             this.labels.Add(new SketchLabel
             {
@@ -1556,6 +2829,17 @@ namespace BecquerelMonitor.EfficiencyMaker
             foreach (SketchLabel other in this.labels)
             {
                 RectangleF hit = RectangleF.Intersect(grown, other.Bounds);
+                if (hit.Width > 0f && hit.Height > 0f)
+                {
+                    cost += hit.Width * hit.Height + 1f;
+                }
+            }
+
+            // (`AMBER282`) Полосы защиты — препятствие тем же весом, что чужая подпись:
+            // число на штриховке не читается.
+            foreach (RectangleF band in this.obstacles)
+            {
+                RectangleF hit = RectangleF.Intersect(grown, band);
                 if (hit.Width > 0f && hit.Height > 0f)
                 {
                     cost += hit.Width * hit.Height + 1f;

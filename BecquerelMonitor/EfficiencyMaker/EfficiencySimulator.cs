@@ -1734,6 +1734,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         // ни от истории, а вычитался на каждый вызов.
         internal bool[] regBox;
         internal double[] regZMinE, regZMaxE, regROutE, regRInE, regAXE, regAYE;
+
+        // (`AMBER282`) Форма области (`Region.Shape`): 0 — прежняя, иначе разбор `Region.ShapedSpan`.
+        internal int[] regShape;
         internal Region crystal;
         internal double sphereZ, sphereR;         // объемлющая сфера детектора — для сужения конуса
 
@@ -1997,6 +2000,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             // Те же размеры плоскими массивами — для разбора луча (`A43`).
             int regionCount = this.regionArray.Length;
             this.regBox = new bool[regionCount];
+            this.regShape = new int[regionCount];
             this.regZMinE = new double[regionCount];
             this.regZMaxE = new double[regionCount];
             this.regROutE = new double[regionCount];
@@ -2007,6 +2011,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 Region r = this.regionArray[i];
                 this.regBox[i] = r.IsBox;
+                this.regShape[i] = r.Shape;
                 this.regZMinE[i] = r.ZMin - Eps;
                 this.regZMaxE[i] = r.ZMax - Eps;
                 this.regROutE[i] = r.ROut - Eps;
@@ -2205,6 +2210,21 @@ namespace BecquerelMonitor.EfficiencyMaker
             public double ZMin, ZMax;
             public GeometryMaterial Material;
             public bool IsCrystal;
+
+            // --- (`AMBER282`) ОБЛАСТЬ ДРУГОЙ ФОРМЫ В ПЛАНЕ ---
+            //
+            // Ноль — прежняя область (кольцо или брус по `IsBox`), и ни один путь её не меняется:
+            // ветвь формы стоит ПЕРЕД прежним телом и у нуля не берётся. Биты: `ShapeOuterPolygon` —
+            // наружная граница выпуклый многоугольник `Poly*` вместо круга `ROut`; `ShapeHolePolygon`
+            // — дырка выпуклый многоугольник `Hole*` вместо круга `RIn`. Многоугольник — вершины
+            // против часовой стрелки и его грани n·p < d (внутри). Колодец-трапеция маринелли:
+            // гильза — многоугольник с многоугольной дыркой, проба вокруг — круг с многоугольной.
+            public int Shape;
+            public double[] PolyX, PolyY, PolyNX, PolyNY, PolyD, PolyDE;
+            public double[] HoleX, HoleY, HoleNX, HoleNY, HoleD, HoleDE;
+
+            /// <summary>(`AMBER282`) Наименьшая толщина тела поперёк оси, см — опора `RegionThicknessCm` у области формы.</summary>
+            public double SideThickness;
 
             /// <summary>
             /// (`AMBER80`, П147) Ключ пороговой формы пар В ПОЛНОМ ослаблении —
@@ -2600,12 +2620,157 @@ namespace BecquerelMonitor.EfficiencyMaker
                     return false;
                 }
 
+                if (this.Shape != 0)
+                {
+                    return this.ShapedContains(x, y, r);
+                }
+
                 if (this.IsBox)
                 {
                     return Math.Abs(x) < this.AX - Eps && Math.Abs(y) < this.AY - Eps;
                 }
 
                 return r >= this.RIn - Eps && r < this.ROut - Eps;
+            }
+
+            /// <summary>
+            /// (`AMBER282`) <see cref="Contains(double, double, double, double)"/> у области формы — в
+            /// плане, слой по z уже проверен. Поверхности те же, что разбирает <see cref="ShapedSpan"/>:
+            /// сдвинутые на −Eps; граница дырки принадлежит области, как у кольца (`r ≥ RIn − Eps`).
+            /// </summary>
+            bool ShapedContains(double x, double y, double r)
+            {
+                bool outer = (this.Shape & ShapeOuterPolygon) != 0
+                    ? InsidePolygon(this.PolyNX, this.PolyNY, this.PolyDE, x, y)
+                    : r < this.ROut - Eps;
+                if (!outer)
+                {
+                    return false;
+                }
+
+                if ((this.Shape & ShapeHolePolygon) != 0)
+                {
+                    return !InsidePolygon(this.HoleNX, this.HoleNY, this.HoleDE, x, y);
+                }
+
+                return r >= this.RIn - Eps;
+            }
+
+            /// <summary>(`AMBER282`) Точка внутри выпуклого многоугольника: n·p &lt; d по всем граням (d уже со сдвигом −Eps).</summary>
+            internal static bool InsidePolygon(double[] nx, double[] ny, double[] dE, double x, double y)
+            {
+                for (int j = 0; j < nx.Length; j++)
+                {
+                    if (!(nx[j] * x + ny[j] * y < dE[j]))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            /// <summary>
+            /// (`AMBER282`) Отрезок луча внутри выпуклого многоугольника (призма вдоль z без концов): по
+            /// каждой грани вход или выход; луч вдоль грани (|n·u| меньше Eps) либо лежит по её
+            /// внутреннюю сторону весь, либо не лежит нигде — тем же порогом, что у `Slab`.
+            /// </summary>
+            internal static bool PolygonSpan(double[] nx, double[] ny, double[] dE, double x, double y,
+                                             double ux, double uy, out double t0, out double t1)
+            {
+                t0 = -Far;
+                t1 = Far;
+                for (int j = 0; j < nx.Length; j++)
+                {
+                    double s = nx[j] * ux + ny[j] * uy;
+                    double c = nx[j] * x + ny[j] * y - dE[j];
+                    if (s < Eps && s > -Eps)
+                    {
+                        if (!(c < 0.0))
+                        {
+                            return false;
+                        }
+
+                        continue;
+                    }
+
+                    double t = -c / s;
+                    if (s > 0.0)
+                    {
+                        if (t < t1) t1 = t;
+                    }
+                    else if (t > t0)
+                    {
+                        t0 = t;
+                    }
+                }
+
+                return t1 > t0;
+            }
+
+            /// <summary>
+            /// (`AMBER282`) Отрезки луча внутри области формы — по плану; <paramref name="lo"/>..
+            /// <paramref name="hi"/> — уже пересечённый слой по z. Наружная граница — многоугольник или
+            /// круг `ROut`, дырка — многоугольник или круг `RIn`; вычитание дырки — то же, что у кольца
+            /// (<see cref="SpanAlong"/>): 0, 1 или 2 отрезка. Его зовут и эталон, и рабочий путь (`SpanFlat`).
+            /// </summary>
+            internal int ShapedSpan(double x, double y, double ux, double uy, double lo, double hi, double[] into)
+            {
+                double a, b;
+                if ((this.Shape & ShapeOuterPolygon) != 0)
+                {
+                    if (!PolygonSpan(this.PolyNX, this.PolyNY, this.PolyDE, x, y, ux, uy, out a, out b))
+                    {
+                        return 0;
+                    }
+                }
+                else if (!Disk(x, y, ux, uy, this.ROut - Eps, out a, out b))
+                {
+                    return 0;
+                }
+
+                if (a > lo) lo = a;
+                if (b < hi) hi = b;
+                if (!(hi > lo))
+                {
+                    return 0;
+                }
+
+                double h0, h1;
+                bool hit = (this.Shape & ShapeHolePolygon) != 0
+                    ? PolygonSpan(this.HoleNX, this.HoleNY, this.HoleDE, x, y, ux, uy, out h0, out h1)
+                    : Disk(x, y, ux, uy, this.RIn - Eps, out h0, out h1);
+                if (hit && h1 > lo && h0 < hi)
+                {
+                    if (h0 <= lo && h1 >= hi)
+                    {
+                        return 0;                       // отрезок целиком в дырке
+                    }
+
+                    if (h0 <= lo)
+                    {
+                        into[0] = h1;
+                        into[1] = hi;
+                        return 1;
+                    }
+
+                    if (h1 >= hi)
+                    {
+                        into[0] = lo;
+                        into[1] = h0;
+                        return 1;
+                    }
+
+                    into[0] = lo;
+                    into[1] = h0;
+                    into[2] = h1;
+                    into[3] = hi;
+                    return 2;
+                }
+
+                into[0] = lo;
+                into[1] = hi;
+                return 1;
             }
 
             /// <summary>
@@ -2641,6 +2806,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (!Slab(z, uz, this.ZMin - Eps, this.ZMax - Eps, out lo, out hi))
                 {
                     return 0;
+                }
+
+                if (this.Shape != 0)
+                {
+                    return this.ShapedSpan(x, y, ux, uy, lo, hi, into);    // (`AMBER282`)
                 }
 
                 double a, b;
@@ -2743,8 +2913,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             /// Отрезок луча внутри круга радиуса r вокруг оси z. Луч вдоль оси
             /// радиуса не меняет — он либо внутри всегда, либо никогда.
             /// </summary>
-            static bool Disk(double x, double y, double ux, double uy, double radius,
-                             out double t0, out double t1)
+            internal static bool Disk(double x, double y, double ux, double uy, double radius,
+                                      out double t0, out double t1)
             {
                 t0 = 0.0;
                 t1 = 0.0;
@@ -2818,6 +2988,108 @@ namespace BecquerelMonitor.EfficiencyMaker
             }, isCrystal);
         }
 
+        /// <summary>(`AMBER282`) Биты формы области (<see cref="Region.Shape"/>).</summary>
+        internal const int ShapeOuterPolygon = 1, ShapeHolePolygon = 2;
+
+        /// <summary>
+        /// (`AMBER282`) Область формы: наружная граница — выпуклый многоугольник
+        /// <paramref name="polyX"/>/<paramref name="polyY"/> (null — круг <paramref name="rOut"/>), дырка —
+        /// выпуклый многоугольник <paramref name="holeX"/>/<paramref name="holeY"/> (null — дырки нет).
+        /// Вершины против часовой стрелки. Вырожденное тело (толщина поперёк, слой по z) не кладётся —
+        /// как у <see cref="Add"/>. Вкладывается: порядок значим.
+        /// </summary>
+        void AddShaped(double rOut, double[] polyX, double[] polyY, double[] holeX, double[] holeY,
+                       double zMin, double zMax, GeometryMaterial material, double sideThickness)
+        {
+            if (!(zMax > zMin + Eps) || material == null || !(material.Density > 0.0)
+                || !(sideThickness > Eps) || (polyX == null && !(rOut > Eps)))
+            {
+                return;
+            }
+
+            Region region = new Region
+            {
+                ROut = polyX == null ? rOut : 0.0,
+                ZMin = zMin,
+                ZMax = zMax,
+                Material = material,
+                SideThickness = sideThickness,
+            };
+
+            if (polyX != null)
+            {
+                region.Shape |= ShapeOuterPolygon;
+                region.PolyX = (double[])polyX.Clone();
+                region.PolyY = (double[])polyY.Clone();
+                PolygonPlanes(region.PolyX, region.PolyY, out region.PolyNX, out region.PolyNY,
+                              out region.PolyD, out region.PolyDE);
+            }
+
+            if (holeX != null)
+            {
+                region.Shape |= ShapeHolePolygon;
+                region.HoleX = (double[])holeX.Clone();
+                region.HoleY = (double[])holeY.Clone();
+                PolygonPlanes(region.HoleX, region.HoleY, out region.HoleNX, out region.HoleNY,
+                              out region.HoleD, out region.HoleDE);
+            }
+
+            this.Register(region, false);
+        }
+
+        /// <summary>
+        /// (`AMBER282`) Грани выпуклого многоугольника (вершины против часовой стрелки): наружная
+        /// нормаль ребра (dy, −dx)/|ребро| и d = n·v; внутри — n·p &lt; d. <paramref name="dE"/> — те же
+        /// d со сдвигом −Eps, как у радиусов и полуширин (`regROutE`, `regAXE`).
+        /// </summary>
+        internal static void PolygonPlanes(double[] xs, double[] ys, out double[] nx, out double[] ny,
+                                           out double[] d, out double[] dE)
+        {
+            int n = xs.Length;
+            nx = new double[n];
+            ny = new double[n];
+            d = new double[n];
+            dE = new double[n];
+            for (int k = 0; k < n; k++)
+            {
+                double x0 = xs[k], y0 = ys[k];
+                double dx = xs[(k + 1) % n] - x0, dy = ys[(k + 1) % n] - y0;
+                double len = Math.Sqrt(dx * dx + dy * dy);
+                nx[k] = dy / len;
+                ny[k] = -dx / len;
+                d[k] = nx[k] * x0 + ny[k] * y0;
+                dE[k] = d[k] - Eps;
+            }
+        }
+
+        /// <summary>(`AMBER282`) Самая дальняя от оси вершина многоугольника.</summary>
+        internal static double PolygonRadius(double[] xs, double[] ys)
+        {
+            double r = 0.0;
+            for (int k = 0; k < xs.Length; k++)
+            {
+                r = Math.Max(r, Math.Sqrt(xs[k] * xs[k] + ys[k] * ys[k]));
+            }
+
+            return r;
+        }
+
+        /// <summary>
+        /// (`AMBER282`) Наружный «радиус» колодца маринелли с его стенкой, в единицах модели: у круга —
+        /// `D/2 + стенка` (то же выражение, что было в сцене), у трапеции — самая дальняя вершина
+        /// наружного контура гильзы. Им сцена, раскладка сосуда и чертёж решают, где кончается колодец.
+        /// </summary>
+        internal static double MarinelliHoleOuterRadius(GeometryModel g)
+        {
+            double[] xs = new double[4], ys = new double[4];
+            if (g.TrapezoidHoleVertices(g.MarinelliHoleSideThickness, xs, ys))
+            {
+                return PolygonRadius(xs, ys);
+            }
+
+            return 0.5 * g.MarinelliHoleDiameter + g.MarinelliHoleSideThickness;
+        }
+
         void Register(Region region, bool isCrystal)
         {
             // ⛔ (`AMBER80`, П147) Полное ослабление области — ТЕМ ЖЕ правилом
@@ -2840,6 +3112,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             double rOut = region.IsBox
                 ? Math.Sqrt(region.AX * region.AX + region.AY * region.AY)
                 : region.ROut;
+            if ((region.Shape & ShapeOuterPolygon) != 0)
+            {
+                rOut = 0.0;                         // (`AMBER282`) самая дальняя вершина
+                for (int k = 0; k < region.PolyX.Length; k++)
+                {
+                    rOut = Math.Max(rOut, Math.Sqrt(region.PolyX[k] * region.PolyX[k] + region.PolyY[k] * region.PolyY[k]));
+                }
+            }
             if (rOut > this.sceneRMax)
             {
                 this.sceneRMax = rOut;
@@ -2967,12 +3247,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return false;
             }
 
-            // Те же размеры, что у ветки сцены (`Build`).
-            double rh = 0.5 * g.MarinelliHoleDiameter;
-            double ths = g.MarinelliHoleSideThickness;
+            // Те же размеры, что у ветки сцены (`Build`). (`AMBER282`) Колодец со стенкой — одним
+            // числом `MarinelliHoleOuterRadius`: у круга это прежнее `rh + ths` до разряда.
+            double holeOuter = MarinelliHoleOuterRadius(g);
             double the = g.MarinelliHoleEndWallThickness;
-            double rOut = Math.Max(0.5 * g.MarinelliBeakerDiameter, rh + ths + 0.1);
-            double rSrcOut = Math.Max(rh + ths, rOut - g.MarinelliSideThickness);
+            double rOut = Math.Max(0.5 * g.MarinelliBeakerDiameter, holeOuter + 0.1);
+            double rSrcOut = Math.Max(holeOuter, rOut - g.MarinelliSideThickness);
             double hs = g.MarinelliSourceHeight;
             double hh = g.MarinelliHoleHeight;
             double cap = Math.Max(0.0, hs - hh);
@@ -3291,6 +3571,13 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 default:
                 {
+                    // (`AMBER282`) Колодец-трапеция — своей веткой; круглый колодец ниже до бита прежний.
+                    if (g.HasTrapezoidHole)
+                    {
+                        this.BuildTrapezoidMarinelli(g, zFace, beakerWall, sample);
+                        break;
+                    }
+
                     // Стакан Маринелли: проба охватывает детектор. Колодец —
                     // глухое отверстие, детектор входит в него; расстояние до
                     // детектора отмеряется от внутреннего потолка колодца.
@@ -3350,6 +3637,111 @@ namespace BecquerelMonitor.EfficiencyMaker
                         : marinelli;
                     break;
                 }
+            }
+
+            // (`AMBER282`) Защита в расчёте — ПОСЛЕДНИМИ областями, вокруг всего, что выше.
+            if (g.ShieldInScene)
+            {
+                this.AddShield(g);
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER282`) Маринелли с колодцем-ТРАПЕЦИЕЙ в плане. Раскладка по высоте — та же, что у
+        /// круглого колодца (потолок колодца на <c>MarinelliToDetectorDistance</c> от торца, столб пробы
+        /// под ним, наружная стенка и донышко — `MarinelliVessel`), и областей столько же и в том же
+        /// порядке; круги колодца заменены трапецией просвета (внутренний контур гильзы) и трапецией,
+        /// сдвинутой наружу на толщину стенки (наружный контур). Проба вокруг колодца — круг с
+        /// трапециевидной дыркой. ⚠ Важностного розыгрыша у трапеции нет: его сетка (r, z) держится на
+        /// осевой симметрии — ключ при такой сцене отказ, а не тихая подмена.
+        /// </summary>
+        void BuildTrapezoidMarinelli(GeometryModel g, double zFace, GeometryMaterial beakerWall,
+                                     GeometryMaterial sample)
+        {
+            if (this.ImportanceSampling)
+            {
+                throw new InvalidOperationException(
+                    "importance sampling (E29) is not defined for a trapezoid Marinelli well: its (r, z) grid needs axial symmetry");
+            }
+
+            double ths = g.MarinelliHoleSideThickness;
+            double the = g.MarinelliHoleEndWallThickness;
+            double[] inX = new double[4], inY = new double[4], outX = new double[4], outY = new double[4];
+            if (!g.TrapezoidHoleVertices(0.0, inX, inY) || !g.TrapezoidHoleVertices(ths, outX, outY))
+            {
+                throw new InvalidOperationException(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "trapezoid Marinelli well: the bases and the width must be positive (got {0:R}, {1:R}, {2:R} cm)",
+                    g.MarinelliHoleBase1, g.MarinelliHoleBase2, g.MarinelliHoleWidth));
+            }
+
+            double holeOuter = PolygonRadius(outX, outY);
+            double rOut = Math.Max(0.5 * g.MarinelliBeakerDiameter, holeOuter + 0.1);
+            double rSrcOut = Math.Max(holeOuter, rOut - g.MarinelliSideThickness);
+            double hs = g.MarinelliSourceHeight;
+            double hh = g.MarinelliHoleHeight;
+            double zCeiling = zFace - g.MarinelliToDetectorDistance;
+            double cap = Math.Max(0.0, hs - hh);
+            double zSrc0 = zCeiling - the - cap;
+
+            double farGap, nearExt, endWall;
+            MarinelliVessel(g, out farGap, out nearExt, out endWall);
+            double zOuter0 = zSrc0 - endWall - farGap;
+            double zOuter1 = zSrc0 + hs + nearExt;
+
+            // Толщина тела поперёк (`RegionThicknessCm`): у сплошной трапеции — меньшая из её высоты и
+            // меньшего основания; у гильзы — стенка; у кольца пробы — его самое узкое место (у вершины).
+            double solid = Math.Min(outY[2] - outY[1], Math.Min(outX[1] - outX[0], outX[2] - outX[3]));
+            this.AddShaped(0.0, outX, outY, null, null, zCeiling - the, zCeiling, beakerWall, solid);
+            this.AddShaped(0.0, outX, outY, inX, inY, zCeiling, zCeiling + hh, beakerWall, ths);
+            this.Add(rSrcOut, rOut, zOuter0, zOuter1, beakerWall, false);
+            this.AddShaped(0.0, outX, outY, null, null, zSrc0, zCeiling - the, sample, solid);
+            this.AddShaped(rSrcOut, null, null, outX, outY, zSrc0, zSrc0 + hs, sample, rSrcOut - holeOuter);
+            // Дальнее донышко — ПОСЛЕДНЕЙ областью, как у круглого колодца.
+            this.Add(0.0, rSrcOut, zOuter0, zOuter0 + endWall, beakerWall, false);
+            this.source = new TrapezoidMarinelliSampler(rSrcOut, zSrc0, zSrc0 + hs, zCeiling - the, outX, outY);
+        }
+
+        /// <summary>
+        /// (`AMBER282`) ЗАЩИТА СЛОЯМИ: полость — цилиндр на оси сцены диаметром
+        /// <c>ShieldInnerDiameter</c> от дна (на <c>ShieldFloorGap</c> дальше дальнего края сцены — пробы,
+        /// сосуда или точки) на высоту <c>ShieldInnerHeight</c>; каждый слой — боковая стенка по высоте
+        /// своей полости, дно и крышка во весь свой поперечник. Слои — изнутри наружу, области не
+        /// перекрываются ни между собой, ни со сценой внутри (это проверяется: сцена, не влезшая в
+        /// полость, — отказ с числами, а не молча срезанная защитой проба). Вещество без плотности —
+        /// пустота, как у всех слоёв (`OrVacuum`; предупреждение — `GeometryModel.Warnings`).
+        /// </summary>
+        void AddShield(GeometryModel g)
+        {
+            double zMin = this.sceneZMin, zMax = this.sceneZMax, rMax = this.sceneRMax;
+            PointSampler point = this.source as PointSampler;
+            if (point != null)
+            {
+                zMin = Math.Min(zMin, point.z);
+                zMax = Math.Max(zMax, point.z);
+            }
+
+            double r0 = 0.5 * g.ShieldInnerDiameter;
+            double f0 = zMin - Math.Max(0.0, g.ShieldFloorGap);
+            double l0 = f0 + g.ShieldInnerHeight;
+            if (rMax > r0 + VesselTolerance || zMax > l0 + VesselTolerance)
+            {
+                throw new InvalidOperationException(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "shield: the scene does not fit into the cavity (needs D >= {0:F2} cm and H >= {1:F2} cm, has D = {2:F2} cm, H = {3:F2} cm)",
+                    2.0 * rMax, zMax - f0, 2.0 * r0, g.ShieldInnerHeight));
+            }
+
+            foreach (GeometryShieldLayer layer in g.ShieldLayers)
+            {
+                GeometryMaterial m = OrVacuum(layer.Material);
+                double r1 = r0 + Math.Max(0.0, layer.SideThickness);
+                double f1 = f0 - Math.Max(0.0, layer.FloorThickness);
+                double l1 = l0 + Math.Max(0.0, layer.LidThickness);
+                this.Add(r0, r1, f0, l0, m, false);
+                this.Add(0.0, r1, f1, f0, m, false);
+                this.Add(0.0, r1, l0, l1, m, false);
+                r0 = r1;
+                f0 = f1;
+                l0 = l1;
             }
         }
 
@@ -3632,6 +4024,65 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return string.Format(System.Globalization.CultureInfo.InvariantCulture,
                                      "source marinelli {0:R} {1:R} {2:R} {3:R} {4:R}",
                                      this.rIn, this.rOut, this.z0, this.z1, this.zCap);
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER282`) Точка в пробе маринелли с колодцем-трапецией: равномерно по цилиндру пробы
+        /// (радиус корнем, затем угол, затем высота — три числа в этом порядке), и точка внутри
+        /// наружного контура гильзы выше её донышка (z ≥ <see cref="zCap"/>) отвергается и
+        /// разыгрывается заново. Выборка с отказом равномерна по объёму по построению; грани гильзы —
+        /// те же, что у областей сцены (со сдвигом −Eps), так что точка всегда в области пробы.
+        /// </summary>
+        internal sealed class TrapezoidMarinelliSampler : Sampler
+        {
+            internal readonly double rOut, z0, z1, zCap;
+            internal readonly double[] wellX, wellY, wellNX, wellNY, wellDE;
+
+            public TrapezoidMarinelliSampler(double rOut, double z0, double z1, double zCap,
+                                             double[] wellX, double[] wellY)
+            {
+                this.rOut = rOut;
+                this.z0 = z0;
+                this.z1 = z1;
+                this.zCap = zCap;
+                this.wellX = (double[])wellX.Clone();
+                this.wellY = (double[])wellY.Clone();
+                double[] d;
+                PolygonPlanes(this.wellX, this.wellY, out this.wellNX, out this.wellNY, out d, out this.wellDE);
+            }
+
+            public override void Next(EfficiencySimulator s, out double x, out double y, out double z)
+            {
+                for (int attempt = 0; attempt < 100000; attempt++)
+                {
+                    double rr = this.rOut * Math.Sqrt(s.Uniform());
+                    double phi = 2.0 * Math.PI * s.Uniform();
+                    double zz = this.z0 + (this.z1 - this.z0) * s.Uniform();
+                    x = rr * Math.Cos(phi);
+                    y = rr * Math.Sin(phi);
+                    if (zz < this.zCap || !Region.InsidePolygon(this.wellNX, this.wellNY, this.wellDE, x, y))
+                    {
+                        z = zz;
+                        return;
+                    }
+                }
+
+                throw new InvalidOperationException("trapezoid Marinelli: the well covers the whole sample cylinder");
+            }
+
+            public override string Describe()
+            {
+                var ci = System.Globalization.CultureInfo.InvariantCulture;
+                var sb = new System.Text.StringBuilder();
+                sb.AppendFormat(ci, "source marinelli-trap {0:R} {1:R} {2:R} {3:R} {4}",
+                                this.rOut, this.z0, this.z1, this.zCap, this.wellX.Length);
+                for (int k = 0; k < this.wellX.Length; k++)
+                {
+                    sb.AppendFormat(ci, " {0:R} {1:R}", this.wellX[k], this.wellY[k]);
+                }
+
+                return sb.ToString();
             }
         }
 
@@ -4540,6 +4991,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double a0 = (zMinE - z) / uz, b0 = (zMaxE - z) / uz;
                 if (a0 <= b0) { lo = a0; hi = b0; }
                 else { lo = b0; hi = a0; }
+            }
+
+            // (`AMBER282`) Область формы — своим разбором; у прежних областей формы нет (0), и тело
+            // ниже то же до разряда.
+            if (this.regShape[i] != 0)
+            {
+                return this.regionArray[i].ShapedSpan(x, y, ux, uy, lo, hi, into);
             }
 
             double a, b;
@@ -11927,6 +12385,19 @@ namespace BecquerelMonitor.EfficiencyMaker
                         "{0:F2}x{1:F2}", 2.0 * r.AX, 2.0 * r.AY)
                     : string.Format(System.Globalization.CultureInfo.InvariantCulture,
                         "r[{0:F2}..{1:F2}]", r.RIn, r.ROut);
+                if (r.Shape != 0)
+                {
+                    // (`AMBER282`) Область формы: наружу — многоугольник (габарит по вершинам) или круг,
+                    // дырка — многоугольник.
+                    shape = ((r.Shape & ShapeOuterPolygon) != 0
+                                ? string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                                    "poly{0}[r<={1:F2}]", r.PolyX.Length, PolygonRadius(r.PolyX, r.PolyY))
+                                : string.Format(System.Globalization.CultureInfo.InvariantCulture, "r<={0:F2}", r.ROut))
+                            + ((r.Shape & ShapeHolePolygon) != 0
+                                ? string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                                    " minus poly{0}[r<={1:F2}]", r.HoleX.Length, PolygonRadius(r.HoleX, r.HoleY))
+                                : "");
+                }
                 parts.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture,
                     "{0} {1} z[{2:F2}..{3:F2}]{4}",
                     r.Material.Name, shape, r.ZMin, r.ZMax, r.IsCrystal ? " *" : ""));
@@ -11947,8 +12418,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///     SCENE
         ///     mat m0 плотность Z:доля Z:доля ...
         ///     region tub|box m0 (rIn rOut | ax ay) z0 z1 crystal|-
+        ///     region shaped m0 z0 z1 crystal|- outer (disk R | poly n x y …) hole (none | disk r | poly n x y …)
         ///     source point z | cyl r z0 z1 | box ax ay z0 z1
         ///            | marinelli rIn rOut z0 z1 zCap
+        ///            | marinelli-trap rOut z0 z1 zCap n x y … (`AMBER282`)
         ///     END
         ///
         /// Перекрытия областей здесь НЕ разрешаются: наша сцена ищет «первую
@@ -11984,6 +12457,32 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             foreach (Region r in this.regions)
             {
+                if (r.Shape != 0)
+                {
+                    // (`AMBER282`) Область формы — своим видом строки: слой по z, признак кристалла,
+                    // наружная граница (`disk R` или `poly n x y …`) и дырка (`none`, `disk r`, `poly n …`).
+                    var sb = new System.Text.StringBuilder();
+                    sb.AppendFormat(ci, "region shaped {0} {1:R} {2:R} {3} outer ",
+                                    materialId[r.Material], r.ZMin, r.ZMax, r.IsCrystal ? "crystal" : "-");
+                    AppendOutline(sb, (r.Shape & ShapeOuterPolygon) != 0, r.ROut, r.PolyX, r.PolyY);
+                    sb.Append(" hole ");
+                    if ((r.Shape & ShapeHolePolygon) != 0)
+                    {
+                        AppendOutline(sb, true, 0.0, r.HoleX, r.HoleY);
+                    }
+                    else if (r.RIn > 0.0)
+                    {
+                        AppendOutline(sb, false, r.RIn, null, null);
+                    }
+                    else
+                    {
+                        sb.Append("none");
+                    }
+
+                    lines.Add(sb.ToString());
+                    continue;
+                }
+
                 lines.Add(r.IsBox
                     ? string.Format(ci, "region box {0} {1:R} {2:R} {3:R} {4:R} {5}",
                                     materialId[r.Material], r.AX, r.AY, r.ZMin, r.ZMax,
@@ -11996,6 +12495,23 @@ namespace BecquerelMonitor.EfficiencyMaker
             lines.Add(this.source.Describe());
             lines.Add("END");
             return string.Join("\n", lines.ToArray());
+        }
+
+        /// <summary>(`AMBER282`) Контур области в дампе сцены: `disk R` или `poly n x0 y0 x1 y1 …` (см).</summary>
+        static void AppendOutline(System.Text.StringBuilder sb, bool polygon, double radius, double[] xs, double[] ys)
+        {
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+            if (!polygon)
+            {
+                sb.AppendFormat(ci, "disk {0:R}", radius);
+                return;
+            }
+
+            sb.AppendFormat(ci, "poly {0}", xs.Length);
+            for (int k = 0; k < xs.Length; k++)
+            {
+                sb.AppendFormat(ci, " {0:R} {1:R}", xs[k], ys[k]);
+            }
         }
     }
 

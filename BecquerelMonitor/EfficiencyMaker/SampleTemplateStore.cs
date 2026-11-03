@@ -23,7 +23,9 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// <item>прямоугольная кювета — шесть полей <c>Box*</c>;</item>
     /// <item>вещества стенки и пробы: <c>BeakerWall</c>, <c>Source</c> — с
     /// плотностью и составом, как они стоят в геометрии;</item>
-    /// <item>измерение в защите: <c>InShield</c>.</item>
+    /// <item>измерение в защите: <c>InShield</c>;</item>
+    /// <item>(`AMBER282`) форма колодца маринелли и трапеция (<c>MarinelliHole*</c>), защита в
+    /// расчёте — полость и слои (<c>Shield*</c>); в файл — только когда они есть.</item>
     /// </list>
     /// Размеры ВСЕХ форм, а не только выбранной: так же их держит сама
     /// геометрия, и чужую форму редактор снимает сам (`A134`), когда собирает
@@ -69,6 +71,36 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double MarinelliHoleEndWallThickness;
         public double MarinelliSourceHeight;
         public double MarinelliToDetectorDistance;
+
+        /// <summary>(`AMBER282`) Форма колодца и трапеция (просвет), мм. В файл — только у трапеции: прежние шаблоны прежними до знака.</summary>
+        public GeometryHoleShape MarinelliHoleShape = GeometryHoleShape.Round;
+        public double MarinelliHoleBase1;
+        public double MarinelliHoleBase2;
+        public double MarinelliHoleWidth;
+
+        public bool ShouldSerializeMarinelliHoleShape() { return this.MarinelliHoleShape != GeometryHoleShape.Round; }
+        public bool ShouldSerializeMarinelliHoleBase1() { return this.MarinelliHoleShape != GeometryHoleShape.Round; }
+        public bool ShouldSerializeMarinelliHoleBase2() { return this.MarinelliHoleShape != GeometryHoleShape.Round; }
+        public bool ShouldSerializeMarinelliHoleWidth() { return this.MarinelliHoleShape != GeometryHoleShape.Round; }
+
+        /// <summary>
+        /// (`AMBER282`) Защита в расчёте — полость и слои (вкладка «Источник», под галкой
+        /// «в защите»). В файл — только при слоях: прежние шаблоны прежними до знака.
+        /// </summary>
+        public double ShieldInnerDiameter;
+        public double ShieldInnerHeight;
+        public double ShieldFloorGap;
+
+        [XmlArray("ShieldLayers")]
+        [XmlArrayItem("Layer")]
+        public List<GeometryShieldLayer> ShieldLayers = new List<GeometryShieldLayer>();
+
+        bool HasShieldLayers { get { return this.ShieldLayers != null && this.ShieldLayers.Count > 0; } }
+
+        public bool ShouldSerializeShieldInnerDiameter() { return this.HasShieldLayers; }
+        public bool ShouldSerializeShieldInnerHeight() { return this.HasShieldLayers; }
+        public bool ShouldSerializeShieldFloorGap() { return this.HasShieldLayers; }
+        public bool ShouldSerializeShieldLayers() { return this.HasShieldLayers; }
 
         public double BoxSourceX;
         public double BoxSourceY;
@@ -124,6 +156,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.MarinelliHoleEndWallThickness = g.MarinelliHoleEndWallThickness;
             this.MarinelliSourceHeight = g.MarinelliSourceHeight;
             this.MarinelliToDetectorDistance = g.MarinelliToDetectorDistance;
+            this.MarinelliHoleShape = g.MarinelliHoleShape;
+            this.MarinelliHoleBase1 = g.MarinelliHoleBase1;
+            this.MarinelliHoleBase2 = g.MarinelliHoleBase2;
+            this.MarinelliHoleWidth = g.MarinelliHoleWidth;
+
+            this.ShieldInnerDiameter = g.ShieldInnerDiameter;
+            this.ShieldInnerHeight = g.ShieldInnerHeight;
+            this.ShieldFloorGap = g.ShieldFloorGap;
+            this.ShieldLayers = CopyLayers(g.ShieldLayers);
 
             this.BoxSourceX = g.BoxSourceX;
             this.BoxSourceY = g.BoxSourceY;
@@ -168,6 +209,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.MarinelliHoleEndWallThickness = this.MarinelliHoleEndWallThickness;
             g.MarinelliSourceHeight = this.MarinelliSourceHeight;
             g.MarinelliToDetectorDistance = this.MarinelliToDetectorDistance;
+            g.MarinelliHoleShape = this.MarinelliHoleShape;
+            g.MarinelliHoleBase1 = this.MarinelliHoleBase1;
+            g.MarinelliHoleBase2 = this.MarinelliHoleBase2;
+            g.MarinelliHoleWidth = this.MarinelliHoleWidth;
+
+            g.ShieldInnerDiameter = this.ShieldInnerDiameter;
+            g.ShieldInnerHeight = this.ShieldInnerHeight;
+            g.ShieldFloorGap = this.ShieldFloorGap;
+            g.ShieldLayers = CopyLayers(this.ShieldLayers);
 
             g.BoxSourceX = this.BoxSourceX;
             g.BoxSourceY = this.BoxSourceY;
@@ -185,6 +235,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             SampleTemplate copy = (SampleTemplate)this.MemberwiseClone();
             copy.BeakerWall = Copy(this.BeakerWall);
             copy.Source = Copy(this.Source);
+            copy.ShieldLayers = CopyLayers(this.ShieldLayers);
             return copy;
         }
 
@@ -245,6 +296,31 @@ namespace BecquerelMonitor.EfficiencyMaker
                 sb.Append(";far=").Append(g.BeakerFarEndWallThickness.ToString("R", ic));
             }
 
+            // (`AMBER282`) Трапеция и слои защиты — только когда они есть: строка прежних шаблонов та же.
+            if (g.MarinelliHoleShape != GeometryHoleShape.Round)
+            {
+                sb.Append(";hole=").Append(g.MarinelliHoleShape)
+                  .Append('/').Append(g.MarinelliHoleBase1.ToString("R", ic))
+                  .Append('/').Append(g.MarinelliHoleBase2.ToString("R", ic))
+                  .Append('/').Append(g.MarinelliHoleWidth.ToString("R", ic));
+            }
+
+            if (g.ShieldLayers != null && g.ShieldLayers.Count > 0)
+            {
+                sb.Append(";shieldcavity=").Append(g.ShieldInnerDiameter.ToString("R", ic))
+                  .Append('/').Append(g.ShieldInnerHeight.ToString("R", ic))
+                  .Append('/').Append(g.ShieldFloorGap.ToString("R", ic));
+                for (int i = 0; i < g.ShieldLayers.Count; i++)
+                {
+                    GeometryShieldLayer layer = g.ShieldLayers[i];
+                    sb.Append(";layer").Append(i.ToString(ic)).Append('=')
+                      .Append(layer.SideThickness.ToString("R", ic)).Append('/')
+                      .Append(layer.FloorThickness.ToString("R", ic)).Append('/')
+                      .Append(layer.LidThickness.ToString("R", ic));
+                    Describe(sb, "layer" + i.ToString(ic) + "material", layer.Material);
+                }
+            }
+
             Describe(sb, "wall", g.BeakerWall);
             Describe(sb, "source", g.Source);
             return sb.ToString();
@@ -273,6 +349,21 @@ namespace BecquerelMonitor.EfficiencyMaker
         static GeometryMaterial Copy(GeometryMaterial m)
         {
             return m != null ? m.Clone() : new GeometryMaterial();
+        }
+
+        /// <summary>(`AMBER282`) Слои защиты — своими копиями, с веществами.</summary>
+        static List<GeometryShieldLayer> CopyLayers(List<GeometryShieldLayer> layers)
+        {
+            List<GeometryShieldLayer> copy = new List<GeometryShieldLayer>();
+            if (layers != null)
+            {
+                foreach (GeometryShieldLayer layer in layers)
+                {
+                    copy.Add(layer != null ? layer.Clone() : new GeometryShieldLayer());
+                }
+            }
+
+            return copy;
         }
     }
 

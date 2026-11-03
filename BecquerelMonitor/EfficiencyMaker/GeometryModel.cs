@@ -470,6 +470,58 @@ namespace BecquerelMonitor.EfficiencyMaker
         Iso
     }
 
+    /// <summary>
+    /// (`AMBER282`) Форма колодца маринелли В ПЛАНЕ — НАШЕ расширение формата. У ЛСРМ колодец
+    /// только круглый (`SM_BeakerHoleDiameter`); трапеция пишется ключами `SM_BeakerHole*`,
+    /// которых их программа не читает, и прочтёт такой файл как круглый колодец своего диаметра.
+    /// </summary>
+    public enum GeometryHoleShape
+    {
+        /// <summary>Круг диаметром <see cref="GeometryModel.MarinelliHoleDiameter"/> — как было всегда.</summary>
+        Round,
+
+        /// <summary>
+        /// Равнобокая трапеция: основания <see cref="GeometryModel.MarinelliHoleBase1"/> и
+        /// <see cref="GeometryModel.MarinelliHoleBase2"/> вдоль x, расстояние между ними
+        /// <see cref="GeometryModel.MarinelliHoleWidth"/> вдоль y, середина высоты — на оси.
+        /// Прямоугольник — частный случай (основания равны).
+        /// </summary>
+        Trapezoid
+    }
+
+    /// <summary>
+    /// (`AMBER282`) Один слой ЗАЩИТЫ, которая входит в перенос: вещество и толщины — боковой
+    /// стенки, дна (сторона за пробой, дальняя от детектора) и крышки (за детектором). Слои
+    /// идут ИЗНУТРИ наружу: первый облегает полость, каждый следующий — предыдущий. Решение
+    /// Amber 02.11.2026 вопросником, дословно: «Ответ номер 1: "Стальной оболочкой в расчёте
+    /// (Рекомендую)". При включении галки "в защите" добавлять новые поля сцены с материалом.»;
+    /// следом — «Т.е. защита из слоёв состоит».
+    /// </summary>
+    public sealed class GeometryShieldLayer
+    {
+        public GeometryMaterial Material = new GeometryMaterial();
+
+        /// <summary>Толщина боковой стенки слоя, мм.</summary>
+        public double SideThickness;
+
+        /// <summary>Толщина дна слоя (за пробой, со стороны, дальней от детектора), мм.</summary>
+        public double FloorThickness;
+
+        /// <summary>Толщина крышки слоя (за детектором), мм.</summary>
+        public double LidThickness;
+
+        public GeometryShieldLayer Clone()
+        {
+            return new GeometryShieldLayer
+            {
+                Material = this.Material != null ? this.Material.Clone() : new GeometryMaterial(),
+                SideThickness = this.SideThickness,
+                FloorThickness = this.FloorThickness,
+                LidThickness = this.LidThickness,
+            };
+        }
+    }
+
     /// <summary>Форма кристалла.</summary>
     public enum CrystalShape
     {
@@ -884,6 +936,198 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double MarinelliSourceHeight;
         public double MarinelliToDetectorDistance;
 
+        /// <summary>
+        /// (`AMBER282`, задача Amber 02.11.2026, дословно: «нужно добавить геометрию на базе сосуда
+        /// маринелли, но колодец не круглый, а трапецевидной формы») ФОРМА КОЛОДЦА В ПЛАНЕ. Умолчание —
+        /// круг: так читаются все прежние файлы, конфигурации и файлы ЛСРМ, и сцена, клеймо, текст
+        /// `.in` и XML у них побайтно прежние (ключи и элементы трапеции — только у трапеции).
+        /// У трапеции <see cref="MarinelliHoleDiameter"/> не читает никто; размеры — три поля ниже,
+        /// ВНУТРЕННИЕ (просвет колодца), как и диаметр круглого: стенка
+        /// <see cref="MarinelliHoleSideThickness"/> ложится НАРУЖУ параллельным сдвигом каждой грани.
+        /// </summary>
+        public GeometryHoleShape MarinelliHoleShape = GeometryHoleShape.Round;
+
+        /// <summary>(`AMBER282`) Основание трапеции у грани y = −w/2 (просвет), мм.</summary>
+        public double MarinelliHoleBase1;
+
+        /// <summary>(`AMBER282`) Основание трапеции у грани y = +w/2 (просвет), мм.</summary>
+        public double MarinelliHoleBase2;
+
+        /// <summary>(`AMBER282`) Расстояние между основаниями — высота трапеции в плане (просвет), мм.</summary>
+        public double MarinelliHoleWidth;
+
+        /// <summary>(`AMBER282`) Колодец этой модели — трапеция (у прочих сцен поля спят).</summary>
+        [XmlIgnore]
+        public bool HasTrapezoidHole
+        {
+            get
+            {
+                // Полевая лунка (`Borehole`) — круг по построению: её размеры ставит формула.
+                return this.SourceType == GeometrySourceType.Marinelli && this.Scene == GeometrySceneKind.None
+                       && this.MarinelliHoleShape == GeometryHoleShape.Trapezoid;
+            }
+        }
+
+        public bool ShouldSerializeMarinelliHoleShape()
+        {
+            return this.MarinelliHoleShape != GeometryHoleShape.Round;
+        }
+
+        public bool ShouldSerializeMarinelliHoleBase1()
+        {
+            return this.MarinelliHoleShape != GeometryHoleShape.Round;
+        }
+
+        public bool ShouldSerializeMarinelliHoleBase2()
+        {
+            return this.MarinelliHoleShape != GeometryHoleShape.Round;
+        }
+
+        public bool ShouldSerializeMarinelliHoleWidth()
+        {
+            return this.MarinelliHoleShape != GeometryHoleShape.Round;
+        }
+
+        /// <summary>
+        /// (`AMBER282`) Трапеция колодца в плане, сдвинутая НАРУЖУ на <paramref name="offset"/>
+        /// (0 — просвет; толщина стенки — наружный контур гильзы): четыре вершины против часовой
+        /// стрелки (x, y), в единицах модели. Грани сдвигаются параллельно — стенка одной толщины
+        /// по нормали к каждой грани, как у прямоугольной кюветы; наклон боковых граней сохраняется.
+        /// Ложь — трапеции нет (не та форма или размеры не положительны).
+        /// </summary>
+        public bool TrapezoidHoleVertices(double offset, double[] xs, double[] ys)
+        {
+            double a = this.MarinelliHoleBase1, b = this.MarinelliHoleBase2, w = this.MarinelliHoleWidth;
+            if (!this.HasTrapezoidHole || !(a > 0.0) || !(b > 0.0) || !(w > 0.0))
+            {
+                return false;
+            }
+
+            // Боковая грань: x = c + k·y, c = (a + b)/4 — полуширина на середине, k = (b − a)/(2w).
+            // Параллельный сдвиг грани на t по нормали сдвигает её по x на t·√(1 + k²).
+            double k = (b - a) / (2.0 * w);
+            double c = 0.25 * (a + b) + offset * Math.Sqrt(1.0 + k * k);
+            double h = 0.5 * w + offset;
+            xs[0] = -(c - k * h); ys[0] = -h;
+            xs[1] = c - k * h;    ys[1] = -h;
+            xs[2] = c + k * h;    ys[2] = h;
+            xs[3] = -(c + k * h); ys[3] = h;
+            return true;
+        }
+
+        /// <summary>(`AMBER282`) Площадь трапеции колодца, сдвинутой наружу на <paramref name="offset"/>, в квадрате единиц модели; 0 — трапеции нет.</summary>
+        public double TrapezoidHoleArea(double offset)
+        {
+            double[] xs = new double[4], ys = new double[4];
+            if (!this.TrapezoidHoleVertices(offset, xs, ys))
+            {
+                return 0.0;
+            }
+
+            return 0.5 * ((xs[1] - xs[0]) + (xs[2] - xs[3])) * (ys[2] - ys[1]);
+        }
+
+        /// <summary>
+        /// (`AMBER282`) ЗАЩИТА В РАСЧЁТЕ — полость и слои. Полость — цилиндр на оси сцены
+        /// диаметром <see cref="ShieldInnerDiameter"/> и высотой <see cref="ShieldInnerHeight"/>
+        /// (от внутренней грани дна до внутренней грани крышки); дно лежит на
+        /// <see cref="ShieldFloorGap"/> дальше дальнего края сцены (проба/сосуд стоят на дне при 0).
+        /// Слои <see cref="ShieldLayers"/> — изнутри наружу. Строится, только когда поднят признак
+        /// <see cref="InShield"/> и слой есть (<see cref="ShieldInScene"/>): тогда защиту видят
+        /// фотон и электрон, она входит в клеймо матрицы, а разбор формулу обратного рассеяния НЕ
+        /// добавляет — рассеяние уже в матрице. Без слоёв признак значит прежнее (`AMBER12`).
+        /// ⛔ Пустые слои — умолчание: сцена, клеймо, текст `.in` и XML побайтно прежние.
+        /// </summary>
+        public double ShieldInnerDiameter;
+
+        /// <summary>(`AMBER282`) Высота полости защиты (дно — крышка, внутренние грани), мм.</summary>
+        public double ShieldInnerHeight;
+
+        /// <summary>(`AMBER282`) Зазор от дальнего края сцены (за пробой) до внутренней грани дна, мм.</summary>
+        public double ShieldFloorGap;
+
+        /// <summary>(`AMBER282`) Слои защиты изнутри наружу.</summary>
+        [XmlArray("ShieldLayers")]
+        [XmlArrayItem("Layer")]
+        public List<GeometryShieldLayer> ShieldLayers = new List<GeometryShieldLayer>();
+
+        bool ShieldToXml
+        {
+            get { return this.ShieldLayers != null && this.ShieldLayers.Count > 0; }
+        }
+
+        public bool ShouldSerializeShieldLayers()
+        {
+            return this.ShieldToXml;
+        }
+
+        public bool ShouldSerializeShieldInnerDiameter()
+        {
+            return this.ShieldToXml;
+        }
+
+        public bool ShouldSerializeShieldInnerHeight()
+        {
+            return this.ShieldToXml;
+        }
+
+        public bool ShouldSerializeShieldFloorGap()
+        {
+            return this.ShieldToXml;
+        }
+
+        /// <summary>
+        /// (`AMBER282`) Защита ВХОДИТ в сцену переноса: признак поднят, сцена обычная (не поле —
+        /// у земли, лунки и ISO своя постановка), есть слой и полость положительных размеров.
+        /// </summary>
+        [XmlIgnore]
+        public bool ShieldInScene
+        {
+            get
+            {
+                return this.InShield && this.Scene == GeometrySceneKind.None && this.ShieldToXml
+                       && this.ShieldInnerDiameter > 0.0 && this.ShieldInnerHeight > 0.0;
+            }
+        }
+
+        /// <summary>(`AMBER282`) Наружный диаметр защиты: полость плюс боковые стенки всех слоёв, мм.</summary>
+        [XmlIgnore]
+        public double ShieldOuterDiameter
+        {
+            get
+            {
+                double d = this.ShieldInnerDiameter;
+                if (this.ShieldLayers != null)
+                {
+                    foreach (GeometryShieldLayer layer in this.ShieldLayers)
+                    {
+                        d += 2.0 * Math.Max(0.0, layer.SideThickness);
+                    }
+                }
+
+                return d;
+            }
+        }
+
+        /// <summary>(`AMBER282`) Наружная высота защиты: полость, дно и крышка всех слоёв, мм.</summary>
+        [XmlIgnore]
+        public double ShieldOuterHeight
+        {
+            get
+            {
+                double h = this.ShieldInnerHeight;
+                if (this.ShieldLayers != null)
+                {
+                    foreach (GeometryShieldLayer layer in this.ShieldLayers)
+                    {
+                        h += Math.Max(0.0, layer.FloorThickness) + Math.Max(0.0, layer.LidThickness);
+                    }
+                }
+
+                return h;
+            }
+        }
+
         // Прямоугольная кювета: то же, что цилиндрическая, но дно не круг, а
         // прямоугольник. Стороны — ПОЛНЫЕ, не половины: так их меряют на
         // приборе. Стенка одной толщины со всех четырёх сторон.
@@ -1277,6 +1521,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             copy.BeakerWall = this.BeakerWall.Clone();
             copy.Source = this.Source.Clone();
             copy.SourceCapsule = this.SourceCapsule != null ? this.SourceCapsule.Clone() : new GeometryMaterial();
+            // (`AMBER282`) Слои защиты — свои у копии, вместе с веществами.
+            copy.ShieldLayers = new List<GeometryShieldLayer>();
+            if (this.ShieldLayers != null)
+            {
+                foreach (GeometryShieldLayer layer in this.ShieldLayers)
+                {
+                    copy.ShieldLayers.Add(layer != null ? layer.Clone() : new GeometryShieldLayer());
+                }
+            }
             // Свои словарь и список, а не общие с исходником: копия для того и
             // делается, чтобы две геометрии не правились за одну.
             copy.Raw = new Dictionary<string, string>(this.Raw, StringComparer.OrdinalIgnoreCase);
@@ -1345,6 +1598,20 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.MarinelliHoleEndWallThickness *= factor;
             g.MarinelliSourceHeight *= factor;
             g.MarinelliToDetectorDistance *= factor;
+            g.MarinelliHoleBase1 *= factor;          // (`AMBER282`)
+            g.MarinelliHoleBase2 *= factor;
+            g.MarinelliHoleWidth *= factor;
+
+            // (`AMBER282`) Защита в расчёте: полость и толщины слоёв (слои уже свои у копии).
+            g.ShieldInnerDiameter *= factor;
+            g.ShieldInnerHeight *= factor;
+            g.ShieldFloorGap *= factor;
+            foreach (GeometryShieldLayer layer in g.ShieldLayers)
+            {
+                layer.SideThickness *= factor;
+                layer.FloorThickness *= factor;
+                layer.LidThickness *= factor;
+            }
 
             g.BoxSourceX *= factor;
             g.BoxSourceY *= factor;
@@ -1728,6 +1995,18 @@ namespace BecquerelMonitor.EfficiencyMaker
             // и брать цилиндрический для маринеллевской геометрии нельзя.
             g.MarinelliToDetectorDistance = Len(kv, "SM_BeakerToDetectorFrontDistance");
 
+            // (`AMBER282`) Трапеция колодца — наше расширение формата; ключа нет — круг, то есть
+            // прежнее поведение и все файлы ЛСРМ.
+            string holeShape;
+            if (kv.TryGetValue("SM_BeakerHoleShape", out holeShape)
+                && holeShape.Trim().Equals("TRAPEZOID", StringComparison.OrdinalIgnoreCase))
+            {
+                g.MarinelliHoleShape = GeometryHoleShape.Trapezoid;
+                g.MarinelliHoleBase1 = Len(kv, "SM_BeakerHoleBase1");
+                g.MarinelliHoleBase2 = Len(kv, "SM_BeakerHoleBase2");
+                g.MarinelliHoleWidth = Len(kv, "SM_BeakerHoleWidth");
+            }
+
             // Прямоугольная кювета — наше расширение, ключей SB_ в файлах ЛСРМ
             // нет. Если их нет и здесь, поля останутся нулями, а тип источника
             // прочитается как точечный: BOX им тоже неизвестен.
@@ -1787,6 +2066,28 @@ namespace BecquerelMonitor.EfficiencyMaker
                     : new GeometryMaterial();
             }
             g.ApplyGapDefault();
+
+            // (`AMBER282`) Слои защиты в расчёте — наше расширение формата; нет ключа — слоёв нет,
+            // и признак `DS_Shield` значит прежнее (`AMBER12`).
+            int shieldLayers = (int)Num(kv, "DS_nShieldLayers");
+            if (shieldLayers > 0)
+            {
+                g.ShieldInnerDiameter = Len(kv, "DS_ShieldInnerDiameter");
+                g.ShieldInnerHeight = Len(kv, "DS_ShieldInnerHeight");
+                g.ShieldFloorGap = Len(kv, "DS_ShieldFloorGap");
+                for (int i = 0; i < shieldLayers; i++)
+                {
+                    string part = ShieldLayerPart(i);
+                    g.ShieldLayers.Add(new GeometryShieldLayer
+                    {
+                        Material = Material(kv, "DS_", part, "M_DS_" + part + ".MName",
+                                            "DS_FractionType" + part, g.ParseWarnings),
+                        SideThickness = Len(kv, "DS_" + part + "SideThickness"),
+                        FloorThickness = Len(kv, "DS_" + part + "FloorThickness"),
+                        LidThickness = Len(kv, "DS_" + part + "LidThickness"),
+                    });
+                }
+            }
 
             string prefix = g.SourceType == GeometrySourceType.Marinelli ? "SM_" : "SC_";
             g.BeakerWall = Material(kv, prefix, "Wall", "M_" + prefix + "Beaker.MName",
@@ -1949,6 +2250,37 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             check(wall, this.BeakerWall, Properties.Resources.GeometryEditorWallMaterial);
             check(sample, this.Source, Properties.Resources.GeometryEditorSourceMaterial);
+
+            // (`AMBER282`) Слои защиты — только когда защита в сцене (иначе их не строит никто).
+            if (this.ShieldInScene)
+            {
+                for (int i = 0; i < this.ShieldLayers.Count; i++)
+                {
+                    GeometryShieldLayer layer = this.ShieldLayers[i];
+                    double thickness = Math.Max(layer.SideThickness, Math.Max(layer.FloorThickness, layer.LidThickness));
+                    check(thickness, layer.Material, ShieldLayerCaption(i));
+                }
+            }
+        }
+
+        /// <summary>(`AMBER282`) Подпись слоя защиты в предупреждениях: «Shield layer 1» / «Слой защиты 1».</summary>
+        internal static string ShieldLayerCaption(int index)
+        {
+            return string.Format(CultureInfo.InvariantCulture,
+                                 Res("GeometryEditorShieldLayerCaption", "Shield layer {0}"), index + 1);
+        }
+
+        /// <summary>(`AMBER282`) Строка ресурсов с английским запасом — тем же приёмом, что `GeometryFacingSideNeedsBox`.</summary>
+        internal static string Res(string name, string fallback)
+        {
+            string text = Properties.Resources.ResourceManager.GetString(name, Properties.Resources.Culture);
+            return string.IsNullOrEmpty(text) ? fallback : text;
+        }
+
+        /// <summary>(`AMBER282`) Имя слоя защиты в ключах `.in`: `ShieldLayer0`, `ShieldLayer1`, … — одно правило писателю и читателю.</summary>
+        internal static string ShieldLayerPart(int index)
+        {
+            return "ShieldLayer" + index.ToString(CultureInfo.InvariantCulture);
         }
 
         static string Get(Dictionary<string, string> kv, string key)
@@ -2136,7 +2468,24 @@ namespace BecquerelMonitor.EfficiencyMaker
                         Resources.GeometrySourceMarinelli,
                         this.MarinelliBeakerDiameter, this.MarinelliHoleDiameter,
                         this.MarinelliSourceHeight, this.MarinelliToDetectorDistance);
+                    if (this.HasTrapezoidHole)
+                    {
+                        // (`AMBER282`) У трапеции диаметра колодца нет — называются её размеры.
+                        source += string.Format(CultureInfo.InvariantCulture,
+                            Res("GeometrySourceTrapezoidHole", ", hole trapezoid {0:F1}/{1:F1}x{2:F1} mm"),
+                            this.MarinelliHoleBase1, this.MarinelliHoleBase2, this.MarinelliHoleWidth);
+                    }
+
                     break;
+            }
+
+            if (this.ShieldInScene)
+            {
+                // (`AMBER282`) Защита в расчёте — полость и наружный габарит.
+                source += string.Format(CultureInfo.InvariantCulture,
+                    Res("GeometrySourceShieldLayers", "; shield {0} layer(s) D={1:F1}/{2:F1} H={3:F1}/{4:F1} mm"),
+                    this.ShieldLayers.Count, this.ShieldInnerDiameter, this.ShieldOuterDiameter,
+                    this.ShieldInnerHeight, this.ShieldOuterHeight);
             }
 
             string crystal = this.Shape == CrystalShape.Box

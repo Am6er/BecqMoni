@@ -42719,10 +42719,10 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>From device calibration</value>
   </data>
   <data name="GeometryEditorInShield" xml:space="preserve">
-    <value>Measured inside a shield (lead castle)</value>
+    <value>Measured inside a shield</value>
   </data>
   <data name="GeometryEditorInShieldHint" xml:space="preserve">
-    <value>The shield is not part of the simulated scene and does not change the response matrix. It tells the analysis that photons scatter back from the surroundings, so the backscatter component is kept even when a matrix is used.</value>
+    <value>Without layers below, the shield is not part of the simulated scene and does not change the response matrix: it only tells the analysis that photons scatter back from the surroundings, so the backscatter component is kept even when a matrix is used. With layers, the shield is built into the scene: photons and electrons see it, it enters the matrix stamp, and the analysis adds no separate backscatter component.</value>
   </data>
   <data name="GeometryEditorUnitDensity" xml:space="preserve">
     <value>g/cm3</value>
@@ -45030,5 +45030,113 @@ Entered: {0}</value>
   </data>
   <data name="MSGFwhmSpectraCount" xml:space="preserve">
     <value>{0} of {1}:</value>
+  </data>
+  <data name="GeometryEditorHoleShape" xml:space="preserve">
+    <value>Hole shape in plan</value>
+  </data>
+  <data name="GeometryEditorHoleShapeHint" xml:space="preserve">
+    <value>Round is the classic Marinelli beaker. Trapezoid: two bases along one direction and the height between them, all sizes are the inner opening of the well; the well wall lies outward. A rectangle is a trapezoid with equal bases. The LSRM program does not know a trapezoid and reads the file as a round well of the same area.</value>
+  </data>
+  <data name="GeometryEditorHoleShapeRound" xml:space="preserve">
+    <value>Round</value>
+  </data>
+  <data name="GeometryEditorHoleShapeTrapezoid" xml:space="preserve">
+    <value>Trapezoid</value>
+  </data>
+  <data name="GeometryEditorHoleBase1" xml:space="preserve">
+    <value>Hole base 1 (inner)</value>
+  </data>
+  <data name="GeometryEditorHoleBase2" xml:space="preserve">
+    <value>Hole base 2 (inner)</value>
+  </data>
+  <data name="GeometryEditorHoleWidth" xml:space="preserve">
+    <value>Hole height between the bases (inner)</value>
+  </data>
+  <data name="GeometryEditorShieldInnerDiameter" xml:space="preserve">
+    <value>Shield cavity diameter</value>
+  </data>
+  <data name="GeometryEditorShieldInnerHeight" xml:space="preserve">
+    <value>Shield cavity height (bottom to top)</value>
+  </data>
+  <data name="GeometryEditorShieldFloorGap" xml:space="preserve">
+    <value>Gap from the sample to the shield bottom</value>
+  </data>
+  <data name="GeometryEditorShieldLayers" xml:space="preserve">
+    <value>Shield layers, from the inside out:</value>
+  </data>
+  <data name="GeometryEditorShieldLayerMaterial" xml:space="preserve">
+    <value>Material</value>
+  </data>
+  <data name="GeometryEditorShieldLayerSide" xml:space="preserve">
+    <value>Side</value>
+  </data>
+  <data name="GeometryEditorShieldLayerFloor" xml:space="preserve">
+    <value>Bottom</value>
+  </data>
+  <data name="GeometryEditorShieldLayerLid" xml:space="preserve">
+    <value>Top</value>
+  </data>
+  <data name="GeometryEditorShieldAddLayer" xml:space="preserve">
+    <value>Add layer</value>
+  </data>
+  <data name="GeometryEditorShieldRemoveLayerTip" xml:space="preserve">
+    <value>Remove this shield layer</value>
+  </data>
+  <data name="GeometryEditorShieldLayersHint" xml:space="preserve">
+    <value>The first layer lines the cavity, each next one covers the previous. Side is the cavity wall, bottom lies under the sample, top lies above the detector. Thicknesses are in mm. Without layers the shield is not part of the calculation.</value>
+  </data>
+  <data name="GeometryEditorErrorShieldCavity" xml:space="preserve">
+    <value>Shield in the calculation: set the cavity diameter and height, both greater than zero.</value>
+  </data>
+  <data name="GeometryEditorErrorShieldLayerEmpty" xml:space="preserve">
+    <value>{0}: all thicknesses are zero. Set a thickness or remove the layer.</value>
+  </data>
+  <data name="GeometryEditorErrorShieldNarrow" xml:space="preserve">
+    <value>The shield cavity is narrower than the scene inside it: {0:F1} mm against {1:F1} mm.</value>
+  </data>
+  <data name="GeometryEditorErrorShieldLow" xml:space="preserve">
+    <value>The shield cavity is lower than the scene inside it together with the bottom gap: {0:F1} mm against {1:F1} mm.</value>
+  </data>
+  <data name="GeometryEditorShieldLayerCaption" xml:space="preserve">
+    <value>Shield layer {0}</value>
+  </data>
+  <data name="GeometrySourceTrapezoidHole" xml:space="preserve">
+    <value>, hole trapezoid {0:F1}/{1:F1} × {2:F1} mm</value>
+  </data>
+  <data name="GeometrySourceShieldLayers" xml:space="preserve">
+    <value>; shield of {0} layer(s), D = {1:F1}/{2:F1}, H = {3:F1}/{4:F1} mm</value>
+  </data>
+  <data name="EfficiencySketchTrapezoidHole" xml:space="preserve">
+    <value>Trapezoid well</value>
+  </data>
+  <data name="EfficiencySketchShield" xml:space="preserve">
+    <value>Shield: {0} layer(s), ⌀{1} × {2} {3}</value>
+  </data>
+  <data name="EfficiencySketchShieldParts" xml:space="preserve">
+    <value>side / bottom / top</value>
+  </data>
+  <data name="EfficiencySketchShieldOuter" xml:space="preserve">
+    <value>outer ⌀{0} × {1} {2}</value>
+  </data>
+  <data name="EfficiencySketchNotToScale" xml:space="preserve">
+    <value>, not to scale</value>
+  </data>
+  <data name="EfficiencySketchSideView" xml:space="preserve">
+    <value>Side view</value>
+  </data>
+  <data name="EfficiencySketchTopView" xml:space="preserve">
+    <value>Top view</value>
+  </data>
+  <data name="GeometryEditorTabShield" xml:space="preserve">
+    <value>Shield</value>
+  </data>
+  <data name="GeometryEditorHoleThrough" xml:space="preserve">
+    <value>No sample below the well (through well)</value>
+  </data>
+  <data name="GeometryEditorHoleThroughHint" xml:space="preserve">
+    <value>The well goes through the whole sample: its depth equals the sample height and it has no end wall. Under the detector there is air down to the bottom of the beaker or the shield.</value>
+  </data>
+  <data name="GeometryEditorErrorHoleThroughWall" xml:space="preserve">
+    <value>The well is as deep as the sample, but its end wall is {0:F2} mm: turn on “No sample below the well” or make the well shallower than {1:F1} mm.</value>
   </data>
 </root>
