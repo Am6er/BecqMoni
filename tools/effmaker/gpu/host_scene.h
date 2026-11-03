@@ -241,7 +241,23 @@ inline void Read_regions(BlobReader& r)
         g.regRInE = r.Real();
         g.regAXE = r.Real();
         g.regAYE = r.Real();
+        // (`AMBER282`) Форма в плане: биты, грани многоугольника и дырки (по 4 числа), толщина поперёк.
+        g.Shape = r.Int();
+        int polyReals = 0, holeReals = 0;
+        g.Poly = r.Reals(polyReals);
+        g.Hole = r.Reals(holeReals);
+        g.SideThickness = r.Real();
         r.End();
+
+        if (polyReals % 4 != 0 || holeReals % 4 != 0 || g.Shape < 0 || g.Shape > 3
+            || (((g.Shape & RM_SHAPE_OUTER_POLYGON) != 0) != (polyReals >= 12))
+            || (((g.Shape & RM_SHAPE_HOLE_POLYGON) != 0) != (holeReals >= 12)))
+        {
+            r.Fail("форма области: биты Shape не сходятся с гранями многоугольников (по 4 числа, не меньше трёх граней)");
+        }
+
+        g.PolyLen = polyReals / 4;
+        g.HoleLen = holeReals / 4;
 
         if (g.Material < 0 || g.Material >= (int)h.materials.size())
         {
@@ -319,7 +335,21 @@ inline void Read_scene(BlobReader& r)
     s.capsuleFilmDensity = r.Real();
     s.pointAirCm = r.Real();
     s.capsuleAir = r.Bool();
+    // (`AMBER282`) Маринелли с колодцем-трапецией (нули у прочих видов).
+    s.TrapROut = r.Real();
+    s.TrapZ0 = r.Real();
+    s.TrapZ1 = r.Real();
+    s.TrapZCap = r.Real();
+    int wellReals = 0;
+    s.TrapWell = r.Reals(wellReals);
     r.End();
+
+    if (wellReals % 3 != 0 || ((s.sourceKind == RM_SOURCE_MARINELLI_TRAP) != (wellReals >= 9)))
+    {
+        r.Fail("источник маринелли-трапеция: грани контура гильзы — по 3 числа, не меньше трёх граней, и только у этого вида");
+    }
+
+    s.TrapWellLen = wellReals / 3;
 
     // Ветка «кристалл без парциальных сечений» (`CrystalChannels`, :3673–3693) на
     // устройстве не перенесена — нужны таблицы `AttenuationData`. Отказ при загрузке,
@@ -334,7 +364,7 @@ inline void Read_scene(BlobReader& r)
         r.Fail("индекс кристалла не указывает на область-кристалл");
     }
 
-    if (s.sourceKind < RM_SOURCE_POINT || s.sourceKind > RM_SOURCE_BOX)
+    if (s.sourceKind < RM_SOURCE_POINT || s.sourceKind > RM_SOURCE_MARINELLI_TRAP)
     {
         r.Fail("вид источника вне RM_SOURCE_*");
     }

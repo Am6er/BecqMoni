@@ -189,6 +189,10 @@ RM_DEV bool CrystalHardCollision(const ScatterElementG* elements, int elementsLe
                                  real hardPerCm, real t, real muCut, bool positron, real& ux, real& uy, real& uz);
 RM_DEV real CrystalNearestFace(real x, real y, real z);
 RM_DEV real RegionNearestFace(int r, real x, real y, real z);
+// (`AMBER282`) Расстояния у области формы в плане (ElectronTransport.cs).
+static RM_DEV real ShapedInnerDistance(const RegionG& r, real x, real y, real rad);
+static RM_DEV real ShapedOuterDistance(const RegionG& h, real x, real y, real rad);
+static RM_DEV real PolygonOutsideBound(const real* p, int faces, real x, real y);
 static RM_DEV real HighlandTheta0(real tKev, real xOverX0);
 RM_DEV real SampleHingeMu(real theta0);
 RM_DEV real SauterCosine(real tKev);

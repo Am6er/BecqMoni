@@ -154,7 +154,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///     же правилом «только побитово прежний засев»
         ///     (<see cref="MigrateSeedErrata"/>); у криптона прежняя ПЛОТНОСТЬ
         ///     записана третьим полем <see cref="SeedErrata"/>.
-        public const int CurrentSeedVersion = 11;
+        /// 12 (03.11.2026, `AMBER282`) — углеродистая сталь «Steel, Carbon» по PNNL
+        ///     (PNNL-15870 Rev. 1, запись 294): защита пробы Amber. Новое ИМЯ, довозится
+        ///     сведением по именам; переноса не нужно.
+        public const int CurrentSeedVersion = 12;
 
         /// <summary>
         /// (`AMBER107`, П324) Поколение, начиная с которого ВСЕ опечатки таблицы

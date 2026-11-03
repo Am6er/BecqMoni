@@ -24,7 +24,7 @@ namespace BecquerelMonitor.EfficiencyMaker
     public static partial class GpuPack
     {
         // = RM_SOURCE_* (data_scene.cuh).
-        const int SourcePoint = 0, SourceCylinder = 1, SourceMarinelli = 2, SourceBox = 3;
+        const int SourcePoint = 0, SourceCylinder = 1, SourceMarinelli = 2, SourceBox = 3, SourceMarinelliTrap = 4;
 
         /// <summary>Области сцены в порядке поиска (`regionArray`, «первая победившая»).</summary>
         static EfficiencySimulator.Region[] SceneRegions(EfficiencySimulator sim)
@@ -62,6 +62,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 case EfficiencySimulator.CylinderSampler _: return SourceCylinder;
                 case EfficiencySimulator.MarinelliSampler _: return SourceMarinelli;
                 case EfficiencySimulator.BoxSampler _: return SourceBox;
+                case EfficiencySimulator.TrapezoidMarinelliSampler _: return SourceMarinelliTrap;    // (`AMBER282`)
                 case EfficiencySimulator.ImportanceSampler _:
                     throw new NotSupportedException(
                         "GPU-путь: важностный розыгрыш точки вылета (ImportanceSampler, ключ --imp=1) не перенесён; "
@@ -311,6 +312,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 w.Real(regRInE[i]);
                 w.Real(regAXE[i]);
                 w.Real(regAYE[i]);
+                // (`AMBER282`) Форма в плане: биты и грани (n_x, n_y, d, d − Eps — те же числа, что читают
+                // `Region.ShapedContains`/`ShapedSpan` и электрон), толщина поперёк. У прежних областей — 0 и пусто.
+                w.Int(r.Shape);
+                w.Reals(PolygonPlanesFlat(r.PolyNX, r.PolyNY, r.PolyD, r.PolyDE));
+                w.Reals(PolygonPlanesFlat(r.HoleNX, r.HoleNY, r.HoleD, r.HoleDE));
+                w.Real(r.SideThickness);
                 w.End();
             }
 
@@ -377,7 +384,48 @@ namespace BecquerelMonitor.EfficiencyMaker
             w.Real(filmMaterial != null ? filmMaterial.Density : 0.0);
             w.Real(sim.pointAirCm);
             w.Bool(sim.CapsuleAir);
+            // (`AMBER282`) Маринелли с колодцем-трапецией — нули и пусто у прочих видов.
+            var trap = source as EfficiencySimulator.TrapezoidMarinelliSampler;
+            w.Real(trap != null ? trap.rOut : 0.0);
+            w.Real(trap != null ? trap.z0 : 0.0);
+            w.Real(trap != null ? trap.z1 : 0.0);
+            w.Real(trap != null ? trap.zCap : 0.0);
+            w.Reals(trap != null ? WellPlanesFlat(trap) : new double[0]);
             w.End();
+        }
+
+        /// <summary>(`AMBER282`) Грани многоугольника области плоским массивом: по 4 числа на грань; null — пусто.</summary>
+        static double[] PolygonPlanesFlat(double[] nx, double[] ny, double[] d, double[] dE)
+        {
+            if (nx == null)
+            {
+                return new double[0];
+            }
+
+            var flat = new double[4 * nx.Length];
+            for (int j = 0; j < nx.Length; j++)
+            {
+                flat[4 * j] = nx[j];
+                flat[4 * j + 1] = ny[j];
+                flat[4 * j + 2] = d[j];
+                flat[4 * j + 3] = dE[j];
+            }
+
+            return flat;
+        }
+
+        /// <summary>(`AMBER282`) Грани контура гильзы источника маринелли-трапеции: по 3 числа на грань (n_x, n_y, d − Eps).</summary>
+        static double[] WellPlanesFlat(EfficiencySimulator.TrapezoidMarinelliSampler trap)
+        {
+            var flat = new double[3 * trap.wellNX.Length];
+            for (int j = 0; j < trap.wellNX.Length; j++)
+            {
+                flat[3 * j] = trap.wellNX[j];
+                flat[3 * j + 1] = trap.wellNY[j];
+                flat[3 * j + 2] = trap.wellDE[j];
+            }
+
+            return flat;
         }
 
         /// <summary>

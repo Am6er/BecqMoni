@@ -42,7 +42,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             analyzer.ResponseMatrix = matrix;
             analyzer.ScintillatorMaterial = EfficiencySimulator.ScintillatorNameOf(geometry);
-            analyzer.BackscatterWithMatrix = geometry != null && geometry.InShield;
+            // (`AMBER282`) Защита СЛОЯМИ входит в сцену переноса — обратное рассеяние от неё уже в
+            // матрице, и формула поверх неё посчитала бы его дважды. Признак без слоёв — как прежде.
+            analyzer.BackscatterWithMatrix = geometry != null && geometry.InShield && !geometry.ShieldInScene;
             // (`N14`, П49; `AMBER46`, П87 16.09.2026) Таблица Q_k(E) сцены —
             // ИЗ САМОЙ МАТРИЦЫ (блок `ANGK` формата 9, построена из тех же
             // историй, что её строки). Сайдкар `*.qk` по отпечатку геометрии

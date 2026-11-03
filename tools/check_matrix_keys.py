@@ -731,6 +731,10 @@ SIM_NOT_SETTINGS = set([
     # (`S197`, П178) `PhotoScale` -- множитель фотоэффекта области, ставится из
     # `OutsidePhotoScale` симулятора при регистрации области (рычаг замера).
     u'IsBox', u'IsCrystal', u'ThresholdPair', u'PhotoScale',
+    # (`AMBER282`, полоса a282b-A 03.11.2026) Форма области в плане (`Region.Shape`, биты
+    # многоугольников) и толщина тела поперёк (`Region.SideThickness`) -- описание области
+    # сцены, ставит `AddShaped`; в клеймо входят текстом геометрии (`SM_BeakerHole*`, `DS_Shield*`).
+    u'Shape', u'SideThickness',
 ])
 
 REASONS = (u'общая', u'намеренно', u'забыто', u'неприменимо')

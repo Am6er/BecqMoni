@@ -87,6 +87,13 @@ RM_DEVF real RegPair(int r, real energyKev, bool thresholdPair);
 RM_DEVF void RegRetune(int r, real energyKev);
 RM_DEVF bool RegContains(int r, real x, real y, real z);
 RM_DEVF bool RegContains(int r, real x, real y, real z, real rr);
+// (`AMBER282`) Область формы в плане: Region.ShapedContains / InsidePolygon / PolygonSpan / Disk / ShapedSpan.
+RM_DEVF bool RegShapedContains(const RegionG& g, real x, real y, real rr);
+static RM_DEV bool InsidePolygon(const real* planes, int faces, int stride, real x, real y);
+static RM_DEV bool PolygonSpan(const real* planes, int faces, int stride, real x, real y, real ux, real uy,
+                               real& t0, real& t1);
+static RM_DEV bool DiskSpan(real x, real y, real ux, real uy, real radius, real& t0, real& t1);
+RM_DEVF int ShapedSpan(const RegionG& g, real x, real y, real ux, real uy, real lo, real hi, real* into);
 
 // --- навигация (EfficiencySimulator.cs:4027-4786) ---
 // Область — индекс в D.regions, −1 = null (вне сцены).

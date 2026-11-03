@@ -1953,8 +1953,11 @@ namespace BecquerelMonitor
                     double rh = 0.5 * g.MarinelliHoleDiameter;
                     double ths = g.MarinelliHoleSideThickness;
                     double the = g.MarinelliHoleEndWallThickness;
-                    double rOut = Math.Max(0.5 * g.MarinelliBeakerDiameter, rh + ths + 0.1);
-                    double rSrcOut = Math.Max(rh + ths, rOut - g.MarinelliSideThickness);
+                    // (`AMBER282`) Колодец-трапеция — кругом той же площади наружного контура гильзы:
+                    // тело вращения здесь держится на осевой симметрии. У круглого — прежнее `rh + ths`.
+                    double holeOuter = MarinelliHoleOuterEqualArea(g, rh, ths);
+                    double rOut = Math.Max(0.5 * g.MarinelliBeakerDiameter, holeOuter + 0.1);
+                    double rSrcOut = Math.Max(holeOuter, rOut - g.MarinelliSideThickness);
                     double hs = g.MarinelliSourceHeight;
                     double hh = g.MarinelliHoleHeight;
                     double zCeiling = zFace - g.MarinelliToDetectorDistance;
@@ -1963,13 +1966,14 @@ namespace BecquerelMonitor
 
                     double v1, i1, v2, i2;
                     // Проба над потолком колодца (под детектором) …
-                    Revolution(0.0, rh + ths, zSrc0, zCeiling - the, zc, out v1, out i1);
+                    Revolution(0.0, holeOuter, zSrc0, zCeiling - the, zc, out v1, out i1);
                     // … и кольцо вокруг колодца.
-                    Revolution(rh + ths, rSrcOut, zSrc0, zSrc0 + hs, zc, out v2, out i2);
+                    Revolution(holeOuter, rSrcOut, zSrc0, zSrc0 + hs, zc, out v2, out i2);
                     return Finish(v1 + v2, i1 + i2, out note,
                         string.Format(CultureInfo.InvariantCulture,
                             "marinelli: ring {0:f3}…{1:f3} cm, height {2:f3} cm, cap {3:f3} cm",
-                            rh + ths, rSrcOut, hs, cap));
+                            holeOuter, rSrcOut, hs, cap)
+                        + (g.HasTrapezoidHole ? "; trapezoid well as an equal-area circle" : ""));
                 }
 
                 default:
@@ -2010,6 +2014,23 @@ namespace BecquerelMonitor
             double halfDiagonalCm = GeometryScenes.MinFieldRadiusMm(model)
                                     / GeometryScenes.FieldRadiusMargin / GeometryModel.MmPerCm;
             return Math.PI * halfDiagonalCm * halfDiagonalCm;
+        }
+
+        /// <summary>
+        /// (`AMBER282`) Наружный радиус колодца маринелли со стенкой для тела вращения дозы: у круглого
+        /// колодца — `rh + ths` (прежнее выражение до бита), у трапеции — радиус круга той же площади,
+        /// что наружный контур гильзы. Перенос (`EfficiencySimulator`) трапецию видит точно; здесь —
+        /// приближение, которое сохраняет объём и массу пробы.
+        /// </summary>
+        static double MarinelliHoleOuterEqualArea(GeometryModel g, double rh, double ths)
+        {
+            if (!g.HasTrapezoidHole)
+            {
+                return rh + ths;
+            }
+
+            double area = g.TrapezoidHoleArea(ths);
+            return area > 0.0 ? Math.Sqrt(area / Math.PI) : rh + ths;
         }
 
         /// <summary>
@@ -2106,8 +2127,9 @@ namespace BecquerelMonitor
                     double rh = 0.5 * g.MarinelliHoleDiameter;
                     double ths = g.MarinelliHoleSideThickness;
                     double the = g.MarinelliHoleEndWallThickness;
-                    double rOut = Math.Max(0.5 * g.MarinelliBeakerDiameter, rh + ths + 0.1);
-                    double rSrcOut = Math.Max(rh + ths, rOut - g.MarinelliSideThickness);
+                    double holeOuter = MarinelliHoleOuterEqualArea(g, rh, ths);     // (`AMBER282`)
+                    double rOut = Math.Max(0.5 * g.MarinelliBeakerDiameter, holeOuter + 0.1);
+                    double rSrcOut = Math.Max(holeOuter, rOut - g.MarinelliSideThickness);
                     double hs = g.MarinelliSourceHeight;
                     double zCeiling = zFace - g.MarinelliToDetectorDistance;
                     double cap = Math.Max(0.0, hs - g.MarinelliHoleHeight);
@@ -2115,7 +2137,7 @@ namespace BecquerelMonitor
                     b.R = rSrcOut;
                     b.Z0 = zCeiling - the - cap;
                     b.Z1 = b.Z0 + hs;
-                    b.Rin = rh + ths;
+                    b.Rin = holeOuter;
                     b.Zin = zCeiling - the;
                     return b;
                 }

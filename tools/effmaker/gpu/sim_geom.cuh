@@ -358,12 +358,179 @@ __device__ bool Sim::RegContains(int r, real x, real y, real z, real rr)
         return false;
     }
 
+    if (g.Shape != 0)
+    {
+        return RegShapedContains(g, x, y, rr);      // (`AMBER282`)
+    }
+
     if (g.IsBox)
     {
         return M_Abs(x) < g.AX - Eps && M_Abs(y) < g.AY - Eps;
     }
 
     return rr >= g.RIn - Eps && rr < g.ROut - Eps;
+}
+
+// = EfficiencySimulator.cs Region.ShapedContains (`AMBER282`): в плане, слой по z уже проверен.
+__device__ bool Sim::RegShapedContains(const RegionG& g, real x, real y, real rr)
+{
+    bool outer = (g.Shape & RM_SHAPE_OUTER_POLYGON) != 0
+        ? InsidePolygon(RR(g.Poly), g.PolyLen, 4, x, y)
+        : rr < g.ROut - Eps;
+    if (!outer)
+    {
+        return false;
+    }
+
+    if ((g.Shape & RM_SHAPE_HOLE_POLYGON) != 0)
+    {
+        return !InsidePolygon(RR(g.Hole), g.HoleLen, 4, x, y);
+    }
+
+    return rr >= g.RIn - Eps;
+}
+
+// = EfficiencySimulator.cs Region.InsidePolygon (`AMBER282`): n·p < d − Eps по всем граням.
+// Грань — `stride` чисел: n_x, n_y, …, последним d − Eps.
+RM_DEV bool Sim::InsidePolygon(const real* planes, int faces, int stride, real x, real y)
+{
+    for (int j = 0; j < faces; j++)
+    {
+        const real* p = planes + j * stride;
+        if (!(p[0] * x + p[1] * y < p[stride - 1]))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// = EfficiencySimulator.cs Region.PolygonSpan (`AMBER282`).
+RM_DEV bool Sim::PolygonSpan(const real* planes, int faces, int stride, real x, real y, real ux, real uy,
+                             real& t0, real& t1)
+{
+    t0 = -Far;
+    t1 = Far;
+    for (int j = 0; j < faces; j++)
+    {
+        const real* p = planes + j * stride;
+        real s = p[0] * ux + p[1] * uy;
+        real c = p[0] * x + p[1] * y - p[stride - 1];
+        if (s < Eps && s > -Eps)
+        {
+            if (!(c < (real)0))
+            {
+                return false;
+            }
+
+            continue;
+        }
+
+        real t = -c / s;
+        if (s > (real)0)
+        {
+            if (t < t1) t1 = t;
+        }
+        else if (t > t0)
+        {
+            t0 = t;
+        }
+    }
+
+    return t1 > t0;
+}
+
+// = EfficiencySimulator.cs Region.Disk (`AMBER282` сделал его общим для ShapedSpan).
+RM_DEV bool Sim::DiskSpan(real x, real y, real ux, real uy, real radius, real& t0, real& t1)
+{
+    t0 = (real)0;
+    t1 = (real)0;
+    if (!(radius > (real)0))
+    {
+        return false;
+    }
+
+    real a = ux * ux + uy * uy;
+    real c = x * x + y * y - radius * radius;
+    if (a < Eps)
+    {
+        t0 = -Far;
+        t1 = Far;
+        return c < (real)0;
+    }
+
+    real b = (real)2.0 * (x * ux + y * uy);
+    real disc = b * b - (real)4.0 * a * c;
+    if (disc <= (real)0)
+    {
+        return false;                       // мимо или по касательной
+    }
+
+    real sq = M_Sqrt(disc), inv = (real)0.5 / a;
+    t0 = (-b - sq) * inv;
+    t1 = (-b + sq) * inv;
+    return true;
+}
+
+// = EfficiencySimulator.cs Region.ShapedSpan (`AMBER282`): lo..hi — уже пересечённый слой по z.
+__device__ int Sim::ShapedSpan(const RegionG& g, real x, real y, real ux, real uy, real lo, real hi, real* into)
+{
+    real a, b;
+    if ((g.Shape & RM_SHAPE_OUTER_POLYGON) != 0)
+    {
+        if (!PolygonSpan(RR(g.Poly), g.PolyLen, 4, x, y, ux, uy, a, b))
+        {
+            return 0;
+        }
+    }
+    else if (!DiskSpan(x, y, ux, uy, g.ROut - Eps, a, b))
+    {
+        return 0;
+    }
+
+    if (a > lo) lo = a;
+    if (b < hi) hi = b;
+    if (!(hi > lo))
+    {
+        return 0;
+    }
+
+    real h0, h1;
+    bool hit = (g.Shape & RM_SHAPE_HOLE_POLYGON) != 0
+        ? PolygonSpan(RR(g.Hole), g.HoleLen, 4, x, y, ux, uy, h0, h1)
+        : DiskSpan(x, y, ux, uy, g.RIn - Eps, h0, h1);
+    if (hit && h1 > lo && h0 < hi)
+    {
+        if (h0 <= lo && h1 >= hi)
+        {
+            return 0;                       // отрезок целиком в дырке
+        }
+
+        if (h0 <= lo)
+        {
+            into[0] = h1;
+            into[1] = hi;
+            return 1;
+        }
+
+        if (h1 >= hi)
+        {
+            into[0] = lo;
+            into[1] = h0;
+            return 1;
+        }
+
+        into[0] = lo;
+        into[1] = h0;
+        into[2] = h1;
+        into[3] = hi;
+        return 2;
+    }
+
+    into[0] = lo;
+    into[1] = hi;
+    return 1;
 }
 
 // не перенесено: Region.SpanAlong (EfficiencySimulator.cs:2460) с `Slab`/`Disk` —
@@ -461,6 +628,12 @@ __device__ int Sim::SpanFlat(int i, real x, real y, real z, real ux, real uy, re
         real a0 = (zMinE - z) / uz, b0 = (zMaxE - z) / uz;
         if (a0 <= b0) { lo = a0; hi = b0; }
         else { lo = b0; hi = a0; }
+    }
+
+    // (`AMBER282`) Область формы — своим разбором; у прежних областей формы нет (0).
+    if (g.Shape != 0)
+    {
+        return ShapedSpan(g, x, y, ux, uy, lo, hi, into);
     }
 
     real a, b;
@@ -992,6 +1165,29 @@ __device__ void Sim::SourceNext(real& x, real& y, real& z)
             x = rr * M_Cos(phi);
             y = rr * M_Sin(phi);
             z = s.CylZ0 + (s.CylZ1 - s.CylZ0) * Uniform();
+            return;
+        }
+
+        case RM_SOURCE_MARINELLI_TRAP:
+        {
+            // = EfficiencySimulator.cs TrapezoidMarinelliSampler.Next (`AMBER282`): равномерно по
+            // цилиндру пробы (радиус корнем, угол, высота — в этом порядке), точка в наружном
+            // контуре гильзы выше её донышка отвергается. Предел попыток C# — отказ исключением;
+            // здесь он недостижим (сцена с колодцем во весь цилиндр отказала бы на ЦП раньше).
+            for (int attempt = 0; attempt < 100000; attempt++)
+            {
+                real rr = s.TrapROut * M_Sqrt(Uniform());
+                real phi = (real)2.0 * M_PI_R * Uniform();
+                real zz = s.TrapZ0 + (s.TrapZ1 - s.TrapZ0) * Uniform();
+                x = rr * M_Cos(phi);
+                y = rr * M_Sin(phi);
+                z = zz;
+                if (zz < s.TrapZCap || !InsidePolygon(RR(s.TrapWell), s.TrapWellLen, 3, x, y))
+                {
+                    return;
+                }
+            }
+
             return;
         }
 

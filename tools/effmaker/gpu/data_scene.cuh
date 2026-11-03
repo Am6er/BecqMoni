@@ -33,6 +33,15 @@
 #define RM_SOURCE_CYLINDER 1
 #define RM_SOURCE_MARINELLI 2
 #define RM_SOURCE_BOX 3
+// (`AMBER282`) Маринелли с колодцем-трапецией: равномерно по цилиндру с отказом в наружном
+// контуре гильзы выше её донышка (`TrapezoidMarinelliSampler`).
+#define RM_SOURCE_MARINELLI_TRAP 4
+
+// (`AMBER282`) Биты формы области (`Region.Shape`, `EfficiencySimulator.ShapeOuterPolygon` /
+// `ShapeHolePolygon`): наружная граница — выпуклый многоугольник вместо круга `ROut`, дырка —
+// многоугольник вместо круга `RIn`. Ноль — прежняя область, ни один путь её не меняется.
+#define RM_SHAPE_OUTER_POLYGON 1
+#define RM_SHAPE_HOLE_POLYGON 2
 
 // = `GeometryMaterial` (GeometryModel.cs:43) + кэши симулятора ПО ВЕЩЕСТВУ —
 // всё, что горячие пути `EfficiencySimulator.cs`/`ElectronTransport.cs` спрашивают
@@ -141,6 +150,14 @@ struct RegionG
     // эти числа равны (float)ZMin и т.д.; полуоткрытость держится порядком сравнений.
     bool regBox;
     real regZMinE, regZMaxE, regROutE, regRInE, regAXE, regAYE;
+
+    // --- (`AMBER282`) область другой формы в плане (`Region.Shape`) ---
+    // Грани многоугольника — по 4 числа на грань в арене `R`: n_x, n_y, d (= `PolyD`), d − Eps
+    // (= `PolyDE`, вычтено в double на ЦП); внутри — n·p < d. `PolyLen`/`HoleLen` — число граней.
+    int Shape;
+    int Poly, PolyLen;
+    int Hole, HoleLen;
+    real SideThickness;  // `Region.SideThickness` — толщина тела поперёк у области формы, см
 };
 
 // Поля сцены симулятора, которые читают горячие пути. Ровно одна запись.
@@ -162,6 +179,10 @@ struct SceneG
     real CylR, CylZ0, CylZ1;  // CylinderSampler.r, z0, z1 (:3186)
     real MarRIn, MarROut, MarZ0, MarZ1, MarZCap, MarCapFraction; // MarinelliSampler (:3215-3216)
     real BoxAX, BoxAY, BoxZ0, BoxZ1; // BoxSampler.ax, ay, z0, z1 (:3159)
+    // (`AMBER282`) TrapezoidMarinelliSampler: rOut, z0, z1, zCap и грани контура гильзы (по 3
+    // числа на грань в арене `R`: n_x, n_y, d − Eps = `wellNX/NY/DE`).
+    real TrapROut, TrapZ0, TrapZ1, TrapZCap;
+    int TrapWell, TrapWellLen;
 
     int electron;             // :1647 → D.electronMats, −1 — null
     int bremTable;            // :1657 → D.brems, −1 — null

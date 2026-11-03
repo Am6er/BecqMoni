@@ -680,6 +680,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             double t = r.ZMax - r.ZMin;
             double side = r.IsBox ? 2.0 * Math.Min(r.AX, r.AY) : (r.RIn > 0.0 ? r.ROut - r.RIn : 2.0 * r.ROut);
+            if (r.Shape != 0)
+            {
+                side = r.SideThickness;             // (`AMBER282`) область формы: толщина задана сценой
+            }
+
             return Math.Min(t, side);
         }
 
@@ -1323,7 +1328,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             double d = Math.Min(z - r.ZMin, r.ZMax - z);
             double rad = Math.Sqrt(x * x + y * y);
-            if (r.IsBox)
+            if (r.Shape != 0)
+            {
+                d = Math.Min(d, ShapedInnerDistance(r, x, y, rad));     // (`AMBER282`)
+            }
+            else if (r.IsBox)
             {
                 d = Math.Min(d, Math.Min(r.AX - Math.Abs(x), r.AY - Math.Abs(y)));
             }
@@ -1348,7 +1357,11 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 double dz = Math.Max(0.0, Math.Max(h.ZMin - z, z - h.ZMax));
                 double dxy;
-                if (h.IsBox)
+                if (h.Shape != 0)
+                {
+                    dxy = ShapedOuterDistance(h, x, y, rad);            // (`AMBER282`)
+                }
+                else if (h.IsBox)
                 {
                     double dx = Math.Max(0.0, Math.Abs(x) - h.AX);
                     double dy = Math.Max(0.0, Math.Abs(y) - h.AY);
@@ -1363,6 +1376,79 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return d > 0.0 ? d : 0.0;
+        }
+
+        /// <summary>
+        /// (`AMBER282`) Расстояние в плане от точки ВНУТРИ области формы до её границы — точно для
+        /// выпуклого многоугольника (наименьшее по граням) и круга, дырка — снаружи: у многоугольника
+        /// нижняя граница max(n·p − d) (не больше истинного расстояния до выпуклого тела), у круга —
+        /// rad − RIn. Нижняя граница пути до выхода — то, что требует ранний выход.
+        /// </summary>
+        static double ShapedInnerDistance(Region r, double x, double y, double rad)
+        {
+            double d;
+            if ((r.Shape & ShapeOuterPolygon) != 0)
+            {
+                d = double.MaxValue;
+                for (int j = 0; j < r.PolyNX.Length; j++)
+                {
+                    d = Math.Min(d, r.PolyD[j] - (r.PolyNX[j] * x + r.PolyNY[j] * y));
+                }
+            }
+            else
+            {
+                d = r.ROut - rad;
+            }
+
+            if ((r.Shape & ShapeHolePolygon) != 0)
+            {
+                d = Math.Min(d, PolygonOutsideBound(r.HoleNX, r.HoleNY, r.HoleD, x, y));
+            }
+            else if (r.RIn > 0.0)
+            {
+                d = Math.Min(d, rad - r.RIn);
+            }
+
+            return d;
+        }
+
+        /// <summary>
+        /// (`AMBER282`) Расстояние в плане от точки СНАРУЖИ тела области формы до этого тела (ноль —
+        /// точка в теле), нижняя граница: снаружи наружного многоугольника — max(n·p − d), внутри дырки
+        /// — наименьшее по граням дырки (точно), у круга — как у кольца.
+        /// </summary>
+        static double ShapedOuterDistance(Region h, double x, double y, double rad)
+        {
+            double outside = (h.Shape & ShapeOuterPolygon) != 0
+                ? PolygonOutsideBound(h.PolyNX, h.PolyNY, h.PolyD, x, y)
+                : rad - h.ROut;
+            double inHole;
+            if ((h.Shape & ShapeHolePolygon) != 0)
+            {
+                inHole = double.MaxValue;
+                for (int j = 0; j < h.HoleNX.Length; j++)
+                {
+                    inHole = Math.Min(inHole, h.HoleD[j] - (h.HoleNX[j] * x + h.HoleNY[j] * y));
+                }
+            }
+            else
+            {
+                inHole = h.RIn - rad;
+            }
+
+            return Math.Max(0.0, Math.Max(outside, inHole));
+        }
+
+        /// <summary>(`AMBER282`) max(n·p − d) по граням выпуклого многоугольника: снаружи — нижняя граница расстояния до него, внутри — отрицательно.</summary>
+        static double PolygonOutsideBound(double[] nx, double[] ny, double[] d, double x, double y)
+        {
+            double m = double.MinValue;
+            for (int j = 0; j < nx.Length; j++)
+            {
+                m = Math.Max(m, nx[j] * x + ny[j] * y - d[j]);
+            }
+
+            return m;
         }
 
         /// <summary>
