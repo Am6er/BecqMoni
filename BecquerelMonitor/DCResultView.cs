@@ -540,13 +540,24 @@ namespace BecquerelMonitor
             // шкала разбора живёт в заголовке первой колонки — ей нужно место;
             // предел — a# ISO 11929 (решение Amber 06.10.2026 «MDA», как у зон:
             // заголовок «MDA», расшифровка в подсказке), а не MDA Карри по зоне
-            this.columnModel1.Columns[0].Width = Math.Max(this.columnModel1.Columns[0].Width, 170);
+            this.columnModel1.Columns[0].Width = Math.Min(Math.Max(this.columnModel1.Columns[0].Width, 120), this.FirstColumnRoom());
             this.columnModel1.Columns[3].Text = OwnText(KeyFsaMdaHeader);
             this.columnModel1.Columns[3].ToolTipText = OwnText(KeyFsaMdaTip);
             // (П261) строка причины отказа переносится по ширине (`ShowResult`): высоту
             // строки по переносу XPTable считает только под этим ключом; строки чисел
             // переноса не просят и остаются прежней высоты
             this.table1.EnableWordWrap = true;
+            // (AMBER245) Панель сузили — первая колонка возвращается в отведённое место,
+            // иначе «МДА» снова уезжает за край.
+            this.table1.Resize += (s, e) =>
+            {
+                Column first = this.columnModel1.Columns[0];
+                int room = this.FirstColumnRoom();
+                if (first.Width > room)
+                {
+                    first.Width = room;
+                }
+            };
             // Решение Amber 06.10.2026 вопросником «Подсвечивать образ нуклида в стеке»:
             // выбор строки подсвечивает образ в стеке FSA тем же механизмом, что у
             // окна отчёта (`EnergySpectrumView.FsaHighlight`); окон зон у разбора нет.
@@ -740,6 +751,13 @@ namespace BecquerelMonitor
             // которую человек выставил руками, она не отнимает.
             System.Drawing.Font font = this.table1.HeaderFont ?? this.table1.Font;
             int needed = System.Windows.Forms.TextRenderer.MeasureText(text ?? "", font).Width + 12;
+            // (AMBER245, 03.11.2026) Рост под заголовок упирается в ширину таблицы: иначе
+            // колонка «МДА» уезжает за край панели (замер: 90+100+116+75 = 381 при 370).
+            int room = this.FirstColumnRoom();
+            if (needed > room)
+            {
+                needed = room;
+            }
             // ⛔ (П274, 14.10.2026) …И ВОЗВРАЩАЕТСЯ, когда пометка ушла. Пометка «(пересчёт…)»
             // теперь встаёт на каждый пересчёт (`FsaSessionStarted`), и колонка, выросшая под неё
             // навсегда, выталкивала колонку MDA за край узкой панели (экран П274: после первой же
@@ -775,6 +793,24 @@ namespace BecquerelMonitor
 
         /// <summary>(П274) Ширина, до которой колонку вырастил <see cref="SetFsaHeader"/>.</summary>
         int fsaHeaderGrownTo = -1;
+
+        /// <summary>
+        /// (AMBER245, 03.11.2026) Сколько места таблица оставляет первой колонке: ширина
+        /// клиентской области минус три числовые колонки, но не уже 90 пикселей.
+        /// </summary>
+        int FirstColumnRoom()
+        {
+            int total = this.table1.CellDataRect.Width;
+            if (total <= 0)
+            {
+                total = this.table1.ClientSize.Width;
+            }
+            int others = this.columnModel1.Columns[1].Width
+                + this.columnModel1.Columns[2].Width
+                + this.columnModel1.Columns[3].Width;
+            int room = total - others;
+            return room < 90 ? 90 : room;
+        }
 
         MeasurementResultCollection FsaCollection()
         {

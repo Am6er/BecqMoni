@@ -422,25 +422,25 @@
     <value>FSA: расчёта не было</value>
   </data>
   <data name="FSACalculating" xml:space="preserve">
-    <value>Полноспектральное разложение: считается…</value>
+    <value>Полноспектральный разбор: считается…</value>
   </data>
   <data name="FSANoComponents" xml:space="preserve">
-    <value>Полноспектральное разложение: нет опознанных пиков — сначала поиск пиков</value>
+    <value>Полноспектральный разбор: нет опознанных пиков — сначала поиск пиков</value>
   </data>
   <data name="FSANotPossible" xml:space="preserve">
-    <value>Полноспектральное разложение для этого спектра невозможно</value>
+    <value>Полноспектральный разбор для этого спектра невозможно</value>
   </data>
   <data name="FSANoGeometry" xml:space="preserve">
-    <value>Полноспектральному разложению нужна геометрия прибора: опишите кристалл в редакторе геометрии у кривой эффективности</value>
+    <value>Полноспектральному разбору нужна геометрия прибора: опишите кристалл в редакторе геометрии у кривой эффективности</value>
   </data>
   <data name="FSACurveNotComputed" xml:space="preserve">
-    <value>Полноспектральному разложению нужна кривая эффективности: у «{0}» геометрия задана, а сама кривая не посчитана — в конфигурации прибора на вкладке «Эффективность» нажмите «Изменить…», затем «Посчитать из геометрии» и «Сохранить кривую»</value>
+    <value>Полноспектральному разбору нужна кривая эффективности: у «{0}» геометрия задана, а сама кривая не посчитана — в конфигурации прибора на вкладке «Эффективность» нажмите «Изменить…», затем «Посчитать из геометрии» и «Сохранить кривую»</value>
   </data>
   <data name="EfficiencyTabNoCurve" xml:space="preserve">
     <value>Кривая не посчитана: нажмите «Изменить…», затем «Посчитать из геометрии».</value>
   </data>
   <data name="FSAFailed" xml:space="preserve">
-    <value>Полноспектральное разложение не удалось.</value>
+    <value>Полноспектральный разбор не удалось.</value>
   </data>
   <data name="FSALegendModel" xml:space="preserve">
     <value>модель</value>
@@ -461,9 +461,9 @@
     <value> · старая матрица</value>
   </data>
   <data name="FSAMatrixOldFormat" xml:space="preserve">
-    <value>Матрица отклика кривой «{0}» посчитана форматом файла {1}, а эта сборка читает формат {2}. Разложение считается БЕЗ матрицы.
+    <value>Матрица отклика кривой «{0}» посчитана форматом файла {1}, а эта сборка читает формат {2}. Разбор считается БЕЗ матрицы.
 
-Пересчитайте её: конфигурация прибора → «Эффективность» → «Матрица отклика...».
+Пересчитайте её: конфигурация прибора → «Эффективность» → «Матрица отклика…».
 
 {3}</value>
   </data>
@@ -698,7 +698,7 @@
     <value>границы энергий каналов в файле негодны ({0}), в шкалу они не взяты, и осталась y = x, то есть номер канала объявлен энергией (измерений: {1})</value>
   </data>
   <data name="MSGScaleNotFromFileSpecUtils" xml:space="preserve">
-    <value>Энергетическая шкала спектра взята не из файла ({0}): {1}. По такой шкале подписи пиков, состав библиотеки и разложение выйдут правдоподобными и чужими — сверьте калибровку прежде, чем считать.</value>
+    <value>Энергетическая шкала спектра взята не из файла ({0}): {1}. По такой шкале подписи пиков, состав библиотеки и разбор выйдут правдоподобными и чужими — сверьте калибровку прежде, чем считать.</value>
   </data>
   <data name="MSGScaleSubstitutedSpecUtils" xml:space="preserve">
     <value>энергетической шкалы в файле нет или SpecUtils её не приняла (например, немонотонный полином), и подставлено умолчание SpecUtils (измерений: {0})</value>
@@ -1634,7 +1634,7 @@
     <value>Удалить</value>
   </data>
   <data name="EfficiencyTabImport" xml:space="preserve">
-    <value>Импорт из LSRM…</value>
+    <value>Импорт…</value>
   </data>
   <data name="EfficiencyTabNone" xml:space="preserve">
     <value>(нет)</value>
@@ -1724,13 +1724,13 @@
     <value>Отмена</value>
   </data>
   <data name="FsaNoFwhmTitle" xml:space="preserve">
-    <value>Полноспектральное разложение: нет калибровки FWHM</value>
+    <value>Полноспектральный разбор: нет калибровки FWHM</value>
   </data>
   <data name="FsaNoFwhmQuestion" xml:space="preserve">
-    <value>У этого спектра нет калибровки FWHM, а разложению она нужна — по ней строится форма линий. Взять калибровку из конфигурации прибора:</value>
+    <value>У этого спектра нет калибровки FWHM, а разбору она нужна — по ней строится форма линий. Взять калибровку из конфигурации прибора:</value>
   </data>
   <data name="FsaNoEfficiencyTitle" xml:space="preserve">
-    <value>Полноспектральное разложение: нет кривой эффективности</value>
+    <value>Полноспектральный разбор: нет кривой эффективности</value>
   </data>
   <data name="FsaNoEfficiencyQuestion" xml:space="preserve">
     <value>У этого спектра не выбрана кривая эффективности. Без неё относительные веса линий внутри образа неверны и низкоэнергетическая часть перекашивается. Выберите кривую — или откажитесь от неё осознанно:</value>
@@ -1739,7 +1739,7 @@
     <value>У конфигурации прибора «{0}» калибровки FWHM тоже нет.</value>
   </data>
   <data name="EfficiencyTabResponseMatrix" xml:space="preserve">
-    <value>Матрица отклика...</value>
+    <value>Матрица отклика…</value>
   </data>
   <data name="ResponseMatrixTitle" xml:space="preserve">
     <value>Матрица отклика</value>
@@ -2348,7 +2348,7 @@ http://xptable.sourceforge.net/</value>
     <value>Спектр не выбран</value>
   </data>
   <data name="FSAReportTipCalculation" xml:space="preserve">
-    <value>Меняет расчёт: разложение пересчитывается.</value>
+    <value>Меняет расчёт: разбор пересчитывается.</value>
   </data>
   <data name="FSAReportTipGrouping" xml:space="preserve">
     <value>Меняет только группировку строк и лент; ничего не пересчитывается.</value>
@@ -2533,22 +2533,22 @@ http://xptable.sourceforge.net/</value>
     <value>Полноспектральный разбор: кривая эффективности отвергнута — {0}</value>
   </data>
   <data name="FSALibraryEmptied" xml:space="preserve">
-    <value>Полноспектральное разложение: в составе не осталось нуклидов — рентген и пики вылета кристалла уже учтены матрицей отклика; добавьте нуклид в состав</value>
+    <value>Полноспектральный разбор: в составе не осталось нуклидов — рентген и пики вылета кристалла уже учтены матрицей отклика; добавьте нуклид в состав</value>
   </data>
   <data name="FSABandTooNarrow" xml:space="preserve">
-    <value>Полноспектральное разложение: полоса фита не длиннее {0} каналов — расширьте диапазон энергий поиска пиков или проверьте пол фита и энергетическую калибровку</value>
+    <value>Полноспектральный разбор: полоса фита не длиннее {0} каналов — расширьте диапазон энергий поиска пиков или проверьте пол фита и энергетическую калибровку</value>
   </data>
   <data name="FSATooFewChannels" xml:space="preserve">
-    <value>Полноспектральному разложению нужно не меньше {0} каналов в спектре</value>
+    <value>Полноспектральному разбору нужно не меньше {0} каналов в спектре</value>
   </data>
   <data name="FSANoFit" xml:space="preserve">
-    <value>Полноспектральное разложение: подгонка не сошлась — проверьте энергетическую калибровку и состав</value>
+    <value>Полноспектральный разбор: подгонка не сошлась — проверьте энергетическую калибровку и состав</value>
   </data>
   <data name="FSANoCalibration" xml:space="preserve">
-    <value>Полноспектральному разложению нужны энергетическая калибровка и калибровка FWHM спектра</value>
+    <value>Полноспектральному разбору нужны энергетическая калибровка и калибровка FWHM спектра</value>
   </data>
   <data name="FSANoLiveTime" xml:space="preserve">
-    <value>Полноспектральное разложение: у спектра нет времени измерения (живое и полное время — нули) — имп/с не образовать; задайте время измерения спектра</value>
+    <value>Полноспектральный разбор: у спектра нет времени измерения (живое и полное время — нули) — имп/с не образовать; задайте время измерения спектра</value>
   </data>
   <data name="FSADatabaseFailed" xml:space="preserve">
     <value>Не прочитана база: {0}. Разбор шёл без этих данных и прочитает базу снова при следующем пересчёте.</value>
@@ -3708,7 +3708,7 @@ http://xptable.sourceforge.net/</value>
 {1}</value>
   </data>
   <data name="EfficiencyMakerLsrmImportFilter" xml:space="preserve">
-    <value>Файлы LSRM (*.in;*.txt;*.efa;*.efr)|*.in;*.txt;*.efa;*.efr|Геометрия LSRM (*.in)|*.in|Кривая эффективности LSRM (*.txt;*.efa;*.efr)|*.txt;*.efa;*.efr|Все файлы (*.*)|*.*</value>
+    <value>Все поддерживаемые (*.gdml;*.in;*.txt;*.efa;*.efr)|*.gdml;*.in;*.txt;*.efa;*.efr|Геометрия GDML (*.gdml)|*.gdml|Геометрия LSRM (*.in)|*.in|Кривая эффективности LSRM (*.txt;*.efa;*.efr)|*.txt;*.efa;*.efr|Все файлы (*.*)|*.*</value>
   </data>
   <data name="EfficiencyMakerLsrmBusy" xml:space="preserve">
     <value>Идёт расчёт — остановите его до импорта кривой.</value>
@@ -3898,5 +3898,86 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="GeometryEditorErrorHoleThroughWall" xml:space="preserve">
     <value>Колодец во всю высоту пробы, а торец колодца — {0:F2} мм: включите «Под колодцем пробы нет» или сделайте колодец мельче {1:F1} мм.</value>
+  </data>
+  <data name="GdmlSummaryHeader" xml:space="preserve">
+    <value>{0}: геометрия GDML — томов {1}, веществ {2}; неподдержанных тел: {3}, неизвестных составов: {4}.</value>
+  </data>
+  <data name="GdmlSummaryBodies" xml:space="preserve">
+    <value>Тела: {0}</value>
+  </data>
+  <data name="GdmlSummaryLarge" xml:space="preserve">
+    <value>Крупные тома (от {0} см³):</value>
+  </data>
+  <data name="GdmlSummarySmall" xml:space="preserve">
+    <value>Прочее: томов {0}, {1} см³, {2} г</value>
+  </data>
+  <data name="GdmlSummarySmallByMaterial" xml:space="preserve">
+    <value>  {0}: томов {1}, {2} г</value>
+  </data>
+  <data name="GdmlSummarySmallUnknownMass" xml:space="preserve">
+    <value>  масса неизвестна: томов {0}</value>
+  </data>
+  <data name="GdmlSummaryUnclear" xml:space="preserve">
+    <value>Не измерено:</value>
+  </data>
+  <data name="GdmlSummaryUnknownSolid" xml:space="preserve">
+    <value>  не поддержано тело: {0} — {1}</value>
+  </data>
+  <data name="GdmlSummaryUnknownMaterial" xml:space="preserve">
+    <value>  состав {0} неизвестен: нет ни в файле, ни во встроенной таблице G4</value>
+  </data>
+  <data name="GdmlSummaryPartialMaterial" xml:space="preserve">
+    <value>  состав {0} неполон: неизвестно {1}</value>
+  </data>
+  <data name="GdmlSummaryPartialShort" xml:space="preserve">
+    <value>[неполон: {0}]</value>
+  </data>
+  <data name="GdmlSummaryCompositionUnknown" xml:space="preserve">
+    <value>(состав неизвестен)</value>
+  </data>
+  <data name="GdmlSummaryNoMaterial" xml:space="preserve">
+    <value>(вещество не задано)</value>
+  </data>
+  <data name="GdmlSummaryMaterial" xml:space="preserve">
+    <value>{0} (плотность {1} г/см³): {2}</value>
+  </data>
+  <data name="GdmlSummaryMaterialNoDensity" xml:space="preserve">
+    <value>{0} (плотность неизвестна): {1}</value>
+  </data>
+  <data name="GdmlSummaryMesh" xml:space="preserve">
+    <value>; сетка, треугольников {0}</value>
+  </data>
+  <data name="GdmlSummarySubtraction" xml:space="preserve">
+    <value>; вычитание тел: {0}</value>
+  </data>
+  <data name="GdmlSummaryContainer" xml:space="preserve">
+    <value>; контейнер, детей {0}</value>
+  </data>
+  <data name="GdmlSummaryWarnings" xml:space="preserve">
+    <value>Примечания:</value>
+  </data>
+  <data name="GdmlSummaryFatal" xml:space="preserve">
+    <value>{0}: GDML не прочитан — {1}</value>
+  </data>
+  <data name="GdmlImported" xml:space="preserve">
+    <value>GDML импортирован: {0}; томов {1}, веществ {2}, неподдержанных тел: {3}, неизвестных составов: {4}.</value>
+  </data>
+  <data name="GdmlImportFailed" xml:space="preserve">
+    <value>{0}: GDML не импортирован — {1}</value>
+  </data>
+  <data name="GdmlCadmeshNote" xml:space="preserve">
+    <value>Сетки CAD (STL/OBJ/PLY) не импортируются: читается только GDML. cadmesh — способ завести сетку CAD в Geant4, только справка.</value>
+  </data>
+  <data name="GdmlNoSave" xml:space="preserve">
+    <value>Геометрия GDML показана только для чтения: сохранение и расчёт пока не поддерживаются.</value>
+  </data>
+  <data name="GdmlSketchAxial" xml:space="preserve">
+    <value>Разрез по оси (y = 0)</value>
+  </data>
+  <data name="GdmlSketchEnd" xml:space="preserve">
+    <value>Вид с торца ({0} = {1} мм)</value>
+  </data>
+  <data name="GdmlSketchNoGeometry" xml:space="preserve">
+    <value>Геометрии GDML нет</value>
   </data>
 </root>

@@ -1703,7 +1703,7 @@ namespace FsaReportViewProbe
                 : "Nuclides with gamma lines are computed by the first, coarser pass: the second pass failed";
             string value = lang == "ru-RU" ? "грубее" : "coarser";
             string reason = lang == "ru-RU"
-                ? "Полноспектральное разложение: подгонка не сошлась — проверьте энергетическую калибровку и состав"
+                ? "Полноспектральный разбор: подгонка не сошлась — проверьте энергетическую калибровку и состав"
                 : "Full-spectrum decomposition: the fit did not converge — check the energy calibration and the composition";
             Same(lang + ": подпись отказа второго захода в resx — та, что записана рукой", row,
                  Own("FSAReport_BetaKnotSecondRefusedRow"));
