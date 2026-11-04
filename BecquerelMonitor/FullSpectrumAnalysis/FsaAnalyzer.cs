@@ -4056,6 +4056,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         string anchorNote;
 
+        /// <summary>(`AMBER269`, (А1)) Строка тормоза усиления — в служебную строку привязки.</summary>
+        string gainBrakeNote;
+
         /// <summary>
         /// (`F11` (в), П18 11.09.2026) Коэффициент β световой координаты шкалы:
         /// p″ = g·p + o + β·S(p), где S(p) — сдвиг положения в каналах, который
@@ -6341,12 +6344,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// кончились, выходит из цикла без признака «не сошлась»
         /// (`AnchorUnsettled`) — на спектре Th-232 RC-110 страж молчал при
         /// 1623 против 595. Цена — один разбор без привязки на каждый разбор (и
-        /// повтор отданного при <see cref="AnchorZeroGuardReplay"/>). Тормоза
-        /// усиления (А1) мерены и сняты (журнал `AMBER269`): буквальный ухудшил
-        /// 36 спектров корпуса, «плечо от нуля» останавливал качание на худшей
-        /// точке. Умолчание — в конструкторе.
+        /// повтор отданного при <see cref="AnchorZeroGuardReplay"/>). Тормоз
+        /// усиления (А1) — <see cref="AnchorGainBrake"/>, включён умолчанием
+        /// решением Amber 04.11.2026. Умолчание — в конструкторе.
         /// </summary>
         public bool AnchorRollback { get; set; }
+
+        /// <summary>
+        /// (`AMBER269`, (А1); решение Amber 04.11.2026 вопросником, дословно:
+        /// «(А) — тормоза (Рекомендую)») ТОРМОЗ УСИЛЕНИЯ ПРИВЯЗКИ: проход, на
+        /// котором после отбора не осталось хотя бы двух опор, разнесённых по
+        /// шкале (верхняя не ниже удвоенной нижней; одна опора у нуля не
+        /// годится), шкалы не трогает — привязка кончается на шкале прошлого
+        /// прохода. Довод — замер `handover/handover-2026-11-04-amber269-anchor-arms.md`:
+        /// на спектре Th-232 RC-110 без тормоза единственная опора 16.28 кэВ
+        /// уводила усиление на 1.070784 (χ²/ndf 1002.66 против 525.17).
+        /// Выключен — прежнее поведение побитово (обратное плечо проб).
+        /// Умолчание — в конструкторе.
+        /// </summary>
+        public bool AnchorGainBrake { get; set; }
 
         /// <summary>
         /// (`AMBER269`, Н5 критика FSA 02.11.2026; решение Amber 02.11.2026 вопросником,
@@ -8814,6 +8830,58 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// (`AMBER269`, (А1)) Причина тормоза усиления по опорам последнего сбора
+        /// (<see cref="zeroCandidates"/>: взятые помечены `Used`) или null — тормоза
+        /// нет. Слова и довод — у <see cref="AnchorGainBrake"/>.
+        /// </summary>
+        string GainBrakeReason()
+        {
+            if (!this.AnchorGainBrake || this.zeroCandidates == null)
+            {
+                return null;
+            }
+
+            int n = 0;
+            double xMin = double.MaxValue, xMax = double.MinValue, lowKev = double.NaN, topKev = double.NaN;
+            foreach (AnchorFit f in this.zeroCandidates)
+            {
+                if (!f.Anchor.Used)
+                {
+                    continue;
+                }
+
+                n++;
+                if (f.X < xMin)
+                {
+                    xMin = f.X;
+                    lowKev = f.Anchor.LineKev;
+                }
+
+                if (f.X > xMax)
+                {
+                    xMax = f.X;
+                    topKev = f.Anchor.LineKev;
+                }
+            }
+
+            if (n == 0)
+            {
+                return null;
+            }
+
+            if (n < 2)
+            {
+                return string.Format(CultureInfo.InvariantCulture,
+                    "взята одна опора ({0:F1} кэВ) — плеча нет", topKev);
+            }
+
+            return xMin > 0.0 && xMax - xMin >= 0.5 * xMax
+                ? null
+                : string.Format(CultureInfo.InvariantCulture,
+                    "опор {0} без плеча ({1:F1}…{2:F1} кэВ)", n, lowKev, topKev);
+        }
+
+        /// <summary>
         /// (`AMBER142`, П204) Ставит ширину, её опоры и β света из итога прошлого
         /// прохода (<paramref name="warm"/>) или возвращает холодные (null):
         /// ширина 1, β 0. Кэш гистограмм поглощения сбрасывается, если β в
@@ -10069,6 +10137,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (Г) сняты из кода (там же: «Снять оба из кода (Рекомендую)»). Журнал —
             // handover/handover-2026-10-28-amber269-*.md.
             this.AnchorRollback = true;
+            // (`AMBER269`, (А1)) ТОРМОЗ УСИЛЕНИЯ — ВКЛЮЧЁН умолчанием. Решение Amber
+            // 04.11.2026 вопросником, дословно: «(А) — тормоза (Рекомендую)» — по замеру
+            // handover/handover-2026-11-04-amber269-anchor-arms.md: без тормоза единственная
+            // опора 16.28 кэВ уводила шкалу Th-232 RC-110 на усиление 1.070784 (χ²/ndf
+            // 1002.66 против 525.17), с тормозом шкала остаётся прежней. Обратное плечо —
+            // false (числа до правки побитово; им же мерена цена по корпусу).
+            this.AnchorGainBrake = true;
             // (`AMBER269`, Н5; `AMBER274`) откат оставляет ширину опор — ВКЛЮЧЁН умолчанием.
             // Решение Amber 03.11.2026 вопросником, дословно: «Правило порога + откат с шириной
             // (Рекомендую)» — умолчание базы rev52 вместе с нижней границей разбора нулём
@@ -12333,6 +12408,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.scaleAnchors = new List<FsaScaleAnchor>();
             this.scaleAnchorsUsed = 0;
             this.anchorNote = null;
+            this.gainBrakeNote = null;
             this.zeroTakenLines = null;
             this.zeroTakenMargins = null;
             this.zeroTakenBlend = 0.0;
@@ -12617,11 +12693,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                         // (`AMBER269`, шаг 0) опоры прохода — пробам; в приложении приёмника нет
                         Action<string> passSink = AnchorPassSink;
-                        if (used == 0)
+                        // (`AMBER269`, (А1)) тормоз усиления: проход шкалы не трогает
+                        string brake = used > 0 ? this.GainBrakeReason() : null;
+                        if (used == 0 || brake != null)
                         {
+                            if (brake != null)
+                            {
+                                this.gainBrakeNote = string.Format(CultureInfo.InvariantCulture,
+                                    "тормоз усиления (AMBER269, (А1)) на проходе {0}: {1} — шкала прохода не тронута",
+                                    pass, brake);
+                                this.anchorStatTrace.AppendFormat(CultureInfo.InvariantCulture, " [{0}: тормоз]", pass);
+                            }
+
                             if (passSink != null)
                             {
                                 this.EmitAnchorPass(passSink, pass, used, a, b, 0.0, false, false, bestGain, bestOffset, chHi);
+                                if (brake != null)
+                                {
+                                    passSink("  тормоз усиления: " + brake);
+                                }
                             }
 
                             break;
@@ -13036,6 +13126,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         // (`S169`) карта нуля — в ту же служебную строку, и
                         // ТОЛЬКО когда включилась: у "calib" строка прежняя
                         // до буквы (контроль «ключ ВЫКЛ ничего не двигает»).
+                    }
+
+                    if (this.gainBrakeNote != null)
+                    {
+                        // (`AMBER269`, (А1)) тормоз усиления — сказать, на каком проходе и почему
+                        this.anchorNote = (this.anchorNote ?? "") + "; " + this.gainBrakeNote;
                     }
 
                     if (this.curveLightDropNote != null)

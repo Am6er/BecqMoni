@@ -31,6 +31,11 @@ namespace FsaInputCheckProbeP195
     ///     в сцене (2) без матрицы уступ комптона K-40 не назван «пиком вне состава»
     ///     (до правки — «1167.4 кэВ … Cs-134 1168.0, Co-60 1173.0»), серия в ревизии
     ///     с причиной `ComptonEdge` у края ≈1243 кэВ.
+    ///   * (`AMBER269`, (А1); решение Amber 04.11.2026 «(А) — тормоза») у этого спектра
+    ///     ОДНА опора (K-40 1460.8 кэВ) — тормоз усиления шкалу не двигает: строка
+    ///     «Опорных пиков для шкалы» пуста, а «пик вне состава» появляется ВНЕ полосы
+    ///     края (1424.4 кэВ, след замороженной шкалы). Проверка П281 судит полосу
+    ///     1100…1243 кэВ, а не любую красную строку.
     ///
     ///     FsaInputCheckProbeP195 --spectrum=G1S16_K40_Mar.xml
     ///                            [--store=tools\CORPUS\corpus\geometries\response]
@@ -172,11 +177,22 @@ namespace FsaInputCheckProbeP195
                      Has(rows, Own("FSAReport_MatrixNotUsedTip"), false));
                 Same("(2) строки «вне кривой» нет", false, Has(rows, Own("FSAReport_CurveOutsideValue"), true));
                 Same("(2) строки плотности нет", false, Has(rows, "g/cm", false) || Has(rows, "г/см", false));
-                Same("(2) привязка без матрицы: опоры есть", true, session.Result != null && session.Result.ScaleAnchorsUsed > 0);
+                // ⛔ (`AMBER269`, (А1); решение Amber 04.11.2026 вопросником, дословно:
+                // «(А) — тормоза (Рекомендую)») НА ЭТОМ СПЕКТРЕ ОПОРА ОДНА — K-40 1460.8 кэВ:
+                // тормоз усиления шкалу не двигает, и строка «Опорных пиков для шкалы» пуста.
+                // До решения одна опора тянула усиление (a 0.9942) — замер и цена в журнале
+                // handover/handover-2026-11-04-amber269-anchor-arms.md.
+                Same("(2) привязка без матрицы: опор нет (одна опора — тормоз А1)", false,
+                     session.Result != null && session.Result.ScaleAnchorsUsed > 0);
+                Same("(2) тормоз усиления назван строкой привязки", true,
+                     session.Result != null && (session.Result.AnchorNote ?? "").Contains("тормоз усиления"));
                 // (П281, решение Amber 14.10.2026 «Молчать у краёв комптона (Рекомендую)») уступ
                 // комптона K-40 без матрицы — невязка, а не «пик вне состава» (до правки — строка
-                // «1167.4 кэВ: пик вне состава … Cs-134 1168.0, Co-60 1173.0», П251)
-                Same("(2) строки «пик вне состава» у края комптона нет", false, Has(rows, Own("FSAReport_UncoveredValue"), true));
+                // «1167.4 кэВ: пик вне состава … Cs-134 1168.0, Co-60 1173.0», П251).
+                // ⚠ (`AMBER269`, (А1)) Строка «пик вне состава» ВНЕ полосы края (у этого спектра
+                // теперь 1424.4 кэВ — след замороженной шкалы) — не предмет П281: проверка
+                // судит полосу 1100…1243 кэВ, а не любую красную строку.
+                Same("(2) строки «пик вне состава» у края комптона нет", false, UncoveredInBand(rows, 1100.0, 1243.0));
                 // причина — строкой: проба собирается и сборкой до П281 (положительный контроль)
                 Same("(2) ревизия: серия под краем комптона K-40 (1100…1243 кэВ) отвергнута краем", true,
                      session.Result != null && session.Result.UncoveredRejections.Exists(
@@ -268,6 +284,35 @@ namespace FsaInputCheckProbeP195
             foreach (string[] r in rows)
             {
                 if ((r[0].Contains(text) || r[1].Contains(text)) && (!redOnly || r[2] == "red")) return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// (П281) Есть ли красная строка «пик вне состава» с энергией В ПОЛОСЕ края комптона
+        /// (<paramref name="loKev"/>…<paramref name="hiKev"/>, кэВ из начала подписи строки).
+        /// (`AMBER269`, (А1)) Строка вне полосы — не предмет П281: у замороженной шкалы
+        /// появляется своя, и она не должна ни прятать уступ края, ни выдавать себя за него.
+        /// </summary>
+        static bool UncoveredInBand(List<string[]> rows, double loKev, double hiKev)
+        {
+            string mark = Own("FSAReport_UncoveredValue");
+            foreach (string[] r in rows)
+            {
+                if (r[2] != "red" || !(r[0].Contains(mark) || r[1].Contains(mark)))
+                {
+                    continue;
+                }
+
+                int at = r[0].IndexOf(" кэВ", StringComparison.Ordinal);
+                double kev;
+                if (at > 0
+                    && double.TryParse(r[0].Substring(0, at).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out kev)
+                    && kev >= loKev && kev <= hiKev)
+                {
+                    return true;
+                }
             }
 
             return false;
