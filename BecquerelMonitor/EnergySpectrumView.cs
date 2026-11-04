@@ -4617,6 +4617,32 @@ namespace BecquerelMonitor
         /// </remarks>
         public static readonly int CursorPanelWidth = 230;
 
+        /// <summary>
+        /// (`AMBER245`) ПОЧЕМУ НА ПАНЕЛИ ВЫДЕЛЕНИЯ НЕТ СТРОКИ АКТИВНОСТИ. Число
+        /// посчитано (Lc &gt; 0 и A &gt; 0), но на панель не выходит: решением Amber
+        /// 06.10.2026 (`AMBER208`, П236) активность по нуклидам снята с панели
+        /// выделения — её считает полноспектральный разбор и показывает окно
+        /// «Результат измерений».
+        /// </summary>
+        /// <remarks>
+        /// ⛔ Слова печатаются НА ПАНЕЛИ, а не подсказкой при наведении: панель
+        /// ставится с ТОЙ стороны, куда курсор не попадает (`ShowCursorValues`,
+        /// условие по `cursorX`), и подсказка к ней не всплывёт никогда —
+        /// проверено экраном 04.11.2026: курсор на панели переставляет её на
+        /// другой край. Печатать отказ (`AMBER2`, 08.09.2026) запрещено, но это
+        /// и не отказ: число ЕСТЬ, и строка говорит, где его смотреть.
+        /// </remarks>
+        static string SelectionActivityHint(SelectionAnalytics selection)
+        {
+            if (selection == null || string.IsNullOrEmpty(selection.ActivityLabel))
+            {
+                return null;
+            }
+            return selection.Lc > 0.0 && selection.Activity > 0.0
+                ? Resources.SelectionActivityHint
+                : null;
+        }
+
         void ShowCursorValues(Graphics g)
         {
             // ⛔ `f`, а НЕ `n` (решение Amber 05.09.2026, `A244`): формат `n…`
@@ -4691,7 +4717,9 @@ namespace BecquerelMonitor
                 int table_heigth = 62;
                 if (bg_spectrum != null)
                 {
-                    table_heigth += 32;
+                    // 32 — строки «Фоновых имп» и «Фон / проба, %», ещё 16 —
+                    // (`AMBER245`) слова к проценту под ними.
+                    table_heigth += 48;
                 }
                 g.FillRectangle(Brushes.DarkGray, channel_table_x_pos, table_y_pos, table_width_origin, table_heigth);
                 g.FillRectangle(Brushes.White, channel_table_x_pos - 3, table_y_pos - 3, table_width_origin, table_heigth);
@@ -4759,6 +4787,10 @@ namespace BecquerelMonitor
                         double num11 = (double)channelGrossCounts / adjBgChannelCounts * 100.0;
                         g.DrawString(Resources.ChartHeaderCountBGRatio, this.Font, Brushes.Black, r);
                         g.DrawString(num11.ToString(floatFormat, CultureInfo.InvariantCulture) + Resources.PercentCharacter, this.Font, Brushes.Black, r, this.farFormat);
+                        // (`AMBER245`) «99059.45 %» без слов читается как ошибка —
+                        // слова стоят строкой под числом (место зарезервировано выше).
+                        r.Y += 16;
+                        g.DrawString(Resources.ChartHeaderCountBGRatioHint, this.Font, Brushes.DarkSlateGray, r, this.centerFormat);
                     }
                 }
             }
@@ -4817,7 +4849,9 @@ namespace BecquerelMonitor
                 }
                 if (adj_bg_counts > 0)
                 {
-                    infopanel_height += 48;
+                    // 48 — «Фоновых имп», «Фон / проба, %» и «Имп/с над фоном»;
+                    // ещё 16 — (`AMBER245`) слова к проценту под ними.
+                    infopanel_height += 64;
                 }
                 // (`A195`, 06.09.2026) Тем же условием, что и отрисовка числа ниже
                 // (`Lc > 0 && selectionFWHM > 0 && activity > 0`): без `Lc > 0`
@@ -4868,6 +4902,12 @@ namespace BecquerelMonitor
                         infopanel_height += 16; // ПАНЕЛЬ: момент (`AMBER148`)
                     }
                 }
+                // (`AMBER245`) Причина словами вместо снятой строки активности:
+                // число есть, а печатать его на панели запрещено (`AMBER208`).
+                if (SelectionActivityHint(selection) != null)
+                {
+                    infopanel_height += 32; // ПАНЕЛЬ: причина
+                }
 
                 // ⛔ (`AMBER2`) СЛАГАЕМЫХ «отказ» И «отступ» БОЛЬШЕ НЕТ, и это
                 // не упрощение, а половина задачи. «Отказ» резервировал место
@@ -4905,6 +4945,10 @@ namespace BecquerelMonitor
                     g.DrawString(Resources.ChartHeaderCountBGRatio, this.Font, Brushes.Black, r2);
                     double bg_ratio = gross_counts / adj_bg_counts * 100.0;
                     g.DrawString(bg_ratio.ToString(floatFormat, CultureInfo.InvariantCulture) + Resources.PercentCharacter, this.Font, Brushes.Black, r2, this.farFormat);
+                    // (`AMBER245`) Слова к «Фон / проба, %» — строкой под числом,
+                    // место зарезервировано в `adj_bg_counts > 0`.
+                    r2.Y += 16;
+                    g.DrawString(Resources.ChartHeaderCountBGRatioHint, this.Font, Brushes.DarkSlateGray, r2, this.centerFormat);
                     r2.Y += 16;
                     g.DrawString(Resources.ChartHeaderNetCps, this.Font, Brushes.Black, r2);
                     if (net_cps_err != 0.0)
@@ -5071,6 +5115,17 @@ namespace BecquerelMonitor
                 // результатов. Шесть строк причин (`Activity*Refused`) тоже
                 // остались: их по-прежнему кладёт `RefuseActivity` и по-прежнему
                 // судит `BqActivityProbe` — снята печать, а не расчёт.
+
+                // (`AMBER245`) Число посчитано, а строки активности на панели нет
+                // решением Amber 06.10.2026 (`AMBER208`, П236). Молчания больше
+                // нет: на панели стоит причина словами и говорит, где число
+                // смотреть. Это НЕ отказ `AMBER2`: отказ печатается, когда числа
+                // нет, а здесь число есть.
+                if (SelectionActivityHint(selection) != null)
+                {
+                    g.DrawString(Resources.SelectionActivityHint, this.Font, Brushes.DarkSlateGray, r2, this.centerFormat);
+                    r2.Y += 32;
+                }
 
                 // Отступ 6 px перед блоком ПШПВ — только при `Lc > 0`, где он и
                 // зарезервирован (внутри 88/72). Прежнее `|| activityLabelShown`

@@ -277,7 +277,7 @@
     <value>813, 23</value>
   </data>
   <data name="label7.ToolTip" xml:space="preserve">
-    <value />
+    <value>Daughter decay products: the daughter nuclides of the decay chain.</value>
   </data>
   <data name="HalfLifeColumn.Width" type="System.Int32, mscorlib">
     <value>80</value>
@@ -1018,7 +1018,7 @@
     <value>False</value>
   </data>
   <data name="IncludeDecayChainCheckBox.ToolTip" xml:space="preserve">
-    <value />
+    <value>Daughter decay products: include the decay chain's daughter nuclides' lines in the result.</value>
   </data>
   <data name="&gt;&gt;label2.Type" xml:space="preserve">
     <value>System.Windows.Forms.Label, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>

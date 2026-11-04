@@ -118,7 +118,13 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="ChartHeaderCountBGRatio" xml:space="preserve">
-    <value>BG Ratio:</value>
+    <value>Background / sample, %</value>
+  </data>
+  <data name="ChartHeaderCountBGRatioHint" xml:space="preserve">
+    <value>100 % = sample equals background</value>
+  </data>
+  <data name="SelectionActivityHint" xml:space="preserve">
+    <value>Activity is in the Measurement Result window</value>
   </data>
   <data name="ERRFileSaveFailure" xml:space="preserve">
     <value>File "{0}" couldn't be saved.

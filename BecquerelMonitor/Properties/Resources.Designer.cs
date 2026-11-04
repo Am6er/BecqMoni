@@ -392,11 +392,20 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to BG Ratio:.
+        ///   Looks up a localized string similar to Background / sample, %.
         /// </summary>
         public static string ChartHeaderCountBGRatio {
             get {
                 return ResourceManager.GetString("ChartHeaderCountBGRatio", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 100 % = sample equals background.
+        /// </summary>
+        public static string ChartHeaderCountBGRatioHint {
+            get {
+                return ResourceManager.GetString("ChartHeaderCountBGRatioHint", resourceCulture);
             }
         }
         
@@ -6246,6 +6255,15 @@ namespace BecquerelMonitor.Properties {
         public static string SelectSoundFileTitle {
             get {
                 return ResourceManager.GetString("SelectSoundFileTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Activity is in the Measurement Result window.
+        /// </summary>
+        public static string SelectionActivityHint {
+            get {
+                return ResourceManager.GetString("SelectionActivityHint", resourceCulture);
             }
         }
         
