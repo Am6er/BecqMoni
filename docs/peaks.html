@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Пики и нуклиды — BecqMoni гид</title>
-<script src="assets/theme.js?v=7b7024a7"></script>
-<link rel="stylesheet" href="assets/guide.css?v=7307f135">
+<script src="assets/theme.js?v=53cbbd2b"></script>
+<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
 <style>
 /* только для этой главы */
 @media (max-width:560px){.ui{white-space:normal}}
@@ -193,8 +193,8 @@ table.cand tr.riv td{background:rgba(255,160,60,.08)}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=8e7eb699"></script>
-<script src="assets/quanta.js?v=b92ab866"></script>
+<script src="assets/guide.js?v=9ec75ac2"></script>
+<script src="assets/quanta.js?v=67b2c2dc"></script>
 <script>
 'use strict';
 const { $, $$, clamp, fx, sig, setup, scale, axes, rgba, io, t, poisson, niceTicks, tickLabel } = GUIDE;
@@ -225,13 +225,13 @@ GUIDE.texts({ru:{
 'p.l5':'<b>Изотоп</b> — имя победителя; если линий несколько — имена столбиком; «(неизвестный)» — нет подходящей',
 'p.l6':'<b>Энергия, Ошибка</b> — где пик и насколько он мимо линии: кэВ и %',
 'p.l7':'<b>Канал, SNR</b> — номер канала вершины и сила пика',
-'p.l8':'<b>FWHM</b> — ширина: в каналах, в % от энергии и Δ — отличие от ожидаемой ширины (в каналах), а не погрешность',
+'p.l8':'<b>FWHM</b> — ширина: в каналах и в % от энергии, так и печатается: <code>20.892, 4.4%</code>; Δ — отличие от ожидаемой ширины (в каналах), а не погрешность',
 'p.steps':'Пошагово: настроить поиск',
-'p.s1':'Сначала калибровки: энергия и <b>FWHM</b> (глава 6) — без калибровки FWHM поиск не идёт.',
+'p.s1':'Сначала калибровка: энергия и <b>FWHM</b> — одна панель «Калибровка энергии и FWHM» (глава 6); без калибровки FWHM поиск не идёт.',
 'p.s2':'<span class="ui m">Вид → Обнаружение пиков</span>; в поле <span class="ui">Набор:</span> выберите нуклиды пробы.',
 'p.s3':'<span class="ui">Мин SNR</span>: начните с 10; для длинного набора можно ниже, для короткого — выше.',
 'p.s4':'<span class="ui">Допуск</span>: 5–10 % для сцинтиллятора. Слишком широкий — подписи достаются чужим пикам.',
-'p.s5':'Правой кнопкой по строке: <span class="ui">Добавить в калибровку</span> или <span class="ui">Поиск в Базе Изотопов</span> (линии ±10 кэВ).',
+'p.s5':'Правой кнопкой по строке: <span class="ui">Добавить в калибровку</span> — пик уходит в единую таблицу калибровки с той же подгонкой центра и FWHM, что и щелчок по спектру (окно ±1.5 FWHM, не меньше ±3 каналов); энергия берётся у подписанной линии минус промах, а канал, который уже стоит в таблице, молча пропускается. Рядом — <span class="ui">Поиск в Базе Изотопов</span> (линии ±10 кэВ).',
 'p.info':'<b>Остальные настройки поиска</b> живут в конфигурации прибора, вкладка <span class="ui m">Инструменты → Конфигурация устройства → Анализ</span>: число пиков, диапазон кэВ, допуск ширины, центр по центру масс. В файл спектра они не пишутся — берутся у прибора. Режим <span class="ui">Показать спектр за вычетом фона</span> заставляет искать по вычтенному спектру.',
 'm.k':'Имя пика','m.h':'Как пик получает подпись',
 'm.lead':'Опознать пик — как узнать человека по росту: «примерно 180 см» подходит многим, поэтому программа проверяет кандидатов через несколько ворот подряд. Кто прошёл все и промахнулся меньше всех — тот и подписан; близкие соперники встают рядом через «/».',
@@ -326,13 +326,13 @@ GUIDE.texts({ru:{
 'p.l5':'<b>Nuclide</b> — the winner’s name; several lines give names in a column; “(unknown)” — no matching line',
 'p.l6':'<b>Energy, Error</b> — where the peak is and how far from the line: keV and %',
 'p.l7':'<b>Channel, SNR</b> — the channel of the top and the peak’s strength',
-'p.l8':'<b>FWHM</b> — width: in channels, in % of the energy and Δ, the difference from the expected width (in channels), not an uncertainty',
+'p.l8':'<b>FWHM</b> — width: in channels and in % of the energy, printed as <code>20.892, 4.4%</code>; Δ is the difference from the expected width (in channels), not an uncertainty',
 'p.steps':'Step by step: set up the search',
-'p.s1':'Calibrations first: energy and <b>FWHM</b> (chapter 6) — without an FWHM calibration the search does not run.',
+'p.s1':'Calibrate first: energy and <b>FWHM</b> — one panel, “Energy and FWHM Calibration” (chapter 6); without an FWHM calibration the search does not run.',
 'p.s2':'<span class="ui m">View → Peak Detection</span>; in <span class="ui">Use set:</span> choose the sample’s nuclides.',
 'p.s3':'<span class="ui">Min SNR</span>: start at 10; lower for a long acquisition, higher for a short one.',
 'p.s4':'<span class="ui">Tolerance</span>: 5–10 % for a scintillator. Too wide, and labels go to someone else’s peaks.',
-'p.s5':'Right-click a row: <span class="ui">Add in calibration</span> or <span class="ui">Search Isotope Base</span> (lines ±10 keV).',
+'p.s5':'Right-click a row: <span class="ui">Add in calibration</span> — the peak goes into the single calibration table with the same centroid and FWHM fit as a click on the spectrum (a ±1.5 FWHM window, at least ±3 channels); the energy comes from the labelled line minus the miss, and a channel already in the table is skipped silently. Next to it — <span class="ui">Search Isotope Base</span> (lines ±10 keV).',
 'p.info':'<b>Other search settings</b> live in the device configuration, tab <span class="ui m">Tool → Edit Device Configurations → Analysis</span>: number of peaks, keV range, width tolerance, centroid by centre of mass. They are not written into the spectrum file — they come from the device. The <span class="ui">Show Spectrum with Background Subtracted</span> mode makes the search use the subtracted spectrum.',
 'm.k':'Peak name','m.h':'How a peak gets its label',
 'm.lead':'Identifying a peak is like recognising a person by height: “about 180 cm” fits many, so the program walks candidates through several gates in a row. Whoever passes them all with the smallest miss gets the label; close rivals stand next to it after a “/”.',

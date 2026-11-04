@@ -303,6 +303,17 @@ namespace BecquerelMonitor
 
         GeometrySketch detectorSketch, sourceSketch, shieldSketch;
 
+        /// <summary>
+        /// (`AMBER278`) Импорт GDML: область 1 — только сводка, область 2 —
+        /// разрез и вид с торца. Поля детектора прячутся, пока показан импорт.
+        /// </summary>
+        Panel detectorColumn;
+        Panel gdmlSummaryPanel;
+        TextBox gdmlSummary;
+        GdmlSketch gdmlSketch;
+        GdmlGeometry gdml;
+        TabPage detectorTab;
+
         TabControl tabs;
 
         /// <summary>(`AMBER282`) Вкладка, на которую переключить после отказа: там поле, о котором отказ.</summary>
@@ -327,6 +338,20 @@ namespace BecquerelMonitor
         /// <summary>Сообщить наружу, что править начали, — для кнопки «Сохранить».</summary>
         public event EventHandler Changed;
 
+        /// <summary>
+        /// (`AMBER278`, замечание критика `crit3`) Вход в режим GDML и выход из
+        /// него. Форма по этому событию гасит «Расчёт» на время импорта и
+        /// возвращает кнопку в то состояние, каким оно было ДО импорта: сама
+        /// панель о кнопке формы не знает.
+        /// </summary>
+        public event EventHandler GdmlModeChanged;
+
+        /// <summary>Показан ли сейчас импорт GDML (поля детектора спрятаны).</summary>
+        public bool GdmlMode
+        {
+            get { return this.gdml != null; }
+        }
+
         public GeometryEditorPanel()
         {
             this.model = Blank();
@@ -345,6 +370,10 @@ namespace BecquerelMonitor
         /// </summary>
         public void SetModel(GeometryModel source)
         {
+            // (`AMBER278`) Новая геометрия — поля детектора снова главные:
+            // показанный импорт GDML снимается.
+            this.ClearGdml();
+
             // Загрузка проходит через те же обработчики, что и правка руками, и
             // хвост LoadFromModel перерисовывает чертёж уже со снятым флагом
             // loading. Без своей заглушки открытие конфигурации объявляло бы её
@@ -370,6 +399,96 @@ namespace BecquerelMonitor
             }
 
             this.Dirty = false;
+        }
+
+        /// <summary>
+        /// (`AMBER278`) Показать импортированную геометрию GDML: область 1 —
+        /// сводка по элементам файла, область 2 — разрез по оси и вид с торца.
+        /// Поля детектора прячутся; сохранение и расчёт по такой геометрии пока
+        /// не поддерживаются (TryCommit отказывает).
+        /// </summary>
+        public void ShowGdml(GdmlGeometry value)
+        {
+            this.gdml = value;
+            if (this.gdmlSummary != null)
+            {
+                this.gdmlSummary.Text = value == null ? "" : value.Describe();
+                this.gdmlSummary.SelectionStart = 0;
+                this.gdmlSummary.SelectionLength = 0;
+            }
+
+            if (this.gdmlSketch != null)
+            {
+                this.gdmlSketch.SetGeometry(value);
+            }
+
+            this.ApplyGdmlMode(value != null);
+            this.Dirty = false;
+            this.RaiseGdmlModeChanged();
+        }
+
+        /// <summary>Вернуть поля детектора: импорт GDML больше не показан.</summary>
+        public void ClearGdml()
+        {
+            if (this.gdml == null)
+            {
+                return;
+            }
+
+            this.gdml = null;
+            this.ApplyGdmlMode(false);
+            if (this.gdmlSketch != null)
+            {
+                this.gdmlSketch.SetGeometry(null);
+            }
+
+            if (this.gdmlSummary != null)
+            {
+                this.gdmlSummary.Text = "";
+            }
+
+            this.RaiseGdmlModeChanged();
+        }
+
+        void RaiseGdmlModeChanged()
+        {
+            EventHandler handler = this.GdmlModeChanged;
+            if (handler != null)
+            {
+                handler(this, EventArgs.Empty);
+            }
+        }
+
+        void ApplyGdmlMode(bool on)
+        {
+            if (this.detectorColumn != null)
+            {
+                this.detectorColumn.Visible = !on;
+            }
+
+            if (this.detectorSketch != null)
+            {
+                this.detectorSketch.Visible = !on;
+            }
+
+            if (this.gdmlSummaryPanel != null)
+            {
+                this.gdmlSummaryPanel.Visible = on;
+            }
+
+            if (this.gdmlSketch != null)
+            {
+                this.gdmlSketch.Visible = on;
+                if (on)
+                {
+                    this.gdmlSketch.BringToFront();
+                }
+            }
+
+            if (on && this.tabs != null && this.detectorTab != null)
+            {
+                this.tabs.SelectedTab = this.detectorTab;
+            }
         }
 
         bool suppressChanged;
@@ -430,6 +549,19 @@ namespace BecquerelMonitor
         /// </summary>
         public bool TryCommit()
         {
+            // (`AMBER278`) Геометрия GDML пока только показывается: в
+            // параметрическую модель она не ложится, и «Сохранить»/«Посчитать»
+            // по ней означали бы молча записать прежние поля.
+            if (this.gdml != null)
+            {
+                MessageBox.Show(this,
+                    GdmlText.T("GdmlNoSave",
+                        "GDML geometry is shown for reading only: saving and calculation are not supported yet."),
+                    Resources.GeometryEditorTitle,
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return false;
+            }
+
             if (!this.MarkBadValues())
             {
                 MessageBox.Show(this, Resources.GeometryEditorErrorNumber,
@@ -587,6 +719,7 @@ namespace BecquerelMonitor
 
             TabPage detector = new TabPage(Resources.GeometryEditorTabDetector) { UseVisualStyleBackColor = true };
             TabPage source = new TabPage(Resources.GeometryEditorTabSource) { UseVisualStyleBackColor = true };
+            this.detectorTab = detector;
             tabs.TabPages.Add(detector);
             tabs.TabPages.Add(source);
             this.Controls.Add(tabs);
@@ -607,6 +740,34 @@ namespace BecquerelMonitor
         {
             this.detectorSketch = this.AddSketch(tab, GeometrySketch.SketchMode.Detector);
             Panel page = FieldColumn(tab);
+            this.detectorColumn = page;
+
+            // (`AMBER278`) На месте полей детектора после импорта GDML — только
+            // сводка; чертёж справа — разрез и вид с торца.
+            this.gdmlSketch = new GdmlSketch { Dock = DockStyle.Fill, Visible = false };
+            tab.Controls.Add(this.gdmlSketch);
+            this.gdmlSketch.BringToFront();
+
+            this.gdmlSummaryPanel = new Panel
+            {
+                Dock = DockStyle.Left,
+                Width = 640,
+                Visible = false,
+                Padding = new Padding(4),
+            };
+            this.gdmlSummary = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                Multiline = true,
+                ReadOnly = true,
+                WordWrap = false,
+                ScrollBars = ScrollBars.Both,
+                BackColor = Color.White,
+                Font = new Font(FontFamily.GenericMonospace, 8.25f),
+            };
+            this.gdmlSummaryPanel.Controls.Add(this.gdmlSummary);
+            tab.Controls.Add(this.gdmlSummaryPanel);
+            this.gdmlSummaryPanel.SendToBack();
 
             // Готовые детекторы — самым верхом: обвязку сцинтиллятора по памяти
             // не восстановить, а ошибка в ней стоит десятков процентов.
@@ -2923,6 +3084,10 @@ namespace BecquerelMonitor
                 return;
             }
 
+            // (`AMBER278`) Правка полей — это уже не импорт GDML: сводка и
+            // чертёж чужой геометрии уходят, возвращаются поля.
+            this.ClearGdml();
+
             this.ApplyHoleThrough();
 
             this.MarkBadValues();
@@ -3012,6 +3177,9 @@ namespace BecquerelMonitor
         /// </summary>
         void ApplyTemplatePart(Action<GeometryModel> apply)
         {
+            // (`AMBER278`) Шаблон — это снова параметрическая геометрия.
+            this.ClearGdml();
+
             // (`AMBER201`, Р4, мелочь 8.9) Нечитаемое поле, которого шаблон НЕ
             // касается, остаётся тем, что набрано. Прежде `BuildModel` читал его
             // нулём, загрузка модели писала «0» в поле, и опечатка в расстоянии

@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Набор спектра — BecqMoni гид</title>
-<script src="assets/theme.js?v=7b7024a7"></script>
-<link rel="stylesheet" href="assets/guide.css?v=7307f135">
+<script src="assets/theme.js?v=53cbbd2b"></script>
+<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
 <style>
 .ui{white-space:normal}
 figure.shot.side{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
@@ -190,8 +190,8 @@ figure.shot[data-shot=panel-sample] .shot-frame{max-width:440px;margin:0 auto}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=8e7eb699"></script>
-<script src="assets/quanta.js?v=b92ab866"></script>
+<script src="assets/guide.js?v=9ec75ac2"></script>
+<script src="assets/quanta.js?v=67b2c2dc"></script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, t, io, visible, poisson } = GUIDE;
@@ -236,7 +236,7 @@ GUIDE.texts({ru:{
 'c.s4':'Нужен файл в конце — '+UI('Сохранить в')+' → '+UI('Выбр.')+' и галка '+UI('Автоматическое сохранение в конце измерения')+'.',
 'c.s5':UI('Старт')+' (Ctrl+M). Следите за '+UI('Мерт. Время %')+': до 20 — норма.',
 'c.s6':UI('Стоп')+' (Ctrl+P) — пауза, «Старт» продолжит тот же спектр; '+UI('Сброс')+' — начать заново.',
-'c.warn':'<b>«Сброс» стирает и прибор.</b> У Atom Spectra, RadiaCode и Obsidian вместе со спектром обнуляется накопитель в самом приборе — набранное там тоже пропадёт. Программа спросит «Очистить спектр?»: подумайте, прежде чем ответить «Да». У AtomSpectra TCP/REST «Сброс» стирает спектр на плате: в режиме REST программа сначала покажет, сколько на плате набрано, и переспросит («Нет» — по умолчанию), а при «Только наблюдении» плату не трогает; в режиме TCP команда сброса уходит сразу — переспрос только тогда, когда программа присоединилась к чужому набору, а без связи сброс уйдёт при следующем подключении. Если программа присоединилась к чужому набору, а запись уже остановлена, «Сброс» очищает только документ, а плату сбросит следующий «Старт»; набрала плата за это время ещё — «Старт» сначала спросит.',
+'c.warn':'<b>«Сброс» стирает и прибор.</b> У Atom Spectra, RadiaCode и Obsidian вместе со спектром обнуляется накопитель в самом приборе — набранное там тоже пропадёт. Программа задаёт <b>один</b> вопрос о документе и приборе вместе: «Нет» не трогает ни то, ни другое. У AtomSpectra TCP/REST «Сброс» стирает спектр на плате: если программа присоединилась к чужому набору, вопрос один — о документе и плате вместе, с числами платы; при «Только наблюдении» плату не трогает; при смене транспорта TCP→REST плата читается временным сеансом REST, и вопрос тоже один. Прошивка платы ниже 1.2.39 — программа предупредит при «Проверить связь (REST)» и при отказе «Старт» в REST и TCP: поиск плат и «Старт» могут не работать.',
 'c.joined':'<b>«Стоп» чужого набора сначала спросит.</b> Если «Старт» лишь присоединился к набору, уже шедшему на плате AtomSpectra TCP/REST, то «Стоп», удаление спектра и закрытие документа спросят: '+UI('Остановить измерение на плате')+' или '+UI('Не останавливать')+' (по умолчанию — плата считает дальше). Остановка по лимиту ничего не спрашивает: присоединённый набор плата продолжает. Закрытие всей программы отсоединяется от платы, не останавливая её, — свой набор плата тоже продолжит.',
 'c.info':'<b>Кнопка ⟳ у «Устройства»</b> применяет конфигурацию прибора к текущему спектру: калибровки и настройки поиска пиков заменятся приборными, фон — фоном по умолчанию со вкладки «Ссылки» (выбранный на панели пропадёт), а при другом числе каналов спектр будет стёрт — программа предупредит. То же — при выборе другого прибора в списке «Устройство».',
 'c.f1':'<b>Старт скажет, если лимит набран.</b> Когда реальное время уже не меньше лимита, набор не начнётся, а программа ответит «Измерение уже достигло лимита времени…, продолжать нечего»: поднимите лимит или нажмите «Сброс».',
@@ -323,7 +323,7 @@ GUIDE.texts({ru:{
 'c.s4':'Want a file at the end — '+UI('Save to')+' → '+UI('Select')+' and tick '+UI('Save Automatically When Finished')+'.',
 'c.s5':UI('Start')+' (Ctrl+M). Watch '+UI('Dead Time %')+': up to 20 is normal.',
 'c.s6':UI('Stop')+' (Ctrl+P) pauses, “Start” continues the same spectrum; '+UI('Clear')+' starts over.',
-'c.warn':'<b>“Clear” wipes the device too.</b> For Atom Spectra, RadiaCode and Obsidian the buffer inside the device is reset along with the spectrum — whatever it collected is lost as well. The program asks “Clear spectrum?”: think before answering “Yes”. For AtomSpectra TCP/REST “Clear” wipes the spectrum on the board: in REST mode the program first shows how much the board holds and asks again (“No” is the default), and with “Observe only” it leaves the board alone; in TCP mode the reset command goes at once — it asks again only when the program joined someone else’s acquisition, and with no link the reset goes at the next connection. When the program joined someone else’s acquisition and recording is already stopped, “Clear” clears only the document and the next “Start” resets the board; if the board has counted more meanwhile, “Start” asks first.',
+'c.warn':'<b>“Clear” wipes the device too.</b> For Atom Spectra, RadiaCode and Obsidian the buffer inside the device is reset along with the spectrum — whatever it collected is lost as well. The program asks <b>one</b> question about the document and the device together: “No” touches neither. For AtomSpectra TCP/REST “Clear” wipes the spectrum on the board: if the program joined someone else’s acquisition, there is one question about the document and the board together, with the board’s numbers; with “Observe only” it leaves the board alone; when the transport switches TCP→REST the board is read by a temporary REST session, and there is still one question. If the board firmware is below 1.2.39 the program warns on “Check link (REST)” and when “Start” is refused in REST and TCP: board discovery and “Start” may not work.',
 'c.joined':'<b>Stopping someone else’s acquisition asks first.</b> When “Start” only joined an acquisition already running on an AtomSpectra TCP/REST board, “Stop”, deleting the spectrum and closing the document ask: '+UI('Stop the acquisition on the board')+' or '+UI('Don\'t stop')+' (the default — the board keeps counting). A stop at the limit asks nothing: the board goes on with a joined acquisition. Closing the whole program detaches from the board without stopping it — the board goes on with its own acquisition too.',
 'c.info':'<b>The ⟳ button next to “Device Config.”</b> applies the device configuration to the current spectrum: calibrations and peak search settings are replaced by the device’s, the background by the default one from the “References” tab (one chosen on the panel is lost), and with a different channel count the spectrum is erased — the program warns you. The same happens when you pick another device in the “Device Config.” list.',
 'c.f1':'<b>Start tells you when the limit is reached.</b> Once real time is not below the limit, acquisition does not begin and the program says “The measurement has already reached the preset time…; there is nothing to continue”: raise the limit or press “Clear”.',

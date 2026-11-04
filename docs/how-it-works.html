@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BecqMoni — как это работает</title>
-<script src="assets/theme.js?v=7b7024a7"></script>
+<script src="assets/theme.js?v=53cbbd2b"></script>
 <meta name="description" content="Геометрия, кривые эффективности, матрица отклика, режим FSA и расчёт активности в BecqMoni — наглядно и интерактивно.">
 <!--
   Самодостаточная страница: ни шрифтов, ни библиотек из сети. Всё, что движется, считается здесь же:
@@ -441,7 +441,7 @@ const T = {ru:{
 's1.f1':'<b>Пик полного поглощения</b> — фотон отдал всю энергию. По положению пика узнают нуклид, по его площади — сколько его.',
 's1.f2':'<b>Комптоновское плато</b> — фотон отскочил и улетел, оставив часть энергии. Плато обрывается на «комптоновском крае».',
 's1.f3':'<b>Горбы и пики-спутники</b> — обратное рассеяние от защиты и рентген свинца (их рисует окружение) и пики вылета (их рисует сам кристалл). Нового нуклида за ними нет.',
-'ann.fep':'пик','ann.ce':'комптоновский край','ann.bs':'обратное рассеяние','ann.pb':'рентген Pb','ann.se':'вылет 511','ann.de':'вылет 2×511','ann.ie':'вылет йода',
+'ann.beta':'сплошной спектр беты','ann.fep':'пик','ann.ce':'комптоновский край','ann.bs':'обратное рассеяние','ann.pb':'рентген Pb','ann.se':'вылет 511','ann.de':'вылет 2×511','ann.ie':'вылет йода',
 's2.k':'Шаг 2',
 's2.h':'Геометрия: почему важно, где и как лежит проба',
 's2.lead':'Проба светит во все стороны, а кристалл ловит только то, что летит в него, — как ведро под дождём. Чем дальше и меньше ведро, тем меньше капель. Плотная проба к тому же «съедает» часть собственного излучения.',
@@ -554,7 +554,7 @@ const T = {ru:{
 's1.f1':'<b>Full-energy peak</b> — the photon gave up all its energy. The peak position tells which nuclide it is; its area tells how much.',
 's1.f2':'<b>Compton plateau</b> — the photon bounced and escaped, leaving only part of its energy. The plateau ends at the "Compton edge".',
 's1.f3':'<b>Bumps and satellite peaks</b> — backscatter from the shield and lead X-rays (made by the surroundings) and escape peaks (made by the crystal itself). No new nuclide stands behind them.',
-'ann.fep':'peak','ann.ce':'Compton edge','ann.bs':'backscatter','ann.pb':'Pb X-rays','ann.se':'511 escape','ann.de':'2×511 escape','ann.ie':'iodine escape',
+'ann.beta':'beta continuum','ann.fep':'peak','ann.ce':'Compton edge','ann.bs':'backscatter','ann.pb':'Pb X-rays','ann.se':'511 escape','ann.de':'2×511 escape','ann.ie':'iodine escape',
 's2.k':'Step 2',
 's2.h':'Geometry: why it matters where and how the sample sits',
 's2.lead':'A sample shines in all directions, while the crystal catches only what flies into it — like a bucket in the rain. The farther and smaller the bucket, the fewer drops. A dense sample also "eats" part of its own radiation.',
@@ -669,7 +669,7 @@ const HOOD = {ru:{
 5:'<li>Множитель слоя сразу в беккерелях: выходы линий даны на один распад, эффективность уже внутри матрицы. Беккерели показываются при матрице или при кривой, посчитанной из геометрии либо импортированной из ЛСРМ.</li>'+
   '<li>Бк/кг и Бк/л — деление на массу и объём из сведений об образце. Поправка на распад приводит результат к дате отбора.</li>'+
   '<li>± — только статистика подгонки (раздутая, если подгонка хуже чистой статистики). Неточность геометрии и матрицы в ± не входит.</li>'+
-  '<li>Не обнаруженный нуклид выводится строкой с порогом решения и пределом обнаружения по ISO 11929 (α = β = 5 %).</li>'
+  '<li>Не обнаруженный нуклид выводится строкой с порогом решения и пределом обнаружения по ISO 11929 под правило обнаружения FSA: порог — z ≥ 3 (α ≈ 0.13 %), предел находится в 95 % измерений (β = 5 %).</li>'
 },en:{
 1:'<li>The app\'s transport is more detailed than here: Compton on bound electrons, Rayleigh, K and L X-ray escape, pairs with positron transport, electron transport and bremsstrahlung, non-proportional light yield.</li>'+
   '<li>A shield given as layers (the "Shield" tab of the geometry editor) is part of the transport and of the matrix: its backscatter is already in the matrix, and FSA builds no separate layer for it. Without layers the "Measured inside a shield" box is the old flag: without a matrix FSA always builds the "Backscatter" layer; with a matrix only when this box is ticked. The "X-ray Pb" layer appears when the peak search has labelled lead X-ray lines ("Atomic X-rays" box).</li>'+
@@ -691,7 +691,7 @@ const HOOD = {ru:{
 5:'<li>A layer multiplier is in becquerels right away: line yields are per decay, the efficiency is already inside the matrix. Becquerels are shown with a matrix, or with a curve computed from geometry or imported from LSRM.</li>'+
   '<li>Bq/kg and Bq/l divide by the mass and volume from the sample info. Decay correction brings the result to the sampling date.</li>'+
   '<li>± is the fit statistics only (inflated when the fit is worse than pure statistics). Uncertainty of the geometry and matrix is not included.</li>'+
-  '<li>A nuclide that is not detected gets a row with the decision threshold and the detection limit per ISO 11929 (α = β = 5 %).</li>'
+  '<li>A nuclide that is not detected gets a row with the decision threshold and the detection limit per ISO 11929 for the FSA detection rule: the threshold is z ≥ 3 (α ≈ 0.13 %), the limit is found in 95 % of measurements (β = 5 %).</li>'
 }};
 
 /* ============================== ОБЩЕЕ ============================== */
@@ -1203,14 +1203,14 @@ const PH = { E: 662, n: 0, inter: 0, fep: 0, hist: null, nb: 220, emax: 800, tra
   setE(661.7); requestAnimationFrame(loop);
 })();
 
-/* ============================== 1а. ВСЕ ИСХОДЫ ФОТОНА (`AMBER252`) ==============================
+/* ============================== 1а. ВСЕ ИСХОДЫ ЧАСТИЦЫ (`AMBER252`); ниже — фотон, сцены электрона и позитрона ждут отдельного прохода ==============================
    Постановка по шагам: одна типичная история каждого исхода — замедленно, со «счётом энергии» и местом
    в спектре. Перечень — по матрице отклика BecqMoni (7 каналов, перенос в EfficiencySimulator) и
    компонентам FSA сверх неё; чего программа не считает, здесь нет (решения Amber 20.10.2026, вопросником).
    Точки сцены — [z, x] в см: z вдоль оси кристалла (0…6.3), x поперёк; источник — точка перед торцом. */
 Object.assign(T.ru, {
-'ox.h':'Все исходы фотона — по одному',
-'ox.lead':'Выберите исход — сцена разыграет одну типичную историю, замедленно, а справа отметит, куда она ляжет в спектре. Перечень — по матрице отклика BecqMoni и компонентам FSA сверх неё; у каждой сцены свой нуклид, на котором исход виден лучше всего. Каналы матрицы по отдельности показывает отчёт FSA, список «Слой матрицы».',
+'ox.h':'Все исходы частицы — по одному',
+'ox.lead':'Выберите исход — сцена разыграет одну типичную историю, замедленно, а справа отметит, куда она ляжет в спектре. Перечень — по матрице отклика BecqMoni и компонентам FSA сверх неё; у каждой сцены свой нуклид, на котором исход виден лучше всего. Каналы матрицы по отдельности показывает отчёт FSA, список «Слой матрицы». Пока это исходы фотона; электрон и позитрон (β⁻, β⁺) программа тоже считает — их сцены появятся отдельным проходом.',
 'ox.g.in':'В кристалле','ox.g.out':'Вокруг кристалла','ox.g.multi':'Несколько фотонов сразу',
 'ox.again':'▶ Ещё раз','ox.speed':'Скорость','ox.where':'Где в спектре:','ox.inbq':'В BecqMoni:',
 'ox.in':'влетело в кристалл: <b>{0} кэВ</b>','ox.dep':'осталось в кристалле: <b>{0} кэВ</b>','ox.away':'унёс {1}: <b>{0} кэВ</b>','ox.zero':'в кристалле ничего не осталось — отсчёта нет',
@@ -1238,11 +1238,18 @@ Object.assign(T.ru, {
 'ox.sum.t':'Суммарный пик','ox.sum.d':'Co-60 за один распад испускает сразу два кванта. Оба поглотились — кристалл вспыхнул один раз, и прибор записал их сумму.','ox.sum.s':'пик E1 + E2: 1173 + 1332 = 2505 кэВ, хотя такой линии у Co-60 нет.','ox.sum.b':'FSA, «Каскадное суммирование» (флажок «Каскадное суммирование») — работает только с матрицей отклика.',
 'ox.casc.t':'Каскадное суммирование: вынос из пика','ox.casc.d':'Один квант поглощён целиком, второй — лишь частично (комптон). Импульс — их сумма, и пик 1332 кэВ недосчитался своего отсчёта.','ox.casc.s':'сумм-континуум между пиками и выше; сами пики меньше — тем сильнее, чем ближе проба к кристаллу.','ox.casc.b':'FSA, «Каскадное суммирование»: вынос из пиков, суммы, угловые корреляции — по матрице отклика.',
 'ox.xsum.t':'Рентген + гамма','ox.xsum.d':'Ba-133 распадается захватом электрона: вместе с гамма-квантом 356 кэВ вылетает K-рентген цезия 31 кэВ. Оба поглотились — записана сумма.','ox.xsum.s':'пик 387 кэВ (356 + 31) и меньше отсчётов в самих линиях.','ox.xsum.b':'FSA, «Каскадное суммирование»: партнёры — K-рентген после захвата и конверсии.',
+'ox.p.lbl':'Частица:','ox.p.ph':'Фотон','ox.p.e':'Электрон (β⁻)','ox.p.p':'Позитрон (β⁺)',
+'ox.l.ein':'электрон остался в кристалле','ox.l.econv':'конверсионный электрон','ox.l.annout':'аннигиляция в корпусе',
+'ox.ein.t':'Электрон вошёл и остался','ox.ein.d':'Электрон беты влетает в кристалл и теряет в нём всю энергию: путь короткий, отдаёт он её понемногу — не одна вспышка, а ручеёк ионизации.','ox.ein.s':'сплошной спектр от нуля до границы беты; у K-40 граница 1311 кэВ.','ox.ein.b':'матрица, канал «Бета пробы»; без матрицы — компонент FSA «Бета».',
+'ox.ebrem.t':'Тормозной квант вылетел','ox.ebrem.d':'Тормозясь в кристалле, электрон излучает квант, и тот уходит наружу. В кристалле остаётся только остаток энергии электрона.','ox.ebrem.s':'отсчёт уходит из сплошного спектра вниз; недобор растёт с энергией.','ox.ebrem.b':'матрица, канал «Тормозное излучение»; без матрицы — компонент FSA.',
+'ox.econv.t':'Конверсионный электрон','ox.econv.d':'Возбуждённое ядро отдаёт энергию не фотону, а электрону внутренней конверсии. Корпус и оболочки сдвигают и размывают линию.','ox.econv.s':'линия на энергии перехода минус энергия связи; у Ba-137m 661.7 → 624 кэВ.','ox.econv.b':'матрица, канал «Конверсионный электрон»; без матрицы — линия в компоненте нуклида.',
+'ox.pann.t':'Позитрон: энергия и два 511','ox.pann.d':'Позитрон влетает, тормозится и аннигилирует с электроном: два кванта по 511 кэВ в разные стороны. Один поглощён, второй вылетел.','ox.pann.s':'сплошной спектр беты плюс линия 511 кэВ от вылетевшего кванта.','ox.pann.b':'матрица, каналы «Бета пробы» и «Аннигиляция 511»; без матрицы — компоненты FSA.',
+'ox.pout.t':'Позитрон остановился в корпусе','ox.pout.d':'Позитрон не долетел до кристалла и аннигилировал в корпусе. В кристалл влетает один квант 511 и оставляет в нём всю энергию.','ox.pout.s':'линия 511 кэВ — при любой линии распада выше 1022 кэВ.','ox.pout.b':'матрица, канал «Аннигиляция в корпусе»; без матрицы — компонент FSA.',
 'ox.pile.t':'Наложение импульсов','ox.pile.d':'Два независимых распада почти одновременно — за время одного импульса, микросекунды. Электроника видит одну вспышку.','ox.pile.s':'около 2E: у Cs-137 662 + 662 → ≈1328 кэВ (по свету чуть выше 1324) и размытый хвост; растёт с загрузкой.','ox.pile.b':'компонент FSA «Наложения» (флажок «Наложение импульсов (pile-up)»).'
 });
 Object.assign(T.en, {
-'ox.h':'Every photon outcome, one by one',
-'ox.lead':'Pick an outcome — the scene plays one typical history in slow motion, and the panel on the right marks where it lands in the spectrum. The list follows the BecqMoni response matrix and the FSA components on top of it; each scene has its own nuclide, the one where the outcome shows best. The FSA report shows the matrix channels one at a time in its “Matrix layer” list.',
+'ox.h':'Every particle outcome, one by one',
+'ox.lead':'Pick an outcome — the scene plays one typical history in slow motion, and the panel on the right marks where it lands in the spectrum. The list follows the BecqMoni response matrix and the FSA components on top of it; each scene has its own nuclide, the one where the outcome shows best. The FSA report shows the matrix channels one at a time in its “Matrix layer” list. So far these are photon outcomes; the program also computes electrons and positrons (β⁻, β⁺) — their scenes come in a separate pass.',
 'ox.g.in':'In the crystal','ox.g.out':'Around the crystal','ox.g.multi':'Several photons at once',
 'ox.again':'▶ Again','ox.speed':'Speed','ox.where':'Where in the spectrum:','ox.inbq':'In BecqMoni:',
 'ox.in':'entered the crystal: <b>{0} keV</b>','ox.dep':'left in the crystal: <b>{0} keV</b>','ox.away':'carried away by {1}: <b>{0} keV</b>','ox.zero':'nothing left in the crystal — no count',
@@ -1270,6 +1277,13 @@ Object.assign(T.en, {
 'ox.sum.t':'Sum peak','ox.sum.d':'Co-60 emits two photons in one decay. Both were absorbed — the crystal flashed once, and the detector recorded their sum.','ox.sum.s':'a peak at E1 + E2: 1173 + 1332 = 2505 keV, though Co-60 has no such line.','ox.sum.b':'FSA, “Cascade summing” box — works only with a response matrix.',
 'ox.casc.t':'Cascade summing: loss from the peak','ox.casc.d':'One photon is absorbed fully, the other only in part (Compton). The pulse is their sum, and the 1332 keV peak lost a count.','ox.casc.s':'a sum continuum between and above the peaks; the peaks themselves shrink — the more, the closer the sample.','ox.casc.b':'FSA, “Cascade summing”: losses from peaks, sums, angular correlations — from the response matrix.',
 'ox.xsum.t':'X-ray + gamma','ox.xsum.d':'Ba-133 decays by electron capture: a 31 keV caesium K X-ray comes out together with the 356 keV gamma. Both were absorbed — their sum is recorded.','ox.xsum.s':'a peak at 387 keV (356 + 31) and fewer counts in the lines themselves.','ox.xsum.b':'FSA, “Cascade summing”: partners include K X-rays after capture and conversion.',
+'ox.p.lbl':'Particle:','ox.p.ph':'Photon','ox.p.e':'Electron (β⁻)','ox.p.p':'Positron (β⁺)',
+'ox.l.ein':'the electron stayed in the crystal','ox.l.econv':'conversion electron','ox.l.annout':'annihilation in the housing',
+'ox.ein.t':'The electron entered and stayed','ox.ein.d':'A beta electron flies into the crystal and loses all its energy there: the path is short, and it gives the energy away little by little — not one flash but a trickle of ionisation.','ox.ein.s':'a continuum from zero to the beta endpoint; for K-40 the endpoint is 1311 keV.','ox.ein.b':'the matrix, the “Sample beta” channel; without it, the FSA “Beta” component.',
+'ox.ebrem.t':'The bremsstrahlung photon escaped','ox.ebrem.d':'Slowing down in the crystal, the electron emits a photon and it leaves. Only the rest of the electron energy stays in the crystal.','ox.ebrem.s':'the count moves down out of the continuum; the loss grows with energy.','ox.ebrem.b':'the matrix, the “Bremsstrahlung” channel; without it, the FSA component.',
+'ox.econv.t':'Conversion electron','ox.econv.d':'An excited nucleus gives its energy not to a photon but to an inner-shell conversion electron. The housing and the shells shift and blur the line.','ox.econv.s':'a line at the transition energy minus the binding energy; for Ba-137m 661.7 → 624 keV.','ox.econv.b':'the matrix, the “Conversion electron” channel; without it, a line in the nuclide component.',
+'ox.pann.t':'Positron: energy and two 511s','ox.pann.d':'The positron enters, slows down and annihilates with an electron: two 511 keV photons fly apart. One is absorbed, the other escaped.','ox.pann.s':'the beta continuum plus a 511 keV line from the escaped photon.','ox.pann.b':'the matrix, the “Sample beta” and “511 annihilation” channels; without it, the FSA components.',
+'ox.pout.t':'The positron stopped in the housing','ox.pout.d':'The positron never reached the crystal and annihilated in the housing. One 511 keV photon flies into the crystal and leaves all its energy there.','ox.pout.s':'a 511 keV line — for any decay line above 1022 keV.','ox.pout.b':'the matrix, the “Annihilation in the housing” channel; without it, the FSA component.',
 'ox.pile.t':'Pulse pile-up','ox.pile.d':'Two independent decays almost at once — within one pulse, microseconds. The electronics sees one flash.','ox.pile.s':'near 2E: 662 + 662 → ≈1328 keV for Cs-137 (a bit above 1324 by light) and a smeared tail; grows with the count rate.','ox.pile.b':'FSA component “Pile-up” (“Pulse pile-up” box).'
 });
 (function outcomes() {
@@ -1327,11 +1341,25 @@ Object.assign(T.en, {
     { id: 'xsum', grp: 'multi', nuc: 'Ba-133', hl: ['sum'], acts: [f(0.1, S0, 'dec', ['ox.l.dec', 'Ba-133'], { lo: [-30, -22] }), g(0.2, 1.4, S0, [2.4, 0.6], 356.0, { lbl: 1 }), g(0.2, 0.9, S0, [0.35, -0.7], 31.0, { c: XR, lbl: 1 }),
       f(0.9, [0.35, -0.7], 'ph', null), f(1.4, [2.4, 0.6], 'ph', ['ox.l.one', 387]), d(1.4, 387)] },
     { id: 'pile', grp: 'multi', nuc: 'Cs-137', emax: 1450, hl: ['pile'], acts: [f(0.1, S0, 'dec', ['ox.l.dec', 'Cs-137'], { lo: [-30, -22] }), g(0.2, 1.3, S0, [2.5, 0.8], 661.7, { lbl: 1 }), f(1.3, [2.5, 0.8], 'ph', null),
-      f(0.6, S0, 'dec', ['ox.l.dec2'], { lo: [-30, 30] }), g(0.7, 1.8, S0, [3.6, -0.9], 661.7, { lbl: 1 }), f(1.8, [3.6, -0.9], 'ph', ['ox.l.one', 1328], { lo: [10, 18] }), d(1.8, 1328)] }
+      f(0.6, S0, 'dec', ['ox.l.dec2'], { lo: [-30, 30] }), g(0.7, 1.8, S0, [3.6, -0.9], 661.7, { lbl: 1 }), f(1.8, [3.6, -0.9], 'ph', ['ox.l.one', 1328], { lo: [10, 18] }), d(1.8, 1328)] },
+    { id: 'ein', part: 'e', grp: 'in', nuc: 'K-40', hl: [], emax: 1400, acts: [e(0, 1.6, [S0, [1.4, 0.35], [2.4, 0.7], [3.0, 0.95]]),
+      f(1.6, [3.0, 0.95], 'e', ['ox.l.ein'], { lo: [10, 18] }), d(1.6, 900)] },
+    { id: 'ebrem', part: 'e', grp: 'in', nuc: 'K-40', hl: [], emax: 1400, acts: [e(0, 1.5, [S0, [1.4, 0.3], [2.4, 0.6], [3.1, 0.8]]),
+      f(1.9, [2.4, 0.6], 'br', ['ox.l.br'], { lo: [10, -4] }), g(1.9, 3.2, [2.4, 0.6], [4.6, -3.6], 250, { c: BR, lbl: 1, out: 1 }),
+      a(2.6, 250, 'br'), d(2.2, 650)] },
+    { id: 'econv', part: 'e', grp: 'in', nuc: 'Cs-137', hl: ['fep'], emax: 760, acts: [e(0, 1.4, [S0, [1.2, 0.3], [2.2, 0.6]]),
+      f(1.4, [2.2, 0.6], 'e', ['ox.l.econv'], { lo: [10, 18] }), d(1.4, 624)] },
+    { id: 'pann', part: 'p', grp: 'in', nuc: 'K-40', hl: [], emax: 1400, acts: [e(0, 1.4, [S0, [1.2, 0.3], [2.2, 0.6]]),
+      f(1.4, [2.2, 0.6], 'an', ['ox.l.an'], { lo: [10, 18] }), g(1.6, 2.8, [2.2, 0.6], [4.2, -3.4], 511, { c: AN, lbl: 1, out: 1 }),
+      g(1.6, 2.6, [2.2, 0.6], [2.6, 4.0], 511, { c: AN, out: 1 }), d(1.4, 700), a(2.2, 511, 'ann')] },
+    { id: 'pout', part: 'p', grp: 'out', nuc: 'K-40', hl: [], shield: 1, emax: 1400, acts: [e(0, 1.2, [S0, [0.6, -1.2], [0.9, -2.2]]),
+      f(1.2, [0.9, -2.2], 'an', ['ox.l.annout'], { lo: [10, -14] }), g(1.4, 2.6, [0.9, -2.2], [2.4, 1.6], 511, { c: AN, lbl: 1 }),
+      f(2.6, [2.4, 1.6], 'ph', ['ox.l.ph']), d(2.6, 511)] }
   ];
   const NUC = {
     'Cs-137': { L: [[661.7, 1]], hd: [661.7], emax: 760 }, 'Am-241': { L: [[59.5, 1]], hd: [59.5], emax: 72 }, 'Tl-208': { L: [[2614.5, 1]], hd: [2614.5], emax: 2780 },
-    'Co-60': { L: [[1173.2, 1], [1332.5, 1]], hd: [1173.2, 1332.5], emax: 2700 }, 'Ba-133': { L: [[356.0, 1], [81.0, 0.55], [31.0, 1.1]], hd: [356, 31], emax: 440 }
+    'Co-60': { L: [[1173.2, 1], [1332.5, 1]], hd: [1173.2, 1332.5], emax: 2700 }, 'Ba-133': { L: [[356.0, 1], [81.0, 0.55], [31.0, 1.1]], hd: [356, 31], emax: 440 },
+    'K-40': { L: [[1460.8, 1]], hd: [1460.8], emax: 1560 }
   };
   SC.forEach(s => {   // итоги сцены: что влетело, что осталось, когда всё кончилось
     s.dep = s.acts.filter(x => x.k === 'd').reduce((u, x) => u + x.v, 0);
@@ -1357,6 +1385,8 @@ Object.assign(T.en, {
     if (s.nuc === 'Ba-133') P.push({ tag: 'sum', gs: 387, a: 0.07 });
     if (s.id === 'pile') P.push({ tag: 'pile', gs: 1328, a: 0.035 }, { tag: 'pile', fill: [680, 1310], a: 0.004 });
     if (s.id === 'eout') P.push({ tag: 'elow', expo: 30, a: 0.09 });
+    if (s.part === 'e' || s.part === 'p') P.push({ tag: 'beta', expo: Math.max(80, (s.dep || 500) / 3), a: 0.14 });
+    if (s.part === 'p') P.push({ tag: 'ann', gs: 511, a: 0.12 });
     return P;
   }
   function partY(p, E) {
@@ -1448,10 +1478,18 @@ Object.assign(T.en, {
     const s = SC[cur], k = 'ox.' + s.id + '.';
     $('#oxTxt').innerHTML = '<h4>' + t(k + 't') + '</h4><p>' + t(k + 'd') + '</p><p><b>' + t('ox.where') + '</b> ' + t(k + 's') + '</p><p><b>' + t('ox.inbq') + '</b> ' + t(k + 'b') + '</p>';
   }
+  let part = 'ph';
   function chips() {
-    $('#oxSel').innerHTML = ['in', 'out', 'multi'].map(gr => '<div class="row oxrow"><span class="lbl">' + t('ox.g.' + gr) + '</span><div class="chips">' +
-      SC.map((s, i) => s.grp === gr ? '<button class="chip' + (i === cur ? ' on' : '') + '" data-i="' + i + '">' + t('ox.' + s.id + '.t') + '</button>' : '').join('') + '</div></div>').join('');
-    $$('#oxSel .chip').forEach(b => b.onclick = () => { cur = +b.dataset.i; tS = 0; ledKey = ''; chips(); text(); });
+    const P = [['ph', 'ox.p.ph'], ['e', 'ox.p.e'], ['p', 'ox.p.p']];
+    const mine = SC.map((s, i) => [s, i]).filter(([s]) => (s.part || 'ph') === part);
+    $('#oxSel').innerHTML = '<div class="row oxrow"><span class="lbl">' + t('ox.p.lbl') + '</span><div class="chips">' +
+      P.map(([k, key]) => '<button class="chip' + (k === part ? ' on' : '') + '" data-p="' + k + '">' + t(key) + '</button>').join('') +
+      '</div></div>' +
+      ['in', 'out', 'multi'].map(gr => '<div class="row oxrow"><span class="lbl">' + t('ox.g.' + gr) + '</span><div class="chips">' +
+        mine.map(([s, i]) => s.grp === gr ? '<button class="chip' + (i === cur ? ' on' : '') + '" data-i="' + i + '">' + t('ox.' + s.id + '.t') + '</button>' : '').join('') +
+        '</div></div>').join('');
+    $$('#oxSel .chip[data-p]').forEach(b => b.onclick = () => { part = b.dataset.p; const f = SC.findIndex(s => (s.part || 'ph') === part); if (f >= 0) { cur = f; } tS = 0; ledKey = ''; chips(); text(); });
+    $$('#oxSel .chip[data-i]').forEach(b => b.onclick = () => { cur = +b.dataset.i; tS = 0; ledKey = ''; chips(); text(); });
   }
   const sp = $('#oxSp'); let speed = 1;
   function spd() { speed = +sp.value; $('#oxSpv').textContent = '×' + fx(speed, speed % 1 ? 2 : 0).replace(/0$/, ''); }

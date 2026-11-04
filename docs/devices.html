@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Приборы — BecqMoni гид</title>
-<script src="assets/theme.js?v=7b7024a7"></script>
-<link rel="stylesheet" href="assets/guide.css?v=7307f135">
+<script src="assets/theme.js?v=53cbbd2b"></script>
+<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
 <style>
 .ui{white-space:normal}
 figure.shot.side{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:16px;align-items:start}
@@ -266,8 +266,8 @@ ol.chk>li.done::before{content:"✓";background:var(--ok);color:#06210f;border-c
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=8e7eb699"></script>
-<script src="assets/quanta.js?v=b92ab866"></script>
+<script src="assets/guide.js?v=9ec75ac2"></script>
+<script src="assets/quanta.js?v=67b2c2dc"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
 GUIDE.texts({ ru: {"mc.n": "Кристалл", "mc.k": "Монте-Карло", "mc.h": "Кристалл решает: Ø40 против Ø76", "mc.lead": "Один и тот же источник в 2 см от торца, одни и те же фотоны. Слева кристалл Ø40 × 40 мм, справа Ø76 × 76 мм. Каждый трек сосчитан по физике взаимодействия, спектры — в общем масштабе на испущенный фотон.", "mc.pick": "Фотоны:", "mc.l1": "NaI Ø40 × 40 мм", "mc.l2": "NaI Ø76 × 76 мм", "mc.t1": "в пике у Ø40", "mc.t2": "в пике у Ø76", "mc.t3": "большой ловит в пик больше", "mc.f1": "<b>Больше кристалл — больше пик.</b> Фотону труднее проскочить насквозь, особенно на высоких энергиях: на 2614 кэВ разница в разы.", "mc.f2": "<b>Плато относительно пика ниже у большого.</b> Рассеянный фотон чаще догорает внутри и всё-таки попадает в пик.", "mc.f3": "<b>Ширину пика размер почти не меняет</b> — её задают кристалл и электроника. Здесь у обоих одна: 7.5 % при 662 кэВ."},
@@ -354,7 +354,7 @@ GUIDE.texts({ru:{
 'w.l4':'<b>Имя, имя файла, тип устройства</b> — тип выбирает страницу «Устройство»',
 'w.l5':'<b>Вещество кристалла</b> — NaI, CsI…; из него FSA берёт состав кристалла (для пиков вылета), когда у кривой эффективности нет геометрии',
 'w.l6':'<b>Лимит времени</b> — предел набора по умолчанию для новых спектров, в секундах',
-'w.l7':'<b>Кол-во каналов, шаг канала, кривизна тракта</b> — серое поле задаёт сам прибор; кривизну оставьте 0, пока не измерена',
+'w.l7':'<b>Кол-во каналов, шаг канала, кривизна тракта</b> — серое поле задаёт сам прибор; кривизну оставьте 0, пока не измерена. Измеренную κ панель «Калибровка энергии и FWHM» пишет сюда кнопкой «Сохр. в конф. устр.», а «Сброс» возвращает приборное значение',
 'w.l8':'<b>Сохранить / Закрыть</b> — «Сохранить» горит, когда есть правки',
 'g.h':'Игра: какую конфигурацию возьмёт новый документ?',
 'g.hint':'Новый документ (Файл → Новый) берёт ВЕРХНЮЮ строку списка — ту, что сохранили последней. Справьтесь с задачей: «Сохранить» поднимает строку наверх, «Файл → Новый» создаёт документ.',
@@ -431,15 +431,15 @@ GUIDE.texts({ru:{
 'c.w4':'<b>URL платы</b> — пусто: http://адрес/. Полный URL нужен, если у платы другой порт или префикс: http://хост[:порт]/[префикс/]. Имя и пароль внутри URL не принимаются',
 'c.w5':'<b>Период опроса</b> — как часто читать спектр с платы: 1–60 с, по умолчанию 10',
 'c.w6':'<b>Предел времени нового измерения на плате</b> — плата сама остановит измерение, начатое отсюда, через столько секунд; при присоединении к уже идущему не посылается. 0 — без предела',
-'c.w7':'<b>Только наблюдение</b> — ни одной команды плате: можно следить за чужим измерением, не мешая ему. «Сброс» плату тогда не стирает',
+'c.w7':'<b>Только наблюдение</b> — ни одной команды плате: можно следить за чужим измерением, не мешая ему. «Сброс» плату тогда не стирает, а в остальных случаях задаёт <b>один</b> вопрос о документе и плате вместе: «Нет» не трогает ни то, ни другое',
 'c.w8':'<b>Не использовать системный прокси</b> — ходить к плате напрямую, мимо прокси Windows',
 'c.w9':'<b>Авторизация</b> — Нет, Basic или Bearer; <b>Пользователь</b> и <b>Пароль / токен</b>. Пароль хранится зашифрованным для вашей учётной записи Windows. По HTTP они идут без шифрования — об этом предупредит красная строка под полями',
 'c.w10':'<b>Сжатие ответов платы</b> — 0 (выкл.), 1 или 6; читается после «Проверить связь (REST)» или «Обновить». «Применить к плате» записывает настройку в плату после вопроса: она действует для всех её клиентов',
-'c.w11':'<b>Проверить связь (REST)</b> — только читает: прошивка, время платы, число импульсов, задана ли калибровка; калибровку платы переносит на вкладку «Калибровка энергии». <b>Показать журнал</b> — как у TCP',
+'c.w11':'<b>Проверить связь (REST)</b> — только читает: прошивка, время платы, число импульсов, задана ли калибровка; калибровку платы переносит на вкладку «Калибровка энергии». <b>Показать журнал</b> — как у TCP. Если прошивка платы ниже 1.2.39, программа предупредит: поиск плат и «Старт» могут не работать — обновите прошивку',
 'c.w12':'<b>Командная строка</b> — те же правила: опасные команды уходят только после «Да»; при «Только наблюдении» — ни одной',
 'c.wcap':'Тот же прибор в режиме REST',
 'c.wch':'<b>Каналы — 8192 или их делитель.</b> Плата считает 8192 канала, а в документ приходит столько, сколько задано в '+UI('Кол-во каналов')+': соседние каналы складываются по 8192/N. Задайте 8192, 4096, 2048, 1024 … — другое число режим REST отклонит на «Старте», ничего не послав плате.',
-'c.wcal':'<b>На «Старте» калибровку задаёт плата.</b> Если на плате калибровка задана, программа на каждом «Старте» переносит её в документ и сохраняет в конфигурацию прибора: в режиме REST — пересчитав к числу каналов профиля, в режиме TCP — только при 8192 каналах. Калибровку, сделанную в BecqMoni, следующий «Старт» заменит калибровкой платы; если на плате её нет, остаётся своя. Кнопка «Читать с устройства» на вкладке «Калибровка энергии» берёт калибровку по тем же правилам — подробнее в главе «Калибровка».',
+'c.wcal':'<b>На «Старте» калибровку задаёт плата.</b> Если на плате калибровка задана, программа на каждом «Старте» переносит её в документ и сохраняет в конфигурацию прибора: в режиме REST — пересчитав к числу каналов профиля, в режиме TCP — только при 8192 каналах. Калибровку, сделанную в BecqMoni, следующий «Старт» заменит калибровкой платы; если на плате её нет, остаётся своя. Кнопка «Читать с устройства» на вкладке «Калибровка энергии» берёт калибровку по тем же правилам — подробнее в главе «Калибровка». На этой вкладке остались только коэффициенты и кнопки «Читать с устройства» / «Записать в устройство»: таблица точек и настройки автокалибратора сняты.',
 'pl.h':'Как звуковой вход отбирает импульсы',
 'pl.hint':'Сигнал карты бежит справа налево. Окно шириной в несколько отсчётов ловит импульс, программа накладывает на него образец и решает: в спектр, выше ВПП или «не похож». Импульсы ниже НПП окно не замечает. Двигайте ползунки — образец справа и спектр внизу ответят сразу.',
 'pl.lld':'НПП','pl.uld':'ВПП','pl.thr':'Порог формы, %','pl.w':'Ширина, отсч.','pl.p':'Позиция пика','pl.reset':'Сбросить',
@@ -536,7 +536,7 @@ GUIDE.texts({ru:{
 'w.l4':'<b>Name, file name, input device type</b> — the type picks the “Device Specific” page',
 'w.l5':'<b>Crystal Material</b> — NaI, CsI…; FSA takes the crystal composition from it (for escape peaks) when the efficiency curve has no geometry',
 'w.l6':'<b>Preset Time</b> — the default acquisition limit for new spectra, in seconds',
-'w.l7':'<b># of Channels, Channel Pitch, Tract Curvature</b> — a grey field is set by the device; keep curvature at 0 until measured',
+'w.l7':'<b># of Channels, Channel Pitch, Tract Curvature</b> — a grey field is set by the device; keep curvature at 0 until measured. A measured κ is written here by the “Energy and FWHM Calibration” panel with “Save to Device Cfg.”, and “Reset” brings the device value back',
 'w.l8':'<b>Save / Close</b> — “Save” lights up when there are changes',
 'g.h':'Game: which configuration will a new document get?',
 'g.hint':'A new document (File → New) takes the TOP line of the list — the one saved last. Solve the tasks: “Save” lifts a line to the top, “File → New” creates a document.',
@@ -613,15 +613,15 @@ GUIDE.texts({ru:{
 'c.w4':'<b>Board URL</b> — empty: http://address/. A full URL is needed when the board has another port or a prefix: http://host[:port]/[prefix/]. A user name and password inside the URL are not accepted',
 'c.w5':'<b>Poll period</b> — how often the spectrum is read from the board: 1–60 s, 10 by default',
 'c.w6':'<b>Time limit of a new run on the board</b> — the board itself stops a measurement started from here after this many seconds; it is not sent when joining one already running. 0 — no limit',
-'c.w7':'<b>Observe only</b> — not a single command to the board: you can watch someone else’s measurement without disturbing it. “Clear” then does not wipe the board',
+'c.w7':'<b>Observe only</b> — not a single command to the board: you can watch someone else’s measurement without disturbing it. “Clear” then does not wipe the board; otherwise it asks <b>one</b> question about the document and the board together: “No” touches neither',
 'c.w8':'<b>Do not use the system proxy</b> — go to the board directly, bypassing the Windows proxy',
 'c.w9':'<b>Authorization</b> — None, Basic or Bearer; <b>User</b> and <b>Password / token</b>. The password is stored encrypted for your Windows account. Over HTTP they travel unencrypted — a red line under the fields warns about it',
 'c.w10':'<b>Board reply compression</b> — 0 (off), 1 or 6; read after “Test connection (REST)” or “Refresh”. “Apply to board” writes the setting into the board after a question: it applies to all its clients',
-'c.w11':'<b>Test connection (REST)</b> — only reads: firmware, board time, pulse count, whether a calibration is set; puts the board calibration on the “Energy Calibration” tab. <b>Show log</b> — as in TCP',
+'c.w11':'<b>Test connection (REST)</b> — only reads: firmware, board time, pulse count, whether a calibration is set; puts the board calibration on the “Energy Calibration” tab. <b>Show log</b> — as in TCP. If the board firmware is below 1.2.39 the program warns: board discovery and Start may not work — update the firmware',
 'c.w12':'<b>Command line</b> — the same rules: hazardous commands go only after “Yes”; with “Observe only” none at all',
 'c.wcap':'The same device in REST mode',
 'c.wch':'<b>Channels — 8192 or a divisor of it.</b> The board counts 8192 channels, and the document gets as many as set in '+UI('# of Channels')+': neighbouring channels are added up 8192/N at a time. Set 8192, 4096, 2048, 1024 … — REST mode refuses another number at Start without sending anything to the board.',
-'c.wcal':'<b>At Start the board sets the calibration.</b> If the board has a calibration, at every Start the program puts it into the document and saves it to the device configuration: in REST mode rescaled to the profile’s channel count, in TCP mode only at 8192 channels. A calibration made in BecqMoni is replaced by the board’s at the next Start; if the board has none, your own stays. The “Read from device” button on the “Energy Calibration” tab takes the calibration by the same rules — more in the “Calibration” chapter.',
+'c.wcal':'<b>At Start the board sets the calibration.</b> If the board has a calibration, at every Start the program puts it into the document and saves it to the device configuration: in REST mode rescaled to the profile’s channel count, in TCP mode only at 8192 channels. A calibration made in BecqMoni is replaced by the board’s at the next Start; if the board has none, your own stays. The “Read from device” button on the “Energy Calibration” tab takes the calibration by the same rules — more in the “Calibration” chapter. That tab now keeps only the coefficients and the “Read from device” / “Write to device” buttons: the point table and the autocalibrator settings are gone.',
 'pl.h':'How audio input picks pulses',
 'pl.hint':'The card’s signal runs right to left. A window a few samples wide catches a pulse, the program lays the template over it and decides: into the spectrum, above ULD or “not alike”. Pulses below LLD the window does not notice. Move the sliders — the template on the right and the spectrum below respond at once.',
 'pl.lld':'LLD','pl.uld':'ULD','pl.thr':'Shape threshold, %','pl.w':'Width, samples','pl.p':'Peak position','pl.reset':'Reset',

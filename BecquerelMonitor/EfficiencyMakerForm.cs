@@ -66,6 +66,16 @@ namespace BecquerelMonitor
         bool dirty;
 
         /// <summary>
+        /// (`AMBER278`, замечание критика `crit3`) Состояние «Расчёта» ДО
+        /// импорта GDML: на время импорта кнопка гаснет, при выходе из режима
+        /// возвращается ровно в это состояние, а не остаётся выключенной.
+        /// </summary>
+        bool calculateEnabledBeforeGdml = true;
+
+        /// <summary>Идёт ли сейчас режим GDML: повторный импорт не должен перезапоминать уже погашенную кнопку.</summary>
+        bool gdmlModeActive;
+
+        /// <summary>
         /// Редактор геометрии — ПЕРВОЙ вкладкой: с геометрии начинается и
         /// расчёт, и импорт, а прежде она была строкой пути к чужому файлу.
         /// </summary>
@@ -73,6 +83,7 @@ namespace BecquerelMonitor
         {
             this.geometryPanel = new GeometryEditorPanel { Dock = DockStyle.Fill };
             this.geometryPanel.Changed += this.GeometryChanged;
+            this.geometryPanel.GdmlModeChanged += this.GdmlModeChanged;
 
             this.geometryTabPage = new TabPage(Resources.EfficiencyMakerTabGeometry)
             {
@@ -575,6 +586,50 @@ namespace BecquerelMonitor
                     return;
                 }
 
+                // (`AMBER278`) GDML — родной формат геометрии Geant4. Он не
+                // ложится в параметрическую модель редактора, поэтому после
+                // импорта поля детектора заменяет сводка, а справа рисуется
+                // разрез и вид с торца. Сохранение и расчёт — «обсудим позже».
+                if (string.Equals(System.IO.Path.GetExtension(dialog.FileName), ".gdml",
+                                  StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        GdmlGeometry imported = GdmlGeometry.Read(dialog.FileName);
+                        this.geometryPanel.ShowGdml(imported);
+                        AppendLog(imported.DescribeLog());
+                        foreach (string warning in imported.Warnings)
+                        {
+                            AppendLog("  " + warning);
+                        }
+
+                        AppendLog(ResourceText("GdmlCadmeshNote",
+                            "CAD meshes (STL/OBJ/PLY) are not imported: only GDML is read."
+                            + " cadmesh is the Geant4 route for CAD meshes - reference only."));
+
+                        if (!string.IsNullOrEmpty(imported.FatalError))
+                        {
+                            MessageBox.Show(this,
+                                string.Format(CultureInfo.InvariantCulture,
+                                    ResourceText("GdmlImportFailed",
+                                        "{0}: GDML could not be imported - {1}"),
+                                    dialog.FileName, imported.FatalError),
+                                this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(this,
+                            string.Format(CultureInfo.InvariantCulture,
+                                ResourceText("GdmlImportFailed",
+                                    "{0}: GDML could not be imported - {1}"),
+                                dialog.FileName, ex.Message),
+                            this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+
+                    return;
+                }
+
                 try
                 {
                     GeometryModel model = GeometryModel.Load(dialog.FileName);
@@ -890,6 +945,31 @@ namespace BecquerelMonitor
         void GeometryChanged(object sender, EventArgs e)
         {
             this.SetDirty();
+        }
+
+        /// <summary>
+        /// (`AMBER278`, замечание критика `crit3`) Вход в режим GDML гасит
+        /// «Расчёт», выход — возвращает кнопку в состояние ДО импорта. Прежде
+        /// импорт выключал её навсегда: выход из GDML (правка поля, шаблон,
+        /// обычный импорт) возвращал поля, но не кнопку.
+        /// </summary>
+        void GdmlModeChanged(object sender, EventArgs e)
+        {
+            if (this.geometryPanel.GdmlMode)
+            {
+                if (!this.gdmlModeActive)
+                {
+                    this.calculateEnabledBeforeGdml = this.calculateButton.Enabled;
+                    this.gdmlModeActive = true;
+                }
+
+                this.calculateButton.Enabled = false;
+            }
+            else
+            {
+                this.calculateButton.Enabled = this.calculateEnabledBeforeGdml;
+                this.gdmlModeActive = false;
+            }
         }
 
         DeviceConfigInfo boundDevice;
