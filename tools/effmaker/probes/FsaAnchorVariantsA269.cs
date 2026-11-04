@@ -12,38 +12,33 @@ using System.Xml.Serialization;
 namespace BecquerelMonitor.Probes
 {
     /// <summary>
-    /// (`AMBER269`, замер 04.11.2026) СРАВНЕНИЕ ПЛЕЧ ПРИВЯЗКИ ШКАЛЫ FSA НА ОДНИХ ДАННЫХ.
+    /// (`AMBER269`, замер 04.11.2026; решение Amber 04.11.2026 вопросником, дословно:
+    /// «(А) — тормоза (Рекомендую)») СРАВНЕНИЕ ПЛЕЧ ПРИВЯЗКИ ШКАЛЫ FSA НА ОДНИХ ДАННЫХ.
     ///
-    /// Плечи (все — режим «Из NucBase», один и тот же рецепт загрузки и разбора):
-    ///   0    — как сейчас: откат привязки (А2) включён, прочие плечи выключены;
-    ///   A    — тормоза: (1) усиление не меняется, если не осталось двух опор,
-    ///          разнесённых по шкале (<c>AnchorGainBrake = "count"</c>), и (2) откат
-    ///          по χ²/ndf Пуассона (<c>AnchorRollback</c>, уже в плече 0);
-    ///   B    — опоры только у линий, подтверждённых поиском пиков
-    ///          (<c>AnchorConfirmByPeaks</c> + <c>DetectedPeakKev</c> из таблицы
-    ///          «Обнаруженные пики», допуск — FWHM по калибровке файла);
-    ///   AB   — A и B вместе.
+    /// Плечи (оба — режим «Из NucBase», один и тот же рецепт загрузки и разбора):
+    ///   0 — до правки: откат привязки (А2) включён, тормоз усиления (А1) выключен
+    ///       (<c>AnchorGainBrake = false</c>);
+    ///   A — решение: (А1) тормоз усиления включён (<c>AnchorGainBrake = true</c>),
+    ///       (А2) откат по χ²/ndf Пуассона — умолчание приложения.
     ///
-    /// ⛔ Ключи A1/B сняты из кода 01.11.2026; проба ставит их ОТРАЖЕНИЕМ и требует
-    /// сборку, где они есть (временная сборка полосы). На обычной сборке честно
-    /// отказывает кодом 4, а не молча мерит одно и то же плечо четыре раза.
+    /// ⛔ Плечи (Б) «опоры только подтверждённые поиском пиков» и (А+Б) из пробы сняты:
+    /// решение Amber 04.11.2026 — только тормоза, (Б) проиграл и в приложение не идёт.
     ///
-    /// Ключи: --spectrum=&lt;файл&gt; (обязателен); --arm=0|A|B|AB|all (по умолчанию all);
+    /// Ключи: --spectrum=&lt;файл&gt; (обязателен); --arm=0|A|all (по умолчанию all);
     /// --no-equilibrium (по умолчанию равновесие ряда ВКЛ — рецепт журнала `AMBER269`);
     /// --control — положительный контроль: откат (А2) СНЯТ, чтобы тормоз (А1) был
     /// виден; на спектре с одной опорой у нуля плечо 0 обязано уйти по шкале,
     /// плечо A — остаться; --matrix-any — поставить встроенную матрицу файла
     /// принудительно (клеймо не проверяется: матрицы этих спектров — физика 27,
-    /// формат 11, нынешним кодом отвергаются); --peaks — печатать найденные пики;
-    /// --out=&lt;файл&gt; — весь вывод ещё и в файл.
+    /// формат 11, нынешним кодом отвергаются); --out=&lt;файл&gt; — весь вывод ещё и в файл.
     ///
     /// Коды: 0 — посчитано; 2 — ключи/файл; 3 — разбор не завершился ИЛИ в сборке
-    /// нет ключей плеч (нужна временная сборка замера) — отказ быстрый, до запуска
-    /// сеанса, а не через 600 с ожидания.
+    /// нет ключа тормоза (нужна сборка с решением AMBER269) — отказ быстрый, до
+    /// запуска сеанса, а не через 600 с ожидания.
     /// </summary>
     static class FsaAnchorVariantsA269
     {
-        static readonly string[] AllArms = { "0", "A", "B", "AB" };
+        static readonly string[] AllArms = { "0", "A" };
 
         [STAThread]
         static int Main(string[] args)
@@ -51,7 +46,7 @@ namespace BecquerelMonitor.Probes
             Console.OutputEncoding = Encoding.UTF8;
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             string spectrum = null, outPath = null, arm = "all";
-            bool equilibrium = true, control = false, printPeaks = false, matrixAny = false;
+            bool equilibrium = true, control = false, matrixAny = false;
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrum = a.Substring(11);
@@ -59,7 +54,6 @@ namespace BecquerelMonitor.Probes
                 else if (a.StartsWith("--arm=", StringComparison.Ordinal)) arm = a.Substring(6);
                 else if (a == "--no-equilibrium") equilibrium = false;
                 else if (a == "--control") control = true;
-                else if (a == "--peaks") printPeaks = true;
                 else if (a == "--matrix-any") matrixAny = true;
                 else
                 {
@@ -84,27 +78,27 @@ namespace BecquerelMonitor.Probes
                 foreach (string p in arm.Split(','))
                 {
                     string one = p.Trim().ToUpperInvariant();
-                    if (one == "0" || one == "A" || one == "B" || one == "AB")
+                    if (one == "0" || one == "A")
                     {
                         arms.Add(one);
                     }
                     else
                     {
-                        Console.Error.WriteLine("плечо не знаю: " + p + " (0|A|B|AB|all)");
+                        Console.Error.WriteLine("плечо не знаю: " + p + " (0|A|all)");
                         return 2;
                     }
                 }
             }
 
-            // ⛔ Ключи плеч сняты из кода 01.11.2026. На обычной сборке их нет, и
-            // ставить их отражением бессмысленно: отказ ДО сеанса, иначе исключение
-            // в потоке сеанса не даёт Completed и проба висит 600 с.
+            // ⛔ Ключ тормоза есть только в сборке с решением AMBER269. На прежней
+            // сборке ставить его отражением бессмысленно: отказ ДО сеанса, иначе
+            // исключение в потоке сеанса не даёт Completed и проба висит 600 с.
             List<string> missing = MissingKeys();
             if (missing.Count > 0)
             {
-                Console.Error.WriteLine("ОТКАЗ: в этой сборке нет ключей FsaAnalyzer."
+                Console.Error.WriteLine("ОТКАЗ: в этой сборке нет ключа FsaAnalyzer."
                     + string.Join(", FsaAnalyzer.", missing.ToArray())
-                    + " — плечи (А1)/(Б) сняты 01.11.2026; нужна временная сборка замера AMBER269");
+                    + " — решения AMBER269 в ней нет; нужна сборка с тормозом усиления");
                 return 3;
             }
 
@@ -174,27 +168,12 @@ namespace BecquerelMonitor.Probes
                 Say("ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: откат (А2) СНЯТ — тормоз (А1) должен быть виден: плечо 0 уйдёт, плечо A останется");
             }
 
+            // ⛔ Поиск пиков — часть рецепта, а не плечо (Б): подписи пиков задают
+            // состав библиотеки «Из NucBase» (`FsaAnalysisSession` берёт
+            // `DetectedPeaks`), без них разбор не находит ни одного образа.
             rd.DetectedPeaks = new PeakDetector().DetectPeak(rd, BackgroundMode.Invisible, SmoothingMethod.None,
                                                              nuclides.ActiveSet, nuclides.NuclideDefinitions);
-            var peakKev = new List<double>();
-            foreach (Peak p in rd.DetectedPeaks)
-            {
-                if (p != null && !double.IsNaN(p.Energy))
-                {
-                    peakKev.Add(p.Energy);
-                }
-            }
-
             Say("пиков поиска: " + rd.DetectedPeaks.Count.ToString(CultureInfo.InvariantCulture));
-            if (printPeaks)
-            {
-                foreach (Peak p in rd.DetectedPeaks)
-                {
-                    Say(string.Format(CultureInfo.InvariantCulture,
-                        "  пик {0,9:F2} кэВ кан. {1,5} SNR {2,7:F1} {3}",
-                        p.Energy, p.Channel, p.SNR, p.Nuclide != null ? p.Nuclide.Name : "(неизвестный)"));
-                }
-            }
 
             FsaCalculationOptions options = FsaCalculationOptions.Of(rd);
             options.DbLookups = true;          // «Из NucBase»
@@ -220,7 +199,7 @@ namespace BecquerelMonitor.Probes
                 FsaResult result;
                 try
                 {
-                    result = Run(rd, options, one, peakKev.ToArray(), forcedMatrix, !control,
+                    result = Run(rd, options, one, forcedMatrix, !control,
                                  out analyzer, out passes, out status);
                 }
                 catch (MissingMemberException ex)
@@ -369,15 +348,14 @@ namespace BecquerelMonitor.Probes
             return failed ? 3 : 0;
         }
 
-        static FsaResult Run(ResultData rd, FsaCalculationOptions options, string arm, double[] peakKev,
+        static FsaResult Run(ResultData rd, FsaCalculationOptions options, string arm,
                              EfficiencyMaker.ResponseMatrix forcedMatrix, bool rollback,
                              out FsaAnalyzer analyzer, out List<string> passes, out string status)
         {
             analyzer = null;
             passes = new List<string>();
             status = null;
-            bool withA = arm == "A" || arm == "AB";
-            bool withB = arm == "B" || arm == "AB";
+            bool withA = arm == "A";
 
             var session = new FsaAnalysisSession();
             var done = new ManualResetEvent(false);
@@ -406,9 +384,7 @@ namespace BecquerelMonitor.Probes
 
                     SetKey(an, "AnchorRollback", rollback);
                     SetKey(an, "AnchorRollbackKeepsWidth", true);
-                    SetKey(an, "AnchorGainBrake", withA ? "count" : "off");
-                    SetKey(an, "AnchorConfirmByPeaks", withB);
-                    SetKey(an, "DetectedPeakKev", withB ? peakKev : null);
+                    SetKey(an, "AnchorGainBrake", withA);
                 }
                 catch (Exception ex)
                 {
@@ -476,9 +452,9 @@ namespace BecquerelMonitor.Probes
             }
         }
 
-        static readonly string[] RequiredKeys = { "AnchorGainBrake", "AnchorConfirmByPeaks", "DetectedPeakKev" };
+        static readonly string[] RequiredKeys = { "AnchorGainBrake" };
 
-        /// <summary>Ключи плеч, которых нет на обычной сборке (сняты 01.11.2026).</summary>
+        /// <summary>Ключ тормоза, которого нет на сборке до решения AMBER269.</summary>
         static List<string> MissingKeys()
         {
             var missing = new List<string>();
@@ -493,7 +469,7 @@ namespace BecquerelMonitor.Probes
             return missing;
         }
 
-        /// <summary>Ключ анализатора — отражением: на обычной сборке его нет, и это ОТКАЗ, а не «плечо 0».</summary>
+        /// <summary>Ключ анализатора — отражением: на сборке до решения его нет, и это ОТКАЗ, а не «плечо 0».</summary>
         static void SetKey(FsaAnalyzer analyzer, string name, object value)
         {
             PropertyInfo p = typeof(FsaAnalyzer).GetProperty(name, BindingFlags.Instance | BindingFlags.Public);
@@ -501,7 +477,7 @@ namespace BecquerelMonitor.Probes
             {
                 throw new MissingMemberException(
                     "в этой сборке нет ключа FsaAnalyzer." + name
-                    + " — плечи (А1)/(Б) сняты 01.11.2026; нужна временная сборка замера AMBER269");
+                    + " — решения AMBER269 в ней нет; нужна сборка с тормозом усиления");
             }
 
             p.SetValue(analyzer, value, null);
