@@ -30,7 +30,10 @@ namespace BecquerelMonitor.Probes
     /// виден; на спектре с одной опорой у нуля плечо 0 обязано уйти по шкале,
     /// плечо A — остаться; --matrix-any — поставить встроенную матрицу файла
     /// принудительно (клеймо не проверяется: матрицы этих спектров — физика 27,
-    /// формат 11, нынешним кодом отвергаются); --out=&lt;файл&gt; — весь вывод ещё и в файл.
+    /// формат 11, нынешним кодом отвергаются); --out=&lt;файл&gt; — весь вывод ещё и в файл;
+    /// --brake-zero-max=&lt;кэВ&gt; — порог «у нуля» тормоза (правило 05.11.2026) для
+    /// замера: без ключа — умолчание сборки. Порог проверяется на двух концах:
+    /// 16.28 кэВ обязан тормозиться при любом пороге выше себя, 59.5 — не тормозиться.
     ///
     /// Коды: 0 — посчитано; 2 — ключи/файл; 3 — разбор не завершился ИЛИ в сборке
     /// нет ключа тормоза (нужна сборка с решением AMBER269) — отказ быстрый, до
@@ -47,11 +50,21 @@ namespace BecquerelMonitor.Probes
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             string spectrum = null, outPath = null, arm = "all";
             bool equilibrium = true, control = false, matrixAny = false;
+            double brakeZeroMax = double.NaN;
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrum = a.Substring(11);
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
                 else if (a.StartsWith("--arm=", StringComparison.Ordinal)) arm = a.Substring(6);
+                else if (a.StartsWith("--brake-zero-max=", StringComparison.Ordinal))
+                {
+                    string raw = a.Substring(17);
+                    if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out brakeZeroMax))
+                    {
+                        Console.Error.WriteLine("порог тормоза не число: " + raw);
+                        return 2;
+                    }
+                }
                 else if (a == "--no-equilibrium") equilibrium = false;
                 else if (a == "--control") control = true;
                 else if (a == "--matrix-any") matrixAny = true;
@@ -199,7 +212,7 @@ namespace BecquerelMonitor.Probes
                 FsaResult result;
                 try
                 {
-                    result = Run(rd, options, one, forcedMatrix, !control,
+                    result = Run(rd, options, one, forcedMatrix, !control, brakeZeroMax,
                                  out analyzer, out passes, out status);
                 }
                 catch (MissingMemberException ex)
@@ -350,6 +363,7 @@ namespace BecquerelMonitor.Probes
 
         static FsaResult Run(ResultData rd, FsaCalculationOptions options, string arm,
                              EfficiencyMaker.ResponseMatrix forcedMatrix, bool rollback,
+                             double brakeZeroMax,
                              out FsaAnalyzer analyzer, out List<string> passes, out string status)
         {
             analyzer = null;
@@ -385,6 +399,10 @@ namespace BecquerelMonitor.Probes
                     SetKey(an, "AnchorRollback", rollback);
                     SetKey(an, "AnchorRollbackKeepsWidth", true);
                     SetKey(an, "AnchorGainBrake", withA);
+                    if (!double.IsNaN(brakeZeroMax))
+                    {
+                        SetKey(an, "AnchorGainBrakeZeroMaxKev", brakeZeroMax);
+                    }
                 }
                 catch (Exception ex)
                 {
