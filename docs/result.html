@@ -205,7 +205,7 @@ figure.shot.wide{margin-top:22px}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=9ec75ac2"></script>
+<script src="assets/guide.js?v=a7cf2625"></script>
 <script src="assets/quanta.js?v=67b2c2dc"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
@@ -245,21 +245,21 @@ GUIDE.texts({ru:{
 'w.l3':'<b>Заголовок первой колонки</b> — откуда беккерели: «FSA: Бк по матрице отклика», «по кривой», «Бк скрыты — причина»',
 'w.l4':'<b>«Ср. за набор»</b> или <b>«На дату отбора»</b> — к какому моменту отнесено число',
 'w.l5':'<b>«Неопред. 2σ»</b> — погрешность с выбранным в настройках уровнем, в скобках — в процентах',
-'w.l6':'<b>«МДА»</b> — предел обнаружения разбора (ISO 11929); колонка видна прокруткой',
+'w.l6':'<b>«МДА, z ≥ 3»</b> — предел обнаружения разбора по ISO 11929: порог — значимость z ≥ 3 (α ≈ 0.13 %), предел находится в 95 % измерений (β = 5 %)',
 'w.l7':'<b>Строки</b> — нуклиды из FSA; член связанного ряда даёт строку родителя (здесь Th-232)',
 'd.h':'Что говорит заголовок',
-'d.hint':'Щёлкайте состояния — ниже макет окна с тем, что вы увидите. Числа строк — со снимков с матрицей и без неё; колонку «МДА» там срезал край окна, поэтому видны только первые цифры.',
+'d.hint':'Щёлкайте состояния — ниже макет окна с тем, что вы увидите. Числа строк — со снимков с матрицей и без неё; колонку «МДА» срезал край окна — видны только первые цифры.',
 'd.s1':'по матрице','d.s2':'по кривой','d.s3':'Бк скрыты: поле','d.s4':'Бк скрыты: измерение','d.s5':'ошибка','d.s6':'идёт расчёт','d.s7':'Бк/кг без массы',
 'd.h1':'FSA: Бк по матрице отклика','d.h2':'FSA: Бк по кривой (расчёт)','d.h3':'FSA: Бк скрыты — кривая сцены поля (см² на единичный флюенс)','d.h4':'FSA: Бк скрыты — кривая без абсолютного уровня (измерение)','d.h5':'FSA: ошибка','d.h6':'FSA: идёт расчёт…','d.h7':'FSA: Бк по матрице отклика',
-'d.t1':'Лучший случай: кривая с геометрией и годная матрица. Каскадное суммирование учтено.',
-'d.t2':'Матрицы нет или она устарела: беккерели — по кривой, суммирование не учтено. На снимке без матрицы Th-232 вышел 1085.09 вместо 965.18 Бк — разница 12 %. Посчитайте матрицу (глава <a href="geometry.html#matrix">8</a>).',
+'d.t1':'Лучший случай: кривая с геометрией и годная матрица. Каскадное суммирование учтено. K-40 здесь ниже предела — строка с ND.',
+'d.t2':'Матрицы нет или она устарела: беккерели — по кривой, суммирование не учтено. На снимке без матрицы Th-232 вышел 926.64 вместо 986.49 Бк — на 6 % ниже. Посчитайте матрицу (глава <a href="geometry.html#matrix">8</a>).',
 'd.t3':'Кривая сцены «Изотропное поле (ISO)» меряет отклик на единичный флюенс (см²), а не долю квантов: для дозы — да, для беккерелей — нет. Строки пишут «нет K». Сцены «Детектор на земле» и «в лунке» беккерели дают.',
 'd.t4':'Кривая снята по измерениям или введена руками, а геометрию к ней дописали через «Изменить…»: разбор идёт, но абсолютного уровня у самой кривой нет — без матрицы беккерели скрыты. Посчитайте матрицу (тогда Бк — по ней) или кривую из геометрии.',
 'd.t5':'Разбор отказал: вместо строк — одна строка «FSA» с причиной, той же, что в строке состояния «Отчёта FSA». Здесь — нет геометрии у кривой (глава <a href="geometry.html">8</a>).',
 'd.t6':'Разбор ещё идёт. Если прошлый результат уже есть, строки остаются от него, а к заголовку добавляется «(пересчёт…)»; при наборе пересчёт — не чаще раза в 30 с.',
 'd.t7':'Выбраны Бк/кг, а в «Информации об образце» вес равен нулю: строки пишут «нет массы». Впишите вес — и числа появятся.',
 'c.nok':'нет K','c.nom':'нет массы','c.comp':'FSA: идёт расчёт…','c.geo':'Полноспектральному разложению нужна геометрия прибора: опишите кристалл в редакторе геометрии у кривой эффективности',
-'col.n':'Нуклид','col.mean':'Ср. за набор','col.samp':'На дату отбора','col.u':'Неопред.','col.mda':'МДА','u.bq':'Бк','u.bqkg':'Бк/кг','u.bql':'Бк/л','corr.no':'Нет коррекции','corr.hl':'Корр. пер. полураспада',
+'col.n':'Нуклид','col.mean':'Ср. за набор','col.samp':'На дату отбора','col.u':'Неопред.','col.mda':'МДА, z ≥ 3','u.bq':'Бк','u.bqkg':'Бк/кг','u.bql':'Бк/л','corr.no':'Нет коррекции','corr.hl':'Корр. пер. полураспада',
 'w.f1':'<b>Строки — только из FSA.</b> Зон ROI больше нет: окно показывает ровно тот состав, что в отчёте FSA.',
 'w.f2':'<b>Ряд — одной строкой.</b> Ac-228, Pb-212, Tl-208 при «Равновесии ряда» дают строку Th-232 — активность родителя.',
 'w.f3':'<b>Не обнаружено — тоже ответ.</b> Такие строки остаются с пределом в «МДА» и значком ND.',
@@ -284,12 +284,12 @@ GUIDE.texts({ru:{
 'l.l4':'<b>Сост. обнаружения</b>: «Результат &gt; k раз стандартного отклонения» или «Результат &gt; MDA»',
 'l.l5':'<b>Показать значения не обнаруженных нуклидов</b> — печатать число и у необнаруженного (с ND)',
 's.h':'Настройте окно сами',
-'s.hint':'Двигайте ползунки — макет окна ведёт себя как программа. K-40 и Th-232 — значения и погрешности со снимка (МДА — первые цифры, остальное срезано краем окна); третья строка — пример.',
+'s.hint':'Двигайте ползунки — макет окна ведёт себя как программа. K-40 и Th-232 — значения и погрешности со снимка, МДА — первые цифры (колонку срезал край окна); третья строка — пример.',
 's.def':'как по умолчанию','s.shot':'как на снимке',
 's.lev':'Ур. неопред.','s.k':'Ур. детектир. (k)','s.cond':'Сост. обнаружения','s.nd':'Показать значения не обнаруженных нуклидов',
 's.c0':'Результат > k раз стандартного отклонения','s.c1':'Результат > MDA',
 's.ex':'Cs-137 (пример)','s.msg':'обнаружено <b>{0} из {1}</b>','s.why0':'K-40: {0} ≥ {1}·σ = {2}?','s.why1':'K-40: {0} ≥ МДА {1}?',
-'l.f1':'<b>МДА у FSA — не «по зоне».</b> Это предел обнаружения разбора по ISO 11929, и он честно раздут на √(χ²/ndf), если подгонка хуже статистики.',
+'l.f1':'<b>МДА у FSA — не «по зоне».</b> Это предел обнаружения разбора по ISO 11929 под правило z ≥ 3 (α ≈ 0.13 %): предел находится в 95 % измерений (β = 5 %), а сам он честно раздут на √(χ²/ndf), если подгонка хуже статистики.',
 'l.f2':'<b>Уровень неопределённости — только показ.</b> 1σ или 2σ меняют колонку «Неопред.», но не само решение «обнаружено».',
 'l.f3':'<b>Порог растёт вместе с фоном.</b> Длиннее набор — ниже МДА. Как сужается «трубка» — в <a href="how-it-works.html#activity">«Как это работает»</a>.',
 'p.k':'Образец','p.h':'Масса и дата отбора',
@@ -325,7 +325,7 @@ GUIDE.texts({ru:{
 'r.f1':'<b>Это оценка, не замена FSA.</b> Одна линия не знает о соседях, комптоне и суммировании — для отчёта берите окно результата.',
 'r.f2':'<b>Без фона — без беккерелей.</b> Панель посчитает площадь, но активность покажет только с фоновым спектром.',
 'r.f3':'<b>Коррекция общая.</b> «Корр. пер. полураспада» в окне результата решает и за беккерели панели выделения.',
-'hoodtxt':'<li>Бк = (амплитуда разбора / живое время) × K; K = 1 при абсолютной шкале (матрица или кривая из геометрии / ЛСРМ) и 0, когда беккерели скрыты — тогда строка пишет «нет K», а не молчаливый ноль.</li><li>Погрешность — в абсолютной форме: σ²(Бк) = (σ имп/с · K)² + (имп/с · σK)²; колонка «Неопред.» умножает её на уровень из настроек.</li><li>«На дату отбора» = среднее за набор × 2^((начало − отбор)/T½) × λT/(1 − e^(−λT)), T — полное время набора (распад идёт и в мёртвое время). МДА умножается тем же множителем. Год в T½ — 365 суток, как у импорта из NucBase; у члена ряда T½ — корня ряда.</li><li>МДА — предел обнаружения разбора a# по ISO 11929 (Xu 2022), раздутый на √(χ²/ndf); это не MDA Карри по зоне. При «Результат &gt; MDA» строка без МДА считается не обнаруженной.</li><li>Вес хранится в килограммах: поле «Вес» в граммах делится на 1000; Бк/кг = Бк / вес, Бк/л = Бк / объём.</li>',
+'hoodtxt':'<li>Бк = (амплитуда разбора / живое время) × K; K = 1 при абсолютной шкале (матрица или кривая из геометрии / ЛСРМ) и 0, когда беккерели скрыты — тогда строка пишет «нет K», а не молчаливый ноль.</li><li>Погрешность — в абсолютной форме: σ²(Бк) = (σ имп/с · K)² + (имп/с · σK)²; колонка «Неопред.» умножает её на уровень из настроек.</li><li>«На дату отбора» = среднее за набор × 2^((начало − отбор)/T½) × λT/(1 − e^(−λT)), T — полное время набора (распад идёт и в мёртвое время). МДА умножается тем же множителем. Год в T½ — 365 суток, как у импорта из NucBase; у члена ряда T½ — корня ряда.</li><li>МДА — предел обнаружения разбора a# по ISO 11929 (Xu 2022) под правило z ≥ 3 (α ≈ 0.13 %, β = 5 %), раздутый на √(χ²/ndf); это не MDA Карри по зоне. При «Результат &gt; MDA» строка без МДА считается не обнаруженной.</li><li>Вес хранится в килограммах: поле «Вес» в граммах делится на 1000; Бк/кг = Бк / вес, Бк/л = Бк / объём.</li>',
 },en:{
 'n.win':'Result window','n.calc':'Calculator','n.lim':'Detection limit','n.smp':'Mass and date','n.sel':'Selected region',
 'h.k':'Chapter 10 · Activity and results',
@@ -339,21 +339,21 @@ GUIDE.texts({ru:{
 'w.l3':'<b>The first column header</b> — where the becquerels come from: “FSA: Bq by response matrix”, “by … curve”, “Bq hidden — reason”',
 'w.l4':'<b>“Acq. mean”</b> or <b>“At sampling”</b> — which moment the number refers to',
 'w.l5':'<b>“Uncertainty 2σ”</b> — the uncertainty at the level chosen in the preferences, in brackets — in percent',
-'w.l6':'<b>“MDA”</b> — the detection limit of the decomposition (ISO 11929); the column is reached by scrolling',
+'w.l6':'<b>“MDA, z ≥ 3”</b> — the detection limit of the decomposition per ISO 11929: the threshold is significance z ≥ 3 (α ≈ 0.13 %), the limit is found in 95 % of measurements (β = 5 %)',
 'w.l7':'<b>Rows</b> — nuclides from FSA; a tied chain member gives the row of the parent (Th-232 here)',
 'd.h':'What the header says',
-'d.hint':'Click the states — below is a mock-up of the window with what you will see. Row numbers are from the shots with and without a matrix; the “MDA” column there is cut by the window edge, so only its first digits are visible.',
+'d.hint':'Click the states — below is a mock-up of the window with what you will see. Row numbers are from the shots with and without a matrix; the “MDA” column is cut by the window edge — only the first digits are visible.',
 'd.s1':'by matrix','d.s2':'by curve','d.s3':'Bq hidden: field','d.s4':'Bq hidden: measurement','d.s5':'error','d.s6':'computing','d.s7':'Bq/kg without weight',
 'd.h1':'FSA: Bq by response matrix','d.h2':'FSA: Bq by simulation curve','d.h3':'FSA: Bq hidden — field-scene curve (cm² per unit fluence)','d.h4':'FSA: Bq hidden — curve without absolute scale (measurement)','d.h5':'FSA: error','d.h6':'FSA: computing…','d.h7':'FSA: Bq by response matrix',
-'d.t1':'The best case: a curve with a geometry and a valid matrix. Cascade summing is applied.',
-'d.t2':'No matrix or a stale one: becquerels by the curve, summing not applied. In the shot without a matrix Th-232 came out 1085.09 instead of 965.18 Bq — a 12 % difference. Compute the matrix (chapter <a href="geometry.html#matrix">8</a>).',
+'d.t1':'The best case: a curve with a geometry and a valid matrix. Cascade summing is applied. K-40 is below the limit here — a row with ND.',
+'d.t2':'No matrix or a stale one: becquerels by the curve, summing not applied. In the shot without a matrix Th-232 came out 926.64 instead of 986.49 Bq — 6 % lower. Compute the matrix (chapter <a href="geometry.html#matrix">8</a>).',
 'd.t3':'A curve of the “Isotropic field (ISO)” scene measures the response per unit fluence (cm²), not a share of photons: fine for dose, not for becquerels. Rows say “no K”. The “Detector on the ground” and “in a borehole” scenes do give becquerels.',
 'd.t4':'The curve comes from measurements or was typed by hand, and a geometry was added with “Edit...”: the decomposition runs, but the curve has no absolute scale — without a matrix becquerels are hidden. Compute the matrix (then Bq come from it) or a curve from the geometry.',
 'd.t5':'The decomposition refused: instead of rows there is one “FSA” row with the reason, the same as in the status line of the “FSA Report”. Here — the curve has no geometry (chapter <a href="geometry.html">8</a>).',
 'd.t6':'The decomposition is still running. If an earlier result exists, its rows stay and the header gets “(recomputing…)”; while recording it recomputes no more often than every 30 s.',
 'd.t7':'Bq/kg is chosen while the weight in “Sample Information” is zero: rows say “no weight”. Type the weight — and the numbers appear.',
 'c.nok':'no K','c.nom':'no weight','c.comp':'FSA: computing…','c.geo':'Full-spectrum decomposition needs a detector geometry: describe the crystal in the geometry editor of the efficiency curve',
-'col.n':'Nuclide','col.mean':'Acq. mean','col.samp':'At sampling','col.u':'Uncertainty','col.mda':'MDA','u.bq':'Bq','u.bqkg':'Bq/kg','u.bql':'Bq/l','corr.no':'No Correction','corr.hl':'Half Lifetime Correction',
+'col.n':'Nuclide','col.mean':'Acq. mean','col.samp':'At sampling','col.u':'Uncertainty','col.mda':'MDA, z ≥ 3','u.bq':'Bq','u.bqkg':'Bq/kg','u.bql':'Bq/l','corr.no':'No Correction','corr.hl':'Half Lifetime Correction',
 'w.f1':'<b>Rows come from FSA only.</b> ROI zones are gone: the window shows exactly the composition in the FSA report.',
 'w.f2':'<b>A chain is one row.</b> With “Chain equilibrium” Ac-228, Pb-212, Tl-208 give a Th-232 row — the activity of the parent.',
 'w.f3':'<b>Not detected is an answer too.</b> Such rows stay with the limit in “MDA” and an ND mark.',
@@ -378,12 +378,12 @@ GUIDE.texts({ru:{
 'l.l4':'<b>Detection Condition</b>: “Result &gt; k Times of Standard Uncertainty” or “Result &gt; MDA”',
 'l.l5':'<b>Show Values for Not Detected Nuclides</b> — print the number for a not-detected one too (with ND)',
 's.h':'Set up the window yourself',
-'s.hint':'Move the sliders — the mock-up behaves like the program. K-40 and Th-232 are the values and uncertainties from the shot (MDA — the first digits, the rest is cut by the window edge); the third row is an example.',
+'s.hint':'Move the sliders — the mock-up behaves like the program. K-40 and Th-232 are the values and uncertainties from the shot; the MDA shows the first digits only (the column is cut by the window edge); the third row is an example.',
 's.def':'as by default','s.shot':'as in the shot',
 's.lev':'Uncertainty Level','s.k':'Detection Level (k)','s.cond':'Detection Condition','s.nd':'Show Values for Not Detected Nuclides',
 's.c0':'Result > k Times of Standard Uncertainty','s.c1':'Result > MDA',
 's.ex':'Cs-137 (example)','s.msg':'detected <b>{0} of {1}</b>','s.why0':'K-40: {0} ≥ {1}·σ = {2}?','s.why1':'K-40: {0} ≥ MDA {1}?',
-'l.f1':'<b>The FSA MDA is not “per zone”.</b> It is the detection limit of the decomposition by ISO 11929, honestly inflated by √(χ²/ndf) when the fit is worse than statistics.',
+'l.f1':'<b>The FSA MDA is not “per zone”.</b> It is the detection limit of the decomposition by ISO 11929 for the z ≥ 3 rule (α ≈ 0.13 %): the limit is found in 95 % of measurements (β = 5 %), and it is honestly inflated by √(χ²/ndf) when the fit is worse than statistics.',
 'l.f2':'<b>The uncertainty level is display only.</b> 1σ or 2σ change the “Uncertainty” column, not the “detected” decision itself.',
 'l.f3':'<b>The limit grows with the background.</b> A longer count gives a lower MDA. How the “trumpet” narrows — in <a href="how-it-works.html#activity">“How it works”</a>.',
 'p.k':'Sample','p.h':'Mass and sampling date',
@@ -419,13 +419,13 @@ GUIDE.texts({ru:{
 'r.f1':'<b>An estimate, not a replacement for FSA.</b> One line knows nothing of its neighbours, Compton and summing — for a report use the result window.',
 'r.f2':'<b>No background — no becquerels.</b> The panel computes the area, but shows the activity only with a background spectrum.',
 'r.f3':'<b>The correction is shared.</b> “Half Lifetime Correction” in the result window also decides for the selection panel’s becquerels.',
-'hoodtxt':'<li>Bq = (decomposition amplitude / live time) × K; K = 1 with an absolute scale (matrix, or a curve from geometry / LSRM) and 0 when becquerels are hidden — the row then says “no K” rather than a silent zero.</li><li>The uncertainty is in absolute form: σ²(Bq) = (σ cps · K)² + (cps · σK)²; the “Uncertainty” column multiplies it by the level from the preferences.</li><li>“At sampling” = acquisition mean × 2^((start − sampling)/T½) × λT/(1 − e^(−λT)), T being the full acquisition time (decay goes on in dead time too). The MDA is multiplied by the same factor. A year in T½ is 365 days, as in the NucBase import; a chain member takes the T½ of the chain root.</li><li>MDA is the decomposition detection limit a# by ISO 11929 (Xu 2022), inflated by √(χ²/ndf); it is not the Currie MDA of a zone. With “Result &gt; MDA” a row without an MDA counts as not detected.</li><li>Weight is stored in kilograms: the “Weight” field in grams is divided by 1000; Bq/kg = Bq / weight, Bq/l = Bq / volume.</li>',
+'hoodtxt':'<li>Bq = (decomposition amplitude / live time) × K; K = 1 with an absolute scale (matrix, or a curve from geometry / LSRM) and 0 when becquerels are hidden — the row then says “no K” rather than a silent zero.</li><li>The uncertainty is in absolute form: σ²(Bq) = (σ cps · K)² + (cps · σK)²; the “Uncertainty” column multiplies it by the level from the preferences.</li><li>“At sampling” = acquisition mean × 2^((start − sampling)/T½) × λT/(1 − e^(−λT)), T being the full acquisition time (decay goes on in dead time too). The MDA is multiplied by the same factor. A year in T½ is 365 days, as in the NucBase import; a chain member takes the T½ of the chain root.</li><li>MDA is the decomposition detection limit a# by ISO 11929 (Xu 2022) for the z ≥ 3 rule (α ≈ 0.13 %, β = 5 %), inflated by √(χ²/ndf); it is not the Currie MDA of a zone. With “Result &gt; MDA” a row without an MDA counts as not detected.</li><li>Weight is stored in kilograms: the “Weight” field in grams is divided by 1000; Bq/kg = Bq / weight, Bq/l = Bq / volume.</li>',
 }});
 
 /* ── 1. заголовок окна результата: что значит каждое состояние ── */
 (function states() {
-  const ROWS = [['K-40', '106.36', '±56.36 (52.99%)', '90.3…'], ['Th-232', '965.18', '±9.87 (1.02%)', '5.1…']];
-  const ROWS2 = [['K-40', '215.19', '±77.04 (35.80%)', '118.7…'], ['Th-232', '1085.09', '±16.54 (1.52%)', '10.6…']];
+  const ROWS = [['Th-232', '986.49', '±12.68 (1.28%)', '8.9…'], ['K-40', '<span class="nd">ND</span>0.00', '±52.97', '124.0…']];
+  const ROWS2 = [['K-40', '143.33', '±66.81 (46.61%)', '151.3'], ['Th-232', '926.64', '±7.58 (0.82%)', '11.1']];
   let s = 1;
   function draw() {
     $('#dStates').innerHTML = [1, 2, 3, 4, 5, 6, 7].map(i => '<button class="chip' + (i === s ? ' on' : '') + '" data-i="' + i + '">' + t('d.s' + i) + '</button>').join('');
@@ -507,8 +507,8 @@ GUIDE.texts({ru:{
 
 /* ── 3. «настройте окно»: та же логика, что у DCResultView (обнаружено, ND, уровень σ) ── */
 (function settings() {
-  // [имя, значение, σ (1σ), МДА]; K-40 и Th-232 — со снимка (2σ: ±56.36 и ±9.87)
-  const R = [['K-40', 106.36, 28.18, 90.3, '90.3…'], ['Th-232', 965.18, 4.935, 5.1, '5.1…'], ['ex', 3.10, 2.40, 7.90, '7.90']];
+  // [имя, значение, σ (1σ), МДА]; K-40 и Th-232 — со снимка (2σ: ±52.97 и ±12.68)
+  const R = [['K-40', 0.00, 26.485, 124.0, '124.0…'], ['Th-232', 986.49, 6.34, 8.9, '8.9…'], ['ex', 3.10, 2.40, 7.90, '7.90']];
   function preset(i) { $('#sLev').value = i ? 2 : 1; $('#sK').value = i ? 2 : 3; $('#sCond').value = 0; $('#sNd').checked = !!i; draw(); }
   function ui() {
     $('#sPre').innerHTML = ['s.def', 's.shot'].map((k, i) => '<button class="chip" data-i="' + i + '">' + t(k) + '</button>').join('');

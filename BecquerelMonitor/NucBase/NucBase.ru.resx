@@ -164,7 +164,7 @@
     <value>Добавить ДПР</value>
   </data>
   <data name="IncludeDecayChainCheckBox.ToolTip" xml:space="preserve">
-    <value />
+    <value>ДПР — дочерние продукты распада: добавить в результат линии дочерних нуклидов цепочки распада.</value>
   </data>
   <data name="label8.Text" xml:space="preserve">
     <value>% Интенс. &gt;</value>
@@ -254,7 +254,7 @@
     <value>ДПР:</value>
   </data>
   <data name="label7.ToolTip" xml:space="preserve">
-    <value />
+    <value>ДПР — дочерние продукты распада: дочерние нуклиды цепочки распада.</value>
   </data>
   <data name="NameColumn1.HeaderText" xml:space="preserve">
     <value>Имя</value>

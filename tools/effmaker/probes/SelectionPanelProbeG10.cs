@@ -112,6 +112,23 @@ namespace SelectionPanelProbeG10
         /// ключу командной строки: ключ пришлось бы помнить человеку.
         /// </summary>
         static bool amber2;
+
+        /// <summary>
+        /// Есть ли в сборке правка `AMBER208` (П236, 06.10.2026) — строка
+        /// активности снята с панели выделения. Признак — ОТСУТСТВИЕ типа
+        /// `ROIConfigManager`: форма и конфигурации ROI сняты той же правкой.
+        /// После неё в отрисовке `activity = 0.0` гасит `activityLabelShown`,
+        /// и на панели нет ни подписи, ни спора, ни строки момента.
+        /// </summary>
+        static bool amber208;
+
+        /// <summary>
+        /// Есть ли в сборке правка `AMBER245` — строка причины словами на панели
+        /// выделения («активность — в окне „Результат измерений“»). Признак —
+        /// наличие `EnergySpectrumView.SelectionActivityHint`.
+        /// </summary>
+        static bool reasonDrawn;
+
         static readonly List<string> summary = new List<string>();
 
         const BindingFlags Any = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
@@ -172,6 +189,15 @@ namespace SelectionPanelProbeG10
             Console.WriteLine("SETUP\tсборка: {0}", amber2
                 ? "С ПРАВКОЙ AMBER2 (нет EnergySpectrumView.RefusalHeight) — блока активности без числа на панели НЕТ"
                 : "БЕЗ ПРАВКИ AMBER2 (плечо «до») — ждём отказ и подпись при нём на панели");
+            amber208 = typeof(EnergySpectrumView).Assembly.GetType("BecquerelMonitor.ROIConfigManager") == null;
+            Console.WriteLine("SETUP\tсборка: {0}", amber208
+                ? "С ПРАВКОЙ AMBER208 (нет ROIConfigManager) — строки активности на панели НЕТ, ждём только причину"
+                : "БЕЗ ПРАВКИ AMBER208 (есть ROIConfigManager) — ждём подпись, спор и момент на панели");
+            reasonDrawn = typeof(EnergySpectrumView).GetMethod("SelectionActivityHint",
+                BindingFlags.NonPublic | BindingFlags.Static) != null;
+            Console.WriteLine("SETUP\tсборка: {0}", reasonDrawn
+                ? "С ПРАВКОЙ AMBER245 (есть EnergySpectrumView.SelectionActivityHint) — ждём строку причины 32 px"
+                : "БЕЗ ПРАВКИ AMBER245 — строки причины на панели нет");
             Console.WriteLine("SETUP\tприложение: {0}", typeof(EnergySpectrumView).Assembly.Location);
 
             MainForm mainForm = new MainForm();
@@ -349,8 +375,17 @@ namespace SelectionPanelProbeG10
                 //    сверяет их имена с клеймами ниже.
                 if (amber2 && !string.IsNullOrEmpty(label))
                 {
+                    // ⛔ (`AMBER245`) ЧТО ПАНЕЛЬ РИСУЕТ СЕЙЧАС — МЕРЯЕТСЯ ПО СБОРКЕ,
+                    //    а не подгоняется числом. После `AMBER208` (П236, 06.10.2026)
+                    //    строка активности снята: в отрисовке `activity = 0.0` гасит
+                    //    `activityLabelShown`, и ни подписи, ни спора, ни строки
+                    //    момента на панели нет. Остаётся одна строка причины
+                    //    (`AMBER245`, 32 px). Поэтому ожидание собирается из того,
+                    //    что сборка умеет: старая ждёт подпись/спор/момент, нынешняя —
+                    //    только причину.
                     int rivalRowHonest = rivals > 0 ? 16 : 0; // ПАНЕЛЬ: спор
                     int labelRow = 16;                        // ПАНЕЛЬ: подпись
+                    bool activityOnPanel = !amber208;
                     // (`AMBER207`, 06.10.2026) Строки суммирования (`AMBER133`, П167)
                     // на панели больше нет — слагаемое снято здесь и в отрисовке.
                     // ⚠ Сборка П167…AMBER207 её рисовала: на ней мерка не сойдётся.
@@ -368,9 +403,33 @@ namespace SelectionPanelProbeG10
                     PropertyInfo momentProp = an.GetType().GetProperty("ActivityMoment", Any);
                     string moment = momentProp != null ? (string)momentProp.GetValue(an, null) : null;
                     int momentRowHonest = string.IsNullOrEmpty(moment) ? 0 : 16; // ПАНЕЛЬ: момент
+                    // (`AMBER245`) Строка причины словами («активность — в окне
+                    // „Результат измерений“») стоит на панели, когда число ЕСТЬ, а
+                    // строка активности снята решением `AMBER208` (П236). Место под
+                    // неё — 32 px: текст длинный и переносится на две строки.
+                    int reasonRow = 32; // ПАНЕЛЬ: причина
                     if (momentRowHonest > 0)
                     {
                         Console.WriteLine("  строка момента: {0}", moment);
+                    }
+                    int expectedGrown = (activityOnPanel ? labelRow + rivalRowHonest + momentRowHonest : 0)
+                                        + (reasonDrawn ? reasonRow : 0);
+                    Console.WriteLine("  устройство панели: строка активности {0}, строка причины {1}; снятие подписи обязано осесть на {2} px",
+                                      activityOnPanel ? "РИСУЕТСЯ" : "снята (AMBER208)",
+                                      reasonDrawn ? "РИСУЕТСЯ (32 px)" : "нет",
+                                      expectedGrown);
+
+                    // (`AMBER245`) ТЕКСТ СТРОКИ ПРИЧИНЫ — против ресурса культуры:
+                    // слова обязаны быть теми же, что видит человек, и не пустыми.
+                    if (reasonDrawn && !activityOnPanel)
+                    {
+                        MethodInfo hint = typeof(EnergySpectrumView).GetMethod("SelectionActivityHint",
+                            BindingFlags.NonPublic | BindingFlags.Static);
+                        string hintText = (string)hint.Invoke(null, new object[] { an });
+                        string hintExpected = AppResources.GetString("SelectionActivityHint",
+                            CultureInfo.GetCultureInfo(culture));
+                        Same("строка причины: текст из ресурса культуры", hintExpected, hintText);
+                        Same("строка причины не пуста", true, !string.IsNullOrEmpty(hintText));
                     }
 
                     // ⛔ СПОР РАЗВОДИТСЯ ОТДЕЛЬНО (`A273`, и урок его цел). Он
@@ -379,7 +438,9 @@ namespace SelectionPanelProbeG10
                     //    отличить от пустого места. До `AMBER2` это плечо
                     //    стояло у отказов; отказ на панель больше не выходит,
                     //    и разведение переехало туда, где строка спора
-                    //    рисуется, — к числу.
+                    //    рисуется, — к числу. ⚠ После `AMBER208` строка спора
+                    //    не рисуется: плечо проверяет именно это (0 px и 0 точек)
+                    //    и откажет, если сборка начнёт её рисовать.
                     if (rivals > 0)
                     {
                         Set(an, "ActivityRivals", 0);
@@ -393,8 +454,16 @@ namespace SelectionPanelProbeG10
                                 new Rectangle(0, 0, frame.Width, frame.Height)) - changedRival;
                             Console.WriteLine("  разведение «спор подписи»: панель без спора {0} px против {1} px; изменилось точек в области панели {2}, вне её {3}",
                                               noRivalBox.Height, panelBox.Height, changedRival, outsideRival);
-                            Same("строка спора НАРИСОВАНА: точек изменилось > 0", true, changedRival > 0);
-                            Same("строка спора занимает ровно 16 px", 16, panelBox.Height - noRivalBox.Height);
+                            if (activityOnPanel)
+                            {
+                                Same("строка спора НАРИСОВАНА: точек изменилось > 0", true, changedRival > 0);
+                                Same("строка спора занимает ровно 16 px", 16, panelBox.Height - noRivalBox.Height);
+                            }
+                            else
+                            {
+                                Same("строка спора НЕ рисуется (AMBER208): высота та же", 0, panelBox.Height - noRivalBox.Height);
+                                Same("строка спора НЕ рисуется (AMBER208): точек не изменилось", 0, changedRival);
+                            }
                             Same("снятие спора вне панели кадр не трогает", 0, outsideRival);
                         }
 
@@ -410,18 +479,64 @@ namespace SelectionPanelProbeG10
                         int changed = ChangedIn(frame, noLabel, area);
                         int outside = ChangedIn(frame, noLabel,
                                                 new Rectangle(0, 0, frame.Width, frame.Height)) - changed;
+                        int grown = panelBox.Height - noLabelBox.Height;
                         Console.WriteLine("  контроль «подпись снята»: панель {0} px против {1} px; изменилось точек в области панели {2}, вне её {3}",
                                           noLabelBox.Height, panelBox.Height, changed, outside);
-                        Same("подпись НАРИСОВАНА: точек изменилось > 0", true, changed > 0);
-                        Same("подпись занимает ровно " + (labelRow + rivalRowHonest + momentRowHonest).ToString(CultureInfo.InvariantCulture)
-                             + " px" + (rivalRowHonest > 0 ? " (16 подписи + 16 строки спора)" : "")
-                             + (momentRowHonest > 0 ? " (+16 строки момента)" : ""),
-                             labelRow + rivalRowHonest + momentRowHonest, panelBox.Height - noLabelBox.Height);
+                        if (expectedGrown > 0)
+                        {
+                            Same(activityOnPanel
+                                     ? "подпись НАРИСОВАНА: точек изменилось > 0"
+                                     : "строка причины НАРИСОВАНА: точек изменилось > 0",
+                                 true, changed > 0);
+                        }
+                        else
+                        {
+                            Same("на панели нет строк активности: точек не изменилось", 0, changed);
+                        }
+                        Same("снятие подписи оседает ровно на " + expectedGrown.ToString(CultureInfo.InvariantCulture)
+                             + " px"
+                             + (activityOnPanel
+                                    ? " (подпись" + (rivalRowHonest > 0 ? " + спор" : "")
+                                      + (momentRowHonest > 0 ? " + момент" : "") + ")"
+                                    : " (строка активности снята, AMBER208)")
+                             + (reasonDrawn ? " + причина 32 (`AMBER245`)" : ""),
+                             expectedGrown, grown);
                         Same("снятие подписи вне панели кадр не трогает", 0, outside);
                         noLabel.Save(Path.Combine(shotDir, tag + "-nolabel.png"), ImageFormat.Png);
                     }
 
                     Set(an, "ActivityLabel", label);
+
+                    // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ МЕРКИ — ПОДБРОШЕННЫЙ ВХОД, на
+                    //    котором проба обязана ОТКАЗАТЬ: причина не напечатана.
+                    //    Ставим `Activity = 0` — условие строки причины
+                    //    (`Lc > 0 && Activity > 0`) перестаёт выполняться, и она
+                    //    пропадает; всё остальное на панели обязано остаться.
+                    //    Мерка видит ровно 32 px и точки внутри панели — значит,
+                    //    она читает отрисовку причины, а не «соглашается всегда».
+                    //    Если строка не печатается, разница будет 0 и контроль
+                    //    откажет. Это положительный контроль ВСЕЙ мерки: без него
+                    //    «сошлось» одинаково даёт и верная правка, и сломанная.
+                    if (reasonDrawn && !activityOnPanel)
+                    {
+                        Set(an, "Activity", 0.0);
+                        using (Bitmap noReason = Frame(view))
+                        {
+                            Rectangle noReasonBox = DarkGrayBox(noReason);
+                            Rectangle area = Rectangle.Union(panelBox, noReasonBox);
+                            area.Inflate(Margin, Margin);
+                            int changedReason = ChangedIn(frame, noReason, area);
+                            int outsideReason = ChangedIn(frame, noReason,
+                                new Rectangle(0, 0, frame.Width, frame.Height)) - changedReason;
+                            Console.WriteLine("  положительный контроль «причина не напечатана»: панель {0} px против {1} px; изменилось точек в области панели {2}, вне её {3}",
+                                              noReasonBox.Height, panelBox.Height, changedReason, outsideReason);
+                            Same("положительный контроль: панель ниже ровно на 32 px", reasonRow,
+                                 panelBox.Height - noReasonBox.Height);
+                            Same("положительный контроль: точки причины изменились", true, changedReason > 0);
+                            Same("снятие причины вне панели кадр не трогает", 0, outsideReason);
+                        }
+                        Set(an, "Activity", activity);
+                    }
                 }
 
                 frame.Dispose();
