@@ -10,8 +10,12 @@ u"""Сторож чисел ENSDF и совпадений: `database/scheme.md` 
 `D17`. Глаз этого не ловит: цифры правдоподобны и стоят рядом с верными.
 
 Что судит. Таблицу «Числа таблиц» в §7, §8 и §8а (формы бета-спектров, `AMBER274`,
-30.10.2026) `database/scheme.md`: каждая её
-строка называет таблицу, базу и число строк, и сторож сверяет их СЧЁТОМ.
+30.10.2026) `database/scheme.md`: каждая её строка называет таблицу, базу и число
+строк, и сторож сверяет их СЧЁТОМ. Второй образец — таблица «Якоря значений»
+(§2, `AMBER287` 05.11.2026): её строка называет поле и ЗНАЧЕНИЕ, и сторож сверяет
+число с базой с точностью последнего знака записи. Якорь заводится там, где число
+выбрано решением (из двух расходящихся оценок) и не должно тихо откатиться правкой
+базы; первый — выход γ K-40 1460.82 (DDEP/LNHB 10.34 против ENSDF/NuDat 10.66).
 Читаются базы только на чтение (`mode=ro`), не пишется ничего.
 
 ⚠ Сторож НЕ судит поставку: `C:\\LSRM\\…\\ENSDF2` есть не на всякой машине, и
@@ -79,6 +83,21 @@ SPECIAL = {
         ("schemedb", "select count(*) from ensdf_datasets where parent_l_seqno is not null"),
 }
 
+#: Строка таблицы «Якоря значений»: `| <база>.<таблица> | <что> | <число с точкой> |`.
+#: Число С ТОЧКОЙ нарочно: строка «Чисел таблиц» с целым счётом этим образцом не
+#: ловится, и два образца не спорят за одну строку.
+VALUE_ROW = re.compile(
+    r"^\|\s*`(schemedb|nucdb)\.([a-z_0-9]+)`\s*\|([^|]*)\|"
+    r"\s*\*{0,2}([0-9]+\.[0-9]+)\*{0,2}\s*\|\s*$")
+
+#: Имя в третьей графе «Якорей значений» -> (база, запрос, допуск).
+#: Запрос обязан вернуть ОДНО число. Допуск — половина последнего знака записи.
+VALUES = {
+    u"выход γ K-40 1460.82, %":
+        ("nucdb", "select intensity_num from decay_radiations"
+                  " where parent_nucid='40K' and type_a='G' and energy='1460.820'", 0.005),
+}
+
 
 def digits(text):
     return int(re.sub(r"[^0-9]", "", text))
@@ -96,9 +115,23 @@ def read_rows(doc_path):
     return out
 
 
+def read_values(doc_path):
+    u"""Строки «Якорей значений»: (база, таблица, что, значение, строка)."""
+    with io.open(doc_path, encoding="utf-8") as f:
+        lines = f.read().split("\n")
+    out = []
+    for n, line in enumerate(lines, 1):
+        m = VALUE_ROW.match(line.strip())
+        if m:
+            out.append((m.group(1), m.group(2), m.group(3).strip(),
+                        float(m.group(4)), n))
+    return out
+
+
 def check(doc_path, dbs):
     rows = read_rows(doc_path)
-    if not rows:
+    values = read_values(doc_path)
+    if not rows and not values:
         sys.stderr.write(u"⛔ в %s нет ни одной строки таблицы чисел — "
                          u"судить не по чему\n" % doc_path)
         return 2
@@ -129,13 +162,42 @@ def check(doc_path, dbs):
         print(u"  %s %s.%-24s %-40s документ %8d, в базе %8d"
               % (mark, db_name, table, key, want, have))
 
+    for db_name, table, what, want, line_no in values:
+        key = what.strip().strip("*").strip()
+        if key not in VALUES:
+            print(u"  ⛔ %s.%s (%s), строка %d: в стороже нет запроса для этого якоря"
+                  % (db_name, table, key, line_no))
+            bad += 1
+            continue
+        src, query, tol = VALUES[key]
+        try:
+            got = conn[src].execute(query).fetchone()
+        except sqlite3.Error as error:
+            print(u"  ⛔ %s.%s (%s), строка %d: запрос не прошёл — %s"
+                  % (db_name, table, key, line_no, error))
+            bad += 1
+            continue
+        if got is None:
+            print(u"  ⛔ %s.%s (%s), строка %d: запрос вернул пусто"
+                  % (db_name, table, key, line_no))
+            bad += 1
+            continue
+        have = float(got[0])
+        ok = abs(have - want) <= tol
+        if not ok:
+            bad += 1
+        print(u"  %s %s.%-24s %-40s документ %8.2f, в базе %10.4f"
+              % (u"✓" if ok else u"⛔", db_name, table, key, want, have))
+
     for c in conn.values():
         c.close()
     if bad:
         print(u"⛔ ОСТАНОВ: расхождений %d из %d. Число документа — это число "
-              u"СТРОК ТАБЛИЦЫ, а не разобранных записей поставки (`W17`)." % (bad, len(rows)))
+              u"СТРОК ТАБЛИЦЫ, а не разобранных записей поставки (`W17`); якорь "
+              u"значения — само значение поля." % (bad, len(rows) + len(values)))
         return 1
-    print(u"✓ все %d чисел §7/§8/§8а сходятся с базами" % len(rows))
+    print(u"✓ сходятся с базами: чисел §7/§8/§8а — %d, якорей значений — %d"
+          % (len(rows), len(values)))
     return 0
 
 
