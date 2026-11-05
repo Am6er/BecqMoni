@@ -10725,9 +10725,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 this.AnchorRolledBack = true;
                 // служебная строка пробам и корпусу — прежняя; окну отчёта — числа ниже (`AMBER269`,
                 // дефект 4: прежде откат был виден только в этой строке, и отчёт писал «опор: нет»)
-                bare.AnchorNote = string.Format(CultureInfo.InvariantCulture,
+                string rollbackNote = string.Format(CultureInfo.InvariantCulture,
                     "откат привязки (AMBER269): с привязкой (опор {0}, усиление {1:F5}) χ²/ndf Пуассона {2:F2} хуже, чем без неё {3:F2}, — шкала без привязки",
                     anchorsMain, gainMain, chiMain, bare.Chi2NdfPoisson);
+                // ⛔ (`AMBER290`) ПРИЧИНА ТОРМОЗА — В ТУ ЖЕ СТРОКУ. Прежде строка отката затирала её
+                // целиком, и человек (критик `crit7`) читал «опор 0» как «тормоз не срабатывал», хотя
+                // тормоз и был причиной отката (`AMBER288`). Тормоз назван первым — он причина, откат
+                // следствие; тормоза не было — строка прежняя до бита.
+                string brakeNote = BrakeNoteOf(main.AnchorNote);
+                bare.AnchorNote = WithBrakeNote(brakeNote, rollbackNote);
                 if (!double.IsNaN(this.rollbackWidth))
                 {
                     // (`AMBER269`, Н5) ширина опор отменённого разбора — оставлена
@@ -10749,6 +10755,39 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // (`AMBER269`, Н5) ширина отката живёт только внутри отката
                 this.rollbackWidth = double.NaN;
             }
+        }
+
+        /// <summary>
+        /// (`AMBER290`) Кусок служебной строки привязки про тормоз усиления
+        /// (<see cref="AnchorGainBrake"/>): от «тормоз усиления» до ближайшего «; » —
+        /// тормоз дописывает эту фразу в <see cref="FsaResult.AnchorNote"/> целиком,
+        /// своих «; » внутри неё нет. Пусто — тормоза не было (строка отката прежняя до бита).
+        /// </summary>
+        static string BrakeNoteOf(string anchorNote)
+        {
+            const string marker = "тормоз усиления";
+            if (string.IsNullOrEmpty(anchorNote))
+            {
+                return null;
+            }
+
+            int at = anchorNote.IndexOf(marker, StringComparison.Ordinal);
+            if (at < 0)
+            {
+                return null;
+            }
+
+            int end = anchorNote.IndexOf("; ", at, StringComparison.Ordinal);
+            return end < 0 ? anchorNote.Substring(at) : anchorNote.Substring(at, end - at);
+        }
+
+        /// <summary>
+        /// (`AMBER290`) Строка отката с причиной тормоза: тормоз назван первым (он причина),
+        /// откат — следом. Тормоза не было — строка отката прежняя до бита.
+        /// </summary>
+        static string WithBrakeNote(string brakeNote, string rollbackNote)
+        {
+            return string.IsNullOrEmpty(brakeNote) ? rollbackNote : brakeNote + "; " + rollbackNote;
         }
 
         /// <summary>
