@@ -1,0 +1,25 @@
+exe:   D:\BqMoni_Claude\fix305\app\BecquerelMonitor.exe
+склад: D:\BqMoni_Claude\fix305\app\config\device\response;  физика 30, формат 12
+== строки раздела, язык en
+   OK  ResponseMatrixStateNeedsSection есть
+   OK  по-английски: «Recompute needed: the matrix has no usable electron section of the current recipe.»
+      высота 13 px при ширине 536
+   OK  ResponseMatrixSectionRows есть
+   OK  по-английски: «Electron section: 80 nodes, 85 lines, 61 branches»
+      высота 13 px при ширине 536
+   OK  ResponseMatrixSectionMissing есть
+   OK  по-английски: «Electron section: none usable. FSA on this matrix leaves out the sample's beta; recompute to build it.»
+      высота 13 px при ширине 536
+   OK  ResponseMatrixSectionFailed есть
+   OK  по-английски: «Electron section not built: InvalidOperationException: reason»
+      высота 13 px при ширине 536
+   OK  влезает в строку хода: 13 из 48 px
+   OK  ResponseMatrixSectionProgress есть
+   OK  по-английски: «Electron section: row 337 of 337.»
+      высота 13 px при ширине 536
+   OK  влезает в строку хода: 13 из 48 px
+   OK  ResponseMatrixSectionGpuProgress есть
+   OK  по-английски: «GPU: electron section, row 337 of 337.»
+      высота 13 px при ширине 536
+   OK  влезает в строку хода: 13 из 48 px
+ВСЕ СОШЛИСЬ

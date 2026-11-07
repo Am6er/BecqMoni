@@ -48,7 +48,7 @@
   <h2 data-t="p.h"></h2>
   <p class="lead" data-t="p.lead"></p>
   <div class="grid2 wr">
-    <figure class="shot" data-shot="panel-ecal" data-hot='[[0.0598,0.5112,0.2133,0.0431],[0.0598,0.5656,0.7014,0.1724],[0.6224,0.5112,0.16,0.0431],[0.7824,0.5956,0.1619,0.0656],[0.7824,0.7770,0.1619,0.0431],[0.6928,0.8858,0.2646,0.0431],[0.7824,0.7265,0.1619,0.0431],[0.0364,0.1555,0.62,0.29]]'>
+    <figure class="shot" data-shot="panel-ecal" data-hot='[[0.0542,0.1404,0.2042,0.0409],[0.0521,0.1949,0.7083,0.2827],[0.6667,0.6355,0.1750,0.0370],[0.7854,0.1988,0.1521,0.0663],[0.7854,0.2788,0.1521,0.0390],[0.7854,0.3353,0.1521,0.0643],[0.2729,0.1404,0.3063,0.0409],[0.0375,0.5828,0.6042,0.1384]]'>
       <figcaption data-t="p.cap"></figcaption>
     </figure>
     <div>
@@ -90,7 +90,7 @@
     <div class="pills" id="qRes"></div>
   </div>
   <div class="grid2 wr" style="margin-top:22px">
-    <figure class="shot" data-shot="panel-fwhm" data-hot='[[0.0340,0.4269,0.1599,0.0431],[0.0320,0.1331,0.9254,0.2809],[0.0682,0.5581,0.3839,0.0393],[0.7227,0.4940,0.2280,0.0430],[0.0575,0.7977,0.6481,0.1199],[0.7227,0.5490,0.2280,0.0550]]'>
+    <figure class="shot" data-shot="panel-fwhm" data-hot='[[0.0542,0.1404,0.2042,0.0409],[0.0521,0.1949,0.7083,0.2827],[0.0417,0.7836,0.3750,0.0390],[0.7854,0.1988,0.1521,0.0663],[0.0458,0.8402,0.2813,0.0292],[0.7854,0.3353,0.1521,0.0643]]'>
       <figcaption data-t="f.cap"></figcaption>
     </figure>
     <div>
@@ -125,7 +125,7 @@
   <h2 data-t="d.h"></h2>
   <p class="lead" data-t="d.lead"></p>
   <div class="grid2 wl">
-    <figure class="shot" data-shot="devcfg-ecal" data-hot='[[0.465,0.667,0.106,0.037],[0.578,0.667,0.115,0.037],[0.44,0.25,0.52,0.12],[0.44,0.427,0.53,0.49]]'>
+    <figure class="shot" data-shot="devcfg-ecal" data-hot='[[0.4627,0.2813,0.0860,0.0507],[0.5871,0.2813,0.0860,0.0507],[0.4412,0.1973,0.5294,0.1333],[0.4299,0.3360,0.5600,0.6040]]'>
       <figcaption data-t="d.cap"></figcaption>
     </figure>
     <div>
@@ -140,7 +140,7 @@
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=a7cf2625"></script>
+<script src="assets/guide.js?v=239b6cbd"></script>
 <script src="assets/quanta.js?v=67b2c2dc"></script>
 <script>
 'use strict';
@@ -220,9 +220,9 @@ GUIDE.texts({ru:{
 'fps.tip':'<b>Где взять.</b> Окно открывает кнопка <span class="ui">График</span> под таблицей калибровки; вид запоминается — следующее окно откроется на том пункте, который смотрели в прошлый раз.',
 'd.k':'Прибор','d.h':'Калибровка в конфигурации прибора',
 'd.lead':'Та же калибровка хранится в конфигурации прибора (<span class="ui m">Инструменты → Конфигурация устройства → Калибровка энергии</span>): отсюда её получают новые спектры прибора, и здесь же её можно прочитать из прибора или записать в него. Таблица точек при этом одна — на панели «Калибровка энергии и FWHM».',
-'d.cap':'Вкладка «Калибровка энергии» конфигурации прибора, RadiaCode-103 (снимок до объединения вкладок)',
+'d.cap':'Вкладка «Калибровка энергии» конфигурации прибора, RadiaCode-103',
 'd.l1':'<b>Читать с устройства</b> — взять калибровку, зашитую в приборе','d.l2':'<b>Записать в устройство</b> — отправить её обратно (сначала сохраните конфигурацию)',
-'d.l3':'<b>Коэффициенты и кривизна тракта κ</b> — поля вкладки конфигурации прибора; на панели «Калибровка» κ серое, когда взято приборное, и чёрное, когда своё у спектра','d.l4':'<b>Таблицы точек и настроек автокалибратора здесь больше нет</b> — таблица одна, на панели «Калибровка энергии и FWHM»; автокалибровка удалена',
+'d.l3':'<b>Коэффициенты</b> — поля этой вкладки. Кривизна тракта κ — на вкладке «Основное»; на панели «Калибровка» κ серое, когда взято приборное, и чёрное, когда своё у спектра','d.l4':'<b>Таблицы точек и настроек автокалибратора здесь больше нет</b> — таблица одна, на панели «Калибровка энергии и FWHM»; автокалибровка удалена',
 'd.warn':'<b>Запись в прибор необратима</b> — старые коэффициенты прибора будут заменены. Чтение и запись есть у Atom Spectra, RadiaCode и Obsidian; у AtomSpectra TCP/REST — только чтение.',
 'd.as':'<b>AtomSpectra TCP/REST: калибровку задаёт плата.</b> <span class="ui">Читать с устройства</span> берёт её с платы по адресу, который сейчас стоит на вкладке «Устройство», и пересчитывает к числу каналов, вписанному на вкладке «Основное»: в режиме REST — к любому, на которое делится 8192, в режиме TCP — только при 8192 каналах. Иначе программа скажет «калибровка платы не взята» и оставит свою. Пока на этой плате идёт измерение программы, мост TCP калибровку не отдаёт: остановите измерение. Прочитанное ложится в поля — нажмите «Сохранить». Те же коэффициенты переносят сюда кнопки <span class="ui">Обновить</span> и <span class="ui">Проверить связь (REST)</span> на вкладке «Устройство»; записи в плату здесь нет. На каждом «Старте» программа сама берёт калибровку платы в документ и сохраняет в конфигурацию прибора: в режиме REST — пересчитав к числу каналов профиля, в режиме TCP — только при 8192 каналах. Свою калибровку, сделанную в BecqMoni, следующий «Старт» заменит калибровкой платы; если на плате её нет, остаётся своя.',
 'hoodtxt':'<li>Решатель берёт наибольшую годную степень не выше заказанной: если кривая где-либо на шкале — чаще всего за крайними опорами — отходит от прямой по тем же точкам больше чем на 15 % (но не меньше 40 кэВ) или перестаёт быть годной, степень понижается и подгонка повторяется; старший коэффициент остаётся 0.</li><li>Одна точка — прямая через ноль (добавляется точка «канал 0 = 0 кэВ»).</li><li>«Собрать всё» берёт точки со всех открытых документов; «Сброс» возвращает калибровку прибора.</li><li>У RadiaCode и Obsidian параллельно хранится квадратичная копия калибровки — в таком виде её принимает сам прибор.</li><li>Ширину пика программа берёт из калибровки FWHM спектра; в матрице отклика ширины нет.</li><li>У AtomSpectra TCP/REST многочлен платы задан для 8192 каналов. Для профиля из N каналов его пересчитывают: канал k свёрнутого спектра — середина группы из m = 8192/N каналов платы, <code>x = m·k + (m − 1)/2</code>; степень многочлена та же.</li>',
@@ -252,7 +252,7 @@ GUIDE.texts({ru:{
 'p.l4':'<b>Execute calibration</b> — one process: energy over the rows with an entered energy and FWHM over all rows. The result is printed on a line under the table — mean squared error, κ or a reason — not in a modal box',
 'p.l5':'<b>Graph</b> — one window with a choice of view: Energy / FWHM / Peak function',
 'p.l6':'<b>Save to Device Cfg.</b> — write the calibration into the device configuration; the detector itself is written by the separate “Write to device” button on the configuration tab',
-'p.l7':'<b>Cancel</b> drops the peak selection, <b>Reset</b> brings back the device values, <b>Remove</b> deletes a row, <b>Get all</b> takes anchors from all open documents',
+'p.l7':'<b>Cancel</b> drops the peak selection, <b>Reset</b> brings back the device values, <b>Remove</b> deletes a row, <b>Get all peaks</b> takes anchors from all open documents',
 'p.l8':'<b>Coefficients</b> E = ax⁴ + bx³ + cx² + dx + e — can be typed in by hand',
 'p.steps':'Step by step: Cs-137 and K-40',
 'p.s1':'Open a spectrum with visible Cs-137 (662 keV) and K-40 (1461 keV) peaks — for instance, background with potash fertiliser and a source.',
@@ -291,7 +291,7 @@ GUIDE.texts({ru:{
 'fs.warn':'<b>“The FWHM curve gives zero width on channels 0…N”</b> — a simple square root through two peaks went to zero at the bottom of the scale. Add a peak near the low end or choose “Power law”: its width is positive at every channel above zero.',
 'f.l3':'<b>Curve</b> — “Simple Square root” (2+ peaks), “Square root polynomial” (3+), “Power law” (2+)','f.l4':'<b>Execute calibration</b> — fit the width curve; the peak shape is chosen too',
 'f.l5':'<b>Peak shape</b> — the “Peak function” row of the curve block: which shape the calibration chose and with which parameters (the parameters show only when the shape is not Gaussian); the shape curve itself is in the “Graph” window, the “Peak function” item','f.l6':'<b>Save to Device Cfg.</b> — hand the calibration to the detector',
-'f.info':'<b>The quick way:</b> <span class="ui m">View → Energy and FWHM Calibration</span> → <span class="ui">Get all</span> collects the anchors of all open spectra with the same channel count → <span class="ui">Execute calibration</span> → <span class="ui">Save to Device Cfg.</span>. Without FWHM peak search does not run, and FSA asks which device to take it from.',
+'f.info':'<b>The quick way:</b> <span class="ui m">View → Energy and FWHM Calibration</span> → <span class="ui">Get all peaks</span> collects the anchors of all open spectra with the same channel count → <span class="ui">Execute calibration</span> → <span class="ui">Save to Device Cfg.</span>. Without FWHM peak search does not run, and FSA asks which device to take it from.',
 'fps.h':'Peak shape graph',
 'fps.lead':'The third view of the “Graph” window is <b>Peak function</b>. The window opens with the <span class="ui">Graph</span> button of the calibration panel; the item is always in the list, and for a spectrum without an FWHM curve the window writes the reason in its place instead of hiding the item. The shape itself comes from the FWHM calibration of this spectrum: “Execute calibration” chooses it by comparing the Gaussian, the exponentially modified Gaussian and the Voigt over all rows of the table.',
 'fps.cap':'The “Graph” window, the “Peak function” item',
@@ -301,12 +301,12 @@ GUIDE.texts({ru:{
 'fps.tip':'<b>Where to get it.</b> The window is opened by the <span class="ui">Graph</span> button under the calibration table; the view is remembered — the next window opens on the item you looked at last time.',
 'd.k':'Device','d.h':'Calibration in the device configuration',
 'd.lead':'The same calibration is stored in the device configuration (<span class="ui m">Tool → Edit Device Configurations → Energy Calibration</span>): new spectra of the detector take their calibration from here, and here you can read it from the device or write it back. The point table, though, is one — on the “Energy and FWHM Calibration” panel.',
-'d.cap':'The “Energy Calibration” tab of a device configuration, RadiaCode-103 (screenshot from before the tabs were merged)',
+'d.cap':'The “Energy Calibration” tab of a device configuration, RadiaCode-103',
 'd.l1':'<b>Read from device</b> — take the calibration stored in the detector','d.l2':'<b>Write to device</b> — send it back (save the configuration first)',
-'d.l3':'<b>Coefficients and tract curvature κ</b> — fields of the device configuration tab; on the Calibration panel κ is grey when the device value is used and black when it is the spectrum’s own','d.l4':'<b>No point table and no autocalibrator settings here any more</b> — the table is one, on the “Energy and FWHM Calibration” panel; autocalibration is removed',
+'d.l3':'<b>Coefficients</b> — fields of this tab. The tract curvature κ is on the “General” tab; on the Calibration panel κ is grey when the device value is used and black when it is the spectrum’s own','d.l4':'<b>No point table and no autocalibrator settings here any more</b> — the table is one, on the “Energy and FWHM Calibration” panel; autocalibration is removed',
 'd.warn':'<b>Writing to the device cannot be undone</b> — the detector\'s old coefficients are replaced. Read and write exist for Atom Spectra, RadiaCode and Obsidian; AtomSpectra TCP/REST can only read.',
 'd.as':'<b>AtomSpectra TCP/REST: the board sets the calibration.</b> <span class="ui">Read from device</span> takes it from the board at the address now on the “Device Specific” tab and rescales it to the channel count entered on the “General” tab: in REST mode to any count that divides 8192, in TCP mode only at 8192 channels. Otherwise the program says the board calibration is not taken and keeps its own. While a measurement of the program runs on this board, the TCP bridge does not give the calibration: stop the measurement. What is read goes into the fields — press “Save”. The <span class="ui">Refresh</span> and <span class="ui">Test connection (REST)</span> buttons on the “Device Specific” tab bring the same coefficients here; there is no writing to the board here. At every Start the program itself takes the board calibration into the document and saves it to the device configuration: in REST mode rescaled to the profile\'s channel count, in TCP mode only at 8192 channels. A calibration of your own made in BecqMoni is replaced by the board\'s at the next Start; if the board has none, yours stays.',
-'hoodtxt':'<li>The solver takes the highest workable degree not above the one ordered: if anywhere on the scale — usually beyond the outermost anchors — the curve departs from the straight line through the same points by more than 15 % (at least 40 keV), or stops being valid, the degree goes down and the fit is redone; the top coefficient stays 0.</li><li>One point gives a line through zero (a “channel 0 = 0 keV” point is added).</li><li>“Get all points” collects points from all open documents; “Reset” brings back the device calibration.</li><li>RadiaCode and Obsidian also keep a quadratic copy of the calibration — that is the form the device itself accepts.</li><li>Peak width comes from the spectrum\'s FWHM calibration; the response matrix has no width in it.</li><li>For AtomSpectra TCP/REST the board polynomial is for 8192 channels. For a profile of N channels it is rescaled: channel k of the folded spectrum is the middle of a group of m = 8192/N board channels, <code>x = m·k + (m − 1)/2</code>; the polynomial degree stays the same.</li>',
+'hoodtxt':'<li>The solver takes the highest workable degree not above the one ordered: if anywhere on the scale — usually beyond the outermost anchors — the curve departs from the straight line through the same points by more than 15 % (at least 40 keV), or stops being valid, the degree goes down and the fit is redone; the top coefficient stays 0.</li><li>One point gives a line through zero (a “channel 0 = 0 keV” point is added).</li><li>“Get all peaks” collects points from all open documents; “Reset” brings back the device calibration.</li><li>RadiaCode and Obsidian also keep a quadratic copy of the calibration — that is the form the device itself accepts.</li><li>Peak width comes from the spectrum\'s FWHM calibration; the response matrix has no width in it.</li><li>For AtomSpectra TCP/REST the board polynomial is for 8192 channels. For a profile of N channels it is rescaled: channel k of the folded spectrum is the middle of a group of m = 8192/N board channels, <code>x = m·k + (m − 1)/2</code>; the polynomial degree stays the same.</li>',
 }});
 
 /* ── игра «откалибруйте сами» ── */

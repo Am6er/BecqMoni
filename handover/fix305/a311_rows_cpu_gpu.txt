@@ -1,0 +1,6 @@
+BecqMoni: main config: <полоса>\app7\config\BecquerelMonitor.xml
+BecqMoni: device configs: <полоса>\app7\config\device: 10 loaded
+   OK  строки есть у обеих, сетка одна
+   узлов 27, Σχ²/n 0.679, худший z 1.85 на 35.9 кэВ; сумма площадей A/B 0.98712
+   OK  CPU↔GPU в пределах статистики
+ВСЕ СОШЛИСЬ

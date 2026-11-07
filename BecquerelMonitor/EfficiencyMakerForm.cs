@@ -53,6 +53,10 @@ namespace BecquerelMonitor
             // посчитать было нельзя.
             this.calculateButton.Enabled = true;
             UpdateGeometryLayout();
+
+            // (`AMBER301`) Высота вкладки считается, а не привязана к низу, и без этого не шла за окном:
+            // при 982×620 обрезала легенду и кнопки, при 1500×1000 оставляла пустую полосу.
+            this.Resize += (sender, e) => UpdateGeometryLayout();
         }
 
         GeometryEditorPanel geometryPanel;
@@ -84,6 +88,8 @@ namespace BecquerelMonitor
             this.geometryPanel = new GeometryEditorPanel { Dock = DockStyle.Fill };
             this.geometryPanel.Changed += this.GeometryChanged;
             this.geometryPanel.GdmlModeChanged += this.GdmlModeChanged;
+            this.geometryPanel.GdmlDrawingFailed += reason => this.SayInLogAndStatus(string.Format(CultureInfo.InvariantCulture,
+                ResourceText("GdmlSketchFailedLog", "The GDML drawing was not built: {0}"), reason));
 
             this.geometryTabPage = new TabPage(Resources.EfficiencyMakerTabGeometry)
             {
@@ -557,6 +563,12 @@ namespace BecquerelMonitor
         /// </summary>
         void ImportGeometryClick(object sender, EventArgs e)
         {
+            // До диалога: выбирать файл, который всё равно не примут, незачем.
+            if (this.RefuseImportWhileBusy())
+            {
+                return;
+            }
+
             using (OpenFileDialog dialog = new OpenFileDialog())
             {
                 // Фильтр свой, а не `EfficiencyMakerGeometryFilter`: тот же
@@ -593,38 +605,10 @@ namespace BecquerelMonitor
                 if (string.Equals(System.IO.Path.GetExtension(dialog.FileName), ".gdml",
                                   StringComparison.OrdinalIgnoreCase))
                 {
-                    try
+                    string gdmlProblem;
+                    if (!this.ImportGdmlFile(dialog.FileName, out gdmlProblem) && gdmlProblem != null)
                     {
-                        GdmlGeometry imported = GdmlGeometry.Read(dialog.FileName);
-                        this.geometryPanel.ShowGdml(imported);
-                        AppendLog(imported.DescribeLog());
-                        foreach (string warning in imported.Warnings)
-                        {
-                            AppendLog("  " + warning);
-                        }
-
-                        AppendLog(ResourceText("GdmlCadmeshNote",
-                            "CAD meshes (STL/OBJ/PLY) are not imported: only GDML is read."
-                            + " cadmesh is the Geant4 route for CAD meshes - reference only."));
-
-                        if (!string.IsNullOrEmpty(imported.FatalError))
-                        {
-                            MessageBox.Show(this,
-                                string.Format(CultureInfo.InvariantCulture,
-                                    ResourceText("GdmlImportFailed",
-                                        "{0}: GDML could not be imported - {1}"),
-                                    dialog.FileName, imported.FatalError),
-                                this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(this,
-                            string.Format(CultureInfo.InvariantCulture,
-                                ResourceText("GdmlImportFailed",
-                                    "{0}: GDML could not be imported - {1}"),
-                                dialog.FileName, ex.Message),
-                            this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show(this, gdmlProblem, this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
 
                     return;
@@ -671,6 +655,89 @@ namespace BecquerelMonitor
                                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+        }
+
+        /// <summary>
+        /// (`AMBER304`) Импорт при идущем счёте — отказ и строка: импорт гасил кнопку, которая во
+        /// время счёта и есть «Стоп», а счёт, закончившись, положил бы кривую прежней геометрии
+        /// поверх показанной. Журнал на вкладке редактора спрятан (`UpdateGeometryLayout`), поэтому
+        /// та же строка идёт в статус.
+        /// </summary>
+        bool RefuseImportWhileBusy()
+        {
+            if (!Busy())
+            {
+                return false;
+            }
+
+            this.SayInLogAndStatus(ResourceText("GdmlImportBusy",
+                "Import is refused: a calculation is running. Stop it or wait until it ends."));
+            return true;
+        }
+
+        void SayInLogAndStatus(string line)
+        {
+            this.statusLabel.Text = line;
+            AppendLog(line);
+        }
+
+        /// <summary>
+        /// (`AMBER278`) Показать GDML в редакторе. (`AMBER304`) ⛔ Файл, который не прочитан,
+        /// режим не включает и уже показанный импорт не снимает: прежде битый файл прятал поля
+        /// детектора, гасил «Расчёт» и оставлял одну строку об отказе. Отдельно от диалога,
+        /// чтобы проба проходила этот путь без окон. problem — текст для человека; null при
+        /// отказе из-за счёта, о нём уже сказано.
+        /// </summary>
+        internal bool ImportGdmlFile(string path, out string problem)
+        {
+            problem = null;
+            if (this.RefuseImportWhileBusy())
+            {
+                return false;
+            }
+
+            GdmlGeometry imported;
+            try
+            {
+                imported = GdmlGeometry.Read(path);
+            }
+            catch (Exception ex)
+            {
+                problem = GdmlImportFailedText(path, ex.Message);
+                AppendLog(problem);
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(imported.FatalError))
+            {
+                AppendLog(imported.DescribeLog());
+                problem = GdmlImportFailedText(path, imported.FatalError);
+                return false;
+            }
+
+            this.geometryPanel.ShowGdml(imported);
+            AppendLog(imported.DescribeLog());
+
+            // Журнал на этой вкладке спрятан, а статус мог ещё говорить о прошлом выходе из показа.
+            this.SayInLogAndStatus(string.Format(CultureInfo.InvariantCulture,
+                ResourceText("GdmlModeShown", "GDML geometry is shown; calculation, saving and curves are off: {0}"),
+                System.IO.Path.GetFileName(path)));
+            foreach (string warning in imported.Warnings)
+            {
+                AppendLog("  " + warning);
+            }
+
+            AppendLog(ResourceText("GdmlCadmeshNote",
+                "CAD meshes (STL/OBJ/PLY) are not imported: only GDML is read."
+                + " cadmesh is the Geant4 route for CAD meshes - reference only."));
+            return true;
+        }
+
+        static string GdmlImportFailedText(string path, string reason)
+        {
+            return string.Format(CultureInfo.InvariantCulture,
+                ResourceText("GdmlImportFailed", "{0}: GDML could not be imported - {1}"),
+                path, reason);
         }
 
         /// <summary>
@@ -812,6 +879,10 @@ namespace BecquerelMonitor
                 }
             }
 
+            // (`AMBER304`) Кривая ложится с геометрией полей редактора: это выход из показа GDML,
+            // как и импорт `.in`. Иначе график показал бы кривую рядом с чужой геометрией.
+            this.geometryPanel.ClearGdml();
+
             note += "; geometry: editor fields of the curve designer";
             EfficiencyFitResult result = new EfficiencyFitResult
             {
@@ -823,7 +894,7 @@ namespace BecquerelMonitor
             };
 
             this.lastResult = result;
-            this.graph.SetData(this.referenceCurve, result);
+            this.ShowCurves();
             this.SetDirty();
             this.UpdateSaveState();
 
@@ -952,9 +1023,16 @@ namespace BecquerelMonitor
         /// «Расчёт», выход — возвращает кнопку в состояние ДО импорта. Прежде
         /// импорт выключал её навсегда: выход из GDML (правка поля, шаблон,
         /// обычный импорт) возвращал поля, но не кнопку.
+        ///
+        /// (`AMBER304`) Во время счёта кнопка — это «Стоп», и её не трогаем: состояние режима
+        /// она примет по окончании счёта (<see cref="Start"/>). Выход из режима слышен: правка
+        /// поля на вкладке «Источник» снимает импорт, и молча это выглядело пропажей. Кривые
+        /// на время показа гаснут вместе с `Экспорт CSV`: они посчитаны по полям редактора, а
+        /// на экране другая геометрия; `lastResult` цел, при выходе всё возвращается.
         /// </summary>
         void GdmlModeChanged(object sender, EventArgs e)
         {
+            bool busy = Busy();
             if (this.geometryPanel.GdmlMode)
             {
                 if (!this.gdmlModeActive)
@@ -963,13 +1041,38 @@ namespace BecquerelMonitor
                     this.gdmlModeActive = true;
                 }
 
-                this.calculateButton.Enabled = false;
+                if (!busy)
+                {
+                    this.calculateButton.Enabled = false;
+                }
             }
             else
             {
                 this.calculateButton.Enabled = this.calculateEnabledBeforeGdml;
+                if (this.gdmlModeActive)
+                {
+                    this.SayInLogAndStatus(ResourceText("GdmlModeLeft",
+                        "GDML view is closed: the editor fields are in effect again."));
+                }
+
                 this.gdmlModeActive = false;
             }
+
+            this.ShowCurves();
+            if (!busy)
+            {
+                this.UpdateSaveState();
+            }
+        }
+
+        /// <summary>Кривые графика: на время показа GDML их нет, они не про показанную геометрию. Единое правило для всех, кто меняет кривые.</summary>
+        void ShowCurves()
+        {
+            bool shown = !this.geometryPanel.GdmlMode;
+            this.graph.SetEmptyNote(shown ? null : ResourceText("GdmlCurvesHidden",
+                "GDML geometry is shown: the curves belong to the editor fields and are hidden."));
+            this.graph.SetData(shown ? this.referenceCurve : null,
+                               shown && this.lastResult != null && this.lastResult.Ok ? this.lastResult : null);
         }
 
         DeviceConfigInfo boundDevice;
@@ -1117,8 +1220,7 @@ namespace BecquerelMonitor
             this.boundConfig = config;
             this.savedIntoBound = false;
             this.referenceCurve = config != null && config.HasCurve ? config.Curve : null;
-            this.graph.SetData(this.referenceCurve,
-                               this.lastResult != null && this.lastResult.Ok ? this.lastResult : null);
+            this.ShowCurves();
             if (lost)
             {
                 this.dirty = true;
@@ -1314,6 +1416,14 @@ namespace BecquerelMonitor
         /// </summary>
         void UpdateGeometryLayout()
         {
+            // Свёрнутое окно: места нет, кнопки ушли за край; при разворачивании пересчитается.
+            if (this.WindowState == FormWindowState.Minimized)
+            {
+                return;
+            }
+
+            this.FitStatusLabel();
+
             // Кнопки сохранения, статус и полоса хода — ОБЩИЕ для всех вкладок
             // и стоят внизу формы, а не внутри вкладки: сохраняют они одно и то
             // же, с какой бы вкладки на них ни нажали.
@@ -1334,7 +1444,7 @@ namespace BecquerelMonitor
                 height = this.calculateButton.Bottom + 12 + this.TabChromeHeight;
             }
 
-            this.tabControl.Height = height;
+            this.tabControl.Height = Math.Max(1, height);
 
             // График с журналом идут следом, а не стоят на месте: иначе на
             // низкой вкладке между ними и вкладками зиял бы тот же провал.
@@ -1344,6 +1454,16 @@ namespace BecquerelMonitor
                 this.splitContainer.Top = top;
                 this.splitContainer.Height = this.saveButton.Top - top - 12;
             }
+        }
+
+        /// <summary>
+        /// Статус — единственное объяснение серых кнопок при показе GDML: занимает всё место до правого края,
+        /// а при счёте до полосы хода. Прежде стоял 520 точек и обрывал фразу на длинном имени файла.
+        /// </summary>
+        void FitStatusLabel()
+        {
+            int right = this.progressBar.Visible ? this.progressBar.Left - 8 : this.ClientSize.Width - 12;
+            this.statusLabel.Width = Math.Max(100, right - this.statusLabel.Left);
         }
 
         /// <summary>
@@ -1370,15 +1490,18 @@ namespace BecquerelMonitor
         void UpdateSaveState()
         {
             bool haveCurve = this.lastResult != null && this.lastResult.Ok;
-            this.saveButton.Enabled = this.boundConfig != null
-                ? (this.dirty || haveCurve)
-                : haveCurve;
+            // (`AMBER304`) При показе GDML «Сохранить» только отказывала бы окном: геометрии для
+            // записи нет. Выход из показа кнопку возвращает (`GdmlModeChanged`).
+            this.saveButton.Enabled = !this.geometryPanel.GdmlMode
+                && (this.boundConfig != null ? (this.dirty || haveCurve) : haveCurve);
             // Выгружать есть что и без нового счёта: сохранённая кривая
             // конфигурации (задача Amber 07.10.2026: «Хочу экспортировать
             // готовую кривую для анализа. Но без нового расчета кнопка не
             // активна»).
-            this.exportButton.Enabled = haveCurve
-                || (this.boundConfig != null && this.boundConfig.HasCurve);
+            // (`AMBER304`) Показан импорт GDML: кривая не про него, и файл выгрузки выглядел бы
+            // кривой показанной геометрии.
+            this.exportButton.Enabled = !this.geometryPanel.GdmlMode
+                && (haveCurve || (this.boundConfig != null && this.boundConfig.HasCurve));
         }
 
         /// <summary>
@@ -1481,6 +1604,7 @@ namespace BecquerelMonitor
             this.saveButton.Enabled = false;
             this.exportButton.Enabled = false;
             this.progressBar.Visible = true;
+            this.FitStatusLabel();
             this.statusLabel.Text = status;
 
             // Язык интерфейса выставлен только на потоке формы (MainForm), а
@@ -1517,7 +1641,15 @@ namespace BecquerelMonitor
                 }
 
                 this.progressBar.Visible = false;
+                this.FitStatusLabel();
                 trigger.Text = caption;
+                // (`AMBER304`) Режим GDML, включённый посреди счёта, «Стоп» не гасил: кнопка
+                // принимает его теперь, когда «Стоп» больше не нужен.
+                if (this.geometryPanel.GdmlMode)
+                {
+                    trigger.Enabled = false;
+                }
+
                 this.calcOptionsGroup.Enabled = true;
                 if (args.Error != null)
                 {
@@ -1555,7 +1687,7 @@ namespace BecquerelMonitor
                     AppendLog(Resources.EfficiencyMakerPreviousCurveKept);
                 }
 
-                this.graph.SetData(this.referenceCurve, kept ? this.lastResult : null);
+                this.ShowCurves();
                 // Кнопки сохранения гасились на время прогона — вернуть их
                 // по фактическому состоянию, иначе правка геометрии остаётся
                 // без «Сохранить» до первого удачного счёта.
@@ -1564,7 +1696,7 @@ namespace BecquerelMonitor
             }
 
             this.lastResult = result;
-            this.graph.SetData(this.referenceCurve, result);
+            this.ShowCurves();
             // Пересчитанная кривая — тоже правка: она ещё нигде не сохранена.
             if (result.Ok)
             {

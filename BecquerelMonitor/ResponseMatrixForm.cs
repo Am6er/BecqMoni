@@ -29,6 +29,9 @@ namespace BecquerelMonitor
     ///
     /// Сохранение — отдельной кнопкой и только по нажатию: посчитанная матрица
     /// живёт в памяти формы, пока человек не решил, что она ему нужна.
+    ///
+    /// ⛔ (`AMBER305`) Счёт — это фотонная матрица И раздел электрона пробы, рецептом
+    /// склада корпуса: иначе разбор на матрице окна и на матрице склада расходится молча.
     /// </summary>
     public partial class ResponseMatrixForm : Form
     {
@@ -397,7 +400,7 @@ namespace BecquerelMonitor
             bool versionsMatch = physics == ResponseMatrix.PhysicsVersion;
             bool valid = versionsMatch && existing.IsValidFor(this.config.Geometry);
             this.stateLabel.Text = valid
-                ? Resources.ResponseMatrixStateValid
+                ? this.ValidState(existing)
                 : versionsMatch
                     ? Resources.ResponseMatrixStateStale
                     : Resources.ResponseMatrixStateStaleVersions;
@@ -790,33 +793,97 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// (`AMBER274`, `Р1`) Перенести в только что посчитанную матрицу раздел электронов
-        /// прежней (той, что показывало окно), если он посчитан для того же клейма фотонной
-        /// части: раздел от фотонных строк не зависит, а пересчёт с тем же рецептом не
-        /// должен его стирать. Отказ чтения прежней — молча: переносить нечего.
+        /// ⛔ (`AMBER305`, решение Amber 05.11.2026 вопросником, дословно: «Строить в окне
+        /// (Рекомендую)») РАЗДЕЛ ЭЛЕКТРОНА ПРОБЫ К ПОСЧИТАННОЙ МАТРИЦЕ — тем же рецептом и тем же
+        /// построителем, что у склада корпуса (<see cref="ResponseMatrixBuilder.AttachElectronSection"/>).
+        /// Прежде окно раздел только переносило, а склад строил, и разбор на матрице окна и на
+        /// матрице склада расходился молча. Прежний раздел (несохранённый в окне, затем с диска)
+        /// берётся без счёта, только если он ровно такой, какой дал бы счёт.
+        ///
+        /// Отмена уходит наверх как у всего счёта. Отказ раздела фотонную матрицу НЕ снимает:
+        /// геометрия, которую фотоны считают, а раздел нет, прежде считалась, и часы счёта
+        /// пропадать не должны; возвращается причина для строки хода, а состояние и подробности
+        /// скажут, что нужен пересчёт. Отказ самого GPU-пути (<see cref="ThrownByGpuPath"/>) называется
+        /// на языке окна с советом снять галку (`Н7`): внутренний текст библиотеки — только в журнал.
+        /// Счёт идёт на потоке задачи, форма не тронута.
         /// </summary>
-        static void CarryElectronSection(ResponseMatrix matrix, string guid, ResponseMatrixSource source)
+        static string AddElectronSection(GeometryModel geometry, ResponseMatrix matrix, ResponseElectronSection unsaved,
+                                         string guid, ResponseMatrixSource source, RmGpu gpu, int threads,
+                                         IProgress<ResponseMatrixProgress> progress, CancellationToken token)
         {
-            if (matrix == null || matrix.ElectronSection != null || string.IsNullOrEmpty(matrix.Stamp))
-            {
-                return;
-            }
-
             try
             {
-                MatrixRefusal refusal;
-                int format;
-                ResponseMatrix previous = ResponseMatrixStore.Load(guid, source, out refusal, out format);
-                ResponseElectronSection section = previous != null ? previous.ElectronSection : null;
-                if (section != null && string.Equals(section.ForMatrixStamp, matrix.Stamp, StringComparison.Ordinal))
+                ResponseElectronSection previous = unsaved;
+                if (previous == null)
                 {
-                    matrix.ElectronSection = section;
+                    MatrixRefusal refusal;
+                    int format;
+                    ResponseMatrix stored = ResponseMatrixStore.Load(guid, source, out refusal, out format);
+                    previous = stored != null ? stored.ElectronSection : null;
                 }
+
+                Stopwatch clock = Stopwatch.StartNew();
+                ElectronSectionOutcome outcome = ResponseMatrixBuilder.AttachElectronSection(
+                    geometry, matrix, previous, gpu, threads, progress, token, null);
+                // «Посчитано за» в окне и в свойствах матрицы — всё ожидание человека, с разделом.
+                matrix.BuildSeconds += clock.Elapsed.TotalSeconds;
+                Trace.WriteLine("Response matrix: electron section " + outcome + ", "
+                                + clock.Elapsed.TotalSeconds.ToString("F1", CultureInfo.InvariantCulture) + " s");
+                return null;
             }
-            catch (Exception)
+            catch (Exception ex) when (!token.IsCancellationRequested)
             {
-                // Прежней матрицы нет или она не читается — переносить нечего.
+                Trace.WriteLine("Response matrix: electron section not built: " + ex);
+                return ThrownByGpuPath(ex)
+                    ? string.Format(CultureInfo.InvariantCulture, Resources.ResponseMatrixGpuFailed, Resources.ResponseMatrixUseGpu)
+                    : AppUi.Reason(ex);
             }
+            catch (Exception) when (token.IsCancellationRequested)
+            {
+                // Отказ потока, совпавший с отменой (`AggregateException` из `Parallel.For`), — та же отмена.
+                throw new OperationCanceledException(token);
+            }
+        }
+
+        /// <summary>Строка раздела по имени ключа; свойств в `Resources.Designer.cs` у них нет.</summary>
+        static string SectionText(string key)
+        {
+            return Resources.ResourceManager.GetString(key, Resources.Culture);
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER305`) Состояние окна у матрицы, годной для геометрии: без годного раздела
+        /// электронов нынешнего рецепта — «нужен пересчёт». Признак один, тот же, что читает разбор
+        /// (<see cref="ResponseMatrix.NeedsElectronSection"/>, `FsaMatrixBinding`).
+        /// </summary>
+        string ValidState(ResponseMatrix matrix)
+        {
+            return matrix.NeedsElectronSection(this.config.Geometry)
+                ? SectionText("ResponseMatrixStateNeedsSection")
+                : Resources.ResponseMatrixStateValid;
+        }
+
+        /// <summary>
+        /// (`AMBER305`) Строка подробностей о разделе электрона: есть и годен — сколько строк;
+        /// нет или негоден — что это значит и что делать; строка отчёта FSA при `Missing` не
+        /// печатается вовсе (`FSAReportView.SampleBetaText`), окно называет это само.
+        /// У сцены изотропного поля раздела не бывает — строки нет.
+        /// </summary>
+        string DescribeElectronSection(ResponseMatrix matrix)
+        {
+            GeometryModel geometry = this.config != null ? this.config.Geometry : null;
+            if (matrix == null || geometry == null || geometry.Scene == GeometrySceneKind.Iso)
+            {
+                return "";
+            }
+
+            ElectronSectionRefusal refusal;
+            ResponseElectronSection section = matrix.ElectronSectionFor(geometry, out refusal);
+            return Environment.NewLine + (section != null
+                ? string.Format(CultureInfo.InvariantCulture,
+                                SectionText("ResponseMatrixSectionRows"),
+                                section.NodeCount, section.LineCount, section.BranchCount)
+                : SectionText("ResponseMatrixSectionMissing"));
         }
 
         string Describe(ResponseMatrix matrix)
@@ -860,7 +927,8 @@ namespace BecquerelMonitor
                                  // здесь невозможно.
                                  matrix.CreatedUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture),
                                  matrix.BuildSeconds)
-                   + DescribeFingerprint(matrix);
+                   + DescribeFingerprint(matrix)
+                   + this.DescribeElectronSection(matrix);
         }
 
         /// <summary>
@@ -948,6 +1016,11 @@ namespace BecquerelMonitor
             // историй на узел, — ни строка хода, ни загрузка GPU этого не прятали.
             bool useGpu = this.UseGpu;
             this.computingOnGpu = useGpu;
+            this.photonShare = geometry.Scene == GeometrySceneKind.Iso ? 1.0 : PhotonProgressShare;
+            ResponseElectronSection unsavedSection = this.computed != null ? this.computed.ElectronSection : null;
+            string guid = this.config.Guid;
+            ResponseMatrixSource source = this.shownSource;
+            string sectionFailure = null;
             this.cancellation = new CancellationTokenSource();
             this.SetBusy(true);
             this.progressBar.Value = 0;
@@ -969,7 +1042,10 @@ namespace BecquerelMonitor
                     {
                         if (!useGpu)
                         {
-                            return ResponseMatrixBuilder.Build(geometry, options, progress, token);
+                            ResponseMatrix onCpu = ResponseMatrixBuilder.Build(geometry, options, progress, token);
+                            sectionFailure = AddElectronSection(geometry, onCpu, unsavedSection, guid, source, null,
+                                                                options.Threads, progress, token);
+                            return onCpu;
                         }
 
                         try
@@ -979,7 +1055,10 @@ namespace BecquerelMonitor
                             // а живым должен быть один `RmGpu` на процесс.
                             using (var gpu = new RmGpu(RmGpu.DefaultPath, RmGpu.DefaultStackBytes))
                             {
-                                return GpuBuild.Build(gpu, geometry, options, progress, token, null);
+                                ResponseMatrix onGpu = GpuBuild.Build(gpu, geometry, options, progress, token, null);
+                                sectionFailure = AddElectronSection(geometry, onGpu, unsavedSection, guid, source, gpu,
+                                                                    options.Threads, progress, token);
+                                return onGpu;
                             }
                         }
                         catch (Exception ex)
@@ -997,19 +1076,19 @@ namespace BecquerelMonitor
                     },
                     token);
 
-                // (`AMBER274`, `Р1`) Раздел электронов, дописанный к прежней матрице, при
-                // пересчёте не стирается молча: годный для новой (то же клеймо фотонной части)
-                // переносится в неё. Негодный (клеймо разошлось) ей и не нужен — строка отчёта
-                // FSA скажет, что раздела нет.
-                CarryElectronSection(matrix, this.config.Guid, this.shownSource);
                 this.computed = matrix;
                 this.progressBar.Value = this.progressBar.Maximum;
                 this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
                     Resources.ResponseMatrixDone, Duration(matrix.BuildSeconds))
-                    + ContinuumNoiseNote(matrix);
+                    + ContinuumNoiseNote(matrix)
+                    + (sectionFailure != null
+                        ? " " + string.Format(CultureInfo.InvariantCulture,
+                                              SectionText("ResponseMatrixSectionFailed"),
+                                              sectionFailure)
+                        : "");
 
                 this.SetDetails(this.Describe(matrix));
-                this.stateLabel.Text = Resources.ResponseMatrixStateValid;
+                this.stateLabel.Text = this.ValidState(matrix);
                 this.ShowVersions(ResponseMatrix.PhysicsVersion, matrix.WrittenFormatVersion, false);
             }
             // ⛔ (П291, Н6, находка П253; решение Amber 14.10.2026 вопросником,
@@ -1216,6 +1295,17 @@ namespace BecquerelMonitor
         /// </summary>
         const int ProgressScale = 1000;
 
+        /// <summary>
+        /// (`AMBER305`) Доля полосы у фотонной матрицы, остальное — у раздела электрона: полоса
+        /// идёт только вперёд (`A46`) и полна, лишь когда досчитано всё. Величина — по замеру на
+        /// GPU при 800 тыс. историй на строку: фото и раздел сравнимы (журнал `fix305`). Прежний
+        /// раздел, взятый без счёта, просто доводит полосу до конца.
+        /// </summary>
+        const double PhotonProgressShare = 0.5;
+
+        /// <summary>Доля полосы у фотонной части этого счёта; у сцены без раздела — вся.</summary>
+        double photonShare = 1.0;
+
         void ShowProgress(ResponseMatrixProgress p)
         {
             if (this.IsDisposed)
@@ -1223,8 +1313,21 @@ namespace BecquerelMonitor
                 return;
             }
 
-            int value = (int)Math.Round(p.Percent * (ProgressScale / 100.0));
+            double fraction = p.SectionTotal > 0
+                ? this.photonShare + (1.0 - this.photonShare) * p.Percent / 100.0
+                : this.photonShare * p.Percent / 100.0;
+            int value = (int)Math.Round(fraction * ProgressScale);
             this.progressBar.Value = Math.Min(this.progressBar.Maximum, Math.Max(0, value));
+
+            if (p.SectionTotal > 0)
+            {
+                this.progressLabel.Text = string.Format(CultureInfo.InvariantCulture,
+                    this.computingOnGpu
+                        ? SectionText("ResponseMatrixSectionGpuProgress")
+                        : SectionText("ResponseMatrixSectionProgress"),
+                    p.SectionDone, p.SectionTotal);
+                return;
+            }
 
             // ⛔ (`A46`) ВРЕМЕНИ В СТРОКЕ НЕТ — решение Amber 02.09.2026. Стоит
             // число узлов, ВЗЯТЫХ В РАБОТУ, из общего числа узлов сетки: оно

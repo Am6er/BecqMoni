@@ -60,10 +60,10 @@ static class P328NucBaseImportAsksProbe
     const BindingFlags Any = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
     const int IDOK = 1, IDCANCEL = 2, IDYES = 6, IDNO = 7;
     const string Suffix = "-P328";
-    // Новая линия импорта: Na-22 1274.537 кэВ (в поставочной библиотеке Na-22 нет — проверяется).
-    const string NewNucid = "22NA";
-    const double NewEnergy = 1274.537;
-    const double NewIntensity = 99.94;
+    // Новая линия импорта: Mn-54 834.848 кэВ (в поставочной библиотеке Mn-54 нет — проверяется).
+    const string NewNucid = "54MN";
+    const double NewEnergy = 834.848;
+    const double NewIntensity = 99.976;
     static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
     static readonly CultureInfo Ru = new CultureInfo("ru-RU");
     static int defects, rig;
@@ -112,6 +112,7 @@ static class P328NucBaseImportAsksProbe
             pristine = Path.Combine(tmp, "pristine_NuclideDefinition.xml");
             work = Path.Combine(tmp, "NuclideDefinition.xml");
             File.Copy(Package.GetInstance().NuclideDefinition, pristine, true);
+            AddHandLine(pristine);
             SetField(mgr, "nuclideDefinitionFilename", work);
             Console.WriteLine("SETUP\tбиблиотека менеджера переставлена: {0}", work);
             if (Fresh("SETUP"))
@@ -165,6 +166,29 @@ static class P328NucBaseImportAsksProbe
         return defects == 0 ? 0 : 4;
     }
 
+    /// <summary>
+    /// (`AMBER309`, 05.11.2026) Поставочная библиотека — сеты конфига Amber и калибровки: окно связывает с базой
+    /// все её линии нуклидов, а править можно только несвязанные (`AMBER281`). Прежде проба брала линию поставки,
+    /// теперь заводит свою в КОПИИ библиотеки: нуклид настоящий, а на 3100 кэВ строки базы у него нет, номера
+    /// линия не получит и останется правимой. Член первого набора файла.
+    /// </summary>
+    const string HandName = "Cs-134";
+
+    static void AddHandLine(string path)
+    {
+        UTF8Encoding utf8 = new UTF8Encoding(false);
+        string text = File.ReadAllText(path, utf8);
+        string setId = System.Text.RegularExpressions.Regex.Match(text, "<Id>([0-9a-fA-F-]{36})</Id>").Groups[1].Value;
+        string[] block =
+        {
+            "    <Nuclide>", "      <Name>" + HandName + "</Name>", "      <Energy>3100</Energy>", "      <HalfLife>2.0652</HalfLife>",
+            "      <NuclideColor>Green</NuclideColor>", "      <Note />", "      <Visible>true</Visible>", "      <Intencity>1</Intencity>",
+            "      <Sets>", "        <guid>" + setId + "</guid>", "      </Sets>", "      <Chain />", "    </Nuclide>", "",
+        };
+        text = text.Replace("  </NuclideDefinitions>", string.Join("\r\n", block) + "  </NuclideDefinitions>");
+        File.WriteAllText(path, text, utf8);
+    }
+
     // ================================================================ сцена
     static NuclideSet s0;
     static NuclideDefinition lineL, lineO, lineO2;
@@ -194,7 +218,7 @@ static class P328NucBaseImportAsksProbe
         Func<NuclideDefinition, bool> importable = d => unique(d) && nucid(d) != null
             && mgr.NuclideDefinitions.Count(x => x.Energy == d.Energy
                    && NucBaseForm.LineIdentity(x.NuclideName, x.IsElementXray) == NucBaseForm.LineIdentity(d.NuclideName, d.IsElementXray)) == 1;
-        lineL = mgr.NuclideDefinitions.FirstOrDefault(d => d.Name == "Cs-137" && importable(d))
+        lineL = mgr.NuclideDefinitions.FirstOrDefault(d => d.Name == HandName && importable(d))
                 ?? mgr.NuclideDefinitions.FirstOrDefault(importable);
         lineO = mgr.NuclideDefinitions.FirstOrDefault(d => d.Name == "Am-241" && importable(d) && !ReferenceEquals(d, lineL))
                 ?? mgr.NuclideDefinitions.FirstOrDefault(d => importable(d) && !ReferenceEquals(d, lineL) && nucid(d) != nucid(lineL));
@@ -212,7 +236,7 @@ static class P328NucBaseImportAsksProbe
                                                          && !ReferenceEquals(d, lineL) && !ReferenceEquals(d, lineO));
         if (mgr.NuclideDefinitions.Any(d => d.Energy == NewEnergy && NucBaseForm.LineIdentity(d.NuclideName, d.IsElementXray) == "N:" + NewNucid))
         {
-            Console.WriteLine("⛔ обвязка: линия Na-22 {0} уже есть в библиотеке — «новой» импорт её не сделает", NewEnergy.ToString(Inv));
+            Console.WriteLine("⛔ обвязка: линия {1} {0} уже есть в библиотеке — «новой» импорт её не сделает", NewEnergy.ToString(Inv), NewNucid);
             rig++;
             return false;
         }
@@ -241,7 +265,7 @@ static class P328NucBaseImportAsksProbe
     /// <summary>Строка импорта: новая линия N.</summary>
     static DecayRad RowNew()
     {
-        return Rad(NewNucid, NewEnergy, NewIntensity, 2.6018, "Y");
+        return Rad(NewNucid, NewEnergy, NewIntensity, 312.20, "d");
     }
 
     /// <summary>Строка импорта, совпадающая с линией d по ключу (нуклид + энергия); выход — метка.</summary>

@@ -159,6 +159,21 @@ static class P318RevertAndCloseProbe
         NuclideDefinitionManager mgr = NuclideDefinitionManager.GetInstance();
         string file = Package.GetInstance().NuclideDefinition;
         string sha0 = Sha(file);
+        // (`AMBER309`, 05.11.2026) Поставочная библиотека — сеты конфига Amber и калибровки: окно связывает
+        // с базой все её линии нуклидов, а править можно только несвязанные (`FirstRow`, `AMBER281`). Пробе
+        // нужны правимые строки — заводятся свои, В ПАМЯТИ: «Xx-9nn» в базе не найдётся, номера не
+        // получит; на диск они не едут («Нет» не сохраняет, строка W сверяет sha файла).
+        for (int k = 0; k < 8; k++)
+        {
+            mgr.NuclideDefinitions.Add(new NuclideDefinition
+            {
+                Name = "Xx-" + (900 + k).ToString(Inv),
+                Energy = 3100.0 + k,
+                HalfLife = 1.0,
+                Intencity = 1.0,
+                Visible = true,
+            });
+        }
         if (mgr.NuclideSets.Count < 2)
         {
             Console.WriteLine("⛔ обвязка: в библиотеке каталога проб меньше двух наборов ({0})", mgr.NuclideSets.Count);

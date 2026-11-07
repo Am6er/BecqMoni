@@ -65,12 +65,70 @@ namespace BecquerelMonitor.NucBase
         public NucBase()
         {
             InitializeComponent();
+            // (`AMBER264`, `AMBER299`) Подсказки из дизайнера — блоком.
+            AppUi.WrapToolTips(this.toolTip1, this);
             InitGrids();
         }
+
+        /// <summary>
+        /// (критик `critUi2`, 07.11.2026) Свёрнутое окно «Базы изотопов», которое приложение
+        /// поднимает наверх, разворачивается. Меню «База изотопов…» и «Поиск в Базе Изотопов»
+        /// панели пиков зовут <c>MainForm.ShowNucBaseView</c>, а та у открытого окна делает
+        /// только <c>BringToFront()</c> — это перестановка порядка окон (<c>SetWindowPos</c> с
+        /// <c>HWND_TOP</c>, без сдвига и размера), свёрнутое от неё остаётся свёрнутым, и на
+        /// экране ничего не появлялось. Окно ловит именно такую перестановку, будучи свёрнутым, и
+        /// разворачивается само (<c>SW_RESTORE</c>: развёрнутое возвращается развёрнутым).
+        /// <c>MainForm.cs</c> не тронут.
+        /// </summary>
+        protected override void WndProc(ref Message m)
+        {
+            const int WmWindowPosChanging = 0x0046;
+            const int SwpNoSize = 0x0001, SwpNoMove = 0x0002, SwpNoZOrder = 0x0004, SwpNoActivate = 0x0010;
+            if (m.Msg == WmWindowPosChanging && m.LParam != IntPtr.Zero && this.IsHandleCreated
+                && this.WindowState == FormWindowState.Minimized)
+            {
+                var pos = (WindowPos)System.Runtime.InteropServices.Marshal.PtrToStructure(m.LParam, typeof(WindowPos));
+                // Замер (скрытый стол, 07.11.2026): BringToFront свёрнутого окна приходит как
+                // flags = 0x3 (NOMOVE|NOSIZE), а HWND_TOP Windows уже заменила описателем окна, под
+                // которое ставить, — поэтому судится не «после кого», а род вызова: только порядок,
+                // с активацией, не вниз и не в «поверх всех». Сворачивание приходит с перемещением
+                // (flags 0x8170) и сюда не попадает.
+                long after = pos.hwndInsertAfter.ToInt64();
+                if ((pos.flags & SwpNoMove) != 0 && (pos.flags & SwpNoSize) != 0
+                    && (pos.flags & (SwpNoZOrder | SwpNoActivate)) == 0
+                    && after != 1 && after != -1 && after != -2)
+                {
+                    this.BeginInvoke((MethodInvoker)delegate
+                    {
+                        if (!this.IsDisposed && this.WindowState == FormWindowState.Minimized)
+                        {
+                            ShowWindow(new System.Runtime.InteropServices.HandleRef(this, this.Handle), 9);   // SW_RESTORE
+                            this.Activate();
+                        }
+                    });
+                }
+            }
+
+            base.WndProc(ref m);
+        }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        struct WindowPos
+        {
+            public IntPtr hwnd;
+            public IntPtr hwndInsertAfter;
+            public int x, y, cx, cy;
+            public int flags;
+        }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        static extern bool ShowWindow(System.Runtime.InteropServices.HandleRef hWnd, int nCmdShow);
 
         public NucBase(Form mainForm)
         {
             InitializeComponent();
+            // (`AMBER264`, `AMBER299`) Подсказки из дизайнера — блоком.
+            AppUi.WrapToolTips(this.toolTip1, this);
             InitGrids();
             this.mainForm = mainForm;
             this.Icon = Resources.becqmoni;
@@ -105,6 +163,288 @@ namespace BecquerelMonitor.NucBase
             }
 
             this.ResultDataGridView.CellFormatting += this.ResultDataGridView_CellFormatting;
+            FitColumns(this.ResultDataGridView);
+        }
+
+        /// <summary>
+        /// (проверка экраном 07.11.2026) Колонки таблицы результата раскладываются под ширину
+        /// области данных (<see cref="ColumnLayout"/>): каждой — не меньше слова её заголовка
+        /// (<see cref="HeaderWordWidth"/>) и самой длинной ячейки, остаток — по ширинам дизайнера.
+        /// Прежде ширины стояли числами дизайнера, и в русском интерфейсе (у «Интенс., %» там 75
+        /// вместо 60) их сумма 439 px была больше области данных 431 px: «Период полураспада»
+        /// резался краем таблицы ещё без строк, а с полосой прокрутки (17 px) — сильнее. Колонки
+        /// неизменной ширины (галка) не трогаются; ширину, заданную человеком, раскладка не
+        /// сбрасывает. Не помещается — таблица прокручивается вбок (`ScrollBars.Both`; дизайнер
+        /// держал `Vertical`, и лишнее резалось краем). Режим <c>Fill</c> не годился: при упоре
+        /// колонок в нижнюю границу он округлял сумму на 1–2 px больше области (замер пробой
+        /// `ScreenFixesProbe1107`, плечо Г).
+        /// </summary>
+        internal static void FitColumns(DataGridView grid)
+        {
+            // (критик `critUi2`, третий заход) не помещается — прокрутка вбок, а не обрезка
+            grid.ScrollBars = ScrollBars.Both;
+            var layout = new ColumnLayout(grid);
+            // Всё, что меняет место или строки, сводится в ОДНУ раскладку после пачки событий:
+            // прежде размер, полоса прокрутки и строки раскладывали каждый своё, и на один поиск
+            // ширина колонки менялась 9–24 раза (83 → 82 → 80 → 79, замер критика).
+            EventHandler queue = (sender, e) => layout.Queue();
+            grid.SizeChanged += queue;
+            grid.VisibleChanged += queue;
+            grid.HandleCreated += (sender, e) => layout.Apply();
+            foreach (Control part in grid.Controls)
+            {
+                if (part is ScrollBar)
+                {
+                    part.VisibleChanged += queue;
+                }
+            }
+
+            grid.RowsAdded += (sender, e) => layout.Queue();
+            grid.RowsRemoved += (sender, e) => layout.Queue();
+            // ширина, которую человек задал руками, дальше его: раскладка её не трогает
+            grid.ColumnWidthChanged += (sender, e) => layout.NoteWidthChanged(e.Column);
+            layout.Apply();
+        }
+
+        /// <summary>
+        /// Ширина, в которую заголовок колонки ложится без разрыва слова: самое длинное слово
+        /// заголовка плюс поля ячейки — по 2 px текста с каждой стороны (поля заголовка
+        /// <c>DataGridView</c>), граница и отступы стиля. Значок сортировки сюда не входит: он
+        /// рисуется только у колонки, по которой отсортировано, как и прежде. Открыто пробе.
+        /// </summary>
+        internal static int HeaderWordWidth(DataGridViewColumn column, System.Drawing.Font font)
+        {
+            int word = 0;
+            foreach (string part in (column.HeaderText ?? string.Empty).Split(' ', '\n'))
+            {
+                word = Math.Max(word, TextRenderer.MeasureText(part, font).Width);
+            }
+
+            Padding padding = column.HeaderCell.InheritedStyle != null ? column.HeaderCell.InheritedStyle.Padding : Padding.Empty;
+            return word + 2 * 2 + 1 + padding.Horizontal + 2;
+        }
+
+        /// <summary>
+        /// Раскладка колонок таблицы «Базы изотопов»:
+        /// (1) каждой — не меньше слова её заголовка (<c>MinimumWidth</c>) и самой длинной ячейки
+        ///     нынешних строк;
+        /// (2) осталось место — всем по ширинам дизайнера сверх данного;
+        /// (3) места нет — колонки по (1), таблица прокручивается вбок; ни слово заголовка, ни
+        ///     ячейка не режутся.
+        /// Колонки, которым человек задал ширину руками, стоят как стоят и в дележе не участвуют.
+        /// Ширины ставятся при выключенной перерисовке таблицы и только изменившиеся.
+        /// </summary>
+        internal sealed class ColumnLayout
+        {
+            readonly DataGridView grid;
+            readonly Dictionary<DataGridViewColumn, int> designed = new Dictionary<DataGridViewColumn, int>();
+            readonly Dictionary<DataGridViewColumn, int> headers = new Dictionary<DataGridViewColumn, int>();
+            readonly HashSet<DataGridViewColumn> manual = new HashSet<DataGridViewColumn>();
+            bool applying;
+            bool queued;
+
+            public ColumnLayout(DataGridView grid)
+            {
+                this.grid = grid;
+                System.Drawing.Font font = grid.ColumnHeadersDefaultCellStyle.Font ?? grid.Font;
+                foreach (DataGridViewColumn column in grid.Columns)
+                {
+                    this.designed[column] = column.Width;
+                    this.headers[column] = Math.Max(column.MinimumWidth, HeaderWordWidth(column, font));
+                }
+            }
+
+            /// <summary>Колонки, которым человек задал ширину руками (пробе).</summary>
+            public ICollection<DataGridViewColumn> Manual
+            {
+                get { return this.manual; }
+            }
+
+            public void NoteWidthChanged(DataGridViewColumn column)
+            {
+                if (!this.applying && column != null && column.Resizable != DataGridViewTriState.False)
+                {
+                    this.manual.Add(column);
+                }
+            }
+
+            public void Queue()
+            {
+                if (this.queued)
+                {
+                    return;
+                }
+
+                if (!this.grid.IsHandleCreated)
+                {
+                    this.Apply();
+                    return;
+                }
+
+                this.queued = true;
+                this.grid.BeginInvoke((MethodInvoker)delegate
+                {
+                    this.queued = false;
+                    this.Apply();
+                });
+            }
+
+            [System.Runtime.InteropServices.DllImport("user32.dll")]
+            static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+            public void Apply()
+            {
+                if (this.applying)
+                {
+                    return;
+                }
+
+                this.applying = true;
+                bool redraw = this.grid.IsHandleCreated;
+                try
+                {
+                    if (redraw)
+                    {
+                        SendMessage(this.grid.Handle, 0x000B, IntPtr.Zero, IntPtr.Zero);   // WM_SETREDRAW off
+                    }
+
+                    this.Layout();
+                }
+                finally
+                {
+                    if (redraw)
+                    {
+                        SendMessage(this.grid.Handle, 0x000B, (IntPtr)1, IntPtr.Zero);   // WM_SETREDRAW on
+                        this.grid.Invalidate(true);
+                    }
+
+                    this.applying = false;
+                }
+            }
+
+            int DataArea()
+            {
+                int area = this.grid.ClientSize.Width - (this.grid.BorderStyle == BorderStyle.None ? 0 : 2)
+                           - (this.grid.RowHeadersVisible ? this.grid.RowHeadersWidth : 0);
+                foreach (Control part in this.grid.Controls)
+                {
+                    if (part is VScrollBar && part.Visible)
+                    {
+                        area -= part.Width;
+                    }
+                }
+
+                return area;
+            }
+
+            void Layout()
+            {
+                int area = this.DataArea();
+                var flexible = new List<DataGridViewColumn>();
+                foreach (DataGridViewColumn column in this.grid.Columns)
+                {
+                    if (!column.Visible)
+                    {
+                        continue;
+                    }
+
+                    if (column.Resizable == DataGridViewTriState.False || this.manual.Contains(column))
+                    {
+                        area -= column.Width;
+                    }
+                    else
+                    {
+                        flexible.Add(column);
+                    }
+                }
+
+                if (flexible.Count == 0)
+                {
+                    return;
+                }
+
+                // (1) слово заголовка и самая длинная ячейка
+                var width = new Dictionary<DataGridViewColumn, int>();
+                var needs = new Dictionary<DataGridViewColumn, int>();
+                int left = area;
+                foreach (DataGridViewColumn column in flexible)
+                {
+                    int need = Math.Max(2, this.headers[column]);
+                    if (this.grid.Rows.Count > 0)
+                    {
+                        need = Math.Max(need, column.GetPreferredWidth(DataGridViewAutoSizeColumnMode.AllCellsExceptHeader, true));
+                    }
+
+                    width[column] = need;
+                    needs[column] = need;
+                    left -= need;
+                }
+
+                // (2) остаток — по долям дизайнера сверх данного: кто уже получил свою долю, больше не получает
+                bool fits = left >= 0;
+                if (left > 0)
+                {
+                    int designedSum = 0;
+                    foreach (DataGridViewColumn column in flexible)
+                    {
+                        designedSum += this.designed[column];
+                    }
+
+                    var room = new Dictionary<DataGridViewColumn, int>();
+                    int roomTotal = 0;
+                    foreach (DataGridViewColumn column in flexible)
+                    {
+                        int share = (int)Math.Floor(this.designed[column] * (double)area / Math.Max(1, designedSum));
+                        room[column] = Math.Max(0, share - width[column]);
+                        roomTotal += room[column];
+                    }
+
+                    int spread = left;
+                    foreach (DataGridViewColumn column in flexible)
+                    {
+                        int give = roomTotal > 0
+                            ? (int)Math.Floor(spread * (double)room[column] / roomTotal)
+                            : (int)Math.Floor(spread * (double)this.designed[column] / Math.Max(1, designedSum));
+                        give = Math.Min(give, left);
+                        width[column] += give;
+                        left -= give;
+                    }
+
+                    width[flexible[flexible.Count - 1]] += left;
+                }
+
+                if (fits)
+                {
+                    // DataGridView режет край последней колонки на 1 px при рамке FixedSingle (замер
+                    // плечом Г) — этот пиксель снимается сразу с колонки с наибольшим запасом
+                    DataGridViewColumn roomiest = null;
+                    int slack = 0;
+                    foreach (DataGridViewColumn column in flexible)
+                    {
+                        int own = width[column] - needs[column];
+                        if (roomiest == null || own > slack)
+                        {
+                            roomiest = column;
+                            slack = own;
+                        }
+                    }
+
+                    if (roomiest != null && slack > 0)
+                    {
+                        width[roomiest] -= 1;
+                    }
+                }
+
+                // (3) ставятся только изменившиеся ширины; нижняя граница — слово заголовка
+                foreach (DataGridViewColumn column in flexible)
+                {
+                    column.MinimumWidth = Math.Max(2, this.headers[column]);
+                    if (column.Width != width[column])
+                    {
+                        column.Width = width[column];
+                    }
+                }
+            }
         }
 
         void ResultDataGridView_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
@@ -114,12 +454,14 @@ namespace BecquerelMonitor.NucBase
             if (e.ColumnIndex == IntencityColumnIdx && e.RowIndex >= 0 && e.Value is double)
             {
                 DecayRad source = this.ResultDataGridView.Rows[e.RowIndex].Tag as DecayRad;
-                if (source != null && source.IntensityIsLimit)
-                {
-                    e.Value = IntensityLimitCaption((double)e.Value);
-                    e.FormattingApplied = true;
-                }
-
+                // (решение Amber 07.11.2026 вопросником, дословно: «Округлять в таблице
+                // (Рекомендую)») выход — четырьмя значащими цифрами («22.67» вместо
+                // «22.666946633968»); полное число — в подсказке ячейки (`AddRow`), в ячейке
+                // лежит прежнее double — сортировка и импорт его и берут
+                e.Value = source != null && source.IntensityIsLimit
+                    ? IntensityLimitCaption((double)e.Value)
+                    : IntensityCaption((double)e.Value);
+                e.FormattingApplied = true;
                 return;
             }
 
@@ -140,7 +482,25 @@ namespace BecquerelMonitor.NucBase
         /// </summary>
         public static string IntensityLimitCaption(double value)
         {
-            return NucBaseFramework.UpperLimitMark + value.ToString(CultureInfo.InvariantCulture);
+            return NucBaseFramework.UpperLimitMark + IntensityCaption(value);
+        }
+
+        /// <summary>
+        /// (решения Amber 07.11.2026 «Округлять в таблице» и «Единый вид «7.04e-8»») Выход в
+        /// таблице — четыре значащие цифры единым видом (<see cref="NucBaseFramework.NumberCaption"/>):
+        /// 22.666946633968 → «22.67», 6.99877963 → «6.999», 5.8086e-6 → «5.809e-6». Прежний «G4»
+        /// печатал «5.809E-06» и «1.235E+04» (замер критика `critUi2`). Открыт пробе.
+        /// </summary>
+        public static string IntensityCaption(double value)
+        {
+            return NucBaseFramework.NumberCaption(value, 4);
+        }
+
+        /// <summary>Полный выход для подсказки ячейки: всеми знаками, точкой, с «&lt;» у предела.</summary>
+        public static string IntensityFullCaption(double value, bool limit)
+        {
+            // тем же видом, но всеми знаками: «1.43777164951569e-5», а не «…E-05»
+            return (limit ? NucBaseFramework.UpperLimitMark : "") + NucBaseFramework.NumberCaption(value, 0);
         }
 
         /// <summary>
@@ -157,7 +517,9 @@ namespace BecquerelMonitor.NucBase
             }
 
             string unit = cell.Substring(open + 1, cell.Length - open - 2);
-            return cell.Substring(0, open) + "(" + NucBaseFramework.HalfLifeUnitCaption(unit) + ")";
+            // (решение Amber 07.11.2026 «Единый вид «7.04e-8»») число — единым видом всеми знаками;
+            // сама ячейка («7.04E+08(Y)») — договор с разбором `HalfLifeYearsFromCell` и не меняется
+            return NucBaseFramework.NumberTextCaption(cell.Substring(0, open)) + "(" + NucBaseFramework.HalfLifeUnitCaption(unit) + ")";
         }
 
         /// <summary>
@@ -921,6 +1283,10 @@ namespace BecquerelMonitor.NucBase
             // (`AMBER281`) Строка базы, из которой взята строка таблицы: импорт пишет её
             // номер (`dr_pk`, у рентгена элемента — элемент и серию) в линию библиотеки.
             this.ResultDataGridView.Rows[index].Tag = decrad;
+            // (решение Amber 07.11.2026 «Округлять в таблице») в ячейке — четыре значащие цифры,
+            // полное число — подсказкой ячейки
+            this.ResultDataGridView.Rows[index].Cells[IntencityColumnIdx].ToolTipText =
+                IntensityFullCaption(decrad.Intensity, decrad.IntensityIsLimit);
             if (decrad.Redundant)
             {
                 DataGridViewRow added = this.ResultDataGridView.Rows[index];
@@ -1104,7 +1470,30 @@ namespace BecquerelMonitor.NucBase
         private void IsotopeTextBox_Enter(object sender, EventArgs e)
         {
             int DisplayTime = 10000;
-            this.toolTip1.Show(Resources.NucBase_IsotopeTextBoxTooltip1, this.IsotopeTextBox, 0, -23, DisplayTime);
+            string tip = IsotopeTip();
+            this.toolTip1.Show(tip, this.IsotopeTextBox, 0, IsotopeTipDrop(this.IsotopeTextBox), DisplayTime);
+        }
+
+        /// <summary>
+        /// (`AMBER299`, проверка экраном 07.11.2026) Подсказка поля «Изотоп» — блоком по
+        /// <see cref="AppUi.TipWidth"/> знаков (правило Amber 23.10.2026). <c>Show</c> обходит
+        /// <see cref="AppUi.WrapToolTips"/> конструктора, и подсказка шла одной строкой ~140 знаков
+        /// во всю ширину окна. Открыта пробе: приёмка читает ТОТ ЖЕ текст, что окно.
+        /// </summary>
+        internal static string IsotopeTip()
+        {
+            return AppUi.WrapTip(Resources.NucBase_IsotopeTextBoxTooltip1);
+        }
+
+        /// <summary>
+        /// (критик `critUi2`, 07.11.2026) Подсказка ставится ПОД полем: поле стоит у верхнего края
+        /// окна, и блок в две строки над ним (прежние −23 и поднятие на высоту текста) закрывал
+        /// заголовок окна и подпись группы «Поиск изотопа» (снимок полосы, `13`). Под полем —
+        /// шапка таблицы результата; поле и заголовок окна открыты.
+        /// </summary>
+        internal static int IsotopeTipDrop(Control box)
+        {
+            return box.Height + 2;
         }
 
         /// <summary>

@@ -86,6 +86,7 @@ table.cand tr.riv td{background:rgba(255,160,60,.08)}
       </ol>
     </div>
   </div>
+  <figure class="shot" style="margin-top:16px;max-width:560px" data-shot="set-hint"><figcaption data-t="p.capH"></figcaption></figure>
   <h3 style="margin-top:26px" data-t="p.steps"></h3>
   <ol class="howto">
     <li data-t="p.s1"></li><li data-t="p.s2"></li><li data-t="p.s3"></li><li data-t="p.s4"></li><li data-t="p.s5"></li>
@@ -124,13 +125,13 @@ table.cand tr.riv td{background:rgba(255,160,60,.08)}
   <h2 data-t="b.h"></h2>
   <p class="lead" data-t="b.lead"></p>
   <div class="grid2 wl">
-    <figure class="shot" data-shot="nucdef" data-legend="lgDef" data-hot='[[0.0015,0.1411,0.483,0.7705],[0.2533,0.08,0.2311,0.0484],[0.5244,0.1811,0.435,0.094],[0.5244,0.2863,0.37,0.096],[0.5244,0.3916,0.255,0.0463],[0.5244,0.4505,0.27,0.0421],[0.6489,0.7642,0.1304,0.0358],[0.7496,0.9326,0.23,0.0484]]'>
+    <figure class="shot" data-shot="nucdef" data-legend="lgDef" data-hot='[[0.0015,0.1411,0.4830,0.7705],[0.2533,0.0800,0.2311,0.0484],[0.5244,0.1853,0.4327,0.0863],[0.5244,0.2905,0.3763,0.0864],[0.5244,0.3916,0.2549,0.0463],[0.5244,0.4547,0.2697,0.0337],[0.6489,0.7642,0.1304,0.0358],[0.7496,0.9326,0.2311,0.0484],[0.0119,0.9326,0.2222,0.0484],[0.5244,0.1389,0.4444,0.0337]]' data-hot-en='[[0.0015,0.1411,0.4830,0.7705],[0.2533,0.0800,0.2311,0.0484],[0.5244,0.1853,0.4327,0.0863],[0.5244,0.2905,0.3763,0.0864],[0.5244,0.3916,0.2549,0.0463],[0.5244,0.4547,0.2697,0.0337],[0.6489,0.7642,0.1304,0.0358],[0.7496,0.9326,0.2311,0.0484],[0.0119,0.9326,0.1481,0.0484],[0.5244,0.1389,0.4444,0.0337]]'>
       <figcaption data-t="b.cap1"></figcaption>
     </figure>
     <div>
       <ol class="shot-legend" id="lgDef">
         <li data-t="b.d1"></li><li data-t="b.d2"></li><li data-t="b.d3"></li><li data-t="b.d4"></li>
-        <li data-t="b.d5"></li><li data-t="b.d6"></li><li data-t="b.d7"></li><li data-t="b.d8"></li>
+        <li data-t="b.d5"></li><li data-t="b.d6"></li><li data-t="b.d7"></li><li data-t="b.d8"></li><li data-t="b.d9"></li><li data-t="b.d10"></li>
       </ol>
     </div>
   </div>
@@ -193,7 +194,7 @@ table.cand tr.riv td{background:rgba(255,160,60,.08)}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=a7cf2625"></script>
+<script src="assets/guide.js?v=239b6cbd"></script>
 <script src="assets/quanta.js?v=67b2c2dc"></script>
 <script>
 'use strict';
@@ -217,10 +218,10 @@ GUIDE.texts({ru:{
 's.f3':'<b>Лучшее лекарство — время.</b> В 10 раз дольше набор — SNR каждого пика растёт в √10 ≈ 3.2 раза, а шум остаётся шумом.',
 'p.k':'В программе','p.h':'Панель «Обнаружение пиков»',
 'p.lead':'Открывается через <span class="ui m">Вид → Обнаружение пиков</span>. Любое изменение порога, допуска или набора сразу перезапускает поиск. Наведите на номер — подсветится место.',
-'p.cap':'Панель «Обнаружение пиков»: спектр Cs-137 в домике',
+'p.cap':'Панель «Обнаружение пиков»: спектр Cs-137 в домике','p.capH':'Подсказка под списком «Набор:». Спектр Cs-137, выбрана вся библиотека',
 'p.l1':'<b>Мин SNR</b> — порог: ниже него пик не считается найденным (целое число)',
 'p.l2':'<b>Допуск</b> — насколько энергия пика может отличаться от линии, в процентах',
-'p.l3':'<b>Набор</b> — какими нуклидами подписывать; «--- Все изотопы ---» — вся библиотека',
+'p.l3':'<b>Набор</b> — какими нуклидами подписывать; «--- Все изотопы ---» — вся библиотека. Если выбрана вся библиотека и пики ясно указывают на один набор, под списком появится подсказка «Мне кажется, тебе подойдет … сет»: нажатие выбирает набор и запускает разбор заново, «×» закрывает подсказку для этого спектра. Во время набора подсказка появляется со второго подтверждения.',
 'p.l4':'<b>Ред. изотоп...</b> — открыть библиотеку «Редактировать изотоп»',
 'p.l5':'<b>Изотоп</b> — имя победителя; если линий несколько — имена столбиком; «(неизвестный)» — нет подходящей',
 'p.l6':'<b>Энергия, Ошибка</b> — где пик и насколько он мимо линии: кэВ и %',
@@ -255,7 +256,7 @@ GUIDE.texts({ru:{
 'b.d5':'<b>Цвет пика</b> — цвет контура пика в режиме «Показать континуум с пиками» и линий интенсивностей набора; флажки красятся общими цветами (Инструменты → Настройки → Цвет)',
 'b.d6':'<b>Интенсивность</b> — выход линии, %; ниже 0.1 % пик ей не подписывается',
 'b.d7':'<b>Отображать</b> — без галки линия не участвует в подписях',
-'b.d8':'<b>Сохранить / Закрыть</b> — библиотека и наборы лежат в одном файле',
+'b.d8':'<b>Сохранить / Закрыть</b> — библиотека и наборы лежат в одном файле','b.d9':'<b>Сбросить к поставочным</b> — заменить всю библиотеку и все наборы поставочными этой версии программы. Сперва спросит; прежний файл останется рядом как NuclideDefinition.xml.bak. Если копия уже есть, она будет заменена: копия одна. Если библиотека по содержимому уже поставочная, копия не меняется.','b.d10':'<b>Из базы нуклидов (строка …)</b> — линия взята из базы: поля, взятые из базы, не правятся',
 'b.cap2':'«Редактировать наборы изотопов»: набор «Cs-137 + K-40»',
 'b.e1':'<b>Имя набора</b> — то, что видно в поле «Набор:»',
 'b.e2':'<b>Скрыть неизв. пики</b> — пики без имени не показываются',
@@ -318,10 +319,10 @@ GUIDE.texts({ru:{
 's.f3':'<b>Time is the best cure.</b> Ten times longer — the SNR of every peak grows √10 ≈ 3.2 times, while noise stays noise.',
 'p.k':'In the program','p.h':'The “Peak Detection” panel',
 'p.lead':'Open it via <span class="ui m">View → Peak Detection</span>. Any change of threshold, tolerance or set restarts the search at once. Hover a number — the spot lights up.',
-'p.cap':'The “Peak Detection” panel: a Cs-137 spectrum in a shield',
+'p.cap':'The “Peak Detection” panel: a Cs-137 spectrum in a shield','p.capH':'The hint under the “Use set:” list. A Cs-137 spectrum with the whole library selected',
 'p.l1':'<b>Min SNR</b> — the threshold: below it a peak is not counted as found (an integer)',
 'p.l2':'<b>Tolerance</b> — how far a peak energy may be from a line, in percent',
-'p.l3':'<b>Use set</b> — which nuclides label peaks; “--- All Nuclides ---” is the whole library',
+'p.l3':'<b>Use set</b> — which nuclides label peaks; “--- All Nuclides ---” is the whole library. With the whole library selected, if the peaks clearly point to one set, a hint “I think the … set will suit you” appears under the list: clicking it selects the set and reruns the analysis, “×” closes the hint for this spectrum. While a spectrum is being acquired, the hint appears after a second confirmation.',
 'p.l4':'<b>Edit Nuclide...</b> — open the library, “Edit Nuclide Definition”',
 'p.l5':'<b>Nuclide</b> — the winner’s name; several lines give names in a column; “(unknown)” — no matching line',
 'p.l6':'<b>Energy, Error</b> — where the peak is and how far from the line: keV and %',
@@ -356,7 +357,7 @@ GUIDE.texts({ru:{
 'b.d5':'<b>Peak Color</b> — colour of the peak outline in “Show Continuum with peaks” and of the set’s intensity lines; flags use the common colours (Tool → Preferences → Color)',
 'b.d6':'<b>Intensity</b> — line yield, %; below 0.1 % it labels no peaks',
 'b.d7':'<b>Visible</b> — unchecked, the line takes no part in labels',
-'b.d8':'<b>Save / Close</b> — the library and the sets live in one file',
+'b.d8':'<b>Save / Close</b> — the library and the sets live in one file','b.d9':'<b>Reset Defaults</b> — replace the whole library and all sets with those shipped with this version. It asks first; the previous file is kept next to it as NuclideDefinition.xml.bak. If a copy already exists it is replaced: there is one copy. If the library content already matches the shipped one, the copy is left as it is.','b.d10':'<b>From the nuclide database (row …)</b> — the line comes from the database: fields taken from the database are not editable',
 'b.cap2':'“Edit Nuclide Sets”: the “Ra-226” set',
 'b.e1':'<b>Set name</b> — what you see in “Use set:”',
 'b.e2':'<b>Hide unknown peaks</b> — peaks without a name are not shown',
@@ -411,7 +412,7 @@ const LIB = [
   ['Pb-214 (Ra-226)', 351.932, 35.6, 1], ['Ba-133', 356.013, 62.05, 1], ['I-131', 364.49, 81.5, 1], ['Tl-208 (Th-232)', 583.187, 30.4, 1], ['Cs-134', 604.721, 97.6, 1],
   ['Bi-214 (Ra-226)', 609.312, 45.49, 1], ['Cs-137', 661.657, 85.1, 1], ['Bi-214 (Ra-226)', 768.356, 4.89, 1], ['Cs-134', 795.864, 85.5, 1], ['Tl-208 (Th-232)', 860.56, 4.5, 1],
   ['Ac-228 (Th-232)', 911.204, 25.8, 1], ['Ac-228 (Th-232)', 968.971, 15.8, 1], ['Pa-234m (U-238)', 1001.03, 0.842, 1], ['Bi-214 (Ra-226)', 1120.287, 14.91, 1],
-  ['Co-60', 1173.228, 99.85, 1], ['Bi-214 (Ra-226)', 1238.11, 5.83, 1], ['Na-22', 1274.537, 99.94, 1], ['Co-60', 1332.492, 99.98, 1], ['K-40', 1460.82, 10.66, 1],
+  ['Co-60', 1173.228, 99.85, 1], ['Bi-214 (Ra-226)', 1238.11, 5.83, 1], ['Na-22', 1274.537, 99.94, 1], ['Co-60', 1332.492, 99.98, 1], ['K-40', 1460.82, 10.34, 1],
   ['Bi-214 (Ra-226)', 1764.494, 15.31, 1], ['Bi-214 (Ra-226)', 2204.21, 4.91, 1], ['Tl-208 (Th-232)', 2614.511, 35.8, 1]];
 const SETS = [
   ['all', 'l.all', null],

@@ -309,7 +309,11 @@ namespace BecquerelMonitor
         /// </summary>
         Panel detectorColumn;
         Panel gdmlSummaryPanel;
-        TextBox gdmlSummary;
+        RichTextBox gdmlSummary;
+        Splitter gdmlSplitter;
+
+        /// <summary>Какую долю вкладки занимает сводка; человек двигает раздел, и доля живёт при смене размера окна.</summary>
+        double gdmlSummaryShare = 0.36;
         GdmlSketch gdmlSketch;
         GdmlGeometry gdml;
         TabPage detectorTab;
@@ -345,6 +349,9 @@ namespace BecquerelMonitor
         /// панель о кнопке формы не знает.
         /// </summary>
         public event EventHandler GdmlModeChanged;
+
+        /// <summary>(`AMBER292`) Чертёж GDML не построен, причина — аргумент. Журнал у формы.</summary>
+        public event Action<string> GdmlDrawingFailed;
 
         /// <summary>Показан ли сейчас импорт GDML (поля детектора спрятаны).</summary>
         public bool GdmlMode
@@ -412,9 +419,7 @@ namespace BecquerelMonitor
             this.gdml = value;
             if (this.gdmlSummary != null)
             {
-                this.gdmlSummary.Text = value == null ? "" : value.Describe();
-                this.gdmlSummary.SelectionStart = 0;
-                this.gdmlSummary.SelectionLength = 0;
+                this.FillGdmlSummary(value);
             }
 
             if (this.gdmlSketch != null)
@@ -459,11 +464,48 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Сводка: заголовок, главное, вещества, крупное поимённо, мелочь суммой (`AMBER278`, `AMBER301`).
+        /// Отказ читателя — как есть: геометрии нет, рассказывать не о чем.
+        /// </summary>
+        void FillGdmlSummary(GdmlGeometry value)
+        {
+            if (value == null)
+            {
+                this.gdmlSummary.Clear();
+            }
+            else if (!string.IsNullOrEmpty(value.FatalError))
+            {
+                this.gdmlSummary.Text = value.Describe();
+            }
+            else
+            {
+                this.gdmlSummary.Rtf = GdmlOverview.Of(value).SummaryRtf(this.gdmlSummary.Font.Name, this.gdmlSummary.Font.SizeInPoints);
+            }
+
+            this.gdmlSummary.SelectionStart = 0;
+            this.gdmlSummary.SelectionLength = 0;
+        }
+
+        /// <summary>Сводка — доля вкладки, а не 640 точек: при обычном окне чертежу оставалось 290.</summary>
+        void FitGdmlSummary(TabPage tab)
+        {
+            if (this.gdmlSummaryPanel != null && tab.ClientSize.Width > 0)
+            {
+                int width = (int)(tab.ClientSize.Width * this.gdmlSummaryShare);
+                this.gdmlSummaryPanel.Width = Math.Max(240, Math.Min(tab.ClientSize.Width - 320, width));
+            }
+        }
+
         void ApplyGdmlMode(bool on)
         {
             if (this.detectorColumn != null)
             {
                 this.detectorColumn.Visible = !on;
+
+                // (`AMBER301`) Splitter считает предел по ВСЕМ стыкованным соседям, скрытые тоже: колонка в 640
+                // точек давала при окне 982 предел -45, и раздел не двигался. На время показа стыковки нет.
+                this.detectorColumn.Dock = on ? DockStyle.None : DockStyle.Left;
             }
 
             if (this.detectorSketch != null)
@@ -474,6 +516,7 @@ namespace BecquerelMonitor
             if (this.gdmlSummaryPanel != null)
             {
                 this.gdmlSummaryPanel.Visible = on;
+                this.gdmlSplitter.Visible = on;
             }
 
             if (this.gdmlSketch != null)
@@ -745,29 +788,62 @@ namespace BecquerelMonitor
             // (`AMBER278`) На месте полей детектора после импорта GDML — только
             // сводка; чертёж справа — разрез и вид с торца.
             this.gdmlSketch = new GdmlSketch { Dock = DockStyle.Fill, Visible = false };
+            this.gdmlSketch.DrawingFailed += reason =>
+            {
+                Action<string> handler = this.GdmlDrawingFailed;
+                if (handler != null)
+                {
+                    handler(reason);
+                }
+            };
             tab.Controls.Add(this.gdmlSketch);
             this.gdmlSketch.BringToFront();
 
             this.gdmlSummaryPanel = new Panel
             {
                 Dock = DockStyle.Left,
-                Width = 640,
+                Width = 340,
                 Visible = false,
                 Padding = new Padding(4),
             };
-            this.gdmlSummary = new TextBox
+            // (`AMBER304`) С переносом: строка тома длиннее панели, а в её конце стоят состав и причины.
+            // (`AMBER301`) Обычным шрифтом окна: сплошной моноширинный текст человек не читал.
+            this.gdmlSummary = new RichTextBox
             {
                 Dock = DockStyle.Fill,
-                Multiline = true,
                 ReadOnly = true,
-                WordWrap = false,
-                ScrollBars = ScrollBars.Both,
+                WordWrap = true,
+                ScrollBars = RichTextBoxScrollBars.Vertical,
+                DetectUrls = false,
                 BackColor = Color.White,
-                Font = new Font(FontFamily.GenericMonospace, 8.25f),
+                ForeColor = Color.FromArgb(0x20, 0x20, 0x20),
+                BorderStyle = BorderStyle.FixedSingle,
             };
             this.gdmlSummaryPanel.Controls.Add(this.gdmlSummary);
+
+            // Раздел между сводкой и чертежом двигает человек; стыковка идёт с конца списка:
+            // сводка самой последней, раздел перед ней, чертёж берёт остаток.
+            this.gdmlSplitter = new Splitter
+            {
+                Dock = DockStyle.Left,
+                Width = 5,
+                Visible = false,
+                MinSize = 240,
+                MinExtra = 320,
+            };
+            this.gdmlSplitter.SplitterMoved += (sender, e) =>
+            {
+                if (tab.ClientSize.Width > 0)
+                {
+                    this.gdmlSummaryShare = (double)this.gdmlSummaryPanel.Width / tab.ClientSize.Width;
+                }
+            };
+            tab.Controls.Add(this.gdmlSplitter);
             tab.Controls.Add(this.gdmlSummaryPanel);
+            this.gdmlSplitter.SendToBack();
             this.gdmlSummaryPanel.SendToBack();
+            tab.SizeChanged += (sender, e) => this.FitGdmlSummary(tab);
+            this.FitGdmlSummary(tab);
 
             // Готовые детекторы — самым верхом: обвязку сцинтиллятора по памяти
             // не восстановить, а ошибка в ней стоит десятков процентов.
@@ -3085,7 +3161,8 @@ namespace BecquerelMonitor
             }
 
             // (`AMBER278`) Правка полей — это уже не импорт GDML: сводка и
-            // чертёж чужой геометрии уходят, возвращаются поля.
+            // чертёж чужой геометрии уходят, возвращаются поля. (`AMBER304`) Вслух
+            // говорит форма по `GdmlModeChanged`: журнал и статус у неё.
             this.ClearGdml();
 
             this.ApplyHoleThrough();

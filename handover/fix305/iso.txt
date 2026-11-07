@@ -1,0 +1,11 @@
+exe:   D:\BqMoni_Claude\fix305\app\BecquerelMonitor.exe
+склад: D:\BqMoni_Claude\fix305\app\config\device\response;  физика 30, формат 12
+== сцена изотропного поля: раздела нет, отказа нет
+   OK  матрица посчитана
+   строка хода: Done in 0:36. Not saved yet.
+   OK  раздела нет и он не считался
+   OK  об отказе ни слова
+   OK  полоса полна
+   OK  в подробностях строки о разделе нет
+   OK  формат 11
+ВСЕ СОШЛИСЬ

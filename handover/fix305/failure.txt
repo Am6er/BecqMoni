@@ -1,0 +1,9 @@
+exe:   D:\BqMoni_Claude\fix305\app3\BecquerelMonitor.exe
+склад: D:\BqMoni_Claude\fix305\app3\config\device\response;  физика 30, формат 12
+== отказ раздела не снимает фотонную матрицу
+   OK  AddElectronSection найден
+   причина: InvalidOperationException: матрица не годна для сцены RC103_point0: клеймо фотонной части не сошлось
+   OK  отказ назван причиной, а не брошен наружу
+   OK  фотонная матрица не тронута, раздела нет
+   OK  отмена — исключением отмены: OperationCanceledException
+ВСЕ СОШЛИСЬ

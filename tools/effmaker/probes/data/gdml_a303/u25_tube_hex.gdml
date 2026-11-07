@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://service-spi.web.cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+<define></define>
+<materials><material name="Al" Z="13"><D value="2.7"/><atom value="26.98"/></material></materials>
+<solids>
+<box name="W" lunit="mm" x="4000" y="4000" z="4000"/>
+<box name="A0x1234abc" x="10" y="20" z="30"/><tube name="B0x1234def" rmax="5" z="5" deltaphi="360" aunit="deg"/><union name="S"><first ref="A0x1234abc"/><second ref="B0x1234def"/><position x="5" y="0" z="0"/></union>
+</solids>
+<structure>
+<volume name="V"><materialref ref="Al"/><solidref ref="S"/></volume>
+<volume name="World"><materialref ref="Al"/><solidref ref="W"/><physvol name="pv"><volumeref ref="V"/><position name="p" x="0" y="0" z="0"/></physvol></volume>
+</structure>
+<setup name="Default" version="1.0"><world ref="World"/></setup>
+</gdml>

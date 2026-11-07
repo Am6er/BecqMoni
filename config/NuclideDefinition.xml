@@ -2,379 +2,409 @@
 <NuclideDefinitionFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <NuclideDefinitions>
     <Nuclide>
-      <Name>Low Bremsstrahlung x-rays</Name>
-      <Energy>15</Energy>
-      <HalfLife>0</HalfLife>
-      <NuclideColor>Violet</NuclideColor>
+      <Name>Pb-210 (Ra-226)</Name>
+      <Energy>46.539</Energy>
+      <HalfLife>22.2</HalfLife>
+      <NuclideColor>Green</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>4.25012687108925</Intencity>
+      <Sets>
+        <guid>ea64387e-d3e2-4ff8-87eb-0585dddf945f</guid>
+      </Sets>
+      <Chain>Ra-226</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>x-rays</Name>
-      <Energy>20</Energy>
-      <HalfLife>0</HalfLife>
-      <NuclideColor>Violet</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-    </Nuclide>
-    <Nuclide>
-      <Name>Am-241/x-rays</Name>
-      <Energy>26</Energy>
-      <HalfLife>432</HalfLife>
-      <NuclideColor>Violet</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>2.27</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>x-rays</Name>
-      <Energy>32</Energy>
-      <HalfLife>0</HalfLife>
-      <NuclideColor>Violet</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-    </Nuclide>
-    <Nuclide>
-      <Name>x-rays</Name>
-      <Energy>43</Energy>
-      <HalfLife>0</HalfLife>
-      <NuclideColor>Violet</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-    </Nuclide>
-    <Nuclide>
-      <Name>Pb-210/x-rays</Name>
-      <Energy>46</Energy>
-      <HalfLife>22.3</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>4.25</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>x-rays</Name>
-      <Energy>55</Energy>
-      <HalfLife>0</HalfLife>
-      <NuclideColor>Violet</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-    </Nuclide>
-    <Nuclide>
-      <Name>Am-241/x-rays</Name>
-      <Energy>59</Energy>
-      <HalfLife>432</HalfLife>
+      <Name>Am-241</Name>
+      <Energy>59.5409</Energy>
+      <HalfLife>432.6</HalfLife>
       <NuclideColor>Red</NuclideColor>
       <Note />
       <Visible>true</Visible>
       <Intencity>35.9</Intencity>
+      <Sets>
+        <guid>393e223c-238a-4a15-bcbe-03e04e4bee6a</guid>
+      </Sets>
+      <Chain />
     </Nuclide>
     <Nuclide>
-      <Name>Am-243/x-rays</Name>
-      <Energy>74</Energy>
-      <HalfLife>7370</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>67.2</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>x-rays</Name>
-      <Energy>80</Energy>
-      <HalfLife>0</HalfLife>
+      <Name>Th-234 (U-238)</Name>
+      <Energy>63.29</Energy>
+      <HalfLife>0.066027397260273984</HalfLife>
       <NuclideColor>Violet</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>3.665</Intencity>
+      <Sets>
+        <guid>82042666-5364-4138-82b0-a7a140bf757e</guid>
+      </Sets>
+      <Chain>U-238</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>x-rays</Name>
-      <Energy>90</Energy>
+      <Name>Pb x-ray</Name>
+      <Energy>74.9693</Energy>
       <HalfLife>0</HalfLife>
-      <NuclideColor>Violet</NuclideColor>
+      <NuclideColor>Turquoise</NuclideColor>
       <Note />
       <Visible>true</Visible>
-    </Nuclide>
-    <Nuclide>
-      <Name>x-rays</Name>
-      <Energy>100</Energy>
-      <HalfLife>0</HalfLife>
-      <NuclideColor>Violet</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-    </Nuclide>
-    <Nuclide>
-      <Name>Np-239</Name>
-      <Energy>106</Energy>
-      <HalfLife>0.00643835616438356</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>25.34</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>U-238/U-234</Name>
-      <Energy>113.5</Energy>
-      <HalfLife>4470000000</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>0.0102</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Eu-152</Name>
-      <Energy>125</Energy>
-      <HalfLife>13.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>28.53</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ac-228/Pu-239</Name>
-      <Energy>132</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>2.42</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>U-235</Name>
-      <Energy>145</Energy>
-      <HalfLife>700000000</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>10.96</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Pu-238</Name>
-      <Energy>152</Energy>
-      <HalfLife>87.7</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>0.0009</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ra-226/U-235</Name>
-      <Energy>185</Energy>
-      <HalfLife>0</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>3.64</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Lu-176</Name>
-      <Energy>202</Energy>
-      <HalfLife>38500000000</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>77.9688</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>U-237/Am-241</Name>
-      <Energy>209</Energy>
-      <HalfLife>432</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>21.2</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>211</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>3.89</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Np-239</Name>
-      <Energy>228</Energy>
-      <HalfLife>0.00643835616438356</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-    </Nuclide>
-    <Nuclide>
-      <Name>Pb-212</Name>
-      <Energy>238</Energy>
-      <HalfLife>0.001214611872146</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>43.6</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Pb-214</Name>
-      <Energy>241</Energy>
-      <HalfLife>4.946E-05</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>7.2629</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Eu-152</Name>
-      <Energy>244</Energy>
-      <HalfLife>13.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>7.55</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Np-239</Name>
-      <Energy>277</Energy>
-      <HalfLife>0.00643835616438356</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>14.505</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>I-131</Name>
-      <Energy>284</Energy>
-      <HalfLife>0.022</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>6.1207</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Pb-214</Name>
-      <Energy>295</Energy>
-      <HalfLife>4.946727549467E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>18.4709</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Lu-176</Name>
-      <Energy>307</Energy>
-      <HalfLife>38500000000</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>93.6</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Np-239</Name>
-      <Energy>315</Energy>
-      <HalfLife>0.00643835616438356</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>1.6</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Am-241</Name>
-      <Energy>325</Energy>
-      <HalfLife>432</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>338</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>11.27</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Eu-152</Name>
-      <Energy>345</Energy>
-      <HalfLife>13.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>26.59</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Pb-214</Name>
-      <Energy>353</Energy>
-      <HalfLife>4.946727549467E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>35.7237</Intencity>
+      <Intencity>49.019487697334071</Intencity>
+      <Sets>
+        <guid>19a60019-6a6e-4ff2-9320-cbe3abfd0163</guid>
+        <guid>ea64387e-d3e2-4ff8-87eb-0585dddf945f</guid>
+        <guid>2c4c1674-b533-48f5-a302-f4d2fd23545b</guid>
+      </Sets>
+      <Chain />
     </Nuclide>
     <Nuclide>
       <Name>Ba-133</Name>
-      <Energy>358</Energy>
-      <HalfLife>10.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
+      <Energy>80.9979</Energy>
+      <HalfLife>10.551</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>32.94855</Intencity>
+      <Sets>
+        <guid>d5e6f9a2-8b3c-4d4e-9f33-13303fa05c33</guid>
+      </Sets>
+      <Chain>Ba-133</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Lu-176</Name>
+      <Energy>88.34</Energy>
+      <HalfLife>37600000000</HalfLife>
+      <NuclideColor>#808000</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>14.508</Intencity>
+      <Sets>
+        <guid>a77f7de5-50ba-4193-a113-a9bc7157757e</guid>
+      </Sets>
+      <Chain>Lu-176</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Th-234 (U-238)</Name>
+      <Energy>92.38</Energy>
+      <HalfLife>0.066027397260273984</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>2.13</Intencity>
+      <Sets>
+        <guid>82042666-5364-4138-82b0-a7a140bf757e</guid>
+      </Sets>
+      <Chain>U-238</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Th-234 (U-238)</Name>
+      <Energy>92.8</Energy>
+      <HalfLife>0.066027397260273984</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>2.1</Intencity>
+      <Sets>
+        <guid>82042666-5364-4138-82b0-a7a140bf757e</guid>
+      </Sets>
+      <Chain>U-238</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Eu-152</Name>
+      <Energy>121.7817</Energy>
+      <HalfLife>13.517</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>28.41</Intencity>
+      <Sets>
+        <guid>c3d4e8f1-7a2b-4c3d-8e22-15202e9b4f52</guid>
+      </Sets>
+      <Chain>Eu-152</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>U-235</Name>
+      <Energy>143.76</Energy>
+      <HalfLife>704000000</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>10.96</Intencity>
+      <Sets>
+        <guid>82042666-5364-4138-82b0-a7a140bf757e</guid>
+      </Sets>
+      <Chain>U-235</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>U-235</Name>
+      <Energy>163.356</Energy>
+      <HalfLife>704000000</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>5.08</Intencity>
+      <Sets>
+        <guid>82042666-5364-4138-82b0-a7a140bf757e</guid>
+      </Sets>
+      <Chain />
+    </Nuclide>
+    <Nuclide>
+      <Name>U-235</Name>
+      <Energy>185.715</Energy>
+      <HalfLife>704000000</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>57</Intencity>
+      <Sets>
+        <guid>82042666-5364-4138-82b0-a7a140bf757e</guid>
+      </Sets>
+      <Chain>U-235</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Ra-226</Name>
+      <Energy>186.211</Energy>
+      <HalfLife>1600</HalfLife>
+      <NuclideColor>Green</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>3.64</Intencity>
+      <Sets>
+        <guid>ea64387e-d3e2-4ff8-87eb-0585dddf945f</guid>
+      </Sets>
+      <Chain />
+    </Nuclide>
+    <Nuclide>
+      <Name>Lu-176</Name>
+      <Energy>201.83</Energy>
+      <HalfLife>37600000000</HalfLife>
+      <NuclideColor>#808000</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>77.9688</Intencity>
+      <Sets>
+        <guid>a77f7de5-50ba-4193-a113-a9bc7157757e</guid>
+      </Sets>
+      <Chain>Lu-176</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>U-235</Name>
+      <Energy>205.316</Energy>
+      <HalfLife>704000000</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>5.02</Intencity>
+      <Sets>
+        <guid>82042666-5364-4138-82b0-a7a140bf757e</guid>
+      </Sets>
+      <Chain />
+    </Nuclide>
+    <Nuclide>
+      <Name>Pb-212 (Th-232)</Name>
+      <Energy>238.632</Energy>
+      <HalfLife>0.0012125570776255706</HalfLife>
+      <NuclideColor>#FF9900</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>43.6</Intencity>
+      <Sets>
+        <guid>19a60019-6a6e-4ff2-9320-cbe3abfd0163</guid>
+      </Sets>
+      <Chain>Th-232</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Pb-214 (Ra-226)</Name>
+      <Energy>241.995</Energy>
+      <HalfLife>5.1484018264840178E-05</HalfLife>
+      <NuclideColor>Green</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>7.261457418</Intencity>
+      <Sets>
+        <guid>ea64387e-d3e2-4ff8-87eb-0585dddf945f</guid>
+      </Sets>
+      <Chain>Ra-226</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Eu-152</Name>
+      <Energy>244.6974</Energy>
+      <HalfLife>13.517</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>7.55</Intencity>
+      <Sets>
+        <guid>c3d4e8f1-7a2b-4c3d-8e22-15202e9b4f52</guid>
+      </Sets>
+      <Chain>Eu-152</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Ba-133</Name>
+      <Energy>276.3989</Energy>
+      <HalfLife>10.551</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>7.16057</Intencity>
+      <Sets>
+        <guid>d5e6f9a2-8b3c-4d4e-9f33-13303fa05c33</guid>
+      </Sets>
+      <Chain>Ba-133</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Pb-214 (Ra-226)</Name>
+      <Energy>295.224</Energy>
+      <HalfLife>5.1484018264840178E-05</HalfLife>
+      <NuclideColor>Green</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>18.467185824</Intencity>
+      <Sets>
+        <guid>ea64387e-d3e2-4ff8-87eb-0585dddf945f</guid>
+      </Sets>
+      <Chain>Ra-226</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Ba-133</Name>
+      <Energy>302.8508</Energy>
+      <HalfLife>10.551</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>18.335775</Intencity>
+      <Sets>
+        <guid>d5e6f9a2-8b3c-4d4e-9f33-13303fa05c33</guid>
+      </Sets>
+      <Chain>Ba-133</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Lu-176</Name>
+      <Energy>306.78</Energy>
+      <HalfLife>37600000000</HalfLife>
+      <NuclideColor>#808000</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>93.6</Intencity>
+      <Sets>
+        <guid>a77f7de5-50ba-4193-a113-a9bc7157757e</guid>
+      </Sets>
+      <Chain>Lu-176</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Ac-228 (Th-232)</Name>
+      <Energy>338.32</Energy>
+      <HalfLife>0.0007020547945205479</HalfLife>
+      <NuclideColor>#FF9900</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>11.4</Intencity>
+      <Sets>
+        <guid>19a60019-6a6e-4ff2-9320-cbe3abfd0163</guid>
+      </Sets>
+      <Chain>Th-232</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Eu-152</Name>
+      <Energy>344.2785</Energy>
+      <HalfLife>13.517</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>26.59</Intencity>
+      <Sets>
+        <guid>c3d4e8f1-7a2b-4c3d-8e22-15202e9b4f52</guid>
+      </Sets>
+      <Chain>Eu-152</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Pb-214 (Ra-226)</Name>
+      <Energy>351.932</Energy>
+      <HalfLife>5.1484018264840178E-05</HalfLife>
+      <NuclideColor>Green</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>35.71655526</Intencity>
+      <Sets>
+        <guid>ea64387e-d3e2-4ff8-87eb-0585dddf945f</guid>
+      </Sets>
+      <Chain>Ra-226</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Ba-133</Name>
+      <Energy>356.0129</Energy>
+      <HalfLife>10.551</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
       <Note />
       <Visible>true</Visible>
       <Intencity>62.05</Intencity>
+      <Sets>
+        <guid>d5e6f9a2-8b3c-4d4e-9f33-13303fa05c33</guid>
+      </Sets>
+      <Chain>Ba-133</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>I-131</Name>
-      <Energy>364</Energy>
-      <HalfLife>0.022</HalfLife>
-      <NuclideColor>Red</NuclideColor>
+      <Name>Ba-133</Name>
+      <Energy>383.8485</Energy>
+      <HalfLife>10.551</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
       <Note />
       <Visible>true</Visible>
-      <Intencity>81.5</Intencity>
+      <Intencity>8.941405</Intencity>
+      <Sets>
+        <guid>d5e6f9a2-8b3c-4d4e-9f33-13303fa05c33</guid>
+      </Sets>
+      <Chain>Ba-133</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>Pu-239</Name>
-      <Energy>375</Energy>
-      <HalfLife>24000</HalfLife>
-      <NuclideColor>Gray</NuclideColor>
+      <Name>Eu-152</Name>
+      <Energy>411.1165</Energy>
+      <HalfLife>13.517</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
       <Note />
       <Visible>true</Visible>
-      <Intencity>0.0016</Intencity>
+      <Intencity>2.238</Intencity>
+      <Sets>
+        <guid>c3d4e8f1-7a2b-4c3d-8e22-15202e9b4f52</guid>
+      </Sets>
+      <Chain>Eu-152</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>Pu-241</Name>
-      <Energy>400</Energy>
-      <HalfLife>14.35</HalfLife>
-      <NuclideColor>Red</NuclideColor>
+      <Name>Eu-152</Name>
+      <Energy>443.9606</Energy>
+      <HalfLife>13.517</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>2.827</Intencity>
+      <Sets>
+        <guid>c3d4e8f1-7a2b-4c3d-8e22-15202e9b4f52</guid>
+      </Sets>
+      <Chain>Eu-152</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>409</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
+      <Name>Ac-228 (Th-232)</Name>
+      <Energy>463.002</Energy>
+      <HalfLife>0.0007020547945205479</HalfLife>
+      <NuclideColor>#FF9900</NuclideColor>
       <Note />
       <Visible>true</Visible>
-      <Intencity>1.92</Intencity>
+      <Intencity>4.45</Intencity>
+      <Sets>
+        <guid>19a60019-6a6e-4ff2-9320-cbe3abfd0163</guid>
+      </Sets>
+      <Chain>Th-232</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>Ag-108m</Name>
-      <Energy>433</Energy>
-      <HalfLife>418</HalfLife>
-      <NuclideColor>Gray</NuclideColor>
+      <Name>Tl-208 (Th-232)</Name>
+      <Energy>510.77</Energy>
+      <HalfLife>5.8085996955859969E-06</HalfLife>
+      <NuclideColor>#FF9900</NuclideColor>
       <Note />
       <Visible>true</Visible>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>463</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>4.4</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Tl-208</Name>
-      <Energy>510</Energy>
-      <HalfLife>5.808599695586E-06</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>22.6</Intencity>
+      <Intencity>8.122440000000001</Intencity>
+      <Sets>
+        <guid>19a60019-6a6e-4ff2-9320-cbe3abfd0163</guid>
+      </Sets>
+      <Chain>Th-232</Chain>
     </Nuclide>
     <Nuclide>
       <Name>Annihilation</Name>
@@ -383,889 +413,452 @@
       <NuclideColor>Black</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>0</Intencity>
+      <Sets>
+        <guid>e7f8a0b3-9c4d-4e5f-a044-02204ab16d22</guid>
+      </Sets>
+      <Chain />
     </Nuclide>
     <Nuclide>
-      <Name>Tl-208</Name>
-      <Energy>583</Energy>
-      <HalfLife>5.808599695586E-06</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
+      <Name>Tl-208 (Th-232)</Name>
+      <Energy>583.187</Energy>
+      <HalfLife>5.8085996955859969E-06</HalfLife>
+      <NuclideColor>#FF9900</NuclideColor>
       <Note />
       <Visible>true</Visible>
-      <Intencity>85</Intencity>
+      <Intencity>30.549</Intencity>
+      <Sets>
+        <guid>19a60019-6a6e-4ff2-9320-cbe3abfd0163</guid>
+      </Sets>
+      <Chain>Th-232</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>609</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Energy>609.312</Energy>
+      <HalfLife>3.7500000000000003E-05</HalfLife>
+      <NuclideColor>Turquoise</NuclideColor>
       <Note />
       <Visible>true</Visible>
-      <Intencity>45.44</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ag-108m</Name>
-      <Energy>614</Energy>
-      <HalfLife>418</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-    </Nuclide>
-    <Nuclide>
-      <Name>I-131</Name>
-      <Energy>636</Energy>
-      <HalfLife>0.022</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>7.1557</Intencity>
+      <Intencity>45.489995451000006</Intencity>
+      <Sets>
+        <guid>ea64387e-d3e2-4ff8-87eb-0585dddf945f</guid>
+      </Sets>
+      <Chain>Ra-226</Chain>
     </Nuclide>
     <Nuclide>
       <Name>Cs-137</Name>
-      <Energy>662</Energy>
-      <HalfLife>30.07</HalfLife>
-      <NuclideColor>Red</NuclideColor>
+      <Energy>661.657</Energy>
+      <HalfLife>30.08</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
       <Note />
       <Visible>true</Visible>
       <Intencity>85.1</Intencity>
+      <Sets>
+        <guid>2c4c1674-b533-48f5-a302-f4d2fd23545b</guid>
+      </Sets>
+      <Chain>Cs-137</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>I-131</Name>
-      <Energy>722</Energy>
-      <HalfLife>0.022</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>1.7686</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-212/Ac-228</Name>
-      <Energy>727</Energy>
-      <HalfLife>0.000115201674277</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
+      <Name>Bi-212 (Th-232)</Name>
+      <Energy>727.33</Energy>
+      <HalfLife>0.00011520167427701675</HalfLife>
+      <NuclideColor>#FF9900</NuclideColor>
       <Note />
       <Visible>true</Visible>
       <Intencity>6.67</Intencity>
+      <Sets>
+        <guid>19a60019-6a6e-4ff2-9320-cbe3abfd0163</guid>
+      </Sets>
+      <Chain>Th-232</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>Pa-234m</Name>
-      <Energy>766</Energy>
-      <HalfLife>2.226E-06</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
+      <Name>Pa-234m1 (U-238)</Name>
+      <Energy>766.361</Energy>
+      <HalfLife>2.2050989345509894E-06</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>0.323</Intencity>
+      <Sets>
+        <guid>82042666-5364-4138-82b0-a7a140bf757e</guid>
+      </Sets>
+      <Chain>U-238</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>775</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Energy>768.356</Energy>
+      <HalfLife>3.7500000000000003E-05</HalfLife>
+      <NuclideColor>Turquoise</NuclideColor>
       <Note />
       <Visible>true</Visible>
+      <Intencity>4.8919995108000007</Intencity>
+      <Sets>
+        <guid>ea64387e-d3e2-4ff8-87eb-0585dddf945f</guid>
+      </Sets>
+      <Chain>Ra-226</Chain>
     </Nuclide>
     <Nuclide>
       <Name>Eu-152</Name>
-      <Energy>780</Energy>
-      <HalfLife>13.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
+      <Energy>778.9045</Energy>
+      <HalfLife>13.517</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
       <Note />
       <Visible>true</Visible>
-      <Intencity>12.93</Intencity>
+      <Intencity>12.97</Intencity>
+      <Sets>
+        <guid>c3d4e8f1-7a2b-4c3d-8e22-15202e9b4f52</guid>
+      </Sets>
+      <Chain>Eu-152</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>794</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
+      <Name>Ac-228 (Th-232)</Name>
+      <Energy>794.942</Energy>
+      <HalfLife>0.0007020547945205479</HalfLife>
+      <NuclideColor>#FF9900</NuclideColor>
       <Note />
       <Visible>true</Visible>
-      <Intencity>4.25</Intencity>
+      <Intencity>4.31</Intencity>
+      <Sets>
+        <guid>19a60019-6a6e-4ff2-9320-cbe3abfd0163</guid>
+      </Sets>
+      <Chain>Th-232</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>Cs-134</Name>
-      <Energy>798</Energy>
-      <HalfLife>2.0648</HalfLife>
-      <NuclideColor>Red</NuclideColor>
+      <Name>Tl-208 (Th-232)</Name>
+      <Energy>860.557</Energy>
+      <HalfLife>5.8085996955859969E-06</HalfLife>
+      <NuclideColor>#FF9900</NuclideColor>
       <Note />
       <Visible>true</Visible>
-      <Intencity>85.46</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>835</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>1.61</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>911</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>25.8</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>964</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>4.99</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>968</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>15.8</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Pa-234m</Name>
-      <Energy>1001</Energy>
-      <HalfLife>2.226E-06</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-    </Nuclide>
-    <Nuclide>
-      <Name>Eu-152</Name>
-      <Energy>1111</Energy>
-      <HalfLife>13.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>13.67</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>1120</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>14.9</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Co-60</Name>
-      <Energy>1173</Energy>
-      <HalfLife>5.2713</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>99.85</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>1238</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>5.83</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Co-60</Name>
-      <Energy>1332</Energy>
-      <HalfLife>5.2713</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>99.9826</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>1377</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>3.985</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>K40</Name>
-      <Energy>1460</Energy>
-      <HalfLife>1277000000</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>10.66</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>1588</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>3.22</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>1764</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>15.29</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Tl-208 SE</Name>
-      <Energy>2103</Energy>
-      <HalfLife>0</HalfLife>
-      <NuclideColor>Black</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>2204</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>4.92</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>2447</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>1.545</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Tl-208</Name>
-      <Energy>2614</Energy>
-      <HalfLife>5.808599695586E-06</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-      <Intencity>99.754</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Be-9 (α, nγ) DE</Name>
-      <Energy>3417</Energy>
-      <HalfLife>0</HalfLife>
-      <NuclideColor>Black</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-    </Nuclide>
-    <Nuclide>
-      <Name>Be-9 (α, nγ) SE</Name>
-      <Energy>3928</Energy>
-      <HalfLife>0</HalfLife>
-      <NuclideColor>Black</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-    </Nuclide>
-    <Nuclide>
-      <Name>Be-9 (α, nγ) - C-14</Name>
-      <Energy>4439</Energy>
-      <HalfLife>0</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>true</Visible>
-    </Nuclide>
-      <Nuclide>
-      <Name>I-131</Name>
-      <Energy>80.185</Energy>
-      <HalfLife>0.022</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>2.6162</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ba-133</Name>
-      <Energy>53.162</Energy>
-      <HalfLife>10.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>2.1407</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ba-133</Name>
-      <Energy>79.614</Energy>
-      <HalfLife>10.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>2.6495</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ba-133</Name>
-      <Energy>276.399</Energy>
-      <HalfLife>10.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>7.1606</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ba-133</Name>
-      <Energy>302.851</Energy>
-      <HalfLife>10.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>18.3358</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ba-133</Name>
-      <Energy>383.849</Energy>
-      <HalfLife>10.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>8.9414</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Cs-134</Name>
-      <Energy>475.365</Energy>
-      <HalfLife>2.0648</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.477</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Cs-134</Name>
-      <Energy>563.246</Energy>
-      <HalfLife>2.0648</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>8.338</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Cs-134</Name>
-      <Energy>569.331</Energy>
-      <HalfLife>2.0648</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>15.373</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Cs-134</Name>
-      <Energy>604.721</Energy>
-      <HalfLife>2.0648</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>97.62</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Cs-134</Name>
-      <Energy>801.953</Energy>
-      <HalfLife>2.0648</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>8.688</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Cs-134</Name>
-      <Energy>1167.97</Energy>
-      <HalfLife>2.0648</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.79</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Cs-134</Name>
-      <Energy>1365.18</Energy>
-      <HalfLife>2.0648</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>3.017</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Eu-152</Name>
-      <Energy>411.116</Energy>
-      <HalfLife>13.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>2.237</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Eu-152</Name>
-      <Energy>443.961</Energy>
-      <HalfLife>13.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>2.827</Intencity>
+      <Intencity>4.4925</Intencity>
+      <Sets>
+        <guid>19a60019-6a6e-4ff2-9320-cbe3abfd0163</guid>
+      </Sets>
+      <Chain>Th-232</Chain>
     </Nuclide>
     <Nuclide>
       <Name>Eu-152</Name>
       <Energy>867.38</Energy>
-      <HalfLife>13.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
+      <HalfLife>13.517</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
       <Note />
-      <Visible>false</Visible>
-      <Intencity>4.23</Intencity>
+      <Visible>true</Visible>
+      <Intencity>4.243</Intencity>
+      <Sets>
+        <guid>c3d4e8f1-7a2b-4c3d-8e22-15202e9b4f52</guid>
+      </Sets>
+      <Chain>Eu-152</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Ac-228 (Th-232)</Name>
+      <Energy>911.196</Energy>
+      <HalfLife>0.0007020547945205479</HalfLife>
+      <NuclideColor>#FF9900</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>26.2</Intencity>
+      <Sets>
+        <guid>19a60019-6a6e-4ff2-9320-cbe3abfd0163</guid>
+      </Sets>
+      <Chain>Th-232</Chain>
     </Nuclide>
     <Nuclide>
       <Name>Eu-152</Name>
       <Energy>964.057</Energy>
-      <HalfLife>13.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
+      <HalfLife>13.517</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
       <Note />
-      <Visible>false</Visible>
-      <Intencity>14.51</Intencity>
+      <Visible>true</Visible>
+      <Intencity>14.5</Intencity>
+      <Sets>
+        <guid>c3d4e8f1-7a2b-4c3d-8e22-15202e9b4f52</guid>
+      </Sets>
+      <Chain>Eu-152</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Ac-228 (Th-232)</Name>
+      <Energy>964.786</Energy>
+      <HalfLife>0.0007020547945205479</HalfLife>
+      <NuclideColor>#FF9900</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>4.99</Intencity>
+      <Sets>
+        <guid>19a60019-6a6e-4ff2-9320-cbe3abfd0163</guid>
+      </Sets>
+      <Chain>Th-232</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Ac-228 (Th-232)</Name>
+      <Energy>968.96</Energy>
+      <HalfLife>0.0007020547945205479</HalfLife>
+      <NuclideColor>#FF9900</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>15.9</Intencity>
+      <Sets>
+        <guid>19a60019-6a6e-4ff2-9320-cbe3abfd0163</guid>
+      </Sets>
+      <Chain>Th-232</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Pa-234m1 (U-238)</Name>
+      <Energy>1001.026</Energy>
+      <HalfLife>2.2050989345509894E-06</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>0.847</Intencity>
+      <Sets>
+        <guid>82042666-5364-4138-82b0-a7a140bf757e</guid>
+      </Sets>
+      <Chain>U-238</Chain>
     </Nuclide>
     <Nuclide>
       <Name>Eu-152</Name>
-      <Energy>1085.84</Energy>
-      <HalfLife>13.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
+      <Energy>1112.076</Energy>
+      <HalfLife>13.517</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
       <Note />
-      <Visible>false</Visible>
-      <Intencity>10.11</Intencity>
+      <Visible>true</Visible>
+      <Intencity>13.41</Intencity>
+      <Sets>
+        <guid>c3d4e8f1-7a2b-4c3d-8e22-15202e9b4f52</guid>
+      </Sets>
+      <Chain>Eu-152</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Energy>1120.287</Energy>
+      <HalfLife>3.7500000000000003E-05</HalfLife>
+      <NuclideColor>Turquoise</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>14.909998509000001</Intencity>
+      <Sets>
+        <guid>ea64387e-d3e2-4ff8-87eb-0585dddf945f</guid>
+      </Sets>
+      <Chain>Ra-226</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Co-60</Name>
+      <Energy>1173.228</Energy>
+      <HalfLife>5.2747397260273976</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>99.85</Intencity>
+      <Sets>
+        <guid>b1a2c7de-5f0c-4d6e-9a11-6c0f3e8d2a60</guid>
+      </Sets>
+      <Chain>Co-60</Chain>
     </Nuclide>
     <Nuclide>
       <Name>Eu-152</Name>
-      <Energy>1089.74</Energy>
-      <HalfLife>13.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
+      <Energy>1212.948</Energy>
+      <HalfLife>13.517</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
       <Note />
-      <Visible>false</Visible>
-      <Intencity>1.734</Intencity>
+      <Visible>true</Visible>
+      <Intencity>1.416</Intencity>
+      <Sets>
+        <guid>c3d4e8f1-7a2b-4c3d-8e22-15202e9b4f52</guid>
+      </Sets>
+      <Chain>Eu-152</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Energy>1238.111</Energy>
+      <HalfLife>3.7500000000000003E-05</HalfLife>
+      <NuclideColor>Turquoise</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>5.830999416900001</Intencity>
+      <Sets>
+        <guid>ea64387e-d3e2-4ff8-87eb-0585dddf945f</guid>
+      </Sets>
+      <Chain>Ra-226</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Na-22</Name>
+      <Energy>1274.537</Energy>
+      <HalfLife>2.6018</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>99.94</Intencity>
+      <Sets>
+        <guid>e7f8a0b3-9c4d-4e5f-a044-02204ab16d22</guid>
+      </Sets>
+      <Chain>Na-22</Chain>
     </Nuclide>
     <Nuclide>
       <Name>Eu-152</Name>
-      <Energy>1212.95</Energy>
-      <HalfLife>13.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
+      <Energy>1299.142</Energy>
+      <HalfLife>13.517</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
       <Note />
-      <Visible>false</Visible>
-      <Intencity>1.415</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Eu-152</Name>
-      <Energy>1299.14</Energy>
-      <HalfLife>13.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
+      <Visible>true</Visible>
       <Intencity>1.633</Intencity>
+      <Sets>
+        <guid>c3d4e8f1-7a2b-4c3d-8e22-15202e9b4f52</guid>
+      </Sets>
+      <Chain>Eu-152</Chain>
+    </Nuclide>
+    <Nuclide>
+      <Name>Co-60</Name>
+      <Energy>1332.492</Energy>
+      <HalfLife>5.2747397260273976</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
+      <Note />
+      <Visible>true</Visible>
+      <Intencity>99.9826</Intencity>
+      <Sets>
+        <guid>b1a2c7de-5f0c-4d6e-9a11-6c0f3e8d2a60</guid>
+      </Sets>
+      <Chain>Co-60</Chain>
     </Nuclide>
     <Nuclide>
       <Name>Eu-152</Name>
-      <Energy>1408.01</Energy>
-      <HalfLife>13.5</HalfLife>
-      <NuclideColor>Red</NuclideColor>
+      <Energy>1408.013</Energy>
+      <HalfLife>13.517</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
       <Note />
-      <Visible>false</Visible>
-      <Intencity>20.87</Intencity>
+      <Visible>true</Visible>
+      <Intencity>20.85</Intencity>
+      <Sets>
+        <guid>c3d4e8f1-7a2b-4c3d-8e22-15202e9b4f52</guid>
+      </Sets>
+      <Chain>Eu-152</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>Lu-176</Name>
-      <Energy>88.34</Energy>
-      <HalfLife>38500000000</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
+      <Name>K-40</Name>
+      <Energy>1460.82</Energy>
+      <HalfLife>1248000000</HalfLife>
+      <NuclideColor>Violet</NuclideColor>
       <Note />
-      <Visible>false</Visible>
-      <Intencity>14.508</Intencity>
+      <Visible>true</Visible>
+      <Intencity>10.34</Intencity>
+      <Sets>
+        <guid>2c4c1674-b533-48f5-a302-f4d2fd23545b</guid>
+        <guid>ea64387e-d3e2-4ff8-87eb-0585dddf945f</guid>
+        <guid>19a60019-6a6e-4ff2-9320-cbe3abfd0163</guid>
+      </Sets>
+      <Chain>K-40</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>Tl-208</Name>
-      <Energy>277.371</Energy>
-      <HalfLife>5.808599695586E-06</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
+      <Name>Ac-228 (Th-232)</Name>
+      <Energy>1588.2</Energy>
+      <HalfLife>0.0007020547945205479</HalfLife>
+      <NuclideColor>Green</NuclideColor>
       <Note />
-      <Visible>false</Visible>
-      <Intencity>6.6</Intencity>
+      <Visible>true</Visible>
+      <Intencity>3.06</Intencity>
+      <Sets>
+        <guid>19a60019-6a6e-4ff2-9320-cbe3abfd0163</guid>
+      </Sets>
+      <Chain>Th-232</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>Tl-208</Name>
-      <Energy>763.13</Energy>
-      <HalfLife>5.808599695586E-06</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Energy>1764.494</Energy>
+      <HalfLife>3.7500000000000003E-05</HalfLife>
+      <NuclideColor>Turquoise</NuclideColor>
       <Note />
-      <Visible>false</Visible>
-      <Intencity>1.79</Intencity>
+      <Visible>true</Visible>
+      <Intencity>15.309998469000002</Intencity>
+      <Sets>
+        <guid>ea64387e-d3e2-4ff8-87eb-0585dddf945f</guid>
+      </Sets>
+      <Chain>Ra-226</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>Tl-208</Name>
-      <Energy>860.557</Energy>
-      <HalfLife>5.808599695586E-06</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
+      <Name>Bi-214 (Ra-226)</Name>
+      <Energy>2204.21</Energy>
+      <HalfLife>3.7500000000000003E-05</HalfLife>
+      <NuclideColor>Turquoise</NuclideColor>
       <Note />
-      <Visible>false</Visible>
-      <Intencity>12.5</Intencity>
+      <Visible>true</Visible>
+      <Intencity>4.9129995087</Intencity>
+      <Sets>
+        <guid>ea64387e-d3e2-4ff8-87eb-0585dddf945f</guid>
+      </Sets>
+      <Chain>Ra-226</Chain>
     </Nuclide>
     <Nuclide>
-      <Name>Bi-212</Name>
-      <Energy>39.857</Energy>
-      <HalfLife>0.000115201674277</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
+      <Name>Tl-208 (Th-232)</Name>
+      <Energy>2614.511</Energy>
+      <HalfLife>5.8085996955859969E-06</HalfLife>
+      <NuclideColor>#FF9900</NuclideColor>
       <Note />
-      <Visible>false</Visible>
-      <Intencity>1.06</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-212</Name>
-      <Energy>785.37</Energy>
-      <HalfLife>0.000115201674277</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.102</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-212</Name>
-      <Energy>1620.5</Energy>
-      <HalfLife>0.000115201674277</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.47</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Pb-212</Name>
-      <Energy>300.087</Energy>
-      <HalfLife>0.001214611872146</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>3.3005</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>665.446</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.54</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>768.36</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>4.89</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>806.179</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.262</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>934.056</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>3.094</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>1155.21</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.634</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>1280.98</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.435</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>1401.52</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.333</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>1407.99</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>2.388</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>1509.21</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>2.127</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>1661.27</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.046</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>1729.6</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>2.87</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>1847.43</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>2.027</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Bi-214</Name>
-      <Energy>2118.51</Energy>
-      <HalfLife>3.614916286149E-05</HalfLife>
-      <NuclideColor>#808000</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.156</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Pb-214</Name>
-      <Energy>53.226</Energy>
-      <HalfLife>4.946E-05</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.0735</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Pb-214</Name>
-      <Energy>785.96</Energy>
-      <HalfLife>4.946E-05</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.059</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>99.509</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.26</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>270.245</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>3.46</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>328</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>2.95</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>674.75</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>2.1</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>755.315</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>772.291</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.49</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Ac-228</Name>
-      <Energy>1630.63</Energy>
-      <HalfLife>0.0007020547945205</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.51</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>U-235</Name>
-      <Energy>109.19</Energy>
-      <HalfLife>700000000</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.66</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>U-235</Name>
-      <Energy>163.356</Energy>
-      <HalfLife>700000000</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>5.08</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>U-235</Name>
-      <Energy>185.715</Energy>
-      <HalfLife>700000000</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>57</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>U-235</Name>
-      <Energy>202.12</Energy>
-      <HalfLife>700000000</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.08</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>U-235</Name>
-      <Energy>205.316</Energy>
-      <HalfLife>700000000</HalfLife>
-      <NuclideColor>Olive</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>5.02</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>U-237</Name>
-      <Energy>26.345</Energy>
-      <HalfLife>432</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>2.43</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>U-237</Name>
-      <Energy>59.541</Energy>
-      <HalfLife>432</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>34.5</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>U-237</Name>
-      <Energy>64.83</Energy>
-      <HalfLife>432</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.282</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>U-237</Name>
-      <Energy>164.61</Energy>
-      <HalfLife>432</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.86</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>U-237</Name>
-      <Energy>332.35</Energy>
-      <HalfLife>432</HalfLife>
-      <NuclideColor>Orange</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.2</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Np-239</Name>
-      <Energy>61.46</Energy>
-      <HalfLife>0.00643835616438356</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>1.3</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Np-239</Name>
-      <Energy>209.753</Energy>
-      <HalfLife>0.00643835616438356</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>3.363</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Np-239</Name>
-      <Energy>334.31</Energy>
-      <HalfLife>0.00643835616438356</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>2.056</Intencity>
-    </Nuclide>
-    <Nuclide>
-      <Name>Am-243</Name>
-      <Energy>43.53</Energy>
-      <HalfLife>7370</HalfLife>
-      <NuclideColor>Red</NuclideColor>
-      <Note />
-      <Visible>false</Visible>
-      <Intencity>5.9002</Intencity>
+      <Visible>true</Visible>
+      <Intencity>35.8515876</Intencity>
+      <Sets>
+        <guid>19a60019-6a6e-4ff2-9320-cbe3abfd0163</guid>
+      </Sets>
+      <Chain>Th-232</Chain>
     </Nuclide>
   </NuclideDefinitions>
+  <NuclideSets>
+    <NuclideSet>
+      <Id>19a60019-6a6e-4ff2-9320-cbe3abfd0163</Id>
+      <Name>Th-232 + K-40</Name>
+      <HideUnknownPeaks>false</HideUnknownPeaks>
+      <ShowIntensityLines>false</ShowIntensityLines>
+    </NuclideSet>
+    <NuclideSet>
+      <Id>ea64387e-d3e2-4ff8-87eb-0585dddf945f</Id>
+      <Name>Ra-226</Name>
+      <HideUnknownPeaks>true</HideUnknownPeaks>
+      <ShowIntensityLines>false</ShowIntensityLines>
+    </NuclideSet>
+    <NuclideSet>
+      <Id>a77f7de5-50ba-4193-a113-a9bc7157757e</Id>
+      <Name>Lu-176</Name>
+      <HideUnknownPeaks>true</HideUnknownPeaks>
+      <ShowIntensityLines>false</ShowIntensityLines>
+    </NuclideSet>
+    <NuclideSet>
+      <Id>2c4c1674-b533-48f5-a302-f4d2fd23545b</Id>
+      <Name>Cs-137 + K-40</Name>
+      <HideUnknownPeaks>true</HideUnknownPeaks>
+      <ShowIntensityLines>false</ShowIntensityLines>
+    </NuclideSet>
+    <NuclideSet>
+      <Id>393e223c-238a-4a15-bcbe-03e04e4bee6a</Id>
+      <Name>Am-241</Name>
+      <HideUnknownPeaks>false</HideUnknownPeaks>
+      <ShowIntensityLines>false</ShowIntensityLines>
+    </NuclideSet>
+    <NuclideSet>
+      <Id>82042666-5364-4138-82b0-a7a140bf757e</Id>
+      <Name>UGlass</Name>
+      <HideUnknownPeaks>false</HideUnknownPeaks>
+      <ShowIntensityLines>false</ShowIntensityLines>
+    </NuclideSet>
+    <NuclideSet>
+      <Id>b1a2c7de-5f0c-4d6e-9a11-6c0f3e8d2a60</Id>
+      <Name>Co-60</Name>
+      <HideUnknownPeaks>false</HideUnknownPeaks>
+      <ShowIntensityLines>false</ShowIntensityLines>
+    </NuclideSet>
+    <NuclideSet>
+      <Id>c3d4e8f1-7a2b-4c3d-8e22-15202e9b4f52</Id>
+      <Name>Eu-152</Name>
+      <HideUnknownPeaks>false</HideUnknownPeaks>
+      <ShowIntensityLines>false</ShowIntensityLines>
+    </NuclideSet>
+    <NuclideSet>
+      <Id>d5e6f9a2-8b3c-4d4e-9f33-13303fa05c33</Id>
+      <Name>Ba-133</Name>
+      <HideUnknownPeaks>false</HideUnknownPeaks>
+      <ShowIntensityLines>false</ShowIntensityLines>
+    </NuclideSet>
+    <NuclideSet>
+      <Id>e7f8a0b3-9c4d-4e5f-a044-02204ab16d22</Id>
+      <Name>Na-22</Name>
+      <HideUnknownPeaks>false</HideUnknownPeaks>
+      <ShowIntensityLines>false</ShowIntensityLines>
+    </NuclideSet>
+  </NuclideSets>
 </NuclideDefinitionFile>

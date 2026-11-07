@@ -54,10 +54,14 @@
             this.comboBoxNuclSet = new System.Windows.Forms.ComboBox();
             this.labelSetName = new System.Windows.Forms.Label();
             this.labelDetectionFailed = new System.Windows.Forms.Label();
+            this.setHintPanel = new System.Windows.Forms.Panel();
+            this.setHintLink = new System.Windows.Forms.LinkLabel();
+            this.setHintClose = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.table1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             this.contextMenuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown3)).BeginInit();
+            this.setHintPanel.SuspendLayout();
             this.SuspendLayout();
             // 
             // table1
@@ -227,6 +231,34 @@
             this.labelDetectionFailed.Name = "labelDetectionFailed";
             this.labelDetectionFailed.Visible = false;
             //
+            // setHintPanel
+            //
+            // (`AMBER313`) Подсказка сета: под списком наборов, на месте надписи об отказе поиска
+            // (её показ снимает пики, и подсказка в этот момент молчит), справа кнопка закрытия.
+            resources.ApplyResources(this.setHintPanel, "setHintPanel");
+            this.setHintPanel.BackColor = System.Drawing.SystemColors.Info;
+            this.setHintPanel.Controls.Add(this.setHintLink);
+            this.setHintPanel.Controls.Add(this.setHintClose);
+            this.setHintPanel.Name = "setHintPanel";
+            this.setHintPanel.Visible = false;
+            //
+            // setHintLink
+            //
+            this.setHintLink.AutoEllipsis = true;
+            resources.ApplyResources(this.setHintLink, "setHintLink");
+            this.setHintLink.Name = "setHintLink";
+            this.setHintLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.setHintLink_LinkClicked);
+            //
+            // setHintClose
+            //
+            this.setHintClose.FlatAppearance.BorderSize = 0;
+            this.setHintClose.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            resources.ApplyResources(this.setHintClose, "setHintClose");
+            this.setHintClose.Name = "setHintClose";
+            this.setHintClose.Text = "\u00D7";
+            this.setHintClose.UseVisualStyleBackColor = true;
+            this.setHintClose.Click += new System.EventHandler(this.setHintClose_Click);
+            //
             // DCPeakDetectionView
             //
             resources.ApplyResources(this, "$this");
@@ -242,12 +274,14 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.numericUpDown1);
             this.Controls.Add(this.table1);
+            this.Controls.Add(this.setHintPanel);
             this.HideOnClose = true;
             this.Name = "DCPeakDetectionView";
             ((System.ComponentModel.ISupportInitialize)(this.table1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).EndInit();
             this.contextMenuStrip1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown3)).EndInit();
+            this.setHintPanel.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -276,5 +310,8 @@
         private System.Windows.Forms.ComboBox comboBoxNuclSet;
         private System.Windows.Forms.Label labelSetName;
         private System.Windows.Forms.Label labelDetectionFailed;
+        private System.Windows.Forms.Panel setHintPanel;
+        private System.Windows.Forms.LinkLabel setHintLink;
+        private System.Windows.Forms.Button setHintClose;
     }
 }

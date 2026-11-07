@@ -1097,6 +1097,21 @@ namespace BecquerelMonitor.EfficiencyMaker
         public string ElectronSectionDamage { get; set; }
 
         /// <summary>
+        /// (`AMBER274`, этап Э2, 04.11.2026) РАЗДЕЛ «СОБСТВЕННАЯ АКТИВНОСТЬ КРИСТАЛЛА»:
+        /// готовые гистограммы распадов в объёме кристалла (La-138, Lu-176, ряд Ac-227).
+        /// null — раздела нет: так у всех матриц, что построены без явного
+        /// <see cref="ResponseMatrixBuilder.AttachCrystalSection"/> (окно и склад его не зовут),
+        /// у всех матриц, собранных до Э2, и у сцен, чей
+        /// кристалл собственной активности не имеет (NaI, CsI, Ge). Разбор тогда
+        /// побитово прежний. Запись — хвостом `CWNA` ПЕРЕД `ELSC`; `FormatVersion` не
+        /// поднят: раздел необязательный, старые файлы и старый код читаются как прежде.
+        /// </summary>
+        public ResponseCrystalSection CrystalSection { get; set; }
+
+        /// <summary>(`AMBER274`, Э2) Раздел собственной активности в файле негоден — причина; null — годен или отсутствует.</summary>
+        public string CrystalSectionDamage { get; set; }
+
+        /// <summary>
         /// (`AMBER274`) Раздел электрона, если он есть И годен для ЭТОЙ матрицы без
         /// знания сцены: посчитан для неё (<see cref="ResponseElectronSection.ForMatrixStamp"/>
         /// = <see cref="Stamp"/>), версия физики раздела и физика матрицы — нынешние, шаг
@@ -1124,6 +1139,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// раздела нет вовсе (`Ф5`). <paramref name="geometry"/> null — капсула не
         /// сверяется (проба, знающая сцену сама).
         /// </summary>
+        /// <summary>
+        /// ⛔ (`AMBER305`) Матрице годной геометрии нужен пересчёт: нет годного раздела электронов
+        /// нынешнего рецепта. Один признак для окна матрицы, метки «!» в списке кривых и разбора
+        /// (<see cref="ElectronSectionFor"/>). Сцене изотропного поля раздел не положен.
+        /// </summary>
+        public bool NeedsElectronSection(GeometryModel geometry)
+        {
+            ElectronSectionRefusal refusal;
+            return geometry != null && geometry.Scene != GeometrySceneKind.Iso
+                   && this.ElectronSectionFor(geometry, out refusal) == null;
+        }
+
         public ResponseElectronSection ElectronSectionFor(GeometryModel geometry, out ElectronSectionRefusal refusal)
         {
             ResponseElectronSection e = this.ElectronSection;
@@ -1298,6 +1325,24 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// как строки нулевой длины и места не занимает.
         /// </summary>
         public float[][][] ChannelRows { get; set; }
+
+        /// <summary>
+        /// (`AMBER311`) Строки «обратное рассеяние» по узлам: та ЧАСТЬ канала `Compton`, где занос истории
+        /// в большинстве дан квантами, рассеянными вне кристалла на угол не меньше порога
+        /// (<see cref="EfficiencySimulator.BackscatterMaxCos"/>). Только для показа: каналы и без неё делят отклик
+        /// без остатка, а она уже лежит в `Compton`, поэтому в тело, отпечаток и образы FSA не входит.
+        /// null — матрица посчитана без неё (прежний файл).
+        /// </summary>
+        public float[][] BackscatterRows { get; set; }
+
+        /// <summary>(`AMBER311`) Псевдоканал для <see cref="AccumulateChannel"/>: строки <see cref="BackscatterRows"/>, перенос как у `Compton`.</summary>
+        public const int BackscatterChannel = 100;
+
+        /// <summary>(`AMBER311`) Есть ли у матрицы строки обратного рассеяния.</summary>
+        public bool HasBackscatter
+        {
+            get { return this.BackscatterRows != null && this.Energies != null && this.BackscatterRows.Length == this.Energies.Length; }
+        }
 
         /// <summary>Историй на узел — по нему судят о статистике бина.</summary>
         public int Histories { get; set; }
@@ -2512,6 +2557,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             else if (this.HasChannels && channel < this.ChannelRows.Length)
             {
                 rows = this.ChannelRows[channel];
+            }
+            else if (channel == BackscatterChannel && this.HasBackscatter)
+            {
+                // (`AMBER311`) Часть канала `Compton` — и перенос его.
+                rows = this.BackscatterRows;
+                channel = (int)EfficiencySimulator.ResponseChannel.Compton;
             }
             else
             {
@@ -3866,11 +3917,34 @@ namespace BecquerelMonitor.EfficiencyMaker
                 writer.Write(Encoding.ASCII.GetBytes("CKVA"));
                 writer.Write(flags.CascadeCkVacancy);
 
+                // (`AMBER311`) ТРИДЦАТЫЙ ХВОСТ — `BSCR`, строки обратного рассеяния. Клейма не меняет: строка —
+                // часть канала `Compton`, показ, а не содержание. Нет строк — нет и хвоста, файл прежний байт в байт.
+                // Формат НЕ поднят: чтение без хвоста — матрица без строк.
+                if (this.HasBackscatter)
+                {
+                    writer.Write(Encoding.ASCII.GetBytes("BSCR"));
+                    writer.Write(this.BackscatterRows.Length);
+                    foreach (float[] row in this.BackscatterRows)
+                    {
+                        writer.Write(row != null ? row.Length : 0);
+                        for (int i = 0; row != null && i < row.Length; i++)
+                        {
+                            writer.Write(row[i]);
+                        }
+                    }
+                }
+
                 // ⛔ РАЗДЕЛ `ELSC` (`AMBER274`, формат 12) — ПОСЛЕДНИМ, за всеми хвостами,
                 // со своим отпечатком и концевой меткой (`Р2`): читается с конца файла и
                 // от цепочки хвостов не зависит, его порча снимает только раздел. В тело не
                 // входит: отпечаток `BODY` от раздела не зависит. Новый хвост фотонной части
                 // дописывать ВЫШЕ этой строки — раздел обязан оставаться последним.
+                // (`AMBER274`, Э2) РАЗДЕЛ `CWNA` — собственный хвост ПЕРЕД `ELSC`: `ELSC`
+                // обязан остаться последним (его ищут от конца файла), а `CWNA` читается
+                // от начала метки `ELSC`. Пишется и у файла без раздела электрона: это
+                // независимые необязательные разделы, и `FormatVersion` из-за него не
+                // поднимается — старый код лишние байты перед `ELSC` пропускает.
+                ResponseCrystalSection.WriteTrailer(writer, this.CrystalSection);
                 if (this.WrittenFormatVersion == FormatVersion)
                 {
                     ResponseElectronSection.WriteTrailer(writer, this.ElectronSection);
@@ -3897,6 +3971,41 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Каналы, а не сумма: сумма восстанавливается из них точно, а обратно
         /// — нет. Пустой канал занимает по четыре байта на узел.
         /// </summary>
+        /// <summary>(`AMBER311`) Хвост `BSCR` строк обратного рассеяния; нет его — матрица без строк, обрубок — тоже.</summary>
+        static void ReadBackscatterRows(ResponseMatrix matrix, Stream stream, BinaryReader reader)
+        {
+            long start = stream.Position;
+            if (stream.Length - start < 8 || Encoding.ASCII.GetString(reader.ReadBytes(4)) != "BSCR")
+            {
+                stream.Position = start;
+                return;
+            }
+
+            int nodes = reader.ReadInt32();
+            if (nodes != matrix.Energies.Length)
+            {
+                return;
+            }
+
+            var rows = new float[nodes][];
+            for (int i = 0; i < nodes; i++)
+            {
+                int length = reader.ReadInt32();
+                if (length < 0 || 4L * length > stream.Length - stream.Position)
+                {
+                    return;
+                }
+
+                rows[i] = new float[length];
+                for (int b = 0; b < length; b++)
+                {
+                    rows[i][b] = reader.ReadSingle();
+                }
+            }
+
+            matrix.BackscatterRows = rows;
+        }
+
         byte[] RenderBody()
         {
             using (var memory = new MemoryStream())
@@ -4352,6 +4461,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                                                                         && Encoding.ASCII.GetString(reader.ReadBytes(4)) == "CKVA")
                                                                                                     {
                                                                                                         matrix.Options.CascadeCkVacancy = reader.ReadBoolean();
+                                                                                                        ReadBackscatterRows(matrix, stream, reader);
                                                                                                     }
                                                                                                 }
                                                                                             }
@@ -4844,6 +4954,17 @@ namespace BecquerelMonitor.EfficiencyMaker
                         string damage;
                         matrix.ElectronSection = ResponseElectronSection.ReadTrailer(stream, bodyEnd, out damage);
                         matrix.ElectronSectionDamage = damage;
+                    }
+
+                    // (`AMBER274`, Э2) Раздел собственной активности — свой хвост `CWNA`
+                    // ПЕРЕД разделом электрона. Читается у любого формата с хвостами (11
+                    // и выше): отсутствие раздела — норма, а не порча, поэтому причина
+                    // повреждения пишется отдельно и разбор от неё не отказывает.
+                    if (format >= CompatibleFormatVersion)
+                    {
+                        string crystalDamage;
+                        matrix.CrystalSection = ResponseCrystalSection.ReadTrailer(stream, bodyEnd, out crystalDamage);
+                        matrix.CrystalSectionDamage = crystalDamage;
                     }
 
                     if (format < 11)
@@ -6410,8 +6531,15 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// историей; клеймо несёт `br=<число>,<хеш>`. Физика узлов и строк линий та же, что у
         /// версии 3 (строки побайтно прежние при том же зерне), но разделы версии 3 негодны:
         /// у них нет строк ветвей, и разбор по ним молча терял бы совпадения беты с гаммой.
+        /// 5 — РЕЦЕПТ 800 ТЫС. ИСТОРИЙ НА СТРОКУ (`AMBER305`, решение Amber 05.11.2026
+        /// вопросником, дословно: «Поднять до 800000»): физика прежняя, но при 200 тыс. шум
+        /// раздела уходил в масштаб ширины на единственной опоре, и активность плавала с СКО
+        /// 1.5 %. Разделы версии 4 негодны: матрица без годного раздела нынешнего рецепта требует
+        /// пересчёта, и это один признак для окна и разбора (<see cref="ResponseMatrix.ElectronSectionFor"/>).
+        /// Совместимость не держится, решение Amber того же дня, дословно: «Новая физика пока не
+        /// доступна пользователям. Поэтому делаем как надо, без учёта пересчёта на стенде разработчика.»
         /// </summary>
-        public const int SectionPhysics = 4;
+        public const int SectionPhysics = 5;
 
         /// <summary>
         /// (`AMBER274`, физика 28) Линия конверсии берёт строку раздела, посчитанную на её

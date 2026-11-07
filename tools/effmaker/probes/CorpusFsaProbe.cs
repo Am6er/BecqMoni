@@ -1253,6 +1253,21 @@ namespace CorpusFsaProbe
                     o.AnchorRollback = v == "1" ? 1 : 0;
                     continue;
                 }
+                // (`AMBER295`) автомаска фона и нож при красной строке: 0 — выключить для сравнения
+                if (a.StartsWith("--bg-mask=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(10);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--bg-mask=0|1"); }
+                    o.BackgroundMask = v == "1" ? 1 : 0;
+                    continue;
+                }
+                if (a.StartsWith("--band-knife=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(13);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--band-knife=0|1"); }
+                    o.BandKnife = v == "1" ? 1 : 0;
+                    continue;
+                }
                 // (`AMBER269`, Н3) нож порога доверия целиком; обратное плечо — 0
                 if (a.StartsWith("--untie-low=", StringComparison.Ordinal))
                 {
@@ -2172,8 +2187,22 @@ namespace CorpusFsaProbe
             Write(rows, o);
             DumpBandAudit(rows, o);
             Summary(rows, o, clock.Elapsed.TotalSeconds);
+            // ⛔ (`AMBER305`) Файлы записаны, но прогон — не база: бета пробы выпала бы иначе молча.
+            // Осознанный прогон без беты — ключ `--sample-beta=0`.
+            if (SectionRefused.Count > 0)
+            {
+                Console.WriteLine();
+                Console.WriteLine("⛔ РАЗДЕЛ ЭЛЕКТРОНА НЕ ВЗЯТ, бета пробы выпала из разбора: "
+                                  + string.Join(", ", SectionRefused.Select(p => p.Key + " " + p.Value.ToString(CultureInfo.InvariantCulture)))
+                                  + ". Склад не того рецепта: пересчитать разделы (`AMBER305`); эти числа с базой не сравнивать.");
+                return 68;
+            }
+
             return 0;
         }
+
+        /// <summary>(`AMBER305`) Спектров с матрицей, у которых раздел не взят, по причинам.</summary>
+        static readonly Dictionary<string, int> SectionRefused = new Dictionary<string, int>();
 
         /// <summary>
         /// (`S103`) ДВА ФАЙЛА, и порознь они не отвечают.
@@ -2727,6 +2756,17 @@ namespace CorpusFsaProbe
             if (o.AnchorRollback >= 0)
             {
                 analyzer.AnchorRollback = o.AnchorRollback == 1;
+            }
+
+            // (`AMBER295`) ключи выключения маски и ножа при красной строке — для сравнения плеч
+            if (o.BackgroundMask >= 0)
+            {
+                analyzer.BackgroundExcessMask = o.BackgroundMask == 1;
+            }
+
+            if (o.BandKnife >= 0)
+            {
+                analyzer.BackgroundBandKnife = o.BandKnife == 1;
             }
 
             // (`AMBER269`, Н3/Н5 02.11.2026) нож целиком и ширина опор при откате
@@ -3942,6 +3982,20 @@ namespace CorpusFsaProbe
                 // построению, поэтому фит, где уцелели только они, вернёт здесь
                 // ложь при живой матрице.
                 row.MatrixApplied = result.ResponseMatrixUsed;
+                // ⛔ (`AMBER305`) Раздел электрона негоден — бета пробы выпала из разбора, и числа
+                // другие, а отказа нет. Такой прогон не должен выглядеть базой: счётчик и код конца.
+                if (result.ResponseMatrixUsed && o.SampleBeta && result.SampleBetaKeyOn
+                    && result.SampleBetaRefusal != ElectronSectionRefusal.None
+                    && result.SampleBetaRefusal != ElectronSectionRefusal.IsoScene)
+                {
+                    lock (SectionRefused)
+                    {
+                        int seen;
+                        SectionRefused.TryGetValue(result.SampleBetaRefusal.ToString(), out seen);
+                        SectionRefused[result.SampleBetaRefusal.ToString()] = seen + 1;
+                    }
+                }
+
                 row.MatrixImages = MatrixEligibleInReport(result, library);
                 row.CascadeUsed = result.CascadeSummingUsed;
                 // (`N14`, П49) Угловые корреляции — отражением с живого
@@ -5809,6 +5863,11 @@ namespace CorpusFsaProbe
             foreach (string group in groups)
             {
                 string prefix = Path.Combine(o.Out, group + "_" + o.Mode);
+                // (07.11.2026) `_bgmask.csv` дописывается построчно ниже (`File.AppendAllText`):
+                // без снятия прежнего файла повторный прогон в тот же `-Out` задваивал строки
+                // маски, тогда как соседние файлы группы перезаписываются. Снимаем в начале
+                // записи группы — так же, как перезапись соседей.
+                File.Delete(prefix + "_bgmask.csv");
                 using (var runs = new StreamWriter(prefix + "_runs.csv", false, new UTF8Encoding(true)))
                 using (var comps = new StreamWriter(prefix + "_components.csv", false, new UTF8Encoding(true)))
                 using (var limits = new StreamWriter(prefix + "_limits.csv", false, new UTF8Encoding(true)))
@@ -6013,6 +6072,16 @@ namespace CorpusFsaProbe
 
                         {
                             // (`AMBER269`) предупреждения по полосе и нож — строка на спектр
+                            // (`AMBER295`) участки автомаски — своим файлом и только при включённом плече
+                            if (r.Result.BackgroundMaskBands != null)
+                            {
+                                foreach (FsaBandWarning band in r.Result.BackgroundMaskBands)
+                                {
+                                    File.AppendAllText(prefix + "_bgmask.csv", string.Join(",", r.Key, F(band.LoKev, "F1"), F(band.HiKev, "F1"),
+                                        F(band.Z, "F2"), F(band.Ratio, "F3"), band.Bands.ToString(CultureInfo.InvariantCulture)) + Environment.NewLine);
+                                }
+                            }
+
                             FsaBandWarning neg = r.Result.BackgroundOversubtracted;
                             FsaBandWarning img = r.Result.ImagesAboveSpectrum;
                             bandwarn.WriteLine(string.Join(",",
@@ -6600,6 +6669,8 @@ namespace CorpusFsaProbe
             public int NoLeverZero = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора; 0 inherit, 1 instrument, 2 shift
             public int AnchorCoreOwner = -1;   // (`AMBER142` п. 9) −1 — умолчание анализатора
             public int AnchorShareNet = -1;    // (`AMBER142`, П222) −1 — умолчание анализатора
+            public int BackgroundMask = -1;    // (`AMBER295`) −1 — умолчание анализатора
+            public int BandKnife = -1;         // (`AMBER295`) −1 — умолчание анализатора
             public int AnchorRollback = -1;    // (`AMBER269`, (А2)) −1 — умолчание анализатора
             public int UntieLow = -1;          // (`AMBER269`, Н3) −1 — умолчание анализатора
             public int AnchorRollbackWidth = -1;   // (`AMBER269`, Н5) −1 — умолчание анализатора

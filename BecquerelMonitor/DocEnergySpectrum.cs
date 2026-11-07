@@ -392,6 +392,9 @@ namespace BecquerelMonitor
             // него только подписан: окно отчёта (этап 3) возьмёт тот же сеанс
             // у документа, и второго расчёта не будет (критерий 4).
             this.view.FsaSession = this.fsaSession;
+            // (`fixFsa2`, 07.11.2026) набор нуклидов разбора — СВОЙ, а не общий выбор панели пиков
+            // для активного документа (`FsaAnalysisSession.NuclideSetSource`)
+            this.fsaSession.NuclideSetSource = () => this.selectedNuclideSet;
             this.fsaSession.Completed += this.FsaSessionCompleted;
             this.toolTip1.SetToolTip(this.view, AppUi.WrapTip(this.toolTip1.GetToolTip(this.energySpectrumView1)));
             this.energySpectrumView1.Controls.Add(this.view);

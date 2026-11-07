@@ -383,6 +383,15 @@ namespace BecquerelMonitor
         // (`AMBER17`) Привязка шкалы по пикам полного поглощения: подпись,
         // значение с числом опор и сдвигом, слово «нет опор», подсказка с
         // перечнем опор.
+        // (`AMBER295`) автомаска фона: участки не в подгонке
+        const string KeyBackgroundMaskRow = "FSAReport_BackgroundMaskRow";
+        const string KeyBackgroundMaskRowOne = "FSAReport_BackgroundMaskRowOne";
+        const string KeyBackgroundKnifeRow = "FSAReport_BackgroundKnifeRow";
+        const string KeyBackgroundKnifeValue = "FSAReport_BackgroundKnifeValue";
+        const string KeyBackgroundKnifeTip = "FSAReport_BackgroundKnifeTip";
+        const string KeyBackgroundMaskValue = "FSAReport_BackgroundMaskValue";
+        const string KeyBackgroundMaskValueOne = "FSAReport_BackgroundMaskValueOne";
+        const string KeyBackgroundMaskTip = "FSAReport_BackgroundMaskTip";
         const string KeyAnchorRow = "FSAReport_AnchorRow";
         const string KeyAnchorNone = "FSAReport_AnchorNone";
         const string KeyAnchorGainRow = "FSAReport_AnchorGainRow";
@@ -398,6 +407,35 @@ namespace BecquerelMonitor
         const string KeyAnchorRollbackRowOne = "FSAReport_AnchorRollbackRowOne";
         const string KeyAnchorRollbackValue = "FSAReport_AnchorRollbackValue";
         const string KeyAnchorRollbackTip = "FSAReport_AnchorRollbackTip";
+        // (`AMBER294`) тормоз усиления: почему шкала не подстроена, значение строки, подсказка и её
+        // шапка, причина в строке опоры, строка отката при тормозе («по 0 пикам» читать нечего)
+        const string KeyAnchorBrakeRow = "FSAReport_AnchorBrakeRow";
+        const string KeyAnchorBrakeRowOne = "FSAReport_AnchorBrakeRowOne";
+        const string KeyAnchorBrakeValue = "FSAReport_AnchorBrakeValue";
+        // (`AMBER294`, решение Amber 05.11.2026 вопросником, дословно: «Своя строка для карты (Рекомендую)»)
+        // ветка «усиление стоит, а карта света движется»: без утверждения про неподвижную шкалу
+        const string KeyAnchorBrakeMapRow = "FSAReport_AnchorBrakeMapRow";
+        const string KeyAnchorBrakeMapRowOne = "FSAReport_AnchorBrakeMapRowOne";
+        const string KeyAnchorBrakeMapValue = "FSAReport_AnchorBrakeMapValue";
+        const string KeyAnchorBrakeMapTip = "FSAReport_AnchorBrakeMapTip";
+        const string KeyAnchorBrakeMapTipHead = "FSAReport_AnchorBrakeMapTipHead";
+        // (`AMBER294`) опора прошла замер, но не была в последнем шаге шкалы
+        const string KeyAnchorNotInStepRefusal = "FSAReport_AnchorNotInStepRefusal";
+        const string KeyAnchorBrakeTip = "FSAReport_AnchorBrakeTip";
+        const string KeyAnchorBrakeTipHead = "FSAReport_AnchorBrakeTipHead";
+        const string KeyAnchorBrakeRefusal = "FSAReport_AnchorBrakeRefusal";
+        // (`AMBER294`, проверка экраном 07.11.2026) строка опоры без остатка (центр не измерен),
+        // причина отдельным хвостом и слова прочих кодов отбора опор
+        const string KeyAnchorTipLineNoShift = "FSAReport_AnchorTipLineNoShift";
+        const string KeyAnchorTipRefusal = "FSAReport_AnchorTipRefusal";
+        const string KeyAnchorEdgeRefusal = "FSAReport_AnchorEdgeRefusal";
+        const string KeyAnchorSkipRefusal = "FSAReport_AnchorSkipRefusal";
+        const string KeyAnchorNarrowRefusal = "FSAReport_AnchorNarrowRefusal";
+        const string KeyAnchorZRefusal = "FSAReport_AnchorZRefusal";
+        const string KeyAnchorShareRefusal = "FSAReport_AnchorShareRefusal";
+        const string KeyAnchorShiftRefusal = "FSAReport_AnchorShiftRefusal";
+        const string KeyAnchorOutlierRefusal = "FSAReport_AnchorOutlierRefusal";
+        const string KeyAnchorBrakeRollbackRow = "FSAReport_AnchorBrakeRollbackRow";
         const string KeySuppressedRow = "FSAReport_SuppressedRow";
         const string KeyBackgroundRejectedRow = "FSAReport_BackgroundRejectedRow";
 
@@ -428,6 +466,9 @@ namespace BecquerelMonitor
         const string KeyIsotopeEnriched = "FSAReport_IsotopeEnriched";
         // (`AMBER210`) пик в полосе, не покрытый составом: строка, слово состояния, «рядом ничего»
         const string KeyUncoveredRow = "FSAReport_UncoveredRow";
+        // (проверка экраном 07.11.2026) значение — «нет в составе», а не «нет в сете»: состав берётся
+        // из меток пиков, NucBase или сета, и при наборе «Все изотопы» слово «сет» противоречило выбору;
+        // строка и сама говорит «не объяснён нуклидами разбора»
         const string KeyUncoveredValue = "FSAReport_UncoveredValue";
         const string KeyUncoveredNone = "FSAReport_UncoveredNone";
         // (`AMBER269`) предупреждения по полосе: фон больше спектра (z — в подсказке); образы выше
@@ -2039,6 +2080,12 @@ namespace BecquerelMonitor
             if (this.statusLabel.Text != text)
             {
                 this.statusLabel.Text = text;
+                // (проверка экраном 07.11.2026) Строка в одну строку высотой, и длинная причина
+                // отказа («…прибор спектра не найден в конфигурации…») обрывалась на слове без
+                // знака обрыва. Обрыв — многоточием (`AutoEllipsis`), полный текст — подсказкой
+                // блоком; своя подсказка заменяет встроенную однострочную подсказку метки.
+                this.statusLabel.AutoEllipsis = true;
+                this.toolTip.SetToolTip(this.statusLabel, AppUi.WrapTip(text));
             }
 
             if (this.statusLabel.ForeColor != color)
@@ -2578,13 +2625,34 @@ namespace BecquerelMonitor
             // спектра). Правило — у `FsaAnalyzer.JudgeBandWarnings`; числа — инвариантной
             // культурой (`A242`).
             string backgroundAbove = BackgroundOversubtractedText(result);
-            if (backgroundAbove != null)
+            // (`AMBER295`) снятые участки шире окна признака: одна строка о снятых, окно признака — в её подсказке
+            string masked = BackgroundMaskText(result);
+            if (masked != null)
+            {
+                Row maskRow = this.MakeMarkRowText(masked, OwnText(result.BackgroundMaskBands.Count == 1 ? KeyBackgroundMaskValueOne : KeyBackgroundMaskValue), false, true);
+                string tip = BackgroundMaskTip(result);
+                maskRow.Cells[0].ToolTipText = tip;
+                maskRow.Cells[1].ToolTipText = tip;
+                made.Add(maskRow);
+            }
+            else if (backgroundAbove != null)
             {
                 Row above = this.MakeMarkRowText(backgroundAbove, OwnText(KeyBackgroundAboveValue), false, true);
                 string tip = BackgroundOversubtractedTip(result);
                 above.Cells[0].ToolTipText = tip;
                 above.Cells[1].ToolTipText = tip;
                 made.Add(above);
+            }
+
+            // (`AMBER295`) нож при красной строке: откуда активность
+            string knife = BackgroundKnifeText(result);
+            if (knife != null)
+            {
+                Row knifeRow = this.MakeMarkRowText(knife, BackgroundKnifeValue(result), false, true);
+                string tip = BackgroundKnifeTip(result);
+                knifeRow.Cells[0].ToolTipText = tip;
+                knifeRow.Cells[1].ToolTipText = tip;
+                made.Add(knifeRow);
             }
 
             string imagesAbove = ImagesAboveSpectrumText(result);
@@ -2658,6 +2726,58 @@ namespace BecquerelMonitor
             return string.Format(CultureInfo.InvariantCulture, OwnText(KeyBackgroundAboveRow),
                                  flag.LoKev.ToString("F0", CultureInfo.InvariantCulture),
                                  flag.HiKev.ToString("F0", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>(`AMBER295`) Строка автомаски фона: энергии участков; null — снято нечего. Открыта пробе.</summary>
+        public static string BackgroundMaskText(FsaResult result)
+        {
+            if (result == null || result.BackgroundMaskBands == null || result.BackgroundMaskBands.Count == 0)
+            {
+                return null;
+            }
+
+            var parts = new List<string>();
+            foreach (FsaBandWarning band in result.BackgroundMaskBands)
+            {
+                parts.Add(band.LoKev.ToString("F0", CultureInfo.InvariantCulture) + "–" + band.HiKev.ToString("F0", CultureInfo.InvariantCulture));
+            }
+
+            return string.Format(CultureInfo.InvariantCulture,
+                                 OwnText(parts.Count == 1 ? KeyBackgroundMaskRowOne : KeyBackgroundMaskRow), string.Join(", ", parts));
+        }
+
+        /// <summary>(`AMBER295`) Подсказка строки автомаски: число каналов и наиболее значимое окно признака. Открыта пробе.</summary>
+        public static string BackgroundMaskTip(FsaResult result)
+        {
+            FsaBandWarning flag = result != null ? result.BackgroundOversubtracted : null;
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyBackgroundMaskTip),
+                                 result != null ? result.BackgroundMaskChannels.ToString(CultureInfo.InvariantCulture) : "0",
+                                 flag != null ? flag.LoKev.ToString("F0", CultureInfo.InvariantCulture) : "—",
+                                 flag != null ? flag.HiKev.ToString("F0", CultureInfo.InvariantCulture) : "—",
+                                 flag != null ? flag.Z.ToString("F1", CultureInfo.InvariantCulture) : "—",
+                                 flag != null ? flag.Ratio.ToString("F3", CultureInfo.InvariantCulture) : "—");
+        }
+
+        /// <summary>(`AMBER295`) Строка ножа при красной строке; null — ножа не было. Открыта пробе.</summary>
+        public static string BackgroundKnifeText(FsaResult result)
+        {
+            return result != null && result.BackgroundBandKnifeApplied
+                ? string.Format(CultureInfo.InvariantCulture, OwnText(KeyBackgroundKnifeRow), result.BackgroundKnifeFloorKev.ToString("F0", CultureInfo.InvariantCulture))
+                : null;
+        }
+
+        static string BackgroundKnifeValue(FsaResult result)
+        {
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyBackgroundKnifeValue), result.BackgroundKnifeFloorKev.ToString("F0", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>(`AMBER295`) Подсказка строки ножа. Открыта пробе.</summary>
+        public static string BackgroundKnifeTip(FsaResult result)
+        {
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyBackgroundKnifeTip),
+                                 result != null ? result.BackgroundKnifeFloorKev.ToString("F0", CultureInfo.InvariantCulture) : "—",
+                                 result != null ? result.KnifeUntiedBins.ToString(CultureInfo.InvariantCulture) : "0",
+                                 result != null ? result.KnifeBinsBelow.ToString(CultureInfo.InvariantCulture) : "0");
         }
 
         /// <summary>
@@ -2904,28 +3024,58 @@ namespace BecquerelMonitor
         void AddAnchorRow(List<Row> made, FsaResult result)
         {
             // (`AMBER269`, дефект 4) при откате (А2) опор у отданного разбора нет, но это не
-            // «опор нет»: привязка нашлась и отменена как ухудшившая разбор — своё слово
+            // «опор нет»: привязка нашлась и отменена как ухудшившая разбор — своё слово.
+            // (`AMBER294`) При тормозе отменять было нечего: на экране итог — опор нет, причина строкой ниже
+            string brake = AnchorBrakeCaption(result);
             string value = result.ScaleAnchorsUsed > 0
                 ? result.ScaleAnchorsUsed.ToString(CultureInfo.InvariantCulture)
-                : OwnText(result.AnchorRolledBack ? KeyAnchorRolledBack : KeyAnchorNone);
+                : OwnText(result.AnchorRolledBack && brake == null ? KeyAnchorRolledBack : KeyAnchorNone);
 
-            var tip = new System.Text.StringBuilder(OwnText(KeyAnchorTip));
-            AppendAnchorLines(tip, result.ScaleAnchors);
             string rollback = AnchorRollbackCaption(result);
-            if (rollback != null)
+            var tip = new System.Text.StringBuilder();
+            if (brake != null)
             {
+                // (`AMBER294`) шапка «по которым подстроена шкала» и «отменённой подстройки» спорили бы
+                // со строкой причины: подстройки не было, опоры идут под своей шапкой
+                tip.Append(AnchorBrakeHint(result));
                 tip.AppendLine();
                 tip.AppendLine();
-                tip.Append(rollback);
-                tip.AppendLine();
-                tip.Append(OwnText(KeyAnchorRollbackTip));
-                AppendAnchorLines(tip, result.AnchorRollbackScaleAnchors);
+                tip.Append(OwnText(AnchorBrakeOnMap(result) ? KeyAnchorBrakeMapTipHead : KeyAnchorBrakeTipHead));
+                AppendAnchorLines(tip, result.AnchorRolledBack ? result.AnchorRollbackScaleAnchors : result.ScaleAnchors);
+                if (rollback != null)
+                {
+                    tip.AppendLine();
+                    tip.AppendLine();
+                    tip.Append(rollback);
+                }
+            }
+            else
+            {
+                tip.Append(OwnText(KeyAnchorTip));
+                AppendAnchorLines(tip, result.ScaleAnchors);
+                if (rollback != null)
+                {
+                    tip.AppendLine();
+                    tip.AppendLine();
+                    tip.Append(rollback);
+                    tip.AppendLine();
+                    tip.Append(OwnText(KeyAnchorRollbackTip));
+                    AppendAnchorLines(tip, result.AnchorRollbackScaleAnchors);
+                }
             }
 
             made.Add(this.MakeNumberRow(KeyAnchorRow, value, tip.ToString()));
+            if (brake != null)
+            {
+                Row braked = this.MakeMarkRowText(brake, OwnText(AnchorBrakeOnMap(result) ? KeyAnchorBrakeMapValue : KeyAnchorBrakeValue), false, true);
+                braked.Cells[0].ToolTipText = tip.ToString();
+                made.Add(braked);
+            }
+
             if (rollback != null)
             {
-                Row rolled = this.MakeMarkRowText(rollback, OwnText(KeyAnchorRollbackValue), false, true);
+                // (`AMBER294`) при тормозе не «шкала файла»: подстройки не было, значение то же, что у строки причины
+                Row rolled = this.MakeMarkRowText(rollback, OwnText(brake != null ? KeyAnchorBrakeValue : KeyAnchorRollbackValue), false, true);
                 rolled.Cells[0].ToolTipText = tip.ToString();
                 made.Add(rolled);
             }
@@ -2954,13 +3104,32 @@ namespace BecquerelMonitor
             foreach (FsaScaleAnchor anchor in anchors)
             {
                 tip.AppendLine();
-                tip.Append(string.Format(CultureInfo.InvariantCulture, OwnText(KeyAnchorTipLine),
-                                         anchor.Used ? "+" : "-",
-                                         anchor.Component ?? string.Empty,
-                                         anchor.ModelKev.ToString("F1", CultureInfo.InvariantCulture),
-                                         anchor.ShiftKev.ToString("+0.00;-0.00", CultureInfo.InvariantCulture),
-                                         anchor.PeakShare.ToString("F2", CultureInfo.InvariantCulture),
-                                         anchor.Refusal ?? string.Empty));
+                // (`AMBER294`, проверка экраном 07.11.2026) Опора, чей центр не измерен (в окне нет
+                // счёта), несёт остаток NaN — строка печатала «остаток NaN кэВ». Нет числа — нет и
+                // слова «остаток»: строка без него.
+                if (double.IsNaN(anchor.ShiftKev) || double.IsInfinity(anchor.ShiftKev))
+                {
+                    tip.Append(string.Format(CultureInfo.InvariantCulture, OwnText(KeyAnchorTipLineNoShift),
+                                             anchor.Used ? "+" : "-",
+                                             anchor.Component ?? string.Empty,
+                                             anchor.ModelKev.ToString("F1", CultureInfo.InvariantCulture),
+                                             anchor.PeakShare.ToString("F2", CultureInfo.InvariantCulture)));
+                }
+                else
+                {
+                    tip.Append(string.Format(CultureInfo.InvariantCulture, OwnText(KeyAnchorTipLine),
+                                             anchor.Used ? "+" : "-",
+                                             anchor.Component ?? string.Empty,
+                                             anchor.ModelKev.ToString("F1", CultureInfo.InvariantCulture),
+                                             anchor.ShiftKev.ToString("+0.00;-0.00", CultureInfo.InvariantCulture),
+                                             anchor.PeakShare.ToString("F2", CultureInfo.InvariantCulture)));
+                }
+
+                string refusal = AnchorRefusalText(anchor);
+                if (!string.IsNullOrEmpty(refusal))
+                {
+                    tip.Append(string.Format(CultureInfo.InvariantCulture, OwnText(KeyAnchorTipRefusal), refusal));
+                }
                 // (`F11` (в), П18) у ПРИНЯТОЙ опоры со сдвигом по свету —
                 // сам сдвиг: человек видит, что положение линии модели
                 // здесь не табличное, а световое. Нуль (координата
@@ -2970,6 +3139,43 @@ namespace BecquerelMonitor
                     tip.Append(string.Format(CultureInfo.InvariantCulture, OwnText(KeyAnchorTipLight),
                                              anchor.LightShiftKev.ToString("+0.00;-0.00", CultureInfo.InvariantCulture)));
                 }
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER294`) Причина в строке опоры — словами окна. Коды ставит отбор опор
+        /// <c>FsaAnalyzer</c> (`MeasureAnchors`, выбросы МНК и совместного шага, тормоз, шаг шкалы):
+        /// `edge`, `skip`, `narrow`, `z`, `share`, `shift`, `outlier`, `brake`, `not_in_step`.
+        /// Прежде словами шли только два последних, и подсказка печатала голое «z» (проверка
+        /// экраном 07.11.2026). Код, которого здесь нет, печатается как есть — лучше служебное
+        /// слово, чем пустая причина; пробу `ScreenFixesProbe1107` (плечо А) такой код краснит.
+        /// </summary>
+        static string AnchorRefusalText(FsaScaleAnchor anchor)
+        {
+            switch (anchor.Refusal)
+            {
+                case null:
+                    return string.Empty;
+                case FsaScaleAnchor.RefusalGainBrake:
+                    return OwnText(KeyAnchorBrakeRefusal);
+                case FsaScaleAnchor.RefusalNotInStep:
+                    return OwnText(KeyAnchorNotInStepRefusal);
+                case "edge":
+                    return OwnText(KeyAnchorEdgeRefusal);
+                case "skip":
+                    return OwnText(KeyAnchorSkipRefusal);
+                case "narrow":
+                    return OwnText(KeyAnchorNarrowRefusal);
+                case "z":
+                    return OwnText(KeyAnchorZRefusal);
+                case "share":
+                    return OwnText(KeyAnchorShareRefusal);
+                case "shift":
+                    return OwnText(KeyAnchorShiftRefusal);
+                case "outlier":
+                    return OwnText(KeyAnchorOutlierRefusal);
+                default:
+                    return anchor.Refusal;
             }
         }
 
@@ -2986,6 +3192,16 @@ namespace BecquerelMonitor
                 return null;
             }
 
+            // (`AMBER294`) опор у отменённого разбора нет: «по 0 пикам (+0.00 %)» — не про то. Усиление у него
+            // стоит, а карта шкалы двигалась, она и ухудшила подгонку: `AS80_Cs137_0cm`, порог 3000: усиление
+            // 1, опор 0, `AdcScale` 1.0415, `AdcZeroKev` 0.21, χ²/ndf 89.13; с `--zero=calib` — ровно 83.986
+            if (result.AnchorBrakedPeaks > 0 || result.AnchorRollbackAnchors == 0)
+            {
+                return string.Format(CultureInfo.InvariantCulture, OwnText(KeyAnchorBrakeRollbackRow),
+                                     result.AnchorRollbackChi2NdfPoisson.ToString("F2", CultureInfo.InvariantCulture),
+                                     result.Chi2NdfPoisson.ToString("F2", CultureInfo.InvariantCulture));
+            }
+
             // (`AMBER284`, решение Amber 02.11.2026: «по 1 пикам» склонять по числу) форма «пику» —
             // своим ключом, правило выбора — языка окна (<see cref="OnePeakForm"/>)
             return string.Format(CultureInfo.InvariantCulture,
@@ -2994,6 +3210,50 @@ namespace BecquerelMonitor
                                  (100.0 * (result.AnchorRollbackGain - 1.0)).ToString("+0.00;-0.00", CultureInfo.InvariantCulture),
                                  result.AnchorRollbackChi2NdfPoisson.ToString("F2", CultureInfo.InvariantCulture),
                                  result.Chi2NdfPoisson.ToString("F2", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// (`AMBER294`, решения Amber 05.11.2026 вопросником, дословно: «Показать причину, снять
+        /// «+» (Рекомендую)», «Шкала не подстроена (Рекомендую)») Подпись строки «почему шкала не
+        /// подстроена», когда опоры снял тормоз усиления (`AMBER269`, (А1)); null — тормоз не снимал.
+        /// На экран идёт ИТОГ: опор нет, усиления нет. Не «шкала файла»: при матрице без отката карта
+        /// света двигает шкалу и при тормозе (`G1S16_K40_Mar`, порог 2000: `AdcScale` 1.0405,
+        /// `AdcE0Kev` −19.34). Служебная `AnchorNote` с «опор 1 … усиление a 1.07332» — проход до
+        /// тормоза, сюда она не попадает. Число — то же, что в строке опоры в подсказке (центр модели).
+        /// Открыта пробе: приёмка читает ТУ ЖЕ подпись, что таблица.
+        /// </summary>
+        public static string AnchorBrakeCaption(FsaResult result)
+        {
+            if (result == null || result.AnchorBrakedPeaks <= 0)
+            {
+                return null;
+            }
+
+            string top = result.AnchorBrakedTopKev.ToString("F1", CultureInfo.InvariantCulture);
+            bool map = AnchorBrakeOnMap(result);
+            return result.AnchorBrakedPeaks == 1
+                ? string.Format(CultureInfo.InvariantCulture, OwnText(map ? KeyAnchorBrakeMapRowOne : KeyAnchorBrakeRowOne), top)
+                : string.Format(CultureInfo.InvariantCulture, OwnText(map ? KeyAnchorBrakeMapRow : KeyAnchorBrakeRow),
+                                result.AnchorBrakedPeaks.ToString(CultureInfo.InvariantCulture), top);
+        }
+
+        /// <summary>
+        /// (`AMBER294`) Ветка строки при тормозе: усиление стоит, а карта света в отданном разборе есть и
+        /// движется (`G1S16_K40_Mar`, порог 2000: `AdcScale` 1.0405, `AdcE0Kev` −19.34). Без карты и при откате
+        /// (усиление 1, `AdcScale` 0) — прежняя «Шкала не подстроена». Открыта пробе.
+        /// </summary>
+        public static bool AnchorBrakeOnMap(FsaResult result)
+        {
+            return result != null && result.AnchorBrakedPeaks > 0 && !result.AnchorRolledBack && result.AdcScale > 0.0;
+        }
+
+        /// <summary>(`AMBER294`) Подсказка к строке тормоза: почему пик у нуля не держит шкалу. Открыта пробе.</summary>
+        public static string AnchorBrakeHint(FsaResult result)
+        {
+            return string.Format(CultureInfo.InvariantCulture, OwnText(AnchorBrakeOnMap(result) ? KeyAnchorBrakeMapTip : KeyAnchorBrakeTip),
+                                 result.AnchorBrakeZeroMaxKev.ToString("F0", CultureInfo.InvariantCulture),
+                                 result.AnchorBrakedTopLineKev.ToString("F1", CultureInfo.InvariantCulture),
+                                 result.AnchorBrakedTopKev.ToString("F1", CultureInfo.InvariantCulture));
         }
 
         /// <summary>
@@ -3357,6 +3617,24 @@ namespace BecquerelMonitor
                         }
 
                         break;
+
+                    case FsaSwatchKind.BackscatterHatch:  // (`AMBER311`) тот же штрих, что на графике
+                        using (Brush brush = new HatchBrush(HatchStyle.DarkVertical,
+                                                            FsaPalette.SumPeakHatchColor(row.Color), row.Color))
+                        {
+                            g.FillRectangle(brush, r);
+                        }
+
+                        break;
+
+                    case FsaSwatchKind.EscapeHatch:      // (`AMBER311`) тот же штрих, что на графике
+                        using (Brush brush = new HatchBrush(HatchStyle.DarkDownwardDiagonal,
+                                                            FsaPalette.SumPeakHatchColor(row.Color), row.Color))
+                        {
+                            g.FillRectangle(brush, r);
+                        }
+
+                        break;
                 }
 
                 g.DrawRectangle(Pens.DimGray, 0, 0, bitmap.Width - 1, bitmap.Height - 1);
@@ -3482,8 +3760,18 @@ namespace BecquerelMonitor
             string extra = matrix
                 ? Resources.FSAReportTipCalculation + " " + Resources.FSAReportTipMatrixExtra
                 : Resources.FSAReportTipCalculation;
-            this.SetTip(this.backscatterCheckBox, extra);
-            this.SetTip(this.escapeCheckBox, extra);
+            // (`AMBER311`) При матрице галка управляет показом обратного рассеяния: «Да, тем же правилом (Рекомендую)».
+            this.SetTip(this.backscatterCheckBox, matrix
+                ? Resources.ResourceManager.GetString("FSAReportTipBackscatterMatrix", Resources.Culture) ?? extra
+                : extra);
+            // (`AMBER311`) Решение Amber 06.11.2026, дословно: «Если там включена галка, то нужно
+            // отображать, рассчитывать эти особенности спектра в FSA. Если галки нет - то
+            // отрисовывать только нуклиды.»; при матрице и снятой галке вопросником: «Снять показ,
+            // расчёт тот же (Рекомендую)». Подсказка обязана сказать, что при матрице галка
+            // управляет показом вылетов.
+            this.SetTip(this.escapeCheckBox, matrix
+                ? Resources.ResourceManager.GetString("FSAReportTipEscapeMatrix", Resources.Culture) ?? extra
+                : extra);
 
             // (`AMBER45`) Комбо «Matrix layer» живо только при живой матрице:
             // без раскладки по каналам у слоёв (матрицы нет, старый формат,

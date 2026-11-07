@@ -834,6 +834,12 @@
   <data name="crystalMaterialNotSet" xml:space="preserve">
     <value>(not specified)</value>
   </data>
+  <data name="crystalChosenNote" xml:space="preserve">
+    <value>You chose the crystal material "{0}" from the geometry of the device curves; it is not in the file yet. "Yes" writes it into the file, "No" discards it.</value>
+  </data>
+  <data name="crystalOfferedNote" xml:space="preserve">
+    <value>The window itself put the crystal material "{0}" from the geometry of the device curves into the empty field. "Yes" writes it into the file, "No" leaves the field empty.</value>
+  </data>
   <data name="crystalFromGeometryQuestion" xml:space="preserve">
     <value>The geometry has crystal {0}, the device has {1}. Make {0} the device's crystal material?</value>
   </data>

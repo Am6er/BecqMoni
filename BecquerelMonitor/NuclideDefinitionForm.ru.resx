@@ -225,4 +225,10 @@
   <data name="NucLib_DbHalfLife" xml:space="preserve">
     <value>{0} {1} кэВ: период {2} лет не совпал с базой ({3} лет).</value>
   </data>
+  <data name="buttonResetDefaults.Text" xml:space="preserve">
+    <value>Сбросить к поставочным</value>
+  </data>
+  <data name="buttonResetDefaults.Size" type="System.Drawing.Size, System.Drawing">
+    <value>150, 23</value>
+  </data>
 </root>

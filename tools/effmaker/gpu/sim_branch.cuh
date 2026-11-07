@@ -35,9 +35,11 @@ RM_DEVF void Sim::InitBranch()
     pendCount = 0;
     totPendCount = 0;
     fromOutsideAnnihilation = false;
+    backState = 0;
     for (int k = 0; k < PendMax; k++)
     {
         pendFromOutsideAnnihilation[k] = false;
+        pendBackState[k] = 0;
     }
 
     CountPendingDropped = 0;
@@ -83,6 +85,7 @@ RM_DEVF void Sim::PushPending(real x, real y, real z, real ux, real uy, real uz,
     pendUz[k] = uz;
     pendE[k] = energyKev;
     pendFromOutsideAnnihilation[k] = fromOutsideAnnihilation;
+    pendBackState[k] = backState;
 }
 
 // = EfficiencySimulator.cs:3817 PushTotalPending
@@ -619,6 +622,7 @@ RM_DEVF real Sim::AnalogTransport(real x, real y, real z, real ux, real uy, real
 
     depositedOutside = w.depositedOutside;
     comptonOutside = w.comptonOutside;
+    historyBackscatter = w.depositedBackscatter;
     return w.deposited;
 }
 
@@ -641,7 +645,9 @@ RM_DEVF void Sim::AnalogWalkBegin(real x, real y, real z, real ux, real uy, real
     // правило пика при допуске — InPeak (map_data.md §4 п. 1).
     w.deposited = (real)0.0;
     w.depositedOutside = (real)0.0;
+    w.depositedBackscatter = (real)0.0;
     fromOutsideAnnihilation = false;
+    backState = 0;
     w.travelled = (real)0.0;
     w.comptonOutside = false;
     w.limit = limit;
@@ -683,9 +689,20 @@ RM_DEVF bool Sim::AnalogStep(AnalogWalk& w)
                     if (e - escaped > (real)1e-9)
                     {
                         deposited += e - escaped;
+                        if (backState == 1)
+                        {
+                            w.depositedBackscatter += e - escaped;
+                        }
+
                         if (fromOutsideAnnihilation)
                         {
                             depositedOutside += e - escaped;
+                        }
+
+                        // (`AMBER311`) Вышедший из кристалла без метки её больше не получает.
+                        if (backState != 1)
+                        {
+                            backState = 2;
                         }
 
                         // Возврат из обвязки (`A55`): вылетевшее — в очередь истории.
@@ -758,6 +775,11 @@ RM_DEVF bool Sim::AnalogStep(AnalogWalk& w)
                                         x, y, z, ElectronBirth::Pair, e - (real)2.0 * (real)ElectronMassKev,
                                         ux, uy, uz, material, pushAnalog);
                                     deposited += gain;
+                                    if (backState == 1)
+                                    {
+                                        w.depositedBackscatter += gain;
+                                    }
+
                                     if (fromOutsideAnnihilation)
                                     {
                                         depositedOutside += gain;
@@ -771,6 +793,11 @@ RM_DEVF bool Sim::AnalogStep(AnalogWalk& w)
                                                               carried))
                                 {
                                     deposited += carried;
+                                    if (backState == 1)
+                                    {
+                                        w.depositedBackscatter += carried;
+                                    }
+
                                     if (fromOutsideAnnihilation)
                                     {
                                         depositedOutside += carried;
@@ -802,6 +829,11 @@ RM_DEVF bool Sim::AnalogStep(AnalogWalk& w)
                                         x, y, z, ElectronBirth::Photo, e - xrayOut,
                                         gx, gy, gz, material, pushAnalog);
                                     deposited += gain;
+                                    if (backState == 1)
+                                    {
+                                        w.depositedBackscatter += gain;
+                                    }
+
                                     if (fromOutsideAnnihilation)
                                     {
                                         depositedOutside += gain;
@@ -815,10 +847,21 @@ RM_DEVF bool Sim::AnalogStep(AnalogWalk& w)
                                                               carried))
                                 {
                                     deposited += carried;
+                                    if (backState == 1)
+                                    {
+                                        w.depositedBackscatter += carried;
+                                    }
+
                                     if (fromOutsideAnnihilation)
                                     {
                                         depositedOutside += carried;
                                     }
+                                }
+
+                                // (`AMBER311`) Рентген защиты — новый квант, метка родителя на него не переходит.
+                                if (backState == 1)
+                                {
+                                    backState = 0;
                                 }
 
                                 e = xrayOut;
@@ -831,6 +874,11 @@ RM_DEVF bool Sim::AnalogStep(AnalogWalk& w)
                                     x, y, z, ElectronBirth::Photo, e,
                                     ux, uy, uz, material, pushAnalog);
                                 deposited += gain;
+                                if (backState == 1)
+                                {
+                                    w.depositedBackscatter += gain;
+                                }
+
                                 if (fromOutsideAnnihilation)
                                 {
                                     depositedOutside += gain;
@@ -842,6 +890,11 @@ RM_DEVF bool Sim::AnalogStep(AnalogWalk& w)
                                                           carried))
                             {
                                 deposited += carried;
+                                if (backState == 1)
+                                {
+                                    w.depositedBackscatter += carried;
+                                }
+
                                 if (fromOutsideAnnihilation)
                                 {
                                     depositedOutside += carried;
@@ -854,6 +907,7 @@ RM_DEVF bool Sim::AnalogStep(AnalogWalk& w)
                         real cos;
                         real after = ComptonScatter(here, e, cos);
                         comptonOutside = true;              // замер `S55`
+
                         if (C.ElectronLayerTransport)
                         {
                             real ux0 = ux, uy0 = uy, uz0 = uz;
@@ -865,9 +919,19 @@ RM_DEVF bool Sim::AnalogStep(AnalogWalk& w)
                                 x, y, z, ElectronBirth::Given, e - after,
                                 dx, dy, dz, D.regions[here].Material, pushAnalog);
                             deposited += gain;
+                            if (backState == 1)
+                            {
+                                w.depositedBackscatter += gain;
+                            }
+
                             if (fromOutsideAnnihilation)
                             {
                                 depositedOutside += gain;
+                            }
+
+                            if (backState == 0 && cos < BackscatterMaxCos)
+                            {
+                                backState = 1;     // (`AMBER311`) ПОСЛЕ заноса электрона отдачи
                             }
 
                             e = after;
@@ -881,10 +945,20 @@ RM_DEVF bool Sim::AnalogStep(AnalogWalk& w)
                                                  carried))
                         {
                             deposited += carried;
+                            if (backState == 1)
+                            {
+                                w.depositedBackscatter += carried;
+                            }
+
                             if (fromOutsideAnnihilation)
                             {
                                 depositedOutside += carried;
                             }
+                        }
+
+                        if (backState == 0 && cos < BackscatterMaxCos)
+                        {
+                            backState = 1;     // (`AMBER311`) ПОСЛЕ заноса электрона отдачи
                         }
 
                         e = after;
@@ -916,6 +990,7 @@ RM_DEVF bool Sim::AnalogStep(AnalogWalk& w)
         uz = pendUz[k];
         e = pendE[k];
         fromOutsideAnnihilation = pendFromOutsideAnnihilation[k];
+        backState = pendBackState[k];
         travelled = (real)0.0;
         w.guard = 0;
     }
@@ -956,6 +1031,7 @@ RM_DEVF real Sim::ElectronHistoryFrom(real te, bool positron, real x, real y, re
     lightDeposit = (real)0.0;
     // не перенесено: ResetTrace() — трассировка каналов.
     fromOutsideAnnihilation = false;
+    backState = 0;
     pendCount = 0;
 
     real t = CapsuleExit(te, uz);
@@ -983,12 +1059,14 @@ RM_DEVF real Sim::ElectronHistoryFrom(real te, bool positron, real x, real y, re
         st.queuedPhotons += pendCount;
         int k = --pendCount;
         fromOutsideAnnihilation = pendFromOutsideAnnihilation[k];
+        backState = pendBackState[k];
         AnalogWalk w;
         w.x = pendX[k]; w.y = pendY[k]; w.z = pendZ[k];
         w.ux = pendUx[k]; w.uy = pendUy[k]; w.uz = pendUz[k];
         w.e = pendE[k];
         w.deposited = deposited;
         w.depositedOutside = (real)0.0;
+        w.depositedBackscatter = (real)0.0;
         w.travelled = (real)0.0;
         w.limit = limit;
         w.guard = 0;
@@ -1150,12 +1228,14 @@ RM_DEVF real Sim::WalkPendingFrom(real limit, real deposited)
 
     int k = --pendCount;
     fromOutsideAnnihilation = pendFromOutsideAnnihilation[k];
+    backState = pendBackState[k];
     AnalogWalk w;
     w.x = pendX[k]; w.y = pendY[k]; w.z = pendZ[k];
     w.ux = pendUx[k]; w.uy = pendUy[k]; w.uz = pendUz[k];
     w.e = pendE[k];
     w.deposited = deposited;
     w.depositedOutside = (real)0.0;
+    w.depositedBackscatter = (real)0.0;
     w.travelled = (real)0.0;
     w.limit = limit;
     w.guard = 0;
@@ -1212,6 +1292,7 @@ RM_DEVF real Sim::BranchEventFrom(const BranchTabG& tab, real x, real y, real z,
     lightDeposit = (real)0.0;
     // не перенесено: ResetTrace() — трассировка каналов.
     fromOutsideAnnihilation = false;
+    backState = 0;
     pendCount = 0;
 
     real te = SampleBranchBeta(tab, Uniform());
@@ -1237,6 +1318,7 @@ RM_DEVF real Sim::BranchEventFrom(const BranchTabG& tab, real x, real y, real z,
 
     // Каскад — из точки распада, после обхода беты (C#: тот же порядок).
     fromOutsideAnnihilation = false;
+    backState = 0;
     ForgetRay();
     int level = tab.startLevel;
     int steps = 0;

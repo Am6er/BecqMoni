@@ -100,7 +100,7 @@ namespace XrayLinesProbe
             // таблицы (database/scheme.md). Порядок: Kα1, Kα2, Kβ.
             Near("W Kα1", lines[0].Energy, 59.318);
             Near("W Kα2", lines[1].Energy, 57.981);
-            Near("W Kβ", lines[2].Energy, 68.117);
+            Near("W Kβ", lines[2].Energy, 67.4765);
             Text("метка Kα1", lines[0].XrayType, "KA1");
 
             double sum = 0.0;
@@ -218,7 +218,7 @@ namespace XrayLinesProbe
             {
                 Definition("W x-ray", 59.318, 50.05),
                 Definition("W x-ray", 57.981, 28.81),
-                Definition("W x-ray", 68.117, 21.14),
+                Definition("W x-ray", 67.4765, 21.14),
                 Definition("Cs-137", 661.657, 85.1),
             };
 
@@ -229,7 +229,8 @@ namespace XrayLinesProbe
             };
 
             List<FsaComponent> library = FsaLibrary.BuildFromPeaks(peaks, definitions);
-            FsaComponent tungsten = Find(library, "W");
+            // (`AMBER306`) Подпись элемента — образ из `matdb` одним местом, а не строки библиотеки.
+            FsaComponent tungsten = Find(library, "Xray-W");
             FsaComponent cesium = Find(library, "Cs-137");
             if (tungsten == null || cesium == null)
             {

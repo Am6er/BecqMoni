@@ -5310,6 +5310,30 @@
   <data name="FSAReport_DriftEdge" xml:space="preserve">
     <value>at the range limit</value>
   </data>
+  <data name="FSAReport_BackgroundMaskRowOne" xml:space="preserve">
+    <value>Region {0} keV is left out of the fit: the background there is significantly above the spectrum</value>
+  </data>
+  <data name="FSAReport_BackgroundKnifeRow" xml:space="preserve">
+    <value>Activity is taken from the lines above {0} keV: below that the background is above the spectrum, and the images are left free there</value>
+  </data>
+  <data name="FSAReport_BackgroundKnifeValue" xml:space="preserve">
+    <value>above {0} keV</value>
+  </data>
+  <data name="FSAReport_BackgroundKnifeTip" xml:space="preserve">
+    <value>Below {0} keV the response matrix does not know the instrument body or the sample material, and here the background is also above the spectrum. So for images whose strongest line is above {0} keV the lower part goes as a free column and does not set the activity. Images whose strongest line is below {0} keV are computed as usual. Channels left free: {1} of {2}.</value>
+  </data>
+  <data name="FSAReport_BackgroundMaskRow" xml:space="preserve">
+    <value>Regions {0} keV are left out of the fit: the background there is significantly above the spectrum</value>
+  </data>
+  <data name="FSAReport_BackgroundMaskValue" xml:space="preserve">
+    <value>not fitted</value>
+  </data>
+  <data name="FSAReport_BackgroundMaskValueOne" xml:space="preserve">
+    <value>not fitted</value>
+  </data>
+  <data name="FSAReport_BackgroundMaskTip" xml:space="preserve">
+    <value>The background was probably measured without the sample (an empty vessel) or in other surroundings. The model is not fitted to these channels and they are not in χ². A whole region is judged, not single channels, so noise does not remove it. Channels left out: {0}. Most significant window {1}–{2} keV: z {3}, background ×{4} of the measured spectrum.</value>
+  </data>
   <data name="FSAReport_AnchorRow" xml:space="preserve">
     <value>Reference peaks for the scale</value>
   </data>
@@ -5326,7 +5350,34 @@
     <value>Reference peaks the scale was adjusted on (+ taken, - rejected): component, model centre keV, residual keV, peak share, reason</value>
   </data>
   <data name="FSAReport_AnchorTipLine" xml:space="preserve">
-    <value>{0} {1} {2} keV, residual {3} keV, share {4} {5}</value>
+    <value>{0} {1} {2} keV, residual {3} keV, share {4}</value>
+  </data>
+  <data name="FSAReport_AnchorTipLineNoShift" xml:space="preserve">
+    <value>{0} {1} {2} keV, share {3}</value>
+  </data>
+  <data name="FSAReport_AnchorTipRefusal" xml:space="preserve">
+    <value>: {0}</value>
+  </data>
+  <data name="FSAReport_AnchorEdgeRefusal" xml:space="preserve">
+    <value>window cut by the edge of the analysis band</value>
+  </data>
+  <data name="FSAReport_AnchorSkipRefusal" xml:space="preserve">
+    <value>left out on request</value>
+  </data>
+  <data name="FSAReport_AnchorNarrowRefusal" xml:space="preserve">
+    <value>peak too narrow in channels</value>
+  </data>
+  <data name="FSAReport_AnchorZRefusal" xml:space="preserve">
+    <value>peak not significant</value>
+  </data>
+  <data name="FSAReport_AnchorShareRefusal" xml:space="preserve">
+    <value>peak share in the window too small</value>
+  </data>
+  <data name="FSAReport_AnchorShiftRefusal" xml:space="preserve">
+    <value>too far from the model line: another peak</value>
+  </data>
+  <data name="FSAReport_AnchorOutlierRefusal" xml:space="preserve">
+    <value>outlier of the scale fit</value>
   </data>
   <data name="FSAReport_AnchorTipLight" xml:space="preserve">
     <value>, light {0} keV</value>
@@ -5345,6 +5396,45 @@
   </data>
   <data name="FSAReport_AnchorRollbackTip" xml:space="preserve">
     <value>Reference peaks of the cancelled adjustment (+ taken, - rejected):</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeValue" xml:space="preserve">
+    <value>not adjusted</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeTipHead" xml:space="preserve">
+    <value>Reference peaks, the scale was not adjusted on them (- rejected): component, model centre keV, residual keV, peak share, reason</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeMapRowOne" xml:space="preserve">
+    <value>The reference peak at {0} keV sits right next to zero: the stretch was not adjusted on it, the model refined the nonlinearity</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeMapRow" xml:space="preserve">
+    <value>The {0} reference peaks (the highest at {1} keV) sit right next to zero: the stretch was not adjusted on them, the model refined the nonlinearity</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeMapValue" xml:space="preserve">
+    <value>stretch not adjusted</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeMapTip" xml:space="preserve">
+    <value>The stretch of the scale goes from zero, so it needs a reference peak well away from zero. A peak below {0} keV cannot hold it: half a channel of error in its centre would change the stretch by whole percents. The threshold judges the line energy: the highest line is {1} keV, its model centre is {2} keV. Such peaks are not taken for the stretch; the model refined the nonlinearity of the scale on its own.</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeMapTipHead" xml:space="preserve">
+    <value>Reference peaks, the stretch was not adjusted on them (- rejected): component, model centre keV, residual keV, peak share, reason</value>
+  </data>
+  <data name="FSAReport_AnchorNotInStepRefusal" xml:space="preserve">
+    <value>not in the last scale step</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeRowOne" xml:space="preserve">
+    <value>Scale not adjusted: the reference peak at {0} keV sits right next to zero, and the scale cannot be stretched on it</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeRow" xml:space="preserve">
+    <value>Scale not adjusted: the {0} reference peaks (the highest at {1} keV) sit right next to zero, and the scale cannot be stretched on them</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeTip" xml:space="preserve">
+    <value>The scale is adjusted by stretching it from zero, so it needs a reference peak well away from zero. A peak below {0} keV cannot hold it: half a channel of error in its centre would change the stretch by whole percents. The threshold judges the line energy: the highest line is {1} keV, its model centre is {2} keV. Such peaks are not taken, and the stretch of the scale was not changed.</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeRefusal" xml:space="preserve">
+    <value>right next to zero</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeRollbackRow" xml:space="preserve">
+    <value>Adjusting the scale made the fit worse: χ²/ndf {0} against {1}</value>
   </data>
   <data name="FSAReport_SuppressedRow" xml:space="preserve">
     <value>The counts are explained not by a nuclide but by</value>
@@ -5482,7 +5572,7 @@
     <value>{0} keV: peak not explained by the analysis nuclides — {1} % above the model (z {2}); nearby in the library: {3}</value>
   </data>
   <data name="FSAReport_UncoveredValue" xml:space="preserve">
-    <value>not in set</value>
+    <value>not in the composition</value>
   </data>
   <data name="FSAReport_UncoveredNone" xml:space="preserve">
     <value>none</value>

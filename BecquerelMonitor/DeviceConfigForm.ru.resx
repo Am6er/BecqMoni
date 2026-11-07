@@ -184,6 +184,12 @@
   <data name="crystalMaterialNotSet" xml:space="preserve">
     <value>(не задано)</value>
   </data>
+  <data name="crystalChosenNote" xml:space="preserve">
+    <value>Вещество кристалла «{0}» вы выбрали из геометрии кривых прибора, в файле его ещё нет. «Да» запишет его в файл, «Нет» отменит выбор.</value>
+  </data>
+  <data name="crystalOfferedNote" xml:space="preserve">
+    <value>Окно само подставило в пустое поле вещество кристалла «{0}» из геометрии кривых прибора. «Да» запишет его в файл, «Нет» оставит поле пустым.</value>
+  </data>
   <data name="crystalFromGeometryQuestion" xml:space="preserve">
     <value>У геометрии кристалл {0}, у прибора — {1}. Сделать {0} веществом прибора?</value>
   </data>

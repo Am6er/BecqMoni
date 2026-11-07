@@ -173,6 +173,11 @@ def main():
 
     with io.open(path, encoding="utf-8-sig") as f:
         text = f.read()
+    # (`AMBER309`, 05.11.2026) Поставка с этого дня — сеты конфига Amber, а не `SETS` ниже. На такой библиотеке
+    # скрипт дописывает 35 скрытых линий и размечает записи старыми правилами (замер на копии: 74 → 109), поэтому
+    # файл со своими наборами он не трогает.
+    if "<NuclideSets>" in text and not any(guid in text for _, guid, _, _ in SETS):
+        sys.exit("ОТКАЗ: в файле свои наборы, а не SETS этого скрипта — поставка ведётся словом Amber (AMBER309): " + path)
 
     roots = [(root, label, chain_factors(db, root)) for root, label in CHAIN_ROOTS]
     lines_cache = {}

@@ -1,0 +1,45 @@
+BecqMoni: main config: <полоса>\app7\config\BecquerelMonitor.xml
+BecqMoni: device configs: <полоса>\app7\config\device: 10 loaded
+== RC103_Cs137_0cm
+   OK  матрица годна и несёт строки
+   раздел электрона: годен
+SETUP	против поставочного разбора изменено: AngularQk нет → BecquerelMonitor.EfficiencyMaker.AngularAttenuation; CoincidenceWindowSec 0 → 0.00036281179138322; MinEnergy 40 → 30; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; SampleBetaRefusal Missing → None; SampleBetaSection нет → BecquerelMonitor.EfficiencyMaker.ResponseElectronSection; ScintillatorMaterial нет → CsI:Tl
+   OK  разбор есть
+   ROW	Backscatter	Cs-137 — обратное рассеяние	
+   ROW	BackscatterLine	Горб 232 кэВ от 661.7	1722 отсч.
+   OK  строки обратного рассеяния есть, 2
+   Cs-137: подслой 1722 отсч. из 129774 (1.33 %), выше ленты на 0.00E+000
+   OK  Cs-137: подслой внутри ленты
+   Cs-137: сумма подписей 1721.9, подслой 1721.9
+   OK  Cs-137: сумма подписей равна подслою
+      линия 661.7 кэВ: центр 232 кэВ, 1722 отсч., канал 91.6
+SETUP	против поставочного разбора изменено: AngularQk нет → BecquerelMonitor.EfficiencyMaker.AngularAttenuation; Backscatter True → False; CoincidenceWindowSec 0 → 0.00036281179138322; MinEnergy 40 → 30; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; SampleBetaRefusal Missing → None; SampleBetaSection нет → BecquerelMonitor.EfficiencyMaker.ResponseElectronSection; ScintillatorMaterial нет → CsI:Tl
+   OK  снятая галка: образы и скорости те же побитно
+   OK  снятая галка: строк нет
+   OK  снятая галка: подслоя нет
+SETUP	против поставочного разбора изменено: AngularQk нет → BecquerelMonitor.EfficiencyMaker.AngularAttenuation; CoincidenceWindowSec 0 → 0.00036281179138322; MinEnergy 40 → 30; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; SampleBetaRefusal Missing → None; SampleBetaSection нет → BecquerelMonitor.EfficiencyMaker.ResponseElectronSection; ScintillatorMaterial нет → CsI:Tl
+   OK  старая матрица без строк: образы те же побитно
+   OK  старая матрица без строк: строки нет
+== AS80_Lu176
+   OK  матрица годна и несёт строки
+   раздел электрона: годен
+SETUP	против поставочного разбора изменено: AngularQk нет → BecquerelMonitor.EfficiencyMaker.AngularAttenuation; CoincidenceWindowSec 0 → 0.00036281179138322; MinEnergy 40 → 30; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; SampleBetaRefusal Missing → None; SampleBetaSection нет → BecquerelMonitor.EfficiencyMaker.ResponseElectronSection; ScintillatorMaterial нет → NaI:Tl
+   OK  разбор есть
+   ROW	Backscatter	Lu-176 — обратное рассеяние	
+   ROW	BackscatterLine	Горб 133 кэВ от 201.8	14061 отсч.
+   ROW	BackscatterLine	Горб 171 кэВ от 306.8	21255 отсч.
+   OK  строки обратного рассеяния есть, 3
+   Lu-176: подслой 36643 отсч. из 584743 (6.27 %), выше ленты на 0.00E+000
+   OK  Lu-176: подслой внутри ленты
+   Lu-176: сумма подписей 36643.2, подслой 36643.2
+   OK  Lu-176: сумма подписей равна подслою
+      линия 201.8 кэВ: центр 133 кэВ, 14061 отсч., канал 367.1
+      линия 306.8 кэВ: центр 171 кэВ, 21255 отсч., канал 470.4
+SETUP	против поставочного разбора изменено: AngularQk нет → BecquerelMonitor.EfficiencyMaker.AngularAttenuation; Backscatter True → False; CoincidenceWindowSec 0 → 0.00036281179138322; MinEnergy 40 → 30; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; SampleBetaRefusal Missing → None; SampleBetaSection нет → BecquerelMonitor.EfficiencyMaker.ResponseElectronSection; ScintillatorMaterial нет → NaI:Tl
+   OK  снятая галка: образы и скорости те же побитно
+   OK  снятая галка: строк нет
+   OK  снятая галка: подслоя нет
+SETUP	против поставочного разбора изменено: AngularQk нет → BecquerelMonitor.EfficiencyMaker.AngularAttenuation; CoincidenceWindowSec 0 → 0.00036281179138322; MinEnergy 40 → 30; ResponseMatrix нет → BecquerelMonitor.EfficiencyMaker.ResponseMatrix; SampleBetaRefusal Missing → None; SampleBetaSection нет → BecquerelMonitor.EfficiencyMaker.ResponseElectronSection; ScintillatorMaterial нет → NaI:Tl
+   OK  старая матрица без строк: образы те же побитно
+   OK  старая матрица без строк: строки нет
+ВСЕ СОШЛИСЬ

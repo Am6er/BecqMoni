@@ -2,8 +2,10 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using BecquerelMonitor.FullSpectrumAnalysis;
 
 namespace BecquerelMonitor.EfficiencyMaker
 {
@@ -94,6 +96,16 @@ namespace BecquerelMonitor.EfficiencyMaker
         public int JointPlannedNow;
 
         /// <summary>
+        /// (`AMBER305`, 05.11.2026) РАЗДЕЛ ЭЛЕКТРОНА ПРОБЫ — ТРЕТЬЯ ЧАСТЬ РАБОТЫ ОКНА: идёт
+        /// после того, как фотонная матрица собрана. Строк раздела досчитано; единица — строка
+        /// (узел, линия конверсии, ветвь), их число известно заранее и за счёт не меняется.
+        /// </summary>
+        public int SectionDone;
+
+        /// <summary>Строк раздела всего; 0 — это отчёт фотонной части, а не раздела.</summary>
+        public int SectionTotal;
+
+        /// <summary>
         /// Доля сделанного, % — ПО ДОСЧИТАННЫМ УЗЛАМ (`A46`) И БЛОКАМ κ (`AMBER220`).
         ///
         /// Прежде доля шла по цене узлов в потокосекундах, и полоса пятилась
@@ -107,6 +119,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             get
             {
+                // (`AMBER305`) Отчёт раздела — своя шкала; как сложить её с фотонной, решает окно.
+                if (this.SectionTotal > 0)
+                {
+                    return 100.0 * this.SectionDone / this.SectionTotal;
+                }
+
                 int units = this.TotalNodes + Math.Max(0, this.JointPlanned);
                 return units > 0
                     ? 100.0 * (this.SettledNodes + Math.Max(0, this.JointDone)) / units
@@ -122,6 +140,217 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return this.TotalNodes > 0 && this.SettledNodes >= this.TotalNodes
                        && this.JointPlanned > 0 && this.JointDone < this.JointPlanned;
             }
+        }
+    }
+
+    /// <summary>(`AMBER305`) Чем кончилось <see cref="ResponseMatrixBuilder.AttachElectronSection"/>.</summary>
+    public enum ElectronSectionOutcome
+    {
+        /// <summary>Раздел посчитан заново.</summary>
+        Built,
+
+        /// <summary>Прежний раздел того же клейма взят без счёта.</summary>
+        Carried,
+
+        /// <summary>Сцене раздел не положен: изотропное поле (`Ф5`).</summary>
+        NotApplicable
+    }
+
+    /// <summary>
+    /// ⛔ (`AMBER305`, решение Amber 05.11.2026 вопросником, дословно: «Строить в окне
+    /// (Рекомендую)») РЕЦЕПТ РАЗДЕЛА ЭЛЕКТРОНА ПРОБЫ — ОДИН НА ОКНО И СКЛАД. Прежде он жил
+    /// умолчаниями `BetaSectionProbeA274` и строкой в `handover/store30/sections.ps1`, а окно
+    /// матрицы раздел только переносило: матрицы пользователя и корпуса различались молча.
+    /// Рецепт сверяет с клеймами склада сторож `tools/check_electron_recipe.py`.
+    ///
+    /// Рецепт: сетка <see cref="ResponseElectronSection.DefaultGrid"/>, <see cref="Histories"/>
+    /// историй на строку, зерно 0 (зерно матрицы), позитрон ВКЛ, строки линий конверсии и
+    /// строки ветвей — рядов библиотеки нуклидов с выходом не ниже
+    /// <see cref="LibraryMinPercent"/> %. Список линий и ветвей зависит от библиотеки НА ЭТОЙ
+    /// машине и входит в клеймо раздела (`lines=`, `br=`), так что другая библиотека — другое
+    /// клеймо. Годность раздела для разбора от этого не зависит
+    /// (<see cref="ResponseMatrix.ElectronSectionFor"/>): линия вне списка интерполируется по
+    /// узлам, ветвь без строки ложится весами узлов.
+    /// </summary>
+    public sealed class ElectronSectionRecipe
+    {
+        /// <summary>
+        /// Историй на строку (решение Amber 05.11.2026 вопросником, дословно: «Поднять до 800000»).
+        /// Замер на приборе вне корпуса, один нуклид, единственная опора шкалы: СКО активности от
+        /// зерна раздела 1.5 % при 200 тыс. и 0.36 % при 800 тыс.; число входит в клеймо раздела.
+        /// </summary>
+        public const int StoreHistories = 800000;
+
+        /// <summary>
+        /// РЫЧАГ ПРОБ, не настройка: окно считает столько историй на строку. Ни один штатный путь
+        /// его не ставит; пробы окна (`MatrixWindowProbeP291`, `…DetailsProbeP292`) снижают его,
+        /// потому что судят не раздел, а поведение окна. Клеймо раздела число историй несёт.
+        /// </summary>
+        public static int Histories = StoreHistories;
+
+        /// <summary>Порог выхода строк линий и ветвей, % на распад члена ряда.</summary>
+        public const double LibraryMinPercent = 1.0;
+
+        /// <summary>Зерно раздела: 0 — зерно матрицы.</summary>
+        public const int Seed = 0;
+
+        /// <summary>Строки позитрона считаются.</summary>
+        public const bool Positron = true;
+
+        /// <summary>Сетка энергий узлов.</summary>
+        public double[] Grid { get; private set; }
+
+        /// <summary>Энергии строк линий конверсии; null — нет.</summary>
+        public double[] Lines { get; private set; }
+
+        /// <summary>Ветви строк «событие целиком».</summary>
+        public List<ElectronBranchSpec> Branches { get; private set; }
+
+        /// <summary>Рецепт по библиотеке нуклидов этой машины.</summary>
+        public static ElectronSectionRecipe FromLibrary(Action<string> log)
+        {
+            double[] grid = ResponseElectronSection.DefaultGrid();
+            return new ElectronSectionRecipe
+            {
+                Grid = grid,
+                Lines = LibraryLines(LibraryMinPercent, grid[0], grid[grid.Length - 1], log).ToArray(),
+                Branches = BranchesOf(LibraryMembers(), LibraryMinPercent, "lib:1", log),
+            };
+        }
+
+        /// <summary>Клеймо раздела, который дал бы этот рецепт для матрицы и сцены.</summary>
+        public string StampFor(GeometryModel geometry, ResponseMatrix matrix)
+        {
+            double bin = matrix.BinKev > 0.0 ? matrix.BinKev : matrix.Options.BinKev;
+            return ResponseElectronSection.ComputeStamp(geometry, matrix.Stamp, this.Grid, Histories, Seed, Positron, bin,
+                                                        ResponseElectronSection.CleanLines(this.Lines, this.Grid),
+                                                        ResponseMatrixBuilder.CleanBranches(this.Branches, null));
+        }
+
+        /// <summary>
+        /// Нуклиды библиотеки и члены их рядов (`FsaSampleLibrary.ChainBranches`): каждый нуклид
+        /// библиотеки — корень. Порядок — по имени: от него зависит номер строки ветви, а значит
+        /// и её зерно.
+        /// </summary>
+        public static SortedSet<string> LibraryMembers()
+        {
+            var members = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+            var report = new FsaSampleLibrary.Report();
+            foreach (NuclideDefinition d in NuclideDefinitionManager.GetInstance().NuclideDefinitions)
+            {
+                string nucid = FsaSampleLibrary.NucidOf(d.Name ?? "");
+                if (nucid.Length == 0)
+                {
+                    continue;
+                }
+
+                members.Add(nucid);
+                Dictionary<string, double> chain = FsaSampleLibrary.ChainBranches(nucid, report);
+                if (chain != null)
+                {
+                    foreach (string m in chain.Keys)
+                    {
+                        members.Add(m);
+                    }
+                }
+            }
+
+            return members;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, физика 28) Линии конверсии рядов библиотеки: линии членов с выходом (на
+        /// распад члена) не ниже <paramref name="minPercent"/> в пределах сетки раздела. Различные
+        /// энергии (слияние ближе 0.05 кэВ) — по возрастанию.
+        /// </summary>
+        public static List<double> LibraryLines(double minPercent, double minKev, double maxKev, Action<string> log)
+        {
+            SortedSet<string> members = LibraryMembers();
+            var energies = new List<double>();
+            foreach (string nucid in members)
+            {
+                foreach (FsaBeta b in FsaBetaLibrary.Branches(nucid))
+                {
+                    if (b.IsLine && b.Intensity >= minPercent && b.EndpointKev >= minKev && b.EndpointKev <= maxKev)
+                    {
+                        energies.Add(b.EndpointKev);
+                    }
+                }
+            }
+
+            energies.Sort();
+            var distinct = new List<double>();
+            foreach (double e in energies)
+            {
+                if (distinct.Count == 0 || e - distinct[distinct.Count - 1] > 0.05)
+                {
+                    distinct.Add(e);
+                }
+            }
+
+            if (log != null)
+            {
+                log(string.Format(CultureInfo.InvariantCulture,
+                    "== линии конверсии рядов библиотеки: нуклидов и членов {0}, линий с выходом ≥ {1} % в {2}…{3} кэВ — {4}, различных энергий {5}",
+                    members.Count, minPercent, minKev, maxKev, energies.Count, distinct.Count));
+            }
+
+            return distinct;
+        }
+
+        /// <summary>
+        /// (`Ф8`) β⁻-ветви нуклидов <paramref name="members"/> с выходом не ниже порога, у которых
+        /// есть каскад. В журнал — перепись: сколько взято и почему пропущены прочие.
+        /// </summary>
+        public static List<ElectronBranchSpec> BranchesOf(IEnumerable<string> members, double minPercent, string label,
+                                                          Action<string> log)
+        {
+            var list = new List<ElectronBranchSpec>();
+            var reasons = new SortedDictionary<string, int>(StringComparer.Ordinal);
+            int considered = 0, nuclides = 0;
+            foreach (string nucid in members)
+            {
+                nuclides++;
+                foreach (FsaBeta b in FsaBetaLibrary.Branches(nucid))
+                {
+                    if (b.IsLine || b.Intensity < minPercent)
+                    {
+                        continue;
+                    }
+
+                    considered++;
+                    string why;
+                    ElectronBranchSpec s = FsaBetaLibrary.EventSpec(b, out why);
+                    if (s != null)
+                    {
+                        list.Add(s);
+                        continue;
+                    }
+
+                    int c;
+                    reasons.TryGetValue(why ?? "?", out c);
+                    reasons[why ?? "?"] = c + 1;
+                    if (log != null && b.Intensity >= 1.0 && why != null
+                        && !why.StartsWith("ветвь на основное", StringComparison.Ordinal))
+                    {
+                        log(string.Format(CultureInfo.InvariantCulture, "   ветвь {0} {1:F1} кэВ {2:G4} %: {3}",
+                                          nucid, b.EndpointKev, b.Intensity, why));
+                    }
+                }
+            }
+
+            if (log != null)
+            {
+                log(string.Format(CultureInfo.InvariantCulture,
+                    "== строки ветвей (--branches={0}): нуклидов и членов {1}, ветвей с выходом ≥ {2} % — {3}, с каскадом — {4}",
+                    label, nuclides, minPercent, considered, list.Count));
+                foreach (KeyValuePair<string, int> r in reasons)
+                {
+                    log(string.Format(CultureInfo.InvariantCulture, "   пропущено {0}: {1}", r.Value, r.Key));
+                }
+            }
+
+            return list;
         }
     }
 
@@ -200,6 +429,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 throw new InvalidOperationException(facingError);
             }
 
+            // (`AMBER307`) Слой без вещества — отказ словами, а не падение в потоке счёта.
+            string missingMaterial = geometry.MissingMaterialProblem();
+            if (missingMaterial != null)
+            {
+                throw new InvalidOperationException(missingMaterial);
+            }
+
             // (`AMBER201`, Р4, подозрение G) Элемент вне таблиц ослабления в
             // любом слое сцены — отказ словами, а не слой без него.
             string unknownElement = geometry.UnknownElementProblem();
@@ -222,6 +458,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 channelRows[c] = new float[grid.Length][];
             }
+
+            // (`AMBER311`) Строки «рассеянные вне кристалла» — часть канала `Compton`, в тело не входят.
+            float[][] backscatterRows = new float[grid.Length][];
             var watch = Stopwatch.StartNew();
 
             // Счётчики хода (`W27`). Прогоны и истории ведутся ПОРОЗНЬ: подпись
@@ -408,9 +647,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                         long ticks0 = Stopwatch.GetTimestamp();
                         AngularMomentSums angular;
                         double resolutionExtra;
+                        double[] backscatter;
                         double[][] histograms = RunNode(geometry, options, grid[index], index,
                                                         histories, out achieved, out angular,
-                                                        out resolutionExtra, cancellation);
+                                                        out resolutionExtra, out backscatter, cancellation);
+                        backscatterRows[index] = BackscatterRowOf(backscatter);
                         nodeResolutionExtra[index] = resolutionExtra;
                         nodeSeconds[index] += (double)(Stopwatch.GetTimestamp() - ticks0)
                                               / Stopwatch.Frequency;
@@ -570,6 +811,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Energies = grid,
                 BinKev = options.BinKev,
                 ChannelRows = channelRows,
+                BackscatterRows = backscatterRows,
                 Histories = options.Histories,
                 Options = options.Clone(),
                 Stamp = ResponseMatrix.ComputeStamp(geometry, options),
@@ -614,8 +856,49 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             watch.Stop();
             matrix.BuildSeconds = watch.Elapsed.TotalSeconds;
+
             return matrix;
         }
+
+        /// <summary>
+        /// (`AMBER274`, Э2, 04.11.2026) СОБСТВЕННАЯ АКТИВНОСТЬ КРИСТАЛЛА — раздел `CWNA` к
+        /// готовой матрице, один вход для матриц путей CPU и GPU. ⛔ СЛОЙ ВЫКЛЮЧЕН (решение Amber
+        /// 05.11.2026 вопросником, дословно: «Разобрать χ², слой выкл (Рекомендую)»): построитель,
+        /// окно и склад этот вход НЕ зовут, раздел не считается и файл прежний до бита; зовёт только
+        /// замер (`CrystalOwnActivityProbeA274`). Парный ключ разбора —
+        /// <see cref="FullSpectrumAnalysis.FsaAnalyzer.CrystalOwnLayer"/>. Считается
+        /// от фотонного тела независимо (событие распада в объёме кристалла, перенос ЦП
+        /// `InCrystal`/`ElectronLoss`, в ядре GPU его нет), поэтому фотонные строки остаются
+        /// побитово прежними, а сцены без La/Lu/Ce раздела не получают вовсе. Сбой слоя матрицу не
+        /// портит: он необязательный, причина уходит в примечание раздела.
+        /// </summary>
+        public static void AttachCrystalSection(GeometryModel geometry, ResponseMatrix matrix)
+        {
+            if (matrix == null || !FullSpectrumAnalysis.CrystalOwnActivityBuilder.HasOwnActivity(geometry))
+            {
+                return;
+            }
+
+            try
+            {
+                string ownNote;
+                matrix.CrystalSection = FullSpectrumAnalysis.CrystalOwnActivityBuilder.Build(
+                    geometry, matrix.BinKev, OwnActivityHistories, 0x274, out ownNote);
+                matrix.CrystalSectionDamage = ownNote;
+            }
+            catch (Exception error)
+            {
+                matrix.CrystalSection = null;
+                matrix.CrystalSectionDamage = "слой не собран: " + error.Message;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Э2) Сколько историй на нуклид разыгрывает слой собственной
+        /// активности. 100 тыс. на нуклид — секунды на сцену на ЦП; шум гистограммы
+        /// при этом много ниже статистики самого слоя в измеренном спектре.
+        /// </summary>
+        const int OwnActivityHistories = 100000;
 
         /// <summary>
         /// ⚡ ТАБЛИЦА СОВМЕСТНОЙ ЭФФЕКТИВНОСТИ ПАР (`S112`, задача Amber 09.09.2026).
@@ -1269,6 +1552,70 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                                    Action<string> log, double[] lines,
                                                                    IList<ElectronBranchSpec> branches)
         {
+            return BuildElectronSection(geometry, matrix, grid, histories, seed, positron, threads, cancellation, log,
+                                        lines, branches, null);
+        }
+
+        /// <summary>
+        /// (`AMBER305`) Раздел рецептом склада к только что посчитанной матрице
+        /// (<paramref name="gpu"/> — на устройстве, null — на ЦП в <paramref name="threads"/>
+        /// потоков). <paramref name="previous"/> берётся без счёта, только если его клеймо —
+        /// то самое, что дал бы этот счёт (та же физика раздела, матрица, сетка, истории,
+        /// зерно, бин, капсула, линии и ветви библиотеки), и разбор его принимает: раздел от
+        /// фотонных строк не зависит, а считать его заново значит только ждать. Всякий иной
+        /// прежний раздел негоден, и прежний перенос по одному `ForMatrixStamp` пропускал его
+        /// молча: разбор потом отказывал (другая капсула, прежняя физика раздела).
+        ///
+        /// Сцена изотропного поля раздела не имеет (`Ф5`). Отмена и отказ счёта — исключением.
+        /// </summary>
+        public static ElectronSectionOutcome AttachElectronSection(GeometryModel geometry, ResponseMatrix matrix,
+                                                                   ResponseElectronSection previous, RmGpu gpu, int threads,
+                                                                   IProgress<ResponseMatrixProgress> progress,
+                                                                   CancellationToken cancellation, Action<string> log)
+        {
+            if (geometry == null || matrix == null || matrix.Options == null)
+            {
+                throw new ArgumentNullException("matrix");
+            }
+
+            if (geometry.Scene == GeometrySceneKind.Iso)
+            {
+                return ElectronSectionOutcome.NotApplicable;
+            }
+
+            ElectronSectionRecipe recipe = ElectronSectionRecipe.FromLibrary(log);
+            cancellation.ThrowIfCancellationRequested();
+            if (previous != null && string.Equals(previous.Stamp, recipe.StampFor(geometry, matrix), StringComparison.Ordinal))
+            {
+                matrix.ElectronSection = previous;
+                ElectronSectionRefusal refusal;
+                if (matrix.ElectronSectionFor(geometry, out refusal) != null)
+                {
+                    return ElectronSectionOutcome.Carried;
+                }
+
+                matrix.ElectronSection = null;
+            }
+
+            matrix.ElectronSection = gpu != null
+                ? GpuBuild.BuildElectronSection(gpu, geometry, matrix, recipe.Grid, ElectronSectionRecipe.Histories,
+                                                ElectronSectionRecipe.Seed, ElectronSectionRecipe.Positron, recipe.Lines,
+                                                recipe.Branches, cancellation, log, progress)
+                : BuildElectronSection(geometry, matrix, recipe.Grid, ElectronSectionRecipe.Histories,
+                                       ElectronSectionRecipe.Seed, ElectronSectionRecipe.Positron, threads, cancellation,
+                                       log, recipe.Lines, recipe.Branches, progress);
+            return ElectronSectionOutcome.Built;
+        }
+
+        /// <summary>(`AMBER305`) То же с ходом по строкам раздела; <paramref name="progress"/> на числа не влияет.</summary>
+        public static ResponseElectronSection BuildElectronSection(GeometryModel geometry, ResponseMatrix matrix,
+                                                                   double[] grid, int histories, int seed,
+                                                                   bool positron, int threads,
+                                                                   CancellationToken cancellation,
+                                                                   Action<string> log, double[] lines,
+                                                                   IList<ElectronBranchSpec> branches,
+                                                                   IProgress<ResponseMatrixProgress> progress)
+        {
             if (geometry == null || matrix == null || matrix.Options == null)
             {
                 throw new ArgumentNullException("matrix");
@@ -1314,6 +1661,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             int nl = lineEnergies != null ? lineEnergies.Length : 0;
             List<ElectronBranchSpec> branchList = CleanBranches(branches, log);
             int nb = branchList.Count;
+            Action<double> rowDone = SectionRows(progress, n + nl + nb);
             var section = new ResponseElectronSection
             {
                 Stamp = ResponseElectronSection.ComputeStamp(geometry, matrix.Stamp, grid, histories, seed, positron, bin,
@@ -1368,6 +1716,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 section.EnteredElectron[i] = (double)es.Entered / es.Histories;
                 section.EnteredPositron[i] = ps != null ? (double)ps.Entered / ps.Histories : 0.0;
                 section.NodeSeconds[i] = es.Seconds + (ps != null ? ps.Seconds : 0.0);
+                rowDone(te);
                 if (log != null)
                 {
                     lock (gate)
@@ -1403,6 +1752,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     section.LineElectron[j] = ResponseElectronSection.Trim(e);
                     section.LineHistories[j] = es.Histories;
                     section.LineEntered[j] = (double)es.Entered / es.Histories;
+                    rowDone(te);
                 });
             }
 
@@ -1428,6 +1778,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     section.BranchGamma[j] = ResponseElectronSection.Trim(rows[1]);
                     section.BranchHistories[j] = bs.Histories;
                     section.BranchEntered[j] = (double)bs.Entered / bs.Histories;
+                    rowDone(spec.EndpointKev);
                     if (log != null)
                     {
                         lock (gate)
@@ -1451,6 +1802,50 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return section;
+        }
+
+        /// <summary>(`AMBER311`) Строка «рассеянные вне кристалла» узла: пустая — нулевой длины, как пустой канал.</summary>
+        internal static float[] BackscatterRowOf(double[] histogram)
+        {
+            bool any = false;
+            for (int b = 0; histogram != null && b < histogram.Length && !any; b++)
+            {
+                any = histogram[b] > 0.0;
+            }
+
+            float[] row = new float[any ? histogram.Length : 0];
+            for (int b = 0; b < row.Length; b++)
+            {
+                row[b] = (float)histogram[b];
+            }
+
+            return row;
+        }
+
+        /// <summary>
+        /// (`AMBER305`) Отчёт о досчитанной строке раздела — общий у построителей ЦП и GPU; сразу
+        /// отдаёт отчёт «0 из N»: окно называет фазу раньше первой строки. Без
+        /// <paramref name="progress"/> — ничего. Счётчик и отчёт под одной защёлкой: отчёты
+        /// потоков уходят по возрастанию, и полоса не пятится (`A46`).
+        /// </summary>
+        internal static Action<double> SectionRows(IProgress<ResponseMatrixProgress> progress, int total)
+        {
+            if (progress == null)
+            {
+                return kev => { };
+            }
+
+            progress.Report(new ResponseMatrixProgress { SectionTotal = total });
+            object gate = new object();
+            int done = 0;
+            return kev =>
+            {
+                lock (gate)
+                {
+                    done++;
+                    progress.Report(new ResponseMatrixProgress { SectionDone = done, SectionTotal = total, LastEnergyKev = kev });
+                }
+            };
         }
 
         /// <summary>
@@ -1554,7 +1949,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         static double[][] RunNode(GeometryModel geometry, ResponseMatrixOptions options,
                                   double energyKev, int index, int histories,
                                   out double achieved, out AngularMomentSums angular,
-                                  out double resolutionExtra, CancellationToken cancellation)
+                                  out double resolutionExtra, out double[] backscatter, CancellationToken cancellation)
         {
             EfficiencySimulator sim = MakeSimulator(geometry, options, index, energyKev);
             sim.Histories = Math.Max(1, histories);
@@ -1575,6 +1970,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             double relativeError;
             double[][] histograms = sim.ResponseByChannel(energyKev, options.BinKev,
                                                           out relativeError);
+            backscatter = sim.LastBackscatterRow;
             achieved = sim.LastContinuumRelativeError;
             resolutionExtra = resolutionHalfWidth > 0.0 ? sim.LastResolutionPeakExtra : 0.0;
             // (`AMBER46`) Моменты Q_k узла — из тех же историй взвешенной ветки,

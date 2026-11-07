@@ -173,7 +173,7 @@ namespace ResponseMatrixFormProbe
                 // печатает ПРАВИЛЬНО, а проба искала «10» и роняла пункт с
                 // 27.08.2026. Мерено: `BuildGrid(null)` = 10, `BuildGrid(g)` = 12.
                 int nodesInMatrix = matrix.NodeCount;
-                bool ok = state == BecquerelMonitor.Properties.Resources.ResponseMatrixStateValid
+                bool ok = state == BecquerelMonitor.Properties.Resources.ResourceManager.GetString("ResponseMatrixStateNeedsSection", BecquerelMonitor.Properties.Resources.Culture)
                           && details.Contains(nodesInMatrix.ToString(CultureInfo.CurrentCulture));
                 Report(ok, "годная матрица: «{0}», в подробностях {1} узлов (заказано {2}); первая строка: «{3}»",
                        Short(state), nodesInMatrix, options.NodeCount, Short(FirstLine(details)));
@@ -233,7 +233,7 @@ namespace ResponseMatrixFormProbe
                 decimal field = Histories(form);
                 string details = StringField(form, "detailsText");
                 bool kept = field == dense
-                            && TextOf(form, "stateLabel") == BecquerelMonitor.Properties.Resources.ResponseMatrixStateValid
+                            && TextOf(form, "stateLabel") == BecquerelMonitor.Properties.Resources.ResourceManager.GetString("ResponseMatrixStateNeedsSection", BecquerelMonitor.Properties.Resources.Culture)
                             && !details.Contains("nominal") && !details.Contains("штатн");
                 Report(kept, "матрица на {0:F0} историй (гуще штатного): в поле {1:F0}, строки про штатное {2}",
                        dense, field, details.Contains("nominal") || details.Contains("штатн") ? "ЕСТЬ" : "нет");
@@ -366,7 +366,7 @@ namespace ResponseMatrixFormProbe
             // версии в шапке: так получается ровно то, что лежит у людей после
             // подъёма формата — наш файл, наша матрица, читать нельзя.
             string matrixPath = ResponseMatrixStore.PathOf(config.Guid);
-            int oldFormat = ResponseMatrix.FormatVersion - 1;
+            int oldFormat = ResponseMatrix.CompatibleFormatVersion - 1;
             SetFileFormat(matrixPath, oldFormat);
 
             MatrixRefusal refusal;
@@ -420,7 +420,7 @@ namespace ResponseMatrixFormProbe
 
             // ⚠ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: у ГОДНОГО файла ни пометки, ни
             // сообщения. Без него проверка выше прошла бы и на «говорит всегда».
-            SetFileFormat(matrixPath, ResponseMatrix.FormatVersion);
+            SetFileFormat(matrixPath, ResponseMatrix.CompatibleFormatVersion);
             var quiet = new FsaAnalysisSession();
             quiet.EnsureUpToDate(SceneOf(config), false);
             bool silent = !quiet.ResponseMatrixOldFormat

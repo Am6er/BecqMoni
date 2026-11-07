@@ -392,7 +392,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Background / sample, %.
+        ///   Looks up a localized string similar to Sample / background, %.
         /// </summary>
         public static string ChartHeaderCountBGRatio {
             get {
@@ -3118,6 +3118,51 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Full-spectrum decomposition: the spectrum&apos;s device was not found in the configuration (the file names &quot;{0}&quot;, serial number {1}), and without a device there is no geometry. Choose the device in the Measurement Control panel, or add it in the Edit Device Configuration window and describe its crystal in the geometry editor of the efficiency curve.
+        /// </summary>
+        public static string FSADeviceNotFound {
+            get {
+                return ResourceManager.GetString("FSADeviceNotFound", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Full-spectrum decomposition: no device is assigned to the spectrum, several configurations fit it equally (the file names &quot;{0}&quot;, serial number {1}). Choose the device in the Measurement Control panel.
+        /// </summary>
+        public static string FSADeviceAmbiguous {
+            get {
+                return ResourceManager.GetString("FSADeviceAmbiguous", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Full-spectrum decomposition: no efficiency curve is chosen for this spectrum, but the device &quot;{0}&quot; has one. Choose it in the Efficiency list of the Measurement Control panel.
+        /// </summary>
+        public static string FSACurveNotChosen {
+            get {
+                return ResourceManager.GetString("FSACurveNotChosen", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Full-spectrum decomposition: the device &quot;{0}&quot; is configured, but it is not assigned to this spectrum. Choose it in the Measurement Control panel or open the file again.
+        /// </summary>
+        public static string FSADeviceNotAssigned {
+            get {
+                return ResourceManager.GetString("FSADeviceNotAssigned", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Full-spectrum decomposition: the spectrum has no device, and without a device there is no geometry. Choose the device in the Measurement Control panel, or add it in the Edit Device Configuration window and describe its crystal in the geometry editor of the efficiency curve.
+        /// </summary>
+        public static string FSADeviceNone {
+            get {
+                return ResourceManager.GetString("FSADeviceNone", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Full-spectrum decomposition needs an efficiency curve: &quot;{0}&quot; has a geometry, but the curve itself has not been calculated.
         /// </summary>
         public static string FSACurveNotComputed {
@@ -5229,6 +5274,33 @@ namespace BecquerelMonitor.Properties {
         public static string EfficiencySketchFacingSide {
             get {
                 return ResourceManager.GetString("EfficiencySketchFacingSide", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cut through the axis of the scene.
+        /// </summary>
+        public static string EfficiencySketchSideHint {
+            get {
+                return ResourceManager.GetString("EfficiencySketchSideHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Looking along the axis from the detector, away from it.
+        /// </summary>
+        public static string EfficiencySketchTopHint {
+            get {
+                return ResourceManager.GetString("EfficiencySketchTopHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Depth: {0} {1}.
+        /// </summary>
+        public static string EfficiencySketchDepth {
+            get {
+                return ResourceManager.GetString("EfficiencySketchDepth", resourceCulture);
             }
         }
         
@@ -10440,6 +10512,159 @@ namespace BecquerelMonitor.Properties {
         public static string GeometryEditorErrorHoleThroughWall {
             get {
                 return ResourceManager.GetString("GeometryEditorErrorHoleThroughWall", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Reset the nuclide library to the shipped defaults?.
+        /// </summary>
+        public static string MSGResetNuclideLibrary {
+            get {
+                return ResourceManager.GetString("MSGResetNuclideLibrary", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unsaved edits in this window will be lost..
+        /// </summary>
+        public static string MSGResetNuclideLibraryUnsaved {
+            get {
+                return ResourceManager.GetString("MSGResetNuclideLibraryUnsaved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The shipped nuclide library is not built into this progra....
+        /// </summary>
+        public static string ERRShippedLibraryMissing {
+            get {
+                return ResourceManager.GetString("ERRShippedLibraryMissing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The shipped nuclide library built into this program canno....
+        /// </summary>
+        public static string ERRShippedLibraryUnreadable {
+            get {
+                return ResourceManager.GetString("ERRShippedLibraryUnreadable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not write the nuclide library: {0}..
+        /// </summary>
+        public static string ERRShippedLibraryWrite {
+            get {
+                return ResourceManager.GetString("ERRShippedLibraryWrite", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Replace the whole library with the nuclides and sets ship....
+        /// </summary>
+        public static string NuclideLibraryResetTip {
+            get {
+                return ResourceManager.GetString("NuclideLibraryResetTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to I think the {0} set will suit you.
+        /// </summary>
+        public static string PeakSetHintText {
+            get {
+                return ResourceManager.GetString("PeakSetHintText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The peaks found fit this set best. Click to select it and....
+        /// </summary>
+        public static string PeakSetHintTip {
+            get {
+                return ResourceManager.GetString("PeakSetHintTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Close this hint for this spectrum..
+        /// </summary>
+        public static string PeakSetHintCloseTip {
+            get {
+                return ResourceManager.GetString("PeakSetHintCloseTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The nuclide library already matches the shipped one. Noth....
+        /// </summary>
+        public static string MSGResetNuclideLibraryAlreadyShipped {
+            get {
+                return ResourceManager.GetString("MSGResetNuclideLibraryAlreadyShipped", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The library file already matches the shipped one. Discard....
+        /// </summary>
+        public static string MSGResetNuclideLibraryDropEdits {
+            get {
+                return ResourceManager.GetString("MSGResetNuclideLibraryDropEdits", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Crystal own activity.
+        /// </summary>
+        public static string FSAReportCrystalOwnHeader {
+            get {
+                return ResourceManager.GetString("FSAReportCrystalOwnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} ({1}).
+        /// </summary>
+        public static string FSAReportCrystalOwnRow {
+            get {
+                return ResourceManager.GetString("FSAReportCrystalOwnRow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0:f2} Bq, {1:f0} counts.
+        /// </summary>
+        public static string FSAReportCrystalOwnFixed {
+            get {
+                return ResourceManager.GetString("FSAReportCrystalOwnFixed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0:f2} ± {1:f2} Bq (fitted), {2:f0} counts.
+        /// </summary>
+        public static string FSAReportCrystalOwnFree {
+            get {
+                return ResourceManager.GetString("FSAReportCrystalOwnFree", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Activity of the detector crystal itself (La-138, Lu-176, ....
+        /// </summary>
+        public static string FSAReportCrystalOwnHint {
+            get {
+                return ResourceManager.GetString("FSAReportCrystalOwnHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The previous copy will be replaced..
+        /// </summary>
+        public static string MSGResetNuclideLibraryBackupExists {
+            get {
+                return ResourceManager.GetString("MSGResetNuclideLibraryBackupExists", resourceCulture);
             }
         }
         

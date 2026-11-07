@@ -1,0 +1,25 @@
+exe:   D:\BqMoni_Claude\fix305\app\BecquerelMonitor.exe
+склад: D:\BqMoni_Claude\fix305\app\config\device\response;  физика 30, формат 12
+== строки раздела, язык ru
+   OK  ResponseMatrixStateNeedsSection есть
+   OK  по-русски: «Нужен пересчёт: у матрицы нет годного раздела электронов нынешнего рецепта.»
+      высота 13 px при ширине 536
+   OK  ResponseMatrixSectionRows есть
+   OK  по-русски: «Раздел электронов: узлов 80, линий 85, ветвей 61»
+      высота 13 px при ширине 536
+   OK  ResponseMatrixSectionMissing есть
+   OK  по-русски: «Годного раздела электронов нет: FSA на этой матрице не учитывает бета-излучение пробы. Пересчитайте матрицу, и раздел будет построен.»
+      высота 26 px при ширине 536
+   OK  ResponseMatrixSectionFailed есть
+   OK  по-русски: «Раздел электронов не построен: InvalidOperationException: reason»
+      высота 13 px при ширине 536
+   OK  влезает в строку хода: 13 из 48 px
+   OK  ResponseMatrixSectionProgress есть
+   OK  по-русски: «Раздел электронов: строка 337 из 337.»
+      высота 13 px при ширине 536
+   OK  влезает в строку хода: 13 из 48 px
+   OK  ResponseMatrixSectionGpuProgress есть
+   OK  по-русски: «GPU: раздел электронов, строка 337 из 337.»
+      высота 13 px при ширине 536
+   OK  влезает в строку хода: 13 из 48 px
+ВСЕ СОШЛИСЬ

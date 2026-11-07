@@ -1,0 +1,7 @@
+BecqMoni: main config: <полоса>\app4\config\BecquerelMonitor.xml
+BecqMoni: device configs: <полоса>\app4\config\device: 10 loaded
+   отпечаток тела A b78d81eec6a7ad1fb6b3953c3302024deb21a93d42f59313741801a93df33d57
+   отпечаток тела B b78d81eec6a7ad1fb6b3953c3302024deb21a93d42f59313741801a93df33d57
+   OK  клеймо то же
+   OK  тело то же побитно: каналы (и `Compton`) не изменились, случайных чисел метка не тратит
+ВСЕ СОШЛИСЬ

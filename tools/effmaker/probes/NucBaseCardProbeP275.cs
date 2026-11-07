@@ -80,13 +80,21 @@ namespace BecquerelMonitor.Probes
                 addRow.Invoke(form, new object[] { Line("212BI", "G", 727.33, 6.67, 60.55, "m") });
                 addRow.Invoke(form, new object[] { Line("232NP", "X", 111.238, 14, 14.7, "m") });
                 addRow.Invoke(form, new object[] { Line("212BI", "X", 12.148, 6.99877963, 60.55, "m") });
-                string[] want = { "727.33", "6.67", "111.238", "14", "12.148", "6.99877963" };
+                // (решение Amber 07.11.2026 вопросником, дословно: «Округлять в таблице
+                // (Рекомендую)») выход — четыре значащие цифры: 6.99877963 показывается «6.999»,
+                // полное число — подсказкой ячейки; значение ячейки прежнее (сортировка, импорт).
+                // До решения проба закрепляла полный показ «6.99877963» — на сборке без округления
+                // строки «выход — четыре значащие цифры» и «полный выход в подсказке» красные.
+                string[] want = { "727.33", "6.67", "111.238", "14", "12.148", "6.999" };
                 string[] got =
                 {
                     Shown(grid, 0, 3), Shown(grid, 0, 4), Shown(grid, 1, 3), Shown(grid, 1, 4),
                     Shown(grid, 2, 3), Shown(grid, 2, 4)
                 };
-                Check("энергия и выход — с точкой", string.Join("|", want) == string.Join("|", got), string.Join(" | ", got));
+                Check("энергия и выход — с точкой, выход — четыре значащие цифры", string.Join("|", want) == string.Join("|", got), string.Join(" | ", got));
+                Check("полный выход в подсказке ячейки", grid.Rows[2].Cells[4].ToolTipText == "6.99877963", grid.Rows[2].Cells[4].ToolTipText);
+                Check("значение ячейки выхода не округлено", grid.Rows[2].Cells[4].Value is double && (double)grid.Rows[2].Cells[4].Value == 6.99877963,
+                      Convert.ToString(grid.Rows[2].Cells[4].Value, CultureInfo.InvariantCulture));
                 Check("значение ячейки — число double (сортировка и импорт)",
                       grid.Rows[0].Cells[3].Value is double && (double)grid.Rows[0].Cells[3].Value == 727.33,
                       grid.Rows[0].Cells[3].Value.GetType().Name);
@@ -187,6 +195,20 @@ namespace BecquerelMonitor.Probes
                     Inside(box, L("IsotopeSpecActivity"));
                 }
 
+                // (решение Amber 07.11.2026 вопросником, дословно: «Единый вид «7.04e-8» (Рекомендую)»)
+                // числа карточки — строчная «e» без «+» и лишних нулей; до решения карточка печатала
+                // «> 3.705e-13 нс», «> 0.79E+21 лет» (мантисса меньше единицы) и «5.42E+17 Бк/г»
+                show.Invoke(form, new object[] { "1H", worst[1] });
+                string tinyHl = L("IsotopeHLLabel").Text;
+                Check("малый период-предел единым видом", tinyHl == "> 3.705e-13 " + NucBaseFramework.HalfLifeUnitCaption("ns"), tinyHl);
+                show.Invoke(form, new object[] { "130TE", worst[2] });
+                string bigHl = L("IsotopeHLLabel").Text;
+                Check("большой период-предел единым видом", bigHl == "> 7.9e20 " + NucBaseFramework.HalfLifeUnitCaption("Y"), bigHl);
+                show.Invoke(form, new object[] { "212BI", worst[0] });
+                string activity = L("IsotopeSpecActivity").Text;
+                Check("удельная активность — строчная e без «+»", activity.IndexOf('E') < 0 && activity.IndexOf('+') < 0
+                      && System.Text.RegularExpressions.Regex.IsMatch(activity, @"^\d(\.\d+)?e\d+ "), activity);
+
                 show.Invoke(form, new object[] { "212BI", worst[0] });
                 string hl = L("IsotopeHLLabel").Text;
                 Check("единица периода", hl == (lang == "ru-RU" ? "60.55 мин" : "60.55 m"), hl);
@@ -253,7 +275,29 @@ namespace BecquerelMonitor.Probes
                 return;
             }
 
-            int row = 0;
+            // (полоса `fixUi2`, 07.11.2026) Строка — первая НЕ связанная с базой: с `AMBER281`
+            // у линии из базы ячейки таблицы не правятся (`cell.Editable = false`), и прежняя строка 0
+            // (у поставки — линия из базы) не открывала редактор: «открыта=False» и падение `Typed`
+            // NullReferenceException — одинаково на сборке полосы и на exe HEAD 2d8cb9b3.
+            int row = -1;
+            for (int i = 0; i < model.Rows.Count; i++)
+            {
+                var candidate = model.Rows[i].Tag as NuclideDefinition;
+                if (candidate != null && !candidate.IsDbLinked)
+                {
+                    row = i;
+                    break;
+                }
+            }
+
+            if (row < 0)
+            {
+                Check("строка без связи с базой", false, "все " + model.Rows.Count + " строк библиотеки связаны с базой — править в таблице нечего");
+                form.Dispose();
+                return;
+            }
+
+            Console.WriteLine("    строка {0}: «{1}» (не связана с базой)", row, ((NuclideDefinition)model.Rows[row].Tag).Name);
             var def = (NuclideDefinition)model.Rows[row].Tag;
             active.SetValue(form, def);
             def.Dirty = false;

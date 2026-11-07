@@ -1,0 +1,255 @@
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	AS80_lu_front	33507	62	5.04E-001	8.85E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	AS80_point0	33441	59	1.06E-004	7.04E-010
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	AS80_th_disk	33634	52	1.10E-003	1.60E-009
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	ASN16_lu_side	33557	36	4.82E-006	5.97E-010
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	ASN16_point0_house	33495	77	6.50E-006	3.67E-010
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	ASN16_point10_house	33495	2	1.45E-005	3.11E-010
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_denta100_oisn10_100_p16	33467	46	2.04E-002	1.18E-006
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_denta100_risn379_100_p16	33453	51	2.23E-004	9.97E-009
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_denta120_oisn06_057_p24	33463	50	9.51E-006	9.61E-010
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_denta120_oisn06_062_p24	33463	52	9.77E-006	1.05E-009
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_denta120_oisn06_064_p24	33463	55	7.67E-003	2.88E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_denta120_oisn06_066_p24	33467	52	9.37E-006	9.25E-010
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_denta120_oisn16_155_p24	33463	44	8.79E-006	1.12E-009
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_denta120_oisn16_160_p24	33463	53	5.95E-003	1.08E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_denta120_oisn16_166_p24	33463	57	8.27E-006	1.53E-009
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_denta120_oisn16_167_p24	33463	51	1.17E-005	1.60E-009
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_coal_046_p24	33453	26	9.30E-006	5.28E-010
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_oisn06_055_p16	33453	38	2.90E-005	1.00E-009
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_oisn06_057_p16	33453	33	8.94E-006	8.00E-010
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_oisn06_057_p24	33463	49	6.21E-003	1.70E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_oisn06_062_p16	33453	30	1.72E-005	8.27E-010
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_oisn06_062_p24	33463	42	6.00E-003	1.69E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_oisn06_064_p24	33463	42	5.95E-003	1.69E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_oisn06_066_p16	33453	32	5.45E-005	5.88E-010
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_oisn06_066_p24	33463	42	6.02E-003	1.70E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_oisn16_155_p16	33463	45	5.81E-003	1.97E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_oisn16_155_p24	33463	38	5.65E-003	1.97E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_oisn16_160_p16	33463	45	5.66E-003	1.96E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_oisn16_160_p24	33463	37	4.43E-002	1.42E-006
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_oisn16_166_p16	33463	45	5.42E-003	1.95E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_oisn16_166_p24	33463	40	5.42E-003	1.99E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_oisn16_167_p16	33463	42	5.23E-003	1.95E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_oisn16_167_p24	33463	40	5.29E-003	1.97E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_mar1l_risn379_100_p16	33453	28	9.49E-006	5.35E-010
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_petri60_oisn06_057_p24	33478	37	4.06E-003	2.24E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_petri60_oisn06_062_p24	33478	44	4.06E-003	2.25E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_petri60_oisn06_064_p24	33474	39	4.10E-003	2.25E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_petri60_oisn06_067_p24	33474	38	4.10E-003	2.25E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_petri60_oisn10_100_p16	33467	41	3.94E-003	2.44E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_petri60_oisn16_155_p24	33467	41	3.90E-003	2.60E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_petri60_oisn16_160_p24	33467	39	3.96E-003	2.60E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_petri60_oisn16_167_p24	33467	42	3.89E-003	2.88E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_petri60_risn379_100_p16	33457	49	3.12E-004	1.28E-008
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_point25_p24	33457	6	1.20E-002	8.85E-008
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_point25	33457	2	1.90E-005	3.33E-010
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_point5_p16	33457	30	5.01E-003	2.10E-007
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	G1S_point5_p24	33457	30	1.19E-004	2.14E-009
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	RC103_lu_front	33576	2	1.27E-007	5.68E-012
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	RC103_marinelli05_kcl	33510	2	2.91E-006	8.42E-011
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	RC103_point0	33510	30	5.02E-005	1.42E-010
+ВСЕ СОШЛИСЬ
+BecqMoni: main config: <корень>\tools\effmaker\probes\build_fix305b\config\BecquerelMonitor.xml
+BecqMoni: device configs: <корень>\tools\effmaker\probes\build_fix305b\config\device: 10 loaded
+   OK  сетка одна
+BINS	RC103_point50	33510	4	1.91E-006	8.04E-011
+ВСЕ СОШЛИСЬ

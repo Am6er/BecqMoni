@@ -494,6 +494,7 @@ namespace FsaResidualProbeF21
             MethodInfo curve = typeof(EnergySpectrumView).GetMethod("DrawFsaCurve", Any);
             MethodInfo residual = typeof(EnergySpectrumView).GetMethod("DrawFsaResidual", Any);
             MethodInfo anchors = typeof(EnergySpectrumView).GetMethod("DrawFsaAnchors", Any);
+            MethodInfo backgroundMask = typeof(EnergySpectrumView).GetMethod("DrawFsaBackgroundMask", Any);
             Color spectrumColor = GlobalConfigManager.GetInstance().GlobalConfig.ColorConfig
                                       .ActiveSpectrumColor.Color;
             double[] top = cumulative[layers.Count - 1];
@@ -556,6 +557,7 @@ namespace FsaResidualProbeF21
                         }
                     }
 
+                    backgroundMask.Invoke(view, new object[] { g, result });
                     anchors.Invoke(view, new object[] { g, result, modelTop });
                 }
                 finally

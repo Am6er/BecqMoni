@@ -409,7 +409,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return false;
             }
 
-            string currentStamp = BuildStamp(resultData, subtractBackground, FsaCalculationOptions.Of(resultData));
+            string currentStamp = this.StampOf(resultData, subtractBackground, FsaCalculationOptions.Of(resultData));
             lock (this.sync)
             {
                 return !this.running && this.withheldJob == null && currentStamp == this.stamp;
@@ -447,7 +447,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 options = FsaCalculationOptions.Of(resultData);
             }
 
-            string currentStamp = BuildStamp(resultData, subtractBackground, options);
+            string currentStamp = this.StampOf(resultData, subtractBackground, options);
 
             // (`AMBER211`, решение Amber 07.10.2026 вопросником, дословно: «Не чаще раза в
             // 30 с и только для видимых»; консоль, дословно: «30 секунд - вынеси в
@@ -679,6 +679,62 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static string RefusalText(FsaRefusal refusal, string efficiencyRefusal, string uncomputedCurve)
         {
+            return RefusalText(refusal, efficiencyRefusal, uncomputedCurve,
+                               DocumentManager.DeviceMatch.Guid, null, null, null, null);
+        }
+
+        /// <summary>
+        /// (`AMBER307`, 06.11.2026) То же, плюс ПРИБОР спектра: гейт геометрии срабатывает и
+        /// тогда, когда прибор спектра в конфигурации не найден (<c>MatchDeviceConfig</c>), и
+        /// человек читал «опишите кристалл» про прибор, которого спектру не назначено, — проверка
+        /// RC-110 05.11.2026 (`AMBER296`): геометрия тут ни при чём, чинить надо прибор.
+        /// <paramref name="deviceMatch"/> <see cref="DocumentManager.DeviceMatch.None"/> — не
+        /// найден, <see cref="DocumentManager.DeviceMatch.Ambiguous"/> — подходят несколько;
+        /// <paramref name="listedDevice"/> — имя прибора, который в списке ЕСТЬ, а спектру НЕ
+        /// НАЗНАЧЕН (<see cref="DeviceSituation"/>): дверь открытия зовётся только при открытии, и
+        /// прибор, заведённый при открытом спектре, до него сам не доходит. Иначе — прибор
+        /// назначен. <paramref name="curveWaiting"/> — имя назначенного прибора, у которого кривая с
+        /// геометрией есть, а спектру она не выбрана: окно выбора кривой открывается только по щелчку
+        /// «Show FSA», а разбор на панели молча отказывал «опишите кристалл». Иначе остаётся прежний
+        /// текст о геометрии. Кривая, отвергнутая или не посчитанная,
+        /// старше: она уже выбрана, и чинить надо её.
+        /// </summary>
+        public static string RefusalText(FsaRefusal refusal, string efficiencyRefusal, string uncomputedCurve,
+                                         DocumentManager.DeviceMatch deviceMatch, string deviceName, string deviceSerial,
+                                         string listedDevice, string curveWaiting)
+        {
+            if (refusal == FsaRefusal.Geometry && efficiencyRefusal == null && uncomputedCurve == null)
+            {
+                bool nameless = string.IsNullOrWhiteSpace(deviceName) && string.IsNullOrWhiteSpace(deviceSerial);
+                if (deviceMatch == DocumentManager.DeviceMatch.None && nameless)
+                {
+                    return Properties.Resources.FSADeviceNone;
+                }
+
+                if (deviceMatch == DocumentManager.DeviceMatch.None
+                    || deviceMatch == DocumentManager.DeviceMatch.Ambiguous)
+                {
+                    return string.Format(CultureInfo.InvariantCulture,
+                                         deviceMatch == DocumentManager.DeviceMatch.None
+                                             ? Properties.Resources.FSADeviceNotFound
+                                             : Properties.Resources.FSADeviceAmbiguous,
+                                         string.IsNullOrWhiteSpace(deviceName) ? "—" : deviceName.Trim(),
+                                         string.IsNullOrWhiteSpace(deviceSerial) ? "—" : deviceSerial.Trim());
+                }
+
+                if (listedDevice != null)
+                {
+                    return string.Format(CultureInfo.InvariantCulture,
+                                         Properties.Resources.FSADeviceNotAssigned, listedDevice);
+                }
+
+                if (curveWaiting != null)
+                {
+                    return string.Format(CultureInfo.InvariantCulture,
+                                         Properties.Resources.FSACurveNotChosen, curveWaiting);
+                }
+            }
+
             switch (refusal)
             {
                 case FsaRefusal.Geometry:
@@ -781,6 +837,23 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// годных точек нет (не посчитана); null — не этот случай.
             /// </summary>
             public string UncomputedCurve;
+
+            /// <summary>
+            /// (`AMBER307`) Как нашёлся прибор спектра, снято при постановке: окно отказа гейта
+            /// геометрии говорит о приборе, если его нет. Считается только у спектра без
+            /// геометрии, у прочих остаётся <see cref="DocumentManager.DeviceMatch.Guid"/>.
+            /// </summary>
+            public DocumentManager.DeviceMatch DeviceMatch = DocumentManager.DeviceMatch.Guid;
+
+            /// <summary>(`AMBER307`) Имя и номер прибора из файла спектра — для того же текста.</summary>
+            public string DeviceName;
+            public string DeviceSerial;
+
+            /// <summary>(`AMBER307`) Прибор есть в списке, а спектру не назначен, — его имя; иначе null.</summary>
+            public string DeviceListed;
+
+            /// <summary>(`AMBER307`) Прибор назначен, кривая у него есть, спектру не выбрана, — имя прибора; иначе null.</summary>
+            public string DeviceCurveWaiting;
             public ResultData CompositionInput;
             public List<NuclideDefinition> Definitions;
             public List<Peak> Peaks;
@@ -788,7 +861,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public NuclideSet Set;
             public FsaAnalyzer Analyzer;
             public FsaCalculationOptions Options;
-            public Dictionary<int, double> CrystalFractions;
 
             /// <summary>
             /// (П261) ЖИВОЙ спектр, с которого снят снимок, — ключ поиска пиков
@@ -848,6 +920,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 job.UncomputedCurve = efficiencyConfig.Name ?? string.Empty;
             }
+            // (`AMBER307`) Гейт геометрии сработает (`FsaAnalyzer.RequireGeometry`) — спросить той
+            // же цепочкой, что и дверь открытия файла, есть ли у спектра прибор. Здесь, а не в
+            // фоне: список приборов правит UI-поток.
+            if (job.Efficiency == null || !job.Efficiency.HasGeometry)
+            {
+                job.DeviceMatch = DeviceSituation(resultData, out job.DeviceListed, out job.DeviceCurveWaiting);
+                job.DeviceName = resultData.DeviceConfigReference != null ? resultData.DeviceConfigReference.Name : null;
+                job.DeviceSerial = DocumentManager.SerialOfSpectrum(resultData);
+            }
             job.CompositionInput = CompositionInput(resultData.PeakDetectionMethodConfig,
                                                     efficiencyConfig, job.Spectrum, job.FwhmCalibration,
                                                     resultData.DeviceConfig);
@@ -856,7 +937,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // а перечисление живого списка в фоне ловит «Collection was modified».
             NuclideDefinitionManager nuclideManager = NuclideDefinitionManager.GetInstance();
             job.Definitions = new List<NuclideDefinition>(nuclideManager.NuclideDefinitions);
-            job.Set = nuclideManager.ActiveSet;
+            // (`fixFsa2`) набор СВОЕГО документа, тот же, что в отпечатке (`OwnSet`)
+            job.Set = this.OwnSet();
             job.Peaks = resultData.DetectedPeaks != null
                 ? new List<Peak>(resultData.DetectedPeaks)
                 : new List<Peak>();
@@ -978,33 +1060,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             job.Analyzer = analyzer;
 
-            // Вещество кристалла — СНИМКОМ и на UI-потоке, как всё прочее
-            // (`S119`). Образам вылета от него нужна только доля рождения пар
-            // (`S122`), а она считается по массовым долям элементов; плотность
-            // в отношение не входит. Геометрии нет — снимка нет, и отбор
-            // родителей остаётся прежним.
-            if (efficiencyConfig != null && efficiencyConfig.HasGeometry
-                && efficiencyConfig.Geometry.Crystal != null)
-            {
-                job.CrystalFractions = new Dictionary<int, double>(
-                    efficiencyConfig.Geometry.Crystal.Fractions);
-            }
-            else if (resultData.DeviceConfig != null)
-            {
-                // ⛔ `A276`: путь ПО ПИКАМ — умолчание разбора
-                // (`DbLookupsForFsa` выключена), и без этой ветки поле прибора
-                // молчало бы у большинства людей: доли получал бы только тот,
-                // кто включил вывод состава из баз. Порядок тот же, что у
-                // второго пути, и он виден прямо здесь: ветка ЗАПАСНАЯ — при
-                // живой геометрии сюда не попадают вовсе.
-                Dictionary<int, double> named = FsaSampleLibrary.FractionsOfMaterial(
-                    resultData.DeviceConfig.CrystalMaterialName);
-                if (named.Count > 0)
-                {
-                    job.CrystalFractions = named;
-                }
-            }
-
             return job;
         }
 
@@ -1076,8 +1131,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
                 else
                 {
-                    library = FsaLibrary.BuildFromPeaks(
-                        job.Peaks, job.Definitions, job.CrystalFractions, job.Options.AtomicXray);
+                    // ⛔ (`AMBER306`) Метки выбирают нуклиды, образы — той же сборкой из баз,
+                    // в той же обстановке спектра, что две ветки выше.
+                    FsaSampleSpec spec = FsaSampleSpec.Declared(job.CompositionInput, null, null,
+                                                                job.Options.ChainEquilibrium, job.Options.AtomicXray);
+                    job.Options.ApplyTo(spec);
+                    FsaLibrary.LabelReport labels;
+                    library = FsaLibrary.BuildFromLabels(job.Peaks, job.Definitions, spec, out labels);
+                    Trace.WriteLine("FSA composition: " + labels);
                 }
 
                 if (library.Count == 0)
@@ -1122,7 +1183,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         // или одним нуклидом в составе. Решение о самом
                         // отказе принято ОДНИМ местом (`FsaAnalyzer.Refuse`,
                         // причина — `FsaAnalyzer.Refusal`), здесь только слова.
-                        message = RefusalText(job.Analyzer.Refusal, job.EfficiencyRefusal, job.UncomputedCurve);
+                        message = RefusalText(job.Analyzer.Refusal, job.EfficiencyRefusal, job.UncomputedCurve,
+                                              job.DeviceMatch, job.DeviceName, job.DeviceSerial, job.DeviceListed,
+                                              job.DeviceCurveWaiting);
                         // (`AMBER274`, Ф14) состав опустел снятием строк по сплошному спектру —
                         // назвать их и причину, иначе «состав пуст» при объявленном Sr-90
                         string betaOnly = job.Analyzer.Refusal == FsaRefusal.LibraryEmptied
@@ -1169,8 +1232,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Амплитуда разбора — в единицах того, на что даны выходы линий образа. У члена
         /// ряда они даны на распад КОРНЯ: путь из баз кладёт линию с долей ветвления от
         /// корня (<c>FsaSampleLibrary.Build</c>: выход × равновесное отношение члена к
-        /// корню — и при выключенном равновесии тоже), путь по подписям берёт выходы
-        /// библиотеки, а импорт с рядом пишет их так же (у Amber «Tl-208 (Th-232)» 2614 —
+        /// корню — и при выключенном равновесии тоже). ⛔ (`AMBER306`) Путь по меткам тех же
+        /// выходов не берёт: нуклид объявлен сам, выход на свой распад, и доля выходит
+        /// единицей; прежде он брал выходы библиотеки (у Amber «Tl-208 (Th-232)» 2614 —
         /// 35.85 % на распад Th-232, а не 99.75 % на свой). Строка свободного члена в окне
         /// результата — это «активность каждого изотопа в отдельности» (решение Amber
         /// 07.10.2026, `AMBER211`), и без этой доли окно печатало Tl-208 в беккерелях
@@ -1311,8 +1375,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// рентгена сборка образа сводит иначе, чем строки базы лежат подряд (у Tl-208 на
         /// 12.66 кэВ отношение 1.155 при 0.3594 у остальных 41 линии), и доля съезжала на
         /// 0.2 %. Путь из баз даёт одну группу (доля ветвления × множитель равновесия), путь
-        /// по подписям — группу выходов, введённых одним правилом; рукописная строка
-        /// библиотеки с иным отношением уходит в свою группу и долю не решает.
+        /// по меткам — выходы базы, отношение единица; рукописная линия нуклида без базы
+        /// сюда не доходит: собственных линий у него нет.
         /// </summary>
         static double DominantRatio(List<FsaLine> lines, List<double[]> own)
         {
@@ -1728,7 +1792,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             bool same;
             try
             {
-                same = BuildStamp(resultData, job.SubtractBackground, FsaCalculationOptions.Of(resultData)) == job.Stamp;
+                same = this.StampOf(resultData, job.SubtractBackground, FsaCalculationOptions.Of(resultData)) == job.Stamp;
             }
             catch (Exception ex)
             {
@@ -1892,6 +1956,54 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public static string BuildStamp(ResultData resultData, bool subtractBackground,
                                         FsaCalculationOptions options)
         {
+            NuclideDefinitionManager manager = NuclideDefinitionManager.GetInstance();
+            return BuildStamp(resultData, subtractBackground, options, manager != null ? manager.ActiveSet : null);
+        }
+
+        /// <summary>
+        /// ⛔ (`fixFsa2`, 07.11.2026) ИСТОЧНИК НАБОРА НУКЛИДОВ — ДОКУМЕНТ СЕАНСА. Набор входит в
+        /// отпечаток (<see cref="NuclideSetStamp"/>) и в снимок счёта (`job.Set`), а читали его из
+        /// ОБЩЕГО <c>NuclideDefinitionManager.ActiveSet</c> — выбора панели пиков для АКТИВНОГО
+        /// документа. Сеанс любого другого документа, спрошенный в неудачный миг, считал чужим
+        /// набором: при смене документа окно результата заказывало разбор раньше, чем панель
+        /// переставит набор (проверка экраном 07.11.2026, 1–2 мин лишнего счёта), а
+        /// `MainForm.RefreshAllView` (окно общих настроек) зовёт подготовку вида у ВСЕХ документов,
+        /// и фоновый документ в режиме «Show FSA» заказывал разбор набором активного.
+        /// Документ ставит сюда свой выбор (<c>DocEnergySpectrum.SelectedNuclideSet</c>); без
+        /// источника (пробы, вид без документа) — прежний общий набор.
+        /// </summary>
+        public Func<NuclideSet> NuclideSetSource { get; set; }
+
+        /// <summary>
+        /// (`fixFsa2`) Набор этого сеанса: источник документа, а без него — общий выбор. Набор,
+        /// которого в библиотеке больше нет (удалён или библиотека сброшена), — «все», как у
+        /// панели пиков (`DCPeakDetectionView.ShowNuclideSetOf`).
+        /// </summary>
+        NuclideSet OwnSet()
+        {
+            NuclideDefinitionManager manager = NuclideDefinitionManager.GetInstance();
+            Func<NuclideSet> source = this.NuclideSetSource;
+            if (source == null)
+            {
+                return manager != null ? manager.ActiveSet : null;
+            }
+
+            NuclideSet set = source();
+            return set != null && manager != null && manager.NuclideSets != null && manager.NuclideSets.Contains(set)
+                ? set
+                : null;
+        }
+
+        /// <summary>(`fixFsa2`) Отпечаток с набором ЭТОГО сеанса — им судят «тот ли вход» сеанс и его читатели.</summary>
+        public string StampOf(ResultData resultData, bool subtractBackground, FsaCalculationOptions options)
+        {
+            return BuildStamp(resultData, subtractBackground, options, this.OwnSet());
+        }
+
+        /// <summary>То же с явным набором нуклидов (null — «все»).</summary>
+        public static string BuildStamp(ResultData resultData, bool subtractBackground,
+                                        FsaCalculationOptions options, NuclideSet set)
+        {
             EnergySpectrum spectrum = resultData.EnergySpectrum;
             EnergySpectrum background = resultData.BackgroundEnergySpectrum;
             if (options == null)
@@ -1953,6 +2065,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // время — окно совпадения (`CoincidenceWindowSec`) — и вещество
                 // кристалла (запасной источник долей без геометрии, `A276`).
                 "|", DeviceStamp(resultData),
+                "|", DeviceMatchStamp(resultData),
                 // Семь настроек расчёта (`A170`): источник состава (S57),
                 // равновесие (S70) и пять компонентов модели. Каждая меняет
                 // САМУ библиотеку или матрицу задачи, и без неё в отпечатке
@@ -1963,7 +2076,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // менялись только его члены, отпечаток оставался прежним:
                 // добавленный в набор нуклид на экране не появлялся, пока
                 // человек не трогал что-нибудь ещё.
-                "|", NuclideSetStamp(),
+                "|", NuclideSetStamp(set),
                 "|", peakStamp.ToString());
         }
 
@@ -1977,10 +2090,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// а не у набора. Проход идёт на UI-потоке, там же, где снимаются
         /// остальные части отпечатка.
         /// </summary>
-        static string NuclideSetStamp()
+        static string NuclideSetStamp(NuclideSet active)
         {
             NuclideDefinitionManager manager = NuclideDefinitionManager.GetInstance();
-            NuclideSet active = manager != null ? manager.ActiveSet : null;
             List<NuclideDefinition> definitions = manager != null ? manager.NuclideDefinitions : null;
             if (active == null)
             {
@@ -2009,9 +2121,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>
         /// (`AMBER180`, 05.10.2026) СОДЕРЖАНИЕ ОПРЕДЕЛЕНИЙ НУКЛИДОВ — свёрткой.
-        /// Путь по пикам (<c>FsaLibrary.BuildFromPeaks</c>)
-        /// берёт линии образа из ВСЕХ определений — энергию и выход, — и правка
-        /// выхода линии в редакторе нуклидов отпечатка не меняла: разложение
+        /// Путь по меткам (<c>FsaLibrary.BuildFromLabels</c>) читает определения дважды:
+        /// какие нуклиды есть в базе и, у подписей без базы, энергию и выход (`AMBER306`), —
+        /// и правка линии в редакторе нуклидов отпечатка не меняла: разложение
         /// со старым выходом держалось на экране. Свёртка — внутри процесса
         /// (хэши строк в отпечатке живут столько же, сколько он сам).
         /// </summary>
@@ -2102,6 +2214,52 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 resultData.TractCurvature.ToString("R", CultureInfo.InvariantCulture),
                 ":", DeadTimeOf(resultData).ToString("R", CultureInfo.InvariantCulture),
                 ":", device.CrystalMaterialName ?? string.Empty);
+        }
+
+        /// <summary>
+        /// (`AMBER307`) Нашёлся ли прибор — у спектра без геометрии, чей разбор кончится отказом:
+        /// от этого зависят слова отказа. Без этой части отпечатка назначение прибора (или
+        /// заведение его в конфигурации) оставляло на экране «прибор не найден», когда у нового
+        /// прибора те же κ, мёртвое время и кристалл. У спектра с геометрией разбор от неё не
+        /// зависит — прочерк.
+        /// </summary>
+        static string DeviceMatchStamp(ResultData resultData)
+        {
+            if (resultData.Efficiency != null && resultData.Efficiency.HasGeometry)
+            {
+                return "-";
+            }
+
+            string listed, curveWaiting;
+            DocumentManager.DeviceMatch how = DeviceSituation(resultData, out listed, out curveWaiting);
+            return how.ToString() + ":" + (listed ?? string.Empty) + ":" + (curveWaiting ?? string.Empty);
+        }
+
+        /// <summary>
+        /// (`AMBER307`) Что с прибором спектра: как нашёлся бы он дверью открытия и, если нашёлся,
+        /// назначен ли спектру. «Есть в списке» и «назначен» — разные вещи: дверь
+        /// (<see cref="DocumentManager.AttachDeviceConfig"/>) зовётся при открытии файла, а прибор,
+        /// заведённый позже, спектру кривых не приносит. <paramref name="listed"/> — имя такого
+        /// прибора; null, если он назначен или не найден. Сверка по Guid: у документа лежит копия.
+        /// <paramref name="curveWaiting"/> — имя назначенного прибора с кривой с геометрией, когда
+        /// спектру кривая не выбрана; у спектра со своей кривой без геометрии это другой случай.
+        /// </summary>
+        static DocumentManager.DeviceMatch DeviceSituation(ResultData resultData, out string listed, out string curveWaiting)
+        {
+            DocumentManager.DeviceMatch how;
+            List<DeviceConfigInfo> candidates;
+            DeviceConfigInfo found = DocumentManager.MatchDeviceConfig(
+                resultData, DeviceConfigManager.GetInstance().DeviceConfigList, out how, out candidates);
+            DeviceConfigInfo own = resultData.DeviceConfig;
+            listed = found != null
+                     && (own == null || !string.Equals(own.Guid, found.Guid, StringComparison.OrdinalIgnoreCase))
+                ? found.Name ?? string.Empty
+                : null;
+            curveWaiting = found != null && listed == null && resultData.Efficiency == null
+                           && found.EfficiencyConfigs != null && found.EfficiencyConfigs.Exists(c => c != null && c.HasGeometry)
+                ? found.Name ?? string.Empty
+                : null;
+            return how;
         }
 
         /// <summary>

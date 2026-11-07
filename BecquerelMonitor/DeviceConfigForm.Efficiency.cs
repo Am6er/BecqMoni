@@ -689,7 +689,9 @@ namespace BecquerelMonitor
         ///     (<see cref="ResponseMatrix.PhysicsVersion"/>);
         ///   * клеймо не сходится с нынешней геометрией и своими же параметрами
         ///     (<see cref="ResponseMatrix.IsValidFor(GeometryModel)"/>) —
-        ///     геометрию правили после счёта.
+        ///     геометрию правили после счёта;
+        ///   * нет годного раздела электронов нынешнего рецепта
+        ///     (<see cref="ResponseMatrix.NeedsElectronSection"/>, `AMBER305`).
         ///
         /// НЕ старая: матрицы нет вовсе (её не считали), файл обрублен, файл не
         /// наш — окно говорит об этом другими словами, и «старой версией» это
@@ -719,7 +721,8 @@ namespace BecquerelMonitor
             }
 
             return ResponseMatrix.PhysicsFromStamp(matrix.Stamp) != ResponseMatrix.PhysicsVersion
-                   || !matrix.IsValidFor(config.Geometry);
+                   || !matrix.IsValidFor(config.Geometry)
+                   || matrix.NeedsElectronSection(config.Geometry);
         }
 
         /// <summary>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+<define><position name="o" x="1" y="2" z="3"/><position name="ex" x="10"/><position name="ey" y="10"/><position name="ez" z="10"/><position name="a" x="11" y="2" z="3"/><position name="b" x="1" y="12" z="3"/><position name="c" x="1" y="2" z="13"/></define>
+<materials></materials>
+<solids><box name="WB" x="10" y="10" z="10" lunit="m"/><tessellated name="T" aunit="deg" lunit="mm"><triangular vertex1="o" vertex2="ey" vertex3="ex" type="RELATIVE"/><triangular vertex1="o" vertex2="ex" vertex3="ez" type="RELATIVE"/><triangular vertex1="o" vertex2="ez" vertex3="ey" type="RELATIVE"/><triangular vertex1="a" vertex2="b" vertex3="c" type="ABSOLUTE"/></tessellated></solids>
+<structure><volume name="L"><materialref ref="G4_Fe"/><solidref ref="T"/></volume><volume name="World"><materialref ref="G4_AIR"/><solidref ref="WB"/><physvol name="p"><volumeref ref="L"/></physvol></volume></structure>
+<setup name="Default" version="1.0"><world ref="World"/></setup>
+</gdml>

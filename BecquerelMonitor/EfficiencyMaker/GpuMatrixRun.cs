@@ -1246,7 +1246,8 @@ namespace BecquerelMonitor.EfficiencyMaker
     /// <summary>Один узел матрицы на GPU — замена `ResponseByChannel`.</summary>
     public static class GpuNode
     {
-        const int Channels = 7;
+        // = EfficiencySimulator.ResponseRowCount: каналы и за ними строка-подмножество (`AMBER311`).
+        const int Channels = 8;
 
         /// <summary>
         /// Ключ Philox узла — из того же зерна, что у CPU (`MakeSimulator`: зерно + (узел + 1)·φ),
@@ -1289,7 +1290,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 sim.channelHistograms = null;
             }
 
-            return channels;
+            // (`AMBER311`) Наружу — как у `EfficiencySimulator.ResponseByChannel`: только каналы.
+            sim.LastBackscatterRow = channels[EfficiencySimulator.BackscatterRow];
+            double[][] partition = new double[EfficiencySimulator.ResponseChannelCount][];
+            Array.Copy(channels, partition, partition.Length);
+            return partition;
         }
 
         /// <summary>Зеркало `EfficiencySimulator.Run` (:8605–8775) при `histogram != null`.</summary>
@@ -1448,6 +1453,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             // боковая постановка цилиндра и элемент вне таблиц ослабления.
             string facingError = geometry.FacingError;
             if (!string.IsNullOrEmpty(facingError)) throw new InvalidOperationException(facingError);
+            string missingMaterial = geometry.MissingMaterialProblem();
+            if (missingMaterial != null) throw new InvalidOperationException(missingMaterial);
             string unknownElement = geometry.UnknownElementProblem();
             if (unknownElement != null) throw new InvalidOperationException(unknownElement);
 
@@ -1460,6 +1467,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             double[] continuumError = new double[grid.Length];
             float[][][] channelRows = new float[EfficiencySimulator.ResponseChannelCount][][];
             for (int c = 0; c < channelRows.Length; c++) channelRows[c] = new float[grid.Length][];
+            float[][] backscatterRows = new float[grid.Length][];
             var watch = Stopwatch.StartNew();
             long[] nodeHistories = new long[grid.Length];
             double[] nodeSeconds = new double[grid.Length];
@@ -1570,6 +1578,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 nodeHistories[index] += sim.Histories;
                 nodeSeconds[index] += (double)(Stopwatch.GetTimestamp() - t0) / Stopwatch.Frequency;
                 Store(channelRows, index, histograms);
+                backscatterRows[index] = ResponseMatrixBuilder.BackscatterRowOf(sim.LastBackscatterRow);
                 if (log != null && (slot % 20 == 0 || slot == grid.Length - 1))
                 {
                     log.WriteLine(string.Format(CultureInfo.InvariantCulture,
@@ -1611,6 +1620,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Energies = grid,
                 BinKev = options.BinKev,
                 ChannelRows = channelRows,
+                BackscatterRows = backscatterRows,
                 Histories = options.Histories,
                 Options = options.Clone(),
                 Stamp = ResponseMatrix.ComputeStamp(geometry, options),
@@ -1699,6 +1709,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                                    double[] lines, IList<ElectronBranchSpec> branches,
                                                                    CancellationToken cancellation, Action<string> log)
         {
+            return BuildElectronSection(gpu, geometry, matrix, grid, histories, seed, positron, lines, branches, cancellation, log, null);
+        }
+
+        /// <summary>(`AMBER305`) То же с ходом по строкам раздела; <paramref name="progress"/> на числа не влияет.</summary>
+        public static ResponseElectronSection BuildElectronSection(RmGpu gpu, GeometryModel geometry, ResponseMatrix matrix,
+                                                                   double[] grid, int histories, int seed, bool positron,
+                                                                   double[] lines, IList<ElectronBranchSpec> branches,
+                                                                   CancellationToken cancellation, Action<string> log,
+                                                                   IProgress<ResponseMatrixProgress> progress)
+        {
             if (gpu == null) throw new ArgumentNullException("gpu");
             if (geometry == null || matrix == null || matrix.Options == null) throw new ArgumentNullException("matrix");
             if (!matrix.IsValidFor(geometry))
@@ -1734,6 +1754,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             int nl = lineEnergies != null ? lineEnergies.Length : 0;
             List<ElectronBranchSpec> branchList = ResponseMatrixBuilder.CleanBranches(branches, log);
             int nb = branchList.Count;
+            Action<double> rowDone = ResponseMatrixBuilder.SectionRows(progress, n + nl + nb);
             var section = new ResponseElectronSection
             {
                 Stamp = ResponseElectronSection.ComputeStamp(geometry, matrix.Stamp, grid, histories, seed, positron, bin, lineEnergies,
@@ -1803,6 +1824,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     section.NodeSeconds[k] = (double)(Stopwatch.GetTimestamp() - t0) / Stopwatch.Frequency;
                 }
 
+                rowDone(te);
                 if (k == n + nl - 1) gpu.AssertSameBlob(sim, "раздел " + te.ToString("F3", CultureInfo.InvariantCulture) + " кэВ");
             }
 
@@ -1827,6 +1849,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     section.BranchGamma[j] = ResponseElectronSection.Trim(rows[1]);
                     section.BranchHistories[j] = nHist;
                     section.BranchEntered[j] = scal[GpuSlots.E_ENTERED] / nHist;
+                    rowDone(spec.EndpointKev);
                     if (log != null)
                     {
                         log(string.Format(CultureInfo.InvariantCulture,

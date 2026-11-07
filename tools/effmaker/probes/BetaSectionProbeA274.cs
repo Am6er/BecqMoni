@@ -126,6 +126,7 @@ public static class BetaSectionProbeA274
         CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
         string scene = null, matrixPath = null, outPath = null, dump = null, capsule = null;
         int n = 100000, seed = 0, threads = Environment.ProcessorCount;
+        bool nGiven = false;
         bool positron = true;
         double[] grid = null;
         string shapes = null;
@@ -188,7 +189,7 @@ public static class BetaSectionProbeA274
             else if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
             else if (a.StartsWith("--dump=", StringComparison.Ordinal)) dump = a.Substring(7);
             else if (a.StartsWith("--capsule=", StringComparison.Ordinal)) capsule = a.Substring(10);
-            else if (a.StartsWith("--n=", StringComparison.Ordinal)) n = int.Parse(a.Substring(4), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--n=", StringComparison.Ordinal)) { n = int.Parse(a.Substring(4), CultureInfo.InvariantCulture); nGiven = true; }
             else if (a.StartsWith("--seed=", StringComparison.Ordinal)) seed = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--threads=", StringComparison.Ordinal)) threads = int.Parse(a.Substring(10), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--positron=", StringComparison.Ordinal)) positron = a.Substring(11) != "0";
@@ -362,6 +363,13 @@ public static class BetaSectionProbeA274
         {
             string bodyBefore = matrix.BodyFingerprint;
             string stampBefore = matrix.Stamp;
+            // (`AMBER305`) Без `--n=` раздел к матрице — рецептом склада; прежнее умолчание 100 тыс.
+            // дало реализацию, принятую однажды за «значение с разделом».
+            if (!nGiven)
+            {
+                n = ElectronSectionRecipe.StoreHistories;
+            }
+
             double[] lineList = SectionLineList(linesSpec);
             // (`AMBER274` Ф8, `f8cyl`) Строки ветвей — шов события целиком; `--branches=none` — ВЫКЛ.
             List<ElectronBranchSpec> branchList = SectionBranchList(branchesSpec);
@@ -1514,43 +1522,8 @@ public static class BetaSectionProbeA274
     /// </summary>
     static List<double> LibraryLines(double minPercent, double minKev, double maxKev, bool print)
     {
-        var members = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
-        var report = new FsaSampleLibrary.Report();
-        foreach (NuclideDefinition d in NuclideDefinitionManager.GetInstance().NuclideDefinitions)
-        {
-            string nucid = FsaSampleLibrary.NucidOf(d.Name ?? "");
-            if (nucid.Length == 0) continue;
-            members.Add(nucid);
-            Dictionary<string, double> chain = FsaSampleLibrary.ChainBranches(nucid, report);
-            if (chain != null) foreach (string m in chain.Keys) members.Add(m);
-        }
-
-        var energies = new List<double>();
-        foreach (string nucid in members)
-        {
-            foreach (FsaBeta b in FsaBetaLibrary.Branches(nucid))
-            {
-                if (b.IsLine && b.Intensity >= minPercent && b.EndpointKev >= minKev && b.EndpointKev <= maxKev)
-                {
-                    energies.Add(b.EndpointKev);
-                }
-            }
-        }
-
-        energies.Sort();
-        var distinct = new List<double>();
-        foreach (double e in energies)
-        {
-            if (distinct.Count == 0 || e - distinct[distinct.Count - 1] > 0.05) distinct.Add(e);
-        }
-
-        if (print)
-        {
-            Console.WriteLine("== линии конверсии рядов библиотеки: нуклидов и членов {0}, линий с выходом ≥ {1} % в {2}…{3} кэВ — {4}, различных энергий {5}",
-                              members.Count, minPercent, minKev, maxKev, energies.Count, distinct.Count);
-        }
-
-        return distinct;
+        // (`AMBER305`) Рецепт раздела — один с окном матрицы.
+        return ElectronSectionRecipe.LibraryLines(minPercent, minKev, maxKev, print ? (Action<string>)Console.WriteLine : null);
     }
 
     /// <summary>
@@ -2082,68 +2055,27 @@ public static class BetaSectionProbeA274
             return null;
         }
 
-        var members = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        // (`AMBER305`) Рецепт раздела — один с окном матрицы.
+        SortedSet<string> members;
         double min = 0.0;
         if (spec.StartsWith("lib", StringComparison.OrdinalIgnoreCase))
         {
-            min = 1.0;
+            min = ElectronSectionRecipe.LibraryMinPercent;
             int colon = spec.IndexOf(':');
             if (colon > 0)
             {
                 min = double.Parse(spec.Substring(colon + 1), CultureInfo.InvariantCulture);
             }
 
-            var report = new FsaSampleLibrary.Report();
-            foreach (NuclideDefinition d in NuclideDefinitionManager.GetInstance().NuclideDefinitions)
-            {
-                string nucid = FsaSampleLibrary.NucidOf(d.Name ?? "");
-                if (nucid.Length == 0) continue;
-                members.Add(nucid);
-                Dictionary<string, double> chain = FsaSampleLibrary.ChainBranches(nucid, report);
-                if (chain != null) foreach (string m in chain.Keys) members.Add(m);
-            }
+            members = ElectronSectionRecipe.LibraryMembers();
         }
         else
         {
+            members = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string p in spec.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)) members.Add(p.Trim());
         }
 
-        var list = new List<ElectronBranchSpec>();
-        var reasons = new SortedDictionary<string, int>(StringComparer.Ordinal);
-        int considered = 0;
-        foreach (string nucid in members)
-        {
-            foreach (FsaBeta b in FsaBetaLibrary.Branches(nucid))
-            {
-                if (b.IsLine || b.Intensity < min) continue;
-                considered++;
-                string why;
-                ElectronBranchSpec s = FsaBetaLibrary.EventSpec(b, out why);
-                if (s != null)
-                {
-                    list.Add(s);
-                }
-                else
-                {
-                    int c;
-                    reasons.TryGetValue(why ?? "?", out c);
-                    reasons[why ?? "?"] = c + 1;
-                    if (b.Intensity >= 1.0 && why != null && !why.StartsWith("ветвь на основное", StringComparison.Ordinal))
-                    {
-                        Console.WriteLine("   ветвь {0} {1:F1} кэВ {2:G4} %: {3}", nucid, b.EndpointKev, b.Intensity, why);
-                    }
-                }
-            }
-        }
-
-        Console.WriteLine("== строки ветвей (--branches={0}): нуклидов и членов {1}, ветвей с выходом ≥ {2} % — {3}, с каскадом — {4}",
-                          spec, members.Count, min, considered, list.Count);
-        foreach (KeyValuePair<string, int> r in reasons)
-        {
-            Console.WriteLine("   пропущено {0}: {1}", r.Value, r.Key);
-        }
-
-        return list;
+        return ElectronSectionRecipe.BranchesOf(members, min, spec, Console.WriteLine);
     }
 
     /// <summary>(`Ф8`) Ожидаемое каскадом число частиц у энергии (±1 кэВ), знак — вид (+ гамма, − электрон).</summary>

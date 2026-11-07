@@ -53,6 +53,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public List<FsaSumPeakLine> SumPeakLines { get; set; }
 
         /// <summary>
+        /// (`AMBER311`) Часть <see cref="Curve"/> — пики вылета SE и DE всех линий компонента без
+        /// плато канала; null — нет матрицы, выключена галка «Пики вылета» или вылетов у линий нет.
+        /// Только ради штриховки внутри ленты: в фит, доли и активность не входит.
+        /// </summary>
+        public double[] EscapePeakCurve { get; set; }
+
+        /// <summary>
+        /// (`AMBER311`) Часть <see cref="Curve"/> — обратное рассеяние: строка матрицы
+        /// `ResponseMatrix.BackscatterRows`. null — нет строки в матрице или снята галка. Только показ.
+        /// </summary>
+        public double[] BackscatterCurve { get; set; }
+
+        /// <summary>(`AMBER311`) Обратное рассеяние по линиям, для строк под нуклидом; null — нет.</summary>
+        public List<FsaBackscatterLine> BackscatterLines { get; set; }
+
+        /// <summary>(`AMBER311`) Те же пики поимённо, для строк под нуклидом окна отчёта; null — как выше.</summary>
+        public List<FsaEscapeLine> EscapeLines { get; set; }
+
+        /// <summary>
         /// (`S3`, первый этап) Та же <see cref="Curve"/>, РАЗЛОЖЕННАЯ ПО
         /// КАНАЛАМ ИСХОДА — по номеру
         /// <c>EfficiencySimulator.ResponseChannel</c>: полное поглощение,
@@ -580,6 +599,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (промах больше ПШПВ — не тот пик), `edge` (окно обрезано полосой).
         /// </summary>
         public string Refusal { get; set; }
+
+        /// <summary>
+        /// (`AMBER294`) Значение <see cref="Refusal"/> у опоры, которую снял тормоз усиления
+        /// (`AMBER269`, (А1)): она прошла отбор, но шкалу не двигала. Окно отчёта пишет вместо
+        /// него слова (`FSAReport_AnchorBrakeRefusal`).
+        /// </summary>
+        public const string RefusalGainBrake = "brake";
+
+        /// <summary>
+        /// (`AMBER294`) Значение <see cref="Refusal"/> у опоры, прошедшей последний замер, но не бывшей в
+        /// последнем шаге шкалы: знаки таблицы идут по шагу, чтобы сойтись со счётом опор.
+        /// </summary>
+        public const string RefusalNotInStep = "not_in_step";
     }
 
     /// <summary>
@@ -594,7 +626,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// поглощения (площадь на распад, приведённая той же матрицей), место — тем же правилом,
     /// каким стоит пиковое окно сумм-пика (<c>FsaAnalyzer.MarkPeakWindow</c>).
     /// </summary>
-    public sealed class FsaSumPeakLine
+    public class FsaSumPeakLine
     {
         /// <summary>Нуклид, чей это каскад; пусто — не назван.</summary>
         public string Nuclide { get; set; }
@@ -633,6 +665,32 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>FWHM образа в центре пика, каналы.</summary>
         public double FwhmChannels { get; set; }
+    }
+
+    /// <summary>
+    /// (`AMBER311`) Один пик вылета линии нуклида в образе при матрице: тот же счёт и то же место,
+    /// что у сумм-пика (<see cref="FsaSumPeakLine"/>), чтобы строки шли одним правилом сбора и порога.
+    /// <see cref="FsaSumPeakLine.EnergyKev"/> — настоящее положение в гистограмме поглощения
+    /// (кривая света кладёт одиночный вылет выше `E − 511`, `AMBER155`).
+    /// В фит, доли и пределы не входит: это раскладка уже построенного образа.
+    /// </summary>
+    public sealed class FsaEscapeLine : FsaSumPeakLine
+    {
+        /// <summary>Линия-родитель, кэВ.</summary>
+        public double ParentKev { get; set; }
+
+        /// <summary>Двойной вылет (DE); иначе одиночный (SE).</summary>
+        public bool IsDouble { get; set; }
+    }
+
+    /// <summary>
+    /// (`AMBER311`) Обратное рассеяние линии нуклида при матрице. <see cref="FsaSumPeakLine.EnergyKev"/> — вершина
+    /// строки матрицы, <see cref="FsaSumPeakLine.Counts"/> — вся её площадь. Только показ, в фит и доли не входит.
+    /// </summary>
+    public sealed class FsaBackscatterLine : FsaSumPeakLine
+    {
+        /// <summary>Линия-родитель, кэВ.</summary>
+        public double ParentKev { get; set; }
     }
 
     /// <summary>Слой стека для отрисовки: кривая и подпись с долей.</summary>
@@ -687,6 +745,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <see cref="SumPeakCurve"/>). null — сумм-пиков нет.
         /// </summary>
         public List<FsaSumPeakLine> SumPeakLines { get; set; }
+
+        /// <summary>
+        /// (`AMBER311`) Подслой пиков вылета — копия <see cref="FsaComponentResult.EscapePeakCurve"/>,
+        /// сложенная теми же правилами, что <see cref="SumPeakCurve"/>. null — вылетов в слое нет.
+        /// </summary>
+        public double[] EscapePeakCurve { get; set; }
+
+        /// <summary>(`AMBER311`) Подслой обратного рассеяния — копия <see cref="FsaComponentResult.BackscatterCurve"/>.</summary>
+        public double[] BackscatterCurve { get; set; }
+
+        /// <summary>(`AMBER311`) Обратное рассеяние слоя по линиям; null — нет.</summary>
+        public List<FsaBackscatterLine> BackscatterLines { get; set; }
+
+        /// <summary>(`AMBER311`) Пики вылета слоя поимённо; null — вылетов нет.</summary>
+        public List<FsaEscapeLine> EscapeLines { get; set; }
 
         /// <summary>
         /// (`S3`) Раскладка ленты по каналам исхода — копия
@@ -846,10 +919,48 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         NoDecayChain
     }
 
+    /// <summary>
+    /// (`AMBER274`, Э2, 04.11.2026) СТРОКА СОБСТВЕННОЙ АКТИВНОСТИ КРИСТАЛЛА в готовом
+    /// разложении. Приборный слой, а не проба: в <see cref="FsaResult.Components"/> не
+    /// входит и в активность пробы не попадает.
+    /// </summary>
+    public sealed class FsaCrystalOwnResult
+    {
+        /// <summary>Имя нуклида как в `nucdb` (`138LA`, `176LU`, `227AC`).</summary>
+        public string Nuclide { get; set; }
+
+        /// <summary>Слой (`beta`).</summary>
+        public string Layer { get; set; }
+
+        /// <summary>Амплитуда СВОБОДНАЯ (Ac-227): подобрана разбором, а не вычислена.</summary>
+        public bool Free { get; set; }
+
+        /// <summary>Активность в объёме кристалла, Бк: у природных — вычисленная, у свободных — подобранная.</summary>
+        public double ActivityBq { get; set; }
+
+        /// <summary>Погрешность подобранной активности, Бк (у природных 0: она не подбиралась).</summary>
+        public double ActivitySigmaBq { get; set; }
+
+        /// <summary>Сколько отсчётов слой объясняет в полосе фита (сумма по каналам).</summary>
+        public double Counts { get; set; }
+    }
+
     /// <summary>Результат полноспектральной декомпозиции одного спектра.</summary>
     public sealed class FsaResult
     {
         public List<FsaComponentResult> Components { get; set; }
+
+        /// <summary>
+        /// (`AMBER274`, Э2, 04.11.2026) СТРОКИ СОБСТВЕННОЙ АКТИВНОСТИ КРИСТАЛЛА:
+        /// что слой объяснил и с какой амплитудой. Пусто — раздела матрицы нет,
+        /// вычитается фон или у кристалла собственной активности нет (тогда разбор
+        /// побитово прежний). Строки НЕ входят в <see cref="Components"/> и в
+        /// активность пробы: это прибор, а не проба.
+        /// </summary>
+        public List<FsaCrystalOwnResult> CrystalOwn { get; set; }
+
+        /// <summary>(`AMBER274`, Э2) Строка отчёта о слое: собран/снят и почему.</summary>
+        public string CrystalOwnNote { get; set; }
 
         /// <summary>
         /// (`S104`) ВЕРДИКТ: имя приборного образа, который в одиночку взял
@@ -1317,12 +1428,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// хвосты на амплитуде своего образа — выше ВСЕГО измеренного спектра (без вычета фона)
         /// в полосе шириной не меньше <see cref="FsaAnalyzer.BandWarningWidthFwhm"/> ПШПВ
         /// значимее <see cref="FsaAnalyzer.BandWarningZ"/>σ. Так не бывает ни при каком фоне:
-        /// модель предсказывает счёт, которого в спектре нет (RC-110, торий в маринелли:
+        /// модель предсказывает счёт, которого в спектре нет (прибор вне корпуса, торий в маринелли:
         /// L-рентген ряда 8–30 кэВ). Судятся каналы от верха рампы порога
         /// (<see cref="FsaAnalyzer.BandWarningAboveRamp"/>), окна с началом ниже порога доверия
         /// матрицы. null — признака нет. Показ — красной строкой отчёта FSA.
         /// </summary>
         public FsaBandWarning ImagesAboveSpectrum { get; set; }
+
+        /// <summary>
+        /// (`AMBER295`) Участки, снятые автомаской фона (`FsaAnalyzer.BackgroundExcessMask`): края, значимость,
+        /// отношение; в <see cref="FsaBandWarning.Bands"/> — число каналов участка. null — разбора с маской не было.
+        /// </summary>
+        public List<FsaBandWarning> BackgroundMaskBands { get; set; }
+
+        /// <summary>(`AMBER295`) Сколько каналов не вошло в подгонку по автомаске фона.</summary>
+        public int BackgroundMaskChannels { get; set; }
+
+        /// <summary>(`AMBER295`) Этот разбор шёл с ножом при красной строке (`FsaAnalyzer.BackgroundBandKnife`).</summary>
+        public bool BackgroundBandKnifeApplied { get; set; }
+
+        /// <summary>(`AMBER295`) Порог доверия, ниже которого этот разбор отвязал образы; NaN — ножа не было.</summary>
+        public double BackgroundKnifeFloorKev { get; set; } = double.NaN;
+
+        /// <summary>(`AMBER295`) Почему разбор с маской отклонён сторожем; null — не отклонён или маски не было.</summary>
+        public string BackgroundMaskRefused { get; set; }
 
         /// <summary>
         /// (`AMBER269`) Наибольшая значимость признака <see cref="BackgroundOversubtracted"/> по
@@ -1462,7 +1591,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public List<FsaScaleAnchor> ScaleAnchors { get; set; }
 
-        /// <summary>Сколько опор вошло в МНК; 0 — шкала не тронута.</summary>
+        /// <summary>
+        /// Сколько опор вошло в МНК; 0 — шкала не тронута. (`AMBER294`) При тормозе на тёплом старте шкала едет
+        /// с прошлого разбора: здесь опоры таблицы, чтобы окно не писало «опор нет» при усилении не 1.
+        /// </summary>
         public int ScaleAnchorsUsed { get; set; }
 
         /// <summary>
@@ -1569,6 +1701,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// «откат» неотличим от «опор не нашлось». null — отката не было.
         /// </summary>
         public List<FsaScaleAnchor> AnchorRollbackScaleAnchors { get; set; }
+
+        /// <summary>
+        /// (`AMBER294`) Сколько опор снял тормоз усиления (`AMBER269`, (А1)), не сдвинув шкалу ни
+        /// разу; 0 — тормоз не срабатывал либо шкала успела сдвинуться раньше. У разбора, отданного
+        /// откатом (`AMBER269`, (А2)), — число отменённого разбора: на экране причина та же.
+        /// </summary>
+        public int AnchorBrakedPeaks { get; set; }
+
+        /// <summary>(`AMBER294`) Центр модели верхней из снятых тормозом опор, кэВ (то же число, что в подсказке окна); NaN — см. <see cref="AnchorBrakedPeaks"/>.</summary>
+        public double AnchorBrakedTopKev { get; set; } = double.NaN;
+
+        /// <summary>(`AMBER294`) Энергия линии той же опоры, кэВ: её судит порог тормоза; NaN — см. <see cref="AnchorBrakedPeaks"/>.</summary>
+        public double AnchorBrakedTopLineKev { get; set; } = double.NaN;
+
+        /// <summary>(`AMBER294`) Порог «у нуля» тормоза, кэВ; NaN — см. <see cref="AnchorBrakedPeaks"/>.</summary>
+        public double AnchorBrakeZeroMaxKev { get; set; } = double.NaN;
 
         /// <summary>
         /// (`AMBER142`, П204) Итоговая шкала привязки прохода, давшего этот
@@ -2062,6 +2210,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     SumPeakLines = component.SumPeakLines != null
                         ? new List<FsaSumPeakLine>(component.SumPeakLines)
                         : null,
+                    // (`AMBER311`) вылеты — как сумм-пики: кривая своя, записи общие
+                    EscapePeakCurve = component.EscapePeakCurve != null
+                        ? (double[])component.EscapePeakCurve.Clone()
+                        : null,
+                    EscapeLines = component.EscapeLines != null
+                        ? new List<FsaEscapeLine>(component.EscapeLines)
+                        : null,
+                    BackscatterCurve = component.BackscatterCurve != null
+                        ? (double[])component.BackscatterCurve.Clone()
+                        : null,
+                    BackscatterLines = component.BackscatterLines != null
+                        ? new List<FsaBackscatterLine>(component.BackscatterLines)
+                        : null,
                     ChannelCurves = CloneChannels(component.ChannelCurves)
                 });
             }
@@ -2522,8 +2683,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double[] otherSpread = null;
                 double[] otherTail = null;
                 List<FsaSumPeakLine> otherLines = null;
+                double[] otherEscapes = null;
+                List<FsaEscapeLine> otherEscapeLines = null;
+                double[] otherHumps = null;
+                List<FsaBackscatterLine> otherHumpLines = null;
                 foreach (int k in rest)
                 {
+                    AddCurve(ref otherHumps, full[k].BackscatterCurve, channels);
+                    if (full[k].BackscatterLines != null)
+                    {
+                        if (otherHumpLines == null)
+                        {
+                            otherHumpLines = new List<FsaBackscatterLine>();
+                        }
+
+                        otherHumpLines.AddRange(full[k].BackscatterLines);
+                    }
+
+                    // (`AMBER311`) вылеты свёрнутых — тем же движением, что сумм-пики ниже
+                    AddCurve(ref otherEscapes, full[k].EscapePeakCurve, channels);
+                    if (full[k].EscapeLines != null)
+                    {
+                        if (otherEscapeLines == null)
+                        {
+                            otherEscapeLines = new List<FsaEscapeLine>();
+                        }
+
+                        otherEscapeLines.AddRange(full[k].EscapeLines);
+                    }
+
                     // (`AMBER286`) пики поимённо — тем же движением, что подслой сумм
                     if (full[k].SumPeakLines != null)
                     {
@@ -2576,6 +2764,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Curve = other,
                     SumPeakCurve = otherSums,
                     SumPeakLines = otherLines,
+                    EscapePeakCurve = otherEscapes,
+                    EscapeLines = otherEscapeLines,
+                    BackscatterCurve = otherHumps,
+                    BackscatterLines = otherHumpLines,
                     ChannelCurves = otherChannels,
                     ContinuumCurve = otherSpread,
                     TailCurve = otherTail
@@ -2832,6 +3024,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     ScaleAt(layer.Curve, i, factor);
                     ScaleAt(layer.SumPeakCurve, i, factor);
+                    ScaleAt(layer.EscapePeakCurve, i, factor);   // (`AMBER311`)
+                    ScaleAt(layer.BackscatterCurve, i, factor);  // (`AMBER311`)
                     ScaleAt(layer.ContinuumCurve, i, factor);
                     ScaleAt(layer.TailCurve, i, factor);
                     if (layer.ChannelCurves != null)

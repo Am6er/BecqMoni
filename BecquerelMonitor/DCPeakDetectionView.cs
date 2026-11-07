@@ -33,6 +33,7 @@ namespace BecquerelMonitor
             this.table1.EnableWordWrap = true;
 
             this.RefreshNuclideSets();
+            this.Disposed += delegate { this.WatchFsaOf(null); };
         }
 
         /// <summary>
@@ -60,6 +61,8 @@ namespace BecquerelMonitor
             // конфигурации прибора, нет калибровки ПШПВ, — а список наборов
             // виден всегда, и чужой выбор в нём читался бы как свой (R9).
             this.ShowNuclideSetOf(activeDocument);
+            this.WatchFsaOf(activeDocument);
+            this.UpdateSetHint();
             if (activeDocument == null || activeDocument.ActiveResultData == null)
             {
                 this.ClearRows();
@@ -277,6 +280,9 @@ namespace BecquerelMonitor
                     // ничего не читает и бросить не может.
                     this.ClearRows();
                     this.ShowDetectionFailure(ex);
+                    // (`AMBER313`) Пиков нет, совет молчит. Прямым вызовом: здесь нельзя ничего,
+                    // что может бросить (см. выше про `async void`).
+                    this.ShowSetHint(null);
                 }
             }
             finally
@@ -365,6 +371,13 @@ namespace BecquerelMonitor
         ToolTip detectionToolTip;
 
         public void RefreshTable()
+        {
+            this.FillTable();
+            // (`AMBER313`) Сразу по итогу поиска: таблица и подсказка смотрят на одни пики.
+            this.UpdateSetHint();
+        }
+
+        void FillTable()
         {
             DocEnergySpectrum activeDocument = this.mainForm.ActiveDocument;
             if (activeDocument == null || activeDocument.ActiveResultData == null)
@@ -512,7 +525,7 @@ namespace BecquerelMonitor
             // Список мог отстать от самих наборов: правят их в соседнем окне, а
             // перечитывается он по его закрытии. Строка «все нуклиды» делает
             // список на единицу длиннее — расхождение видно по счёту.
-            if (this.comboBoxNuclSet.Items.Count != this.nuclideManager.NuclideSets.Count + 1)
+            if (this.NuclideSetListIsStale())
             {
                 this.RefreshNuclideSets();
             }
@@ -533,6 +546,30 @@ namespace BecquerelMonitor
             // Текущий набор — набор активного документа: по нему ищет пики
             // панель и рисует линии интенсивностей график.
             this.selectedNuclideSet = document.SelectedNuclideSet;
+        }
+
+        /// <summary>
+        /// (`AMBER313`, `AMBER310`) Список отстал от наборов: другое число строк либо другие
+        /// имена. Одного счёта мало: сброс библиотеки или правка могут оставить число наборов
+        /// прежним, и подсказка выбрала бы по номеру строку с чужим именем.
+        /// </summary>
+        bool NuclideSetListIsStale()
+        {
+            List<NuclideSet> sets = this.nuclideManager.NuclideSets;
+            if (this.comboBoxNuclSet.Items.Count != sets.Count + 1)
+            {
+                return true;
+            }
+
+            for (int i = 0; i < sets.Count; i++)
+            {
+                if (!string.Equals(this.comboBoxNuclSet.Items[i + 1] as string, sets[i].Name, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -703,6 +740,13 @@ namespace BecquerelMonitor
                 activeDocument.SelectedNuclideSet = this.selectedNuclideSet;
             }
 
+            // (`AMBER313`) Сет выбран — совет больше не нужен. Выбор «всех нуклидов» подсказку
+            // здесь не зовёт: на руках пики прежнего сета, и судить надо по новому поиску.
+            if (this.selectedNuclideSet != null)
+            {
+                this.ShowSetHint(null);
+            }
+
             this.UpdatePeakDetectionResult();
 
             // От выбора зависит не только таблица пиков, но и картинка: линии
@@ -714,6 +758,195 @@ namespace BecquerelMonitor
                 activeDocument.EnergySpectrumView.Invalidate();
             }
         }
+
+        // ------------------------------------------------------------------
+        // ⛔ (`AMBER313`, 05.11.2026) Подсказка сета. Amber вопросником, дословно: «Подсказка в
+        // поиске пиков, где ComboBox -- All Nuclides -- Появляется сразу по итогу решения - нужен
+        // этот сет. Текст: "Мне кажется, тебе подойдет ....... сет"», затем: «Нажатием выбирает
+        // сет (Рекомендую) и должна быть сбоку кнопка - закрыть.»
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Показать совет или погасить его. Молчит: выбран сет, нет документа, нет пиков,
+        /// подсказку закрыли для этого документа, различие неуверенное
+        /// (<see cref="NuclideSetAdvisor"/>). Разбора и конфига не меняет.
+        /// </summary>
+        void UpdateSetHint()
+        {
+            NuclideSetSuggestion suggestion = null;
+            DocEnergySpectrum document = this.mainForm.ActiveDocument;
+            ResultData data = document != null ? document.ActiveResultData : null;
+            object closed;
+            if (data != null && data.DetectedPeaks != null && data.EnergySpectrum != null)
+            {
+                NuclideSetHintTracker tracker = this.setHintTrackers.GetOrCreateValue(document);
+                if (this.selectedNuclideSet == null && !this.setHintClosedFor.TryGetValue(document, out closed))
+                {
+                    bool recording = data.ResultDataStatus != null && data.ResultDataStatus.Recording;
+                    suggestion = tracker.Step(data.DetectedPeaks, data.EnergySpectrum.EnergyCalibration,
+                                              this.nuclideManager.NuclideSets, this.nuclideManager.NuclideDefinitions,
+                                              recording);
+                }
+                else
+                {
+                    tracker.Reset();
+                }
+            }
+
+            this.ShowSetHint(suggestion);
+        }
+
+        /// <summary>
+        /// (`AMBER313`, критик `critWave2`) MainForm при закрытии последнего документа только гасит панель и
+        /// `ShowPeakDetectionResult` не зовёт: серая подсказка и подписка на сеанс закрытого документа
+        /// снимаются здесь. Панель включили — подсказка считается заново.
+        /// </summary>
+        protected override void OnEnabledChanged(EventArgs e)
+        {
+            base.OnEnabledChanged(e);
+            if (this.Enabled)
+            {
+                this.UpdateSetHint();
+            }
+            else
+            {
+                this.WatchFsaOf(null);
+                this.ShowSetHint(null);
+            }
+        }
+
+        void ShowSetHint(NuclideSetSuggestion suggestion)
+        {
+            this.setHintSet = suggestion != null ? suggestion.Set : null;
+            if (suggestion != null)
+            {
+                string text = string.Format(CultureInfo.InvariantCulture, Resources.PeakSetHintText, suggestion.Set.Name);
+                if (this.setHintLink.Text != text)
+                {
+                    this.setHintLink.Text = text;
+                    this.setHintLink.LinkArea = new System.Windows.Forms.LinkArea(0, text.Length);
+                    if (this.setHintToolTip == null)
+                    {
+                        this.setHintToolTip = new ToolTip();
+                        this.setHintToolTip.SetToolTip(this.setHintClose, AppUi.WrapTip(Resources.PeakSetHintCloseTip));
+                    }
+                    this.setHintToolTip.SetToolTip(this.setHintLink, AppUi.WrapTip(text + ". " + Resources.PeakSetHintTip));
+                }
+            }
+
+            // Без проверки «а видна ли»: `Visible` на чтение отвечает за всю цепочку родителей
+            // (см. `ShowDetectionFailure`).
+            this.setHintPanel.Visible = suggestion != null;
+        }
+
+        /// <summary>
+        /// Нажатие выбирает сет ТЕМ ЖЕ ПУТЁМ, что рука: смена строки списка поднимает
+        /// <see cref="comboBoxNuclSet_SelectedIndexChanged"/>, а он запоминает выбор за документом
+        /// и запускает поиск и разбор заново.
+        /// </summary>
+        void setHintLink_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            NuclideSet set = this.setHintSet;
+            if (set == null)
+            {
+                return;
+            }
+
+            if (this.NuclideSetListIsStale())
+            {
+                this.RefreshNuclideSets();
+            }
+
+            int index = this.nuclideManager.NuclideSets.IndexOf(set);
+            if (index < 0)
+            {
+                this.ShowSetHint(null);
+                return;
+            }
+
+            this.comboBoxNuclSet.SelectedIndex = index + 1;
+        }
+
+        void setHintClose_Click(object sender, EventArgs e)
+        {
+            DocEnergySpectrum document = this.mainForm.ActiveDocument;
+            object closed;
+            if (document != null && !this.setHintClosedFor.TryGetValue(document, out closed))
+            {
+                this.setHintClosedFor.Add(document, this);
+            }
+
+            this.ShowSetHint(null);
+        }
+
+        /// <summary>
+        /// (`AMBER313`) Подсказка и по итогу FSA. Amber 05.11.2026 вопросником, дословно: «Ещё и по
+        /// итогу FSA (Рекомендую)». Функция и пики те же: на панели подписка только на сеанс активного
+        /// документа; сам разбор ничего не ждёт и ничего не получает.
+        /// </summary>
+        void WatchFsaOf(DocEnergySpectrum document)
+        {
+            FullSpectrumAnalysis.FsaAnalysisSession session = document != null ? document.FsaSession : null;
+            if (ReferenceEquals(session, this.setHintSession))
+            {
+                return;
+            }
+
+            if (this.setHintSession != null)
+            {
+                this.setHintSession.Completed -= this.SetHintFsaCompleted;
+            }
+
+            this.setHintSession = session;
+            if (session != null)
+            {
+                session.Completed += this.SetHintFsaCompleted;
+            }
+        }
+
+        /// <summary>Приходит с фонового потока: на поток окон, ничего здесь не читая.</summary>
+        void SetHintFsaCompleted(object sender, EventArgs e)
+        {
+            if (this.IsDisposed || !this.IsHandleCreated)
+            {
+                return;
+            }
+
+            try
+            {
+                this.BeginInvoke((MethodInvoker)delegate
+                {
+                    if (!this.IsDisposed && ReferenceEquals(sender, this.setHintSession))
+                    {
+                        this.UpdateSetHint();
+                    }
+                });
+            }
+            catch (InvalidOperationException)
+            {
+                // Окно закрылось между проверкой и вызовом: подсказка никому не нужна.
+            }
+        }
+
+        /// <summary>Сеанс FSA, на итог которого подписана подсказка.</summary>
+        FullSpectrumAnalysis.FsaAnalysisSession setHintSession;
+
+        /// <summary>Сет, предложенный сейчас; null — подсказка погашена.</summary>
+        NuclideSet setHintSet;
+
+        /// <summary>Память подсказки на документ: удержание и подтверждение при записи, слабые ссылки.</summary>
+        readonly System.Runtime.CompilerServices.ConditionalWeakTable<DocEnergySpectrum, NuclideSetHintTracker> setHintTrackers =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<DocEnergySpectrum, NuclideSetHintTracker>();
+
+        /// <summary>Заводится по первой нужде, как <see cref="detectionToolTip"/>.</summary>
+        ToolTip setHintToolTip;
+
+        /// <summary>
+        /// Документы, для которых подсказку закрыли. Слабые ссылки: закрытый документ не
+        /// удерживается в памяти, а в файл и в конфиг этот выбор не идёт.
+        /// </summary>
+        readonly System.Runtime.CompilerServices.ConditionalWeakTable<DocEnergySpectrum, object> setHintClosedFor =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<DocEnergySpectrum, object>();
 
         // ------------------------------------------------------------------
         // (`A255`) Выделение выбранного пика на графике

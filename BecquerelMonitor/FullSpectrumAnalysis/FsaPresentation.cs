@@ -269,6 +269,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         SumPeakLine,
 
+        /// <summary>(`AMBER311`) Штриховка пиков вылета слоя, без второй доли.</summary>
+        EscapePeaks,
+
+        /// <summary>
+        /// (`AMBER311`) Один заметный пик вылета (или группа в пределах FWHM) под строкой
+        /// <see cref="EscapePeaks"/> своего слоя: «SE 2127 кэВ от 2614.5 | N отсч.».
+        /// </summary>
+        EscapePeakLine,
+
+        /// <summary>(`AMBER311`) Обратное рассеяние слоя при матрице: штриховка без второй доли.</summary>
+        Backscatter,
+
+        /// <summary>(`AMBER311`) Горб обратного рассеяния линии (или группа): «Горб 197 кэВ от 661.7 | N отсч.».</summary>
+        BackscatterLine,
+
         /// <summary>Именованный необнаруженный кандидат серым, «&lt; … %».</summary>
         Undetected,
 
@@ -298,7 +313,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         Solid,
 
         /// <summary>Штрих сумм-пиков в цвете слоя.</summary>
-        SumPeakHatch
+        SumPeakHatch,
+
+        /// <summary>(`AMBER311`) Штрих пиков вылета в цвете слоя, встречный штриху сумм-пиков.</summary>
+        EscapeHatch,
+
+        /// <summary>(`AMBER311`) Штрих обратного рассеяния в цвете слоя.</summary>
+        BackscatterHatch
     }
 
     /// <summary>
@@ -368,6 +389,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return this.Kind == FsaReportRowKind.Layer
                        || this.Kind == FsaReportRowKind.SumPeaks
                        || this.Kind == FsaReportRowKind.SumPeakLine
+                       || this.Kind == FsaReportRowKind.EscapePeaks
+                       || this.Kind == FsaReportRowKind.EscapePeakLine
+                       || this.Kind == FsaReportRowKind.Backscatter
+                       || this.Kind == FsaReportRowKind.BackscatterLine
                        || this.Kind == FsaReportRowKind.Undetected
                        || this.Kind == FsaReportRowKind.UndetectedFolded;
             }

@@ -244,6 +244,9 @@ namespace BecquerelMonitor
         /// </summary>
         public const double AnnihilationKev = 510.99895;
 
+        /// <summary>Полуширина окна, в котором запись библиотеки считается образом аннигиляции, кэВ.</summary>
+        public const double AnnihilationWindowKev = 2.0;
+
         /// <summary>
         /// (`A197`) Выход, ниже которого линия ОДНА ЗА СЕБЯ НЕ ОТВЕЧАЕТ: чтобы
         /// подписать ею пик, в спектре обязана быть видна ЕЩЁ ОДНА линия того же
@@ -848,7 +851,7 @@ namespace BecquerelMonitor
         NuclideDefinition AnnihilationLine()
         {
             NuclideDefinition best = null;
-            double bestMiss = 2.0;
+            double bestMiss = AnnihilationWindowKev;
             foreach (NuclideDefinition nd in this.nuclideDefinitions)
             {
                 if (nd == null || !nd.Visible || nd.Intencity > 0.0) continue;

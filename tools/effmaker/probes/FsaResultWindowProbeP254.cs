@@ -27,8 +27,8 @@ namespace BecquerelMonitor.Probes
     ///  1. ЕДИНИЦЫ (`units`): у члена ряда, вошедшего в разбор свободной колонкой
     ///     (равновесие ВЫКЛ), амплитуда — распады КОРНЯ: линии образа взяты с
     ///     долей ветвления от корня (`FsaSampleLibrary.Build`, `AddLine(... ×
-    ///     member.Value)`; путь по подписям — выходы библиотеки, у Amber «Tl-208
-    ///     (Th-232)» 2614 = 35.85 % на распад Th-232). Своя активность члена —
+    ///     member.Value)`; путь по меткам — выходы базы на свой распад, доля единица,
+    ///     `AMBER306`). Своя активность члена —
     ///     амплитуда × доля ветвления (`FsaSampleLibrary.ChainBranches`, вторым,
     ///     независимым от окна путём). Строка ряда (равновесие ВКЛ) — активность
     ///     корня; её предел a# — строки предела САМОЙ колонки ряда (по имени
@@ -49,7 +49,10 @@ namespace BecquerelMonitor.Probes
     ///
     /// Ключи: --spectrum=&lt;файл&gt; (несколько; первый — для окна, второй — второй
     /// документ гонки); --skip-window; --timeout=300; --dump=&lt;файл&gt; — строки окна
-    /// формой "R" для побитового сравнения плеч «до/после» (П278).
+    /// формой "R" для побитового сравнения плеч «до/после» (П278);
+    /// --force-kalpha=&lt;число&gt; — положительный контроль: подменяет k_α заведомо неверным,
+    /// проба обязана дать код 1 (`AMBER299`); --force-labels-share=&lt;число&gt; — то же для доли члена
+    /// ряда на пути по меткам (не единица — ошибка: выходы образа даны на свой распад, `AMBER306`).
     /// Коды: 0 — всё сошлось; 1 — есть расхождение; 2 — ключи/файлы; 3 — разбор не дошёл.
     /// </summary>
     static class FsaResultWindowProbeP254
@@ -59,6 +62,8 @@ namespace BecquerelMonitor.Probes
         static int timeoutS = 300;
         static string shots;
         static string dump;
+        static double forcedKAlpha = double.NaN;
+        static double forcedLabelsShare = double.NaN;
 
         [STAThread]
         static int Main(string[] args)
@@ -74,6 +79,8 @@ namespace BecquerelMonitor.Probes
                 else if (a.StartsWith("--timeout=", StringComparison.Ordinal)) timeoutS = int.Parse(a.Substring(10), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--shots=", StringComparison.Ordinal)) shots = a.Substring(8);
                 else if (a.StartsWith("--dump=", StringComparison.Ordinal)) dump = a.Substring(7);
+                else if (a.StartsWith("--force-kalpha=", StringComparison.Ordinal)) forcedKAlpha = double.Parse(a.Substring(15), CultureInfo.InvariantCulture);
+                else if (a.StartsWith("--force-labels-share=", StringComparison.Ordinal)) forcedLabelsShare = double.Parse(a.Substring(21), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--ui=", StringComparison.Ordinal)) Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(a.Substring(5));
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
             }
@@ -178,8 +185,9 @@ namespace BecquerelMonitor.Probes
                 else
                 {
                     rate = 0.0;
-                    // не обнаружен: σ нулевой оценки — порог решения / k (ISO 11929, k = 1.6449)
-                    sigma = limit != null ? limit.DecisionThresholdRate / 1.6449 : double.NaN;
+                    // не обнаружен: σ нулевой оценки — порог решения на ЕГО квантиль k_α (`AMBER299`:
+                    // литерал 1.6449 разошёлся с окном с 03.11.2026, где порог окна k_α = 3)
+                    sigma = limit != null ? limit.DecisionThresholdRate / KAlphaOf(limit) : double.NaN;
                     mda = limit != null ? limit.DetectionLimitRate : double.NaN;
                     root = limit != null ? limit.DecayChainRoot : null;
                 }
@@ -216,13 +224,9 @@ namespace BecquerelMonitor.Probes
                 }
                 else if (byLabels && rootNucid != nucid)
                 {
-                    // путь по подписям: выход сильнейшей строки библиотеки / свой выход той же линии по базе
-                    NuclideDefinition strongest = nuclides.NuclideDefinitions
-                        .Where(d => d != null && FsaSampleLibrary.NucidOf(d.NuclideName ?? "") == nucid && d.Intencity > 0.0)
-                        .OrderByDescending(d => d.Intencity).FirstOrDefault();
-                    double[] ownLine = strongest == null ? null : FsaSampleLibrary.DecayLines(nucid, report)
-                        .FirstOrDefault(l => Math.Abs(l[0] - strongest.Energy) < 0.05);
-                    if (ownLine != null && ownLine[1] > 0.0) r = strongest.Intencity / ownLine[1];
+                    // ⛔ (`AMBER306`) Путь по меткам: выходы образа из базы, на СОБСТВЕННЫЙ распад — амплитуда
+                    // уже в своих распадах члена, доля единица. Подпись нуклида без базы сюда не доходит.
+                    r = double.IsNaN(forcedLabelsShare) ? 1.0 : forcedLabelsShare;
                 }
                 double expBq = rate * r;
                 double expErr = double.IsNaN(sigma) ? 0.0 : sigma * r;
@@ -251,6 +255,22 @@ namespace BecquerelMonitor.Probes
                 if (!(okBq && okMda && okFactor && okErr)) bad++;
             }
             return true;
+        }
+
+        /// <summary>
+        /// (`AMBER299`) k_α строки предела — то, чем её порог решения посчитан (поле результата
+        /// `FsaCharacteristicLimit.DecisionQuantile`), без поля — умолчание окна из кода
+        /// (`FsaMeasurementResult.LimitQuantileK`). ⛔ Литералу здесь не место. Ключ
+        /// `--force-kalpha=` подменяет его заведомо неверным: это положительный контроль —
+        /// проба обязана покраснеть (код 1).
+        /// </summary>
+        static double KAlphaOf(FsaCharacteristicLimit limit)
+        {
+            if (!double.IsNaN(forcedKAlpha)) return forcedKAlpha;
+            if (limit.DecisionQuantile > 0.0) return limit.DecisionQuantile;
+            FieldInfo field = typeof(FsaMeasurementResult).GetField("LimitQuantileK", Any);
+            if (field == null) throw new InvalidOperationException("нет FsaMeasurementResult.LimitQuantileK");
+            return Convert.ToDouble(field.GetValue(null), CultureInfo.InvariantCulture);
         }
 
         /// <summary>

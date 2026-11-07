@@ -171,13 +171,20 @@ static class EscapeGateProbe
             }
         }
 
+        // ⛔ (`AMBER311`, 06.11.2026) МЕСТО ОДИНОЧНОГО ВЫЛЕТА — ИЗ КАНАЛА, а не `E − 511`.
+        // С кривой света `AMBER155` пик вылета стоит выше арифметики (на сцене
+        // `AS80_th_disk` — 2127 кэВ, +23.5), и окно ±2 бина у 2103.5 мерило склон:
+        // печатало 0.016 и «над подложкой 0.0000» при настоящем 0.216, а встречная
+        // проверка «это пик» проходила по левому крылу того же пика.
+        double singleKev = escapeOnly != null ? PeakNear(escapeOnly, matrix.BinKev, Single, 60.0) : Single;
+
         double peak = Area(full, matrix.BinKev, Parent, 2);
-        double single = Area(full, matrix.BinKev, Single, 2);
+        double single = Area(full, matrix.BinKev, singleKev, 2);
         double dbl = Area(full, matrix.BinKev, Double, 2);
         double escapeTotal = escapeOnly != null ? Sum(escapeOnly) : double.NaN;
 
         Console.WriteLine("   пик 2614.5      : {0:E4}", peak);
-        Console.WriteLine("   вылет 2103.5    : {0:E4}   к пику {1:F4}", single,
+        Console.WriteLine("   вылет {0:F1}    : {1:E4}   к пику {2:F4}", singleKev, single,
                           peak > 0.0 ? single / peak : 0.0);
         Console.WriteLine("   вылет 1592.5    : {0:E4}   к пику {1:F4}", dbl,
                           peak > 0.0 ? dbl / peak : 0.0);
@@ -192,12 +199,12 @@ static class EscapeGateProbe
             // недобрало, ложится ниже 2103.5 — в том числе ровно на 1592.5.
             // Голая сумма в окне мерила бы пик вместе с ним и завышала бы
             // двойной вылет в разы.
-            double singleEsc = Excess(escapeOnly, matrix.BinKev, Single, 2, 10);
+            double singleEsc = Excess(escapeOnly, matrix.BinKev, singleKev, 2, 10);
             double doubleEsc = Excess(escapeOnly, matrix.BinKev, Double, 2, 10);
-            Console.WriteLine("   над подложкой   : 2103.5 — {0:E4} ({1:F4} к пику), "
+            Console.WriteLine("   над подложкой   : {4:F1} — {0:E4} ({1:F4} к пику), "
                               + "1592.5 — {2:E4} ({3:F4} к пику)",
                               singleEsc, peak > 0.0 ? singleEsc / peak : 0.0,
-                              doubleEsc, peak > 0.0 ? doubleEsc / peak : 0.0);
+                              doubleEsc, peak > 0.0 ? doubleEsc / peak : 0.0, singleKev);
             Console.WriteLine("   каналы вылета   : {0:E4} всего, из них в двух пиках {1:F1} %",
                               escapeTotal,
                               escapeTotal > 0.0
@@ -242,10 +249,10 @@ static class EscapeGateProbe
         // Встречная проверка: пики вылета обязаны быть ЛОКАЛЬНЫМ превышением, а
         // не куском гладкого континуума. Иначе «площадь в окне» насчитается и
         // там, где никакого пика нет, и вывод пробы будет ложным.
-        bool bumpSingle = IsBump(full, matrix.BinKev, Single);
+        bool bumpSingle = IsBump(full, matrix.BinKev, singleKev);
         bool bumpDouble = IsBump(full, matrix.BinKev, Double);
-        Console.WriteLine("   это пики, а не континуум: 2103.5 — {0}, 1592.5 — {1}",
-                          bumpSingle ? "ДА" : "нет", bumpDouble ? "ДА" : "нет");
+        Console.WriteLine("   это пики, а не континуум: {2:F1} — {0}, 1592.5 — {1}",
+                          bumpSingle ? "ДА" : "нет", bumpDouble ? "ДА" : "нет", singleKev);
 
         bool has = bumpSingle && bumpDouble && single > 0.0 && dbl > 0.0;
         if (has)
@@ -256,6 +263,23 @@ static class EscapeGateProbe
         Console.WriteLine("   вылеты внутри матрицы: {0}", has ? "ЕСТЬ" : "нет");
         Console.WriteLine();
         return true;
+    }
+
+    /// <summary>Энергия наибольшего бина в окне ±<paramref name="spanKev"/> кэВ вокруг <paramref name="energyKev"/>.</summary>
+    static double PeakNear(double[] histogram, double binKev, double energyKev, double spanKev)
+    {
+        int lo = Math.Max(0, (int)((energyKev - spanKev) / binKev));
+        int hi = Math.Min(histogram.Length - 1, (int)((energyKev + spanKev) / binKev));
+        int at = lo;
+        for (int b = lo; b <= hi; b++)
+        {
+            if (histogram[b] > histogram[at])
+            {
+                at = b;
+            }
+        }
+
+        return histogram[at] > 0.0 ? (at + 0.5) * binKev : energyKev;
     }
 
     /// <summary>Площадь в окне ±<paramref name="half"/> бинов вокруг энергии.</summary>
