@@ -249,6 +249,33 @@
   <data name="&gt;&gt;table1.ZOrder" xml:space="preserve">
     <value>6</value>
   </data>
+  <data name="buttonResetDefaults.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Bottom, Left</value>
+  </data>
+  <data name="buttonResetDefaults.Location" type="System.Drawing.Point, System.Drawing">
+    <value>7, 412</value>
+  </data>
+  <data name="buttonResetDefaults.Size" type="System.Drawing.Size, System.Drawing">
+    <value>100, 23</value>
+  </data>
+  <data name="buttonResetDefaults.TabIndex" type="System.Int32, mscorlib">
+    <value>20</value>
+  </data>
+  <data name="buttonResetDefaults.Text" xml:space="preserve">
+    <value>Reset Defaults</value>
+  </data>
+  <data name="&gt;&gt;buttonResetDefaults.Name" xml:space="preserve">
+    <value>buttonResetDefaults</value>
+  </data>
+  <data name="&gt;&gt;buttonResetDefaults.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;buttonResetDefaults.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;buttonResetDefaults.ZOrder" xml:space="preserve">
+    <value>7</value>
+  </data>
   <data name="textBox1.Location" type="System.Drawing.Point, System.Drawing">
     <value>101, 26</value>
   </data>

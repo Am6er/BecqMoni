@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+<define><position name="p1" x="1" y="2" z="3" unit="cm"/><rotation name="r1" x="30" y="40" z="50" unit="deg"/><position name="p2" x="5" unit="mm"/><rotation name="r2" y="0.5"/></define>
+<materials></materials>
+<solids><box name="WB" x="10" y="10" z="10" lunit="m"/><box name="A" x="10" y="20" z="30" lunit="cm"/><box name="B" x="1" y="2" z="3" lunit="cm"/><polycone name="C" startphi="0" deltaphi="360" aunit="deg" lunit="mm"><zplane z="-5" rmin="1" rmax="4"/><zplane z="0" rmin="1" rmax="6"/><zplane z="7" rmax="2"/></polycone></solids>
+<structure><volume name="LC"><materialref ref="G4_Pb"/><solidref ref="C"/></volume><volume name="LB"><materialref ref="G4_Cu"/><solidref ref="B"/><physvol name="pc"><volumeref ref="LC"/><positionref ref="p2"/><rotationref ref="r2"/></physvol></volume><volume name="LA"><materialref ref="G4_Al"/><solidref ref="A"/><physvol name="pb"><volumeref ref="LB"/><position name="q" x="1" y="-1" z="2" unit="cm"/><rotation name="qq" z="20" unit="deg"/></physvol></volume><volume name="World"><materialref ref="G4_AIR"/><solidref ref="WB"/><physvol name="pa"><volumeref ref="LA"/><positionref ref="p1"/><rotationref ref="r1"/></physvol></volume></structure>
+<setup name="Default" version="1.0"><world ref="World"/></setup>
+</gdml>

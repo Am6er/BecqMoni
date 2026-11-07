@@ -33,9 +33,10 @@ u"""Вещество кристалла у прибора: ГЕОМЕТРИЯ П
    `DeviceConfig.CrystalMaterialName` — прямо либо общим входом
    `FsaSampleSpec.OfSpectrum` (`T257`, 12.09.2026: обстановка спектра
    собирается одним местом в `FsaSampleLibrary.cs`, `Infer` его зовёт);
-6. `FsaAnalysisSession` берёт вещество поля ТОЛЬКО ветвью `else` от проверки
-   геометрии — путь по пикам (умолчание разбора) обязан слушаться того же
-   старшинства;
+6. (`AMBER306`) путь по меткам пиков собирает образы в той же обстановке спектра:
+   `FsaAnalysisSession.Compute` зовёт `FsaSampleSpec.Declared(job.CompositionInput, …)`
+   и `FsaLibrary.BuildFromLabels`, снимок прибора `DeviceInput` несёт имя вещества,
+   поэтому поле слушается того же старшинства (пункт 4), а своей ветви у пути нет;
 7. форма прибора связана с обоих концов: `LoadFormContents` зовёт
    `LoadCrystalMaterial`, а запись присваивает `config.CrystalMaterialName`
    из `CrystalMaterialFromForm()`;
@@ -216,22 +217,18 @@ def judge(sources, names, loud=True):
         say(u'  5. вывод состава берёт имя у конфигурации прибора'
             + (u' (общим входом FsaSampleSpec.OfSpectrum)' if not direct else u''))
 
-    # --- 6. путь по пикам: только ветвью else ---------------------------
-    capture = body_of(session, u'Job Capture(')
-    if capture is None:
-        found.append(u'6. не нашлось тело FsaAnalysisSession.Capture')
-    elif u'FsaSampleLibrary.FractionsOfMaterial(' not in capture:
-        found.append(u'6. путь по пикам не читает вещество поля вовсе — '
-                     u'у большинства людей (DbLookupsForFsa выключена) поле молчит')
+    # --- 6. путь по меткам: та же обстановка спектра (`AMBER306`) --------
+    compute = body_of(session, u'void Compute(Job job)')
+    if compute is None:
+        found.append(u'6. не нашлось тело FsaAnalysisSession.Compute')
+    elif u'FsaLibrary.BuildFromLabels(' not in compute:
+        found.append(u'6. путь по меткам не идёт сборкой BuildFromLabels — поле вещества до него не доедет')
+    elif not compute[compute.rfind(u'FsaSampleSpec.Declared(', 0, compute.index(u'FsaLibrary.BuildFromLabels(')):].startswith(u'FsaSampleSpec.Declared(job.CompositionInput'):
+        found.append(u'6. путь по меткам собирается без обстановки спектра (FsaSampleSpec.Declared)')
+    elif u'CrystalMaterialName = device.CrystalMaterialName' not in session:
+        found.append(u'6. снимок прибора DeviceInput не несёт имя вещества — поле молчит на всех путях')
     else:
-        head = capture.find(u'efficiencyConfig.HasGeometry')
-        branch = capture.find(u'else if (resultData.DeviceConfig != null)')
-        named = capture.find(u'FsaSampleLibrary.FractionsOfMaterial(')
-        if not (0 <= head < branch < named):
-            found.append(u'6. вещество поля в Capture читается НЕ ветвью else от геометрии — '
-                         u'геометрия перестаёт быть первичной на пути по пикам')
-        else:
-            say(u'  6. путь по пикам берёт поле только там, где геометрии нет')
+        say(u'  6. путь по меткам идёт обстановкой спектра, снимок прибора несёт вещество')
 
     # --- 7. форма связана с обоих концов --------------------------------
     if u'this.LoadCrystalMaterial(config)' not in form:

@@ -402,9 +402,10 @@ namespace BecquerelMonitor.NucBase
         }
 
         /// <summary>
-        /// Доля ветви текстом для карточки: «?» — числа нет; текст поставки — как
-        /// записан («35.94», «1.9E-6»); число (строка, достроенная или пересчитанная
-        /// правилом) — инвариантной культурой, шесть значащих цифр.
+        /// Доля ветви текстом для карточки: «?» — числа нет; текст поставки — его число всеми
+        /// знаками единым видом (<see cref="NumberTextCaption"/>: «35.94», «1.9e-6»), не число —
+        /// как записан; число (строка, достроенная или пересчитанная правилом) — шесть значащих
+        /// цифр тем же видом (<see cref="NumberCaption"/>).
         /// </summary>
         static string PercentText(object value)
         {
@@ -416,12 +417,13 @@ namespace BecquerelMonitor.NucBase
             string text = value as string;
             if (text != null)
             {
-                return text.Trim().Length == 0 ? "?" : text;
+                // (решение Amber 07.11.2026 «Единый вид «7.04e-8»») число поставки — тем же видом
+                return text.Trim().Length == 0 ? "?" : NumberTextCaption(text);
             }
 
             double number;
             return DecayParentRule.TryPercent(value, out number)
-                ? number.ToString("G6", CultureInfo.InvariantCulture)
+                ? NumberCaption(number, 6)
                 : Convert.ToString(value, CultureInfo.InvariantCulture);
         }
 
@@ -773,6 +775,12 @@ namespace BecquerelMonitor.NucBase
             {
                 value = Resources.NucBase_HalfLifeStable;
             }
+            else
+            {
+                // (решение Amber 07.11.2026 «Единый вид «7.04e-8»») число базы — единым видом:
+                // «0.79E+21» → «7.9e20», «3.705e-13» → «3.705e-13», «60.55» → «60.55»
+                value = NumberTextCaption(value);
+            }
 
             string text = value + " " + HalfLifeUnitCaption(nuc.HalfLifeUOM ?? "");
             return nuc.HalfLifeIsLimit ? LimitMark + text : text;
@@ -855,8 +863,114 @@ namespace BecquerelMonitor.NucBase
             // (`AMBER242`, 20.10.2026) Три значащие цифры, как и были, но экспонентой вида
             // «3.21E+12» — тем же видом, каким база пишет периоды в соседней строке карточки
             // («7.01E+18»). Прежний формат «e2» печатал её в стиле C: «3.21e+012».
-            string text = value.ToString("0.00E+00", CultureInfo.InvariantCulture) + " " + Resources.Bkg;
+            // (решение Amber 07.11.2026 «Единый вид «7.04e-8»») три значащие цифры единым видом
+            // карточки и таблицы: «5.42e17», а не «5.42E+17»
+            string text = NumberCaption(value, 3) + " " + Resources.Bkg;
             return nuc.HalfLifeIsLimit && value > 0.0 ? UpperLimitMark + text : text;
+        }
+
+        /// <summary>
+        /// ⛔ ЕДИНЫЙ ВИД ЧИСЛА «БАЗЫ ИЗОТОПОВ» — таблица, подсказка ячейки, карточка нуклида.
+        /// Решение Amber 07.11.2026 вопросником, дословно: «Единый вид «7.04e-8» (Рекомендую)»:
+        /// от 1e-4 до 1e6 — обычной дробью («0.0001235», «22.67», «12345.7»), вне этого — строчная
+        /// «e» без лишних нулей и без «+» («7.04e-8», «5.42e17», «1e-5»). Точка, инвариантная
+        /// культура (`A242`). Прежде таблица печатала «G4» («5.809E-06», «1.235E+04»), карточка —
+        /// «5.42E+17», «3.705e-13», «0.79E+21» (мантисса меньше единицы).
+        /// <paramref name="significant"/> — значащих цифр; 0 — все (кратчайшая запись, «R»).
+        /// В дробной записи целая часть не округляется, а дробь при ней — не короче одного знака,
+        /// если она есть: 12345.678 при четырёх цифрах — «12345.7». Нечисло и бесконечность —
+        /// <c>ToString</c> инвариантной культурой, как есть. Открыт пробе.
+        /// </summary>
+        public static string NumberCaption(double value, int significant)
+        {
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                return value.ToString(CultureInfo.InvariantCulture);
+            }
+
+            if (value == 0.0)
+            {
+                return "0";
+            }
+
+            string sign = value < 0 ? "-" : "";
+            double a = Math.Abs(value);
+            bool plain = a >= 1e-4 && a < 1e6;
+
+            if (plain)
+            {
+                if (significant <= 0)
+                {
+                    string r = a.ToString("R", CultureInfo.InvariantCulture);
+                    if (r.IndexOf('E') < 0)
+                    {
+                        return sign + r;
+                    }
+
+                    // «R» пишет экспонентой ниже 1e-5 — в дробном диапазоне это только 1e-5…1e-4
+                    return sign + a.ToString("0.###################", CultureInfo.InvariantCulture);
+                }
+
+                int exponent = (int)Math.Floor(Math.Log10(a));
+                int decimals = exponent >= 0
+                    ? Math.Max(significant - (exponent + 1), 1)
+                    : significant - 1 - exponent;
+                decimals = Math.Min(decimals, 15);
+                string text = Math.Round(a, decimals, MidpointRounding.AwayFromZero)
+                    .ToString("F" + decimals.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+                if (text.IndexOf('.') >= 0)
+                {
+                    text = text.TrimEnd('0').TrimEnd('.');
+                }
+
+                return sign + text;
+            }
+
+            // запись с порядком: мантисса 1…9.99…, порядок без «+» и ведущих нулей
+            string e = significant <= 0
+                ? a.ToString("E16", CultureInfo.InvariantCulture)
+                : a.ToString("E" + (significant - 1).ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+            if (significant <= 0)
+            {
+                // кратчайшая запись: наименьшее число цифр, которое читается обратно тем же числом
+                double back;
+                for (int digits = 1; digits <= 17; digits++)
+                {
+                    string candidate = a.ToString("E" + (digits - 1).ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+                    if (double.TryParse(candidate, NumberStyles.Float, CultureInfo.InvariantCulture, out back) && back == a)
+                    {
+                        e = candidate;
+                        break;
+                    }
+                }
+            }
+
+            int cut = e.IndexOf('E');
+            string mantissa = e.Substring(0, cut);
+            if (mantissa.IndexOf('.') >= 0)
+            {
+                mantissa = mantissa.TrimEnd('0').TrimEnd('.');
+            }
+
+            int power = int.Parse(e.Substring(cut + 1), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
+            return sign + mantissa + "e" + power.ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// <see cref="NumberCaption"/> для числа, записанного в базе текстом («0.79E+21», «3.705e-13»,
+        /// «60.55»): разбирается инвариантной культурой и печатается всеми знаками; не число
+        /// («STABLE», пусто) — как есть.
+        /// </summary>
+        public static string NumberTextCaption(string text)
+        {
+            double value;
+            if (!string.IsNullOrEmpty(text)
+                && double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value))
+            {
+                return NumberCaption(value, 0);
+            }
+
+            return text ?? "";
         }
 
         /// <summary>

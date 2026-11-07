@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="ChartHeaderCountBGRatio" xml:space="preserve">
-    <value>Background / sample, %</value>
+    <value>Sample / background, %</value>
   </data>
   <data name="ChartHeaderCountBGRatioHint" xml:space="preserve">
     <value>100 % = sample equals background</value>
@@ -8477,6 +8477,21 @@ Increase the preset time or press Clear to start over.</value>
   <data name="FSANoGeometry" xml:space="preserve">
     <value>Full-spectrum decomposition needs a detector geometry: describe the crystal in the geometry editor of the efficiency curve</value>
   </data>
+  <data name="FSADeviceNotFound" xml:space="preserve">
+    <value>Full-spectrum decomposition: the spectrum's device was not found in the configuration (the file names "{0}", serial number {1}), and without a device there is no geometry. Choose the device in the Measurement Control panel, or add it in the Edit Device Configuration window and describe its crystal in the geometry editor of the efficiency curve</value>
+  </data>
+  <data name="FSADeviceNotAssigned" xml:space="preserve">
+    <value>Full-spectrum decomposition: the device "{0}" is configured, but it is not assigned to this spectrum. Choose it in the Measurement Control panel or open the file again</value>
+  </data>
+  <data name="FSADeviceNone" xml:space="preserve">
+    <value>Full-spectrum decomposition: the spectrum has no device, and without a device there is no geometry. Choose the device in the Measurement Control panel, or add it in the Edit Device Configuration window and describe its crystal in the geometry editor of the efficiency curve</value>
+  </data>
+  <data name="FSACurveNotChosen" xml:space="preserve">
+    <value>Full-spectrum decomposition: no efficiency curve is chosen for this spectrum, but the device "{0}" has one. Choose it in the Efficiency list of the Measurement Control panel</value>
+  </data>
+  <data name="FSADeviceAmbiguous" xml:space="preserve">
+    <value>Full-spectrum decomposition: no device is assigned to the spectrum, several configurations fit it equally (the file names "{0}", serial number {1}). Choose the device in the Measurement Control panel</value>
+  </data>
   <data name="FSACurveNotComputed" xml:space="preserve">
     <value>Full-spectrum decomposition needs an efficiency curve: "{0}" has a geometry, but the curve itself has not been calculated — on the Efficiency tab of the device configuration press Edit..., then Calculate from geometry and Save curve</value>
   </data>
@@ -8563,6 +8578,26 @@ Recompute it: device configuration → Efficiency → “Response matrix...”.
   <data name="FSASumPeakLineHintSigma" xml:space="preserve">
     <value>Shown because the area is at least 3σ of the measured spectrum within ±FWHM: {0} counts</value>
     <comment>AMBER286: the noticeability threshold of the row</comment>
+  </data>
+  <data name="FSAEscapeRow" xml:space="preserve">
+    <value>{0} — escape peaks</value>
+    <comment>AMBER311: row of the FSA report above the escape peaks of a nuclide</comment>
+  </data>
+  <data name="FSAEscapeRowHint" xml:space="preserve">
+    <value>Single (SE) and double (DE) escape peaks of the lines of this nuclide. The response matrix already holds them, so they are part of its band and share and are not added a second time. Each energy is where the peak stands in the matrix, not E − 511.</value>
+    <comment>AMBER311: tooltip of the escape peaks row</comment>
+  </data>
+  <data name="FSAEscapeLineSe" xml:space="preserve">
+    <value>SE {0} keV from {1}</value>
+    <comment>AMBER311: single escape peak; {0} where it stands, {1} the parent line</comment>
+  </data>
+  <data name="FSAEscapeLineDe" xml:space="preserve">
+    <value>DE {0} keV from {1}</value>
+    <comment>AMBER311: double escape peak; {0} where it stands, {1} the parent line</comment>
+  </data>
+  <data name="FSAEscapeLineHintPair" xml:space="preserve">
+    <value>{0}: line {1} keV, escape peak at {2} keV — {3} counts</value>
+    <comment>AMBER311: tooltip line per parent; {0} nuclide, {1} parent line, {2} where the peak stands, {3} counts</comment>
   </data>
   <data name="EfficiencyMakerCalcRestored" xml:space="preserve">
     <value>Calculation parameters restored from the existing curve: {0}</value>
@@ -42776,7 +42811,7 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Some values are not numbers - they are highlighted. An unreadable value would silently become zero.</value>
   </data>
   <data name="GeometryWarningNoMaterial" xml:space="preserve">
-    <value>WARNING - {0}: thickness {1} mm is set, but the material has no density or composition. The layer is treated as vacuum; otherwise the surrounding layer would silently fill its place.</value>
+    <value>WARNING - {0}: thickness {1} mm is set, but the material has no density or composition. This geometry cannot be calculated: choose a material in the geometry editor.</value>
   </data>
   <data name="GeometryWarningAtomFractions" xml:space="preserve">
     <value>{0}: fractions are atomic (FractionType = ATOM), converted to mass fractions.</value>
@@ -43146,6 +43181,15 @@ Device channels: {0}, spectrum files channels: {1}</value>
   </data>
   <data name="EfficiencySketchFacingSide" xml:space="preserve">
     <value>Rotated: the sample faces the wide side of the crystal</value>
+  </data>
+  <data name="EfficiencySketchSideHint" xml:space="preserve">
+    <value>Cut through the axis of the scene</value>
+  </data>
+  <data name="EfficiencySketchTopHint" xml:space="preserve">
+    <value>Looking along the axis from the detector, away from it</value>
+  </data>
+  <data name="EfficiencySketchDepth" xml:space="preserve">
+    <value>Depth: {0} {1}</value>
   </data>
   <data name="ResponseMatrixStateValid" xml:space="preserve">
     <value>Valid for the current geometry.</value>
@@ -43616,6 +43660,10 @@ Turn it on in Windows settings and search again.</value>
   </data>
   <data name="FSAReportTipMatrixExtra" xml:space="preserve">
     <value>With a response matrix this switch controls only the separate additional component; the contribution already inside the matrix stays.</value>
+  </data>
+  <data name="FSAReportTipEscapeMatrix" xml:space="preserve">
+    <value>With a response matrix the escape peaks are already inside the nuclide images: this switch controls how they are shown (rows under the nuclide and hatching), the images and their fit stay. It still adds or removes the separate 511 keV annihilation image in the fit, as without a matrix.</value>
+    <comment>AMBER311: tooltip of the "Escape peaks and 511 keV annihilation" switch when a response matrix is in use</comment>
   </data>
   <data name="PeakLabelAnnihilationSum" xml:space="preserve">
     <value>{0} (sum 511+511)</value>
@@ -45218,12 +45266,584 @@ Entered: {0}</value>
     <value>GDML geometry is shown for reading only: saving and calculation are not supported yet.</value>
   </data>
   <data name="GdmlSketchAxial" xml:space="preserve">
-    <value>Axial section (y = 0)</value>
+    <value>Axial section ({0} = {1})</value>
   </data>
   <data name="GdmlSketchEnd" xml:space="preserve">
     <value>End view ({0} = {1} mm)</value>
   </data>
   <data name="GdmlSketchNoGeometry" xml:space="preserve">
     <value>No GDML geometry</value>
+  </data>
+  <data name="GdmlFatalRoot" xml:space="preserve">
+    <value>root element is &lt;{0}&gt;, not &lt;gdml&gt;</value>
+  </data>
+  <data name="GdmlNoteMassChild" xml:space="preserve">
+    <value>mass is not computed: volume of {0} inside it is unknown</value>
+  </data>
+  <data name="GdmlNoteMassNotPlaced" xml:space="preserve">
+    <value>mass is not computed: not all children are placed</value>
+  </data>
+  <data name="GdmlNotePartialPhi" xml:space="preserve">
+    <value>partial revolution {0} deg</value>
+  </data>
+  <data name="GdmlReasonAngleRange" xml:space="preserve">
+    <value>angle {0} {1} {2} deg is out of range</value>
+  </data>
+  <data name="GdmlReasonBoxSize" xml:space="preserve">
+    <value>size {0} x {1} x {2} is not positive</value>
+  </data>
+  <data name="GdmlReasonFacesSkipped" xml:space="preserve">
+    <value>{0} face(s) skipped, first missing vertex: {1}</value>
+  </data>
+  <data name="GdmlReasonFewPlanes" xml:space="preserve">
+    <value>fewer than two z-planes</value>
+  </data>
+  <data name="GdmlReasonFewPoints" xml:space="preserve">
+    <value>fewer than three points</value>
+  </data>
+  <data name="GdmlReasonMissing" xml:space="preserve">
+    <value>{0} is missing</value>
+  </data>
+  <data name="GdmlReasonNegativeR" xml:space="preserve">
+    <value>r = {0} is negative</value>
+  </data>
+  <data name="GdmlReasonNoFirst" xml:space="preserve">
+    <value>no &lt;first&gt;</value>
+  </data>
+  <data name="GdmlReasonNoTriangles" xml:space="preserve">
+    <value>no triangles</value>
+  </data>
+  <data name="GdmlReasonNumber" xml:space="preserve">
+    <value>{0} = "{1}" is not a finite number or a known expression</value>
+  </data>
+  <data name="GdmlReasonOpenMesh" xml:space="preserve">
+    <value>mesh is not closed: {0} unpaired edge(s), volume is not defined</value>
+  </data>
+  <data name="GdmlReasonPartNotMeasured" xml:space="preserve">
+    <value>body {0} is not measured: {1}</value>
+  </data>
+  <data name="GdmlReasonPlaneOrder" xml:space="preserve">
+    <value>z-planes are not ordered along z</value>
+  </data>
+  <data name="GdmlReasonRadii" xml:space="preserve">
+    <value>rmin = {0}, rmax = {1} at z = {2} is not a ring</value>
+  </data>
+  <data name="GdmlReasonRefMissing" xml:space="preserve">
+    <value>reference {0} not found</value>
+  </data>
+  <data name="GdmlReasonSecondCount" xml:space="preserve">
+    <value>expected one &lt;second&gt;, found {0}</value>
+  </data>
+  <data name="GdmlReasonSolidCycle" xml:space="preserve">
+    <value>reference cycle</value>
+  </data>
+  <data name="GdmlReasonSolidDeep" xml:space="preserve">
+    <value>nested deeper than {0} levels</value>
+  </data>
+  <data name="GdmlReasonSubFirst" xml:space="preserve">
+    <value>overlap with {0} is not computed: first body {1} is &lt;{2}&gt;, only a box is supported</value>
+  </data>
+  <data name="GdmlReasonSubFirstRotated" xml:space="preserve">
+    <value>overlap with {0} is not computed: first body {1} is rotated</value>
+  </data>
+  <data name="GdmlReasonSubPartial" xml:space="preserve">
+    <value>overlap with {0} is not computed: it only partly overlaps the box and is not an axis-aligned box</value>
+  </data>
+  <data name="GdmlReasonSubPlacement" xml:space="preserve">
+    <value>placement of a body is not read</value>
+  </data>
+  <data name="GdmlReasonTag" xml:space="preserve">
+    <value>unsupported &lt;{0}&gt;</value>
+  </data>
+  <data name="GdmlReasonUnit" xml:space="preserve">
+    <value>unknown unit "{0}"</value>
+  </data>
+  <data name="GdmlReasonVolumeOverflow" xml:space="preserve">
+    <value>volume is out of range</value>
+  </data>
+  <data name="GdmlReasonZeroVolume" xml:space="preserve">
+    <value>volume is zero</value>
+  </data>
+  <data name="GdmlSummaryNoPlacement" xml:space="preserve">
+    <value>placement is not read</value>
+  </data>
+  <data name="GdmlSummaryOwnVolume" xml:space="preserve">
+    <value>; own volume {0} cm3</value>
+  </data>
+  <data name="GdmlWarnAtomicMassError" xml:space="preserve">
+    <value>material {0}: atomic masses are not available: {1}</value>
+  </data>
+  <data name="GdmlWarnAtomicMassMissing" xml:space="preserve">
+    <value>material {0}: no atomic mass for {1}</value>
+  </data>
+  <data name="GdmlWarnBoundsOverflow" xml:space="preserve">
+    <value>volume {0}: bounds are out of range and are not measured</value>
+  </data>
+  <data name="GdmlWarnChildMissing" xml:space="preserve">
+    <value>volume {0}: child {1} not found</value>
+  </data>
+  <data name="GdmlWarnCompositeNotElement" xml:space="preserve">
+    <value>material {0}: &lt;composite&gt; {1} is not an element</value>
+  </data>
+  <data name="GdmlWarnDensityOnly" xml:space="preserve">
+    <value>material {0}: density only, composition is unknown</value>
+  </data>
+  <data name="GdmlWarnDensityRef" xml:space="preserve">
+    <value>{0}: density reference {1} is not read</value>
+  </data>
+  <data name="GdmlWarnDensityValue" xml:space="preserve">
+    <value>{0}: density {1} is not positive; mass is not computed</value>
+  </data>
+  <data name="GdmlWarnDropped" xml:space="preserve">
+    <value>... and {0} more note(s)</value>
+  </data>
+  <data name="GdmlWarnElementNoZ" xml:space="preserve">
+    <value>{0}: Z is not known</value>
+  </data>
+  <data name="GdmlWarnElementZ" xml:space="preserve">
+    <value>{0}: Z = "{1}" is not an element number</value>
+  </data>
+  <data name="GdmlWarnFile" xml:space="preserve">
+    <value>{0}: external file {1} is not read; volume {2} is incomplete</value>
+  </data>
+  <data name="GdmlWarnFractionNumber" xml:space="preserve">
+    <value>{0}: fraction of {1} = "{2}" is not a non-negative number</value>
+  </data>
+  <data name="GdmlWarnFractionSum" xml:space="preserve">
+    <value>material {0}: fractions sum to {1}, not to 1</value>
+  </data>
+  <data name="GdmlWarnIsotopeMissing" xml:space="preserve">
+    <value>{0}: isotope {1} not found</value>
+  </data>
+  <data name="GdmlWarnIsotopeZ" xml:space="preserve">
+    <value>{0}: isotope {1} has Z = {2}, the element has Z = {3}</value>
+  </data>
+  <data name="GdmlWarnMaterialCycle" xml:space="preserve">
+    <value>material {0}: reference cycle</value>
+  </data>
+  <data name="GdmlWarnMaterialDeep" xml:space="preserve">
+    <value>material {0}: references are nested deeper than {1} levels; composition is not read</value>
+  </data>
+  <data name="GdmlWarnMaterialMissing" xml:space="preserve">
+    <value>material {0}: not found in the file or in the built-in G4 table</value>
+  </data>
+  <data name="GdmlWarnMixedParts" xml:space="preserve">
+    <value>{0}: &lt;fraction&gt; and &lt;composite&gt; are mixed; composition is not read</value>
+  </data>
+  <data name="GdmlWarnNoVolumes" xml:space="preserve">
+    <value>structure: no volumes</value>
+  </data>
+  <data name="GdmlWarnNoWorld" xml:space="preserve">
+    <value>structure: no world volume</value>
+  </data>
+  <data name="GdmlWarnPhysvolNoRef" xml:space="preserve">
+    <value>{0}: no &lt;volumeref&gt;; volume {1} is incomplete</value>
+  </data>
+  <data name="GdmlWarnPositionMissing" xml:space="preserve">
+    <value>{0}: position {1} not found; placement is not known</value>
+  </data>
+  <data name="GdmlWarnRootUnit" xml:space="preserve">
+    <value>&lt;gdml&gt;: attribute {0}="{1}" is ignored, as in Geant4; the defaults stay mm and rad</value>
+  </data>
+  <data name="GdmlWarnRotationMissing" xml:space="preserve">
+    <value>{0}: rotation {1} not found; placement is not known</value>
+  </data>
+  <data name="GdmlWarnScaleBad" xml:space="preserve">
+    <value>{0}: &lt;scale&gt; {1} {2} {3} is not a mirror and is not applied; placement is not known</value>
+  </data>
+  <data name="GdmlWarnScaleMirror" xml:space="preserve">
+    <value>{0}: &lt;scale&gt; {1} {2} {3} is read as a mirror</value>
+  </data>
+  <data name="GdmlWarnScaleRef" xml:space="preserve">
+    <value>{0}: &lt;scaleref&gt; {1} is not read; placement is not known</value>
+  </data>
+  <data name="GdmlWarnSetupMissing" xml:space="preserve">
+    <value>setup: world volume {0} not found</value>
+  </data>
+  <data name="GdmlWarnSetupNoWorld" xml:space="preserve">
+    <value>setup {0}: no &lt;world ref&gt;</value>
+  </data>
+  <data name="GdmlWarnSolidCycle" xml:space="preserve">
+    <value>solid {0}: reference cycle</value>
+  </data>
+  <data name="GdmlWarnSolidDeep" xml:space="preserve">
+    <value>solid {0}: bodies are nested deeper than {1} levels; volume is not measured</value>
+  </data>
+  <data name="GdmlWarnSolidNoName" xml:space="preserve">
+    <value>solids: &lt;{0}&gt; without a name is skipped</value>
+  </data>
+  <data name="GdmlWarnSolidUnsupported" xml:space="preserve">
+    <value>solid {0}: unsupported body &lt;{1}&gt;</value>
+  </data>
+  <data name="GdmlWarnSymbolClash" xml:space="preserve">
+    <value>reference {0} is both an element symbol and a material; the element is read, as in Geant4</value>
+  </data>
+  <data name="GdmlWarnTessLunit" xml:space="preserve">
+    <value>tessellated {0}: lunit="{1}" on the body is ignored, as in Geant4; only a face carries a unit</value>
+  </data>
+  <data name="GdmlWarnTooManyVolumes" xml:space="preserve">
+    <value>structure: the file places more than {0} volumes (stopped at {1}); the structure is not built</value>
+  </data>
+  <data name="GdmlWarnUnsupportedIn" xml:space="preserve">
+    <value>{0}: unsupported &lt;{1}&gt;</value>
+  </data>
+  <data name="GdmlWarnVolumeCopies" xml:space="preserve">
+    <value>volume {0}: &lt;{1}&gt; is not supported, its copies are not counted ({2})</value>
+  </data>
+  <data name="GdmlWarnVolumeCycle" xml:space="preserve">
+    <value>structure: volume {0} contains itself (placement {1}); the copy is not placed</value>
+  </data>
+  <data name="GdmlWarnVolumeDeep" xml:space="preserve">
+    <value>structure: volume {0} is nested deeper than {1} levels and is not placed</value>
+  </data>
+  <data name="GdmlWarnVolumeNoSolid" xml:space="preserve">
+    <value>volume {0}: solid {1} not found</value>
+  </data>
+  <data name="GdmlWarnWorldFallback" xml:space="preserve">
+    <value>setup: no valid &lt;world&gt;; volume {0} is taken as the world</value>
+  </data>
+  <data name="GdmlSketchFailed" xml:space="preserve">
+    <value>The drawing was not built</value>
+  </data>
+  <data name="GdmlSketchOutOfRange" xml:space="preserve">
+    <value>No drawing: the dimensions in the file are out of range</value>
+  </data>
+  <data name="GdmlSketchNoBounds" xml:space="preserve">
+    <value>No drawing: no body in the file has known dimensions</value>
+  </data>
+  <data name="GdmlSketchNotDrawn" xml:space="preserve">
+    <value>Not drawn ({0}): {1} - unsupported body</value>
+  </data>
+  <data name="GdmlSketchNotPlaced" xml:space="preserve">
+    <value>Not drawn ({0}): {1} - placement or extent not read</value>
+  </data>
+  <data name="GdmlSketchEnvelope" xml:space="preserve">
+    <value>Not shown, an envelope around the whole scene ({0}): {1}; the frame is set by what it holds</value>
+  </data>
+  <data name="GdmlSketchContentHidden" xml:space="preserve">
+    <value>Content not shown ({0}): {1} - not read: {2}</value>
+  </data>
+  <data name="GdmlMaterialUncounted" xml:space="preserve">
+    <value>, not counted: {0}</value>
+  </data>
+  <data name="GdmlWarnReplicaRead" xml:space="preserve">
+    <value>volume {0}: &lt;replicavol&gt; is read, copies: {1} ({2} along {3}, {4} mm each)</value>
+  </data>
+  <data name="GdmlSketchNoSection" xml:space="preserve">
+    <value>No exact section in this view ({0}): {1}</value>
+  </data>
+  <data name="GdmlSketchEmptySection" xml:space="preserve">
+    <value>This plane crosses no body</value>
+  </data>
+  <data name="GdmlUnitMm" xml:space="preserve">
+    <value>mm</value>
+  </data>
+  <data name="GdmlUnitCm3" xml:space="preserve">
+    <value>cm3</value>
+  </data>
+  <data name="GdmlUnitG" xml:space="preserve">
+    <value>g</value>
+  </data>
+  <data name="GdmlImportBusy" xml:space="preserve">
+    <value>Import is refused: a calculation is running. Stop it or wait until it ends.</value>
+  </data>
+  <data name="GdmlModeLeft" xml:space="preserve">
+    <value>GDML view is closed: the editor fields are in effect again.</value>
+  </data>
+  <data name="GdmlNoteMassNoFit" xml:space="preserve">
+    <value>mass is not computed: children do not fit in it</value>
+  </data>
+  <data name="GdmlReasonFacesSkippedPlain" xml:space="preserve">
+    <value>{0} face(s) skipped</value>
+  </data>
+  <data name="GdmlReasonProfileCrossing" xml:space="preserve">
+    <value>profile crosses itself</value>
+  </data>
+  <data name="GdmlReasonProfileLong" xml:space="preserve">
+    <value>profile has {0} points; it is not checked for self-crossing beyond {1}</value>
+  </data>
+  <data name="GdmlReasonRefEmpty" xml:space="preserve">
+    <value>an empty reference to a body</value>
+  </data>
+  <data name="GdmlWarnChildrenNoFit" xml:space="preserve">
+    <value>volume {0}: children take {1} cm3 of its {2} cm3: in the file they overlap it or stick out of it, mass is not computed</value>
+  </data>
+  <data name="GdmlWarnConstantBuiltin" xml:space="preserve">
+    <value>define/{0} {1}: this name belongs to a unit or a constant, Geant4 refuses it; what uses it is not measured</value>
+  </data>
+  <data name="GdmlWarnConstantSame" xml:space="preserve">
+    <value>define/{0} {1} is defined twice with the same value; Geant4 refuses such a file</value>
+  </data>
+  <data name="GdmlWarnConstantTwice" xml:space="preserve">
+    <value>define/{0} {1} is defined twice ({2} and {3}), Geant4 refuses it; what uses it is not measured</value>
+  </data>
+  <data name="GdmlWarnDefineLast" xml:space="preserve">
+    <value>{0} {1} is defined twice; the last one is read, as in Geant4</value>
+  </data>
+  <data name="GdmlWarnDefinedFirst" xml:space="preserve">
+    <value>{0} {1} is defined twice; the first one is read, as in Geant4</value>
+  </data>
+  <data name="GdmlWarnDeltaPhiFull" xml:space="preserve">
+    <value>{0} {1}: deltaphi = "{2}" is read as a full revolution, as in Geant4</value>
+  </data>
+  <data name="GdmlWarnDeltaPhiMissing" xml:space="preserve">
+    <value>{0} {1}: deltaphi is missing; read as a full revolution, as in Geant4</value>
+  </data>
+  <data name="GdmlWarnEmptyComposition" xml:space="preserve">
+    <value>material {0}: composition is empty</value>
+  </data>
+  <data name="GdmlWarnExpressionNested" xml:space="preserve">
+    <value>define/expression {0}: nested elements are not an expression</value>
+  </data>
+  <data name="GdmlWarnFaceType" xml:space="preserve">
+    <value>tessellated {0}: type="{1}" is read as ABSOLUTE, as in Geant4</value>
+  </data>
+  <data name="GdmlWarnNoName" xml:space="preserve">
+    <value>{0}: &lt;{1}&gt; without a name is skipped</value>
+  </data>
+  <data name="GdmlWarnSetupNoDefault" xml:space="preserve">
+    <value>setup: there are several setups and none is Default; setup {0} is read</value>
+  </data>
+  <data name="GdmlWarnTooManySteps" xml:space="preserve">
+    <value>structure: walking the placements took more than {0} steps ({1} volumes placed); the structure is not built</value>
+  </data>
+  <data name="GdmlWarnVolumeNoRef" xml:space="preserve">
+    <value>volume {0}: no &lt;{1}&gt;</value>
+  </data>
+  <data name="GdmlSketchTooComplex" xml:space="preserve">
+    <value>Not drawn, too complex for this drawing ({0}): {1}</value>
+  </data>
+  <data name="GdmlSketchChord" xml:space="preserve">
+    <value>The plane misses the axis, the width here is a chord, not the diameter ({0}): {1}</value>
+  </data>
+  <data name="GdmlSketchPlaneMiddle" xml:space="preserve">
+    <value>The plane {0} = 0 misses the device: the section goes through the middle of its extent</value>
+  </data>
+  <data name="GdmlSketchFailedLog" xml:space="preserve">
+    <value>The GDML drawing was not built: {0}</value>
+  </data>
+  <data name="GdmlCurvesHidden" xml:space="preserve">
+    <value>GDML geometry is shown: the curves belong to the editor fields and are hidden.</value>
+  </data>
+  <data name="GdmlSketchMoreNames" xml:space="preserve">
+    <value>{0} and {1} more</value>
+  </data>
+  <data name="GdmlReasonProfileBudget" xml:space="preserve">
+    <value>not checked for self-crossing: the profiles of the file together exceed {0} pairs of segments</value>
+  </data>
+  <data name="ResponseMatrixSectionRows" xml:space="preserve">
+    <value>Electron section: {0} nodes, {1} lines, {2} branches</value>
+  </data>
+  <data name="ResponseMatrixSectionMissing" xml:space="preserve">
+    <value>Electron section: none usable. FSA on this matrix leaves out the sample's beta; recompute to build it.</value>
+  </data>
+  <data name="ResponseMatrixSectionFailed" xml:space="preserve">
+    <value>Electron section not built: {0}</value>
+  </data>
+  <data name="ResponseMatrixSectionProgress" xml:space="preserve">
+    <value>Electron section: row {0} of {1}.</value>
+  </data>
+  <data name="ResponseMatrixSectionGpuProgress" xml:space="preserve">
+    <value>GPU: electron section, row {0} of {1}.</value>
+  </data>
+  <data name="GdmlFatalDtd" xml:space="preserve">
+    <value>the file uses &lt;!DOCTYPE&gt; or &lt;!ENTITY&gt; to include other files; this is not supported and is not read, for safety: put the included text into the file itself</value>
+  </data>
+  <data name="GdmlWarnRootOther" xml:space="preserve">
+    <value>root element is &lt;{0}&gt;; read as &lt;gdml&gt;, as in Geant4</value>
+  </data>
+  <data name="GdmlWarnLoop" xml:space="preserve">
+    <value>{0}: &lt;loop&gt; is not read ({1} from {2} to {3}): what it creates is missing</value>
+  </data>
+  <data name="GdmlWarnOpticalSurface" xml:space="preserve">
+    <value>solids: optical surface {0} is not a body and is not read</value>
+  </data>
+  <data name="GdmlWarnScaleSize" xml:space="preserve">
+    <value>&lt;scale&gt; {0} {1} {2}: the size is dropped and only the signs are read, as in Geant4</value>
+  </data>
+  <data name="GdmlReasonMeshFlipped" xml:space="preserve">
+    <value>some faces are turned inside out: {0} edge passes run the same way; volume is not defined</value>
+  </data>
+  <data name="GdmlReasonMeshInverted" xml:space="preserve">
+    <value>the faces are turned inside out (negative volume); volume is not defined</value>
+  </data>
+  <data name="GdmlReasonCsgZ" xml:space="preserve">
+    <value>z = {0} is not positive</value>
+  </data>
+  <data name="GdmlReasonUnionOverlap" xml:space="preserve">
+    <value>overlap of {0} and {1} is not computed: their extents meet and they are not axis-aligned boxes</value>
+  </data>
+  <data name="GdmlSummaryUnion" xml:space="preserve">
+    <value>; union</value>
+  </data>
+  <data name="GdmlWarnConstantAssumed" xml:space="preserve">
+    <value>{0} is not defined in the file: its usual value is taken, Geant4 would refuse the file</value>
+  </data>
+  <data name="GdmlSketchUnion" xml:space="preserve">
+    <value>Union, drawn as one body with a common outline ({0}): {1}</value>
+  </data>
+  <data name="ResponseMatrixStateNeedsSection" xml:space="preserve">
+    <value>Recompute needed: the matrix has no usable electron section of the current recipe.</value>
+  </data>
+  <data name="MSGResetNuclideLibrary" xml:space="preserve">
+    <value>Reset the nuclide library to the shipped defaults?
+
+Now: {0} lines, {1} sets.
+Shipped: {2} lines, {3} sets.
+
+All your lines and sets will be replaced. The previous file is kept as:
+{4}</value>
+  </data>
+  <data name="MSGResetNuclideLibraryUnsaved" xml:space="preserve">
+    <value>Unsaved edits in this window will be lost.</value>
+  </data>
+  <data name="ERRShippedLibraryMissing" xml:space="preserve">
+    <value>The shipped nuclide library is not built into this program (resource {0}). The library was not changed.</value>
+  </data>
+  <data name="ERRShippedLibraryUnreadable" xml:space="preserve">
+    <value>The shipped nuclide library built into this program cannot be read: {0}. The library was not changed.</value>
+  </data>
+  <data name="ERRShippedLibraryWrite" xml:space="preserve">
+    <value>Could not write the nuclide library: {0}.
+{1}
+
+The library was not changed.</value>
+  </data>
+  <data name="NuclideLibraryResetTip" xml:space="preserve">
+    <value>Replace the whole library with the nuclides and sets shipped with this version of the program. It asks first, and the previous file is kept next to it as NuclideDefinition.xml.bak.</value>
+  </data>
+  <data name="PeakSetHintText" xml:space="preserve">
+    <value>I think the {0} set will suit you</value>
+  </data>
+  <data name="PeakSetHintTip" xml:space="preserve">
+    <value>The peaks found fit this set best. Click to select it and rerun the analysis.</value>
+  </data>
+  <data name="PeakSetHintCloseTip" xml:space="preserve">
+    <value>Close this hint for this spectrum.</value>
+  </data>
+  <data name="GdmlSketchEndHint" xml:space="preserve">
+    <value>Cut across the axis along line A-A, through the crystal centre.</value>
+  </data>
+  <data name="GdmlSketchEndHintMiddle" xml:space="preserve">
+    <value>Cut across the axis along line A-A, through the middle of the device.</value>
+  </data>
+  <data name="GdmlSketchLegendTitle" xml:space="preserve">
+    <value>Materials:</value>
+  </data>
+  <data name="GdmlSketchLegendMore" xml:space="preserve">
+    <value>+{0} more in the summary</value>
+  </data>
+  <data name="GdmlSketchTrimmed" xml:space="preserve">
+    <value>Not shown, thousands of times larger than the rest ({0}): {1}</value>
+  </data>
+  <data name="GdmlRoleCrystal" xml:space="preserve">
+    <value>Crystal</value>
+  </data>
+  <data name="GdmlRoleReflector" xml:space="preserve">
+    <value>Reflector</value>
+  </data>
+  <data name="GdmlRoleHousing" xml:space="preserve">
+    <value>Housing</value>
+  </data>
+  <data name="GdmlRoleSample" xml:space="preserve">
+    <value>Sample</value>
+  </data>
+  <data name="GdmlRoleVessel" xml:space="preserve">
+    <value>Vessel</value>
+  </data>
+  <data name="GdmlRoleGas" xml:space="preserve">
+    <value>Gas</value>
+  </data>
+  <data name="GdmlRoleDevice" xml:space="preserve">
+    <value>Device</value>
+  </data>
+  <data name="GdmlOverviewLine" xml:space="preserve">
+    <value>{0} volume(s), {1} material(s), overall size {2}.</value>
+  </data>
+  <data name="GdmlOverviewProblems" xml:space="preserve">
+    <value>Unsupported bodies: {0}, placement or extent not read: {1}, unknown compositions: {2}.</value>
+  </data>
+  <data name="GdmlOverviewEnvelope" xml:space="preserve">
+    <value>Without the envelope around the whole scene, not shown on the drawing: {0}.</value>
+  </data>
+  <data name="GdmlOverviewMain" xml:space="preserve">
+    <value>Main parts</value>
+  </data>
+  <data name="GdmlOverviewMaterials" xml:space="preserve">
+    <value>Materials, heaviest first</value>
+  </data>
+  <data name="GdmlOverviewVolumesShort" xml:space="preserve">
+    <value>vol.</value>
+  </data>
+  <data name="GdmlOverviewRest" xml:space="preserve">
+    <value>The rest, in total</value>
+  </data>
+  <data name="GdmlOverviewRestLine" xml:space="preserve">
+    <value>{0} volume(s), {1} cm3, {2} g</value>
+  </data>
+  <data name="GdmlOverviewMore" xml:space="preserve">
+    <value>and {0} more</value>
+  </data>
+  <data name="GdmlOverviewDensity" xml:space="preserve">
+    <value>g/cm3</value>
+  </data>
+  <data name="GdmlOverviewNoDensity" xml:space="preserve">
+    <value>density unknown</value>
+  </data>
+  <data name="MSGResetNuclideLibraryAlreadyShipped" xml:space="preserve">
+    <value>The nuclide library already matches the shipped one. Nothing was changed, and the previous copy was kept.</value>
+  </data>
+  <data name="MSGResetNuclideLibraryDropEdits" xml:space="preserve">
+    <value>The library file already matches the shipped one. Discard the unsaved edits in this window?
+
+The file and its previous copy will not change.</value>
+  </data>
+  <data name="FSAReportCrystalOwnHeader" xml:space="preserve">
+    <value>Crystal own activity</value>
+  </data>
+  <data name="FSAReportCrystalOwnRow" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="FSAReportCrystalOwnFixed" xml:space="preserve">
+    <value>{0:f2} Bq, {1:f0} counts</value>
+  </data>
+  <data name="FSAReportCrystalOwnFree" xml:space="preserve">
+    <value>{0:f2} ± {1:f2} Bq (fitted), {2:f0} counts</value>
+  </data>
+  <data name="FSAReportCrystalOwnHint" xml:space="preserve">
+    <value>Activity of the detector crystal itself (La-138, Lu-176, the Ac-227 series). It belongs to the instrument, not to the sample: it is not part of the composition and is not added to the sample activity. The fixed rows are computed from the crystal mass and the nuclide data; the free row (Ac-227) is fitted.</value>
+  </data>
+  <data name="GdmlSketchAlongHint" xml:space="preserve">
+    <value>A plane along the device axis. Line A-A: where the end view is cut.</value>
+  </data>
+  <data name="GdmlSketchMeshOutline" xml:space="preserve">
+    <value>Outline only, no fill: the mesh does not define what is inside, see the summary ({0}): {1}</value>
+  </data>
+  <data name="GdmlOverviewFractions" xml:space="preserve">
+    <value>mass fractions</value>
+  </data>
+  <data name="GdmlModeShown" xml:space="preserve">
+    <value>GDML geometry is shown; calculation, saving and curves are off: {0}</value>
+  </data>
+  <data name="GdmlReasonCsgDeltaPhi" xml:space="preserve">
+    <value>deltaphi = {0} is not positive</value>
+  </data>
+  <data name="MSGResetNuclideLibraryBackupExists" xml:space="preserve">
+    <value>The previous copy will be replaced.</value>
+  </data>
+  <data name="FSABackscatterRow" xml:space="preserve">
+    <value>{0} — backscatter</value>
+  </data>
+  <data name="FSABackscatterRowHint" xml:space="preserve">
+    <value>Quanta of this nuclide that scattered back outside the crystal (90° or more) and then deposited their energy in it. The response matrix already holds them, so they are part of its band and share and are not added a second time. The energy is the centre of the hump on the matrix scale, not on the spectrum axis. A soft line whose hump lies under its own peak is not listed.</value>
+  </data>
+  <data name="FSABackscatterLine" xml:space="preserve">
+    <value>Hump {0} keV from {1}</value>
+  </data>
+  <data name="FSABackscatterLineHintPair" xml:space="preserve">
+    <value>{0}: line {1} keV, backscatter hump centre at {2} keV on the matrix scale — {3} counts</value>
+  </data>
+  <data name="FSAReportTipBackscatterMatrix" xml:space="preserve">
+    <value>With a response matrix the backscatter is already inside the nuclide images: this switch controls how it is shown (rows under the nuclide and hatching), the images and their fit stay. A shield that is not in the geometry still gets its separate component.</value>
   </data>
 </root>

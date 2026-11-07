@@ -252,11 +252,9 @@ FOREIGN = {"Ttb", "Elib", "ENSDF2", "MDATX3", "FCOMP", "Epdl97", "Glecs",
 # неизменённый файл давал «ИЗВЕСТНОЕ РАСХОЖДЕНИЕ ИЗМЕНИЛОСЬ» при пустом
 # `git status`. Пары ROI ниже перезаписаны на LF; пара NuclideDefinition та же.
 CONFIG_COPIES = (u"config", os.path.join(u"BecquerelMonitor", u"config"))
-CONFIG_COPIES_KNOWN = {
-    u"NuclideDefinition.xml":
-        (u"82cbe1717447cc1a32fab220e2a6c674a6452ebe5f020385f9a2ca720f06f812",
-         u"7aaa0b01c9bd4a7621b8ed1f642b7efbe5833a4b8b3a86bd7b3156b714efa380"),
-}
+# ⚠ 05.11.2026 (`AMBER309`): запись `NuclideDefinition.xml` снята — обе копии теперь равны
+# побайтно (сеты конфига Amber и сеты калибровки), известных расхождений нет; абзац выше — история.
+CONFIG_COPIES_KNOWN = {}
 
 OUTSIDE_ON_PURPOSE = {
     "claude.md": u"личные указания агенту, в .gitignore; T2 как раз про то, "

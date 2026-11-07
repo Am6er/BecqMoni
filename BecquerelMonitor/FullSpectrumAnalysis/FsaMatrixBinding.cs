@@ -72,6 +72,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             analyzer.SampleBetaSection = section;
             analyzer.SampleBetaRefusal = refusal;
+
+            // (`AMBER274`, Э2) РАЗДЕЛ СОБСТВЕННОЙ АКТИВНОСТИ КРИСТАЛЛА — той же сверкой
+            // клейма со сценой: гистограмма чужого кристалла в разбор не ложится. Раздел
+            // необязательный: нет его — разбор побитово прежний.
+            EfficiencyMaker.ResponseCrystalSection own = matrix.CrystalSection;
+            analyzer.CrystalOwnSection = own != null && own.Count > 0 && geometry != null
+                                         && own.UsableFor(geometry, matrix.BinKev)
+                ? own
+                : null;
         }
     }
 }

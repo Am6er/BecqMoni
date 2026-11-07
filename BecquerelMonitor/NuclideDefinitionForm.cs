@@ -42,6 +42,31 @@ namespace BecquerelMonitor
             this.DisableForm();
         }
 
+        /// <summary>
+        /// (проверка экраном 07.11.2026) Свёрнутое окно, которое активируют, разворачивается.
+        /// «Ред. изотоп…» панели поиска пиков и пункт меню зовут <c>MainForm.ShowNuclideDefinitionForm</c>:
+        /// <c>Show()</c> и <c>Activate()</c> на уже открытом окне. Свёрнутое окно от этого
+        /// становилось активным, но оставалось свёрнутым: на экране ничего не появлялось, и
+        /// окно казалось открытым «позади» главного. Хозяин окна (<c>Owner</c> = главное окно) стоит
+        /// с 2022 года, и над главным окно лежит — замер порядка окон в журнале полосы `fixUi2`.
+        /// </summary>
+        protected override void OnActivated(EventArgs e)
+        {
+            if (this.WindowState == FormWindowState.Minimized && this.IsHandleCreated)
+            {
+                // SW_RESTORE, а не WindowState = Normal: развёрнутое до сворачивания окно
+                // возвращается развёрнутым, как по щелчку на панели задач
+                ShowWindow(new System.Runtime.InteropServices.HandleRef(this, this.Handle), SwRestore);
+            }
+
+            base.OnActivated(e);
+        }
+
+        const int SwRestore = 9;
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        static extern bool ShowWindow(System.Runtime.InteropServices.HandleRef hWnd, int nCmdShow);
+
         // Token: 0x060000C3 RID: 195 RVA: 0x00003DD0 File Offset: 0x00001FD0
         void NuclideDefinitionForm_Load(object sender, EventArgs e)
         {
@@ -97,6 +122,7 @@ namespace BecquerelMonitor
             this.tabPage1.Controls.Add(this.dbStateLabel);
             this.tabPage1.Controls.Add(this.dbUpdateButton);
             this.table1.EnableToolTips = true;
+            this.dbToolTip.SetToolTip(this.buttonResetDefaults, AppUi.WrapTip(Resources.NuclideLibraryResetTip));
         }
 
         static string DbText(string key, string fallback)
@@ -775,6 +801,178 @@ namespace BecquerelMonitor
         {
             this.unsaved.Clear();
             this.definitionsDirty = false;
+        }
+
+        void buttonResetDefaults_Click(object sender, EventArgs e)
+        {
+            this.ResetLibraryToShipped();
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER310`) «Reset Defaults»: вся библиотека и все наборы — на поставочные, вшитые
+        /// в exe. Сперва отказ, если сбрасывать не на что; затем вопрос с числами (фокус на «Нет»,
+        /// потому что заменяется всё сразу), и несохранённые правки окна названы в нём отдельной
+        /// строкой: «Да» снимает и их. Отказ записи ничего не меняет ни в файле, ни в памяти, ни в
+        /// окне: правки остаются за человеком. Метод открыт пробе отражением.
+        /// </summary>
+        internal bool ResetLibraryToShipped()
+        {
+            byte[] bytes;
+            NuclideDefinitionFile shipped;
+            string refusal;
+            if (!NuclideDefinitionManager.ReadShippedLibrary(out bytes, out shipped, out refusal))
+            {
+                AppUi.Report(refusal, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                return false;
+            }
+
+            // ⛔ (критик `critSets`, Н1) Файл уже поставочный: сбрасывать в нём нечего, и его копия
+            // остаётся единственной копией библиотеки человека. Вопрос нужен, только если в окне есть
+            // правки, и говорит он про них, а не про замену файла.
+            string question;
+            if (this.manager.FileMatchesShipped(bytes))
+            {
+                if (!this.HasUnsavedEdits)
+                {
+                    AppUi.Report(Resources.MSGResetNuclideLibraryAlreadyShipped, Resources.NotificationDialogTitle, MessageBoxIcon.Asterisk);
+                    return false;
+                }
+
+                question = Resources.MSGResetNuclideLibraryDropEdits;
+            }
+            else
+            {
+                question = string.Format(CultureInfo.InvariantCulture, Resources.MSGResetNuclideLibrary,
+                                         this.manager.NuclideDefinitions.Count, this.manager.NuclideSets.Count,
+                                         shipped.NuclideDefinitions.Count, shipped.NuclideSets.Count,
+                                         BreakPath(this.manager.ResetBackupFilename, ResetPathWidth));
+                // Решение Amber 06.11.2026 вопросником, дословно: «Одна копия с фразой в вопросе».
+                if (this.manager.ResetBackupExists)
+                {
+                    question += "\n" + Resources.MSGResetNuclideLibraryBackupExists;
+                }
+
+                if (this.HasUnsavedEdits)
+                {
+                    question += "\n\n" + Resources.MSGResetNuclideLibraryUnsaved;
+                }
+            }
+
+            if (!AppUi.AskYesNo(this, question, Resources.ConfirmationDialogTitle, MessageBoxIcon.Exclamation, true))
+            {
+                return false;
+            }
+
+            if (!this.manager.ResetToShippedLibrary(bytes, shipped, out refusal))
+            {
+                AppUi.Report(refusal, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
+                return false;
+            }
+
+            foreach (Form form in Application.OpenForms)
+            {
+                NuclideDefinitionForm editor = form as NuclideDefinitionForm;
+                if (editor != null && !editor.IsDisposed && !ReferenceEquals(editor, this))
+                {
+                    editor.ShowResetLibrary();
+                }
+            }
+
+            this.ShowResetLibrary();
+            return true;
+        }
+
+        /// <summary>Длина строки пути в вопросе сброса, знаков (см. <see cref="BreakPath"/>).</summary>
+        internal const int ResetPathWidth = 40;
+
+        /// <summary>
+        /// (`AMBER310`, проверка экраном 07.11.2026) Путь в тексте вопроса — строками не длиннее
+        /// <paramref name="width"/> знаков, перенос только ПОСЛЕ разделителя каталогов.
+        /// <c>MessageBox</c> переносит сам, по пробелам, а пробелов в пути почти нет: длинный
+        /// путь рвался посреди имени («NuclideDefinition.xm» / «l.bak»). Строки короче ширины
+        /// окна он не трогает. Имя длиннее ширины остаётся целым на своей строке. Склейка строк
+        /// без переводов даёт исходный путь побайтно.
+        /// </summary>
+        internal static string BreakPath(string path, int width)
+        {
+            if (string.IsNullOrEmpty(path) || path.Length <= width)
+            {
+                return path ?? string.Empty;
+            }
+
+            var text = new System.Text.StringBuilder();
+            int line = 0;
+            int start = 0;
+            while (start < path.Length)
+            {
+                int cut = path.IndexOfAny(new[] { '\\', '/' }, start);
+                int end = cut < 0 ? path.Length : cut + 1;
+                int length = end - start;
+                if (line > 0 && line + length > width)
+                {
+                    text.Append('\n');
+                    line = 0;
+                }
+
+                text.Append(path, start, length);
+                line += length;
+                start = end;
+            }
+
+            return text.ToString();
+        }
+
+        /// <summary>
+        /// (`AMBER310`) Окно после сброса: объекты менеджера новые, поэтому снимки правок и
+        /// активная линия прежней библиотеки забываются вместе с пометкой «изменено», поля
+        /// справа пусты и заперты, пока человек не выберет строку. Обработчик выделения на время
+        /// перестроения не работает (<see cref="reenter"/>). Панель поиска пиков получает новые
+        /// наборы и считает заново. Сверка с базой только ставит метки в памяти и файла не пишет:
+        /// он остаётся побайтно равным поставке.
+        /// </summary>
+        void ShowResetLibrary()
+        {
+            this.ForgetUnsaved();
+            this.activeNuclide = null;
+            this.shownValues = null;
+            this.contentsLoading = true;
+            try
+            {
+                this.textBox1.Text = "";
+                this.chainTextBox.Text = "";
+                this.doubleTextBox1.Text = "";
+                this.doubleTextBox2.Text = "";
+                this.intensityTextBox.Text = "";
+                this.textBox2.Text = "";
+                this.ShowDbState(null);
+            }
+            finally
+            {
+                this.contentsLoading = false;
+            }
+
+            this.button6.Enabled = false;
+            this.button4.Enabled = false;
+            this.DisableForm();
+            this.RefreshDbMarks();
+            bool wasReenter = this.reenter;
+            this.reenter = true;
+            try
+            {
+                this.ListupNuclideDefinitions();
+            }
+            finally
+            {
+                this.reenter = wasReenter;
+            }
+
+            MainForm mainForm = base.Owner as MainForm;
+            if (mainForm != null)
+            {
+                mainForm.RefresNuclideSetList();
+            }
+
+            this.UpdatePeakDetectionResult();
         }
 
         /// <summary>

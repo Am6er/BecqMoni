@@ -175,6 +175,13 @@ namespace BecquerelMonitor.Probes
                               result.BackgroundUsed ? "вычтен ×" + F(result.BackgroundScale, "0.####") : "НЕТ",
                               result.FirstChannel, result.LastChannel);
             Console.WriteLine("ИТОГ\tпривязка: {0}", result.AnchorNote);
+            if (result.BackgroundMaskBands != null)
+            {
+                foreach (FsaBandWarning band in result.BackgroundMaskBands)
+                {
+                    Console.WriteLine("ИТОГ\tучасток маски {0:F1}-{1:F1} кэВ, z {2:F1}, ×{3:F3}", band.LoKev, band.HiKev, band.Z, band.Ratio);
+                }
+            }
             Console.WriteLine("ИТОГ\tоткат: {0}; отменённый разбор — опор {1}, усиление {2}, χ²/ndf Пуассона {3}",
                               result.AnchorRolledBack ? "ДА" : "нет", result.AnchorRollbackAnchors,
                               F(result.AnchorRollbackGain, "0.######"), F(result.AnchorRollbackChi2NdfPoisson, "F3"));

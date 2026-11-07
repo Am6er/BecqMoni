@@ -579,12 +579,23 @@ namespace MatrixRecomputeProbe
                             {
                                 matrix = GpuBuild.Build(gpu, geometry, options, new ConsoleProgress("матрица GPU", watch),
                                                         CancellationToken.None, null);
+                                // (`AMBER305`) Окно строит и раздел электрона.
+                                if (likeWindow)
+                                {
+                                    ResponseMatrixBuilder.AttachElectronSection(geometry, matrix, null, gpu, threads, null,
+                                                                                CancellationToken.None, null);
+                                }
                             }
                         }
                         else
                         {
                             matrix = ResponseMatrixBuilder.Build(
                                 geometry, options, new ConsoleProgress("матрица", watch), CancellationToken.None);
+                            if (likeWindow)
+                            {
+                                ResponseMatrixBuilder.AttachElectronSection(geometry, matrix, null, null, threads, null,
+                                                                            CancellationToken.None, null);
+                            }
                         }
 
                         watch.Stop();

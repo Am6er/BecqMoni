@@ -1,7 +1,9 @@
 ﻿using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using System.Xml.Serialization;
 
@@ -225,6 +227,9 @@ namespace BecquerelMonitor
                     && File.Exists(nuclideDefinitionFilename);
                 AppUi.Report(Resources.ERRLoadingNuclideDefinitionFile, Resources.ErrorDialogTitle, MessageBoxIcon.Hand);
                 this.nuclideDefinitionFile = null;
+                // (`AMBER310`) Отказ ПЕРЕчитывания (`forceReload`) оставлял признак «загружено» при
+                // пустом файле в памяти, и `GetInstance` отдавал менеджер, падающий на первом списке.
+                this.isLoaded = false;
                 return false;
             }
             this.loadFailedOverExistingFile = false;
@@ -307,6 +312,235 @@ namespace BecquerelMonitor
                 return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// (`AMBER310`) Имя ресурса: поставочная библиотека, вшитая в exe при сборке из
+        /// <c>config\NuclideDefinition.xml</c> (`LogicalName` в <c>.csproj</c>). Файла-копии нет:
+        /// вшивается тот же файл, что идёт рядом с exe содержимым. Равенство с корневым
+        /// <c>config\NuclideDefinition.xml</c> держит цель сборки <c>CheckEmbeddedNuclideLibrary</c>.
+        /// </summary>
+        public const string ShippedLibraryResource = "BecquerelMonitor.config.NuclideDefinition.xml";
+
+        /// <summary>
+        /// (`AMBER310`) Куда ляжет прежний файл при сбросе, рядом с рабочим: одна последняя
+        /// копия. Путь для текста вопроса.
+        /// </summary>
+        public string ResetBackupFilename
+        {
+            get { return this.nuclideDefinitionFilename + ".bak"; }
+        }
+
+        /// <summary>
+        /// (`AMBER310`) Прочитать вшитую поставочную библиотеку и разобрать её. Ничего не
+        /// меняет. Нет ресурса или он не разбирается — false и причина словами: сбрасывать
+        /// не на что, и спрашивать человека о том, чего сделать нельзя, незачем.
+        /// </summary>
+        public static bool ReadShippedLibrary(out byte[] bytes, out NuclideDefinitionFile parsed, out string refusal)
+        {
+            bytes = null;
+            parsed = null;
+            refusal = null;
+            using (Stream stream = typeof(NuclideDefinitionManager).Assembly.GetManifestResourceStream(ShippedLibraryResource))
+            {
+                if (stream == null)
+                {
+                    refusal = string.Format(CultureInfo.InvariantCulture, Resources.ERRShippedLibraryMissing, ShippedLibraryResource);
+                    return false;
+                }
+
+                using (MemoryStream copy = new MemoryStream())
+                {
+                    stream.CopyTo(copy);
+                    bytes = copy.ToArray();
+                }
+            }
+
+            try
+            {
+                using (MemoryStream stream = new MemoryStream(bytes))
+                {
+                    parsed = (NuclideDefinitionFile)new XmlSerializer(typeof(NuclideDefinitionFile)).Deserialize(stream);
+                }
+            }
+            catch (Exception ex)
+            {
+                refusal = string.Format(CultureInfo.InvariantCulture, Resources.ERRShippedLibraryUnreadable, AppUi.Reason(ex));
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER310`, 05.11.2026) СБРОС БИБЛИОТЕКИ НА ПОСТАВОЧНУЮ. Amber, консоль, дословно:
+        /// «В библиотеку нуклидов добавь кнопку Reset Defaults, чтобы сбрасывать всю библиотеку
+        /// на текущий поставочный набор нуклидов и сбрасывать все сеты на текущий поставочный
+        /// набор сетов.»; вопросником: «Вшить в exe (Рекомендую)», «Вопрос и резервная копия
+        /// (Рекомендую)».
+        ///
+        /// Файл получает ВШИТЫЕ БАЙТЫ как есть, а не вывод сериализатора: сброс обязан дать тот
+        /// же файл, что поставка, побайтно. Прежний файл уходит в <c>.bak</c> одним действием с
+        /// заменой (<see cref="File.Replace(string, string, string)"/>), поэтому при отказе записи
+        /// не меняется ни файл, ни прежняя копия, ни память. Раскладка (портативная,
+        /// установленная) ветвления здесь не требует: путь уже разрешён
+        /// <see cref="Package.NuclideDefinition"/>.
+        ///
+        /// Выбор набора держат по ссылке панель (<see cref="ActiveSet"/>) и документы
+        /// (<see cref="DocEnergySpectrum.SelectedNuclideSet"/>), а объекты менеджера здесь новые:
+        /// выбор переносится на набор с тем же <c>Id</c>, а если такого в поставке нет, снимается
+        /// («все нуклиды»), иначе документ держал бы то, чего в библиотеке больше нет.
+        /// </summary>
+        public bool ResetToShippedLibrary(byte[] bytes, NuclideDefinitionFile parsed, out string refusal)
+        {
+            refusal = null;
+            string path = this.nuclideDefinitionFilename;
+            string temp = path + ".reset.tmp";
+            string backup = this.ResetBackupFilename;
+            try
+            {
+                // ⛔ (критик `critSets`, Н1) Файл уже поставочный — замена значила бы копию поставки
+                // поверх единственной копии библиотеки человека: второе нажатие её уничтожало.
+                if (!this.FileMatchesShipped(bytes))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(path));
+                    using (FileStream stream = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None))
+                    {
+                        stream.Write(bytes, 0, bytes.Length);
+                        stream.Flush(true);
+                    }
+
+                    if (File.Exists(path))
+                    {
+                        File.Replace(temp, path, backup);
+                    }
+                    else
+                    {
+                        File.Move(temp, path);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                RestoreAfterFailedReset(path, temp, backup);
+                refusal = string.Format(CultureInfo.InvariantCulture, Resources.ERRShippedLibraryWrite,
+                                        AppUi.Where(path), AppUi.Reason(ex));
+                return false;
+            }
+
+            this.nuclideDefinitionFile = parsed;
+            this.isLoaded = true;
+            this.loadFailedOverExistingFile = false;
+            FillChainsFromNames(this.nuclideDefinitionFile);
+            this.activeSet = SameSetIn(this.activeSet, parsed.NuclideSets);
+            foreach (DocEnergySpectrum document in DocumentManager.GetInstance().DocumentList)
+            {
+                document.SelectedNuclideSet = SameSetIn(document.SelectedNuclideSet, parsed.NuclideSets);
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// (`AMBER310`) Рабочий файл по содержимому равен вшитому. Номера сверки с базой (`DbRow`, `DbXray`)
+        /// и порядок строк в счёт не идут: окно заполняет номера само, и «Сохранить» без правки не должно
+        /// считаться правкой, иначе следующий сброс заменил бы копию библиотеки человека (критик
+        /// `critWave2`, S2). Файла нет или он не разбирается — false: сравнить не с чем, решает запись.
+        /// </summary>
+        public bool FileMatchesShipped(byte[] bytes)
+        {
+            try
+            {
+                byte[] current;
+                using (FileStream stream = new FileStream(this.nuclideDefinitionFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (MemoryStream copy = new MemoryStream())
+                {
+                    stream.CopyTo(copy);
+                    current = copy.ToArray();
+                }
+
+                return ContentOf(current).SequenceEqual(ContentOf(bytes));
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>Библиотека без номеров сверки и в одном порядке строк, тем же сериализатором.</summary>
+        static byte[] ContentOf(byte[] library)
+        {
+            XmlSerializer serializer = new XmlSerializer(typeof(NuclideDefinitionFile));
+            NuclideDefinitionFile file;
+            using (MemoryStream stream = new MemoryStream(library))
+            {
+                file = (NuclideDefinitionFile)serializer.Deserialize(stream);
+            }
+
+            FillChainsFromNames(file);
+            foreach (NuclideDefinition definition in file.NuclideDefinitions)
+            {
+                definition.DbRow = 0;
+                definition.DbXray = "";
+            }
+
+            file.NuclideDefinitions = file.NuclideDefinitions
+                .OrderBy(d => d.Energy).ThenBy(d => d.Name, StringComparer.Ordinal).ThenBy(d => d.Intencity).ToList();
+            using (MemoryStream stream = new MemoryStream())
+            {
+                serializer.Serialize(stream, file);
+                return stream.ToArray();
+            }
+        }
+
+        /// <summary>(`AMBER310`) Копия от прошлого сброса уже лежит: новый сброс её заменит.</summary>
+        public bool ResetBackupExists
+        {
+            get { return File.Exists(this.ResetBackupFilename); }
+        }
+
+        /// <summary>
+        /// Уборка после отказа записи. Редкий исход замены «прежний файл уже переименован в
+        /// копию, новый на место не встал» (ERROR_UNABLE_TO_MOVE_REPLACEMENT_2) возвращает
+        /// прежний файл на его имя: библиотека не должна исчезнуть из-за отказа.
+        /// </summary>
+        static void RestoreAfterFailedReset(string path, string temp, string backup)
+        {
+            try
+            {
+                if (!File.Exists(path) && File.Exists(backup))
+                {
+                    File.Move(backup, path);
+                }
+
+                if (File.Exists(temp))
+                {
+                    File.Delete(temp);
+                }
+            }
+            catch (Exception)
+            {
+                // Главное здесь исходный отказ, он и уходит человеку словами.
+            }
+        }
+
+        /// <summary>Набор с тем же <c>Id</c> в новом списке или null.</summary>
+        static NuclideSet SameSetIn(NuclideSet set, List<NuclideSet> sets)
+        {
+            if (set == null)
+            {
+                return null;
+            }
+
+            foreach (NuclideSet candidate in sets)
+            {
+                if (candidate != null && candidate.Id == set.Id)
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
         }
 
         // Token: 0x06000936 RID: 2358 RVA: 0x000358F4 File Offset: 0x00033AF4

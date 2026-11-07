@@ -14,14 +14,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// в нём немедленно становится фантомом — он ведь свободен и обязательно
     /// что-нибудь себе заберёт.
     ///
-    /// Линии компонента берутся из базы нуклидов по имени, веса — из
-    /// NuclideDefinition.Intencity. ⛔ Встроенной таблицы нуклидов здесь БОЛЬШЕ
-    /// НЕТ (решение Amber 01.09.2026, `S110` пункт 1): у кого в конфиге нет
-    /// интенсивностей, тот образа не получает. Единственное исключение —
-    /// характеристический рентген ЭЛЕМЕНТА: имя ищется в базе веществ, а образ
-    /// строит `FsaSampleLibrary.FluorescenceComponent`, то же место, что у
-    /// корпусного пути. Безымянный «X-ray» образа не получает: элемент называет
-    /// человек, а не разбор.
+    /// ⛔ (`AMBER306`, решение Amber 05.11.2026 вопросником, дословно: «Линии и
+    /// выходы из nucdb (Рекомендую)») МЕТКИ ВЫБИРАЮТ НУКЛИДЫ, А ИЗЛУЧЕНИЯ И ВЫХОДЫ —
+    /// ИЗ БАЗЫ, тем же сборщиком <see cref="FsaSampleLibrary.Build"/>, что у «Из
+    /// NucBase»: <see cref="BuildFromLabels"/>. Библиотека конфигурации образа не
+    /// наполняет. ⛔ Встроенной таблицы нуклидов здесь БОЛЬШЕ НЕТ (решение Amber
+    /// 01.09.2026, `S110` пункт 1). Характеристический рентген ЭЛЕМЕНТА — из
+    /// `matdb`, одним местом (`FsaSampleLibrary.FluorescenceComponent`). Безымянный
+    /// «X-ray» элемента не получает: элемент называет человек, а не разбор.
     ///
     /// Пики вылета и аннигиляция добавляются НЕ ВСЕГДА, а по физике: их считает
     /// <see cref="EscapeAndAnnihilation"/> от линий самого состава выше порога
@@ -414,17 +414,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         // Он отображал имена конфига `W` и `Pb` на зашитые образы, а безымянный
         // `X-ray` — на СВИНЕЦ, то есть угадывал элемент за человека. Теперь имя
         // элемента ищется в базе (`MaterialDatabase.ZOf`), а образ строится
-        // оттуда же, откуда его берёт корпусный путь; безымянный `X-ray` образа
+        // оттуда же, откуда его берёт корпусный путь; безымянный `X-ray` элемента
         // не получает вовсе.
 
         /// <summary>
-        /// Библиотека по найденным пикам: distinct по нуклидам, которыми поиск
-        /// пиков подписал спектр. Это и есть состав, который надо разложить —
-        /// брать фиксированный список неоткуда, а лишние компоненты в нём
-        /// становятся фантомами. Побочно получается разрез цепочки: финдер
-        /// подписывает пики дочерними (Ac-228, Pb-212, Tl-208), и каждый
-        /// дочерний входит в модель своим образом со свободной амплитудой —
-        /// жёсткая связка интенсивностей внутри цепочки не навязывается.
+        /// Библиотека по найденным пикам без обстановки спектра: для проб, которым
+        /// спектр не нужен. Приложение идёт <see cref="BuildFromLabels"/>.
         /// </summary>
         public static List<FsaComponent> BuildFromPeaks(
             IEnumerable<Peak> peaks,
@@ -434,11 +429,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
-        /// То же, но с массовыми долями вещества КРИСТАЛЛА (`S122`). Они
-        /// нужны только образам вылета: по ним считается доля рождения пар,
-        /// и по ней отбираются родители
-        /// (<see cref="EscapeAndAnnihilation(List{FsaComponent}, IDictionary{int, double})"/>).
-        /// Долей нет — отбор идёт прежним правилом, по одному выходу линии.
+        /// То же, с массовыми долями вещества КРИСТАЛЛА (`S122`): по ним образы
+        /// вылета считают долю рождения пар и отбирают родителей.
         /// </summary>
         public static List<FsaComponent> BuildFromPeaks(
             IEnumerable<Peak> peaks,
@@ -450,12 +442,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>
         /// То же, с пользовательским флажком «атомный рентген» (`A145`,
-        /// <see cref="FsaCalculationOptions.AtomicXray"/>): выключенный не
-        /// строит образ характеристического рентгена элемента, названного
-        /// подписью пика. На пути из баз ту же роль играет
-        /// <see cref="FsaSampleSpec.AtomicXray"/>. Образы вылета и аннигиляции
-        /// сюда НЕ относятся — их судьбу решает анализатор, знающий про матрицу
-        /// (<see cref="FsaAnalyzer.EscapeAndAnnihilation"/>).
+        /// <see cref="FsaCalculationOptions.AtomicXray"/>).
         /// </summary>
         public static List<FsaComponent> BuildFromPeaks(
             IEnumerable<Peak> peaks,
@@ -463,26 +450,104 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             IDictionary<int, double> crystalFractions,
             bool atomicXray)
         {
-            List<FsaComponent> result = new List<FsaComponent>();
-            if (peaks == null || nuclideDefinitions == null)
+            var spec = new FsaSampleSpec { AtomicXray = atomicXray };
+            if (crystalFractions != null)
             {
-                return result;
+                foreach (KeyValuePair<int, double> fraction in crystalFractions)
+                {
+                    spec.CrystalFractions[fraction.Key] = fraction.Value;
+                }
             }
 
-            // `Visible` НЕ проверяется: видимость — свойство ГРАФИКА, а не
-            // модели. Линия, снятая с показа, из спектра не исчезла, и образ
-            // без неё занижен. На этом стояла целая заготовка: поставочный
-            // конфиг добирает недостающие линии нуклида скрытыми записями
-            // (`tools/nucdb/fill_intensity.py`, второй проход) именно затем,
-            // чтобы образ был полон, а график чист, — и весь добор сюда не
-            // доезжал: у Bi-214 в файле 21 линия, в образе оказывалось 7
-            // (найдено 08.08.2026 при сборке S28, решение Amber).
-            //
-            // Лишних компонентов от этого не появится: компонент попадает в
-            // библиотеку, только если ПОИСК ПИКОВ уже подписал им пик, а поиск
-            // (`PeakDetector`) скрытые линии как раз пропускает. Скрытая
-            // запись способна дополнить образ уже опознанного нуклида и не
-            // способна привести в разложение новый.
+            LabelReport report;
+            return BuildFromLabels(peaks, nuclideDefinitions, spec, out report);
+        }
+
+        /// <summary>
+        /// (`AMBER306`) Что сборка по меткам взяла откуда. Читают трассировка и проба.
+        /// </summary>
+        public sealed class LabelReport
+        {
+            /// <summary>Нуклиды из базы, `nucid`: образ из `nucdb`.</summary>
+            public readonly List<string> FromDatabase = new List<string>();
+
+            /// <summary>Подписи элементов, Z: образ из `matdb`.</summary>
+            public readonly List<int> Elements = new List<int>();
+
+            /// <summary>Подписи, которых в базах нет: образ из линий библиотеки как вбиты.</summary>
+            public readonly List<string> Typed = new List<string>();
+
+            /// <summary>
+            /// Линии библиотеки у нуклида из базы, которых в базе нет: в образ не идут
+            /// («Имя энергия»). В окне библиотеки у них красная метка (`AMBER281`).
+            /// </summary>
+            public readonly List<string> IgnoredTypedLines = new List<string>();
+
+            /// <summary>Отчёт сборки образов; null — состав пуст, сборка не звалась.</summary>
+            public FsaSampleLibrary.Report Library;
+
+            public override string ToString()
+            {
+                return string.Format(CultureInfo.InvariantCulture,
+                    "по меткам: из базы {0} [{1}], элементов {2}, вбитых руками {3} [{4}], линий руками мимо образа {5} [{6}]; {7}",
+                    this.FromDatabase.Count, string.Join(", ", this.FromDatabase), this.Elements.Count,
+                    this.Typed.Count, string.Join(", ", this.Typed), this.IgnoredTypedLines.Count,
+                    string.Join(", ", this.IgnoredTypedLines), this.Library);
+            }
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER306`, 06.11.2026) СОСТАВ ПО МЕТКАМ ПИКОВ — ТЕМ ЖЕ СБОРЩИКОМ, ЧТО «ИЗ NUCBASE».
+        ///
+        /// Метка выбирает нуклид: distinct по нуклидам, которыми поиск пиков подписал
+        /// спектр. Брать фиксированный список неоткуда, а лишние компоненты в нём
+        /// становятся фантомами. Излучения и выходы — первый постулат: все излучения
+        /// распада из `nucdb` (<see cref="FsaSampleLibrary.Build"/>). Отличие от «Из
+        /// NucBase» одно: родителя здесь не выводят, каждый подписанный нуклид — своя
+        /// колонка со свободной амплитудой (разрез цепочки: финдер подписывает
+        /// дочерние, и жёсткая связка интенсивностей не навязывается), и выход у него
+        /// на СОБСТВЕННЫЙ распад, а не на распад корня: метка ряда в подписи только
+        /// называет происхождение для окна результата.
+        ///
+        /// Измеренная цена прежнего пути (линии и выходы библиотеки конфигурации,
+        /// проверка `AMBER296`, вне корпуса): у Cs-137 нет K-рентгена бария, χ²/ndf
+        /// Пуассона на точке 69 против 7; у K-40 выход библиотеки вместо базы, один
+        /// спектр 14767 или 15224 Бк только от положения переключателя.
+        ///
+        /// ⛔ ЛИНИЯ, ВБИТАЯ РУКАМИ (логика `AMBER281`, <see cref="NuclideDbLink"/>).
+        /// <list type="bullet">
+        /// <item>Нуклид есть в базе, линии нет — в образ НЕ идёт: излучения этого
+        /// нуклида знает база, а метка в окне библиотеки у линии уже стоит. Пик она
+        /// подписать может, активность по ней не считается; названа в
+        /// <see cref="LabelReport.IgnoredTypedLines"/>.</item>
+        /// <item>Нуклида нет в базе вовсе (или у него нет линий) — единственный путь в
+        /// модель: образ из его линий как вбиты, вид Single, своя строка под его именем.
+        /// Человек завёл такую линию и подписал ею пик; молча снять её значило бы
+        /// потерять его нуклид.</item>
+        /// <item>Подпись элемента, известного `matdb`, — рентген из базы защитным
+        /// элементом, как у «Из NucBase» (<c>FsaCompositionInference.Candidates</c>);
+        /// неизвестного — мешающий образ из строки библиотеки.</item>
+        /// </list>
+        ///
+        /// `Visible` не проверяется, как и прежде: видимость — свойство графика.
+        /// Мешающие образы добавляются только К ЧЕМУ-ТО: спектр без единой подписи
+        /// получает «нет компонентов», а не разложение из одних служебных образов.
+        ///
+        /// <paramref name="spec"/> — обстановка спектра (`FsaSampleSpec.OfSpectrum`,
+        /// `Declared`): полоса, кристалл, флажок рентгена. Состав дополняется в ней.
+        /// </summary>
+        public static List<FsaComponent> BuildFromLabels(
+            IEnumerable<Peak> peaks,
+            IEnumerable<NuclideDefinition> nuclideDefinitions,
+            FsaSampleSpec spec,
+            out LabelReport report)
+        {
+            report = new LabelReport();
+            if (peaks == null || nuclideDefinitions == null || spec == null)
+            {
+                return new List<FsaComponent>();
+            }
+
             List<NuclideDefinition> definitions = nuclideDefinitions
                 .Where(n => n != null && PositiveFinite(n.Energy))
                 .ToList();
@@ -501,24 +566,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 string nuclide = NuclideToken(peak.Nuclide.Name);
 
-                // ⛔ ПОДПИСЬ «ВЫЛЕТ» НУКЛИДОМ НЕ ЯВЛЯЕТСЯ (`S141`, 06.09.2026).
-                // Признак нуклидного имени — массовое число
-                // (<see cref="NuclideDefinition.IsElementXrayName"/>), и
-                // «SE-2615» ему отвечает: цифры в имени есть. Оттого подпись
-                // вылета становилась ОБЫЧНЫМ компонентом вида `Single` — с
-                // долей в «пироге» активностей и с линией 2103.5 кэВ, которая
-                // сама выше порога пар и родила бы вылет вылета.
-                //
-                // Раньше этого случиться не могло: имена `SE-`/`DE-` в подписи
-                // брались только из общей библиотеки приложения, где их нет.
-                // Сегодня их даёт `FsaSampleLibrary.AsDefinitions` — корпусный
-                // путь подписывает пики СВОЕЙ библиотекой, а в ней вылет уже
-                // есть. Измерено в тот же день: библиотека по пикам выросла с
-                // 9 образов до 11, SE/DE с 4 до 6.
-                //
-                // Образы вылета от этого не теряются: ниже их СТРОИТ
-                // <see cref="EscapeAndAnnihilation"/> — от линий состава и по
-                // физике, а не по тому, что финдер подписал.
+                // ⛔ ПОДПИСЬ «ВЫЛЕТ» НУКЛИДОМ НЕ ЯВЛЯЕТСЯ (`S141`, 06.09.2026): цифры в
+                // имени есть, и без этой строки «SE-2615» стала бы обычной колонкой.
+                // Образы вылета строятся ниже от линий состава, а не по подписи.
                 if (IsEscapeImage(nuclide))
                 {
                     continue;
@@ -530,184 +580,118 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            HashSet<string> taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string nuclide in order)
             {
-                // Характеристический рентген элемента — мешающий образ, а не
-                // нуклид: его линии в спектре есть, а активности за ними нет.
-                // Амплитуда у него своя и свободная, в «пирог» долей он не
-                // входит — как пики вылета. Признак — отсутствие массового
-                // числа в подписи, см. NuclideDefinition.IsElementXrayName.
-                FsaComponentKind kind = NuclideDefinition.IsElementXrayName(nuclide)
-                    ? FsaComponentKind.Nuisance
-                    : FsaComponentKind.Single;
-                FsaComponent component = new FsaComponent(nuclide, kind);
-                foreach (NuclideDefinition definition in definitions)
+                if (NuclideDefinition.IsElementXrayName(nuclide))
                 {
-                    if (!PositiveFinite(definition.Intencity)
-                        || !string.Equals(NuclideToken(definition.Name), nuclide, StringComparison.OrdinalIgnoreCase))
+                    // Рентген элемента — мешающий образ, а не нуклид: тот же вход, что
+                    // у вывода состава (`FsaCompositionInference.Candidates`).
+                    int z = MaterialDatabase.ZOf(nuclide);
+                    if (z > 0)
                     {
-                        continue;
-                    }
-
-                    // Одна линия может быть записана в базе дважды: своя запись
-                    // и запись «в цепочке», либо ручная копия с округлённой
-                    // энергией. Обе в образе удваивают вес линии — амплитуда
-                    // компонента падает вдвое, доли между нуклидами едут.
-                    // Порог 0.05 кэВ: реальных раздельных линий ближе не
-                    // бывает, а дубль с иной точностью записи — та же линия.
-                    bool duplicate = false;
-                    foreach (FsaLine line in component.Lines)
-                    {
-                        if (Math.Abs(line.Energy - definition.Energy) < 0.05)
+                        if (!spec.ShieldElements.Contains(z))
                         {
-                            duplicate = true;
-                            break;
-                        }
-                    }
-
-                    if (duplicate)
-                    {
-                        continue;
-                    }
-
-                    component.Lines.Add(new FsaLine(nuclide, definition.Energy, definition.Intencity));
-                }
-
-                // ⛔ (`AMBER63`, П130 22.09.2026) АННИГИЛЯЦИОННАЯ ЛИНИЯ
-                // β⁺-ИЗЛУЧАТЕЛЯ И ЕЁ ПРИЗНАК — ИЗ БАЗЫ, И НА ЭТОМ ПУТИ ТОЖЕ.
-                //
-                // `DbLookupsForFsa` умолчанием ВЫКЛЮЧЕНА
-                // (<see cref="FWHMPeakDetectionMethodConfig.DbLookupsForFsa"/>),
-                // то есть у человека без правок работает ИМЕННО ЭТОТ путь, а
-                // правка П124/П127 легла в соседний — `FsaSampleLibrary
-                // .DecayLines`. Набор нуклидов несёт три числа (имя, энергия,
-                // выход) и признака «аннигиляционная часть выхода» нести не
-                // может, откуда два разных перекоса, и оба измерены
-                // 22.09.2026 на четырёх спектрах Na-22 корпуса (матрица
-                // учтена, паспорт ЛСРМ):
-                //
-                //   * линии 511 в наборе НЕТ (так её отдаёт `NucBase`:
-                //     `type_a in ('G','X')`, строк `B+` не читает) — образ
-                //     Na-22 без сильнейшей своей линии, и весь пик 511 берёт
-                //     свободный `Ann-511`: доля образа 69.7…72.7 % модели
-                //     против 9.4…17.8 % на пути из баз;
-                //   * линия 511 в наборе ЕСТЬ (так её кладёт
-                //     <see cref="FsaSampleLibrary.AsDefinitions"/>, так её
-                //     пишут рукой) — гейт `Ann-511` читает её как ГАММУ
-                //     СОСТАВА и снимает свободный образ: активность Na-22
-                //     +9.5…+17.4 %, χ²/ndf +8.8…+20.1 %, изм/ожид уезжает от
-                //     0.907…1.006 к 1.010…1.112.
-                //
-                // Признак приходит ТОЛЬКО ИЗ БАЗЫ и только числом: кто β⁺ —
-                // говорит `decay_radiations`, имён нуклидов здесь нет. Линия
-                // базы ЗАМЕЩАЕТ то, что набор написал на той же энергии, а не
-                // складывается с ним: у набора и базы это ОДНА линия двумя
-                // руками, и сложение удвоило бы её вес. Допуск «та же линия» —
-                // тот же 0.05 кэВ, которым выше отсеиваются дубли записи.
-                //
-                // ⚠ Набор, записавший ту же линию ДАЛЬШЕ 0.05 кэВ от 511.00
-                // (поставочный `Tl-208` стоит на 510.0), сохраняет её гаммой —
-                // и правильно: по собственному утверждению набора это другая
-                // линия. У Tl-208 позитронов нет вовсе, и гейт на нём молчать
-                // не должен — случай (а) `AMBER54` остаётся как был.
-                //
-                // ⛔ (`AMBER78`, П149 24.09.2026) Имя здесь — подпись пика из
-                // набора КАК ЕЁ НАПИСАЛ НАБОР: `NucBase` по умолчанию пишет
-                // «Na22», запасной набор — «K40», «Cs137». До П149 `NucidOf`
-                // понимал одно «Na-22», и у таких имён всё сказанное выше не
-                // срабатывало вовсе — линия 511 молча не добавлялась. Разбор
-                // всех написаний — в <see cref="FsaSampleLibrary.NucidOf"/>.
-                if (kind == FsaComponentKind.Single && component.Lines.Count > 0)
-                {
-                    double[] annihilation =
-                        FsaSampleLibrary.AnnihilationLine(FsaSampleLibrary.NucidOf(nuclide));
-                    if (annihilation != null)
-                    {
-                        for (int k = component.Lines.Count - 1; k >= 0; k--)
-                        {
-                            if (Math.Abs(component.Lines[k].Energy - annihilation[0]) < 0.05)
-                            {
-                                component.Lines.RemoveAt(k);
-                            }
+                            spec.ShieldElements.Add(z);
                         }
 
-                        component.Lines.Add(new FsaLine(nuclide, annihilation[0],
-                                                        annihilation[1], annihilation[2]));
+                        report.Elements.Add(z);
+                        continue;
                     }
                 }
-
-                if (component.Lines.Count > 0)
+                else
                 {
-                    if (taken.Add(component.Name))
+                    string nucid = FsaSampleLibrary.NucidOf(nuclide);
+                    List<double[]> lines = nucid.Length > 0
+                        ? FsaSampleLibrary.DecayLines(nucid, new FsaSampleLibrary.Report())
+                        : null;
+                    if (lines != null && lines.Count > 0)
                     {
-                        result.Add(component);
+                        if (!spec.Nuclides.Contains(nucid))
+                        {
+                            spec.Nuclides.Add(nucid);
+                            report.FromDatabase.Add(nucid);
+                        }
+
+                        NoteTypedLines(nuclide, lines, definitions, report);
+                        continue;
                     }
-
-                    continue;
                 }
 
-                // Линий с интенсивностями в конфиге нет. Единственное, что здесь
-                // ещё можно построить, — характеристический рентген ЭЛЕМЕНТА, и
-                // строится он ИЗ БАЗЫ, тем же местом, что и у корпусного пути
-                // (решение Amber 01.09.2026, `S110` пункты 2–3).
-                //
-                // ⛔ Догадок больше нет. Прежде безымянный «X-ray» подставлялся
-                // СВИНЦОМ — то есть разбор угадывал элемент за человека. Снято:
-                // «не может быть безымянных X-ray; если нуклид заносится из базы
-                // изотопов, он уже имеет имя» (Amber). Цепочка должна быть такой:
-                // в `NucBase` набирается элемент → оттуда приходят его линии
-                // X-ray → уезжают в `NuclideDefinition.xml` → финдер их находит
-                // → FSA узнаёт о них по ИМЕНИ, а не по подстановке.
-                // (`A145`) Выключенный флажок «атомный рентген» снимает этот
-                // образ — и только его: нуклидные образы выше от него не зависят.
-                int z = atomicXray ? MaterialDatabase.ZOf(nuclide) : 0;
-                if (z <= 0)
+                FsaComponent typed = TypedComponent(nuclide, definitions, spec);
+                if (typed != null)
                 {
-                    continue;
-                }
-
-                FsaComponent xray = FsaSampleLibrary.FluorescenceComponent(
-                    z, 0.0, double.MaxValue);
-                if (xray != null && xray.Lines.Count > 0 && taken.Add(xray.Name))
-                {
-                    result.Add(xray);
-                }
-
-                // L-серия того же элемента — своим образом и своей амплитудой
-                // (`AMBER10`, задача Amber 09.09.2026). Отношение L/K задаёт
-                // глубина выхода, а не атом: измерено 0.30…0.75 на трёх сценах
-                // ASN16 со свинцовым домиком — довод и числа у
-                // <see cref="FsaSampleLibrary.LFluorescenceComponent"/>. Элемент
-                // здесь пришёл ИЗ СОСТАВА, то есть он внешний; собственный
-                // рентген кристалла строится не тут.
-                FsaComponent lxray = FsaSampleLibrary.LFluorescenceComponent(
-                    z, 0.0, double.MaxValue);
-                if (lxray != null && lxray.Lines.Count > 0 && taken.Add(lxray.Name))
-                {
-                    result.Add(lxray);
+                    spec.TypedComponents.Add(typed);
+                    report.Typed.Add(typed.Name);
                 }
             }
 
-            // Мешающие образы добавляются только К ЧЕМУ-ТО: спектр без единого
-            // подписанного пика должен получить «нет компонентов», а не тихое
-            // разложение из одних пиков вылета и континуума. В харнессе так же:
-            // служебные образы дописываются к непустому составу оператора.
-            if (result.Count > 0)
+            if (spec.Nuclides.Count == 0 && spec.TypedComponents.Count == 0 && report.Elements.Count == 0)
             {
-                // Вылет и аннигиляция — ОТ ЛИНИЙ СОСТАВА, а не из неподвижного
-                // списка (решение Amber 01.09.2026, `S110` пункт 2).
-                foreach (FsaComponent component in
-                         EscapeAndAnnihilation(result, crystalFractions))
-                {
-                    if (taken.Add(component.Name))
-                    {
-                        result.Add(component);
-                    }
-                }
+                return new List<FsaComponent>();
             }
 
-            return result;
+            FsaSampleLibrary.Report built;
+            List<FsaComponent> library = FsaSampleLibrary.Build(spec, out built);
+            report.Library = built;
+            return library;
+        }
+
+        /// <summary>(`AMBER306`) Линии библиотеки у нуклида из базы, которых в базе нет: назвать.</summary>
+        static void NoteTypedLines(string nuclide, List<double[]> lines, List<NuclideDefinition> definitions,
+                                   LabelReport report)
+        {
+            foreach (NuclideDefinition definition in definitions)
+            {
+                if (!string.Equals(NuclideToken(definition.Name), nuclide, StringComparison.OrdinalIgnoreCase)
+                    || !PositiveFinite(definition.Intencity))
+                {
+                    continue;
+                }
+
+                // Окно — то же, которым сверка библиотеки ищет строку базы.
+                if (!lines.Any(line => Math.Abs(line[0] - definition.Energy) <= NuclideDbLink.WindowKev))
+                {
+                    report.IgnoredTypedLines.Add(nuclide + " "
+                        + definition.Energy.ToString("0.###", CultureInfo.InvariantCulture));
+                }
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER306`) Образ из линий библиотеки как вбиты: подписи нет в базах. Null —
+        /// годных линий нет. Полоса та же, что у всех образов (`S98`).
+        /// </summary>
+        static FsaComponent TypedComponent(string nuclide, List<NuclideDefinition> definitions, FsaSampleSpec spec)
+        {
+            // Рентген — мешающий образ: активности за ним нет. Признак — отсутствие
+            // массового числа в подписи, см. NuclideDefinition.IsElementXrayName.
+            FsaComponentKind kind = NuclideDefinition.IsElementXrayName(nuclide)
+                ? FsaComponentKind.Nuisance
+                : FsaComponentKind.Single;
+            FsaComponent component = new FsaComponent(nuclide, kind);
+            double floor = spec.LineFloorKev;
+            foreach (NuclideDefinition definition in definitions)
+            {
+                if (!PositiveFinite(definition.Intencity)
+                    || definition.Energy < floor || definition.Energy > spec.MaxEnergyKev
+                    || !string.Equals(NuclideToken(definition.Name), nuclide, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                // Одна линия может быть записана дважды: своя запись и запись «в
+                // цепочке», либо ручная копия с округлённой энергией. Обе в образе
+                // удваивают вес линии. Порог 0.05 кэВ: реальных раздельных линий
+                // ближе не бывает, а дубль с иной точностью записи — та же линия.
+                if (component.Lines.Any(line => Math.Abs(line.Energy - definition.Energy) < 0.05))
+                {
+                    continue;
+                }
+
+                component.Lines.Add(new FsaLine(nuclide, definition.Energy, definition.Intencity));
+            }
+
+            return component.Lines.Count > 0 ? component : null;
         }
 
         /// <summary>Имя нуклида без хвоста вида «(Th-232)».</summary>

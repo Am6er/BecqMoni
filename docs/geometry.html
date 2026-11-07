@@ -108,7 +108,7 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
   <h2 data-t="t.h"></h2>
   <p class="lead" data-t="t.lead"></p>
   <div class="grid2 wl">
-    <figure class="shot" data-shot="devcfg-eff" data-hot='[[0.4502,0.0960,0.1697,0.0347],[0.6290,0.0960,0.1697,0.0347],[0.4502,0.1387,0.3485,0.0347],[0.8077,0.1387,0.1697,0.0347],[0.4502,0.2133,0.5271,0.0280],[0.4502,0.2507,0.5271,0.0520],[0.4502,0.3133,0.5204,0.6080],[0.8088,0.9560,0.0848,0.0333]]'>
+    <figure class="shot" data-shot="devcfg-eff" data-hot='[[0.4502,0.0960,0.1697,0.0347],[0.6290,0.0960,0.1697,0.0347],[0.4502,0.1387,0.3485,0.0347],[0.8077,0.1387,0.1697,0.0347],[0.4502,0.2133,0.5271,0.0280],[0.4502,0.2480,0.5271,0.0693],[0.4502,0.3307,0.5204,0.5893],[0.8088,0.9560,0.0848,0.0333]]'>
       <figcaption data-t="t.cap"></figcaption>
       <ol class="shot-legend">
         <li data-t="t.l1"></li><li data-t="t.l2"></li><li data-t="t.l3"></li><li data-t="t.l4"></li>
@@ -138,11 +138,12 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
   <div class="tabsel chips" id="mTabs">
     <button class="chip on" data-p="pDet" data-t="m.tab1"></button>
     <button class="chip" data-p="pSrc" data-t="m.tab2"></button>
+    <button class="chip" data-p="pShd" data-t="m.tab4"></button>
     <button class="chip" data-p="pCalc" data-t="m.tab3"></button>
   </div>
   <div class="pane on" id="pDet">
     <div class="grid2 wl">
-      <figure class="shot" data-shot="effmaker-detector" data-hot='[[0.1901,0.1623,0.3099,0.0590],[0.0393,0.2356,0.6094,0.0276],[0.0393,0.2668,0.4180,0.0577],[0.0393,0.3413,0.4180,0.1923],[0.0393,0.5421,0.5847,0.0276],[0.0393,0.5853,0.5537,0.2120],[0.0207,0.0865,0.2066,0.0312],[0.6860,0.1490,0.2893,0.7764]]'>
+      <figure class="shot" data-shot="effmaker-detector" data-hot='[[0.1929,0.1636,0.3145,0.0595],[0.0398,0.2376,0.6185,0.0255],[0.0398,0.2715,0.4246,0.0534],[0.0398,0.3467,0.4246,0.1885],[0.0398,0.5467,0.5933,0.0279],[0.0398,0.5915,0.5618,0.2291],[0.0210,0.0873,0.2096,0.0315],[0.6960,0.1503,0.2788,0.7745]]'>
         <figcaption data-t="m.cap1"></figcaption>
         <ol class="shot-legend">
           <li data-t="m.d1"></li><li data-t="m.d2"></li><li data-t="m.d3"></li><li data-t="m.d4"></li>
@@ -157,7 +158,7 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
   </div>
   <div class="pane" id="pSrc">
     <div class="grid2 wl">
-      <figure class="shot" data-shot="effmaker-source" data-hot='[[0.2417,0.1623,0.3099,0.0590],[0.0393,0.2356,0.5940,0.0700],[0.0393,0.3149,0.4180,0.1950],[0.0393,0.5349,0.5537,0.1000],[0.0393,0.6671,0.5971,0.0733],[0.6860,0.1490,0.2893,0.7764],[0.0134,0.9531,0.1240,0.0312]]'>
+      <figure class="shot" data-shot="effmaker-source" data-hot='[[0.2453,0.1636,0.3145,0.0595],[0.0398,0.2400,0.6027,0.0654],[0.0398,0.3200,0.4246,0.2255],[0.0398,0.5733,0.5618,0.1043],[0.1520,0.1260,0.0500,0.0240],[0.6960,0.1503,0.2788,0.7745],[0.0136,0.9527,0.1258,0.0315]]' data-hot-en='[[0.2453,0.1636,0.3145,0.0595],[0.0398,0.2400,0.6027,0.0654],[0.0398,0.3200,0.4246,0.2255],[0.0398,0.5733,0.5618,0.1043],[0.1300,0.1260,0.0500,0.0240],[0.6960,0.1503,0.2788,0.7745],[0.0136,0.9527,0.1258,0.0315]]'>
         <figcaption data-t="m.cap2"></figcaption>
         <ol class="shot-legend">
           <li data-t="m.s1"></li><li data-t="m.s2"></li><li data-t="m.s3"></li><li data-t="m.s4"></li>
@@ -168,6 +169,17 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
         <div class="callout warn" data-t="m.air"></div>
         <div class="callout info" data-t="m.field"></div>
       </div>
+    </div>
+  </div>
+  <div class="pane" id="pShd">
+    <div class="grid2 wl">
+      <figure class="shot" data-shot="effmaker-shield" data-hot='[[0.0398,0.1673,0.1405,0.0206],[0.0587,0.1939,0.5964,0.0630],[0.6960,0.1503,0.2788,0.7745]]'>
+        <figcaption data-t="m.cap4"></figcaption>
+        <ol class="shot-legend">
+          <li data-t="m.w1"></li><li data-t="m.w2"></li><li data-t="m.w3"></li>
+        </ol>
+      </figure>
+      <div></div>
     </div>
   </div>
   <div class="pane" id="pCalc">
@@ -184,6 +196,7 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
       </div>
     </div>
   </div>
+  <div class="callout info" data-t="m.views"></div>
   <h3 style="margin-top:26px" data-t="m.steps"></h3>
   <ol class="howto">
     <li data-t="m.st1"></li><li data-t="m.st2"></li><li data-t="m.st3"></li><li data-t="m.st4"></li><li data-t="m.st5"></li>
@@ -193,6 +206,15 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
     <div class="fact" style="--c:var(--photo)" data-t="m.f2"></div>
     <div class="fact" style="--c:var(--esc)" data-t="m.f3"></div>
   </div>
+  <h3 style="margin-top:26px" data-t="m.gh"></h3>
+  <p class="note" style="margin-top:0" data-t="m.glead"></p>
+  <figure class="shot wide" style="margin-top:14px" data-shot="effmaker-gdml" data-hot='[[0.0197,0.1524,0.3199,0.7679],[0.3696,0.1454,0.6098,0.3576],[0.3696,0.5111,0.6098,0.3552],[0.3696,0.8675,0.6098,0.0610],[0.2290,0.9613,0.7599,0.0188]]'>
+    <figcaption data-t="m.gcap"></figcaption>
+    <ol class="shot-legend">
+      <li data-t="m.g1"></li><li data-t="m.g2"></li><li data-t="m.g3"></li><li data-t="m.g4"></li><li data-t="m.g5"></li>
+    </ol>
+  </figure>
+  <div class="callout info" data-t="m.gcol"></div>
 </div></section>
 
 <!-- 4. МАТРИЦА ОТКЛИКА -->
@@ -200,7 +222,7 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
   <div class="kicker" data-t="x.k"></div>
   <h2 data-t="x.h"></h2>
   <p class="lead" data-t="x.lead"></p>
-  <figure class="shot side nr" data-shot="respmatrix" data-hot-en='[[0.0231,0.0685,0.9537,0.2134],[0.0231,0.2946,0.9537,0.0541],[0.0231,0.3519,0.9537,0.1950],[0.0231,0.5717,0.1851,0.0271],[0.0231,0.6162,0.9537,0.1847],[0.0231,0.8089,0.9537,0.0382],[0.0231,0.9379,0.2135,0.0414],[0.2509,0.9379,0.4270,0.0414]]' data-hot='[[0.0231,0.0671,0.9537,0.2293],[0.0231,0.3089,0.9537,0.0530],[0.0231,0.3651,0.9537,0.1905],[0.0231,0.5803,0.2491,0.0265],[0.0231,0.6240,0.9537,0.1810],[0.0231,0.8128,0.9537,0.0390],[0.0231,0.9392,0.2135,0.0406],[0.2509,0.9392,0.4270,0.0406]]'>
+  <figure class="shot side nr" data-shot="respmatrix" data-hot-en='[[0.0231,0.0565,0.9537,0.1991],[0.0231,0.2675,0.9537,0.0802],[0.0231,0.3536,0.9537,0.2318],[0.0231,0.6003,0.1851,0.0253],[0.0231,0.6419,0.9537,0.1724],[0.0231,0.8217,0.9537,0.0357],[0.0231,0.9421,0.2135,0.0386],[0.2509,0.9421,0.4270,0.0386]]' data-hot='[[0.0231,0.0554,0.9537,0.2143],[0.0231,0.2813,0.9537,0.0787],[0.0231,0.3659,0.9537,0.2274],[0.0231,0.6079,0.2491,0.0248],[0.0231,0.6487,0.9537,0.1691],[0.0231,0.8251,0.9537,0.0350],[0.0231,0.9431,0.2135,0.0379],[0.2509,0.9431,0.4270,0.0379]]'>
     <figcaption data-t="x.cap"></figcaption>
     <ol class="shot-legend">
       <li data-t="x.l1"></li><li data-t="x.l2"></li><li data-t="x.l3"></li><li data-t="x.l4"></li>
@@ -219,6 +241,7 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
     <div class="pills" id="rRes"></div>
   </div>
   <div class="callout info" data-t="x.gpu"></div>
+  <div class="callout info" data-t="x.sec"></div>
   <div class="facts">
     <div class="fact" style="--c:var(--pair)" data-t="x.f1"></div>
     <div class="fact" style="--c:var(--gold)" data-t="x.f2"></div>
@@ -238,7 +261,7 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
     <div class="where" id="pWhere"></div>
     <div class="pills" id="pSay"></div>
   </div>
-  <figure class="shot side nr" data-shot="panel-control" data-hot='[[0.2090,0.1404,0.7504,0.0449],[0.2090,0.1928,0.5713,0.0393],[0.7931,0.1892,0.0553,0.0449],[0.2090,0.2379,0.7504,0.0449]]'>
+  <figure class="shot side nr" data-shot="panel-control" data-hot='[[0.2100,0.1472,0.7530,0.0340],[0.2100,0.1962,0.5780,0.0358],[0.8100,0.1962,0.0450,0.0358],[0.2100,0.2453,0.7530,0.0340]]'>
     <figcaption data-t="u.cap"></figcaption>
     <ol class="shot-legend">
       <li data-t="u.l1"></li><li data-t="u.l2"></li><li data-t="u.l3"></li><li data-t="u.l4"></li>
@@ -256,7 +279,7 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=a7cf2625"></script>
+<script src="assets/guide.js?v=239b6cbd"></script>
 <script src="assets/quanta.js?v=67b2c2dc"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
@@ -324,7 +347,7 @@ GUIDE.texts({ru:{
 't.f3':'<b>Кривая едет и в файл спектра</b> — полной копией с геометрией, так что спектр можно разобрать и на другом компьютере.',
 'm.k':'Конструктор','m.h':'Конструктор кривой: детектор, источник, расчёт',
 'm.lead':'Окно открывается кнопками <span class="ui">Создать…</span> и <span class="ui">Изменить…</span>. Это как анкета: сперва паспорт кристалла, потом описание сосуда, потом «посчитать». Переключайте вкладки:',
-'m.tab1':'Детектор','m.tab2':'Источник','m.tab3':'Расчёт из геометрии',
+'m.tab1':'Детектор','m.tab2':'Источник','m.tab3':'Расчёт из геометрии','m.tab4':'Защита',
 'm.cap1':'«Редактор геометрии» → «Детектор»: Atom Spectra 80x80',
 'm.d1':'<b>Готовый детектор:</b> — выберите свой прибор, и все поля заполнятся. Рядом <b>Сохранить</b> / <b>Клонировать...</b> / <b>Удалить</b> для своих заготовок',
 'm.d2':'<b>Форма кристалла</b>: цилиндр или параллелепипед; у бруска — какой гранью он смотрит на пробу',
@@ -332,18 +355,18 @@ GUIDE.texts({ru:{
 'm.d4':'<b>Обвязка</b>: отражатель, зазор и корпус с торца и сбоку, оправа за кристаллом',
 'm.d5':'<b>FWHM на 662 кэВ</b> — кнопка <b>Из калибровки прибора</b> возьмёт её из калибровки FWHM',
 'm.d6':'<b>Вещества</b> кристалла, отражателя, зазора и корпуса с плотностями; «…» — свои смеси',
-'m.d7':'<b>Импорт из LSRM…</b> — взять геометрию из файла .in или кривую из .txt/.efa/.efr',
-'m.d8':'<b>Чертёж</b> обновляется на каждой правке; вверху — объём кристалла',
-'m.tipDet':'<b>Начинайте с «Готового детектора».</b> Для RadiaCode-101/103, Atom Spectra Nano 16, Obsidian, Atom Spectra Pro 80x80 и 40x40, Gamma-1S UDS-GC 63x63 размеры и обвязка уже вписаны; у Gamma-1S UDS-GC 63x63 и Atom Spectra Pro 40x40 обвязка взята от Nano 16 и не проверялась, а у 40x40 нет FWHM — впишите её сами. Свой прибор сохраните заготовкой — он появится в списке с пометкой «(свой)».',
+'m.d7':'<b>Импорт…</b> — файл .gdml (геометрия чертежом и сводкой, см. ниже), .in (геометрия) или .txt/.efa/.efr (кривая)',
+'m.d8':'<b>Чертёж</b>: вид сбоку и вид сверху, обновляются на каждой правке; вверху — объём кристалла',
+'m.tipDet':'<b>Начинайте с «Готового детектора».</b> Для RadiaCode-101/103/110, Atom Spectra Nano 3 и Nano 16, Obsidian, Atom Spectra Pro 80x80 и 40x40, Gamma-1S UDS-GC 63x63 размеры и обвязка уже вписаны; у Gamma-1S UDS-GC 63x63 и Atom Spectra Pro 40x40 обвязка взята от Nano 16 и не проверялась, а у 40x40 нет FWHM — впишите её сами. Свой прибор сохраните заготовкой — он появится в списке с пометкой «(свой)».',
 'm.infoLsrm':'<b>Кривая из чужой программы</b> (ЛСРМ) пригодна для беккерелей по одной линии, но FSA нужна геометрия — импортируйте её из .in, а не только кривую.',
 'm.cap2':'«Редактор геометрии» → «Источник»: банка-цилиндр ⌀40 мм, проба 14 мм',
 'm.s1':'<b>Шаблон образца:</b> — свои заготовки сосудов: сохранили раз — подставляете в один щелчок',
 'm.s2':'<b>Тип источника</b>: Точечный, Цилиндр, Маринелли, Прямоугольная кювета и сцены в поле. Под списком — подсказка, для чего годится доза по этой кривой',
 'm.s3':'<b>Размеры</b> сосуда и пробы, толщины стенок, расстояние до торца детектора',
 'm.s4':'<b>Стенка сосуда</b> и <b>Проба</b> — вещество и плотность. Почва, вода, грибы — выберите или заведите своё',
-'m.s5':'<b>Измерение в защите</b> — теперь на своей вкладке «Защита». Со слоями (вещество и толщины бока, низа и верха) защита входит в сцену расчёта; без слоёв — прежний признак: говорит FSA, что вокруг есть обстановка и будет обратное рассеяние',
-'m.s6':'<b>Чертёж</b> пробы над детектором и её объём',
-'m.s7':'<b>Сохранить кривую</b> — загорается после расчёта или правки геометрии (без расчёта в конфигурацию ляжет только геометрия)',
+'m.s5':'<b>Защита</b> — своя вкладка рядом с этой: галка «Измерение в защите» со слоями (вещество и толщины бока, низа и верха) входит в сцену расчёта; без слоёв это прежний признак: говорит FSA, что вокруг есть обстановка и будет обратное рассеяние',
+'m.s6':'<b>Чертёж</b>: вид сбоку и вид сверху — проба над детектором и её объём',
+'m.s7':'<b>Сохранить кривую</b> — загорается после расчёта или правки геометрии (без расчёта в конфигурацию ляжет только геометрия)','m.cap4':'«Редактор геометрии» → «Защита»: галка снята','m.w1':'<b>Измерение в защите</b> — галка; при ней появляются слои защиты','m.w2':'<b>Пояснение</b>: без слоёв защита не входит в сцену расчёта и говорит лишь, что квант рассеивается назад; со слоями она входит в сцену и в клеймо матрицы','m.w3':'<b>Чертёж</b>: один разрез; слои защиты показаны не в масштабе, их толщины в легенде','m.views':'<b>Два вида на чертеже геометрии.</b> На вкладках «Детектор» и «Источник» рядом с разрезом стоит вид сверху: взгляд вдоль оси со стороны детектора, наружу от него. На разрезе видны толщины и глубина, на виде сверху грань кристалла, обращённая к пробе, обвязка, колодец и сосуд. Масштаб у видов общий. Поле в фокусе подсвечивает свой размер там, где он стоит. Если выбрано «Проба у широкой боковой грани», вид сверху покажет, какая грань теперь смотрит на пробу (у Nano 16 это стороны Y и Z), а подпись назовёт размер, ставший глубиной (там же X). Размеры проставлены по ГОСТ 2.307-2011. Если места совсем мало (самое маленькое окно, очень длинная сцена), часть толщин скрывается и появляется при переходе на их поле. На вкладке «Защита» один разрез: слои защиты показаны не в масштабе, их толщины в легенде.','m.gh':'Импорт GDML: как читать чертёж','m.glead':'Кнопка <span class="ui">Импорт…</span> открывает и файл .gdml. Программа показывает геометрию сводкой и чертежом, а расчёт, сохранение и кривые на это время отключены: это просмотр, а не сцена расчёта.','m.gcap':'Импортированный файл GDML: сводка слева, два вида справа','m.g1':'<b>Сводка</b>: имя файла, общий габарит, главные части, вещества от тяжёлых к лёгким, крупные детали, остальное суммой, что не измерено и почему, замечания. Раздел между сводкой и чертежом двигается мышью','m.g2':'<b>Разрез по оси</b> — плоскость через ось прибора; линия A–A показывает, где снят второй вид. Стрелки дают общий размер вида','m.g3':'<b>Вид с торца</b> — сечение поперёк оси, через центр кристалла. Выноски показывают кристалл, пробу, сосуд и прибор вокруг кристалла, если их можно узнать по имени детали или по составу; не узнано — выноски нет','m.g4':'<b>Легенда</b> называет каждое вещество и его массу; «≥» значит, что масса части деталей неизвестна','m.g5':'<b>Строка состояния</b>: показана геометрия GDML; расчёт, сохранение и кривые отключены','m.gcol':'Цвета те же, что в редакторе геометрии: кристалл бирюзовый, отражатель голубой, корпус серо-синий, проба серая, стенка сосуда светло-голубая, воздух почти белый; прочие вещества — своими цветами. Строки с оранжевой полоской над чертежом говорят, чего на нём нет: тело не нарисовано, нет точного сечения, сетка не замкнута и показана только контуром, деталь в тысячи раз больше остального и в рамку не взята.',
 'm.air':'<b>Проба «из воздуха».</b> Если оставить веществом пробы воздух, а высоту — сантиметры, самопоглощение не учтётся, и кривая может ошибаться в разы. Журнал расчёта предупредит словом «ВНИМАНИЕ».',
 'm.field':'<b>Сцены в поле</b> — «Детектор на земле» и «Детектор в лунке» — для съёмки грунта на месте: беккерели по ним считаются, а мощность дозы нет (программа откажет и предложит сцену ISO). «Изотропное поле (ISO)» — для мощности дозы фона; беккерели по такой кривой не выводятся (в окне результата будет «Бк скрыты»).',
 'm.cap3':'«Расчёт из геометрии»: параметры, график кривой и журнал',
@@ -366,10 +389,10 @@ GUIDE.texts({ru:{
 'm.f3':'<b>Кривая знает, чем посчитана.</b> Её клеймо хранит параметры; открыв «Изменить…», вы получите те же поля, что были в прошлый раз.',
 'x.k':'Матрица','x.h':'Окно «Матрица отклика»',
 'x.lead':'Кривая отвечает «сколько квантов дали пик». Матрица — «как выглядит весь след кванта»: пик, комптоновское плато, вылеты. По ней FSA строит отклик каждого нуклида целиком. Подробно — <a href="how-it-works.html#matrix">«Как это работает» → Матрица</a>.',
-'x.cap':'Окно «Матрица отклика»: матрица годна, посчитана на видеокарте',
+'x.cap':'Окно «Матрица отклика»: матрица годна, с разделом электронов',
 'x.l1':'<b>Пояснение</b>: зачем матрица и где хранится',
 'x.l2':'<b>Состояние</b>: «Годна для текущей геометрии», «Для этой геометрии не посчитана» или «Устарела… Нужно пересчитать»',
-'x.l3':'<b>Подробности</b>: поколение физики, узлы, бин, историй, размер, когда и сколько считалась',
+'x.l3':'<b>Подробности</b>: поколение физики, узлы, бин, историй, размер, когда и сколько считалась, раздел электронов',
 'x.l4':'<b>Считать на GPU Nvidia</b> — галка; если видеокарта не годится, галка серая, а причину скажет подсказка при наведении',
 'x.l5':'<b>Параметры</b>: от и до кэВ, узлов, бин, историй на узел, потоков',
 'x.l6':'<b>Ход счёта</b> и <b>Отмена</b>',
@@ -380,7 +403,7 @@ GUIDE.texts({ru:{
 'r.run':'Посчитать','r.reset':'Сброс','r.speed':'Ускорение показа:',
 'r.cpu':'Процессор','r.gpu':'Видеокарта Nvidia','r.node':'узел {0} из {1}','r.done':'готово за {0}',
 'r.x':'видеокарта быстрее в <b>{0}</b> раз','r.real':'прошло «настоящих» <b>{0}</b>',
-'x.gpu':'<b>Что нужно видеокарте:</b> Nvidia RTX 30xx или новее и свежий драйвер; CUDA Toolkit ставить не нужно. Галка выключена по умолчанию. Сцена «Изотропное поле (ISO)» на видеокарте не считается — матрица пойдёт на процессоре. Если видеокарта не досчитала, снимите галку: подробности — в <span class="ui m">Помощь → Показать журнал</span>.',
+'x.gpu':'<b>Что нужно видеокарте:</b> Nvidia RTX 30xx или новее и свежий драйвер; CUDA Toolkit ставить не нужно. Галка выключена по умолчанию. Сцена «Изотропное поле (ISO)» на видеокарте не считается — матрица пойдёт на процессоре. Если видеокарта не досчитала, снимите галку: подробности — в <span class="ui m">Помощь → Показать журнал</span>.','x.sec':'<b>Раздел электрона.</b> Кнопка <span class="ui">Посчитать</span> считает фотонную матрицу и раздел электрона: отклик на электроны и позитроны пробы, 800000 историй на строку. По нему FSA учитывает бета-излучение пробы. Полоса хода делится пополам: фотонная часть и раздел. Матрица без годного раздела нынешнего рецепта требует пересчёта: окно пишет «Нужен пересчёт: у матрицы нет годного раздела электронов нынешнего рецепта.», а у кривой в списке стоит «!». Сцене «Изотропное поле (ISO)» раздел не нужен. Если раздел построить не удалось, фотонная матрица остаётся, причина — в строке хода.',
 'x.f1':'<b>Матрица — отдельный файл на геометрию</b> на этом компьютере. «Устарела» — геометрию или параметры меняли после расчёта либо после обновления программы сменилось поколение переноса или формат файла: матрицу надо пересчитать.',
 'x.f2':'<b>Без матрицы FSA работает</b>, но каскадное суммирование не учтено, и в отчёте будут красные строки (глава <a href="fsa.html#quality">FSA на практике</a>).',
 'x.f3':'<b>Матрица едет в файл спектра</b> (настройка «Сохранять матрицу отклика в файл спектра», включена). Получатель без своей матрицы разберёт спектр ею, ничего не пересчитывая.',
@@ -448,7 +471,7 @@ GUIDE.texts({ru:{
 't.f3':'<b>The curve also travels into the spectrum file</b> — a full copy with its geometry, so the spectrum can be analysed on another computer.',
 'm.k':'Curve maker','m.h':'The curve maker: detector, source, calculation',
 'm.lead':'The window opens with <span class="ui">New...</span> and <span class="ui">Edit...</span>. It is like a form: first the crystal’s passport, then the vessel, then “compute”. Switch the tabs:',
-'m.tab1':'Detector','m.tab2':'Source','m.tab3':'Calculate from geometry',
+'m.tab1':'Detector','m.tab2':'Source','m.tab3':'Calculate from geometry','m.tab4':'Shield',
 'm.cap1':'“Geometry editor” → “Detector”: Atom Spectra 80x80',
 'm.d1':'<b>Known detector:</b> — pick your detector and all fields fill in. Next to it <b>Save</b> / <b>Clone...</b> / <b>Delete</b> for your own presets',
 'm.d2':'<b>Crystal shape</b>: cylindrical or rectangular; for a bar — which face looks at the sample',
@@ -456,18 +479,18 @@ GUIDE.texts({ru:{
 'm.d4':'<b>Wrapping</b>: reflector, gap and cladding at the front and the side, the mounting behind the crystal',
 'm.d5':'<b>FWHM at 662 keV</b> — the <b>From device calibration</b> button takes it from the FWHM calibration',
 'm.d6':'<b>Materials</b> of the crystal, reflector, gap and cladding with densities; “…” — your own mixtures',
-'m.d7':'<b>Import from LSRM...</b> — take the geometry from an .in file or a curve from .txt/.efa/.efr',
-'m.d8':'<b>The drawing</b> updates on every edit; at the top — the crystal volume',
-'m.tipDet':'<b>Start with “Known detector”.</b> For RadiaCode-101/103, Atom Spectra Nano 16, Obsidian, Atom Spectra Pro 80x80 and 40x40, Gamma-1S UDS-GC 63x63 the sizes and wrapping are already filled in; for Gamma-1S UDS-GC 63x63 and Atom Spectra Pro 40x40 the wrapping is borrowed from Nano 16 and unchecked, and 40x40 has no FWHM — enter it yourself. Save your own detector as a preset — it appears in the list marked “(own)”.',
+'m.d7':'<b>Import...</b> — a .gdml file (the geometry as a drawing and a summary, see below), .in (geometry) or .txt/.efa/.efr (a curve)',
+'m.d8':'<b>The drawing</b>: side view and top view, updated on every edit; at the top — the crystal volume',
+'m.tipDet':'<b>Start with “Known detector”.</b> For RadiaCode-101/103/110, Atom Spectra Nano 3 and Nano 16, Obsidian, Atom Spectra Pro 80x80 and 40x40, Gamma-1S UDS-GC 63x63 the sizes and wrapping are already filled in; for Gamma-1S UDS-GC 63x63 and Atom Spectra Pro 40x40 the wrapping is borrowed from Nano 16 and unchecked, and 40x40 has no FWHM — enter it yourself. Save your own detector as a preset — it appears in the list marked “(own)”.',
 'm.infoLsrm':'<b>A curve from another program</b> (LSRM) is fine for becquerels from a single line, but FSA needs the geometry — import it from the .in file, not just the curve.',
 'm.cap2':'“Geometry editor” → “Source”: a cylinder jar ⌀40 mm, sample 14 mm',
 'm.s1':'<b>Sample template:</b> — your own vessel presets: save once, fill in with one click',
 'm.s2':'<b>Source type</b>: Point, Cylinder, Marinelli, Rectangular box and field scenes. Under the list — a hint on what the dose rate from this curve is for',
 'm.s3':'<b>Sizes</b> of the beaker and the sample, wall thicknesses, distance to the detector front',
 'm.s4':'<b>Beaker wall</b> and <b>Sample</b> — material and density. Soil, water, mushrooms — pick one or add your own',
-'m.s5':'<b>Measured inside a shield</b> — now on its own “Shield” tab. With layers (material and side, bottom and top thicknesses) the shield is part of the calculated scene; without layers it is the old flag that tells FSA there are surroundings and backscatter',
-'m.s6':'<b>The drawing</b> of the sample above the detector and its volume',
-'m.s7':'<b>Save curve</b> — lights up after a calculation or a geometry edit (without a calculation only the geometry is stored)',
+'m.s5':'<b>Shield</b> — its own tab next to this one: the “Measured inside a shield” box with layers (material and side, bottom and top thicknesses) is part of the calculated scene; without layers it is the old flag that tells FSA there are surroundings and backscatter',
+'m.s6':'<b>The drawing</b>: side view and top view — the sample above the detector and its volume',
+'m.s7':'<b>Save curve</b> — lights up after a calculation or a geometry edit (without a calculation only the geometry is stored)','m.cap4':'“Geometry editor” → “Shield”: the box is cleared','m.w1':'<b>Measured inside a shield</b> — a check box; with it the shield layers appear','m.w2':'<b>Explanation</b>: without layers the shield is not in the calculated scene and only says that a photon scatters back; with layers it is in the scene and in the matrix stamp','m.w3':'<b>The drawing</b>: the cross-section only; shield layers are not to scale, their thicknesses are in the legend','m.views':'<b>Two views on the geometry drawing.</b> On the Detector and Source tabs there is a top view next to the cross-section: looking along the axis from the detector, away from it. The cross-section shows thicknesses and depth; the top view shows the crystal face turned to the sample, the wrapping, the well and the beaker. Both views share one scale. The field in focus highlights its size wherever that size is shown. With “Sample faces the wide side” selected, the top view shows which face now looks at the sample (Y and Z on a Nano 16), and a caption names the size that became the depth (X there). Dimensions follow GOST 2.307-2011. When there is very little room (the smallest window, a very long scene), some thicknesses are hidden and appear when you move to their field. The Shield tab has the cross-section only: shield layers are not to scale, their thicknesses are in the legend.','m.gh':'GDML import: reading the drawing','m.glead':'The <span class="ui">Import...</span> button also opens a .gdml file. The program shows the geometry as a summary and a drawing, and calculation, saving and curves are off meanwhile: this is a viewer, not a calculation scene.','m.gcap':'An imported GDML file: the summary on the left, two views on the right','m.g1':'<b>The summary</b> gives the file name, overall size, main parts, materials from heaviest to lightest, large volumes, the rest in total, what is not measured and why, and notes. Drag the divider to resize it','m.g2':'<b>Axial section</b> is the plane through the device axis; line A-A marks where the second view is cut. Arrows give the overall size of the view','m.g3':'<b>End view</b> is a cut across the axis through the crystal centre. Callouts mark the crystal, sample, vessel and device when they can be recognised by volume name or composition; otherwise there is no callout','m.g4':'<b>The legend</b> names each material and its mass; “≥” means the mass of some volumes is unknown','m.g5':'<b>The status line</b>: GDML geometry is shown; calculation, saving and curves are off','m.gcol':'Colours match the geometry editor: crystal teal, reflector light cyan, housing grey-blue, sample grey, vessel wall light blue, air nearly white; other materials have their own colours. Lines with an orange bar above the drawing say what is missing from it: a body not drawn, no exact section, an open mesh shown as an outline only, a part thousands of times larger than the rest left out of the frame.',
 'm.air':'<b>A sample “made of air”.</b> If the sample material stays air while its height is centimetres, self-absorption is not accounted for and the curve can be off by a factor. The calculation log warns with “WARNING”.',
 'm.field':'<b>Field scenes</b> — “Detector on the ground” and “Detector in a borehole” are for measuring soil in situ: becquerels are computed from them, the dose rate is not (the program refuses and points to the ISO scene). “Isotropic field (ISO)” is for the background dose rate; becquerels are not derived from it (the result window shows “Bq hidden”).',
 'm.cap3':'“Calculate from geometry”: parameters, the curve plot and the log',
@@ -490,10 +513,10 @@ GUIDE.texts({ru:{
 'm.f3':'<b>A curve knows how it was computed.</b> Its stamp keeps the parameters; open “Edit...” and you get the same fields as last time.',
 'x.k':'Matrix','x.h':'The “Response matrix” window',
 'x.lead':'The curve answers “how many photons gave a peak”. The matrix answers “what the whole trace of a photon looks like”: the peak, the Compton plateau, the escapes. From it FSA builds the whole response of each nuclide. Details — <a href="how-it-works.html#matrix">“How it works” → Matrix</a>.',
-'x.cap':'The “Response matrix” window: the matrix is valid, computed on the graphics card',
+'x.cap':'The “Response matrix” window: the matrix is valid, with an electron section',
 'x.l1':'<b>Explanation</b>: what the matrix is for and where it is stored',
 'x.l2':'<b>State</b>: “Valid for the current geometry”, “Not computed for this geometry” or “Out of date… Recompute it”',
-'x.l3':'<b>Details</b>: physics generation, nodes, bin, histories, size, when and how long it took',
+'x.l3':'<b>Details</b>: physics generation, nodes, bin, histories, size, when and how long it took, the electron section',
 'x.l4':'<b>Use Nvidia GPU</b> — a check box; if the card does not qualify, the box is greyed out and its tooltip gives the reason',
 'x.l5':'<b>Parameters</b>: from and to keV, nodes, bin, histories per node, threads',
 'x.l6':'<b>Progress</b> and <b>Cancel</b>',
@@ -504,7 +527,7 @@ GUIDE.texts({ru:{
 'r.run':'Compute','r.reset':'Reset','r.speed':'Playback speed:',
 'r.cpu':'CPU','r.gpu':'Nvidia GPU','r.node':'node {0} of {1}','r.done':'done in {0}',
 'r.x':'the GPU is <b>{0}</b> times faster','r.real':'“real” time passed <b>{0}</b>',
-'x.gpu':'<b>What the GPU needs:</b> an Nvidia RTX 30xx or newer and a fresh driver; the CUDA Toolkit is not needed. The box is off by default. The “Isotropic field (ISO)” scene is not computed on the GPU — the matrix goes to the CPU. If the card could not finish, uncheck the box: details are in <span class="ui m">Help → Show log</span>.',
+'x.gpu':'<b>What the GPU needs:</b> an Nvidia RTX 30xx or newer and a fresh driver; the CUDA Toolkit is not needed. The box is off by default. The “Isotropic field (ISO)” scene is not computed on the GPU — the matrix goes to the CPU. If the card could not finish, uncheck the box: details are in <span class="ui m">Help → Show log</span>.','x.sec':'<b>Electron section.</b> The <span class="ui">Compute</span> button computes the photon matrix and the electron section: the response to electrons and positrons from the sample, 800000 histories per row. FSA uses it to account for the sample’s beta. The progress bar is split in two: the photon part and the section. A matrix with no usable section of the current recipe needs a recompute: the window says “Recompute needed: the matrix has no usable electron section of the current recipe.”, and the curve in the list carries a “!”. The “Isotropic field (ISO)” scene needs no section. If the section could not be built, the photon matrix stays, with the reason in the progress line.',
 'x.f1':'<b>The matrix is a separate file per geometry</b> on this computer. “Out of date” means the geometry or the settings changed after it was computed, or a program update changed the transport generation or the file format: recompute the matrix.',
 'x.f2':'<b>FSA works without a matrix</b>, but cascade summing is not applied and the report shows red lines (chapter <a href="fsa.html#quality">FSA in practice</a>).',
 'x.f3':'<b>The matrix travels into the spectrum file</b> (setting “Save response matrix into spectrum file”, on). A recipient without their own matrix analyses the spectrum with it, recomputing nothing.',
@@ -538,6 +561,7 @@ const DET = [
   { id: 'nano16', nm: 'Atom Spectra Nano 16', box: [15, 18, 60], front: 3.1, clad: 1.8, side: 3, tail: 2 },
   { id: 'g63', nm: 'Gamma-1S UDS-GC 63x63', cyl: [63, 63], front: 3.1, clad: 1.8, side: 3, tail: 2 },
   { id: 'as80', nm: 'Atom Spectra Pro 80x80', cyl: [80, 80], front: 26.7, clad: 3, side: 5, tail: 2 },
+  { id: 'rc110', nm: 'RadiaCode-110', box: [14, 14, 14], front: 3.85, clad: 3, side: 6.05, tail: 1.5 },
 ];
 const SRC = ['point', 'cyl', 'mar'];
 const st = { det: 3, src: 1, dist: 0, diam: 40, hgt: 14, md: 130, mf: 120 };

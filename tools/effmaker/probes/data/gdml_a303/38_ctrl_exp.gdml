@@ -1,0 +1,1 @@
+<?xml version="1.0"?><gdml><solids><box name="WB" x="2000" y="2000" z="2000" lunit="mm"/><box name="P" x="1.0E+01" y="1e1" z=" 10 " lunit="mm"/></solids><structure><volume name="A"><materialref ref="G4_Al"/><solidref ref="P"/></volume><volume name="World"><materialref ref="G4_AIR"/><solidref ref="WB"/><physvol name="pv_A"><volumeref ref="A"/></physvol></volume></structure></gdml>

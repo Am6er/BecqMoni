@@ -1,0 +1,500 @@
+каталог проб: <корень>\tools\effmaker\probes\build_fix305e (заверен 2026-11-07 07:42:02 из <корень>\BecquerelMonitor\bin\Release_fix305e)
+⚠ --skip-freshness: свежесть каталога проб НЕ судилась — числа этого прогона в эталон не годятся
+рабочий каталог: <полоса>\m\wd_e (скопировано 841, снято 0; приборов 3, матриц 4)
+прогон FsaStackShot (5 спектров, 9 пар):
+  ASN16_Cs137_house / infer_eq: 6.3 с
+  ASN16_Cs137_house / infer_eq_peak: 5.8 с
+  ASN16_Cs137_house / infer_eq_compton: 5.4 с
+  AS80_Th232_disk / infer_eq: 14.2 с
+  ASN16_Radon_filter2 / chain_eq: 35.0 с
+  ASN16_Radon_filter2 / chain_noeq: 52.1 с
+  G1S24_Rn222Coal_eq01 / sample_eq: 6.5 с
+  G1S24_Rn222Coal_eq01 / sample_noeq: 6.7 с
+  ASN16_Cs137_10cm / sample_nomatrix: 2.8 с
+
+⛔ КАРТИНКА ИЗМЕНИЛАСЬ: ASN16_Cs137_house / infer_eq — 106 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-11-03 02:08)
+  спектр                 режим          полоса           компонент                                  было              стало              Δ
+  ASN16_Cs137_house      infer_eq       0-30 кэВ         Backscatter                         1687448.134        1691595.631 4147.497 (+0.25 %)
+  ASN16_Cs137_house      infer_eq       0-30 кэВ         Cs-137                             16881552.653       16879252.115 -2300.538 (-0.01 %)
+  ASN16_Cs137_house      infer_eq       0-30 кэВ         Xray-Pb                                2715.186           2719.427 4.241 (+0.16 %)
+  ASN16_Cs137_house      infer_eq       0-30 кэВ         Xray-Pb-L                           1250141.191        1251224.584 1083.393 (+0.09 %)
+  ASN16_Cs137_house      infer_eq       0-30 кэВ         continuum_raw                         68633.250          69045.178 411.928 (+0.60 %)
+  ASN16_Cs137_house      infer_eq       0-30 кэВ         excess_fit                          2024759.859        2027511.301 2751.442 (+0.14 %)
+  ASN16_Cs137_house      infer_eq       0-30 кэВ         excess_net                          2024759.859        2027511.301 2751.442 (+0.14 %)
+  ASN16_Cs137_house      infer_eq       0-30 кэВ         missing_fit                          996071.676         995884.654 -187.022 (-0.02 %)
+  ASN16_Cs137_house      infer_eq       0-30 кэВ         missing_net                          996071.676         995884.654 -187.022 (-0.02 %)
+  ASN16_Cs137_house      infer_eq       0-30 кэВ         model                              19810521.239       19813459.703 2938.464 (+0.01 %)
+  ASN16_Cs137_house      infer_eq       0-30 кэВ         pile-up                                 101.647            104.000 2.353 (+2.31 %)
+  ASN16_Cs137_house      infer_eq       0-30 кэВ         tail                                1593921.962        1593601.422 -320.540 (-0.02 %)
+  ASN16_Cs137_house      infer_eq       30-100 кэВ       Backscatter                          138505.021         139049.322 544.301 (+0.39 %)
+  ASN16_Cs137_house      infer_eq       30-100 кэВ       Cs-137                             38115434.950       38114650.851 -784.099 (-0.00 %)
+  ASN16_Cs137_house      infer_eq       30-100 кэВ       Xray-Pb                             1780395.462        1781100.160 704.698 (+0.04 %)
+  ASN16_Cs137_house      infer_eq       30-100 кэВ       continuum_raw                       1849322.859        1855357.035 6034.176 (+0.33 %)
+  ASN16_Cs137_house      infer_eq       30-100 кэВ       excess_fit                           716565.007         716758.795 193.788 (+0.03 %)
+  ASN16_Cs137_house      infer_eq       30-100 кэВ       excess_net                           716565.007         716758.795 193.788 (+0.03 %)
+  ASN16_Cs137_house      infer_eq       30-100 кэВ       missing_fit                          587020.360         586690.250 -330.110 (-0.06 %)
+  ASN16_Cs137_house      infer_eq       30-100 кэВ       missing_net                          587020.360         586690.250 -330.110 (-0.06 %)
+  ASN16_Cs137_house      infer_eq       30-100 кэВ       model                              40037117.566       40037641.464 523.898 (+0.00 %)
+  ASN16_Cs137_house      infer_eq       30-100 кэВ       pile-up                                2782.127           2841.132 59.005 (+2.12 %)
+  ASN16_Cs137_house      infer_eq       30-100 кэВ       tail                               10879138.832       10876951.037 -2187.795 (-0.02 %)
+  ASN16_Cs137_house      infer_eq       100-300 кэВ      Backscatter                         6700152.232        6716543.897 16391.665 (+0.24 %)
+  ASN16_Cs137_house      infer_eq       100-300 кэВ      Cs-137                             65441277.205       65422397.366 -18879.839 (-0.03 %)
+  ASN16_Cs137_house      infer_eq       100-300 кэВ      Xray-Pb                               11803.487          11807.903 4.416 (+0.04 %)
+  ASN16_Cs137_house      infer_eq       100-300 кэВ      continuum_raw                       5669948.237        5660019.844 -9928.393 (-0.18 %)
+  ASN16_Cs137_house      infer_eq       100-300 кэВ      excess_fit                           851831.709         848108.784 -3722.925 (-0.44 %)
+  ASN16_Cs137_house      infer_eq       100-300 кэВ      excess_net                           851831.709         848108.784 -3722.925 (-0.44 %)
+  ASN16_Cs137_house      infer_eq       100-300 кэВ      missing_fit                         1701194.868        1699788.075 -1406.793 (-0.08 %)
+  ASN16_Cs137_house      infer_eq       100-300 кэВ      missing_net                         1701194.868        1699788.075 -1406.793 (-0.08 %)
+  ASN16_Cs137_house      infer_eq       100-300 кэВ      model                              72163807.933       72161491.801 -2316.132 (-0.00 %)
+  ASN16_Cs137_house      infer_eq       100-300 кэВ      pile-up                               10575.019          10742.631 167.612 (+1.58 %)
+  ASN16_Cs137_house      infer_eq       100-300 кэВ      tail                                  77007.893          76992.407 -15.486 (-0.02 %)
+  ASN16_Cs137_house      infer_eq       300-700 кэВ      Cs-137                            112492868.367      112476706.606 -16161.761 (-0.01 %)
+  ASN16_Cs137_house      infer_eq       300-700 кэВ      continuum_raw                        393415.389         392685.051 -730.338 (-0.19 %)
+  ASN16_Cs137_house      infer_eq       300-700 кэВ      excess_fit                          1570083.381        1564492.059 -5591.322 (-0.36 %)
+  ASN16_Cs137_house      infer_eq       300-700 кэВ      excess_net                          1570083.381        1564492.059 -5591.322 (-0.36 %)
+  ASN16_Cs137_house      infer_eq       300-700 кэВ      missing_fit                         5318584.990        5328086.447 9501.457 (+0.18 %)
+  ASN16_Cs137_house      infer_eq       300-700 кэВ      missing_net                         5318584.990        5328086.447 9501.457 (+0.18 %)
+  ASN16_Cs137_house      infer_eq       300-700 кэВ      model                             112534104.169      112519011.390 -15092.779 (-0.01 %)
+  ASN16_Cs137_house      infer_eq       300-700 кэВ      pile-up                               61761.561          62833.120 1071.559 (+1.73 %)
+  ASN16_Cs137_house      infer_eq       700-1500 кэВ     Cs-137                               405800.879         405571.350 -229.529 (-0.06 %)
+  ASN16_Cs137_house      infer_eq       700-1500 кэВ     continuum_raw                        520421.452         517640.906 -2780.546 (-0.53 %)
+  ASN16_Cs137_house      infer_eq       700-1500 кэВ     excess_fit                            52167.726          52826.521 658.795 (+1.26 %)
+  ASN16_Cs137_house      infer_eq       700-1500 кэВ     excess_net                            51748.491          52407.286 658.795 (+1.27 %)
+  ASN16_Cs137_house      infer_eq       700-1500 кэВ     missing_fit                          138400.478         137665.328 -735.150 (-0.53 %)
+  ASN16_Cs137_house      infer_eq       700-1500 кэВ     missing_net                          138400.478         137665.328 -735.150 (-0.53 %)
+  ASN16_Cs137_house      infer_eq       700-1500 кэВ     model                               1144986.354        1146380.299 1393.945 (+0.12 %)
+  ASN16_Cs137_house      infer_eq       700-1500 кэВ     pile-up                              739185.464         740808.942 1623.478 (+0.22 %)
+  ASN16_Cs137_house      infer_eq       1500-3000 кэВ    continuum_raw                          3266.672           3257.285 -9.387 (-0.29 %)
+  ASN16_Cs137_house      infer_eq       1500-3000 кэВ    excess_fit                             5995.800           5998.562 2.762 (+0.05 %)
+  ASN16_Cs137_house      infer_eq       1500-3000 кэВ    excess_net                             2122.652           2125.414 2.762 (+0.13 %)
+  ASN16_Cs137_house      infer_eq       1500-3000 кэВ    missing_fit                            4690.751           4685.330 -5.421 (-0.12 %)
+  ASN16_Cs137_house      infer_eq       1500-3000 кэВ    missing_net                            4690.751           4685.330 -5.421 (-0.12 %)
+  ASN16_Cs137_house      infer_eq       1500-3000 кэВ    model                                  4245.440           4253.623 8.183 (+0.19 %)
+  ASN16_Cs137_house      infer_eq       1500-3000 кэВ    pile-up                                4416.686           4425.378 8.692 (+0.20 %)
+  ASN16_Cs137_house      infer_eq       rates component  Backscatter.count_rate                    2.034              2.039 0.005 (+0.25 %)
+  ASN16_Cs137_house      infer_eq       rates component  Backscatter.peak_counts             8315294.292        8335913.272 20618.980 (+0.25 %)
+  ASN16_Cs137_house      infer_eq       rates component  Backscatter.share_pct                     3.470              3.479 0.009 (+0.25 %)
+  ASN16_Cs137_house      infer_eq       rates component  Backscatter.z                            40.652             40.354 -0.299 (-0.74 %)
+  ASN16_Cs137_house      infer_eq       rates component  Cs-137.count_rate                      6715.681           6714.878 -0.803 (-0.01 %)
+  ASN16_Cs137_house      infer_eq       rates component  Cs-137.decision_threshold_ra              3.328              3.455 0.128 (+3.84 %)
+  ASN16_Cs137_house      infer_eq       rates component  Cs-137.detection_limit_rate               5.166              5.365 0.199 (+3.85 %)
+  ASN16_Cs137_house      infer_eq       rates component  Cs-137.peak_counts                100538295.772      100526272.318 -12023.454 (-0.01 %)
+  ASN16_Cs137_house      infer_eq       rates component  Cs-137.share_pct                         94.958             94.947 -0.011 (-0.01 %)
+  ASN16_Cs137_house      infer_eq       rates component  Cs-137.z                                392.122            398.705 6.582 (+1.68 %)
+  ASN16_Cs137_house      infer_eq       rates component  Xray-Pb.count_rate                       16.803             16.810 0.007 (+0.04 %)
+  ASN16_Cs137_house      infer_eq       rates component  Xray-Pb.peak_counts                 1661072.326        1661732.110 659.784 (+0.04 %)
+  ASN16_Cs137_house      infer_eq       rates component  Xray-Pb.share_pct                         0.730              0.731 0.000328569 (+0.04 %)
+  ASN16_Cs137_house      infer_eq       rates component  Xray-Pb.z                                18.670             18.538 -0.131 (-0.70 %)
+  ASN16_Cs137_house      infer_eq       rates component  Xray-Pb-L.count_rate                  17050.653          17066.048 15.395 (+0.09 %)
+  ASN16_Cs137_house      infer_eq       rates component  Xray-Pb-L.peak_counts               1252696.245        1253827.328 1131.083 (+0.09 %)
+  ASN16_Cs137_house      infer_eq       rates component  Xray-Pb-L.share_pct                       0.509              0.509 0.00046756 (+0.09 %)
+  ASN16_Cs137_house      infer_eq       rates component  Xray-Pb-L.z                              43.846             43.275 -0.570 (-1.30 %)
+  ASN16_Cs137_house      infer_eq       rates component  pile-up.count_rate                        1.436              1.462 0.026 (+1.80 %)
+  ASN16_Cs137_house      infer_eq       rates component  pile-up.share_pct                         0.333              0.334 0.001 (+0.32 %)
+  ASN16_Cs137_house      infer_eq       rates component  pile-up.z                                14.377             13.960 -0.418 (-2.91 %)
+  ASN16_Cs137_house      infer_eq       rates grey       residual_excess.count_rate                0.021              0.021 -2.44202e-05 (-0.12 %)
+  ASN16_Cs137_house      infer_eq       rates grey       residual_missing.count_rate               0.032              0.032 3.01434e-05 (+0.09 %)
+  ASN16_Cs137_house      infer_eq       rates limit      Cs-137.collinearity                       0.822              0.820 -0.002 (-0.21 %)
+  ASN16_Cs137_house      infer_eq       rates limit      Cs-137.count_rate                      6715.681           6714.878 -0.803 (-0.01 %)
+  ASN16_Cs137_house      infer_eq       rates limit      Cs-137.decision_threshold_ra              3.328              3.455 0.128 (+3.84 %)
+  ASN16_Cs137_house      infer_eq       rates limit      Cs-137.detection_limit_rate               5.166              5.365 0.199 (+3.85 %)
+  ASN16_Cs137_house      infer_eq       rates limit      Cs-137.limit_peak_counts              77335.243          80312.870 2977.627 (+3.85 %)
+  ASN16_Cs137_house      infer_eq       rates limit      K-40.collinearity                         0.506              0.506 -0.000487708 (-0.10 %)
+  ASN16_Cs137_house      infer_eq       rates limit      K-40.decision_threshold_rate              8.657              9.046 0.389 (+4.49 %)
+  ASN16_Cs137_house      infer_eq       rates limit      K-40.detection_limit_rate                13.661             14.286 0.625 (+4.57 %)
+  ASN16_Cs137_house      infer_eq       rates limit      K-40.limit_peak_counts                 5128.150           5362.750 234.600 (+4.57 %)
+  ASN16_Cs137_house      infer_eq       rates meta       chi2ndf                                  19.451             21.232 1.782 (+9.16 %)
+  ASN16_Cs137_house      infer_eq       rates meta       chi2ndf_pois                            175.595            177.935 2.340 (+1.33 %)
+  ASN16_Cs137_house      infer_eq       rates meta       model_residual                            0.072              0.071 -0.000741461 (-1.04 %)
+  ASN16_Cs137_house      infer_eq       rates tail_in_la Cs-137.peak_counts                 12550068.683       12547544.862 -2523.820 (-0.02 %)
+  ASN16_Cs137_house      infer_eq       rates untied_tai Cs-137.peak_counts                 12550068.683       12547544.862 -2523.820 (-0.02 %)
+  ASN16_Cs137_house      infer_eq       ROWS             строка 1                                      ↓                  ↓              ≠
+      было : Cs-137 | Single | 94.958 | - | -
+      стало: Cs-137 | Single | 94.947 | - | -
+  ASN16_Cs137_house      infer_eq       ROWS             строка 2                                      ↓                  ↓              ≠
+      было : Backscatter | Nuisance | 3.470 | - | -
+      стало: Backscatter | Nuisance | 3.479 | - | -
+  ASN16_Cs137_house      infer_eq       ROWS             строка 3                                      ↓                  ↓              ≠
+      было : Xray-Pb | Nuisance | 0.730 | - | -
+      стало: Xray-Pb | Nuisance | 0.731 | - | -
+  ASN16_Cs137_house      infer_eq       ROWS             строка 5                                      ↓                  ↓              ≠
+      было : pile-up | Nuisance | 0.333 | - | -
+      стало: pile-up | Nuisance | 0.334 | - | -
+  ASN16_Cs137_house      infer_eq       SCREEN           строка 1                     Cs-137 | 94.96% |  Cs-137 | 94.95% |               ≠
+  ASN16_Cs137_house      infer_eq       SCREEN           строка 6                                      ↓                  ↓              ≠
+      было : K-40 | < 0.00209 % | 
+      стало: K-40 | < 0.00218 % | 
+  ASN16_Cs137_house      infer_eq       SCREEN           строка 10                                     ↓                  ↓              ≠
+      было : Качество подгонки χ²/ndf | 175.59 | 
+      стало: Качество подгонки χ²/ndf | 177.93 | 
+  ASN16_Cs137_house      infer_eq       SCREEN           строка 11                                     ↓                  ↓              ≠
+      было : Поправка погрешности на качество подгонки, × | 4.410 | Погрешности компонентов домножены на этот множитель, когда подгон
+      стало: Поправка погрешности на качество подгонки, × | 4.608 | Погрешности компонентов домножены на этот множитель, когда подгон
+  ASN16_Cs137_house      infer_eq       SCREEN           строка 20                                     ↓                  ↓              ≠
+      было : Фон больше спектра в 3110–3295 кэВ: вероятно, фон снят без пробы (пустой сосуд) или в другой обстановке | проверьте фон 
+      стало: Участок 3110–3310 кэВ не учтён в подгонке: в нём фон значимо больше спектра | не учтён | Вероятно, фон снят без пробы (п
+  ASN16_Cs137_house      infer_eq       SCREEN           строка 21                                     ↓                  ↓              ≠
+      было : … описан | низ не описан | z 472.7; модели нуклидов выше всего измеренного спектра в этой полосе
+      стало: … описан | низ не описан | z 473.6; модели нуклидов выше всего измеренного спектра в этой полосе
+  ASN16_Cs137_house      infer_eq       шапка            chi2                                          ↓                  ↓              ≠
+      было : chi2/ndf 19.451, невязка модели 7.2 %, суммирование да
+      стало: chi2/ndf 21.232, невязка модели 7.1 %, суммирование да
+  ASN16_Cs137_house      infer_eq       шапка            untied                                        ↓                  ↓              ≠
+      было : …idual = в невязке): Cs-137 12550068.7 (layer); всего 12550068.7 отсч.
+      стало: …idual = в невязке): Cs-137 12547544.9 (layer); всего 12547544.9 отсч.
+
+⛔ КАРТИНКА ИЗМЕНИЛАСЬ: ASN16_Cs137_house / infer_eq_peak — 95 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-11-03 02:08)
+  спектр                 режим          полоса           компонент                                  было              стало              Δ
+  ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         Cs-137                              9194545.202        9193151.159 -1394.043 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         Xray-Pb-L                           1230193.433        1231259.530 1066.097 (+0.09 %)
+  ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         continuum_raw                         68633.250          69045.178 411.928 (+0.60 %)
+  ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         excess_fit                          2024759.859        2027511.301 2751.442 (+0.14 %)
+  ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         excess_net                          2024759.859        2027511.301 2751.442 (+0.14 %)
+  ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         missing_fit                          996071.676         995884.654 -187.022 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         missing_net                          996071.676         995884.654 -187.022 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         model                              19810521.239       19813459.703 2938.464 (+0.01 %)
+  ASN16_Cs137_house      infer_eq_peak  0-30 кэВ         tail                                1593921.962        1593601.422 -320.540 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       Cs-137                             15604294.463       15601870.437 -2424.026 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       Xray-Pb                             1399965.463        1400486.519 521.056 (+0.04 %)
+  ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       continuum_raw                       1849322.859        1855357.035 6034.176 (+0.33 %)
+  ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       excess_fit                           716565.007         716758.795 193.788 (+0.03 %)
+  ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       excess_net                           716565.007         716758.795 193.788 (+0.03 %)
+  ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       missing_fit                          587020.360         586690.250 -330.110 (-0.06 %)
+  ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       missing_net                          587020.360         586690.250 -330.110 (-0.06 %)
+  ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       model                              40037117.566       40037641.464 523.898 (+0.00 %)
+  ASN16_Cs137_house      infer_eq_peak  30-100 кэВ       tail                               10879138.832       10876951.037 -2187.795 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_peak  100-300 кэВ      Xray-Pb                               11605.119          11609.453 4.334 (+0.04 %)
+  ASN16_Cs137_house      infer_eq_peak  100-300 кэВ      continuum_raw                       5669948.237        5660019.844 -9928.393 (-0.18 %)
+  ASN16_Cs137_house      infer_eq_peak  100-300 кэВ      excess_fit                           851831.709         848108.784 -3722.925 (-0.44 %)
+  ASN16_Cs137_house      infer_eq_peak  100-300 кэВ      excess_net                           851831.709         848108.784 -3722.925 (-0.44 %)
+  ASN16_Cs137_house      infer_eq_peak  100-300 кэВ      missing_fit                         1701194.868        1699788.075 -1406.793 (-0.08 %)
+  ASN16_Cs137_house      infer_eq_peak  100-300 кэВ      missing_net                         1701194.868        1699788.075 -1406.793 (-0.08 %)
+  ASN16_Cs137_house      infer_eq_peak  100-300 кэВ      model                              72163807.933       72161491.801 -2316.132 (-0.00 %)
+  ASN16_Cs137_house      infer_eq_peak  100-300 кэВ      tail                                  77007.893          76992.407 -15.486 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_peak  300-700 кэВ      Cs-137                             60224196.596       60215371.815 -8824.781 (-0.01 %)
+  ASN16_Cs137_house      infer_eq_peak  300-700 кэВ      continuum_raw                        393415.389         392685.051 -730.338 (-0.19 %)
+  ASN16_Cs137_house      infer_eq_peak  300-700 кэВ      excess_fit                          1570083.381        1564492.059 -5591.322 (-0.36 %)
+  ASN16_Cs137_house      infer_eq_peak  300-700 кэВ      excess_net                          1570083.381        1564492.059 -5591.322 (-0.36 %)
+  ASN16_Cs137_house      infer_eq_peak  300-700 кэВ      missing_fit                         5318584.990        5328086.447 9501.457 (+0.18 %)
+  ASN16_Cs137_house      infer_eq_peak  300-700 кэВ      missing_net                         5318584.990        5328086.447 9501.457 (+0.18 %)
+  ASN16_Cs137_house      infer_eq_peak  300-700 кэВ      model                             112534104.169      112519011.390 -15092.779 (-0.01 %)
+  ASN16_Cs137_house      infer_eq_peak  700-1500 кэВ     Cs-137                               388605.764         388559.287 -46.477 (-0.01 %)
+  ASN16_Cs137_house      infer_eq_peak  700-1500 кэВ     continuum_raw                        520421.452         517640.906 -2780.546 (-0.53 %)
+  ASN16_Cs137_house      infer_eq_peak  700-1500 кэВ     excess_fit                            52167.726          52826.521 658.795 (+1.26 %)
+  ASN16_Cs137_house      infer_eq_peak  700-1500 кэВ     excess_net                            51748.491          52407.286 658.795 (+1.27 %)
+  ASN16_Cs137_house      infer_eq_peak  700-1500 кэВ     missing_fit                          138400.478         137665.328 -735.150 (-0.53 %)
+  ASN16_Cs137_house      infer_eq_peak  700-1500 кэВ     missing_net                          138400.478         137665.328 -735.150 (-0.53 %)
+  ASN16_Cs137_house      infer_eq_peak  700-1500 кэВ     model                               1144986.354        1146380.299 1393.945 (+0.12 %)
+  ASN16_Cs137_house      infer_eq_peak  1500-3000 кэВ    continuum_raw                          3266.672           3257.285 -9.387 (-0.29 %)
+  ASN16_Cs137_house      infer_eq_peak  1500-3000 кэВ    excess_fit                             5995.800           5998.562 2.762 (+0.05 %)
+  ASN16_Cs137_house      infer_eq_peak  1500-3000 кэВ    excess_net                             2122.652           2125.414 2.762 (+0.13 %)
+  ASN16_Cs137_house      infer_eq_peak  1500-3000 кэВ    missing_fit                            4690.751           4685.330 -5.421 (-0.12 %)
+  ASN16_Cs137_house      infer_eq_peak  1500-3000 кэВ    missing_net                            4690.751           4685.330 -5.421 (-0.12 %)
+  ASN16_Cs137_house      infer_eq_peak  1500-3000 кэВ    model                                  4245.440           4253.623 8.183 (+0.19 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Backscatter.count_rate                    2.034              2.039 0.005 (+0.25 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Backscatter.peak_counts             8315294.292        8335913.272 20618.980 (+0.25 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Backscatter.share_pct                     3.470              3.479 0.009 (+0.25 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Backscatter.z                            40.652             40.354 -0.299 (-0.74 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Cs-137.count_rate                      6715.681           6714.878 -0.803 (-0.01 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Cs-137.decision_threshold_ra              3.328              3.455 0.128 (+3.84 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Cs-137.detection_limit_rate               5.166              5.365 0.199 (+3.85 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Cs-137.peak_counts                100538295.772      100526272.318 -12023.454 (-0.01 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Cs-137.share_pct                         94.958             94.947 -0.011 (-0.01 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Cs-137.z                                392.122            398.705 6.582 (+1.68 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Xray-Pb.count_rate                       16.803             16.810 0.007 (+0.04 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Xray-Pb.peak_counts                 1661072.326        1661732.110 659.784 (+0.04 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Xray-Pb.share_pct                         0.730              0.731 0.000328569 (+0.04 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Xray-Pb.z                                18.670             18.538 -0.131 (-0.70 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Xray-Pb-L.count_rate                  17050.653          17066.048 15.395 (+0.09 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Xray-Pb-L.peak_counts               1252696.245        1253827.328 1131.083 (+0.09 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Xray-Pb-L.share_pct                       0.509              0.509 0.00046756 (+0.09 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  Xray-Pb-L.z                              43.846             43.275 -0.570 (-1.30 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  pile-up.count_rate                        1.436              1.462 0.026 (+1.80 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  pile-up.share_pct                         0.333              0.334 0.001 (+0.32 %)
+  ASN16_Cs137_house      infer_eq_peak  rates component  pile-up.z                                14.377             13.960 -0.418 (-2.91 %)
+  ASN16_Cs137_house      infer_eq_peak  rates grey       residual_excess.count_rate                0.021              0.021 -2.44202e-05 (-0.12 %)
+  ASN16_Cs137_house      infer_eq_peak  rates grey       residual_missing.count_rate               0.032              0.032 3.01434e-05 (+0.09 %)
+  ASN16_Cs137_house      infer_eq_peak  rates limit      Cs-137.collinearity                       0.822              0.820 -0.002 (-0.21 %)
+  ASN16_Cs137_house      infer_eq_peak  rates limit      Cs-137.count_rate                      6715.681           6714.878 -0.803 (-0.01 %)
+  ASN16_Cs137_house      infer_eq_peak  rates limit      Cs-137.decision_threshold_ra              3.328              3.455 0.128 (+3.84 %)
+  ASN16_Cs137_house      infer_eq_peak  rates limit      Cs-137.detection_limit_rate               5.166              5.365 0.199 (+3.85 %)
+  ASN16_Cs137_house      infer_eq_peak  rates limit      Cs-137.limit_peak_counts              77335.243          80312.870 2977.627 (+3.85 %)
+  ASN16_Cs137_house      infer_eq_peak  rates limit      K-40.collinearity                         0.506              0.506 -0.000487708 (-0.10 %)
+  ASN16_Cs137_house      infer_eq_peak  rates limit      K-40.decision_threshold_rate              8.657              9.046 0.389 (+4.49 %)
+  ASN16_Cs137_house      infer_eq_peak  rates limit      K-40.detection_limit_rate                13.661             14.286 0.625 (+4.57 %)
+  ASN16_Cs137_house      infer_eq_peak  rates limit      K-40.limit_peak_counts                 5128.150           5362.750 234.600 (+4.57 %)
+  ASN16_Cs137_house      infer_eq_peak  rates meta       chi2ndf                                  19.451             21.232 1.782 (+9.16 %)
+  ASN16_Cs137_house      infer_eq_peak  rates meta       chi2ndf_pois                            175.595            177.935 2.340 (+1.33 %)
+  ASN16_Cs137_house      infer_eq_peak  rates meta       model_residual                            0.072              0.071 -0.000741461 (-1.04 %)
+  ASN16_Cs137_house      infer_eq_peak  rates tail_in_la Cs-137.peak_counts                 12550068.683       12547544.862 -2523.820 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_peak  rates untied_tai Cs-137.peak_counts                 12550068.683       12547544.862 -2523.820 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_peak  ROWS             строка 1                                      ↓                  ↓              ≠
+      было : Cs-137 | Single | 94.958 | - | -
+      стало: Cs-137 | Single | 94.947 | - | -
+  ASN16_Cs137_house      infer_eq_peak  ROWS             строка 2                                      ↓                  ↓              ≠
+      было : Backscatter | Nuisance | 3.470 | - | -
+      стало: Backscatter | Nuisance | 3.479 | - | -
+  ASN16_Cs137_house      infer_eq_peak  ROWS             строка 3                                      ↓                  ↓              ≠
+      было : Xray-Pb | Nuisance | 0.730 | - | -
+      стало: Xray-Pb | Nuisance | 0.731 | - | -
+  ASN16_Cs137_house      infer_eq_peak  ROWS             строка 5                                      ↓                  ↓              ≠
+      было : pile-up | Nuisance | 0.333 | - | -
+      стало: pile-up | Nuisance | 0.334 | - | -
+  ASN16_Cs137_house      infer_eq_peak  SCREEN           строка 1                     Cs-137 | 94.96% |  Cs-137 | 94.95% |               ≠
+  ASN16_Cs137_house      infer_eq_peak  SCREEN           строка 6                                      ↓                  ↓              ≠
+      было : K-40 | < 0.00209 % | 
+      стало: K-40 | < 0.00218 % | 
+  ASN16_Cs137_house      infer_eq_peak  SCREEN           строка 10                                     ↓                  ↓              ≠
+      было : Качество подгонки χ²/ndf | 175.59 | 
+      стало: Качество подгонки χ²/ndf | 177.93 | 
+  ASN16_Cs137_house      infer_eq_peak  SCREEN           строка 11                                     ↓                  ↓              ≠
+      было : Поправка погрешности на качество подгонки, × | 4.410 | Погрешности компонентов домножены на этот множитель, когда подгон
+      стало: Поправка погрешности на качество подгонки, × | 4.608 | Погрешности компонентов домножены на этот множитель, когда подгон
+  ASN16_Cs137_house      infer_eq_peak  SCREEN           строка 20                                     ↓                  ↓              ≠
+      было : Фон больше спектра в 3110–3295 кэВ: вероятно, фон снят без пробы (пустой сосуд) или в другой обстановке | проверьте фон 
+      стало: Участок 3110–3310 кэВ не учтён в подгонке: в нём фон значимо больше спектра | не учтён | Вероятно, фон снят без пробы (п
+  ASN16_Cs137_house      infer_eq_peak  SCREEN           строка 21                                     ↓                  ↓              ≠
+      было : … описан | низ не описан | z 472.7; модели нуклидов выше всего измеренного спектра в этой полосе
+      стало: … описан | низ не описан | z 473.6; модели нуклидов выше всего измеренного спектра в этой полосе
+  ASN16_Cs137_house      infer_eq_peak  шапка            chi2                                          ↓                  ↓              ≠
+      было : chi2/ndf 19.451, невязка модели 7.2 %, суммирование да
+      стало: chi2/ndf 21.232, невязка модели 7.1 %, суммирование да
+  ASN16_Cs137_house      infer_eq_peak  шапка            untied                                        ↓                  ↓              ≠
+      было : …idual = в невязке): Cs-137 12550068.7 (layer); всего 12550068.7 отсч.
+      стало: …idual = в невязке): Cs-137 12547544.9 (layer); всего 12547544.9 отсч.
+
+⛔ КАРТИНКА ИЗМЕНИЛАСЬ: ASN16_Cs137_house / infer_eq_compton — 97 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-11-03 02:08)
+  спектр                 режим          полоса           компонент                                  было              стало              Δ
+  ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         Cs-137                              7557391.483        7556110.738 -1280.745 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         Xray-Pb                                 135.753            135.807 0.054 (+0.04 %)
+  ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         Xray-Pb-L                             18641.839          18658.000 16.161 (+0.09 %)
+  ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         continuum_raw                         68633.250          69045.178 411.928 (+0.60 %)
+  ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         excess_fit                          2024759.859        2027511.301 2751.442 (+0.14 %)
+  ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         excess_net                          2024759.859        2027511.301 2751.442 (+0.14 %)
+  ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         missing_fit                          996071.676         995884.654 -187.022 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         missing_net                          996071.676         995884.654 -187.022 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         model                              19810521.239       19813459.703 2938.464 (+0.01 %)
+  ASN16_Cs137_house      infer_eq_compt 0-30 кэВ         tail                                1593921.962        1593601.422 -320.540 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       Cs-137                             20684528.560       20680660.741 -3867.819 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       Xray-Pb                              195256.156         195329.814 73.658 (+0.04 %)
+  ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       continuum_raw                       1849322.859        1855357.035 6034.176 (+0.33 %)
+  ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       excess_fit                           716565.007         716758.795 193.788 (+0.03 %)
+  ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       excess_net                           716565.007         716758.795 193.788 (+0.03 %)
+  ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       missing_fit                          587020.360         586690.250 -330.110 (-0.06 %)
+  ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       missing_net                          587020.360         586690.250 -330.110 (-0.06 %)
+  ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       model                              40037117.566       40037641.464 523.898 (+0.00 %)
+  ASN16_Cs137_house      infer_eq_compt 30-100 кэВ       tail                               10879138.832       10876951.037 -2187.795 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      Cs-137                             59945325.545       59936981.827 -8343.718 (-0.01 %)
+  ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      Xray-Pb                                 174.858            174.923 0.065 (+0.04 %)
+  ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      continuum_raw                       5669948.237        5660019.844 -9928.393 (-0.18 %)
+  ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      excess_fit                           851831.709         848108.784 -3722.925 (-0.44 %)
+  ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      excess_net                           851831.709         848108.784 -3722.925 (-0.44 %)
+  ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      missing_fit                         1701194.868        1699788.075 -1406.793 (-0.08 %)
+  ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      missing_net                         1701194.868        1699788.075 -1406.793 (-0.08 %)
+  ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      model                              72163807.933       72161491.801 -2316.132 (-0.00 %)
+  ASN16_Cs137_house      infer_eq_compt 100-300 кэВ      tail                                  77007.893          76992.407 -15.486 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_compt 300-700 кэВ      Cs-137                             51193739.833       51187383.790 -6356.043 (-0.01 %)
+  ASN16_Cs137_house      infer_eq_compt 300-700 кэВ      continuum_raw                        393415.389         392685.051 -730.338 (-0.19 %)
+  ASN16_Cs137_house      infer_eq_compt 300-700 кэВ      excess_fit                          1570083.381        1564492.059 -5591.322 (-0.36 %)
+  ASN16_Cs137_house      infer_eq_compt 300-700 кэВ      excess_net                          1570083.381        1564492.059 -5591.322 (-0.36 %)
+  ASN16_Cs137_house      infer_eq_compt 300-700 кэВ      missing_fit                         5318584.990        5328086.447 9501.457 (+0.18 %)
+  ASN16_Cs137_house      infer_eq_compt 300-700 кэВ      missing_net                         5318584.990        5328086.447 9501.457 (+0.18 %)
+  ASN16_Cs137_house      infer_eq_compt 300-700 кэВ      model                             112534104.169      112519011.390 -15092.779 (-0.01 %)
+  ASN16_Cs137_house      infer_eq_compt 700-1500 кэВ     Cs-137                                  684.069            683.989 -0.080 (-0.01 %)
+  ASN16_Cs137_house      infer_eq_compt 700-1500 кэВ     continuum_raw                        520421.452         517640.906 -2780.546 (-0.53 %)
+  ASN16_Cs137_house      infer_eq_compt 700-1500 кэВ     excess_fit                            52167.726          52826.521 658.795 (+1.26 %)
+  ASN16_Cs137_house      infer_eq_compt 700-1500 кэВ     excess_net                            51748.491          52407.286 658.795 (+1.27 %)
+  ASN16_Cs137_house      infer_eq_compt 700-1500 кэВ     missing_fit                          138400.478         137665.328 -735.150 (-0.53 %)
+  ASN16_Cs137_house      infer_eq_compt 700-1500 кэВ     missing_net                          138400.478         137665.328 -735.150 (-0.53 %)
+  ASN16_Cs137_house      infer_eq_compt 700-1500 кэВ     model                               1144986.354        1146380.299 1393.945 (+0.12 %)
+  ASN16_Cs137_house      infer_eq_compt 1500-3000 кэВ    continuum_raw                          3266.672           3257.285 -9.387 (-0.29 %)
+  ASN16_Cs137_house      infer_eq_compt 1500-3000 кэВ    excess_fit                             5995.800           5998.562 2.762 (+0.05 %)
+  ASN16_Cs137_house      infer_eq_compt 1500-3000 кэВ    excess_net                             2122.652           2125.414 2.762 (+0.13 %)
+  ASN16_Cs137_house      infer_eq_compt 1500-3000 кэВ    missing_fit                            4690.751           4685.330 -5.421 (-0.12 %)
+  ASN16_Cs137_house      infer_eq_compt 1500-3000 кэВ    missing_net                            4690.751           4685.330 -5.421 (-0.12 %)
+  ASN16_Cs137_house      infer_eq_compt 1500-3000 кэВ    model                                  4245.440           4253.623 8.183 (+0.19 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Backscatter.count_rate                    2.034              2.039 0.005 (+0.25 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Backscatter.peak_counts             8315294.292        8335913.272 20618.980 (+0.25 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Backscatter.share_pct                     3.470              3.479 0.009 (+0.25 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Backscatter.z                            40.652             40.354 -0.299 (-0.74 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Cs-137.count_rate                      6715.681           6714.878 -0.803 (-0.01 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Cs-137.decision_threshold_ra              3.328              3.455 0.128 (+3.84 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Cs-137.detection_limit_rate               5.166              5.365 0.199 (+3.85 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Cs-137.peak_counts                100538295.772      100526272.318 -12023.454 (-0.01 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Cs-137.share_pct                         94.958             94.947 -0.011 (-0.01 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Cs-137.z                                392.122            398.705 6.582 (+1.68 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Xray-Pb.count_rate                       16.803             16.810 0.007 (+0.04 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Xray-Pb.peak_counts                 1661072.326        1661732.110 659.784 (+0.04 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Xray-Pb.share_pct                         0.730              0.731 0.000328569 (+0.04 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Xray-Pb.z                                18.670             18.538 -0.131 (-0.70 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Xray-Pb-L.count_rate                  17050.653          17066.048 15.395 (+0.09 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Xray-Pb-L.peak_counts               1252696.245        1253827.328 1131.083 (+0.09 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Xray-Pb-L.share_pct                       0.509              0.509 0.00046756 (+0.09 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  Xray-Pb-L.z                              43.846             43.275 -0.570 (-1.30 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  pile-up.count_rate                        1.436              1.462 0.026 (+1.80 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  pile-up.share_pct                         0.333              0.334 0.001 (+0.32 %)
+  ASN16_Cs137_house      infer_eq_compt rates component  pile-up.z                                14.377             13.960 -0.418 (-2.91 %)
+  ASN16_Cs137_house      infer_eq_compt rates grey       residual_excess.count_rate                0.021              0.021 -2.44202e-05 (-0.12 %)
+  ASN16_Cs137_house      infer_eq_compt rates grey       residual_missing.count_rate               0.032              0.032 3.01434e-05 (+0.09 %)
+  ASN16_Cs137_house      infer_eq_compt rates limit      Cs-137.collinearity                       0.822              0.820 -0.002 (-0.21 %)
+  ASN16_Cs137_house      infer_eq_compt rates limit      Cs-137.count_rate                      6715.681           6714.878 -0.803 (-0.01 %)
+  ASN16_Cs137_house      infer_eq_compt rates limit      Cs-137.decision_threshold_ra              3.328              3.455 0.128 (+3.84 %)
+  ASN16_Cs137_house      infer_eq_compt rates limit      Cs-137.detection_limit_rate               5.166              5.365 0.199 (+3.85 %)
+  ASN16_Cs137_house      infer_eq_compt rates limit      Cs-137.limit_peak_counts              77335.243          80312.870 2977.627 (+3.85 %)
+  ASN16_Cs137_house      infer_eq_compt rates limit      K-40.collinearity                         0.506              0.506 -0.000487708 (-0.10 %)
+  ASN16_Cs137_house      infer_eq_compt rates limit      K-40.decision_threshold_rate              8.657              9.046 0.389 (+4.49 %)
+  ASN16_Cs137_house      infer_eq_compt rates limit      K-40.detection_limit_rate                13.661             14.286 0.625 (+4.57 %)
+  ASN16_Cs137_house      infer_eq_compt rates limit      K-40.limit_peak_counts                 5128.150           5362.750 234.600 (+4.57 %)
+  ASN16_Cs137_house      infer_eq_compt rates meta       chi2ndf                                  19.451             21.232 1.782 (+9.16 %)
+  ASN16_Cs137_house      infer_eq_compt rates meta       chi2ndf_pois                            175.595            177.935 2.340 (+1.33 %)
+  ASN16_Cs137_house      infer_eq_compt rates meta       model_residual                            0.072              0.071 -0.000741461 (-1.04 %)
+  ASN16_Cs137_house      infer_eq_compt rates tail_in_la Cs-137.peak_counts                 12550068.683       12547544.862 -2523.820 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_compt rates untied_tai Cs-137.peak_counts                 12550068.683       12547544.862 -2523.820 (-0.02 %)
+  ASN16_Cs137_house      infer_eq_compt ROWS             строка 1                                      ↓                  ↓              ≠
+      было : Cs-137 | Single | 94.958 | - | -
+      стало: Cs-137 | Single | 94.947 | - | -
+  ASN16_Cs137_house      infer_eq_compt ROWS             строка 2                                      ↓                  ↓              ≠
+      было : Backscatter | Nuisance | 3.470 | - | -
+      стало: Backscatter | Nuisance | 3.479 | - | -
+  ASN16_Cs137_house      infer_eq_compt ROWS             строка 3                                      ↓                  ↓              ≠
+      было : Xray-Pb | Nuisance | 0.730 | - | -
+      стало: Xray-Pb | Nuisance | 0.731 | - | -
+  ASN16_Cs137_house      infer_eq_compt ROWS             строка 5                                      ↓                  ↓              ≠
+      было : pile-up | Nuisance | 0.333 | - | -
+      стало: pile-up | Nuisance | 0.334 | - | -
+  ASN16_Cs137_house      infer_eq_compt SCREEN           строка 1                     Cs-137 | 94.96% |  Cs-137 | 94.95% |               ≠
+  ASN16_Cs137_house      infer_eq_compt SCREEN           строка 6                                      ↓                  ↓              ≠
+      было : K-40 | < 0.00209 % | 
+      стало: K-40 | < 0.00218 % | 
+  ASN16_Cs137_house      infer_eq_compt SCREEN           строка 10                                     ↓                  ↓              ≠
+      было : Качество подгонки χ²/ndf | 175.59 | 
+      стало: Качество подгонки χ²/ndf | 177.93 | 
+  ASN16_Cs137_house      infer_eq_compt SCREEN           строка 11                                     ↓                  ↓              ≠
+      было : Поправка погрешности на качество подгонки, × | 4.410 | Погрешности компонентов домножены на этот множитель, когда подгон
+      стало: Поправка погрешности на качество подгонки, × | 4.608 | Погрешности компонентов домножены на этот множитель, когда подгон
+  ASN16_Cs137_house      infer_eq_compt SCREEN           строка 20                                     ↓                  ↓              ≠
+      было : Фон больше спектра в 3110–3295 кэВ: вероятно, фон снят без пробы (пустой сосуд) или в другой обстановке | проверьте фон 
+      стало: Участок 3110–3310 кэВ не учтён в подгонке: в нём фон значимо больше спектра | не учтён | Вероятно, фон снят без пробы (п
+  ASN16_Cs137_house      infer_eq_compt SCREEN           строка 21                                     ↓                  ↓              ≠
+      было : … описан | низ не описан | z 472.7; модели нуклидов выше всего измеренного спектра в этой полосе
+      стало: … описан | низ не описан | z 473.6; модели нуклидов выше всего измеренного спектра в этой полосе
+  ASN16_Cs137_house      infer_eq_compt шапка            chi2                                          ↓                  ↓              ≠
+      было : chi2/ndf 19.451, невязка модели 7.2 %, суммирование да
+      стало: chi2/ndf 21.232, невязка модели 7.1 %, суммирование да
+  ASN16_Cs137_house      infer_eq_compt шапка            untied                                        ↓                  ↓              ≠
+      было : …idual = в невязке): Cs-137 12550068.7 (layer); всего 12550068.7 отсч.
+      стало: …idual = в невязке): Cs-137 12547544.9 (layer); всего 12547544.9 отсч.
+
+⛔ КАРТИНКА ИЗМЕНИЛАСЬ: AS80_Th232_disk / infer_eq — 19 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-11-03 02:08)
+  спектр                 режим          полоса           компонент                                  было              стало              Δ
+  AS80_Th232_disk        infer_eq       SCREEN           строка 17                                     ↓                  ↓              ≠
+      было : Pb-212 — сумм-пик |  | 
+      стало: Tl-208 — пики вылета |  | Пики одиночного (SE) и двойного (DE) вылета линий этого нуклида. Матрица отклика уже несёт их,
+  AS80_Th232_disk        infer_eq       SCREEN           строка 18                                     ↓                  ↓              ≠
+      было : Bi-212 — сумм-пик |  | 
+      стало: DE 1591 кэВ от 2614.5 | 1509 отсч. | Tl-208: линия 2614.5 кэВ, пик вылета на 1591 кэВ — 1509 отсч.\nПоказан, потому что 
+  AS80_Th232_disk        infer_eq       SCREEN           строка 19                                     ↓                  ↓              ≠
+      было :  |  | 
+      стало: SE 2126 кэВ от 2614.5 | 3837 отсч. | Tl-208: линия 2614.5 кэВ, пик вылета на 2126 кэВ — 3837 отсч.\nПоказан, потому что 
+  AS80_Th232_disk        infer_eq       SCREEN           строка 20                                     ↓                  ↓              ≠
+      было : Качество разбора |  | 
+      стало: Pb-212 — сумм-пик |  | 
+  AS80_Th232_disk        infer_eq       SCREEN           строка 21                                     ↓                  ↓              ≠
+      было : Расхождение модели и спектра: + / − — уровень шума 2.4 %, на графике обрезано ниже нуля: 13 каналов | +4.5 / −5.3 % | Мо
+      стало: Bi-212 — сумм-пик |  | 
+  AS80_Th232_disk        infer_eq       SCREEN           строка 22                                     ↓                  ↓              ≠
+      было : Качество подгонки χ²/ndf | 2.64 | 
+      стало:  |  | 
+  AS80_Th232_disk        infer_eq       SCREEN           строка 23                                     ↓                  ↓              ≠
+      было : Поправка погрешности на качество подгонки, × | 1.413 | Погрешности компонентов домножены на этот множитель, когда подгон
+      стало: Качество разбора |  | 
+  AS80_Th232_disk        infer_eq       SCREEN           строка 24                                     ↓                  ↓              ≠
+      было : Нуклид найден, если значимость | z ≥ 3 | Пределы посчитаны по ISO 11929 под правило обнаружения самого FSA. Порог решени
+      стало: Расхождение модели и спектра: + / − — уровень шума 2.4 %, на графике обрезано ниже нуля: 13 каналов | +4.5 / −5.3 % | Мо
+  AS80_Th232_disk        infer_eq       SCREEN           строка 25                                     ↓                  ↓              ≠
+      было : Нижняя граница разбора, кэВ | 15.8 | Нижняя граница в окне FSA — 0: разбор идёт с 15.8 кэВ по правилу порога АЦП
+      стало: Качество подгонки χ²/ndf | 2.64 | 
+  AS80_Th232_disk        infer_eq       SCREEN           строка 26                                     ↓                  ↓              ≠
+      было : Матрица отклика | учтена | 
+      стало: Поправка погрешности на качество подгонки, × | 1.413 | Погрешности компонентов домножены на этот множитель, когда подгон
+  AS80_Th232_disk        infer_eq       SCREEN           строка 27                                     ↓                  ↓              ≠
+      было : Кривая эффективности | учтена | 
+      стало: Нуклид найден, если значимость | z ≥ 3 | Пределы посчитаны по ISO 11929 под правило обнаружения самого FSA. Порог решени
+  AS80_Th232_disk        infer_eq       SCREEN           строка 28                                     ↓                  ↓              ≠
+      было : Каскадное суммирование | учтено | 
+      стало: Нижняя граница разбора, кэВ | 15.8 | Нижняя граница в окне FSA — 0: разбор идёт с 15.8 кэВ по правилу порога АЦП
+  AS80_Th232_disk        infer_eq       SCREEN           строка 29                                     ↓                  ↓              ≠
+      было : Бета-излучение пробы | 35499 отсч. | Отсчёты, которые модель приписала бета-электронам из пробы: 35499. Раздел электроно
+      стало: Матрица отклика | учтена | 
+  AS80_Th232_disk        infer_eq       SCREEN           строка 30                                     ↓                  ↓              ≠
+      было : Опорных пиков для шкалы | 4 | Опорные пики, по которым подстроена шкала (+ взят, - отвергнут): компонент, центр модели к
+      стало: Кривая эффективности | учтена | 
+  AS80_Th232_disk        infer_eq       SCREEN           строка 31                                     ↓                  ↓              ≠
+      было : Растяжение шкалы, % | -0.38 | Опорные пики, по которым подстроена шкала (+ взят, - отвергнут): компонент, центр модели к
+      стало: Каскадное суммирование | учтено | 
+  AS80_Th232_disk        infer_eq       SCREEN           строка 32                                     ↓                  ↓              ≠
+      было : Сдвиг шкалы, кэВ | +0.00 | Опорные пики, по которым подстроена шкала (+ взят, - отвергнут): компонент, центр модели кэВ,
+      стало: Бета-излучение пробы | 35499 отсч. | Отсчёты, которые модель приписала бета-электронам из пробы: 35499. Раздел электроно
+  AS80_Th232_disk        infer_eq       SCREEN           строка 33                                     ↓                  ↓              ≠
+      было : —
+      стало: Опорных пиков для шкалы | 4 | Опорные пики, по которым подстроена шкала (+ взят, - отвергнут): компонент, центр модели к
+  AS80_Th232_disk        infer_eq       SCREEN           строка 34                                     ↓                  ↓              ≠
+      было : —
+      стало: Растяжение шкалы, % | -0.38 | Опорные пики, по которым подстроена шкала (+ взят, - отвергнут): компонент, центр модели к
+  AS80_Th232_disk        infer_eq       SCREEN           строка 35                                     ↓                  ↓              ≠
+      было : —
+      стало: Сдвиг шкалы, кэВ | +0.00 | Опорные пики, по которым подстроена шкала (+ взят, - отвергнут): компонент, центр модели кэВ,
+  ✅ ASN16_Radon_filter2 / chain_eq: совпало с эталоном (2026-11-03 02:08)
+  ✅ ASN16_Radon_filter2 / chain_noeq: совпало с эталоном (2026-11-03 02:08)
+  ✅ G1S24_Rn222Coal_eq01 / sample_eq: совпало с эталоном (2026-11-03 02:08)
+  ✅ G1S24_Rn222Coal_eq01 / sample_noeq: совпало с эталоном (2026-11-03 02:08)
+
+⛔ КАРТИНКА ИЗМЕНИЛАСЬ: ASN16_Cs137_10cm / sample_nomatrix — 25 расхождений (допуск rel 1e-09, abs 1e-06; эталон объявлен 2026-11-05 01:30)
+  спектр                 режим          полоса           компонент                                  было              стало              Δ
+  ASN16_Cs137_10cm       sample_nomatri 1500-3000 кэВ    continuum                                 7.954              7.948 -0.006 (-0.08 %)
+  ASN16_Cs137_10cm       sample_nomatri 1500-3000 кэВ    continuum_raw                           -44.135            -44.141 -0.006 (+0.01 %)
+  ASN16_Cs137_10cm       sample_nomatri 1500-3000 кэВ    excess_fit                              368.649            368.645 -0.004 (-0.00 %)
+  ASN16_Cs137_10cm       sample_nomatri 1500-3000 кэВ    excess_net                                7.331              7.326 -0.005 (-0.07 %)
+  ASN16_Cs137_10cm       sample_nomatri 1500-3000 кэВ    missing_fit                             373.169            373.171 0.002 (+0.00 %)
+  ASN16_Cs137_10cm       sample_nomatri 1500-3000 кэВ    missing_net                             414.250            414.251 0.001 (+0.00 %)
+  ASN16_Cs137_10cm       sample_nomatri 1500-3000 кэВ    model                                   -44.135            -44.141 -0.006 (+0.01 %)
+  ASN16_Cs137_10cm       sample_nomatri rates component  Backscatter.share_pct                    18.425             18.426 0.000871706 (+0.00 %)
+  ASN16_Cs137_10cm       sample_nomatri rates component  Cs-137.share_pct                         81.546             81.550 0.004 (+0.00 %)
+  ASN16_Cs137_10cm       sample_nomatri rates grey       above_lines.peak_counts                  11.582              9.686 -1.896 (-16.37 %)
+  ASN16_Cs137_10cm       sample_nomatri rates grey       above_lines.share_pct                     0.029              0.024 -0.005 (-16.37 %)
+  ASN16_Cs137_10cm       sample_nomatri rates grey       residual_excess.count_rate                0.192              0.192 -0.000225803 (-0.12 %)
+  ASN16_Cs137_10cm       sample_nomatri rates grey       residual_missing.count_rate               0.204              0.205 0.001 (+0.70 %)
+  ASN16_Cs137_10cm       sample_nomatri rates meta       chi2ndf                                   0.611              0.635 0.024 (+3.99 %)
+  ASN16_Cs137_10cm       sample_nomatri rates meta       chi2ndf_pois                              1.931              1.760 -0.171 (-8.85 %)
+  ASN16_Cs137_10cm       sample_nomatri rates meta       model_residual                            0.305              0.278 -0.027 (-8.92 %)
+  ASN16_Cs137_10cm       sample_nomatri ROWS             строка 1                                      ↓                  ↓              ≠
+      было : Cs-137 | Single | 81.546 | - | -
+      стало: Cs-137 | Single | 81.550 | - | -
+  ASN16_Cs137_10cm       sample_nomatri ROWS             строка 2                                      ↓                  ↓              ≠
+      было : Backscatter | Nuisance | 18.425 | - | -
+      стало: Backscatter | Nuisance | 18.426 | - | -
+  ASN16_Cs137_10cm       sample_nomatri ROWS             строка 3                                      ↓                  ↓              ≠
+      было : continuum | Nuisance | 0.029 | - | -
+      стало: continuum | Nuisance | 0.024 | - | -
+  ASN16_Cs137_10cm       sample_nomatri SCREEN           строка 3                                      ↓                  ↓              ≠
+      было : континуум | 0.03% | Подложка модели, не принадлежащая ни одному нуклиду: выше самой верхней линии состава приписать её н
+      стало: континуум | 0.02% | Подложка модели, не принадлежащая ни одному нуклиду: выше самой верхней линии состава приписать её н
+  ASN16_Cs137_10cm       sample_nomatri SCREEN           строка 6                                      ↓                  ↓              ≠
+      было : …налов, от 5 кэВ | +19.2 / −20.4 % | Модель без единой ошибки всё равно даёт около 16.5 % в каждой половине: это пуассон
+      стало: …налов, от 5 кэВ | +19.2 / −20.5 % | Модель без единой ошибки всё равно даёт около 16.5 % в каждой половине: это пуассон
+  ASN16_Cs137_10cm       sample_nomatri SCREEN           строка 7                                      ↓                  ↓              ≠
+      было : Качество подгонки χ²/ndf | 1.93 | 
+      стало: Качество подгонки χ²/ndf | 1.76 | 
+  ASN16_Cs137_10cm       sample_nomatri SCREEN           строка 18                                     ↓                  ↓              ≠
+      было : Фон больше спектра в 3147–3349 кэВ: вероятно, фон снят без пробы (пустой сосуд) или в другой обстановке | проверьте фон 
+      стало: Участок 3163–3349 кэВ не учтён в подгонке: в нём фон значимо больше спектра | не учтён | Вероятно, фон снят без пробы (п
+  ASN16_Cs137_10cm       sample_nomatri шапка            chi2                                          ↓                  ↓              ≠
+      было : chi2/ndf 0.611, невязка модели 30.5 %, суммирование нет
+      стало: chi2/ndf 0.635, невязка модели 27.8 %, суммирование нет
+  ASN16_Cs137_10cm       sample_nomatri шапка            grey                                          ↓                  ↓              ≠
+      было : …— S175), выше последней линии 11.6 отсч.; всего 11.6 отсч. (0.029 % стека)
+      стало: …— S175), выше последней линии 9.7 отсч.; всего 9.7 отсч. (0.024 % стека)
+
+ОТКАЗ: картинка FSA на витрине разошлась с эталоном (342 строк). Это либо дефект отображения,
+       либо правка, которую принимают ПЕРЕОБЪЯВЛЕНИЕМ эталона: tools\fsa_showcase\snapshot.ps1
+       (таблица выше — в отчёт полосы). Снимки: tools\fsa_showcase\wd\out\*.png. 136 с.

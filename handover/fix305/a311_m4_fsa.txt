@@ -1,0 +1,20 @@
+BecqMoni: main config: <полоса>\mut\lab_m4_gate\config\BecquerelMonitor.xml
+BecqMoni: device configs: <полоса>\mut\lab_m4_gate\config\device: 10 loaded
+== RC103_Cs137_0cm
+   OK  матрица годна и несёт строки
+   раздел электрона: годен
+   OK  разбор есть
+   ROW	Backscatter	Cs-137 — backscatter	
+   ROW	BackscatterLine	Hump 232 keV from 661.7	1863 counts
+   OK  строки обратного рассеяния есть, 2
+   Cs-137: подслой 1722 отсч. из 129774 (1.33 %), выше ленты на 0.00E+000
+   OK  Cs-137: подслой внутри ленты
+      линия 661.7 кэВ: вершина 232 кэВ, 1863 отсч., канал 91.6
+   OK  снятая галка: образы и скорости те же побитно
+   ROW	Backscatter	Cs-137 — backscatter	
+   ROW	BackscatterLine	Hump 232 keV from 661.7	1863 counts
+   ОТКАЗ снятая галка: строк нет
+   ОТКАЗ снятая галка: подслоя нет
+   OK  старая матрица без строк: образы те же побитно
+   OK  старая матрица без строк: строки нет
+⛔ РАСХОЖДЕНИЙ: 2

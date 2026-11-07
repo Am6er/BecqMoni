@@ -241,6 +241,9 @@ static class MatrixWindowDetailsProbeP292
     static int Main(string[] args)
     {
         Console.OutputEncoding = Encoding.UTF8;
+        // (`AMBER305`) Окно теперь строит и раздел электрона; эта проба судит окно, а не раздел,
+        // и на ЦП 200 тыс. историй на строку стоили бы минут на каждый счёт.
+        BecquerelMonitor.EfficiencyMaker.ElectronSectionRecipe.Histories = 1000;
         string outPath = null;
         foreach (string a in args)
         {

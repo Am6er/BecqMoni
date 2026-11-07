@@ -217,7 +217,9 @@ namespace EditorShot
         /// минус 640 точек колонки полей): самый тесный случай, ради которого
         /// проба и заведена. Второй — просторный, как у `SketchShot`.
         /// </summary>
-        static readonly Size[] EditorSizes = { new Size(232, 440), new Size(420, 460) };
+        static readonly Size[] EditorSizes = {
+            // (`AMBER307`) настоящие размеры поля в редакторе: окно 900×560, 982×620, 982×839, 1500×1000, 1920×1040
+            new Size(198, 367), new Size(232, 440), new Size(280, 427), new Size(280, 646), new Size(420, 460), new Size(798, 807), new Size(1218, 847) };
 
         /// <summary>Миниатюра вкладки «Эффективность» в конфиге прибора.</summary>
         static readonly Size[] OverviewSizes = { new Size(300, 200), new Size(220, 120) };
@@ -544,7 +546,7 @@ namespace EditorShot
         static GeometrySketch.SketchLabel[] Draw(GeometryModel model, GeometrySketch.SketchMode mode,
                                                  Size size, string png)
         {
-            using (GeometrySketch sketch = new GeometrySketch { Mode = mode })
+            using (GeometrySketch sketch = new GeometrySketch { Mode = mode, ShowShield = model.InShield })
             using (Bitmap bmp = new Bitmap(size.Width, size.Height))
             {
                 sketch.Bounds = new Rectangle(Point.Empty, size);

@@ -1,0 +1,7 @@
+BecqMoni: main config: <полоса>\mut\lab_m1_rng\config\BecquerelMonitor.xml
+BecqMoni: device configs: <полоса>\mut\lab_m1_rng\config\device: 10 loaded
+   отпечаток тела A 40aa2ca9b9c960b3aec298d77ed72356cae743270b4d3fd087d61e84e3013b47
+   отпечаток тела B 14ce2ee2883d0aa186711f7f57ca8781ae4960fade51823039420dda84b399a9
+   OK  клеймо то же
+   ОТКАЗ тело то же побитно: каналы (и `Compton`) не изменились, случайных чисел метка не тратит
+⛔ РАСХОЖДЕНИЙ: 1

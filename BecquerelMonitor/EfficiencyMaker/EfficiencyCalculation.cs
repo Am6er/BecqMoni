@@ -595,6 +595,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return result;
             }
 
+            // (`AMBER307`) Слой без вещества — отказ словами, а не падение в потоке счёта.
+            string missingMaterial = geometry.MissingMaterialProblem();
+            if (missingMaterial != null)
+            {
+                result.Error = missingMaterial;
+                return result;
+            }
+
             int missingZ;
             if (!geometry.Crystal.IsKnown(out missingZ))
             {

@@ -197,6 +197,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public readonly List<int> ShieldElements = new List<int>();
 
         /// <summary>
+        /// (`AMBER306`) Образы подписей, которых в базах нет: линии вбиты руками
+        /// (<see cref="FsaLibrary.BuildFromLabels"/>). Ложатся в состав наравне с
+        /// образами распада: вылет и аннигиляция считаются и от них.
+        /// </summary>
+        public readonly List<FsaComponent> TypedComponents = new List<FsaComponent>();
+
+        /// <summary>
         /// Нижняя граница рабочего диапазона, кэВ. Ставится вызывающим из
         /// `Min_Range` прибора — то есть из настройки ПОИСКА ПИКОВ.
         ///
@@ -686,16 +693,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// первого постулата (`S56`, формулировка Amber 17.08.2026): «у каждого
     /// спектра — СВОЯ база пиков, привязанная к снятому нуклиду».
     ///
-    /// ЧЕМ ЭТО ОТЛИЧАЕТСЯ ОТ <see cref="FsaLibrary.BuildFromPeaks"/>. Там состав
-    /// задаёт поиск пиков: какими нуклидами он подписал спектр, те и
-    /// раскладываются, — а подписывает он из ОБЩЕГО списка, предъявленного
-    /// прибору. Здесь наоборот: состав известен заранее (корпус знает, что
-    /// снято), и общая библиотека приложения перестаёт быть тем, что
-    /// предъявляется спектру. Цена прежнего порядка измерена в тот же день
-    /// (`N18`): на `ASN16_Lu176` завёлся Pu-238 долей 1.7 % при z = 31.77 —
+    /// ЧЕМ ЭТО ОТЛИЧАЕТСЯ ОТ ПОДБОРА ПО МЕТКАМ. У поиска пиков состав задают подписи
+    /// из ОБЩЕГО списка, предъявленного прибору. Здесь наоборот: состав известен
+    /// заранее (корпус знает, что снято), и общая библиотека приложения перестаёт
+    /// быть тем, что предъявляется спектру. Цена прежнего порядка измерена в тот же
+    /// день (`N18`): на `ASN16_Lu176` завёлся Pu-238 долей 1.7 % при z = 31.77 —
     /// единственной линией 152 кэВ в интенсивности 0.0009 %, попавшей в полосу
-    /// обратного рассеяния линии 306.78 самого лютеция. Своим списком такой
-    /// кандидат не появился бы вовсе.
+    /// обратного рассеяния линии 306.78 самого лютеция. Своим списком такой кандидат
+    /// не появился бы вовсе. ⛔ (`AMBER306`) Образы по меткам собирает этот же метод
+    /// (<see cref="FsaLibrary.BuildFromLabels"/>): метка выбирает нуклид, не линии.
     ///
     /// ⛔ ИСТОЧНИК — БАЗЫ, А НЕ КОНФИГ (указание Amber 18.08.2026). Ни
     /// `NuclideDefinition.xml`, ни `NuclideSet` здесь не читаются и читаться не
@@ -1096,6 +1102,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // (`AMBER306`) Подписи, которых в базах нет: их образ вбит руками, база о нём молчит.
+            var typedNames = new List<string>();
+            foreach (FsaComponent typed in spec.TypedComponents)
+            {
+                result.Add(typed);
+                report.Lines += typed.Lines.Count;
+                if (typed.Kind != FsaComponentKind.Nuisance)
+                {
+                    report.DecayComponents++;
+                    typedNames.Add(typed.Name);
+                }
+            }
+
             if (spec.AtomicXray)
             {
                 int before = result.Count;
@@ -1112,6 +1131,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                       ? name : PrettyName(nucid));
                 }
 
+                declaredNames.UnionWith(typedNames);
                 AddAtomic(spec, result, declaredNames, report);
                 report.AtomicComponents = result.Count - before;
             }
@@ -3451,13 +3471,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <see cref="DecayLines"/> кладёт в образ на пути «Из NucBase»; null —
         /// позитронов у нуклида база не знает.
         ///
-        /// ⛔ Открыта наружу РАДИ ПУТИ ПО УМОЛЧАНИЮ
-        /// (<see cref="FsaLibrary.BuildFromPeaks"/>): набор нуклидов признака
-        /// «аннигиляционная часть выхода» не несёт и нести не может — в нём у
-        /// линии три числа, имя, энергия и выход, — а гейт свободного образа
-        /// `Ann-511` без этого признака читает линию 511 как ГАММУ СОСТАВА и
-        /// снимает образ. Второй редакции числа здесь нет: оно то же самое и из
-        /// того же места, зажатое <see cref="AnnihilationYieldPercent"/>.
+        /// ⛔ (`AMBER306`) Образ по меткам собирает <see cref="Build"/>, и линия приходит
+        /// туда сама; читают этот метод пробы. Второй редакции числа здесь нет: оно то
+        /// же самое и из того же места, зажатое <see cref="AnnihilationYieldPercent"/>.
         ///
         /// ⚠ Возвращается КОПИЯ: строка кэша линий уходит в образы как есть, и
         /// читателю, который её поправит, достался бы весь проект.
@@ -5166,7 +5182,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         ///
         /// ⛔ (`AMBER78`, П149 24.09.2026) ВСЕ НАПИСАНИЯ, КОТОРЫЕ ПРОЕКТ ПИШЕТ
         /// САМ, а не одно «Cs-137». Набор нуклидов, из которого путь FSA по
-        /// умолчанию (<see cref="FsaLibrary.BuildFromPeaks"/>) берёт имена
+        /// меткам (<see cref="FsaLibrary.BuildFromLabels"/>) берёт имена
         /// компонентов, пишет `NucBase` тремя форматами — «137CS, 234PAm1»,
         /// «Cs137, Pa234m1» (УМОЛЧАНИЕ формы) и «Cs-137, Pa-234m1», — запасной
         /// набор приложения пишет «K40», «Cs137», корпусная подпись
@@ -7232,6 +7248,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             reason = spec.Problem();
             return reason == null ? spec : null;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, Э2, 04.11.2026) СПЕЦИФИКАЦИЯ ОДНОЙ БЕТЫ, БЕЗ КАСКАДА: ветвь,
+        /// которая идёт на основное состояние или на уровень, которого в схеме Geant4
+        /// нет. Для пробы такая ветвь неотличима от «событие кончилось» и в
+        /// `EventSpec` отказывает — а для СОБСТВЕННОЙ АКТИВНОСТИ КРИСТАЛЛА это
+        /// законный распад: бета оседает в объёме и без каскада (так идут β⁻ 44.8 кэВ
+        /// у Ac-227, 1367 кэВ у Pb-211, 1431 кэВ у Tl-207, 574 кэВ у Bi-211).
+        /// Каскада нет — `LevelCount` пуст, `CrystalEventFrom` кладёт одну бету.
+        /// </summary>
+        public static EfficiencyMaker.ElectronBranchSpec BetaOnlySpec(FsaBeta beta)
+        {
+            if (beta == null || beta.IsLine || beta.Positron || !(beta.EndpointKev > 0.0))
+            {
+                return null;
+            }
+
+            double[] t, cdf;
+            BetaCdf(beta, out t, out cdf);
+            return new EfficiencyMaker.ElectronBranchSpec
+            {
+                Nuclide = beta.Nuclide,
+                EndpointKev = beta.EndpointKev,
+                Intensity = beta.Intensity,
+                LevelKev = 0.0,
+                StartLevel = -1,
+                LevelFirst = new int[0],
+                LevelCount = new int[0],
+                LevelEnergy = new double[0],
+                TransitionCdf = new double[0],
+                TransitionTo = new int[0],
+                EmitCdf = new double[0],
+                EmitKev = new double[0],
+                BetaT = t,
+                BetaCdf = cdf,
+            };
         }
 
         /// <summary>(`Ф8`) Каскад кончается на уровне: основное состояние или изомер дольше порога (кроме начального — тот разбирает `HasCascade`).</summary>

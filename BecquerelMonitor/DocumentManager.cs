@@ -3907,7 +3907,7 @@ namespace BecquerelMonitor
             return null;
         }
 
-        static string SerialOfSpectrum(ResultData data)
+        internal static string SerialOfSpectrum(ResultData data)
         {
             EnergySpectrum spectrum = data != null ? data.EnergySpectrum : null;
             return spectrum != null && spectrum.SerialNumber != null ? Clean(spectrum.SerialNumber.ToString()) : null;

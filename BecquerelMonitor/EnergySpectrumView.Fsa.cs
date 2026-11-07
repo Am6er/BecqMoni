@@ -106,6 +106,20 @@ namespace BecquerelMonitor
         /// </summary>
         double[][] fsaSumPeakLevel;
 
+        /// <summary>
+        /// (`AMBER311`) Верх подслоя пиков вылета каждого слоя и его низ: кладётся над подслоем
+        /// сумм-пиков, в той же ленте, встречным штрихом. null — вылетов у слоя нет, либо режим
+        /// канала (там лента канала и есть вылет, отдельно штриховать нечего).
+        /// </summary>
+        double[][] fsaEscapeLevel;
+
+        double[][] fsaEscapeBase;
+
+        /// <summary>(`AMBER311`) Подслой обратного рассеяния: над вылетами той же ленты, своим штрихом; только при «All».</summary>
+        double[][] fsaBackscatterLevel;
+
+        double[][] fsaBackscatterBase;
+
         double[] fsaZeroLevel;
         double[] fsaNetSpectrum;
 
@@ -648,6 +662,10 @@ namespace BecquerelMonitor
             this.fsaPresentation = null;
             this.fsaCumulative = null;
             this.fsaSumPeakLevel = null;
+            this.fsaEscapeLevel = null;
+            this.fsaEscapeBase = null;
+            this.fsaBackscatterLevel = null;
+            this.fsaBackscatterBase = null;
             this.fsaZeroLevel = null;
             this.fsaNetSpectrum = null;
             this.fsaStack = null;
@@ -760,6 +778,10 @@ namespace BecquerelMonitor
             this.fsaCumulative = new double[count][];
 
             this.fsaSumPeakLevel = new double[count][];
+            this.fsaEscapeLevel = new double[count][];
+            this.fsaEscapeBase = new double[count][];
+            this.fsaBackscatterLevel = new double[count][];
+            this.fsaBackscatterBase = new double[count][];
             this.fsaStackCurves = new double[count][];
 
             double[] running = this.fsaZeroLevel;
@@ -804,6 +826,40 @@ namespace BecquerelMonitor
                     }
 
                     this.fsaSumPeakLevel[k] = sumLevel;
+                }
+
+                // (`AMBER311`) Подслой пиков вылета — над подслоем сумм той же ленты и тем же
+                // заслоном: выше ленты не поднимается. Только при «All»: в режиме канала лента
+                // канала вылета и есть вылет, а в прочих каналах его нет.
+                double[] escapes = mode == FsaMatrixLayer.All ? stack[k].EscapePeakCurve : null;
+                if (escapes != null)
+                {
+                    double[] from = this.fsaSumPeakLevel[k] ?? running;
+                    double[] escapeLevel = new double[channels];
+                    for (int i = 0; i < channels; i++)
+                    {
+                        double top = from[i] + (i < escapes.Length ? escapes[i] : 0.0);
+                        escapeLevel[i] = top < level[i] ? top : level[i];
+                    }
+
+                    this.fsaEscapeBase[k] = from;
+                    this.fsaEscapeLevel[k] = escapeLevel;
+                }
+
+                // (`AMBER311`) Обратное рассеяние — над вылетами: выше ленты не поднимается.
+                double[] humps = mode == FsaMatrixLayer.All ? stack[k].BackscatterCurve : null;
+                if (humps != null)
+                {
+                    double[] from = this.fsaEscapeLevel[k] ?? this.fsaSumPeakLevel[k] ?? running;
+                    double[] humpLevel = new double[channels];
+                    for (int i = 0; i < channels; i++)
+                    {
+                        double top = from[i] + (i < humps.Length ? humps[i] : 0.0);
+                        humpLevel[i] = top < level[i] ? top : level[i];
+                    }
+
+                    this.fsaBackscatterBase[k] = from;
+                    this.fsaBackscatterLevel[k] = humpLevel;
                 }
 
                 this.fsaCumulative[k] = level;
@@ -966,6 +1022,34 @@ namespace BecquerelMonitor
                             this.DrawFsaBand(g, hatch, lower, sumLevel);
                         }
                     }
+
+                    // (`AMBER311`) Пики вылета — встречным штрихом над подслоем сумм, в цвете
+                    // своей ленты и с её приглушением: часть нуклида, как и сумм-пики.
+                    double[] escapeLevel = this.fsaEscapeLevel != null ? this.fsaEscapeLevel[k] : null;
+                    if (escapeLevel != null)
+                    {
+                        Color hatchColor = muted
+                            ? MuteFsaColor(FsaPalette.SumPeakHatchColor(color))
+                            : FsaPalette.SumPeakHatchColor(color);
+                        using (Brush hatch = new HatchBrush(HatchStyle.DarkDownwardDiagonal,
+                                                            hatchColor, painted))
+                        {
+                            this.DrawFsaBand(g, hatch, this.fsaEscapeBase[k], escapeLevel);
+                        }
+                    }
+
+                    // (`AMBER311`) Обратное рассеяние — своим штрихом и с приглушением ленты.
+                    double[] humpLevel = this.fsaBackscatterLevel != null ? this.fsaBackscatterLevel[k] : null;
+                    if (humpLevel != null)
+                    {
+                        Color hatchColor = muted
+                            ? MuteFsaColor(FsaPalette.SumPeakHatchColor(color))
+                            : FsaPalette.SumPeakHatchColor(color);
+                        using (Brush hatch = new HatchBrush(HatchStyle.DarkVertical, hatchColor, painted))
+                        {
+                            this.DrawFsaBand(g, hatch, this.fsaBackscatterBase[k], humpLevel);
+                        }
+                    }
                 }
             }
             finally
@@ -1078,6 +1162,7 @@ namespace BecquerelMonitor
                 // (`AMBER45`) Над верхом ПОЛНОЙ модели: опора — пик полного
                 // поглощения, к которому привязана шкала, и стоит она там же
                 // при любом слое, как и лента невязки.
+                this.DrawFsaBackgroundMask(g, result);
                 this.DrawFsaAnchors(g, result, this.fsaModelTop);
             }
             finally
@@ -1112,6 +1197,43 @@ namespace BecquerelMonitor
         /// не рисуются: на графике им нечего сказать, их место — в подсказке
         /// строки отчёта.
         /// </summary>
+        /// <summary>
+        /// (`AMBER295`) Участки, снятые автомаской фона, — штриховкой на всю высоту поля, как зоны слоёв; разбор их
+        /// не судит, и глаз не должен судить модель там. Участков нет — не рисует ничего.
+        /// </summary>
+        void DrawFsaBackgroundMask(Graphics g, FsaResult result)
+        {
+            if (result == null || result.BackgroundMaskBands == null || result.BackgroundMaskBands.Count == 0
+                || this.energyCalibration == null || this.energySpectrum == null)
+            {
+                return;
+            }
+
+            using (Brush hatch = new HatchBrush(HatchStyle.WideUpwardDiagonal, FsaPalette.BackgroundMaskColor, Color.Transparent))
+            {
+                foreach (FsaBandWarning band in result.BackgroundMaskBands)
+                {
+                    int x0 = this.FsaEnergyToPixel(band.LoKev);
+                    int x1 = this.FsaEnergyToPixel(band.HiKev);
+                    int lo = Math.Max(x0, Math.Max(this.VisibleLeftPixel, this.left));
+                    int hi = Math.Min(x1, this.VisibleRightPixel);
+                    if (hi > lo)
+                    {
+                        g.FillRectangle(hatch, lo, 0, hi - lo, this.height);
+                    }
+                }
+            }
+        }
+
+        /// <summary>(`AMBER295`) Пиксель энергии, той же формулой, что у меток опор.</summary>
+        int FsaEnergyToPixel(double kev)
+        {
+            double channel = this.energyCalibration.EnergyToChannel(kev, maxChannels: this.energySpectrum.NumberOfChannels);
+            return this.horizontalUnit == HorizontalUnit.Energy
+                ? (int)((kev - this.energyViewOffset) * this.pixelPerEnergy * this.horizontalScale) + this.scrollX + this.left
+                : (int)(channel * this.horizontalScale) + this.scrollX + this.left;
+        }
+
         void DrawFsaAnchors(Graphics g, FsaResult result, double[] modelTop)
         {
             if (result == null || result.ScaleAnchors == null || result.ScaleAnchorsUsed == 0

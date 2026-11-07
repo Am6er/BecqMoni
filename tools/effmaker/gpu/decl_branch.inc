@@ -29,6 +29,10 @@ enum class ResponseChannel : int
 // = `public const int ResponseChannelCount = 7` (EfficiencySimulator.cs:7972). tally.cuh
 // входит после `struct Sim`; равенство RM_CHANNELS проверяет static_assert в kernels.cuh.
 static constexpr int ResponseChannelCount = 7;
+// (`AMBER311`) = EfficiencySimulator.ResponseRowCount, BackscatterRow, BackscatterMaxCos.
+static constexpr int ResponseRowCount = 8;
+static constexpr int BackscatterRow = 7;
+static constexpr real BackscatterMaxCos = (real)0.0;
 
 // --- очередь квантов истории (EfficiencySimulator.cs:3747-3807) ---
 // = `const int PendMax = 12`.
@@ -39,6 +43,11 @@ real pendE[PendMax];
 int pendCount;
 bool pendFromOutsideAnnihilation[PendMax];
 bool fromOutsideAnnihilation;
+// (`AMBER311`) Метка кванта: 0 — нет, 1 — рассеялся вне кристалла на угол порога, 2 — вышел из
+// кристалла без метки и метку больше не получает (`FrozenOutsideCos`). Едет с квантом по очереди.
+unsigned char pendBackState[PendMax];
+unsigned char backState;
+real historyBackscatter;     // занос истории такими квантами; аналоговая ветвь, читает AnalogTally
 
 // Очередь обхода ПОЛНОЙ эффективности (`N4`, :3810-3815) — своя.
 real totPendX[PendMax], totPendY[PendMax], totPendZ[PendMax];
@@ -172,6 +181,7 @@ struct AnalogWalk
     real x, y, z, ux, uy, uz;
     real e;
     real deposited, depositedOutside;
+    real depositedBackscatter;   // (`AMBER311`)
     real travelled, limit;
     int guard;               // счётчик цикла `for (guard …)`; 400 — выход из цикла
     bool comptonOutside;

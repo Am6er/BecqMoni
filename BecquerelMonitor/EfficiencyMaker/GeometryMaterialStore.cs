@@ -157,7 +157,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// 12 (03.11.2026, `AMBER282`) — углеродистая сталь «Steel, Carbon» по PNNL
         ///     (PNNL-15870 Rev. 1, запись 294): защита пробы Amber. Новое ИМЯ, довозится
         ///     сведением по именам; переноса не нужно.
-        public const int CurrentSeedVersion = 12;
+        /// 13 (06.11.2026, `AMBER307`) — «ABS plastic» по файлу модели RadiaCode-110: корпус
+        ///     шаблона «RadiaCode-110». Новое ИМЯ, довозится сведением по именам; переноса не
+        ///     нужно.
+        public const int CurrentSeedVersion = 13;
 
         /// <summary>
         /// (`AMBER107`, П324) Поколение, начиная с которого ВСЕ опечатки таблицы

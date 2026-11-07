@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="ChartHeaderCountBGRatio" xml:space="preserve">
-    <value>Фон / проба, %</value>
+    <value>Проба / фон, %</value>
   </data>
   <data name="ChartHeaderCountBGRatioHint" xml:space="preserve">
     <value>100 % — проба равна фону</value>
@@ -434,10 +434,25 @@
     <value>Полноспектральный разбор: нет опознанных пиков — сначала поиск пиков</value>
   </data>
   <data name="FSANotPossible" xml:space="preserve">
-    <value>Полноспектральный разбор для этого спектра невозможно</value>
+    <value>Полноспектральный разбор для этого спектра невозможен</value>
   </data>
   <data name="FSANoGeometry" xml:space="preserve">
     <value>Полноспектральному разбору нужна геометрия прибора: опишите кристалл в редакторе геометрии у кривой эффективности</value>
+  </data>
+  <data name="FSADeviceNotFound" xml:space="preserve">
+    <value>Полноспектральный разбор: прибор спектра не найден в конфигурации (в файле — «{0}», серийный номер {1}), а без прибора нет и геометрии. Выберите прибор в панели «Управление измерением» или заведите его в окне «Редактировать конфигурацию устройства» и опишите кристалл в редакторе геометрии у кривой эффективности</value>
+  </data>
+  <data name="FSADeviceNotAssigned" xml:space="preserve">
+    <value>Полноспектральный разбор: прибор «{0}» заведён, но спектру не назначен. Выберите его в панели «Управление измерением» или откройте файл заново</value>
+  </data>
+  <data name="FSADeviceNone" xml:space="preserve">
+    <value>Полноспектральный разбор: у спектра нет прибора, а без прибора нет и геометрии. Выберите прибор в панели «Управление измерением» или заведите его в окне «Редактировать конфигурацию устройства» и опишите кристалл в редакторе геометрии у кривой эффективности</value>
+  </data>
+  <data name="FSACurveNotChosen" xml:space="preserve">
+    <value>Полноспектральный разбор: спектру не выбрана кривая эффективности, а у прибора «{0}» она есть. Выберите её в списке «Эффективн.» панели «Управление измерением»</value>
+  </data>
+  <data name="FSADeviceAmbiguous" xml:space="preserve">
+    <value>Полноспектральный разбор: спектру не назначен прибор, ему одинаково подходят несколько конфигураций (в файле — «{0}», серийный номер {1}). Выберите прибор в панели «Управление измерением»</value>
   </data>
   <data name="FSACurveNotComputed" xml:space="preserve">
     <value>Полноспектральному разбору нужна кривая эффективности: у «{0}» геометрия задана, а сама кривая не посчитана — в конфигурации прибора на вкладке «Эффективность» нажмите «Изменить…», затем «Посчитать из геометрии» и «Сохранить кривую»</value>
@@ -446,7 +461,7 @@
     <value>Кривая не посчитана: нажмите «Изменить…», затем «Посчитать из геометрии».</value>
   </data>
   <data name="FSAFailed" xml:space="preserve">
-    <value>Полноспектральный разбор не удалось.</value>
+    <value>Полноспектральный разбор не удался.</value>
   </data>
   <data name="FSALegendModel" xml:space="preserve">
     <value>модель</value>
@@ -520,6 +535,21 @@
   </data>
   <data name="FSASumPeakLineHintSigma" xml:space="preserve">
     <value>Показан, потому что площадь не меньше 3σ измеренного спектра в ±FWHM: {0} отсч.</value>
+  </data>
+  <data name="FSAEscapeRow" xml:space="preserve">
+    <value>{0} — пики вылета</value>
+  </data>
+  <data name="FSAEscapeRowHint" xml:space="preserve">
+    <value>Пики одиночного (SE) и двойного (DE) вылета линий этого нуклида. Матрица отклика уже несёт их, поэтому они входят в его полосу и долю и второй раз не складываются. Энергия — там, где пик стоит в матрице, а не E − 511.</value>
+  </data>
+  <data name="FSAEscapeLineSe" xml:space="preserve">
+    <value>SE {0} кэВ от {1}</value>
+  </data>
+  <data name="FSAEscapeLineDe" xml:space="preserve">
+    <value>DE {0} кэВ от {1}</value>
+  </data>
+  <data name="FSAEscapeLineHintPair" xml:space="preserve">
+    <value>{0}: линия {1} кэВ, пик вылета на {2} кэВ — {3} отсч.</value>
   </data>
   <data name="EfficiencyMakerCalcRestored" xml:space="preserve">
     <value>Параметры расчёта восстановлены по готовой кривой: {0}</value>
@@ -1418,7 +1448,7 @@
     <value>Некоторые значения не числа - они подсвечены. Непрочитанное значение молча стало бы нулём.</value>
   </data>
   <data name="GeometryWarningNoMaterial" xml:space="preserve">
-    <value>ВНИМАНИЕ — {0}: толщина {1} мм задана, а у вещества нет плотности или состава. Слой считается вакуумом; иначе его место молча занял бы слой снаружи.</value>
+    <value>ВНИМАНИЕ — {0}: толщина {1} мм задана, а у вещества нет плотности или состава. Считать такую геометрию нельзя: выберите вещество в редакторе геометрии.</value>
   </data>
   <data name="GeometryWarningAtomFractions" xml:space="preserve">
     <value>{0}: доли атомные (FractionType = ATOM), пересчитаны в массовые.</value>
@@ -1788,6 +1818,15 @@
   </data>
   <data name="EfficiencySketchFacingSide" xml:space="preserve">
     <value>Развёрнут: проба у широкой грани кристалла</value>
+  </data>
+  <data name="EfficiencySketchSideHint" xml:space="preserve">
+    <value>Разрез по оси сцены</value>
+  </data>
+  <data name="EfficiencySketchTopHint" xml:space="preserve">
+    <value>Взгляд вдоль оси со стороны детектора, наружу от него</value>
+  </data>
+  <data name="EfficiencySketchDepth" xml:space="preserve">
+    <value>Глубина: {0} {1}</value>
   </data>
   <data name="ResponseMatrixStateValid" xml:space="preserve">
     <value>Годна для текущей геометрии.</value>
@@ -2376,6 +2415,9 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="FSAReportTipMatrixExtra" xml:space="preserve">
     <value>При матрице отклика переключатель управляет только отдельной дополнительной компонентой; вклад, уже заложенный в матрицу, остаётся.</value>
+  </data>
+  <data name="FSAReportTipEscapeMatrix" xml:space="preserve">
+    <value>При матрице отклика пики вылета уже внутри образов нуклидов: галка управляет их показом (строки под нуклидом и штриховка), образы и их фит не меняются. Отдельный образ аннигиляции 511 кэВ галка по-прежнему ставит в разбор и снимает, как и без матрицы.</value>
   </data>
   <data name="PeakLabelAnnihilationSum" xml:space="preserve">
     <value>{0} (сумма 511+511)</value>
@@ -3906,22 +3948,22 @@ http://xptable.sourceforge.net/</value>
     <value>Колодец во всю высоту пробы, а торец колодца — {0:F2} мм: включите «Под колодцем пробы нет» или сделайте колодец мельче {1:F1} мм.</value>
   </data>
   <data name="GdmlSummaryHeader" xml:space="preserve">
-    <value>{0}: геометрия GDML — томов {1}, веществ {2}; неподдержанных тел: {3}, неизвестных составов: {4}.</value>
+    <value>{0}: геометрия GDML — деталей {1}, веществ {2}; неподдержанных тел: {3}, неизвестных составов: {4}.</value>
   </data>
   <data name="GdmlSummaryBodies" xml:space="preserve">
     <value>Тела: {0}</value>
   </data>
   <data name="GdmlSummaryLarge" xml:space="preserve">
-    <value>Крупные тома (от {0} см³):</value>
+    <value>Крупные детали (от {0} см³):</value>
   </data>
   <data name="GdmlSummarySmall" xml:space="preserve">
-    <value>Прочее: томов {0}, {1} см³, {2} г</value>
+    <value>Прочее: деталей {0}, {1} см³, {2} г</value>
   </data>
   <data name="GdmlSummarySmallByMaterial" xml:space="preserve">
-    <value>  {0}: томов {1}, {2} г</value>
+    <value>  {0}: деталей {1}, {2} г</value>
   </data>
   <data name="GdmlSummarySmallUnknownMass" xml:space="preserve">
-    <value>  масса неизвестна: томов {0}</value>
+    <value>  масса неизвестна: деталей {0}</value>
   </data>
   <data name="GdmlSummaryUnclear" xml:space="preserve">
     <value>Не измерено:</value>
@@ -3966,7 +4008,7 @@ http://xptable.sourceforge.net/</value>
     <value>{0}: GDML не прочитан — {1}</value>
   </data>
   <data name="GdmlImported" xml:space="preserve">
-    <value>GDML импортирован: {0}; томов {1}, веществ {2}, неподдержанных тел: {3}, неизвестных составов: {4}.</value>
+    <value>GDML импортирован: {0}; деталей {1}, веществ {2}, неподдержанных тел: {3}, неизвестных составов: {4}.</value>
   </data>
   <data name="GdmlImportFailed" xml:space="preserve">
     <value>{0}: GDML не импортирован — {1}</value>
@@ -3978,12 +4020,584 @@ http://xptable.sourceforge.net/</value>
     <value>Геометрия GDML показана только для чтения: сохранение и расчёт пока не поддерживаются.</value>
   </data>
   <data name="GdmlSketchAxial" xml:space="preserve">
-    <value>Разрез по оси (y = 0)</value>
+    <value>Разрез по оси ({0} = {1})</value>
   </data>
   <data name="GdmlSketchEnd" xml:space="preserve">
     <value>Вид с торца ({0} = {1} мм)</value>
   </data>
   <data name="GdmlSketchNoGeometry" xml:space="preserve">
     <value>Геометрии GDML нет</value>
+  </data>
+  <data name="GdmlFatalRoot" xml:space="preserve">
+    <value>корневой элемент &lt;{0}&gt;, а не &lt;gdml&gt;</value>
+  </data>
+  <data name="GdmlNoteMassChild" xml:space="preserve">
+    <value>масса не считается: неизвестен объём {0} внутри неё</value>
+  </data>
+  <data name="GdmlNoteMassNotPlaced" xml:space="preserve">
+    <value>масса не считается: размещены не все дочерние детали</value>
+  </data>
+  <data name="GdmlNotePartialPhi" xml:space="preserve">
+    <value>неполный оборот {0} град.</value>
+  </data>
+  <data name="GdmlReasonAngleRange" xml:space="preserve">
+    <value>угол {0} {1} {2} град. вне допустимого диапазона</value>
+  </data>
+  <data name="GdmlReasonBoxSize" xml:space="preserve">
+    <value>размер {0} x {1} x {2} не положителен</value>
+  </data>
+  <data name="GdmlReasonFacesSkipped" xml:space="preserve">
+    <value>пропущено граней: {0}, первая ненайденная вершина: {1}</value>
+  </data>
+  <data name="GdmlReasonFewPlanes" xml:space="preserve">
+    <value>меньше двух плоскостей zplane</value>
+  </data>
+  <data name="GdmlReasonFewPoints" xml:space="preserve">
+    <value>меньше трёх точек</value>
+  </data>
+  <data name="GdmlReasonMissing" xml:space="preserve">
+    <value>нет {0}</value>
+  </data>
+  <data name="GdmlReasonNegativeR" xml:space="preserve">
+    <value>r = {0} отрицателен</value>
+  </data>
+  <data name="GdmlReasonNoFirst" xml:space="preserve">
+    <value>нет &lt;first&gt;</value>
+  </data>
+  <data name="GdmlReasonNoTriangles" xml:space="preserve">
+    <value>нет треугольников</value>
+  </data>
+  <data name="GdmlReasonNumber" xml:space="preserve">
+    <value>{0} = "{1}" — не конечное число и не известное выражение</value>
+  </data>
+  <data name="GdmlReasonOpenMesh" xml:space="preserve">
+    <value>сетка не замкнута: непарных рёбер {0}, объём не определён</value>
+  </data>
+  <data name="GdmlReasonPartNotMeasured" xml:space="preserve">
+    <value>тело {0} не измерено: {1}</value>
+  </data>
+  <data name="GdmlReasonPlaneOrder" xml:space="preserve">
+    <value>плоскости zplane не упорядочены по z</value>
+  </data>
+  <data name="GdmlReasonRadii" xml:space="preserve">
+    <value>rmin = {0}, rmax = {1} при z = {2} — не кольцо</value>
+  </data>
+  <data name="GdmlReasonRefMissing" xml:space="preserve">
+    <value>ссылка {0} не найдена</value>
+  </data>
+  <data name="GdmlReasonSecondCount" xml:space="preserve">
+    <value>ожидалось одно &lt;second&gt;, найдено {0}</value>
+  </data>
+  <data name="GdmlReasonSolidCycle" xml:space="preserve">
+    <value>цикл ссылок</value>
+  </data>
+  <data name="GdmlReasonSolidDeep" xml:space="preserve">
+    <value>вложенность глубже {0} уровней</value>
+  </data>
+  <data name="GdmlReasonSubFirst" xml:space="preserve">
+    <value>пересечение с {0} не считается: первое тело {1} — &lt;{2}&gt;, поддержана только коробка</value>
+  </data>
+  <data name="GdmlReasonSubFirstRotated" xml:space="preserve">
+    <value>пересечение с {0} не считается: первое тело {1} повёрнуто</value>
+  </data>
+  <data name="GdmlReasonSubPartial" xml:space="preserve">
+    <value>пересечение с {0} не считается: тело задевает коробку частично и само не коробка вдоль осей</value>
+  </data>
+  <data name="GdmlReasonSubPlacement" xml:space="preserve">
+    <value>положение тела не прочитано</value>
+  </data>
+  <data name="GdmlReasonTag" xml:space="preserve">
+    <value>неподдержанный &lt;{0}&gt;</value>
+  </data>
+  <data name="GdmlReasonUnit" xml:space="preserve">
+    <value>незнакомая единица "{0}"</value>
+  </data>
+  <data name="GdmlReasonVolumeOverflow" xml:space="preserve">
+    <value>объём вне диапазона чисел</value>
+  </data>
+  <data name="GdmlReasonZeroVolume" xml:space="preserve">
+    <value>объём равен нулю</value>
+  </data>
+  <data name="GdmlSummaryNoPlacement" xml:space="preserve">
+    <value>положение не прочитано</value>
+  </data>
+  <data name="GdmlSummaryOwnVolume" xml:space="preserve">
+    <value>; собственный объём {0} см³</value>
+  </data>
+  <data name="GdmlWarnAtomicMassError" xml:space="preserve">
+    <value>вещество {0}: атомные массы недоступны: {1}</value>
+  </data>
+  <data name="GdmlWarnAtomicMassMissing" xml:space="preserve">
+    <value>вещество {0}: нет атомной массы {1}</value>
+  </data>
+  <data name="GdmlWarnBoundsOverflow" xml:space="preserve">
+    <value>деталь {0}: габарит вне диапазона чисел и не измерен</value>
+  </data>
+  <data name="GdmlWarnChildMissing" xml:space="preserve">
+    <value>деталь {0}: дочерняя деталь {1} не найдена</value>
+  </data>
+  <data name="GdmlWarnCompositeNotElement" xml:space="preserve">
+    <value>вещество {0}: &lt;composite&gt; {1} — не элемент</value>
+  </data>
+  <data name="GdmlWarnDensityOnly" xml:space="preserve">
+    <value>вещество {0}: только плотность, состав неизвестен</value>
+  </data>
+  <data name="GdmlWarnDensityRef" xml:space="preserve">
+    <value>{0}: ссылка на плотность {1} не прочитана</value>
+  </data>
+  <data name="GdmlWarnDensityValue" xml:space="preserve">
+    <value>{0}: плотность {1} не положительна, масса не считается</value>
+  </data>
+  <data name="GdmlWarnDropped" xml:space="preserve">
+    <value>... и ещё строк: {0}</value>
+  </data>
+  <data name="GdmlWarnElementNoZ" xml:space="preserve">
+    <value>{0}: Z неизвестен</value>
+  </data>
+  <data name="GdmlWarnElementZ" xml:space="preserve">
+    <value>{0}: Z = "{1}" — не номер элемента</value>
+  </data>
+  <data name="GdmlWarnFile" xml:space="preserve">
+    <value>{0}: внешний файл {1} не прочитан, деталь {2} неполна</value>
+  </data>
+  <data name="GdmlWarnFractionNumber" xml:space="preserve">
+    <value>{0}: доля {1} = "{2}" — не неотрицательное число</value>
+  </data>
+  <data name="GdmlWarnFractionSum" xml:space="preserve">
+    <value>вещество {0}: сумма долей {1}, а не 1</value>
+  </data>
+  <data name="GdmlWarnIsotopeMissing" xml:space="preserve">
+    <value>{0}: изотоп {1} не найден</value>
+  </data>
+  <data name="GdmlWarnIsotopeZ" xml:space="preserve">
+    <value>{0}: у изотопа {1} Z = {2}, у элемента Z = {3}</value>
+  </data>
+  <data name="GdmlWarnMaterialCycle" xml:space="preserve">
+    <value>вещество {0}: цикл ссылок</value>
+  </data>
+  <data name="GdmlWarnMaterialDeep" xml:space="preserve">
+    <value>вещество {0}: ссылки вложены глубже {1} уровней, состав не прочитан</value>
+  </data>
+  <data name="GdmlWarnMaterialMissing" xml:space="preserve">
+    <value>вещество {0}: нет ни в файле, ни во встроенной таблице G4</value>
+  </data>
+  <data name="GdmlWarnMixedParts" xml:space="preserve">
+    <value>{0}: &lt;fraction&gt; и &lt;composite&gt; вперемешку, состав не прочитан</value>
+  </data>
+  <data name="GdmlWarnNoVolumes" xml:space="preserve">
+    <value>structure: нет ни одного volume</value>
+  </data>
+  <data name="GdmlWarnNoWorld" xml:space="preserve">
+    <value>structure: нет мирового volume</value>
+  </data>
+  <data name="GdmlWarnPhysvolNoRef" xml:space="preserve">
+    <value>{0}: нет &lt;volumeref&gt;, деталь {1} неполна</value>
+  </data>
+  <data name="GdmlWarnPositionMissing" xml:space="preserve">
+    <value>{0}: положение {1} не найдено, размещение неизвестно</value>
+  </data>
+  <data name="GdmlWarnRootUnit" xml:space="preserve">
+    <value>&lt;gdml&gt;: атрибут {0}="{1}" не читается, как и в Geant4; по умолчанию остаются мм и радиан</value>
+  </data>
+  <data name="GdmlWarnRotationMissing" xml:space="preserve">
+    <value>{0}: поворот {1} не найден, размещение неизвестно</value>
+  </data>
+  <data name="GdmlWarnScaleBad" xml:space="preserve">
+    <value>{0}: &lt;scale&gt; {1} {2} {3} — не зеркало и не применён, размещение неизвестно</value>
+  </data>
+  <data name="GdmlWarnScaleMirror" xml:space="preserve">
+    <value>{0}: &lt;scale&gt; {1} {2} {3} прочитан как зеркало</value>
+  </data>
+  <data name="GdmlWarnScaleRef" xml:space="preserve">
+    <value>{0}: &lt;scaleref&gt; {1} не прочитан, размещение неизвестно</value>
+  </data>
+  <data name="GdmlWarnSetupMissing" xml:space="preserve">
+    <value>setup: мировой volume {0} не найден</value>
+  </data>
+  <data name="GdmlWarnSetupNoWorld" xml:space="preserve">
+    <value>setup {0}: нет &lt;world ref&gt;</value>
+  </data>
+  <data name="GdmlWarnSolidCycle" xml:space="preserve">
+    <value>тело {0}: цикл ссылок</value>
+  </data>
+  <data name="GdmlWarnSolidDeep" xml:space="preserve">
+    <value>тело {0}: вложенность глубже {1} уровней, объём не измерен</value>
+  </data>
+  <data name="GdmlWarnSolidNoName" xml:space="preserve">
+    <value>solids: &lt;{0}&gt; без имени пропущено</value>
+  </data>
+  <data name="GdmlWarnSolidUnsupported" xml:space="preserve">
+    <value>тело {0}: неподдержанное &lt;{1}&gt;</value>
+  </data>
+  <data name="GdmlWarnSymbolClash" xml:space="preserve">
+    <value>ссылка {0} — и символ элемента, и вещество; читается элемент, как в Geant4</value>
+  </data>
+  <data name="GdmlWarnTessLunit" xml:space="preserve">
+    <value>tessellated {0}: lunit="{1}" у тела не читается, как и в Geant4; единицу несёт только грань</value>
+  </data>
+  <data name="GdmlWarnTooManyVolumes" xml:space="preserve">
+    <value>structure: файл размещает больше {0} деталей (остановлено на {1}), структура не построена</value>
+  </data>
+  <data name="GdmlWarnUnsupportedIn" xml:space="preserve">
+    <value>{0}: неподдержанный &lt;{1}&gt;</value>
+  </data>
+  <data name="GdmlWarnVolumeCopies" xml:space="preserve">
+    <value>деталь {0}: &lt;{1}&gt; не поддержан, её копии не посчитаны ({2})</value>
+  </data>
+  <data name="GdmlWarnVolumeCycle" xml:space="preserve">
+    <value>structure: деталь {0} содержит саму себя (размещение {1}), копия не размещена</value>
+  </data>
+  <data name="GdmlWarnVolumeDeep" xml:space="preserve">
+    <value>structure: деталь {0} вложена глубже {1} уровней и не размещена</value>
+  </data>
+  <data name="GdmlWarnVolumeNoSolid" xml:space="preserve">
+    <value>деталь {0}: тело {1} не найдено</value>
+  </data>
+  <data name="GdmlWarnWorldFallback" xml:space="preserve">
+    <value>setup: нет годного &lt;world&gt;; миром взят volume {0}</value>
+  </data>
+  <data name="GdmlSketchFailed" xml:space="preserve">
+    <value>Чертёж не построен</value>
+  </data>
+  <data name="GdmlSketchOutOfRange" xml:space="preserve">
+    <value>Чертежа нет: размеры в файле вне допустимого диапазона</value>
+  </data>
+  <data name="GdmlSketchNoBounds" xml:space="preserve">
+    <value>Чертежа нет: ни у одного тела в файле не известны размеры</value>
+  </data>
+  <data name="GdmlSketchNotDrawn" xml:space="preserve">
+    <value>Не нарисовано ({0}): {1} — неподдержанное тело</value>
+  </data>
+  <data name="GdmlSketchNotPlaced" xml:space="preserve">
+    <value>Не нарисовано ({0}): {1} — не прочитаны положение или габарит</value>
+  </data>
+  <data name="GdmlSketchEnvelope" xml:space="preserve">
+    <value>Не показана оболочка вокруг всей сцены ({0}): {1}; рамка — по её содержимому</value>
+  </data>
+  <data name="GdmlSketchContentHidden" xml:space="preserve">
+    <value>Содержимое не показано ({0}): {1} — не прочитано: {2}</value>
+  </data>
+  <data name="GdmlMaterialUncounted" xml:space="preserve">
+    <value>, не учтено: {0}</value>
+  </data>
+  <data name="GdmlWarnReplicaRead" xml:space="preserve">
+    <value>деталь {0}: &lt;replicavol&gt; прочитан, копий: {1} ({2} вдоль {3}, по {4} мм)</value>
+  </data>
+  <data name="GdmlSketchNoSection" xml:space="preserve">
+    <value>Точного сечения в этом виде нет ({0}): {1}</value>
+  </data>
+  <data name="GdmlSketchEmptySection" xml:space="preserve">
+    <value>Эта плоскость не пересекает ни одного тела</value>
+  </data>
+  <data name="GdmlUnitMm" xml:space="preserve">
+    <value>мм</value>
+  </data>
+  <data name="GdmlUnitCm3" xml:space="preserve">
+    <value>см³</value>
+  </data>
+  <data name="GdmlUnitG" xml:space="preserve">
+    <value>г</value>
+  </data>
+  <data name="GdmlImportBusy" xml:space="preserve">
+    <value>Импорт отклонён: идёт расчёт. Остановите его или дождитесь конца.</value>
+  </data>
+  <data name="GdmlModeLeft" xml:space="preserve">
+    <value>Показ GDML закрыт: снова действуют поля редактора.</value>
+  </data>
+  <data name="GdmlNoteMassNoFit" xml:space="preserve">
+    <value>масса не считается: дочерние детали не умещаются в ней</value>
+  </data>
+  <data name="GdmlReasonFacesSkippedPlain" xml:space="preserve">
+    <value>пропущено граней: {0}</value>
+  </data>
+  <data name="GdmlReasonProfileCrossing" xml:space="preserve">
+    <value>профиль пересекает сам себя</value>
+  </data>
+  <data name="GdmlReasonProfileLong" xml:space="preserve">
+    <value>в профиле точек: {0}; на самопересечение проверяется не больше {1}</value>
+  </data>
+  <data name="GdmlReasonRefEmpty" xml:space="preserve">
+    <value>пустая ссылка на тело</value>
+  </data>
+  <data name="GdmlWarnChildrenNoFit" xml:space="preserve">
+    <value>деталь {0}: дочерние занимают {1} см³ из её {2} см³ — в файле они перекрывают её или выступают за неё, масса не считается</value>
+  </data>
+  <data name="GdmlWarnConstantBuiltin" xml:space="preserve">
+    <value>define/{0} {1}: это имя принадлежит единице или константе, Geant4 такое не принимает; то, что его использует, не измерено</value>
+  </data>
+  <data name="GdmlWarnConstantSame" xml:space="preserve">
+    <value>define/{0} {1} задано дважды с одним значением; Geant4 такой файл не принимает</value>
+  </data>
+  <data name="GdmlWarnConstantTwice" xml:space="preserve">
+    <value>define/{0} {1} задано дважды ({2} и {3}), Geant4 такое не принимает; то, что его использует, не измерено</value>
+  </data>
+  <data name="GdmlWarnDefineLast" xml:space="preserve">
+    <value>{0} {1} задано дважды; читается последнее, как в Geant4</value>
+  </data>
+  <data name="GdmlWarnDefinedFirst" xml:space="preserve">
+    <value>{0} {1} задано дважды; читается первое, как в Geant4</value>
+  </data>
+  <data name="GdmlWarnDeltaPhiFull" xml:space="preserve">
+    <value>{0} {1}: deltaphi = "{2}" читается как полный оборот, как в Geant4</value>
+  </data>
+  <data name="GdmlWarnDeltaPhiMissing" xml:space="preserve">
+    <value>{0} {1}: нет deltaphi; читается как полный оборот, как в Geant4</value>
+  </data>
+  <data name="GdmlWarnEmptyComposition" xml:space="preserve">
+    <value>вещество {0}: состав пуст</value>
+  </data>
+  <data name="GdmlWarnExpressionNested" xml:space="preserve">
+    <value>define/expression {0}: вложенные элементы — не выражение</value>
+  </data>
+  <data name="GdmlWarnFaceType" xml:space="preserve">
+    <value>tessellated {0}: type="{1}" читается как ABSOLUTE, как в Geant4</value>
+  </data>
+  <data name="GdmlWarnNoName" xml:space="preserve">
+    <value>{0}: &lt;{1}&gt; без имени пропущено</value>
+  </data>
+  <data name="GdmlWarnSetupNoDefault" xml:space="preserve">
+    <value>setup: их несколько, и ни один не Default; читается setup {0}</value>
+  </data>
+  <data name="GdmlWarnTooManySteps" xml:space="preserve">
+    <value>structure: обход размещений занял больше {0} шагов (размещено деталей: {1}), структура не построена</value>
+  </data>
+  <data name="GdmlWarnVolumeNoRef" xml:space="preserve">
+    <value>деталь {0}: нет &lt;{1}&gt;</value>
+  </data>
+  <data name="GdmlSketchTooComplex" xml:space="preserve">
+    <value>Не нарисовано, слишком сложно для чертежа ({0}): {1}</value>
+  </data>
+  <data name="GdmlSketchChord" xml:space="preserve">
+    <value>Плоскость идёт мимо оси, ширина здесь — хорда, а не диаметр ({0}): {1}</value>
+  </data>
+  <data name="GdmlSketchPlaneMiddle" xml:space="preserve">
+    <value>Плоскость {0} = 0 проходит мимо прибора: разрез идёт через середину его габарита</value>
+  </data>
+  <data name="GdmlSketchFailedLog" xml:space="preserve">
+    <value>Чертёж GDML не построен: {0}</value>
+  </data>
+  <data name="GdmlCurvesHidden" xml:space="preserve">
+    <value>Показана геометрия GDML: кривые относятся к полям редактора и скрыты.</value>
+  </data>
+  <data name="GdmlSketchMoreNames" xml:space="preserve">
+    <value>{0} и ещё {1}</value>
+  </data>
+  <data name="GdmlReasonProfileBudget" xml:space="preserve">
+    <value>самопересечение не проверено: профили файла вместе дают больше {0} пар отрезков</value>
+  </data>
+  <data name="ResponseMatrixSectionRows" xml:space="preserve">
+    <value>Раздел электронов: узлов {0}, линий {1}, ветвей {2}</value>
+  </data>
+  <data name="ResponseMatrixSectionMissing" xml:space="preserve">
+    <value>Годного раздела электронов нет: FSA на этой матрице не учитывает бета-излучение пробы. Пересчитайте матрицу, и раздел будет построен.</value>
+  </data>
+  <data name="ResponseMatrixSectionFailed" xml:space="preserve">
+    <value>Раздел электронов не построен: {0}</value>
+  </data>
+  <data name="ResponseMatrixSectionProgress" xml:space="preserve">
+    <value>Раздел электронов: строка {0} из {1}.</value>
+  </data>
+  <data name="ResponseMatrixSectionGpuProgress" xml:space="preserve">
+    <value>GPU: раздел электронов, строка {0} из {1}.</value>
+  </data>
+  <data name="GdmlFatalDtd" xml:space="preserve">
+    <value>файл подключает другие файлы через &lt;!DOCTYPE&gt; или &lt;!ENTITY&gt;; это не поддержано и ради безопасности не читается: вставьте подключаемый текст в сам файл</value>
+  </data>
+  <data name="GdmlWarnRootOther" xml:space="preserve">
+    <value>корневой элемент &lt;{0}&gt;; читается как &lt;gdml&gt;, как в Geant4</value>
+  </data>
+  <data name="GdmlWarnLoop" xml:space="preserve">
+    <value>{0}: &lt;loop&gt; не прочитан ({1} от {2} до {3}): того, что он создаёт, нет</value>
+  </data>
+  <data name="GdmlWarnOpticalSurface" xml:space="preserve">
+    <value>solids: оптическая поверхность {0} — не тело, не читается</value>
+  </data>
+  <data name="GdmlWarnScaleSize" xml:space="preserve">
+    <value>&lt;scale&gt; {0} {1} {2}: величина отброшена, читаются только знаки, как в Geant4</value>
+  </data>
+  <data name="GdmlReasonMeshFlipped" xml:space="preserve">
+    <value>часть граней вывернута: проходов рёбер в одну сторону {0}; объём не определён</value>
+  </data>
+  <data name="GdmlReasonMeshInverted" xml:space="preserve">
+    <value>грани вывернуты наизнанку (объём отрицателен); объём не определён</value>
+  </data>
+  <data name="GdmlReasonCsgZ" xml:space="preserve">
+    <value>z = {0} не положителен</value>
+  </data>
+  <data name="GdmlReasonUnionOverlap" xml:space="preserve">
+    <value>пересечение {0} и {1} не считается: их габариты встречаются, и это не осевые коробки</value>
+  </data>
+  <data name="GdmlSummaryUnion" xml:space="preserve">
+    <value>; объединение</value>
+  </data>
+  <data name="GdmlWarnConstantAssumed" xml:space="preserve">
+    <value>{0} в файле не определено: взято обычное значение, Geant4 такой файл отверг бы</value>
+  </data>
+  <data name="GdmlSketchUnion" xml:space="preserve">
+    <value>Объединение, нарисовано одним телом с общим контуром ({0}): {1}</value>
+  </data>
+  <data name="ResponseMatrixStateNeedsSection" xml:space="preserve">
+    <value>Нужен пересчёт: у матрицы нет годного раздела электронов нынешнего рецепта.</value>
+  </data>
+  <data name="MSGResetNuclideLibrary" xml:space="preserve">
+    <value>Сбросить библиотеку изотопов на поставочную?
+
+Сейчас: линий {0}, наборов {1}.
+В поставке: линий {2}, наборов {3}.
+
+Все ваши линии и наборы будут заменены. Прежний файл сохранится как:
+{4}</value>
+  </data>
+  <data name="MSGResetNuclideLibraryUnsaved" xml:space="preserve">
+    <value>Несохранённые правки этого окна будут потеряны.</value>
+  </data>
+  <data name="ERRShippedLibraryMissing" xml:space="preserve">
+    <value>Поставочная библиотека изотопов не вшита в эту сборку программы (ресурс {0}). Библиотека не изменена.</value>
+  </data>
+  <data name="ERRShippedLibraryUnreadable" xml:space="preserve">
+    <value>Вшитую поставочную библиотеку изотопов прочитать не удалось: {0}. Библиотека не изменена.</value>
+  </data>
+  <data name="ERRShippedLibraryWrite" xml:space="preserve">
+    <value>Записать библиотеку изотопов не удалось: {0}.
+{1}
+
+Библиотека не изменена.</value>
+  </data>
+  <data name="NuclideLibraryResetTip" xml:space="preserve">
+    <value>Заменить всю библиотеку изотопами и наборами из поставки этой версии программы. Сперва спросит; прежний файл останется рядом как NuclideDefinition.xml.bak.</value>
+  </data>
+  <data name="PeakSetHintText" xml:space="preserve">
+    <value>Мне кажется, тебе подойдет {0} сет</value>
+  </data>
+  <data name="PeakSetHintTip" xml:space="preserve">
+    <value>Найденные пики лучше всего объясняет этот сет. Нажмите, чтобы выбрать его и запустить разбор заново.</value>
+  </data>
+  <data name="PeakSetHintCloseTip" xml:space="preserve">
+    <value>Закрыть подсказку для этого спектра.</value>
+  </data>
+  <data name="GdmlSketchEndHint" xml:space="preserve">
+    <value>Поперёк оси по линии A–A, через центр кристалла.</value>
+  </data>
+  <data name="GdmlSketchEndHintMiddle" xml:space="preserve">
+    <value>Поперёк оси по линии A–A, через середину прибора.</value>
+  </data>
+  <data name="GdmlSketchLegendTitle" xml:space="preserve">
+    <value>Вещества:</value>
+  </data>
+  <data name="GdmlSketchLegendMore" xml:space="preserve">
+    <value>ещё {0} — в сводке</value>
+  </data>
+  <data name="GdmlSketchTrimmed" xml:space="preserve">
+    <value>Не показано, в тысячи раз больше остального ({0}): {1}</value>
+  </data>
+  <data name="GdmlRoleCrystal" xml:space="preserve">
+    <value>Кристалл</value>
+  </data>
+  <data name="GdmlRoleReflector" xml:space="preserve">
+    <value>Отражатель</value>
+  </data>
+  <data name="GdmlRoleHousing" xml:space="preserve">
+    <value>Корпус</value>
+  </data>
+  <data name="GdmlRoleSample" xml:space="preserve">
+    <value>Проба</value>
+  </data>
+  <data name="GdmlRoleVessel" xml:space="preserve">
+    <value>Сосуд</value>
+  </data>
+  <data name="GdmlRoleGas" xml:space="preserve">
+    <value>Газ</value>
+  </data>
+  <data name="GdmlRoleDevice" xml:space="preserve">
+    <value>Прибор</value>
+  </data>
+  <data name="GdmlOverviewLine" xml:space="preserve">
+    <value>Деталей: {0}, веществ: {1}, общий габарит {2}.</value>
+  </data>
+  <data name="GdmlOverviewProblems" xml:space="preserve">
+    <value>Неподдержанных тел: {0}, не прочитаны положение или габарит: {1}, неизвестных составов: {2}.</value>
+  </data>
+  <data name="GdmlOverviewEnvelope" xml:space="preserve">
+    <value>Без оболочки вокруг всей сцены, на чертеже её нет: {0}.</value>
+  </data>
+  <data name="GdmlOverviewMain" xml:space="preserve">
+    <value>Главное</value>
+  </data>
+  <data name="GdmlOverviewMaterials" xml:space="preserve">
+    <value>Вещества, сначала тяжёлые</value>
+  </data>
+  <data name="GdmlOverviewVolumesShort" xml:space="preserve">
+    <value>дет.</value>
+  </data>
+  <data name="GdmlOverviewRest" xml:space="preserve">
+    <value>Остальное суммой</value>
+  </data>
+  <data name="GdmlOverviewRestLine" xml:space="preserve">
+    <value>Деталей: {0}, {1} см³, {2} г</value>
+  </data>
+  <data name="GdmlOverviewMore" xml:space="preserve">
+    <value>и ещё {0}</value>
+  </data>
+  <data name="GdmlOverviewDensity" xml:space="preserve">
+    <value>г/см³</value>
+  </data>
+  <data name="GdmlOverviewNoDensity" xml:space="preserve">
+    <value>плотность неизвестна</value>
+  </data>
+  <data name="MSGResetNuclideLibraryAlreadyShipped" xml:space="preserve">
+    <value>Библиотека изотопов уже совпадает с поставочной. Ничего не изменено, прежняя копия не тронута.</value>
+  </data>
+  <data name="MSGResetNuclideLibraryDropEdits" xml:space="preserve">
+    <value>Файл библиотеки уже совпадает с поставочным. Отменить несохранённые правки этого окна?
+
+Файл и прежняя копия не изменятся.</value>
+  </data>
+  <data name="FSAReportCrystalOwnHeader" xml:space="preserve">
+    <value>Собственная активность кристалла</value>
+  </data>
+  <data name="FSAReportCrystalOwnRow" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="FSAReportCrystalOwnFixed" xml:space="preserve">
+    <value>{0:f2} Бк, {1:f0} отсч</value>
+  </data>
+  <data name="FSAReportCrystalOwnFree" xml:space="preserve">
+    <value>{0:f2} ± {1:f2} Бк (подобрано), {2:f0} отсч</value>
+  </data>
+  <data name="FSAReportCrystalOwnHint" xml:space="preserve">
+    <value>Активность самого кристалла детектора (La-138, Lu-176, ряд Ac-227). Это прибор, а не проба: в состав пробы она не входит и в её активность не складывается. Природные строки вычислены из массы кристалла и данных нуклида; свободная строка (Ac-227) подбирается разбором.</value>
+  </data>
+  <data name="GdmlSketchAlongHint" xml:space="preserve">
+    <value>Плоскость вдоль оси прибора. Линия A–A: где снят вид с торца.</value>
+  </data>
+  <data name="GdmlSketchMeshOutline" xml:space="preserve">
+    <value>Только контур, без заливки: сетка не определяет, где внутри, причина в сводке ({0}): {1}</value>
+  </data>
+  <data name="GdmlOverviewFractions" xml:space="preserve">
+    <value>массовые доли</value>
+  </data>
+  <data name="GdmlModeShown" xml:space="preserve">
+    <value>Показана геометрия GDML; расчёт, сохранение и кривые отключены: {0}</value>
+  </data>
+  <data name="GdmlReasonCsgDeltaPhi" xml:space="preserve">
+    <value>deltaphi = {0} не положителен</value>
+  </data>
+  <data name="MSGResetNuclideLibraryBackupExists" xml:space="preserve">
+    <value>Прежняя копия будет заменена.</value>
+  </data>
+  <data name="FSABackscatterRow" xml:space="preserve">
+    <value>{0} — обратное рассеяние</value>
+  </data>
+  <data name="FSABackscatterRowHint" xml:space="preserve">
+    <value>Кванты этого нуклида, рассеянные назад вне кристалла (на 90° и больше) и затем отдавшие энергию в нём. Матрица отклика уже несёт их, поэтому они входят в его полосу и долю и второй раз не складываются. Энергия — центр горба в шкале матрицы, а не по оси спектра. Мягкая линия, горб которой лежит под её же пиком, не показывается.</value>
+  </data>
+  <data name="FSABackscatterLine" xml:space="preserve">
+    <value>Горб {0} кэВ от {1}</value>
+  </data>
+  <data name="FSABackscatterLineHintPair" xml:space="preserve">
+    <value>{0}: линия {1} кэВ, центр горба обратного рассеяния у {2} кэВ в шкале матрицы — {3} отсч.</value>
+  </data>
+  <data name="FSAReportTipBackscatterMatrix" xml:space="preserve">
+    <value>При матрице отклика обратное рассеяние уже внутри образов нуклидов: галка управляет его показом (строки под нуклидом и штриховка), образы и их фит не меняются. Защита, которой нет в геометрии, по-прежнему получает отдельную компоненту.</value>
   </data>
 </root>

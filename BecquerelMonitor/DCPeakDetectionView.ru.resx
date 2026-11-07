@@ -163,4 +163,22 @@
   <data name="labelSetName.Text" xml:space="preserve">
     <value>Набор:</value>
   </data>
+  <data name="labelDetectionFailed.Location" type="System.Drawing.Point, System.Drawing">
+    <value>120, 60</value>
+  </data>
+  <data name="labelDetectionFailed.Size" type="System.Drawing.Size, System.Drawing">
+    <value>309, 13</value>
+  </data>
+  <data name="setHintPanel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>120, 56</value>
+  </data>
+  <data name="setHintPanel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>309, 18</value>
+  </data>
+  <data name="setHintLink.Size" type="System.Drawing.Size, System.Drawing">
+    <value>291, 18</value>
+  </data>
+  <data name="setHintClose.Location" type="System.Drawing.Point, System.Drawing">
+    <value>291, 0</value>
+  </data>
 </root>

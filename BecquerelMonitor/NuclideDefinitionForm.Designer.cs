@@ -34,6 +34,7 @@ namespace BecquerelMonitor
             XPTable.Renderers.DragDropRenderer dragDropRenderer1 = new XPTable.Renderers.DragDropRenderer();
             this.button4 = new System.Windows.Forms.Button();
             this.button3 = new System.Windows.Forms.Button();
+            this.buttonResetDefaults = new System.Windows.Forms.Button();
             this.label5 = new System.Windows.Forms.Label();
             this.table1 = new XPTable.Models.Table();
             this.columnModel1 = new XPTable.Models.ColumnModel();
@@ -82,6 +83,13 @@ namespace BecquerelMonitor
             this.button3.UseVisualStyleBackColor = true;
             this.button3.Click += new System.EventHandler(this.button3_Click);
             // 
+            // buttonResetDefaults
+            //
+            resources.ApplyResources(this.buttonResetDefaults, "buttonResetDefaults");
+            this.buttonResetDefaults.Name = "buttonResetDefaults";
+            this.buttonResetDefaults.UseVisualStyleBackColor = true;
+            this.buttonResetDefaults.Click += new System.EventHandler(this.buttonResetDefaults_Click);
+            //
             // label5
             // 
             resources.ApplyResources(this.label5, "label5");
@@ -291,6 +299,7 @@ namespace BecquerelMonitor
             this.Controls.Add(this.button3);
             this.Controls.Add(this.label5);
             this.Controls.Add(this.table1);
+            this.Controls.Add(this.buttonResetDefaults);
             this.Name = "NuclideDefinitionForm";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.NuclideDefinitionForm_FormClosing);
             this.Load += new System.EventHandler(this.NuclideDefinitionForm_Load);
@@ -307,6 +316,7 @@ namespace BecquerelMonitor
 
         private System.Windows.Forms.Button button4;
         private System.Windows.Forms.Button button3;
+        private System.Windows.Forms.Button buttonResetDefaults;
         private System.Windows.Forms.Label label5;
         private XPTable.Models.Table table1;
         private XPTable.Models.ColumnModel columnModel1;

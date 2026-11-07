@@ -605,6 +605,14 @@ namespace BecquerelMonitor
         {
             line.DbMark = NuclideDbMark.None;
             line.DbMarkText = "";
+            // (`AMBER309`, 05.11.2026) Образ аннигиляции — не линия распада и не рентген: строки базы у него нет
+            // и быть не может, поэтому «нет в базе, вбито руками?» про него неправда. Признак тот же, что у правила
+            // суммы 511+511 (`PeakDetector.AnnihilationLine`): нулевой выход у 511 кэВ.
+            if (line.Intencity <= 0.0 && Math.Abs(line.Energy - PeakDetector.AnnihilationKev) <= PeakDetector.AnnihilationWindowKev)
+            {
+                return;
+            }
+
             if (!line.IsDbLinked)
             {
                 string reasonKey, reason;

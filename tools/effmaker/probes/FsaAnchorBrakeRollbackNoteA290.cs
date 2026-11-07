@@ -27,6 +27,11 @@ namespace BecquerelMonitor.Probes
     ///   --mode=nucbase|peaks — состав библиотеки: NucBase+равновесие (рецепт `AMBER269`)
     ///     или по подписям поиска пиков (рецепт приложения, `DbLookupsForFsa=false`);
     ///   --no-width — откат НЕ оставляет ширину опор (`AnchorRollbackKeepsWidth=false`);
+    ///   --matrix-any — поставить матрицу файла без проверки клейма (как `FsaAnchorVariantsA269`):
+    ///     живой случай ТОРМОЗ + ОТКАТ при пороге умолчания, Th-232 на приборе вне корпуса, опора
+    ///     16.28 кэВ; без этого ключа у того же спектра тормоз без отката, и снятие вызова
+    ///     `WithBrakeNote` в `AnalyzeRolledBack` проба не заметила бы. Случай на корпусе (порог
+    ///     поднят, спектр в git) — сцена (2б) `FsaInputCheckProbeP195`, её зовёт `check_all`;
     ///   --expect=brake+rollback|none — что обязано быть в строке; без ключа — только печать;
     ///   --out=&lt;файл&gt; — весь вывод ещё и в файл.
     ///
@@ -46,7 +51,7 @@ namespace BecquerelMonitor.Probes
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             string spectrum = null, outPath = null, mode = "nucbase", expect = null;
             double brakeZeroMax = double.NaN;
-            bool width = true, compose = false;
+            bool width = true, compose = false, matrixAny = false;
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrum = a.Substring(11);
@@ -63,6 +68,7 @@ namespace BecquerelMonitor.Probes
                     }
                 }
                 else if (a == "--no-width") width = false;
+                else if (a == "--matrix-any") matrixAny = true;
                 else if (a == "--check-compose") compose = true;
                 else
                 {
@@ -132,8 +138,20 @@ namespace BecquerelMonitor.Probes
             Say("порог тормоза: " + (double.IsNaN(brakeZeroMax) ? "умолчание сборки" : F(brakeZeroMax) + " кэВ"));
             Say("ширина отката: " + (width ? "оставлена" : "снята"));
 
+            EfficiencyMaker.ResponseMatrix forced = null;
+            if (matrixAny)
+            {
+                forced = rd.Efficiency != null ? LoadEmbedded(rd.Efficiency.EmbeddedMatrix) : null;
+                Say("матрица файла: " + (forced != null ? "есть, поставлена без проверки клейма" : "НЕТ"));
+                if (forced == null)
+                {
+                    Console.Error.WriteLine("--matrix-any: в файле нет встроенной матрицы");
+                    return 2;
+                }
+            }
+
             string status;
-            FsaResult result = Run(rd, options, brakeZeroMax, width, out status);
+            FsaResult result = Run(rd, options, brakeZeroMax, width, forced, out status);
             if (result == null)
             {
                 Console.Error.WriteLine("разбор не завершился: " + (status ?? "нет результата"));
@@ -166,17 +184,36 @@ namespace BecquerelMonitor.Probes
                 Same("тормоз назван ПЕРВЫМ (он причина)", true, atBrake >= 0 && atRollback > atBrake);
                 Same("причина тормоза названа словами", true, note.Contains("плеча нет"));
                 Same("χ² отката в строке", true, note.Contains("хуже, чем без неё"));
+                // (`AMBER294`) причина доезжает до окна: опоры отменённого разбора не взяты
+                Same("тормоз снял опоры отменённого разбора", true, result.AnchorBrakedPeaks > 0);
+                Same("у отменённого разбора ни одна опора не взята", false,
+                     result.AnchorRollbackScaleAnchors == null || result.AnchorRollbackScaleAnchors.Exists(x => x.Used));
+                Same("причина опоры — тормоз", true, result.AnchorRollbackScaleAnchors != null
+                     && result.AnchorRollbackScaleAnchors.Exists(x => x.Refusal == FsaScaleAnchor.RefusalGainBrake));
+                string caption = FSAReportView.AnchorBrakeCaption(result);
+                Say("ОКНО (тормоз): " + (caption ?? "—"));
+                Say("ОКНО (откат): " + (FSAReportView.AnchorRollbackCaption(result) ?? "—"));
+                Same("строка окна называет причину", true, caption != null);
             }
             else if (expect == "brake")
             {
                 Same("строка называет тормоз", true, brake);
                 Same("причина тормоза названа словами", true, note.Contains("плеча нет"));
                 Same("тормоз назван до отката (если откат есть)", true, atRollback < 0 || atRollback > atBrake);
+                // (`AMBER294`) итог на экране: опор нет, опора не взята, причина названа
+                Same("тормоз снял опоры", true, result.AnchorBrakedPeaks > 0);
+                Same("опор в итоге 0", 0, result.ScaleAnchorsUsed);
+                Same("усиление в итоге 1", "1.000000", result.Gain.ToString("F6", CultureInfo.InvariantCulture));
+                Same("ни одна опора не взята", false, result.ScaleAnchors != null && result.ScaleAnchors.Exists(x => x.Used));
+                Say("ОКНО (тормоз): " + (FSAReportView.AnchorBrakeCaption(result) ?? "—"));
+                Same("строка окна называет причину", true, FSAReportView.AnchorBrakeCaption(result) != null);
             }
             else if (expect == "none")
             {
                 Same("тормоз НЕ назван (его не было)", false, brake);
                 Same("строка отката не появилась", false, rollback);
+                Same("тормоз опор не снимал", 0, result.AnchorBrakedPeaks);
+                Same("строки окна про тормоз нет", (string)null, FSAReportView.AnchorBrakeCaption(result));
             }
 
             if (compose)
@@ -225,7 +262,7 @@ namespace BecquerelMonitor.Probes
         }
 
         static FsaResult Run(ResultData rd, FsaCalculationOptions options, double brakeZeroMax, bool width,
-                             out string status)
+                             EfficiencyMaker.ResponseMatrix forced, out string status)
         {
             status = null;
             var session = new FsaAnalysisSession();
@@ -236,6 +273,11 @@ namespace BecquerelMonitor.Probes
             {
                 try
                 {
+                    if (forced != null && rd.Efficiency != null && rd.Efficiency.Geometry != null)
+                    {
+                        FsaMatrixBinding.Bind(an, rd.Efficiency.Geometry, forced);
+                    }
+
                     SetKey(an, "AnchorRollback", true);
                     SetKey(an, "AnchorRollbackKeepsWidth", width);
                     SetKey(an, "AnchorGainBrake", true);
@@ -298,6 +340,29 @@ namespace BecquerelMonitor.Probes
         static string F(double v)
         {
             return v.ToString("F3", CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>Встроенная матрица файла без проверки клейма — как у `FsaAnchorVariantsA269` (`--matrix-any`).</summary>
+        static EfficiencyMaker.ResponseMatrix LoadEmbedded(EfficiencyMaker.EmbeddedResponseMatrix embedded)
+        {
+            if (embedded == null || string.IsNullOrEmpty(embedded.Data))
+            {
+                return null;
+            }
+
+            byte[] packed = Convert.FromBase64String(embedded.Data);
+            using (var input = new MemoryStream(packed))
+            using (var gzip = new System.IO.Compression.GZipStream(input, System.IO.Compression.CompressionMode.Decompress))
+            using (var output = new MemoryStream())
+            {
+                gzip.CopyTo(output);
+                using (var stream = new MemoryStream(output.ToArray(), false))
+                {
+                    EfficiencyMaker.MatrixRefusal read;
+                    int format;
+                    return EfficiencyMaker.ResponseMatrix.Load(stream, out read, out format);
+                }
+            }
         }
 
         static ResultData Load(string path, NuclideDefinitionManager nuclides, Action<string> say)

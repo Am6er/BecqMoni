@@ -271,6 +271,30 @@
   <data name="FSAReport_DriftEdge" xml:space="preserve">
     <value>на границе диапазона</value>
   </data>
+  <data name="FSAReport_BackgroundMaskRowOne" xml:space="preserve">
+    <value>Участок {0} кэВ не учтён в подгонке: в нём фон значимо больше спектра</value>
+  </data>
+  <data name="FSAReport_BackgroundKnifeRow" xml:space="preserve">
+    <value>Активность считана по линиям выше {0} кэВ: ниже фон больше спектра, и образы там идут свободно</value>
+  </data>
+  <data name="FSAReport_BackgroundKnifeValue" xml:space="preserve">
+    <value>выше {0} кэВ</value>
+  </data>
+  <data name="FSAReport_BackgroundKnifeTip" xml:space="preserve">
+    <value>Ниже {0} кэВ матрица отклика не знает корпуса прибора и вещества пробы, а здесь ещё и фон больше спектра. Поэтому у образов с сильнейшей линией выше {0} кэВ нижняя часть идёт свободной колонкой и активность не определяет. Образы с сильнейшей линией ниже {0} кэВ считаются как обычно. Отвязано каналов: {1} из {2}.</value>
+  </data>
+  <data name="FSAReport_BackgroundMaskRow" xml:space="preserve">
+    <value>Участки {0} кэВ не учтены в подгонке: в них фон значимо больше спектра</value>
+  </data>
+  <data name="FSAReport_BackgroundMaskValue" xml:space="preserve">
+    <value>не учтены</value>
+  </data>
+  <data name="FSAReport_BackgroundMaskValueOne" xml:space="preserve">
+    <value>не учтён</value>
+  </data>
+  <data name="FSAReport_BackgroundMaskTip" xml:space="preserve">
+    <value>Вероятно, фон снят без пробы (пустой сосуд) или в другой обстановке. Модель по этим каналам не подгоняется, в χ² они не входят. Судится участок целиком, а не отдельные каналы, поэтому шум участок не снимает. Не учтено каналов: {0}. Наиболее значимое окно {1}–{2} кэВ: z {3}, фон ×{4} измеренного спектра.</value>
+  </data>
   <data name="FSAReport_AnchorRow" xml:space="preserve">
     <value>Опорных пиков для шкалы</value>
   </data>
@@ -287,7 +311,34 @@
     <value>Опорные пики, по которым подстроена шкала (+ взят, - отвергнут): компонент, центр модели кэВ, остаток кэВ, доля пика, причина</value>
   </data>
   <data name="FSAReport_AnchorTipLine" xml:space="preserve">
-    <value>{0} {1} {2} кэВ, остаток {3} кэВ, доля {4} {5}</value>
+    <value>{0} {1} {2} кэВ, остаток {3} кэВ, доля {4}</value>
+  </data>
+  <data name="FSAReport_AnchorTipLineNoShift" xml:space="preserve">
+    <value>{0} {1} {2} кэВ, доля {3}</value>
+  </data>
+  <data name="FSAReport_AnchorTipRefusal" xml:space="preserve">
+    <value>: {0}</value>
+  </data>
+  <data name="FSAReport_AnchorEdgeRefusal" xml:space="preserve">
+    <value>окно обрезано краем полосы разбора</value>
+  </data>
+  <data name="FSAReport_AnchorSkipRefusal" xml:space="preserve">
+    <value>исключён по заданию</value>
+  </data>
+  <data name="FSAReport_AnchorNarrowRefusal" xml:space="preserve">
+    <value>пик слишком узок в каналах</value>
+  </data>
+  <data name="FSAReport_AnchorZRefusal" xml:space="preserve">
+    <value>пик незначим</value>
+  </data>
+  <data name="FSAReport_AnchorShareRefusal" xml:space="preserve">
+    <value>мала доля пика в окне</value>
+  </data>
+  <data name="FSAReport_AnchorShiftRefusal" xml:space="preserve">
+    <value>далеко от линии модели: другой пик</value>
+  </data>
+  <data name="FSAReport_AnchorOutlierRefusal" xml:space="preserve">
+    <value>выброс подгонки шкалы</value>
   </data>
   <data name="FSAReport_AnchorTipLight" xml:space="preserve">
     <value>, свет {0} кэВ</value>
@@ -306,6 +357,45 @@
   </data>
   <data name="FSAReport_AnchorRollbackTip" xml:space="preserve">
     <value>Опорные пики отменённой подстройки (+ взят, - отвергнут):</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeValue" xml:space="preserve">
+    <value>не подстроена</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeTipHead" xml:space="preserve">
+    <value>Опорные пики, шкала по ним не подстроена (- отвергнут): компонент, центр модели кэВ, остаток кэВ, доля пика, причина</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeMapRowOne" xml:space="preserve">
+    <value>Опорный пик {0} кэВ лежит у самого нуля: растяжение по нему не подстроено, нелинейность уточнила модель</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeMapRow" xml:space="preserve">
+    <value>Опорные пики ({0} шт., верхний {1} кэВ) лежат у самого нуля: растяжение по ним не подстроено, нелинейность уточнила модель</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeMapValue" xml:space="preserve">
+    <value>растяжение не подстроено</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeMapTip" xml:space="preserve">
+    <value>Растяжение шкалы идёт от нуля, поэтому ему нужен опорный пик подальше от нуля. Пик ниже {0} кэВ его не удержит: ошибка в полканала в его центре меняет растяжение на целые проценты. Порог судит энергию линии: верхняя линия {1} кэВ, её центр в модели {2} кэВ. Для растяжения такие пики не взяты; нелинейность шкалы модель уточнила сама.</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeMapTipHead" xml:space="preserve">
+    <value>Опорные пики, растяжение по ним не подстроено (- отвергнут): компонент, центр модели кэВ, остаток кэВ, доля пика, причина</value>
+  </data>
+  <data name="FSAReport_AnchorNotInStepRefusal" xml:space="preserve">
+    <value>не в последнем шаге шкалы</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeRowOne" xml:space="preserve">
+    <value>Шкала не подстроена: опорный пик {0} кэВ лежит у самого нуля, и растянуть шкалу по нему нельзя</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeRow" xml:space="preserve">
+    <value>Шкала не подстроена: опорные пики ({0} шт., верхний {1} кэВ) лежат у самого нуля, и растянуть шкалу по ним нельзя</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeTip" xml:space="preserve">
+    <value>Шкала подстраивается растяжением от нуля, поэтому ей нужен опорный пик подальше от нуля. Пик ниже {0} кэВ её не удержит: ошибка в полканала в его центре меняет растяжение на целые проценты. Порог судит энергию линии: верхняя линия {1} кэВ, её центр в модели {2} кэВ. Такие пики не взяты, растяжение шкалы не менялось.</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeRefusal" xml:space="preserve">
+    <value>у самого нуля</value>
+  </data>
+  <data name="FSAReport_AnchorBrakeRollbackRow" xml:space="preserve">
+    <value>Подстройка шкалы ухудшила подгонку: χ²/ndf {0} против {1}</value>
   </data>
   <data name="FSAReport_SuppressedRow" xml:space="preserve">
     <value>Счёт объясняет не нуклид, а</value>
@@ -443,7 +533,7 @@
     <value>{0} кэВ: пик не объяснён нуклидами разбора — на {1} % выше модели (z {2}); рядом в библиотеке: {3}</value>
   </data>
   <data name="FSAReport_UncoveredValue" xml:space="preserve">
-    <value>нет в сете</value>
+    <value>нет в составе</value>
   </data>
   <data name="FSAReport_UncoveredNone" xml:space="preserve">
     <value>нет</value>

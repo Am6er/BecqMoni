@@ -54,7 +54,8 @@ namespace BecquerelMonitor
             this.InitializeComponent();
             this.comboBox1.SelectedIndex = 0;
             this.comboBox2.SelectedIndex = 0;
-            this.columnModel1.Columns[1].Renderer = new ResultValueCellRenderer();
+            // (`fixFsa2`) подпись «не обнаружен» — культуры интерфейса (en «ND», ru «н/о»)
+            this.columnModel1.Columns[1].Renderer = new ResultValueCellRenderer { NotDetectedText = OwnText(KeyNotDetectedMark) };
             // (`AMBER148`) Режим поправки этого окна решает и за беккерели панели
             // выделения — окно числится среди живых, пока не уничтожено.
             LiveViews.Add(this);
@@ -199,6 +200,7 @@ namespace BecquerelMonitor
                 this.SilentFsaSelection(() => this.tableModel1.Selections.Clear());
                 this.tableModel1.Rows.Clear();
                 this.table1.EndUpdate();
+                this.FitFirstColumn();
                 this.DropOwnFsaHighlight(gone);
                 this.previousCollection = null;
                 this.ShowMomentHeader(null);
@@ -371,6 +373,8 @@ namespace BecquerelMonitor
                 }
             }
             this.table1.EndUpdate();
+            // (`AMBER299`) Заголовок выше поставлен до строк: теперь полоса прокрутки известна.
+            this.FitFirstColumn();
         }
 
         /// <summary>
@@ -509,6 +513,7 @@ namespace BecquerelMonitor
         const string KeyFsaMdaHeaderRule = "DCResult_FsaMdaHeaderRule";
         const string KeyFsaMdaTipRule = "DCResult_FsaMdaTipRule";
         const string KeyFsaStale = "DCResult_FsaStale";
+        const string KeyNotDetectedMark = "DCResult_NotDetectedMark";
         const string KeyFsaError = "DCResult_FsaError";
         // (`AMBER274`, Ф14) пометка строки чистого бета-излучателя
         const string KeyFsaContinuumOnly = "DCResult_FsaContinuumOnly";
@@ -540,7 +545,8 @@ namespace BecquerelMonitor
             // шкала разбора живёт в заголовке первой колонки — ей нужно место;
             // предел — a# ISO 11929 (решение Amber 06.10.2026 «MDA», как у зон:
             // заголовок «MDA», расшифровка в подсказке), а не MDA Карри по зоне
-            this.columnModel1.Columns[0].Width = Math.Min(Math.Max(this.columnModel1.Columns[0].Width, 120), this.FirstColumnRoom());
+            this.fsaFirstColumnBase = Math.Max(this.columnModel1.Columns[0].Width, 120);
+            this.FitFirstColumn();
             this.columnModel1.Columns[3].Text = OwnText(KeyFsaMdaHeader);
             this.columnModel1.Columns[3].ToolTipText = OwnText(KeyFsaMdaTip);
             // (П261) строка причины отказа переносится по ширине (`ShowResult`): высоту
@@ -548,16 +554,22 @@ namespace BecquerelMonitor
             // переноса не просят и остаются прежней высоты
             this.table1.EnableWordWrap = true;
             // (AMBER245) Панель сузили — первая колонка возвращается в отведённое место,
-            // иначе «МДА» снова уезжает за край.
-            this.table1.Resize += (s, e) =>
+            // иначе «МДА» снова уезжает за край. (`AMBER299`) Расширили — возвращается обратно.
+            this.table1.Resize += (s, e) => this.FitFirstColumn();
+            // ⛔ (`AMBER299`) Полоса прокрутки отнимает ширину у `CellDataRect`, а `Resize` таблицы
+            // при этом не поднимается: заголовок ставится раньше строк (`ShowResult`), и последняя
+            // колонка оставалась срезанной до следующего заголовка.
+            foreach (System.Windows.Forms.Control control in this.table1.Controls)
             {
-                Column first = this.columnModel1.Columns[0];
-                int room = this.FirstColumnRoom();
-                if (first.Width > room)
+                if (control is System.Windows.Forms.VScrollBar)
                 {
-                    first.Width = room;
+                    control.VisibleChanged += (s, e) => this.FitFirstColumn();
                 }
-            };
+            }
+            foreach (Column column in this.columnModel1.Columns)
+            {
+                column.PropertyChanged += this.FsaColumnPropertyChanged;
+            }
             // Решение Amber 06.10.2026 вопросником «Подсвечивать образ нуклида в стеке»:
             // выбор строки подсвечивает образ в стеке FSA тем же механизмом, что у
             // окна отчёта (`EnergySpectrumView.FsaHighlight`); окон зон у разбора нет.
@@ -741,58 +753,219 @@ namespace BecquerelMonitor
 
         void SetFsaHeader(string text, string tip)
         {
+            this.SetFsaHeader(text, tip, null);
+        }
+
+        /// <param name="reserve">(`fixFsa2`) Текст, под который высота шапки держится заранее, —
+        /// тот же заголовок с пометкой «(пересчёт…)»: иначе на каждом пересчёте шапка росла бы на
+        /// строку и строки таблицы прыгали бы под рукой.</param>
+        void SetFsaHeader(string text, string tip, string reserve)
+        {
             Column column = this.columnModel1.Columns[0];
             column.Text = text;
             column.ToolTipText = tip ?? "";
+            this.fsaHeaderReserve = reserve;
             // (П254) Заголовок со шкалой и пометкой свежести («FSA: Bq by response matrix
             // (recomputing…)», «FSA: Бк по матрице отклика (пересчёт…)») в 170 пикселей не
             // влезал: XPTable переносил его на вторую строку и срезал обе — снимок
-            // `FsaResultWindowProbeP254 --shots=`. Колонка только РАСТЁТ до текста: ширину,
-            // которую человек выставил руками, она не отнимает.
+            // `FsaResultWindowProbeP254 --shots=`. Колонка растёт до текста, а когда текст ушёл,
+            // возвращается к прежней ширине: ширину, которую человек выставил руками, она не
+            // отнимает.
             System.Drawing.Font font = this.table1.HeaderFont ?? this.table1.Font;
-            int needed = System.Windows.Forms.TextRenderer.MeasureText(text ?? "", font).Width + 12;
-            // (AMBER245, 03.11.2026) Рост под заголовок упирается в ширину таблицы: иначе
-            // колонка «МДА» уезжает за край панели (замер: 90+100+116+75 = 381 при 370).
-            int room = this.FirstColumnRoom();
-            if (needed > room)
+            this.fsaHeaderNeeded = System.Windows.Forms.TextRenderer.MeasureText(text ?? "", font).Width + 12;
+            this.FitFirstColumn();
+        }
+
+        /// <summary>
+        /// (`AMBER299`) ШИРИНА ПЕРВОЙ КОЛОНКИ — ОДНО ПРАВИЛО НА ВСЕ СЛУЧАИ: заголовок, заполнение
+        /// строк, полоса прокрутки, размер панели. Прежде их было два, и они расходились:
+        /// `SetFsaHeader` судил по ширине до роста, а обработчик `Resize` отнимал ширину у любой
+        /// колонки, в том числе поставленную руками, и назад её не отдавал.
+        ///
+        ///   (П254) Колонка растёт до текста заголовка.
+        ///   (AMBER245, 03.11.2026) Рост упирается в ширину таблицы: иначе колонка «МДА» уезжает
+        ///   за край панели (замер: 90+100+116+75 = 381 при 370).
+        ///   (П274, 14.10.2026) Пометка «(пересчёт…)» ушла — колонка возвращается к ширине до
+        ///   роста, иначе выросшая под неё навсегда колонка выталкивала MDA за край.
+        ///   ⛔ Ширину, которую поставил человек, правило не отнимает: она и есть нижняя граница,
+        ///   а не хватает места — у таблицы есть горизонтальная прокрутка.
+        /// </summary>
+        void FitFirstColumn()
+        {
+            if (this.fsaFitting)
             {
-                needed = room;
+                return;
             }
-            // ⛔ (П274, 14.10.2026) …И ВОЗВРАЩАЕТСЯ, когда пометка ушла. Пометка «(пересчёт…)»
-            // теперь встаёт на каждый пересчёт (`FsaSessionStarted`), и колонка, выросшая под неё
-            // навсегда, выталкивала колонку MDA за край узкой панели (экран П274: после первой же
-            // смены настройки MDA срезана). Рост под текст остаётся (П254), а по уходу длинного
-            // текста колонка сжимается к ширине до роста — если её с тех пор не трогал человек.
-            if (this.fsaHeaderGrownFrom >= 0 && column.Width != this.fsaHeaderGrownTo)
+
+            this.fsaFitting = true;
+            try
             {
-                this.fsaHeaderGrownFrom = -1;   // ширину выставил человек — она его
-            }
-            if (column.Width < needed)
-            {
-                if (this.fsaHeaderGrownFrom < 0)
+                Column column = this.columnModel1.Columns[0];
+                // Два прохода: своя ширина может сменить полосы прокрутки, а они — место.
+                for (int pass = 0; pass < 2; pass++)
                 {
-                    this.fsaHeaderGrownFrom = column.Width;
+                    int room = this.FirstColumnRoom();
+                    int width = this.fsaFirstColumnByHand
+                        ? Math.Max(this.fsaFirstColumnBase, Math.Min(this.fsaHeaderNeeded, room))
+                        : Math.Min(Math.Max(this.fsaFirstColumnBase, this.fsaHeaderNeeded), room);
+                    if (column.Width == width)
+                    {
+                        break;
+                    }
+                    column.Width = width;
                 }
-                column.Width = needed;
-                this.fsaHeaderGrownTo = column.Width;
+                this.FitHeaderHeight();
             }
-            else if (this.fsaHeaderGrownFrom >= 0 && needed < column.Width)
+            finally
             {
-                int back = Math.Max(this.fsaHeaderGrownFrom, needed);
-                column.Width = back;
-                this.fsaHeaderGrownTo = column.Width;
-                if (back == this.fsaHeaderGrownFrom)
-                {
-                    this.fsaHeaderGrownFrom = -1;
-                }
+                this.fsaFitting = false;
             }
         }
 
-        /// <summary>(П274) Ширина колонки заголовка до роста под длинный текст; −1 — не росла.</summary>
-        int fsaHeaderGrownFrom = -1;
+        /// <summary>
+        /// ⛔ (`AMBER299`, `fixFsa2` 07.11.2026) ВЫСОТА ШАПКИ — ПО ТЕКСТУ ЗАГОЛОВКОВ. Ширину первой
+        /// колонки правило ограничивает местом таблицы, и на узкой панели заголовок «FSA: Бк по
+        /// матрице отклика (пересчёт…)» переносится на вторую строку, а высота шапки у XPTable
+        /// постоянная — 20 точек: обе строки срезались сверху и снизу (проверка экраном
+        /// 07.11.2026, снимки 17z–19z полосы `screen`). Высота считается тем же рисованием, что у
+        /// `XPHeaderRenderer`: `DrawString` в прямоугольник колонки минус 2 точки с каждой
+        /// стороны, перенос по словам, стрелка сортировки отнимает 12 точек. Нижняя граница —
+        /// прежние 20 точек (одна строка на 96 DPI), так что однострочная шапка не меняется.
+        /// У первой колонки меряется и запасной текст (<see cref="fsaHeaderReserve"/>) по
+        /// ширине, которую колонка получила бы под него.
+        /// </summary>
+        void FitHeaderHeight()
+        {
+            if (!this.table1.IsHandleCreated)
+            {
+                return;
+            }
 
-        /// <summary>(П274) Ширина, до которой колонку вырастил <see cref="SetFsaHeader"/>.</summary>
-        int fsaHeaderGrownTo = -1;
+            System.Drawing.Font font = this.table1.HeaderFont ?? this.table1.Font;
+            int need = XPTable.Models.ColumnModel.DefaultHeaderHeight;
+            using (System.Drawing.Graphics g = this.table1.CreateGraphics())
+            using (var format = new System.Drawing.StringFormat())
+            {
+                format.Alignment = System.Drawing.StringAlignment.Near;
+                format.LineAlignment = System.Drawing.StringAlignment.Center;
+                for (int i = 0; i < this.columnModel1.Columns.Count; i++)
+                {
+                    Column column = this.columnModel1.Columns[i];
+                    if (!column.Visible)
+                    {
+                        continue;
+                    }
+
+                    need = Math.Max(need, HeaderTextHeight(g, font, format, column.Text, column.Width, column.SortOrder));
+                    if (i == 0 && !string.IsNullOrEmpty(this.fsaHeaderReserve))
+                    {
+                        int reserveNeeded = System.Windows.Forms.TextRenderer.MeasureText(this.fsaHeaderReserve, font).Width + 12;
+                        need = Math.Max(need, HeaderTextHeight(g, font, format, this.fsaHeaderReserve,
+                                                               this.FirstColumnWidthFor(reserveNeeded), column.SortOrder));
+                    }
+                }
+            }
+
+            if (this.columnModel1.HeaderHeight != need)
+            {
+                this.columnModel1.HeaderHeight = need;
+            }
+        }
+
+        /// <summary>Высота шапки под текст колонки этой ширины — правилом рисования `XPHeaderRenderer`.</summary>
+        internal static int HeaderTextHeight(System.Drawing.Graphics g, System.Drawing.Font font, System.Drawing.StringFormat format,
+                                             string text, int columnWidth, System.Windows.Forms.SortOrder sort)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return 0;
+            }
+
+            int textWidth = columnWidth - 4 - (sort != System.Windows.Forms.SortOrder.None ? 12 : 0);
+            if (textWidth <= 0)
+            {
+                return 0;
+            }
+
+            System.Drawing.SizeF size = g.MeasureString(text, font, textWidth, format);
+            return (int)Math.Ceiling(size.Height) + 4 + 2;
+        }
+
+        /// <summary>Ширина, которую правило <see cref="FitFirstColumn"/> дало бы первой колонке под такой заголовок.</summary>
+        int FirstColumnWidthFor(int headerNeeded)
+        {
+            int room = this.FirstColumnRoom();
+            return this.fsaFirstColumnByHand
+                ? Math.Max(this.fsaFirstColumnBase, Math.Min(headerNeeded, room))
+                : Math.Min(Math.Max(this.fsaFirstColumnBase, headerNeeded), room);
+        }
+
+        /// <summary>(`fixFsa2`) Заголовок, под который держится высота шапки; null — только текущий.</summary>
+        string fsaHeaderReserve;
+
+        /// <summary>
+        /// (`AMBER299`) Ширина колонки сменилась не правилом. У первой — значит, её поставил
+        /// человек, и пересчёта тут нет: колонка не прыгает у него под рукой, правило догонит
+        /// при первом `Resize` или `ShowResult`. У остальных — у первой стало другое место.
+        /// </summary>
+        void FsaColumnPropertyChanged(object sender, XPTable.Events.ColumnEventArgs e)
+        {
+            if (this.fsaFitting)
+            {
+                return;
+            }
+
+            // (`fixFsa2`) сменился текст заголовка (поправка на распад, уровень σ, правило МДА) —
+            // высота шапки под него
+            if (e.EventType == XPTable.Events.ColumnEventType.TextChanged)
+            {
+                this.FitHeaderHeightGuarded();
+                return;
+            }
+
+            if (e.EventType != XPTable.Events.ColumnEventType.WidthChanged)
+            {
+                return;
+            }
+
+            if (ReferenceEquals(e.Column, this.columnModel1.Columns[0]))
+            {
+                this.fsaFirstColumnBase = e.Column.Width;
+                this.fsaFirstColumnByHand = true;
+                // (`fixFsa2`, второй заход; замер критика `critFsa2`: ширина 90 и 70 — шапка 32 при
+                // нужных 42) колонку сузил человек — заголовок переносится на лишние строки, высота
+                // шапки под них, хотя ширину правило здесь не трогает
+                this.FitHeaderHeightGuarded();
+                return;
+            }
+            this.FitFirstColumn();
+        }
+
+        /// <summary>(`fixFsa2`) <see cref="FitHeaderHeight"/> под защитой от входа в себя.</summary>
+        void FitHeaderHeightGuarded()
+        {
+            this.fsaFitting = true;
+            try
+            {
+                this.FitHeaderHeight();
+            }
+            finally
+            {
+                this.fsaFitting = false;
+            }
+        }
+
+        /// <summary>(`AMBER299`) Ширина первой колонки без роста под заголовок: умолчание или ширина человека.</summary>
+        int fsaFirstColumnBase;
+
+        /// <summary>(`AMBER299`) Ширину первой колонки поставил человек — правило её не отнимает.</summary>
+        bool fsaFirstColumnByHand;
+
+        /// <summary>(`AMBER299`) Сколько просит текст заголовка; 0 — заголовка ещё нет.</summary>
+        int fsaHeaderNeeded;
+
+        /// <summary>(`AMBER299`) Ширину ставит правило, а не человек; и защита от входа в себя.</summary>
+        bool fsaFitting;
 
         /// <summary>
         /// (AMBER245, 03.11.2026) Сколько места таблица оставляет первой колонке: ширина
@@ -873,7 +1046,7 @@ namespace BecquerelMonitor
             // 30-секундной давности стояли без пометки, как готовые: пометка зажигалась только на
             // время самого счёта. Отпечаток считается тем же путём, что у сеанса.
             if (!running && result != null && rd.ResultDataStatus != null && rd.ResultDataStatus.Recording
-                && !string.Equals(session.Stamp, FullSpectrumAnalysis.FsaAnalysisSession.BuildStamp(
+                && !string.Equals(session.Stamp, session.StampOf(
                     rd, rd.BackgroundEnergySpectrum != null, options), StringComparison.Ordinal))
             {
                 running = true;
@@ -907,8 +1080,10 @@ namespace BecquerelMonitor
                 rd, result, nuclides.NuclideDefinitions, texts, out summary);
             // Признак свежести: пока сеанс считает новый спектр, строки — по
             // прежнему разбору, и заголовок говорит об этом.
-            string head = summary.Describe(texts) + (running ? " " + OwnText(KeyFsaStale) : "");
-            this.SetFsaHeader(head, summary.Details(texts));
+            string described = summary.Describe(texts);
+            string staleHead = described + " " + OwnText(KeyFsaStale);
+            string head = running ? staleHead : described;
+            this.SetFsaHeader(head, summary.Details(texts), staleHead);
             this.SetFsaMdaHeader(result);
             return built ?? StatusCollection(rd, OwnText(KeyFsaReasonNoResult));
         }

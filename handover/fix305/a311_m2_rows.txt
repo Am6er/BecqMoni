@@ -1,0 +1,6 @@
+BecqMoni: main config: <полоса>\mut\lab_m2_thresh\config\BecquerelMonitor.xml
+BecqMoni: device configs: <полоса>\mut\lab_m2_thresh\config\device: 10 loaded
+   OK  строки есть у обеих, сетка одна
+   узлов 33, Σχ²/n 1006.336, худший z 50.90 на 33.1 кэВ; сумма площадей A/B 2.23161
+   ОТКАЗ CPU↔GPU в пределах статистики
+⛔ РАСХОЖДЕНИЙ: 1

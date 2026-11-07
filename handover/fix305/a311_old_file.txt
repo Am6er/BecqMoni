@@ -1,0 +1,6 @@
+BecqMoni: main config: <полоса>\app4\config\BecquerelMonitor.xml
+BecqMoni: device configs: <полоса>\app4\config\device: 10 loaded
+   OK  прежний файл читается, строк нет
+   OK  пересохранение: клеймо и тело те же, строк нет
+   OK  пустая строка не падает
+ВСЕ СОШЛИСЬ

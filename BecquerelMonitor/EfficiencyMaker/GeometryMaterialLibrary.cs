@@ -221,6 +221,24 @@ namespace BecquerelMonitor.EfficiencyMaker
             add("Fe", "Iron", "Fe1", 7.874, MaterialKind.Cladding);
             add("C", "Carbon", "C1", 1.7, MaterialKind.Cladding);
 
+            // (`AMBER307`) ABS — корпус и капсула RadiaCode-110, шаблон «RadiaCode-110». Плотность и
+            // массовые доли — из самого файла модели прибора (`RC110_detector.gdml`, вещество
+            // `Case_ABS`): ρ 1.05 г/см³, C 0.85, H 0.08, N 0.07. Паспорта пластика нет, это числа
+            // модели прибора.
+            {
+                Entry abs = new Entry
+                {
+                    Abbr = "ABS", Name = "ABS plastic", Formula = "",
+                    Density = 1.05, Kind = MaterialKind.Cladding,
+                };
+                foreach (KeyValuePair<int, double> pair in GeometryMaterialSeed.Fractions("1:0.08 6:0.85 7:0.07"))
+                {
+                    abs.ElementFractions[pair.Key] = pair.Value;
+                }
+
+                list.Add(abs);
+            }
+
             // (`AMBER282`) Углеродистая сталь — защита пробы Amber («Завести «Steel»»,
             // вопросником 03.11.2026). Готовые данные: PNNL Compendium of Material
             // Composition Data for Radiation Transport Modeling, PIET-43741-TM-963 /

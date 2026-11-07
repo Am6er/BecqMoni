@@ -171,9 +171,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>
         /// Перенести то, что решается при сборке библиотеки из баз: атомный
-        /// рентген и равновесие ряда. Путь по подписям пиков спецификации не
-        /// имеет; там рентген передаётся доводом
-        /// <see cref="FsaLibrary.BuildFromPeaks(System.Collections.Generic.IEnumerable{Peak}, System.Collections.Generic.IEnumerable{NuclideDefinition}, System.Collections.Generic.IDictionary{int, double}, bool)"/>.
+        /// рентген и равновесие ряда. Сборка одна на все источники состава (`AMBER306`).
         /// </summary>
         public void ApplyTo(FsaSampleSpec spec)
         {

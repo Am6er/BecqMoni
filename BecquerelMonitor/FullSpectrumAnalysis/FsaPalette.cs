@@ -75,6 +75,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static readonly Color AnchorMarkColor = ColorFromHex(0x1E5BD6);
 
+        /// <summary>(`AMBER295`) Штриховка участков, снятых автомаской фона.</summary>
+        public static readonly Color BackgroundMaskColor = Color.FromArgb(70, 110, 110, 110);
+
         /// <summary>
         /// Цвет штриха для подслоя сумм-пиков: тот же цвет, но заметно темнее
         /// или светлее — смотря что видно на этом. На тёмной ленте штрих

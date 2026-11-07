@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+<define></define>
+<materials></materials>
+<solids><box name="WB" x="10" y="10" z="10" lunit="m"/><polycone name="P1" startphi="30" deltaphi="90" aunit="deg" lunit="cm"><zplane z="0" rmin="1" rmax="3"/><zplane z="2" rmin="1" rmax="4"/></polycone><genericPolycone name="G1" startphi="0" deltaphi="1.5" lunit="mm"><rzpoint r="10" z="0"/><rzpoint r="20" z="0"/><rzpoint r="20" z="30"/><rzpoint r="10" z="30"/></genericPolycone></solids>
+<structure><volume name="L1"><materialref ref="G4_Fe"/><solidref ref="P1"/></volume><volume name="L2"><materialref ref="G4_Fe"/><solidref ref="G1"/></volume><volume name="World"><materialref ref="G4_AIR"/><solidref ref="WB"/><physvol name="a"><volumeref ref="L1"/><position x="100"/></physvol><physvol name="b"><volumeref ref="L2"/><position x="-100"/></physvol></volume></structure>
+<setup name="Default" version="1.0"><world ref="World"/></setup>
+</gdml>

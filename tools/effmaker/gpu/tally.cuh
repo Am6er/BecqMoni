@@ -10,7 +10,9 @@
 #pragma once
 #include "common.cuh"
 
-#define RM_CHANNELS 7   // = EfficiencySimulator.ResponseChannelCount
+// = EfficiencySimulator.ResponseRowCount (`AMBER311`): каналы отклика и за ними строка-подмножество
+// «обратное рассеяние», часть канала `Compton`. Номер канала истории меньше семи.
+#define RM_CHANNELS 8
 
 // Скаляры взвешенной ветви (накопители `Run` и поля симулятора, которые цикл копит).
 enum WeightedSlot

@@ -24,11 +24,20 @@ namespace BecquerelMonitor.EfficiencyMaker
         List<ROIEfficiencyData> reference;
         EfficiencyFitResult result;
 
+        /// <summary>(`AMBER304`) Почему кривых нет; null — их просто ещё нет.</summary>
+        string emptyNote;
+
         public EfficiencyCurveGraph()
         {
             this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint
                 | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             this.BackColor = Color.White;
+        }
+
+        public void SetEmptyNote(string note)
+        {
+            this.emptyNote = note;
+            this.Invalidate();
         }
 
         public void SetData(List<ROIEfficiencyData> referenceCurve, EfficiencyFitResult fit)
@@ -66,7 +75,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             if (points.Count < 2)
             {
-                TextRenderer.DrawText(g, Resources.EfficiencyMakerGraphEmpty, this.Font,
+                TextRenderer.DrawText(g, this.emptyNote ?? Resources.EfficiencyMakerGraphEmpty, this.Font,
                     plot, Color.Gray, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
                 return;
             }

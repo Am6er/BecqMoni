@@ -814,6 +814,24 @@ namespace FsaReportViewProbe
                             Channel = 0.5 * (real.FirstChannel + real.LastChannel), FwhmChannels = 10.0
                         }
                     };
+                    // (`AMBER311`) и заметный пик вылета — чтобы у сцены были роды EscapePeaks и EscapePeakLine
+                    add.EscapeLines = new List<FsaEscapeLine>
+                    {
+                        new FsaEscapeLine
+                        {
+                            Nuclide = c.Name, ParentKev = 2614.5, EnergyKev = 2127.0, Counts = 1000.0,
+                            Channel = 0.5 * (real.FirstChannel + real.LastChannel), FwhmChannels = 10.0
+                        }
+                    };
+                    // (`AMBER311`) и заметный горб обратного рассеяния — роды Backscatter и BackscatterLine
+                    add.BackscatterLines = new List<FsaBackscatterLine>
+                    {
+                        new FsaBackscatterLine
+                        {
+                            Nuclide = c.Name, ParentKev = 661.7, EnergyKev = 232.0, Counts = 1000.0,
+                            Channel = 0.5 * (real.FirstChannel + real.LastChannel), FwhmChannels = 10.0
+                        }
+                    };
                     lined = true;
                 }
 

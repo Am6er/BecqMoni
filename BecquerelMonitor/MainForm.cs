@@ -1323,11 +1323,21 @@ namespace BecquerelMonitor
                 this.activeDocument.IsActivating = true;
                 this.dcControlPanel.ShowDocumentStatus();
                 this.dcSampleInfoView.LoadFormContents();
-                this.ShowMeasurementResult(true);
                 this.ShowDoseRate();
                 this.ShowCountsRate();
                 this.ShowDetectorFeature();
+                // ⛔ (`fixFsa2`, 07.11.2026) НАБОР НУКЛИДОВ ДОКУМЕНТА — РАНЬШЕ ЛЮБОГО ЗАКАЗЧИКА FSA.
+                // Панель пиков ставит общий `NuclideDefinitionManager.ActiveSet` по набору нового
+                // документа (`ShowNuclideSetOf`), а набор входит в отпечаток разбора
+                // (`FsaAnalysisSession.NuclideSetStamp`) и в снимок счёта (`job.Set`). Окно
+                // результата звалось ВЫШЕ этой строки: при открытой вкладке «Результат измерений»
+                // и разных наборах у документов оно заказывало разбор нового документа с набором
+                // ПРЕЖНЕГО — отпечаток не совпадал с готовым результатом, шёл лишний счёт с чужим
+                // набором, а за ним второй, уже со своим (1–2 мин на 2–3 ядрах; проверка экраном
+                // 07.11.2026, снимки 20–22; проба `DocSwitchFsaProbe`). Без окна результата первым
+                // спрашивал график, уже после набора, — поэтому с панелью пиков счёта не было.
                 this.dcPeakDetectionView.ShowPeakDetectionResult();
+                this.ShowMeasurementResult(true);
                 this.dcControlPanel.Enabled = true;
                 this.dcSampleInfoView.Enabled = true;
                 this.dcCountRateView.Enabled = true;
@@ -1383,11 +1393,12 @@ namespace BecquerelMonitor
             this.activeDocument.UpdateEnergySpectrum();
             this.dcControlPanel.ShowDocumentStatus();
             this.dcSampleInfoView.LoadFormContents();
-            this.ShowMeasurementResult(true);
             this.ShowDoseRate();
             this.ShowCountsRate();
             this.ShowDetectorFeature();
+            // (`fixFsa2`) тот же порядок, что при смене документа: набор — раньше заказчика FSA
             this.dcPeakDetectionView.ShowPeakDetectionResult();
+            this.ShowMeasurementResult(true);
             UpdateEnergyCalibrationView();
             this.activeDocument.ActiveEnergyCalibration = this.dcEnergyCalibrationView.Visible;
             this.dcControlPanel.Enabled = true;

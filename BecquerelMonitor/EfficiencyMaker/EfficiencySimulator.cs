@@ -3359,11 +3359,17 @@ namespace BecquerelMonitor.EfficiencyMaker
             // ЗДЕСЬ, один раз, — дальше вся сцена строится прежним кодом, для
             // которого «перёд» это просто сторона, обращённая к пробе.
             //
-            // Оговорка, которую надо знать: остальные четыре грани в такой
-            // постановке смешанные — две из них были торцами бруска. Им тоже
-            // достаётся боковая толщина. Это ДОПУЩЕНИЕ; оно мало (разница
-            // передней и боковой обвязки у наших приборов — доли миллиметра
-            // против сантиметров кристалла) и касается только краевых путей.
+            // Оговорка, которую надо знать: после перестановки остальные четыре
+            // боковые грани получают ТОРЦЕВУЮ обвязку, а грань против пробы —
+            // оправу (`tm`, за кристаллом). У настоящего развёрнутого бруска эти
+            // грани смешанные: две — бывшие боковые (боковая обвязка), одна —
+            // бывший торец (торцевая), одна — бывший тыл (оправа), а против
+            // пробы — снова боковая. Это ДОПУЩЕНИЕ, и оно не всегда мало: у
+            // RadiaCode-110 стеки 6.05 мм (зазор 2.985) и 3.85 мм (зазор 0.785),
+            // то есть разница — миллиметры, а не доли (`AMBER307`, разбор полосы
+            // fixGdml2 07.11.2026). Путь от пробы к кристаллу при этом верен;
+            // разница — на краевых путях и рассеянии назад. Цену меряют после
+            // волны (решение Amber 07.11.2026: «Замерить после волны (Рекомендую)»).
             if (g.Facing == GeometryDetectorFacing.Side)
             {
                 double t = tfr; tfr = tsr; tsr = t;
@@ -4597,6 +4603,66 @@ namespace BecquerelMonitor.EfficiencyMaker
         bool fromOutsideAnnihilation;
 
         /// <summary>
+        /// (`AMBER311`) Косинус самого большого угла, на который текущий квант рассеялся
+        /// комптоном ВНЕ кристалла; 2 — не рассеивался. Едет с квантом по очереди, как
+        /// <see cref="fromOutsideAnnihilation"/>; случайных чисел не тянет.
+        /// </summary>
+        double outsideCos = NoOutsideScatter;
+
+        const double NoOutsideScatter = 2.0;
+
+        /// <summary>
+        /// (`AMBER311`) Квант вышел из кристалла, уже отдав там энергию, и сам метки не нёс: вернувшись из
+        /// обвязки, он ляжет поверх первого заноса, а не в горб, поэтому метку больше не получает.
+        /// </summary>
+        const double FrozenOutsideCos = 3.0;
+
+        readonly double[] pendOutsideCos = new double[PendMax];
+
+        /// <summary>(`AMBER311`) Занос истории квантами, рассеянными вне кристалла на угол порога.</summary>
+        double depositedBackscatter;
+
+        /// <summary>
+        /// (`AMBER311`) Замер порога угла (`BackscatterAngleProbeA311`): занос истории по порогам
+        /// <see cref="BackscatterDiagCos"/> и гистограммы канала `Compton` по ним; null — замера нет.
+        /// На розыгрыш и на счёт не влияет.
+        /// </summary>
+        internal double[][] BackscatterDiag = null;
+
+        internal static readonly double[] BackscatterDiagCos = { 1.5, Math.Cos(Math.PI / 3.0), 0.0, -0.5, -Math.Sqrt(3.0) / 2.0 };
+
+        readonly double[] diagDeposit = new double[5];
+
+        /// <summary>(`AMBER311`) Квант рассеялся вне кристалла: метка; чисел не тянет.</summary>
+        void NoteOutsideScatter(double cos)
+        {
+            if (this.outsideCos <= NoOutsideScatter)
+            {
+                this.outsideCos = Math.Min(this.outsideCos, cos);
+            }
+        }
+
+        /// <summary>(`AMBER311`) Занос текущего кванта: разносит его по метке рассеяния вне кристалла.</summary>
+        void TallyBackscatter(double gain)
+        {
+            if (this.outsideCos < BackscatterMaxCos)
+            {
+                this.depositedBackscatter += gain;
+            }
+
+            if (this.BackscatterDiag != null)
+            {
+                for (int k = 0; k < this.diagDeposit.Length; k++)
+                {
+                    if (this.outsideCos < BackscatterDiagCos[k])
+                    {
+                        this.diagDeposit[k] += gain;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Счётчики отброшенного по переполнению очередей (`A55`/`A54`).
         ///
         /// ⛔ ЕСТЬ И СТАТИЧЕСКИЕ БЛИЗНЕЦЫ, и они не дублирование: узлы матрицы
@@ -4632,6 +4698,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             // кванта; второй аннигиляционный от пары кладётся сюда уже с
             // поднятым признаком (см. место рождения пары в `AnalogContinuumRun`).
             this.pendFromOutsideAnnihilation[k] = this.fromOutsideAnnihilation;
+            this.pendOutsideCos[k] = this.outsideCos;       // (`AMBER311`) метка едет с квантом
         }
 
         // (`N4`, П44) Очередь квантов тормозного обвязки у обхода ПОЛНОЙ
@@ -8777,6 +8844,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.lightDeposit = 0.0;
             this.ResetTrace();
             this.fromOutsideAnnihilation = false;
+            this.outsideCos = NoOutsideScatter;
             this.pendCount = 0;
 
             double t = this.CapsuleExit(te, uz);
@@ -8816,6 +8884,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 stats.QueuedPhotons += this.pendCount;
                 int k = --this.pendCount;
                 this.fromOutsideAnnihilation = this.pendFromOutsideAnnihilation[k];
+                this.outsideCos = this.pendOutsideCos[k];
                 double depositedOutside = 0.0;
                 bool comptonOutside = false;
                 deposited = this.AnalogTransportFrom(this.pendX[k], this.pendY[k], this.pendZ[k],
@@ -9166,6 +9235,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.lightDeposit = 0.0;
             this.ResetTrace();
             this.fromOutsideAnnihilation = false;
+            this.outsideCos = NoOutsideScatter;
             this.pendCount = 0;
 
             double te = SampleBranchBeta(spec, this.Uniform());
@@ -9192,6 +9262,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             // Каскад — из точки распада, после обхода беты: очередь пуста, признак
             // происхождения снят (кванты каскада — первичные, не потомки аннигиляции).
             this.fromOutsideAnnihilation = false;
+            this.outsideCos = NoOutsideScatter;
             this.ForgetRay();
             int level = spec.StartLevel;
             int steps = 0;
@@ -9270,6 +9341,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             int k = --this.pendCount;
             this.fromOutsideAnnihilation = this.pendFromOutsideAnnihilation[k];
+            this.outsideCos = this.pendOutsideCos[k];
             double depositedOutside = 0.0;
             bool comptonOutside = false;
             return this.AnalogTransportFrom(this.pendX[k], this.pendY[k], this.pendZ[k],
@@ -9678,6 +9750,22 @@ namespace BecquerelMonitor.EfficiencyMaker
         public const int ResponseChannelCount = 7;
 
         /// <summary>
+        /// (`AMBER311`) Строк при прогоне: каналы и за ними <see cref="BackscatterRow"/>. Каналы делят
+        /// отклик без остатка, а эта строка — ЧАСТЬ канала `Compton`: она уже лежит в нём. Поэтому она
+        /// не номер канала и не строка тела матрицы: тело, отпечаток и образы FSA от неё не зависят.
+        /// </summary>
+        public const int ResponseRowCount = ResponseChannelCount + 1;
+
+        /// <summary>(`AMBER311`) Индекс строки «рассеянные вне кристалла» при прогоне.</summary>
+        public const int BackscatterRow = ResponseChannelCount;
+
+        /// <summary>
+        /// (`AMBER311`) Порог метки: косинус угла рассеяния вне кристалла, ниже которого квант несёт
+        /// обратное рассеяние. Определение и замер — журнал `handover/handover-2026-11-05-fix305.md`.
+        /// </summary>
+        public const double BackscatterMaxCos = 0.0;
+
+        /// <summary>
         /// Тот же отклик, разложенный по каналам исхода: `[канал][бин]`. Сумма
         /// каналов побитово равна обычному <see cref="Response"/> — история
         /// кладётся ровно в один канал, а розыгрыш от разложения не меняется.
@@ -9710,8 +9798,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             int bins = PeakBin(energyKev, binKev) + 1;
-            double[][] channels = new double[ResponseChannelCount][];
-            for (int c = 0; c < ResponseChannelCount; c++)
+            double[][] channels = new double[ResponseRowCount][];
+            for (int c = 0; c < ResponseRowCount; c++)
             {
                 channels[c] = new double[bins];
             }
@@ -9727,8 +9815,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.channelHistograms = null;
             }
 
-            return channels;
+            // (`AMBER311`) Наружу — только каналы: их сумма — весь отклик. Строка-подмножество — отдельно.
+            this.LastBackscatterRow = channels[BackscatterRow];
+            double[][] partition = new double[ResponseChannelCount][];
+            Array.Copy(channels, partition, ResponseChannelCount);
+            return partition;
         }
+
+        /// <summary>(`AMBER311`) Строка «рассеянные вне кристалла» последнего <see cref="ResponseByChannel"/>; часть канала `Compton`.</summary>
+        public double[] LastBackscatterRow { get; internal set; }
 
         // Раскладка по каналам включается на время прогона. Поле, а не
         // параметр: раскладка нужна только матрице отклика, а `Run` зовут ещё
@@ -11523,6 +11618,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             // depositedOutside)`.
             depositedOutside = 0.0;
             this.fromOutsideAnnihilation = false;
+            this.outsideCos = NoOutsideScatter;
+            this.depositedBackscatter = 0.0;
+            if (this.BackscatterDiag != null)
+            {
+                Array.Clear(this.diagDeposit, 0, this.diagDeposit.Length);
+            }
+
             comptonOutside = false;        // замер `S55`, см. счётчики
 
             // ⛔ ОЧЕРЕДЬ КВАНТОВ ИСТОРИИ (`A52`, расширена `A55`). Обход
@@ -11568,6 +11670,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         if (e - escaped > 1e-9)
                         {
                             deposited += e - escaped;
+                            this.TallyBackscatter(e - escaped);
                             if (this.fromOutsideAnnihilation)
                             {
                                 depositedOutside += e - escaped;
@@ -11582,6 +11685,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                             // комптоновским краем и пиком выходила на 13.7 %
                             // (662 кэВ) и 17.3 % (1332.5 кэВ) ниже Geant4 — при
                             // том что на голом кристалле сходилась.
+                            if (!(this.outsideCos < BackscatterMaxCos))
+                            {
+                                this.outsideCos = FrozenOutsideCos;     // (`AMBER311`) и это чисел не тянет
+                            }
+
                             for (int k = 0; k < this.escapeCount; k++)
                             {
                                 this.PushPending(this.escX[k], this.escY[k], this.escZ[k],
@@ -11699,6 +11807,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                                             x, y, z, ElectronBirth.Pair, e - 2.0 * ElectronMassKev,
                                             ux, uy, uz, here.Material, this.pushAnalog);
                                         deposited += gain;
+                                        this.TallyBackscatter(gain);
                                         if (this.fromOutsideAnnihilation)
                                         {
                                             depositedOutside += gain;
@@ -11712,6 +11821,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                                        out carried))
                                     {
                                         deposited += carried;
+                                        this.TallyBackscatter(carried);
                                         if (this.fromOutsideAnnihilation)
                                         {
                                             depositedOutside += carried;
@@ -11759,6 +11869,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                                             x, y, z, ElectronBirth.Photo, e - xrayOut,
                                             gx, gy, gz, here.Material, this.pushAnalog);
                                         deposited += gain;
+                                        this.TallyBackscatter(gain);
                                         if (this.fromOutsideAnnihilation)
                                         {
                                             depositedOutside += gain;
@@ -11772,10 +11883,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                                        out carried))
                                     {
                                         deposited += carried;
+                                        this.TallyBackscatter(carried);
                                         if (this.fromOutsideAnnihilation)
                                         {
                                             depositedOutside += carried;
                                         }
+                                    }
+
+                                    // (`AMBER311`) Рентген защиты — новый квант, а не рассеянный назад: метка родителя
+                                    // на него не переходит. Замороженный остаётся замороженным.
+                                    if (this.outsideCos <= 1.0)
+                                    {
+                                        this.outsideCos = NoOutsideScatter;
                                     }
 
                                     e = xrayOut;
@@ -11788,6 +11907,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                                         x, y, z, ElectronBirth.Photo, e,
                                         ux, uy, uz, here.Material, this.pushAnalog);
                                     deposited += gain;
+                                    this.TallyBackscatter(gain);
                                     if (this.fromOutsideAnnihilation)
                                     {
                                         depositedOutside += gain;
@@ -11799,6 +11919,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                                    out carried))
                                 {
                                     deposited += carried;
+                                    this.TallyBackscatter(carried);
                                     if (this.fromOutsideAnnihilation)
                                     {
                                         depositedOutside += carried;
@@ -11827,11 +11948,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                                     x, y, z, ElectronBirth.Given, e - after,
                                     dx, dy, dz, here.Material, this.pushAnalog);
                                 deposited += gain;
+                                this.TallyBackscatter(gain);
                                 if (this.fromOutsideAnnihilation)
                                 {
                                     depositedOutside += gain;
                                 }
 
+                                this.NoteOutsideScatter(cos);     // (`AMBER311`) ПОСЛЕ заноса электрона отдачи: он метку не несёт
                                 e = after;
                                 continue;
                             }
@@ -11846,12 +11969,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                           out carried))
                             {
                                 deposited += carried;
+                                this.TallyBackscatter(carried);
                                 if (this.fromOutsideAnnihilation)
                                 {
                                     depositedOutside += carried;
                                 }
                             }
 
+                            this.NoteOutsideScatter(cos);     // (`AMBER311`) ПОСЛЕ заноса электрона отдачи: он метку не несёт
                             e = after;
                             this.Rotate(ref ux, ref uy, ref uz, cos);
                             continue;
@@ -11882,6 +12007,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     e = this.pendE[k];
                     // (`AMBER52`) Происхождение кванта — вместе с ним из очереди.
                     this.fromOutsideAnnihilation = this.pendFromOutsideAnnihilation[k];
+                    this.outsideCos = this.pendOutsideCos[k];
                     travelled = 0.0;
                     continue;
                 }
@@ -11951,8 +12077,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             double[][] channels = null;
             if (this.channelHistograms != null)
             {
-                channels = new double[ResponseChannelCount][];
-                for (int c = 0; c < ResponseChannelCount; c++)
+                channels = new double[ResponseRowCount][];
+                for (int c = 0; c < ResponseRowCount; c++)
                 {
                     channels[c] = new double[histogram.Length];
                 }
@@ -12064,6 +12190,29 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
 
                     channels[(int)channel][bin] += weight;
+
+                    // (`AMBER311`) Подмножество канала `Compton`: занос рассеянных вне кристалла —
+                    // бОльшая часть заноса истории. Правило большинства то же, что у `ChannelOf`.
+                    if (channel == ResponseChannel.Compton)
+                    {
+                        if (this.depositedBackscatter > 0.0
+                            && this.depositedBackscatter >= deposited - this.depositedBackscatter)
+                        {
+                            channels[BackscatterRow][bin] += weight;
+                        }
+
+                        if (this.BackscatterDiag != null)
+                        {
+                            this.BackscatterDiag[0][bin] += weight;
+                            for (int k = 0; k < this.diagDeposit.Length; k++)
+                            {
+                                if (this.diagDeposit[k] > 0.0 && this.diagDeposit[k] >= deposited - this.diagDeposit[k])
+                                {
+                                    this.BackscatterDiag[k + 1][bin] += weight;
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -12086,7 +12235,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 if (channels != null)
                 {
-                    for (int c = 0; c < ResponseChannelCount; c++)
+                    for (int c = 0; c < ResponseRowCount; c++)
                     {
                         this.channelHistograms[c][b] = channels[c][b];
                     }

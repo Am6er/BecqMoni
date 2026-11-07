@@ -154,20 +154,22 @@ namespace MatrixRefusalProbeP8
             //    форма, которая жалуется ВСЕГДА, не измеряет ничего.
             Synthetic(geometry, options).Save(path);
             int format = ReadFormat(path);
-            Check(format == ResponseMatrix.FormatVersion,
+            // (`AMBER274`) Матрица без раздела электрона пишется форматом 11 — он тоже нынешний.
+            Check(ResponseMatrix.IsCurrentFormat(format),
                   "сцена записана нынешним форматом: в файле " + Num(format)
                   + ", код читает " + Num(ResponseMatrix.FormatVersion));
 
             using (var form = new ResponseMatrixForm(config))
             {
                 string state = TextOf(form, "stateLabel");
-                Check(state == Resources.ResponseMatrixStateValid,
+                // (`AMBER305`) Годный файл без раздела электрона читается, состояние — «нужен пересчёт».
+                Check(state == Resources.ResourceManager.GetString("ResponseMatrixStateNeedsSection", Resources.Culture),
                       "[полож. контроль] годный файл: «" + state + "»");
             }
 
             // ── Формат 6: ровно то, что лежит у людей после подъёма формата —
             //    наш файл, наша матрица, читать нельзя.
-            int old = ResponseMatrix.FormatVersion - 1;
+            int old = ResponseMatrix.CompatibleFormatVersion - 1;
             WriteFormat(path, old);
 
             MatrixRefusal refusal;
@@ -203,7 +205,7 @@ namespace MatrixRefusalProbeP8
 
             // ── Обрубок нынешнего формата. Прежний код и на нём говорил
             //    «устарела: другое поколение», хотя оба поколения СОШЛИСЬ.
-            WriteFormat(path, ResponseMatrix.FormatVersion);
+            WriteFormat(path, ResponseMatrix.CompatibleFormatVersion);
             long full = new FileInfo(path).Length;
             Truncate(path, full / 2);
             ResponseMatrix.Load(path, out refusal, out fileFormat);
@@ -277,7 +279,7 @@ namespace MatrixRefusalProbeP8
             // Годная матрица: у неё печатается ВСЁ — состояние, поколения,
             // подробности (узлы, края сетки, бин, истории, размеры, дата,
             // секунды, отпечаток тела) и строка про унаследованные истории.
-            WriteFormat(path, ResponseMatrix.FormatVersion);
+            WriteFormat(path, ResponseMatrix.CompatibleFormatVersion);
             SetUiCulture("en-US");
 
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;

@@ -3,7 +3,10 @@ using BecquerelMonitor.FullSpectrumAnalysis;
 using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.Globalization;
+using System.IO;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text;
@@ -42,26 +45,46 @@ namespace SelectionHintsProbeA245
     ///      подсказка молчит, потому что причина там другая, а печатать отказы
     ///      на панели запрещено решением `AMBER2`.
     ///
-    /// п. (9): подпись `ChartHeaderCountBGRatio` — «Фон / проба, %» по-русски и
-    /// «Background / sample, %» по-английски, подсказка к ней непустая и
-    /// объясняет число словами; само число не менялось (его печатает отрисовка
-    /// тем же `PercentCharacter`).
+    /// п. (9): подпись `ChartHeaderCountBGRatio` — «Проба / фон, %» по-русски и
+    /// «Sample / background, %» по-английски (`AMBER297`: `8cfe1a80` поставил её
+    /// перевёрнутой над формулой проба/фон; решение Amber 05.11.2026 — поправить
+    /// подпись, формулу не менять), подсказка к ней непустая и объясняет число
+    /// словами.
+    ///
+    /// п. (9а) ЗНАЧЕНИЕ НА ПАНЕЛИ, `AMBER297`: настоящий `ShowCursorValues` рисует
+    /// обе панели (выделения и канала) в `Bitmap` при заданных числах проба
+    /// 66234876, фон в тех же каналах 65588919 за вдесятеро большее время, то есть
+    /// 6558891.9 в приведении ко времени пробы. Строка панели сверяется ПО ТОЧКАМ
+    /// с той же строкой, нарисованной тем же шрифтом: подпись ресурса и значение
+    /// проба/фон×100 = 1009.85 %. Порядок слов судится отдельно: числитель формулы
+    /// (проба) обязан стоять в подписи первым.
+    /// Положительный контроль в том же процессе: значение обратной дроби (9.90 %) и
+    /// старая подпись в те же точки НЕ ложатся. Ключ `--shots=&lt;каталог&gt;` кладёт
+    /// снимок панелей (на диск, не в git).
+    /// ⛔ Обращённая формула в ПРИЛОЖЕНИИ и старая подпись в ресурсе роняют пробу
+    /// кодом 1: снято отдельными сборками-мутантами (журнал
+    /// `handover/handover-2026-11-05-fixui.md`).
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ», код 0.
     /// </summary>
     static class Program
     {
         static int bad;
+        static string shots;
 
         [STAThread]
         static int Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-            if (args != null && args.Length > 0)
+            foreach (string a in args ?? new string[0])
             {
-                Console.Error.WriteLine("ключей нет: " + string.Join(" ", args));
-                return 2;
+                if (a.StartsWith("--shots=", StringComparison.Ordinal)) shots = a.Substring(8);
+                else
+                {
+                    Console.Error.WriteLine("неизвестный ключ: " + a);
+                    return 2;
+                }
             }
 
             Console.WriteLine("=== чем мерено ===");
@@ -71,6 +94,8 @@ namespace SelectionHintsProbeA245
 
             Section8();
             Section9();
+            RatioOnPanel("ru");
+            RatioOnPanel("en");
 
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ" : string.Format("НЕ СОШЛОСЬ: {0}", bad));
@@ -146,12 +171,12 @@ namespace SelectionHintsProbeA245
         }
 
         // ------------------------------------------------------------------
-        //  (9) подпись «Фон / проба, %» и слова к ней
+        //  (9) подпись «Проба / фон, %» и слова к ней
         // ------------------------------------------------------------------
 
         static void Section9()
         {
-            Console.WriteLine("=== (9) «Фон / проба, %»: подпись и подсказка ===");
+            Console.WriteLine("=== (9) «Проба / фон, %»: подпись и подсказка ===");
             string ru = Text("ru", "ChartHeaderCountBGRatio");
             string en = Text("en", "ChartHeaderCountBGRatio");
             string ruHint = Text("ru", "ChartHeaderCountBGRatioHint");
@@ -160,11 +185,183 @@ namespace SelectionHintsProbeA245
             Console.WriteLine("  подпись en: «{0}»", en);
             Console.WriteLine("  подсказка ru: «{0}»", ruHint);
             Console.WriteLine("  подсказка en: «{0}»", enHint);
-            Check("подпись ru — «Фон / проба, %»", "Фон / проба, %", ru);
-            Check("подпись en — «Background / sample, %»", "Background / sample, %", en);
+            Check("подпись ru — «Проба / фон, %»", "Проба / фон, %", ru);
+            Check("подпись en — «Sample / background, %»", "Sample / background, %", en);
+            // ⛔ (`AMBER297`) Порядок слов — отдельной проверкой: литерал выше однажды уже
+            //    закрепил ошибку. Значение панели — проба/фон, поэтому числитель стоит первым.
+            Check("порядок слов ru: «проба» раньше «фон»", true, WordsInOrder(ru, "проба", "фон"));
+            Check("порядок слов en: «sample» раньше «background»", true, WordsInOrder(en, "sample", "background"));
+            Check("контроль мерки порядка: старая подпись ru отвергается", false, WordsInOrder("Фон / проба, %", "проба", "фон"));
+            Check("контроль мерки порядка: старая подпись en отвергается", false, WordsInOrder("Background / sample, %", "sample", "background"));
             Check("подсказка ru не пуста", true, !string.IsNullOrEmpty(ruHint));
             Check("подсказка en не пуста", true, !string.IsNullOrEmpty(enHint));
             Check("подсказка ru — не английский текст", false, ruHint == enHint);
+            Console.WriteLine();
+        }
+
+        static bool WordsInOrder(string text, string first, string second)
+        {
+            int a = text == null ? -1 : text.IndexOf(first, StringComparison.OrdinalIgnoreCase);
+            int b = text == null ? -1 : text.IndexOf(second, StringComparison.OrdinalIgnoreCase);
+            return a >= 0 && b >= 0 && a < b;
+        }
+
+        // ------------------------------------------------------------------
+        //  (9а) значение на панели: настоящий ShowCursorValues в Bitmap
+        // ------------------------------------------------------------------
+
+        const int PanelChannel = 100;
+        const int SampleCounts = 66234876;
+        const int RawBackgroundCounts = 65588919;
+        const double SampleTime = 1000.0, BackgroundTime = 10000.0;
+        const int PanelY = 10, PanelWidth = 230;
+        /// <summary>Верх строки процента от верха панели: панель канала 4+16+22+16+16.</summary>
+        const int ChannelRatioRow = 74;
+        /// <summary>Верх строки процента от верха панели: панель выделения 4+22+16+22+16+16.</summary>
+        const int SelectionRatioRow = 96;
+
+        static void RatioOnPanel(string culture)
+        {
+            CultureInfo ui = new CultureInfo(culture);
+            CultureInfo keepUi = Thread.CurrentThread.CurrentUICulture;
+            Thread.CurrentThread.CurrentUICulture = ui;
+            try
+            {
+                double adjusted = RawBackgroundCounts * SampleTime / BackgroundTime;
+                double percent = SampleCounts / adjusted * 100.0;
+                string expected = percent.ToString("f2", CultureInfo.InvariantCulture) + Text(culture, "PercentCharacter");
+                string reversed = (adjusted / SampleCounts * 100.0).ToString("f2", CultureInfo.InvariantCulture) + Text(culture, "PercentCharacter");
+                string label = Text(culture, "ChartHeaderCountBGRatio");
+                string oldLabel = culture == "ru" ? "Фон / проба, %" : "Background / sample, %";
+                Console.WriteLine("=== (9а) панель, культура {0}: проба {1}, фон {2}, ждём «{3}» при подписи «{4}» ===",
+                                  culture, SampleCounts.ToString("f0", CultureInfo.InvariantCulture),
+                                  adjusted.ToString("f1", CultureInfo.InvariantCulture), expected, label);
+                Check("значение ровно 1009.85 %", "1009.85" + Text(culture, "PercentCharacter"), expected);
+
+                using (EnergySpectrumView view = new EnergySpectrumView())
+                using (Bitmap frame = new Bitmap(800, 300, PixelFormat.Format32bppArgb))
+                {
+                    int x = DrawPanels(view, frame);
+                    if (shots != null)
+                    {
+                        Directory.CreateDirectory(shots);
+                        string file = Path.Combine(shots, "a297-panels-" + culture + ".png");
+                        frame.Save(file, ImageFormat.Png);
+                        Console.WriteLine("  снимок: {0}", file);
+                    }
+                    int selectionX = x;
+                    int channelX = x - PanelWidth - 10;
+                    foreach (var panel in new[]
+                    {
+                        new { Name = "панель выделения", X = selectionX, Row = SelectionRatioRow },
+                        new { Name = "панель канала", X = channelX, Row = ChannelRatioRow },
+                    })
+                    {
+                        int good = RowDifference(view, frame, panel.X, panel.Row, label, expected);
+                        Console.WriteLine("  {0}: отличий строки «{1}» / «{2}» точек {3}", panel.Name, label, expected, good);
+                        Check(panel.Name + ": строка совпала по точкам", 0, good);
+                        int wrongValue = RowDifference(view, frame, panel.X, panel.Row, label, reversed);
+                        int wrongLabel = RowDifference(view, frame, panel.X, panel.Row, oldLabel, expected);
+                        Console.WriteLine("  {0}: контроль: обратная дробь «{1}» отличий {2}; старая подпись «{3}» отличий {4}",
+                                          panel.Name, reversed, wrongValue, oldLabel, wrongLabel);
+                        Check(panel.Name + ": контроль — обратная дробь в те же точки не ложится", true, wrongValue > 0);
+                        Check(panel.Name + ": контроль — старая подпись в те же точки не ложится", true, wrongLabel > 0);
+                    }
+                }
+            }
+            finally
+            {
+                Thread.CurrentThread.CurrentUICulture = keepUi;
+                Console.WriteLine();
+            }
+        }
+
+        /// <summary>
+        /// Настоящая отрисовка панелей: поля вида ставятся отражением, зовётся приватный
+        /// `ShowCursorValues`, окно не создаётся. Возвращает левый край панели выделения.
+        /// </summary>
+        static int DrawPanels(EnergySpectrumView view, Bitmap frame)
+        {
+            int[] fgData = new int[1024];
+            int[] bgData = new int[1024];
+            fgData[PanelChannel] = SampleCounts;
+            bgData[PanelChannel] = RawBackgroundCounts;
+            var cal = new PolynomialEnergyCalibration();
+            cal.PolynomialOrder = 1;
+            cal.Coefficients = new double[] { 0.0, 1.0 };
+            EnergySpectrum fg = new EnergySpectrum
+            {
+                NumberOfChannels = fgData.Length, Spectrum = fgData, EnergyCalibration = cal,
+                MeasurementTime = SampleTime, TotalPulseCount = SampleCounts, ValidPulseCount = SampleCounts,
+            };
+            EnergySpectrum bg = new EnergySpectrum
+            {
+                NumberOfChannels = bgData.Length, Spectrum = bgData, EnergyCalibration = cal,
+                MeasurementTime = BackgroundTime, TotalPulseCount = RawBackgroundCounts, ValidPulseCount = RawBackgroundCounts,
+            };
+            ResultData result = new ResultData { EnergySpectrum = fg, BackgroundEnergySpectrum = bg, Visible = true };
+            Type t = typeof(EnergySpectrumView);
+            Action<string, object> set = (name, value) =>
+            {
+                FieldInfo f = t.GetField(name, BindingFlags.NonPublic | BindingFlags.Instance);
+                if (f == null) throw new InvalidOperationException("нет поля EnergySpectrumView." + name);
+                f.SetValue(view, value);
+            };
+            view.Size = new Size(frame.Width, frame.Height);
+            set("energySpectrum", fg);
+            set("backgroundEnergySpectrum", bg);
+            set("activeResultData", result);
+            set("energyCalibration", cal);
+            set("baseEnergyCalibration", cal);
+            set("backgroundEnergyCalibration", cal);
+            set("backgroundNumberOfChannels", bgData.Length);
+            set("left", 0);
+            set("width", frame.Width);
+            set("height", frame.Height);
+            set("cursorX", -1);                 // столбец под курсором не сжат: TryCursorSpan молчит
+            set("validCursor", true);
+            set("cursorChannel", PanelChannel);
+            set("selectionStart", PanelChannel);
+            set("selectionEnd", PanelChannel);
+            set("selectionAnalyticsDirty", true);
+            set("selectionAnalytics", null);
+            set("nuclideCursorPeakDirty", false);
+            set("nuclideCursorPeak", null);
+            set("backgroundMode", BackgroundMode.Invisible);
+            using (Graphics g = Graphics.FromImage(frame))
+            {
+                g.Clear(Color.LightBlue);
+                t.GetMethod("ShowCursorValues", BindingFlags.NonPublic | BindingFlags.Instance)
+                 .Invoke(view, new object[] { g });
+            }
+            return frame.Width - PanelWidth - 10;
+        }
+
+        /// <summary>
+        /// Сколько точек строки панели отличается от той же строки, нарисованной тем же
+        /// шрифтом и выравниванием на белом поле. Высота строки — 16 px: шаг отрисовки.
+        /// </summary>
+        static int RowDifference(EnergySpectrumView view, Bitmap frame, int panelX, int row, string label, string value)
+        {
+            Rectangle text = new Rectangle(panelX + 5, PanelY + row, PanelWidth - 12, 32);
+            Rectangle area = new Rectangle(text.X, text.Y, text.Width, 16);
+            using (Bitmap ideal = new Bitmap(frame.Width, frame.Height, PixelFormat.Format32bppArgb))
+            using (Graphics g = Graphics.FromImage(ideal))
+            using (StringFormat far = new StringFormat { Alignment = StringAlignment.Far })
+            {
+                g.Clear(Color.White);
+                g.DrawString(label, view.Font, Brushes.Black, text);
+                g.DrawString(value, view.Font, Brushes.Black, text, far);
+                int differ = 0;
+                for (int y = area.Top; y < area.Bottom; y++)
+                {
+                    for (int x = area.Left; x < area.Right; x++)
+                    {
+                        if (ideal.GetPixel(x, y).ToArgb() != frame.GetPixel(x, y).ToArgb()) differ++;
+                    }
+                }
+                return differ;
+            }
         }
 
         // ------------------------------------------------------------------

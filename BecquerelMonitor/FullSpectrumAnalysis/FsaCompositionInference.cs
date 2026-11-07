@@ -327,6 +327,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public const double DefaultCoverage = 0.30;
 
         /// <summary>
+        /// (`AMBER309`, 05.11.2026) ПУСТОЙ ОТРЕЗОК РЯДА. Доля ряда целиком (<see cref="DefaultCoverage"/>)
+        /// обрыва не отменяет, если у какого-то отрезка ждали не меньше стольких групп линий…
+        ///
+        /// Меньше судить нечем: при трёх группах ноль совпавших — это обычный слабый член, а не
+        /// отсутствие. Замер на 136 спектрах: у Th-232 с отрезком Ra-228 (Ac-228) групп от 3 до 15.
+        /// </summary>
+        public const int EmptySegmentMinExpected = 4;
+
+        /// <summary>
+        /// (`AMBER309`) …а совпало меньше такой доли. Смысл числа: ноль совпавших при 4–6 группах и одна
+        /// случайная подпись при 7 и больше — две совпавшие группы шумом уже не считаются. Замер на 136
+        /// спектрах подтверждает разрыв: у источников Th-228 отрезок Ra-228 даёт 0…0.07 (0/4, 0/7, 0/9, 0/11,
+        /// 1/14), у объявленного Th-232 — от 0.25 (3/12) до 0.57. Число стоит внутри разрыва и по спектру не
+        /// подбиралось. Единственное исключение измерено и названо: `ASN16_Charoite_v2`, слабый торий, 0/4.
+        /// </summary>
+        public const double EmptySegmentMaxCoverage = 0.15;
+
+        /// <summary>
         /// (`A205`) Как вывод состава обходится с ОБОРВАННЫМ рядом, когда его
         /// об этом не спросили, — то есть в приложении.
         ///
@@ -1669,8 +1687,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// отвергнут замером: наибольшую долю всегда даёт самый короткий кусок.
         /// Здесь кусков не подбирают — границы ставит период, а не удобное число.
         ///
-        /// ⚠ Правка строго добавочная: ряд, набравший порог целиком, по отрезкам
-        /// не судится вовсе, и равновесные ряды проходят прежним составом.
+        /// ⚠ Правка строго добавочная: ряд, набравший порог целиком, судится только если у него есть
+        /// ПУСТОЙ отрезок (<see cref="HasEmptySegment"/>, `AMBER309`); равновесные ряды проходят прежним путём.
         /// </summary>
         static void Head(List<Model> models, double coverage, Report report)
         {
@@ -1683,20 +1701,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                // ⛔ РЯД, НАБРАВШИЙ ПОРОГ ЦЕЛИКОМ, НЕ ОБОРВАН — и подцепочка у
-                // него не ищется вовсе. Мера правки `S65` прямо требует «поднять
-                // шесть названных спектров, НЕ ТРОНУВ равновесных рядов», и
-                // оговорка делает правку строго добавочной.
-                if (evidence.Coverage >= coverage)
-                {
-                    continue;
-                }
+                // ⛔ РЯД, НАБРАВШИЙ ПОРОГ ЦЕЛИКОМ, ОБЫЧНО НЕ ОБОРВАН: мера правки `S65` прямо требует
+                // «поднять шесть названных спектров, НЕ ТРОНУВ равновесных рядов». Но одного порога для
+                // этого мало (`AMBER309`, решение Amber 05.11.2026 вопросником, дословно: «Внести с
+                // критиком (Рекомендую)»). Точечный Th-228: подписи стали ВЕРНЕЕ (Ac-228 2/11 → 0/11,
+                // Pb-212 0/3 → 2/3), доля целого выросла с 28 до 33 %, подцепочка не искалась, Ac-228 шёл в
+                // состав, и активность падала вдвое (0.54 паспорта). Поэтому ряд, набравший порог, судится
+                // тоже, если у него есть пустой отрезок — проверка ниже, ей нужны группы по отрезкам.
+                bool passedWhole = evidence.Coverage >= coverage;
+
 
                 var sample = new FsaSampleLibrary.Report();
                 FsaSampleLibrary.ChainSegmentation segments = FsaSampleLibrary.ChainSegments(evidence.Nucid, sample);
-                foreach (string note in sample.Notes)
+                if (!passedWhole)
                 {
-                    report.Notes.Add(note);
+                    foreach (string note in sample.Notes)
+                    {
+                        report.Notes.Add(note);
+                    }
                 }
 
                 if (segments.Order.Count < 2)
@@ -1737,6 +1759,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (group.Matched)
                     {
                         hit[segment] = (hit.TryGetValue(segment, out sum) ? sum : 0) + 1;
+                    }
+                }
+
+                if (passedWhole)
+                {
+                    if (!HasEmptySegment(segments, have, hit))
+                    {
+                        continue;
+                    }
+
+                    foreach (string note in sample.Notes)
+                    {
+                        report.Notes.Add(note);
                     }
                 }
 
@@ -1909,6 +1944,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return count;
+        }
+
+        /// <summary>
+        /// (`AMBER309`) Есть ли у ряда отрезок, которого в спектре нет: групп ждали не меньше
+        /// <see cref="EmptySegmentMinExpected"/>, совпало меньше <see cref="EmptySegmentMaxCoverage"/>.
+        /// </summary>
+        static bool HasEmptySegment(FsaSampleLibrary.ChainSegmentation segments,
+                                    Dictionary<string, int> have, Dictionary<string, int> hit)
+        {
+            foreach (string head in segments.Order)
+            {
+                int expected, matched;
+                have.TryGetValue(head, out expected);
+                hit.TryGetValue(head, out matched);
+                if (expected >= EmptySegmentMinExpected
+                    && (double)matched / expected < EmptySegmentMaxCoverage)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

@@ -4714,11 +4714,44 @@ namespace BecquerelMonitor
                         }
                     }
                 }
+                // (прототип 26.10.2026, решение Amber «Диапазон и сумма группы»)
+                // столбец под курсором сжат — панель показывает его каналы и их
+                // сумму с теми же долями, что у столбца; иначе один канал, как прежде
+                double spanFrom, spanTo;
+                int spanFirst, spanLast;
+                bool cursorSpan = this.TryCursorSpan(out spanFrom, out spanTo, out spanFirst, out spanLast);
+                double adjBgChannelCounts = 0.0;
+                if (bg_spectrum != null && bg_time > 0)
+                {
+                    int bgChannelIndex;
+                    if (this.backgroundEnergyCalibration.Equals(this.baseEnergyCalibration))
+                    {
+                        bgChannelIndex = this.cursorChannel;
+                    }
+                    else
+                    {
+                        bgChannelIndex = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, this.baseEnergyCalibration.ChannelToEnergy((double)this.cursorChannel), this.backgroundEnergySpectrum.NumberOfChannels));
+                    }
+                    if (cursorSpan)
+                    {
+                        double bgFrom, bgTo;
+                        this.PixelSpan(this.cursorX, this.backgroundEnergySpectrum, this.backgroundEnergyCalibration, true, out bgFrom, out bgTo);
+                        adjBgChannelCounts = OverlapSum(bg_spectrum, bgFrom, bgTo) * fg_time / bg_time;
+                    }
+                    else if (bgChannelIndex >= 0 && bgChannelIndex < this.backgroundNumberOfChannels)
+                    {
+                        adjBgChannelCounts = bg_spectrum[bgChannelIndex];
+                        adjBgChannelCounts *= fg_time / bg_time;
+                    }
+                }
+                // ⛔ (`AMBER299`, решение Amber 05.11.2026 вопросником, дословно: «Постоянная высота,
+                // «—» (Рекомендую)») При наличии фона высота одна: 16 — «Фоновых имп», 16 — «Проба /
+                // фон, %», 16 — (`AMBER245`) слова к проценту. Высота от значения в канале заставляла
+                // прыгать на 32 px строку статуса FSA под панелью, пока ведут курсор по графику; при
+                // нулевом фоне в канале строка стоит с прочерком, поэтому и пустой полосы нет.
                 int table_heigth = 62;
                 if (bg_spectrum != null)
                 {
-                    // 32 — строки «Фоновых имп» и «Фон / проба, %», ещё 16 —
-                    // (`AMBER245`) слова к проценту под ними.
                     table_heigth += 48;
                 }
                 g.FillRectangle(Brushes.DarkGray, channel_table_x_pos, table_y_pos, table_width_origin, table_heigth);
@@ -4726,12 +4759,6 @@ namespace BecquerelMonitor
                 g.DrawRectangle(Pens.Black, channel_table_x_pos - 3, table_y_pos - 3, table_width_origin, table_heigth);
                 this.RegisterCursorPanel(channel_table_x_pos - 3, table_y_pos - 3, table_heigth);
                 Rectangle r = new Rectangle(channel_table_x_pos + 5, table_y_pos + 4, table_width_origin - 12, 32);
-                // (прототип 26.10.2026, решение Amber «Диапазон и сумма группы»)
-                // столбец под курсором сжат — панель показывает его каналы и их
-                // сумму с теми же долями, что у столбца; иначе один канал, как прежде
-                double spanFrom, spanTo;
-                int spanFirst, spanLast;
-                bool cursorSpan = this.TryCursorSpan(out spanFrom, out spanTo, out spanFirst, out spanLast);
                 g.DrawString(Resources.ChartHeaderChannel, this.Font, Brushes.Black, r);
                 string channelText = cursorSpan
                     ? spanFirst.ToString(intFormat, CultureInfo.InvariantCulture) + " - " + spanLast.ToString(intFormat, CultureInfo.InvariantCulture)
@@ -4754,44 +4781,20 @@ namespace BecquerelMonitor
                 g.DrawString(channelGrossCounts.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r, this.farFormat);
                 if (bg_spectrum != null)
                 {
-                    double adjBgChannelCounts = 0.0;
-                    if (bg_time > 0)
-                    {
-                        int bgChannelIndex;
-                        if (this.backgroundEnergyCalibration.Equals(this.baseEnergyCalibration))
-                        {
-                            bgChannelIndex = this.cursorChannel;
-                        }
-                        else
-                        {
-                            bgChannelIndex = NearestChannel(PolynomialEnergyCalibration.ChannelOf(this.backgroundEnergyCalibration, this.baseEnergyCalibration.ChannelToEnergy((double)this.cursorChannel), this.backgroundEnergySpectrum.NumberOfChannels));
-                        }
-                        if (cursorSpan)
-                        {
-                            double bgFrom, bgTo;
-                            this.PixelSpan(this.cursorX, this.backgroundEnergySpectrum, this.backgroundEnergyCalibration, true, out bgFrom, out bgTo);
-                            adjBgChannelCounts = OverlapSum(bg_spectrum, bgFrom, bgTo) * fg_time / bg_time;
-                        }
-                        else if (bgChannelIndex >= 0 && bgChannelIndex < this.backgroundNumberOfChannels)
-                        {
-                            adjBgChannelCounts = bg_spectrum[bgChannelIndex];
-                            adjBgChannelCounts *= fg_time / bg_time;
-                        }
-                    }
                     r.Y += 16;
                     g.DrawString(Resources.ChartHeaderBGCounts, this.Font, Brushes.Black, r);
                     g.DrawString(adjBgChannelCounts.ToString(floatFormat, CultureInfo.InvariantCulture), this.Font, Brushes.Black, r, this.farFormat);
                     r.Y += 16;
-                    if (adjBgChannelCounts != 0.0)
-                    {
-                        double num11 = (double)channelGrossCounts / adjBgChannelCounts * 100.0;
-                        g.DrawString(Resources.ChartHeaderCountBGRatio, this.Font, Brushes.Black, r);
-                        g.DrawString(num11.ToString(floatFormat, CultureInfo.InvariantCulture) + Resources.PercentCharacter, this.Font, Brushes.Black, r, this.farFormat);
-                        // (`AMBER245`) «99059.45 %» без слов читается как ошибка —
-                        // слова стоят строкой под числом (место зарезервировано выше).
-                        r.Y += 16;
-                        g.DrawString(Resources.ChartHeaderCountBGRatioHint, this.Font, Brushes.DarkSlateGray, r, this.centerFormat);
-                    }
+                    // Фона в канале нет — отношения нет: прочерк без знака процента.
+                    string channelRatio = adjBgChannelCounts != 0.0
+                        ? ((double)channelGrossCounts / adjBgChannelCounts * 100.0).ToString(floatFormat, CultureInfo.InvariantCulture) + Resources.PercentCharacter
+                        : "\u2014";
+                    g.DrawString(Resources.ChartHeaderCountBGRatio, this.Font, Brushes.Black, r);
+                    g.DrawString(channelRatio, this.Font, Brushes.Black, r, this.farFormat);
+                    // (`AMBER245`) «99059.45 %» без слов читается как ошибка —
+                    // слова стоят строкой под числом (место зарезервировано выше).
+                    r.Y += 16;
+                    g.DrawString(Resources.ChartHeaderCountBGRatioHint, this.Font, Brushes.DarkSlateGray, r, this.centerFormat);
                 }
             }
             if (this.selectionStart != -1 && this.energySpectrum.NumberOfChannels > Math.Max(this.selectionStart, this.selectionEnd))
@@ -4849,7 +4852,7 @@ namespace BecquerelMonitor
                 }
                 if (adj_bg_counts > 0)
                 {
-                    // 48 — «Фоновых имп», «Фон / проба, %» и «Имп/с над фоном»;
+                    // 48 — «Фоновых имп», «Проба / фон, %» и «Имп/с над фоном»;
                     // ещё 16 — (`AMBER245`) слова к проценту под ними.
                     infopanel_height += 64;
                 }
@@ -4945,7 +4948,7 @@ namespace BecquerelMonitor
                     g.DrawString(Resources.ChartHeaderCountBGRatio, this.Font, Brushes.Black, r2);
                     double bg_ratio = gross_counts / adj_bg_counts * 100.0;
                     g.DrawString(bg_ratio.ToString(floatFormat, CultureInfo.InvariantCulture) + Resources.PercentCharacter, this.Font, Brushes.Black, r2, this.farFormat);
-                    // (`AMBER245`) Слова к «Фон / проба, %» — строкой под числом,
+                    // (`AMBER245`) Слова к «Проба / фон, %» — строкой под числом,
                     // место зарезервировано в `adj_bg_counts > 0`.
                     r2.Y += 16;
                     g.DrawString(Resources.ChartHeaderCountBGRatioHint, this.Font, Brushes.DarkSlateGray, r2, this.centerFormat);

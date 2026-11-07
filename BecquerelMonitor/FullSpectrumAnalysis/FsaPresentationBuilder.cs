@@ -195,6 +195,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 // (`AMBER286`) пики членов — под строку родителя, тем же движением, что подслой
                 AddLinesInto(parent, layer);
+                AddEscapesInto(parent, layer, channels);     // (`AMBER311`)
                 AddChannelsInto(parent, layer, channels);
                 parent.SharePercent += layer.SharePercent;
             }
@@ -261,6 +262,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     AddLinesInto(other, layer);
+                    AddEscapesInto(other, layer, channels);  // (`AMBER311`)
                     AddChannelsInto(other, layer, channels);
                     other.SharePercent += layer.SharePercent;
                 }
@@ -311,6 +313,45 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             target.SumPeakLines.AddRange(source.SumPeakLines);
+        }
+
+        /// <summary>(`AMBER311`) Подслой и пики вылета слагаемого — в приёмник, как у сумм-пиков.</summary>
+        static void AddEscapesInto(FsaStackLayer target, FsaStackLayer source, int channels)
+        {
+            if (source.EscapePeakCurve != null)
+            {
+                double[] escapes = target.EscapePeakCurve;
+                AddInto(ref escapes, source.EscapePeakCurve, channels);
+                target.EscapePeakCurve = escapes;
+            }
+
+            if (source.EscapeLines != null && source.EscapeLines.Count > 0)
+            {
+                if (target.EscapeLines == null)
+                {
+                    target.EscapeLines = new List<FsaEscapeLine>();
+                }
+
+                target.EscapeLines.AddRange(source.EscapeLines);
+            }
+
+            // (`AMBER311`) Обратное рассеяние — тем же движением.
+            if (source.BackscatterCurve != null)
+            {
+                double[] humps = target.BackscatterCurve;
+                AddInto(ref humps, source.BackscatterCurve, channels);
+                target.BackscatterCurve = humps;
+            }
+
+            if (source.BackscatterLines != null && source.BackscatterLines.Count > 0)
+            {
+                if (target.BackscatterLines == null)
+                {
+                    target.BackscatterLines = new List<FsaBackscatterLine>();
+                }
+
+                target.BackscatterLines.AddRange(source.BackscatterLines);
+            }
         }
 
         static void AddInto(ref double[] target, double[] source, int channels)
@@ -410,6 +451,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// отчёта»): слои состава; сумм-пики; необнаруженные поимённо;
         /// свёрнутые необнаруженные; «без фона»; невязка; качество.
         /// </summary>
+        /// <summary>
+        /// (`AMBER274`, Э2) Текст строки слоя по имени ключа ресурса. Слой выключен умолчанием, и
+        /// строки зовутся только при включённом: ключи в `Properties/Resources*` по имени, без `Designer`.
+        /// </summary>
+        static string CrystalOwnText(string key)
+        {
+            return Resources.ResourceManager.GetString(key, Resources.Culture) ?? key;
+        }
+
         static List<FsaReportRow> BuildRows(FsaResult result, FsaPresentation presentation)
         {
             var rows = new List<FsaReportRow>();
@@ -442,6 +492,48 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 });
             }
 
+            // 1a. (`AMBER274`, Э2, 05.11.2026, `crit8`) СТРОКИ СЛОЯ
+            // «СОБСТВЕННАЯ АКТИВНОСТЬ КРИСТАЛЛА». `FsaResult.CrystalOwn`
+            // заполнялся, но в отчёт не попадал: читатель видел, что проба
+            // изменилась, и не видел, чем. Строки — приборные, в состав пробы
+            // не входят и в доли не складываются; поэтому серые и с отступом.
+            if (result.CrystalOwn != null && result.CrystalOwn.Count > 0)
+            {
+                rows.Add(new FsaReportRow
+                {
+                    Kind = FsaReportRowKind.Layer,
+                    Name = CrystalOwnText("FSAReportCrystalOwnHeader"),
+                    Value = string.Empty,
+                    Muted = true,
+                    Hint = CrystalOwnText("FSAReportCrystalOwnHint"),
+                });
+
+                foreach (FsaCrystalOwnResult own in result.CrystalOwn)
+                {
+                    if (own == null)
+                    {
+                        continue;
+                    }
+
+                    string name = string.Format(CultureInfo.InvariantCulture, CrystalOwnText("FSAReportCrystalOwnRow"),
+                                                FsaPalette.DisplayName(own.Nuclide), own.Layer ?? string.Empty);
+                    string value = own.Free
+                        ? string.Format(CultureInfo.InvariantCulture, CrystalOwnText("FSAReportCrystalOwnFree"),
+                                        own.ActivityBq, own.ActivitySigmaBq, own.Counts)
+                        : string.Format(CultureInfo.InvariantCulture, CrystalOwnText("FSAReportCrystalOwnFixed"),
+                                        own.ActivityBq, own.Counts);
+                    rows.Add(new FsaReportRow
+                    {
+                        Kind = FsaReportRowKind.Layer,
+                        Name = name,
+                        Value = value,
+                        Muted = true,
+                        Indent = 1,
+                        Hint = CrystalOwnText("FSAReportCrystalOwnHint"),
+                    });
+                }
+            }
+
             // 2. По строке на каждый нуклид со своими сумм-пиками: образец
             // узора в ЕГО цвете и его имя. Узор обязателен — читатель ищет на
             // графике узор, а не текст; цвет обязателен — иначе при двух
@@ -454,6 +546,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 if (layer.SumPeakCurve == null)
                 {
+                    AddEscapeRows(rows, result, layer, presentation);     // (`AMBER311`)
+                    AddBackscatterRows(rows, result, layer, presentation);
                     continue;
                 }
 
@@ -481,6 +575,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         rows.Add(SumPeakLineRow(group, layer, presentation.ColorOf(layer.Name)));
                     }
                 }
+
+                AddEscapeRows(rows, result, layer, presentation);         // (`AMBER311`)
+                AddBackscatterRows(rows, result, layer, presentation);
             }
 
             // 3. «Не обнаружен» с пределом обнаружения (S9): имя серым — у
@@ -819,6 +916,197 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Kind = FsaReportRowKind.SumPeakLine,
                 Name = string.Format(CultureInfo.InvariantCulture, Resources.FSASumPeakLineRow,
                                      group.EnergyKev.ToString("f0", CultureInfo.InvariantCulture), pairs),
+                Value = string.Format(CultureInfo.InvariantCulture, Resources.FSASumPeakLineCounts,
+                                      group.Counts.ToString("f0", CultureInfo.InvariantCulture)),
+                Swatch = FsaSwatchKind.None,
+                Color = color,
+                Layer = layer,
+                Indent = 1,
+                Hint = string.Join(Environment.NewLine, hint.ToArray())
+            };
+        }
+
+        /// <summary>
+        /// (`AMBER311`) Пики вылета слоя в группах — тем же правилом и порогом, что сумм-пики
+        /// (<see cref="SumPeakGroups"/>: в пределах FWHM одна строка, заметна от 3σ), порознь для
+        /// SE и DE, по возрастанию канала. Открыт пробе: приёмка судит ТЕ ЖЕ группы, что таблица.
+        /// </summary>
+        public static List<FsaSumPeakGroup> EscapeGroups(FsaResult result, IList<FsaEscapeLine> lines)
+        {
+            var single = new List<FsaSumPeakLine>();
+            var twice = new List<FsaSumPeakLine>();
+            if (lines != null)
+            {
+                foreach (FsaEscapeLine line in lines)
+                {
+                    (line.IsDouble ? twice : single).Add(line);
+                }
+            }
+
+            List<FsaSumPeakGroup> groups = SumPeakGroups(result, single);
+            groups.AddRange(SumPeakGroups(result, twice));
+            groups.Sort((x, y) => x.Channel.CompareTo(y.Channel));
+            return groups;
+        }
+
+        /// <summary>
+        /// (`AMBER311`) Строки пиков вылета под нуклидом: «Tl-208 — пики вылета» и под ней заметные
+        /// пики поимённо. Доля не печатается по тому же доводу, что у сумм-пиков: вылет уже внутри
+        /// доли своего нуклида, и второе число рядом складывали бы с первым. Заголовок ставится
+        /// только при заметной строке: у лёгких нуклидов вылет с линий выше 1146 кэВ не виден, и
+        /// пустой заголовок был бы шумом.
+        /// </summary>
+        static void AddEscapeRows(List<FsaReportRow> rows, FsaResult result, FsaStackLayer layer, FsaPresentation presentation)
+        {
+            var shown = new List<FsaSumPeakGroup>();
+            foreach (FsaSumPeakGroup group in EscapeGroups(result, layer.EscapeLines))
+            {
+                if (group.Shown)
+                {
+                    shown.Add(group);
+                }
+            }
+
+            if (shown.Count == 0)
+            {
+                return;
+            }
+
+            Color color = presentation.ColorOf(layer.Name);
+            rows.Add(new FsaReportRow
+            {
+                Kind = FsaReportRowKind.EscapePeaks,
+                Name = string.Format(CultureInfo.InvariantCulture, CrystalOwnText("FSAEscapeRow"),
+                                     FsaPalette.DisplayName(layer.Name)),
+                Value = string.Empty,
+                Swatch = FsaSwatchKind.EscapeHatch,
+                Color = color,
+                Layer = layer,
+                Hint = CrystalOwnText("FSAEscapeRowHint")
+            });
+            foreach (FsaSumPeakGroup group in shown)
+            {
+                rows.Add(EscapeLineRow(group, layer, color));
+            }
+        }
+
+        /// <summary>(`AMBER311`) Горбы обратного рассеяния слоя — тем же правилом заметности, что у вылетов. Открыт пробе.</summary>
+        public static List<FsaSumPeakGroup> BackscatterGroups(FsaResult result, IList<FsaBackscatterLine> lines)
+        {
+            var list = new List<FsaSumPeakLine>();
+            if (lines != null)
+            {
+                foreach (FsaBackscatterLine line in lines)
+                {
+                    list.Add(line);
+                }
+            }
+
+            return SumPeakGroups(result, list);
+        }
+
+        /// <summary>
+        /// (`AMBER311`) Строки обратного рассеяния под нуклидом: «Cs-137 — обратное рассеяние» и заметные горбы
+        /// поимённо. Доля не печатается, как у вылетов: это часть доли своего нуклида.
+        /// </summary>
+        static void AddBackscatterRows(List<FsaReportRow> rows, FsaResult result, FsaStackLayer layer, FsaPresentation presentation)
+        {
+            var shown = new List<FsaSumPeakGroup>();
+            foreach (FsaSumPeakGroup group in BackscatterGroups(result, layer.BackscatterLines))
+            {
+                if (group.Shown)
+                {
+                    shown.Add(group);
+                }
+            }
+
+            if (shown.Count == 0)
+            {
+                return;
+            }
+
+            Color color = presentation.ColorOf(layer.Name);
+            rows.Add(new FsaReportRow
+            {
+                Kind = FsaReportRowKind.Backscatter,
+                Name = string.Format(CultureInfo.InvariantCulture, CrystalOwnText("FSABackscatterRow"),
+                                     FsaPalette.DisplayName(layer.Name)),
+                Value = string.Empty,
+                Swatch = FsaSwatchKind.BackscatterHatch,
+                Color = color,
+                Layer = layer,
+                Hint = CrystalOwnText("FSABackscatterRowHint")
+            });
+            foreach (FsaSumPeakGroup group in shown)
+            {
+                var strongest = (FsaBackscatterLine)group.Lines[0];
+                string parent = strongest.ParentKev.ToString("f1", CultureInfo.InvariantCulture);
+                if (group.Lines.Count > 1)
+                {
+                    parent = string.Format(CultureInfo.InvariantCulture, Resources.FSASumPeakLineMore,
+                                           parent, group.Lines.Count - 1);
+                }
+
+                var hint = new List<string>(group.Lines.Count + 1);
+                foreach (FsaSumPeakLine item in group.Lines)
+                {
+                    var line = (FsaBackscatterLine)item;
+                    hint.Add(string.Format(CultureInfo.InvariantCulture, CrystalOwnText("FSABackscatterLineHintPair"),
+                                           string.IsNullOrEmpty(line.Nuclide) ? FsaPalette.DisplayName(layer.Name) : line.Nuclide,
+                                           line.ParentKev.ToString("f1", CultureInfo.InvariantCulture),
+                                           line.EnergyKev.ToString("f0", CultureInfo.InvariantCulture),
+                                           line.Counts.ToString("f0", CultureInfo.InvariantCulture)));
+                }
+
+                hint.Add(string.Format(CultureInfo.InvariantCulture, Resources.FSASumPeakLineHintSigma,
+                                       (SumPeakMinSigmas * group.Sigma).ToString("f0", CultureInfo.InvariantCulture)));
+                rows.Add(new FsaReportRow
+                {
+                    Kind = FsaReportRowKind.BackscatterLine,
+                    Name = string.Format(CultureInfo.InvariantCulture, CrystalOwnText("FSABackscatterLine"),
+                                         strongest.EnergyKev.ToString("f0", CultureInfo.InvariantCulture), parent),
+                    Value = string.Format(CultureInfo.InvariantCulture, Resources.FSASumPeakLineCounts,
+                                          group.Counts.ToString("f0", CultureInfo.InvariantCulture)),
+                    Swatch = FsaSwatchKind.None,
+                    Color = color,
+                    Layer = layer,
+                    Indent = 1,
+                    Hint = string.Join(Environment.NewLine, hint.ToArray())
+                });
+            }
+        }
+
+        /// <summary>(`AMBER311`) «SE 2127 кэВ от 2614.5 | N отсч.»; у слитой — сильнейшая линия и «и ещё k».</summary>
+        static FsaReportRow EscapeLineRow(FsaSumPeakGroup group, FsaStackLayer layer, Color color)
+        {
+            var strongest = (FsaEscapeLine)group.Lines[0];
+            string parent = strongest.ParentKev.ToString("f1", CultureInfo.InvariantCulture);
+            if (group.Lines.Count > 1)
+            {
+                parent = string.Format(CultureInfo.InvariantCulture, Resources.FSASumPeakLineMore,
+                                       parent, group.Lines.Count - 1);
+            }
+
+            var hint = new List<string>(group.Lines.Count + 1);
+            foreach (FsaSumPeakLine item in group.Lines)
+            {
+                var line = (FsaEscapeLine)item;
+                hint.Add(string.Format(CultureInfo.InvariantCulture, CrystalOwnText("FSAEscapeLineHintPair"),
+                                       string.IsNullOrEmpty(line.Nuclide) ? FsaPalette.DisplayName(layer.Name) : line.Nuclide,
+                                       line.ParentKev.ToString("f1", CultureInfo.InvariantCulture),
+                                       line.EnergyKev.ToString("f0", CultureInfo.InvariantCulture),
+                                       line.Counts.ToString("f0", CultureInfo.InvariantCulture)));
+            }
+
+            hint.Add(string.Format(CultureInfo.InvariantCulture, Resources.FSASumPeakLineHintSigma,
+                                   (SumPeakMinSigmas * group.Sigma).ToString("f0", CultureInfo.InvariantCulture)));
+
+            return new FsaReportRow
+            {
+                Kind = FsaReportRowKind.EscapePeakLine,
+                Name = string.Format(CultureInfo.InvariantCulture,
+                                     CrystalOwnText(strongest.IsDouble ? "FSAEscapeLineDe" : "FSAEscapeLineSe"),
+                                     group.EnergyKev.ToString("f0", CultureInfo.InvariantCulture), parent),
                 Value = string.Format(CultureInfo.InvariantCulture, Resources.FSASumPeakLineCounts,
                                       group.Counts.ToString("f0", CultureInfo.InvariantCulture)),
                 Swatch = FsaSwatchKind.None,

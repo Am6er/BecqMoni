@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+<define></define>
+<materials></materials>
+<solids><box name="WB" x="10" y="10" z="10" lunit="m"/><box name="B" x="10" y="10" z="10"/></solids>
+<structure><volume name="LG4_BGO"><materialref ref="G4_BGO"/><solidref ref="B"/></volume><volume name="LG4_TEFLON"><materialref ref="G4_TEFLON"/><solidref ref="B"/></volume><volume name="LG4_Ge"><materialref ref="G4_Ge"/><solidref ref="B"/></volume><volume name="LG4_Be"><materialref ref="G4_Be"/><solidref ref="B"/></volume><volume name="LG4_PLEXIGLASS"><materialref ref="G4_PLEXIGLASS"/><solidref ref="B"/></volume><volume name="LG4_MYLAR"><materialref ref="G4_MYLAR"/><solidref ref="B"/></volume><volume name="LG4_Galactic"><materialref ref="G4_Galactic"/><solidref ref="B"/></volume><volume name="World"><materialref ref="G4_AIR"/><solidref ref="WB"/><physvol name="p0"><volumeref ref="LG4_BGO"/><position x="0"/></physvol><physvol name="p1"><volumeref ref="LG4_TEFLON"/><position x="30"/></physvol><physvol name="p2"><volumeref ref="LG4_Ge"/><position x="60"/></physvol><physvol name="p3"><volumeref ref="LG4_Be"/><position x="90"/></physvol><physvol name="p4"><volumeref ref="LG4_PLEXIGLASS"/><position x="120"/></physvol><physvol name="p5"><volumeref ref="LG4_MYLAR"/><position x="150"/></physvol><physvol name="p6"><volumeref ref="LG4_Galactic"/><position x="180"/></physvol></volume></structure>
+<setup name="Default" version="1.0"><world ref="World"/></setup>
+</gdml>

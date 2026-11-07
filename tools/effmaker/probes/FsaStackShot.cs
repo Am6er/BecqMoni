@@ -256,6 +256,7 @@ namespace FsaStackShot
             // `FsaSampleLibrary` по выведенному составу — ровно то, что видит
             // человек с включённой галкой. Без ключа остаётся прежний путь.
             bool infer = false, equilibrium = true, needMatrix = true, libDump = false;
+            bool bgMask = true, bandKnife = true, maskGuard = true;
             // Объявленный состав (`--sample=`): null — ключа не было. Пустой
             // список — отказ ниже, а не молчаливый разбор без единого образа.
             List<string> sampleNuclides = null;
@@ -344,6 +345,9 @@ namespace FsaStackShot
                 else if (a.StartsWith("--refit-z=", StringComparison.Ordinal))
                     refitZ = double.Parse(a.Substring(10), CultureInfo.InvariantCulture);
                 else if (a == "--no-equilibrium") equilibrium = false;
+                else if (a == "--bg-mask=0") bgMask = false;
+                else if (a == "--band-knife=0") bandKnife = false;
+                else if (a == "--mask-guard=0") maskGuard = false;
                 else if (a.StartsWith("--tie=", StringComparison.Ordinal))
                     tieShare = double.Parse(a.Substring(6), CultureInfo.InvariantCulture);
                 else if (a == "--tie-lines") tieLines = true;
@@ -680,6 +684,10 @@ namespace FsaStackShot
             // «после» вышли побитово одинаковыми — правку было нечем принять.
             FsaMatrixBinding.Bind(analyzer, rd.Efficiency != null ? rd.Efficiency.Geometry : null,
                                   matrix);
+            // (`AMBER295`) ключи выключения: сравнение плеч
+            analyzer.BackgroundExcessMask = bgMask;
+            analyzer.BackgroundBandKnife = bandKnife;
+            analyzer.BackgroundMaskGuard = maskGuard;
 
             // Окно совпадения — мёртвое время прибора (`S27`), диапазон — тот
             // же, что у поиска пиков. Обе строки повторяют `FsaAnalysisSession`.

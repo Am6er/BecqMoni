@@ -28,7 +28,7 @@
 #include "sim.cuh"
 #include "tally.cuh"
 
-static_assert(Sim::ResponseChannelCount == RM_CHANNELS, "каналов отклика в Sim и в tally.cuh — разное число");
+static_assert(Sim::ResponseRowCount == RM_CHANNELS, "каналов отклика в Sim и в tally.cuh — разное число");
 
 // = EfficiencySimulator.cs:10840 класс AngularMomentSums (суммы моментов Q_k узла).
 // Суммы в double ВСЕГДА (накопители по историям); N — число историй нити.
@@ -286,6 +286,12 @@ RM_DEV void AnalogTally(Sim& s, const NodeArgs& a, long long i, real deposited, 
         if (a.chan != nullptr)
         {
             atomicAdd(a.chan + (long long)(int)channel * a.bins + bin, (double)weight);
+            // (`AMBER311`) = AnalogContinuumRun: строка-подмножество канала `Compton`, правило большинства.
+            if (channel == Sim::ResponseChannel::Compton && s.historyBackscatter > (real)0.0
+                && s.historyBackscatter >= deposited - s.historyBackscatter)
+            {
+                atomicAdd(a.chan + (long long)Sim::BackscatterRow * a.bins + bin, (double)weight);
+            }
         }
 
         if (h != nullptr)
@@ -706,6 +712,7 @@ __global__ void AnalogKernelRegen(NodeArgs a, unsigned long long* next, int pois
         if (s.AnalogStep(w))
         {
             alive = false;
+            s.historyBackscatter = w.depositedBackscatter;
             AnalogTally(s, a, i, w.deposited, weight, w.depositedOutside, w.comptonOutside,
                         inWeightedCone, outsideWeight, outsideWeight2, outsideLight, scored);
         }

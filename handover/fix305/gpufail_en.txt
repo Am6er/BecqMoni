@@ -1,0 +1,10 @@
+exe:   D:\BqMoni_Claude\fix305\app3\BecquerelMonitor.exe
+склад: D:\BqMoni_Claude\fix305\app3\config\device\response;  физика 30, формат 12
+== отказ GPU на фазе раздела, язык en
+   причина в строке хода: «The graphics card could not finish the matrix. Uncheck "Use Nvidia GPU" — the matrix will then be computed on the CPU. Details are in the application log.»
+   OK  текст окна с советом снять галку «Use Nvidia GPU»
+   OK  на языке окна, внутреннего русского текста нет
+   OK  имён библиотеки в окне нет
+   OK  фотонная матрица на месте, раздела нет
+   OK  влезает в строку хода: 26 из 48 px: «Done in 2:17. Not saved yet. Electron section not built: The graphics card could not finish the matrix. Uncheck "Use Nvidia GPU" — the matrix will then be computed on the CPU. Details are in the application log.»
+ВСЕ СОШЛИСЬ

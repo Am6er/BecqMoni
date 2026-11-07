@@ -317,6 +317,8 @@
     <Compile Include="EfficiencyMaker\EfficiencyCalculation.cs" />
     <Compile Include="EfficiencyMaker\EfficiencyCurveIo.cs" />
     <Compile Include="EfficiencyMaker\EfficiencySimulator.cs" />
+    <Compile Include="EfficiencyMaker\EfficiencySimulator.CrystalEvents.cs" />
+    <Compile Include="EfficiencyMaker\ResponseCrystalSection.cs" />
     <Compile Include="ResponseMatrixForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -372,6 +374,7 @@
       <DependentUpon>EfficiencyMakerForm.cs</DependentUpon>
     </Compile>
     <Compile Include="FullSpectrumAnalysis\FsaAnalyzer.cs" />
+    <Compile Include="FullSpectrumAnalysis\CrystalOwnActivityBuilder.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaCalculationOptions.cs" />
     <Compile Include="FullSpectrumAnalysis\AngularCorrelation.cs" />
     <Compile Include="FullSpectrumAnalysis\CascadeAtomicData.cs" />
@@ -496,6 +499,7 @@
       <DependentUpon>NuclideDefinitionForm.cs</DependentUpon>
     </Compile>
     <Compile Include="NuclideDefinitionManager.cs" />
+    <Compile Include="NuclideSetAdvisor.cs" />
     <Compile Include="NuclideSetForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -1316,6 +1320,12 @@
     <EmbeddedResource Include="config\layout\ExpertMode.xml">
       <LogicalName>BecquerelMonitor.config.layout.ExpertMode.xml</LogicalName>
     </EmbeddedResource>
+    <!-- AMBER310 (05.11.2026): поставочная библиотека нуклидов вшита в exe — «Reset Defaults» окна
+         библиотеки сбрасывает на эти байты (NuclideDefinitionManager.ShippedLibraryResource). Тот же файл,
+         что Content ниже, копии нет. В публикацию ClickOnce уходит внутри exe. -->
+    <EmbeddedResource Include="config\NuclideDefinition.xml">
+      <LogicalName>BecquerelMonitor.config.NuclideDefinition.xml</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <!-- AMBER250 (20.10.2026): пользовательский гид — в дистрибутив. Страницы, assets и снимки из
@@ -1418,4 +1428,15 @@
     </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- AMBER310: вшитая библиотека обязана совпадать с корневым config\NuclideDefinition.xml. Вшивается копия
+       проекта; если копии разъехались, сброс в приложении дал бы не то, что объявлено поставкой. -->
+  <Target Name="CheckEmbeddedNuclideLibrary" BeforeTargets="BeforeBuild" Condition="Exists('..\config\NuclideDefinition.xml')">
+    <GetFileHash Files="config\NuclideDefinition.xml" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="EmbeddedLibraryHash" />
+    </GetFileHash>
+    <GetFileHash Files="..\config\NuclideDefinition.xml" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="RootLibraryHash" />
+    </GetFileHash>
+    <Error Condition="'$(EmbeddedLibraryHash)' != '$(RootLibraryHash)'" Code="AMBER310" Text="config\NuclideDefinition.xml проекта разошёлся с корневым: вшитая поставочная библиотека будет не той. SHA256 проекта $(EmbeddedLibraryHash), корневого $(RootLibraryHash)." />
+  </Target>
 </Project>

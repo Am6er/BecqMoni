@@ -1529,7 +1529,14 @@ namespace BecquerelMonitor
         {
             if (this.activeDeviceConfig != null && this.activeDeviceConfig.Dirty)
             {
-                DialogResult dialogResult = MessageBox.Show(Resources.MSGConfirmSaveConfig, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
+                // (проверка экраном 07.11.2026) изменение, сделанное окном, а не человеком, названо в вопросе
+                string question = Resources.MSGConfirmSaveConfig;
+                string offered = this.CrystalOfferNote();
+                if (offered != null)
+                {
+                    question += "\n\n" + offered;
+                }
+                DialogResult dialogResult = MessageBox.Show(question, Resources.ConfirmationDialogTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
                 if (dialogResult == DialogResult.Yes)
                 {
                     PolynomialEnergyCalibration pe = (PolynomialEnergyCalibration)this.activeDeviceConfig.EnergyCalibration;
@@ -1927,6 +1934,50 @@ namespace BecquerelMonitor
         /// <summary>(`AMBER285`) Guid прибора, которому окно последним подставило кристалл геометрии.</summary>
         string crystalDefaultOffered;
 
+        /// <summary>(проверка экраном 07.11.2026) Имя кристалла, подставленного прибору <see cref="crystalDefaultOffered"/>.</summary>
+        string crystalDefaultOfferedName;
+
+        /// <summary>(проверка экраном 07.11.2026, критик `critUi2`) Кристалл <see cref="crystalDefaultOfferedName"/> выбрал человек, а не окно.</summary>
+        bool crystalDefaultChosenByPerson;
+
+        /// <summary>
+        /// (проверка экраном 07.11.2026) Почему прибор изменён, если человек его не правил: окно
+        /// само подставило кристалл геометрии в пустое поле (`AMBER285`, решение Amber 02.11.2026
+        /// «При открытии в окне прибора, файл — вашим «Сохранить»»). Вопрос «Конфигурационный
+        /// файл был изменён. Сохранить?» вставал после одного выбора строки и просмотра окна
+        /// матрицы (прибор с пустым полем и кривой, у геометрии которой есть кристалл) — и читался
+        /// как ложный: правок не было. Теперь он называет подстановку. Кристалл, выбранный
+        /// человеком (окно выбора из разных кристаллов, «Да» на вопрос о новой геометрии),
+        /// назван выбором человека (`crystalChosenNote`), а не подстановкой окна. null —
+        /// подстановки нет, её сменили в списке или она уже в файле. Открыто пробе.
+        /// </summary>
+        internal string CrystalOfferNote()
+        {
+            DeviceConfigInfo config = this.activeDeviceConfig;
+            if (config == null || string.IsNullOrEmpty(config.Guid) || config.Guid != this.crystalDefaultOffered
+                || string.IsNullOrEmpty(this.crystalDefaultOfferedName)
+                || !string.Equals(this.CrystalMaterialFromForm(), this.crystalDefaultOfferedName, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            DeviceConfigInfo saved = this.ManagerRecordOf(config);
+            if (saved != null && string.Equals(saved.CrystalMaterialName ?? "", this.crystalDefaultOfferedName, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;   // уже в файле
+            }
+
+            string format = new ComponentResourceManager(typeof(DeviceConfigForm))
+                .GetString(this.crystalDefaultChosenByPerson ? "crystalChosenNote" : "crystalOfferedNote");
+            if (string.IsNullOrEmpty(format))
+            {
+                return null;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, format,
+                                 Convert.ToString(this.CrystalComboItem(this.crystalDefaultOfferedName, false), CultureInfo.InvariantCulture));
+        }
+
         /// <summary>(`AMBER285`) Guid прибора, для которого выбор из разных кристаллов уже ждёт в очереди окна.</summary>
         string crystalChoiceQueued;
 
@@ -2030,13 +2081,18 @@ namespace BecquerelMonitor
         /// (`AMBER285`) Поставить кристалл геометрии в список и пометить прибор
         /// изменённым (выбор в списке зовёт <see cref="SetActiveDeviceConfigDirty"/>
         /// и сам; явный вызов — на случай, когда строка уже стояла).
+        /// <paramref name="chosenByPerson"/> — кристалл выбрал человек (окно выбора из разных
+        /// кристаллов, «Да» на вопрос о новой геометрии), а не окно само: так его и называет
+        /// вопрос «Сохранить?» (<see cref="CrystalOfferNote"/>).
         /// </summary>
-        void SetCrystalFromGeometry(string crystal)
+        void SetCrystalFromGeometry(string crystal, bool chosenByPerson = false)
         {
             this.crystalMaterialCombo.SelectedItem = this.CrystalComboItem(crystal, true);
             if (this.activeDeviceConfig != null)
             {
                 this.crystalDefaultOffered = this.activeDeviceConfig.Guid;
+                this.crystalDefaultOfferedName = crystal;
+                this.crystalDefaultChosenByPerson = chosenByPerson;
             }
 
             this.SetActiveDeviceConfigDirty();
@@ -2089,7 +2145,7 @@ namespace BecquerelMonitor
                     return;
                 }
 
-                this.SetCrystalFromGeometry(chosen);
+                this.SetCrystalFromGeometry(chosen, crystals.Count > 1);
             });
         }
 
@@ -2243,7 +2299,7 @@ namespace BecquerelMonitor
                 }
             }
 
-            this.SetCrystalFromGeometry(crystal);
+            this.SetCrystalFromGeometry(crystal, field.Length > 0);
         }
 
         /// <summary>

@@ -2178,6 +2178,35 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>
+        /// (`AMBER307`) Слой или кристалл с толщиной, но без вещества, — отказ счёта словами.
+        /// Вещество пустеет, когда строку библиотеки удалили: шаблон
+        /// (`GeometryPresets.Material`) кладёт пустое вещество и молчит. Замер 06.11.2026 на
+        /// RC-110: пустой корпус, отражатель или зазор роняли кривую и матрицу
+        /// `AggregateException` «вырожденная система сплайна», а без кристалла матрица считалась.
+        /// Сцен с таким слоем в корпусе нет (0 из 51).
+        /// </summary>
+        public string MissingMaterialProblem()
+        {
+            string problem = null;
+            Action<double, GeometryMaterial, string> check = (thickness, material, caption) =>
+            {
+                if (problem == null && thickness > 0.0
+                    && (material == null || !(material.Density > 0.0) || material.Fractions.Count == 0))
+                {
+                    problem = string.Format(CultureInfo.InvariantCulture,
+                        Properties.Resources.GeometryWarningNoMaterial, caption, thickness);
+                }
+            };
+
+            double crystal = this.Shape == CrystalShape.Box
+                ? Math.Min(this.CrystalBoxX, Math.Min(this.CrystalBoxY, this.CrystalBoxZ))
+                : Math.Min(this.CrystalDiameter, this.CrystalHeight);
+            check(crystal, this.Crystal, Properties.Resources.GeometryEditorCrystalMaterial);
+            this.VisitLayers(check);
+            return problem;
+        }
+
+        /// <summary>
         /// (`AMBER201`, Р4, подозрение G) Элемент вещества СЛОЯ СЦЕНЫ, которого
         /// нет в таблицах ослабления; null — все известны. Прежде так
         /// проверялся только кристалл (`EfficiencyCalculation.Run`), а в

@@ -372,6 +372,81 @@
   <data name="&gt;&gt;label4.ZOrder" xml:space="preserve">
     <value>3</value>
   </data>
+  <data name="setHintPanel.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
+    <value>Top, Left, Right</value>
+  </data>
+  <data name="setHintPanel.Location" type="System.Drawing.Point, System.Drawing">
+    <value>97, 56</value>
+  </data>
+  <data name="setHintPanel.Size" type="System.Drawing.Size, System.Drawing">
+    <value>332, 18</value>
+  </data>
+  <data name="setHintPanel.TabIndex" type="System.Int32, mscorlib">
+    <value>20</value>
+  </data>
+  <data name="&gt;&gt;setHintPanel.Name" xml:space="preserve">
+    <value>setHintPanel</value>
+  </data>
+  <data name="&gt;&gt;setHintPanel.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;setHintPanel.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;setHintPanel.ZOrder" xml:space="preserve">
+    <value>10</value>
+  </data>
+  <data name="setHintLink.Dock" type="System.Windows.Forms.DockStyle, System.Windows.Forms">
+    <value>Fill</value>
+  </data>
+  <data name="setHintLink.Location" type="System.Drawing.Point, System.Drawing">
+    <value>0, 0</value>
+  </data>
+  <data name="setHintLink.Size" type="System.Drawing.Size, System.Drawing">
+    <value>314, 18</value>
+  </data>
+  <data name="setHintLink.TabIndex" type="System.Int32, mscorlib">
+    <value>0</value>
+  </data>
+  <data name="setHintLink.TextAlign" type="System.Drawing.ContentAlignment, System.Drawing">
+    <value>MiddleLeft</value>
+  </data>
+  <data name="&gt;&gt;setHintLink.Name" xml:space="preserve">
+    <value>setHintLink</value>
+  </data>
+  <data name="&gt;&gt;setHintLink.Type" xml:space="preserve">
+    <value>System.Windows.Forms.LinkLabel, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;setHintLink.Parent" xml:space="preserve">
+    <value>setHintPanel</value>
+  </data>
+  <data name="&gt;&gt;setHintLink.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="setHintClose.Dock" type="System.Windows.Forms.DockStyle, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="setHintClose.Location" type="System.Drawing.Point, System.Drawing">
+    <value>314, 0</value>
+  </data>
+  <data name="setHintClose.Size" type="System.Drawing.Size, System.Drawing">
+    <value>18, 18</value>
+  </data>
+  <data name="setHintClose.TabIndex" type="System.Int32, mscorlib">
+    <value>1</value>
+  </data>
+  <data name="&gt;&gt;setHintClose.Name" xml:space="preserve">
+    <value>setHintClose</value>
+  </data>
+  <data name="&gt;&gt;setHintClose.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;setHintClose.Parent" xml:space="preserve">
+    <value>setHintPanel</value>
+  </data>
+  <data name="&gt;&gt;setHintClose.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
   <data name="labelDetectionFailed.Anchor" type="System.Windows.Forms.AnchorStyles, System.Windows.Forms">
     <value>Top, Left, Right</value>
   </data>

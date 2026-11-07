@@ -266,7 +266,7 @@ ol.chk>li.done::before{content:"✓";background:var(--ok);color:#06210f;border-c
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=a7cf2625"></script>
+<script src="assets/guide.js?v=239b6cbd"></script>
 <script src="assets/quanta.js?v=67b2c2dc"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
@@ -913,7 +913,7 @@ tabset('cTabs');
 /* ── 2. игра «какую конфигурацию возьмёт новый документ» ── */
 (function order() {
   const D = (y, mo, d, hh, mm, ss) => new Date(y, mo - 1, d, hh, mm, ss);
-  const START = [['RC-103', D(2026, 10, 7, 22, 30, 15)], ['Atom Spectra 80x80', D(2026, 10, 7, 22, 18, 2)], ['1.Atom Spectra Nano 16 Pro RadiaScan 701A', D(2026, 10, 7, 21, 50, 57)], ['Obsidian', D(2026, 7, 7, 16, 8, 39)], ['RC-101', D(2024, 10, 7, 18, 19, 53)]];
+  const START = [['RC-103', D(2026, 10, 7, 22, 30, 15)], ['Atom Spectra 80x80', D(2026, 10, 7, 22, 18, 2)], ['Atom Spectra Nano 16', D(2026, 10, 7, 21, 50, 57)], ['Obsidian', D(2026, 7, 7, 16, 8, 39)], ['RC-101', D(2024, 10, 7, 18, 19, 53)]];
   const GOALS = ['Obsidian', 'RC-101', 'Atom Spectra 80x80'];
   let cfg, clock, docs, goal, moved, msg;
   const p2 = v => String(v).padStart(2, '0');

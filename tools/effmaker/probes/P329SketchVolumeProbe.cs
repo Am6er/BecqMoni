@@ -250,7 +250,7 @@ static class P329SketchVolumeProbe
 
     static GeometrySketch.SketchLabel[] Draw(GeometryModel model, GeometrySketch.SketchMode mode, Size size)
     {
-        using (GeometrySketch sketch = new GeometrySketch { Mode = mode })
+        using (GeometrySketch sketch = new GeometrySketch { Mode = mode, ShowShield = model.InShield })
         using (Bitmap bmp = new Bitmap(size.Width, size.Height))
         {
             sketch.Bounds = new Rectangle(Point.Empty, size);

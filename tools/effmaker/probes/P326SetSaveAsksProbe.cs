@@ -104,6 +104,7 @@ static class P326SetSaveAsksProbe
             pristine = Path.Combine(tmp, "pristine_NuclideDefinition.xml");
             work = Path.Combine(tmp, "NuclideDefinition.xml");
             File.Copy(Package.GetInstance().NuclideDefinition, pristine, true);
+            AddHandLine(pristine);
             SetField(mgr, "nuclideDefinitionFilename", work);
             Console.WriteLine("SETUP\tбиблиотека менеджера переставлена: {0}", work);
             if (Fresh("SETUP"))
@@ -157,6 +158,29 @@ static class P326SetSaveAsksProbe
         return defects == 0 ? 0 : 4;
     }
 
+    /// <summary>
+    /// (`AMBER309`, 05.11.2026) Поставочная библиотека — сеты конфига Amber и калибровки: окно связывает с базой
+    /// все её линии нуклидов, а править можно только несвязанные (`AMBER281`). Прежде проба брала линию поставки,
+    /// теперь заводит свою в КОПИИ библиотеки: нуклид настоящий, а на 3100 кэВ строки базы у него нет, номера
+    /// линия не получит и останется правимой. Член первого набора файла.
+    /// </summary>
+    const string HandName = "Cs-134";
+
+    static void AddHandLine(string path)
+    {
+        UTF8Encoding utf8 = new UTF8Encoding(false);
+        string text = File.ReadAllText(path, utf8);
+        string setId = System.Text.RegularExpressions.Regex.Match(text, "<Id>([0-9a-fA-F-]{36})</Id>").Groups[1].Value;
+        string[] block =
+        {
+            "    <Nuclide>", "      <Name>" + HandName + "</Name>", "      <Energy>3100</Energy>", "      <HalfLife>2.0652</HalfLife>",
+            "      <NuclideColor>Green</NuclideColor>", "      <Note />", "      <Visible>true</Visible>", "      <Intencity>1</Intencity>",
+            "      <Sets>", "        <guid>" + setId + "</guid>", "      </Sets>", "      <Chain />", "    </Nuclide>", "",
+        };
+        text = text.Replace("  </NuclideDefinitions>", string.Join("\r\n", block) + "  </NuclideDefinitions>");
+        File.WriteAllText(path, text, utf8);
+    }
+
     // ================================================================ сцена
     static NuclideSet s0;
     static NuclideDefinition lineL, lineO, lineO2;
@@ -183,7 +207,8 @@ static class P326SetSaveAsksProbe
             rig++;
             return false;
         }
-        lineL = mgr.NuclideDefinitions.Where(d => d.Sets.Contains(s0.Id) && unique(d)).Skip(1).FirstOrDefault()
+        lineL = mgr.NuclideDefinitions.FirstOrDefault(d => d.Name == HandName && d.Sets.Contains(s0.Id) && unique(d))
+                ?? mgr.NuclideDefinitions.Where(d => d.Sets.Contains(s0.Id) && unique(d)).Skip(1).FirstOrDefault()
                 ?? mgr.NuclideDefinitions.First(d => d.Sets.Contains(s0.Id) && unique(d));
         List<NuclideDefinition> outs = mgr.NuclideDefinitions.Where(d => !d.Sets.Contains(s0.Id) && unique(d) && d.Name != lineL.Name).ToList();
         if (outs.Count < 2)
