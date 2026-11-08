@@ -37,6 +37,14 @@ namespace BecquerelMonitor
         public DCControlPanel(MainForm mainForm)
         {
             this.InitializeComponent();
+            // (`AMBER319`, 08.11.2026) Список «Геометрия» рисуется своими руками: перед
+            // геометрией со старой кривой или старой матрицей — та же метка «!» на красной
+            // подложке, что во вкладке «Эффективность» конфигурации прибора, и тем же
+            // правилом (`EfficiencyStaleMark`). Метки считает `UpdateEfficiencyList`.
+            this.efficiencyComboBox.DrawMode = DrawMode.OwnerDrawFixed;
+            this.efficiencyComboBox.DrawItem += this.efficiencyComboBox_DrawItem;
+            // (`AMBER264`) Подсказки из resx — блоком по ширине `AppUi.TipWidth`.
+            AppUi.WrapToolTips(this.toolTip1, this);
             this.mainForm = mainForm;
             this.startBtn.Enabled = true;
             this.stopBtn.Enabled = false;
@@ -505,6 +513,10 @@ namespace BecquerelMonitor
                 activeResultData.Efficiency, activeResultData.FileEfficiency,
                 this.CurrentDeviceConfig(activeResultData), out selected);
 
+            // (`AMBER319`) Метки «!» считаются здесь, при заполнении, а не в DrawItem:
+            // решение о матрице читает её файл со склада. Считаются ДО заполнения —
+            // первая же перерисовка списка рисует уже с ними.
+            this.efficiencyStaleMarks = StaleMarks(items);
             this.efficiencyComboBox.Items.Clear();
             foreach (object item in items)
             {
@@ -657,6 +669,51 @@ namespace BecquerelMonitor
             {
                 return string.Format(Resources.EfficiencyFromFile, this.Config.Name);
             }
+        }
+
+        /// <summary>
+        /// (`AMBER319`) Метки «!» строк списка — по индексу строки, а не по Guid.
+        /// Guid не различает строки: родная кривая спектра («… — из файла спектра»)
+        /// может нести тот же Guid, что кривая прибора, а судится СВОЯ копия — её
+        /// клеймо и её геометрия (решение Amber 07.11.2026: «Тем же правилом
+        /// (Рекомендую)»). Матрица пункта из файла — та, что возьмёт разбор
+        /// (<see cref="EfficiencyStaleMark.MatrixStaleAsAnalysed"/>, решение Amber 08.11.2026
+        /// «По тому, что возьмёт разбор (Рекомендую)»): годная склада, иначе годная встроенная
+        /// в файл, иначе склад; нет ни той, ни другой — судится только кривая. Кривые прибора —
+        /// правилом вкладки (<see cref="EfficiencyStaleMark.IsStale"/>).
+        ///
+        /// Статический по той же причине, что <see cref="BuildEfficiencyItems"/>:
+        /// панель без MainForm не собрать, а проверить метки надо.
+        /// </summary>
+        public static bool[] StaleMarks(IList<object> items)
+        {
+            bool[] marks = new bool[items == null ? 0 : items.Count];
+            for (int i = 0; i < marks.Length; i++)
+            {
+                SpectrumEfficiencyItem own = items[i] as SpectrumEfficiencyItem;
+                if (own != null)
+                {
+                    // Пункт из файла: матрица — та, что возьмёт разбор (склад или встроенная
+                    // в файл), решение Amber 08.11.2026 «По тому, что возьмёт разбор».
+                    marks[i] = own.Config != null && EfficiencyStaleMark.IsStaleAsAnalysed(own.Config);
+                    continue;
+                }
+
+                EfficiencyConfigData config = items[i] as EfficiencyConfigData;
+                marks[i] = config != null && EfficiencyStaleMark.IsStale(config);
+            }
+
+            return marks;
+        }
+
+        /// <summary>Метки строк <see cref="efficiencyComboBox"/>, посчитанные при заполнении.</summary>
+        bool[] efficiencyStaleMarks = new bool[0];
+
+        void efficiencyComboBox_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            bool stale = e.Index >= 0 && e.Index < this.efficiencyStaleMarks.Length
+                         && this.efficiencyStaleMarks[e.Index];
+            EfficiencyStaleMark.DrawComboItem((ComboBox)sender, e, stale);
         }
 
         void efficiencyComboBox_SelectedIndexChanged(object sender, EventArgs e)

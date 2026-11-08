@@ -8487,7 +8487,7 @@ Increase the preset time or press Clear to start over.</value>
     <value>Full-spectrum decomposition: the spectrum has no device, and without a device there is no geometry. Choose the device in the Measurement Control panel, or add it in the Edit Device Configuration window and describe its crystal in the geometry editor of the efficiency curve</value>
   </data>
   <data name="FSACurveNotChosen" xml:space="preserve">
-    <value>Full-spectrum decomposition: no efficiency curve is chosen for this spectrum, but the device "{0}" has one. Choose it in the Efficiency list of the Measurement Control panel</value>
+    <value>Full-spectrum decomposition: no efficiency curve is chosen for this spectrum, but the device "{0}" has one. Choose it in the Geometry list of the Measurement Control panel</value>
   </data>
   <data name="FSADeviceAmbiguous" xml:space="preserve">
     <value>Full-spectrum decomposition: no device is assigned to the spectrum, several configurations fit it equally (the file names "{0}", serial number {1}). Choose the device in the Measurement Control panel</value>

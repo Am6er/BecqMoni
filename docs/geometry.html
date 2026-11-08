@@ -279,7 +279,7 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=239b6cbd"></script>
+<script src="assets/guide.js?v=00e561fe"></script>
 <script src="assets/quanta.js?v=67b2c2dc"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
@@ -410,7 +410,7 @@ GUIDE.texts({ru:{
 'u.k':'Спектр','u.h':'Что на диске и какую кривую берёт спектр',
 'u.lead':'Конструктор, окно матрицы и окно конфигурации — это черновики. Пройдите конвейер ниже и посмотрите, где на каждом шаге лежат кривая и матрица.',
 'p.h':'Где сейчас лежат кривая и матрица','p.hint':'Нажимайте шаги по порядку — подсвечивается место, куда попали данные.',
-'p.s1':'Посчитать из геометрии','p.s2':'Сохранить кривую','p.s3':'Матрица: Посчитать → Сохранить в текущую геометрию','p.s4':'Сохранить (окно конфигурации)','p.s5':'Эффективн. → сохранить спектр',
+'p.s1':'Посчитать из геометрии','p.s2':'Сохранить кривую','p.s3':'Матрица: Посчитать → Сохранить в текущую геометрию','p.s4':'Сохранить (окно конфигурации)','p.s5':'Геометрия → сохранить спектр',
 'p.w1':'Конструктор','p.w1s':'окно, пока открыто','p.w2':'Конфигурация','p.w2s':'в памяти программы','p.w3':'Диск','p.w3s':'конфигурация прибора и склад матриц','p.w4':'Файл спектра','p.w4s':'*.xml',
 'p.curve':'кривая','p.mat':'матрица','p.nothing':'пусто','p.wait':'ждёт «Сохранить»',
 'p.say0':'Начните с шага 1.',
@@ -421,7 +421,7 @@ GUIDE.texts({ru:{
 'p.say5':'Спектр, сохранённый с этой кривой, несёт её копию с геометрией и матрицу — его можно разобрать на другом компьютере.',
 'u.cap':'Панель «Управление измерением»: какая кривая у этого спектра',
 'u.l1':'<b>Устройство</b> — конфигурация прибора; <b>Редак.</b> открывает её окно',
-'u.l2':'<b>Эффективн.</b> — кривая этого спектра: «(нет)», кривые прибора или «… — из файла спектра»',
+'u.l2':'<b>Геометрия</b> — кривая этого спектра: «(нет)», кривые прибора или «… — из файла спектра»; красный «!» — у неё устарела кривая или матрица отклика',
 'u.l3':'<b>✕</b> — сбросить кривую эффективности у спектра',
 'u.l4':'<b>Фон</b> — спектр фона (нужен для активности по выделению)',
 'u.tip':'<b>Кривую выбирают у каждого спектра.</b> Сменили кривую в списке — FSA, активность и мощность дозы пересчитаются по ней. Если FSA включён без кривой, программа сама спросит, какую взять.',
@@ -534,7 +534,7 @@ GUIDE.texts({ru:{
 'u.k':'Spectrum','u.h':'What is on disk and which curve a spectrum takes',
 'u.lead':'The curve maker, the matrix window and the configuration window are drafts. Walk the pipeline below and see where the curve and the matrix live at each step.',
 'p.h':'Where the curve and the matrix live right now','p.hint':'Press the steps in order — the place the data went to lights up.',
-'p.s1':'Calculate from geometry','p.s2':'Save curve','p.s3':'Matrix: Compute → Save to the current geometry','p.s4':'Save (configuration window)','p.s5':'Efficiency → save the spectrum',
+'p.s1':'Calculate from geometry','p.s2':'Save curve','p.s3':'Matrix: Compute → Save to the current geometry','p.s4':'Save (configuration window)','p.s5':'Geometry → save the spectrum',
 'p.w1':'Curve maker','p.w1s':'the window, while open','p.w2':'Configuration','p.w2s':'in the program’s memory','p.w3':'Disk','p.w3s':'device configuration and the matrix store','p.w4':'Spectrum file','p.w4s':'*.xml',
 'p.curve':'curve','p.mat':'matrix','p.nothing':'empty','p.wait':'waits for “Save”',
 'p.say0':'Start with step 1.',
@@ -545,7 +545,7 @@ GUIDE.texts({ru:{
 'p.say5':'A spectrum saved with this curve carries a copy of it with the geometry and the matrix — it can be analysed on another computer.',
 'u.cap':'The “Measurement Control” panel: which curve this spectrum uses',
 'u.l1':'<b>Device Config.</b> — the device configuration; <b>Edit...</b> opens its window',
-'u.l2':'<b>Efficiency</b> — this spectrum’s curve: “(none)”, the device curves or “… - from the spectrum file”',
+'u.l2':'<b>Geometry</b> — this spectrum’s curve: “(none)”, the device curves or “… - from the spectrum file”; a red “!” means its curve or response matrix is outdated',
 'u.l3':'<b>✕</b> — reset the efficiency curve of the spectrum',
 'u.l4':'<b>Background</b> — the background spectrum (needed for activity from a selection)',
 'u.tip':'<b>A curve is chosen per spectrum.</b> Change it in the list and FSA, activity and dose rate are recomputed with it. If FSA is turned on without a curve, the program asks which one to take.',

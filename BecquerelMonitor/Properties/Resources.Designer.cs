@@ -3136,7 +3136,7 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Full-spectrum decomposition: no efficiency curve is chosen for this spectrum, but the device &quot;{0}&quot; has one. Choose it in the Efficiency list of the Measurement Control panel.
+        ///   Looks up a localized string similar to Full-spectrum decomposition: no efficiency curve is chosen for this spectrum, but the device &quot;{0}&quot; has one. Choose it in the Geometry list of the Measurement Control panel.
         /// </summary>
         public static string FSACurveNotChosen {
             get {

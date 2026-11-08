@@ -172,10 +172,10 @@
     <value>Лимит измерения спектра</value>
   </data>
   <data name="efficiencyLbl.Text" xml:space="preserve">
-    <value>Эффективн.</value>
+    <value>Геометрия</value>
   </data>
   <data name="efficiencyComboBox.ToolTip" xml:space="preserve">
-    <value>Кривая эффективности, по которой считается активность этого спектра</value>
+    <value>Геометрия измерения этого спектра — проба и детектор вместе с их кривой эффективности. По ней считаются активность, мощность дозы и FSA. Красный «!» — у геометрии устарела кривая или матрица отклика: пересчитайте её в конфигурации прибора, вкладка «Эффективность».</value>
   </data>
   <data name="clearEfficiencyBtn.ToolTip" xml:space="preserve">
     <value>Сбросить кривую эффективности</value>
