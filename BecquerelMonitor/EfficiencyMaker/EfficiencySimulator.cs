@@ -8745,6 +8745,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             double top = (te + (positron ? 2.0 * ElectronMassKev : 0.0)) * 1.5;
             int length = (int)Math.Ceiling(top / binKev) + 2;
             double[] hist = new double[length];
+            // (`AMBER318`) Сумма квадратов весов по бинам — для шума строки той же мерой, что у
+            // фотонного узла (<see cref="SmearedContinuumError"/>); случайных чисел не тянет.
+            double[] hist2 = new double[length];
             bool light = this.lightYield != null && lightPerKev > 0.0;
             double sumDeposit = 0.0;
             this.source.Retune(this, te);
@@ -8772,10 +8775,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 hist[bin] += weight;
+                hist2[bin] += weight * weight;
                 stats.Scored++;
                 sumDeposit += weight * deposited;
             }
 
+            this.SetRowNoise(hist, hist2, stats.Scored, te, binKev);
             for (int b = 0; b < length; b++)
             {
                 hist[b] /= n;
@@ -9156,6 +9161,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             int n = Math.Max(1000, this.Histories);
             int length = BranchRowLength(spec, binKev);
             double[] events = new double[length];
+            double[] events2 = new double[length];
             double[] cascade = new double[length];
             bool light = this.lightYield != null && lightPerKev > 0.0;
             this.source.Retune(this, spec.EndpointKev);
@@ -9176,7 +9182,9 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 if (deposited > 0.0)
                 {
-                    events[BinOf(light ? this.lightDeposit / lightPerKev : deposited, binKev, length)] += weight;
+                    int eventBin = BinOf(light ? this.lightDeposit / lightPerKev : deposited, binKev, length);
+                    events[eventBin] += weight;
+                    events2[eventBin] += weight * weight;
                     stats.Scored++;
                 }
 
@@ -9187,6 +9195,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
+            // (`AMBER318`) Шум строки ветви — по строке события целиком [0]: она и есть строка ветви.
+            this.SetRowNoise(events, events2, stats.Scored, spec.EndpointKev, binKev);
             for (int b = 0; b < length; b++)
             {
                 events[b] /= n;
@@ -10302,6 +10312,25 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             histogram[this.BinOf(histogram.Length - 1, binKev, energyKev, deposited)] += weight;
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER318`, решение Amber 07.11.2026 вопросником, дословно: мера — «Как у фотонов
+        /// (Рекомендую)») ШУМ СТРОКИ РАЗДЕЛА ЭЛЕКТРОНА — ТОЙ ЖЕ МЕРОЙ, что у фотонного узла: строка
+        /// (ненормированные веса <paramref name="hist"/> и суммы их квадратов <paramref name="hist2"/>)
+        /// сворачивается гауссианом ПШПВ геометрии на энергии строки <paramref name="energyKev"/>, и
+        /// берётся медиана 100·√D/S по бинам выше сотой доли максимума
+        /// (<see cref="SmearedContinuumError"/>). Отличие одно: у фотонного узла бины — ниже пика
+        /// полного поглощения (пик считает взвешенная ветка, а не гистограмма), у строки электрона —
+        /// ВСЯ строка: её пик набран теми же историями, что и хвост. Пишется в
+        /// <see cref="LastContinuumRelativeError"/>, запасная мерка — в
+        /// <see cref="LastContinuumIntegralError"/> (100/√N засчитанных историй), как у узла.
+        /// Случайных чисел не тянет: строка побитово прежняя.
+        /// </summary>
+        void SetRowNoise(double[] hist, double[] hist2, long scored, double energyKev, double binKev)
+        {
+            this.LastContinuumIntegralError = scored > 0 ? 100.0 / Math.Sqrt(scored) : 100.0;
+            this.LastContinuumRelativeError = this.SmearedContinuumError(hist, hist2, hist.Length, binKev, energyKev);
         }
 
         /// <summary>

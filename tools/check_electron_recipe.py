@@ -19,6 +19,11 @@ u"""Сторож РЕЦЕПТА РАЗДЕЛА ЭЛЕКТРОНА ПРОБЫ: о
   2. Склад однороден: смесь поколений — отказ.
   3. Провода: `ResponseMatrixForm` зовёт `AttachElectronSection`, тот берёт `ElectronSectionRecipe`,
      `BetaSectionProbeA274` — тот же код, без `--n` — рецепт.
+  3б. (`AMBER318`, 07.11.2026) Поле окна «Истории бета»: его умолчание в разметке
+     (`ResponseMatrixForm.Layout.cs`) — `ElectronSectionRecipe.StoreHistories` или то же число, то есть
+     умолчание поля = рецепт = клеймо склада (`n`); окно снимает номинал С ПОЛЯ и не читает рычаг проб
+     `ElectronSectionRecipe.Histories`; номинал доходит параметром `histories` до клейма (`StampFor`) и
+     до обоих построителей (ЦП и GPU) в `AttachElectronSection`, цель останова — `errorTarget`.
   3а. Порог метки один: `BackscatterMaxCos` в `EfficiencySimulator.cs` = в `decl_branch.inc`, и `sim_branch.cuh`
      зовёт константу, а не свою копию числа.
   4. Пробы (если каталог `build` свеж, иначе код 3, как у соседей): `MatrixRefusalProbeP8`,
@@ -31,7 +36,8 @@ u"""Сторож РЕЦЕПТА РАЗДЕЛА ЭЛЕКТРОНА ПРОБЫ: о
 ## Положительный контроль — на каждом прогоне
 
 Подсаженные мутанты исходников: `Seed = 1`, `Positron = false`, другие `n`, `DefaultNodes`, края сетки,
-окно без `AttachElectronSection`. Каждый обязан быть пойман; не пойман — код 1.
+окно без `AttachElectronSection`; (`AMBER318`) другое умолчание поля «Истории бета», окно на рычаге проб,
+клеймо и построители ЦП и GPU без номинала из поля, ЦП-ветка окна без цели останова (`betatarget`). Каждый обязан быть пойман; не пойман — код 1.
 
   python tools/check_electron_recipe.py [--mutant=seed|positron|n|nodes|edge|wire] [--no-probes] [--probes=<каталог>] [--skip-freshness]
 
@@ -53,6 +59,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 BUILDER = os.path.join(REPO, u'BecquerelMonitor', u'EfficiencyMaker', u'ResponseMatrixBuilder.cs')
 MATRIX = os.path.join(REPO, u'BecquerelMonitor', u'EfficiencyMaker', u'ResponseMatrix.cs')
 FORM = os.path.join(REPO, u'BecquerelMonitor', u'ResponseMatrixForm.cs')
+LAYOUT = os.path.join(REPO, u'BecquerelMonitor', u'ResponseMatrixForm.Layout.cs')
 BETA = os.path.join(REPO, u'tools', u'effmaker', u'probes', u'BetaSectionProbeA274.cs')
 STORE = os.path.join(REPO, u'tools', u'CORPUS', u'corpus', u'geometries')
 PROBES_DEFAULT = os.path.join(REPO, u'tools', u'effmaker', u'probes', u'build')
@@ -77,6 +84,16 @@ MUTANTS = {
     u'cpucos': (u'sim', u'public const double BackscatterMaxCos = 0.0;', u'public const double BackscatterMaxCos = -0.5;'),
     u'gpucos': (u'gpu_decl', u'BackscatterMaxCos = (real)0.0;', u'BackscatterMaxCos = (real)-0.5;'),
     u'gpuliteral': (u'gpu_sim', u'cos < BackscatterMaxCos', u'cos < (real)0.0'),
+    # (`AMBER318`) поле «Истории бета» и провод его номинала до построителя
+    u'betadefault': (u'layout', u'0, ElectronSectionRecipe.StoreHistories);', u'0, 400000);'),
+    u'betalever': (u'form', u'int betaHistories = (int)this.betaHistoriesBox.Value;',
+                   u'int betaHistories = ElectronSectionRecipe.Histories;'),
+    u'betastamp': (u'builder', u'recipe.StampFor(geometry, matrix, histories)', u'recipe.StampFor(geometry, matrix)'),
+    u'betacpu': (u'builder', u': BuildElectronSection(geometry, matrix, recipe.Grid, histories,',
+                 u': BuildElectronSection(geometry, matrix, recipe.Grid, ElectronSectionRecipe.Histories,'),
+    u'betatarget': (u'form', u'betaHistories, options.ContinuumErrorTarget,', u'betaHistories, 0.0,'),
+    u'betagpu': (u'builder', u'GpuBuild.BuildElectronSection(gpu, geometry, matrix, recipe.Grid, histories,',
+                 u'GpuBuild.BuildElectronSection(gpu, geometry, matrix, recipe.Grid, ElectronSectionRecipe.Histories,'),
 }
 
 
@@ -93,7 +110,7 @@ def read(path):
 
 
 def sources():
-    return {u'builder': read(BUILDER), u'matrix': read(MATRIX), u'form': read(FORM), u'beta': read(BETA),
+    return {u'builder': read(BUILDER), u'matrix': read(MATRIX), u'form': read(FORM), u'layout': read(LAYOUT), u'beta': read(BETA),
             u'sim': read(SIM), u'gpu_decl': read(GPU_DECL), u'gpu_sim': read(GPU_SIM)}
 
 
@@ -235,13 +252,60 @@ def judge(src, stamps):
 
     if u'ResponseMatrixBuilder.AttachElectronSection(' not in src[u'form']:
         bad.append(u'окно не зовёт `AttachElectronSection`')
-    attach = src[u'builder'].find(u'public static ElectronSectionOutcome AttachElectronSection(')
-    if attach < 0 or u'ElectronSectionRecipe.FromLibrary(' not in src[u'builder'][attach:attach + 2500]:
-        bad.append(u'`AttachElectronSection` не берёт `ElectronSectionRecipe`')
+    bad.extend(beta_field_wire(src, recipe))
     for token in (u'ElectronSectionRecipe.LibraryLines(', u'ElectronSectionRecipe.BranchesOf(', u'n = ElectronSectionRecipe.StoreHistories;'):
         if token not in src[u'beta']:
             bad.append(u'`BetaSectionProbeA274` без `%s`' % token)
     return bad, notes
+
+
+RE_BETA_FIELD = re.compile(r'this\.betaHistoriesBox = this\.Field\(.*?,\s*(ElectronSectionRecipe\.StoreHistories|\d+)\);', re.S)
+
+
+def code_only(text):
+    u"""Текст без строк-комментариев `//`: имя рычага в шапке — не чтение рычага."""
+    return u'\n'.join(line for line in text.splitlines() if not line.lstrip().startswith(u'//'))
+
+
+def beta_field_wire(src, recipe):
+    u"""(`AMBER318`) Поле «Истории бета»: умолчание = рецепт склада, номинал с поля доходит до клейма и построителей."""
+    bad = []
+    m = RE_BETA_FIELD.search(src[u'layout'])
+    if not m:
+        bad.append(u'умолчание поля «Истории бета» не разобрано в разметке окна')
+    else:
+        value = recipe[u'n'] if m.group(1) == u'ElectronSectionRecipe.StoreHistories' else m.group(1)
+        if not num_equal(value, recipe[u'n']):
+            bad.append(u'умолчание поля «Истории бета» %s, рецепт склада n=%s' % (value, recipe[u'n']))
+    form = src[u'form']
+    if u'int betaHistories = (int)this.betaHistoriesBox.Value;' not in form:
+        bad.append(u'окно не снимает номинал раздела с поля «Истории бета»')
+    if u'ElectronSectionRecipe.Histories' in code_only(form):
+        bad.append(u'окно читает рычаг проб `ElectronSectionRecipe.Histories`')
+    if form.count(u'betaHistories,') < 2 or u'progress, token, null, histories, errorTarget);' not in form:
+        bad.append(u'номинал поля не доходит из окна до `AttachElectronSection` (ЦП и GPU)')
+    # (`AMBER318`, пятый заход, пробел, найденный `crit318b`) ЦП-ветка окна передаёт цель останова фотонов.
+    if u'betaHistories, options.ContinuumErrorTarget,' not in code_only(form):
+        bad.append(u'ЦП-ветка окна не передаёт цель останова `options.ContinuumErrorTarget` в раздел')
+    builder = src[u'builder']
+    head = builder.find(u'int histories, double errorTarget)')
+    tail = builder.find(u'return ElectronSectionOutcome.Built;', head)
+    if head < 0 or tail < 0:
+        bad.append(u'нет `AttachElectronSection` с номиналом `histories` и целью `errorTarget`')
+        return bad
+    body = builder[head:tail]
+    if u'ElectronSectionRecipe.FromLibrary(' not in body:
+        bad.append(u'`AttachElectronSection` не берёт `ElectronSectionRecipe`')
+    for token, what in ((u'recipe.StampFor(geometry, matrix, histories)', u'клеймо'),
+                        (u'GpuBuild.BuildElectronSection(gpu, geometry, matrix, recipe.Grid, histories,', u'построитель GPU'),
+                        (u': BuildElectronSection(geometry, matrix, recipe.Grid, histories,', u'построитель ЦП')):
+        if token not in body:
+            bad.append(u'`AttachElectronSection`: %s без номинала из поля' % what)
+    if u'ElectronSectionRecipe.Histories' in code_only(body):
+        bad.append(u'`AttachElectronSection` с номиналом читает рычаг проб `ElectronSectionRecipe.Histories`')
+    if u'errorTarget);' not in body:
+        bad.append(u'`AttachElectronSection`: цель останова не доходит до построителя ЦП')
+    return bad
 
 
 def mutated(src, name):
@@ -352,6 +416,8 @@ def main():
     recipe = recipe_of(src)
     print(u'рецепт: n=%s seed=%s e+=%s esec=%s сетка %s %s…%s; файлов склада: %d' % (
         recipe[u'n'], recipe[u'seed'], recipe[u'e+'], recipe[u'esec'], recipe[u'nodes'], recipe[u'lo'], recipe[u'hi'], len(stamps)))
+    field = RE_BETA_FIELD.search(src[u'layout'])
+    print(u'поле окна «Истории бета»: умолчание %s' % (field.group(1) if field else u'не разобрано'))
 
     bad, notes = judge(src, stamps)
     for note in notes:

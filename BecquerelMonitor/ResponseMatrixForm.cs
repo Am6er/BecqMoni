@@ -44,6 +44,18 @@ namespace BecquerelMonitor
         Button computeButton, cancelButton, saveButton, closeButton;
         NumericUpDown minEnergyBox, maxEnergyBox, nodesBox, binBox, historiesBox, threadsBox;
 
+        /// <summary>
+        /// ⛔ (`AMBER318`, решение Amber 07.11.2026 вопросником, дословно: «Свое поле, дефолт 800000 с
+        /// остановкой по шуму») «Истории бета» — номинал историй на строку раздела электрона пробы.
+        /// Умолчание — рецепт склада (<see cref="ElectronSectionRecipe.StoreHistories"/>); номинал
+        /// идёт в клеймо раздела (`n=`), на ЦП строка считается до шума 3 % (не больше 8× номинала),
+        /// на GPU — ровно номинал. Рычаг проб <see cref="ElectronSectionRecipe.Histories"/> окно не читает.
+        /// </summary>
+        NumericUpDown betaHistoriesBox;
+
+        /// <summary>(`AMBER318`) Подсказка поля «Истории бета».</summary>
+        ToolTip betaHistoriesTip;
+
         // (`AMBER219`) Галка «Use Nvidia GPU», её панель (носитель подсказки) и подсказка.
         Panel gpuPanel;
         GpuCheckBox gpuCheck;
@@ -353,6 +365,8 @@ namespace BecquerelMonitor
             // это единственное место, где умолчание ещё известно: ниже поле
             // перепишется тем, чем посчитана прежняя матрица.
             decimal nominalHistories = this.historiesBox.Value;
+            // (`AMBER318`) Номинал раздела электрона — тем же приёмом: умолчание разметки (рецепт склада).
+            decimal nominalBetaHistories = this.betaHistoriesBox.Value;
 
             if (this.config == null || !this.config.HasGeometry)
             {
@@ -449,6 +463,17 @@ namespace BecquerelMonitor
                                              (decimal)(Math.Ceiling(this.gpuSpentPerNode / 1e6) * 1e6));
                     this.gpuHistoriesFloor = floor > this.historiesBox.Value ? floor : 0;
                 }
+            }
+
+            // (`AMBER318`) Номинал раздела — тем же правилом, что фотонные истории: не ниже штатного,
+            // а раздел, посчитанный гуще штатного, наследуется (`T36`). Номинал прежнего раздела —
+            // его клеймо (`n=`): «Пересчитать» с ним даёт то же клеймо, и раздел переносится без счёта.
+            int sectionNominal;
+            if (existing.ElectronSection != null
+                && int.TryParse(existing.ElectronSection.StampField("n"), NumberStyles.Integer, CultureInfo.InvariantCulture,
+                                out sectionNominal))
+            {
+                SetClamped(this.betaHistoriesBox, Math.Max(sectionNominal, nominalBetaHistories));
             }
 
             // E18 (б). Матрица есть — она и выигрывает: поля обязаны повторять
@@ -809,6 +834,7 @@ namespace BecquerelMonitor
         /// </summary>
         static string AddElectronSection(GeometryModel geometry, ResponseMatrix matrix, ResponseElectronSection unsaved,
                                          string guid, ResponseMatrixSource source, RmGpu gpu, int threads,
+                                         int histories, double errorTarget,
                                          IProgress<ResponseMatrixProgress> progress, CancellationToken token)
         {
             try
@@ -823,8 +849,10 @@ namespace BecquerelMonitor
                 }
 
                 Stopwatch clock = Stopwatch.StartNew();
+                // ⛔ (`AMBER318`) Номинал — из поля «Истории бета», цель останова — та же, что у фотонных
+                // узлов этого счёта (на GPU — ноль: плоско, `AMBER219`).
                 ElectronSectionOutcome outcome = ResponseMatrixBuilder.AttachElectronSection(
-                    geometry, matrix, previous, gpu, threads, progress, token, null);
+                    geometry, matrix, previous, gpu, threads, progress, token, null, histories, errorTarget);
                 // «Посчитано за» в окне и в свойствах матрицы — всё ожидание человека, с разделом.
                 matrix.BuildSeconds += clock.Elapsed.TotalSeconds;
                 Trace.WriteLine("Response matrix: electron section " + outcome + ", "
@@ -1008,6 +1036,8 @@ namespace BecquerelMonitor
 
             GeometryModel geometry = this.config.Geometry.Clone();
             ResponseMatrixOptions options = this.CurrentOptions();
+            // (`AMBER318`) Номинал раздела электрона — из своего поля, снимается до `SetBusy`, как всё прочее.
+            int betaHistories = (int)this.betaHistoriesBox.Value;
             // ⛔ (`AMBER219`) Решение «GPU или CPU» снимается с галки ДО `SetBusy`:
             // занятая форма галку выключает, а `UseGpu` читает именно `Enabled`
             // — снятое после, оно всегда говорило бы «CPU». Оплачено 07.10.2026
@@ -1044,7 +1074,8 @@ namespace BecquerelMonitor
                         {
                             ResponseMatrix onCpu = ResponseMatrixBuilder.Build(geometry, options, progress, token);
                             sectionFailure = AddElectronSection(geometry, onCpu, unsavedSection, guid, source, null,
-                                                                options.Threads, progress, token);
+                                                                options.Threads, betaHistories, options.ContinuumErrorTarget,
+                                                                progress, token);
                             return onCpu;
                         }
 
@@ -1057,7 +1088,7 @@ namespace BecquerelMonitor
                             {
                                 ResponseMatrix onGpu = GpuBuild.Build(gpu, geometry, options, progress, token, null);
                                 sectionFailure = AddElectronSection(geometry, onGpu, unsavedSection, guid, source, gpu,
-                                                                    options.Threads, progress, token);
+                                                                    options.Threads, betaHistories, 0.0, progress, token);
                                 return onGpu;
                             }
                         }
@@ -1412,6 +1443,7 @@ namespace BecquerelMonitor
             this.nodesBox.Enabled = !value;
             this.binBox.Enabled = !value;
             this.historiesBox.Enabled = !value;
+            this.betaHistoriesBox.Enabled = !value;
             this.threadsBox.Enabled = !value;
             // (`AMBER219`) Галка GPU на время счёта тоже замирает (настоящим
             // `Enabled`, подсказка на время счёта не нужна); негодная после

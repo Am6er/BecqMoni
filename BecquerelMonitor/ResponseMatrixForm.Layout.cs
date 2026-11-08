@@ -1,4 +1,5 @@
-﻿using BecquerelMonitor.Properties;
+﻿using BecquerelMonitor.EfficiencyMaker;
+using BecquerelMonitor.Properties;
 using System;
 using System.Drawing;
 using System.Windows.Forms;
@@ -127,7 +128,7 @@ namespace BecquerelMonitor
             {
                 Text = Resources.ResponseMatrixParameters,
                 Location = new Point(Pad, y),
-                Size = new Size(FormWidth - 2 * Pad, 116)
+                Size = new Size(FormWidth - 2 * Pad, 144)
             };
             this.Controls.Add(box);
 
@@ -160,6 +161,25 @@ namespace BecquerelMonitor
             this.historiesBox.Increment = 500000;
             this.nodesBox.Increment = 10;
 
+            // ⛔ (`AMBER318`, решение Amber 07.11.2026 вопросником, дословно: «Свое поле, дефолт 800000
+            // с остановкой по шуму») «Истории бета» — под полем историй фотонов: номинал историй на
+            // строку раздела электрона пробы. Умолчание — РЕЦЕПТ СКЛАДА, константой, а не своим
+            // числом: два места и разойтись им нельзя (сторож `tools/check_electron_recipe.py`).
+            // Пределы — как у поля фотонов (`A39`), шаг — восьмая доля умолчания с округлением.
+            row += 28;
+            this.betaHistoriesBox = this.Field(box, BetaHistoriesText("ResponseMatrixBetaHistories", "Beta histories:"),
+                                               Pad, row, 1000, 30000000, 0, ElectronSectionRecipe.StoreHistories);
+            this.betaHistoriesBox.Increment = 100000;
+            this.betaHistoriesTip = new ToolTip { AutoPopDelay = 30000, InitialDelay = 300, ReshowDelay = 100 };
+            this.betaHistoriesTip.SetToolTip(this.betaHistoriesBox, AppUi.WrapTip(string.Format(
+                System.Globalization.CultureInfo.InvariantCulture,
+                BetaHistoriesText("ResponseMatrixBetaHistoriesTip",
+                                  "Histories per row of the sample electron section. On the CPU until noise {0} % (at most {1} × the nominal), on the GPU exactly the nominal. Default: {2}."),
+                new ResponseMatrixOptions().ContinuumErrorTarget.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture),
+                new ResponseMatrixOptions().MaxHistoriesFactor.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ElectronSectionRecipe.StoreHistories.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ResponseMatrixBuilder.SectionStopMinHistories.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+
             // ⛔ РАЗДЕЛИТЕЛЯ ТЫСЯЧ НЕТ НИ У ОДНОГО ПОЛЯ (`A244`, решение Amber
             // 05.09.2026: «группировки разрядов нет вовсе»). Здесь стояло
             // `historiesBox.ThousandsSeparator = true` — единственная
@@ -187,6 +207,7 @@ namespace BecquerelMonitor
             this.nodesBox.ValueChanged += this.ParametersChanged;
             this.binBox.ValueChanged += this.ParametersChanged;
             this.historiesBox.ValueChanged += this.ParametersChanged;
+            this.betaHistoriesBox.ValueChanged += this.ParametersChanged;
             this.threadsBox.ValueChanged += this.ParametersChanged;
 
             y += box.Height + 6;
@@ -345,6 +366,16 @@ namespace BecquerelMonitor
         void ParametersChanged(object sender, EventArgs e)
         {
 
+        }
+
+        /// <summary>
+        /// (`AMBER318`) Строка поля «Истории бета» по ключу; свойств в `Resources.Designer.cs` у неё
+        /// нет (генератор не перезапускается, как у ключей раздела `AMBER305`).
+        /// </summary>
+        static string BetaHistoriesText(string key, string fallback)
+        {
+            string text = Resources.ResourceManager.GetString(key, Resources.Culture);
+            return string.IsNullOrEmpty(text) ? fallback : text;
         }
 
         /// <summary>
