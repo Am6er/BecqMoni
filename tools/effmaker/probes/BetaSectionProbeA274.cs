@@ -16,7 +16,7 @@ using BecquerelMonitor.FullSpectrumAnalysis;
 /// `handover/handover-2026-10-29-amber274-e1-sample-beta.md`.
 ///
 ///     BetaSectionProbeA274 --scene=<сцена.in> --matrix=<матрица.rmx> --out=<новая.rmx>
-///                          [--n=100000] [--seed=0] [--threads=N] [--grid=80,60,3600] [--gpu=<rmgpu_f.dll>]
+///                          [--n=100000] [--seed=0] [--stop=<%>] [--small=<доля>] [--stop-dry] [--no-budget] [--budget=work|hist|clock|off] [--budget-share=0.97] [--small-by-kind] [--work-dump] [--threads=N] [--grid=80,60,3600] [--gpu=<rmgpu_f.dll>]
 ///                          [--positron=1] [--capsule=osgi|none|<вещество>:<мм>[:ring]] [--dump=<строки.csv>]
 ///     BetaSectionProbeA274 --section-control --scene= --matrix=   (раздел: формат, порча, капсула, физика)
 ///     BetaSectionProbeA274 --capsule-control --scene=<точечная сцена>   (единицы капсулы, воздух, сдвиг точки)
@@ -98,6 +98,15 @@ public static class BetaSectionProbeA274
     static bool backscatterSlab;
     static double[] backscatterEnergies;
     static string monoCsv;
+
+    /// <summary>
+    /// (`AMBER318`) `--stop=<%>`: останов строки раздела по шуму на ЦП, как в окне матрицы (пробный
+    /// проход N/10, потолок 8×N; 0 — плоско, умолчание, как у склада). На GPU не действует.
+    /// `--small=<доля>` — порог малой строки (`ResponseMatrixBuilder.SectionSmallRowShare`, второй заход
+    /// `AMBER318`); `--stop-dry` — только пробный проход и таблица «порог → истории, время» в журнал;
+    /// `--no-budget` — без бюджета раздела (третий заход `AMBER318`; плечо сравнения).
+    /// </summary>
+    static double stopTarget;
 
     /// <summary>(`AMBER274`, физика 28) `--lines=`: строки линий конверсии раздела.</summary>
     static string linesSpec;
@@ -191,6 +200,15 @@ public static class BetaSectionProbeA274
             else if (a.StartsWith("--capsule=", StringComparison.Ordinal)) capsule = a.Substring(10);
             else if (a.StartsWith("--n=", StringComparison.Ordinal)) { n = int.Parse(a.Substring(4), CultureInfo.InvariantCulture); nGiven = true; }
             else if (a.StartsWith("--seed=", StringComparison.Ordinal)) seed = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--stop=", StringComparison.Ordinal)) stopTarget = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--small=", StringComparison.Ordinal)) ResponseMatrixBuilder.SectionSmallRowShare = double.Parse(a.Substring(8), CultureInfo.InvariantCulture);
+            else if (a == "--stop-dry") ResponseMatrixBuilder.SectionStopPilotOnly = true;
+            else if (a == "--no-budget") ResponseMatrixBuilder.SectionBudget = false;
+            else if (a == "--work-dump") ResponseMatrixBuilder.SectionWorkDump = true;
+            else if (a == "--small-by-kind") ResponseMatrixBuilder.SectionSmallByKind = true;
+            else if (a.StartsWith("--budget-share=", StringComparison.Ordinal)) ResponseMatrixBuilder.SectionBudgetShare = double.Parse(a.Substring(15), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--budget=", StringComparison.Ordinal))
+                ResponseMatrixBuilder.SectionBudgetMode = a.Substring(9) == "hist" ? 1 : a.Substring(9) == "clock" ? 3 : a.Substring(9) == "off" ? 0 : 2;
             else if (a.StartsWith("--threads=", StringComparison.Ordinal)) threads = int.Parse(a.Substring(10), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--positron=", StringComparison.Ordinal)) positron = a.Substring(11) != "0";
             else if (a.StartsWith("--grid=", StringComparison.Ordinal))
@@ -387,7 +405,7 @@ public static class BetaSectionProbeA274
             {
                 section = ResponseMatrixBuilder.BuildElectronSection(
                     geometry, matrix, grid, n, seed, positron, threads, CancellationToken.None, Console.WriteLine, lineList,
-                    branchList);
+                    branchList, null, stopTarget);
             }
             matrix.ElectronSection = section;
             matrix.Save(outPath);

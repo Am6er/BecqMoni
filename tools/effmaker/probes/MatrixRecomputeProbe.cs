@@ -45,7 +45,7 @@ namespace MatrixRecomputeProbe
     ///       [--emin=5] [--emax=3000] [--nodes=100] [--bin=2] [--hist=1000000]
     ///       [--curve-emin=5] [--curve-emax=3000] [--curve-points=100] [--curve-hist=1000000]
     ///       [--curve-grid=log|std] [--threads=8] [--no-matrix] [--no-curve]
-    ///       [--gpu | --gpu=&lt;rmgpu_f.dll&gt;] [--like-window [--hist-as-spent]] [--curve-like-window]
+    ///       [--gpu | --gpu=&lt;rmgpu_f.dll&gt;] [--like-window [--hist-as-spent] [--section-stop=3]] [--curve-like-window]
     ///       [--csv=&lt;итог.csv&gt;]
     ///
     /// (П345, 20.10.2026) `--gpu` — матрица на GPU тем же путём, что окно при галке GPU
@@ -302,6 +302,8 @@ namespace MatrixRecomputeProbe
             int nodes = 100, hist = 1000000, threads = 0;
             string gpuPath = null;
             bool likeWindow = false, histAsSpent = false, curveLikeWindow = false;
+            // (`AMBER318`) Останов по шуму раздела электрона на ЦП, %: 0 — плоско, как склад (умолчание).
+            double sectionStop = 0.0;
             double cEmin = 5.0, cEmax = 3000.0;
             int cPoints = 100, cHist = 1000000;
             EfficiencyGridMode cGrid = EfficiencyGridMode.Logarithmic;
@@ -322,6 +324,14 @@ namespace MatrixRecomputeProbe
                 // границы, узлы и бин из прежнего `.rmx`, истории — не ниже штатных 3 млн;
                 // прежнего файла нет — границы кривой и умолчания. Ключи --emin/--nodes/… тогда не берутся.
                 if (a == "--like-window") { likeWindow = true; continue; }
+                // (`AMBER318`) Окно на ЦП считает раздел с остановом по шуму 3 % (`--section-stop=3`
+                // повторяет его); без ключа — плоско, как склад. На GPU раздел всегда плоский.
+                if (a.StartsWith("--section-stop=", StringComparison.Ordinal))
+                {
+                    sectionStop = double.Parse(a.Substring(15), CultureInfo.InvariantCulture);
+                    continue;
+                }
+
                 // Истории не ниже НАБРАННЫХ прежней матрицей на узел (её ЦП-останов по шуму
                 // доходил до 20 млн): GPU считает только плоско, и штатные 3 млн вернули бы шум.
                 if (a == "--hist-as-spent") { histAsSpent = true; continue; }
@@ -594,7 +604,8 @@ namespace MatrixRecomputeProbe
                             if (likeWindow)
                             {
                                 ResponseMatrixBuilder.AttachElectronSection(geometry, matrix, null, null, threads, null,
-                                                                            CancellationToken.None, null);
+                                                                            CancellationToken.None, null,
+                                                                            ElectronSectionRecipe.Histories, sectionStop);
                             }
                         }
 

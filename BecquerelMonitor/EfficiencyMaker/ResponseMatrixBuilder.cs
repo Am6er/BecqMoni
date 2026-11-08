@@ -106,6 +106,17 @@ namespace BecquerelMonitor.EfficiencyMaker
         public int SectionTotal;
 
         /// <summary>
+        /// (`AMBER318`, пятый заход) Строк раздела, прошедших пробный проход останова по шуму; 0 — останова нет.
+        /// </summary>
+        public int SectionPilotDone;
+
+        /// <summary>
+        /// (`AMBER318`, пятый заход) Доля полосы раздела, отданная пробному проходу (его цена против номинала,
+        /// N/10 — 0.1); 0 — останова нет, полоса идёт по досчитанным строкам, как прежде.
+        /// </summary>
+        public double SectionPilotShare;
+
+        /// <summary>
         /// Доля сделанного, % — ПО ДОСЧИТАННЫМ УЗЛАМ (`A46`) И БЛОКАМ κ (`AMBER220`).
         ///
         /// Прежде доля шла по цене узлов в потокосекундах, и полоса пятилась
@@ -122,7 +133,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // (`AMBER305`) Отчёт раздела — своя шкала; как сложить её с фотонной, решает окно.
                 if (this.SectionTotal > 0)
                 {
-                    return 100.0 * this.SectionDone / this.SectionTotal;
+                    // (`AMBER318`, пятый заход) С остановом строка даёт полосе долю пробного прохода, как его
+                    // прошла, и остальное — когда досчитана: полоса растёт и на пробном проходе, не пятится.
+                    double share = Math.Max(0.0, Math.Min(1.0, this.SectionPilotShare));
+                    return 100.0 * (share * this.SectionPilotDone + (1.0 - share) * this.SectionDone) / this.SectionTotal;
                 }
 
                 int units = this.TotalNodes + Math.Max(0, this.JointPlanned);
@@ -182,9 +196,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         public const int StoreHistories = 800000;
 
         /// <summary>
-        /// РЫЧАГ ПРОБ, не настройка: окно считает столько историй на строку. Ни один штатный путь
-        /// его не ставит; пробы окна (`MatrixWindowProbeP291`, `…DetailsProbeP292`) снижают его,
-        /// потому что судят не раздел, а поведение окна. Клеймо раздела число историй несёт.
+        /// РЫЧАГ ПРОБ, не настройка: столько историй на строку берёт прежняя перегрузка
+        /// <see cref="ResponseMatrixBuilder.AttachElectronSection(GeometryModel, ResponseMatrix, ResponseElectronSection, RmGpu, int, IProgress{ResponseMatrixProgress}, CancellationToken, Action{string})"/>
+        /// (`MatrixRecomputeProbe`) и <see cref="StampFor(GeometryModel, ResponseMatrix)"/>. Ни один
+        /// штатный путь его не ставит. ⛔ (`AMBER318`) Окно матрицы его НЕ читает: у окна своё поле
+        /// «Истории бета» (умолчание — <see cref="StoreHistories"/>), и номинал из поля приходит в
+        /// построитель параметром. Пробы окна (`MatrixWindowProbeP291`, `…DetailsProbeP292`,
+        /// `ElectronSectionFormProbeA305`) снижают рычаг и сами переносят его в поле окна, потому
+        /// что судят не раздел, а поведение окна. Клеймо раздела число историй несёт.
         /// </summary>
         public static int Histories = StoreHistories;
 
@@ -218,11 +237,21 @@ namespace BecquerelMonitor.EfficiencyMaker
             };
         }
 
-        /// <summary>Клеймо раздела, который дал бы этот рецепт для матрицы и сцены.</summary>
+        /// <summary>Клеймо раздела, который дал бы этот рецепт для матрицы и сцены (истории — рычаг <see cref="Histories"/>).</summary>
         public string StampFor(GeometryModel geometry, ResponseMatrix matrix)
         {
+            return this.StampFor(geometry, matrix, Histories);
+        }
+
+        /// <summary>
+        /// (`AMBER318`) То же с НОМИНАЛОМ <paramref name="histories"/> историй на строку — тем, что
+        /// стоит в поле окна. Цель останова по шуму в клеймо не входит: номинал — содержание
+        /// клейма, набранное сверх него — усилие (как у фотонной части, `ComputeStamp`).
+        /// </summary>
+        public string StampFor(GeometryModel geometry, ResponseMatrix matrix, int histories)
+        {
             double bin = matrix.BinKev > 0.0 ? matrix.BinKev : matrix.Options.BinKev;
-            return ResponseElectronSection.ComputeStamp(geometry, matrix.Stamp, this.Grid, Histories, Seed, Positron, bin,
+            return ResponseElectronSection.ComputeStamp(geometry, matrix.Stamp, this.Grid, histories, Seed, Positron, bin,
                                                         ResponseElectronSection.CleanLines(this.Lines, this.Grid),
                                                         ResponseMatrixBuilder.CleanBranches(this.Branches, null));
         }
@@ -1573,6 +1602,26 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                                    IProgress<ResponseMatrixProgress> progress,
                                                                    CancellationToken cancellation, Action<string> log)
         {
+            // Прежний путь (склад, `MatrixRecomputeProbe`): номинал — рычаг проб, счёт плоский.
+            return AttachElectronSection(geometry, matrix, previous, gpu, threads, progress, cancellation, log,
+                                         ElectronSectionRecipe.Histories, 0.0);
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER318`, решение Amber 07.11.2026 вопросником, дословно: «Свое поле, дефолт 800000 с
+        /// остановкой по шуму»; где действует — «Как фотоны (Рекомендую)») То же с НОМИНАЛОМ из поля
+        /// окна <paramref name="histories"/> и целью останова по шуму <paramref name="errorTarget"/>, %
+        /// (0 — плоско). Номинал идёт в клеймо (`n=`) и в счёт; цель — только в счёт на ЦП
+        /// (<see cref="BuildElectronSection(GeometryModel, ResponseMatrix, double[], int, int, bool, int, CancellationToken, Action{string}, double[], IList{ElectronBranchSpec}, IProgress{ResponseMatrixProgress}, double)"/>):
+        /// на GPU раздел плоский, как и фотонная часть (`AMBER219`). Прежний раздел того же клейма
+        /// переносится без счёта, как бы он ни был посчитан — плоско или с остановом.
+        /// </summary>
+        public static ElectronSectionOutcome AttachElectronSection(GeometryModel geometry, ResponseMatrix matrix,
+                                                                   ResponseElectronSection previous, RmGpu gpu, int threads,
+                                                                   IProgress<ResponseMatrixProgress> progress,
+                                                                   CancellationToken cancellation, Action<string> log,
+                                                                   int histories, double errorTarget)
+        {
             if (geometry == null || matrix == null || matrix.Options == null)
             {
                 throw new ArgumentNullException("matrix");
@@ -1585,7 +1634,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             ElectronSectionRecipe recipe = ElectronSectionRecipe.FromLibrary(log);
             cancellation.ThrowIfCancellationRequested();
-            if (previous != null && string.Equals(previous.Stamp, recipe.StampFor(geometry, matrix), StringComparison.Ordinal))
+            if (previous != null && string.Equals(previous.Stamp, recipe.StampFor(geometry, matrix, histories), StringComparison.Ordinal))
             {
                 matrix.ElectronSection = previous;
                 ElectronSectionRefusal refusal;
@@ -1598,16 +1647,16 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             matrix.ElectronSection = gpu != null
-                ? GpuBuild.BuildElectronSection(gpu, geometry, matrix, recipe.Grid, ElectronSectionRecipe.Histories,
+                ? GpuBuild.BuildElectronSection(gpu, geometry, matrix, recipe.Grid, histories,
                                                 ElectronSectionRecipe.Seed, ElectronSectionRecipe.Positron, recipe.Lines,
                                                 recipe.Branches, cancellation, log, progress)
-                : BuildElectronSection(geometry, matrix, recipe.Grid, ElectronSectionRecipe.Histories,
+                : BuildElectronSection(geometry, matrix, recipe.Grid, histories,
                                        ElectronSectionRecipe.Seed, ElectronSectionRecipe.Positron, threads, cancellation,
-                                       log, recipe.Lines, recipe.Branches, progress);
+                                       log, recipe.Lines, recipe.Branches, progress, errorTarget);
             return ElectronSectionOutcome.Built;
         }
 
-        /// <summary>(`AMBER305`) То же с ходом по строкам раздела; <paramref name="progress"/> на числа не влияет.</summary>
+        /// <summary>(`AMBER305`) То же с ходом по строкам раздела; <paramref name="progress"/> на числа не влияет. Плоско.</summary>
         public static ResponseElectronSection BuildElectronSection(GeometryModel geometry, ResponseMatrix matrix,
                                                                    double[] grid, int histories, int seed,
                                                                    bool positron, int threads,
@@ -1615,6 +1664,41 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                                    Action<string> log, double[] lines,
                                                                    IList<ElectronBranchSpec> branches,
                                                                    IProgress<ResponseMatrixProgress> progress)
+        {
+            return BuildElectronSection(geometry, matrix, grid, histories, seed, positron, threads, cancellation, log,
+                                        lines, branches, progress, 0.0);
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER318`) То же с ОСТАНОВОМ ПО ШУМУ: <paramref name="errorTarget"/> &gt; 0 — каждая строка
+        /// (узел, линия, ветвь) идёт пробным проходом N/<see cref="ResponseMatrixOptions.PilotDivisor"/>
+        /// (не меньше <see cref="MinPilotHistories"/>, не больше N), по его шуму
+        /// (<see cref="EfficiencySimulator.LastContinuumRelativeError"/>, у строки электрона —
+        /// <c>SetRowNoise</c>, та же мера, что у фотонного узла) считается нужное число историй
+        /// (<see cref="NeededHistories"/>, потолок N×<see cref="ResponseMatrixOptions.MaxHistoriesFactor"/>),
+        /// и строка пересчитывается ЗАНОВО тем же зерном — не больше <see cref="MaxNodePasses"/> проходов,
+        /// ровно как узел фотонной части. Тихая строка останавливается на пробном проходе, шумная
+        /// досчитывается. У узла с позитроном шум — худший из двух строк (e⁻, e⁺) одних историй.
+        /// Делители и потолок — из <see cref="ResponseMatrix.Options"/>, как у её фотонных узлов.
+        /// ⛔ Второй заход (решение Amber 08.11.2026: «Малые строки не досчитывать (Рекомендую)»):
+        /// строка, чья площадь меньше <see cref="SectionSmallRowShare"/> от наибольшей площади строк
+        /// всего раздела по пробному проходу (пятый заход; прежде — своего вида), сверх номинала не досчитывается — в образ нуклида она
+        /// входит своей площадью, и её шум в спектре не виден. Решение «нужен ли проход» — по
+        /// наибольшим площадям пробного прохода, поэтому проходы идут двумя фазами, как у фотонных узлов.
+        /// ⛔ Третий заход (решение Amber 08.11.2026: «Бюджет раздела (Рекомендую)»): всего историй — не
+        /// больше плоского счёта (<see cref="SectionBudget"/>), остаток бюджета делится в долях нужды.
+        /// Четвёртый и пятый заходы: бюджет — 0.97 объёма работы плоского счёта по счётчику шагов
+        /// (<see cref="SectionBudgetMode"/>); номинал меньше <see cref="SectionStopMinHistories"/> — плоско.
+        /// 0 — плоско: каждая строка ровно N историй, побитово прежний счёт.
+        /// </summary>
+        public static ResponseElectronSection BuildElectronSection(GeometryModel geometry, ResponseMatrix matrix,
+                                                                   double[] grid, int histories, int seed,
+                                                                   bool positron, int threads,
+                                                                   CancellationToken cancellation,
+                                                                   Action<string> log, double[] lines,
+                                                                   IList<ElectronBranchSpec> branches,
+                                                                   IProgress<ResponseMatrixProgress> progress,
+                                                                   double errorTarget)
         {
             if (geometry == null || matrix == null || matrix.Options == null)
             {
@@ -1661,7 +1745,28 @@ namespace BecquerelMonitor.EfficiencyMaker
             int nl = lineEnergies != null ? lineEnergies.Length : 0;
             List<ElectronBranchSpec> branchList = CleanBranches(branches, log);
             int nb = branchList.Count;
-            Action<double> rowDone = SectionRows(progress, n + nl + nb);
+            // (`AMBER318`) Останов по шуму — та же раскладка чисел, что у фотонных узлов (`Build`):
+            // пробный проход, потолок и правило нужного числа историй (`NeededHistories`).
+            // ⛔ Второй заход (решение Amber 08.11.2026 вопросником, дословно: «Малые строки не
+            // досчитывать (Рекомендую)»): строка, чья ПЛОЩАДЬ (доля испущенных частиц, оставивших
+            // энергию в кристалле) меньше доли <see cref="SectionSmallRowShare"/> от наибольшей площади
+            // строк того же вида, сверх номинала не досчитывается; заметная — досчитывается до цели.
+            // ⛔ (`AMBER318`, пятый заход, находка `crit318b`) Номинал меньше
+            // <see cref="SectionStopMinHistories"/> — плоско: пробный проход (не меньше
+            // <see cref="MinPilotHistories"/>) съел бы весь бюджет, и клеймо `n=` разошлось бы с набранным.
+            bool adaptive = errorTarget > 0.0 && histories >= SectionStopMinHistories;
+            if (errorTarget > 0.0 && !adaptive && log != null)
+            {
+                log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "  останов по шуму не включён: номинал {0} меньше {1} — счёт плоский", histories, SectionStopMinHistories));
+            }
+            int pilot = adaptive
+                ? Math.Min(histories, Math.Max(MinPilotHistories, histories / Math.Max(1, options.PilotDivisor)))
+                : histories;
+            int cap = (int)Math.Min(int.MaxValue, (long)Math.Max(1, histories) * Math.Max(1, options.MaxHistoriesFactor));
+            double smallShare = SectionSmallRowShare;
+            int rows = n + nl + nb;
+
             var section = new ResponseElectronSection
             {
                 Stamp = ResponseElectronSection.ComputeStamp(geometry, matrix.Stamp, grid, histories, seed, positron, bin,
@@ -1685,61 +1790,86 @@ namespace BecquerelMonitor.EfficiencyMaker
                 LineEntered = nl > 0 ? new double[nl] : null,
             };
 
+            if (nb > 0)
+            {
+                AllocateBranches(section, branchList);
+            }
+
             var parallel = new ParallelOptions
             {
                 MaxDegreeOfParallelism = Math.Max(1, threads),
                 CancellationToken = cancellation,
             };
             object gate = new object();
-            Parallel.For(0, n, parallel, i =>
+
+            // Состояние строк: r < n — узел (A — e⁻, B — e⁺), r < n + nl — линия (A), иначе ветвь (A —
+            // строка события целиком). Шум — мера фотонного узла (`SetRowNoise`), площадь — сумма строки
+            // на испущенную частицу. Пишет ячейку строки только поток, что её считает.
+            int[] last = new int[rows];
+            double[] noiseA = new double[rows], noiseB = new double[rows];
+            double[] areaA = new double[rows], areaB = new double[rows];
+            double[] perHistory = new double[rows];
+            // (`AMBER318`, четвёртый заход) Счётчики работы последнего прохода строки — детерминированы
+            // (поток случайных чисел строки свой), в отличие от часов: из них цена истории для бюджета.
+            long[][] work = new long[rows][];
+            Action<int, EfficiencySimulator> recordWork = (r, s) =>
             {
-                double te = grid[i];
-                EfficiencySimulator sim = MakeSimulator(geometry, options, 7001 + i, te);
-                sim.Histories = Math.Max(1000, histories);
-                int baseSeed = seed != 0 ? seed : sim.Seed;
-                sim.ResetStream((ulong)baseSeed + (ulong)(7001 + i) * 0x9E3779B97F4A7C15UL);
-                if (cancellation.CanBeCanceled)
+                work[r] = new[]
                 {
-                    sim.PollCancellation = cancellation.ThrowIfCancellationRequested;
-                }
+                    s.CountAt, s.CountStep, s.CountMu, s.CountWalk, s.CountLayerSteps, s.CountCrystalSteps,
+                    s.CountLayerHardCollisions, s.CountCrystalHardCollisions
+                };
+            };
+            var nodeE = new EfficiencySimulator.ElectronSourceStats[n];
+            var nodeP = new EfficiencySimulator.ElectronSourceStats[n];
+            var branchStats = new EfficiencySimulator.BranchEventStats[nb];
+            Func<int, double> energyOf = r => r < n ? grid[r] : r < n + nl ? lineEnergies[r - n] : branchList[r - n - nl].EndpointKev;
 
-                EfficiencySimulator.ElectronSourceStats es, ps = null;
-                double[] e = sim.ElectronSourceResponse(te, false, bin, lightPerKev, out es);
-                double[] p = positron ? sim.ElectronSourceResponse(te, true, bin, lightPerKev, out ps) : null;
-                section.Electron[i] = ResponseElectronSection.Trim(e);
-                if (positron)
+            Action<int, int> runRow = (r, h) =>
+            {
+                long ticks0 = Stopwatch.GetTimestamp();
+                if (r < n)
                 {
-                    section.Positron[i] = ResponseElectronSection.Trim(p);
-                }
-
-                section.Histories[i] = es.Histories;
-                section.EnteredElectron[i] = (double)es.Entered / es.Histories;
-                section.EnteredPositron[i] = ps != null ? (double)ps.Entered / ps.Histories : 0.0;
-                section.NodeSeconds[i] = es.Seconds + (ps != null ? ps.Seconds : 0.0);
-                rowDone(te);
-                if (log != null)
-                {
-                    lock (gate)
+                    int i = r;
+                    double te = grid[i];
+                    EfficiencySimulator sim = MakeSimulator(geometry, options, 7001 + i, te);
+                    sim.Histories = Math.Max(1000, h);
+                    int baseSeed = seed != 0 ? seed : sim.Seed;
+                    sim.ResetStream((ulong)baseSeed + (ulong)(7001 + i) * 0x9E3779B97F4A7C15UL);
+                    if (cancellation.CanBeCanceled)
                     {
-                        log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                            "  узел {0,2} T {1,7:F1} кэВ: e- вошло {2:F5}, занос {3:E3} на частицу, квантов очереди {4:F3}; " +
-                            "e+ вошло {5:F5}, аннигиляций в сцене {6:F3}; {7:F1} с",
-                            i, te, section.EnteredElectron[i], es.MeanDepositKev / Math.Max(te, 1e-9),
-                            (double)es.QueuedPhotons / es.Histories, section.EnteredPositron[i],
-                            ps != null ? (double)ps.Annihilations / ps.Histories : 0.0, section.NodeSeconds[i]));
+                        sim.PollCancellation = cancellation.ThrowIfCancellationRequested;
                     }
-                }
-            });
 
-            // (`AMBER274`, физика 28) Строки линий конверсии на точной энергии — электрон, тот
-            // же перенос; зерно — от номера 8001 + j.
-            if (nl > 0)
-            {
-                Parallel.For(0, nl, parallel, j =>
+                    EfficiencySimulator.ElectronSourceStats es, ps = null;
+                    double[] e = sim.ElectronSourceResponse(te, false, bin, lightPerKev, out es);
+                    noiseA[r] = sim.LastContinuumRelativeError;
+                    double[] p = positron ? sim.ElectronSourceResponse(te, true, bin, lightPerKev, out ps) : null;
+                    noiseB[r] = positron ? sim.LastContinuumRelativeError : 0.0;
+                    section.Electron[i] = ResponseElectronSection.Trim(e);
+                    areaA[r] = SumRow(section.Electron[i]);
+                    if (positron)
+                    {
+                        section.Positron[i] = ResponseElectronSection.Trim(p);
+                        areaB[r] = SumRow(section.Positron[i]);
+                    }
+
+                    section.Histories[i] = es.Histories;
+                    section.EnteredElectron[i] = (double)es.Entered / es.Histories;
+                    section.EnteredPositron[i] = ps != null ? (double)ps.Entered / ps.Histories : 0.0;
+                    section.NodeSeconds[i] += es.Seconds + (ps != null ? ps.Seconds : 0.0);
+                    nodeE[i] = es;
+                    nodeP[i] = ps;
+                    recordWork(r, sim);
+                }
+                else if (r < n + nl)
                 {
+                    // (`AMBER274`, физика 28) Строка линии конверсии на точной энергии — электрон, тот
+                    // же перенос; зерно — от номера 8001 + j.
+                    int j = r - n;
                     double te = lineEnergies[j];
                     EfficiencySimulator sim = MakeSimulator(geometry, options, 8001 + j, te);
-                    sim.Histories = Math.Max(1000, histories);
+                    sim.Histories = Math.Max(1000, h);
                     int baseSeed = seed != 0 ? seed : sim.Seed;
                     sim.ResetStream((ulong)baseSeed + (ulong)(8001 + j) * 0x9E3779B97F4A7C15UL);
                     if (cancellation.CanBeCanceled)
@@ -1749,22 +1879,20 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                     EfficiencySimulator.ElectronSourceStats es;
                     double[] e = sim.ElectronSourceResponse(te, false, bin, lightPerKev, out es);
+                    noiseA[r] = sim.LastContinuumRelativeError;
                     section.LineElectron[j] = ResponseElectronSection.Trim(e);
+                    areaA[r] = SumRow(section.LineElectron[j]);
                     section.LineHistories[j] = es.Histories;
                     section.LineEntered[j] = (double)es.Entered / es.Histories;
-                    rowDone(te);
-                });
-            }
-
-            // (`AMBER274` Ф8, `f8cyl`) Строки ветвей — событие целиком; зерно — от номера 9001 + j.
-            if (nb > 0)
-            {
-                AllocateBranches(section, branchList);
-                Parallel.For(0, nb, parallel, j =>
+                    recordWork(r, sim);
+                }
+                else
                 {
+                    // (`AMBER274` Ф8, `f8cyl`) Строка ветви — событие целиком; зерно — от номера 9001 + j.
+                    int j = r - n - nl;
                     ElectronBranchSpec spec = branchList[j];
                     EfficiencySimulator sim = MakeSimulator(geometry, options, 9001 + j, spec.EndpointKev);
-                    sim.Histories = Math.Max(1000, histories);
+                    sim.Histories = Math.Max(1000, h);
                     int baseSeed = seed != 0 ? seed : sim.Seed;
                     sim.ResetStream((ulong)baseSeed + (ulong)(9001 + j) * 0x9E3779B97F4A7C15UL);
                     if (cancellation.CanBeCanceled)
@@ -1773,25 +1901,335 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
 
                     EfficiencySimulator.BranchEventStats bs;
-                    double[][] rows = sim.BranchEventResponse(spec, bin, lightPerKev, out bs);
-                    section.BranchEvent[j] = ResponseElectronSection.Trim(rows[0]);
-                    section.BranchGamma[j] = ResponseElectronSection.Trim(rows[1]);
+                    double[][] pair = sim.BranchEventResponse(spec, bin, lightPerKev, out bs);
+                    noiseA[r] = sim.LastContinuumRelativeError;
+                    section.BranchEvent[j] = ResponseElectronSection.Trim(pair[0]);
+                    section.BranchGamma[j] = ResponseElectronSection.Trim(pair[1]);
+                    areaA[r] = SumRow(section.BranchEvent[j]);
                     section.BranchHistories[j] = bs.Histories;
                     section.BranchEntered[j] = (double)bs.Entered / bs.Histories;
-                    rowDone(spec.EndpointKev);
-                    if (log != null)
+                    branchStats[j] = bs;
+                    recordWork(r, sim);
+                }
+
+                last[r] = h;
+                perHistory[r] = (double)(Stopwatch.GetTimestamp() - ticks0) / Stopwatch.Frequency / Math.Max(1000, h);
+            };
+
+            // Вид строки для «наибольшей площади»: 0 — узлы e⁻, 1 — узлы e⁺, 2 — линии, 3 — ветви.
+            double[] maxArea = new double[4];
+            Func<int, int> kindA = r => r < n ? 0 : r < n + nl ? 2 : 3;
+            Func<int, int, double, double, double, double, int> subWant = (h, kind, noise, area, share, dummy) =>
+            {
+                int need = NeededHistories(h, noise, errorTarget, cap);
+                if (share > 0.0 && area < share * maxArea[kind])
+                {
+                    need = Math.Min(need, Math.Max(h, histories));
+                }
+
+                return need;
+            };
+            Func<int, int, double, int> wantOf = (r, h, share) =>
+            {
+                int want = Math.Max(h, subWant(h, kindA(r), noiseA[r], areaA[r], share, 0.0));
+                if (r < n && positron)
+                {
+                    want = Math.Max(want, subWant(h, 1, noiseB[r], areaB[r], share, 0.0));
+                }
+
+                return want;
+            };
+
+            // (`AMBER318`, пятый заход) Доля пробного прохода в полосе хода — его цена против номинала.
+            var sink = new SectionPassReport(progress, rows, (long)rows * Math.Max(1000, pilot),
+                                             adaptive ? (double)pilot / Math.Max(1, histories) : 0.0);
+            long spentRows = 0L;
+            int stoppedEarly = 0, extended = 0, cappedSmall = 0, budgetCut = 0;
+            Action<int> settle = r =>
+            {
+                double kev = energyOf(r);
+                sink.Settle(kev);
+                if (adaptive)
+                {
+                    if (last[r] < histories) Interlocked.Increment(ref stoppedEarly);
+                    else if (last[r] > histories) Interlocked.Increment(ref extended);
+                }
+
+                if (log == null)
+                {
+                    return;
+                }
+
+                lock (gate)
+                {
+                    if (r < n)
                     {
-                        lock (gate)
+                        EfficiencySimulator.ElectronSourceStats es = nodeE[r], ps = nodeP[r];
+                        log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                            "  узел {0,2} T {1,7:F1} кэВ: e- вошло {2:F5}, занос {3:E3} на частицу, квантов очереди {4:F3}; " +
+                            "e+ вошло {5:F5}, аннигиляций в сцене {6:F3}; {7:F1} с; историй {8}, шум e- {9:F2} %, e+ {10:F2} %; площадь e- {11:E3}, e+ {12:E3}",
+                            r, kev, section.EnteredElectron[r], es.MeanDepositKev / Math.Max(kev, 1e-9),
+                            (double)es.QueuedPhotons / es.Histories, section.EnteredPositron[r],
+                            ps != null ? (double)ps.Annihilations / ps.Histories : 0.0, section.NodeSeconds[r],
+                            section.Histories[r], noiseA[r], noiseB[r], areaA[r], areaB[r]));
+                    }
+                    else if (r < n + nl)
+                    {
+                        if (adaptive)
                         {
                             log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                                "  ветвь {0,3} {1} {2:F1} кэВ → уровень {3:F1}: бета вошла {4:F5}, квантов каскада {5:F3} на распад, " +
-                                "событие {6:E3}, каскад {7:E3} на распад; упоров каскада {8}; {9:F1} с",
-                                j, spec.Nuclide, spec.EndpointKev, spec.LevelKev, section.BranchEntered[j],
-                                (double)bs.CascadeQuanta / bs.Histories, SumRow(section.BranchEvent[j]),
-                                SumRow(section.BranchGamma[j]), bs.CascadeCut, bs.Seconds));
+                                "  линия {0,3} T {1,7:F1} кэВ: историй {2}, шум {3:F2} %, площадь {4:E3}",
+                                r - n, kev, section.LineHistories[r - n], noiseA[r], areaA[r]));
                         }
                     }
-                });
+                    else
+                    {
+                        int j = r - n - nl;
+                        ElectronBranchSpec spec = branchList[j];
+                        EfficiencySimulator.BranchEventStats bs = branchStats[j];
+                        log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                            "  ветвь {0,3} {1} {2:F1} кэВ → уровень {3:F1}: бета вошла {4:F5}, квантов каскада {5:F3} на распад, " +
+                            "событие {6:E3}, каскад {7:E3} на распад; упоров каскада {8}; {9:F1} с; историй {10}, шум {11:F2} %",
+                            j, spec.Nuclide, spec.EndpointKev, spec.LevelKev, section.BranchEntered[j],
+                            (double)bs.CascadeQuanta / bs.Histories, SumRow(section.BranchEvent[j]),
+                            SumRow(section.BranchGamma[j]), bs.CascadeCut, bs.Seconds, section.BranchHistories[j], noiseA[r]));
+                    }
+                }
+            };
+
+            // Проход 1: пробный (плоско — единственный) по всем строкам. Тихая строка (и плоская)
+            // досчитана сразу; решение о прочих ждёт наибольших площадей.
+            bool[] settled = new bool[rows];
+            Parallel.ForEach(Partitioner.Create(0, rows, 1), parallel, chunk =>
+            {
+                for (int r = chunk.Item1; r < chunk.Item2; r++)
+                {
+                    runRow(r, pilot);
+                    Interlocked.Add(ref spentRows, Math.Max(1000, pilot));
+                    sink.PilotPass(energyOf(r), Math.Max(1000, pilot));
+                    if (!adaptive || wantOf(r, pilot, 0.0) <= pilot)
+                    {
+                        settled[r] = true;
+                        settle(r);
+                    }
+                }
+            });
+
+            if (adaptive)
+            {
+                for (int r = 0; r < rows; r++)
+                {
+                    int k = kindA(r);
+                    maxArea[k] = Math.Max(maxArea[k], areaA[r]);
+                    if (r < n && positron)
+                    {
+                        maxArea[1] = Math.Max(maxArea[1], areaB[r]);
+                    }
+                }
+
+                // ⛔ (`AMBER318`, пятый заход, находка `crit318b`) «Малая» — от наибольшей площади во ВСЁМ
+                // разделе (узлы e⁻, e⁺, линии, ветви — одна мера: доля испущенных, оставивших энергию в
+                // кристалле), а не своего вида: у Петри все линии ничтожны, но по своему виду восемь из них
+                // проходили порог и брали потолок. Рычаг проб `SectionSmallByKind` — прежнее правило.
+                if (!SectionSmallByKind)
+                {
+                    double whole = Math.Max(Math.Max(maxArea[0], maxArea[1]), Math.Max(maxArea[2], maxArea[3]));
+                    for (int k = 0; k < maxArea.Length; k++)
+                    {
+                        maxArea[k] = whole;
+                    }
+                }
+
+                if (log != null)
+                {
+                    // (`AMBER318`, пятый заход) Цена — по счётчику работы (шаги обхода + истории), как бюджет.
+                    double[] workPerHistory = new double[rows];
+                    for (int r = 0; r < rows; r++)
+                    {
+                        workPerHistory[r] = ((double)work[r][1] + Math.Max(1000, last[r])) / Math.Max(1000, last[r]);
+                    }
+
+                    LogShareTable(log, rows, pilot, histories, workPerHistory, settled, r => wantOf(r, pilot, 0.0),
+                                  share => (r => wantOf(r, pilot, share)));
+                    if (SectionWorkDump)
+                    {
+                        // (`AMBER318`, четвёртый заход) Строки пробного прохода для подбора меры цены:
+                        // часы на историю против счётчиков работы на историю.
+                        log("  РАБОТА;строка;вид;кэВ;историй;с_на_историю;At;Step;Mu;Walk;LayerSteps;CrystalSteps;LayerHard;CrystalHard");
+                        for (int r = 0; r < rows; r++)
+                        {
+                            log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                                "  РАБОТА;{0};{1};{2:R};{3};{4:R};{5}", r, kindA(r), energyOf(r), last[r], perHistory[r],
+                                string.Join(";", Array.ConvertAll(work[r], v => v.ToString(System.Globalization.CultureInfo.InvariantCulture)))));
+                        }
+                    }
+                }
+
+                for (int r = 0; r < rows; r++)
+                {
+                    if (!settled[r] && wantOf(r, pilot, smallShare) < wantOf(r, pilot, 0.0))
+                    {
+                        cappedSmall++;
+                    }
+                }
+
+                if (SectionStopPilotOnly)
+                {
+                    for (int r = 0; r < rows; r++)
+                    {
+                        if (!settled[r]) settle(r);
+                    }
+                }
+                else
+                {
+                    // ⛔ (`AMBER318`, третий заход; решение Amber 08.11.2026 вопросником, дословно: «Бюджет
+                    // раздела (Рекомендую)») БЮДЖЕТ: всего историй на раздел — не больше плоского счёта
+                    // (номинал × строк, пробные проходы внутри). Остаток бюджета раздаётся в начале каждого
+                    // уточняющего прохода строкам, которым нужен проход (малая — не выше номинала, заметная —
+                    // по нужде до потолка): хватает — каждой её нужда, не хватает — всем поровну в долях нужды
+                    // (`floor(нужда · остаток / Σ нужд)`). Тихие строки (остановленные на пробном проходе) и
+                    // малые этим отдают свои истории заметным. Строка, чья доля не больше уже набранного,
+                    // проходом не пересчитывается. Решение — между проходами, по готовым числам и в порядке
+                    // номеров строк: при любом числе потоков одно и то же. Строка пересчитывается тем же зерном.
+                    // ⛔ (`AMBER318`, четвёртый заход; решение Amber 08.11.2026 вопросником, дословно: «Бюджет
+                    // во времени (Рекомендую)») Бюджет и раздача — в ЦЕНЕ СЧЁТА, а не в историях. Цена истории
+                    // строки — по счётчику работы её пробного прохода (`SectionCostPerHistory`: шагов обхода
+                    // сцены `CountStep` плюс одна на историю), а не по часам: счётчик детерминирован (поток
+                    // случайных чисел строки свой), часы — нет, и раздача по часам давала бы разный раздел при
+                    // разной загрузке и числе потоков. Бюджет = Σ цена истории × номинал (цена плоского счёта);
+                    // истрачено — по счётчикам каждого прохода. `SectionBudgetMode` 1 — в историях (третий
+                    // заход), 3 — по часам (только положительный контроль недетерминированности), 0 — без бюджета.
+                    int mode = SectionBudgetMode;
+                    double[] unitCost = new double[rows];
+                    double budget = double.PositiveInfinity, spentCost = 0.0;
+                    Func<int, int, double> passCost = (r, h) =>
+                        mode == 2 ? (double)work[r][1] + Math.Max(1000, h)
+                        : mode == 3 ? perHistory[r] * Math.Max(1000, h)
+                        : Math.Max(1000, h);
+                    if (mode != 0)
+                    {
+                        budget = 0.0;
+                        for (int r = 0; r < rows; r++)
+                        {
+                            unitCost[r] = passCost(r, last[r]) / Math.Max(1000, last[r]);
+                            budget += unitCost[r] * Math.Max(1000, histories);
+                            spentCost += passCost(r, last[r]);
+                        }
+
+                        // Запас на неточность меры: счётчик — оценка цены, а не часы (у маринелли KCl RC-103
+                        // бюджет 1.0000 по счётчику дал 1.009 по времени ЦП, журнал «Четвёртый заход», Ч3).
+                        budget *= SectionBudgetShare;
+                    }
+
+                    double budgetPilot = spentCost;
+                    int[] want = new int[rows];
+                    var heavy = new List<int>();
+                    for (int r = 0; r < rows; r++)
+                    {
+                        if (!settled[r])
+                        {
+                            heavy.Add(r);
+                        }
+                    }
+
+                    for (int round = 1; round < MaxNodePasses && heavy.Count > 0; round++)
+                    {
+                        double need = 0.0;
+                        var next = new List<int>();
+                        foreach (int r in heavy)
+                        {
+                            want[r] = wantOf(r, last[r], smallShare);
+                            if (want[r] > last[r])
+                            {
+                                next.Add(r);
+                                need += want[r] * (mode != 0 ? unitCost[r] : 1.0);
+                            }
+                            else
+                            {
+                                settled[r] = true;
+                                settle(r);
+                            }
+                        }
+
+                        double left = Math.Max(0.0, budget - spentCost);
+                        if (need > left)
+                        {
+                            double scale = left / need;
+                            budgetCut += next.Count;
+                            foreach (int r in next)
+                            {
+                                want[r] = (int)Math.Floor(want[r] * scale);
+                            }
+                        }
+
+                        heavy.Clear();
+                        foreach (int r in next)
+                        {
+                            if (want[r] > last[r] && want[r] >= MinPilotHistories)
+                            {
+                                heavy.Add(r);
+                                sink.Plan(want[r]);
+                            }
+                            else
+                            {
+                                settled[r] = true;
+                                settle(r);
+                            }
+                        }
+
+                        // Дорогие вперёд (LPT), как у фотонных узлов.
+                        heavy.Sort((a, b) => want[b] != want[a] ? want[b].CompareTo(want[a]) : a.CompareTo(b));
+                        int[] order = heavy.ToArray();
+                        bool lastRound = round + 1 >= MaxNodePasses;
+                        if (order.Length == 0)
+                        {
+                            // Бюджет кончился или всем хватило пробного: проходов больше нет
+                            // (`Partitioner.Create(0, 0, 1)` бросает).
+                            break;
+                        }
+
+                        Parallel.ForEach(Partitioner.Create(0, order.Length, 1), parallel, chunk =>
+                        {
+                            for (int slot = chunk.Item1; slot < chunk.Item2; slot++)
+                            {
+                                int r = order[slot];
+                                runRow(r, want[r]);
+                                Interlocked.Add(ref spentRows, Math.Max(1000, want[r]));
+                                sink.Pass(energyOf(r), Math.Max(1000, want[r]));
+                                // ⛔ (`AMBER318`, пятый заход, находка `crit318b`) Строка досчитана СРАЗУ, как её
+                                // проход кончился и больше ей не нужно, — как узел у фотонов; прежде она объявлялась
+                                // досчитанной лишь в начале следующего раунда, и ход стоял весь счёт. С бюджетом
+                                // уточняющий проход один (остаток бюджета после него не раздаётся: раздача — по
+                                // нуждам всех строк сразу); без бюджета решение о следующем — тем же правилом.
+                                bool more = !lastRound && mode == 0 && wantOf(r, last[r], smallShare) > last[r];
+                                if (!more)
+                                {
+                                    settled[r] = true;
+                                    settle(r);
+                                }
+                            }
+                        });
+
+                        // Истрачено — по счётчикам прохода, в порядке номеров строк (сумма одна при любом числе потоков).
+                        Array.Sort(order);
+                        foreach (int r in order)
+                        {
+                            spentCost += passCost(r, last[r]);
+                        }
+
+                        heavy.RemoveAll(r => settled[r]);
+                        heavy.Sort();
+                    }
+
+                    if (log != null && mode != 0)
+                    {
+                        log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                            "  бюджет раздела ({0}): {5:F3} цены плоского счёта = {1:G6}, пробные проходы {2:G6}, истрачено {3:G6} = {4:F4} бюджета = {6:F4} цены плоского",
+                            mode == 2 ? "шаги обхода + истории" : mode == 1 ? "истории" : "часы, с", budget, budgetPilot, spentCost,
+                            budget > 0.0 ? spentCost / budget : 0.0, SectionBudgetShare,
+                            budget > 0.0 ? spentCost / budget * SectionBudgetShare : 0.0));
+                    }
+                }
             }
 
             if (log != null)
@@ -1799,9 +2237,140 @@ namespace BecquerelMonitor.EfficiencyMaker
                 log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
                     "  раздел: {0} узлов, {5} строк линий и {6} строк ветвей, {1} историй на строку, свет 662 на кэВ {2:F6}, капсула {3}, {4:F1} с",
                     n, histories, lightPerKev, section.Capsule, watch.Elapsed.TotalSeconds, nl, nb));
+                if (adaptive)
+                {
+                    log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        "  останов по шуму {0:F1} %: пробный проход {1}, потолок {2}, малая строка — площадь < {9:G4} наибольшей в разделе; " +
+                        "истрачено {3} историй ({4:F3} от плоского {5}×{6}); раньше номинала {7} строк, сверх номинала {8}, малых не досчитано сверх номинала {10}; " +
+                        "бюджет {12}, урезано бюджетом строк {13}{11}",
+                        errorTarget, pilot, cap, spentRows, (double)spentRows / ((double)rows * Math.Max(1000, histories)),
+                        rows, Math.Max(1000, histories), stoppedEarly, extended, smallShare, cappedSmall,
+                        SectionStopPilotOnly ? "; ⚠ ТОЛЬКО ПРОБНЫЙ ПРОХОД (рычаг SectionStopPilotOnly)" : "",
+                        SectionBudgetMode == 2 ? "по счётчику работы" : SectionBudgetMode == 1 ? "в историях" : SectionBudgetMode == 3 ? "ПО ЧАСАМ (контроль)" : "ВЫКЛ", budgetCut));
+                }
             }
 
             return section;
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER318`, второй заход 08.11.2026) ПОРОГ «МАЛОЙ СТРОКИ» раздела при останове по шуму:
+        /// строка, чья площадь (доля испущенных частиц, оставивших энергию в кристалле, — то, чем
+        /// строка входит в образ нуклида) меньше этой доли от наибольшей площади строк во всём разделе
+        /// (узлы e⁻, узлы e⁺, линии, ветви вместе; пятый заход), сверх номинала не досчитывается. 0 — правило выключено
+        /// (первый заход: шумная строка досчитывается до потолка, какой бы малой она ни была).
+        /// Величина — замером (журнал `handover/handover-2026-11-07-a318.md`, «Пятый заход», П3): доля от
+        /// наибольшей площади во ВСЁМ разделе; 0.05 — наименьшая, при которой работа без бюджета не больше
+        /// 0.97 плоского на Петри K-40 (0.937), точке RC-103 (0.420) и точке AS80 (0.718); маринелли KCl
+        /// не укладывается ни при какой доле — там работу держит бюджет. Рычаг проб
+        /// (`BetaSectionProbeA274 --small=`); окно берёт умолчание.
+        /// </summary>
+        public static double SectionSmallRowShare = 0.05;
+
+        /// <summary>
+        /// (`AMBER318`) РЫЧАГ ПРОБ: счёт раздела с остановом кончается пробным проходом, а таблица
+        /// «порог малой строки → предсказанные истории и время» печатается в журнал построителя —
+        /// дешёвый подбор порога (`BetaSectionProbeA274 --stop-dry`). Раздел при этом пробный, в
+        /// дело не годен. Штатный путь рычаг не ставит.
+        /// </summary>
+        public static bool SectionStopPilotOnly;
+
+        /// <summary>(`AMBER318`, четвёртый заход) РЫЧАГ ПРОБ: печать часов и счётчиков работы пробного прохода по строкам (`--work-dump`).</summary>
+        public static bool SectionWorkDump;
+
+        /// <summary>
+        /// ⛔ (`AMBER318`, третий заход; решение Amber 08.11.2026 вопросником, дословно: «Бюджет раздела
+        /// (Рекомендую)») Раздел с остановом по шуму тратит не больше историй, чем плоский счёт того же
+        /// номинала: остаток бюджета после пробного прохода делится между строками, которым нужен проход,
+        /// в долях их нужды. Выключенный — рычаг проб для сравнения (`BetaSectionProbeA274 --no-budget`).
+        /// </summary>
+        public static bool SectionBudget
+        {
+            get { return SectionBudgetMode != 0; }
+            set { SectionBudgetMode = value ? 2 : 0; }
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER318`, четвёртый заход; решение Amber 08.11.2026: «Бюджет во времени (Рекомендую)»)
+        /// В чём считается бюджет раздела: 2 — в цене счёта по счётчику работы пробного прохода
+        /// (умолчание; шагов обхода сцены `CountStep` плюс одна на историю — корреляция с часами на
+        /// историю 0.996…0.999 на четырёх сценах, журнал «Четвёртый заход»); 1 — в историях (третий
+        /// заход); 3 — по часам пробного прохода (НЕ детерминирован: только положительный контроль);
+        /// 0 — без бюджета. Рычаг проб (`BetaSectionProbeA274 --budget=`).
+        /// ⚠ (пятый заход, `crit318b`) Бюджет держит ОБЪЁМ РАБОТЫ по счётчику, а не время: время ЦП
+        /// процесса на машине с SMT мерит плотность загрузки (одна работа — 338.7 с ЦП на 1 потоке и
+        /// 677.6 с на 15), стена — ещё и хвост последнего прохода; по часам счёт с остановом может выйти
+        /// на несколько процентов дольше или короче плоского.
+        /// </summary>
+        public static int SectionBudgetMode = 2;
+
+        /// <summary>
+        /// (`AMBER318`, четвёртый заход) Доля цены плоского счёта, которую раздел с остановом может
+        /// истратить: запас на неточность счётчика как меры времени. Замер — журнал, «Четвёртый заход», Ч3.
+        /// </summary>
+        public static double SectionBudgetShare = 0.97;
+
+        /// <summary>
+        /// (`AMBER318`, пятый заход) Номинал, ниже которого останов по шуму не включается (счёт плоский):
+        /// десять минимальных пробных проходов.
+        /// </summary>
+        public const int SectionStopMinHistories = 10 * MinPilotHistories;
+
+        /// <summary>
+        /// (`AMBER318`, пятый заход) РЫЧАГ ПРОБ: «малая строка» — от наибольшей площади своего вида (правило
+        /// второго…четвёртого заходов); умолчание — от наибольшей во всём разделе (`--small-by-kind`).
+        /// </summary>
+        public static bool SectionSmallByKind;
+
+        /// <summary>
+        /// (`AMBER318`) Таблица подбора порога малой строки по пробному проходу: для каждой доли
+        /// <c>P</c> — сколько историй и потокосекунд стоил бы счёт (пробный проход плюс один
+        /// уточняющий до нужного числа; третий проход не предсказывается), сколько строк досчитано
+        /// сверх номинала и сколько малых удержано номиналом; рядом — плоский счёт номиналом по цене
+        /// истории, измеренной на пробном проходе каждой строки.
+        /// </summary>
+        static void LogShareTable(Action<string> log, int rows, int pilot, int histories, double[] perHistory,
+                                  bool[] settled, Func<int, int> wantFree, Func<double, Func<int, int>> wantAt)
+        {
+            double flatSeconds = 0.0;
+            for (int r = 0; r < rows; r++)
+            {
+                flatSeconds += perHistory[r] * Math.Max(1000, histories);
+            }
+
+            log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                "  подбор порога малой строки (по пробному проходу): плоско {0} историй, работы (шаги обхода + истории) {1:G6}",
+                (long)rows * Math.Max(1000, histories), flatSeconds));
+            foreach (double share in new[] { 0.0, 0.001, 0.003, 0.01, 0.02, 0.03, 0.05, 0.1, 0.2, 0.3, 0.5, 1.0 })
+            {
+                Func<int, int> want = wantAt(share);
+                long spent = 0;
+                double seconds = 0.0;
+                int above = 0, held = 0;
+                for (int r = 0; r < rows; r++)
+                {
+                    long h = Math.Max(1000, pilot);
+                    if (!settled[r])
+                    {
+                        int w = want(r);
+                        if (w > pilot)
+                        {
+                            h += w;
+                        }
+
+                        if (w > histories) above++;
+                        if (w < wantFree(r)) held++;
+                    }
+
+                    spent += h;
+                    seconds += perHistory[r] * h;
+                }
+
+                log(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "  P {0,6:G3}: историй {1} ({2:F3} плоского), работы {3:G6} ({4:F3} плоского), сверх номинала строк {5}, малых удержано {6}",
+                    share, spent, (double)spent / ((double)rows * Math.Max(1000, histories)), seconds,
+                    flatSeconds > 0.0 ? seconds / flatSeconds : 0.0, above, held));
+            }
         }
 
         /// <summary>(`AMBER311`) Строка «рассеянные вне кристалла» узла: пустая — нулевой длины, как пустой канал.</summary>
@@ -1846,6 +2415,107 @@ namespace BecquerelMonitor.EfficiencyMaker
                     progress.Report(new ResponseMatrixProgress { SectionDone = done, SectionTotal = total, LastEnergyKev = kev });
                 }
             };
+        }
+
+        /// <summary>
+        /// (`AMBER318`) Ход раздела на ЦП. С остановом по шуму у строки бывает до
+        /// <see cref="MaxNodePasses"/> проходов. Полоса и подпись идут по ДОСЧИТАННЫМ строкам
+        /// (<see cref="ResponseMatrixProgress.SectionDone"/>: строка, которой следующий проход не
+        /// положен); их число за счёт не меняется — полоса не пятится (`A46`). Прогоны и истории
+        /// (<see cref="ResponseMatrixProgress.Done"/>/<see cref="ResponseMatrixProgress.Total"/>,
+        /// <see cref="ResponseMatrixProgress.DoneHistories"/>/<see cref="ResponseMatrixProgress.TotalHistories"/>)
+        /// растут, как у фотонных узлов (`W27`): строка, которой нужен ещё проход, дописывает его в
+        /// план. Плоско — один проход и досчитана. Без <c>progress</c> — ничего; при создании
+        /// отдаёт отчёт «0 из N». Отчёты — под одной защёлкой, по возрастанию.
+        /// </summary>
+        internal sealed class SectionPassReport
+        {
+            readonly IProgress<ResponseMatrixProgress> progress;
+            readonly object gate = new object();
+            readonly int rows;
+            int settled, passes, planned, pilots;
+            long spent, plan;
+            double lastKev;
+            readonly double pilotShare;
+
+            /// <summary>Пробный проход строки окончен (при плоском счёте — её единственный проход).</summary>
+            public void PilotPass(double kev, int histories)
+            {
+                lock (this.gate)
+                {
+                    this.pilots++;
+                    this.passes++;
+                    this.spent += histories;
+                    this.lastKev = kev;
+                    this.Report();
+                }
+            }
+
+            public SectionPassReport(IProgress<ResponseMatrixProgress> progress, int rows, long firstPlanHistories,
+                                     double pilotShare)
+            {
+                this.progress = progress;
+                this.rows = rows;
+                this.pilotShare = pilotShare;
+                this.planned = rows;
+                this.plan = firstPlanHistories;
+                this.Report();
+            }
+
+            /// <summary>Проход строки окончен.</summary>
+            public void Pass(double kev, int histories)
+            {
+                lock (this.gate)
+                {
+                    this.passes++;
+                    this.spent += histories;
+                    this.lastKev = kev;
+                    this.Report();
+                }
+            }
+
+            /// <summary>Строке нужен ещё проход в <paramref name="histories"/> историй.</summary>
+            public void Plan(int histories)
+            {
+                lock (this.gate)
+                {
+                    this.planned++;
+                    this.plan += histories;
+                    this.Report();
+                }
+            }
+
+            /// <summary>Строка досчитана окончательно.</summary>
+            public void Settle(double kev)
+            {
+                lock (this.gate)
+                {
+                    this.settled++;
+                    this.lastKev = kev;
+                    this.Report();
+                }
+            }
+
+            void Report()
+            {
+                if (this.progress == null)
+                {
+                    return;
+                }
+
+                this.progress.Report(new ResponseMatrixProgress
+                {
+                    SectionDone = this.settled,
+                    SectionTotal = this.rows,
+                    SectionPilotDone = this.pilotShare > 0.0 ? this.pilots : 0,
+                    SectionPilotShare = this.pilotShare,
+                    Done = this.passes,
+                    Total = this.planned,
+                    DoneHistories = this.spent,
+                    TotalHistories = this.plan,
+                    LastEnergyKev = this.lastKev
+                });
+            }
         }
 
         /// <summary>

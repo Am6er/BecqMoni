@@ -30,6 +30,12 @@ using System.Windows.Forms;
 //   --mode=gpufail --scene=<.in> [--ui=en|ru]   отказ GPU на фазе раздела: язык окна и совет снять галку (`Н7`).
 //   --mode=texts [--ui=en|ru]                   пять строк раздела на языке окна: ключ, подстановка, влезает.
 //   --mode=config --device=<имя> --curve=<имя>  окно над кривой портативной конфигурации: счёт, «Сохранить», склад.
+//   --mode=stopcheck --a=<раздел с остановом .rmx> --b=<плоский .rmx>
+//       (`AMBER318`) положительный контроль ожидания `--mode=window --cpu` (ЦП-окно считает раздел с остановом).
+//   --mode=betafield --scene=<.in> [--store=<.rmx склада>] [--ui=en|ru] [--snap=<.png>] [--cpu]
+//       (`AMBER318`) поле «Истории бета»: умолчание, подпись, подсказка; поле наследует номинал
+//       прежнего раздела; раздел, посчитанный окном при умолчании, следующее окно переносит;
+//       номинал поля — в клейме раздела. Снимок — только скрытым столом.
 //
 // Окно НЕ показывается: форма строится, кнопки зовутся отражением, продолжение `await`
 // прокачивается `Application.DoEvents` (приём `MatrixWindowProbeP291`). Склад — в каталоге пробы
@@ -87,6 +93,15 @@ static class ElectronSectionFormProbeA305
         public Win(EfficiencyConfigData config)
         {
             this.Form = new ResponseMatrixForm(config);
+            // (`AMBER318`) Окно рычаг `ElectronSectionRecipe.Histories` не читает: у него своё поле
+            // «Истории бета». Проба переносит рычаг в поле сама; у exe без поля — ничего.
+            System.Reflection.FieldInfo beta = typeof(ResponseMatrixForm).GetField("betaHistoriesBox",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            if (beta != null)
+            {
+                ((System.Windows.Forms.NumericUpDown)beta.GetValue(this.Form)).Value =
+                    BecquerelMonitor.EfficiencyMaker.ElectronSectionRecipe.Histories;
+            }
         }
 
         public object Get(string name)
@@ -426,8 +441,24 @@ static class ElectronSectionFormProbeA305
             Say(string.Equals(back.BodyFingerprint, store.BodyFingerprint, StringComparison.Ordinal) ? "   фотонное тело = склад побитно" : "   фотонное тело ≠ склад в битах: разница — ниже, по строкам");
             Say(Fmt("   длины файлов: окно {0} байт, склад {1} байт", new FileInfo(pending).Length, new FileInfo(storePath).Length));
             ComparePhotonRows(back, store);
-            CompareSections(back.ElectronSection, store.ElectronSection, 1e-4);
-            Check(string.Equals(back.ElectronSection.Stamp, store.ElectronSection.Stamp, StringComparison.Ordinal), "клеймо раздела = склад");
+            if (cpu)
+            {
+                // (`AMBER318`) На ЦП окно считает раздел С ОСТАНОВОМ по шуму, склад — плоско на GPU:
+                // побитной и до 1e-4 сверки нет. Судится, что раздел остановлен (истории строк в
+                // [пробный проход, потолок] и не все на номинале) и что клеймо то же, кроме `lines`/`br`
+                // (они от библиотеки машины). Положительный контроль — `--mode=stopcheck`.
+                string stopWhy;
+                Check(StoppedSection(back.ElectronSection, out stopWhy), "ЦП: раздел с остановом по шуму — " + stopWhy);
+                foreach (string f in new[] { "esec", "phys", "for", "grid", "n", "seed", "e+", "bin", "cap" })
+                {
+                    Check(back.ElectronSection.StampField(f) == store.ElectronSection.StampField(f), "ЦП: поле клейма " + f + " = склад");
+                }
+            }
+            else
+            {
+                CompareSections(back.ElectronSection, store.ElectronSection, 1e-4);
+                Check(string.Equals(back.ElectronSection.Stamp, store.ElectronSection.Stamp, StringComparison.Ordinal), "клеймо раздела = склад");
+            }
         }
     }
 
@@ -566,9 +597,11 @@ static class ElectronSectionFormProbeA305
 
             // (б) прежний результат возвращается (П291, Н6): раздел другого числа историй — другое клеймо.
             ElectronSectionRecipe.Histories = 2000;
+            SetBeta(w, 2000);
             Check(w.Compute(1800, null) && w.Computed != null && w.Computed.ElectronSection != null, "(б) быстрый счёт: результат есть");
             ResponseMatrix kept = w.Computed;
             ElectronSectionRecipe.Histories = ElectronSectionRecipe.StoreHistories;
+            SetBeta(w, ElectronSectionRecipe.StoreHistories);
             cancelledAt = -1.0;
             clock.Restart();
             Check(w.Compute(1800, x =>
@@ -580,6 +613,32 @@ static class ElectronSectionFormProbeA305
             Check(cancelledAt > 0, "(б) отмена пришлась на раздел");
             Check(object.ReferenceEquals(w.Computed, kept) && w.SaveEnabled, "(б) прежний несохранённый результат на месте, «Сохранить» живая");
         }
+    }
+
+    /// <summary>(`AMBER318`) Поле «Истории бета» окна, если оно есть у exe.</summary>
+    static void SetBeta(Win w, int histories)
+    {
+        FieldInfo f = typeof(ResponseMatrixForm).GetField("betaHistoriesBox", F);
+        if (f != null)
+        {
+            ((NumericUpDown)f.GetValue(w.Form)).Value = histories;
+        }
+    }
+
+    /// <summary>
+    /// (`AMBER318`) `AddElectronSection` окна по отражению: у exe с полем «Истории бета» в нём ещё номинал
+    /// и цель останова (между потоками и ходом) — номинал рычага проб, цель 0 (плоско); у прежнего exe — без них.
+    /// </summary>
+    static object InvokeAdd(MethodInfo add, object[] args)
+    {
+        if (add.GetParameters().Length == args.Length + 2)
+        {
+            var wide = new List<object>(args);
+            wide.InsertRange(7, new object[] { ElectronSectionRecipe.Histories, 0.0 });
+            args = wide.ToArray();
+        }
+
+        return add.Invoke(null, args);
     }
 
     static void ModeOld(string scene, string storePath)
@@ -658,7 +717,7 @@ static class ElectronSectionFormProbeA305
         // Инъекция: клеймо матрицы не сходится со сценой — построитель раздела отказывает словами.
         ResponseMatrixOptions saved = m.Options;
         m.Stamp = stamp + "-поддельное";
-        object reason = add.Invoke(null, new object[] { g, m, null, "a305-none", ResponseMatrixSource.Store, null, 4, null, CancellationToken.None });
+        object reason = InvokeAdd(add, new object[] { g, m, null, "a305-none", ResponseMatrixSource.Store, null, 4, null, CancellationToken.None });
         m.Stamp = stamp;
         Say("   причина: " + reason);
         Check(reason != null, "отказ назван причиной, а не брошен наружу");
@@ -667,7 +726,7 @@ static class ElectronSectionFormProbeA305
         cts.Cancel();
         try
         {
-            add.Invoke(null, new object[] { g, m, null, "a305-none", ResponseMatrixSource.Store, null, 4, null, cts.Token });
+            InvokeAdd(add, new object[] { g, m, null, "a305-none", ResponseMatrixSource.Store, null, 4, null, cts.Token });
             Check(false, "отмена не дошла");
         }
         catch (TargetInvocationException ex)
@@ -694,7 +753,7 @@ static class ElectronSectionFormProbeA305
         {
             using (var gpu = new RmGpu(RmGpu.DefaultPath, RmGpu.DefaultStackBytes))
             {
-                reason = add.Invoke(null, new object[] { g, m, null, "a305-none", ResponseMatrixSource.Store, gpu, 8, null, CancellationToken.None });
+                reason = InvokeAdd(add, new object[] { g, m, null, "a305-none", ResponseMatrixSource.Store, gpu, 8, null, CancellationToken.None });
             }
         }
         finally
@@ -779,6 +838,44 @@ static class ElectronSectionFormProbeA305
         form.Dispose();
     }
 
+    /// <summary>
+    /// (`AMBER318`) Раздел посчитан с остановом по шуму: истории каждой строки (узлы, линии, ветви) — в
+    /// [пробный проход max(2000, n/10), потолок 8·n], и хоть одна строка не на номинале `n` клейма.
+    /// Плоский раздел (все строки ровно `n`) — НЕ остановлен.
+    /// </summary>
+    static bool StoppedSection(ResponseElectronSection s, out string why)
+    {
+        int nominal = int.Parse(s.StampField("n"), CultureInfo.InvariantCulture);
+        long pilot = Math.Min(nominal, Math.Max(2000, nominal / 10)), cap = 8L * nominal;
+        var all = new List<long>(s.Histories);
+        if (s.LineHistories != null) all.AddRange(s.LineHistories);
+        if (s.BranchHistories != null) all.AddRange(s.BranchHistories);
+        int below = 0, at = 0, above = 0, outside = 0;
+        foreach (long h in all)
+        {
+            if (h < pilot || h > cap) outside++;
+            if (h < nominal) below++; else if (h > nominal) above++; else at++;
+        }
+
+        why = Fmt("строк {0}: ниже номинала {1}, на номинале {2}, выше {3}, вне [{4}, {5}] {6}", all.Count, below, at, above, pilot, cap, outside);
+        return outside == 0 && below + above > 0;
+    }
+
+    /// <summary>(`AMBER318`) Положительный контроль ожидания `--mode=window --cpu`: раздел с остановом — да, плоский — нет.</summary>
+    static void ModeStopCheck(string stopped, string flat)
+    {
+        Say("== ожидание ЦП-окна: раздел с остановом");
+        MatrixRefusal refusal;
+        int format;
+        string why;
+        ResponseMatrix a = ResponseMatrix.Load(stopped, out refusal, out format);
+        Check(a != null && a.ElectronSection != null && StoppedSection(a.ElectronSection, out why), "с остановом: " + Path.GetFileName(stopped) + (a != null && a.ElectronSection != null && StoppedSection(a.ElectronSection, out why) ? " — " + why : ""));
+        ResponseMatrix b = ResponseMatrix.Load(flat, out refusal, out format);
+        bool flatPasses = b != null && b.ElectronSection != null && StoppedSection(b.ElectronSection, out why);
+        StoppedSection(b.ElectronSection, out why);
+        Check(!flatPasses, "контроль: плоский " + Path.GetFileName(flat) + " остановленным НЕ признан — " + why);
+    }
+
     static void ModeDiff(string pathA, string pathB)
     {
         MatrixRefusal ra, rb;
@@ -837,12 +934,184 @@ static class ElectronSectionFormProbeA305
 
     // ------------------------------------------------------------------
 
+    // ------------------------------------------------------------------
+    // (`AMBER318`) Поле «Истории бета»
+    // ------------------------------------------------------------------
+
+    static object FormField(ResponseMatrixForm form, string name)
+    {
+        FieldInfo f = typeof(ResponseMatrixForm).GetField(name, F);
+        if (f == null) throw new MissingFieldException("ResponseMatrixForm", name);
+        return f.GetValue(form);
+    }
+
+    /// <summary>
+    /// (`AMBER318`) Поле «Истории бета»: есть на языке окна, умолчание = рецепт склада, подсказка;
+    /// номинал поля — в клейме раздела (`n=`), смена поля — другое клеймо; при умолчании раздел
+    /// окна переносится следующим окном (`Carried`), а не считается; поле наследует номинал прежнего раздела.
+    /// `--snap=` — снимок окна в файл (только со скрытого стола).
+    /// </summary>
+    static void ModeBetaField(string scene, string storePath, string ui, string snap, bool cpu)
+    {
+        Say("== поле «Истории бета», язык " + ui);
+        string label = Resources.ResourceManager.GetString("ResponseMatrixBetaHistories", Resources.Culture);
+        string tipFormat = Resources.ResourceManager.GetString("ResponseMatrixBetaHistoriesTip", Resources.Culture);
+        Check(!string.IsNullOrEmpty(label) && !string.IsNullOrEmpty(tipFormat), "ключи поля есть: «" + label + "»");
+        bool cyrillic = false;
+        foreach (char c in label + tipFormat) cyrillic |= c >= 'А' && c <= 'я';
+        Check(cyrillic == (ui == "ru"), "строки поля на языке окна");
+
+        // (а) Окно без матрицы: умолчание поля — рецепт склада, рычаг проб не тронут.
+        GeometryModel geometry = GeometryModel.Load(scene);
+        var bare = new EfficiencyConfigData("проба AMBER318") { Guid = NewGuid("beta"), Geometry = geometry, Curve = StubCurve() };
+        using (var form = new ResponseMatrixForm(bare))
+        {
+            var box = (NumericUpDown)FormField(form, "betaHistoriesBox");
+            var histories = (NumericUpDown)FormField(form, "historiesBox");
+            Say(Fmt("   поле: {0} (мин {1}, макс {2}, шаг {3}, знаков {4}); поле фотонов {5} (мин {6}, макс {7})",
+                    box.Value, box.Minimum, box.Maximum, box.Increment, box.DecimalPlaces,
+                    histories.Value, histories.Minimum, histories.Maximum));
+            Check(box.Value == ElectronSectionRecipe.StoreHistories, "умолчание поля = рецепт склада " + ElectronSectionRecipe.StoreHistories);
+            Check(box.Minimum == histories.Minimum && box.Maximum == histories.Maximum && box.DecimalPlaces == 0,
+                  "пределы — как у поля фотонов, целое");
+            Check(box.Text.IndexOf(',') < 0 && box.Text.IndexOf(' ') < 0 && box.Text.IndexOf(' ') < 0,
+                  "без разделителя разрядов: «" + box.Text + "»");
+            Label caption = null;
+            foreach (Control c in box.Parent.Controls)
+            {
+                if (c is Label && c.Text == label) caption = (Label)c;
+            }
+
+            Check(caption != null, "подпись поля стоит в рамке параметров");
+            if (caption != null)
+            {
+                Size need = TextRenderer.MeasureText(caption.Text, caption.Font);
+                Check(need.Width <= caption.Width, Fmt("подпись влезает: {0} из {1} px", need.Width, caption.Width));
+                Check(caption.Bottom <= box.Parent.Height && box.Bottom <= box.Parent.Height, "поле внутри рамки");
+            }
+
+            var tip = (ToolTip)FormField(form, "betaHistoriesTip");
+            string tipText = tip.GetToolTip(box);
+            Say("   подсказка: " + tipText.Replace(Environment.NewLine, " | "));
+            Check(tipText.Contains("800000") && tipText.Contains("3 %") && tipText.Contains("8 ×"),
+                  "подсказка называет номинал, цель 3 % и потолок 8×");
+            int longest = 0;
+            foreach (string l in tipText.Split(new[] { Environment.NewLine }, StringSplitOptions.None)) longest = Math.Max(longest, l.Length);
+            Check(longest <= 80, "подсказка блоком: строка не длиннее 80 знаков (" + longest + ")");
+            if (snap != null)
+            {
+                form.StartPosition = FormStartPosition.Manual;
+                form.Location = new Point(0, 0);
+                form.Show();
+                Application.DoEvents();
+                using (var bmp = new Bitmap(form.Width, form.Height))
+                {
+                    form.DrawToBitmap(bmp, new Rectangle(0, 0, form.Width, form.Height));
+                    bmp.Save(snap, System.Drawing.Imaging.ImageFormat.Png);
+                }
+
+                form.Hide();
+                Say("   снимок: " + snap);
+            }
+        }
+
+        if (storePath == null) return;
+
+        // (б) Наследование поля от прежнего раздела: номинал — его клеймо (`n=`), не ниже умолчания.
+        //     Клеймо склада правится только в копии пробы (раздел не считается).
+        MatrixRefusal refusal;
+        int format;
+        foreach (int stamped in new[] { 1600000, 2000 })
+        {
+            ResponseMatrix copy = ResponseMatrix.Load(storePath, out refusal, out format);
+            Check(copy != null && copy.ElectronSection != null, "склад с разделом прочитан");
+            if (copy == null || copy.ElectronSection == null) return;
+            copy.ElectronSection.Stamp = copy.ElectronSection.Stamp.Replace(";n=" + copy.ElectronSection.StampField("n") + ";",
+                                                                            ";n=" + stamped.ToString(CultureInfo.InvariantCulture) + ";");
+            string g = NewGuid("beta-inherit");
+            copy.Save(ResponseMatrixStore.PathOf(g, ResponseMatrixSource.Store));
+            var c = new EfficiencyConfigData("проба AMBER318") { Guid = g, Geometry = geometry, Curve = StubCurve() };
+            using (var form = new ResponseMatrixForm(c))
+            {
+                decimal v = ((NumericUpDown)FormField(form, "betaHistoriesBox")).Value;
+                decimal want = Math.Max(stamped, ElectronSectionRecipe.StoreHistories);
+                Say(Fmt("   прежний раздел n={0}: поле окна {1}", stamped, v));
+                Check(v == want, "поле = max(номинал прежнего раздела, умолчание) = " + want);
+            }
+        }
+
+        // (в) Раздел, посчитанный окном при умолчании поля, следующее окно ПЕРЕНОСИТ (`Carried`):
+        //     малая фотонная часть, поле 800000; затем «Сохранить», новое окно, «Посчитать».
+        SetGpu(!cpu);
+        var config = new EfficiencyConfigData("проба AMBER318") { Guid = NewGuid("beta-carry"), Geometry = geometry, Curve = StubCurve() };
+        ResponseElectronSection first = null;
+        using (var w = new Win(config))
+        {
+            w.Quick(10, 20000, 8);
+            SetBeta(w, ElectronSectionRecipe.StoreHistories);
+            Check(w.UseGpu == !cpu, "счёт идёт там, где заказано (GPU " + w.UseGpu + ")");
+            Check(w.Compute(3600, null) && w.Computed != null && w.Computed.ElectronSection != null, "первый счёт при умолчании поля");
+            if (w.Computed == null || w.Computed.ElectronSection == null) return;
+            first = w.Computed.ElectronSection;
+            Say(Fmt("   первый счёт: {0:F1} с, раздел n={1}, строк считалось {2}", w.Seconds, first.StampField("n"), w.SectionLabels));
+            Check(first.StampField("n") == "800000" && w.SectionLabels > 0, "раздел посчитан, номинал поля в клейме");
+            w.Call("SaveClick");
+        }
+
+        using (var w = new Win(config))
+        {
+            decimal v = w.Box("betaHistoriesBox").Value;
+            w.Quick(10, 20000, 8);
+            Check(w.Compute(3600, null) && w.Computed != null && w.Computed.ElectronSection != null, "второй счёт, новое окно");
+            if (w.Computed == null || w.Computed.ElectronSection == null) return;
+            Say(Fmt("   второй счёт: поле {0}, {1:F1} с, строк раздела считалось {2}, раздел тот же (время создания): {3}",
+                    v, w.Seconds, w.SectionLabels, w.Computed.ElectronSection.CreatedUtc == first.CreatedUtc));
+            Check(w.SectionLabels == 0 && w.Computed.ElectronSection.CreatedUtc == first.CreatedUtc,
+                  "при умолчании поля прежний раздел ПЕРЕНЕСЁН (Carried), не пересчитан");
+        }
+
+        ElectronSectionRecipe recipe = ElectronSectionRecipe.FromLibrary(null);
+        ResponseMatrix photon = ResponseMatrix.Load(storePath, out refusal, out format);
+        string mine = recipe.StampFor(geometry, photon, 800000);
+        string other = recipe.StampFor(geometry, photon, 900000);
+        Check(!string.Equals(other, mine, StringComparison.Ordinal) && other.Contains(";n=900000;") && mine.Contains(";n=800000;"),
+              "смена поля — другое клеймо (n=800000 → n=900000)");
+
+        // (г) Поле доходит до клейма через «Посчитать»: малая фотонная часть, поле 2000 и 3000, ЦП.
+        SetGpu(false);
+        var fresh = new EfficiencyConfigData("проба AMBER318") { Guid = NewGuid("beta-n"), Geometry = geometry, Curve = StubCurve() };
+        foreach (int n in new[] { 2000, 3000 })
+        {
+            using (var w = new Win(fresh))
+            {
+                w.Quick(10, 20000, 8);
+                SetBeta(w, n);
+                Check(w.Compute(1800, null) && w.Computed != null && w.Computed.ElectronSection != null, "счёт с полем " + n);
+                if (w.Computed == null || w.Computed.ElectronSection == null) continue;
+                ResponseElectronSection s = w.Computed.ElectronSection;
+                long min = long.MaxValue, max = 0;
+                foreach (long h in s.Histories) { min = Math.Min(min, h); max = Math.Max(max, h); }
+                Say(Fmt("   поле {0}: клеймо n={1}, истории узлов {2}…{3}, строк считалось {4}", n, s.StampField("n"), min, max, w.SectionLabels));
+                Check(s.StampField("n") == n.ToString(CultureInfo.InvariantCulture), "номинал поля в клейме раздела");
+                // (`AMBER318`, пятый заход) Номинал меньше порога останова — плоско: набрано ровно `n` на каждой строке.
+                long lmin = long.MaxValue, lmax = 0;
+                foreach (long[] arr in new[] { s.Histories, s.LineHistories ?? new long[0], s.BranchHistories ?? new long[0] })
+                {
+                    foreach (long h in arr) { lmin = Math.Min(lmin, h); lmax = Math.Max(lmax, h); }
+                }
+
+                Check(lmin == Math.Max(1000, n) && lmax == Math.Max(1000, n),
+                      Fmt("малый номинал {0} — плоско: на всех строках ровно {0} (набрано {1}…{2})", n, lmin, lmax));
+            }
+        }
+    }
+
     [STAThread]
     static int Main(string[] args)
     {
         Console.OutputEncoding = Encoding.UTF8;
         CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-        string mode = null, scene = null, store = null, keep = null, pathA = null, pathB = null, device = null, curve = null, ui = "en";
+        string mode = null, scene = null, store = null, keep = null, pathA = null, pathB = null, device = null, curve = null, ui = "en", snap = null;
         bool cpu = false;
         int threads = 0;
         foreach (string a in args)
@@ -856,6 +1125,7 @@ static class ElectronSectionFormProbeA305
             else if (a.StartsWith("--device=", StringComparison.Ordinal)) device = a.Substring(9);
             else if (a.StartsWith("--curve=", StringComparison.Ordinal)) curve = a.Substring(8);
             else if (a.StartsWith("--ui=", StringComparison.Ordinal)) ui = a.Substring(5);
+            else if (a.StartsWith("--snap=", StringComparison.Ordinal)) snap = a.Substring(7);
             else if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
             else if (a.StartsWith("--threads=", StringComparison.Ordinal)) threads = int.Parse(a.Substring(10), CultureInfo.InvariantCulture);
             else if (a == "--cpu") cpu = true;
@@ -900,6 +1170,8 @@ static class ElectronSectionFormProbeA305
                 case "texts": ModeTexts(ui); break;
                 case "gpufail": ModeGpuFail(scene, ui); break;
                 case "config": ModeConfig(device, curve, cpu); break;
+                case "betafield": ModeBetaField(scene, store, ui, snap, cpu); break;
+                case "stopcheck": ModeStopCheck(pathA, pathB); break;
                 default: Console.WriteLine("не знаю режима: " + mode); return 2;
             }
         }

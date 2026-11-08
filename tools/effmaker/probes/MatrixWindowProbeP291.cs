@@ -61,6 +61,15 @@ static class MatrixWindowProbeP291
         {
             this.Config = config;
             this.Form = new ResponseMatrixForm(config);
+            // (`AMBER318`) Окно рычаг `ElectronSectionRecipe.Histories` не читает: у него своё поле
+            // «Истории бета». Проба переносит рычаг в поле сама; у exe без поля — ничего.
+            System.Reflection.FieldInfo beta = typeof(ResponseMatrixForm).GetField("betaHistoriesBox",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            if (beta != null)
+            {
+                ((System.Windows.Forms.NumericUpDown)beta.GetValue(this.Form)).Value =
+                    BecquerelMonitor.EfficiencyMaker.ElectronSectionRecipe.Histories;
+            }
             this.Box("minEnergyBox").Value = 30;
             this.Box("maxEnergyBox").Value = 3000;
             this.Box("nodesBox").Value = 8;
