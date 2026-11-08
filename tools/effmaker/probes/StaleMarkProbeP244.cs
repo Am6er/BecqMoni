@@ -24,6 +24,12 @@
 // после заполнения списка и после записи матрицы, рисование строки списка в
 // картинку — красные и белые точки), цена чтения одной настоящей матрицы.
 //
+// ⛔ (`AMBER319`, 08.11.2026) Ожидания подтянуты под нынешние требования вкладки: свежее
+// клеймо несёт все ключи физики (`AMBER274`, берутся у `DeviceConfigForm.MissingPhysicsTokens`),
+// годная матрица — с разделом электронов, построенным построителем приложения (`AMBER305`).
+// Прежняя проба печатала 12 расхождений на сборке, где правило верно. Правило метки с
+// `AMBER319` живёт в `EfficiencyStaleMark`; методы формы, по которым ходит проба, — переходники.
+//
 // ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ — «У СВЕЖЕЙ КРИВОЙ И ГОДНОЙ МАТРИЦЫ МЕТКИ НЕТ»
 // (случаи 1 и б) и «у свежей строки списка НЕТ красных точек» (раздел формы):
 // без них проба прошла бы и на правиле «метить всегда».
@@ -71,10 +77,10 @@ namespace BecquerelMonitor.Probes
             }
 
             if (CurveStale == null || MatrixStale == null || EfficiencyStale == null
-                || StaleGuids == null || DrawMark == null)
+                || StaleGuids == null || DrawMark == null || MissingTokens == null)
             {
                 Console.WriteLine("НЕТ МЕТОДОВ DeviceConfigForm.CurveStale / MatrixStale / EfficiencyStale / "
-                                  + "StaleEfficiencyGuids / DrawStaleMark — мерить нечего");
+                                  + "StaleEfficiencyGuids / DrawStaleMark / MissingPhysicsTokens — мерить нечего");
                 return 2;
             }
 
@@ -115,11 +121,37 @@ namespace BecquerelMonitor.Probes
         // Решение о кривой
         // ------------------------------------------------------------------
 
+        /// <summary>
+        /// ⛔ (`AMBER319`, 08.11.2026) Клеймо СВЕЖЕЙ кривой — с ПОЛНЫМ набором ключей физики,
+        /// которых вкладка требует у кривой того же поколения (`AMBER274`, Н7): ключи берутся у
+        /// самого приложения (<c>DeviceConfigForm.MissingPhysicsTokens("")</c> — все ключи ВКЛ
+        /// умолчанием склада), а не литералами. Без них «свежая» кривая выходила старой, и проба
+        /// печатала 12 расхождений на сборке, где правило верно.
+        /// </summary>
         static string Fresh()
+        {
+            return Bare() + PhysicsTokens();
+        }
+
+        /// <summary>Клеймо прежнего вида: поколение и окно пика, ключей физики нет.</summary>
+        static string Bare()
         {
             return string.Format(CultureInfo.InvariantCulture, "phys={0}; hist=200000; grid=40-3000 keV/34 std; {1}",
                                  ResponseMatrix.PhysicsVersion, EfficiencyCalculation.PeakWindowStamp);
         }
+
+        static string PhysicsTokens()
+        {
+            string tail = "";
+            foreach (string token in (List<string>)MissingTokens.Invoke(null, new object[] { "" }))
+            {
+                tail += "; " + token;
+            }
+
+            return tail;
+        }
+
+        static readonly MethodInfo MissingTokens = typeof(DeviceConfigForm).GetMethod("MissingPhysicsTokens", NPS);
 
         static EfficiencyConfigData Curve(string name, GeometryModel geometry, string stamp, double fwhm)
         {
@@ -150,6 +182,12 @@ namespace BecquerelMonitor.Probes
             // 1. ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: свежая кривая, отпечаток сходится — метки нет.
             GeometryModel g1 = GeometryModel.Load(geometryPath);
             CurveCase("1. свежая кривая, геометрия с разрешением", Curve("1", g1, Fresh(), 7.0), false);
+            Console.WriteLine("     ключи физики свежего клейма:{0}", PhysicsTokens());
+
+            // 1в. ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ (`AMBER274`, Н7): то же поколение, но без ключей
+            // физики — прежнее клеймо, вкладка говорит «пересчитайте».
+            GeometryModel g1v = GeometryModel.Load(geometryPath);
+            CurveCase("1в. то же поколение, клеймо без ключей физики", Curve("1в", g1v, Bare(), 7.0), true);
 
             // 2. Поколение ниже сборки.
             GeometryModel g2 = GeometryModel.Load(geometryPath);
@@ -235,6 +273,41 @@ namespace BecquerelMonitor.Probes
             };
         }
 
+        /// <summary>
+        /// ⛔ (`AMBER319`, 08.11.2026) ГОДНАЯ матрица нынешней сборки: синтетическая фотонная часть и
+        /// раздел электронов, построенный ПОСТРОИТЕЛЕМ ПРИЛОЖЕНИЯ
+        /// (<see cref="ResponseMatrixBuilder.BuildElectronSection(GeometryModel, ResponseMatrix, double[], int, int, bool, int, CancellationToken, Action{string})"/>):
+        /// клеймо раздела, его привязка к клейму матрицы, бин и капсула — из того же кода, что пишет
+        /// склад, а не литералами. Сетка в три узла и 200 историй: годность раздела от числа
+        /// историй не зависит, а проба ждёт секунды, не минуты. Раздел строится один раз на клеймо.
+        /// </summary>
+        static ResponseMatrix Good(GeometryModel geometry, ResponseMatrixOptions options)
+        {
+            ResponseMatrix matrix = Synthetic(geometry, options, null);
+            ResponseElectronSection section;
+            if (!sections.TryGetValue(matrix.Stamp, out section))
+            {
+                var watch = Stopwatch.StartNew();
+                section = ResponseMatrixBuilder.BuildElectronSection(geometry, matrix,
+                                                                     ResponseElectronSection.Grid(3, 100.0, 1000.0),
+                                                                     200, 0, false, 1, CancellationToken.None, null);
+                watch.Stop();
+                sections[matrix.Stamp] = section;
+                Console.WriteLine("  раздел электронов построен построителем приложения: узлов {0}, {1} мс",
+                                  section.NodeCount.ToString(CultureInfo.InvariantCulture),
+                                  watch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture));
+            }
+
+            matrix.ElectronSection = section;
+            ElectronSectionRefusal why;
+            Check(matrix.ElectronSectionFor(geometry, out why) != null,
+                  "годная матрица: раздел принят (" + why + ")");
+            return matrix;
+        }
+
+        static readonly Dictionary<string, ResponseElectronSection> sections =
+            new Dictionary<string, ResponseElectronSection>(StringComparer.Ordinal);
+
         static void MatrixCases(string geometryPath, string otherPath)
         {
             Console.WriteLine();
@@ -252,20 +325,28 @@ namespace BecquerelMonitor.Probes
                 // а. Файла нет — не считали, не старая.
                 MatrixCase("а. матрицы нет", config, false);
 
-                // б. ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: нынешний формат, клеймо сходится — годная.
+                // б0. ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ (`AMBER305`): клеймо фотонной части сходится,
+                // но раздела электронов нет — сцене с источником он нужен, окно зовёт такую
+                // матрицу устаревшей. Формат файла без раздела — 11 (`Р1`/`Р11`).
                 Synthetic(config.Geometry, options, null).Save(path);
                 int fileFormat, physics;
-                // (`AMBER274`, `Р1`/`Р11`) Матрица без раздела электронов пишется форматом 11
-                // (байты прежние), с разделом — 12; оба нынешние.
                 Check(ResponseMatrix.PeekVersions(path, out fileFormat, out physics)
                       && fileFormat == ResponseMatrix.CompatibleFormatVersion && physics == ResponseMatrix.PhysicsVersion,
-                      "б. записанная матрица без раздела читается заголовком как нынешняя формата 11");
-                MatrixCase("б. годная матрица нынешнего формата 11", config, false);
+                      "б0. записанная матрица без раздела читается заголовком как нынешняя формата 11");
+                MatrixCase("б0. клеймо сходится, раздела электронов нет", config, true);
 
-                // б2. (`Р2`) Заголовок 12, а раздела в конце нет (обрубок раздела) — матрица
-                // годна, снимается только раздел.
+                // б2. (`Р2`) Заголовок 12, а раздела в конце нет (обрубок раздела) — раздел
+                // снимается, и матрица без раздела — та же устаревшая, что б0.
                 WriteFormat(path, ResponseMatrix.FormatVersion);
-                MatrixCase("б2. формат 12 без раздела (порча раздела) — годная", config, false);
+                MatrixCase("б2. формат 12 без раздела (порча раздела)", config, true);
+
+                // б. ⛔ ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: нынешний формат, клеймо сходится, раздел
+                // электронов годен — матрица не старая.
+                Good(config.Geometry, options).Save(path);
+                Check(ResponseMatrix.PeekVersions(path, out fileFormat, out physics)
+                      && fileFormat == ResponseMatrix.FormatVersion && physics == ResponseMatrix.PhysicsVersion,
+                      "б. записанная матрица с разделом читается заголовком как нынешняя формата 12");
+                MatrixCase("б. годная матрица с разделом электронов, формат 12", config, false);
 
                 // в. Прежний формат файла: 9 — ниже обоих читаемых (11, 12) и ниже допущенного
                 // ради сравнения (10).
@@ -285,7 +366,7 @@ namespace BecquerelMonitor.Probes
                            config, true);
 
                 // д. Матрица годная, а геометрию правили после счёта.
-                Synthetic(config.Geometry, options, null).Save(path);
+                Good(config.Geometry, options).Save(path);
                 MatrixCase("д. (контроль) та же геометрия", config, false);
                 GeometryModel was = config.Geometry;
                 config.Geometry = GeometryModel.Load(otherPath);
@@ -441,7 +522,7 @@ namespace BecquerelMonitor.Probes
                     Check(redFresh == 0, "у свежей строки красных точек нет (положительный контроль)");
 
                     // Матрица пересчитана и записана окном — метка уходит без перезаполнения списка.
-                    Synthetic(eff.Geometry, options, null).Save(path);
+                    Good(eff.Geometry, options).Save(path);
                     Check(((HashSet<string>)setField.GetValue(form)).Contains(eff.Guid),
                           "до события набор прежний (положительный контроль)");
                     using (ResponseMatrixForm matrixForm = new ResponseMatrixForm(eff))

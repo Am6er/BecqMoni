@@ -516,7 +516,8 @@ namespace GeometryPresetProbeA307
                     Same(lang + " (г2) назначен, геометрии нет: прежний текст", d2 == geometryText, d2);
 
                     // (г3) назначен, у прибора есть кривая с геометрией, спектру не выбрана
-                    string chooseMark = lang == "en" ? "Efficiency list" : "«Эффективн.»";
+                    // (`AMBER319`) подпись списка панели — «Геометрия» / «Geometry»
+                    string chooseMark = lang == "en" ? "Geometry list" : "«Геометрия»";
                     GeometryModel curveGeometry = GeometryEditorPanel.Blank();
                     GeometryPresets.Items.First(x => x.Name == "RadiaCode-110").Apply(curveGeometry);
                     var curve = new EfficiencyConfigData("A307 кривая") { Geometry = curveGeometry };

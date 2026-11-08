@@ -426,7 +426,7 @@
     <value>70</value>
   </data>
   <data name="efficiencyLbl.Text" xml:space="preserve">
-    <value>Efficiency</value>
+    <value>Geometry</value>
   </data>
   <data name="&gt;&gt;efficiencyLbl.Name" xml:space="preserve">
     <value>efficiencyLbl</value>
@@ -456,7 +456,7 @@
     <value>71</value>
   </data>
   <data name="efficiencyComboBox.ToolTip" xml:space="preserve">
-    <value>Efficiency curve used to calculate activity for this spectrum</value>
+    <value>Measurement geometry of this spectrum: the sample and the detector together with their efficiency curve. Activity, dose rate and FSA are calculated from it. A red "!" marks a geometry whose curve or response matrix is outdated: recalculate it in the device configuration, Efficiency tab.</value>
   </data>
   <data name="&gt;&gt;efficiencyComboBox.Name" xml:space="preserve">
     <value>efficiencyComboBox</value>
