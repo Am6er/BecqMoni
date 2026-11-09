@@ -156,8 +156,8 @@
    3000
   ]
  ],
- "declared": "2026-11-07 18:10",
- "head": "956efe73",
+ "declared": "2026-11-09 00:16",
+ "head": "b9dfbd5b",
  "head_lines": {
   "chi2": "chi2/ndf 1.151, невязка модели 46.9 %, суммирование да",
   "composition": "состав объявлен: ; ряды: Ra-226, Th-232; распад 2, атомных 2, линий 717; полоса сведена ПОЛОМ ПО КРИВОЙ 20.6 кэВ (10.0 % от максимума, Min_Range 5.0), фит на всём спектре (умолчание); членов ряда ниже порога ветвления 4; ряд от 226RA: переходное равновесие λ_д/(λ_д − λ_к) — 210BI ×1.0141, 210PB ×1.0141, 210PO ×1.0143 (AMBER55); вылет от линий состава: SE-2615, DE-2615, SE-1764, DE-1764, SE-2204, DE-2204",
@@ -179,11 +179,11 @@
    }
   },
   "probes": {
-   "app_sha": "f890bbdf80a0495d",
-   "built": "2026-11-07 17:37:51",
+   "app_sha": "a8776d4891ec8dbd",
+   "built": "2026-11-09 00:00:07",
    "dir": "tools/effmaker/probes/build",
    "freshness_checked": true,
-   "shot_sha": "61de87ad2a9eb064"
+   "shot_sha": "cce16094ce43510a"
   },
   "spectrum": "spectra/ASN16_Radon_filter2.xml",
   "spectrum_sha": "f0b83648f8a9e1a8"
@@ -553,7 +553,7 @@
    "z 71.5; фон ×49.899 измеренного спектра в этой полосе"
   ]
  ],
- "seconds": 140.9,
+ "seconds": 139.8,
  "spectrum": "spectra/ASN16_Radon_filter2.xml",
  "tolerance": {
   "abs": 1e-06,

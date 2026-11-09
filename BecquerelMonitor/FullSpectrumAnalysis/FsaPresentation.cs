@@ -353,6 +353,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public int Indent { get; set; }
 
+        double counts = double.NaN;
+
+        /// <summary>
+        /// (`AMBER320`) Отсчёты строки ЧИСЛОМ — у строк-потомков, чьё значение и есть отсчёты
+        /// (<see cref="FsaReportRowKind.SumPeakLine"/>, <see cref="FsaReportRowKind.EscapePeakLine"/>,
+        /// <see cref="FsaReportRowKind.BackscatterLine"/>) и у строк собственной активности кристалла
+        /// (`FsaCrystalOwnResult.Counts`); NaN — у прочих. Из него окно отчёта
+        /// складывает значение свёрнутого родителя (решение Amber 07.11.2026 «Сумму и число строк»),
+        /// не разбирая текст <see cref="Value"/> обратно.
+        /// </summary>
+        public double Counts
+        {
+            get { return this.counts; }
+            set { this.counts = value; }
+        }
+
         /// <summary>Серый текст: у кандидата нет ленты и нет цвета (`S9`).</summary>
         public bool Muted { get; set; }
 

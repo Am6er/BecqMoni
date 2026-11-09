@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-u"""Сторож ОКНА ОТЧЁТА FSA (`FSAReportView`): приёмка ЧЕТЫРЁХ проб окна на спектрах
+u"""Сторож ОКНА ОТЧЁТА FSA (`FSAReportView`): приёмка ПЯТИ проб окна на спектрах
 корпуса — `FsaReportViewProbe` (блок «Качество разбора»: χ²/ndf, σ×, пометки, строки
 привязки шкалы `AMBER17`; состав строк по `Tag.Kind`, один результат на график и
 таблицу, родители/дочерние, повторяемость, снимки en/ru без обрезанных подписей),
 `FsaSelectionProbeF16` (выделение компонента на графике `A246`; подписи блока видны
 целиком `A247`/`AMBER214`), `FsaResidualProbeF21` (галочка ленты невязки `A248`: проводка,
 пиксели кадра, числа при обеих позициях, место в группе «Отрисовка» `A265`/`AMBER222`)
-и `FsaInputCheckProbeP195` (заверение входа: плотность пробы против сцены `AMBER159`,
-кривая вне линий `AMBER157`, разбор без матрицы `AMBER156`).
+`FsaInputCheckProbeP195` (заверение входа: плотность пробы против сцены `AMBER159`,
+кривая вне линий `AMBER157`, разбор без матрицы `AMBER156`) и `FsaRowGroupsProbeA320`
+(строки-потомки свёрнуты под родителем `AMBER320`: стрелка, сумма и число строк, память
+раскрытия, клавиши, выбор и подсветка потомка, заголовок собственной активности кристалла).
 
 ## Зачем
 
@@ -36,11 +38,11 @@ P195 не звал никто, и все три были красны на чи�
    что судят оснастку корпуса (`Get-AppWdSourceRecord`, `Get-AppWdStampSources`,
    `Compare-AppWdSourceMap`, `Get-AppWdSha256`; своей копии отпечатка нет — `T61`):
    заверение `.appwd.json`, набор исходников ПРИЛОЖЕНИЯ (по `.csproj`), набор
-   КАЖДОЙ из четырёх проб (её `.cs` + довески), sha `BecquerelMonitor.exe` и exe
+   КАЖДОЙ из пяти проб (её `.cs` + довески), sha `BecquerelMonitor.exe` и exe
    проб против заверённых. Протух — код 3 с находками, а не прогон старым кодом
    (`A77`: проверять то, что БУДЕТ ИСПОЛЬЗОВАНО). Чужая незакоммиченная правка
    `.cs` приложения в дереве — законный код 3.
-2. Прогон четырёх проб из каталога проб (параллельно; каждая пишет снимки во
+2. Прогон пяти проб из каталога проб (параллельно; каждая пишет снимки во
    временный каталог системы, снимается после прогона, `--keep` оставляет; в
    дерево и в каталог проб не пишется ничего):
      report — `FsaReportViewProbe --spectrum=AS80_Th232Medal --control=AS80_Cs137_0cm
@@ -51,7 +53,10 @@ P195 не звал никто, и все три были красны на чи�
      p195   — `FsaInputCheckProbeP195 --spectrum=G1S16_K40_Mar
               --store=tools/CORPUS/corpus/geometries/response` (склад матриц корпуса
               по guid кривой — вне git, §1.5 `tools/CORPUS/README.md`; матрица идёт
-              пробе В ПАМЯТЬ, склад не пишется).
+              пробе В ПАМЯТЬ, склад не пишется);
+     a320   — `FsaRowGroupsProbeA320 --spectrum=AS80_Th232Medal --store=<склад матриц
+              корпуса>` (`AMBER320`; матрица в память, как у P195: без неё строк
+              сумм-пиков, вылета и рассеяния нет и сворачивать нечего).
 3. Приговор каждой — ТРИ признака разом: код пробы 0, последняя строка «ВСЕ
    СОШЛИСЬ» и ни одной строки отказа (у `FsaReportViewProbe` и P195 — «  ⛔» с двумя
    пробелами, у F16/F21 — «  НЕТ »). Расхождение любого из трёх у любой пробы —
@@ -61,7 +66,7 @@ P195 не звал никто, и все три были красны на чи�
 
 ## Положительный контроль — `--selftest` (обе стороны)
 
-  (в) штатный прогон четырёх проб — ОБЯЗАН пройти (сторож, отказывающий всегда,
+  (в) штатный прогон пяти проб — ОБЯЗАН пройти (сторож, отказывающий всегда,
       бесполезен так же, как молчащий всегда);
   (а) каталог проб подменён пустым — ОБЯЗАН дать код 3 со словом причины;
   (б) подброшенный неверный вход report: `--control` = тот же спектр С РЯДОМ Th-232 —
@@ -74,11 +79,15 @@ P195 не звал никто, и все три были красны на чи�
   (е) F21 сверяет кадр с опорными кадрами из ПУСТОГО каталога (`--against=`) —
       проба ОБЯЗАНА отказать («опорного кадра нет»), сторож — код 1;
   (ж) P195 со складом матриц из ПУСТОГО каталога — сцене (1) мерить нечем, проба
-      отказывает кодом 2, сторож — код 2 со словами пробы «МЕРИТЬ НЕЧЕМ».
+      отказывает кодом 2, сторож — код 2 со словами пробы «МЕРИТЬ НЕЧЕМ»;
+  (з) a320 с подсаженным дефектом «раскрыто по умолчанию» (`--spoil=expanded`: группы
+      раскрыты входом самого окна до проверок) — проба ОБЯЗАНА отказать, сторож — код 1;
+  (и) a320 с опозданием события конца счёта на 1.5 с (`--delay-completed=1500`, так ведёт
+      себя фоновый поток под нагрузкой) — проба ОБЯЗАНА пройти: ждёт по признаку, не по паузе.
 
   python tools/check_fsa_report_view.py [--probes=<каталог проб>] [--spectrum=<xml>]
                                         [--control=<xml>] [--store=<склад по guid>]
-                                        [--only=report,f16,f21,p195]
+                                        [--only=report,f16,f21,p195,a320]
                                         [--skip-freshness] [--keep] [--selftest]
 
   --probes=         каталог проб вместо `tools/effmaker/probes/build`
@@ -86,7 +95,7 @@ P195 не звал никто, и все три были красны на чи�
   --spectrum=/--control=  другая пара для report, F16 и F21 (у `--spectrum` обязан
                     быть ряд Th-232 и состав NucBase+равновесие, у `--control` —
                     ряда быть не должно);
-  --store=          склад матриц по guid кривой для P195 и раздела 16 report (`AMBER286`)
+  --store=          склад матриц по guid кривой для P195, a320 и раздела 16 report (`AMBER286`)
                     (умолчание — склад корпуса);
   --only=           гнать только названные пробы (свежесть судится по ним же);
   --skip-freshness  НЕ судить свежесть каталога проб (только стенд полосы, где каталог
@@ -157,6 +166,10 @@ PROBES = [
           u'галочка ленты невязки (A248): проводка, пиксели, числа, место в «Отрисовке» (A265/AMBER222)'),
     Probe(u'p195', u'FsaInputCheckProbeP195.exe', RE_RED_SIGN, RE_OK_UPPER,
           u'заверение входа: плотность пробы (AMBER159), кривая (AMBER157), без матрицы (AMBER156)'),
+    # (`AMBER320`, полоса a320 08.11.2026) строки-потомки свёрнуты под родителем: стрелка, сумма,
+    # память раскрытия, клавиши, выбор и подсветка потомка, заголовок кристалла.
+    Probe(u'a320', u'FsaRowGroupsProbeA320.exe', RE_RED_SIGN, RE_OK_LOWER,
+          u'строки-потомки свёрнуты (AMBER320): стрелка, сумма и число, память, клавиши, выбор потомка'),
 ]
 PROBE_NAMES = [p.name for p in PROBES]
 
@@ -307,6 +320,15 @@ def probe_args(probe, plan, out_dir):
         if plan.get('f21_against'):
             args.append(u'--against=' + plan['f21_against'])
         return args
+    if probe.name == u'a320':
+        # (`AMBER320`) торий с матрицей кривой из склада (в память, как у P195): без матрицы
+        # строк сумм-пиков, вылета и рассеяния нет, и сворачивать нечего
+        args = [u'--spectrum=' + plan['spectrum'], u'--store=' + plan['store']]
+        if plan.get('a320_spoil'):
+            args.append(u'--spoil=expanded')
+        if plan.get('a320_delay'):
+            args.append(u'--delay-completed=%d' % plan['a320_delay'])
+        return args
     return [u'--spectrum=' + plan['p195_spectrum'], u'--store=' + plan['store']]
 
 
@@ -317,6 +339,9 @@ def inputs_of(probe, plan):
                 (u'склад матриц корпуса (вне git, tools/CORPUS/README.md §1.5)', plan['store'], True)]
     if probe.name in (u'f16', u'f21'):
         return [(u'спектр', plan['spectrum'], False)]
+    if probe.name == u'a320':
+        return [(u'спектр', plan['spectrum'], False),
+                (u'склад матриц корпуса (вне git, tools/CORPUS/README.md §1.5)', plan['store'], True)]
     return [(u'спектр P195', plan['p195_spectrum'], False),
             (u'склад матриц корпуса (вне git, tools/CORPUS/README.md §1.5)', plan['store'], True)]
 
@@ -355,10 +380,12 @@ def rel(path):
 
 
 def make_plan(spectrum=SPECTRUM_DEFAULT, control=CONTROL_DEFAULT, store=STORE_DEFAULT,
-              p195_spectrum=P195_SPECTRUM, f16_layer=None, f21_against=None):
+              p195_spectrum=P195_SPECTRUM, f16_layer=None, f21_against=None, a320_spoil=False,
+              a320_delay=0):
     return {'spectrum': os.path.abspath(spectrum), 'control': os.path.abspath(control),
             'store': os.path.abspath(store), 'p195_spectrum': os.path.abspath(p195_spectrum),
-            'f16_layer': f16_layer, 'f21_against': f21_against}
+            'f16_layer': f16_layer, 'f21_against': f21_against, 'a320_spoil': a320_spoil,
+            'a320_delay': a320_delay}
 
 
 def run_check(probes, plan, only=None, keep=False, skip_freshness=False, out=None):
@@ -455,7 +482,8 @@ def selftest(probes, plan, skip_freshness=False):
     u"""Обе стороны: штатный прогон обязан пройти; пустой каталог проб — код 3;
     контроль С РЯДОМ (тот же спектр) — код 1; спектра нет — код 2; F16 с чужим
     слоем — код 1; F21 с пустыми опорными кадрами — код 1; P195 с пустым складом —
-    код 2.
+    код 2; a320 с подсаженным «раскрыто по умолчанию» — код 1; a320 с опозданием события
+    конца счёта — код 0.
 
     Свежесть каталога судится ОДИН раз — в (в): плечи (б)…(ж) гонят тот же каталог
     и судят приговор проб, не его свежесть (иначе соседняя полоса, правящая `.cs`
@@ -478,7 +506,7 @@ def selftest(probes, plan, skip_freshness=False):
 
     o = Out(silent=True)
     code = run_check(probes, plan, skip_freshness=skip_freshness, out=o)
-    record(u'(в) штатный прогон четырёх проб проходит', 0, code, o.buf, [u'СОШЛОСЬ', u'4 из 4'])
+    record(u'(в) штатный прогон пяти проб проходит', 0, code, o.buf, [u'СОШЛОСЬ', u'5 из 5'])
 
     empty = tempfile.mkdtemp(prefix=u'bq_fsa_report_view_empty_')
     try:
@@ -514,6 +542,22 @@ def selftest(probes, plan, skip_freshness=False):
         code = run_check(probes, bad_plan, only=[u'p195'], skip_freshness=True, out=o)
         record(u'(ж) P195 с пустым складом матриц — мерить нечем, код 2', 2, code, o.buf,
                [u'МЕРИТЬ НЕЧЕМ', u'проба отказала кодом 2'])
+
+        # (`AMBER320`) подсаженный дефект «раскрыто по умолчанию» — входом самого окна
+        o = Out(silent=True)
+        bad_plan = dict(plan, a320_spoil=True)
+        code = run_check(probes, bad_plan, only=[u'a320'], skip_freshness=True, out=o)
+        record(u'(з) a320 с группами, раскрытыми до проверок, — проба отказывает, сторож код 1', 1, code, o.buf,
+               [u'проба нашла расхождения', u'НЕ СОШЛОСЬ', u'  ⛔'])
+
+        # (`AMBER320`, четвёртый заход) устойчивость к опозданию `Completed`: событие конца счёта
+        # доходит до окна на 1.5 с позже (как под нагрузкой) — проба ждёт по признаку и проходит.
+        # Прежняя обвязка (пауза 300–500 мс) на этом же плече отказывала (журнал a320).
+        o = Out(silent=True)
+        slow_plan = dict(plan, a320_delay=1500)
+        code = run_check(probes, slow_plan, only=[u'a320'], skip_freshness=True, out=o)
+        record(u'(и) a320 с опозданием события конца счёта на 1.5 с — проходит', 0, code, o.buf,
+               [u'СОШЛОСЬ', u'1 из 1'])
     finally:
         shutil.rmtree(empty, ignore_errors=True)
 
@@ -526,7 +570,7 @@ def selftest(probes, plan, skip_freshness=False):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description=u'сторож окна отчёта FSA: приёмка четырёх проб окна', add_help=True)
+    ap = argparse.ArgumentParser(description=u'сторож окна отчёта FSA: приёмка пяти проб окна', add_help=True)
     ap.add_argument(u'--probes', default=None)
     ap.add_argument(u'--spectrum', default=SPECTRUM_DEFAULT)
     ap.add_argument(u'--control', default=CONTROL_DEFAULT)

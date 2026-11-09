@@ -49,8 +49,6 @@ namespace XPTable.Models
         /// A Row that owns this row
         /// </summary>
         private Row rowowner;
-
-        private RowEventHandler propertyChangedEventHandler;
         #endregion
 
 
@@ -70,8 +68,6 @@ namespace XPTable.Models
             }
 
             this.owner = owner;
-
-            propertyChangedEventHandler = new RowEventHandler(row_PropertyChanged);
         }
 
         /// <summary>
@@ -119,19 +115,29 @@ namespace XPTable.Models
                 this.OnRowAdded(new RowEventArgs(row, RowEventType.SubRowAdded, rowowner));
             }
 
-            row.PropertyChanged += propertyChangedEventHandler;
-
             return index;
         }
-
-        private int _totalHiddenSubRows = 0;
 
         /// <summary>
         /// Gets the total number of subrows that are currently not expanded.
         /// </summary>
         public int HiddenSubRows
         {
-            get { return _totalHiddenSubRows; }
+            // (AMBER320) Counted on demand, not cached: the cached counter was never reset by
+            // Clear() and missed rows collapsed before they reached the table, so a table rebuilt
+            // with collapsed groups accumulated phantom hidden rows and lost its vertical scroll range.
+            get
+            {
+                int hidden = 0;
+                for (int i = 0; i < this.List.Count; i++)
+                {
+                    Row row = (Row)this.List[i];
+                    if (row != null && row.Parent != null && !row.Parent.ExpandSubRows)
+                        hidden++;
+                }
+
+                return hidden;
+            }
         }
 
         /// <summary>
@@ -197,18 +203,6 @@ namespace XPTable.Models
                     this[i].ExpandSubRows = true;
                     i += this[i].SubRows.Count;
                 }
-            }
-        }
-
-        private void row_PropertyChanged(object sender, RowEventArgs e)
-        {
-            if (e.EventType == RowEventType.ExpandSubRowsChanged)
-            {
-                if (!e.Row.ExpandSubRows)
-                    _totalHiddenSubRows += e.Row.SubRows.Count;
-                else
-                    _totalHiddenSubRows -= e.Row.SubRows.Count;
-
             }
         }
 
@@ -284,8 +278,6 @@ namespace XPTable.Models
 
                 else if (rowowner != null)
                     this.OnRowRemoved(new RowEventArgs(row, RowEventType.SubRowRemoved, rowowner));
-
-                row.PropertyChanged -= propertyChangedEventHandler;
             }
         }
 

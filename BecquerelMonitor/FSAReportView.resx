@@ -5226,6 +5226,21 @@
   <data name="FSAReport_QualityHeader" xml:space="preserve">
     <value>Analysis quality</value>
   </data>
+  <data name="FSAReport_GroupCaption" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="FSAReport_GroupTipSum" xml:space="preserve">
+    <value>Collapsed: {0} rows are hidden; the value is the sum of their counts. The arrow before the caption (or the → key) shows them.</value>
+  </data>
+  <data name="FSAReport_GroupTipSumOne" xml:space="preserve">
+    <value>Collapsed: {0} row is hidden; the value is its counts. The arrow before the caption (or the → key) shows it.</value>
+  </data>
+  <data name="FSAReport_GroupTipCount" xml:space="preserve">
+    <value>Collapsed: {0} rows are hidden. The arrow before the caption (or the → key) shows them.</value>
+  </data>
+  <data name="FSAReport_GroupTipCountOne" xml:space="preserve">
+    <value>Collapsed: {0} row is hidden. The arrow before the caption (or the → key) shows it.</value>
+  </data>
   <data name="FSAReport_ResidualRow" xml:space="preserve">
     <value>Difference between model and spectrum: + / −</value>
   </data>

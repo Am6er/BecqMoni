@@ -125,6 +125,69 @@ namespace BecquerelMonitor
         /// </summary>
         const int IndentStep = SwatchWidth + SwatchGap;
 
+        // ------------------------------------------------------------------
+        // (`AMBER320`) СВЁРТКА СТРОК-ПОТОМКОВ
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// (`AMBER320`) Место стрелки свёртки перед подписью родителя, пикселей: треугольник
+        /// <see cref="ArrowGlyph"/> и зазор до текста. Образец родителя остаётся на своём месте
+        /// (под образцами строк состава), стрелка встаёт между ним и текстом.
+        /// </summary>
+        const int ArrowWidth = 12;
+
+        /// <summary>(`AMBER320`) Сторона треугольника стрелки, пикселей.</summary>
+        const int ArrowGlyph = 8;
+
+        /// <summary>
+        /// ⛔ (`AMBER320`, решение Amber 07.11.2026 вопросником, дословно: «Помнить до конца
+        /// сеанса (Рекомендую)») РАСКРЫТЫЕ ГРУППЫ — на процесс, а не на окно и не на документ:
+        /// раскрытая группа остаётся раскрытой при пересчёте и смене документа, пока программа
+        /// открыта (окно отчёта бывает пересоздано сбросом раскладки — поле статическое); при
+        /// запуске пусто, то есть всё свёрнуто. Ключ — <see cref="GroupKey"/>. Только поток окон.
+        /// </summary>
+        static readonly HashSet<string> ExpandedGroups = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// (`AMBER320`) Группа «родитель и его потомки» одной перестройки таблицы. Висит на
+        /// <see cref="Cell.Tag"/> ячейки имени родителя: оба вида строки — свёрнутый и
+        /// раскрытый — собраны один раз, переключение только меняет текст ячеек.
+        /// </summary>
+        sealed class RowGroup
+        {
+            public string Key;
+            public int Hidden;
+            public string ExpandedCaption, ExpandedValue, ExpandedHint;
+            public string CollapsedCaption, CollapsedValue, CollapsedHint;
+        }
+
+        /// <summary>
+        /// (`AMBER320`) Ключ памяти раскрытия: род строки родителя и имя её слоя (у строки без
+        /// слоя — её подпись). Род различает «сумм-пик», «пики вылета» и «обратное рассеяние»
+        /// одного нуклида.
+        /// </summary>
+        static string GroupKey(FsaReportRow parent)
+        {
+            return parent.Kind + "|" + (parent.Layer != null ? parent.Layer.Name : parent.Name ?? string.Empty);
+        }
+
+        /// <summary>
+        /// (`AMBER320`, второй заход) Род строки-родителя под образцом — «— сумм-пик», «— пики вылета»,
+        /// «— обратное рассеяние»: место стрелки у неё есть всегда, со стрелкой или без, чтобы
+        /// тексты этих строк стояли в одну линию.
+        /// </summary>
+        static bool ReservesArrow(FsaReportRow row)
+        {
+            return row != null && (row.Kind == FsaReportRowKind.SumPeaks || row.Kind == FsaReportRowKind.EscapePeaks
+                                   || row.Kind == FsaReportRowKind.Backscatter);
+        }
+
+        /// <summary>(`AMBER320`) Пробы: забыть раскрытые группы — как при запуске программы.</summary>
+        public static void ForgetExpandedGroups()
+        {
+            ExpandedGroups.Clear();
+        }
+
         /// <summary>Ширина колонки значения, пикселей: «+12,3 / −45,6 %» помещается с запасом.</summary>
         const int ValueColumnWidth = 92;
 
@@ -294,6 +357,24 @@ namespace BecquerelMonitor
         //    (<see cref="OwnText"/>), а не пустота.
 
         const string KeyQualityHeader = "FSAReport_QualityHeader";
+
+        /// <summary>(`AMBER320`) Подпись свёрнутого родителя: «{0} ({1})» — подпись и число скрытых строк.</summary>
+        const string KeyGroupCaption = "FSAReport_GroupCaption";
+
+        /// <summary>(`AMBER320`) Подсказка свёрнутого родителя со суммой отсчётов; {0} — число скрытых строк.</summary>
+        const string KeyGroupTipSum = "FSAReport_GroupTipSum";
+
+        /// <summary>(`AMBER320`) Подсказка свёрнутого родителя без суммы (у потомков нет отсчётов числом).</summary>
+        const string KeyGroupTipCount = "FSAReport_GroupTipCount";
+
+        /// <summary>
+        /// (`AMBER320`, третий заход) Формы единственного числа обеих подсказок — по правилу
+        /// <see cref="OnePeakForm"/> (en: «1 row is hidden»; ru-текст согласования не требует и
+        /// совпадает с общим).
+        /// </summary>
+        const string KeyGroupTipSumOne = "FSAReport_GroupTipSumOne";
+
+        const string KeyGroupTipCountOne = "FSAReport_GroupTipCountOne";
         const string KeyResidualRow = "FSAReport_ResidualRow";
 
         /// <summary>
@@ -1019,6 +1100,7 @@ namespace BecquerelMonitor
             this.reportTable.Resize += this.ReportTable_Resize;
             this.reportTable.SelectionChanged += this.ReportTable_SelectionChanged;
             this.reportTable.CellMouseDown += this.ReportTable_CellMouseDown;
+            this.reportTable.KeyDown += this.ReportTable_KeyDown;       // (`AMBER320`) свёртка клавишами
             this.VisibleChanged += this.ConsumerStateChanged;
             this.DockStateChanged += this.ConsumerStateChanged;
             this.SetDocument(null);
@@ -2158,8 +2240,28 @@ namespace BecquerelMonitor
             {
                 this.tableModel.Rows.Clear();
                 bool blockOpened = false;
-                foreach (FsaReportRow row in rows)
+                for (int index = 0; index < rows.Count; index++)
                 {
+                    FsaReportRow row = rows[index];
+
+                    // ⛔ (`AMBER320`, решение Amber 07.11.2026: «Все потомки») Строка с отступом
+                    // (`Indent > 0`) — потомок ближайшей строки выше без отступа: подстрокой
+                    // XPTable (`Row.SubRows`), свёрнутой, пока группу не раскрыли стрелкой.
+                    // Строки остаются в `TableModel.Rows` — их читают пробы и сторож витрины.
+                    int children = 0;
+                    while (row.Indent == 0 && index + 1 + children < rows.Count
+                           && rows[index + 1 + children].Indent > 0)
+                    {
+                        children++;
+                    }
+
+                    if (children > 0)
+                    {
+                        this.AddGroup(row, rows.GetRange(index + 1, children), shownSource);
+                        index += children;
+                        continue;
+                    }
+
                     if (!blockOpened && IsQualityBlockRow(row))
                     {
                         blockOpened = true;
@@ -2192,6 +2294,249 @@ namespace BecquerelMonitor
             this.RestoreSelection(keep);
             this.FitColumns();
             this.UpdateAvailability();
+        }
+
+        /// <summary>
+        /// (`AMBER320`) Родитель и его потомки — одной группой XPTable: родитель строкой
+        /// таблицы, потомки — его подстроками (<see cref="Row.SubRows"/>, XPTable ставит их
+        /// в <see cref="TableModel.Rows"/> сразу за родителем), раскрытие — из памяти сеанса
+        /// (<see cref="ExpandedGroups"/>), по умолчанию свёрнуто.
+        ///
+        /// Свёрнутый родитель — решение Amber 07.11.2026 вопросником, дословно: «Сумму и число
+        /// строк (Рекомендую)»: значение — сумма отсчётов потомков ТЕМ ЖЕ форматом, что у
+        /// потомка (<c>FSASumPeakLineCounts</c>, число инвариантной культурой), подпись — с
+        /// числом скрытых строк. Сумма — из <see cref="FsaReportRow.Counts"/>, не из текста;
+        /// правило одно на все группы, заголовок собственной активности кристалла тоже (решение
+        /// Amber 08.11.2026 вопросником: «Сумма отсчётов (Рекомендую)»). Если хоть у одного
+        /// потомка отсчётов числом нет, суммы нет, только число строк.
+        /// Раскрытый родитель — ровно прежний вид строки.
+        /// </summary>
+        void AddGroup(FsaReportRow parent, List<FsaReportRow> children, FsaResult shownSource)
+        {
+            Row parentRow = this.MakeRow(parent, null, BetaOnlyRowTip(parent, shownSource), true);
+            this.tableModel.Rows.Add(parentRow);
+
+            double sum = 0.0;
+            bool summable = true;
+            foreach (FsaReportRow child in children)
+            {
+                parentRow.SubRows.Add(this.MakeRow(child, null, BetaOnlyRowTip(child, shownSource), false, true));
+                if (double.IsNaN(child.Counts) || double.IsInfinity(child.Counts))
+                {
+                    summable = false;
+                }
+                else
+                {
+                    sum += child.Counts;
+                }
+            }
+
+            Cell name = parentRow.Cells[0];
+            Cell value = parentRow.Cells[1];
+            string count = children.Count.ToString(CultureInfo.InvariantCulture);
+            var group = new RowGroup
+            {
+                Key = GroupKey(parent),
+                Hidden = children.Count,
+                ExpandedCaption = name.Text,
+                ExpandedValue = value.Text,
+                ExpandedHint = name.ToolTipText,
+                CollapsedCaption = string.Format(CultureInfo.InvariantCulture, OwnText(KeyGroupCaption), name.Text, count),
+                CollapsedValue = summable
+                    ? string.Format(CultureInfo.InvariantCulture, Resources.FSASumPeakLineCounts,
+                                    sum.ToString("f0", CultureInfo.InvariantCulture))
+                    : value.Text
+            };
+            bool one = OnePeakForm(children.Count);
+            string tip = string.Format(CultureInfo.InvariantCulture,
+                                       OwnText(summable ? (one ? KeyGroupTipSumOne : KeyGroupTipSum)
+                                                        : (one ? KeyGroupTipCountOne : KeyGroupTipCount)), count);
+            // (третий заход) подсказка, которая лишь повторяет подпись (у строки нет своей подсказки
+            // модели), не ставится перед строкой о свёртке: подпись и так видна
+            group.CollapsedHint = string.IsNullOrEmpty(group.ExpandedHint)
+                                  || string.Equals(group.ExpandedHint, group.ExpandedCaption, StringComparison.Ordinal)
+                ? tip : group.ExpandedHint + Environment.NewLine + tip;
+            name.Tag = group;
+
+            ApplyGroupState(parentRow, ExpandedGroups.Contains(group.Key));
+        }
+
+        /// <summary>(`AMBER320`) Группа строки таблицы; null — строка не родитель.</summary>
+        static RowGroup GroupOf(Row row)
+        {
+            return row != null && row.Cells.Count > 0 && row.Cells[0] != null ? row.Cells[0].Tag as RowGroup : null;
+        }
+
+        /// <summary>(`AMBER320`) Показать родителя раскрытым или свёрнутым: подстроки и текст ячеек.</summary>
+        static void ApplyGroupState(Row parentRow, bool expanded)
+        {
+            RowGroup group = GroupOf(parentRow);
+            if (group == null)
+            {
+                return;
+            }
+
+            parentRow.ExpandSubRows = expanded;
+            Cell name = parentRow.Cells[0];
+            Cell value = parentRow.Cells[1];
+            name.Text = expanded ? group.ExpandedCaption : group.CollapsedCaption;
+            name.ToolTipText = expanded ? group.ExpandedHint : group.CollapsedHint;
+            value.Text = expanded ? group.ExpandedValue : group.CollapsedValue;
+            value.ToolTipText = value.Text;
+        }
+
+        /// <summary>
+        /// (`AMBER320`) Раскрыть или свернуть группу строки <paramref name="rowIndex"/> — ТЕМ ЖЕ
+        /// путём, каким это делает щелчок по стрелке (<see cref="ReportTable_CellMouseDown"/>).
+        /// false — строка не родитель.
+        /// </summary>
+        public bool SetGroupExpanded(int rowIndex, bool expanded)
+        {
+            if (rowIndex < 0 || rowIndex >= this.tableModel.Rows.Count)
+            {
+                return false;
+            }
+
+            Row row = this.tableModel.Rows[rowIndex];
+            if (GroupOf(row) == null)
+            {
+                return false;
+            }
+
+            if (row.ExpandSubRows != expanded)
+            {
+                this.ToggleGroup(row);
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// (`AMBER320`, второй заход 08.11.2026) Свёртка с клавиатуры — по обычаю дерева Windows,
+        /// у ВЫБРАННОЙ строки и без модификаторов: «→» у свёрнутого родителя — раскрыть, у
+        /// раскрытого — перейти на первого потомка; «←» у раскрытого родителя — свернуть, у
+        /// потомка — перейти на родителя; Enter и Пробел у родителя — раскрыть/свернуть. Прочее
+        /// (стрелки на строке без группы, вверх/вниз, страницы) — штатная обработка таблицы: ключ
+        /// забирается (<c>Handled</c>) только когда он что-то сделал с группой.
+        /// </summary>
+        void ReportTable_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Modifiers != Keys.None || this.suspendSelection)
+            {
+                return;
+            }
+
+            int[] selected = this.tableModel.Selections.SelectedIndicies;
+            if (selected == null || selected.Length == 0 || selected[0] < 0 || selected[0] >= this.tableModel.Rows.Count)
+            {
+                return;
+            }
+
+            Row row = this.tableModel.Rows[selected[0]];
+            bool parent = GroupOf(row) != null;
+            bool child = row.Parent != null && GroupOf(row.Parent) != null;
+            bool handled = false;
+            switch (e.KeyCode)
+            {
+                case Keys.Right:
+                    if (parent && !row.ExpandSubRows)
+                    {
+                        this.ToggleGroup(row);
+                        handled = true;
+                    }
+                    else if (parent && row.SubRows.Count > 0)
+                    {
+                        this.SelectRowByKey(row.SubRows[0]);
+                        handled = true;
+                    }
+
+                    break;
+
+                case Keys.Left:
+                    if (parent && row.ExpandSubRows)
+                    {
+                        this.ToggleGroup(row);
+                        handled = true;
+                    }
+                    else if (child)
+                    {
+                        this.SelectRowByKey(row.Parent);
+                        handled = true;
+                    }
+
+                    break;
+
+                case Keys.Enter:
+                case Keys.Space:
+                    if (parent)
+                    {
+                        this.ToggleGroup(row);
+                        handled = true;
+                    }
+
+                    break;
+            }
+
+            if (handled)
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+            }
+        }
+
+        /// <summary>(`AMBER320`) Выбор строки клавишей: выбор и фокус ячейки — туда же, как у стрелок таблицы.</summary>
+        void SelectRowByKey(Row target)
+        {
+            int index = target.Index;
+            this.tableModel.Selections.SelectCell(index, 0);
+            this.reportTable.FocusedCell = new CellPos(index, 0);
+            this.reportTable.EnsureVisible(index, 0);
+        }
+
+        /// <summary>
+        /// (`AMBER320`) Щелчок по стрелке: группа меняет вид, память сеанса — запись. Выбор,
+        /// стоявший на скрываемом потомке, переезжает на родителя: на скрытой строке выбора быть
+        /// не должно, а слой у родителя тот же (строки сумм-пиков, вылета, рассеяния несут слой
+        /// своего нуклида), так что подсветка графика не меняется.
+        /// </summary>
+        void ToggleGroup(Row parentRow)
+        {
+            RowGroup group = GroupOf(parentRow);
+            if (group == null)
+            {
+                return;
+            }
+
+            bool expanded = !parentRow.ExpandSubRows;
+            if (expanded)
+            {
+                ExpandedGroups.Add(group.Key);
+            }
+            else
+            {
+                ExpandedGroups.Remove(group.Key);
+            }
+
+            bool selectionHidden = false;
+            if (!expanded)
+            {
+                foreach (Row child in parentRow.SubRows)
+                {
+                    if (child.AnyCellsSelected)
+                    {
+                        selectionHidden = true;
+                    }
+                }
+            }
+
+            ApplyGroupState(parentRow, expanded);
+            if (selectionHidden)
+            {
+                this.tableModel.Selections.SelectCell(parentRow.Index, 0);
+            }
+
+            this.FitColumns();
+            this.reportTable.Invalidate();
         }
 
         /// <summary>
@@ -3388,6 +3733,19 @@ namespace BecquerelMonitor
         /// </summary>
         void ReportTable_CellMouseDown(object sender, XPTable.Events.CellMouseEventArgs e)
         {
+            // (`AMBER320`) Щелчок левой кнопкой по стрелке родителя — левее его текста (стрелка
+            // и образец) — раскрывает или сворачивает группу. Выбор строки XPTable делает сам,
+            // как при любом щелчке: строка родителя выбирается, подсветка — её слоя.
+            if (e.Button == MouseButtons.Left && e.Column == 0
+                && e.Row >= 0 && e.Row < this.tableModel.Rows.Count)
+            {
+                Row row = this.tableModel.Rows[e.Row];
+                if (GroupOf(row) != null && e.X - e.CellRect.X <= row.Cells[0].Padding.Left + 1)
+                {
+                    this.ToggleGroup(row);
+                }
+            }
+
             if (this.suspendSelection || e.Row < 0 || e.Row >= this.tableModel.Rows.Count
                 || !this.tableModel.Rows[e.Row].AnyCellsSelected)
             {
@@ -3530,7 +3888,16 @@ namespace BecquerelMonitor
         /// подсказка модели. Нужна строке невязки: подрезка показа — свойство
         /// ОКНА, модель о ней не знает и знать не должна.
         /// </param>
-        Row MakeRow(FsaReportRow row, string caption = null, string hint = null)
+        /// <param name="expander">
+        /// (`AMBER320`) Строка — родитель группы: перед текстом место под стрелку свёртки
+        /// (<see cref="ArrowWidth"/>), образец остаётся на прежнем месте.
+        /// </param>
+        /// <param name="underExpander">
+        /// (`AMBER320`) Строка — потомок родителя со стрелкой: отступ сдвинут на ту же стрелку,
+        /// чтобы текст потомка стоял на прежний шаг (<see cref="IndentStep"/>) правее текста родителя.
+        /// </param>
+        Row MakeRow(FsaReportRow row, string caption = null, string hint = null,
+                    bool expander = false, bool underExpander = false)
         {
             Color fore = row.Kind == FsaReportRowKind.Status && row.Warning
                 ? Color.DarkOrange
@@ -3541,14 +3908,22 @@ namespace BecquerelMonitor
             // штатными (<see cref="SwatchTextCellRenderer"/>).
             // (`AMBER274`, Ф14) подпись — с пометкой строки по сплошному спектру
             var name = new Cell(caption ?? RowCaption(row), this.SwatchOf(row));
+            // (`AMBER320`, второй заход) Строка рода «родитель» без потомков (у «— сумм-пик» нет
+            // заметных пиков) держит место стрелки пустым: текст встаёт вровень с соседями со стрелкой.
+            int arrow = expander || underExpander || ReservesArrow(row) ? ArrowWidth : 0;
             if (name.Image != null)
             {
-                name.Padding = new CellPadding(SwatchWidth + SwatchGap, 0, 0, 0);
+                name.Padding = new CellPadding(SwatchWidth + SwatchGap + arrow, 0, 0, 0);
             }
             else if (row.Indent > 0)
             {
                 // (`AMBER286`) строка под строкой нуклида: текст — под его текстом и на шаг правее
-                name.Padding = new CellPadding(SwatchWidth + SwatchGap + IndentStep * row.Indent, 0, 0, 0);
+                name.Padding = new CellPadding(SwatchWidth + SwatchGap + IndentStep * row.Indent + arrow, 0, 0, 0);
+            }
+            else if (arrow > 0)
+            {
+                // (`AMBER320`) родитель без образца (заголовок собственной активности кристалла)
+                name.Padding = new CellPadding(arrow, 0, 0, 0);
             }
 
             var value = new Cell(row.Value ?? string.Empty);
@@ -3658,15 +4033,37 @@ namespace BecquerelMonitor
             {
                 base.OnPaint(e);
                 Image image = e.Cell != null ? e.Cell.Image : null;
+
+                // (`AMBER320`) Родитель группы: стрелка между образцом и текстом — «▶» свёрнуто,
+                // «▼» раскрыто; образец сдвигается влево на её место и стоит, где стоял.
+                bool expander = e.Cell != null && GroupOf(e.Cell.Row) != null;
+                Rectangle client = this.ClientRectangle;
+                int line = this.Font != null ? this.Font.Height : SwatchHeight;
+                int top = client.Y;
+                int lineHeight = Math.Min(line, client.Height);
+                if (expander)
+                {
+                    int ax = client.X - ArrowWidth;
+                    int ay = top + Math.Max(0, (lineHeight - ArrowGlyph) / 2);
+                    Point[] glyph = e.Cell.Row.ExpandSubRows
+                        ? new[] { new Point(ax, ay + 1), new Point(ax + ArrowGlyph, ay + 1),
+                                  new Point(ax + ArrowGlyph / 2, ay + ArrowGlyph - 1) }
+                        : new[] { new Point(ax + 1, ay), new Point(ax + ArrowGlyph - 1, ay + ArrowGlyph / 2),
+                                  new Point(ax + 1, ay + ArrowGlyph) };
+                    System.Drawing.Drawing2D.SmoothingMode mode = e.Graphics.SmoothingMode;
+                    e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                    e.Graphics.FillPolygon(Brushes.DimGray, glyph);
+                    e.Graphics.SmoothingMode = mode;
+                }
+
                 if (image == null)
                 {
                     return;
                 }
 
-                Rectangle client = this.ClientRectangle;
-                int line = this.Font != null ? this.Font.Height : image.Height;
-                int x = client.X - SwatchGap - image.Width;
-                int y = client.Y + Math.Max(0, (Math.Min(line, client.Height) - image.Height) / 2);
+                bool arrowSpace = expander || ReservesArrow(e.Cell.Row.Tag as FsaReportRow);
+                int x = client.X - SwatchGap - image.Width - (arrowSpace ? ArrowWidth : 0);
+                int y = top + Math.Max(0, (Math.Min(line, client.Height) - image.Height) / 2);
                 e.Graphics.DrawImage(image, x, y, image.Width, image.Height);
             }
         }

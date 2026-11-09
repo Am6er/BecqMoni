@@ -3693,10 +3693,12 @@ namespace FsaReportViewProbe
 
                 have.Add(model.Kind + "|" + (model.Name ?? string.Empty) + "|" + (model.Value ?? string.Empty));
                 string caption = model.Kind == FsaReportRowKind.Residual ? residualCaption : model.Name ?? string.Empty;
-                if (row.Cells[0].Text != caption || row.Cells[1].Text != (model.Value ?? string.Empty))
+                string value = model.Value ?? string.Empty;
+                CollapsedCells(row, ref caption, ref value);
+                if (row.Cells[0].Text != caption || row.Cells[1].Text != value)
                 {
                     cells.Add("ячейки «" + row.Cells[0].Text + " | " + row.Cells[1].Text
-                              + "» вместо «" + caption + " | " + (model.Value ?? string.Empty) + "»");
+                              + "» вместо «" + caption + " | " + value + "»");
                 }
             }
 
@@ -3714,6 +3716,44 @@ namespace FsaReportViewProbe
             }
 
             return cells.Count == 0 ? string.Empty : string.Join("; ", cells);
+        }
+
+        /// <summary>
+        /// (`AMBER320`, 08.11.2026) Свёрнутый родитель группы (строки с отступом — его подстроки,
+        /// решения Amber 07.11.2026 «Все потомки», «Сумму и число строк»): подпись —
+        /// <c>FSAReport_GroupCaption</c> «{подпись} ({n})», значение — Σ <see cref="FsaReportRow.Counts"/>
+        /// потомков их же форматом (шаблон снимается с ячейки первого потомка); у потомков без
+        /// отсчётов числом значение прежнее. Раскрытый родитель — прежние ячейки.
+        /// </summary>
+        static void CollapsedCells(Row row, ref string caption, ref string value)
+        {
+            if (row.SubRows.Count == 0 || row.ExpandSubRows)
+            {
+                return;
+            }
+
+            caption = string.Format(CultureInfo.InvariantCulture, Own("FSAReport_GroupCaption"), caption,
+                                    row.SubRows.Count.ToString(CultureInfo.InvariantCulture));
+            double sum = 0.0;
+            foreach (Row child in row.SubRows)
+            {
+                var model = (FsaReportRow)child.Tag;
+                if (double.IsNaN(model.Counts) || double.IsInfinity(model.Counts))
+                {
+                    return;
+                }
+
+                sum += model.Counts;
+            }
+
+            // Формат — строка ресурса приложения `FSASumPeakLineCounts` (внутренний класс — отражением):
+            // одна на все группы, заголовок кристалла тоже (решение Amber 08.11.2026 «Сумма отсчётов»).
+            Type resources = typeof(FSAReportView).Assembly.GetType("BecquerelMonitor.Properties.Resources");
+            const BindingFlags all = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+            var manager = (System.Resources.ResourceManager)resources.GetProperty("ResourceManager", all).GetValue(null, null);
+            var culture = (CultureInfo)resources.GetProperty("Culture", all).GetValue(null, null);
+            string format = manager.GetString("FSASumPeakLineCounts", culture ?? CultureInfo.CurrentUICulture);
+            value = string.Format(CultureInfo.InvariantCulture, format, sum.ToString("f0", CultureInfo.InvariantCulture));
         }
 
         /// <summary>
@@ -4134,7 +4174,16 @@ namespace FsaReportViewProbe
                     }
 
                     Same(lang + ": окно — подпись, значение и подсказка ячеек = модели", true, cells);
-                    Same(lang + ": окно — отступ подписи строки пика 36 пикселей (образец + шаг)", 36, indent);
+                    // (`AMBER320`, 08.11.2026) Строка пика — подстрока «— сумм-пик», у родителя перед текстом
+                    // стрелка свёртки (12 px): отступ строки пика 36 + 12, текст родителя 18 + 12 — прежний шаг
+                    // 18 px между ними (`AMBER286`: «текстом под текст строки нуклида и ещё на шаг правее»).
+                    Same(lang + ": окно — отступ подписи строки пика 48 пикселей (образец + стрелка родителя + шаг)", 48, indent);
+                    Row parentRow = lines.Count > 0 ? lines[0].Parent : null;
+                    Same(lang + ": окно — строка пика — подстрока строки «— сумм-пик»", true,
+                         parentRow != null && parentRow.Tag is FsaReportRow
+                         && ((FsaReportRow)parentRow.Tag).Kind == FsaReportRowKind.SumPeaks);
+                    Same(lang + ": окно — текст строки пика на 18 пикселей правее текста её родителя", 18,
+                         parentRow != null ? indent - parentRow.Cells[0].Padding.Left : -1);
                     Denies(lang + ": контроль — ключ ресурса вместо перевода в строке пика",
                            lines.Count > 0 && (lines[0].Cells[0].Text.Contains("FSASumPeak") || lines[0].Cells[1].Text.Contains("FSASumPeak")));
                 }

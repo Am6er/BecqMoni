@@ -187,6 +187,21 @@
   <data name="FSAReport_QualityHeader" xml:space="preserve">
     <value>Качество разбора</value>
   </data>
+  <data name="FSAReport_GroupCaption" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="FSAReport_GroupTipSum" xml:space="preserve">
+    <value>Свёрнуто, скрыто строк: {0}. Значение — сумма отсчётов скрытого. Стрелка перед подписью (или клавиша →) раскрывает группу.</value>
+  </data>
+  <data name="FSAReport_GroupTipSumOne" xml:space="preserve">
+    <value>Свёрнуто, скрыто строк: {0}. Значение — сумма отсчётов скрытого. Стрелка перед подписью (или клавиша →) раскрывает группу.</value>
+  </data>
+  <data name="FSAReport_GroupTipCount" xml:space="preserve">
+    <value>Свёрнуто, скрыто строк: {0}. Стрелка перед подписью (или клавиша →) раскрывает группу.</value>
+  </data>
+  <data name="FSAReport_GroupTipCountOne" xml:space="preserve">
+    <value>Свёрнуто, скрыто строк: {0}. Стрелка перед подписью (или клавиша →) раскрывает группу.</value>
+  </data>
   <data name="FSAReport_ResidualRow" xml:space="preserve">
     <value>Расхождение модели и спектра: + / −</value>
   </data>
