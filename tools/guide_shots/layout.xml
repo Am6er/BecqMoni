@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-16"?>
+<!--DockPanel configuration file. Author: Weifen Luo, all rights reserved.-->
+<!--!!! AUTOMATICALLY GENERATED FILE. DO NOT MODIFY !!!-->
+<DockPanel FormatVersion="1.0" DockLeftPortion="0.16913412626045" DockRightPortion="0.252096436058701" DockTopPortion="0.367154811715481" DockBottomPortion="0.25" ActiveDocumentPane="8" ActivePane="8">
+  <Contents Count="10">
+    <Content ID="0" PersistString="BecquerelMonitor.DCControlPanel" AutoHidePortion="0.252620545073376" IsHidden="False" IsFloat="False" />
+    <Content ID="1" PersistString="BecquerelMonitor.DCEnergyCalibrationView" AutoHidePortion="0.252620545073376" IsHidden="False" IsFloat="False" />
+    <Content ID="2" PersistString="BecquerelMonitor.DCPeakDetectionView" AutoHidePortion="0.252620545073376" IsHidden="False" IsFloat="False" />
+    <Content ID="3" PersistString="BecquerelMonitor.DCSampleInfoView" AutoHidePortion="0.252620545073376" IsHidden="False" IsFloat="False" />
+    <Content ID="4" PersistString="BecquerelMonitor.DCSpectrumListView" AutoHidePortion="0.252620545073376" IsHidden="False" IsFloat="False" />
+    <Content ID="5" PersistString="BecquerelMonitor.DCPulseView" AutoHidePortion="0.219601677148848" IsHidden="True" IsFloat="False" />
+    <Content ID="6" PersistString="BecquerelMonitor.DCResultView,Becquerels, Nothing" AutoHidePortion="0.252620545073376" IsHidden="False" IsFloat="False" />
+    <Content ID="7" PersistString="BecquerelMonitor.DCCountRateView" AutoHidePortion="0.219601677148848" IsHidden="True" IsFloat="True" />
+    <Content ID="8" PersistString="BecquerelMonitor.FSAReportView" AutoHidePortion="0.238316516197557" IsHidden="False" IsFloat="False" />
+    <Content ID="9" PersistString="BecquerelMonitor.DocEnergySpectrum,{DOC}" AutoHidePortion="0.25" IsHidden="False" IsFloat="False" />
+  </Contents>
+  <Panes Count="9">
+    <Pane ID="0" DockState="Float" ActiveContent="-1">
+      <Contents Count="1">
+        <Content ID="0" RefID="2" />
+      </Contents>
+    </Pane>
+    <Pane ID="1" DockState="DockRight" ActiveContent="-1">
+      <Contents Count="1">
+        <Content ID="0" RefID="5" />
+      </Contents>
+    </Pane>
+    <Pane ID="2" DockState="Float" ActiveContent="-1">
+      <Contents Count="1">
+        <Content ID="0" RefID="4" />
+      </Contents>
+    </Pane>
+    <Pane ID="3" DockState="DockRight" ActiveContent="0">
+      <Contents Count="3">
+        <Content ID="0" RefID="0" />
+        <Content ID="1" RefID="1" />
+        <Content ID="2" RefID="3" />
+      </Contents>
+    </Pane>
+    <Pane ID="4" DockState="Float" ActiveContent="-1">
+      <Contents Count="3">
+        <Content ID="0" RefID="0" />
+        <Content ID="1" RefID="1" />
+        <Content ID="2" RefID="3" />
+      </Contents>
+    </Pane>
+    <Pane ID="5" DockState="DockRight" ActiveContent="2">
+      <Contents Count="4">
+        <Content ID="0" RefID="2" />
+        <Content ID="1" RefID="4" />
+        <Content ID="2" RefID="6" />
+        <Content ID="3" RefID="7" />
+      </Contents>
+    </Pane>
+    <Pane ID="6" DockState="Float" ActiveContent="-1">
+      <Contents Count="1">
+        <Content ID="0" RefID="7" />
+      </Contents>
+    </Pane>
+    <Pane ID="7" DockState="DockLeft" ActiveContent="8">
+      <Contents Count="1">
+        <Content ID="0" RefID="8" />
+      </Contents>
+    </Pane>
+    <Pane ID="8" DockState="Document" ActiveContent="9">
+      <Contents Count="1">
+        <Content ID="0" RefID="9" />
+      </Contents>
+    </Pane>
+  </Panes>
+  <DockWindows>
+    <DockWindow ID="0" DockState="Document" ZOrderIndex="0">
+      <NestedPanes Count="1">
+        <Pane ID="0" RefID="8" PrevPane="-1" Alignment="Right" Proportion="0.5" />
+      </NestedPanes>
+    </DockWindow>
+    <DockWindow ID="1" DockState="DockLeft" ZOrderIndex="1">
+      <NestedPanes Count="1">
+        <Pane ID="0" RefID="7" PrevPane="-1" Alignment="Bottom" Proportion="0.5" />
+      </NestedPanes>
+    </DockWindow>
+    <DockWindow ID="2" DockState="DockRight" ZOrderIndex="2">
+      <NestedPanes Count="3">
+        <Pane ID="0" RefID="1" PrevPane="-1" Alignment="Bottom" Proportion="0.5" />
+        <Pane ID="1" RefID="3" PrevPane="1" Alignment="Bottom" Proportion="0.465481171548118" />
+        <Pane ID="2" RefID="5" PrevPane="3" Alignment="Bottom" Proportion="0.435789473684211" />
+      </NestedPanes>
+    </DockWindow>
+    <DockWindow ID="3" DockState="DockTop" ZOrderIndex="3">
+      <NestedPanes Count="0" />
+    </DockWindow>
+    <DockWindow ID="4" DockState="DockBottom" ZOrderIndex="4">
+      <NestedPanes Count="0" />
+    </DockWindow>
+  </DockWindows>
+  <FloatWindows Count="4">
+    <FloatWindow ID="0" Bounds="78, 78, 400, 300" ZOrderIndex="0">
+      <NestedPanes Count="1">
+        <Pane ID="0" RefID="2" PrevPane="-1" Alignment="Right" Proportion="0.5" />
+      </NestedPanes>
+    </FloatWindow>
+    <FloatWindow ID="1" Bounds="1520, 460, 400, 300" ZOrderIndex="1">
+      <NestedPanes Count="1">
+        <Pane ID="0" RefID="0" PrevPane="-1" Alignment="Right" Proportion="0.5" />
+      </NestedPanes>
+    </FloatWindow>
+    <FloatWindow ID="2" Bounds="1380, 212, 400, 300" ZOrderIndex="2">
+      <NestedPanes Count="1">
+        <Pane ID="0" RefID="4" PrevPane="-1" Alignment="Right" Proportion="0.5" />
+      </NestedPanes>
+    </FloatWindow>
+    <FloatWindow ID="3" Bounds="648, 303, 400, 300" ZOrderIndex="3">
+      <NestedPanes Count="1">
+        <Pane ID="0" RefID="6" PrevPane="-1" Alignment="Right" Proportion="0.5" />
+      </NestedPanes>
+    </FloatWindow>
+  </FloatWindows>
+</DockPanel>
