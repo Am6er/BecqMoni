@@ -6785,6 +6785,14 @@ namespace XPTable.Models
         {
             base.OnKeyDown(e);
 
+            // (AMBER320) A KeyDown handler that took the key (Handled) owns it: the table
+            // must not also move the focused cell, as the WinForms contract says. The FSA
+            // report expands and collapses row groups with the arrow keys this way.
+            if (e.Handled)
+            {
+                return;
+            }
+
             if (this.IsValidCell(this.FocusedCell))
             {
                 if (this.IsReservedKey(e.KeyData))

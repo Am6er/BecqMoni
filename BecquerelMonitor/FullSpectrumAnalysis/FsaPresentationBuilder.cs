@@ -529,6 +529,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         Value = value,
                         Muted = true,
                         Indent = 1,
+                        // (`AMBER320`, решение Amber 08.11.2026 вопросником: «Сумма отсчётов (Рекомендую)»)
+                        // свёрнутый заголовок складывает отсчёты строк, как прочие группы
+                        Counts = own.Counts,
                         Hint = CrystalOwnText("FSAReportCrystalOwnHint"),
                     });
                 }
@@ -922,6 +925,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Color = color,
                 Layer = layer,
                 Indent = 1,
+                Counts = group.Counts,          // (`AMBER320`) сумма у свёрнутого родителя
                 Hint = string.Join(Environment.NewLine, hint.ToArray())
             };
         }
@@ -1071,6 +1075,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Color = color,
                     Layer = layer,
                     Indent = 1,
+                    Counts = group.Counts,      // (`AMBER320`)
                     Hint = string.Join(Environment.NewLine, hint.ToArray())
                 });
             }
@@ -1113,6 +1118,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Color = color,
                 Layer = layer,
                 Indent = 1,
+                Counts = group.Counts,          // (`AMBER320`)
                 Hint = string.Join(Environment.NewLine, hint.ToArray())
             };
         }
