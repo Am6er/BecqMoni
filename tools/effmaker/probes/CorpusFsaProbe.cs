@@ -3806,6 +3806,16 @@ namespace CorpusFsaProbe
                 FsaEfficiency efficiency = FsaEfficiency.FromConfig(rd.Efficiency);
                 row.EfficiencyName = rd.Efficiency != null ? rd.Efficiency.Name : "";
 
+                // (`AMBER326`) след заходов ядра и решений сторожа автомаски — в файл из переменной окружения
+                // BQ_FSA_CORE_TRACE (замер полосы; без переменной — ни строки, числа разбора след не трогает)
+                string coreTracePath = Environment.GetEnvironmentVariable("BQ_FSA_CORE_TRACE");
+                if (!string.IsNullOrEmpty(coreTracePath))
+                {
+                    string traceKey = row.Key;
+                    FsaAnalyzer.ProbeCoreTrace = line => System.IO.File.AppendAllText(
+                        coreTracePath, traceKey + "\t" + line + "\n", new System.Text.UTF8Encoding(false));
+                }
+
                 FsaResult result = analyzer.Analyze(rd.EnergySpectrum, background,
                                                     rd.FwhmCalibration, library, efficiency);
                 row.Ms = clock.Elapsed.TotalMilliseconds;
