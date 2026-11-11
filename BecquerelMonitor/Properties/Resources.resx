@@ -43202,6 +43202,18 @@ Use {1} % from the device calibration?</value>
   <data name="EfficiencySketchHiddenHint" xml:space="preserve">
     <value>hidden outlines are dashed</value>
   </data>
+  <data name="EfficiencySketchDetectorSideView" xml:space="preserve">
+    <value>View from the detector side</value>
+  </data>
+  <data name="EfficiencySketchDetectorSideHint" xml:space="preserve">
+    <value>Looking along the axis from the detector at the sample</value>
+  </data>
+  <data name="EfficiencySketchFromSampleCheck" xml:space="preserve">
+    <value>From the sample side</value>
+  </data>
+  <data name="EfficiencySketchFromSampleShort" xml:space="preserve">
+    <value>from sample</value>
+  </data>
   <data name="EfficiencySketchDepth" xml:space="preserve">
     <value>Depth: {0} {1}</value>
   </data>

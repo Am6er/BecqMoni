@@ -135,7 +135,7 @@
 
   /* ── снимки окон: img/<язык>/<id>.png, точки из data-hot (доли ширины/высоты) ── */
   // версия снимков: её ставит tools/docs_stamp.py перед заливкой — новый снимок под старым именем не берётся из кэша (`AMBER248`)
-  const IMGV = 'a5e2c9c3';
+  const IMGV = '8d9a790d';
   function buildShots() {
     $$('figure.shot[data-shot]').forEach(fig => {
       const id = fig.dataset.shot;

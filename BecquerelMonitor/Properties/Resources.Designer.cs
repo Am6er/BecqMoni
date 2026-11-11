@@ -5305,6 +5305,42 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to View from the detector side.
+        /// </summary>
+        public static string EfficiencySketchDetectorSideView {
+            get {
+                return ResourceManager.GetString("EfficiencySketchDetectorSideView", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Looking along the axis from the detector at the sample.
+        /// </summary>
+        public static string EfficiencySketchDetectorSideHint {
+            get {
+                return ResourceManager.GetString("EfficiencySketchDetectorSideHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to From the sample side.
+        /// </summary>
+        public static string EfficiencySketchFromSampleCheck {
+            get {
+                return ResourceManager.GetString("EfficiencySketchFromSampleCheck", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to from sample.
+        /// </summary>
+        public static string EfficiencySketchFromSampleShort {
+            get {
+                return ResourceManager.GetString("EfficiencySketchFromSampleShort", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Depth: {0} {1}.
         /// </summary>
         public static string EfficiencySketchDepth {
