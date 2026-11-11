@@ -46086,7 +46086,7 @@ The file and its previous copy will not change.</value>
     <value>Taken from the file: {0}.</value>
   </data>
   <data name="GdmlUnusedHeader" xml:space="preserve">
-    <value>Not used in the geometry: {0} parts, {1} g</value>
+    <value>Not used in the geometry: parts {0}, {1} g</value>
   </data>
   <data name="GdmlWhyCrystalShape" xml:space="preserve">
     <value>the crystal is neither a cylinder nor a box</value>
