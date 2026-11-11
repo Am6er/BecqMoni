@@ -5287,11 +5287,20 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Looking along the axis from the detector, away from it.
+        ///   Looks up a localized string similar to Looking along the axis from the sample at the detector.
         /// </summary>
         public static string EfficiencySketchTopHint {
             get {
                 return ResourceManager.GetString("EfficiencySketchTopHint", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to hidden outlines are dashed.
+        /// </summary>
+        public static string EfficiencySketchHiddenHint {
+            get {
+                return ResourceManager.GetString("EfficiencySketchHiddenHint", resourceCulture);
             }
         }
 
@@ -10471,7 +10480,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Top view.
+        ///   Looks up a localized string similar to View from the sample side.
         /// </summary>
         public static string EfficiencySketchTopView {
             get {

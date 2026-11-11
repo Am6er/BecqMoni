@@ -1823,7 +1823,10 @@
     <value>Разрез по оси сцены</value>
   </data>
   <data name="EfficiencySketchTopHint" xml:space="preserve">
-    <value>Взгляд вдоль оси со стороны детектора, наружу от него</value>
+    <value>Взгляд вдоль оси со стороны пробы на детектор</value>
+  </data>
+  <data name="EfficiencySketchHiddenHint" xml:space="preserve">
+    <value>невидимый контур — штриховой</value>
   </data>
   <data name="EfficiencySketchDepth" xml:space="preserve">
     <value>Глубина: {0} {1}</value>
@@ -3939,7 +3942,7 @@ http://xptable.sourceforge.net/</value>
     <value>Вид сбоку</value>
   </data>
   <data name="EfficiencySketchTopView" xml:space="preserve">
-    <value>Вид сверху</value>
+    <value>Вид со стороны пробы</value>
   </data>
   <data name="GeometryEditorTabShield" xml:space="preserve">
     <value>Защита</value>

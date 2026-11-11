@@ -22,6 +22,8 @@ namespace GdmlSketchProbeA304
 {
     /// <summary>
     /// ПРИЁМКА `AMBER292` (чертёж) и `AMBER304` (чертёж, форма, панель, ключи), 05.11.2026.
+    /// (`AMBER324`, 08.11.2026) Все числа горизонтальны: заслон ГОСТ отказывает повёрнутому числу размера
+    /// (рамка выше своей ширины), у вертикального размера число стоит слева от линии; контроль — прошлая раскладка.
     ///
     ///     gdmlsketchprobea304 [--data=&lt;каталог&gt;] [--real=&lt;каталог&gt;] [--more=&lt;каталог&gt;]...
     ///                         [--tmp=&lt;каталог&gt;] [--shots=&lt;каталог&gt;]
@@ -690,6 +692,13 @@ namespace GdmlSketchProbeA304
                     }
                 }
 
+                // (`AMBER324`) Решение Amber 08.11.2026 вопросником, дословно: «Все числа горизонтально (Рекомендую)».
+                // Число размера в рамке выше своей ширины — повёрнутое: однознаковое не судится, у него рамка и так узкая.
+                if (mark.Key.Length >= 2 && mark.Value.Height > mark.Value.Width && lines.Any(x => x.Key == mark.Key && x.Kind == GeometrySketch.DimLineKind.Dimension))
+                {
+                    found.Add("число повёрнуто: " + mark.Key);
+                }
+
                 if (lines.Any(x => x.Key == mark.Key))
                 {
                     foreach (RectangleF contour in contours)
@@ -772,15 +781,16 @@ namespace GdmlSketchProbeA304
                 }
             }
 
-            // Над линией, а не в её разрыве.
+            // Над линией, а не в её разрыве. (`AMBER324`) У вертикальной — горизонтальное число рядом с ней, в 4 точках: слева
+            // или, в тесноте, справа, со стороны тела.
             foreach (GeometrySketch.DimLine line in lines.Where(x => x.Kind == GeometrySketch.DimLineKind.Dimension))
             {
                 bool bottom = line.Side == GeometrySketch.DimSide.Bottom;
                 float at = bottom ? line.A.Y : line.A.X;
-                bool above = marks.Any(m => m.Key == line.Key && (bottom ? Math.Abs(m.Value.Bottom + 1f - at) < 0.1f : Math.Abs(m.Value.Right + 1f - at) < 0.1f));
+                bool above = marks.Any(m => m.Key == line.Key && (bottom ? Math.Abs(m.Value.Bottom + 1f - at) < 0.1f : (Math.Abs(m.Value.Right + 4f - at) < 0.1f || Math.Abs(m.Value.Left - 4f - at) < 0.1f)));
                 if (!above)
                 {
-                    Check(name, false, "ГОСТ: число не над линией: " + line.Key);
+                    Check(name, false, "ГОСТ: число не у линии: " + line.Key);
                 }
             }
         }
@@ -801,6 +811,8 @@ namespace GdmlSketchProbeA304
             };
             List<string> found = GostFound(marks, lines, new[] { RectangleF.FromLTRB(28.1f, 210f, 265f, 417f) });
             Check("заслон ГОСТ на прошлой раскладке", found.Contains("линия через число: 83 mm") && found.Contains("линия через число: 63 mm"), "отказов " + found.Count);
+            // (`AMBER324`) Тот же положительный контроль для поворота: вертикальное «63 mm» прошлой раскладки повёрнуто, горизонтальное «83 mm» нет.
+            Check("заслон ГОСТ видит повёрнутое число прошлой раскладки", found.Contains("число повёрнуто: 63 mm") && !found.Contains("число повёрнуто: 83 mm"), string.Join("; ", found));
         }
 
         /// <summary>Читатель неконечного больше не отдаёт; чертёж не должен на него полагаться, поэтому геометрия руками.</summary>
