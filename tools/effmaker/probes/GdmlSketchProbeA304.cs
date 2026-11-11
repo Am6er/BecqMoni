@@ -2060,17 +2060,18 @@ namespace GdmlSketchProbeA304
                 Check("битый файл: причина в журнале", log.Text.Contains("broken.gdml"), log.Text.Trim());
 
                 imported = Import(form, good, out problem);
-                Check("исправный: режим включён", imported && panel.GdmlMode && !StateEnabled(calc), state());
+                Check("исправный без кристалла: файл показан, поля прежние, «Расчёт» жив (`AMBER322`)",
+                      imported && panel.GdmlMode && panel.GdmlTaken == GdmlParts.None && StateEnabled(calc), state());
                 GdmlGeometry shown = sketch.Geometry;
                 imported = Import(form, broken, out problem);
                 Check("битый поверх показанного: прежний импорт на месте", !imported && problem != null && panel.GdmlMode && ReferenceEquals(shown, sketch.Geometry), state());
 
                 panel.ClearGdml();
-                Check("выход: строка в журнале и в статусе", log.Text.Contains("GDML view is closed") && status.Text.Contains("GDML view is closed"), status.Text);
-                Check("выход: «Расчёт» вернулся", StateEnabled(calc), state());
+                Check("выход: «Расчёт» жив", StateEnabled(calc) && !panel.GdmlMode, state());
 
                 imported = Import(form, good, out problem);
-                Check("импорт после выхода: статус про показ, а не про выход", imported && status.Text.Contains("37_ctrl_gp.gdml") && status.Text.Contains("GDML geometry is shown"), status.Text);
+                Check("импорт после выхода: статус называет файл и причину, почему поля не заполнены",
+                      imported && status.Text.Contains("37_ctrl_gp.gdml") && status.Text.Contains("Fields unchanged"), status.Text);
 
                 // Заслон: причина в журнале и в Trace, по разу на геометрию.
                 using (StringWriter traced = new StringWriter())
@@ -2121,9 +2122,9 @@ namespace GdmlSketchProbeA304
                     }
 
                     Application.DoEvents();
-                    Check("счёт кончился при показанном GDML: кнопка погашена", !StateEnabled(calc) && !(bool)busy.Invoke(form, null), state());
+                    Check("счёт кончился при показанном GDML: кнопка жива (`AMBER322`)", StateEnabled(calc) && !(bool)busy.Invoke(form, null), state());
                     panel.ClearGdml();
-                    Check("выход из GDML: кнопка вернулась", StateEnabled(calc), state());
+                    Check("выход из GDML: кнопка жива", StateEnabled(calc), state());
                 }
 
                 // Удачный счёт, кончившийся при показанном GDML: кривая запомнена, но на графике её нет.
@@ -2146,7 +2147,7 @@ namespace GdmlSketchProbeA304
                     }
 
                     Application.DoEvents();
-                    Check("счёт кончился при показе: кривая запомнена, на графике нет", ReferenceEquals(Member(form, "lastResult"), done) && Field(graph, "result") == null, "");
+                    Check("счёт кончился при показе: кривая запомнена и на графике (`AMBER322`)", ReferenceEquals(Member(form, "lastResult"), done) && ReferenceEquals(Field(graph, "result"), done), "");
                     panel.ClearGdml();
                     Check("выход: кривая счёта на графике", ReferenceEquals(Field(graph, "result"), done), "");
                 }
@@ -2200,35 +2201,27 @@ namespace GdmlSketchProbeA304
                 string problem;
                 object[] args = { good, null };
                 typeof(EfficiencyMakerForm).GetMethod("ImportGdmlFile", Any).Invoke(form, args);
-                Check("показ GDML: прежней кривой на графике нет", Field(graph, "result") == null, "");
-                Check("показ GDML: `Экспорт CSV` погашен", !StateEnabled(export), "Export=" + StateEnabled(export));
-                Check("показ GDML: «Сохранить» погашена", !StateEnabled(save), "Save=" + StateEnabled(save));
-                string hidden = (string)Field(graph, "emptyNote");
-                Check("показ GDML: на пустом графике причина", !string.IsNullOrEmpty(hidden) && hidden.Contains("GDML"), hidden);
-                string plain = form.GetType().Assembly.GetType("BecquerelMonitor.Properties.Resources").GetProperty("EfficiencyMakerGraphEmpty", Any).GetValue(null) as string;
-                int withNote = GraphInk(graph);
-                Field(graph, "emptyNote");
-                graph.SetEmptyNote(null);
-                int withoutNote = GraphInk(graph);
-                graph.SetEmptyNote(hidden);
-                Check("показ GDML: подпись нарисована, а не только задана", withNote != withoutNote && withNote > 0, "точек с причиной " + withNote + ", с прежней надписью «" + plain + "» " + withoutNote + "; с кривой было " + before);
+                Check("показ GDML: кривая на графике осталась (`AMBER322`)", ReferenceEquals(Field(graph, "result"), fit), "");
+                Check("показ GDML: `Экспорт CSV` доступен", StateEnabled(export), "Export=" + StateEnabled(export));
+                Check("показ GDML: «Сохранить» доступна", StateEnabled(save), "Save=" + StateEnabled(save));
+                Check("показ GDML: на графике нет причины-заглушки", Field(graph, "emptyNote") == null, "");
+                Check("график с кривой нарисован", before > 0 && GraphInk(graph) == before, "точек " + before);
 
                 TabControl tabs = (TabControl)Field(panel, "tabs");
                 TextBox field = FirstEditable(tabs.TabPages[1]);
                 field.Text = field.Text + "1";
                 problem = status.Text;
-                Check("правка поля «Источник»: импорт снят и это сказано", !panel.GdmlMode && log.Text.Contains("GDML view is closed") && problem.Contains("GDML view is closed"), problem);
-                Check("после выхода: кривая и выгрузка вернулись", ReferenceEquals(Field(graph, "result"), fit) && StateEnabled(export), "Export=" + StateEnabled(export));
-                Check("после выхода: «Сохранить» вернулась, причины на графике нет", StateEnabled(save) && Field(graph, "emptyNote") == null, "Save=" + StateEnabled(save));
+                Check("правка поля «Источник»: файл остаётся показан (`AMBER322`)", panel.GdmlMode, problem);
+                Check("после правки: кривая и выгрузка на месте", ReferenceEquals(Field(graph, "result"), fit) && StateEnabled(export), "Export=" + StateEnabled(export));
 
-                // Импорт кривой при показе GDML: кривая ложится с полями редактора, показ закрыт.
+                // Импорт кривой при показе GDML: кривая ложится с полями редактора, файл остаётся показан.
                 args = new object[] { good, null };
                 typeof(EfficiencyMakerForm).GetMethod("ImportGdmlFile", Any).Invoke(form, args);
                 string curve = Path.Combine(tmp, "curve_a304.txt");
                 File.WriteAllText(curve, "Energy, keV\tEfficiency\tUncertainty, %\n100\t0.1\t1\n1000\t0.01\t1\n");
                 object[] curveArgs = { curve, null, null };
                 bool curveOk = (bool)typeof(EfficiencyMakerForm).GetMethod("ImportCurveFile", Any).Invoke(form, curveArgs);
-                Check("импорт кривой при показе GDML: показ закрыт, кривая на графике", curveOk && !panel.GdmlMode && Field(graph, "result") != null && ReferenceEquals(Field(graph, "result"), Member(form, "lastResult")), "ok=" + curveOk + " GdmlMode=" + panel.GdmlMode + " " + curveArgs[2]);
+                Check("импорт кривой при показе GDML: кривая на графике, файл показан", curveOk && panel.GdmlMode && Field(graph, "result") != null && ReferenceEquals(Field(graph, "result"), Member(form, "lastResult")), "ok=" + curveOk + " GdmlMode=" + panel.GdmlMode + " " + curveArgs[2]);
 
                 // Сводка в окне: RTF собран, текст прочитан окном, а не только построен.
                 panel.ShowGdml(GdmlGeometry.Read(good));
@@ -2239,13 +2232,13 @@ namespace GdmlSketchProbeA304
         }
 
         /// <summary>
-        /// Главная находка дизайна и раздел: сводка — доля вкладки, чертежу больше половины; при показе у раздела нет
-        /// стыкованных соседей, кроме сводки (иначе предел отрицательный и он не двигается); выход возвращает колонку;
+        /// Главная находка дизайна и раздел: сводка — доля вкладки, чертежу больше половины; у раздела нет
+        /// стыкованных соседей, кроме сводки (иначе предел отрицательный и он не двигается); с `AMBER322` сводка и чертёж
+        /// живут на своей подвкладке «Файл GDML», колонка полей «Детектора» не прячется;
         /// высота вкладки идёт за окном, статус читается целиком. Мышью — `CritSplit.cs` на скрытом столе, журнал.
         /// </summary>
         static void Geometry(EfficiencyMakerForm form, GeometryEditorPanel panel, string good)
         {
-            Panel column = (Panel)Field(panel, "detectorColumn");
             Panel sum = (Panel)Field(panel, "gdmlSummaryPanel");
             Splitter splitter = (Splitter)Field(panel, "gdmlSplitter");
             GdmlSketch sketch = (GdmlSketch)Field(panel, "gdmlSketch");
@@ -2253,7 +2246,7 @@ namespace GdmlSketchProbeA304
             Button saveButton = (Button)Member(form, "saveButton");
             Label status = (Label)Member(form, "statusLabel");
             TabPage tab = (TabPage)sum.Parent;
-            Check("до показа: колонка стыкована", column.Dock == DockStyle.Left, column.Dock.ToString());
+            Check("сводка и чертёж — на подвкладке «Файл GDML», не на «Детекторе»", ReferenceEquals(tab, Field(panel, "gdmlTab")) && ReferenceEquals(sketch.Parent, tab), tab.Text);
             string longName = Path.Combine(tmp, "GS2020_marinelli_1000ml_water_long_name.gdml");
             File.Copy(good, longName, true);
             object[] args = { longName, null };
@@ -2283,8 +2276,9 @@ namespace GdmlSketchProbeA304
                 }
             }
 
+            Check("при показе подвкладка файла на месте", ((TabControl)Field(panel, "tabs")).TabPages.Contains(tab), "");
             panel.ClearGdml();
-            Check("выход: колонка стыкована", column.Dock == DockStyle.Left, column.Dock.ToString());
+            Check("выход: подвкладки файла нет, три вкладки редактора на месте", !((TabControl)Field(panel, "tabs")).TabPages.Contains(tab) && ((TabControl)Field(panel, "tabs")).TabPages.Count == 3, "");
             form.Size = new Size(982, 839);
         }
 

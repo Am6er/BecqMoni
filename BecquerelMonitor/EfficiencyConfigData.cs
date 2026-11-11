@@ -154,6 +154,21 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// (`AMBER322`) Геометрия импортирована из файла GDML: имя файла, sha256 копии рядом с конфигурацией и
+        /// что из файла взято. null — обычная геометрия, элемента в XML нет (прежние файлы побайтно прежние).
+        /// </summary>
+        public BecquerelMonitor.EfficiencyMaker.GdmlImportInfo GdmlImport
+        {
+            get { return this.gdmlImport; }
+            set { this.gdmlImport = value; }
+        }
+
+        public bool ShouldSerializeGdmlImport()
+        {
+            return this.gdmlImport != null;
+        }
+
+        /// <summary>
         /// Пустой отпечаток в XML не пишется: конфигурации и спектры без
         /// кривой из геометрии остаются побайтно прежними (образец `XmlSerializer`
         /// «ShouldSerialize&lt;имя&gt;»).
@@ -295,6 +310,7 @@ namespace BecquerelMonitor
                 // (`AMBER202`) блок неизменяем — копии делят его ссылкой
                 embeddedMatrix = this.embeddedMatrix,
                 geometry = this.geometry == null ? null : this.geometry.Clone(),
+                gdmlImport = this.gdmlImport == null ? null : this.gdmlImport.Clone(),
                 curve = new List<ROIEfficiencyData>(),
             };
 
@@ -333,6 +349,7 @@ namespace BecquerelMonitor
         List<ROIEfficiencyData> curve = new List<ROIEfficiencyData>();
 
         GeometryModel geometry;
+        BecquerelMonitor.EfficiencyMaker.GdmlImportInfo gdmlImport;
 
         CDATA note = new CDATA("");
     }

@@ -45294,9 +45294,6 @@ Entered: {0}</value>
   <data name="GdmlCadmeshNote" xml:space="preserve">
     <value>CAD meshes (STL/OBJ/PLY) are not imported: only GDML is read. cadmesh is the Geant4 route for CAD meshes - reference only.</value>
   </data>
-  <data name="GdmlNoSave" xml:space="preserve">
-    <value>GDML geometry is shown for reading only: saving and calculation are not supported yet.</value>
-  </data>
   <data name="GdmlSketchAxial" xml:space="preserve">
     <value>Axial section ({0} = {1})</value>
   </data>
@@ -45579,9 +45576,6 @@ Entered: {0}</value>
   <data name="GdmlImportBusy" xml:space="preserve">
     <value>Import is refused: a calculation is running. Stop it or wait until it ends.</value>
   </data>
-  <data name="GdmlModeLeft" xml:space="preserve">
-    <value>GDML view is closed: the editor fields are in effect again.</value>
-  </data>
   <data name="GdmlNoteMassNoFit" xml:space="preserve">
     <value>mass is not computed: children do not fit in it</value>
   </data>
@@ -45653,9 +45647,6 @@ Entered: {0}</value>
   </data>
   <data name="GdmlSketchFailedLog" xml:space="preserve">
     <value>The GDML drawing was not built: {0}</value>
-  </data>
-  <data name="GdmlCurvesHidden" xml:space="preserve">
-    <value>GDML geometry is shown: the curves belong to the editor fields and are hidden.</value>
   </data>
   <data name="GdmlSketchMoreNames" xml:space="preserve">
     <value>{0} and {1} more</value>
@@ -45854,9 +45845,6 @@ The file and its previous copy will not change.</value>
   <data name="GdmlOverviewFractions" xml:space="preserve">
     <value>mass fractions</value>
   </data>
-  <data name="GdmlModeShown" xml:space="preserve">
-    <value>GDML geometry is shown; calculation, saving and curves are off: {0}</value>
-  </data>
   <data name="GdmlReasonCsgDeltaPhi" xml:space="preserve">
     <value>deltaphi = {0} is not positive</value>
   </data>
@@ -45877,5 +45865,251 @@ The file and its previous copy will not change.</value>
   </data>
   <data name="FSAReportTipBackscatterMatrix" xml:space="preserve">
     <value>With a response matrix the backscatter is already inside the nuclide images: this switch controls how it is shown (rows under the nuclide and hatching), the images and their fit stay. A shield that is not in the geometry still gets its separate component.</value>
+  </data>
+  <data name="GdmlCopyFailed" xml:space="preserve">
+    <value>The copy of {0} was not written next to the configuration: {1}</value>
+  </data>
+  <data name="GdmlDetails" xml:space="preserve">
+    <value>File details</value>
+  </data>
+  <data name="GdmlDialogCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="GdmlDialogImport" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="GdmlDialogQuestion" xml:space="preserve">
+    <value>What does the file contain? The parts taken from the file are read-only; the rest is set by hand.</value>
+  </data>
+  <data name="GdmlDialogTitle" xml:space="preserve">
+    <value>GDML import: {0}</value>
+  </data>
+  <data name="GdmlLeftToHand" xml:space="preserve">
+    <value>Set by hand: {0}.</value>
+  </data>
+  <data name="GdmlMapApply" xml:space="preserve">
+    <value>Recalculate</value>
+  </data>
+  <data name="GdmlMapAskFields" xml:space="preserve">
+    <value>Taken from the file now: {0}. The values entered by hand there will be lost. Continue?</value>
+  </data>
+  <data name="GdmlMapAuto" xml:space="preserve">
+    <value>The reflector, gap, housing and vessel walls are found by the program.</value>
+  </data>
+  <data name="GdmlMapAutoTip" xml:space="preserve">
+    <value>By rays from the crystal and the sample outwards.</value>
+  </data>
+  <data name="GdmlMapBadShape" xml:space="preserve">
+    <value>shape does not fit</value>
+  </data>
+  <data name="GdmlMapBehind" xml:space="preserve">
+    <value>Behind the crystal: {0}</value>
+  </data>
+  <data name="GdmlMapBox" xml:space="preserve">
+    <value>box</value>
+  </data>
+  <data name="GdmlMapByHand" xml:space="preserve">
+    <value>chosen by hand</value>
+  </data>
+  <data name="GdmlMapCrystal" xml:space="preserve">
+    <value>Crystal {0}, {1}</value>
+  </data>
+  <data name="GdmlMapCrystalRole" xml:space="preserve">
+    <value>Detector, crystal</value>
+  </data>
+  <data name="GdmlMapCylinder" xml:space="preserve">
+    <value>cylinder</value>
+  </data>
+  <data name="GdmlMapCylinderVessel" xml:space="preserve">
+    <value>cylinder ⌀{0} × {1}, sample height {2}, {3} from the detector</value>
+  </data>
+  <data name="GdmlMapCylinderWalls" xml:space="preserve">
+    <value>near end {0}, side {1}, far end {2}</value>
+  </data>
+  <data name="GdmlMapGuessed" xml:space="preserve">
+    <value>guessed</value>
+  </data>
+  <data name="GdmlMapHeader" xml:space="preserve">
+    <value>In the file → in the fields</value>
+  </data>
+  <data name="GdmlMapItem" xml:space="preserve">
+    <value>{0} — {1}, {2} g</value>
+  </data>
+  <data name="GdmlMapLayers" xml:space="preserve">
+    <value>reflector {0}, gap {1}, housing {2}</value>
+  </data>
+  <data name="GdmlMapMarinelli" xml:space="preserve">
+    <value>Marinelli ⌀{0} × {1}, well ⌀{2} × {3}, sample height {4}</value>
+  </data>
+  <data name="GdmlMapMarinelliWalls" xml:space="preserve">
+    <value>well wall {0} / {1}, outer wall {2}, far end {3}</value>
+  </data>
+  <data name="GdmlMapMissing" xml:space="preserve">
+    <value>Part {0} is not in the file copy. The fields are as saved.</value>
+  </data>
+  <data name="GdmlMapMounting" xml:space="preserve">
+    <value>mounting {0}</value>
+  </data>
+  <data name="GdmlMapNotMoved" xml:space="preserve">
+    <value>not transferred: {0}</value>
+  </data>
+  <data name="GdmlMapNothing" xml:space="preserve">
+    <value>nothing</value>
+  </data>
+  <data name="GdmlMapRefused" xml:space="preserve">
+    <value>{0} does not fit as the crystal: {1}. The previous choice is kept.</value>
+  </data>
+  <data name="GdmlMapRefusedShape" xml:space="preserve">
+    <value>{0} does not fit as the crystal: it is neither a cylinder nor a box.</value>
+  </data>
+  <data name="GdmlMapReset" xml:space="preserve">
+    <value>As guessed</value>
+  </data>
+  <data name="GdmlMapSample" xml:space="preserve">
+    <value>Sample {0}, {1}</value>
+  </data>
+  <data name="GdmlMapSampleRole" xml:space="preserve">
+    <value>and sample, sample material</value>
+  </data>
+  <data name="GdmlMapShieldCavity" xml:space="preserve">
+    <value>Cavity: {0} mm across, {1} mm along the axis</value>
+  </data>
+  <data name="GdmlMapShieldCavityFields" xml:space="preserve">
+    <value>cavity ⌀{0} × {1}, {2} beyond the scene</value>
+  </data>
+  <data name="GdmlMapShieldLayer" xml:space="preserve">
+    <value>Layer {0}</value>
+  </data>
+  <data name="GdmlMapShieldLayerFields" xml:space="preserve">
+    <value>side {0}, beyond the sample {1}, behind the detector {2}</value>
+  </data>
+  <data name="GdmlMapShieldRays" xml:space="preserve">
+    <value>found by rays: {0} ({1} parts)</value>
+  </data>
+  <data name="GdmlMapShieldRaysNone" xml:space="preserve">
+    <value>by rays: nothing found around the scene</value>
+  </data>
+  <data name="GdmlMapShieldRole" xml:space="preserve">
+    <value>and shield</value>
+  </data>
+  <data name="GdmlMapSide" xml:space="preserve">
+    <value>At the side ({0}): {1}</value>
+  </data>
+  <data name="GdmlMapTitle" xml:space="preserve">
+    <value>Mapping</value>
+  </data>
+  <data name="GdmlMapToSample" xml:space="preserve">
+    <value>Towards the sample ({0}): {1}</value>
+  </data>
+  <data name="GdmlMapUnset" xml:space="preserve">
+    <value>(not chosen)</value>
+  </data>
+  <data name="GdmlMapVessel" xml:space="preserve">
+    <value>Vessel {0}: towards the detector {1}, side {2}, far end {3}</value>
+  </data>
+  <data name="GdmlMapVoid" xml:space="preserve">
+    <value>gap</value>
+  </data>
+  <data name="GdmlNoCopy" xml:space="preserve">
+    <value>Geometry imported from {0}; the file copy is missing, import pictures are unavailable.</value>
+  </data>
+  <data name="GdmlPartDetector" xml:space="preserve">
+    <value>detector</value>
+  </data>
+  <data name="GdmlPartSample" xml:space="preserve">
+    <value>sample</value>
+  </data>
+  <data name="GdmlPartShield" xml:space="preserve">
+    <value>shield</value>
+  </data>
+  <data name="GdmlRefused" xml:space="preserve">
+    <value>Fields unchanged: {0}.</value>
+  </data>
+  <data name="GdmlSavedDiffers" xml:space="preserve">
+    <value>The saved fields differ from what this version of the program reads from the file. The fields are as saved.</value>
+  </data>
+  <data name="GdmlShieldNote" xml:space="preserve">
+    <value>No shield is found around the scene.</value>
+  </data>
+  <data name="GdmlSimplFaceNoSample" xml:space="preserve">
+    <value>The face opposite the photosensor is taken as the front.</value>
+  </data>
+  <data name="GdmlSimplFaceSample" xml:space="preserve">
+    <value>The crystal face turned to the sample is taken as the front.</value>
+  </data>
+  <data name="GdmlSimplFaceThin" xml:space="preserve">
+    <value>The face with the thinnest cover is taken as the front.</value>
+  </data>
+  <data name="GdmlSimplHeader" xml:space="preserve">
+    <value>Simplifications</value>
+  </data>
+  <data name="GdmlSimplMass" xml:space="preserve">
+    <value>Housing layers of different materials are replaced by {0} of the same mass thickness.</value>
+  </data>
+  <data name="GdmlSimplOpenMesh" xml:space="preserve">
+    <value>Open mesh {0} is not measured by the rays.</value>
+  </data>
+  <data name="GdmlSimplShield" xml:space="preserve">
+    <value>The shield is a set of nested cylinders: thicknesses are measured at the side, beyond the sample and behind the detector.</value>
+  </data>
+  <data name="GdmlSimplShieldSummed" xml:space="preserve">
+    <value>Shield layers of the same material are added together.</value>
+  </data>
+  <data name="GdmlSimplSide" xml:space="preserve">
+    <value>The side is taken from the nearest side ({0}); other sides differ.</value>
+  </data>
+  <data name="GdmlSimplSummed" xml:space="preserve">
+    <value>Layers of the same kind are added together.</value>
+  </data>
+  <data name="GdmlSourceNote" xml:space="preserve">
+    <value>The sample is not transferred: {0}.</value>
+  </data>
+  <data name="GdmlStatusImported" xml:space="preserve">
+    <value>Imported {0}: {1} {2}.</value>
+  </data>
+  <data name="GdmlStatusRemapped" xml:space="preserve">
+    <value>Recalculated for the chosen parts: {0} Calculate the curve again.</value>
+  </data>
+  <data name="GdmlStatusViewOnly" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="GdmlStripByHand" xml:space="preserve">
+    <value>Mapping changed by hand.</value>
+  </data>
+  <data name="GdmlStripFrom" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="GdmlTabFile" xml:space="preserve">
+    <value>GDML file</value>
+  </data>
+  <data name="GdmlTaken" xml:space="preserve">
+    <value>Taken from the file: {0}.</value>
+  </data>
+  <data name="GdmlUnusedHeader" xml:space="preserve">
+    <value>Not used in the geometry: {0} parts, {1} g</value>
+  </data>
+  <data name="GdmlWhyCrystalShape" xml:space="preserve">
+    <value>the crystal is neither a cylinder nor a box</value>
+  </data>
+  <data name="GdmlWhyManyCrystals" xml:space="preserve">
+    <value>there is more than one crystal</value>
+  </data>
+  <data name="GdmlWhyNoCrystal" xml:space="preserve">
+    <value>the crystal was not recognised</value>
+  </data>
+  <data name="GdmlWhyOffAxis" xml:space="preserve">
+    <value>it is not on the crystal axis</value>
+  </data>
+  <data name="GdmlWhyShape" xml:space="preserve">
+    <value>its shape is not one the editor has</value>
+  </data>
+  <data name="GdmlShieldNoSample" xml:space="preserve">
+    <value>The source is set by hand: the scene stands on the shield floor.</value>
+  </data>
+  <data name="GdmlShieldFit" xml:space="preserve">
+    <value>The source set by hand does not fit into the shield taken from the file. Change it on the Source tab.</value>
+  </data>
+  <data name="GdmlMapFacing" xml:space="preserve">
+    <value>Side facing the sample</value>
   </data>
 </root>

@@ -16,7 +16,9 @@
 #   devtcp             devcfg-device-astcp, -asrest          AtomSpectra TCP/REST, TCP и REST
 #   maker              effmaker-detector, -source, -shield,  конструктор кривой «Цилиндр 40×15»,
 #                      effmaker-calc                         расчёт — «AS80_th_disk»
-#   gdml               effmaker-gdml                         импорт GDML (ключ -Gdml)
+#   gdml               effmaker-gdml, effmaker-gdml-import   импорт GDML (ключ -Gdml): подвкладка «Файл GDML» с
+#                                                            блоком «Сопоставление» и окно импорта «что
+#                                                            содержится в файле» (`AMBER322`)
 #   nucdef             nucdef, nucsets, nucbase              библиотека нуклидов, наборы, «База изотопов»
 #   dialogs            about, prefs-chart, -color, -sound,   «О приложении», настройки программы
 #                      prefs-system
@@ -45,9 +47,11 @@
 #             (<Work>\shots\<язык>\panel-control-stale.png; в гид не ставится).
 #   -DiskCurve  кривая диска сцен FSA: corpus (умолчание, решение Amber 08.11.2026 «Свежая кривая,
 #             числа обновить») или file — своя кривая файла витрины phys=18, как 07.11.2026.
-#   -Gdml     файл GDML сцены `gdml` (снимок effmaker-gdml); умолчание — учебный файл дерева
-#             tools\effmaker\probes\data\gdml_a303\o09_materials.gdml. Снимок 07.11.2026 снят с
-#             публичного RC110_detector.gdml (geant4-detector-models), которого в дереве нет.
+#   -Gdml     файл GDML сцены `gdml` (снимки effmaker-gdml и effmaker-gdml-import); умолчание —
+#             учебная сцена дерева tools\effmaker\probes\data\gdml_a322\a322_shielded.gdml: в ней
+#             узнаются все три роли — детектор, образец, защита (`AMBER322`). Снимок 07.11.2026 снят с
+#             публичного RC110_detector.gdml (geant4-detector-models), которого в дереве нет: в нём
+#             только детектор, в окне импорта списки образца и защиты пусты.
 #   -Store    склад матриц корпуса (умолчание tools\CORPUS\corpus\geometries\response этого
 #             дерева). Склад в git не входит: в отдельном worktree указать склад основного
 #             дерева, иначе отказ — снимок FSA без матрицы молча не снимается.
@@ -86,7 +90,7 @@ param(
     [ValidateSet('corpus', 'file')][string]$DiskCurve = 'corpus',
     [string]$Gdml = ''
 )
-if (-not $Gdml) { $Gdml = Join-Path $PSScriptRoot '..\effmaker\probes\data\gdml_a303\o09_materials.gdml' }
+if (-not $Gdml) { $Gdml = Join-Path $PSScriptRoot '..\effmaker\probes\data\gdml_a322\a322_shielded.gdml' }
 $Gdml = [IO.Path]::GetFullPath($Gdml)
 $ErrorActionPreference = 'Continue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -107,7 +111,7 @@ $sceneOf = [ordered]@{
     'devcfg-eff' = 'devcfg-eff'; 'respmatrix' = 'devcfg-eff'
     'devcfg-device-astcp' = 'devtcp'; 'devcfg-device-asrest' = 'devtcp'
     'effmaker-detector' = 'maker'; 'effmaker-source' = 'maker'; 'effmaker-shield' = 'maker'; 'effmaker-calc' = 'maker'
-    'effmaker-gdml' = 'gdml'
+    'effmaker-gdml' = 'gdml'; 'effmaker-gdml-import' = 'gdml'
     'nucdef' = 'nucdef'; 'nucsets' = 'nucdef'; 'nucbase' = 'nucdef'
     'about' = 'dialogs'; 'prefs-chart' = 'dialogs'; 'prefs-color' = 'dialogs'; 'prefs-sound' = 'dialogs'; 'prefs-system' = 'dialogs'
 }
