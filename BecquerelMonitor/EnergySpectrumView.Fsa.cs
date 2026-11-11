@@ -77,6 +77,22 @@ namespace BecquerelMonitor
         bool fsaHighlightWholeChain;
 
         /// <summary>
+        /// (`AMBER327`) Выделена ли ЧАСТЬ ленты слоя <see cref="fsaHighlight"/> — подслой сумм-пиков,
+        /// вылета или обратного рассеяния (строка-родитель «— сумм-пик» или её потомок в окне отчёта);
+        /// <see cref="FsaLayerPart.None"/> — выделен слой целиком, как прежде. Ставит
+        /// <see cref="SetFsaHighlightPart"/>, снимает любой <see cref="SetFsaHighlight"/>.
+        /// </summary>
+        FsaLayerPart fsaHighlightPart;
+
+        /// <summary>
+        /// (`AMBER327`) Окно выделенной части на шкале каналов данных: первый и последний канал
+        /// строки-потомка (<see cref="FsaReportRow.FirstChannel"/>); −1 — часть целиком (строка группы).
+        /// </summary>
+        int fsaHighlightFirst = -1;
+
+        int fsaHighlightLast = -1;
+
+        /// <summary>
         /// (`A248`) Показывать ли ЛЕНТУ НЕВЯЗКИ поверх состава; ставит галочка
         /// окна отчёта (<see cref="FSAReportView"/>), читает
         /// <see cref="DrawFsaResidual"/>. Умолчание — показывать: до `A248`
@@ -337,13 +353,94 @@ namespace BecquerelMonitor
             string next = string.IsNullOrEmpty(layer) ? null : layer;
             bool chain = next != null && wholeChain;
             if (string.Equals(this.fsaHighlight, next, StringComparison.Ordinal)
-                && this.fsaHighlightWholeChain == chain)
+                && this.fsaHighlightWholeChain == chain
+                && this.fsaHighlightPart == FsaLayerPart.None)
             {
                 return;
             }
 
             this.fsaHighlight = next;
             this.fsaHighlightWholeChain = chain;
+            this.fsaHighlightPart = FsaLayerPart.None;
+            this.fsaHighlightFirst = -1;
+            this.fsaHighlightLast = -1;
+            this.Invalidate();
+        }
+
+        /// <summary>(`AMBER327`) Выделенная часть ленты слоя <see cref="FsaHighlight"/>; только для чтения.</summary>
+        internal FsaLayerPart FsaHighlightPart
+        {
+            get
+            {
+                return this.fsaHighlightPart;
+            }
+        }
+
+        /// <summary>(`AMBER327`) Первый канал окна выделенной части; −1 — часть целиком.</summary>
+        internal int FsaHighlightFirstChannel
+        {
+            get
+            {
+                return this.fsaHighlightFirst;
+            }
+        }
+
+        /// <summary>(`AMBER327`) Последний канал окна выделенной части; −1 — часть целиком.</summary>
+        internal int FsaHighlightLastChannel
+        {
+            get
+            {
+                return this.fsaHighlightLast;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER327`) Выделить ЧАСТЬ ленты слоя — строку отчёта «— сумм-пик», «— пики вылета»,
+        /// «— обратное рассеяние» (<paramref name="first"/> = <paramref name="last"/> = −1: подслой
+        /// целиком, то есть все потомки строки) или её потомка (окно потомка в каналах данных).
+        ///
+        /// Задача Amber 11.11.2026, дословно: «Если выбираются пики суммирования, обратного рассеяние
+        /// и прочие пики, которые раскрываются треугольником, нужно их выделать на спектре при нажатии
+        /// на них мышкой. При этом слой основного родителя должнен становится мало заметным, по
+        /// аналогии как сейчас отрисовываются не выбранные слои. НО! Не так блёкло. Думаю, в половину
+        /// того визуала.»; решение вопросником того же дня: «Прочие как невыбранные, сейчас
+        /// (Рекомендую)». Отсюда три краски (<see cref="ShowFsaOverlay"/>): выбранная часть — в полном
+        /// цвете; лента её слоя и прочие его подслои — приглушены ВДВОЕ слабее
+        /// (<see cref="HalfMuteFsaColor"/>); прочие слои — как невыбранные (<see cref="MuteFsaColor"/>).
+        ///
+        /// Своей кривой у пика-потомка в разборе нет — подслой родителя один на все его пики
+        /// (<see cref="FsaStackLayer.SumPeakCurve"/> и соседи); потомок выделяет подслой в своём окне
+        /// ±FWHM (<see cref="FsaReportRow.FirstChannel"/>), том же, по которому взята его σ. ⛔ Как и
+        /// <see cref="FsaHighlight"/>, меняется ТОЛЬКО краска: ни расчёта, ни представления, одна
+        /// перерисовка. Ряд за слоем не тянется (окно отчёта, П287).
+        /// </summary>
+        internal void SetFsaHighlightPart(string layer, FsaLayerPart part, int first, int last)
+        {
+            string next = string.IsNullOrEmpty(layer) ? null : layer;
+            if (next == null || part == FsaLayerPart.None)
+            {
+                this.SetFsaHighlight(next, false);
+                return;
+            }
+
+            if (first < 0 || last < first)
+            {
+                first = -1;
+                last = -1;
+            }
+
+            if (string.Equals(this.fsaHighlight, next, StringComparison.Ordinal)
+                && !this.fsaHighlightWholeChain && this.fsaHighlightPart == part
+                && this.fsaHighlightFirst == first && this.fsaHighlightLast == last)
+            {
+                return;
+            }
+
+            this.fsaHighlight = next;
+            this.fsaHighlightWholeChain = false;
+            this.fsaHighlightPart = part;
+            this.fsaHighlightFirst = first;
+            this.fsaHighlightLast = last;
             this.Invalidate();
         }
 
@@ -534,8 +631,42 @@ namespace BecquerelMonitor
 
         static int MuteChannel(int value, double grey)
         {
-            int muted = (int)Math.Round(value + (grey - value) * MutedBandDesaturation);
+            return MuteChannel(value, grey, MutedBandDesaturation);
+        }
+
+        static int MuteChannel(int value, double grey, double desaturation)
+        {
+            int muted = (int)Math.Round(value + (grey - value) * desaturation);
             return muted < 0 ? 0 : muted > 255 ? 255 : muted;
+        }
+
+        /// <summary>Непрозрачность ленты в полном цвете.</summary>
+        const int FullBandAlpha = 230;
+
+        /// <summary>
+        /// (`AMBER327`) Непрозрачность ленты, приглушённой ВДВОЕ СЛАБЕЕ невыбранной: середина между
+        /// полным цветом (<see cref="FullBandAlpha"/>) и приглушённым (<see cref="MutedBandAlpha"/>).
+        /// </summary>
+        const int HalfMutedBandAlpha = (FullBandAlpha + MutedBandAlpha) / 2;
+
+        /// <summary>(`AMBER327`) Сдвиг к своему серому у ленты, приглушённой вдвое слабее, — половина <see cref="MutedBandDesaturation"/>.</summary>
+        const double HalfMutedBandDesaturation = MutedBandDesaturation / 2.0;
+
+        /// <summary>
+        /// (`AMBER327`) Цвет ленты, приглушённой ВДВОЕ СЛАБЕЕ невыбранной, — лента слоя, чья часть
+        /// (подслой сумм-пиков, вылета или рассеяния) выбрана в отчёте. Слова Amber 11.11.2026: «слой
+        /// основного родителя должнен становится мало заметным, по аналогии как сейчас отрисовываются
+        /// не выбранные слои. НО! Не так блёкло. Думаю, в половину того визуала.» Тем же способом, что
+        /// <see cref="MuteFsaColor"/> (прозрачностью — довод там же), обе меры — пополам: альфа
+        /// посередине между полной и приглушённой, сдвиг к серому — вполовину.
+        /// </summary>
+        static Color HalfMuteFsaColor(Color color)
+        {
+            double grey = 0.30 * color.R + 0.59 * color.G + 0.11 * color.B;
+            return Color.FromArgb(HalfMutedBandAlpha,
+                                  MuteChannel(color.R, grey, HalfMutedBandDesaturation),
+                                  MuteChannel(color.G, grey, HalfMutedBandDesaturation),
+                                  MuteChannel(color.B, grey, HalfMutedBandDesaturation));
         }
 
         bool IsFsaMode()
@@ -976,6 +1107,7 @@ namespace BecquerelMonitor
             string highlight = this.fsaHighlight;
             string chainRoot = this.fsaHighlightWholeChain ? highlight : null;
             bool muting = false;
+            int partLayer = -1;
             if (highlight != null)
             {
                 for (int k = 0; k < stack.Count; k++)
@@ -985,6 +1117,23 @@ namespace BecquerelMonitor
                     {
                         muting = true;
                         break;
+                    }
+                }
+
+                // (`AMBER327`) Выбрана ЧАСТЬ ленты (строка «— сумм-пик» или её потомок): её слой —
+                // тот, чьё имя выделено. Часть, которой в этом кадре нет (режим канала матрицы, где
+                // подслоя вылета и рассеяния нет), выделяет слой целиком, как до `AMBER327`: правило
+                // `A246` — приглушать только тогда, когда выбранное и вправду нарисовано.
+                if (muting && this.fsaHighlightPart != FsaLayerPart.None && chainRoot == null)
+                {
+                    for (int k = 0; k < stack.Count; k++)
+                    {
+                        if (string.Equals(stack[k].Name, highlight, StringComparison.Ordinal)
+                            && this.FsaPartLevel(k, this.fsaHighlightPart) != null)
+                        {
+                            partLayer = k;
+                            break;
+                        }
                     }
                 }
             }
@@ -998,7 +1147,16 @@ namespace BecquerelMonitor
                     bool muted = muting
                         && !string.Equals(stack[k].Name, highlight, StringComparison.Ordinal)
                         && !(chainRoot != null && string.Equals(stack[k].ChainRoot, chainRoot, StringComparison.Ordinal));
-                    Color painted = muted ? MuteFsaColor(color) : Color.FromArgb(230, color);
+
+                    // (`AMBER327`) Слой выбранной части — «вдвое слабее» невыбранных: и лента, и все
+                    // его подслои; саму часть ниже перекрывает полный цвет.
+                    bool halfMuted = k == partLayer;
+                    Color painted = muted ? MuteFsaColor(color)
+                        : halfMuted ? HalfMuteFsaColor(color)
+                        : Color.FromArgb(FullBandAlpha, color);
+                    Color hatchColor = muted ? MuteFsaColor(FsaPalette.SumPeakHatchColor(color))
+                        : halfMuted ? HalfMuteFsaColor(FsaPalette.SumPeakHatchColor(color))
+                        : FsaPalette.SumPeakHatchColor(color);
                     using (Brush brush = new SolidBrush(painted))
                     {
                         this.DrawFsaBand(g, brush, lower, this.fsaCumulative[k]);
@@ -1007,17 +1165,15 @@ namespace BecquerelMonitor
                     // Каскадные суммы — штриховкой поверх собственной ленты, в
                     // её же цвете: это не другой компонент, а часть этого же
                     // нуклида, и своей строки в легенде у них нет.
+                    //
+                    // Подслой сумм-пиков блекнет ВМЕСТЕ со своей лентой: он
+                    // часть того же нуклида, и оставленный ярким — выдал бы
+                    // приглушённый компонент за выбранный. То же у вылета и
+                    // рассеяния ниже.
                     double[] sumLevel = this.fsaSumPeakLevel != null ? this.fsaSumPeakLevel[k] : null;
                     if (sumLevel != null)
                     {
-                        // Подслой сумм-пиков блекнет ВМЕСТЕ со своей лентой: он
-                        // часть того же нуклида, и оставленный ярким — выдал бы
-                        // приглушённый компонент за выбранный.
-                        Color hatchColor = muted
-                            ? MuteFsaColor(FsaPalette.SumPeakHatchColor(color))
-                            : FsaPalette.SumPeakHatchColor(color);
-                        using (Brush hatch = new HatchBrush(HatchStyle.DarkUpwardDiagonal,
-                                                            hatchColor, painted))
+                        using (Brush hatch = new HatchBrush(FsaPartHatch(FsaLayerPart.SumPeaks), hatchColor, painted))
                         {
                             this.DrawFsaBand(g, hatch, lower, sumLevel);
                         }
@@ -1028,11 +1184,7 @@ namespace BecquerelMonitor
                     double[] escapeLevel = this.fsaEscapeLevel != null ? this.fsaEscapeLevel[k] : null;
                     if (escapeLevel != null)
                     {
-                        Color hatchColor = muted
-                            ? MuteFsaColor(FsaPalette.SumPeakHatchColor(color))
-                            : FsaPalette.SumPeakHatchColor(color);
-                        using (Brush hatch = new HatchBrush(HatchStyle.DarkDownwardDiagonal,
-                                                            hatchColor, painted))
+                        using (Brush hatch = new HatchBrush(FsaPartHatch(FsaLayerPart.EscapePeaks), hatchColor, painted))
                         {
                             this.DrawFsaBand(g, hatch, this.fsaEscapeBase[k], escapeLevel);
                         }
@@ -1042,13 +1194,15 @@ namespace BecquerelMonitor
                     double[] humpLevel = this.fsaBackscatterLevel != null ? this.fsaBackscatterLevel[k] : null;
                     if (humpLevel != null)
                     {
-                        Color hatchColor = muted
-                            ? MuteFsaColor(FsaPalette.SumPeakHatchColor(color))
-                            : FsaPalette.SumPeakHatchColor(color);
-                        using (Brush hatch = new HatchBrush(HatchStyle.DarkVertical, hatchColor, painted))
+                        using (Brush hatch = new HatchBrush(FsaPartHatch(FsaLayerPart.Backscatter), hatchColor, painted))
                         {
                             this.DrawFsaBand(g, hatch, this.fsaBackscatterBase[k], humpLevel);
                         }
+                    }
+
+                    if (halfMuted)
+                    {
+                        this.DrawFsaSelectedPart(g, k, color);
                     }
                 }
             }
@@ -1173,6 +1327,87 @@ namespace BecquerelMonitor
 
             this.fsaFrameDrawn = true;
             return true;
+        }
+
+        /// <summary>(`AMBER327`) Штрих подслоя: сумм-пики, вылет, рассеяние — тот же, что был у каждого с `AMBER311`.</summary>
+        static HatchStyle FsaPartHatch(FsaLayerPart part)
+        {
+            switch (part)
+            {
+                case FsaLayerPart.EscapePeaks:
+                    return HatchStyle.DarkDownwardDiagonal;
+                case FsaLayerPart.Backscatter:
+                    return HatchStyle.DarkVertical;
+                default:
+                    return HatchStyle.DarkUpwardDiagonal;
+            }
+        }
+
+        /// <summary>(`AMBER327`) Верх подслоя <paramref name="part"/> k-го слоя стопки В ЭТОМ КАДРЕ; null — подслоя нет.</summary>
+        double[] FsaPartLevel(int k, FsaLayerPart part)
+        {
+            double[][] levels = part == FsaLayerPart.SumPeaks ? this.fsaSumPeakLevel
+                : part == FsaLayerPart.EscapePeaks ? this.fsaEscapeLevel
+                : part == FsaLayerPart.Backscatter ? this.fsaBackscatterLevel
+                : null;
+            return levels != null && k >= 0 && k < levels.Length ? levels[k] : null;
+        }
+
+        /// <summary>(`AMBER327`) Низ подслоя <paramref name="part"/> k-го слоя — тот же, от которого он нарисован в стопке.</summary>
+        double[] FsaPartBase(int k, FsaLayerPart part)
+        {
+            if (part == FsaLayerPart.EscapePeaks)
+            {
+                return this.fsaEscapeBase[k];
+            }
+
+            if (part == FsaLayerPart.Backscatter)
+            {
+                return this.fsaBackscatterBase[k];
+            }
+
+            return k > 0 ? this.fsaCumulative[k - 1] : this.fsaZeroLevel;
+        }
+
+        /// <summary>
+        /// (`AMBER327`) ВЫБРАННАЯ ЧАСТЬ ЛЕНТЫ — в полном цвете поверх приглушённого вдвое слоя: заливка
+        /// ленты и штрих подслоя ровно той краской, какой они нарисованы без выбора, поэтому выбранное
+        /// выглядит так же, как на графике без выбора, а всё прочее вокруг бледнеет. Строка группы —
+        /// подслой целиком; строка-потомок — подслой в своём окне каналов (вне окна верх подслоя
+        /// приравнивается к его низу, ленты там нет). Ни одна кривая не меняется: окно режет КРАСКУ,
+        /// а не подслой.
+        /// </summary>
+        void DrawFsaSelectedPart(Graphics g, int k, Color color)
+        {
+            FsaLayerPart part = this.fsaHighlightPart;
+            double[] level = this.FsaPartLevel(k, part);
+            double[] from = this.FsaPartBase(k, part);
+            if (level == null || from == null)
+            {
+                return;
+            }
+
+            double[] top = level;
+            if (this.fsaHighlightFirst >= 0)
+            {
+                top = new double[level.Length];
+                for (int i = 0; i < top.Length; i++)
+                {
+                    bool inside = i >= this.fsaHighlightFirst && i <= this.fsaHighlightLast;
+                    top[i] = inside ? level[i] : (i < from.Length ? from[i] : 0.0);
+                }
+            }
+
+            Color painted = Color.FromArgb(FullBandAlpha, color);
+            using (Brush brush = new SolidBrush(painted))
+            {
+                this.DrawFsaBand(g, brush, from, top);
+            }
+
+            using (Brush hatch = new HatchBrush(FsaPartHatch(part), FsaPalette.SumPeakHatchColor(color), painted))
+            {
+                this.DrawFsaBand(g, hatch, from, top);
+            }
         }
 
         /// <summary>

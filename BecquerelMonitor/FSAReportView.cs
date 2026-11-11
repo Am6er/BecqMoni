@@ -203,6 +203,18 @@ namespace BecquerelMonitor
         string selectedLayer;
 
         /// <summary>
+        /// (`AMBER327`) Выбранная строка — строка ЧАСТИ ленты своего слоя («— сумм-пик», «— пики
+        /// вылета», «— обратное рассеяние» или их потомок): какая часть и окно потомка в каналах
+        /// (−1 — часть целиком). <see cref="FsaLayerPart.None"/> — строка выделяет слой целиком.
+        /// Род и подпись строки — чтобы перестройка таблицы вернула выбор на ТУ ЖЕ строку, а не на
+        /// строку слоя (<see cref="RestoreSelection"/>).
+        /// </summary>
+        FsaLayerPart selectedPart;
+        int selectedFirst = -1, selectedLast = -1;
+        FsaReportRowKind selectedKind;
+        string selectedName;
+
+        /// <summary>
         /// Перестройка таблицы сама двигает выбор (строки чистятся и создаются
         /// заново), и XPTable честно поднимает на это событие. Пока флаг
         /// поднят, событие не читается: иначе каждый фоновый пересчёт снимал бы
@@ -222,6 +234,10 @@ namespace BecquerelMonitor
         /// </summary>
         WeakReference<EnergySpectrumView> pushedView;
         string pushedLayer;
+
+        /// <summary>(`AMBER327`) Часть ленты и её окно, сказанные графику вместе с <see cref="pushedLayer"/>.</summary>
+        FsaLayerPart pushedPart;
+        int pushedFirst = -1, pushedLast = -1;
 
         // ------------------------------------------------------------------
         // (`A248`) ПОКАЗ ЛЕНТЫ НЕВЯЗКИ
@@ -1126,7 +1142,7 @@ namespace BecquerelMonitor
             // документ), и снять поставленное им тоже будет некому.
             if (!ReferenceEquals(this.document, doc))
             {
-                this.selectedLayer = null;
+                this.ForgetSelectedRow();
                 this.PushHighlight();
             }
 
@@ -1180,7 +1196,7 @@ namespace BecquerelMonitor
         public void SetProbeSource(FsaAnalysisSession probeSession, ResultData resultData)
         {
             this.CaptureUiContext();
-            this.selectedLayer = null;
+            this.ForgetSelectedRow();
             this.PushHighlight();
             if (!ReferenceEquals(this.session, probeSession))
             {
@@ -2497,7 +2513,8 @@ namespace BecquerelMonitor
         /// (`AMBER320`) Щелчок по стрелке: группа меняет вид, память сеанса — запись. Выбор,
         /// стоявший на скрываемом потомке, переезжает на родителя: на скрытой строке выбора быть
         /// не должно, а слой у родителя тот же (строки сумм-пиков, вылета, рассеяния несут слой
-        /// своего нуклида), так что подсветка графика не меняется.
+        /// своего нуклида). (`AMBER327`) Подсветка графика при этом переходит с пика-потомка на
+        /// подслой родителя целиком — строка группы выделяет всех своих потомков.
         /// </summary>
         void ToggleGroup(Row parentRow)
         {
@@ -3682,7 +3699,7 @@ namespace BecquerelMonitor
             if (string.IsNullOrEmpty(layerName))
             {
                 this.reportTable.TableModel.Selections.Clear();
-                this.selectedLayer = null;
+                this.ForgetSelectedRow();
                 this.PushHighlight();
                 return true;
             }
@@ -3720,8 +3737,35 @@ namespace BecquerelMonitor
                 return;
             }
 
-            this.selectedLayer = this.LayerOfSelection();
+            this.RememberSelectedRow(this.ModelOfSelection());
             this.PushHighlight();
+        }
+
+        /// <summary>(`AMBER327`) Выбора нет: ни слоя, ни части.</summary>
+        void ForgetSelectedRow()
+        {
+            this.RememberSelectedRow(null);
+        }
+
+        /// <summary>
+        /// (`AMBER327`) Запомнить выбранную строку: слой и — у строк «— сумм-пик», «— пики вылета»,
+        /// «— обратное рассеяние» и их потомков — часть ленты и окно потомка. Строка без ленты
+        /// (необнаруженный, невязка, качество) — как «выбора нет», правило `A246`.
+        /// </summary>
+        void RememberSelectedRow(FsaReportRow model)
+        {
+            bool layered = model != null && model.Layer != null;
+            this.selectedLayer = layered ? model.Layer.Name : null;
+            this.selectedPart = layered ? model.Part : FsaLayerPart.None;
+            this.selectedFirst = this.selectedPart != FsaLayerPart.None ? model.FirstChannel : -1;
+            this.selectedLast = this.selectedPart != FsaLayerPart.None ? model.LastChannel : -1;
+            this.selectedKind = layered ? model.Kind : FsaReportRowKind.Status;
+            this.selectedName = layered ? model.Name : null;
+            if (this.selectedFirst < 0 || this.selectedLast < this.selectedFirst)
+            {
+                this.selectedFirst = -1;
+                this.selectedLast = -1;
+            }
         }
 
         /// <summary>
@@ -3756,11 +3800,12 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Слой выбранной строки; null — выбора нет или выбрана строка без
-        /// ленты (необнаруженный кандидат, невязка, качество, состояние).
-        /// Такую выбрать можно, и приглушать по ней НЕЧЕГО: на графике её нет.
+        /// Строка модели выбранной строки; null — выбора нет. Строка без
+        /// ленты (необнаруженный кандидат, невязка, качество, состояние)
+        /// выбирается, и приглушать по ней НЕЧЕГО: на графике её нет.
+        /// (`AMBER327`) Слой и часть ленты из неё берёт <see cref="RememberSelectedRow"/>.
         /// </summary>
-        string LayerOfSelection()
+        FsaReportRow ModelOfSelection()
         {
             int[] indices = this.tableModel.Selections.SelectedIndicies;
             if (indices == null || indices.Length == 0)
@@ -3774,8 +3819,7 @@ namespace BecquerelMonitor
                 return null;
             }
 
-            FsaReportRow model = this.tableModel.Rows[index].Tag as FsaReportRow;
-            return model != null && model.Layer != null ? model.Layer.Name : null;
+            return this.tableModel.Rows[index].Tag as FsaReportRow;
         }
 
         /// <summary>
@@ -3794,9 +3838,23 @@ namespace BecquerelMonitor
                 && this.document.EnergySpectrumView != null)
             {
                 EnergySpectrumView view = this.document.EnergySpectrumView;
-                view.SetFsaHighlight(this.selectedLayer, false);
+
+                // (`AMBER327`) Строка части ленты («— сумм-пик» и прочие под стрелкой, их потомки)
+                // выделяет свою часть; прочие строки — слой целиком, как прежде.
+                if (this.selectedPart != FsaLayerPart.None)
+                {
+                    view.SetFsaHighlightPart(this.selectedLayer, this.selectedPart, this.selectedFirst, this.selectedLast);
+                }
+                else
+                {
+                    view.SetFsaHighlight(this.selectedLayer, false);
+                }
+
                 this.pushedView = new WeakReference<EnergySpectrumView>(view);
                 this.pushedLayer = this.selectedLayer;
+                this.pushedPart = this.selectedLayer != null ? this.selectedPart : FsaLayerPart.None;
+                this.pushedFirst = this.pushedPart != FsaLayerPart.None ? this.selectedFirst : -1;
+                this.pushedLast = this.pushedPart != FsaLayerPart.None ? this.selectedLast : -1;
             }
         }
 
@@ -3836,7 +3894,10 @@ namespace BecquerelMonitor
             return this.pushedView != null && this.pushedView.TryGetTarget(out pushed)
                    && ReferenceEquals(view, pushed)
                    && string.Equals(view.FsaHighlight, this.pushedLayer, StringComparison.Ordinal)
-                   && !view.FsaHighlightWholeChain;
+                   && !view.FsaHighlightWholeChain
+                   && view.FsaHighlightPart == this.pushedPart
+                   && view.FsaHighlightFirstChannel == this.pushedFirst
+                   && view.FsaHighlightLastChannel == this.pushedLast;
         }
 
         /// <summary>
@@ -3852,15 +3913,15 @@ namespace BecquerelMonitor
             try
             {
                 this.tableModel.Selections.Clear();
-                int index = layerName != null ? this.RowOfLayer(layerName) : -1;
+                int index = layerName != null ? this.RowOfSelected(layerName) : -1;
                 if (index >= 0)
                 {
                     this.tableModel.Selections.SelectCell(index, 0);
-                    this.selectedLayer = layerName;
+                    this.RememberSelectedRow(this.tableModel.Rows[index].Tag as FsaReportRow);
                 }
                 else
                 {
-                    this.selectedLayer = null;
+                    this.ForgetSelectedRow();
                 }
             }
             finally
@@ -3869,6 +3930,64 @@ namespace BecquerelMonitor
             }
 
             this.PushHighlightIfOwn();
+        }
+
+        /// <summary>
+        /// (`AMBER327`) Строка, на которую вернуть выбор после перестройки: у строки части ленты —
+        /// та же строка (род, слой, подпись); пропала (пик стал незаметен) — её строка группы того же
+        /// слоя; скрыта свёрнутой группой — родитель, на скрытой строке выбора не бывает
+        /// (`AMBER320`). Иначе и у строки слоя — строка слоя, как прежде (<see cref="RowOfLayer"/>).
+        /// </summary>
+        int RowOfSelected(string layerName)
+        {
+            if (this.selectedPart != FsaLayerPart.None)
+            {
+                int same = -1, group = -1;
+                FsaReportRowKind groupKind = GroupKindOf(this.selectedPart);
+                for (int i = 0; i < this.tableModel.Rows.Count; i++)
+                {
+                    FsaReportRow model = this.tableModel.Rows[i].Tag as FsaReportRow;
+                    if (model == null || model.Layer == null
+                        || !string.Equals(model.Layer.Name, layerName, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    if (same < 0 && model.Kind == this.selectedKind
+                        && string.Equals(model.Name, this.selectedName, StringComparison.Ordinal))
+                    {
+                        same = i;
+                    }
+
+                    if (group < 0 && model.Kind == groupKind)
+                    {
+                        group = i;
+                    }
+                }
+
+                int index = same >= 0 ? same : group;
+                if (index >= 0)
+                {
+                    Row row = this.tableModel.Rows[index];
+                    return row.Parent != null && !row.Parent.ExpandSubRows ? row.Parent.Index : index;
+                }
+            }
+
+            return this.RowOfLayer(layerName);
+        }
+
+        /// <summary>(`AMBER327`) Род строки-группы части ленты: «— сумм-пик», «— пики вылета», «— обратное рассеяние».</summary>
+        static FsaReportRowKind GroupKindOf(FsaLayerPart part)
+        {
+            switch (part)
+            {
+                case FsaLayerPart.EscapePeaks:
+                    return FsaReportRowKind.EscapePeaks;
+                case FsaLayerPart.Backscatter:
+                    return FsaReportRowKind.Backscatter;
+                default:
+                    return FsaReportRowKind.SumPeaks;
+            }
         }
 
         /// <summary>
@@ -4285,7 +4404,7 @@ namespace BecquerelMonitor
                 // (`A246`) Окна не станет — приглушение снимается: график живёт
                 // дальше и остался бы поблекшим навсегда. (П290) Только СВОЁ:
                 // подсветку, поставленную окном результата, снимет оно само.
-                this.selectedLayer = null;
+                this.ForgetSelectedRow();
                 this.PushHighlightIfOwn();
 
                 // (`A248`) Тот же довод: окна не станет, а с ним и галочки, —
