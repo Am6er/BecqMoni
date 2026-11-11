@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-u"""Сторож ОКНА ОТЧЁТА FSA (`FSAReportView`): приёмка ПЯТИ проб окна на спектрах
+u"""Сторож ОКНА ОТЧЁТА FSA (`FSAReportView`): приёмка ШЕСТИ проб окна на спектрах
 корпуса — `FsaReportViewProbe` (блок «Качество разбора»: χ²/ndf, σ×, пометки, строки
 привязки шкалы `AMBER17`; состав строк по `Tag.Kind`, один результат на график и
 таблицу, родители/дочерние, повторяемость, снимки en/ru без обрезанных подписей),
@@ -10,7 +10,9 @@ u"""Сторож ОКНА ОТЧЁТА FSA (`FSAReportView`): приёмка П�
 `FsaInputCheckProbeP195` (заверение входа: плотность пробы против сцены `AMBER159`,
 кривая вне линий `AMBER157`, разбор без матрицы `AMBER156`) и `FsaRowGroupsProbeA320`
 (строки-потомки свёрнуты под родителем `AMBER320`: стрелка, сумма и число строк, память
-раскрытия, клавиши, выбор и подсветка потомка, заголовок собственной активности кристалла).
+раскрытия, клавиши, выбор и подсветка потомка, заголовок собственной активности кристалла) и
+`FsaChildHighlightProbeA327` (строка-потомок и строка группы выделяют на графике свою часть
+ленты `AMBER327`: родитель приглушён вдвое слабее, прочие — как невыбранные).
 
 ## Зачем
 
@@ -38,11 +40,11 @@ P195 не звал никто, и все три были красны на чи�
    что судят оснастку корпуса (`Get-AppWdSourceRecord`, `Get-AppWdStampSources`,
    `Compare-AppWdSourceMap`, `Get-AppWdSha256`; своей копии отпечатка нет — `T61`):
    заверение `.appwd.json`, набор исходников ПРИЛОЖЕНИЯ (по `.csproj`), набор
-   КАЖДОЙ из пяти проб (её `.cs` + довески), sha `BecquerelMonitor.exe` и exe
+   КАЖДОЙ из шести проб (её `.cs` + довески), sha `BecquerelMonitor.exe` и exe
    проб против заверённых. Протух — код 3 с находками, а не прогон старым кодом
    (`A77`: проверять то, что БУДЕТ ИСПОЛЬЗОВАНО). Чужая незакоммиченная правка
    `.cs` приложения в дереве — законный код 3.
-2. Прогон пяти проб из каталога проб (параллельно; каждая пишет снимки во
+2. Прогон шести проб из каталога проб (параллельно; каждая пишет снимки во
    временный каталог системы, снимается после прогона, `--keep` оставляет; в
    дерево и в каталог проб не пишется ничего):
      report — `FsaReportViewProbe --spectrum=AS80_Th232Medal --control=AS80_Cs137_0cm
@@ -56,7 +58,11 @@ P195 не звал никто, и все три были красны на чи�
               пробе В ПАМЯТЬ, склад не пишется);
      a320   — `FsaRowGroupsProbeA320 --spectrum=AS80_Th232Medal --store=<склад матриц
               корпуса>` (`AMBER320`; матрица в память, как у P195: без неё строк
-              сумм-пиков, вылета и рассеяния нет и сворачивать нечего).
+              сумм-пиков, вылета и рассеяния нет и сворачивать нечего);
+     a327   — `FsaChildHighlightProbeA327 --spectrum=AS80_Th232Medal --store=<склад матриц
+              корпуса>` (`AMBER327`; положительный контроль — сборка «до» и сборка с
+              родителем, приглушённым как прочие, обе отказывают; судья В3 проверяет себя
+              сам — критерий В9 пробы).
 3. Приговор каждой — ТРИ признака разом: код пробы 0, последняя строка «ВСЕ
    СОШЛИСЬ» и ни одной строки отказа (у `FsaReportViewProbe` и P195 — «  ⛔» с двумя
    пробелами, у F16/F21 — «  НЕТ »). Расхождение любого из трёх у любой пробы —
@@ -66,7 +72,7 @@ P195 не звал никто, и все три были красны на чи�
 
 ## Положительный контроль — `--selftest` (обе стороны)
 
-  (в) штатный прогон пяти проб — ОБЯЗАН пройти (сторож, отказывающий всегда,
+  (в) штатный прогон шести проб — ОБЯЗАН пройти (сторож, отказывающий всегда,
       бесполезен так же, как молчащий всегда);
   (а) каталог проб подменён пустым — ОБЯЗАН дать код 3 со словом причины;
   (б) подброшенный неверный вход report: `--control` = тот же спектр С РЯДОМ Th-232 —
@@ -89,7 +95,7 @@ P195 не звал никто, и все три были красны на чи�
 
   python tools/check_fsa_report_view.py [--probes=<каталог проб>] [--spectrum=<xml>]
                                         [--control=<xml>] [--store=<склад по guid>]
-                                        [--only=report,f16,f21,p195,a320]
+                                        [--only=report,f16,f21,p195,a320,a327]
                                         [--skip-freshness] [--keep] [--selftest]
 
   --probes=         каталог проб вместо `tools/effmaker/probes/build`
@@ -97,7 +103,7 @@ P195 не звал никто, и все три были красны на чи�
   --spectrum=/--control=  другая пара для report, F16 и F21 (у `--spectrum` обязан
                     быть ряд Th-232 и состав NucBase+равновесие, у `--control` —
                     ряда быть не должно);
-  --store=          склад матриц по guid кривой для P195, a320 и раздела 16 report (`AMBER286`)
+  --store=          склад матриц по guid кривой для P195, a320, a327 и раздела 16 report (`AMBER286`)
                     (умолчание — склад корпуса);
   --only=           гнать только названные пробы (свежесть судится по ним же);
   --skip-freshness  НЕ судить свежесть каталога проб (только стенд полосы, где каталог
@@ -172,6 +178,10 @@ PROBES = [
     # память раскрытия, клавиши, выбор и подсветка потомка, заголовок кристалла.
     Probe(u'a320', u'FsaRowGroupsProbeA320.exe', RE_RED_SIGN, RE_OK_LOWER,
           u'строки-потомки свёрнуты (AMBER320): стрелка, сумма и число, память, клавиши, выбор потомка'),
+    # (`AMBER327`, полоса a327 11.11.2026) строка-потомок и строка группы выделяют свою часть
+    # ленты: выбранное ярко, родитель вдвое слабее невыбранного, прочие — как невыбранные.
+    Probe(u'a327', u'FsaChildHighlightProbeA327.exe', RE_RED_SIGN, RE_OK_LOWER,
+          u'выделение строки-потомка на графике (AMBER327): часть ярко, родитель вдвое слабее, прочие приглушены'),
 ]
 PROBE_NAMES = [p.name for p in PROBES]
 
@@ -331,6 +341,9 @@ def probe_args(probe, plan, out_dir):
         if plan.get('a320_delay'):
             args.append(u'--delay-completed=%d' % plan['a320_delay'])
         return args
+    if probe.name == u'a327':
+        # (`AMBER327`) тот же торий с матрицей кривой в памяти: без неё подслоёв нет
+        return [u'--spectrum=' + plan['spectrum'], u'--store=' + plan['store']]
     args = [u'--spectrum=' + plan['p195_spectrum'], u'--store=' + plan['store']]
     if plan.get('p195_delay'):
         # (p195flake) задвижка фонового счёта одного окна — дольше прежнего молчаливого срока (61–76 с)
@@ -345,7 +358,7 @@ def inputs_of(probe, plan):
                 (u'склад матриц корпуса (вне git, tools/CORPUS/README.md §1.5)', plan['store'], True)]
     if probe.name in (u'f16', u'f21'):
         return [(u'спектр', plan['spectrum'], False)]
-    if probe.name == u'a320':
+    if probe.name in (u'a320', u'a327'):
         return [(u'спектр', plan['spectrum'], False),
                 (u'склад матриц корпуса (вне git, tools/CORPUS/README.md §1.5)', plan['store'], True)]
     return [(u'спектр P195', plan['p195_spectrum'], False),
@@ -512,7 +525,7 @@ def selftest(probes, plan, skip_freshness=False):
 
     o = Out(silent=True)
     code = run_check(probes, plan, skip_freshness=skip_freshness, out=o)
-    record(u'(в) штатный прогон пяти проб проходит', 0, code, o.buf, [u'СОШЛОСЬ', u'5 из 5'])
+    record(u'(в) штатный прогон шести проб проходит', 0, code, o.buf, [u'СОШЛОСЬ', u'6 из 6'])
 
     empty = tempfile.mkdtemp(prefix=u'bq_fsa_report_view_empty_')
     try:
@@ -587,7 +600,7 @@ def selftest(probes, plan, skip_freshness=False):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description=u'сторож окна отчёта FSA: приёмка пяти проб окна', add_help=True)
+    ap = argparse.ArgumentParser(description=u'сторож окна отчёта FSA: приёмка шести проб окна', add_help=True)
     ap.add_argument(u'--probes', default=None)
     ap.add_argument(u'--spectrum', default=SPECTRUM_DEFAULT)
     ap.add_argument(u'--control', default=CONTROL_DEFAULT)

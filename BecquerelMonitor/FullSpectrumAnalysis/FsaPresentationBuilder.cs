@@ -926,6 +926,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Layer = layer,
                 Indent = 1,
                 Counts = group.Counts,          // (`AMBER320`) сумма у свёрнутого родителя
+                FirstChannel = group.FirstChannel,  // (`AMBER327`) окно выделения на графике
+                LastChannel = group.LastChannel,
                 Hint = string.Join(Environment.NewLine, hint.ToArray())
             };
         }
@@ -1076,6 +1078,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Layer = layer,
                     Indent = 1,
                     Counts = group.Counts,      // (`AMBER320`)
+                    FirstChannel = group.FirstChannel,  // (`AMBER327`)
+                    LastChannel = group.LastChannel,
                     Hint = string.Join(Environment.NewLine, hint.ToArray())
                 });
             }
@@ -1119,6 +1123,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Layer = layer,
                 Indent = 1,
                 Counts = group.Counts,          // (`AMBER320`)
+                FirstChannel = group.FirstChannel,  // (`AMBER327`)
+                LastChannel = group.LastChannel,
                 Hint = string.Join(Environment.NewLine, hint.ToArray())
             };
         }

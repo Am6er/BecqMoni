@@ -301,6 +301,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     }
 
     /// <summary>
+    /// (`AMBER327`) ЧАСТЬ ЛЕНТЫ СЛОЯ, нарисованная внутри неё своим штрихом: подслой
+    /// сумм-пиков, пиков вылета или обратного рассеяния (<see cref="FsaStackLayer.SumPeakCurve"/>,
+    /// <see cref="FsaStackLayer.EscapePeakCurve"/>, <see cref="FsaStackLayer.BackscatterCurve"/>).
+    /// Строки-родители «— сумм-пик», «— пики вылета», «— обратное рассеяние» и их потомки
+    /// выделяют на графике свою часть, а не всю ленту нуклида (<see cref="FsaReportRow.Part"/>).
+    /// <see cref="None"/> — строка выделяет ленту слоя целиком, как прежде.
+    /// </summary>
+    public enum FsaLayerPart
+    {
+        None,
+
+        /// <summary>Подслой сумм-пиков.</summary>
+        SumPeaks,
+
+        /// <summary>Подслой пиков вылета.</summary>
+        EscapePeaks,
+
+        /// <summary>Подслой обратного рассеяния.</summary>
+        Backscatter
+    }
+
+    /// <summary>
     /// Образец перед подписью строки в колонке «Компонент» (`AMBER217`, решение
     /// Amber 07.10.2026: «цветовые индикаторы должны остаться … перед текстом
     /// изотопа как картинку»; клетка невязки снята — «Убрать только его»).
@@ -343,7 +365,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Цвет образца; у строк без образца не читается.</summary>
         public Color Color { get; set; }
 
-        /// <summary>Слой, из которого строка сделана (Layer, SumPeaks, SumPeakLine); иначе null.</summary>
+        /// <summary>Слой, из которого строка сделана (Layer, SumPeaks, SumPeakLine, вылет, рассеяние); иначе null.</summary>
         public FsaStackLayer Layer { get; set; }
 
         /// <summary>
@@ -367,6 +389,55 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             get { return this.counts; }
             set { this.counts = value; }
+        }
+
+        int firstChannel = -1;
+        int lastChannel = -1;
+
+        /// <summary>
+        /// (`AMBER327`) Окно строки-потомка на шкале каналов данных — первый канал; −1 — окна нет
+        /// (строка не потомок-пик). Это то же окно ±FWHM вокруг центра группы, по которому взята σ
+        /// строки (<see cref="FsaSumPeakGroup.FirstChannel"/>): им строка выделяет на графике СВОЮ
+        /// долю подслоя родителя, отдельной кривой у пика в разборе нет.
+        /// </summary>
+        public int FirstChannel
+        {
+            get { return this.firstChannel; }
+            set { this.firstChannel = value; }
+        }
+
+        /// <summary>(`AMBER327`) Последний канал окна строки-потомка; −1 — окна нет.</summary>
+        public int LastChannel
+        {
+            get { return this.lastChannel; }
+            set { this.lastChannel = value; }
+        }
+
+        /// <summary>
+        /// (`AMBER327`) Какую часть ленты своего слоя строка выделяет на графике: строки
+        /// «— сумм-пик», «— пики вылета», «— обратное рассеяние» и их потомки — свой подслой
+        /// (потомок — в своём окне <see cref="FirstChannel"/>…<see cref="LastChannel"/>);
+        /// прочие — <see cref="FsaLayerPart.None"/>, ленту целиком.
+        /// </summary>
+        public FsaLayerPart Part
+        {
+            get
+            {
+                switch (this.Kind)
+                {
+                    case FsaReportRowKind.SumPeaks:
+                    case FsaReportRowKind.SumPeakLine:
+                        return FsaLayerPart.SumPeaks;
+                    case FsaReportRowKind.EscapePeaks:
+                    case FsaReportRowKind.EscapePeakLine:
+                        return FsaLayerPart.EscapePeaks;
+                    case FsaReportRowKind.Backscatter:
+                    case FsaReportRowKind.BackscatterLine:
+                        return FsaLayerPart.Backscatter;
+                    default:
+                        return FsaLayerPart.None;
+                }
+            }
         }
 
         /// <summary>Серый текст: у кандидата нет ленты и нет цвета (`S9`).</summary>
