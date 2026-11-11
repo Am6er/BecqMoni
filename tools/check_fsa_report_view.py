@@ -83,7 +83,9 @@ P195 не звал никто, и все три были красны на чи�
   (з) a320 с подсаженным дефектом «раскрыто по умолчанию» (`--spoil=expanded`: группы
       раскрыты входом самого окна до проверок) — проба ОБЯЗАНА отказать, сторож — код 1;
   (и) a320 с опозданием события конца счёта на 1.5 с (`--delay-completed=1500`, так ведёт
-      себя фоновый поток под нагрузкой) — проба ОБЯЗАНА пройти: ждёт по признаку, не по паузе.
+      себя фоновый поток под нагрузкой) — проба ОБЯЗАНА пройти: ждёт по признаку, не по паузе;
+  (к) P195 со счётом окна `AS80_Lu176`, задержанным на 90 с (`--delay-compute=90000:AS80_Lu176`,
+      задвижка проб сеанса) — проба ОБЯЗАНА пройти: ждёт сеанс по признаку, а не ~60–76 с молча.
 
   python tools/check_fsa_report_view.py [--probes=<каталог проб>] [--spectrum=<xml>]
                                         [--control=<xml>] [--store=<склад по guid>]
@@ -101,7 +103,7 @@ P195 не звал никто, и все три были красны на чи�
   --skip-freshness  НЕ судить свежесть каталога проб (только стенд полосы, где каталог
                     собран из ДРУГОГО дерева — worktree; в приёмку не годится);
   --keep            оставить снимки проб (путь печатается);
-  --selftest        положительный контроль (см. выше), ~3 мин на свободной машине;
+  --selftest        положительный контроль (см. выше), ~3 мин на свободной машине и ещё ~1.5 мин плечом (к);
                     свежесть судится один раз, в (в); `--skip-freshness` снимает и её.
 
 Коды возврата:
@@ -329,7 +331,11 @@ def probe_args(probe, plan, out_dir):
         if plan.get('a320_delay'):
             args.append(u'--delay-completed=%d' % plan['a320_delay'])
         return args
-    return [u'--spectrum=' + plan['p195_spectrum'], u'--store=' + plan['store']]
+    args = [u'--spectrum=' + plan['p195_spectrum'], u'--store=' + plan['store']]
+    if plan.get('p195_delay'):
+        # (p195flake) задвижка фонового счёта одного окна — дольше прежнего молчаливого срока (61–76 с)
+        args.append(u'--delay-compute=%d:%s' % plan['p195_delay'])
+    return args
 
 
 def inputs_of(probe, plan):
@@ -381,11 +387,11 @@ def rel(path):
 
 def make_plan(spectrum=SPECTRUM_DEFAULT, control=CONTROL_DEFAULT, store=STORE_DEFAULT,
               p195_spectrum=P195_SPECTRUM, f16_layer=None, f21_against=None, a320_spoil=False,
-              a320_delay=0):
+              a320_delay=0, p195_delay=None):
     return {'spectrum': os.path.abspath(spectrum), 'control': os.path.abspath(control),
             'store': os.path.abspath(store), 'p195_spectrum': os.path.abspath(p195_spectrum),
             'f16_layer': f16_layer, 'f21_against': f21_against, 'a320_spoil': a320_spoil,
-            'a320_delay': a320_delay}
+            'a320_delay': a320_delay, 'p195_delay': p195_delay}
 
 
 def run_check(probes, plan, only=None, keep=False, skip_freshness=False, out=None):
@@ -483,7 +489,7 @@ def selftest(probes, plan, skip_freshness=False):
     контроль С РЯДОМ (тот же спектр) — код 1; спектра нет — код 2; F16 с чужим
     слоем — код 1; F21 с пустыми опорными кадрами — код 1; P195 с пустым складом —
     код 2; a320 с подсаженным «раскрыто по умолчанию» — код 1; a320 с опозданием события
-    конца счёта — код 0.
+    конца счёта — код 0; P195 с долгим счётом окна AS80_Lu176 — код 0.
 
     Свежесть каталога судится ОДИН раз — в (в): плечи (б)…(ж) гонят тот же каталог
     и судят приговор проб, не его свежесть (иначе соседняя полоса, правящая `.cs`
@@ -557,6 +563,17 @@ def selftest(probes, plan, skip_freshness=False):
         slow_plan = dict(plan, a320_delay=1500)
         code = run_check(probes, slow_plan, only=[u'a320'], skip_freshness=True, out=o)
         record(u'(и) a320 с опозданием события конца счёта на 1.5 с — проходит', 0, code, o.buf,
+               [u'СОШЛОСЬ', u'1 из 1'])
+
+        # (p195flake, 10.11.2026) устойчивость P195 к долгому счёту: фоновый счёт окна AS80_Lu176
+        # стоит 90 с на задвижке проб — дольше прежнего срока ожидания (1200 × Sleep(50): 61–76 с по
+        # разрешению таймера, задержка 65 с (счёт 70 с) прежнюю обвязку ещё проходила; истекал молча и давал
+        # «(2д) AS80_Lu176: опоры есть: ждали True, есть False» под нагрузкой 09.11.2026). Проба ждёт по
+        # признаку и проходит; прежняя обвязка на этом плече отказывала (журнал p195flake).
+        o = Out(silent=True)
+        slow_plan = dict(plan, p195_delay=(90000, u'AS80_Lu176'))
+        code = run_check(probes, slow_plan, only=[u'p195'], skip_freshness=True, out=o)
+        record(u'(к) P195 со счётом окна AS80_Lu176 дольше 90 с — проходит', 0, code, o.buf,
                [u'СОШЛОСЬ', u'1 из 1'])
     finally:
         shutil.rmtree(empty, ignore_errors=True)

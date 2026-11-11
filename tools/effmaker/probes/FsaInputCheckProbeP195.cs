@@ -53,6 +53,14 @@ namespace FsaInputCheckProbeP195
     ///
     ///     FsaInputCheckProbeP195 --spectrum=G1S16_K40_Mar.xml
     ///                            [--store=tools\CORPUS\corpus\geometries\response]
+    ///                            [--timeout=&lt;с&gt;] [--delay-compute=&lt;мс&gt;[:&lt;окно&gt;]]
+    ///
+    /// (полоса p195flake, 10.11.2026) Окно читается, когда сеанс ДОШЁЛ ДО ПОКОЯ ПО ПРИЗНАКУ (`Settle`:
+    /// счёт не идёт, начатый запуск закончен событием `Completed`), а не по сроку: прежний срок 1200 × Sleep(50) ≈ 61–76 с
+    /// истекал молча под сильной нагрузкой, и сцена (2д) на `AS80_Lu176` читала окно посреди счёта
+    /// (три ложных отказа 09.11.2026). `--timeout=` — срок ожидания (умолчание 1800 с), истёк — отказ
+    /// обвязки «⛔ обвязка: …». `--delay-compute=` — задвижка фонового счёта на столько миллисекунд (во
+    /// всех окнах или в названном): воспроизводимая «нагрузка» для самопроверки сторожа.
     ///
     /// ⛔ (`T269`, П251 14.10.2026) СЦЕНА (1) ТРЕБУЕТ МАТРИЦЫ. Матрицу разбор
     /// берёт со склада приложения (`config\device\response\&lt;guid&gt;.rmx` рядом
@@ -90,6 +98,14 @@ namespace FsaInputCheckProbeP195
             foreach (string a in args)
             {
                 if (a == "--scan-notinstep") scanNotInStep = true;
+                else if (a.StartsWith("--timeout=", StringComparison.Ordinal)) timeoutS = int.Parse(a.Substring(10), CultureInfo.InvariantCulture);
+                else if (a.StartsWith("--delay-compute=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(16);
+                    int colon = v.IndexOf(':');
+                    delayComputeMs = int.Parse(colon < 0 ? v : v.Substring(0, colon), CultureInfo.InvariantCulture);
+                    delayScene = colon < 0 ? null : v.Substring(colon + 1);
+                }
                 else if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) path = a.Substring(11);
                 else if (a.StartsWith("--store=", StringComparison.Ordinal)) store = a.Substring(8);
                 else { Console.Error.WriteLine("неизвестный ключ: " + a); return 2; }
@@ -285,17 +301,33 @@ namespace FsaInputCheckProbeP195
         /// <summary>Счёт сеанса до покоя, окно — заполнить и вернуть строки блока (подпись, значение, красное?).</summary>
         static List<string[]> Window(FSAReportView report, FsaAnalysisSession session, ResultData rd, string title)
         {
-            session.EnsureUpToDate(rd, true);
-            for (int i = 0; i < 1200 && session.IsRunning; i++)
+            bool slow = delayComputeMs > 0 && (delayScene == null || delayScene == title);
+            if (slow)
             {
-                Thread.Sleep(50);
-                Application.DoEvents();
+                Gate(new DelayGate(delayComputeMs));
+            }
+
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                Track(session);
+                int before = session.RunCount;
+                session.EnsureUpToDate(rd, true);
+                Settle(session, before, title);
+            }
+            finally
+            {
+                if (slow)
+                {
+                    Gate(null);
+                }
             }
 
             report.SetProbeSource(session, rd);
             report.RefreshReport();
             Console.WriteLine();
-            Console.WriteLine("--- окно: {0} (состояние: {1}) ---", title, session.Status ?? "—");
+            Console.WriteLine("--- окно: {0} (состояние: {1}; счёт {2:F1} с{3}) ---", title, session.Status ?? "—",
+                              clock.Elapsed.TotalSeconds, slow ? ", замедлен на " + delayComputeMs + " мс" : "");
             var rows = new List<string[]>();
             TableModel model = report.ReportTable.TableModel;
             for (int i = 0; i < model.Rows.Count; i++)
@@ -310,6 +342,107 @@ namespace FsaInputCheckProbeP195
             }
 
             return rows;
+        }
+
+        /// <summary>
+        /// (полоса p195flake, 10.11.2026) Срок ожидания сеанса, с. Прежде ожидание было 1200 × Sleep(50) ≈ 61–76 с (по разрешению таймера)
+        /// и по истечении МОЛЧА шло читать окно: под сильной нагрузкой разбор `AS80_Lu176` шёл дольше, сеанс
+        /// ещё считал (`Result` = null), и сцена (2д) давала три ложных отказа «опоры есть: ждали True, есть
+        /// False». Теперь срок — с запасом на нагрузку (`--timeout=`), а истечение — отказ обвязки словами.
+        /// </summary>
+        static int timeoutS = 1800;
+
+        /// <summary>
+        /// (p195flake) `--delay-compute=&lt;мс&gt;[:&lt;окно&gt;]` — воспроизводимая «нагрузка»: фоновый счёт
+        /// сеанса стоит на задвижке проб (`FsaAnalysisSession.probeGate`) столько миллисекунд перед разбором
+        /// — во всех окнах или только в названном (заголовок окна, например `AS80_Lu176`). Прежняя
+        /// обвязка с 90000:AS80_Lu176 давала ровно отказ 09.11.2026; ожидание по признаку — нет.
+        /// </summary>
+        static int delayComputeMs;
+        static string delayScene;
+
+        sealed class DelayGate : WaitHandle
+        {
+            readonly int ms;
+
+            public DelayGate(int ms)
+            {
+                this.ms = ms;
+            }
+
+            public override bool WaitOne()
+            {
+                Thread.Sleep(this.ms);
+                return true;
+            }
+        }
+
+        static void Gate(WaitHandle gate)
+        {
+            System.Reflection.FieldInfo f = typeof(FsaAnalysisSession).GetField("probeGate",
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            if (f == null)
+            {
+                throw new InvalidOperationException("нет FsaAnalysisSession.probeGate — проба смотрит не туда");
+            }
+
+            f.SetValue(null, gate);
+        }
+
+        static readonly object doneGate = new object();
+        static readonly Dictionary<FsaAnalysisSession, int> completedRun = new Dictionary<FsaAnalysisSession, int>();
+
+        /// <summary>Подписать пробу на конец счёта сеанса (повторная подписка не удваивает).</summary>
+        static void Track(FsaAnalysisSession session)
+        {
+            session.Completed -= OnCompleted;
+            session.Completed += OnCompleted;
+        }
+
+        static void OnCompleted(object sender, EventArgs e)
+        {
+            var session = (FsaAnalysisSession)sender;
+            int run = session.RunCount;
+            lock (doneGate)
+            {
+                completedRun[session] = run;
+            }
+        }
+
+        /// <summary>
+        /// (p195flake) Ждать ПО ПРИЗНАКУ, а не по сроку: счёт не идёт, и если заказ запустил счёт
+        /// (`RunCount` вырос с <paramref name="before"/>), последний начатый запуск закончен событием
+        /// `Completed` — то есть `Finish` целиком отработал и результат опубликован. Заказ, не
+        /// запустивший счёта (тот же отпечаток), готов сразу. Срок <see cref="timeoutS"/> вышел — отказ
+        /// обвязки словами (не «готово» и не чтение окна посреди счёта).
+        /// </summary>
+        static void Settle(FsaAnalysisSession session, int before, string what)
+        {
+            DateTime until = DateTime.UtcNow.AddSeconds(timeoutS);
+            while (DateTime.UtcNow < until)
+            {
+                Application.DoEvents();
+                int run = session.RunCount;
+                bool done;
+                lock (doneGate)
+                {
+                    int completed;
+                    done = !session.IsRunning
+                           && (run == before || (completedRun.TryGetValue(session, out completed) && completed == run));
+                }
+
+                if (done && session.RunCount == run)
+                {
+                    Application.DoEvents();
+                    return;
+                }
+
+                Thread.Sleep(20);
+            }
+
+            Console.WriteLine("  ⛔ обвязка: окно «{0}» — сеанс не дошёл до покоя за {1} с (состояние: {2})", what, timeoutS,
+                              session.Status ?? "—");
+            bad++;
         }
 
         /// <summary>
