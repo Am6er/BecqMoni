@@ -571,7 +571,6 @@ namespace BecquerelMonitor.NucBase
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.groupBox1);
-            this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "NucBase";
             this.toolTip1.SetToolTip(this, resources.GetString("$this.ToolTip"));

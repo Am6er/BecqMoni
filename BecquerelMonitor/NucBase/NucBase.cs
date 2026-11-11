@@ -68,6 +68,179 @@ namespace BecquerelMonitor.NucBase
             // (`AMBER264`, `AMBER299`) Подсказки из дизайнера — блоком.
             AppUi.WrapToolTips(this.toolTip1, this);
             InitGrids();
+            InitStretch();
+        }
+
+        /// <summary>
+        /// (`AMBER299`, 11.11.2026; решение Amber 07.11.2026 вопросником, дословно: «Растягиваемое
+        /// (Рекомендую)») Окно тянется и разворачивается; размер дизайнера (1004×560) — наименьший
+        /// (<c>MinimumSize</c>; <c>MaximumSize</c> и <c>AutoSize</c> сняты: самоподгонка формы с
+        /// якорными детьми не дала бы окну сжаться обратно). Рамка отбора тянется вширь якорем,
+        /// панель под ней — якорем во все стороны, а её содержимое раскладывает
+        /// <see cref="StretchLayout"/>: прирост ширины делится между таблицей поиска (слева) и
+        /// карточкой нуклида с таблицами родителей и дочерних (справа), прирост высоты получают
+        /// три таблицы, а строки под ними (импорт, галки, формат имени, строка состояния) едут
+        /// вниз. Одними якорями так не разложить: две колонки рядом не могут расти обе.
+        /// </summary>
+        void InitStretch()
+        {
+            this.stretch = new StretchLayout(this.panel1, LeftShare);
+            // слева: таблица растёт вширь и вниз, кнопка импорта — вширь и едет вниз
+            this.stretch.Add(this.ResultDataGridView, StretchLayout.Column.Left, StretchLayout.Move.None, true, true);
+            this.stretch.Add(this.buttonImportDef, StretchLayout.Column.Left, StretchLayout.Move.None, true, false, true);
+            this.stretch.Add(this.checkBoxOverwriteDef, StretchLayout.Column.Left, StretchLayout.Move.None, false, false, true);
+            this.stretch.Add(this.checkBoxAppendRootName, StretchLayout.Column.Left, StretchLayout.Move.None, false, false, true);
+            // формат имени прижат к правому краю таблицы
+            this.stretch.Add(this.labelNameFormat, StretchLayout.Column.Left, StretchLayout.Move.ByLeft, false, false, true);
+            this.stretch.Add(this.comboBoxNameFormat, StretchLayout.Column.Left, StretchLayout.Move.ByLeft, false, false, true);
+            // справа: карточка вширь, родители и дочерние делят ширину правой части пополам
+            this.stretch.Add(this.groupBox2, StretchLayout.Column.Right, StretchLayout.Move.ByLeft, true, false);
+            this.stretch.Add(this.SearchStatusLabel, StretchLayout.Column.Right, StretchLayout.Move.ByLeft, true, false, true);
+            this.stretch.Add(this.label6, StretchLayout.Column.RightFirst, StretchLayout.Move.ByLeft, false, false);
+            this.stretch.Add(this.ParentsDataGridView, StretchLayout.Column.RightFirst, StretchLayout.Move.ByLeft, true, true);
+            this.stretch.Add(this.label7, StretchLayout.Column.RightSecond, StretchLayout.Move.ByLeft, false, false);
+            this.stretch.Add(this.DaughtersDataGridView, StretchLayout.Column.RightSecond, StretchLayout.Move.ByLeft, true, true);
+            this.panel1.Layout += (sender, e) => this.stretch.Apply();
+        }
+
+        /// <summary>Доля прироста ширины, которую получает таблица поиска; остальное — правая часть.</summary>
+        internal const double LeftShare = 0.6;
+
+        StretchLayout stretch;
+
+        /// <summary>
+        /// Пересчёт масштаба формы после постройки (смена шрифта при <c>AutoScaleMode.Font</c>):
+        /// исходные места раскладки масштабируются тем же множителем, что и сами элементы, иначе
+        /// следующая раскладка вернула бы их к размерам до масштаба.
+        /// </summary>
+        protected override void ScaleControl(System.Drawing.SizeF factor, BoundsSpecified specified)
+        {
+            base.ScaleControl(factor, specified);
+            if (this.stretch != null)
+            {
+                this.stretch.Scale(factor);
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER299`) Раскладка панели «Базы изотопов» под её размер. Исходное место каждого
+        /// элемента — то, что поставил дизайнер (своё у каждого языка, из пары <c>resx</c>), при
+        /// исходном размере панели; при росте панели на dw×dh элементу прибавляется доля:
+        /// левая колонка получает <c>share·dw</c>, правая — остальное, а правая делится ещё
+        /// пополам между таблицами родителей и дочерних. Меньше исходного панель не бывает
+        /// (наименьший размер окна), а если стала — элементы стоят на исходных местах.
+        /// Открыт пробе.
+        /// </summary>
+        internal sealed class StretchLayout
+        {
+            public enum Column { Left, Right, RightFirst, RightSecond }
+
+            public enum Move { None, ByLeft }
+
+            sealed class Rule
+            {
+                public Control Control;
+                public Column Column;
+                public Move Move;
+                public bool Wide, Tall, Down;
+                public System.Drawing.Rectangle Origin;
+            }
+
+            readonly Control host;
+            readonly double share;
+            readonly List<Rule> rules = new List<Rule>();
+            System.Drawing.Size origin;
+
+            public StretchLayout(Control host, double share)
+            {
+                this.host = host;
+                this.share = share;
+                this.origin = host.ClientSize;
+            }
+
+            /// <summary>Исходный размер панели (пробе).</summary>
+            public System.Drawing.Size Origin
+            {
+                get { return this.origin; }
+            }
+
+            /// <summary>Исходное место элемента (пробе).</summary>
+            public System.Drawing.Rectangle OriginOf(Control control)
+            {
+                foreach (Rule rule in this.rules)
+                {
+                    if (rule.Control == control)
+                    {
+                        return rule.Origin;
+                    }
+                }
+
+                return System.Drawing.Rectangle.Empty;
+            }
+
+            public void Add(Control control, Column column, Move move, bool wide, bool tall, bool down = false)
+            {
+                this.rules.Add(new Rule
+                {
+                    Control = control, Column = column, Move = move, Wide = wide, Tall = tall, Down = down,
+                    Origin = control.Bounds,
+                });
+            }
+
+            public void Scale(System.Drawing.SizeF factor)
+            {
+                this.origin = new System.Drawing.Size((int)Math.Round(this.origin.Width * factor.Width), (int)Math.Round(this.origin.Height * factor.Height));
+                foreach (Rule rule in this.rules)
+                {
+                    System.Drawing.Rectangle r = rule.Origin;
+                    rule.Origin = System.Drawing.Rectangle.FromLTRB(
+                        (int)Math.Round(r.Left * factor.Width), (int)Math.Round(r.Top * factor.Height),
+                        (int)Math.Round(r.Right * factor.Width), (int)Math.Round(r.Bottom * factor.Height));
+                }
+            }
+
+            public void Apply()
+            {
+                int dw = Math.Max(0, this.host.ClientSize.Width - this.origin.Width);
+                int dh = Math.Max(0, this.host.ClientSize.Height - this.origin.Height);
+                int left = (int)Math.Floor(dw * this.share);
+                int right = dw - left;
+                int first = right / 2;
+                int second = right - first;
+                foreach (Rule rule in this.rules)
+                {
+                    int shift, grow;
+                    switch (rule.Column)
+                    {
+                        case Column.Left:
+                            shift = 0;
+                            grow = left;
+                            break;
+                        case Column.Right:
+                            shift = left;
+                            grow = right;
+                            break;
+                        case Column.RightFirst:
+                            shift = left;
+                            grow = first;
+                            break;
+                        default:
+                            shift = left + first;
+                            grow = second;
+                            break;
+                    }
+
+                    System.Drawing.Rectangle o = rule.Origin;
+                    // «ByLeft» у левой колонки — едет вместе с её правым краем
+                    int x = o.X + (rule.Move == Move.ByLeft ? (rule.Column == Column.Left ? grow : shift) : 0);
+                    var target = new System.Drawing.Rectangle(
+                        x, o.Y + (rule.Down ? dh : 0), o.Width + (rule.Wide ? grow : 0), o.Height + (rule.Tall ? dh : 0));
+                    if (rule.Control.Bounds != target)
+                    {
+                        rule.Control.Bounds = target;
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -130,6 +303,7 @@ namespace BecquerelMonitor.NucBase
             // (`AMBER264`, `AMBER299`) Подсказки из дизайнера — блоком.
             AppUi.WrapToolTips(this.toolTip1, this);
             InitGrids();
+            InitStretch();
             this.mainForm = mainForm;
             this.Icon = Resources.becqmoni;
             this.IncludeDecayChainCheckBox.Enabled = false;
@@ -505,8 +679,8 @@ namespace BecquerelMonitor.NucBase
 
         /// <summary>
         /// (П275) Показ ячейки периода «60.55(m)» на языке интерфейса: «60.55(мин)»
-        /// по-русски, «60.55(m)» — по-английски, как и было. Ячейка без единицы в
-        /// скобках показывается как есть.
+        /// по-русски, «60.55(min)» — по-английски (`AMBER299`, 11.11.2026: прежнее «m»
+        /// читалось как метры). Ячейка без единицы в скобках показывается как есть.
         /// </summary>
         public static string HalfLifeCellCaption(string cell)
         {
