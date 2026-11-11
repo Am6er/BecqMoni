@@ -57,6 +57,9 @@ namespace BecquerelMonitor
             // (`AMBER301`) Высота вкладки считается, а не привязана к низу, и без этого не шла за окном:
             // при 982×620 обрезала легенду и кнопки, при 1500×1000 оставляла пустую полосу.
             this.Resize += (sender, e) => UpdateGeometryLayout();
+
+            // (`AMBER321`) Разрешение из калибровки прибора — вопросом при открытии окна.
+            this.Shown += (sender, e) => this.OfferFwhmFromCalibration();
         }
 
         GeometryEditorPanel geometryPanel;
@@ -1113,7 +1116,16 @@ namespace BecquerelMonitor
             // Подсказка разрешения из ПШПВ-калибровки прибора (E14): у
             // геометрии из редактора FwhmAt662Percent нулевой, а с нулём
             // допуск пика нулевой и поправка SingleScatter не даёт ничего.
-            this.geometryPanel.SetFwhmSuggestion(FwhmPercentAt662(device));
+            this.fwhmCalibrationPercent = FwhmPercentAt662(device);
+            this.fwhmCalibrationAnchors = FwhmCalibrationAnchors(device);
+            this.geometryPanel.SetFwhmSuggestion(this.fwhmCalibrationPercent);
+
+            // (`AMBER321`) Вопрос «взять FWHM из калибровки прибора?» — при открытии окна, один
+            // раз. Окно уже на экране (привязка после показа) — сразу; иначе — по Shown.
+            if (this.Visible && this.IsHandleCreated)
+            {
+                this.BeginInvoke(new Action(this.OfferFwhmFromCalibration));
+            }
 
             // Кривая конфигурации становится исходной: график рисует её
             // пунктиром рядом с посчитанной.
@@ -1245,6 +1257,27 @@ namespace BecquerelMonitor
                 device == null ? null : device.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
             FwhmCalibration fwhm = fwhmConfig == null ? null : fwhmConfig.FwhmCalibration;
             EnergyCalibration energy = device == null ? null : device.EnergyCalibration;
+
+            // (`AMBER321`) Встроенная заглушка кривой (15 каналов у нуля, 103 на канале 3756,
+            // шкала y = x — `FWHMPeakDetectionMethodConfig.IsBuiltInStandIn`) — не калибровка
+            // прибора: число из неё было бы выдуманным, а вопрос при открытии предлагал бы его
+            // вместо пресета. Обычно её заменяет чтение конфигурации
+            // (`DeviceConfigInfo.ResolveBuiltInFwhm`); остаётся она, когда кривую по трём числам
+            // построить нельзя.
+            if (FWHMPeakDetectionMethodConfig.IsBuiltInStandIn(fwhm))
+            {
+                return 0.0;
+            }
+
+            return FwhmPercentAt662(fwhm, energy, device == null ? 0 : device.NumberOfChannels);
+        }
+
+        /// <summary>
+        /// (`AMBER321`) То же по самим калибровкам — так его зовёт проба на спектрах корпуса
+        /// (у спектра своя кривая FWHM и своя шкала).
+        /// </summary>
+        internal static double FwhmPercentAt662(FwhmCalibration fwhm, EnergyCalibration energy, int channels)
+        {
             if (fwhm == null || energy == null)
             {
                 return 0.0;
@@ -1252,7 +1285,7 @@ namespace BecquerelMonitor
 
             try
             {
-                double channel = energy.EnergyToChannel(662.0, device.NumberOfChannels);
+                double channel = energy.EnergyToChannel(662.0, channels);
                 double fwhmChannels = fwhm.ChannelToFwhm(channel);
                 if (!(fwhmChannels > 0.0) || double.IsNaN(fwhmChannels))
                 {
@@ -1267,6 +1300,141 @@ namespace BecquerelMonitor
             {
                 return 0.0;
             }
+        }
+
+        /// <summary>(`AMBER321`) Число FWHM-калибровки привязанного прибора на 662 кэВ, %; 0 — нет.</summary>
+        double fwhmCalibrationPercent;
+
+        /// <summary>(`AMBER321`) Вопрос о FWHM из калибровки уже решён в этом открытии окна.</summary>
+        bool fwhmQuestionDone;
+
+        /// <summary>(`AMBER321`) Сколько опор у FWHM-калибровки привязанного прибора (<see cref="FwhmCalibrationAnchors(DeviceConfigInfo)"/>).</summary>
+        int fwhmCalibrationAnchors;
+
+        /// <summary>
+        /// ⛔ (`AMBER321`, решение Amber 11.11.2026 вопросником, дословно: «Только при кривой из 3+
+        /// опор (Рекомендую)») С какого числа опор калибровка FWHM считается кривой, по которой
+        /// спрашивают. Замер полосы a321: кривые из 5 и 10 опор сходились с пиком 662 кэВ своей
+        /// группы корпуса в 0.1 п.п., а «три числа» и кривая из двух опор расходились на −2.6…+1.5 п.п.
+        /// </summary>
+        internal const int FwhmQuestionMinAnchors = 3;
+
+        /// <summary>
+        /// (`AMBER321`) Число опор FWHM-калибровки прибора — РАЗНЫХ каналов среди её
+        /// <see cref="FwhmCalibration.CalibrationPeaks"/> с положительной шириной. Понятия «число опор»
+        /// в модели калибровки нет, а опоры есть у всех трёх видов кривой (`SqrtFwhmCalibration`,
+        /// `SimpleSqrtFwhmCalibration`, `PowerFwhmCalibration`): по ним кривая строится
+        /// (`PerformCalibration`) и с ними сохраняется. «Три числа» настроек
+        /// (`FwhmCalibration.DefaultCalibration` / `StandInCalibration`) — это две опоры (канал 0 и
+        /// `Ch_Fwhm`), поэтому отсекаются тем же счётом. Встроенная заглушка и кривая без опор
+        /// (коэффициенты без точек — проверить её нечем) дают ноль.
+        /// </summary>
+        internal static int FwhmCalibrationAnchors(DeviceConfigInfo device)
+        {
+            FWHMPeakDetectionMethodConfig fwhmConfig =
+                device == null ? null : device.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig;
+            FwhmCalibration fwhm = fwhmConfig == null ? null : fwhmConfig.FwhmCalibration;
+            if (fwhm == null || fwhm.CalibrationPeaks == null || FWHMPeakDetectionMethodConfig.IsBuiltInStandIn(fwhm))
+            {
+                return 0;
+            }
+
+            var channels = new HashSet<int>();
+            foreach (CalibrationPeak peak in fwhm.CalibrationPeaks)
+            {
+                if (peak != null && peak.FWHM > 0.0)
+                {
+                    channels.Add(peak.Channel);
+                }
+            }
+
+            return channels.Count;
+        }
+
+        /// <summary>
+        /// (`AMBER321`) Порог расхождения поля и калибровки, процентных пунктов: решение Amber
+        /// 07.11.2026 вопросником, дословно «При открытии, если расходится (Рекомендую)» —
+        /// «расходится с полем больше 0.1 п.п.».
+        /// </summary>
+        internal const double FwhmQuestionThreshold = 0.1;
+
+        /// <summary>
+        /// (`AMBER321`) Нужен ли вопрос: калибровка отвечает числом и расходится с полем БОЛЬШЕ
+        /// порога. Ровно 0.1 п.п. — не больше, вопроса нет; разность округляется до 1e-9, иначе
+        /// 7.75 − 7.65 в двоичной записи дало бы 0.100000000000000…5 и вопрос на равном пороге.
+        /// Поле, не читающееся числом, считается нулём.
+        /// </summary>
+        internal static bool FwhmQuestionNeeded(double calibrationPercent, double fieldPercent)
+        {
+            if (!(calibrationPercent > 0.0))
+            {
+                return false;
+            }
+
+            double field = double.IsNaN(fieldPercent) || double.IsInfinity(fieldPercent) ? 0.0 : fieldPercent;
+            return Math.Round(Math.Abs(calibrationPercent - field), 9) > FwhmQuestionThreshold;
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER321`, 11.11.2026) ВОПРОС ПРИ ОТКРЫТИИ: у прибора есть FWHM-калибровка — кривая
+        /// из трёх и более опор (<see cref="FwhmQuestionMinAnchors"/>; решение Amber 11.11.2026), и её
+        /// число на 662 кэВ расходится с полем редактора больше 0.1 п.п. — окно с обоими числами.
+        /// Постановка Amber 07.11.2026, дословно: «При редактировании - должно подтягиваться из
+        /// калибровки устройства с вопросом.» «Да» ставит в поле число калибровки (как кнопка
+        /// «Из калибровки прибора»): окно становится несохранённым, и после «Сохранить» отпечаток
+        /// геометрии у кривой расходится — вкладка прибора ставит кривой «!» и пишет «пересчитайте»
+        /// (`AMBER185`, `EfficiencyStaleMark.CurveStale`). «Нет» не меняет ничего.
+        ///
+        /// Спрашивается ОДИН раз за открытие окна: решённый вопрос (любой ответ, или вопроса не было)
+        /// перепривязка к свежему клону (`Rebind`, `AMBER184`) не повторяет. Без окон вопроса нет
+        /// (`S100`), кроме стенда пробы (`AppUi.Probe`).
+        /// </summary>
+        internal void OfferFwhmFromCalibration()
+        {
+            if (this.fwhmQuestionDone || this.boundConfig == null || this.IsDisposed)
+            {
+                return;
+            }
+
+            this.fwhmQuestionDone = true;
+            double calibration = this.fwhmCalibrationPercent;
+            double field = this.geometryPanel.FwhmFieldPercent;
+            // (`AMBER321`, 11.11.2026) Только кривая из трёх и более опор: «три числа» и две
+            // опоры — без вопроса (кнопка «Из калибровки прибора» для них остаётся).
+            if (this.fwhmCalibrationAnchors < FwhmQuestionMinAnchors
+                || !FwhmQuestionNeeded(calibration, field) || this.geometryPanel.GdmlMode || !AppUi.HasWindows)
+            {
+                return;
+            }
+
+            double shownField = double.IsNaN(field) ? 0.0 : field;
+            // (`AMBER321`, замечание критика crit321) Числа — тем же видом, каким их пишет поле
+            // (`CrystalResolutionPresets.FieldText`, «0.###», инвариантно): в поле после «Да» встанет ровно
+            // то число, что названо в вопросе.
+            string fieldText = CrystalResolutionPresets.FieldText(shownField);
+            string calibrationText = CrystalResolutionPresets.FieldText(calibration);
+            string question = string.Format(CultureInfo.InvariantCulture,
+                ResourceText("FwhmFromCalibrationQuestion",
+                    "FWHM at 662 keV in the geometry: {0} %. The FWHM calibration of the device gives {1} %.\n\n"
+                    + "Use {1} % from the device calibration?"),
+                fieldText, calibrationText);
+            if (this.boundConfig.HasCurve)
+            {
+                // Кривая уже есть: «Да» потребует её пересчёта (и матрицы — её клеймо несёт геометрию).
+                question += "\n\n" + ResourceText("FwhmFromCalibrationQuestionCurve",
+                    "The efficiency curve and the response matrix of this geometry will then have to be recalculated.");
+            }
+
+            if (!AppUi.AskYesNo(this, question, Resources.ConfirmationDialogTitle, MessageBoxIcon.Question, false))
+            {
+                return;
+            }
+
+            this.geometryPanel.ApplyFwhmFromCalibration(calibration);
+            this.SayInLogAndStatus(string.Format(CultureInfo.InvariantCulture,
+                ResourceText("FwhmFromCalibrationApplied",
+                    "FWHM at 662 keV: {0} % → {1} % from the device calibration. Recalculate the curve and save it."),
+                fieldText, calibrationText));
         }
 
         /// <summary>
