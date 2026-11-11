@@ -469,6 +469,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         const int LeftStrip = 28;
         const int RightStrip = 4;
 
+        /// <summary>
+        /// (`AMBER324`) Левая полоса этой раскладки. Число вертикального габарита теперь горизонтально и стоит слева от
+        /// линии, поэтому полоса — по его ширине (`Arrange`), не меньше прежней `LeftStrip`: повёрнутому хватало высоты строки.
+        /// </summary>
+        int leftStrip = LeftStrip;
+
         ViewSlot NewSlot(bool axial)
         {
             ViewSlot slot = new ViewSlot { Axial = axial };
@@ -535,6 +541,19 @@ namespace BecquerelMonitor.EfficiencyMaker
             bool known = this.Extent(axial, out uA, out vA) & this.Extent(end, out uE, out vE);
             bool roomy = area.Width >= 200 && area.Height >= 120;
             axial.Text = end.Text = roomy;
+
+            // (`AMBER324`) Полоса слева — под горизонтальное число вертикального габарита: линия первого ряда стоит на
+            // `DimFirstPx` левее тела, тело не ближе `FrameMargin` к полосе, число на 4 точки левее линии, и рамка вида.
+            // В тесном окне полосу не расширять: чертёж мельчал на треть (92 → 59 точек в окне 320×367); там число встаёт
+            // со стороны тела на продолжении линии, а нет места — размера нет, как было (`DrawDimensions`).
+            this.leftStrip = LeftStrip;
+            if (known && !this.Tight)
+            {
+                string unit = GdmlText.T("GdmlUnitMm", "mm");
+                float widest = Math.Max(graphics.MeasureString(Fmt(vA) + " " + unit, this.Font).Width,
+                                        graphics.MeasureString(Fmt(vE) + " " + unit, this.Font).Width);
+                this.leftStrip = Math.Max(LeftStrip, (int)Math.Ceiling(widest + 4f + GeometrySketch.DimFirstPx - FrameMargin + 4f));
+            }
             if (!known || !roomy)
             {
                 this.SplitInHalf(graphics, axial, end, area, false);
@@ -634,17 +653,17 @@ namespace BecquerelMonitor.EfficiencyMaker
         void PlacePlot(Graphics graphics, ViewSlot slot)
         {
             int left, right, top, bottom;
-            Strips(slot.Mode, slot.Text, slot.LabelWidth, slot.LabelHeight, out left, out right, out top, out bottom);
+            Strips(slot.Mode, slot.Text, slot.LabelWidth, slot.LabelHeight, this.leftStrip, out left, out right, out top, out bottom);
             int header = slot.Text ? (int)Math.Ceiling(this.HeaderHeight(graphics, slot, slot.Panel.Width)) : 0;
             slot.Plot = new Rectangle(slot.Panel.Left + left, slot.Panel.Top + header + top,
                                       Math.Max(0, slot.Panel.Width - left - right),
                                       Math.Max(0, slot.Panel.Height - header - top - bottom));
         }
 
-        static void Strips(CalloutMode mode, bool text, float labelWidth, float labelHeight,
+        static void Strips(CalloutMode mode, bool text, float labelWidth, float labelHeight, int leftStrip,
                            out int left, out int right, out int top, out int bottom)
         {
-            left = text ? LeftStrip : 0;
+            left = text ? leftStrip : 0;
             right = text ? RightStrip : 0;
             top = 0;
             bottom = text ? DimStrip + ScaleStrip : 0;
@@ -668,7 +687,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                    out int wA, out int wE, out int hA, out int hE)
         {
             int left, right, top, bottom;
-            Strips(mode, true, labelWidth, labelHeight, out left, out right, out top, out bottom);
+            Strips(mode, true, labelWidth, labelHeight, this.leftStrip, out left, out right, out top, out bottom);
             double margins = 2.0 * FrameMargin;
             double insetX = left + right + margins;
             if (side)
@@ -926,7 +945,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             // (`AMBER307`, Amber 06.11.2026 вопросником, дословно: «Да, теми же правилами (Рекомендую)».) Те же правила ГОСТ 2.307-2011,
             // что у чертежа редактора, те же ряды, вылет и стрелки (`GeometrySketch.DimPitchPx` и соседи): число над линией,
-            // у вертикальной слева от неё, повёрнуто; нет места над линией — стрелки снаружи, число на продолжении.
+            // у вертикальной слева от неё, НЕ повёрнуто (`AMBER324`); нет места над линией — стрелки снаружи, число на продолжении.
             string unit = GdmlText.T("GdmlUnitMm", "mm");
             this.paintContours.Add(drawn);
             // Ряда без наложения нет — размера нет: тесное окно, тело видно и по масштабу.
@@ -940,6 +959,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (!RectangleF.Inflate(slot.Panel, -1, -1).Contains(box) || LeaderHits(placed, box))
             {
                 return false;
+            }
+
+            // (`AMBER324`) Число со стороны тела не садится на тело (п. 5.31): прежде число стояло только снаружи, проверки не было.
+            foreach (RectangleF contour in this.paintContours)
+            {
+                if (RectangleF.Intersect(contour, box).Width > 0f && RectangleF.Intersect(contour, box).Height > 0f)
+                {
+                    return false;
+                }
             }
 
             foreach (PlacedCallout item in placed)
@@ -1011,6 +1039,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             const float TailPx = 8f, ReachPx = 5f, ArrowRoomPx = 12f;
             float dir = horizontal ? 1f : -1f;
             SizeF size = graphics.MeasureString(text, this.Font);
+            // (`AMBER324`) Число всегда горизонтально: вдоль вертикальной линии оно занимает свою высоту.
+            float along = horizontal ? size.Width : size.Height;
             float span = b - a, center = 0.5f * (a + b);
             bool arrowsInside = span >= ArrowRoomPx;
             float tail = arrowsInside ? 0f : TailPx;
@@ -1024,39 +1054,49 @@ namespace BecquerelMonitor.EfficiencyMaker
                     continue;
                 }
 
-                // Над линией: от середины в обе стороны.
-                float along = center, lineFrom = a - tail, lineTo = b + tail;
-                bool found = false;
-                float reach = 0.5f * span - 4f - size.Width / 2f;
+                // Над линией: от середины в обе стороны. (`AMBER324`) У вертикальной — рядом с линией, сперва снаружи,
+                // потом со стороны тела (`inner`).
+                float at = center, lineFrom = a - tail, lineTo = b + tail;
+                bool found = false, inner = false;
+                bool[] sides = horizontal ? new[] { false } : new[] { false, true };
+                float reach = 0.5f * span - 4f - along / 2f;
                 for (int k = 0; k < 200 && !found && reach >= 0f; k++)
                 {
                     float here = center + (k % 2 == 0 ? 1f : -1f) * ((k + 1) / 2) * 2f;
-                    if (Math.Abs(here - center) <= reach && this.NumberFree(NumberBox(horizontal, line, here, size), slot, placed))
+                    foreach (bool side in sides)
                     {
-                        along = here;
-                        found = true;
+                        if (!found && Math.Abs(here - center) <= reach && this.NumberFree(NumberBox(horizontal, line, here, size, side), slot, placed))
+                        {
+                            at = here;
+                            inner = side;
+                            found = true;
+                        }
                     }
                 }
 
                 // На продолжении. Вертикальный сперва вверх: внизу его ждёт ряд ширины.
-                float afterAt = b + tail + ReachPx + size.Width / 2f, beforeAt = a - tail - ReachPx - size.Width / 2f;
+                float afterAt = b + tail + ReachPx + along / 2f, beforeAt = a - tail - ReachPx - along / 2f;
                 foreach (bool after in horizontal ? new[] { true, false } : new[] { false, true })
                 {
                     float there = after ? afterAt : beforeAt;
-                    if (!found && this.NumberFree(NumberBox(horizontal, line, there, size), slot, placed)
-                        && this.LineFree(at2(after ? b : there - size.Width / 2f, line), at2(after ? there + size.Width / 2f : a, line), placed))
+                    foreach (bool side in sides)
                     {
-                        along = there;
+                    if (!found && this.NumberFree(NumberBox(horizontal, line, there, size, side), slot, placed)
+                        && this.LineFree(at2(after ? b : there - along / 2f, line), at2(after ? there + along / 2f : a, line), placed))
+                    {
+                        at = there;
+                        inner = side;
                         if (after)
                         {
-                            lineTo = there + size.Width / 2f;
+                            lineTo = there + along / 2f;
                         }
                         else
                         {
-                            lineFrom = there - size.Width / 2f;
+                            lineFrom = there - along / 2f;
                         }
 
                         found = true;
+                    }
                     }
                 }
 
@@ -1082,30 +1122,21 @@ namespace BecquerelMonitor.EfficiencyMaker
                     GeometrySketch.Arrow(graphics, pen, horizontal, b, line, arrowsInside ? -1f : 1f);
                 }
 
-                RectangleF box = NumberBox(horizontal, line, along, size);
-                if (horizontal)
-                {
-                    this.Mark(graphics, text, this.Font, InkBrush, box.X, box.Y, size);
-                }
-                else
-                {
-                    GraphicsState state = graphics.Save();
-                    graphics.TranslateTransform(box.X, box.Bottom);
-                    graphics.RotateTransform(-90f);
-                    graphics.DrawString(text, this.Font, InkBrush, 0f, 0f);
-                    graphics.Restore(state);
-                    this.paintMarks.Add(new SketchMark { Bounds = box, Text = text });
-                }
+                RectangleF box = NumberBox(horizontal, line, at, size, inner);
+                this.Mark(graphics, text, this.Font, InkBrush, box.X, box.Y, size);
 
                 return;
             }
         }
 
-        /// <summary>Рамка числа над линией; у вертикальной слева от неё.</summary>
-        static RectangleF NumberBox(bool horizontal, float line, float along, SizeF size)
+        /// <summary>
+        /// Рамка числа над линией; у вертикальной — рядом с ней слева (`inner` — справа, со стороны тела), НЕ повёрнутое (`AMBER324`, решение Amber 08.11.2026
+        /// вопросником, дословно: «Все числа горизонтально (Рекомендую)»; разбор — в шапке простановки `GeometrySketch`).
+        /// </summary>
+        static RectangleF NumberBox(bool horizontal, float line, float along, SizeF size, bool inner)
         {
             return horizontal ? new RectangleF(along - size.Width / 2f, line - size.Height - 1f, size.Width, size.Height)
-                              : new RectangleF(line - size.Height - 1f, along - size.Width / 2f, size.Height, size.Width);
+                              : new RectangleF(inner ? line + 4f : line - 4f - size.Width, along - size.Height / 2f, size.Width, size.Height);
         }
 
         /// <summary>Подпись вида: каких тел на нём нет и почему. Без неё неполный чертёж выглядел бы полным.</summary>

@@ -43186,7 +43186,10 @@ Device channels: {0}, spectrum files channels: {1}</value>
     <value>Cut through the axis of the scene</value>
   </data>
   <data name="EfficiencySketchTopHint" xml:space="preserve">
-    <value>Looking along the axis from the detector, away from it</value>
+    <value>Looking along the axis from the sample at the detector</value>
+  </data>
+  <data name="EfficiencySketchHiddenHint" xml:space="preserve">
+    <value>hidden outlines are dashed</value>
   </data>
   <data name="EfficiencySketchDepth" xml:space="preserve">
     <value>Depth: {0} {1}</value>
@@ -45185,7 +45188,7 @@ Entered: {0}</value>
     <value>Side view</value>
   </data>
   <data name="EfficiencySketchTopView" xml:space="preserve">
-    <value>Top view</value>
+    <value>View from the sample side</value>
   </data>
   <data name="GeometryEditorTabShield" xml:space="preserve">
     <value>Shield</value>

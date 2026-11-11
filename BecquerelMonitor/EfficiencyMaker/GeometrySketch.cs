@@ -403,210 +403,227 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             // Вторичные размеры скрываются по приоритету, когда тело стало мельче порога: сперва все,
             // потом без толщин, потом только главные. Поле в фокусе показывает свой размер всё равно.
-            for (this.dimLevel = overview ? 0 : 3; this.dimLevel >= 0; this.dimLevel--)
+            // (`AMBER324`) Ряды сбоку сперва разнесены по ширине числа (решение Amber 09.11.2026 «Разнести ряды»). Если и
+            // на одних главных размерах тело мельче порога (поле 198×367 со сценой в защите: тело сжималось в точку), второй
+            // проход ставит ряды сбоку прежним шагом `DimPitchPx`: число внутреннего ряда, и главного тоже, уходит на полку,
+            // но не скрывается, и чертёж остаётся чертежом. Решения Amber 09.11.2026 вопросником, дословно: о проходе —
+            // «Оставить (Рекомендую)»; о маринелли в защите в окнах шириной 280 — «Крупнее, «110» на полке (Рекомендую)».
+            this.compactRows = false;
+            for (int rowsPass = 0; rowsPass < 2; rowsPass++)
             {
-                bool retried = false;
-                for (int round = 0; round < 5; round++)
+                for (this.dimLevel = overview ? 0 : 3; this.dimLevel >= 0; this.dimLevel--)
                 {
-                    float mL = sideRoom[0], mR = sideRoom[1], mT = sideRoom[2] + plateRoom, mB = sideRoom[3];
-                    float pL = planRoom[0], pR = planRoom[1], pT = planRoom[2], pB = planRoom[3];
-
-                    // Масштаб — по ПОЛОСТИ и по рисуемым полосам слоёв: полосы в точках зависят
-                    // от масштаба (тонкий слой — не меньше 3 точек, толстый — не больше предела),
-                    // поэтому три прохода; каждый следующий масштаб не меньше предыдущего.
-                    plan = wantPlan;
-                    double fit = 0.0;
-                    for (int attempt = 0; attempt < 2; attempt++)
+                    bool retried = false;
+                    for (int round = 0; round < 5; round++)
                     {
-                        this.shieldPx = null;
-                        this.breakZ0 = this.breakZ1 = 0.0;
-                        this.breakPx = 0f;
-                        this.scale = 0.0;
-                        this.planStacked = true;
-                        for (int pass = 0; pass < 3; pass++)
+                        float mL = sideRoom[0], mR = sideRoom[1], mT = sideRoom[2] + plateRoom, mB = sideRoom[3];
+                        float pL = planRoom[0], pR = planRoom[1], pT = planRoom[2], pB = planRoom[3];
+
+                        // Масштаб — по ПОЛОСТИ и по рисуемым полосам слоёв: полосы в точках зависят
+                        // от масштаба (тонкий слой — не меньше 3 точек, толстый — не больше предела),
+                        // поэтому три прохода; каждый следующий масштаб не меньше предыдущего.
+                        plan = wantPlan;
+                        double fit = 0.0;
+                        for (int attempt = 0; attempt < 2; attempt++)
                         {
-                            ShieldPx px = hasShield ? this.BandsPx(m, this.scale) : null;
-                            float side = px != null ? px.SideTotal : 0f;
-                            float vert = px != null ? px.FloorTotal + px.LidTotal : 0f;
-                            double breakLen = this.breakZ1 - this.breakZ0;
-                            double sideH = Math.Max(worldHeight - breakLen, 1e-6);
-                            double sx = (this.Width - mL - mR - 2.0 * side) / worldWidth;
-                            double sy = (this.Height - mT - (plan ? 0f : facingRoom) - mB - reserveY - vert - this.breakPx) / sideH;
-                            bool vertical = sy < sx;
-                            double found;
-                            if (!plan)
+                            this.shieldPx = null;
+                            this.breakZ0 = this.breakZ1 = 0.0;
+                            this.breakPx = 0f;
+                            this.scale = 0.0;
+                            this.planStacked = true;
+                            for (int pass = 0; pass < 3; pass++)
                             {
-                                found = Math.Min(sx, sy);
-                            }
-                            else
-                            {
-                                double dx = 2.0 * planRx, dy = 2.0 * planRy;
-
-                                // Друг под другом.
-                                double stackedHead = this.HeaderHeight(g, m, false, this.Width) + this.HeaderHeight(g, m, true, this.Width);
-                                double sx1 = Math.Min(sx, (this.Width - pL - pR - 2.0 * side) / dx);
-                                double sy1 = (areaHeight - ViewGap - stackedHead - mT - mB - pT - pB
-                                              - vert - 2.0 * side - this.breakPx) / (sideH + dy);
-
-                                // Рядом.
-                                float half = 0.5f * this.Width;
-                                double sx2 = (this.Width - ViewGap - mL - mR - pL - pR - 4.0 * side) / (worldWidth + dx);
-                                double sy2 = Math.Min((areaHeight - this.HeaderHeight(g, m, false, half) - mT - mB - vert - this.breakPx) / sideH,
-                                                      (areaHeight - this.HeaderHeight(g, m, true, half) - pT - pB - 2.0 * side) / dy);
-                                double s1 = Math.Min(sx1, sy1), s2 = this.Width >= SideBySideMinWidth ? Math.Min(sx2, sy2) : double.NegativeInfinity;
-                                this.planStacked = s1 >= s2;
-                                found = Math.Max(s1, s2);
-                                vertical = this.planStacked ? sy1 < sx1 : sy2 < sx2;
-                            }
-
-                            // Полосы защиты на первом проходе — наибольшие. Если с ними места нет, это ещё не
-                            // отказ: следующий проход берёт полосы мелкого масштаба, они много тоньше.
-                            fit = found;
-                            this.scale = found > 0.0 ? found : 1e-3;
-                            this.shieldPx = px;
-
-                            // Второй ярус (дизайн, п. 3): кадр упёрся в высоту, а воздух полости между
-                            // сценой и крышкой больше 40 % её высоты — воздух сжимается до 24 точек
-                            // условным разрывом. Решается один раз, на первом проходе.
-                            if (pass == 0 && hasShield && this.Mode == SketchMode.Source && vertical)
-                            {
-                                double air = shield.LidFace - envBottom;
-                                if (air > 0.4 * (shield.LidFace - shield.FloorFace))
+                                ShieldPx px = hasShield ? this.BandsPx(m, this.scale) : null;
+                                float side = px != null ? px.SideTotal : 0f;
+                                float vert = px != null ? px.FloorTotal + px.LidTotal : 0f;
+                                double breakLen = this.breakZ1 - this.breakZ0;
+                                double sideH = Math.Max(worldHeight - breakLen, 1e-6);
+                                double sx = (this.Width - mL - mR - 2.0 * side) / worldWidth;
+                                double sy = (this.Height - mT - (plan ? 0f : facingRoom) - mB - reserveY - vert - this.breakPx) / sideH;
+                                bool vertical = sy < sx;
+                                double found;
+                                if (!plan)
                                 {
-                                    this.breakZ0 = envBottom + 0.1 * air;
-                                    this.breakZ1 = shield.LidFace - 0.1 * air;
-                                    this.breakPx = 24f;
+                                    found = Math.Min(sx, sy);
+                                }
+                                else
+                                {
+                                    double dx = 2.0 * planRx, dy = 2.0 * planRy;
+
+                                    // Друг под другом.
+                                    double stackedHead = this.HeaderHeight(g, m, false, this.Width) + this.HeaderHeight(g, m, true, this.Width);
+                                    double sx1 = Math.Min(sx, (this.Width - pL - pR - 2.0 * side) / dx);
+                                    double sy1 = (areaHeight - ViewGap - stackedHead - mT - mB - pT - pB
+                                                  - vert - 2.0 * side - this.breakPx) / (sideH + dy);
+
+                                    // Рядом.
+                                    float half = 0.5f * this.Width;
+                                    double sx2 = (this.Width - ViewGap - mL - mR - pL - pR - 4.0 * side) / (worldWidth + dx);
+                                    double sy2 = Math.Min((areaHeight - this.HeaderHeight(g, m, false, half) - mT - mB - vert - this.breakPx) / sideH,
+                                                          (areaHeight - this.HeaderHeight(g, m, true, half) - pT - pB - 2.0 * side) / dy);
+                                    double s1 = Math.Min(sx1, sy1), s2 = this.Width >= SideBySideMinWidth ? Math.Min(sx2, sy2) : double.NegativeInfinity;
+                                    this.planStacked = s1 >= s2;
+                                    found = Math.Max(s1, s2);
+                                    vertical = this.planStacked ? sy1 < sx1 : sy2 < sx2;
+                                }
+
+                                // Полосы защиты на первом проходе — наибольшие. Если с ними места нет, это ещё не
+                                // отказ: следующий проход берёт полосы мелкого масштаба, они много тоньше.
+                                fit = found;
+                                this.scale = found > 0.0 ? found : 1e-3;
+                                this.shieldPx = px;
+
+                                // Второй ярус (дизайн, п. 3): кадр упёрся в высоту, а воздух полости между
+                                // сценой и крышкой больше 40 % её высоты — воздух сжимается до 24 точек
+                                // условным разрывом. Решается один раз, на первом проходе.
+                                if (pass == 0 && hasShield && this.Mode == SketchMode.Source && vertical)
+                                {
+                                    double air = shield.LidFace - envBottom;
+                                    if (air > 0.4 * (shield.LidFace - shield.FloorFace))
+                                    {
+                                        this.breakZ0 = envBottom + 0.1 * air;
+                                        this.breakZ1 = shield.LidFace - 0.1 * air;
+                                        this.breakPx = 24f;
+                                    }
                                 }
                             }
+
+                            // Двум видам места нет: один разрез, как было. Лучше один читаемый, чем ни одного.
+                            if (!plan)
+                            {
+                                this.scale = fit > 0.0 ? fit : 0.0;
+                                break;
+                            }
+
+                            if (fit * 2.0 * Math.Max(planRx, planRy) >= MinPlanPx)
+                            {
+                                this.scale = fit;
+                                break;
+                            }
+
+                            plan = false;
                         }
 
-                        // Двум видам места нет: один разрез, как было. Лучше один читаемый, чем ни одного.
+                        if (hasShield)
+                        {
+                            this.shieldPx = this.BandsPx(m, this.scale);
+                        }
+
+                        if (!(this.scale > 0.0) || double.IsInfinity(this.scale))
+                        {
+                            // Поля прошлого уровня здесь не вмещаются: круг заново от скромных, раз.
+                            if (retried || overview)
+                            {
+                                break;
+                            }
+
+                            retried = true;
+                            sideRoom = new[] { 30f, 30f, 30f, 30f };
+                            planRoom = new[] { 30f, 30f, 30f, 30f };
+                            continue;
+                        }
+
+                        floorPx = this.shieldPx != null ? (this.flipZ ? this.shieldPx.LidTotal : this.shieldPx.FloorTotal) : 0f;
+                        lidPx = this.shieldPx != null ? (this.flipZ ? this.shieldPx.FloorTotal : this.shieldPx.LidTotal) : 0f;
+                        sidePx = this.shieldPx != null ? this.shieldPx.SideTotal : 0f;
+                        double drawnHeight = (worldHeight - (this.breakZ1 - this.breakZ0)) * this.scale + this.breakPx;
+                        double drawnWidth = worldWidth * this.scale;
+                        this.drawnPx = drawnHeight;
+                        this.planView = plan;
+                        this.planRadiusX = planRx;
+                        this.planRadiusY = planRy;
+                        double planW = 2.0 * planRx * this.scale, planH = 2.0 * planRy * this.scale;
                         if (!plan)
                         {
-                            this.scale = fit > 0.0 ? fit : 0.0;
-                            break;
+                            this.sidePanel = this.planPanel = Rectangle.Empty;
+                            this.padLeft = (int)(mL + sidePx + Math.Max(0.0, this.Width - mL - mR - 2.0 * sidePx - drawnWidth) / 2.0);
+                            this.padTop = (int)(facingRoom + mT + floorPx + Math.Max(0.0, this.Height - facingRoom - mT - mB - reserveY - floorPx - lidPx - drawnHeight) / 2.0);
                         }
-
-                        if (fit * 2.0 * Math.Max(planRx, planRy) >= MinPlanPx)
+                        else if (this.planStacked)
                         {
-                            this.scale = fit;
-                            break;
+                            headSide = this.HeaderHeight(g, m, false, this.Width);
+                            headPlan = this.HeaderHeight(g, m, true, this.Width);
+                            double usedSide = headSide + mT + floorPx + drawnHeight + lidPx + mB;
+                            double usedPlan = headPlan + pT + planH + 2.0 * sidePx + pB;
+                            double free = Math.Max(0.0, areaHeight - ViewGap - usedSide - usedPlan);
+                            int sideHeight = (int)(usedSide + free * usedSide / (usedSide + usedPlan));
+                            this.sidePanel = new Rectangle(0, 0, this.Width, sideHeight);
+                            this.planPanel = new Rectangle(0, sideHeight + ViewGap, this.Width, areaHeight - sideHeight - ViewGap);
+                            this.padLeft = (int)(mL + sidePx + Math.Max(0.0, this.Width - mL - mR - 2.0 * sidePx - drawnWidth) / 2.0);
+                            this.padTop = (int)headSide + (int)mT + (int)floorPx + (int)Math.Max(0.0, (sideHeight - usedSide) / 2.0);
+                            this.planCenter = new PointF((float)(pL + sidePx + planW / 2.0 + Math.Max(0.0, this.Width - pL - pR - 2.0 * sidePx - planW) / 2.0),
+                                                         (float)(this.planPanel.Top + headPlan + pT + sidePx + planH / 2.0
+                                                                 + Math.Max(0.0, (this.planPanel.Height - usedPlan) / 2.0)));
+                        }
+                        else
+                        {
+                            double usedSide = mL + mR + 2.0 * sidePx + drawnWidth;
+                            double usedPlan = pL + pR + 2.0 * sidePx + planW;
+                            double free = Math.Max(0.0, this.Width - ViewGap - usedSide - usedPlan);
+                            int sideWidth = (int)(usedSide + free * usedSide / (usedSide + usedPlan));
+                            this.sidePanel = new Rectangle(0, 0, sideWidth, areaHeight);
+                            this.planPanel = new Rectangle(sideWidth + ViewGap, 0, this.Width - sideWidth - ViewGap, areaHeight);
+                            headSide = this.HeaderHeight(g, m, false, this.sidePanel.Width);
+                            headPlan = this.HeaderHeight(g, m, true, this.planPanel.Width);
+                            this.padLeft = (int)(mL + sidePx + Math.Max(0.0, sideWidth - usedSide) / 2.0);
+                            double usedTall = headSide + mT + floorPx + drawnHeight + lidPx + mB;
+                            this.padTop = (int)headSide + (int)mT + (int)floorPx + (int)Math.Max(0.0, (areaHeight - usedTall) / 2.0);
+                            double usedPlanTall = headPlan + pT + planH + 2.0 * sidePx + pB;
+                            this.planCenter = new PointF((float)(this.planPanel.Left + pL + sidePx + planW / 2.0 + Math.Max(0.0, this.planPanel.Width - usedPlan) / 2.0),
+                                                         (float)(headPlan + pT + sidePx + planH / 2.0 + Math.Max(0.0, (areaHeight - usedPlanTall) / 2.0)));
                         }
 
-                        plan = false;
-                    }
-
-                    if (hasShield)
-                    {
-                        this.shieldPx = this.BandsPx(m, this.scale);
-                    }
-
-                    if (!(this.scale > 0.0) || double.IsInfinity(this.scale))
-                    {
-                        // Поля прошлого уровня здесь не вмещаются: круг заново от скромных, раз.
-                        if (retried || overview)
+                        if (overview)
                         {
                             break;
                         }
 
-                        retried = true;
-                        sideRoom = new[] { 30f, 30f, 30f, 30f };
-                        planRoom = new[] { 30f, 30f, 30f, 30f };
-                        continue;
+                        // Круг замыкается: теперь известно, какие размеры стоят и какие из них тонки при этом масштабе.
+                        this.sideContour = RectangleF.FromLTRB(this.padLeft - sidePx, this.padTop - floorPx,
+                                                               (float)(this.padLeft + drawnWidth + sidePx), (float)(this.padTop + drawnHeight + lidPx));
+                        this.planContour = !plan ? RectangleF.Empty
+                            : RectangleF.FromLTRB((float)(this.planCenter.X - planW / 2.0 - sidePx), (float)(this.planCenter.Y - planH / 2.0 - sidePx),
+                                                  (float)(this.planCenter.X + planW / 2.0 + sidePx), (float)(this.planCenter.Y + planH / 2.0 + sidePx));
+                        this.QueueDimensions(g, m, halfWidth, height, tfr, tsr, tfc, tsc, tm, tfg, tsg, zFace);
+                        float[] newSide = this.DimensionRoom(g, false);
+                        float[] newPlan = this.DimensionRoom(g, true);
+                        if (m.Scene == GeometrySceneKind.Iso && this.Mode == SketchMode.Source)
+                        {
+                            newSide[2] = Math.Max(newSide[2], 20f);
+                        }
+
+                        bool settled = true;
+                        for (int i = 0; i < 4; i++)
+                        {
+                            settled &= Math.Abs(newSide[i] - sideRoom[i]) < 1f && Math.Abs(newPlan[i] - planRoom[i]) < 1f;
+                            sideRoom[i] = newSide[i];
+                            planRoom[i] = newPlan[i];
+                        }
+
+                        if (settled)
+                        {
+                            break;
+                        }
                     }
 
-                    floorPx = this.shieldPx != null ? (this.flipZ ? this.shieldPx.LidTotal : this.shieldPx.FloorTotal) : 0f;
-                    lidPx = this.shieldPx != null ? (this.flipZ ? this.shieldPx.FloorTotal : this.shieldPx.LidTotal) : 0f;
-                    sidePx = this.shieldPx != null ? this.shieldPx.SideTotal : 0f;
-                    double drawnHeight = (worldHeight - (this.breakZ1 - this.breakZ0)) * this.scale + this.breakPx;
-                    double drawnWidth = worldWidth * this.scale;
-                    this.drawnPx = drawnHeight;
-                    this.planView = plan;
-                    this.planRadiusX = planRx;
-                    this.planRadiusY = planRy;
-                    double planW = 2.0 * planRx * this.scale, planH = 2.0 * planRy * this.scale;
-                    if (!plan)
-                    {
-                        this.sidePanel = this.planPanel = Rectangle.Empty;
-                        this.padLeft = (int)(mL + sidePx + Math.Max(0.0, this.Width - mL - mR - 2.0 * sidePx - drawnWidth) / 2.0);
-                        this.padTop = (int)(facingRoom + mT + floorPx + Math.Max(0.0, this.Height - facingRoom - mT - mB - reserveY - floorPx - lidPx - drawnHeight) / 2.0);
-                    }
-                    else if (this.planStacked)
-                    {
-                        headSide = this.HeaderHeight(g, m, false, this.Width);
-                        headPlan = this.HeaderHeight(g, m, true, this.Width);
-                        double usedSide = headSide + mT + floorPx + drawnHeight + lidPx + mB;
-                        double usedPlan = headPlan + pT + planH + 2.0 * sidePx + pB;
-                        double free = Math.Max(0.0, areaHeight - ViewGap - usedSide - usedPlan);
-                        int sideHeight = (int)(usedSide + free * usedSide / (usedSide + usedPlan));
-                        this.sidePanel = new Rectangle(0, 0, this.Width, sideHeight);
-                        this.planPanel = new Rectangle(0, sideHeight + ViewGap, this.Width, areaHeight - sideHeight - ViewGap);
-                        this.padLeft = (int)(mL + sidePx + Math.Max(0.0, this.Width - mL - mR - 2.0 * sidePx - drawnWidth) / 2.0);
-                        this.padTop = (int)headSide + (int)mT + (int)floorPx + (int)Math.Max(0.0, (sideHeight - usedSide) / 2.0);
-                        this.planCenter = new PointF((float)(pL + sidePx + planW / 2.0 + Math.Max(0.0, this.Width - pL - pR - 2.0 * sidePx - planW) / 2.0),
-                                                     (float)(this.planPanel.Top + headPlan + pT + sidePx + planH / 2.0
-                                                             + Math.Max(0.0, (this.planPanel.Height - usedPlan) / 2.0)));
-                    }
-                    else
-                    {
-                        double usedSide = mL + mR + 2.0 * sidePx + drawnWidth;
-                        double usedPlan = pL + pR + 2.0 * sidePx + planW;
-                        double free = Math.Max(0.0, this.Width - ViewGap - usedSide - usedPlan);
-                        int sideWidth = (int)(usedSide + free * usedSide / (usedSide + usedPlan));
-                        this.sidePanel = new Rectangle(0, 0, sideWidth, areaHeight);
-                        this.planPanel = new Rectangle(sideWidth + ViewGap, 0, this.Width - sideWidth - ViewGap, areaHeight);
-                        headSide = this.HeaderHeight(g, m, false, this.sidePanel.Width);
-                        headPlan = this.HeaderHeight(g, m, true, this.planPanel.Width);
-                        this.padLeft = (int)(mL + sidePx + Math.Max(0.0, sideWidth - usedSide) / 2.0);
-                        double usedTall = headSide + mT + floorPx + drawnHeight + lidPx + mB;
-                        this.padTop = (int)headSide + (int)mT + (int)floorPx + (int)Math.Max(0.0, (areaHeight - usedTall) / 2.0);
-                        double usedPlanTall = headPlan + pT + planH + 2.0 * sidePx + pB;
-                        this.planCenter = new PointF((float)(this.planPanel.Left + pL + sidePx + planW / 2.0 + Math.Max(0.0, this.planPanel.Width - usedPlan) / 2.0),
-                                                     (float)(headPlan + pT + sidePx + planH / 2.0 + Math.Max(0.0, (areaHeight - usedPlanTall) / 2.0)));
-                    }
-
-                    if (overview)
+                    if (overview || this.dimLevel == 0)
                     {
                         break;
                     }
 
-                    // Круг замыкается: теперь известно, какие размеры стоят и какие из них тонки при этом масштабе.
-                    this.sideContour = RectangleF.FromLTRB(this.padLeft - sidePx, this.padTop - floorPx,
-                                                           (float)(this.padLeft + drawnWidth + sidePx), (float)(this.padTop + drawnHeight + lidPx));
-                    this.planContour = !plan ? RectangleF.Empty
-                        : RectangleF.FromLTRB((float)(this.planCenter.X - planW / 2.0 - sidePx), (float)(this.planCenter.Y - planH / 2.0 - sidePx),
-                                              (float)(this.planCenter.X + planW / 2.0 + sidePx), (float)(this.planCenter.Y + planH / 2.0 + sidePx));
-                    this.QueueDimensions(g, m, halfWidth, height, tfr, tsr, tfc, tsc, tm, tfg, tsg, zFace);
-                    float[] newSide = this.DimensionRoom(g, false);
-                    float[] newPlan = this.DimensionRoom(g, true);
-                    if (m.Scene == GeometrySceneKind.Iso && this.Mode == SketchMode.Source)
-                    {
-                        newSide[2] = Math.Max(newSide[2], 20f);
-                    }
-
-                    bool settled = true;
-                    for (int i = 0; i < 4; i++)
-                    {
-                        settled &= Math.Abs(newSide[i] - sideRoom[i]) < 1f && Math.Abs(newPlan[i] - planRoom[i]) < 1f;
-                        sideRoom[i] = newSide[i];
-                        planRoom[i] = newPlan[i];
-                    }
-
-                    if (settled)
+                    if (this.scale > 0.0 && plan == wantPlan && (this.dimLevel == 1 || Math.Max(worldWidth, worldHeight) * this.scale >= (hasShield ? MinBodyInShieldPx : MinBodyPx)))
                     {
                         break;
                     }
                 }
 
-                if (overview || this.dimLevel == 0)
+                bool bodyOk = this.scale > 0.0 && Math.Max(worldWidth, worldHeight) * this.scale >= (hasShield ? MinBodyInShieldPx : MinBodyPx);
+                if (overview || bodyOk || this.compactRows)
                 {
                     break;
                 }
 
-                if (this.scale > 0.0 && plan == wantPlan && (this.dimLevel == 1 || Math.Max(worldWidth, worldHeight) * this.scale >= (hasShield ? MinBodyInShieldPx : MinBodyPx)))
-                {
-                    break;
-                }
+                this.compactRows = true;
             }
 
             if (!(this.scale > 0.0) || double.IsInfinity(this.scale))
@@ -1880,7 +1897,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 lidSum += Math.Max(0.0, layer.LidThickness);
             }
 
-            this.Dim(g, DimSide.Right, 0, this.FloorEdge(box, n - 1), this.LidEdge(box, n - 1), all.Right, all.Right,
+            // (`AMBER324`) Наружная высота — СЛЕВА. Решение Amber 09.11.2026 вопросником, дословно: «Перенести «304» влево
+            // (Рекомендую)». Справа стоят размеры пробы и полости; с горизонтальными числами и разнесёнными рядами
+            // (`RowOffsets`) третий ряд справа мельчил чертёж «Защиты» до 0.62 в поле 280×427, а слева рядов почти нет.
+            this.Dim(g, DimSide.Left, 0, this.FloorEdge(box, n - 1), this.LidEdge(box, n - 1), all.Left, all.Left,
                      floorSum + m.ShieldInnerHeight + lidSum, null, RankSecond);
 
             if (m.ShieldFloorGap > 0.0)
@@ -2100,11 +2120,26 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         // ------------------------------------------------------------------
-        // (`AMBER282`, `AMBER307`) Вид сверху — отдельный эскиз рядом с разрезом: взгляд вдоль
-        // оси сцены со стороны детектора, наружу от него. Кристалл с обвязкой ближе всего к
-        // зрителю, за ним проба, сосуд, защита. Тем же масштабом, что разрез, и тем же языком:
-        // заливки и штриховка слоёв, тонкий слой — не тоньше MinBandPx. Размеры берутся у той же
-        // CrystalBoxInScene и теми же толщинами, что сцена счёта: чертёж и расчёт не расходятся.
+        // (`AMBER282`, `AMBER307`, `AMBER324`) Вид со стороны пробы — отдельный эскиз рядом с разрезом:
+        // взгляд вдоль оси сцены со стороны пробы на торец детектора. Amber 08.11.2026, к снимку вкладки
+        // «Источник», дословно: «Почему вид сверху не со стороны детектора?»; решение вопросником того же
+        // дня, дословно: «Со стороны пробы (Рекомендую)» — как смотрит человек на прибор с пробой сверху:
+        // проба и сосуд ближе всего к зрителю и видны, детектор за ними. До `AMBER324` вид шёл из-за
+        // детектора наружу, и проба на торце была закрыта кристаллом.
+        //
+        // Что видно и что закрыто (ГОСТ 2.303-68: линия невидимого контура — штриховая):
+        //   банка, чашка, кювета, маринелли, грунт, лунка — сосуд и проба поверх прибора; контур корпуса и
+        //     кристалла под пробой — штриховой (без него не видно, как проба легла на торец); колодец
+        //     маринелли под пробой — тоже штриховой; дальнее донышко и крышка сосуда не рисуются: план — взгляд
+        //     в открытый сосуд, как и прежде;
+        //   точка — кружок пробы поверх прибора, видимый;
+        //   поле — условная окружность вокруг прибора, прибор не закрыт;
+        //   защита на плане не рисуется ни на одной вкладке (решение Amber 06.11.2026 по `AMBER307`).
+        // Ось X вправо, как на разрезе (проекционная связь); зритель на −z смотрит к +z, поэтому ось Y
+        // вниз — вид отражён по Y против прежнего: основание 1 трапеции (y < 0) теперь сверху.
+        // Тем же масштабом, что разрез, и тем же языком: заливки и штриховка слоёв, тонкий слой — не тоньше
+        // MinBandPx. Размеры берутся у той же CrystalBoxInScene и теми же толщинами, что сцена счёта:
+        // чертёж и расчёт не расходятся.
         // ------------------------------------------------------------------
 
         /// <summary>Зазор между видами, точек: как в окне импорта GDML.</summary>
@@ -2144,8 +2179,8 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         float PY(double y)
         {
-            // Вид со стороны детектора, наружу: ось X вправо, ось Z к зрителю, значит ось Y вверх.
-            return (float)(this.planCenter.Y - y * this.scale);
+            // (`AMBER324`) Вид со стороны пробы на торец: ось X вправо, ось Z от зрителя, значит ось Y вниз.
+            return (float)(this.planCenter.Y + y * this.scale);
         }
 
         /// <summary>Строка заголовка вида: что напечатать, чем и какое поле её подсвечивает.</summary>
@@ -2161,11 +2196,23 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             List<HeaderLine> lines = new List<HeaderLine>();
             float wrap = Math.Max(40f, width - 16f);
-            lines.Add(new HeaderLine { Text = top ? Resources.EfficiencySketchTopView : Resources.EfficiencySketchSideView, Bold = true });
+            // (`AMBER324`) Заголовок тоже переносится: «Вид со стороны пробы» длиннее прежнего «Вид сверху» и в узкой
+            // рамке плана (420×460, 360×300 рядом) выходил за неё.
+            using (Font bold = new Font(this.Font, FontStyle.Bold))
+            {
+                foreach (string line in Wrapped(g, top ? Resources.EfficiencySketchTopView : Resources.EfficiencySketchSideView, bold, wrap))
+                {
+                    lines.Add(new HeaderLine { Text = line, Bold = true });
+                }
+            }
 
             if (width >= HintMinWidth)
             {
-                foreach (string line in Wrapped(g, top ? Resources.EfficiencySketchTopHint : Resources.EfficiencySketchSideHint, this.Font, wrap))
+                // (`AMBER324`) «Невидимый контур — штриховой» — только там, где штрих есть: на «Детекторе» и у точки его нет.
+                string hint = !top ? Resources.EfficiencySketchSideHint
+                            : this.PlanHasHidden(m) ? Resources.EfficiencySketchTopHint + "; " + Resources.EfficiencySketchHiddenHint
+                            : Resources.EfficiencySketchTopHint;
+                foreach (string line in Wrapped(g, hint, this.Font, wrap))
                 {
                     lines.Add(new HeaderLine { Text = line, Gray = true });
                 }
@@ -2398,7 +2445,9 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             using (Pen ink = new Pen(Ink, 1.2f))
             {
-                // Проба и сосуд — за прибором; прибор ближе к зрителю и рисуется последним.
+                // (`AMBER324`) Взгляд со стороны пробы: прибор дальше всего от зрителя и рисуется первым,
+                // сосуд и проба поверх него. Что проба закрыла — штриховым невидимым контуром в конце.
+                this.DrawPlanDetector(g, m);
                 double holeOuterReach = 0.0;
                 double[] xi = new double[4], yi = new double[4], xo = new double[4], yo = new double[4];
                 bool trap = m.HasTrapezoidHole && m.TrapezoidHoleVertices(0.0, xi, yi)
@@ -2411,9 +2460,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
                 }
 
-                float beakerPx = 0f;
-                float holePx = 0f;
                 bool field = m.Scene == GeometrySceneKind.Iso;
+                bool covered = false;
+                float hiddenDrawn = float.MaxValue;
                 switch (field ? GeometrySourceType.Point : m.SourceType)
                 {
                     case GeometrySourceType.Marinelli:
@@ -2423,41 +2472,66 @@ namespace BecquerelMonitor.EfficiencyMaker
                         double ths = Math.Max(m.MarinelliHoleSideThickness, 0.0);
                         double rSrc = trap ? Math.Max(holeOuterReach, rOut - Math.Max(m.MarinelliSideThickness, 0.0))
                                            : Math.Max(rh + ths, rOut - Math.Max(m.MarinelliSideThickness, 0.0));
-                        beakerPx = (float)(rOut * this.scale);
+                        float beakerPx = (float)(rOut * this.scale);
                         this.FillCircle(g, WallColor, beakerPx);
                         this.FillCircle(g, SampleColor, (float)(rSrc * this.scale));
-                        if (trap)
-                        {
-                            using (Brush wall = new SolidBrush(WallColor))
-                            using (Brush canvas = new SolidBrush(Canvas))
-                            {
-                                g.FillPolygon(wall, this.PlanPoints(xo, yo));
-                                g.FillPolygon(canvas, this.PlanPoints(xi, yi));
-                            }
 
-                            g.DrawPolygon(ink, this.PlanPoints(xi, yi));
-                        }
-                        else
+                        // Над колодцем лежит слой пробы, если проба выше колодца (`cap` разреза); иначе сверху
+                        // видно донышко колодца — цветом стенки. Сам колодец и прибор в нём закрыты.
+                        bool cap = Math.Max(m.MarinelliSourceHeight, 0.0) > Math.Max(m.MarinelliHoleHeight, 0.0);
+                        if (!cap)
                         {
-                            holePx = (float)(rh * this.scale);
-                            this.FillCircle(g, WallColor, (float)((rh + ths) * this.scale));
-                            this.FillCircle(g, Canvas, holePx);
-                            this.Circle(g, ink, holePx);
+                            if (trap)
+                            {
+                                using (Brush wall = new SolidBrush(WallColor))
+                                {
+                                    g.FillPolygon(wall, this.PlanPoints(xo, yo));
+                                }
+                            }
+                            else
+                            {
+                                this.FillCircle(g, WallColor, (float)((rh + ths) * this.scale));
+                            }
                         }
 
                         this.Circle(g, ink, beakerPx);
-                        this.DrawPlanDetector(g, m);
+                        using (Pen hidden = HiddenPen())
+                        {
+                            if (trap)
+                            {
+                                g.DrawPolygon(hidden, this.PlanPoints(xi, yi));
+                                hiddenDrawn = (float)(Math.Min(Math.Abs(yi[3] - yi[0]), Math.Min(Math.Abs(xi[1] - xi[0]), Math.Abs(xi[2] - xi[3]))) * 0.5 * this.scale);
+                            }
+                            else if (rh * this.scale >= HiddenMinPx)
+                            {
+                                this.Circle(g, hidden, (float)(rh * this.scale));
+                                hiddenDrawn = (float)(rh * this.scale);
+                            }
+                            else if (rh * this.scale >= 1.5)
+                            {
+                                // (`AMBER324`) Мелкий колодец (лунка в поле 280×427, радиус 2–5 точек) — мелким штрихом: знак
+                                // колодца на плане остаётся, а прибор в нём уже не рисуется (`DrawPlanDetectorHidden`).
+                                using (Pen fine = new Pen(Ink, 1f) { DashStyle = DashStyle.Custom, DashPattern = new[] { 2f, 1.5f } })
+                                {
+                                    this.Circle(g, fine, (float)(rh * this.scale));
+                                }
+
+                                hiddenDrawn = (float)(rh * this.scale);
+                            }
+                        }
+
+                        covered = true;
                         break;
                     }
 
                     case GeometrySourceType.Cylinder:
                     {
                         double rOut = 0.5 * Math.Max(m.BeakerDiameter, 0.0);
-                        beakerPx = (float)(rOut * this.scale);
+                        float beakerPx = (float)(rOut * this.scale);
                         this.FillCircle(g, WallColor, beakerPx);
                         this.FillCircle(g, SampleColor, (float)(Math.Max(0.0, rOut - m.BeakerSideWallThickness) * this.scale));
                         this.Circle(g, ink, beakerPx);
-                        this.DrawPlanDetector(g, m);
+                        covered = true;
                         break;
                     }
 
@@ -2468,12 +2542,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                         using (Brush wall = new SolidBrush(WallColor))
                         using (Brush sample = new SolidBrush(SampleColor))
                         {
-                            g.FillRectangle(wall, this.PX(-hx), this.PY(hy), (float)(2 * hx * this.scale), (float)(2 * hy * this.scale));
-                            g.FillRectangle(sample, this.PX(-hx + w), this.PY(hy - w), (float)(2 * (hx - w) * this.scale), (float)(2 * (hy - w) * this.scale));
+                            g.FillRectangle(wall, this.PlanRect(hx, hy));
+                            g.FillRectangle(sample, this.PlanRect(Math.Max(0.0, hx - w), Math.Max(0.0, hy - w)));
                         }
 
-                        g.DrawRectangle(ink, this.PX(-hx), this.PY(hy), (float)(2 * hx * this.scale), (float)(2 * hy * this.scale));
-                        this.DrawPlanDetector(g, m);
+                        RectangleF outline = this.PlanRect(hx, hy);
+                        g.DrawRectangle(ink, outline.X, outline.Y, outline.Width, outline.Height);
+                        covered = true;
                         break;
                     }
 
@@ -2500,23 +2575,160 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                this.planCenter.X + ex * pr * 0.72f, this.planCenter.Y + ey * pr * 0.72f);
                                 }
                             }
-
-                            this.DrawPlanDetector(g, m);
                         }
                         else
                         {
-                            // Точка на оси за прибором: со стороны детектора он её закрывает, поэтому штриховой кружок поверх.
-                            this.DrawPlanDetector(g, m);
-                            using (Pen dash = new Pen(Ink, 1.2f) { DashStyle = DashStyle.Dash })
+                            // Точка на оси перед торцом: со стороны пробы она ближе прибора и видна — кружок пробы,
+                            // тем же размером, что на разрезе.
+                            using (Brush sample = new SolidBrush(SampleColor))
                             {
-                                g.DrawEllipse(dash, this.planCenter.X - 5f, this.planCenter.Y - 5f, 10f, 10f);
+                                g.FillEllipse(sample, this.planCenter.X - 5f, this.planCenter.Y - 5f, 10f, 10f);
                             }
+
+                            g.DrawEllipse(ink, this.planCenter.X - 5f, this.planCenter.Y - 5f, 10f, 10f);
                         }
 
                         break;
                 }
 
+                if (covered)
+                {
+                    this.DrawPlanDetectorHidden(g, m, hiddenDrawn);
+                }
             }
+        }
+
+        /// <summary>(`AMBER324`) Закрывает ли проба на плане что-нибудь: банка, кювета, маринелли (с грунтом и лункой). Тогда на
+        /// плане есть штриховой невидимый контур, и пояснение вида о нём говорит.</summary>
+        bool PlanHasHidden(GeometryModel m)
+        {
+            bool round;
+            double ax, ay;
+            if (this.Mode != SketchMode.Source || !PlanCover(m, out round, out ax, out ay))
+            {
+                return false;
+            }
+
+            if (m.SourceType == GeometrySourceType.Marinelli)
+            {
+                return true;
+            }
+
+            // (`AMBER324`) Банка ⌀40 на торце AS 80x80 закрывает торец, но не край кристалла: штриха нет — нет и пояснения.
+            double hx, hy, tsr, tsg, tsc;
+            this.PlanCrystal(m, out hx, out hy, out tsr, out tsg, out tsc);
+            bool box = m.Shape == CrystalShape.Box;
+            foreach (double wrap in new[] { tsr + tsg + tsc, 0.0 })
+            {
+                double h1 = hx + wrap, h2 = hy + wrap;
+                bool inside = round ? (box ? Math.Min(h1, h2) : h1) < ax
+                                    : box ? h1 < ax || h2 < ay : h1 < Math.Max(ax, ay);
+                if (inside)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>(`AMBER324`) Что на плане закрывает прибор: сосуд банки и маринелли — круг, кюветы — прямоугольник; мм.</summary>
+        static bool PlanCover(GeometryModel m, out bool round, out double ax, out double ay)
+        {
+            round = true;
+            ax = ay = 0.0;
+            if (m.Scene == GeometrySceneKind.Iso)
+            {
+                return false;
+            }
+
+            switch (m.SourceType)
+            {
+                case GeometrySourceType.Marinelli:
+                    ax = ay = 0.5 * Math.Max(m.MarinelliBeakerDiameter, 0.0);
+                    return ax > 0.0;
+                case GeometrySourceType.Cylinder:
+                    ax = ay = 0.5 * Math.Max(m.BeakerDiameter, 0.0);
+                    return ax > 0.0;
+                case GeometrySourceType.Box:
+                    round = false;
+                    ax = 0.5 * Math.Max(m.BoxSourceX, 0.0);
+                    ay = 0.5 * Math.Max(m.BoxSourceY, 0.0);
+                    return ax > 0.0 && ay > 0.0;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>(`AMBER324`) Невидимые контуры ближе этого друг к другу, точек, сливаются в каракулю: внутренний не рисуется.</summary>
+        const float HiddenSpacingPx = 3f;
+
+        /// <summary>(`AMBER324`) Штриховая окружность мельче этого радиуса, точек, — два-три штриха, не контур: не рисуется.</summary>
+        const float HiddenMinPx = 5f;
+
+        /// <summary>(`AMBER324`) Перо невидимого контура: штриховая той же толщины, что видимый контур плана.</summary>
+        static Pen HiddenPen()
+        {
+            return new Pen(Ink, 1.2f) { DashStyle = DashStyle.Custom, DashPattern = new[] { 4f, 2.5f } };
+        }
+
+        /// <summary>
+        /// (`AMBER324`) Контур корпуса и кристалла под пробой — штриховой (ГОСТ 2.303-68, невидимый контур): без него не
+        /// видно, как проба легла на торец. Где прибор не закрыт, штрих ложится на сплошной контур и с ним сливается.
+        /// </summary>
+        void DrawPlanDetectorHidden(Graphics g, GeometryModel m, float outer)
+        {
+            double hx, hy, tsr, tsg, tsc;
+            this.PlanCrystal(m, out hx, out hy, out tsr, out tsg, out tsc);
+            bool box = m.Shape == CrystalShape.Box;
+            bool round;
+            double ax, ay;
+            if (!PlanCover(m, out round, out ax, out ay))
+            {
+                return;
+            }
+
+            // (`AMBER324`) Штрих — только под сосудом и пробой: где край прибора виден, он остаётся сплошным
+            // (банка ⌀40 на торце AS 80x80: прежде штрих ложился поверх видимого края кристалла).
+            GraphicsState state = g.Save();
+            using (GraphicsPath cover = new GraphicsPath())
+            using (Pen pen = HiddenPen())
+            {
+                RectangleF area = this.PlanRect(ax, ay);
+                if (round)
+                {
+                    cover.AddEllipse(area);
+                }
+                else
+                {
+                    cover.AddRectangle(area);
+                }
+
+                g.SetClip(cover, CombineMode.Intersect);
+                // Снаружи внутрь; контур ближе `HiddenSpacingPx` к уже нарисованному (колодцу, корпусу) не рисуется: в мелком
+                // масштабе (лунка в поле 280×427) три штриховые окружности сливались в одну каракулю.
+                foreach (double wrap in new[] { tsr + tsg + tsc, 0.0 })
+                {
+                    float half = (float)(Math.Min(hx + wrap, hy + wrap) * this.scale);
+                    if (half < HiddenMinPx || outer - half < HiddenSpacingPx)
+                    {
+                        continue;
+                    }
+
+                    outer = half;
+                    RectangleF rect = this.PlanRect(hx + wrap, hy + wrap);
+                    if (box)
+                    {
+                        g.DrawRectangle(pen, rect.X, rect.Y, rect.Width, rect.Height);
+                    }
+                    else
+                    {
+                        g.DrawEllipse(pen, rect);
+                    }
+                }
+            }
+
+            g.Restore(state);
         }
 
         /// <summary>Сколько обвязки между пробой и кристаллом: тем же правилом, что `zFace` в отрисовке.</summary>
@@ -2574,7 +2786,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         RectangleF PlanRect(double halfX, double halfY)
         {
-            return RectangleF.FromLTRB(this.PX(-halfX), this.PY(halfY), this.PX(halfX), this.PY(-halfY));
+            return RectangleF.FromLTRB(this.PX(-halfX), this.PY(-halfY), this.PX(halfX), this.PY(halfY));
         }
 
         /// <summary>Размеры плана: стороны и диаметры, которых нет на разрезе, в те же ряды по тем же правилам.</summary>
@@ -2598,16 +2810,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                         double[] xi = new double[4], yi = new double[4];
                         if (m.HasTrapezoidHole && m.TrapezoidHoleVertices(0.0, xi, yi))
                         {
-                            // Основание 1 лежит при y < 0, на плане снизу: ось Y смотрит вверх.
-                            this.Dim(g, DimSide.Bottom, 0, this.PX(xi[0]), this.PX(xi[1]), this.PY(yi[0]), this.PY(yi[1]), m.MarinelliHoleBase1, "MarinelliHoleBase1", RankMain);
-                            this.Dim(g, DimSide.Top, 0, this.PX(xi[3]), this.PX(xi[2]), this.PY(yi[3]), this.PY(yi[2]), m.MarinelliHoleBase2, "MarinelliHoleBase2", RankMain);
+                            // (`AMBER324`) Основание 1 лежит при y < 0, на плане сверху: со стороны пробы ось Y смотрит вниз.
+                            this.Dim(g, DimSide.Top, 0, this.PX(xi[0]), this.PX(xi[1]), this.PY(yi[0]), this.PY(yi[1]), m.MarinelliHoleBase1, "MarinelliHoleBase1", RankMain);
+                            this.Dim(g, DimSide.Bottom, 0, this.PX(xi[3]), this.PX(xi[2]), this.PY(yi[3]), this.PY(yi[2]), m.MarinelliHoleBase2, "MarinelliHoleBase2", RankMain);
                             this.Dim(g, DimSide.Left, 0, this.PY(yi[0]), this.PY(yi[3]), this.PX(xi[0]), this.PX(xi[3]), m.MarinelliHoleWidth, "MarinelliHoleWidth", RankMain);
                         }
-                        else
-                        {
-                            double rh = 0.5 * Math.Max(m.MarinelliHoleDiameter, 0.0);
-                            this.Dim(g, DimSide.Bottom, 0, this.PX(-rh), this.PX(rh), cy, cy, m.MarinelliHoleDiameter, "MarinelliHoleDiameter", RankMain);
-                        }
+
+                        // (`AMBER324`) Круглый колодец со стороны пробы закрыт, и его ⌀ стоит на разрезе, где колодец виден: к
+                        // невидимому контуру размер ставят, только если элемент нельзя образмерить там, где он виден. Основания
+                        // и ширина трапеции есть только здесь — они остаются.
 
                         break;
                     }
@@ -2622,7 +2833,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     case GeometrySourceType.Box:
                     {
                         double hx = 0.5 * Math.Max(m.BoxSourceX, 0.0), hy = 0.5 * Math.Max(m.BoxSourceY, 0.0);
-                        this.Dim(g, DimSide.Top, 0, this.PX(-hx), this.PX(hx), this.PY(hy), this.PY(hy), m.BoxSourceX, "BoxSourceX", RankMain);
+                        this.Dim(g, DimSide.Top, 0, this.PX(-hx), this.PX(hx), this.PY(-hy), this.PY(-hy), m.BoxSourceX, "BoxSourceX", RankMain);
                         this.Dim(g, DimSide.Left, 0, this.PY(hy), this.PY(-hy), this.PX(-hx), this.PX(-hx), m.BoxSourceY, "BoxSourceY", RankMain);
                         break;
                     }
@@ -2734,10 +2945,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         //         тогда выносные большего обходят меньший снаружи;
         //   5.21  нет места для стрелок: линия продолжается за выносные, стрелки снаружи;
         //   5.22  в цепочке при тесноте стрелки заменяют засечками под 45° или точками;
-        //   5.24  число над размерной линией, ближе к середине (у вертикальной — слева от неё, поворотом);
+        //   5.24  число над размерной линией, ближе к середине; у вертикальной — НЕ поворотом, см. ниже (`AMBER324`);
         //   5.27, 5.30  нет места над линией: на продолжении линии или на полке линии-выноски;
         //   5.31  число не пересекают линии чертежа, контур и штриховка: число не садится ни на тело, ни на линию;
         //   5.38  перед диаметром знак диаметра.
+        //
+        // (`AMBER324`) Все числа горизонтальны. Amber 08.11.2026, к снимку вкладки «Источник», дословно: «1.Почему цифры
+        // повёрнуты? ГОСТ такое запрещает.» Решение вопросником того же дня, дословно: «Все числа горизонтально
+        // (Рекомендую)». Пункт 5.24 ставит число вертикального размера повёрнутым вдоль линии; горизонтальное число
+        // стандарт допускает на полке линии-выноски (п. 5.27, 5.30). Поэтому у вертикальной линии число стоит
+        // неповёрнутым РЯДОМ с ней (`BesidePx`), сперва снаружи от контура, потом со стороны контура, по оси линии
+        // занимает свою высоту (`Along`); тесно — на продолжении линии рядом с ней, затем на полке выноски. Правило
+        // п. 5.31 прежнее: место, где число садится на тело, на линию или на другое число, не годится (`Cost`, `Free`).
+        // Поле вида сбоку — ширина числа, а не высота строки (`DimensionRoom`). То же в окне импорта GDML (`GdmlSketch`).
         //
         // Сторона размера стандартом не задана. Amber 06.11.2026, к снимку редактора, дословно: «А здесь почему не так
         // сделали? В ГОСТ иначе написано?» Не иначе: п. 5.8 допускает размерную прямо к линиям контура, п. 5.9 лишь
@@ -2768,6 +2988,9 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>Наклонная часть линии-выноски, точек.</summary>
         const float ShelfRunPx = 10f;
+
+        /// <summary>(`AMBER324`) Зазор между вертикальной размерной линией и горизонтальным числом рядом с ней, точек: дальше вылета выносной.</summary>
+        const float BesidePx = 4f;
 
         /// <summary>Тело мельче этого: вторичные размеры уступают ему место.</summary>
         const double MinBodyPx = 40.0;
@@ -2974,10 +3197,19 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.Dim(g, side, chain, this.Y(z1), this.Y(z2), this.X(x1), this.X(x2), value, key, rank);
         }
 
-        /// <summary>Число помещается над линией между выносными.</summary>
-        static bool Roomy(DimSpan span)
+        /// <summary>
+        /// Число помещается между выносными. (`AMBER324`) Число всегда горизонтально, поэтому вдоль вертикальной
+        /// линии оно занимает свою высоту, а не ширину: <see cref="Along"/>.
+        /// </summary>
+        static bool Roomy(DimSpan span, bool horizontal)
         {
-            return span.Size.Width + 8f <= span.B - span.A;
+            return Along(span, horizontal) + 8f <= span.B - span.A;
+        }
+
+        /// <summary>(`AMBER324`) Сколько неповёрнутое число занимает вдоль размерной линии: у горизонтальной — ширину, у вертикальной — высоту.</summary>
+        static float Along(DimSpan span, bool horizontal)
+        {
+            return horizontal ? span.Size.Width : span.Size.Height;
         }
 
         static void VisibleBounds(DimGroup group, Func<DimSpan, bool> visible, out float lo, out float hi)
@@ -3008,11 +3240,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (!this.IsChain(group))
             {
                 DimSpan span = group.Spans.Find(x => this.DimVisible(x));
-                if (!Roomy(span))
+                if (!Roomy(span, Horizontal(group)))
                 {
                     float tail = span.B - span.A >= ArrowRoom ? 0f : DimTailPx;
                     lo -= tail;
-                    hi += tail + Reach + span.Size.Width;
+                    hi += tail + Reach + Along(span, Horizontal(group));
                 }
             }
         }
@@ -3032,11 +3264,15 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
+            // (`AMBER324`) Ширина — как линия НАРИСОВАНА: у одиночного размера короче `ArrowRoom` стрелки снаружи и линия
+            // длиннее размера на два хвоста. Иначе «10» чашки Петри (⌀90×10, слой пробы внутри сосуда 12) вставало ближе
+            // «12», и его хвосты пересекали выносные «12» в 1.7 точки от своих концов (п. 5.12); было и до `AMBER324`.
             Func<DimGroup, float> width = x =>
             {
                 float lo, hi;
                 VisibleBounds(x, this.DimVisible, out lo, out hi);
-                return hi - lo;
+                bool tails = !this.IsChain(x) && hi - lo < ArrowRoom;
+                return hi - lo + (tails ? 2f * DimTailPx : 0f);
             };
             groups.Sort((x, y) => width(x).CompareTo(width(y)));
             for (int i = 0; i < groups.Count; i++)
@@ -3058,9 +3294,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             RectangleF contour = plan ? this.planContour : this.sideContour;
+            float[] offsets = this.RowOffsets(groups, side);
             foreach (DimGroup group in groups)
             {
-                float off = DimFirstPx + group.Row * DimPitchPx;
+                float off = offsets[group.Row];
                 group.Line = side == DimSide.Top ? contour.Top - off
                            : side == DimSide.Bottom ? contour.Bottom + off
                            : side == DimSide.Left ? contour.Left - off
@@ -3069,6 +3306,50 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             return groups;
         }
+
+        /// <summary>
+        /// Отступ каждого ряда от контура, точек; последний элемент — где встал бы следующий ряд. Сверху и снизу шаг
+        /// постоянный, `DimPitchPx` (п. 5.11). (`AMBER324`) Сбоку ряды разнесены по ширине числа: решение Amber 09.11.2026
+        /// вопросником, дословно: «Разнести ряды (Рекомендую)». Горизонтальное число ряда стоит снаружи рядом со своей
+        /// линией (`BesidePx`), и до линии следующего ряда остаётся `RowGapPx`: число каждого ряда встаёт у своей линии,
+        /// без полок и без пересечений. Шаг не меньше `DimPitchPx`: п. 5.11 — минимум, а не точное число.
+        /// </summary>
+        float[] RowOffsets(List<DimGroup> groups, DimSide side)
+        {
+            int top = groups.Count > 0 ? groups.Max(x => x.Row) : -1;
+            float[] offsets = new float[top + 2];
+            offsets[0] = DimFirstPx;
+            for (int row = 0; row <= top; row++)
+            {
+                float pitch = DimPitchPx;
+                if (!Horizontal(side))
+                {
+                    foreach (DimGroup group in groups)
+                    {
+                        if (group.Row == row && !this.compactRows)
+                        {
+                            foreach (DimSpan span in group.Spans)
+                            {
+                                if (this.DimVisible(span))
+                                {
+                                    pitch = Math.Max(pitch, BesidePx + span.Size.Width + RowGapPx);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                offsets[row + 1] = offsets[row] + pitch;
+            }
+
+            return offsets;
+        }
+
+        /// <summary>(`AMBER324`) Зазор от числа ряда сбоку до линии следующего ряда, точек.</summary>
+        const float RowGapPx = 4f;
+
+        /// <summary>(`AMBER324`) Второй проход раскладки: ряды сбоку прежним шагом, число внутреннего ряда — на полке.</summary>
+        bool compactRows;
 
         /// <summary>Поля вида по его рядам: слева, справа, сверху, снизу. Без учёта фокуса: иначе чертёж прыгал бы при каждом переходе по полям.</summary>
         float[] DimensionRoom(Graphics g, bool plan)
@@ -3082,9 +3363,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 int lastRow = -1;
                 List<DimGroup> rows = this.AssignRows(plan, side);
                 int topRow = rows.Count > 0 ? rows.Max(x => x.Row) : 0;
+                float[] offsets = this.RowOffsets(rows, side);
                 foreach (DimGroup group in rows)
                 {
-                    float off = DimFirstPx + group.Row * DimPitchPx;
+                    float off = offsets[group.Row];
                     lastRow = Math.Max(lastRow, group.Row);
                     int shelves = 0;
                     float shelfW = 0f;
@@ -3095,11 +3377,21 @@ namespace BecquerelMonitor.EfficiencyMaker
                         foreach (DimSpan span in group.Spans)
                         {
                             bool atEnd = span.A <= lo2 + 0.01f || span.B >= hi2 - 0.01f;
-                            if (this.DimVisible(span) && !Roomy(span) && (!atEnd || !Horizontal(side)))
+                            if (this.DimVisible(span) && !Roomy(span, Horizontal(side)) && (!atEnd || !Horizontal(side)))
                             {
                                 shelves++;
                                 shelfW = Math.Max(shelfW, span.Size.Width);
                             }
+                        }
+                    }
+
+                    // (`AMBER324`) Число у вертикальной линии горизонтально и стоит снаружи рядом с ней: поле — его ширина.
+                    float across = 0f;
+                    foreach (DimSpan span in group.Spans)
+                    {
+                        if (this.DimVisible(span))
+                        {
+                            across = Math.Max(across, BesidePx + span.Size.Width + 1f);
                         }
                     }
 
@@ -3112,18 +3404,42 @@ namespace BecquerelMonitor.EfficiencyMaker
                         case DimSide.Bottom:
                             beyond = shelves * DimPitchPx + DimOverPx;
                             break;
-                        case DimSide.Left:
-                            beyond = Math.Max(textH + 1f, shelves > 0 ? ShelfRunPx + shelfW + 6f : 0f);
-                            break;
                         default:
-                            beyond = Math.Max(DimOverPx, shelves > 0 ? ShelfRunPx + shelfW + 6f : 0f);
+                            beyond = Math.Max(across, shelves > 0 ? ShelfRunPx + shelfW + 6f : 0f);
                             break;
                     }
 
                     need = Math.Max(need, off + beyond);
                     if (shelves > 0 && !Horizontal(side))
                     {
-                        need = Math.Max(need, DimFirstPx + topRow * DimPitchPx + beyond);
+                        need = Math.Max(need, offsets[topRow] + beyond);
+                    }
+
+                    // (`AMBER324`) Ряды сбоку прежним шагом (второй проход): горизонтальное число внутреннего ряда, перекрытого
+                    // внешним, рядом с линией не встаёт — ему поле под полку за всеми рядами, иначе главный размер скрывался.
+                    // (`AMBER324`) Второй проход: тело мелкое, и главный горизонтальный размер может не поместиться ни над
+                    // линией, ни на её продолжении (маринелли в защите 280×427: «⌀130» внутри «⌀200»). Ему — ряд под полку за
+                    // всеми рядами: вертикального места в окне обычно вдоволь, а скрытый главный хуже полки.
+                    if (this.compactRows && Horizontal(side) && !this.IsChain(group)
+                        && group.Spans.Exists(x => this.DimVisible(x) && x.Rank == RankMain && !Roomy(x, true)))
+                    {
+                        need = Math.Max(need, offsets[topRow] + DimPitchPx + (side == DimSide.Top ? textH + 1f : DimOverPx));
+                    }
+
+                    if (this.compactRows && !Horizontal(side) && group.Row < topRow && !(group.Row == 0 && across + 2f * Gap <= DimFirstPx))
+                    {
+                        float lo, hi;
+                        VisibleBounds(group, this.DimVisible, out lo, out hi);
+                        bool covered = rows.Exists(other =>
+                        {
+                            float lo2, hi2;
+                            VisibleBounds(other, this.DimVisible, out lo2, out hi2);
+                            return other.Row > group.Row && lo2 < hi && lo < hi2;
+                        });
+                        if (covered)
+                        {
+                            need = Math.Max(need, offsets[topRow] + ShelfRunPx + across + 6f);
+                        }
                     }
                 }
 
@@ -3142,11 +3458,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 // Запасной ряд под размер, который покажет только фокус: чертёж не сдвигается при переходе по полям.
+                // (`AMBER324`) Сбоку число горизонтально: запас — его ширина, а не высота строки.
                 foreach (DimGroup group in this.dimGroups)
                 {
                     if (group.Plan == plan && group.Side == side && !group.Through && group.Spans.Exists(x => !this.DimVisible(x)))
                     {
-                        need = Math.Max(need, DimFirstPx + (lastRow + 1) * DimPitchPx + textH + 1f);
+                        float spare = Horizontal(side) ? textH + 1f
+                                    : group.Spans.Where(x => !this.DimVisible(x)).Max(x => BesidePx + x.Size.Width + 1f);
+                        need = Math.Max(need, offsets[lastRow + 1] + spare);
                         break;
                     }
                 }
@@ -3270,9 +3589,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (spot.Extension)
             {
                 // Продолжение линии — та же размерная: чужие выносные оно не пересекает (п. 5.12).
-                float c = spot.Rotated ? spot.Box.Right + 1f : spot.Box.Bottom + 1f;
-                PointF a = spot.Rotated ? new PointF(c, spot.ExtendFrom) : new PointF(spot.ExtendFrom, c);
-                PointF b = spot.Rotated ? new PointF(c, spot.ExtendTo) : new PointF(spot.ExtendTo, c);
+                // (`AMBER324`) Число стоит рядом с линией, а не на ней: продолжение идёт по самой размерной.
+                float c = spot.LineAt;
+                PointF a = spot.Vertical ? new PointF(c, spot.ExtendFrom) : new PointF(spot.ExtendFrom, c);
+                PointF b = spot.Vertical ? new PointF(c, spot.ExtendTo) : new PointF(spot.ExtendTo, c);
                 foreach (DimLine line in this.dimLines)
                 {
                     if (line.Group != ownGroup && line.Kind == DimLineKind.Extension && Cross(a, b, line.A, line.B))
@@ -3390,7 +3710,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             Dictionary<DimGroup, int> shelfCount = new Dictionary<DimGroup, int>();
             // Сперва числа рядов: у них меньше выбора. Цепочки на уровне тела потом: их веер встанет и сверху, и снизу.
             // Полки веером: крайний к своей стороне стоит ближе всех.
-            foreach (KeyValuePair<DimGroup, DimSpan> item in order.OrderBy(x => this.Lit(x.Value.Key) ? 0 : 1).ThenBy(x => x.Key.Through ? 1 : 0).ThenBy(x => Roomy(x.Value) ? 0 : 1).ThenBy(x => x.Value.Rank).ThenBy(x => ShelfOrder(x.Key, x.Value, contour)))
+            foreach (KeyValuePair<DimGroup, DimSpan> item in order.OrderBy(x => this.Lit(x.Value.Key) ? 0 : 1).ThenBy(x => x.Key.Through ? 1 : 0).ThenBy(x => Roomy(x.Value, Horizontal(x.Key)) ? 0 : 1).ThenBy(x => x.Value.Rank).ThenBy(x => ShelfOrder(x.Key, x.Value, contour)))
             {
                 DimGroup group = item.Key;
                 DimSpan span = item.Value;
@@ -3547,16 +3867,50 @@ namespace BecquerelMonitor.EfficiencyMaker
                 yield break;
             }
 
-            if (Roomy(span))
+            // (`AMBER324`) У вертикальной линии число НЕ повёрнуто: стоит рядом с ней, сперва снаружи от контура, потом
+            // со стороны контура; по оси линии занимает свою высоту.
+            float outward = group.Side == DimSide.Top || group.Side == DimSide.Left ? -1f : 1f;
+            float along = h ? w : t;
+            Func<float, float, RectangleF> beside = (lo, side) =>
+                new RectangleF(side < 0f ? line - BesidePx - w : line + BesidePx, lo, w, t);
+            if (Roomy(span, h))
             {
-                // П. 5.24: над линией и как можно ближе к середине. У вертикальной линии это слева от неё, число повёрнуто.
-                float room = 0.5f * (span.B - span.A - w) - 4f;
-                foreach (float shift in new[] { 0f, 0.5f, -0.5f, 1f, -1f })
+                // П. 5.24: над линией и как можно ближе к середине. У вертикальной — рядом с линией, число горизонтально.
+                float room = 0.5f * (span.B - span.A - along) - 4f;
+                foreach (float side in h ? new[] { 0f } : new[] { outward, -outward })
                 {
-                    float at = mid + shift * room;
-                    yield return h ? new Spot { Box = new RectangleF(at - w / 2f, line - t - 1f, w, t) }
-                                   : new Spot { Box = new RectangleF(line - t - 1f, at - w / 2f, t, w), Rotated = true };
+                    foreach (float shift in new[] { 0f, 0.5f, -0.5f, 1f, -1f })
+                    {
+                        float at = mid + shift * room;
+                        yield return h ? new Spot { Box = new RectangleF(at - w / 2f, line - t - 1f, w, t) }
+                                       : new Spot { Box = beside(at - t / 2f, side), Vertical = true };
+                    }
                 }
+            }
+            else if (h && this.compactRows && span.Rank == RankMain && w <= span.B - span.A)
+            {
+                // (`AMBER324`) Второй проход, главный горизонтальный размер в мелком теле (маринелли в защите 280×427: «⌀130»
+                // внутри «⌀200»): число входит между своими выносными без положенного запаса (рамка MeasureString шире чернил
+                // на поля шрифта, так что чернила выносных не касаются) — ставится над линией у
+                // середины. На продолжении оно легло бы на выносные соседнего ряда, а скрытый главный хуже тесного.
+                // Поднято над линией на 3 точки: перья стрелок у выносных (0.6 S = 2.4 точки) не заходят в рамку числа.
+                yield return new Spot { Box = new RectangleF(mid - w / 2f, line - t - 3f, w, t) };
+            }
+            else if (!h)
+            {
+                // (`AMBER324`) Короткий вертикальный размер: горизонтальное число стоит РЯДОМ с линией, не на ней, и
+                // помещаться между выносными ему не нужно — свои выносные кончаются в `DimOverPx` от линии, ближе `BesidePx`.
+                // Поэтому сперва у середины, как у длинного, и лишь потом на продолжении. Без этого «10» чашки Петри
+                // (⌀90×10) уходило на продолжение, упиралось в выносные «12» внешнего ряда и скрывалось.
+                foreach (float side in new[] { outward, -outward })
+                {
+                    yield return new Spot { Box = beside(mid - t / 2f, side), Vertical = true };
+                }
+            }
+
+            if (Roomy(span, h))
+            {
+                // Места у середины уже предложены выше.
             }
             else if (this.IsChain(group))
             {
@@ -3576,13 +3930,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                     if (end < 0f ? span.A <= first + 0.01f : span.B >= last - 0.01f)
                     {
                         float from = end > 0f ? span.B : span.A;
-                        float near = from + end * Reach, far = near + end * w;
+                        float near = from + end * Reach, far = near + end * along;
                         float lo = Math.Min(near, far);
-                        yield return new Spot
+                        foreach (float side in h ? new[] { 0f } : new[] { outward, -outward })
                         {
-                            Box = h ? new RectangleF(lo, line - t - 1f, w, t) : new RectangleF(line - t - 1f, lo, t, w),
-                            Rotated = !h, Extension = true, ExtendFrom = from, ExtendTo = far,
-                        };
+                            yield return new Spot
+                            {
+                                Box = h ? new RectangleF(lo, line - t - 1f, w, t) : beside(lo, side),
+                                Vertical = !h, Extension = true, ExtendFrom = from, ExtendTo = far, LineAt = line,
+                            };
+                        }
                     }
                 }
             }
@@ -3595,13 +3952,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                 foreach (float end in ends)
                 {
                     float from = end > 0f ? span.B + tail : span.A - tail;
-                    float near = from + end * Reach, far = near + end * w;
+                    float near = from + end * Reach, far = near + end * along;
                     float lo = Math.Min(near, far);
-                    yield return new Spot
+                    foreach (float side in h ? new[] { 0f } : new[] { outward, -outward })
                     {
-                        Box = h ? new RectangleF(lo, line - t - 1f, w, t) : new RectangleF(line - t - 1f, lo, t, w),
-                        Rotated = !h, Extension = true, ExtendFrom = from, ExtendTo = far,
-                    };
+                        yield return new Spot
+                        {
+                            Box = h ? new RectangleF(lo, line - t - 1f, w, t) : beside(lo, side),
+                            Vertical = !h, Extension = true, ExtendFrom = from, ExtendTo = far, LineAt = line,
+                        };
+                    }
                 }
             }
 
@@ -3633,9 +3993,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                         float past = 0f;
                         foreach (DimGroup other in this.dimGroups)
                         {
-                            if (other.Plan == group.Plan && other.Side == group.Side && other.Spans.Exists(this.DimVisible))
+                            if (other.Plan == group.Plan && other.Side == group.Side && !other.Through && other.Row > group.Row && other.Spans.Exists(this.DimVisible))
                             {
-                                past = Math.Max(past, (other.Row - group.Row) * DimPitchPx);
+                                past = Math.Max(past, Math.Abs(other.Line - group.Line));
                             }
                         }
 
@@ -3738,18 +4098,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     Brush brush = this.Lit(item.Key.Key) ? lit : ink;
                     RectangleF box = item.Value.Box;
                     this.dimNumbers.Add(new KeyValuePair<string, RectangleF>(item.Key.Text, box));
-                    if (item.Value.Rotated)
-                    {
-                        GraphicsState state = g.Save();
-                        g.TranslateTransform(box.X, box.Bottom);
-                        g.RotateTransform(-90f);
-                        g.DrawString(item.Key.Text, this.Font, brush, 0f, 0f);
-                        g.Restore(state);
-                    }
-                    else
-                    {
-                        g.DrawString(item.Key.Text, this.Font, brush, box.X, box.Y);
-                    }
+                    // (`AMBER324`) Без поворота: все числа горизонтальны.
+                    g.DrawString(item.Key.Text, this.Font, brush, box.X, box.Y);
                 }
             }
         }
@@ -3871,8 +4221,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             public RectangleF Box;
             public PointF[] Leader;
-            public bool Rotated, Extension;
-            public float ExtendFrom, ExtendTo;
+            public bool Vertical, Extension;
+            public float ExtendFrom, ExtendTo, LineAt;
         }
 
         static Spot At(float x, float y, SizeF size)

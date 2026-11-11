@@ -4,6 +4,7 @@ using BecquerelMonitor.Properties;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -34,6 +35,13 @@ namespace GeometryTopViewProbeA307
     /// (6) Подпись разворота и глубина на RU и EN, в том числе на одном разрезе. (7) Источник в плане: пиксели.
     /// (8) Миниатюра прежняя. (9) Чертёж не меняет модель.
     /// (10) Сцена: случайная модель, на которой числа разреза без рамки вида уходили за неё.
+    ///
+    /// (11) `AMBER324`, решения Amber 08.11.2026 вопросником, дословно: «Все числа горизонтально (Рекомендую)» и
+    /// «Со стороны пробы (Рекомендую)». Ни одного повёрнутого числа на всех чертежах покрытия (рамка выше ширины,
+    /// у `Picture` — и по чернилам); вид со стороны пробы: проба и сосуд поверх прибора, контур прибора под ними
+    /// штриховой, прибор вокруг малой банки виден, на «Детекторе» пробы нет; ось Y плана вниз (трапеция).
+    /// Положительный контроль: эта же проба, собранная против сборки до `AMBER324`, обязана отказать
+    /// (журнал `handover/handover-2026-11-08-a324.md`), и синтетика `TurnedControl`.
     ///
     /// Ожидание: «ВСЕ СОШЛИСЬ», код 0; есть расхождение: код 1.
     /// Положительный контроль всей пробы: мутанты, журнал `handover/handover-2026-11-05-design-gdml.md`.
@@ -127,6 +135,18 @@ namespace GeometryTopViewProbeA307
             g.SourceHeight = 50.0;
             g.BeakerSideWallThickness = 2.0;
             g.BeakerEndWallThickness = 2.0;
+            return g;
+        }
+
+        /// <summary>(`AMBER324`) Чашка Петри ⌀90×10: главный размер «10» скрывался на «Источнике» в 280×646 и 420×460.</summary>
+        static GeometryModel Petri(GeometryModel g)
+        {
+            g.SourceType = GeometrySourceType.Cylinder;
+            g.BeakerDiameter = 90.0;
+            g.BeakerHeight = 12.0;
+            g.SourceHeight = 10.0;
+            g.BeakerSideWallThickness = 1.0;
+            g.BeakerEndWallThickness = 1.0;
             return g;
         }
 
@@ -426,6 +446,7 @@ namespace GeometryTopViewProbeA307
                 {
                     GeometrySketch.DimLine[] dims = lines.Where(x => x.OnTopView == top && x.Side == side && x.Row >= 0 && x.Kind == GeometrySketch.DimLineKind.Dimension).ToArray();
                     bool h = side == GeometrySketch.DimSide.Top || side == GeometrySketch.DimSide.Bottom;
+                    Dictionary<int, float> rowOff = new Dictionary<int, float>();
                     foreach (GeometrySketch.DimLine d in dims)
                     {
                         float at = h ? d.A.Y : d.A.X;
@@ -433,8 +454,37 @@ namespace GeometryTopViewProbeA307
                                   : side == GeometrySketch.DimSide.Bottom ? at - contour.Bottom
                                   : side == GeometrySketch.DimSide.Left ? contour.Left - at
                                   : at - contour.Right;
-                        double row = (off - GeometrySketch.DimFirstPx) / GeometrySketch.DimPitchPx;
-                        Check(Math.Abs(row - d.Row) < 0.05, where + ": ряд " + d.Row + " не на шаге: " + off.ToString("F1", CultureInfo.InvariantCulture) + " точек от контура");
+                        if (h)
+                        {
+                            double row = (off - GeometrySketch.DimFirstPx) / GeometrySketch.DimPitchPx;
+                            Check(Math.Abs(row - d.Row) < 0.05, where + ": ряд " + d.Row + " не на шаге: " + off.ToString("F1", CultureInfo.InvariantCulture) + " точек от контура");
+                        }
+                        else
+                        {
+                            // (`AMBER324`, решение Amber 09.11.2026 «Разнести ряды (Рекомендую)») Сбоку шаг рядов — по ширине
+                            // числа, не меньше `DimPitchPx`: ряд 0 на `DimFirstPx`, у одного ряда одна прямая, дальше — дальше.
+                            float seen;
+                            if (rowOff.TryGetValue(d.Row, out seen))
+                            {
+                                Check(Math.Abs(seen - off) < 0.05f, where + ": ряд " + d.Row + " сбоку не на одной прямой");
+                            }
+                            else
+                            {
+                                rowOff[d.Row] = off;
+                            }
+
+                            if (d.Row == 0)
+                            {
+                                Check(Math.Abs(off - GeometrySketch.DimFirstPx) < 0.05f, where + ": ряд 0 сбоку не на " + GeometrySketch.DimFirstPx);
+                            }
+                        }
+                    }
+
+                    List<int> sideRows = rowOff.Keys.OrderBy(x => x).ToList();
+                    for (int i = 1; i < sideRows.Count; i++)
+                    {
+                        float step = rowOff[sideRows[i]] - rowOff[sideRows[i - 1]];
+                        Check(step >= (sideRows[i] - sideRows[i - 1]) * GeometrySketch.DimPitchPx - 0.05f, where + ": ряды сбоку ближе шага: " + step.ToString("F1", CultureInfo.InvariantCulture));
                     }
 
                     // Группы одного ряда не делят участок оси; вложенный размер ближе к контуру.
@@ -501,6 +551,7 @@ namespace GeometryTopViewProbeA307
             new KeyValuePair<string, Func<GeometryModel, GeometryModel>>("трапеция", Trapezoid),
             new KeyValuePair<string, Func<GeometryModel, GeometryModel>>("банка", Cylinder),
             new KeyValuePair<string, Func<GeometryModel, GeometryModel>>("кювета", BoxSource),
+            new KeyValuePair<string, Func<GeometryModel, GeometryModel>>("петри", Petri),
             new KeyValuePair<string, Func<GeometryModel, GeometryModel>>("поле", Iso),
             new KeyValuePair<string, Func<GeometryModel, GeometryModel>>("земля", Ground),
             new KeyValuePair<string, Func<GeometryModel, GeometryModel>>("лунка", Borehole),
@@ -517,6 +568,66 @@ namespace GeometryTopViewProbeA307
                 GeometrySketch s = Sketch(make(), tab, size);
                 using (Paint(s))
                 {
+                    // (`AMBER324`) Полка сбоку через чужую размерную: при разнесённых рядах число каждого ряда встаёт у своей линии.
+                    foreach (GeometrySketch.DimLine leader in s.DimensionLines.Where(x => x.Kind == GeometrySketch.DimLineKind.Leader
+                             && (x.Side == GeometrySketch.DimSide.Left || x.Side == GeometrySketch.DimSide.Right)))
+                    {
+                        foreach (GeometrySketch.DimLine dim in s.DimensionLines.Where(x => x.Kind == GeometrySketch.DimLineKind.Dimension && x.Group != leader.Group && x.OnTopView == leader.OnTopView))
+                        {
+                            if (Cross(leader.A, leader.B, dim.A, dim.B))
+                            {
+                                SideShelfCross++;
+                                string bucket = tab + " " + size.Width + "×" + size.Height;
+                                int seenCross;
+                                SideShelfBySize.TryGetValue(bucket, out seenCross);
+                                SideShelfBySize[bucket] = seenCross + 1;
+                                if (size.Width >= 280 && size.Height >= 367 && !Compact(s))
+                                {
+                                    SideShelfCrossReal++;
+                                    Console.WriteLine("  полка сбоку через размерную: " + where + ": " + leader.Key + " × " + dim.Key);
+                                }
+                            }
+                        }
+                    }
+
+                    if (Compact(s))
+                    {
+                        string bucket = tab + " " + size.Width + "×" + size.Height;
+                        int seenCompact;
+                        CompactBySize.TryGetValue(bucket, out seenCompact);
+                        CompactBySize[bucket] = seenCompact + 1;
+
+                        // (`AMBER324`) Решения Amber 09.11.2026 вопросником, дословно: о проходе — «Оставить (Рекомендую)»; о
+                        // маринелли в защите в окнах шириной 280 — «Крупнее, «110» на полке (Рекомендую)». Главный на полке
+                        // допустим, скрытым — нет. Скрытый главный судится в настоящих полях (от 280×367): в тесных 232×440 и
+                        // уже ⌀ сосуда скрывался и до `AMBER324` (там «главных скрыто» считает и печатает `Coverage`).
+                        CompactDrawings++;
+                        if (size.Width >= 280 && size.Height >= 367)
+                        {
+                            foreach (string hidden in HiddenMain(s))
+                            {
+                                CompactMainLost++;
+                                Console.WriteLine("  второй проход, главный скрыт: " + where + ": " + hidden);
+                            }
+                        }
+
+                        // Главный на полке сбоку — только счёт, для отчёта.
+                        HashSet<string> main = MainKeys(s);
+                        CompactMainShelf += s.DimensionLines.Where(x => x.Kind == GeometrySketch.DimLineKind.Leader && x.Key != null && main.Contains(x.Key)
+                                     && (x.Side == GeometrySketch.DimSide.Left || x.Side == GeometrySketch.DimSide.Right)).Select(x => x.Key).Distinct().Count();
+                    }
+
+                    // (`AMBER324`) Повёрнутое число: рамка выше своей ширины. Однознаковое не судится — его рамка и так узкая.
+                    foreach (KeyValuePair<string, RectangleF> n in s.DimensionNumbers)
+                    {
+                        NumbersSeen++;
+                        if (Turned(n))
+                        {
+                            NumbersTurned++;
+                            if (NumbersTurned <= 4) Console.WriteLine("  повёрнуто: " + where + ": " + n.Key);
+                        }
+                    }
+
                     Rectangle a = s.SideViewBounds, b = s.TopViewBounds;
                     if (tab == Tab.Shield)
                     {
@@ -629,6 +740,139 @@ namespace GeometryTopViewProbeA307
 
             Check(noPlan == 0, "без плана чертежей " + noPlan);
             Check(hiddenMain == 0, "главных размеров скрыто " + hiddenMain);
+            Console.WriteLine("числа покрытия (`AMBER324`): всего " + NumbersSeen + ", повёрнутых " + NumbersTurned + "; полка сбоку через чужую размерную " + SideShelfCross);
+            Console.WriteLine("  полка сбоку через чужую размерную по полям: " + string.Join(", ", SideShelfBySize.OrderBy(x => x.Key).Select(x => x.Key + " " + x.Value)));
+            Console.WriteLine("  второй проход (ряды сбоку прежним шагом, тело иначе мельче порога) по полям: " + string.Join(", ", CompactBySize.OrderBy(x => x.Key).Select(x => x.Key + " " + x.Value)));
+            // (`AMBER324`, «Разнести ряды») В настоящих полях окна (от 280×367) число каждого ряда сбоку встаёт у своей линии,
+            // полка через чужую размерную — ноль. Где тело с разнесёнными рядами мельче порога, второй проход раскладки
+            // возвращает прежний шаг рядов (`compactRows`), и полки там допустимы: счёт печатается, заслоном не служит.
+            Check(SideShelfCrossReal == 0, "полка сбоку через чужую размерную в настоящих полях: " + SideShelfCrossReal);
+            Console.WriteLine("  второй проход: чертежей " + CompactDrawings + ", главных скрыто " + CompactMainLost + ", главных на полке " + CompactMainShelf);
+            Check(CompactMainLost == 0, "второй проход: главных скрыто " + CompactMainLost);
+
+            // Положительный контроль счёта «главный скрыт»: чертёж, на котором главный скрыт заведомо (маринелли на «Источнике»
+            // в поле 500×260 — ⌀ колодца, было и до `AMBER324`), обязан дать не ноль тем же `HiddenMain`.
+            GeometrySketch control = Sketch(Marinelli(Rc110(GeometryDetectorFacing.Front)), Tab.Source, new Size(500, 260));
+            using (Paint(control))
+            {
+                Console.WriteLine("  контроль «главный скрыт»: " + string.Join("; ", HiddenMain(control)));
+                Check(HiddenMain(control).Count > 0, "контроль: счёт «главный скрыт» не увидел скрытый главный");
+            }
+            Check(NumbersSeen > 0 && NumbersTurned == 0, "повёрнутых чисел " + NumbersTurned + " из " + NumbersSeen);
+        }
+
+        static int NumbersSeen, NumbersTurned, SideShelfCross, SideShelfCrossReal;
+
+        /// <summary>(`AMBER324`) Второй проход раскладки; у сборки до правки поля нет — значит нет.</summary>
+        static bool Compact(GeometrySketch s)
+        {
+            FieldInfo f = typeof(GeometrySketch).GetField("compactRows", Any);
+            return f != null && (bool)f.GetValue(s);
+        }
+
+        static readonly Dictionary<string, int> SideShelfBySize = new Dictionary<string, int>();
+
+        static readonly Dictionary<string, int> CompactBySize = new Dictionary<string, int>();
+
+        static int CompactDrawings, CompactMainLost, CompactMainShelf;
+
+        /// <summary>(`AMBER324`) Скрытые главные размеры (ранг 1) последней отрисовки.</summary>
+        static List<string> HiddenMain(GeometrySketch s)
+        {
+            return s.HiddenDimensions.Where(x => x.EndsWith("ранг 1)", StringComparison.Ordinal)).ToList();
+        }
+
+        /// <summary>(`AMBER324`) Ключи главных размеров (ранг 1) последней отрисовки — из очереди размеров чертежа.</summary>
+        static HashSet<string> MainKeys(GeometrySketch s)
+        {
+            HashSet<string> set = new HashSet<string>();
+            foreach (object group in (System.Collections.IEnumerable)typeof(GeometrySketch).GetField("dimGroups", Any).GetValue(s))
+            {
+                foreach (object span in (System.Collections.IEnumerable)group.GetType().GetField("Spans", Any).GetValue(group))
+                {
+                    int rank = (int)span.GetType().GetField("Rank", Any).GetValue(span);
+                    string key = (string)span.GetType().GetField("Key", Any).GetValue(span);
+                    if (rank == 1 && key != null)
+                    {
+                        set.Add(key);
+                    }
+                }
+            }
+
+            return set;
+        }
+
+        /// <summary>(`AMBER324`) Пояснение о штрихе. По имени ключа, а не свойством: проба собирается и против сборки до правки
+        /// (положительный контроль), где ключа нет; там — строка, которой в тексте не бывает.</summary>
+        static string HiddenHint
+        {
+            get { return Resources.ResourceManager.GetString("EfficiencySketchHiddenHint", Resources.Culture) ?? ""; }
+        }
+
+        static bool Turned(KeyValuePair<string, RectangleF> n)
+        {
+            return n.Key.Length >= 2 && n.Value.Height > n.Value.Width;
+        }
+
+        /// <summary>
+        /// (`AMBER324`) Положительный контроль правила `Turned`: рамка повёрнутого числа прежней раскладки (`t × w`) обязана
+        /// судиться повёрнутой, прямая двузначная — нет; и по чернилам: строка, напечатанная прежним поворотом, выше своей
+        /// ширины, напечатанная прямо — шире.
+        /// </summary>
+        static void TurnedControl()
+        {
+            using (Bitmap b = new Bitmap(120, 120))
+            using (Graphics g = Graphics.FromImage(b))
+            {
+                Font font = new GeometrySketch().Font;
+                foreach (string text in new[] { "20", "21.7", "⌀130" })
+                {
+                    SizeF size = g.MeasureString(text, font);
+                    Check(!Turned(new KeyValuePair<string, RectangleF>(text, new RectangleF(0f, 0f, size.Width, size.Height))), "контроль: прямое «" + text + "» судится повёрнутым");
+                    Check(Turned(new KeyValuePair<string, RectangleF>(text, new RectangleF(0f, 0f, size.Height, size.Width))), "контроль: повёрнутое «" + text + "» не судится повёрнутым");
+                    foreach (bool rotate in new[] { false, true })
+                    {
+                        g.Clear(Color.White);
+                        GraphicsState state = g.Save();
+                        if (rotate)
+                        {
+                            // Ровно как прежний `DrawDimLines`: перенос в левый нижний угол рамки и поворот на −90°.
+                            g.TranslateTransform(20f, 100f);
+                            g.RotateTransform(-90f);
+                            g.DrawString(text, font, Brushes.Black, 0f, 0f);
+                        }
+                        else
+                        {
+                            g.DrawString(text, font, Brushes.Black, 20f, 20f);
+                        }
+
+                        g.Restore(state);
+                        Rectangle ink = DarkSpan(b);
+                        Check(!ink.IsEmpty && (ink.Height > ink.Width) == rotate, "контроль чернил: «" + text + "» " + (rotate ? "повёрнутое" : "прямое") + " " + ink.Size);
+                    }
+                }
+            }
+        }
+
+        static Rectangle DarkSpan(Bitmap b)
+        {
+            int x0 = int.MaxValue, y0 = int.MaxValue, x1 = -1, y1 = -1;
+            for (int y = 0; y < b.Height; y++)
+            {
+                for (int x = 0; x < b.Width; x++)
+                {
+                    Color c = b.GetPixel(x, y);
+                    if (c.R + c.G + c.B < 384)
+                    {
+                        x0 = Math.Min(x0, x);
+                        y0 = Math.Min(y0, y);
+                        x1 = Math.Max(x1, x);
+                        y1 = Math.Max(y1, y);
+                    }
+                }
+            }
+
+            return x1 < 0 ? Rectangle.Empty : Rectangle.FromLTRB(x0, y0, x1 + 1, y1 + 1);
         }
 
         static bool Whole(RectangleF part, RectangleF all)
@@ -774,7 +1018,8 @@ namespace GeometryTopViewProbeA307
             LitOn("торец корпус", Rc110(top), Tab.Detector, "SideCladdingThickness", true, false);
             LitOn("бок корпус", Rc110(side), Tab.Detector, "FrontCladdingThickness", true, false);
             LitOn("маринелли сосуд", Marinelli(NaI()), Tab.Source, "MarinelliBeakerDiameter", true, true);
-            LitOn("маринелли колодец", Marinelli(NaI()), Tab.Source, "MarinelliHoleDiameter", true, true);
+            // (`AMBER324`) ⌀ круглого колодца на плане не ставится: колодец закрыт пробой, размер стоит на разрезе.
+            LitOn("маринелли колодец", Marinelli(NaI()), Tab.Source, "MarinelliHoleDiameter", true, false);
             LitOn("маринелли стенка", Marinelli(NaI()), Tab.Source, "MarinelliSideThickness", true, false);
             LitOn("цилиндр сосуд", Cylinder(NaI()), Tab.Source, "BeakerDiameter", true, true);
             LitOn("кювета X", BoxSource(Rc110(top)), Tab.Source, "BoxSourceX", true, true);
@@ -857,6 +1102,18 @@ namespace GeometryTopViewProbeA307
 
                         Check(text.Contains(facing), where + "нет подписи разворота: " + text);
                         Check(text.Contains(depthWord), where + "нет глубины: " + text);
+                        // (`AMBER324`) Точка ничего не закрывает: о штрихе ни слова.
+                        Check(!text.Contains(HiddenHint), where + "пояснение о штрихе без штриха: " + text);
+                    }
+
+                    GeometrySketch c = Sketch(Cylinder(Nano(GeometryDetectorFacing.Side)), tab, size);
+                    using (Paint(c))
+                    {
+                        string text = c.TopViewBounds.IsEmpty ? "" : Joined(c, c.TopViewBounds);
+                        if (size.Width >= 798 && !c.TopViewBounds.IsEmpty)
+                        {
+                            Check(text.Contains(HiddenHint) == (tab == Tab.Source), where + "пояснение о штрихе: " + text);
+                        }
                     }
 
                     GeometrySketch f = Sketch(Point(Nano(GeometryDetectorFacing.Front)), tab, size);
@@ -939,26 +1196,107 @@ namespace GeometryTopViewProbeA307
             return hits;
         }
 
+        /// <summary>(`AMBER324`) Половина кристалла на плане и обвязка вокруг — тем же методом, что рисует чертёж.</summary>
+        static void PlanCrystalOf(GeometrySketch s, GeometryModel m, out double hx, out double wrap)
+        {
+            object[] a = { m, 0.0, 0.0, 0.0, 0.0, 0.0 };
+            typeof(GeometrySketch).GetMethod("PlanCrystal", Any).Invoke(s, a);
+            hx = (double)a[1];
+            wrap = (double)a[3] + (double)a[4] + (double)a[5];
+        }
+
+        /// <summary>
+        /// (`AMBER324`) Окружность контура: доля 720 точек, где в ±1.5 точки поперёк есть тёмная краска (сумма RGB < 330:
+        /// контур 1.2 точки краской 0x202020 даже вполовину на светлом отражателе даёт ~300, проба и кристалл ~390).
+        /// Штриховая линия (невидимый контур, ГОСТ 2.303-68) даёт долю между 0.35 и 0.85 (мерено 0.71), сплошная — не ниже 0.95
+        /// (мерено 0.99); прежний штриховой кружок точки r=5 — 0.88, прежний сплошной контур под пробой — 0.93–0.97.
+        /// </summary>
+        static void DashedRing(Bitmap b, PointF c, double r, string what, bool dashed)
+        {
+            int dark = 0;
+            for (int i = 0; i < 720; i++)
+            {
+                double a = i * Math.PI / 360.0;
+                bool hit = false;
+                foreach (double dr in new[] { -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5 })
+                {
+                    int x = (int)Math.Round(c.X + (r + dr) * Math.Cos(a)), y = (int)Math.Round(c.Y + (r + dr) * Math.Sin(a));
+                    if (x >= 0 && y >= 0 && x < b.Width && y < b.Height)
+                    {
+                        Color p = b.GetPixel(x, y);
+                        hit |= p.R + p.G + p.B < 330;
+                    }
+                }
+
+                if (hit)
+                {
+                    dark++;
+                }
+            }
+
+            double share = dark / 720.0;
+            Console.WriteLine("  " + what + ": тёмных " + dark + " из 720");
+            Check(dashed ? share > 0.35 && share < 0.85 : share >= 0.95, what + (dashed ? " не штриховой" : " не сплошной") + ": тёмных " + dark + " из 720");
+        }
+
         static void Plans()
         {
             Color wall = Palette("WallColor"), sampleColor = Palette("SampleColor"), canvas = Palette("Canvas"), crystalColor = Palette("CrystalColor"), inkColor = Palette("Ink");
             GeometrySketch s;
 
-            // Маринелли: кольцо пробы, стенки сосуда и колодца, кристалл поверх.
+            // Маринелли: кольцо пробы и стенка сосуда. (`AMBER324`) Со стороны пробы: проба выше колодца (100 > 70) закрывает
+            // колодец и прибор, в центре проба, контуры кристалла и корпуса под ней штриховые.
             GeometryModel mar = Marinelli(NaI());
             mar.MarinelliSideThickness = 8.0;
             mar.MarinelliHoleSideThickness = 6.0;
             GeometrySketch.SketchLabel[] t = Top(mar, out s);
             Has(t, "маринелли", "MarinelliBeakerDiameter", 130.0);
-            Has(t, "маринелли", "MarinelliHoleDiameter", 76.0);
+            // (`AMBER324`) ⌀ колодца закрыт пробой и стоит на разрезе: на плане его нет (поручение распорядителя 09.11.2026).
+            Check(!t.Any(l => l.Key == "MarinelliHoleDiameter"), "маринелли: на плане ⌀ невидимого колодца");
             using (Bitmap b = Paint(s))
             {
                 double scale = Field<double>(s, "scale");
                 PointF c = Field<PointF>(s, "planCenter");
                 Check(OnCircle(b, c, 0.5 * (44.0 + 57.0) * scale, sampleColor) > 600, "маринелли: проба не в кольце между колодцем и сосудом");
                 Check(OnCircle(b, c, (65.0 - 4.0) * scale, wall) > 600, "маринелли: нет стенки сосуда");
-                Check(OnCircle(b, c, (38.0 + 3.0) * scale, wall) > 600, "маринелли: нет стенки колодца");
-                Check(Near(b.GetPixel((int)c.X, (int)c.Y), crystalColor), "маринелли: кристалл не поверх: вид со стороны детектора");
+                Check(OnCircle(b, c, (38.0 + 3.0) * scale, sampleColor) > 600, "маринелли: стенка колодца не закрыта пробой: вид не со стороны пробы");
+                Check(Near(b.GetPixel((int)c.X, (int)c.Y), sampleColor), "маринелли: в центре не проба: вид не со стороны пробы");
+                double hxM, wrapNaI;
+                PlanCrystalOf(s, mar, out hxM, out wrapNaI);
+                DashedRing(b, c, hxM * scale, "маринелли: контур кристалла под пробой", true);
+                DashedRing(b, c, (hxM + wrapNaI) * scale, "маринелли: контур корпуса под пробой", true);
+            }
+
+            // (`AMBER324`) Видна и не видна: банка ⌀40 меньше торца AS 80x80 (сцена постановки `AMBER324`): в центре проба поверх
+            // кристалла, на 30 мм от оси — кристалл, не закрытый; его контур на 40 мм сплошной. На «Детекторе» пробы нет вовсе.
+            GeometryModel as80 = Preset("Atom Spectra Pro 80x80", GeometryDetectorFacing.Front);
+            as80.SourceType = GeometrySourceType.Cylinder;
+            as80.BeakerDiameter = 40.0;
+            as80.BeakerHeight = 22.0;
+            as80.SourceHeight = 20.0;
+            as80.BeakerSideWallThickness = 1.0;
+            as80.BeakerEndWallThickness = 1.0;
+            Top(as80, out s);
+            using (Bitmap b = Paint(s))
+            {
+                double scale = Field<double>(s, "scale");
+                PointF c = Field<PointF>(s, "planCenter");
+                Check(Near(b.GetPixel((int)c.X, (int)c.Y), sampleColor), "банка ⌀40 на AS80: в центре не проба: " + b.GetPixel((int)c.X, (int)c.Y));
+                Check(OnCircle(b, c, 30.0 * scale, crystalColor) > 600, "банка ⌀40 на AS80: кристалл вокруг банки закрыт");
+                Check(OnCircle(b, c, 10.0 * scale, sampleColor) > 600, "банка ⌀40 на AS80: проба не поверх кристалла");
+                double hxA, wrapAs;
+                PlanCrystalOf(s, as80, out hxA, out wrapAs);
+                DashedRing(b, c, hxA * scale, "банка ⌀40 на AS80: открытый контур кристалла", false);
+                // (`AMBER324`) Край кристалла виден, штриха нет — нет и пояснения о нём.
+                Check(!Joined(s, s.TopViewBounds).Contains(HiddenHint), "банка ⌀40 на AS80: пояснение о штрихе без штриха");
+            }
+
+            GeometrySketch det = Sketch(Cylinder(NaI()), Tab.Detector, new Size(798, 807));
+            using (Bitmap b = Paint(det))
+            {
+                Check(!det.TopViewBounds.IsEmpty && Span(b, det.TopViewBounds, sampleColor).IsEmpty, "«Детектор»: на плане проба");
+                PointF c = Field<PointF>(det, "planCenter");
+                Check(Near(b.GetPixel((int)c.X, (int)c.Y), crystalColor), "«Детектор»: в центре плана не кристалл");
             }
 
             // Банка: стенка и проба.
@@ -966,6 +1304,7 @@ namespace GeometryTopViewProbeA307
             cyl.BeakerDiameter = 150.0;
             cyl.BeakerSideWallThickness = 8.0;
             t = Top(cyl, out s);
+            Check(Joined(s, s.TopViewBounds).Contains(HiddenHint), "банка ⌀150 на NaI: нет пояснения о штрихе под пробой");
             Has(t, "банка", "BeakerDiameter", 150.0);
             using (Bitmap b = Paint(s))
             {
@@ -973,6 +1312,7 @@ namespace GeometryTopViewProbeA307
                 PointF c = Field<PointF>(s, "planCenter");
                 Check(OnCircle(b, c, (75.0 - 4.0) * scale, wall) > 600, "банка: нет стенки");
                 Check(OnCircle(b, c, (75.0 - 14.0) * scale, sampleColor) > 600, "банка: нет пробы");
+                Check(Near(b.GetPixel((int)c.X, (int)c.Y), sampleColor), "банка: в центре не проба: вид не со стороны пробы");
             }
 
             // Кювета: заливка пробы меряется по X и Y раздельно.
@@ -987,26 +1327,31 @@ namespace GeometryTopViewProbeA307
                 Check(Math.Abs(fill.Height - 56.0 * scale) <= Pen, "кювета: проба по Y " + fill.Height + " точек против " + Num(56.0 * scale));
             }
 
-            // Трапеция: основание 1 при y < 0. Ось Y вверх: снизу узко (80), сверху широко (100).
+            // Трапеция: основание 1 при y < 0. (`AMBER324`) Со стороны пробы ось Y вниз: сверху узко (80), снизу широко (100).
             t = Top(Trapezoid(NaI()), out s);
             Has(t, "трапеция", "MarinelliHoleBase1", 80.0);
             Has(t, "трапеция", "MarinelliHoleBase2", 100.0);
             Has(t, "трапеция", "MarinelliHoleWidth", 76.0);
             Check(!t.Any(l => l.Key == "MarinelliHoleDiameter"), "трапеция: на плане диаметр колодца");
-            Check(t.Any(l => l.Key == "MarinelliHoleBase2" && l.Bounds.Bottom < s.TopContour.Top), "трапеция: основание 2 не сверху");
-            Check(t.Any(l => l.Key == "MarinelliHoleBase1" && l.Bounds.Top > s.TopContour.Bottom - 40f), "трапеция: основание 1 не снизу");
+            Check(t.Any(l => l.Key == "MarinelliHoleBase1" && l.Bounds.Bottom < s.TopContour.Top), "трапеция: основание 1 не сверху");
+            Check(t.Any(l => l.Key == "MarinelliHoleBase2" && l.Bounds.Top > s.TopContour.Bottom - 40f), "трапеция: основание 2 не снизу");
+
+            // По точкам: проба НИЖЕ колодца (60 < 70) — сверху видно донышко колодца цветом стенки, трапецией. Его ширина
+            // на 34 мм выше оси (основание 1) уже, чем ниже (основание 2). Кольцо стенки сосуда в обеих строках одно.
+            GeometryModel low = Trapezoid(NaI());
+            low.MarinelliSourceHeight = 60.0;
+            Top(low, out s);
             using (Bitmap b = Paint(s))
             {
                 double scale = Field<double>(s, "scale");
                 PointF c = Field<PointF>(s, "planCenter");
-                int upper = OnRow(b, s.TopViewBounds, (int)(c.Y - 34.0 * scale), canvas);
-                int lower = OnRow(b, s.TopViewBounds, (int)(c.Y + 34.0 * scale), canvas);
-                int outside = OnRow(b, s.TopViewBounds, (int)(c.Y), canvas);
-                Check(upper > lower + 5.0 * scale, "трапеция перевёрнута: сверху просвет " + upper + ", снизу " + lower + " точек");
-                Check(outside > 0, "трапеция: нет просвета");
+                int upper = OnRow(b, s.TopViewBounds, (int)(c.Y - 34.0 * scale), wall);
+                int lower = OnRow(b, s.TopViewBounds, (int)(c.Y + 34.0 * scale), wall);
+                Check(lower > upper + 5.0 * scale, "трапеция перевёрнута: донышко колодца сверху " + upper + ", снизу " + lower + " точек");
+                Check(upper > 0, "трапеция: донышка колодца не видно");
             }
 
-            // Точка: штриховой кружок поверх кристалла, не сплошной.
+            // Точка. (`AMBER324`) Со стороны пробы точка ближе прибора и видна: кружок пробы со сплошным контуром.
             t = Top(Point(Nano(GeometryDetectorFacing.Side)), out s);
             double hx, hy, depth;
             string kx, ky, kd;
@@ -1016,8 +1361,8 @@ namespace GeometryTopViewProbeA307
             using (Bitmap b = Paint(s))
             {
                 PointF c = Field<PointF>(s, "planCenter");
-                int dark = OnCircle(b, c, 5.0, inkColor);
-                Check(dark > 60 && dark < 600, "точка: нет штрихового кружка: тёмных точек " + dark + " из 720");
+                Check(Near(b.GetPixel((int)c.X, (int)c.Y), sampleColor), "точка: в центре не проба: " + b.GetPixel((int)c.X, (int)c.Y));
+                DashedRing(b, c, 5.0, "точка: контур кружка", false);
             }
 
             // Поле: условная окружность.
@@ -1028,6 +1373,7 @@ namespace GeometryTopViewProbeA307
                 PointF c = Field<PointF>(s, "planCenter");
                 double radius = Field<double>(s, "planRadiusX") * scale;
                 Check(OnCircle(b, c, radius, sampleColor) > 100, "поле: нет кольца");
+                Check(Near(b.GetPixel((int)c.X, (int)c.Y), crystalColor), "поле: прибор закрыт");
             }
         }
 
@@ -1513,12 +1859,13 @@ namespace GeometryTopViewProbeA307
             }
 
             OldLayoutRefused();
+            TurnedControl();
             Coverage(cover);
             AllNumbers();
             Rebuild();
             Highlight();
-            Captions("en", "Rotated: the sample faces the wide side of the crystal", "Top view", "Side view", "Depth: 15");
-            Captions("ru", "Развёрнут: проба у широкой грани кристалла", "Вид сверху", "Вид сбоку", "Глубина: 15");
+            Captions("en", "Rotated: the sample faces the wide side of the crystal", "View from the sample side", "Side view", "Depth: 15");
+            Captions("ru", "Развёрнут: проба у широкой грани кристалла", "Вид со стороны пробы", "Вид сбоку", "Глубина: 15");
             Plans();
             Overview();
             ModelUntouched();
