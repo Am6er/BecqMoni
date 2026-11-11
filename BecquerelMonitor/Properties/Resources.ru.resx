@@ -4048,9 +4048,6 @@ http://xptable.sourceforge.net/</value>
   <data name="GdmlCadmeshNote" xml:space="preserve">
     <value>Сетки CAD (STL/OBJ/PLY) не импортируются: читается только GDML. cadmesh — способ завести сетку CAD в Geant4, только справка.</value>
   </data>
-  <data name="GdmlNoSave" xml:space="preserve">
-    <value>Геометрия GDML показана только для чтения: сохранение и расчёт пока не поддерживаются.</value>
-  </data>
   <data name="GdmlSketchAxial" xml:space="preserve">
     <value>Разрез по оси ({0} = {1})</value>
   </data>
@@ -4333,9 +4330,6 @@ http://xptable.sourceforge.net/</value>
   <data name="GdmlImportBusy" xml:space="preserve">
     <value>Импорт отклонён: идёт расчёт. Остановите его или дождитесь конца.</value>
   </data>
-  <data name="GdmlModeLeft" xml:space="preserve">
-    <value>Показ GDML закрыт: снова действуют поля редактора.</value>
-  </data>
   <data name="GdmlNoteMassNoFit" xml:space="preserve">
     <value>масса не считается: дочерние детали не умещаются в ней</value>
   </data>
@@ -4407,9 +4401,6 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="GdmlSketchFailedLog" xml:space="preserve">
     <value>Чертёж GDML не построен: {0}</value>
-  </data>
-  <data name="GdmlCurvesHidden" xml:space="preserve">
-    <value>Показана геометрия GDML: кривые относятся к полям редактора и скрыты.</value>
   </data>
   <data name="GdmlSketchMoreNames" xml:space="preserve">
     <value>{0} и ещё {1}</value>
@@ -4608,9 +4599,6 @@ http://xptable.sourceforge.net/</value>
   <data name="GdmlOverviewFractions" xml:space="preserve">
     <value>массовые доли</value>
   </data>
-  <data name="GdmlModeShown" xml:space="preserve">
-    <value>Показана геометрия GDML; расчёт, сохранение и кривые отключены: {0}</value>
-  </data>
   <data name="GdmlReasonCsgDeltaPhi" xml:space="preserve">
     <value>deltaphi = {0} не положителен</value>
   </data>
@@ -4631,5 +4619,251 @@ http://xptable.sourceforge.net/</value>
   </data>
   <data name="FSAReportTipBackscatterMatrix" xml:space="preserve">
     <value>При матрице отклика обратное рассеяние уже внутри образов нуклидов: галка управляет его показом (строки под нуклидом и штриховка), образы и их фит не меняются. Защита, которой нет в геометрии, по-прежнему получает отдельную компоненту.</value>
+  </data>
+  <data name="GdmlCopyFailed" xml:space="preserve">
+    <value>Копия {0} рядом с конфигурацией не записана: {1}</value>
+  </data>
+  <data name="GdmlDetails" xml:space="preserve">
+    <value>Подробности файла</value>
+  </data>
+  <data name="GdmlDialogCancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="GdmlDialogImport" xml:space="preserve">
+    <value>Импортировать</value>
+  </data>
+  <data name="GdmlDialogQuestion" xml:space="preserve">
+    <value>Что содержится в файле? Взятое из файла дальше только читается; остальное задаётся вручную.</value>
+  </data>
+  <data name="GdmlDialogTitle" xml:space="preserve">
+    <value>Импорт GDML: {0}</value>
+  </data>
+  <data name="GdmlLeftToHand" xml:space="preserve">
+    <value>Вручную задаётся: {0}.</value>
+  </data>
+  <data name="GdmlMapApply" xml:space="preserve">
+    <value>Пересчитать</value>
+  </data>
+  <data name="GdmlMapAskFields" xml:space="preserve">
+    <value>Из файла теперь берётся: {0}. Значения, заданные там вручную, пропадут. Продолжить?</value>
+  </data>
+  <data name="GdmlMapAuto" xml:space="preserve">
+    <value>Отражатель, зазор, корпус и стенки сосуда программа находит сама.</value>
+  </data>
+  <data name="GdmlMapAutoTip" xml:space="preserve">
+    <value>Лучами от кристалла и от пробы наружу.</value>
+  </data>
+  <data name="GdmlMapBadShape" xml:space="preserve">
+    <value>форма не подходит</value>
+  </data>
+  <data name="GdmlMapBehind" xml:space="preserve">
+    <value>За кристаллом: {0}</value>
+  </data>
+  <data name="GdmlMapBox" xml:space="preserve">
+    <value>параллелепипед</value>
+  </data>
+  <data name="GdmlMapByHand" xml:space="preserve">
+    <value>выбрано вручную</value>
+  </data>
+  <data name="GdmlMapCrystal" xml:space="preserve">
+    <value>Кристалл {0}, {1}</value>
+  </data>
+  <data name="GdmlMapCrystalRole" xml:space="preserve">
+    <value>Детектор, кристалл</value>
+  </data>
+  <data name="GdmlMapCylinder" xml:space="preserve">
+    <value>цилиндр</value>
+  </data>
+  <data name="GdmlMapCylinderVessel" xml:space="preserve">
+    <value>цилиндр ⌀{0} × {1}, высота пробы {2}, от детектора {3}</value>
+  </data>
+  <data name="GdmlMapCylinderWalls" xml:space="preserve">
+    <value>ближний торец {0}, бок {1}, дальний торец {2}</value>
+  </data>
+  <data name="GdmlMapGuessed" xml:space="preserve">
+    <value>угадано</value>
+  </data>
+  <data name="GdmlMapHeader" xml:space="preserve">
+    <value>В файле → в полях</value>
+  </data>
+  <data name="GdmlMapItem" xml:space="preserve">
+    <value>{0} — {1}, {2} г</value>
+  </data>
+  <data name="GdmlMapLayers" xml:space="preserve">
+    <value>отражатель {0}, зазор {1}, корпус {2}</value>
+  </data>
+  <data name="GdmlMapMarinelli" xml:space="preserve">
+    <value>Маринелли ⌀{0} × {1}, колодец ⌀{2} × {3}, высота пробы {4}</value>
+  </data>
+  <data name="GdmlMapMarinelliWalls" xml:space="preserve">
+    <value>стенка колодца {0} / {1}, наружная стенка {2}, дальнее дно {3}</value>
+  </data>
+  <data name="GdmlMapMissing" xml:space="preserve">
+    <value>Детали {0} в копии файла нет. Поля — как сохранены.</value>
+  </data>
+  <data name="GdmlMapMounting" xml:space="preserve">
+    <value>оправа {0}</value>
+  </data>
+  <data name="GdmlMapNotMoved" xml:space="preserve">
+    <value>не перенесена: {0}</value>
+  </data>
+  <data name="GdmlMapNothing" xml:space="preserve">
+    <value>ничего</value>
+  </data>
+  <data name="GdmlMapRefused" xml:space="preserve">
+    <value>{0} не подходит кристаллом: {1}. Оставлен прежний выбор.</value>
+  </data>
+  <data name="GdmlMapRefusedShape" xml:space="preserve">
+    <value>{0} не подходит кристаллом: это не цилиндр и не параллелепипед.</value>
+  </data>
+  <data name="GdmlMapReset" xml:space="preserve">
+    <value>Как угадано</value>
+  </data>
+  <data name="GdmlMapSample" xml:space="preserve">
+    <value>Проба {0}, {1}</value>
+  </data>
+  <data name="GdmlMapSampleRole" xml:space="preserve">
+    <value>и образец, вещество пробы</value>
+  </data>
+  <data name="GdmlMapShieldCavity" xml:space="preserve">
+    <value>Полость: {0} мм в поперечнике, {1} мм вдоль оси</value>
+  </data>
+  <data name="GdmlMapShieldCavityFields" xml:space="preserve">
+    <value>полость ⌀{0} × {1}, {2} за сценой</value>
+  </data>
+  <data name="GdmlMapShieldLayer" xml:space="preserve">
+    <value>Слой {0}</value>
+  </data>
+  <data name="GdmlMapShieldLayerFields" xml:space="preserve">
+    <value>сбоку {0}, за пробой {1}, за детектором {2}</value>
+  </data>
+  <data name="GdmlMapShieldRays" xml:space="preserve">
+    <value>найдено лучами: {0} (деталей {1})</value>
+  </data>
+  <data name="GdmlMapShieldRaysNone" xml:space="preserve">
+    <value>лучами: вокруг сцены ничего не найдено</value>
+  </data>
+  <data name="GdmlMapShieldRole" xml:space="preserve">
+    <value>и защита</value>
+  </data>
+  <data name="GdmlMapSide" xml:space="preserve">
+    <value>Сбоку ({0}): {1}</value>
+  </data>
+  <data name="GdmlMapTitle" xml:space="preserve">
+    <value>Сопоставление</value>
+  </data>
+  <data name="GdmlMapToSample" xml:space="preserve">
+    <value>К пробе ({0}): {1}</value>
+  </data>
+  <data name="GdmlMapUnset" xml:space="preserve">
+    <value>(не выбрано)</value>
+  </data>
+  <data name="GdmlMapVessel" xml:space="preserve">
+    <value>Сосуд {0}: к детектору {1}, бок {2}, дальний торец {3}</value>
+  </data>
+  <data name="GdmlMapVoid" xml:space="preserve">
+    <value>зазор</value>
+  </data>
+  <data name="GdmlNoCopy" xml:space="preserve">
+    <value>Геометрия импортирована из {0}; копии файла нет, картинки импорта недоступны.</value>
+  </data>
+  <data name="GdmlPartDetector" xml:space="preserve">
+    <value>детектор</value>
+  </data>
+  <data name="GdmlPartSample" xml:space="preserve">
+    <value>образец</value>
+  </data>
+  <data name="GdmlPartShield" xml:space="preserve">
+    <value>защита</value>
+  </data>
+  <data name="GdmlRefused" xml:space="preserve">
+    <value>Поля прежние: {0}.</value>
+  </data>
+  <data name="GdmlSavedDiffers" xml:space="preserve">
+    <value>Сохранённые поля отличаются от того, что эта версия программы читает из файла. Поля — как сохранены.</value>
+  </data>
+  <data name="GdmlShieldNote" xml:space="preserve">
+    <value>Защита вокруг сцены не найдена.</value>
+  </data>
+  <data name="GdmlSimplFaceNoSample" xml:space="preserve">
+    <value>Передней взята грань напротив фотоприёмника.</value>
+  </data>
+  <data name="GdmlSimplFaceSample" xml:space="preserve">
+    <value>Передней взята грань кристалла, обращённая к пробе.</value>
+  </data>
+  <data name="GdmlSimplFaceThin" xml:space="preserve">
+    <value>Передней взята грань с самым тонким покрытием.</value>
+  </data>
+  <data name="GdmlSimplHeader" xml:space="preserve">
+    <value>Упрощения</value>
+  </data>
+  <data name="GdmlSimplMass" xml:space="preserve">
+    <value>Слои корпуса из разных веществ заменены слоем {0} той же массовой толщины.</value>
+  </data>
+  <data name="GdmlSimplOpenMesh" xml:space="preserve">
+    <value>Незамкнутая сетка {0} лучами не измерена.</value>
+  </data>
+  <data name="GdmlSimplShield" xml:space="preserve">
+    <value>Защита — вложенные цилиндры: толщины сняты сбоку, за пробой и за детектором.</value>
+  </data>
+  <data name="GdmlSimplShieldSummed" xml:space="preserve">
+    <value>Слои защиты из одного вещества сложены.</value>
+  </data>
+  <data name="GdmlSimplSide" xml:space="preserve">
+    <value>Бок взят по ближней стороне ({0}); с других сторон иначе.</value>
+  </data>
+  <data name="GdmlSimplSummed" xml:space="preserve">
+    <value>Слои одного рода сложены.</value>
+  </data>
+  <data name="GdmlSourceNote" xml:space="preserve">
+    <value>Проба не перенесена: {0}.</value>
+  </data>
+  <data name="GdmlStatusImported" xml:space="preserve">
+    <value>Импортирован {0}: {1} {2}.</value>
+  </data>
+  <data name="GdmlStatusRemapped" xml:space="preserve">
+    <value>Пересчитано по выбору: {0} Кривую нужно посчитать заново.</value>
+  </data>
+  <data name="GdmlStatusViewOnly" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="GdmlStripByHand" xml:space="preserve">
+    <value>Сопоставление изменено вручную.</value>
+  </data>
+  <data name="GdmlStripFrom" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="GdmlTabFile" xml:space="preserve">
+    <value>Файл GDML</value>
+  </data>
+  <data name="GdmlTaken" xml:space="preserve">
+    <value>Из файла взято: {0}.</value>
+  </data>
+  <data name="GdmlUnusedHeader" xml:space="preserve">
+    <value>Не используется в геометрии: деталей {0}, {1} г</value>
+  </data>
+  <data name="GdmlWhyCrystalShape" xml:space="preserve">
+    <value>кристалл не цилиндр и не параллелепипед</value>
+  </data>
+  <data name="GdmlWhyManyCrystals" xml:space="preserve">
+    <value>кристаллов больше одного</value>
+  </data>
+  <data name="GdmlWhyNoCrystal" xml:space="preserve">
+    <value>кристалл не узнан</value>
+  </data>
+  <data name="GdmlWhyOffAxis" xml:space="preserve">
+    <value>она не на оси кристалла</value>
+  </data>
+  <data name="GdmlWhyShape" xml:space="preserve">
+    <value>такой формы в редакторе нет</value>
+  </data>
+  <data name="GdmlShieldNoSample" xml:space="preserve">
+    <value>Проба задаётся вручную: сцена стоит на дне защиты за пробой.</value>
+  </data>
+  <data name="GdmlShieldFit" xml:space="preserve">
+    <value>Проба, заданная вручную, не входит в защиту из файла. Задайте пробу на вкладке «Источник».</value>
+  </data>
+  <data name="GdmlMapFacing" xml:space="preserve">
+    <value>Сторона к пробе</value>
   </data>
 </root>

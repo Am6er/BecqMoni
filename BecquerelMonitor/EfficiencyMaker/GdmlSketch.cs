@@ -2351,7 +2351,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             if (solid.Kind != GdmlSolidKind.Subtraction)
             {
-                Color color = this.ColorOf(view.Volume.MaterialName);
+                Color color = this.FillOf(view.Volume);
                 using (SolidBrush brush = new SolidBrush(color))
                 using (Pen pen = new Pen(Darken(color), 0.9f))
                 {
@@ -2405,7 +2405,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             AddName(this.unions, view.Volume);
-            Color color = this.ColorOf(view.Volume.MaterialName);
+            Color color = this.FillOf(view.Volume);
             using (SolidBrush brush = new SolidBrush(color))
             using (Pen pen = new Pen(Darken(color), 0.9f))
             {
@@ -3896,6 +3896,37 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
+        /// <summary>
+        /// (`AMBER322`) Какие детали рисовать бледнее: на «Файл GDML» — не вошедшие в поля редактора («не используется
+        /// в геометрии»), в окне импорта — все, кроме выбранных (так выбранные подсвечены). null — все в полный цвет.
+        /// Решения Amber 11.11.2026: «Файл GDML» + бледнить», «Маленький чертёж с подсветкой».
+        /// </summary>
+        public void SetPale(Func<GdmlVolumeInstance, bool> isPale)
+        {
+            this.pale = isPale;
+            this.Invalidate();
+        }
+
+        Func<GdmlVolumeInstance, bool> pale;
+
+        /// <summary>Доля холста в цвете бледной детали: деталь читается, но уходит на второй план.</summary>
+        public const double PaleShare = 0.72;
+
+        /// <summary>Цвет заливки детали: цвет вещества, у бледной — смешанный с холстом.</summary>
+        internal Color FillOf(GdmlVolumeInstance volume)
+        {
+            Color color = this.ColorOf(volume.MaterialName);
+            if (this.pale == null || !this.pale(volume))
+            {
+                return color;
+            }
+
+            return Color.FromArgb(
+                (int)Math.Round(color.R + (Canvas.R - color.R) * PaleShare),
+                (int)Math.Round(color.G + (Canvas.G - color.G) * PaleShare),
+                (int)Math.Round(color.B + (Canvas.B - color.B) * PaleShare));
+        }
+
         /// <summary>Цвет вещества этой геометрии: у разных веществ одного файла цвета разные по построению.</summary>
         Color ColorOf(string materialName)
         {
@@ -5224,6 +5255,151 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.Add(text + "\n", style);
         }
 
+        /// <summary>
+        /// (`AMBER322`) Раскладка файла в поля редактора: с ней сводка начинается сверкой «в файле → в полях»,
+        /// упрощениями и списком «не используется в геометрии» (свёрнут, пока <see cref="UnusedExpanded"/> ложь),
+        /// а прежние разделы идут ниже под заголовком «Подробности файла». Ставится до первого чтения сводки.
+        /// </summary>
+        public GdmlFieldMap Layout;
+
+        /// <summary>Части, взятые из файла в поля; None — раскладка не применена (отказ: файл только смотрится).</summary>
+        public GdmlParts LayoutParts;
+
+        public bool UnusedExpanded;
+
+        /// <summary>Строки поверх сверки: «сопоставление изменено вручную», «детали нет в копии».</summary>
+        public readonly List<string> LayoutNotes = new List<string>();
+
+        public static string PartName(GdmlParts part)
+        {
+            return part == GdmlParts.Detector ? GdmlText.T("GdmlPartDetector", "detector")
+                 : part == GdmlParts.Sample ? GdmlText.T("GdmlPartSample", "sample")
+                 : GdmlText.T("GdmlPartShield", "shield");
+        }
+
+        /// <summary>Итог одной фразой: что из файла взято в поля. Та же фраза — в строке над вкладками редактора.</summary>
+        public static string TakenText(GdmlFieldMap layout, GdmlParts parts)
+        {
+            if (layout == null || (layout.Found & GdmlParts.Detector) == 0 || (parts & GdmlParts.Detector) == 0)
+            {
+                return string.Format(CultureInfo.InvariantCulture,
+                    GdmlText.T("GdmlRefused", "Fields unchanged: {0}."),
+                    layout == null || layout.Refusal == null ? GdmlText.T("GdmlWhyNoCrystal", "the crystal was not recognised") : layout.Refusal);
+            }
+
+            List<string> taken = new List<string>(), left = new List<string>();
+            foreach (GdmlParts part in new[] { GdmlParts.Detector, GdmlParts.Sample, GdmlParts.Shield })
+            {
+                ((parts & layout.Found & part) != 0 ? taken : left).Add(PartName(part));
+            }
+
+            string text = string.Format(CultureInfo.InvariantCulture, GdmlText.T("GdmlTaken", "Taken from the file: {0}."), string.Join(", ", taken.ToArray()));
+            return left.Count == 0 ? text : text + " " + string.Format(CultureInfo.InvariantCulture,
+                GdmlText.T("GdmlLeftToHand", "Set by hand: {0}."), string.Join(", ", left.ToArray()));
+        }
+
+        /// <summary>Сумма «не используется в геометрии»: число деталей и масса, г.</summary>
+        public static string UnusedText(GdmlFieldMap layout, GdmlParts parts)
+        {
+            List<GdmlVolumeInstance> unused = layout.Unused(parts);
+            double mass = 0.0;
+            foreach (GdmlVolumeInstance volume in unused)
+            {
+                mass += double.IsNaN(volume.MassG) ? 0.0 : volume.MassG;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, GdmlText.T("GdmlUnusedHeader", "Not used in the geometry: {0} parts, {1} g"),
+                unused.Count, GdmlSketch.Fmt(mass));
+        }
+
+        bool BuildLayout()
+        {
+            GdmlFieldMap layout = this.Layout;
+            if (layout == null)
+            {
+                return false;
+            }
+
+            this.Line();
+            this.Line(TakenText(layout, this.LayoutParts), Style.Strong);
+            foreach (string note in this.LayoutNotes)
+            {
+                this.Line(note, Style.Dim);
+            }
+
+            GdmlParts parts = this.LayoutParts & layout.Found;
+            if ((parts & GdmlParts.Detector) == 0)
+            {
+                return false;
+            }
+
+            this.Line();
+            this.Line(GdmlText.T("GdmlMapHeader", "In the file → in the fields"), Style.Head);
+            foreach (GdmlParts part in new[] { GdmlParts.Detector, GdmlParts.Sample, GdmlParts.Shield })
+            {
+                bool head = false;
+                foreach (GdmlMapLine line in layout.Lines)
+                {
+                    if (line.Part != part || ((parts & part) == 0 && !(part == GdmlParts.Sample && layout.SampleProblem != null)))
+                    {
+                        continue;
+                    }
+
+                    if (!head)
+                    {
+                        string name = PartName(part);
+                        this.Line(char.ToUpper(name[0], CultureInfo.CurrentCulture) + name.Substring(1), Style.Strong);
+                        head = true;
+                    }
+
+                    this.Line("    " + line.InFile);
+                    this.Line("    → " + line.InFields, Style.Dim);
+                }
+            }
+
+            bool simplified = false;
+            foreach (KeyValuePair<GdmlParts, string> item in layout.Simplifications)
+            {
+                if ((parts & item.Key) == 0)
+                {
+                    continue;
+                }
+
+                if (!simplified)
+                {
+                    this.Line();
+                    this.Line(GdmlText.T("GdmlSimplHeader", "Simplifications"), Style.Head);
+                    simplified = true;
+                }
+
+                this.Line("    " + item.Value);
+            }
+
+            foreach (string mesh in layout.OpenMeshes)
+            {
+                this.Line("    " + string.Format(CultureInfo.InvariantCulture,
+                    GdmlText.T("GdmlSimplOpenMesh", "Open mesh {0} is not measured by the rays."), mesh), Style.Dim);
+            }
+
+            List<GdmlVolumeInstance> unused = layout.Unused(parts);
+            if (unused.Count > 0)
+            {
+                this.Line();
+                this.Line((this.UnusedExpanded ? "▾ " : "▸ ") + UnusedText(layout, parts), Style.Head);
+                if (this.UnusedExpanded)
+                {
+                    foreach (GdmlVolumeInstance volume in unused)
+                    {
+                        this.Line("    " + string.Format(CultureInfo.InvariantCulture, GdmlText.T("GdmlMapItem", "{0} — {1}, {2} g"),
+                            volume.VolumeName, volume.MaterialName.StartsWith("G4_", StringComparison.Ordinal) ? volume.MaterialName.Substring(3) : volume.MaterialName,
+                            double.IsNaN(volume.MassG) ? "?" : GdmlSketch.Fmt(volume.MassG)));
+                    }
+                }
+            }
+
+            return true;
+        }
+
         void Build()
         {
             if (this.runs.Count > 0)
@@ -5267,10 +5443,10 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             // Главное: то, что подписано на чертеже.
             HashSet<GdmlVolumeInstance> named = new HashSet<GdmlVolumeInstance>();
-            bool any = false;
+            bool any = this.BuildLayout();
             foreach (GdmlVolumeInstance volume in new[] { this.Crystal, this.Sample, this.Vessel })
             {
-                if (volume != null)
+                if (volume != null && this.Layout == null)
                 {
                     if (!any)
                     {
@@ -5284,7 +5460,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
-            if (this.DeviceMin != null && this.DeviceBody != null)
+            if (this.DeviceMin != null && this.DeviceBody != null && this.Layout == null)
             {
                 if (!any)
                 {
@@ -5294,6 +5470,12 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 this.Add(RoleName(GdmlRole.Device) + ": ", Style.Strong);
                 this.Line(this.DeviceSizeText());
+            }
+
+            if (this.Layout != null)
+            {
+                this.Line();
+                this.Line(GdmlText.T("GdmlDetails", "File details"), Style.Title);
             }
 
             this.Line();

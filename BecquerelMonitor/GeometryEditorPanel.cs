@@ -318,6 +318,20 @@ namespace BecquerelMonitor
         GdmlGeometry gdml;
         TabPage detectorTab;
 
+        // (`AMBER322`) Импорт GDML раскладывается в поля; вкладки, взятые из файла, с экрана уходят (решения Amber
+        // 11.11.2026: «Исчезает», «Геометрия их GDML читается в режиме Read-only. Можно править только то, чего там нет»),
+        // а файл показан на своей подвкладке «Файл GDML»: сопоставление, сверка «в файле → в полях» и чертёж.
+        TabPage sourceTab, gdmlTab;
+        bool gdmlTabBuilt;
+        GdmlMappingPanel gdmlMapping;
+        Label gdmlStrip;
+        GdmlOverview gdmlOverview;
+        GdmlFieldMap gdmlMap, gdmlGuessed;
+        GdmlChoice gdmlChoice;
+        GdmlParts gdmlParts;
+        bool gdmlUnusedExpanded;
+        readonly List<string> gdmlNotes = new List<string>();
+
         TabControl tabs;
 
         /// <summary>(`AMBER282`) Вкладка, на которую переключить после отказа: там поле, о котором отказ.</summary>
@@ -353,7 +367,7 @@ namespace BecquerelMonitor
         /// <summary>(`AMBER292`) Чертёж GDML не построен, причина — аргумент. Журнал у формы.</summary>
         public event Action<string> GdmlDrawingFailed;
 
-        /// <summary>Показан ли сейчас импорт GDML (поля детектора спрятаны).</summary>
+        /// <summary>Показан ли сейчас файл GDML (подвкладка «Файл GDML»).</summary>
         public bool GdmlMode
         {
             get { return this.gdml != null; }
@@ -424,31 +438,327 @@ namespace BecquerelMonitor
             this.Dirty = false;
         }
 
-        /// <summary>
-        /// (`AMBER278`) Показать импортированную геометрию GDML: область 1 —
-        /// сводка по элементам файла, область 2 — разрез по оси и вид с торца.
-        /// Поля детектора прячутся; сохранение и расчёт по такой геометрии пока
-        /// не поддерживаются (TryCommit отказывает).
-        /// </summary>
+        /// <summary>Файл GDML, показанный на подвкладке; null — импорта нет.</summary>
+        public GdmlGeometry Gdml
+        {
+            get { return this.gdml; }
+        }
+
+        /// <summary>Раскладка показанного файла в поля и выбор деталей, по которому она построена.</summary>
+        public GdmlFieldMap GdmlMap
+        {
+            get { return this.gdmlMap; }
+        }
+
+        public GdmlChoice GdmlChoice
+        {
+            get { return this.gdmlChoice; }
+        }
+
+        /// <summary>Узнанное программой — с ним сравнивается выбор человека.</summary>
+        public GdmlChoice GdmlGuess
+        {
+            get { return this.gdmlGuessed == null ? null : GdmlChoice.Guess(this.gdmlGuessed); }
+        }
+
+        /// <summary>Части, взятые из файла в поля: их вкладок на экране нет. None — файл только смотрится.</summary>
+        public GdmlParts GdmlTaken
+        {
+            get { return this.gdmlParts; }
+        }
+
+        /// <summary>Выбор в списках «Сопоставления», ещё не применённый к полям.</summary>
+        public GdmlChoice GdmlPendingChoice
+        {
+            get { return this.gdmlMapping == null ? null : this.gdmlMapping.Choice; }
+        }
+
+        /// <summary>Нажата «Пересчитать» блока «Сопоставление»: пересчёт ведёт форма (у неё кривая и журнал).</summary>
+        public event EventHandler GdmlRemapRequested;
+
+        /// <summary>Строка-итог над вкладками: что взято из файла.</summary>
+        public string GdmlStripText
+        {
+            get { return this.gdmlStrip == null ? "" : this.gdmlStrip.Text; }
+        }
+
+        /// <summary>Прежний вход (`AMBER278`): показать файл как он узнан программой, поля не трогая.</summary>
         public void ShowGdml(GdmlGeometry value)
         {
+            if (value == null)
+            {
+                this.ClearGdml();
+                return;
+            }
+
+            GdmlOverview overview = GdmlOverview.Of(value);
+            GdmlFieldMap guessed = GdmlFieldMap.Build(value, overview);
+            this.ShowGdmlFile(value, overview, guessed, guessed, GdmlChoice.Guess(guessed), false, false, null);
+        }
+
+        /// <summary>
+        /// (`AMBER322`) Показать файл GDML и его раскладку. <paramref name="taken"/> — части из файла действуют в
+        /// полях (их вкладки уходят); <paramref name="apply"/> — положить их в поля сейчас (импорт и «Пересчитать»;
+        /// при открытии сохранённой кривой поля уже те, что сохранены). Отказ раскладки (кристалл не узнан) —
+        /// <paramref name="taken"/> ложь: поля прежние, файл только смотрится (решение Amber «Поля прежние, файл — просмотр»).
+        /// </summary>
+        public void ShowGdmlFile(GdmlGeometry value, GdmlOverview overview, GdmlFieldMap guessed, GdmlFieldMap map, GdmlChoice choice,
+                                 bool taken, bool apply, IList<string> notes)
+        {
+            this.RestoreTabs();
             this.gdml = value;
-            if (this.gdmlSummary != null)
+            this.gdmlOverview = overview;
+            this.gdmlGuessed = guessed;
+            this.gdmlMap = map;
+            this.gdmlChoice = choice.Clone();
+            this.gdmlParts = taken && (map.Found & GdmlParts.Detector) != 0 ? choice.Parts & map.Found : GdmlParts.None;
+            this.gdmlNotes.Clear();
+            if (notes != null)
             {
-                this.FillGdmlSummary(value);
+                this.gdmlNotes.AddRange(notes);
             }
 
-            if (this.gdmlSketch != null)
+            GdmlParts parts = this.gdmlParts;
+            if ((parts & GdmlParts.Shield) != 0 && (parts & GdmlParts.Sample) == 0)
             {
-                this.gdmlSketch.SetGeometry(value);
+                this.gdmlNotes.Add(GdmlText.T("GdmlShieldNoSample", "The source is set by hand: the scene stands on the shield floor."));
             }
 
-            this.ApplyGdmlMode(value != null);
-            this.Dirty = false;
+            if (apply && parts != GdmlParts.None)
+            {
+                this.ApplyTemplatePart(g => map.Apply(g, parts));
+
+                // (`AMBER321`) Импорт меняет вещество кристалла: число из пресета, шаблона или не заданное заменяется
+                // пресетом нового вещества (нет пресета — ноль); число человека и калибровки остаётся. Раскладка идёт
+                // через `LoadFromModel`, а не через правку поля, поэтому смену вещества надо назвать здесь.
+                this.CrystalMaybeChanged();
+            }
+
+            this.ShowDetectorExtras((parts & GdmlParts.Detector) != 0);
+            this.gdmlFitNote = null;
+            if ((parts & GdmlParts.Shield) != 0 && (parts & GdmlParts.Sample) == 0 && this.Validate(this.BuildModel()) != null)
+            {
+                this.gdmlFitNote = GdmlText.T("GdmlShieldFit",
+                    "The source set by hand does not fit into the shield taken from the file. Change it on the Source tab.");
+                this.gdmlNotes.Add(this.gdmlFitNote);
+            }
+
+            if (this.tabs != null)
+            {
+                foreach (KeyValuePair<GdmlParts, TabPage> page in new[]
+                {
+                    new KeyValuePair<GdmlParts, TabPage>(GdmlParts.Detector, this.detectorTab),
+                    new KeyValuePair<GdmlParts, TabPage>(GdmlParts.Sample, this.sourceTab),
+                    new KeyValuePair<GdmlParts, TabPage>(GdmlParts.Shield, this.shieldPage),
+                })
+                {
+                    if ((parts & page.Key) != 0 && this.tabs.TabPages.Contains(page.Value))
+                    {
+                        this.tabs.TabPages.Remove(page.Value);
+                    }
+                }
+
+                if (!this.tabs.TabPages.Contains(this.gdmlTab))
+                {
+                    this.tabs.TabPages.Add(this.gdmlTab);
+                }
+            }
+
+            this.gdmlMapping.SetFile(value, overview, guessed);
+            this.gdmlMapping.Show(this.gdmlChoice, true);
+            if (this.gdmlMapping.ByHand(this.gdmlChoice))
+            {
+                this.gdmlNotes.Insert(0, GdmlText.T("GdmlStripByHand", "Mapping changed by hand."));
+            }
+
+            this.FillGdmlSummary();
+            this.gdmlSketch.SetGeometry(value);
+            this.PaleGdmlUnused();
+            this.gdmlStrip.Text = string.Format(CultureInfo.InvariantCulture, GdmlText.T("GdmlStripFrom", "{0}: {1}"),
+                System.IO.Path.GetFileName(value.FileName ?? ""), GdmlOverview.TakenText(map, parts))
+                + (this.gdmlMapping.ByHand(this.gdmlChoice) && parts != GdmlParts.None ? " " + GdmlText.T("GdmlStripByHand", "Mapping changed by hand.") : "");
+            this.gdmlStrip.Visible = true;
+            if (this.tabs != null)
+            {
+                this.tabs.SelectedTab = this.gdmlTab;
+            }
+
             this.RaiseGdmlModeChanged();
         }
 
-        /// <summary>Вернуть поля детектора: импорт GDML больше не показан.</summary>
+        /// <summary>Детали, не вошедшие в поля, на чертеже бледнее (решение Amber «Файл GDML» + бледнить»).</summary>
+        void PaleGdmlUnused()
+        {
+            if (this.gdmlParts == GdmlParts.None || this.gdmlMap == null)
+            {
+                this.gdmlSketch.SetPale(null);
+                return;
+            }
+
+            HashSet<GdmlVolumeInstance> unused = new HashSet<GdmlVolumeInstance>(this.gdmlMap.Unused(this.gdmlParts));
+            this.gdmlSketch.SetPale(unused.Contains);
+        }
+
+        /// <summary>Отказ пересчёта: списки возвращаются к применённому выбору, под ними — причина.</summary>
+        public void RefuseGdmlRemap(string reason)
+        {
+            if (this.gdmlMapping != null && this.gdmlChoice != null)
+            {
+                this.gdmlMapping.Show(this.gdmlChoice, true);
+                this.gdmlMapping.SetNotice(reason);
+                this.PaleGdmlUnused();
+            }
+        }
+
+        string gdmlFitNote;
+
+        /// <summary>Проба, заданная вручную, не входит в защиту из файла: что сделать. null — входит.</summary>
+        public string GdmlFitNote
+        {
+            get { return this.gdmlFitNote; }
+        }
+
+        // (решение Amber 11.11.2026, дословно: «На «Файл GDML», в блоке «Сопоставление» (Рекомендую)») Поля детектора,
+        // которых в файле нет и которые жили на ушедшей вкладке «Детектор»: «FWHM на 662 кэВ» с кнопкой «Из калибровки
+        // прибора» и, у бруска, «сторона к пробе». Здесь — их двойники: число и выбор пишутся в те же поля редактора тем
+        // же путём, что правка руками (признак «число человека», `AMBER321`), и читаются из них обратно.
+        TextBox gdmlFwhmBox;
+        Button gdmlFwhmButton;
+        ComboBox gdmlFacingCombo;
+        Label gdmlFacingLabel;
+        bool gdmlExtrasSync;
+
+        void BuildDetectorExtras()
+        {
+            Panel host = this.gdmlMapping.DetectorExtras;
+            host.Controls.Add(new Label { AutoSize = true, Location = new Point(0, 2), Text = Resources.GeometryEditorFwhm662 });
+            this.gdmlFwhmBox = new TextBox { Location = new Point(0, 20), Size = new Size(70, 20), TextAlign = HorizontalAlignment.Right };
+            host.Controls.Add(this.gdmlFwhmBox);
+            host.Controls.Add(new Label { AutoSize = true, ForeColor = Color.DimGray, Location = new Point(74, 23), Text = Resources.GeometryEditorUnitPercent });
+            this.gdmlFwhmButton = new Button
+            {
+                Location = new Point(96, 19), Size = new Size(150, 23), Text = Resources.GeometryEditorFwhmFromDevice,
+                UseVisualStyleBackColor = true, Visible = false,
+            };
+            host.Controls.Add(this.gdmlFwhmButton);
+            this.gdmlFacingLabel = new Label { AutoSize = true, Location = new Point(0, 48), Text = GdmlText.T("GdmlMapFacing", "Side facing the sample") };
+            host.Controls.Add(this.gdmlFacingLabel);
+            this.gdmlFacingCombo = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(0, 66), Width = 100,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            };
+            this.gdmlFacingCombo.Items.Add(Resources.GeometryEditorFacingFront);
+            this.gdmlFacingCombo.Items.Add(Resources.GeometryEditorFacingSide);
+            host.Controls.Add(this.gdmlFacingCombo);
+
+            TextBox field = this.fields["FwhmAt662Percent"];
+            this.gdmlFwhmBox.TextChanged += (s, e) =>
+            {
+                if (!this.gdmlExtrasSync && field.Text != this.gdmlFwhmBox.Text)
+                {
+                    field.Text = this.gdmlFwhmBox.Text;      // как правка руками: число человека
+                }
+            };
+            field.TextChanged += (s, e) => this.SyncDetectorExtras();
+            this.gdmlFwhmButton.Click += (s, e) =>
+            {
+                if (this.fwhmSuggestionPercent > 0.0)
+                {
+                    this.ApplyFwhmFromCalibration(this.fwhmSuggestionPercent);
+                }
+            };
+            this.gdmlFacingCombo.SelectedIndexChanged += (s, e) =>
+            {
+                if (!this.gdmlExtrasSync && this.facingCombo.SelectedIndex != this.gdmlFacingCombo.SelectedIndex)
+                {
+                    this.facingCombo.SelectedIndex = this.gdmlFacingCombo.SelectedIndex;
+                }
+            };
+            this.facingCombo.SelectedIndexChanged += (s, e) => this.SyncDetectorExtras();
+        }
+
+        /// <summary>Подсказка калибровки пришла от формы: кнопка двойника показывается вместе с кнопкой поля.</summary>
+        void SyncDetectorExtrasLater()
+        {
+            if (this.gdmlFwhmButton != null)
+            {
+                this.gdmlFwhmButton.Visible = this.fwhmSuggestionPercent > 0.0;
+            }
+        }
+
+        void SyncDetectorExtras()
+        {
+            if (this.gdmlFwhmBox == null)
+            {
+                return;
+            }
+
+            this.gdmlExtrasSync = true;
+            try
+            {
+                this.gdmlFwhmBox.Text = this.fields["FwhmAt662Percent"].Text;
+                this.gdmlFwhmButton.Visible = this.fwhmSuggestionPercent > 0.0;
+                if (this.gdmlFacingCombo.SelectedIndex != this.facingCombo.SelectedIndex)
+                {
+                    this.gdmlFacingCombo.SelectedIndex = this.facingCombo.SelectedIndex;
+                }
+            }
+            finally
+            {
+                this.gdmlExtrasSync = false;
+            }
+        }
+
+        void ShowDetectorExtras(bool on)
+        {
+            if (this.gdmlMapping == null)
+            {
+                return;
+            }
+
+            bool box = on && this.facingCombo.Enabled;
+            this.gdmlFacingCombo.Visible = box;
+            this.gdmlFacingLabel.Visible = box;
+            this.SyncDetectorExtras();
+            this.gdmlMapping.SetExtrasHeight(on ? (box ? 94 : 48) : 0);
+        }
+
+        void RestoreTabs()
+        {
+            if (this.tabs == null)
+            {
+                return;
+            }
+
+            TabPage selected = this.tabs.SelectedTab;
+            TabPage[] order = { this.detectorTab, this.sourceTab, this.shieldPage };
+            bool missing = false;
+            foreach (TabPage page in order)
+            {
+                missing |= !this.tabs.TabPages.Contains(page);
+            }
+
+            if (!missing)
+            {
+                return;
+            }
+
+            bool file = this.tabs.TabPages.Contains(this.gdmlTab);
+            this.tabs.TabPages.Clear();
+            this.tabs.TabPages.AddRange(order);
+            if (file)
+            {
+                this.tabs.TabPages.Add(this.gdmlTab);
+            }
+
+            if (selected != null && this.tabs.TabPages.Contains(selected))
+            {
+                this.tabs.SelectedTab = selected;
+            }
+        }
+
+        /// <summary>Снять показ файла GDML: все вкладки редактора снова на месте, поля остаются как есть.</summary>
         public void ClearGdml()
         {
             if (this.gdml == null)
@@ -457,17 +767,23 @@ namespace BecquerelMonitor
             }
 
             this.gdml = null;
-            this.ApplyGdmlMode(false);
-            if (this.gdmlSketch != null)
+            this.gdmlMap = null;
+            this.gdmlGuessed = null;
+            this.gdmlChoice = null;
+            this.gdmlOverview = null;
+            this.gdmlParts = GdmlParts.None;
+            this.gdmlNotes.Clear();
+            this.RestoreTabs();
+            if (this.tabs != null && this.tabs.TabPages.Contains(this.gdmlTab))
             {
-                this.gdmlSketch.SetGeometry(null);
+                this.tabs.TabPages.Remove(this.gdmlTab);
             }
 
-            if (this.gdmlSummary != null)
-            {
-                this.gdmlSummary.Text = "";
-            }
-
+            this.gdmlSketch.SetGeometry(null);
+            this.gdmlSketch.SetPale(null);
+            this.gdmlSummary.Text = "";
+            this.gdmlStrip.Visible = false;
+            this.gdmlStrip.Text = "";
             this.RaiseGdmlModeChanged();
         }
 
@@ -481,72 +797,61 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Сводка: заголовок, главное, вещества, крупное поимённо, мелочь суммой (`AMBER278`, `AMBER301`).
-        /// Отказ читателя — как есть: геометрии нет, рассказывать не о чем.
+        /// Сводка RTF: сверка, упрощения, «не используется в геометрии» (свёрнуто), ниже подробности файла.
+        /// Запасной путь — простой текст читателя: импорт не должен падать из-за оформления.
         /// </summary>
-        void FillGdmlSummary(GdmlGeometry value)
+        void FillGdmlSummary()
         {
-            if (value == null)
+            try
+            {
+                GdmlOverview o = GdmlOverview.Of(this.gdml);
+                o.Layout = this.gdmlMap;
+                o.LayoutParts = this.gdmlParts;
+                o.UnusedExpanded = this.gdmlUnusedExpanded;
+                o.LayoutNotes.AddRange(this.gdmlNotes);
+                this.gdmlSummary.Rtf = o.SummaryRtf(this.gdmlSummary.Font.Name, this.gdmlSummary.Font.SizeInPoints);
+            }
+            catch (Exception)
             {
                 this.gdmlSummary.Clear();
-            }
-            else if (!string.IsNullOrEmpty(value.FatalError))
-            {
-                this.gdmlSummary.Text = value.Describe();
-            }
-            else
-            {
-                this.gdmlSummary.Rtf = GdmlOverview.Of(value).SummaryRtf(this.gdmlSummary.Font.Name, this.gdmlSummary.Font.SizeInPoints);
+                this.gdmlSummary.Text = this.gdml.Describe();
             }
 
             this.gdmlSummary.SelectionStart = 0;
             this.gdmlSummary.SelectionLength = 0;
         }
 
-        /// <summary>Сводка — доля вкладки, а не 640 точек: при обычном окне чертежу оставалось 290.</summary>
+        /// <summary>Текст сводки, как он показан (читает проба).</summary>
+        public string GdmlSummaryText
+        {
+            get { return this.gdmlSummary == null ? "" : this.gdmlSummary.Text; }
+        }
+
+        /// <summary>Развернуть или свернуть список «не используется в геометрии».</summary>
+        public void ToggleGdmlUnused()
+        {
+            if (this.gdml == null)
+            {
+                return;
+            }
+
+            this.gdmlUnusedExpanded = !this.gdmlUnusedExpanded;
+            this.FillGdmlSummary();
+            int at = this.gdmlSummary.Text.IndexOf(this.gdmlUnusedExpanded ? '▾' : '▸');
+            if (at >= 0)
+            {
+                this.gdmlSummary.SelectionStart = at;
+                this.gdmlSummary.ScrollToCaret();
+            }
+        }
+
+        /// <summary>Доля сводки по ширине вкладки; человек двигает раздел.</summary>
         void FitGdmlSummary(TabPage tab)
         {
             if (this.gdmlSummaryPanel != null && tab.ClientSize.Width > 0)
             {
                 int width = (int)(tab.ClientSize.Width * this.gdmlSummaryShare);
                 this.gdmlSummaryPanel.Width = Math.Max(240, Math.Min(tab.ClientSize.Width - 320, width));
-            }
-        }
-
-        void ApplyGdmlMode(bool on)
-        {
-            if (this.detectorColumn != null)
-            {
-                this.detectorColumn.Visible = !on;
-
-                // (`AMBER301`) Splitter считает предел по ВСЕМ стыкованным соседям, скрытые тоже: колонка в 640
-                // точек давала при окне 982 предел -45, и раздел не двигался. На время показа стыковки нет.
-                this.detectorColumn.Dock = on ? DockStyle.None : DockStyle.Left;
-            }
-
-            if (this.detectorSketch != null)
-            {
-                this.detectorSketch.Visible = !on;
-            }
-
-            if (this.gdmlSummaryPanel != null)
-            {
-                this.gdmlSummaryPanel.Visible = on;
-                this.gdmlSplitter.Visible = on;
-            }
-
-            if (this.gdmlSketch != null)
-            {
-                this.gdmlSketch.Visible = on;
-                if (on)
-                {
-                    this.gdmlSketch.BringToFront();
-                }
-            }
-
-            if (on && this.tabs != null && this.detectorTab != null)
-            {
-                this.tabs.SelectedTab = this.detectorTab;
             }
         }
 
@@ -562,6 +867,7 @@ namespace BecquerelMonitor
         public void SetFwhmSuggestion(double percent)
         {
             this.fwhmSuggestionPercent = percent > 0.0 ? percent : 0.0;
+            this.SyncDetectorExtrasLater();
             if (this.fwhmSuggestButton != null)
             {
                 this.fwhmSuggestButton.Visible = this.fwhmSuggestionPercent > 0.0;
@@ -764,19 +1070,6 @@ namespace BecquerelMonitor
         /// </summary>
         public bool TryCommit()
         {
-            // (`AMBER278`) Геометрия GDML пока только показывается: в
-            // параметрическую модель она не ложится, и «Сохранить»/«Посчитать»
-            // по ней означали бы молча записать прежние поля.
-            if (this.gdml != null)
-            {
-                MessageBox.Show(this,
-                    GdmlText.T("GdmlNoSave",
-                        "GDML geometry is shown for reading only: saving and calculation are not supported yet."),
-                    Resources.GeometryEditorTitle,
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return false;
-            }
-
             if (!this.MarkBadValues())
             {
                 MessageBox.Show(this, Resources.GeometryEditorErrorNumber,
@@ -787,18 +1080,34 @@ namespace BecquerelMonitor
             }
 
             GeometryModel g = this.BuildModel();
-            string error = this.Validate(g);
+            string error = this.CommitProblem(g);
             if (error != null)
             {
                 MessageBox.Show(this, error, Resources.GeometryEditorTitle,
                                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                this.ShowProblemPage(this.problemPage);
+                this.ShowProblemPage(this.tabs != null && this.tabs.TabPages.Contains(this.problemPage) ? this.problemPage : this.sourceTab);
                 return false;
             }
 
             this.model = g;
             this.Dirty = false;
             return true;
+        }
+
+        /// <summary>
+        /// Текст отказа редактора по геометрии; null — принята. (`AMBER322`) Защита взята из файла GDML, а проба задана
+        /// вручную: вкладки «Защита» на экране нет, и поправить можно только пробу — отказ говорит, что сделать.
+        /// </summary>
+        string CommitProblem(GeometryModel g)
+        {
+            string error = this.Validate(g);
+            if (error != null && (this.gdmlParts & GdmlParts.Shield) != 0 && (this.gdmlParts & GdmlParts.Sample) == 0)
+            {
+                error += Environment.NewLine + Environment.NewLine + GdmlText.T("GdmlShieldFit",
+                    "The source set by hand does not fit into the shield taken from the file. Change it on the Source tab.");
+            }
+
+            return error;
         }
 
         /// <summary>
@@ -935,6 +1244,7 @@ namespace BecquerelMonitor
             TabPage detector = new TabPage(Resources.GeometryEditorTabDetector) { UseVisualStyleBackColor = true };
             TabPage source = new TabPage(Resources.GeometryEditorTabSource) { UseVisualStyleBackColor = true };
             this.detectorTab = detector;
+            this.sourceTab = source;
             tabs.TabPages.Add(detector);
             tabs.TabPages.Add(source);
             this.Controls.Add(tabs);
@@ -949,17 +1259,25 @@ namespace BecquerelMonitor
             this.tabs = tabs;
             this.sourceSketch.ShowShield = false;
 
+            // (`AMBER322`) Подвкладка файла GDML — только пока файл показан; строка-итог над вкладками.
+            this.gdmlTab = new TabPage(GdmlText.T("GdmlTabFile", "GDML file")) { UseVisualStyleBackColor = true };
+            this.BuildGdmlTab(this.gdmlTab);
+            this.BuildDetectorExtras();
+            this.gdmlStrip = new Label
+            {
+                Dock = DockStyle.Top, Height = 20, Visible = false, AutoEllipsis = true,
+                Padding = new Padding(4, 3, 4, 0), ForeColor = Color.FromArgb(0x20, 0x20, 0x20),
+            };
+            this.Controls.Add(this.gdmlStrip);
+
         }
 
-        void BuildDetectorTab(TabPage tab)
+        /// <summary>(`AMBER322`) Подвкладка «Файл GDML»: слева сопоставление и сводка, справа разрез и вид с торца.</summary>
+        void BuildGdmlTab(TabPage tab)
         {
-            this.detectorSketch = this.AddSketch(tab, GeometrySketch.SketchMode.Detector);
-            Panel page = FieldColumn(tab);
-            this.detectorColumn = page;
-
             // (`AMBER278`) На месте полей детектора после импорта GDML — только
             // сводка; чертёж справа — разрез и вид с торца.
-            this.gdmlSketch = new GdmlSketch { Dock = DockStyle.Fill, Visible = false };
+            this.gdmlSketch = new GdmlSketch { Dock = DockStyle.Fill };
             this.gdmlSketch.DrawingFailed += reason =>
             {
                 Action<string> handler = this.GdmlDrawingFailed;
@@ -975,7 +1293,6 @@ namespace BecquerelMonitor
             {
                 Dock = DockStyle.Left,
                 Width = 340,
-                Visible = false,
                 Padding = new Padding(4),
             };
             // (`AMBER304`) С переносом: строка тома длиннее панели, а в её конце стоят состав и причины.
@@ -991,7 +1308,38 @@ namespace BecquerelMonitor
                 ForeColor = Color.FromArgb(0x20, 0x20, 0x20),
                 BorderStyle = BorderStyle.FixedSingle,
             };
+            this.gdmlSummary.MouseClick += (sender, e) =>
+            {
+                // Строка «▸ Не используется в геометрии…» разворачивается щелчком по ней.
+                int at = this.gdmlSummary.GetCharIndexFromPosition(e.Location);
+                int line = this.gdmlSummary.GetLineFromCharIndex(at);
+                string text = line >= 0 && line < this.gdmlSummary.Lines.Length ? this.gdmlSummary.Lines[line] : "";
+                if (text.StartsWith("▸", StringComparison.Ordinal) || text.StartsWith("▾", StringComparison.Ordinal))
+                {
+                    this.ToggleGdmlUnused();
+                }
+            };
             this.gdmlSummaryPanel.Controls.Add(this.gdmlSummary);
+
+            // Блок «Сопоставление» — над сводкой, всегда раскрыт (решение Amber 11.11.2026 «Всегда раскрыт»).
+            this.gdmlMapping = new GdmlMappingPanel(true) { Dock = DockStyle.Top };
+            this.gdmlMapping.ApplyRequested += (sender, e) =>
+            {
+                EventHandler handler = this.GdmlRemapRequested;
+                if (handler != null)
+                {
+                    handler(this, EventArgs.Empty);
+                }
+            };
+            this.gdmlMapping.ChoiceChanged += (sender, e) =>
+            {
+                // До «Пересчитать» выбор только выделяется на чертеже: выбранные детали в полном цвете.
+                GdmlChoice now = this.gdmlMapping.Choice;
+                this.gdmlSketch.SetPale(volume => !(ReferenceEquals(volume, now.Crystal) || (now.TakeSample && ReferenceEquals(volume, now.Sample))
+                                                    || (now.TakeShield && ReferenceEquals(volume, now.ShieldFrom))));
+            };
+            this.gdmlSummaryPanel.Controls.Add(this.gdmlMapping);
+            this.gdmlTabBuilt = true;
 
             // Раздел между сводкой и чертежом двигает человек; стыковка идёт с конца списка:
             // сводка самой последней, раздел перед ней, чертёж берёт остаток.
@@ -999,7 +1347,6 @@ namespace BecquerelMonitor
             {
                 Dock = DockStyle.Left,
                 Width = 5,
-                Visible = false,
                 MinSize = 240,
                 MinExtra = 320,
             };
@@ -1016,6 +1363,13 @@ namespace BecquerelMonitor
             this.gdmlSummaryPanel.SendToBack();
             tab.SizeChanged += (sender, e) => this.FitGdmlSummary(tab);
             this.FitGdmlSummary(tab);
+        }
+
+        void BuildDetectorTab(TabPage tab)
+        {
+            this.detectorSketch = this.AddSketch(tab, GeometrySketch.SketchMode.Detector);
+            Panel page = FieldColumn(tab);
+            this.detectorColumn = page;
 
             // Готовые детекторы — самым верхом: обвязку сцинтиллятора по памяти
             // не восстановить, а ошибка в ней стоит десятков процентов.
@@ -3340,11 +3694,6 @@ namespace BecquerelMonitor
                 return;
             }
 
-            // (`AMBER278`) Правка полей — это уже не импорт GDML: сводка и
-            // чертёж чужой геометрии уходят, возвращаются поля. (`AMBER304`) Вслух
-            // говорит форма по `GdmlModeChanged`: журнал и статус у неё.
-            this.ClearGdml();
-
             this.ApplyHoleThrough();
 
             this.MarkBadValues();
@@ -3440,9 +3789,6 @@ namespace BecquerelMonitor
         /// </summary>
         void ApplyTemplatePart(Action<GeometryModel> apply)
         {
-            // (`AMBER278`) Шаблон — это снова параметрическая геометрия.
-            this.ClearGdml();
-
             // (`AMBER201`, Р4, мелочь 8.9) Нечитаемое поле, которого шаблон НЕ
             // касается, остаётся тем, что набрано. Прежде `BuildModel` читал его
             // нулём, загрузка модели писала «0» в поле, и опечатка в расстоянии

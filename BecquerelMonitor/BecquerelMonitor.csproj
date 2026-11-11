@@ -352,7 +352,10 @@
     <Compile Include="EfficiencyMaker\GeometryPresets.cs" />
     <Compile Include="EfficiencyMaker\GeometryScenes.cs" />
     <Compile Include="EfficiencyMaker\GdmlG4Materials.cs" />
+    <Compile Include="EfficiencyMaker\GdmlFieldLayout.cs" />
+    <Compile Include="EfficiencyMaker\GdmlFieldMap.cs" />
     <Compile Include="EfficiencyMaker\GdmlGeometry.cs" />
+    <Compile Include="EfficiencyMaker\GdmlImportInfo.cs" />
     <Compile Include="EfficiencyMaker\GdmlSketch.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -366,6 +369,7 @@
       <DependentUpon>DeviceConfigForm.cs</DependentUpon>
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="GdmlImportUi.cs" />
     <Compile Include="GeometryEditorPanel.cs">
       <SubType>UserControl</SubType>
     </Compile>

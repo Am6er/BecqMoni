@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Учебная сцена `AMBER322`: NaI ⌀40 × 40 в MgO 2 мм и алюминии 1 мм, цилиндрическая проба в полиэтиленовом сосуде
+  перед торцом, защита из меди 2 мм и свинца 50 мм. Числа — те же, что строит и сверяет проба
+  `tools/effmaker/probes/GdmlFieldLayoutProbeA322.cs` (сцена a322_shielded). Файл нужен конвейеру снимков гида
+  (`tools/guide_shots`, сцена gdml): в нём узнаются все три роли — детектор, образец, защита.
+-->
+<gdml>
+<define/>
+<materials/>
+<solids>
+<box name="WorldBox" x="1000" y="1000" z="1000" lunit="mm"/>
+<tube name="s1" rmin="0" rmax="20" z="40" deltaphi="360" aunit="deg" lunit="mm"/>
+<tube name="s2" rmin="20" rmax="22" z="40" deltaphi="360" aunit="deg" lunit="mm"/>
+<tube name="s3" rmin="0" rmax="22" z="2" deltaphi="360" aunit="deg" lunit="mm"/>
+<tube name="s4" rmin="0" rmax="22" z="5" deltaphi="360" aunit="deg" lunit="mm"/>
+<tube name="s5" rmin="22" rmax="23" z="47" deltaphi="360" aunit="deg" lunit="mm"/>
+<tube name="s6" rmin="0" rmax="23" z="1" deltaphi="360" aunit="deg" lunit="mm"/>
+<tube name="s7" rmin="0" rmax="31" z="1" deltaphi="360" aunit="deg" lunit="mm"/>
+<tube name="s8" rmin="30" rmax="31" z="24" deltaphi="360" aunit="deg" lunit="mm"/>
+<tube name="s9" rmin="0" rmax="30" z="20" deltaphi="360" aunit="deg" lunit="mm"/>
+<tube name="s10" rmin="60" rmax="62" z="110" deltaphi="360" aunit="deg" lunit="mm"/>
+<tube name="s11" rmin="62" rmax="112" z="110" deltaphi="360" aunit="deg" lunit="mm"/>
+<tube name="s12" rmin="0" rmax="112" z="2" deltaphi="360" aunit="deg" lunit="mm"/>
+<tube name="s13" rmin="0" rmax="112" z="50" deltaphi="360" aunit="deg" lunit="mm"/>
+<tube name="s14" rmin="23.5" rmax="112" z="2" deltaphi="360" aunit="deg" lunit="mm"/>
+<tube name="s15" rmin="23.5" rmax="112" z="50" deltaphi="360" aunit="deg" lunit="mm"/>
+</solids>
+<structure>
+<volume name="Crystal"><materialref ref="G4_SODIUM_IODIDE"/><solidref ref="s1"/></volume>
+<volume name="MgO_side"><materialref ref="G4_MAGNESIUM_OXIDE"/><solidref ref="s2"/></volume>
+<volume name="MgO_face"><materialref ref="G4_MAGNESIUM_OXIDE"/><solidref ref="s3"/></volume>
+<volume name="PMT_glass"><materialref ref="G4_Pyrex_Glass"/><solidref ref="s4"/></volume>
+<volume name="Can_side"><materialref ref="G4_Al"/><solidref ref="s5"/></volume>
+<volume name="Can_face"><materialref ref="G4_Al"/><solidref ref="s6"/></volume>
+<volume name="Beaker_bottom"><materialref ref="G4_POLYETHYLENE"/><solidref ref="s7"/></volume>
+<volume name="Beaker_side"><materialref ref="G4_POLYETHYLENE"/><solidref ref="s8"/></volume>
+<volume name="Sample_soil"><materialref ref="G4_SILICON_DIOXIDE"/><solidref ref="s9"/></volume>
+<volume name="Cu_side"><materialref ref="G4_Cu"/><solidref ref="s10"/></volume>
+<volume name="Pb_side"><materialref ref="G4_Pb"/><solidref ref="s11"/></volume>
+<volume name="Cu_far"><materialref ref="G4_Cu"/><solidref ref="s12"/></volume>
+<volume name="Pb_far"><materialref ref="G4_Pb"/><solidref ref="s13"/></volume>
+<volume name="Cu_near"><materialref ref="G4_Cu"/><solidref ref="s14"/></volume>
+<volume name="Pb_near"><materialref ref="G4_Pb"/><solidref ref="s15"/></volume>
+<volume name="World"><materialref ref="G4_AIR"/><solidref ref="WorldBox"/>
+<physvol name="pv_Crystal"><volumeref ref="Crystal"/><position x="0" y="0" z="0" unit="mm"/></physvol>
+<physvol name="pv_MgO_side"><volumeref ref="MgO_side"/><position x="0" y="0" z="0" unit="mm"/></physvol>
+<physvol name="pv_MgO_face"><volumeref ref="MgO_face"/><position x="0" y="0" z="21" unit="mm"/></physvol>
+<physvol name="pv_PMT_glass"><volumeref ref="PMT_glass"/><position x="0" y="0" z="-22.5" unit="mm"/></physvol>
+<physvol name="pv_Can_side"><volumeref ref="Can_side"/><position x="0" y="0" z="-1.5" unit="mm"/></physvol>
+<physvol name="pv_Can_face"><volumeref ref="Can_face"/><position x="0" y="0" z="22.5" unit="mm"/></physvol>
+<physvol name="pv_Beaker_bottom"><volumeref ref="Beaker_bottom"/><position x="0" y="0" z="25.5" unit="mm"/></physvol>
+<physvol name="pv_Beaker_side"><volumeref ref="Beaker_side"/><position x="0" y="0" z="38" unit="mm"/></physvol>
+<physvol name="pv_Sample_soil"><volumeref ref="Sample_soil"/><position x="0" y="0" z="36" unit="mm"/></physvol>
+<physvol name="pv_Cu_side"><volumeref ref="Cu_side"/><position x="0" y="0" z="15" unit="mm"/></physvol>
+<physvol name="pv_Pb_side"><volumeref ref="Pb_side"/><position x="0" y="0" z="15" unit="mm"/></physvol>
+<physvol name="pv_Cu_far"><volumeref ref="Cu_far"/><position x="0" y="0" z="71" unit="mm"/></physvol>
+<physvol name="pv_Pb_far"><volumeref ref="Pb_far"/><position x="0" y="0" z="97" unit="mm"/></physvol>
+<physvol name="pv_Cu_near"><volumeref ref="Cu_near"/><position x="0" y="0" z="-41" unit="mm"/></physvol>
+<physvol name="pv_Pb_near"><volumeref ref="Pb_near"/><position x="0" y="0" z="-67" unit="mm"/></physvol>
+</volume>
+</structure>
+<setup name="Default" version="1.0"><world ref="World"/></setup>
+</gdml>

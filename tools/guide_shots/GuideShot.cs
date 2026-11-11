@@ -972,7 +972,25 @@ static class GuideShot
                 });
                 if (problem != null) Say("GDML: " + problem);
                 Say("GDML: " + Path.GetFileName(gdmlPath));
+                // (`AMBER322`) После импорта открыта подвкладка «Файл GDML»: блок «Сопоставление», сверка, чертёж.
                 SaveForm(mf, maker, "effmaker-gdml");
+
+                // (`AMBER322`) Окно импорта «что содержится в файле»: списки деталей и маленький чертёж. Человек видит
+                // его ДО раскладки; здесь оно строится тем же классом на том же файле и показывается немодально —
+                // модальное окно съёмку остановило бы.
+                Form importDialog = Ui(mf, () =>
+                {
+                    var file = BecquerelMonitor.EfficiencyMaker.GdmlGeometry.Read(gdmlPath);
+                    var overview = BecquerelMonitor.EfficiencyMaker.GdmlOverview.Of(file);
+                    var d = new GdmlImportDialog(file, overview, BecquerelMonitor.EfficiencyMaker.GdmlFieldMap.Build(file, overview));
+                    d.StartPosition = FormStartPosition.Manual;
+                    d.Location = new Point(80, 80);
+                    d.Show(maker);
+                    return (Form)d;
+                });
+                Settle(mf, 1500);
+                SaveForm(mf, importDialog, "effmaker-gdml-import");
+                Ui(mf, () => importDialog.Close());
                 break;
             }
 

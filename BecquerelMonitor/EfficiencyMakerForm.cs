@@ -73,14 +73,14 @@ namespace BecquerelMonitor
         bool dirty;
 
         /// <summary>
-        /// (`AMBER278`, замечание критика `crit3`) Состояние «Расчёта» ДО
-        /// импорта GDML: на время импорта кнопка гаснет, при выходе из режима
-        /// возвращается ровно в это состояние, а не остаётся выключенной.
+        /// (`AMBER322`) Содержимое и имя файла GDML, показанного в редакторе: копия ложится рядом с конфигурацией
+        /// при «Сохранить» (решение Amber «Файлом рядом с конфигом»). null — импорта нет.
         /// </summary>
-        bool calculateEnabledBeforeGdml = true;
+        byte[] gdmlContent;
+        string gdmlName;
 
-        /// <summary>Идёт ли сейчас режим GDML: повторный импорт не должен перезапоминать уже погашенную кнопку.</summary>
-        bool gdmlModeActive;
+        /// <summary>Запись об импорте кривой, открытой без копии файла: живёт, пока геометрию не правили.</summary>
+        GdmlImportInfo gdmlOrphan;
 
         /// <summary>
         /// Редактор геометрии — ПЕРВОЙ вкладкой: с геометрии начинается и
@@ -91,6 +91,7 @@ namespace BecquerelMonitor
             this.geometryPanel = new GeometryEditorPanel { Dock = DockStyle.Fill };
             this.geometryPanel.Changed += this.GeometryChanged;
             this.geometryPanel.GdmlModeChanged += this.GdmlModeChanged;
+            this.geometryPanel.GdmlRemapRequested += this.GdmlRemap;
             this.geometryPanel.GdmlDrawingFailed += reason => this.SayInLogAndStatus(string.Format(CultureInfo.InvariantCulture,
                 ResourceText("GdmlSketchFailedLog", "The GDML drawing was not built: {0}"), reason));
 
@@ -601,15 +602,14 @@ namespace BecquerelMonitor
                     return;
                 }
 
-                // (`AMBER278`) GDML — родной формат геометрии Geant4. Он не
-                // ложится в параметрическую модель редактора, поэтому после
-                // импорта поля детектора заменяет сводка, а справа рисуется
-                // разрез и вид с торца. Сохранение и расчёт — «обсудим позже».
+                // (`AMBER278`, `AMBER322`) GDML — родной формат геометрии Geant4. Окно импорта спрашивает, что
+                // содержится в файле (детектор, образец, защита) и какие это детали; выбранное раскладывается
+                // в поля редактора, файл остаётся на подвкладке «Файл GDML».
                 if (string.Equals(System.IO.Path.GetExtension(dialog.FileName), ".gdml",
                                   StringComparison.OrdinalIgnoreCase))
                 {
                     string gdmlProblem;
-                    if (!this.ImportGdmlFile(dialog.FileName, out gdmlProblem) && gdmlProblem != null)
+                    if (!this.ImportGdmlFileWith(dialog.FileName, this.AskGdmlChoice, out gdmlProblem) && gdmlProblem != null)
                     {
                         MessageBox.Show(this, gdmlProblem, this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
@@ -684,14 +684,29 @@ namespace BecquerelMonitor
             AppendLog(line);
         }
 
-        /// <summary>
-        /// (`AMBER278`) Показать GDML в редакторе. (`AMBER304`) ⛔ Файл, который не прочитан,
-        /// режим не включает и уже показанный импорт не снимает: прежде битый файл прятал поля
-        /// детектора, гасил «Расчёт» и оставлял одну строку об отказе. Отдельно от диалога,
-        /// чтобы проба проходила этот путь без окон. problem — текст для человека; null при
-        /// отказе из-за счёта, о нём уже сказано.
-        /// </summary>
+        /// <summary>Окно импорта: что содержится в файле. null — человек отказался.</summary>
+        GdmlChoice AskGdmlChoice(GdmlGeometry file, GdmlOverview overview, GdmlFieldMap guessed)
+        {
+            using (GdmlImportDialog dialog = new GdmlImportDialog(file, overview, guessed))
+            {
+                return dialog.ShowDialog(this) == DialogResult.OK ? dialog.Choice : null;
+            }
+        }
+
+        /// <summary>Импорт без окна: берётся всё, что программа узнала в файле (проба, прежний вход `AMBER278`).</summary>
         internal bool ImportGdmlFile(string path, out string problem)
+        {
+            return this.ImportGdmlFileWith(path, null, out problem);
+        }
+
+        /// <summary>
+        /// (`AMBER278`, `AMBER322`) Импорт GDML: файл читается, раскладывается в поля редактора по выбору деталей и
+        /// показывается на подвкладке «Файл GDML». (`AMBER304`) ⛔ Файл, который не прочитан, ничего не меняет.
+        /// Отдельно от диалога, чтобы проба проходила этот путь без окон. problem — текст для человека; null при
+        /// отказе из-за счёта (о нём уже сказано) и при отказе человека в окне импорта.
+        /// </summary>
+        /// <param name="choose">окно выбора деталей; null — как узнала программа</param>
+        internal bool ImportGdmlFileWith(string path, Func<GdmlGeometry, GdmlOverview, GdmlFieldMap, GdmlChoice> choose, out string problem)
         {
             problem = null;
             if (this.RefuseImportWhileBusy())
@@ -700,8 +715,10 @@ namespace BecquerelMonitor
             }
 
             GdmlGeometry imported;
+            byte[] content;
             try
             {
+                content = System.IO.File.ReadAllBytes(path);
                 imported = GdmlGeometry.Read(path);
             }
             catch (Exception ex)
@@ -718,13 +735,36 @@ namespace BecquerelMonitor
                 return false;
             }
 
-            this.geometryPanel.ShowGdml(imported);
-            AppendLog(imported.DescribeLog());
+            GdmlOverview overview = GdmlOverview.Of(imported);
+            GdmlFieldMap guessed = GdmlFieldMap.Build(imported, overview);
+            GdmlChoice choice = GdmlChoice.Guess(guessed);
+            GdmlFieldMap map = guessed;
+            if (choose != null)
+            {
+                GdmlChoice chosen = choose(imported, overview, guessed);
+                if (chosen == null)
+                {
+                    return false;
+                }
 
-            // Журнал на этой вкладке спрятан, а статус мог ещё говорить о прошлом выходе из показа.
-            this.SayInLogAndStatus(string.Format(CultureInfo.InvariantCulture,
-                ResourceText("GdmlModeShown", "GDML geometry is shown; calculation, saving and curves are off: {0}"),
-                System.IO.Path.GetFileName(path)));
+                map = chosen.Same(choice) ? guessed : chosen.Build(imported, overview);
+                choice = chosen;
+            }
+
+            AppendLog(imported.DescribeLog());
+            this.gdmlContent = content;
+            this.gdmlName = System.IO.Path.GetFileName(path);
+            this.ApplyGdml(imported, overview, guessed, map, choice);
+
+            // Журнал на этой вкладке спрятан: итог — в статус.
+            bool good = this.geometryPanel.GdmlTaken != GdmlParts.None;
+            this.SayInLogAndStatus(good
+                ? string.Format(CultureInfo.InvariantCulture,
+                    ResourceText("GdmlStatusImported", "Imported {0}: {1} {2}."),
+                    this.gdmlName, GdmlOverview.TakenText(map, this.geometryPanel.GdmlTaken), GdmlOverview.UnusedText(map, this.geometryPanel.GdmlTaken))
+                : string.Format(CultureInfo.InvariantCulture, ResourceText("GdmlStatusViewOnly", "{0}: {1}"),
+                    this.gdmlName, GdmlOverview.TakenText(map, GdmlParts.None)));
+            this.SayGdmlFitNote();
             foreach (string warning in imported.Warnings)
             {
                 AppendLog("  " + warning);
@@ -882,10 +922,6 @@ namespace BecquerelMonitor
                 }
             }
 
-            // (`AMBER304`) Кривая ложится с геометрией полей редактора: это выход из показа GDML,
-            // как и импорт `.in`. Иначе график показал бы кривую рядом с чужой геометрией.
-            this.geometryPanel.ClearGdml();
-
             note += "; geometry: editor fields of the curve designer";
             EfficiencyFitResult result = new EfficiencyFitResult
             {
@@ -1022,60 +1058,198 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// (`AMBER278`, замечание критика `crit3`) Вход в режим GDML гасит
-        /// «Расчёт», выход — возвращает кнопку в состояние ДО импорта. Прежде
-        /// импорт выключал её навсегда: выход из GDML (правка поля, шаблон,
-        /// обычный импорт) возвращал поля, но не кнопку.
-        ///
-        /// (`AMBER304`) Во время счёта кнопка — это «Стоп», и её не трогаем: состояние режима
-        /// она примет по окончании счёта (<see cref="Start"/>). Выход из режима слышен: правка
-        /// поля на вкладке «Источник» снимает импорт, и молча это выглядело пропажей. Кривые
-        /// на время показа гаснут вместе с `Экспорт CSV`: они посчитаны по полям редактора, а
-        /// на экране другая геометрия; `lastResult` цел, при выходе всё возвращается.
+        /// (`AMBER322`) Файл GDML показан или снят. Импорт раскладывается в поля, и геометрия дальше обычная:
+        /// «Расчёт», «Сохранить», «Экспорт CSV» и кривые от показа файла не зависят (до `AMBER322` показ их гасил).
+        /// Снят показ (открыта другая геометрия, импорт `.in`) — содержимое файла больше не при этой геометрии.
         /// </summary>
         void GdmlModeChanged(object sender, EventArgs e)
         {
-            bool busy = Busy();
-            if (this.geometryPanel.GdmlMode)
+            if (!this.geometryPanel.GdmlMode)
             {
-                if (!this.gdmlModeActive)
-                {
-                    this.calculateEnabledBeforeGdml = this.calculateButton.Enabled;
-                    this.gdmlModeActive = true;
-                }
-
-                if (!busy)
-                {
-                    this.calculateButton.Enabled = false;
-                }
-            }
-            else
-            {
-                this.calculateButton.Enabled = this.calculateEnabledBeforeGdml;
-                if (this.gdmlModeActive)
-                {
-                    this.SayInLogAndStatus(ResourceText("GdmlModeLeft",
-                        "GDML view is closed: the editor fields are in effect again."));
-                }
-
-                this.gdmlModeActive = false;
+                this.gdmlContent = null;
+                this.gdmlName = null;
             }
 
-            this.ShowCurves();
-            if (!busy)
+            if (!Busy())
             {
                 this.UpdateSaveState();
             }
         }
 
-        /// <summary>Кривые графика: на время показа GDML их нет, они не про показанную геометрию. Единое правило для всех, кто меняет кривые.</summary>
+        /// <summary>Кривые графика: исходная пунктиром и посчитанная. Единое правило для всех, кто меняет кривые.</summary>
         void ShowCurves()
         {
-            bool shown = !this.geometryPanel.GdmlMode;
-            this.graph.SetEmptyNote(shown ? null : ResourceText("GdmlCurvesHidden",
-                "GDML geometry is shown: the curves belong to the editor fields and are hidden."));
-            this.graph.SetData(shown ? this.referenceCurve : null,
-                               shown && this.lastResult != null && this.lastResult.Ok ? this.lastResult : null);
+            this.graph.SetData(this.referenceCurve, this.lastResult != null && this.lastResult.Ok ? this.lastResult : null);
+        }
+
+        /// <summary>
+        /// (`AMBER322`) Разложить показанный файл в поля по выбору деталей и показать итог. Отказ раскладки
+        /// (кристалл не узнан или не той формы) — поля прежние, файл только смотрится.
+        /// </summary>
+        void ApplyGdml(GdmlGeometry imported, GdmlOverview overview, GdmlFieldMap guessed, GdmlFieldMap map, GdmlChoice choice)
+        {
+            bool good = (map.Found & GdmlParts.Detector) != 0;
+            byte[] content = this.gdmlContent;
+            string name = this.gdmlName;
+            this.geometryPanel.ShowGdmlFile(imported, overview, guessed, map, choice, good, good, null);
+            this.gdmlContent = content;
+            this.gdmlName = name;
+            this.gdmlOrphan = null;
+            if (good)
+            {
+                this.geometry = this.geometryPanel.Model;
+                if (!Busy())
+                {
+                    this.calculateButton.Enabled = true;
+                }
+
+                this.SetDirty();
+            }
+
+            foreach (GdmlMapLine line in map.Lines)
+            {
+                AppendLog("  " + line.InFile + " → " + line.InFields);
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER322`) Защита из файла, проба вручную, и проба в защиту не входит: сказать сразу и что сделать —
+        /// иначе человек узнал бы об этом только отказом при расчёте, а вкладки «Защита» на экране нет.
+        /// </summary>
+        void SayGdmlFitNote()
+        {
+            if (this.geometryPanel.GdmlFitNote != null)
+            {
+                this.SayInLogAndStatus(this.geometryPanel.GdmlFitNote);
+            }
+        }
+
+        /// <summary>(`AMBER322`) «Пересчитать» блока «Сопоставление»: раскладка по деталям, выбранным человеком.</summary>
+        void GdmlRemap(object sender, EventArgs e)
+        {
+            GdmlGeometry file = this.geometryPanel.Gdml;
+            GdmlChoice choice = this.geometryPanel.GdmlPendingChoice;
+            if (file == null || choice == null || this.RefuseImportWhileBusy())
+            {
+                return;
+            }
+
+            GdmlOverview overview = GdmlOverview.Of(file);
+            GdmlFieldMap guessed = GdmlFieldMap.Build(file, overview);
+            GdmlFieldMap map = choice.Build(file, overview);
+            if ((map.Found & GdmlParts.Detector) == 0)
+            {
+                string reason = string.Format(CultureInfo.InvariantCulture,
+                    ResourceText("GdmlMapRefused", "{0} does not fit as the crystal: {1}. The previous choice is kept."),
+                    choice.Crystal == null ? "?" : choice.Crystal.VolumeName, map.Refusal);
+                this.geometryPanel.RefuseGdmlRemap(reason);
+                this.SayInLogAndStatus(reason);
+                return;
+            }
+
+            // Вкладка, которую человек настраивал руками, уходит под файл: спросить, прежде чем терять набранное.
+            GdmlParts newly = choice.Parts & map.Found & ~this.geometryPanel.GdmlTaken & (GdmlParts.Sample | GdmlParts.Shield);
+            if (newly != GdmlParts.None && this.geometryPanel.GdmlTaken != GdmlParts.None)
+            {
+                List<string> names = new List<string>();
+                foreach (GdmlParts part in new[] { GdmlParts.Sample, GdmlParts.Shield })
+                {
+                    if ((newly & part) != 0)
+                    {
+                        names.Add(part == GdmlParts.Sample ? Resources.GeometryEditorTabSource : Resources.GeometryEditorTabShield);
+                    }
+                }
+
+                // Общая дверь вопроса (`AppUi.AskYesNo`), а не `MessageBox`: без окон отвечать некому, и оба ответа
+                // меняют поля — там это отказ словами, а не повисшее окно (сторож `check_headless`).
+                if (!AppUi.AskYesNo(this, string.Format(CultureInfo.InvariantCulture,
+                        ResourceText("GdmlMapAskFields", "Taken from the file now: {0}. The values entered by hand there will be lost. Continue?"),
+                        string.Join(", ", names.ToArray())), this.Text, MessageBoxIcon.Question, false))
+                {
+                    return;
+                }
+            }
+
+            this.ApplyGdml(file, overview, guessed, map, choice);
+            this.SayInLogAndStatus(string.Format(CultureInfo.InvariantCulture,
+                ResourceText("GdmlStatusRemapped", "Recalculated for the chosen parts: {0} Calculate the curve again."),
+                GdmlOverview.TakenText(map, this.geometryPanel.GdmlTaken)));
+            this.SayGdmlFitNote();
+        }
+
+        /// <summary>
+        /// (`AMBER322`, решение Amber «Как после импорта») Открыта кривая, импортированная из GDML: показать файл по
+        /// копии рядом с конфигурацией и убрать вкладки взятых частей. Поля — сохранённые: они истина, и сами не
+        /// пересчитываются. Копии нет (кривая приехала в файле спектра) — все вкладки на месте и строка об этом.
+        /// </summary>
+        void AttachSavedGdml(EfficiencyConfigData config)
+        {
+            GdmlImportInfo info = config == null ? null : config.GdmlImport;
+            this.gdmlOrphan = null;
+            if (info == null || config.Geometry == null)
+            {
+                return;
+            }
+
+            string copy = GdmlCopyStore.Find(info.Sha256);
+            if (copy == null)
+            {
+                this.gdmlOrphan = info;
+                this.SayInLogAndStatus(string.Format(CultureInfo.InvariantCulture,
+                    ResourceText("GdmlNoCopy", "Geometry imported from {0}; the file copy is missing, import pictures are unavailable."),
+                    info.FileName));
+                return;
+            }
+
+            try
+            {
+                byte[] content = System.IO.File.ReadAllBytes(copy);
+                GdmlGeometry file = GdmlGeometry.Read(copy);
+                if (!string.IsNullOrEmpty(file.FatalError))
+                {
+                    this.gdmlOrphan = info;
+                    AppendLog(GdmlImportFailedText(info.FileName, file.FatalError));
+                    return;
+                }
+
+                file.FileName = info.FileName;
+                GdmlOverview overview = GdmlOverview.Of(file);
+                GdmlFieldMap guessed = GdmlFieldMap.Build(file, overview);
+                List<string> missing = new List<string>();
+                GdmlChoice choice = GdmlChoice.FromInfo(info, file, guessed, missing);
+                GdmlFieldMap map = choice.Same(GdmlChoice.Guess(guessed)) ? guessed : choice.Build(file, overview);
+                List<string> notes = new List<string>();
+                foreach (string name in missing)
+                {
+                    notes.Add(string.Format(CultureInfo.InvariantCulture,
+                        ResourceText("GdmlMapMissing", "Part {0} is not in the file copy. The fields are as saved."), name));
+                }
+
+                bool good = (map.Found & GdmlParts.Detector) != 0;
+                if (good)
+                {
+                    GeometryModel again = config.Geometry.Clone();
+                    map.Apply(again, choice.Parts);
+                    if (!string.Equals(ResponseMatrix.GeometryFingerprint(again), ResponseMatrix.GeometryFingerprint(config.Geometry), StringComparison.Ordinal))
+                    {
+                        notes.Add(ResourceText("GdmlSavedDiffers",
+                            "The saved fields differ from what this version of the program reads from the file. The fields are as saved."));
+                    }
+                }
+
+                this.geometryPanel.ShowGdmlFile(file, overview, guessed, map, choice, good, false, notes);
+                this.gdmlContent = content;
+                this.gdmlName = info.FileName;
+                foreach (string note in notes)
+                {
+                    AppendLog(note);
+                }
+            }
+            catch (Exception ex)
+            {
+                this.gdmlOrphan = info;
+                AppendLog(GdmlImportFailedText(info.FileName, ex.Message));
+            }
         }
 
         DeviceConfigInfo boundDevice;
@@ -1110,6 +1284,7 @@ namespace BecquerelMonitor
             // а не из того, что когда-то загрузили. Запертая кнопка означала бы,
             // что заполнить два десятка полей можно, а нажать «Посчитать» нельзя.
             this.geometryPanel.SetModel(config.Geometry);
+            this.AttachSavedGdml(config);
             this.geometry = this.geometryPanel.Model;
             this.calculateButton.Enabled = true;
 
@@ -1157,6 +1332,39 @@ namespace BecquerelMonitor
             this.savedIntoBound = false;
             this.UpdateTitle();
             this.UpdateSaveState();
+        }
+
+        /// <summary>
+        /// (`AMBER322`) Запись об импорте GDML при кривой и копия файла рядом с конфигурацией. Геометрия не из файла
+        /// (импорта не было, показ снят, отказ раскладки) — записи нет. Кривая, открытая без копии, запись сохраняет,
+        /// пока её геометрию не правили.
+        /// </summary>
+        void SaveGdmlImport(string fingerprintBefore)
+        {
+            if (this.geometryPanel.GdmlTaken == GdmlParts.None || this.gdmlContent == null)
+            {
+                bool same = this.gdmlOrphan != null && fingerprintBefore != null
+                    && string.Equals(fingerprintBefore, ResponseMatrix.GeometryFingerprint(this.boundConfig.Geometry), StringComparison.Ordinal);
+                this.boundConfig.GdmlImport = same ? this.gdmlOrphan : null;
+                return;
+            }
+
+            GdmlImportInfo info = new GdmlImportInfo { FileName = this.gdmlName ?? "" };
+            try
+            {
+                info.Sha256 = GdmlCopyStore.Put(this.gdmlContent);
+            }
+            catch (Exception ex)
+            {
+                info.Sha256 = GdmlCopyStore.Sha256Of(this.gdmlContent);
+                AppendLog(string.Format(CultureInfo.InvariantCulture,
+                    ResourceText("GdmlCopyFailed", "The copy of {0} was not written next to the configuration: {1}"), info.FileName, ex.Message));
+            }
+
+            this.geometryPanel.GdmlChoice.ToInfo(info, this.geometryPanel.GdmlGuess);
+            info.Sample = (this.geometryPanel.GdmlTaken & GdmlParts.Sample) != 0;
+            info.Shield = (this.geometryPanel.GdmlTaken & GdmlParts.Shield) != 0;
+            this.boundConfig.GdmlImport = info;
         }
 
         /// <summary>
@@ -1402,7 +1610,7 @@ namespace BecquerelMonitor
             // (`AMBER321`, 11.11.2026) Только кривая из трёх и более опор: «три числа» и две
             // опоры — без вопроса (кнопка «Из калибровки прибора» для них остаётся).
             if (this.fwhmCalibrationAnchors < FwhmQuestionMinAnchors
-                || !FwhmQuestionNeeded(calibration, field) || this.geometryPanel.GdmlMode || !AppUi.HasWindows)
+                || !FwhmQuestionNeeded(calibration, field) || !AppUi.HasWindows)
             {
                 return;
             }
@@ -1511,7 +1719,9 @@ namespace BecquerelMonitor
             string crystalBefore = this.boundConfig.HasGeometry
                 ? DeviceConfigForm.CrystalNameOf(this.boundConfig.Geometry)
                 : null;
+            string fingerprintBefore = this.boundConfig.HasGeometry ? ResponseMatrix.GeometryFingerprint(this.boundConfig.Geometry) : null;
             this.boundConfig.Geometry = this.geometryPanel.Model.Clone();
+            this.SaveGdmlImport(fingerprintBefore);
             this.SavedCrystalIsNew = crystalBefore == null
                 || !string.Equals(crystalBefore, DeviceConfigForm.CrystalNameOf(this.boundConfig.Geometry),
                                   StringComparison.OrdinalIgnoreCase);
@@ -1658,18 +1868,12 @@ namespace BecquerelMonitor
         void UpdateSaveState()
         {
             bool haveCurve = this.lastResult != null && this.lastResult.Ok;
-            // (`AMBER304`) При показе GDML «Сохранить» только отказывала бы окном: геометрии для
-            // записи нет. Выход из показа кнопку возвращает (`GdmlModeChanged`).
-            this.saveButton.Enabled = !this.geometryPanel.GdmlMode
-                && (this.boundConfig != null ? (this.dirty || haveCurve) : haveCurve);
+            this.saveButton.Enabled = this.boundConfig != null ? (this.dirty || haveCurve) : haveCurve;
             // Выгружать есть что и без нового счёта: сохранённая кривая
             // конфигурации (задача Amber 07.10.2026: «Хочу экспортировать
             // готовую кривую для анализа. Но без нового расчета кнопка не
             // активна»).
-            // (`AMBER304`) Показан импорт GDML: кривая не про него, и файл выгрузки выглядел бы
-            // кривой показанной геометрии.
-            this.exportButton.Enabled = !this.geometryPanel.GdmlMode
-                && (haveCurve || (this.boundConfig != null && this.boundConfig.HasCurve));
+            this.exportButton.Enabled = haveCurve || (this.boundConfig != null && this.boundConfig.HasCurve);
         }
 
         /// <summary>
@@ -1811,13 +2015,6 @@ namespace BecquerelMonitor
                 this.progressBar.Visible = false;
                 this.FitStatusLabel();
                 trigger.Text = caption;
-                // (`AMBER304`) Режим GDML, включённый посреди счёта, «Стоп» не гасил: кнопка
-                // принимает его теперь, когда «Стоп» больше не нужен.
-                if (this.geometryPanel.GdmlMode)
-                {
-                    trigger.Enabled = false;
-                }
-
                 this.calcOptionsGroup.Enabled = true;
                 if (args.Error != null)
                 {
