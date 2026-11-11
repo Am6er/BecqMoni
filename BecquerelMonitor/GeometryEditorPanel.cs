@@ -394,6 +394,22 @@ namespace BecquerelMonitor
                 this.shownScene = GeometrySceneKind.None;
                 this.model = source == null ? Blank() : source.Clone();
                 this.LoadFromModel();
+
+                // (`AMBER321`) Происхождение числа FWHM. Новая геометрия (заготовка) — пресет
+                // вещества её кристалла: «на нулевом этапе (нет ничего) нужно знать разрешение».
+                // Открытая — по записанному признаку, а без него (старый конфиг, `.in`) — по
+                // числу: ненулевое задано и не перетирается; ноль — не задано.
+                this.fwhmCrystalName = this.CurrentCrystalName();
+                if (source == null)
+                {
+                    this.ApplyCrystalPreset();
+                    this.model.FwhmAt662Percent = this.Get("FwhmAt662Percent");
+                    this.model.FwhmOrigin = this.fwhmSource;
+                }
+                else
+                {
+                    this.fwhmSource = OriginOnOpen(this.model);
+                }
                 // Список шаблонов помнит выбранный (`AMBER24`), но помнит его
                 // про ТУ геометрию, из которой его выбрали: чужая геометрия
                 // приезжает без имени шаблона, и оставленное имя лгало бы.
@@ -550,6 +566,162 @@ namespace BecquerelMonitor
             {
                 this.fwhmSuggestButton.Visible = this.fwhmSuggestionPercent > 0.0;
             }
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER321`, 11.11.2026) Откуда в поле «FWHM на 662 кэВ» взялось число
+        /// (<see cref="GeometryFwhmOrigin"/>). Нужно пресету по веществу кристалла
+        /// (<see cref="CrystalResolutionPresets"/>): он подставляет число новой геометрии и при смене
+        /// вещества — ТОЛЬКО пока число не задано человеком или калибровкой прибора (постановка Amber
+        /// 07.11.2026, решение вопросником «Таблица в коде + корпус»).
+        ///
+        /// Признак едет с геометрией в конфигурацию (<see cref="GeometryModel.FwhmOrigin"/>, решение
+        /// Amber 11.11.2026 «Писать признак в конфиг»). Геометрия без признака (старый конфиг, файл
+        /// `.in`) судится по числу: ненулевое — <see cref="GeometryFwhmOrigin.Loaded"/>, задано и
+        /// пресетом не перетирается; ноль — <see cref="GeometryFwhmOrigin.Unset"/>.
+        /// </summary>
+        GeometryFwhmOrigin fwhmSource = GeometryFwhmOrigin.Unset;
+
+        /// <summary>Вещество кристалла, к которому относится нынешнее решение о пресете.</summary>
+        string fwhmCrystalName = "";
+
+        /// <summary>Поле FWHM пишет программа, а не человек: правка не объявляется ручной.</summary>
+        bool settingFwhm;
+
+        /// <summary>(`AMBER321`) Откуда число в поле FWHM на 662 кэВ.</summary>
+        public GeometryFwhmOrigin FwhmOrigin
+        {
+            get { return this.fwhmSource; }
+        }
+
+        /// <summary>
+        /// (`AMBER321`) Число поля «FWHM на 662 кэВ», %, как оно читается сейчас; NaN — поле
+        /// не читается числом.
+        /// </summary>
+        public double FwhmFieldPercent
+        {
+            get
+            {
+                double value;
+                return this.TryGet("FwhmAt662Percent", out value) ? value : double.NaN;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER321`) Поставить в поле число FWHM-калибровки прибора — общий ход кнопки «Из
+        /// калибровки прибора» и ответа «Да» на вопрос при открытии конструктора. Поле меняется
+        /// текстом, как правка руками: поднимается <see cref="Changed"/>, «Сохранить» оживает, а
+        /// отпечаток геометрии у кривой после сохранения расходится — кривая помечается к
+        /// пересчёту тем же признаком, что любая правка геометрии (`AMBER185`).
+        /// </summary>
+        public void ApplyFwhmFromCalibration(double percent)
+        {
+            if (!(percent > 0.0))
+            {
+                return;
+            }
+
+            this.SetFwhmText(CrystalResolutionPresets.FieldText(percent), GeometryFwhmOrigin.Calibration);
+        }
+
+        /// <summary>Записать поле FWHM программой и запомнить, откуда число.</summary>
+        void SetFwhmText(string text, GeometryFwhmOrigin source)
+        {
+            TextBox box;
+            if (this.fields.TryGetValue("FwhmAt662Percent", out box))
+            {
+                this.settingFwhm = true;
+                try
+                {
+                    box.Text = text;
+                }
+                finally
+                {
+                    this.settingFwhm = false;
+                }
+            }
+
+            this.fwhmSource = source;
+        }
+
+        /// <summary>
+        /// (`AMBER321`) Человек правит поле FWHM: с этого момента число его, и пресет его не
+        /// трогает. Загрузка модели и запись программой (<see cref="SetFwhmText"/>) правкой не
+        /// считаются.
+        /// </summary>
+        void FwhmTextChanged(object sender, EventArgs e)
+        {
+            if (this.loading || this.settingFwhm)
+            {
+                return;
+            }
+
+            this.fwhmSource = GeometryFwhmOrigin.User;
+        }
+
+        /// <summary>
+        /// (`AMBER321`) Вещество кристалла сменилось — пресет его числа, если поле не задано
+        /// человеком, калибровкой или открытой геометрией. Пресета для нового вещества нет —
+        /// поле обнуляется: число пресета или шаблона относится к ПРЕЖНЕМУ кристаллу, и оставить
+        /// его значило бы молча приписать BGO разрешение NaI. Выбор того же вещества (список
+        /// перезаполнен редактором веществ) — не смена.
+        /// </summary>
+        void CrystalMaybeChanged()
+        {
+            string name = this.CurrentCrystalName();
+            if (string.Equals(name, this.fwhmCrystalName, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            this.fwhmCrystalName = name;
+            if (this.FwhmReplaceable)
+            {
+                this.ApplyCrystalPreset();
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER321`) Происхождение числа открытой геометрии: записанный признак, а без него —
+        /// по числу (ненулевое — «из файла», задано; ноль — «нет»). Признак, противоречащий числу
+        /// (ноль при «пресете», «шаблоне», «человеке» или «калибровке»), — тоже «нет»: судит число.
+        /// </summary>
+        internal static GeometryFwhmOrigin OriginOnOpen(GeometryModel g)
+        {
+            if (g == null || !(g.FwhmAt662Percent > 0.0))
+            {
+                return GeometryFwhmOrigin.Unset;
+            }
+
+            return g.FwhmOrigin == GeometryFwhmOrigin.Unknown || g.FwhmOrigin == GeometryFwhmOrigin.Unset
+                ? GeometryFwhmOrigin.Loaded
+                : g.FwhmOrigin;
+        }
+
+        /// <summary>Пресет может заменить число поля: его не задавали человек, калибровка или файл.</summary>
+        bool FwhmReplaceable
+        {
+            get
+            {
+                return this.fwhmSource == GeometryFwhmOrigin.Unset || this.fwhmSource == GeometryFwhmOrigin.Preset
+                       || this.fwhmSource == GeometryFwhmOrigin.Template;
+            }
+        }
+
+        /// <summary>Поставить в поле пресет нынешнего вещества кристалла (нет пресета — ноль).</summary>
+        void ApplyCrystalPreset()
+        {
+            CrystalResolutionPresets.Entry entry = CrystalResolutionPresets.Find(this.CurrentCrystalName());
+            double percent = entry == null ? 0.0 : entry.FwhmAt662Percent;
+            this.SetFwhmText(CrystalResolutionPresets.FieldText(percent),
+                             percent > 0.0 ? GeometryFwhmOrigin.Preset : GeometryFwhmOrigin.Unset);
+        }
+
+        /// <summary>Имя вещества кристалла, как оно стоит сейчас в полях.</summary>
+        string CurrentCrystalName()
+        {
+            GeometryMaterial crystal = this.MaterialOf("Crystal", this.Get("Crystal.Density"));
+            return crystal == null ? "" : (crystal.Name ?? "").Trim();
         }
 
         /// <summary>
@@ -991,11 +1163,13 @@ namespace BecquerelMonitor
                 if (this.fwhmSuggestionPercent > 0.0)
                 {
                     // Присваивание текстом, как правка руками: TextChanged
-                    // поднимет Changed, и «Сохранить» оживёт.
-                    this.fields["FwhmAt662Percent"].Text =
-                        this.fwhmSuggestionPercent.ToString("0.###", CultureInfo.InvariantCulture);
+                    // поднимет Changed, и «Сохранить» оживёт. (`AMBER321`) Число
+                    // помечается «из калибровки»: пресет вещества его не трогает.
+                    this.ApplyFwhmFromCalibration(this.fwhmSuggestionPercent);
                 }
             };
+            // (`AMBER321`) Правка поля руками — число человека.
+            this.fields["FwhmAt662Percent"].TextChanged += this.FwhmTextChanged;
             rest.Controls.Add(this.fwhmSuggestButton);
             page.Controls.Add(rest);
 
@@ -3151,6 +3325,12 @@ namespace BecquerelMonitor
             {
                 this.RecomputeScene();
             }
+
+            // (`AMBER321`) Вещество кристалла задаёт пресет разрешения.
+            if (key == "Crystal")
+            {
+                this.CrystalMaybeChanged();
+            }
         }
 
         void ValueChanged(object sender, EventArgs e)
@@ -3244,6 +3424,12 @@ namespace BecquerelMonitor
                     own.Apply(g);
                 }
             });
+
+            // (`AMBER321`) Шаблон детектора задаёт и разрешение — число ЕГО кристалла:
+            // «шаблон», а не «задано человеком», и смена вещества после него ставит пресет
+            // нового вещества. Ноль шаблона (у «Atom Spectra Pro 40x40» — нарочно) остаётся нулём.
+            this.fwhmSource = GeometryFwhmOrigin.Template;
+            this.fwhmCrystalName = this.CurrentCrystalName();
         }
 
         /// <summary>
@@ -4709,6 +4895,9 @@ namespace BecquerelMonitor
 
             // (`AMBER12`) Измерение в защите.
             g.InShield = this.shieldCheck != null && this.shieldCheck.Checked;
+
+            // (`AMBER321`) Откуда число FWHM — едет с геометрией в конфигурацию.
+            g.FwhmOrigin = this.fwhmSource;
 
             // ⛔ (`A134`) ВИД ИСТОЧНИКА РЕШАЕТСЯ ДО ПОЛЕЙ, а не после. Тем же
             // правилом, каким `A94` решает форму кристалла: карта полей

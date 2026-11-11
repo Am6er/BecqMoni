@@ -42759,6 +42759,17 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryEditorFwhmFromDevice" xml:space="preserve">
     <value>From device calibration</value>
   </data>
+  <data name="FwhmFromCalibrationQuestion" xml:space="preserve">
+    <value>FWHM at 662 keV in the geometry: {0} %. The FWHM calibration of the device gives {1} %.
+
+Use {1} % from the device calibration?</value>
+  </data>
+  <data name="FwhmFromCalibrationQuestionCurve" xml:space="preserve">
+    <value>The efficiency curve and the response matrix of this geometry will then have to be recalculated.</value>
+  </data>
+  <data name="FwhmFromCalibrationApplied" xml:space="preserve">
+    <value>FWHM at 662 keV: {0} % → {1} % from the device calibration. Recalculate the curve and save it.</value>
+  </data>
   <data name="GeometryEditorInShield" xml:space="preserve">
     <value>Measured inside a shield</value>
   </data>

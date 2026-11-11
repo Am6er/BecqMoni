@@ -1396,6 +1396,17 @@
   <data name="GeometryEditorFwhmFromDevice" xml:space="preserve">
     <value>Из калибровки прибора</value>
   </data>
+  <data name="FwhmFromCalibrationQuestion" xml:space="preserve">
+    <value>FWHM на 662 кэВ в геометрии: {0} %. FWHM-калибровка прибора даёт {1} %.
+
+Взять {1} % из калибровки прибора?</value>
+  </data>
+  <data name="FwhmFromCalibrationQuestionCurve" xml:space="preserve">
+    <value>Кривую эффективности и матрицу отклика этой геометрии тогда нужно будет пересчитать.</value>
+  </data>
+  <data name="FwhmFromCalibrationApplied" xml:space="preserve">
+    <value>FWHM на 662 кэВ: {0} % → {1} % из калибровки прибора. Пересчитайте кривую и сохраните её.</value>
+  </data>
   <data name="GeometryEditorInShield" xml:space="preserve">
     <value>Измерение в защите</value>
   </data>
