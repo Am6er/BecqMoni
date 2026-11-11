@@ -44429,7 +44429,7 @@ Close the window and discard it?</value>
     <value>s</value>
   </data>
   <data name="NucBase_UnitMin" xml:space="preserve">
-    <value>m</value>
+    <value>min</value>
   </data>
   <data name="NucBase_UnitH" xml:space="preserve">
     <value>h</value>

@@ -101,7 +101,8 @@ namespace BecquerelMonitor.Probes
 
                 string hlCell = (string)grid.Rows[0].Cells[7].Value;
                 string hlShown = Shown(grid, 0, 7);
-                string hlWant = lang == "ru-RU" ? "60.55(мин)" : "60.55(m)";
+                // (`AMBER299`, 11.11.2026) по-английски минуты — «min»: «60.55 m» читалось как метры
+                string hlWant = lang == "ru-RU" ? "60.55(мин)" : "60.55(min)";
                 Check("ячейка периода хранит код базы", hlCell == "60.55(m)", hlCell);
                 Check("показ периода — на языке интерфейса", hlShown == hlWant, hlShown);
                 Check("разбор ячейки периода прежний (годы)",
@@ -211,7 +212,7 @@ namespace BecquerelMonitor.Probes
 
                 show.Invoke(form, new object[] { "212BI", worst[0] });
                 string hl = L("IsotopeHLLabel").Text;
-                Check("единица периода", hl == (lang == "ru-RU" ? "60.55 мин" : "60.55 m"), hl);
+                Check("единица периода", hl == (lang == "ru-RU" ? "60.55 мин" : "60.55 min"), hl);
                 show.Invoke(form, new object[] { "56FE", worst[3] });
                 Check("стабильный", L("IsotopeHLLabel").Text == (lang == "ru-RU" ? "стабилен " : "STABLE "), "«" + L("IsotopeHLLabel").Text + "»");
 
