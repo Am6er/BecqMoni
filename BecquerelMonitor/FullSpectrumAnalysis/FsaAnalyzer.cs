@@ -6349,6 +6349,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         static long corePassCount;
 
+        /// <summary>(`AMBER326`) Сколько раз за жизнь процесса шёл проход <see cref="AnalyzeOnce"/> — пробам.</summary>
+        public static long OncePassCount
+        {
+            get { return System.Threading.Interlocked.Read(ref oncePassCount); }
+        }
+
+        static long oncePassCount;
+
+        /// <summary>
+        /// (`AMBER326`) След заходов ядра и решений сторожа автомаски — пробам (строка на заход и на решение).
+        /// В приложении null: ни строки не собирается, числа разбора след не трогает.
+        /// </summary>
+        public static Action<string> ProbeCoreTrace;
+
         /// <summary>
         /// (`S169`) Свет в НУЛЕВОМ КАНАЛЕ, кэВ, НУЛЬ ПРИБОРА: у "adc-fixed" —
         /// нуль карты с начала разбора; у "adc" — ЗАПАСНОЙ ПУТЬ, когда нуля
@@ -7907,6 +7921,123 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`AMBER213`, П241) Окна пиков хвоста — одни на компонент и длину
             // гистограммы, пока идёт цикл вершин: см. <see cref="splitWindows"/>.
             this.splitWindows = new Dictionary<FsaComponent, Dictionary<int, bool[]>>();
+            // ⛔ (`AMBER326`) СИНИЕ КАНАЛЫ ЛИНИЙ ЯДЕР — ЗАРАНЕЕ И ПАРАЛЛЕЛЬНО. Цикл вершин ниже строил их по
+            // одному на вызывающем потоке (профиль: 1 с последовательного счёта на разбор спектра постановки,
+            // половина — уширение). Здесь тем же отбором, что в цикле (вершина синего, хозяин, линии хозяина в
+            // полуширине от вершины), собирается перечень «хозяин — линия»; гистограммы (общее состояние: поправки
+            // суммирователя, перенос матрицы, окна ножа) — подряд в порядке перечня, уширение — параллельно, каждое
+            // в свою ячейку. Цикл берёт готовое, а чего в перечне нет — строит сам, как прежде: отбор здесь может
+            // быть ШИРЕ циклового (ножи цикла между вершиной и ядром сюда не перенесены), но не обязан совпадать —
+            // от него зависит только время, не числа.
+            Dictionary<FsaComponent, Dictionary<int, double[]>> blueReady = null;
+            if (this.ResponseMatrix != null)
+            {
+                var blueOwners = new List<FsaComponent>();
+                var blueLines = new List<int>();
+                var blueAsked = new Dictionary<FsaComponent, HashSet<int>>();
+                for (int i = chLo + 1; i < chHi; i++)
+                {
+                    if (!(blue[i] > 0.0) || blue[i] <= blue[i - 1] || blue[i] < blue[i + 1])
+                    {
+                        continue;
+                    }
+
+                    double fwhmAt = this.ImageFwhm(fwhmCalibration, i);
+                    if (!(fwhmAt > 1.0))
+                    {
+                        continue;
+                    }
+
+                    int halfAt = this.AnchorWindowCeil
+                        ? Math.Max(2, (int)Math.Ceiling(windowFwhm * fwhmAt - 1.0E-9))
+                        : Math.Max(2, (int)Math.Round(windowFwhm * fwhmAt));
+                    bool topAt = true;
+                    for (int k = Math.Max(chLo, i - halfAt / 2); k <= Math.Min(chHi, i + halfAt / 2); k++)
+                    {
+                        if (blue[k] > blue[i])
+                        {
+                            topAt = false;
+                            break;
+                        }
+                    }
+
+                    if (!topAt)
+                    {
+                        continue;
+                    }
+
+                    FsaComponent ownerAt = null;
+                    double ownerBlueAt = 0.0;
+                    foreach (KeyValuePair<FsaComponent, double[]> pair in owners)
+                    {
+                        if (pair.Value[i] > ownerBlueAt)
+                        {
+                            ownerBlueAt = pair.Value[i];
+                            ownerAt = pair.Key;
+                        }
+                    }
+
+                    if (ownerAt == null)
+                    {
+                        continue;
+                    }
+
+                    double reachAt = 0.5 * fwhmAt + (this.AnchorCoreHalfChannel ? 0.5 : 0.0);
+                    for (int j = 0; j < ownerAt.Lines.Count; j++)
+                    {
+                        double p = this.LightToChannel(calibration, this.LinePositionKev(ownerAt.Lines[j].Energy), channels);
+                        if (!Finite(p) || Math.Abs(this.DriftPosition(p, gain, offset) - i) > reachAt)
+                        {
+                            continue;
+                        }
+
+                        HashSet<int> askedOf;
+                        if (!blueAsked.TryGetValue(ownerAt, out askedOf))
+                        {
+                            askedOf = new HashSet<int>();
+                            blueAsked[ownerAt] = askedOf;
+                        }
+
+                        if (askedOf.Add(j))
+                        {
+                            blueOwners.Add(ownerAt);
+                            blueLines.Add(j);
+                        }
+                    }
+                }
+
+                int blueCount = blueOwners.Count;
+                var blueDeposits = new double[blueCount][];
+                for (int r = 0; r < blueCount; r++)
+                {
+                    blueDeposits[r] = this.PrepareLineBlue(blueOwners[r], blueLines[r], calibration, fwhmCalibration, channels);
+                }
+
+                var blueImages = new double[blueCount][];
+                double blueBin = this.ResponseMatrix.BinKev;
+                FsaParallel.For(blueCount, r =>
+                {
+                    if (blueDeposits[r] != null)
+                    {
+                        blueImages[r] = this.BroadenResponseDeposit(blueDeposits[r], calibration, fwhmCalibration, blueBin,
+                                                                    gain, offset, chLo, chHi, channels);
+                    }
+                });
+
+                blueReady = new Dictionary<FsaComponent, Dictionary<int, double[]>>();
+                for (int r = 0; r < blueCount; r++)
+                {
+                    Dictionary<int, double[]> readyOf;
+                    if (!blueReady.TryGetValue(blueOwners[r], out readyOf))
+                    {
+                        readyOf = new Dictionary<int, double[]>();
+                        blueReady[blueOwners[r]] = readyOf;
+                    }
+
+                    readyOf[blueLines[r]] = blueImages[r];
+                }
+            }
+
             for (int i = chLo + 1; i < chHi; i++)
             {
                 if (!(blue[i] > 0.0) || blue[i] <= blue[i - 1] || blue[i] < blue[i + 1])
@@ -8011,11 +8142,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    double[] lineBlue = this.ResponseMatrix == null
-                        ? this.BuildLineBare(owner, j, calibration, fwhmCalibration,
-                                             gain, offset, chLo, chHi, channels)
-                        : this.BuildLineBlue(owner, j, calibration, fwhmCalibration,
-                                             gain, offset, chLo, chHi, channels);
+                    double[] lineBlue;
+                    Dictionary<int, double[]> blueOfOwner;
+                    if (this.ResponseMatrix == null)
+                    {
+                        lineBlue = this.BuildLineBare(owner, j, calibration, fwhmCalibration,
+                                                      gain, offset, chLo, chHi, channels);
+                    }
+                    else if (blueReady != null && blueReady.TryGetValue(owner, out blueOfOwner)
+                             && blueOfOwner.TryGetValue(j, out lineBlue))
+                    {
+                        // (`AMBER326`) построен заранее (ниже массив только читается)
+                    }
+                    else
+                    {
+                        lineBlue = this.BuildLineBlue(owner, j, calibration, fwhmCalibration,
+                                                      gain, offset, chLo, chHi, channels);
+                    }
+
                     if (lineBlue == null)
                     {
                         continue;
@@ -9648,6 +9792,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
                                double gain, double offset, int chLo, int chHi, int channels)
         {
+            double[] deposit = this.PrepareLineBlue(component, lineIndex, calibration, fwhmCalibration, channels);
+            return deposit == null
+                ? null
+                : this.BroadenResponseDeposit(deposit, calibration, fwhmCalibration, this.ResponseMatrix.BinKev,
+                                              gain, offset, chLo, chHi, channels);
+        }
+
+        /// <summary>
+        /// (`AMBER326`) Гистограмма синего канала одной линии — последовательная половина
+        /// <see cref="BuildLineBlue"/> (общее состояние: поправки суммирователя, перенос матрицы, окна ножа);
+        /// уширение — отдельно, его можно вести параллельно. null — синего канала нет.
+        /// </summary>
+        double[] PrepareLineBlue(FsaComponent component, int lineIndex,
+                                 EnergyCalibration calibration, FwhmCalibration fwhmCalibration, int channels)
+        {
             EfficiencyMaker.ResponseMatrix matrix = this.ResponseMatrix;
             if (matrix == null || component.WeightsAreFinal || !matrix.HasChannels)
             {
@@ -9683,8 +9842,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.AccumulateLine(matrix, deposit, line.Energy, weight * cf, peak);
             this.SplitContinuumBelowTrustFloor(deposit, null, null, bin, component,
                                                calibration, fwhmCalibration, channels);
-            return this.BroadenResponseDeposit(deposit, calibration, fwhmCalibration, bin,
-                                               gain, offset, chLo, chHi, channels);
+            return deposit;
         }
 
         /// <summary>
@@ -10057,6 +10215,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>(`T265` А, П207) Ключ содержимого компонента в этом проходе — по ссылке (мутаций внутри прохода нет, как и у <see cref="deposits"/>).</summary>
         readonly Dictionary<FsaComponent, string> carryComponentKeys = new Dictionary<FsaComponent, string>();
+
+        /// <summary>
+        /// (`AMBER326`) Поправка суммирователя компонента в этом проходе — по ссылке, поверх
+        /// <see cref="correctionCarry"/>; живёт столько же, сколько <see cref="carryComponentKeys"/>, и
+        /// сбрасывается вместе с ним и со сменой суммирователя.
+        /// </summary>
+        readonly Dictionary<FsaComponent, FsaCascadeSummer.Correction> correctionByRef =
+            new Dictionary<FsaComponent, FsaCascadeSummer.Correction>();
 
         /// <summary>(`T265` А, П207) Объекты, входящие в ключ по ссылке (калибровка, ПШПВ, матрица, таблица Q_k): номер — их место здесь.</summary>
         readonly List<object> carryRefs = new List<object>();
@@ -10697,35 +10863,77 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return this.AnalyzeAllPasses(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
             }
 
-            this.backgroundMaskSuppressed = false;
-            this.backgroundMaskRefusal = null;
-            FsaResult result = this.AnalyzeAllPasses(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
-            string refused = this.backgroundMaskRefusal;
-            if (refused == null)
-            {
-                return result;
-            }
-
-            // (`AMBER295`) сторож отклонил маску хотя бы в одном проходе: весь разбор заново без маски. Иначе откат
-            // сравнит проход без маски с проходом на меньшем числе каналов, и χ² решит не о шкале.
+            // (П304) банк — заново из реестра на каждый верхний разбор: выдача
+            // ставит метку, по которой подрезка отличает нужное от давнего
+            // (тот же банк, если форма пика та же — числа от этого не меняются).
+            // ⛔ (`AMBER326`) Выдача и подрезка — ОДНИ на весь верхний разбор, а не на каждый его
+            // заход (<see cref="AnalyzeAllPasses"/>): при отклонённой маске фона разбор идёт вторым
+            // заходом целиком, и подрезка между заходами снимала ядра, которые второй заход тут же
+            // считал заново теми же числами (Th-232 AS 80x80: 35 тыс. ядер за разбор, 30 тыс. снято).
+            // Предел реестра — по-прежнему между разборами.
+            this.kernelBank = null;
+            // (`T265` А, П207; `AMBER326`) кэш образов и суммирователь — свои на верхний разбор:
+            // через все заходы ядра (<see cref="AnalyzeCore"/>), между разборами — заново
+            this.depositCarry.Clear();
+            this.correctionCarry.Clear();
+            this.windowCarry.Clear();
+            this.preMask.Clear();
+            this.preMaskKey = null;
+            this.carryRefs.Clear();
+            this.carrySummer = null;
+            this.carrySummerKey = null;
             try
-            {
-                this.backgroundMaskSuppressed = true;
-                result = this.AnalyzeAllPasses(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
-            }
-            finally
             {
                 this.backgroundMaskSuppressed = false;
                 this.backgroundMaskRefusal = null;
-            }
+                FsaResult result;
+                try
+                {
+                    result = this.AnalyzeAllPasses(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+                }
+                catch (BackgroundMaskRefusedSignal)
+                {
+                    // (`AMBER326`) первый же отказ сторожа маски решает исход: разбор отдаётся заходом без
+                    // маски (ниже), остаток захода с маской не нужен
+                    result = null;
+                }
 
-            if (result != null)
+                string refused = this.backgroundMaskRefusal;
+                if (refused == null)
+                {
+                    return result;
+                }
+
+                // (`AMBER295`) сторож отклонил маску хотя бы в одном проходе: весь разбор заново без маски. Иначе откат
+                // сравнит проход без маски с проходом на меньшем числе каналов, и χ² решит не о шкале.
+                try
+                {
+                    this.backgroundMaskSuppressed = true;
+                    result = this.AnalyzeAllPasses(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+                }
+                finally
+                {
+                    this.backgroundMaskSuppressed = false;
+                    this.backgroundMaskRefusal = null;
+                }
+
+                if (result != null)
+                {
+                    result.BackgroundMaskRefused = refused;
+                    result.AnchorNote = (result.AnchorNote ?? "") + "; автомаска фона отклонена: " + refused;
+                }
+
+                return result;
+            }
+            finally
             {
-                result.BackgroundMaskRefused = refused;
-                result.AnchorNote = (result.AnchorNote ?? "") + "; автомаска фона отклонена: " + refused;
+                this.preMask.Clear();
+                this.preMaskKey = null;
+                // (П304) банк ядер живёт процесс; между разборами реестр держит
+                // не больше предела — подрезка в конце верхнего разбора (перефит
+                // доли столбца зовёт Analyze рекурсивно и подрезку не трогает)
+                ShapeKernelBank.TrimShared();
             }
-
-            return result;
         }
 
         /// <summary>Все проходы одного разбора; см. <see cref="Analyze"/>.</summary>
@@ -10736,38 +10944,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<FsaComponent> originalLibrary,
             FsaEfficiency efficiency)
         {
-            if (!this.shareRefit)
+            // (`AMBER326`) выдача банка ядер и подрезка реестра — у <see cref="Analyze"/>, одни на
+            // весь верхний разбор
+            FsaResult first = this.AnalyzeRolledBack(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+            // (`AMBER274`, <see cref="BetaTwoPass"/>) строка беты дошла до фита и шаг узлов
+            // под ней не обычный — гамма-строки вторым заходом; перефит доли столбца
+            // (`shareRefit`) идёт внутри своего захода и второго не заводит
+            if (this.shareRefit || first == null || double.IsNaN(first.BetaKnotFwhm)
+                || first.BetaKnotFwhm == this.ContinuumKnotFwhm)
             {
-                // (П304) банк — заново из реестра на каждый верхний разбор: выдача
-                // ставит метку, по которой подрезка отличает нужное от давнего
-                // (тот же банк, если форма пика та же — числа от этого не меняются)
-                this.kernelBank = null;
+                return this.WithKnifeNote(first);
             }
 
-            try
-            {
-                FsaResult first = this.AnalyzeRolledBack(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
-                // (`AMBER274`, <see cref="BetaTwoPass"/>) строка беты дошла до фита и шаг узлов
-                // под ней не обычный — гамма-строки вторым заходом; перефит доли столбца
-                // (`shareRefit`) идёт внутри своего захода и второго не заводит
-                if (this.shareRefit || first == null || double.IsNaN(first.BetaKnotFwhm)
-                    || first.BetaKnotFwhm == this.ContinuumKnotFwhm)
-                {
-                    return this.WithKnifeNote(first);
-                }
-
-                return this.WithKnifeNote(this.AnalyzeGammaPass(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency, first));
-            }
-            finally
-            {
-                // (П304) банк ядер живёт процесс; между разборами реестр держит
-                // не больше предела — подрезка в конце верхнего разбора (перефит
-                // доли столбца зовёт Analyze рекурсивно и подрезку не трогает)
-                if (!this.shareRefit)
-                {
-                    ShapeKernelBank.TrimShared();
-                }
-            }
+            return this.WithKnifeNote(this.AnalyzeGammaPass(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency, first));
         }
 
         /// <summary>
@@ -11232,6 +11421,44 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return kept;
         }
 
+        /// <summary>
+        /// (`AMBER326`) Знак «сторож отклонил автомаску фона» — от <see cref="WithBackgroundMask"/> до верхнего
+        /// <see cref="Analyze"/>, который один его и ловит. Наружу не выходит.
+        /// </summary>
+        sealed class BackgroundMaskRefusedSignal : Exception
+        {
+        }
+
+        /// <summary>(`AMBER326`) Итоги цепочек проходов «до маски» захода с маской — по ключу входов захода ядра; на один верхний <see cref="Analyze"/>.</summary>
+        readonly Dictionary<string, FsaResult> preMask = new Dictionary<string, FsaResult>(StringComparer.Ordinal);
+
+        /// <summary>(`AMBER326`) Ключ идущего захода ядра для <see cref="preMask"/>; null — память выключена.</summary>
+        string preMaskKey;
+
+        /// <summary>
+        /// (`AMBER326`) Ключ входов захода ядра: всё, что между заходами одного верхнего разбора меняют его
+        /// распорядители (<see cref="AnalyzeRolledBack"/>, <see cref="AnalyzeGuarded"/>, перефит доли столбца), и
+        /// пять входов по ссылке. null — память не ведётся: повтор стража включён (пробы, корпус), идёт перефит
+        /// доли или гамма-заход с закреплёнными строками беты, автомаска выключена.
+        /// </summary>
+        string PreMaskKeyOf(EnergySpectrum spectrum, EnergySpectrum backgroundSpectrum, FwhmCalibration fwhmCalibration,
+                            List<FsaComponent> originalLibrary, FsaEfficiency efficiency)
+        {
+            if (this.AnchorZeroGuardReplay || this.shareRefit || this.fixedBetaRows != null
+                || !this.BackgroundExcessMask || !this.BackgroundMaskGuard)
+            {
+                return null;
+            }
+
+            return string.Join("|",
+                this.AnchorScale ? "1" : "0", this.AnchorZero ?? "", Bits(this.rollbackWidth),
+                this.CarryRef(spectrum).ToString(CultureInfo.InvariantCulture),
+                this.CarryRef(backgroundSpectrum).ToString(CultureInfo.InvariantCulture),
+                this.CarryRef(fwhmCalibration).ToString(CultureInfo.InvariantCulture),
+                this.CarryRef(originalLibrary).ToString(CultureInfo.InvariantCulture),
+                this.CarryRef(efficiency).ToString(CultureInfo.InvariantCulture));
+        }
+
         /// <summary>(`A320`, П258, внесён П277) Сработал ли страж нуля на последнем <see cref="Analyze"/> (пробам).</summary>
         public bool AnchorZeroGuardFired { get; private set; }
 
@@ -11251,6 +11478,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             // (`A320`, П323) счёт проходов — положительному контролю проб
             System.Threading.Interlocked.Increment(ref corePassCount);
+            Action<string> coreTrace = ProbeCoreTrace;
+            if (coreTrace != null)
+            {
+                coreTrace(string.Format(CultureInfo.InvariantCulture,
+                    "CORE\tпривязка {0}\tнуль {1}\tширина отката {2:R}\tмаска снята {3}\tперефит доли {4}\tпроходов до сих пор {5}",
+                    this.AnchorScale ? "вкл" : "выкл", this.AnchorZero, this.rollbackWidth,
+                    this.backgroundMaskSuppressed ? "да" : "нет", this.shareRefit ? "да" : "нет", OncePassCount));
+            }
 
             // ⛔ (`AMBER154`, П194 01.10.2026) ФОН — В ИСТИННОЙ ШКАЛЕ ПРОБЫ.
             // Хранимый фон снят СВОЕЙ съёмкой, и прибор между съёмками плывёт
@@ -11273,18 +11508,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (нет фона, пиков фона не видно в данных, оптимум у края окна
             // поиска) — первый проход и есть результат, а служебная строка
             // привязки говорит почему.
+            // ⛔ (`AMBER326`) ИТОГ ЦЕПОЧКИ ПРОХОДОВ «ДО МАСКИ» — ИЗ ПАМЯТИ ЗАХОДА С МАСКОЙ. Повтор разбора без маски
+            // (`AMBER295`) идёт теми же заходами ядра, что заход с маской: до прохода с маской цепочка захода та же
+            // (след заходов спектра постановки: χ² и опоры заходов «без привязки» и «с привязкой» в повторе совпали с
+            // цепочками «до маски» до последнего знака). Итог цепочки запоминается там, где ставится маска
+            // (<see cref="WithBackgroundMask"/>), и в повторе отдаётся без счёта. Отданный объект в заходе с маской
+            // наружу не выходил (маска принята — отдан разбор с маской; отклонена — заход оборван), поэтому никто
+            // в него ничего не дописал. Только без повтора стража (<see cref="AnchorZeroGuardReplay"/>): повтор
+            // нужен пробам и корпусу ради состояния анализатора, а из памяти оно не восстанавливается.
+            this.preMaskKey = this.PreMaskKeyOf(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+            if (this.preMaskKey != null && this.backgroundMaskSuppressed)
+            {
+                FsaResult remembered;
+                if (this.preMask.TryGetValue(this.preMaskKey, out remembered))
+                {
+                    this.preMask.Remove(this.preMaskKey);
+                    this.preMaskKey = null;
+                    if (coreTrace != null)
+                    {
+                        coreTrace(string.Format(CultureInfo.InvariantCulture, "MEMO\tитог цепочки до маски взят из памяти\tопор {0}\tχ²/ndf Пуассона {1:R}",
+                                                remembered.ScaleAnchorsUsed, remembered.Chi2NdfPoisson));
+                    }
+
+                    return remembered;
+                }
+            }
+
             // (`AMBER142`, П204) таблица обращения калибровки — своя на разбор
             this.calibrationInverse = null;
             this.calibrationInverseRefused = null;
             this.backgroundGain = 1.0;
             this.backgroundOffset = 0.0;
             this.anchorWarmIn = null;
-            // (`T265` А, П207) кэш образов и суммирователь — свои на разбор
-            this.depositCarry.Clear();
-            this.correctionCarry.Clear();
-            this.carryRefs.Clear();
-            this.carrySummer = null;
-            this.carrySummerKey = null;
+            // (`T265` А, П207) кэш образов и суммирователь — свои на разбор; (`AMBER326`) сбрасываются
+            // у верхнего <see cref="Analyze"/>, а не здесь: заходов ядра у разбора до восьми (откат
+            // привязки, ширина отката, повтор без маски фона), и каждый строил те же гистограммы и
+            // поправки суммирователя заново. Ключ содержит всё, что читает их сборка, — от состояния
+            // захода (привязка, нуль, ширина отката, маска) она не зависит. Счётчики — по-прежнему на заход.
             this.DepositCarryHits = 0;
             this.DepositCarryMisses = 0;
             this.sumTransfer = null; // (`T265` Б, П211) готовые строки переноса — свои на разбор
@@ -11530,9 +11790,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                      FwhmCalibration fwhmCalibration, List<FsaComponent> originalLibrary,
                                      FsaEfficiency efficiency, double gain, double offset)
         {
+            Action<string> maskTrace = ProbeCoreTrace;
             if (!this.BackgroundExcessMask || this.backgroundMaskSuppressed || current == null || current.BackgroundOversubtracted == null)
             {
+                if (maskTrace != null)
+                {
+                    maskTrace(string.Format(CultureInfo.InvariantCulture, "MASK\tне ставилась ({0})\tопор {1}\tχ²/ndf Пуассона {2:R}",
+                        !this.BackgroundExcessMask ? "ключ выкл" : this.backgroundMaskSuppressed ? "снята" : current == null ? "разбора нет" : "красной строки нет",
+                        current != null ? current.ScaleAnchorsUsed : -1, current != null ? current.Chi2NdfPoisson : double.NaN));
+                }
+
                 return current;
+            }
+
+            // (`AMBER326`) итог цепочки «до маски» — повтору без маски (см. <see cref="AnalyzeCore"/>)
+            string rememberedKey = this.preMaskKey;
+            if (rememberedKey != null)
+            {
+                this.preMask[rememberedKey] = current;
             }
 
             bool knife = this.BackgroundBandKnife && !this.UntieBelowTrustFloorWhenStrongAbove
@@ -11562,9 +11837,59 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (masked == null || masked.Background == null || masked.Model == null)
             {
+                // (`AMBER326`) разбор без маски уходит наружу — в памяти ему не место (его дополнят вызывающие)
+                if (rememberedKey != null)
+                {
+                    this.preMask.Remove(rememberedKey);
+                }
+
+                if (maskTrace != null)
+                {
+                    maskTrace("MASK\tпроход с маской не состоялся");
+                }
+
                 this.Refusal = FsaRefusal.None;
                 this.RefusalNote = null;
                 return current;
+            }
+
+            if (maskTrace != null)
+            {
+                // предсказатели (замер `AMBER326`): условие (2) сторожа одно, без условия (1); опоры разбора без
+                // маски, чья линия лежит на участке маски
+                FsaResult flat = new FsaResult { ScaleAnchorsUsed = masked.ScaleAnchorsUsed, BackgroundMaskBands = masked.BackgroundMaskBands };
+                string second = MaskRefusal(flat, masked, originalLibrary);
+                int under = 0;
+                if (current.ScaleAnchors != null && masked.BackgroundMaskBands != null)
+                {
+                    foreach (FsaScaleAnchor anchor in current.ScaleAnchors)
+                    {
+                        foreach (FsaBandWarning band in masked.BackgroundMaskBands)
+                        {
+                            if (anchor.ModelKev >= band.LoKev && anchor.ModelKev <= band.HiKev)
+                            {
+                                under++;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                var bands = new StringBuilder();
+                if (masked.BackgroundMaskBands != null)
+                {
+                    foreach (FsaBandWarning band in masked.BackgroundMaskBands)
+                    {
+                        bands.AppendFormat(CultureInfo.InvariantCulture, " {0:F0}-{1:F0}", band.LoKev, band.HiKev);
+                    }
+                }
+
+                maskTrace(string.Format(CultureInfo.InvariantCulture,
+                    "MASK\tбез маски: опор {0}, χ²/ndf Пуассона {1:R}, нуль не сошёлся {2}\tс маской: опор {3}, χ²/ndf Пуассона {4:R}, нуль не сошёлся {5}, каналов {6}, участки{7}\tусловие (2): {8}\tопор под маской {9}\tсторож: {10}",
+                    current.ScaleAnchorsUsed, current.Chi2NdfPoisson, current.AnchorZeroJoint && current.AnchorUnsettled ? "да" : "нет",
+                    masked.ScaleAnchorsUsed, masked.Chi2NdfPoisson, masked.AnchorZeroJoint && masked.AnchorUnsettled ? "да" : "нет",
+                    masked.BackgroundMaskChannels, bands, second ?? "нет", under,
+                    (this.BackgroundMaskGuard ? MaskRefusal(current, masked, originalLibrary) : null) ?? "принята"));
             }
 
             // (`AMBER295`) СТОРОЖ МАСКИ, решение Amber 06.11.2026 вопросником, дословно: «Сторож маски (Рекомендую)».
@@ -11575,7 +11900,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 this.anchorWarmOut = current.AnchorWarmOut;
                 this.backgroundMaskRefusal = this.backgroundMaskRefusal ?? refused;
-                return current;
+                // ⛔ (`AMBER326`) ОТКАЗ СТОРОЖА ОБРЫВАЕТ ЗАХОД С МАСКОЙ СРАЗУ. Отказ хотя бы в одном проходе
+                // значит «весь разбор заново без маски» (<see cref="Analyze"/>, `AMBER295`), причина отдаётся
+                // ПЕРВАЯ — то есть после первого отказа всё, что заход с маской досчитывал (остальные заходы
+                // ядра со своими проходами маски), выбрасывалось целиком. На спектре постановки заход с маской
+                // стоил 70 % времени разбора при том, что отдавался заход без неё. Заход без маски от того,
+                // где оборван заход с маской, не зависит: каждый заход ядра ставит своё состояние сам (тот же
+                // довод, что у повтора стража нуля), кэши через заходы — по содержимому. Обрыв — исключением:
+                // переключатели состояния по пути наверх стоят в finally.
+                throw new BackgroundMaskRefusedSignal();
             }
 
             masked.AnchorWarmOut = this.anchorWarmOut;
@@ -11645,6 +11978,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<FsaComponent> originalLibrary,
             FsaEfficiency efficiency)
         {
+            System.Threading.Interlocked.Increment(ref oncePassCount);
             this.Refusal = FsaRefusal.None;
             this.RefusalNote = null;
             // (`S204`) рампа — состояние ЭТОГО разбора; отказ до её замера не
@@ -11791,6 +12125,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // <see cref="CreateCascadeSummer"/>: тем же зовут зоны ROI (`AMBER133`).
             // (`T265` А, П207) ключи содержимого — свои на проход: объекты новые
             this.carryComponentKeys.Clear();
+            this.correctionByRef.Clear();
             if (this.CascadeSumming && !this.cascadeRefusedFieldMatrix)
             {
                 // (`T265` А, П207) суммирователь — один на весь разбор, пока его
@@ -11806,6 +12141,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     this.cascade = this.CreateCascadeSummer();
                     this.correctionCarry.Clear();
                     this.depositCarry.Clear();
+                    this.windowCarry.Clear();
                     this.carrySummer = summerKey != null ? this.cascade : null;
                     this.carrySummerKey = summerKey;
                 }
@@ -18485,14 +18821,74 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<double[]> images = new List<double[]>(order.Count);
             List<double[]> tails = new List<double[]>(order.Count);
             double[] sum = new double[channels];
-            foreach (string name in order)
+            // (`AMBER326`) По матрице образы членов — тем же разделением, что у колонок фита
+            // (`BuildFitColumns`, `AMBER213`): гистограммы поглощения (`DepositOf`, общее состояние) —
+            // подряд и в прежнем порядке, уширение (чистая функция гистограммы, кроме кэша ядер) —
+            // параллельно, каждое в свою ячейку; сумма по каналам — после, тем же порядком членов.
+            // Прежде члены шли подряд целиком: при равновесии ряда это 5 с последовательного счёта
+            // на разбор Th-232 AS 80x80. Без матрицы — прежний цикл.
+            int memberCount = order.Count;
+            var memberImages = new double[memberCount][];
+            var memberTailImages = new double[memberCount][];
+            if (this.ResponseMatrix != null)
             {
-                double[] memberTail;
-                double[] image = this.MemberTemplate(parts[name], calibration, fwhmCalibration,
-                                                     efficiency, gain, offset, chLo, chHi, channels,
-                                                     out memberTail);
+                var memberDeposits = new Deposit[memberCount];
+                var byMatrix = new bool[memberCount];
+                for (int m = 0; m < memberCount; m++)
+                {
+                    FsaComponent part = parts[order[m]];
+                    if (!part.WeightsAreFinal)
+                    {
+                        byMatrix[m] = true;
+                        memberDeposits[m] = this.DepositOf(part, calibration, fwhmCalibration, channels);
+                    }
+                }
+
+                double memberBin = this.ResponseMatrix.BinKev;
+                FsaParallel.For(memberCount, m =>
+                {
+                    Deposit deposit = memberDeposits[m];
+                    if (!byMatrix[m] || deposit == null)
+                    {
+                        return;
+                    }
+
+                    double[] image = this.BroadenResponseDeposit(deposit.Values, calibration, fwhmCalibration,
+                                                                 memberBin, gain, offset, chLo, chHi, channels);
+                    if (image != null && deposit.Tail != null)
+                    {
+                        memberTailImages[m] = this.BroadenResponseDeposit(deposit.Tail, calibration, fwhmCalibration,
+                                                                     memberBin, gain, offset, chLo, chHi, channels);
+                    }
+
+                    memberImages[m] = image;
+                });
+
+                for (int m = 0; m < memberCount; m++)
+                {
+                    if (!byMatrix[m])
+                    {
+                        memberImages[m] = this.MemberTemplate(parts[order[m]], calibration, fwhmCalibration,
+                                                              efficiency, gain, offset, chLo, chHi, channels,
+                                                              out memberTailImages[m]);
+                    }
+                }
+            }
+            else
+            {
+                for (int m = 0; m < memberCount; m++)
+                {
+                    memberImages[m] = this.MemberTemplate(parts[order[m]], calibration, fwhmCalibration,
+                                                          efficiency, gain, offset, chLo, chHi, channels,
+                                                          out memberTailImages[m]);
+                }
+            }
+
+            for (int m = 0; m < memberCount; m++)
+            {
+                double[] image = memberImages[m];
                 images.Add(image);
-                tails.Add(memberTail);
+                tails.Add(memberTailImages[m]);
                 if (image == null)
                 {
                     continue;
@@ -18503,6 +18899,62 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     sum[i] += image[i];
                 }
             }
+
+            // ⛔ (`AMBER326`) СЛОИ, ВЫЛЕТЫ И ОБРАТНОЕ РАССЕЯНИЕ ЧЛЕНОВ — подготовка подряд, уширение параллельно.
+            // Цикл ниже строил их по члену на вызывающем потоке (профиль: 0.9 с уширения на разбор спектра
+            // постановки). Подготовка (гистограммы, поправки суммирователя, перенос матрицы — общее состояние)
+            // идёт подряд в порядке членов; уширение — чистая функция подготовленного, каждое в свою ячейку;
+            // раздача долей и сборка строк — ниже, прежним порядком членов.
+            var memberPlans = new LayerPlan[memberCount];
+            for (int m = 0; m < memberCount; m++)
+            {
+                if (images[m] != null && this.HasLayerParts(parts[order[m]]))
+                {
+                    memberPlans[m] = this.PrepareLayerParts(parts[order[m]], calibration, fwhmCalibration, channels);
+                }
+            }
+
+            var memberSums = new double[memberCount][];
+            var memberLayers = new double[memberCount][][];
+            FsaParallel.For(memberCount, m =>
+            {
+                if (memberPlans[m] != null)
+                {
+                    this.BroadenLayerParts(memberPlans[m], calibration, fwhmCalibration, gain, offset,
+                                           chLo, chHi, channels, out memberSums[m], out memberLayers[m]);
+                }
+            });
+
+            var escapePlans = new SubLayerPlan[memberCount];
+            var humpPlans = new SubLayerPlan[memberCount];
+            for (int m = 0; m < memberCount; m++)
+            {
+                if (memberLayers[m] != null)
+                {
+                    escapePlans[m] = this.PrepareEscapePeaks(parts[order[m]], amplitude, calibration, fwhmCalibration,
+                                                             gain, offset, channels);
+                    humpPlans[m] = this.PrepareBackscatter(parts[order[m]], amplitude, calibration, fwhmCalibration,
+                                                           gain, offset, chLo, chHi, channels);
+                }
+            }
+
+            var memberEscapes = new double[memberCount][];
+            var memberHumps = new double[memberCount][];
+            FsaParallel.For(memberCount, m =>
+            {
+                if (escapePlans[m] != null)
+                {
+                    memberEscapes[m] = this.BroadenSubLayer(escapePlans[m], calibration, fwhmCalibration,
+                                                            gain, offset, chLo, chHi, channels);
+                }
+
+                if (humpPlans[m] != null)
+                {
+                    memberHumps[m] = this.BroadenSubLayer(humpPlans[m], calibration, fwhmCalibration,
+                                                          gain, offset, chLo, chHi, channels);
+                    FinishBackscatter(humpPlans[m].HumpLines, amplitude, memberHumps[m]);
+                }
+            });
 
             for (int m = 0; m < order.Count; m++)
             {
@@ -18522,11 +18974,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 FsaComponent source = parts[order[m]];
-                double[] sumOnly;
-                double[][] memberChannels;
-                this.BuildLayerParts(source, calibration, fwhmCalibration,
-                                     gain, offset, chLo, chHi, channels,
-                                     out sumOnly, out memberChannels);
+                double[] sumOnly = memberSums[m];
+                double[][] memberChannels = memberLayers[m];
 
                 // ⛔ ПОДСЛОЙ СУММ ЧЛЕНА — ДОЛЯ ЕГО СОБСТВЕННОЙ ЛЕНТЫ, а не
                 // отдельно посчитанная кривая (найдено 10.09.2026 проверкой
@@ -18646,10 +19095,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // отношением, что подслой сумм выше (довод там же); только показ
                 if (memberChannels != null)
                 {
-                    double[] escapeOnly;
-                    List<FsaEscapeLine> escapeLines;
-                    this.EscapePeaksOf(source, amplitude, calibration, fwhmCalibration, gain, offset,
-                                       chLo, chHi, channels, out escapeOnly, out escapeLines);
+                    double[] escapeOnly = memberEscapes[m];
+                    List<FsaEscapeLine> escapeLines = escapePlans[m] != null ? escapePlans[m].EscapeLines : null;
                     if (escapeOnly != null)
                     {
                         for (int i = 0; i < channels; i++)
@@ -18665,10 +19112,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     member.EscapeLines = escapeLines;
 
                     // (`AMBER311`) обратное рассеяние члена: доля его ленты, как у вылетов.
-                    double[] humpOnly;
-                    List<FsaBackscatterLine> humpLines;
-                    this.BackscatterOf(source, amplitude, calibration, fwhmCalibration, gain, offset,
-                                       chLo, chHi, channels, out humpOnly, out humpLines);
+                    double[] humpOnly = memberHumps[m];
+                    List<FsaBackscatterLine> humpLines = humpPlans[m] != null ? humpPlans[m].HumpLines : null;
                     if (humpOnly != null)
                     {
                         for (int i = 0; i < channels; i++)
@@ -22222,13 +22667,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static double[] SmoothVariable(double[] x, double[] sigma, int lo, int hi)
         {
             double[] result = new double[x.Length];
-            for (int i = lo; i <= hi; i++)
+            // (`AMBER326`) каналы независимы (каждый пишет только свою ячейку, внутренняя сумма — прежним
+            // порядком): параллельно, числа те же до бита. Прежде — 1 с последовательного счёта на разбор
+            // Th-232 AS 80x80 (мера усиления и нуля фона, два сглаживания на меру).
+            FsaParallel.For(hi - lo + 1, n =>
             {
+                int i = lo + n;
                 double s = sigma[i];
                 if (!(s > 0.3))
                 {
                     result[i] = x[i];
-                    continue;
+                    return;
                 }
 
                 int half = (int)Math.Ceiling(3.0 * s);
@@ -22243,7 +22692,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 result[i] = norm > 0.0 ? sum / norm : x[i];
-            }
+            });
 
             return result;
         }
@@ -22635,6 +23084,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return CutTailByMask(deposit, part, channelParts, inWindow);
             }
 
+            // (`AMBER326`) Маска окон — через все циклы вершин верхнего разбора (<see cref="windowCarry"/>):
+            // ключ — тот же, что у гистограммы поглощения, плюс длина маски.
+            string windowKey = null;
+            if (windowsOf != null && this.DepositCarry)
+            {
+                string depositKey = this.DepositKey(component, calibration, fwhmCalibration, channels);
+                if (depositKey != null)
+                {
+                    int carried = Math.Min(floorBins, deposit.Length);
+                    windowKey = depositKey + "|w" + carried.ToString(CultureInfo.InvariantCulture);
+                    if (this.windowCarry.TryGetValue(windowKey, out inWindow))
+                    {
+                        windowsOf[carried] = inWindow;
+                        return CutTailByMask(deposit, part, channelParts, inWindow);
+                    }
+                }
+            }
+
             // Окна линий в кэВ: линия чуть выше порога свешивает левое плечо
             // под порог, поэтому окна считаются для всех линий, а не только
             // для лежащих ниже.
@@ -22799,6 +23266,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 windowsOf[limit] = inWindow;
+                if (windowKey != null)
+                {
+                    this.windowCarry[windowKey] = inWindow;
+                }
+
                 return CutTailByMask(deposit, part, channelParts, inWindow);
             }
 
@@ -22867,6 +23339,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// начале каждого прохода разбора.
         /// </summary>
         Dictionary<FsaComponent, Dictionary<int, bool[]>> splitWindows;
+
+        /// <summary>
+        /// (`AMBER326`) Маски окон ножа хвоста — через ВСЕ циклы вершин одного верхнего
+        /// <see cref="Analyze"/>: <see cref="splitWindows"/> живёт один цикл вершин и находит маску по
+        /// ссылке на компонент, а циклов у разбора десятки (проходы привязки × заходы ядра), и каждый
+        /// считал окна всех линий каждого хозяина заново с откликом вылета каждой линии (профиль Th-232
+        /// AS 80x80: 1.1 с последовательного счёта на разбор). Ключ — ключ гистограммы поглощения
+        /// (<see cref="DepositKey"/>: содержимое компонента и всё состояние, которое читает нож, — он же
+        /// режет хвост самой гистограммы) и длина маски. Маска только читается
+        /// (<see cref="CutTailByMask"/>). Сбрасывается вместе с кэшем гистограмм.
+        /// </summary>
+        readonly Dictionary<string, bool[]> windowCarry = new Dictionary<string, bool[]>(StringComparer.Ordinal);
 
         /// <summary>
         /// (`AMBER213`, П241) Хвост ножа по готовой маске — тело прежнего цикла
@@ -23114,13 +23598,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return this.cascade.For(component);
             }
 
+            // (`AMBER326`) внутри прохода — по ссылке на компонент: ключ содержимого ряда — десятки килобайт
+            // строки, и каждый поиск по нему считал её хеш заново (профиль: 0.3 с на разбор в одних синих каналах)
             FsaCascadeSummer.Correction correction;
+            if (this.correctionByRef.TryGetValue(component, out correction))
+            {
+                return correction;
+            }
+
             if (!this.correctionCarry.TryGetValue(key, out correction))
             {
                 correction = this.cascade.For(component);
                 this.correctionCarry[key] = correction;
             }
 
+            this.correctionByRef[component] = correction;
             return correction;
         }
 
@@ -23971,23 +24463,62 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             curve = null;
             lines = null;
+            SubLayerPlan plan = this.PrepareEscapePeaks(component, amplitude, calibration, fwhmCalibration,
+                                                        gain, offset, channels);
+            if (plan == null)
+            {
+                return;
+            }
+
+            curve = this.BroadenSubLayer(plan, calibration, fwhmCalibration, gain, offset, chLo, chHi, channels);
+            lines = plan.EscapeLines;
+        }
+
+        /// <summary>
+        /// (`AMBER326`) Подслой компонента до уширения: гистограмма ленты, часть гистограммы, шаг и строки
+        /// отчёта. Собирается подряд (общее состояние разбора), уширяется отдельно
+        /// (<see cref="BroadenSubLayer"/>) — это можно вести параллельно.
+        /// </summary>
+        sealed class SubLayerPlan
+        {
+            public double[] Values;
+            public double[] Part;
+            public double Bin;
+            public List<FsaEscapeLine> EscapeLines;
+            public List<FsaBackscatterLine> HumpLines;
+        }
+
+        /// <summary>(`AMBER326`) Уширение подслоя ядром ленты — вторая половина <see cref="EscapePeaksOf"/> и <see cref="BackscatterOf"/>.</summary>
+        double[] BroadenSubLayer(SubLayerPlan plan, EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                                 double gain, double offset, int chLo, int chHi, int channels)
+        {
+            double[] curve;
+            this.BroadenResponseDeposit(plan.Values, plan.Part, calibration, fwhmCalibration,
+                                        plan.Bin, gain, offset, chLo, chHi, channels, out curve);
+            return curve;
+        }
+
+        /// <summary>(`AMBER326`) Последовательная половина <see cref="EscapePeaksOf"/>; null — подслоя нет.</summary>
+        SubLayerPlan PrepareEscapePeaks(FsaComponent component, double amplitude, EnergyCalibration calibration,
+                                        FwhmCalibration fwhmCalibration, double gain, double offset, int channels)
+        {
             EfficiencyMaker.ResponseMatrix matrix = this.ResponseMatrix;
             if (!this.EscapeAndAnnihilation || matrix == null || !matrix.HasChannels || component == null
                 || component.WeightsAreFinal || component.Kind == FsaComponentKind.Nuisance || !(amplitude > 0.0))
             {
-                return;
+                return null;
             }
 
             double bin = matrix.BinKev;
             if (!(bin > 0.0))
             {
-                return;
+                return null;
             }
 
             Deposit deposit = this.DepositOf(component, calibration, fwhmCalibration, channels);
             if (deposit == null || deposit.Values == null)
             {
-                return;
+                return null;
             }
 
             FsaCascadeSummer.Correction correction = this.cascade != null ? this.CorrectionOf(component) : null;
@@ -24118,12 +24649,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (found.Count == 0)
             {
-                return;
+                return null;
             }
 
-            this.BroadenResponseDeposit(deposit.Values, part, calibration, fwhmCalibration,
-                                        bin, gain, offset, chLo, chHi, channels, out curve);
-            lines = found;
+            return new SubLayerPlan { Values = deposit.Values, Part = part, Bin = bin, EscapeLines = found };
         }
 
         /// <summary>
@@ -24147,18 +24676,66 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             curve = null;
             lines = null;
+            SubLayerPlan plan = this.PrepareBackscatter(component, amplitude, calibration, fwhmCalibration,
+                                                        gain, offset, chLo, chHi, channels);
+            if (plan == null)
+            {
+                return;
+            }
+
+            curve = this.BroadenSubLayer(plan, calibration, fwhmCalibration, gain, offset, chLo, chHi, channels);
+            FinishBackscatter(plan.HumpLines, amplitude, curve);
+            lines = plan.HumpLines;
+        }
+
+        /// <summary>(`AMBER326`) Подписи горбов приводятся к нарисованному подслою — хвост <see cref="BackscatterOf"/> после уширения.</summary>
+        static void FinishBackscatter(List<FsaBackscatterLine> found, double amplitude, double[] curve)
+        {
+            // Сумма подписей равна подслою: уширение идёт группами и порогом общей ленты, и часть строки в
+            // него не попадает, поэтому подписи приведены к нарисованному.
+            double drawn = 0.0;
+            if (curve != null)
+            {
+                foreach (double v in curve)
+                {
+                    drawn += v;
+                }
+            }
+
+            double named = 0.0;
+            foreach (FsaBackscatterLine hump in found)
+            {
+                named += hump.Counts;
+            }
+
+            if (named > 0.0)
+            {
+                double toDrawn = amplitude * drawn / named;
+                foreach (FsaBackscatterLine hump in found)
+                {
+                    hump.Counts *= toDrawn;
+                }
+            }
+
+        }
+
+        /// <summary>(`AMBER326`) Последовательная половина <see cref="BackscatterOf"/>; null — подслоя нет.</summary>
+        SubLayerPlan PrepareBackscatter(FsaComponent component, double amplitude, EnergyCalibration calibration,
+                                        FwhmCalibration fwhmCalibration, double gain, double offset,
+                                        int chLo, int chHi, int channels)
+        {
             EfficiencyMaker.ResponseMatrix matrix = this.ResponseMatrix;
             if (!this.Backscatter || matrix == null || !matrix.HasChannels || !matrix.HasBackscatter || component == null
                 || component.WeightsAreFinal || component.Kind == FsaComponentKind.Nuisance || !(amplitude > 0.0))
             {
-                return;
+                return null;
             }
 
             double bin = matrix.BinKev;
             Deposit deposit = bin > 0.0 ? this.DepositOf(component, calibration, fwhmCalibration, channels) : null;
             if (deposit == null || deposit.Values == null)
             {
-                return;
+                return null;
             }
 
             FsaCascadeSummer.Correction correction = this.cascade != null ? this.CorrectionOf(component) : null;
@@ -24280,39 +24857,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (found.Count == 0)
             {
-                return;
+                return null;
             }
 
-            this.BroadenResponseDeposit(deposit.Values, part, calibration, fwhmCalibration,
-                                        bin, gain, offset, chLo, chHi, channels, out curve);
-
-            // Сумма подписей равна подслою: уширение идёт группами и порогом общей ленты, и часть строки в
-            // него не попадает, поэтому подписи приведены к нарисованному.
-            double drawn = 0.0;
-            if (curve != null)
-            {
-                foreach (double v in curve)
-                {
-                    drawn += v;
-                }
-            }
-
-            double named = 0.0;
-            foreach (FsaBackscatterLine hump in found)
-            {
-                named += hump.Counts;
-            }
-
-            if (named > 0.0)
-            {
-                double toDrawn = amplitude * drawn / named;
-                foreach (FsaBackscatterLine hump in found)
-                {
-                    hump.Counts *= toDrawn;
-                }
-            }
-
-            lines = found;
+            return new SubLayerPlan { Values = deposit.Values, Part = part, Bin = bin, HumpLines = found };
         }
 
         /// <summary>
@@ -24329,6 +24877,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// каналы обязаны быть частями ОДНОЙ ленты, а это верно только когда
         /// группы, порог и ядро у них общие с ней и между собой.
         /// </summary>
+        /// <summary>(`AMBER326`) Есть ли у компонента части ленты — условие входа <see cref="BuildLayerParts"/>.</summary>
+        bool HasLayerParts(FsaComponent component)
+        {
+            return this.ResponseMatrix != null && component != null && !component.WeightsAreFinal
+                   && this.ResponseMatrix.BinKev > 0.0;
+        }
+
         void BuildLayerParts(FsaComponent component, EnergyCalibration calibration,
                              FwhmCalibration fwhmCalibration,
                              double gain, double offset, int chLo, int chHi, int channels,
@@ -24336,13 +24891,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             sumCurve = null;
             channelCurves = null;
-            if (this.ResponseMatrix == null || component == null || component.WeightsAreFinal)
-            {
-                return;
-            }
-
-            double bin = this.ResponseMatrix.BinKev;
-            if (!(bin > 0.0))
+            if (!this.HasLayerParts(component))
             {
                 return;
             }
