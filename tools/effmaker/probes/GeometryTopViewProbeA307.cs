@@ -43,6 +43,16 @@ namespace GeometryTopViewProbeA307
     /// Положительный контроль: эта же проба, собранная против сборки до `AMBER324`, обязана отказать
     /// (журнал `handover/handover-2026-11-08-a324.md`), и синтетика `TurnedControl`.
     ///
+    /// (12) `AMBER325`, Amber 11.11.2026, дословно: «Запиши задачу, нужно переделать скетч на From detector side.»; решения
+    /// вопросником того же дня, дословно: «Сделай в скетче CheckBox - с какой стороны показывать образец. С верху или с низу.
+    /// Пускай пользователь решает.», «Со стороны детектора, помнить в настройках (Рекомендую)», «Штрихом, как в виде со стороны
+    /// пробы (Рекомендую)», «Только «Источник» (Рекомендую)». На «Источнике» по умолчанию вид со стороны детектора: прибор
+    /// поверх, закрытое им — штрихом (банка ⌀40 на AS 80x80: в центре кристалл, контур банки штриховой; трапеция — основание 2
+    /// сверху; точка — штриховой кружок); галка «Со стороны пробы» у заголовка — вид (11); на «Детекторе» и «Защите» галки нет;
+    /// выбор — в главном конфиге (`GeometrySketchPlanFromSample`): пишется галкой, читается при следующем открытии, старый
+    /// конфиг без поля — со стороны детектора. Покрытие и подписи — в обоих положениях галки. Новые члены берутся отражением:
+    /// проба собирается и против сборки до `AMBER325` — и обязана там отказать (журнал `handover/handover-2026-11-11-a325.md`).
+    ///
     /// Ожидание: «ВСЕ СОШЛИСЬ», код 0; есть расхождение: код 1.
     /// Положительный контроль всей пробы: мутанты, журнал `handover/handover-2026-11-05-design-gdml.md`.
     /// </summary>
@@ -240,6 +250,49 @@ namespace GeometryTopViewProbeA307
             };
             s.SetModel(m);
             return s;
+        }
+
+        /// <summary>(`AMBER325`) Эскиз «Источника» в заданном положении галки: true — со стороны пробы.</summary>
+        static GeometrySketch Sketch(GeometryModel m, Tab tab, Size size, bool fromSample)
+        {
+            GeometrySketch s = Sketch(m, tab, size);
+            if (fromSample)
+            {
+                SetFromSample(s, true);
+            }
+
+            return s;
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER325`) Сторона второго вида — отражением: проба собирается и против сборки до правки
+        // ------------------------------------------------------------------
+
+        static readonly PropertyInfo FromSampleProperty = typeof(GeometrySketch).GetProperty("PlanFromSample", Any);
+
+        /// <summary>Нет свойства (сборка до `AMBER325`) — вид всегда со стороны пробы, как сделал `AMBER324`.</summary>
+        static bool FromSample(GeometrySketch s)
+        {
+            return FromSampleProperty == null || (bool)FromSampleProperty.GetValue(s);
+        }
+
+        static void SetFromSample(GeometrySketch s, bool value)
+        {
+            if (FromSampleProperty != null)
+            {
+                FromSampleProperty.SetValue(s, value);
+            }
+        }
+
+        static Rectangle CheckBounds(GeometrySketch s)
+        {
+            PropertyInfo p = typeof(GeometrySketch).GetProperty("PlanSideCheckBounds", Any);
+            return p == null ? Rectangle.Empty : (Rectangle)p.GetValue(s);
+        }
+
+        static string Res(string name)
+        {
+            return Resources.ResourceManager.GetString(name, Resources.Culture);
         }
 
         static GeometrySketch.SketchLabel[] In(GeometrySketch s, Rectangle panel)
@@ -562,10 +615,10 @@ namespace GeometryTopViewProbeA307
             List<string> report = new List<string>();
             int total = 0, noPlan = 0, shieldTab = 0, hiddenMain = 0, hiddenShield = 0, hiddenTight = 0, leaderCross = 0, leaderCrossShield = 0;
             Dictionary<int, int> levels = new Dictionary<int, int>();
-            Action<string, Tab, Func<GeometryModel>, Size, bool> one = (name, tab, make, size, ordered) =>
+            Action<string, Tab, Func<GeometryModel>, Size, bool, bool> one = (name, tab, make, size, ordered, fromSample) =>
             {
-                string where = name + " " + tab + " " + size.Width + "×" + size.Height;
-                GeometrySketch s = Sketch(make(), tab, size);
+                string where = name + " " + tab + (fromSample ? " (со стороны пробы)" : "") + " " + size.Width + "×" + size.Height;
+                GeometrySketch s = Sketch(make(), tab, size, fromSample);
                 using (Paint(s))
                 {
                     // (`AMBER324`) Полка сбоку через чужую размерную: при разнесённых рядах число каждого ряда встаёт у своей линии.
@@ -640,6 +693,13 @@ namespace GeometryTopViewProbeA307
                         int level = s.DimensionLevel, seen;
                         levels.TryGetValue(level, out seen);
                         levels[level] = seen + 1;
+                        // (`AMBER325`, второй заход, вердикт `crit325` п. 5) Уровень 0 — чертёж без единого размера, главные
+                        // тоже скрыты, а «главных скрыто» считает только скрытые наложением. На заказанных полях его быть не должно.
+                        if (level == 0)
+                        {
+                            LevelZero++;
+                            Console.WriteLine("  уровень 0 (без размеров): " + where + ", чисел " + s.DimensionNumbers.Length);
+                        }
                         if (b.IsEmpty)
                         {
                             noPlan++;
@@ -714,17 +774,21 @@ namespace GeometryTopViewProbeA307
                 bool ordered = FieldSizes.Contains(size);
                 foreach (var crystal in Crystals)
                 {
-                    one(crystal.Key, Tab.Detector, crystal.Value, size, ordered);
+                    one(crystal.Key, Tab.Detector, crystal.Value, size, ordered, false);
                     foreach (var source in Sources)
                     {
                         KeyValuePair<string, Func<GeometryModel>> c = crystal;
                         KeyValuePair<string, Func<GeometryModel, GeometryModel>> z = source;
-                        one(c.Key + " + " + z.Key, Tab.Source, () => z.Value(c.Value()), size, ordered);
+                        // (`AMBER325`) Оба положения галки: со стороны детектора (умолчание) и со стороны пробы.
+                        foreach (bool fromSample in new[] { false, true })
+                        {
+                            one(c.Key + " + " + z.Key, Tab.Source, () => z.Value(c.Value()), size, ordered, fromSample);
+                        }
                     }
 
                     KeyValuePair<string, Func<GeometryModel>> c2 = crystal;
-                    one(c2.Key + " в защите, точка", Tab.Shield, () => Shielded(Point(c2.Value())), size, ordered);
-                    one(c2.Key + " в защите, маринелли", Tab.Shield, () => Shielded(Marinelli(c2.Value())), size, ordered);
+                    one(c2.Key + " в защите, точка", Tab.Shield, () => Shielded(Point(c2.Value())), size, ordered, false);
+                    one(c2.Key + " в защите, маринелли", Tab.Shield, () => Shielded(Marinelli(c2.Value())), size, ordered, false);
                 }
             }
 
@@ -739,6 +803,7 @@ namespace GeometryTopViewProbeA307
             }
 
             Check(noPlan == 0, "без плана чертежей " + noPlan);
+            Check(LevelZero == 0, "уровень 0 (без размеров) на заказанных полях: чертежей " + LevelZero);
             Check(hiddenMain == 0, "главных размеров скрыто " + hiddenMain);
             Console.WriteLine("числа покрытия (`AMBER324`): всего " + NumbersSeen + ", повёрнутых " + NumbersTurned + "; полка сбоку через чужую размерную " + SideShelfCross);
             Console.WriteLine("  полка сбоку через чужую размерную по полям: " + string.Join(", ", SideShelfBySize.OrderBy(x => x.Key).Select(x => x.Key + " " + x.Value)));
@@ -746,6 +811,8 @@ namespace GeometryTopViewProbeA307
             // (`AMBER324`, «Разнести ряды») В настоящих полях окна (от 280×367) число каждого ряда сбоку встаёт у своей линии,
             // полка через чужую размерную — ноль. Где тело с разнесёнными рядами мельче порога, второй проход раскладки
             // возвращает прежний шаг рядов (`compactRows`), и полки там допустимы: счёт печатается, заслоном не служит.
+            // (`AMBER325`) Галка в строке заголовка раскладку «Источника» не трогает: второго прохода там нет (вердикт `crit325`).
+            Check(!CompactBySize.Keys.Any(k => k.StartsWith("Source", StringComparison.Ordinal)), "второй проход раскладки на «Источнике»");
             Check(SideShelfCrossReal == 0, "полка сбоку через чужую размерную в настоящих полях: " + SideShelfCrossReal);
             Console.WriteLine("  второй проход: чертежей " + CompactDrawings + ", главных скрыто " + CompactMainLost + ", главных на полке " + CompactMainShelf);
             Check(CompactMainLost == 0, "второй проход: главных скрыто " + CompactMainLost);
@@ -761,7 +828,7 @@ namespace GeometryTopViewProbeA307
             Check(NumbersSeen > 0 && NumbersTurned == 0, "повёрнутых чисел " + NumbersTurned + " из " + NumbersSeen);
         }
 
-        static int NumbersSeen, NumbersTurned, SideShelfCross, SideShelfCrossReal;
+        static int NumbersSeen, NumbersTurned, SideShelfCross, SideShelfCrossReal, LevelZero;
 
         /// <summary>(`AMBER324`) Второй проход раскладки; у сборки до правки поля нет — значит нет.</summary>
         static bool Compact(GeometrySketch s)
@@ -1081,38 +1148,50 @@ namespace GeometryTopViewProbeA307
             return string.Join(" ", In(s, panel).OrderBy(l => l.Bounds.Top).Select(l => l.Text));
         }
 
-        static void Captions(string culture, string facing, string topTitle, string sideTitle, string depthWord)
+        static void Captions(string culture, string facing, string topTitle, string detectorTitle, string checkText, string sideTitle, string depthWord)
         {
             Resources.Culture = new CultureInfo(culture);
             Check(Resources.EfficiencySketchFacingSide == facing, culture + ": строка разворота: " + Resources.EfficiencySketchFacingSide);
+            // (`AMBER325`) Строки нового вида и галки — по именам ключей: у сборки до правки их нет, и это отказ.
+            Check(Res("EfficiencySketchDetectorSideView") == detectorTitle, culture + ": заголовок вида со стороны детектора: " + Res("EfficiencySketchDetectorSideView"));
+            Check(Res("EfficiencySketchFromSampleCheck") == checkText, culture + ": подпись галки: " + Res("EfficiencySketchFromSampleCheck"));
             foreach (Tab tab in new[] { Tab.Detector, Tab.Source })
             {
+                foreach (bool fromSample in tab == Tab.Source ? new[] { false, true } : new[] { false })
                 foreach (Size size in FieldSizes.Concat(MoreSizes))
                 {
-                    string where = culture + " " + tab + " " + size.Width + ": ";
-                    GeometrySketch s = Sketch(Point(Nano(GeometryDetectorFacing.Side)), tab, size);
+                    string where = culture + " " + tab + (fromSample ? " (со стороны пробы)" : "") + " " + size.Width + ": ";
+                    bool fromDetector = tab == Tab.Source && !fromSample;
+                    GeometrySketch s = Sketch(Point(Nano(GeometryDetectorFacing.Side)), tab, size, fromSample);
                     using (Paint(s))
                     {
                         string text = s.TopViewBounds.IsEmpty ? string.Join(" ", s.Labels.Select(l => l.Text)) : Joined(s, s.TopViewBounds);
                         if (!s.TopViewBounds.IsEmpty)
                         {
-                            Check(text.StartsWith(topTitle, StringComparison.Ordinal), where + "заголовок плана: " + text);
+                            string title = fromDetector ? detectorTitle : topTitle;
+                            Check(text.StartsWith(title, StringComparison.Ordinal), where + "заголовок плана: " + text);
                             Check(Joined(s, s.SideViewBounds).StartsWith(sideTitle, StringComparison.Ordinal), where + "заголовок разреза");
+                            // (`AMBER325`) Галка — на «Источнике», сразу под заголовком плана; на «Детекторе» её нет.
+                            Check(text.Contains(checkText) == (tab == Tab.Source), where + "галка «" + checkText + "»: " + text);
                         }
 
                         Check(text.Contains(facing), where + "нет подписи разворота: " + text);
                         Check(text.Contains(depthWord), where + "нет глубины: " + text);
-                        // (`AMBER324`) Точка ничего не закрывает: о штрихе ни слова.
-                        Check(!text.Contains(HiddenHint), where + "пояснение о штрихе без штриха: " + text);
+                        // (`AMBER324`) Со стороны пробы точка ничего не закрывает: о штрихе ни слова. (`AMBER325`) Со стороны детектора
+                        // прибор закрывает точку — штриховой кружок, и пояснение о штрихе есть, где пояснение пишется вовсе.
+                        bool hintShown = !s.TopViewBounds.IsEmpty && s.TopViewBounds.Width >= 300;
+                        Check(text.Contains(HiddenHint) == (fromDetector && hintShown), where + "пояснение о штрихе: " + text);
                     }
 
-                    GeometrySketch c = Sketch(Cylinder(Nano(GeometryDetectorFacing.Side)), tab, size);
+                    GeometrySketch c = Sketch(Cylinder(Nano(GeometryDetectorFacing.Side)), tab, size, fromSample);
                     using (Paint(c))
                     {
                         string text = c.TopViewBounds.IsEmpty ? "" : Joined(c, c.TopViewBounds);
                         if (size.Width >= 798 && !c.TopViewBounds.IsEmpty)
                         {
-                            Check(text.Contains(HiddenHint) == (tab == Tab.Source), where + "пояснение о штрихе: " + text);
+                            // Банка ⌀90 шире грани бруска: со стороны пробы она закрывает прибор (штрих), со стороны детектора
+                            // прибор её контура не закрывает (штриха нет).
+                            Check(text.Contains(HiddenHint) == (tab == Tab.Source && fromSample), where + "пояснение о штрихе: " + text);
                         }
                     }
 
@@ -1144,9 +1223,9 @@ namespace GeometryTopViewProbeA307
         // (7) Источник в плане: числа и пиксели
         // ------------------------------------------------------------------
 
-        static GeometrySketch.SketchLabel[] Top(GeometryModel m, out GeometrySketch s)
+        static GeometrySketch.SketchLabel[] Top(GeometryModel m, out GeometrySketch s, bool fromSample = true)
         {
-            s = Sketch(m, Tab.Source, new Size(798, 807));
+            s = Sketch(m, Tab.Source, new Size(798, 807), fromSample);
             using (Paint(s))
             {
             }
@@ -1213,30 +1292,112 @@ namespace GeometryTopViewProbeA307
         /// </summary>
         static void DashedRing(Bitmap b, PointF c, double r, string what, bool dashed)
         {
+            int dark = DarkOnRing(b, c, r);
+            double share = dark / 720.0;
+            Console.WriteLine("  " + what + ": тёмных " + dark + " из 720");
+            Check(dashed ? share > 0.35 && share < 0.85 : share >= 0.95, what + (dashed ? " не штриховой" : " не сплошной") + ": тёмных " + dark + " из 720");
+        }
+
+        /// <summary>
+        /// (`AMBER325`, второй заход, вердикт `crit325` п. 3) Сколько из 720 направлений несут линию на окружности радиуса r.
+        /// Линия — по КОНТРАСТУ, а не по абсолютной яркости: самая тёмная точка полосы ±1.5 точки поперёк темнее фона хотя бы на
+        /// 30 (сумма RGB). Фон — по каждую сторону самая светлая из точек на 3, 4, 5 точек от окружности (тонкая чужая линия рядом
+        /// фон не портит), из двух сторон — более тёмная: граница двух заливок без линии (проба 374 и стенка 611) линией не мерится.
+        /// Прежний абсолютный порог (сумма < 330) на светлом (холст, стенка ~615) мерил сплошную линию между двумя точками растра
+        /// штриховой (полутон ~355), а на тёмном (проба 374, кристалл 391) мог бы мерить линию где её нет. Положительный контроль
+        /// на синтетике обоих фонов — `DashControl`. Почему 30: линия 1.2 точки хоть одной точке растра даёт не меньше 0.6 своей
+        /// краски (0.6·96 + 0.4·611 = 302 при фоне 374 у границы проба/стенка), а сглаживание границы двух заливок темнее более
+        /// тёмной из них не бывает; при 60 сплошная по границе проба/стенка мерилась 678–681 из 720.
+        /// </summary>
+        static int DarkOnRing(Bitmap b, PointF c, double r)
+        {
+            Func<double, double, int> sum = (rr, a) =>
+            {
+                int x = (int)Math.Round(c.X + rr * Math.Cos(a)), y = (int)Math.Round(c.Y + rr * Math.Sin(a));
+                if (x < 0 || y < 0 || x >= b.Width || y >= b.Height)
+                {
+                    return 765;
+                }
+
+                Color p = b.GetPixel(x, y);
+                return p.R + p.G + p.B;
+            };
             int dark = 0;
             for (int i = 0; i < 720; i++)
             {
                 double a = i * Math.PI / 360.0;
-                bool hit = false;
-                foreach (double dr in new[] { -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5 })
-                {
-                    int x = (int)Math.Round(c.X + (r + dr) * Math.Cos(a)), y = (int)Math.Round(c.Y + (r + dr) * Math.Sin(a));
-                    if (x >= 0 && y >= 0 && x < b.Width && y < b.Height)
-                    {
-                        Color p = b.GetPixel(x, y);
-                        hit |= p.R + p.G + p.B < 330;
-                    }
-                }
-
-                if (hit)
+                int band = new[] { -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5 }.Min(dr => sum(r + dr, a));
+                int inner = new[] { 3.0, 4.0, 5.0 }.Max(d => r - d > 0.0 ? sum(r - d, a) : 0);
+                int outer = new[] { 3.0, 4.0, 5.0 }.Max(d => sum(r + d, a));
+                if (band < Math.Min(inner, outer) - 30)
                 {
                     dark++;
                 }
             }
 
-            double share = dark / 720.0;
-            Console.WriteLine("  " + what + ": тёмных " + dark + " из 720");
-            Check(dashed ? share > 0.35 && share < 0.85 : share >= 0.95, what + (dashed ? " не штриховой" : " не сплошной") + ": тёмных " + dark + " из 720");
+            return dark;
+        }
+
+        /// <summary>
+        /// (`AMBER325`, второй заход) Положительный контроль меры `DarkOnRing` на синтетике: тем же пером, что чертёж (`HiddenPen`
+        /// отражением и `Pen(Ink, 1.2)`), с тем же сглаживанием, на пяти фонах (холст/стенка, корпус/холст, кристалл, проба,
+        /// проба/стенка), радиусах 5–151 точки и четырёх подпиксельных сдвигах центра: штрих обязан мериться штрихом (0.35–0.85),
+        /// сплошная — сплошной (≥ 0.95), граница заливок без линии — пустотой (≤ 0.05).
+        /// </summary>
+        static void DashControl()
+        {
+            Color ink = Palette("Ink");
+            KeyValuePair<string, Color[]>[] grounds =
+            {
+                new KeyValuePair<string, Color[]>("холст/стенка", new[] { Palette("Canvas"), Palette("WallColor") }),
+                new KeyValuePair<string, Color[]>("корпус/холст", new[] { Palette("CladdingColor"), Palette("Canvas") }),
+                new KeyValuePair<string, Color[]>("кристалл", new[] { Palette("CrystalColor"), Palette("CrystalColor") }),
+                new KeyValuePair<string, Color[]>("проба", new[] { Palette("SampleColor"), Palette("SampleColor") }),
+                new KeyValuePair<string, Color[]>("проба/стенка", new[] { Palette("SampleColor"), Palette("WallColor") }),
+            };
+            int minSolid = 720, maxDashed = 0, minDashed = 720, maxEmpty = 0, cases = 0;
+            foreach (var ground in grounds)
+            {
+                foreach (double r in new[] { 5.0, 20.0, 47.3, 90.6, 151.0 })
+                {
+                    foreach (float shift in new[] { 0f, 0.25f, 0.5f, 0.75f })
+                    {
+                        foreach (int kind in new[] { 0, 1, 2 })
+                        {
+                            using (Bitmap b = new Bitmap(340, 340))
+                            using (Graphics g = Graphics.FromImage(b))
+                            {
+                                g.SmoothingMode = SmoothingMode.AntiAlias;
+                                PointF c = new PointF(170f + shift, 170f + shift);
+                                float rf = (float)r;
+                                g.Clear(ground.Value[1]);
+                                using (Brush inside = new SolidBrush(ground.Value[0]))
+                                {
+                                    g.FillEllipse(inside, c.X - rf, c.Y - rf, 2f * rf, 2f * rf);
+                                }
+
+                                if (kind > 0)
+                                {
+                                    using (Pen pen = kind == 1 ? new Pen(ink, 1.2f) : (Pen)typeof(GeometrySketch).GetMethod("HiddenPen", Any).Invoke(null, null))
+                                    {
+                                        g.DrawEllipse(pen, c.X - rf, c.Y - rf, 2f * rf, 2f * rf);
+                                    }
+                                }
+
+                                int dark = DarkOnRing(b, c, r);
+                                cases++;
+                                if (kind == 0) maxEmpty = Math.Max(maxEmpty, dark);
+                                if (kind == 1) minSolid = Math.Min(minSolid, dark);
+                                if (kind == 2) { maxDashed = Math.Max(maxDashed, dark); minDashed = Math.Min(minDashed, dark); }
+                                Check(kind == 0 ? dark <= 36 : kind == 1 ? dark >= 684 : dark > 252 && dark < 612,
+                                      "контроль меры штриха: " + ground.Key + " r=" + r + " сдвиг " + shift + " " + (kind == 0 ? "пусто" : kind == 1 ? "сплошная" : "штрих") + ": тёмных " + dark);
+                            }
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine("контроль меры штриха (синтетика, " + cases + " случаев): сплошная от " + minSolid + ", штрих " + minDashed + "…" + maxDashed + ", пусто до " + maxEmpty + " из 720");
         }
 
         static void Plans()
@@ -1375,6 +1536,497 @@ namespace GeometryTopViewProbeA307
                 Check(OnCircle(b, c, radius, sampleColor) > 100, "поле: нет кольца");
                 Check(Near(b.GetPixel((int)c.X, (int)c.Y), crystalColor), "поле: прибор закрыт");
             }
+        }
+
+        // ------------------------------------------------------------------
+        // (12) `AMBER325`: вид со стороны детектора, галка, память выбора
+        // ------------------------------------------------------------------
+
+        /// <summary>Сцена постановки `AMBER324`: банка ⌀40 на торце AS 80x80.</summary>
+        static GeometryModel As80Cyl40()
+        {
+            GeometryModel as80 = Preset("Atom Spectra Pro 80x80", GeometryDetectorFacing.Front);
+            as80.SourceType = GeometrySourceType.Cylinder;
+            as80.BeakerDiameter = 40.0;
+            as80.BeakerHeight = 22.0;
+            as80.SourceHeight = 20.0;
+            as80.BeakerSideWallThickness = 1.0;
+            as80.BeakerEndWallThickness = 1.0;
+            return as80;
+        }
+
+        static string DetectorTitle
+        {
+            get { return Res("EfficiencySketchDetectorSideView") ?? "View from the detector side"; }
+        }
+
+        static Color Pixel(Bitmap b, PointF c, double dx, double dy)
+        {
+            return b.GetPixel((int)Math.Round(c.X + dx), (int)Math.Round(c.Y + dy));
+        }
+
+        /// <summary>
+        /// (`AMBER325`) Умолчание «Источника» — вид со стороны детектора: прибор поверх пробы, закрытое им — штрихом, ось Y плана
+        /// вверх. На сборке до правки (вид со стороны пробы) каждая сцена обязана отказать.
+        /// </summary>
+        static void PlansFromDetector()
+        {
+            Color wall = Palette("WallColor"), sampleColor = Palette("SampleColor"), canvas = Palette("Canvas"), crystalColor = Palette("CrystalColor");
+            GeometrySketch s;
+
+            // Банка ⌀40 на AS 80x80: прибор шире банки и закрывает её целиком — в центре кристалл, контур банки штриховой,
+            // контур кристалла (открытый) сплошной; пояснение о штрихе есть.
+            GeometryModel as80 = As80Cyl40();
+            GeometrySketch.SketchLabel[] t = Top(as80, out s, false);
+            Check(!FromSample(s), "со стороны детектора: эскиз «Источника» по умолчанию не со стороны детектора");
+            Check(Joined(s, s.TopViewBounds).StartsWith(DetectorTitle, StringComparison.Ordinal), "банка ⌀40 на AS80: заголовок плана: " + Joined(s, s.TopViewBounds));
+            Check(Joined(s, s.TopViewBounds).Contains(HiddenHint), "банка ⌀40 на AS80 со стороны детектора: нет пояснения о штрихе");
+            // (`AMBER325`, второй заход; правило `AMBER324`) Контур банки целиком под прибором — размера на невидимом контуре нет,
+            // ⌀40 стоит на разрезе.
+            Check(!t.Any(l => l.Key == "BeakerDiameter"), "банка ⌀40 на AS80 со стороны детектора: размер на невидимом контуре");
+            Check(s.Labels.Any(l => l.Key == "BeakerDiameter" && s.SideViewBounds.Contains(Rectangle.Round(l.Bounds))), "банка ⌀40 на AS80: ⌀ нет и на разрезе");
+            using (Bitmap b = Paint(s))
+            {
+                double scale = Field<double>(s, "scale");
+                PointF c = Field<PointF>(s, "planCenter");
+                Check(Near(b.GetPixel((int)c.X, (int)c.Y), crystalColor), "банка ⌀40 на AS80 со стороны детектора: в центре не кристалл: " + b.GetPixel((int)c.X, (int)c.Y));
+                Check(OnCircle(b, c, 10.0 * scale, crystalColor) > 600, "банка ⌀40 на AS80 со стороны детектора: проба не закрыта прибором");
+                Check(OnCircle(b, c, 30.0 * scale, crystalColor) > 600, "банка ⌀40 на AS80 со стороны детектора: кристалл вокруг банки не виден");
+                DashedRing(b, c, 20.0 * scale, "банка ⌀40 на AS80 со стороны детектора: контур банки под прибором", true);
+                double hxA, wrapAs;
+                PlanCrystalOf(s, as80, out hxA, out wrapAs);
+                DashedRing(b, c, hxA * scale, "банка ⌀40 на AS80 со стороны детектора: контур кристалла", false);
+            }
+
+            // (`AMBER325`, второй заход) Видна часть контура: брусок 60×18 шире банки ⌀40 по X, уже по Y — края банки по X под
+            // прибором, по Y видны. ⌀ стоит вертикально, к видимым краям; со стороны пробы — горизонтально, как прежде.
+            foreach (bool fromSample in new[] { false, true })
+            {
+                GeometryModel wide = Preset("Atom Spectra Nano 16", GeometryDetectorFacing.Front);
+                wide.CrystalBoxX = 60.0;
+                wide.CrystalBoxY = 18.0;
+                wide.SourceType = GeometrySourceType.Cylinder;
+                wide.BeakerDiameter = 40.0;
+                wide.BeakerHeight = 22.0;
+                wide.SourceHeight = 20.0;
+                wide.BeakerSideWallThickness = 1.0;
+                wide.BeakerEndWallThickness = 1.0;
+                t = Top(wide, out s, fromSample);
+                double hxW, wrapW;
+                PlanCrystalOf(s, wide, out hxW, out wrapW);
+                Check(hxW + wrapW > 20.0, "брусок 60×18: сцена не та, половина по X " + F(hxW + wrapW));
+                GeometrySketch.DimLine[] dims = s.DimensionLines.Where(x => x.OnTopView && x.Key == "BeakerDiameter" && x.Kind == GeometrySketch.DimLineKind.Dimension).ToArray();
+                bool vertical = dims.Length > 0 && dims.All(x => x.Side == GeometrySketch.DimSide.Left || x.Side == GeometrySketch.DimSide.Right);
+                Check(t.Any(l => l.Key == "BeakerDiameter"), "банка ⌀40 на бруске 60×18" + (fromSample ? " со стороны пробы" : "") + ": на плане нет ⌀");
+                Check(vertical == !fromSample, "банка ⌀40 на бруске 60×18" + (fromSample ? " со стороны пробы" : " со стороны детектора") + ": ⌀ " + (vertical ? "вертикально" : "горизонтально"));
+            }
+
+            // Сцена постановки `AMBER325`: прямоугольная банка 40×40 на RC-103. Банка шире прибора: в центре кристалл, проба видна
+            // вокруг прибора, контур банки сплошной, штриха нет — нет и пояснения о нём.
+            GeometryModel rc103 = Preset("RadiaCode-103", GeometryDetectorFacing.Front);
+            rc103.SourceType = GeometrySourceType.Box;
+            rc103.BoxSourceX = 40.0;
+            rc103.BoxSourceY = 40.0;
+            rc103.BoxSourceHeight = 20.0;
+            rc103.BoxSideWallThickness = 1.0;
+            rc103.BoxEndWallThickness = 1.0;
+            t = Top(rc103, out s, false);
+            Has(t, "банка 40×40 на RC-103", "BoxSourceX", 40.0);
+            Has(t, "банка 40×40 на RC-103", "BoxSourceY", 40.0);
+            Check(!Joined(s, s.TopViewBounds).Contains(HiddenHint), "банка 40×40 на RC-103 со стороны детектора: пояснение о штрихе без штриха");
+            using (Bitmap b = Paint(s))
+            {
+                double scale = Field<double>(s, "scale");
+                PointF c = Field<PointF>(s, "planCenter");
+                Check(Near(b.GetPixel((int)c.X, (int)c.Y), crystalColor), "банка 40×40 на RC-103 со стороны детектора: в центре не кристалл: " + b.GetPixel((int)c.X, (int)c.Y));
+                Check(Near(Pixel(b, c, 15.0 * scale, 15.0 * scale), sampleColor), "банка 40×40 на RC-103: проба вокруг прибора не видна");
+                Rectangle fill = Span(b, s.TopViewBounds, sampleColor);
+                Check(Math.Abs(fill.Width - 38.0 * scale) <= Pen && Math.Abs(fill.Height - 38.0 * scale) <= Pen,
+                      "банка 40×40 на RC-103: проба " + fill.Width + "×" + fill.Height + " точек против " + Num(38.0 * scale));
+            }
+
+            // Маринелли на NaI: колодец шире прибора — проба в кольце видна, в центре кристалл, контур колодца виден мимо прибора и
+            // сплошной; штриха нет — нет и пояснения.
+            GeometryModel mar = Marinelli(NaI());
+            mar.MarinelliSideThickness = 8.0;
+            mar.MarinelliHoleSideThickness = 6.0;
+            t = Top(mar, out s, false);
+            Has(t, "маринелли со стороны детектора", "MarinelliBeakerDiameter", 130.0);
+            Check(!t.Any(l => l.Key == "MarinelliHoleDiameter"), "маринелли со стороны детектора: ⌀ колодца стоит дважды — на разрезе и на плане");
+            using (Bitmap b = Paint(s))
+            {
+                double scale = Field<double>(s, "scale");
+                PointF c = Field<PointF>(s, "planCenter");
+                double hxM, wrapNaI;
+                PlanCrystalOf(s, mar, out hxM, out wrapNaI);
+                Check(hxM + wrapNaI < 37.0, "маринелли: прибор NaI шире колодца — сцена не та: " + F(hxM + wrapNaI));
+                Check(Near(b.GetPixel((int)c.X, (int)c.Y), crystalColor), "маринелли со стороны детектора: в центре не кристалл: " + b.GetPixel((int)c.X, (int)c.Y));
+                Check(OnCircle(b, c, 0.5 * (44.0 + 57.0) * scale, sampleColor) > 600, "маринелли со стороны детектора: проба в кольце не видна");
+                Check(OnCircle(b, c, (65.0 - 4.0) * scale, wall) > 600, "маринелли со стороны детектора: нет стенки сосуда");
+                DashedRing(b, c, 38.0 * scale, "маринелли со стороны детектора: контур колодца мимо прибора", false);
+                DashedRing(b, c, (hxM + wrapNaI) * scale, "маринелли со стороны детектора: контур корпуса", false);
+                Check(!Joined(s, s.TopViewBounds).Contains(HiddenHint), "маринелли на NaI со стороны детектора: пояснение о штрихе без штриха");
+            }
+
+            // Маринелли с колодцем уже прибора (⌀40 на AS 80x80, сцена нарочная): колодец под прибором — штриховой, пояснение есть.
+            GeometryModel narrow = Marinelli(Preset("Atom Spectra Pro 80x80", GeometryDetectorFacing.Front));
+            narrow.MarinelliHoleDiameter = 40.0;
+            Top(narrow, out s, false);
+            Check(Joined(s, s.TopViewBounds).Contains(HiddenHint), "маринелли ⌀40 под AS80 со стороны детектора: нет пояснения о штрихе");
+            using (Bitmap b = Paint(s))
+            {
+                double scale = Field<double>(s, "scale");
+                PointF c = Field<PointF>(s, "planCenter");
+                Check(Near(b.GetPixel((int)c.X, (int)c.Y), crystalColor), "маринелли ⌀40 под AS80: в центре не кристалл");
+                DashedRing(b, c, 20.0 * scale, "маринелли ⌀40 под AS80 со стороны детектора: контур колодца под прибором", true);
+            }
+
+            // Трапеция: со стороны детектора ось Y вверх, основание 2 (100, y > 0) сверху, основание 1 (80) снизу — как до `AMBER324`.
+            t = Top(Trapezoid(NaI()), out s, false);
+            Has(t, "трапеция со стороны детектора", "MarinelliHoleBase1", 80.0);
+            Has(t, "трапеция со стороны детектора", "MarinelliHoleBase2", 100.0);
+            Has(t, "трапеция со стороны детектора", "MarinelliHoleWidth", 76.0);
+            Check(t.Any(l => l.Key == "MarinelliHoleBase2" && l.Bounds.Bottom < s.TopContour.Top), "трапеция со стороны детектора: основание 2 не сверху");
+            Check(t.Any(l => l.Key == "MarinelliHoleBase1" && l.Bounds.Top > s.TopContour.Bottom - 40f), "трапеция со стороны детектора: основание 1 не снизу");
+            using (Bitmap b = Paint(s))
+            {
+                // По точкам: на 37 мм выше оси колодец широк (половина ≈ 49.9) — точка x = 48 в просвете колодца; на 37 мм ниже
+                // оси колодец узок (≈ 40.1 и стенка 2) — та же x в пробе. Прибор NaI до них не достаёт.
+                double scale = Field<double>(s, "scale");
+                PointF c = Field<PointF>(s, "planCenter");
+                Color upper = Pixel(b, c, 48.0 * scale, -37.0 * scale), lower = Pixel(b, c, 48.0 * scale, 37.0 * scale);
+                Check(Near(upper, canvas) && Near(lower, sampleColor), "трапеция со стороны детектора перевёрнута: выше оси " + upper + ", ниже " + lower);
+            }
+
+            // Точка: со стороны детектора прибор её закрывает — в центре кристалл, кружок штриховой.
+            Top(Point(Nano(GeometryDetectorFacing.Side)), out s, false);
+            using (Bitmap b = Paint(s))
+            {
+                PointF c = Field<PointF>(s, "planCenter");
+                Check(Near(b.GetPixel((int)c.X, (int)c.Y), crystalColor), "точка со стороны детектора: в центре не кристалл: " + b.GetPixel((int)c.X, (int)c.Y));
+                DashedRing(b, c, 5.0, "точка со стороны детектора: кружок за прибором", true);
+            }
+
+            // Поле: прибор не закрыт и ничего не закрывает.
+            Top(Iso(Rc110(GeometryDetectorFacing.Side)), out s, false);
+            Check(!Joined(s, s.TopViewBounds).Contains(HiddenHint), "поле со стороны детектора: пояснение о штрихе");
+            using (Bitmap b = Paint(s))
+            {
+                double scale = Field<double>(s, "scale");
+                PointF c = Field<PointF>(s, "planCenter");
+                double radius = Field<double>(s, "planRadiusX") * scale;
+                Check(OnCircle(b, c, radius, sampleColor) > 100, "поле со стороны детектора: нет кольца");
+                Check(Near(b.GetPixel((int)c.X, (int)c.Y), crystalColor), "поле со стороны детектора: прибор закрыт");
+            }
+
+            // Банка ⌀150 на NaI: банка шире прибора — проба и стенка видны, в центре кристалл, штриха нет.
+            GeometryModel cyl = Cylinder(NaI());
+            cyl.BeakerDiameter = 150.0;
+            cyl.BeakerSideWallThickness = 8.0;
+            Top(cyl, out s, false);
+            Check(!Joined(s, s.TopViewBounds).Contains(HiddenHint), "банка ⌀150 на NaI со стороны детектора: пояснение о штрихе без штриха");
+            using (Bitmap b = Paint(s))
+            {
+                double scale = Field<double>(s, "scale");
+                PointF c = Field<PointF>(s, "planCenter");
+                Check(OnCircle(b, c, (75.0 - 4.0) * scale, wall) > 600, "банка ⌀150 со стороны детектора: нет стенки");
+                Check(OnCircle(b, c, (75.0 - 14.0) * scale, sampleColor) > 600, "банка ⌀150 со стороны детектора: нет пробы");
+                Check(Near(b.GetPixel((int)c.X, (int)c.Y), crystalColor), "банка ⌀150 со стороны детектора: в центре не кристалл");
+            }
+
+            // Кювета: заливка пробы по X и Y — те же размеры, что со стороны пробы.
+            t = Top(BoxSource(Rc110(GeometryDetectorFacing.Front)), out s, false);
+            Has(t, "кювета со стороны детектора", "BoxSourceX", 100.0);
+            Has(t, "кювета со стороны детектора", "BoxSourceY", 60.0);
+            using (Bitmap b = Paint(s))
+            {
+                double scale = Field<double>(s, "scale");
+                Rectangle fill = Span(b, s.TopViewBounds, sampleColor);
+                Check(Math.Abs(fill.Width - 96.0 * scale) <= Pen && Math.Abs(fill.Height - 56.0 * scale) <= Pen,
+                      "кювета со стороны детектора: проба " + fill.Width + "×" + fill.Height + " точек");
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER325`) Галка: на «Источнике» — у заголовка второго вида, в его рамке, в положении выбора, с подписью языка; на
+        /// «Детекторе» и «Защите» — нет. Переключение — только рисунок: модель не меняется.
+        /// </summary>
+        static void SideCheck()
+        {
+            foreach (string culture in new[] { "en", "ru" })
+            {
+                Resources.Culture = new CultureInfo(culture);
+                string text = Res("EfficiencySketchFromSampleCheck") ?? "?";
+                foreach (Size size in FieldSizes.Concat(MoreSizes))
+                {
+                    foreach (bool fromSample in new[] { false, true })
+                    {
+                        string where = culture + " галка «Источник»" + (fromSample ? " (со стороны пробы) " : " ") + size.Width + "×" + size.Height + ": ";
+                        GeometrySketch s = Sketch(As80Cyl40(), Tab.Source, size, fromSample);
+                        using (Paint(s))
+                        {
+                            Rectangle r = CheckBounds(s), plan = s.TopViewBounds;
+                            Check(r.IsEmpty == plan.IsEmpty, where + "галка " + (r.IsEmpty ? "не поставлена" : "без плана"));
+                            if (r.IsEmpty)
+                            {
+                                continue;
+                            }
+
+                            Check(plan.Contains(r), where + "галка вне рамки плана: " + r + " в " + plan);
+                            // (`AMBER325`, второй заход) Галка — в строке заголовка, за его последней строкой: своей строки у неё
+                            // нет, высоты заголовку она не прибавляет. С подписью или одним квадратом (узкий план).
+                            // (`AMBER325`, четвёртый заход) Рисунок галки (квадрат и подпись) — подпись чертежа с её именем внутри
+                            // рамки галки; рамка самой галки по `PreferredSize` может быть выше строки.
+                            RectangleF rf = r;
+                            GeometrySketch.SketchLabel ink = In(s, plan).FirstOrDefault(l => l.Text == text && l.Bounds.Left >= rf.Left - 0.01f
+                                && l.Bounds.Right <= rf.Right + 0.01f && l.Bounds.Top >= rf.Top - 0.01f && l.Bounds.Bottom <= rf.Bottom + 0.01f);
+                            Check(ink.Text != null, where + "нет подписи-рисунка галки в её рамке");
+                            GeometrySketch.SketchLabel[] rest = In(s, plan).Where(l => !(l.Text == ink.Text && l.Bounds == ink.Bounds)).OrderBy(l => l.Bounds.Top).ToArray();
+                            string title = fromSample ? Res("EfficiencySketchTopView") : DetectorTitle;
+                            int n = Enumerable.Range(1, rest.Length).FirstOrDefault(k => string.Join(" ", rest.Take(k).Select(l => l.Text)) == title);
+                            Check(n > 0, where + "нет заголовка «" + title + "»");
+                            if (n > 0)
+                            {
+                                RectangleF last = rest[n - 1].Bounds;
+                                RectangleF drawn = ink.Text != null ? ink.Bounds : rf;
+                                Check(drawn.Top >= last.Top - 0.01f && drawn.Bottom <= last.Bottom + 0.01f && r.Left >= last.Right
+                                      && Math.Abs((rf.Top + rf.Bottom) / 2f - (last.Top + last.Bottom) / 2f) <= 1.01f,
+                                      where + "галка не в строке заголовка: " + r + " (рисунок " + drawn + ") при строке " + last);
+                            }
+
+                            // (`AMBER325`, третий заход) Amber 11.11.2026 вопросником, дословно: «Короткая подпись в узком
+                            // (Рекомендую)». Вид галки — по мерке, независимой от чертежа: полная подпись, если заголовок в одну
+                            // строку и всё помещается в ширину плана; иначе короткая, если помещается она; иначе один квадрат.
+                            CheckBox box = s.Controls.OfType<CheckBox>().FirstOrDefault();
+                            string shortText = Res("EfficiencySketchFromSampleShort") ?? (culture == "ru" ? "от пробы" : "from sample");
+                            string expected = "квадрат";
+                            if (n > 0)
+                            {
+                                RectangleF last = rest[n - 1].Bounds;
+                                using (Bitmap mb = new Bitmap(4, 4))
+                                using (Graphics mg = Graphics.FromImage(mb))
+                                {
+                                    float head = 8f + last.Width + 10f, room = plan.Width - 8f;
+                                    float fullW = (float)Math.Ceiling(mg.MeasureString(text, s.Font).Width + 24f);
+                                    float shortW = (float)Math.Ceiling(mg.MeasureString(shortText, s.Font).Width + 24f);
+                                    expected = n == 1 && head + fullW <= room ? "полная" : head + shortW <= room ? "короткая" : "квадрат";
+                                }
+                            }
+
+                            string kind = box == null ? "нет" : box.Text == "" ? "квадрат" : box.Text == text ? "полная" : box.Text == shortText ? "короткая" : "«" + box.Text + "»";
+                            Check(kind == expected, where + "вид галки " + kind + ", по мерке — " + expected);
+                            Check(box != null && box.Bounds == r && box.AccessibleName == text && box.Checked == fromSample,
+                                  where + "галка не та: " + (box == null ? "нет" : box.Bounds + " «" + box.Text + "» " + box.AccessibleName + " " + box.Checked));
+                            Check(r.Right <= plan.Right - 2, where + "галка у края рамки плана: " + r + " в " + plan);
+                            // (`AMBER325`, четвёртый заход, вердикт `crit325`) Подпись галки не срезана: рамка не меньше
+                            // `PreferredSize`, и рисунок галки в её рамке тот же, что в рамке на 8 точек выше (хвосты «р», «p»).
+                            if (box != null)
+                            {
+                                Size pref = box.PreferredSize;
+                                Check(box.Height >= pref.Height && box.Width >= pref.Width, where + "рамка галки " + box.Size + " меньше PreferredSize " + pref);
+                                int inFrame = CheckInk(box, box.Size), inTall = CheckInk(box, new Size(box.Width, box.Height + 8));
+                                ClipSeen++;
+                                Check(inFrame == inTall, where + "подпись галки срезана: тёмных " + inFrame + " в рамке, " + inTall + " в рамке на 8 выше");
+                            }
+                            // Подпись помещается — она есть: в настоящем окне 798×807 план рядом, ширина ~400.
+                            if (size.Width >= 798)
+                            {
+                                Check(kind == "полная", where + "в окне " + size.Width + " галка не с полной подписью");
+                            }
+
+                            string bucket = culture + " " + kind;
+                            int seenKind;
+                            KindSeen.TryGetValue(bucket, out seenKind);
+                            KindSeen[bucket] = seenKind + 1;
+                        }
+                    }
+
+                    foreach (Tab tab in new[] { Tab.Detector, Tab.Shield })
+                    {
+                        GeometrySketch d = Sketch(tab == Tab.Shield ? Shielded(As80Cyl40()) : As80Cyl40(), tab, size);
+                        using (Paint(d))
+                        {
+                            Check(CheckBounds(d).IsEmpty && !d.Controls.OfType<CheckBox>().Any(c => c.Visible),
+                                  culture + " " + tab + " " + size.Width + "×" + size.Height + ": галка на вкладке без выбора стороны");
+                            Check(!string.Join(" ", d.Labels.Select(l => l.Text)).Contains(text), culture + " " + tab + " " + size.Width + ": подпись галки");
+                        }
+                    }
+                }
+            }
+
+            Resources.Culture = null;
+        }
+
+        static readonly Dictionary<string, int> KindSeen = new Dictionary<string, int>();
+
+        static int ClipSeen;
+
+        /// <summary>
+        /// (`AMBER325`, четвёртый заход) Сколько тёмных точек (сумма RGB &lt; 300) у галки той же подписи, шрифта и положения,
+        /// нарисованной своим `DrawToBitmap` в рамке заданного размера на сплошном фоне чертежа. Мера критика `crit325`
+        /// (`ctrl\CheckClip.cs`): срезанный низ букв даёт меньше точек, чем рамка на 8 точек выше.
+        /// </summary>
+        static int CheckInk(CheckBox like, Size size)
+        {
+            using (CheckBox c = new CheckBox { AutoSize = false, Text = like.Text, Font = like.Font, Checked = like.Checked, ForeColor = like.ForeColor,
+                                               BackColor = Palette("Canvas"), UseVisualStyleBackColor = false, Size = size })
+            using (Bitmap b = new Bitmap(size.Width, size.Height))
+            {
+                c.DrawToBitmap(b, new Rectangle(System.Drawing.Point.Empty, size));
+                int dark = 0;
+                for (int y = 0; y < b.Height; y++)
+                {
+                    for (int x = 0; x < b.Width; x++)
+                    {
+                        Color p = b.GetPixel(x, y);
+                        if (p.R + p.G + p.B < 300)
+                        {
+                            dark++;
+                        }
+                    }
+                }
+
+                return dark;
+            }
+        }
+
+        static string configCopy, configOriginal;
+
+        static object Manager()
+        {
+            return typeof(GlobalConfigManager).GetField("instance", Any).GetValue(null);
+        }
+
+        /// <summary>(`AMBER325`) Главный конфиг пробы — во временную копию: галка пишет его, а каталог проб общий.</summary>
+        static void ConfigCopy()
+        {
+            object manager = Manager();
+            FieldInfo path = typeof(GlobalConfigManager).GetField("becqMoniMainConfig", Any);
+            configOriginal = (string)path.GetValue(manager);
+            configCopy = Path.Combine(Path.GetTempPath(), "a307_config_" + Guid.NewGuid().ToString("N") + ".xml");
+            if (File.Exists(configOriginal))
+            {
+                File.Copy(configOriginal, configCopy);
+            }
+            else
+            {
+                using (FileStream f = File.Create(configCopy))
+                {
+                    new XmlSerializer(typeof(GlobalConfigInfo)).Serialize(f, new GlobalConfigInfo());
+                }
+            }
+
+            path.SetValue(manager, configCopy);
+            typeof(GlobalConfigManager).GetField("isLoaded", Any).SetValue(manager, false);
+        }
+
+        static void ConfigCopyDrop()
+        {
+            object manager = Manager();
+            typeof(GlobalConfigManager).GetField("becqMoniMainConfig", Any).SetValue(manager, configOriginal);
+            typeof(GlobalConfigManager).GetField("isLoaded", Any).SetValue(manager, false);
+            if (configCopy != null && File.Exists(configCopy))
+            {
+                File.Delete(configCopy);
+            }
+        }
+
+        /// <summary>«Следующее открытие»: конфиг перечитывается с диска тем же путём, что на запуске программы.</summary>
+        static GlobalConfigInfo Reload()
+        {
+            typeof(GlobalConfigManager).GetField("isLoaded", Any).SetValue(Manager(), false);
+            return GlobalConfigManager.GetInstance().GlobalConfig;
+        }
+
+        /// <summary>
+        /// (`AMBER325`) Память выбора: старый конфиг без поля — со стороны детектора; галка пишет выбор в главный конфиг и на диск;
+        /// новый эскиз и перечитанный с диска конфиг дают тот же выбор; присваивание из кода в конфиг не пишет; модель не меняется.
+        /// </summary>
+        static void SideMemory()
+        {
+            PropertyInfo field = typeof(GlobalConfigInfo).GetProperty("GeometrySketchPlanFromSample");
+            Check(field != null, "память: в главном конфиге нет поля GeometrySketchPlanFromSample");
+            XmlSerializer xs = new XmlSerializer(typeof(GlobalConfigInfo));
+            if (File.Exists(configOriginal))
+            {
+                string original = File.ReadAllText(configOriginal);
+                Check(!original.Contains("GeometrySketchPlanFromSample"), "память: в конфиге каталога проб уже есть поле — старый конфиг не проверен");
+                using (StringReader r = new StringReader(original))
+                {
+                    GlobalConfigInfo old = (GlobalConfigInfo)xs.Deserialize(r);
+                    Check(field != null && !(bool)field.GetValue(old), "память: старый конфиг без поля читается не «со стороны детектора»");
+                }
+            }
+
+            using (StringReader r = new StringReader("<GlobalConfigInfo />"))
+            {
+                GlobalConfigInfo bare = (GlobalConfigInfo)xs.Deserialize(r);
+                Check(field != null && !(bool)field.GetValue(bare), "память: пустой конфиг читается не «со стороны детектора»");
+            }
+
+            if (field == null)
+            {
+                return;
+            }
+
+            GlobalConfigInfo config = Reload();
+            Check(!(bool)field.GetValue(config), "память: копия конфига каталога проб уже «со стороны пробы»");
+            GeometryModel m = As80Cyl40();
+            string before = Xml(m);
+            GeometrySketch s = Sketch(m, Tab.Source, new Size(798, 807));
+            using (Paint(s))
+            {
+            }
+
+            Check(!FromSample(s), "память: новый эскиз не со стороны детектора");
+            CheckBox box = s.Controls.OfType<CheckBox>().FirstOrDefault();
+            Check(box != null && !box.Checked, "память: галки нет или она стоит");
+            if (box == null)
+            {
+                return;
+            }
+
+            // Присваивание из кода — только рисунок, конфиг не трогается.
+            SetFromSample(s, true);
+            Check(!(bool)field.GetValue(GlobalConfigManager.GetInstance().GlobalConfig), "память: присваивание из кода записало конфиг");
+            SetFromSample(s, false);
+
+            // Человек ставит галку.
+            box.Checked = true;
+            Check(FromSample(s), "память: галка не переключила вид");
+            Check((bool)field.GetValue(GlobalConfigManager.GetInstance().GlobalConfig), "память: галка не записала выбор в главный конфиг");
+            string saved = File.Exists(configCopy) ? File.ReadAllText(configCopy) : "";
+            Check(saved.Contains("<GeometrySketchPlanFromSample>true</GeometrySketchPlanFromSample>"), "память: выбор не сохранён на диск");
+            using (Bitmap b = Paint(s))
+            {
+                PointF c = Field<PointF>(s, "planCenter");
+                Check(Near(b.GetPixel((int)c.X, (int)c.Y), Palette("SampleColor")), "память: после галки вид не со стороны пробы");
+                Check(Joined(s, s.TopViewBounds).StartsWith(Res("EfficiencySketchTopView"), StringComparison.Ordinal), "память: после галки заголовок не «со стороны пробы»");
+            }
+
+            Check(Xml(m) == before, "память: переключение галки изменило модель");
+
+            GeometrySketch again = Sketch(As80Cyl40(), Tab.Source, new Size(798, 807));
+            Check(FromSample(again), "память: новый эскиз в том же сеансе забыл выбор");
+            Check((bool)field.GetValue(Reload()), "память: перечитанный с диска конфиг забыл выбор");
+            GeometrySketch next = Sketch(As80Cyl40(), Tab.Source, new Size(798, 807));
+            using (Paint(next))
+            {
+            }
+
+            Check(FromSample(next), "память: эскиз после перечтения конфига забыл выбор");
+            CheckBox nextBox = next.Controls.OfType<CheckBox>().FirstOrDefault();
+            Check(nextBox != null && nextBox.Checked, "память: галка после перечтения конфига снята");
+
+            // И обратно.
+            if (nextBox != null)
+            {
+                nextBox.Checked = false;
+            }
+
+            Check(!(bool)field.GetValue(Reload()), "память: снятая галка не записалась на диск");
+            GeometrySketch last = Sketch(As80Cyl40(), Tab.Source, new Size(798, 807));
+            Check(!FromSample(last), "память: после снятия галки эскиз не со стороны детектора");
         }
 
         // ------------------------------------------------------------------
@@ -1858,15 +2510,21 @@ namespace GeometryTopViewProbeA307
                 }
             }
 
+            // (`AMBER325`) Главный конфиг пробы — во временной копии: галка пишет его на диск.
+            ConfigCopy();
+            DashControl();
             OldLayoutRefused();
             TurnedControl();
             Coverage(cover);
             AllNumbers();
             Rebuild();
             Highlight();
-            Captions("en", "Rotated: the sample faces the wide side of the crystal", "View from the sample side", "Side view", "Depth: 15");
-            Captions("ru", "Развёрнут: проба у широкой грани кристалла", "Вид со стороны пробы", "Вид сбоку", "Глубина: 15");
+            Captions("en", "Rotated: the sample faces the wide side of the crystal", "View from the sample side", "View from the detector side", "From the sample side", "Side view", "Depth: 15");
+            Captions("ru", "Развёрнут: проба у широкой грани кристалла", "Вид со стороны пробы", "Вид со стороны детектора", "Со стороны пробы", "Вид сбоку", "Глубина: 15");
             Plans();
+            PlansFromDetector();
+            SideCheck();
+            SideMemory();
             Overview();
             ModelUntouched();
             CriticScene();
@@ -1875,6 +2533,8 @@ namespace GeometryTopViewProbeA307
             CostGuard();
             ShortRoutes();
             RandomScenes();
+            Console.WriteLine("галка (`SideCheck`): " + string.Join(", ", KindSeen.OrderBy(x => x.Key).Select(x => x.Key + " " + x.Value)) + "; мера среза — галок " + ClipSeen);
+            ConfigCopyDrop();
             Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ: проверок " + checks : "РАСХОЖДЕНИЙ " + bad + " из " + checks);
             return bad == 0 ? 0 : 1;
         }

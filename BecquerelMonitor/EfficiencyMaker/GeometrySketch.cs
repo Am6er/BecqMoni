@@ -85,6 +85,236 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.Invalidate();
         }
 
+        // ------------------------------------------------------------------
+        // (`AMBER325`) Сторона второго вида на вкладке «Источник». Amber 11.11.2026, к снимку вкладки «Источник»,
+        // дословно: «Запиши задачу, нужно переделать скетч на From detector side.»; решения вопросником того же дня,
+        // дословно: «Сделай в скетче CheckBox - с какой стороны показывать образец. С верху или с низу. Пускай
+        // пользователь решает.»; умолчание — «Со стороны детектора, помнить в настройках (Рекомендую)»; где — «Только
+        // «Источник» (Рекомендую)». Галка живёт в самом чертеже, у заголовка второго вида; выбор — одна настройка
+        // приложения (`GlobalConfigInfo.GeometrySketchPlanFromSample`), кривая и матрица от неё не зависят.
+        // ------------------------------------------------------------------
+
+        bool? planFromSample;
+        CheckBox planSideCheck;
+        bool syncingPlanSide;
+
+        /// <summary>Показана ли галка: свой признак, а не `Visible` — у того на скрытом родителе всегда «нет».</summary>
+        bool planCheckShown;
+
+        /// <summary>(`AMBER325`) Галка без подписи — один квадрат, подпись во всплывающей подсказке (узкий план).</summary>
+        bool planCheckBare;
+
+        /// <summary>(`AMBER325`, третий заход) Галка с короткой подписью «от пробы» / «from sample».</summary>
+        bool planCheckShort;
+
+        ToolTip planSideTip;
+
+        /// <summary>Где галка встала в последней отрисовке; пусто — галки нет (не «Источник» или нет второго вида). Читает проба.</summary>
+        Rectangle planCheckRect;
+
+        /// <summary>
+        /// (`AMBER325`) Второй вид «Источника» со стороны пробы (иначе — со стороны детектора, умолчание). Читается из
+        /// главного конфига при первой надобности; присваивание перерисовывает, но в конфиг не пишет — пишет только галка.
+        /// </summary>
+        public bool PlanFromSample
+        {
+            get
+            {
+                if (this.planFromSample == null)
+                {
+                    this.planFromSample = PlanSideStore.Read();
+                }
+
+                return this.planFromSample.Value;
+            }
+            set
+            {
+                if (this.planFromSample != value)
+                {
+                    this.planFromSample = value;
+                    this.Invalidate();
+                }
+            }
+        }
+
+        /// <summary>(`AMBER325`) Рамка галки последней отрисовки; пусто — галки нет. Читает проба.</summary>
+        public Rectangle PlanSideCheckBounds
+        {
+            get { return this.planCheckRect; }
+        }
+
+        /// <summary>(`AMBER325`) Второй вид «Источника» — со стороны детектора: ось Y плана вверх, прибор поверх пробы.</summary>
+        bool PlanFromDetector
+        {
+            get { return this.Mode == SketchMode.Source && !this.PlanFromSample; }
+        }
+
+        /// <summary>
+        /// (`AMBER325`) Хранилище выбора — главный конфиг программы, как галка «Use Nvidia GPU» (`AMBER219`): запись сразу при
+        /// переключении. Без конфига (безоконная проба без `config\BecquerelMonitor.xml`) — умолчание, со стороны детектора, и
+        /// запись не делается: встроенные умолчания конфига на диск не пишутся.
+        /// </summary>
+        public static class PlanSideStore
+        {
+            public static bool Read()
+            {
+                try
+                {
+                    GlobalConfigInfo config = GlobalConfigManager.GetInstance().GlobalConfig;
+                    return config != null && config.GeometrySketchPlanFromSample;
+                }
+                catch (InvalidOperationException)
+                {
+                    return false;
+                }
+            }
+
+            public static void Write(bool fromSample)
+            {
+                GlobalConfigManager manager;
+                try
+                {
+                    manager = GlobalConfigManager.GetInstance();
+                }
+                catch (InvalidOperationException)
+                {
+                    return;
+                }
+
+                if (manager.GlobalConfig != null && manager.GlobalConfig.GeometrySketchPlanFromSample != fromSample)
+                {
+                    manager.GlobalConfig.GeometrySketchPlanFromSample = fromSample;
+                    manager.SaveConfigFile();
+                }
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER325`) Поставить галку туда, где её место отвела отрисовка, или убрать. Меняется только то, что изменилось:
+        /// скрытие и показ дочернего окна заказывают перерисовку родителя, и безусловная смена дала бы бесконечный круг.
+        /// </summary>
+        void PlacePlanSideCheck()
+        {
+            if (this.planCheckRect.IsEmpty)
+            {
+                if (this.planSideCheck != null && this.planCheckShown)
+                {
+                    this.planCheckShown = false;
+                    this.planSideCheck.Visible = false;
+                }
+
+                return;
+            }
+
+            if (this.planSideCheck == null)
+            {
+                // (`AMBER325`, четвёртый заход) Фон прозрачный: рамка галки по `PreferredSize` выше строки заголовка, и её поля
+                // не должны закрывать соседнюю строку.
+                this.planSideCheck = new CheckBox
+                {
+                    AutoSize = false,
+                    BackColor = Color.Transparent,
+                    ForeColor = Ink,
+                    TabStop = true,
+                    UseVisualStyleBackColor = false,
+                };
+                this.planSideCheck.CheckedChanged += this.PlanSideCheckChanged;
+                this.Controls.Add(this.planSideCheck);
+            }
+
+            if (this.planSideCheck.Font != this.Font)
+            {
+                this.planSideCheck.Font = this.Font;
+            }
+
+            // Узкий план — короткая подпись или один квадрат; полная подпись — в подсказке и в имени для чтеца экрана, всегда.
+            string text = Resources.EfficiencySketchFromSampleCheck;
+            string shown = this.planCheckBare ? "" : this.planCheckShort ? Resources.EfficiencySketchFromSampleShort : text;
+            if (this.planSideCheck.Text != shown)
+            {
+                this.planSideCheck.Text = shown;
+            }
+
+            if (this.planSideCheck.AccessibleName != text)
+            {
+                this.planSideCheck.AccessibleName = text;
+                if (this.planSideTip == null)
+                {
+                    this.planSideTip = new ToolTip();
+                }
+
+                this.planSideTip.SetToolTip(this.planSideCheck, text);
+            }
+
+            if (this.planSideCheck.Checked != this.PlanFromSample)
+            {
+                this.syncingPlanSide = true;
+                try
+                {
+                    this.planSideCheck.Checked = this.PlanFromSample;
+                }
+                finally
+                {
+                    this.syncingPlanSide = false;
+                }
+            }
+
+            if (this.planSideCheck.Bounds != this.planCheckRect)
+            {
+                this.planSideCheck.Bounds = this.planCheckRect;
+            }
+
+            if (!this.planCheckShown)
+            {
+                this.planCheckShown = true;
+                this.planSideCheck.Visible = true;
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && this.planSideTip != null)
+            {
+                this.planSideTip.Dispose();
+                this.planSideTip = null;
+            }
+
+            base.Dispose(disposing);
+        }
+
+        /// <summary>(`AMBER325`) Галка без подписи (узкий план); читает проба.</summary>
+        public bool PlanSideCheckBare
+        {
+            get { return this.planCheckBare; }
+        }
+
+        /// <summary>(`AMBER325`, четвёртый заход) `PreferredSize` галки с этой подписью и шрифтом чертежа (рамка не меньше).</summary>
+        Size CheckPreferredSize(string shown)
+        {
+            using (CheckBox measure = new CheckBox { AutoSize = false, Text = shown, Font = this.Font })
+            {
+                return measure.PreferredSize;
+            }
+        }
+
+        /// <summary>(`AMBER325`, третий заход) Галка с короткой подписью (узкий план); читает проба.</summary>
+        public bool PlanSideCheckShort
+        {
+            get { return this.planCheckShort; }
+        }
+
+        void PlanSideCheckChanged(object sender, EventArgs e)
+        {
+            if (this.syncingPlanSide)
+            {
+                return;
+            }
+
+            bool fromSample = this.planSideCheck.Checked;
+            this.PlanFromSample = fromSample;
+            PlanSideStore.Write(fromSample);
+        }
+
         string highlight;
 
         /// <summary>
@@ -232,6 +462,16 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>Мировая координата на N точек выше верха поля.</summary>
         protected override void OnPaint(PaintEventArgs e)
+        {
+            // (`AMBER325`) Место галки стороны второго вида отводит отрисовка заголовков; ставится галка после неё, один раз.
+            this.planCheckRect = Rectangle.Empty;
+            this.planCheckBare = false;
+            this.planCheckShort = false;
+            this.PaintSketch(e);
+            this.PlacePlanSideCheck();
+        }
+
+        void PaintSketch(PaintEventArgs e)
         {
             Graphics g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -2137,6 +2377,17 @@ namespace BecquerelMonitor.EfficiencyMaker
         //   защита на плане не рисуется ни на одной вкладке (решение Amber 06.11.2026 по `AMBER307`).
         // Ось X вправо, как на разрезе (проекционная связь); зритель на −z смотрит к +z, поэтому ось Y
         // вниз — вид отражён по Y против прежнего: основание 1 трапеции (y < 0) теперь сверху.
+        //
+        // (`AMBER325`) Amber 11.11.2026, к снимку вкладки «Источник» (RC-103, прямоугольная банка 40×40, стрелка на
+        // штриховой контур прибора под пробой), дословно: «Запиши задачу, нужно переделать скетч на From detector side.».
+        // Решения вопросником того же дня, дословно: «Сделай в скетче CheckBox - с какой стороны показывать образец. С верху
+        // или с низу. Пускай пользователь решает.»; умолчание — «Со стороны детектора, помнить в настройках (Рекомендую)»;
+        // закрытое — «Штрихом, как в виде со стороны пробы (Рекомендую)»; где — «Только «Источник» (Рекомендую)». Значит:
+        //   «Источник» — по умолчанию вид со стороны детектора (`DrawPlanFromDetector`): ось Y вверх, прибор поверх сосуда и
+        //     пробы, закрытое прибором — штрихом; галка «Со стороны пробы» у заголовка — вид выше, со стороны пробы; выбор —
+        //     в главном конфиге (`PlanSideStore`), на все кривые;
+        //   «Детектор» — как было: грань кристалла, обращённая к пробе, «Вид со стороны пробы», без галки.
+        // Числа горизонтально (`AMBER324`) — в обоих видах.
         // Тем же масштабом, что разрез, и тем же языком: заливки и штриховка слоёв, тонкий слой — не тоньше
         // MinBandPx. Размеры берутся у той же CrystalBoxInScene и теми же толщинами, что сцена счёта:
         // чертёж и расчёт не расходятся.
@@ -2180,7 +2431,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         float PY(double y)
         {
             // (`AMBER324`) Вид со стороны пробы на торец: ось X вправо, ось Z от зрителя, значит ось Y вниз.
-            return (float)(this.planCenter.Y + y * this.scale);
+            // (`AMBER325`) Со стороны детектора (умолчание «Источника»): ось Z к зрителю, значит ось Y вверх — как до `AMBER324`.
+            return this.PlanFromDetector ? (float)(this.planCenter.Y - y * this.scale) : (float)(this.planCenter.Y + y * this.scale);
         }
 
         /// <summary>Строка заголовка вида: что напечатать, чем и какое поле её подсвечивает.</summary>
@@ -2189,6 +2441,37 @@ namespace BecquerelMonitor.EfficiencyMaker
             public string Text;
             public bool Bold, Gray;
             public string Key;
+
+            /// <summary>(`AMBER325`) На этой строке заголовка — галка стороны вида: 0 — нет, 1 — с подписью, 2 — один квадрат,
+            /// 3 — с короткой подписью.</summary>
+            public int CheckMode;
+        }
+
+        // (`AMBER325`, второй заход по вердикту критика `crit325`) Галка своей строкой (17 точек) стоила чертежу: в поле 198×367
+        // «куб бок + трапеция» и «брусок бок + трапеция» план со всеми размерами уже не помещался, и раскладка уходила на уровень 0
+        // — без единого размера (замер: строка 8 точек — уже уровень 0; 0 точек — уровень 3, 12 чисел). Поэтому своей строки у
+        // галки нет: она стоит В СТРОКЕ ЗАГОЛОВКА второго вида, высоты заголовку не прибавляет, и раскладка чертежа та же, что до
+        // `AMBER325`. Помещается подпись — галка с подписью «Со стороны пробы» за заголовком; не помещается (план уже ~300 точек) —
+        // один квадрат за заголовком, подпись — во всплывающей подсказке; заголовок рядом называет вид, который сейчас показан.
+
+        /// <summary>(`AMBER325`) Поле квадрата галки с отступом до подписи, точек.</summary>
+        const float CheckGlyphPx = 20f;
+
+        /// <summary>(`AMBER325`) Ширина галки без подписи (один квадрат), точек; столько же заголовок уступает при переносе.</summary>
+        const int CheckBareWidth = 15;
+
+        /// <summary>(`AMBER325`) Зазор между заголовком и галкой, точек.</summary>
+        const float CheckGapPx = 10f;
+
+        /// <summary>(`AMBER325`) Ширина галки с подписью: подпись мерой чертежа, слева поле под квадрат.</summary>
+        float CheckWidth(Graphics g, string text)
+        {
+            return (float)Math.Ceiling(g.MeasureString(text, this.Font).Width + CheckGlyphPx + 4f);
+        }
+
+        float LineHeight(Graphics g, HeaderLine line, Font bold)
+        {
+            return g.MeasureString(line.Text, line.Bold ? bold : this.Font).Height;
         }
 
         /// <summary>Строки заголовка вида, с переносом по ширине: заголовок, пояснение, у плана — разворот бруска и его глубина.</summary>
@@ -2198,20 +2481,48 @@ namespace BecquerelMonitor.EfficiencyMaker
             float wrap = Math.Max(40f, width - 16f);
             // (`AMBER324`) Заголовок тоже переносится: «Вид со стороны пробы» длиннее прежнего «Вид сверху» и в узкой
             // рамке плана (420×460, 360×300 рядом) выходил за неё.
+            // (`AMBER325`) На «Источнике» второй вид по умолчанию — со стороны детектора, галкой — со стороны пробы. На «Детекторе»
+            // вид прежний: грань кристалла, обращённая к пробе, «Вид со стороны пробы»; галки там нет (решение Amber 11.11.2026
+            // «Только «Источник» (Рекомендую)»). Заголовок верен при любой ориентации разреза (`flipZ`): назван не верх и не низ,
+            // а сторона, с которой смотрят.
+            bool fromDetector = top && this.PlanFromDetector;
+            string title = !top ? Resources.EfficiencySketchSideView
+                         : fromDetector ? Resources.EfficiencySketchDetectorSideView
+                         : Resources.EfficiencySketchTopView;
+            bool check = top && this.Mode == SketchMode.Source;
             using (Font bold = new Font(this.Font, FontStyle.Bold))
             {
-                foreach (string line in Wrapped(g, top ? Resources.EfficiencySketchTopView : Resources.EfficiencySketchSideView, bold, wrap))
+                // Галка — за последней строкой заголовка: перенос уступает ей место квадрата, чтобы квадрат влез всегда.
+                List<string> titleLines = Wrapped(g, title, bold, check ? Math.Max(40f, wrap - CheckBareWidth - 4f) : wrap);
+                foreach (string line in titleLines)
                 {
                     lines.Add(new HeaderLine { Text = line, Bold = true });
+                }
+
+                if (check && lines.Count > 0)
+                {
+                    HeaderLine last = lines[lines.Count - 1];
+                    // (`AMBER325`, третий заход) Amber 11.11.2026 вопросником, дословно: «Короткая подпись в узком (Рекомендую)»:
+                    // полная подпись — где влезает; не влезает — короткая в той же строке; не влезает и она — один квадрат.
+                    // Квадрат без слова читался «вид выключен» (критик `crit325`).
+                    float lastWidth = g.MeasureString(last.Text, bold).Width;
+                    bool labelled = titleLines.Count == 1
+                                    && 8f + lastWidth + CheckGapPx + this.CheckWidth(g, Resources.EfficiencySketchFromSampleCheck) <= width - 8f;
+                    bool shortLabel = !labelled
+                                      && 8f + lastWidth + CheckGapPx + this.CheckWidth(g, Resources.EfficiencySketchFromSampleShort) <= width - 8f;
+                    last.CheckMode = labelled ? 1 : shortLabel ? 3 : 2;
+                    lines[lines.Count - 1] = last;
                 }
             }
 
             if (width >= HintMinWidth)
             {
                 // (`AMBER324`) «Невидимый контур — штриховой» — только там, где штрих есть: на «Детекторе» и у точки его нет.
-                string hint = !top ? Resources.EfficiencySketchSideHint
-                            : this.PlanHasHidden(m) ? Resources.EfficiencySketchTopHint + "; " + Resources.EfficiencySketchHiddenHint
+                // (`AMBER325`) Со стороны детектора штрих — у того, что закрыл прибор: точка, малая банка под торцом.
+                string look = !top ? Resources.EfficiencySketchSideHint
+                            : fromDetector ? Resources.EfficiencySketchDetectorSideHint
                             : Resources.EfficiencySketchTopHint;
+                string hint = top && this.PlanHasHidden(m) ? look + "; " + Resources.EfficiencySketchHiddenHint : look;
                 foreach (string line in Wrapped(g, hint, this.Font, wrap))
                 {
                     lines.Add(new HeaderLine { Text = line, Gray = true });
@@ -2289,7 +2600,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 foreach (HeaderLine line in this.HeaderLines(g, m, top, width))
                 {
-                    height += g.MeasureString(line.Text, line.Bold ? bold : this.Font).Height;
+                    height += this.LineHeight(g, line, bold);
                 }
             }
 
@@ -2334,6 +2645,33 @@ namespace BecquerelMonitor.EfficiencyMaker
                         Font font = line.Bold ? bold : this.Font;
                         SizeF size = g.MeasureString(line.Text, font);
                         this.Print(g, font, this.Lit(line.Key) ? lit : (line.Gray ? gray : ink), line.Text, line.Key, panel.Left + 8f, y, size);
+                        if (line.CheckMode != 0)
+                        {
+                            // (`AMBER325`) Галку рисует сама галка (`PlacePlanSideCheck`). В подписях — её рисунок: квадрат и
+                            // подпись в строке заголовка (раскладка чисел их обходит, строку они не раздвигают).
+                            // (`AMBER325`, четвёртый заход, вердикт `crit325`) Рамка самой галки — по её `PreferredSize` (18
+                            // точек при шрифте 13): в рамке высотой строки (13) галка срезала хвосты «р», «p» — «от ппобы»,
+                            // «from samole». Рамка выше строки на ~2 точки сверху и снизу, по центру строки; фон галки прозрачный,
+                            // поэтому соседняя строка заголовка под её полями видна. Текст и квадрат галки (шрифт 13 точек)
+                            // в строку помещаются.
+                            string text = Resources.EfficiencySketchFromSampleCheck;
+                            string shown = line.CheckMode == 1 ? text : line.CheckMode == 3 ? Resources.EfficiencySketchFromSampleShort : "";
+                            float x = panel.Left + 8f + size.Width + (line.CheckMode == 2 ? 4f : CheckGapPx);
+                            int w = line.CheckMode == 2 ? CheckBareWidth : (int)this.CheckWidth(g, shown);
+                            int rowTop = (int)Math.Ceiling(y), rowBottom = (int)Math.Floor(y + size.Height);
+                            Size preferred = this.CheckPreferredSize(shown);
+                            int h = Math.Max(preferred.Height, rowBottom - rowTop);
+                            int checkTop = (int)Math.Round(y + 0.5f * size.Height - 0.5f * h);
+                            this.planCheckRect = new Rectangle((int)Math.Round(x), checkTop, Math.Max(w, preferred.Width), h);
+                            this.planCheckBare = line.CheckMode == 2;
+                            this.planCheckShort = line.CheckMode == 3;
+                            this.labels.Add(new SketchLabel
+                            {
+                                Bounds = new Rectangle(this.planCheckRect.X, rowTop, this.planCheckRect.Width, Math.Max(1, rowBottom - rowTop)),
+                                Text = text,
+                            });
+                        }
+
                         y += size.Height;
                     }
                 }
@@ -2440,6 +2778,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (this.Mode == SketchMode.Detector)
             {
                 this.DrawPlanDetector(g, m);
+                return;
+            }
+
+            if (this.PlanFromDetector)
+            {
+                this.DrawPlanFromDetector(g, m);
                 return;
             }
 
@@ -2598,10 +2942,269 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
+        RectangleF CircleRect(float r)
+        {
+            return new RectangleF(this.planCenter.X - r, this.planCenter.Y - r, 2f * r, 2f * r);
+        }
+
+        /// <summary>
+        /// (`AMBER325`) Вид со стороны детектора — умолчание «Источника»: зритель за прибором смотрит вдоль оси на пробу. Прибор
+        /// ближе всего и рисуется последним, поверх сосуда и пробы, — как до `AMBER324` (ось Y вверх, трапеция основанием 2
+        /// сверху). Что прибор закрыл — контур сосуда, колодца маринелли, точку на оси — штриховым невидимым контуром поверх
+        /// прибора (ГОСТ 2.303-68); решение Amber 11.11.2026 вопросником, дословно: «Штрихом, как в виде со стороны пробы
+        /// (Рекомендую)». Штрих отсечён по наружному контуру прибора: где контур сосуда виден мимо прибора, он сплошной.
+        /// Дальнее донышко сосуда, как и прежде, не рисуется: план — взгляд в открытый сосуд.
+        /// </summary>
+        void DrawPlanFromDetector(Graphics g, GeometryModel m)
+        {
+            using (Pen ink = new Pen(Ink, 1.2f))
+            using (GraphicsPath hidden = new GraphicsPath())
+            {
+                double holeOuterReach = 0.0;
+                double[] xi = new double[4], yi = new double[4], xo = new double[4], yo = new double[4];
+                bool trap = m.HasTrapezoidHole && m.TrapezoidHoleVertices(0.0, xi, yi)
+                            && m.TrapezoidHoleVertices(Math.Max(m.MarinelliHoleSideThickness, 0.0), xo, yo);
+                if (trap)
+                {
+                    for (int i = 0; i < 4; i++)
+                    {
+                        holeOuterReach = Math.Max(holeOuterReach, Math.Sqrt(xo[i] * xo[i] + yo[i] * yo[i]));
+                    }
+                }
+
+                bool field = m.Scene == GeometrySceneKind.Iso;
+                bool point = false;
+                switch (field ? GeometrySourceType.Point : m.SourceType)
+                {
+                    case GeometrySourceType.Marinelli:
+                    {
+                        double rOut = 0.5 * Math.Max(m.MarinelliBeakerDiameter, 0.0);
+                        double rh = 0.5 * Math.Max(m.MarinelliHoleDiameter, 0.0);
+                        double ths = Math.Max(m.MarinelliHoleSideThickness, 0.0);
+                        double rSrc = trap ? Math.Max(holeOuterReach, rOut - Math.Max(m.MarinelliSideThickness, 0.0))
+                                           : Math.Max(rh + ths, rOut - Math.Max(m.MarinelliSideThickness, 0.0));
+                        float beakerPx = (float)(rOut * this.scale);
+                        this.FillCircle(g, WallColor, beakerPx);
+                        this.FillCircle(g, SampleColor, (float)(rSrc * this.scale));
+
+                        // Колодец открыт к детектору: стенка колодца и его просвет, контур колодца сплошной там, где виден.
+                        if (trap)
+                        {
+                            using (Brush wall = new SolidBrush(WallColor))
+                            using (Brush canvas = new SolidBrush(Canvas))
+                            {
+                                g.FillPolygon(wall, this.PlanPoints(xo, yo));
+                                g.FillPolygon(canvas, this.PlanPoints(xi, yi));
+                            }
+
+                            g.DrawPolygon(ink, this.PlanPoints(xi, yi));
+                            hidden.AddPolygon(this.PlanPoints(xi, yi));
+                        }
+                        else
+                        {
+                            float holePx = (float)(rh * this.scale);
+                            this.FillCircle(g, WallColor, (float)((rh + ths) * this.scale));
+                            this.FillCircle(g, Canvas, holePx);
+                            this.Circle(g, ink, holePx);
+                            if (holePx >= HiddenMinPx)
+                            {
+                                hidden.AddEllipse(this.CircleRect(holePx));
+                            }
+                        }
+
+                        this.Circle(g, ink, beakerPx);
+                        if (beakerPx >= HiddenMinPx)
+                        {
+                            hidden.AddEllipse(this.CircleRect(beakerPx));
+                        }
+
+                        break;
+                    }
+
+                    case GeometrySourceType.Cylinder:
+                    {
+                        double rOut = 0.5 * Math.Max(m.BeakerDiameter, 0.0);
+                        float beakerPx = (float)(rOut * this.scale);
+                        this.FillCircle(g, WallColor, beakerPx);
+                        this.FillCircle(g, SampleColor, (float)(Math.Max(0.0, rOut - m.BeakerSideWallThickness) * this.scale));
+                        this.Circle(g, ink, beakerPx);
+                        if (beakerPx >= HiddenMinPx)
+                        {
+                            hidden.AddEllipse(this.CircleRect(beakerPx));
+                        }
+
+                        break;
+                    }
+
+                    case GeometrySourceType.Box:
+                    {
+                        double hx = 0.5 * Math.Max(m.BoxSourceX, 0.0), hy = 0.5 * Math.Max(m.BoxSourceY, 0.0);
+                        double w = Math.Max(m.BoxSideWallThickness, 0.0);
+                        using (Brush wall = new SolidBrush(WallColor))
+                        using (Brush sample = new SolidBrush(SampleColor))
+                        {
+                            g.FillRectangle(wall, this.PlanRect(hx, hy));
+                            g.FillRectangle(sample, this.PlanRect(Math.Max(0.0, hx - w), Math.Max(0.0, hy - w)));
+                        }
+
+                        RectangleF outline = this.PlanRect(hx, hy);
+                        g.DrawRectangle(ink, outline.X, outline.Y, outline.Width, outline.Height);
+                        hidden.AddRectangle(outline);
+                        break;
+                    }
+
+                    default:
+                        if (field)
+                        {
+                            // Поле: та же условная окружность, что на разрезе (`FieldRing`), не в масштабе; прибор её не закрывает.
+                            double zc, rr;
+                            FieldRing(m, -(this.ToSample(m)), out zc, out rr);
+                            float pr = (float)(rr * this.scale);
+                            using (Pen ring = new Pen(SampleColor, 1.2f) { DashStyle = DashStyle.Dash })
+                            {
+                                this.Circle(g, ring, pr);
+                            }
+
+                            using (Pen arrow = new Pen(SampleColor, 1.4f))
+                            {
+                                arrow.CustomEndCap = new AdjustableArrowCap(4f, 6f);
+                                for (int k = 0; k < 8; k++)
+                                {
+                                    double a = k * Math.PI / 4.0;
+                                    float ex = (float)Math.Cos(a), ey = (float)Math.Sin(a);
+                                    g.DrawLine(arrow, this.planCenter.X + ex * pr, this.planCenter.Y + ey * pr,
+                                               this.planCenter.X + ex * pr * 0.72f, this.planCenter.Y + ey * pr * 0.72f);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            point = true;
+                        }
+
+                        break;
+                }
+
+                this.DrawPlanDetector(g, m);
+
+                using (Pen pen = HiddenPen())
+                {
+                    if (point)
+                    {
+                        // Точка на оси перед торцом: со стороны детектора прибор её закрывает — штриховой кружок поверх прибора,
+                        // тем же размером, что на разрезе.
+                        g.DrawEllipse(pen, this.planCenter.X - 5f, this.planCenter.Y - 5f, 10f, 10f);
+                    }
+                    else if (hidden.PointCount > 0)
+                    {
+                        double hx, hy, tsr, tsg, tsc;
+                        this.PlanCrystal(m, out hx, out hy, out tsr, out tsg, out tsc);
+                        double wrap = tsr + tsg + tsc;
+                        GraphicsState state = g.Save();
+                        using (GraphicsPath cover = new GraphicsPath())
+                        {
+                            RectangleF body = this.PlanRect(hx + wrap, hy + wrap);
+                            if (m.Shape == CrystalShape.Box)
+                            {
+                                cover.AddRectangle(body);
+                            }
+                            else
+                            {
+                                cover.AddEllipse(body);
+                            }
+
+                            g.SetClip(cover, CombineMode.Intersect);
+                            g.DrawPath(pen, hidden);
+                        }
+
+                        g.Restore(state);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER325`) Закрывает ли прибор со стороны детектора что-нибудь из контуров пробы: точку на оси — всегда; контур
+        /// сосуда, колодца маринелли, кюветы — если хоть часть его лежит под наружным контуром прибора (банка ⌀40 на торце
+        /// AS 80x80 — вся). Тогда на плане есть штрих, и пояснение вида о нём говорит. Поле прибор не закрывает.
+        /// </summary>
+        bool DetectorSideHidden(GeometryModel m)
+        {
+            if (m.Scene == GeometrySceneKind.Iso)
+            {
+                return false;
+            }
+
+            if (m.SourceType == GeometrySourceType.Point)
+            {
+                return true;
+            }
+
+            Func<double, double, bool> under = (x, y) => this.UnderDetector(m, x, y);
+            Func<double, bool> circle = r =>
+            {
+                for (int i = 0; i < 720 && r > 0.0; i++)
+                {
+                    double a = i * Math.PI / 360.0;
+                    if (under(r * Math.Cos(a), r * Math.Sin(a)))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            };
+            Func<double[], double[], bool> polygon = (xs, ys) =>
+            {
+                for (int i = 0; i < xs.Length; i++)
+                {
+                    int j = (i + 1) % xs.Length;
+                    for (int k = 0; k <= 100; k++)
+                    {
+                        double t = k / 100.0;
+                        if (under(xs[i] + t * (xs[j] - xs[i]), ys[i] + t * (ys[j] - ys[i])))
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            };
+
+            switch (m.SourceType)
+            {
+                case GeometrySourceType.Marinelli:
+                {
+                    double[] xi = new double[4], yi = new double[4];
+                    bool hole = m.HasTrapezoidHole && m.TrapezoidHoleVertices(0.0, xi, yi)
+                                ? polygon(xi, yi)
+                                : circle(0.5 * Math.Max(m.MarinelliHoleDiameter, 0.0));
+                    return hole || circle(0.5 * Math.Max(m.MarinelliBeakerDiameter, 0.0));
+                }
+
+                case GeometrySourceType.Cylinder:
+                    return circle(0.5 * Math.Max(m.BeakerDiameter, 0.0));
+                case GeometrySourceType.Box:
+                {
+                    double ax = 0.5 * Math.Max(m.BoxSourceX, 0.0), ay = 0.5 * Math.Max(m.BoxSourceY, 0.0);
+                    return ax > 0.0 && ay > 0.0 && polygon(new[] { -ax, ax, ax, -ax }, new[] { -ay, -ay, ay, ay });
+                }
+
+                default:
+                    return false;
+            }
+        }
+
         /// <summary>(`AMBER324`) Закрывает ли проба на плане что-нибудь: банка, кювета, маринелли (с грунтом и лункой). Тогда на
         /// плане есть штриховой невидимый контур, и пояснение вида о нём говорит.</summary>
         bool PlanHasHidden(GeometryModel m)
         {
+            if (this.PlanFromDetector)
+            {
+                return this.DetectorSideHidden(m);
+            }
+
             bool round;
             double ax, ay;
             if (this.Mode != SketchMode.Source || !PlanCover(m, out round, out ax, out ay))
@@ -2786,7 +3389,9 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         RectangleF PlanRect(double halfX, double halfY)
         {
-            return RectangleF.FromLTRB(this.PX(-halfX), this.PY(-halfY), this.PX(halfX), this.PY(halfY));
+            // (`AMBER325`) Ось Y плана смотрит вверх или вниз по стороне вида: верх рамки — меньшая из двух.
+            float y0 = this.PY(-halfY), y1 = this.PY(halfY);
+            return RectangleF.FromLTRB(this.PX(-halfX), Math.Min(y0, y1), this.PX(halfX), Math.Max(y0, y1));
         }
 
         /// <summary>Размеры плана: стороны и диаметры, которых нет на разрезе, в те же ряды по тем же правилам.</summary>
@@ -2798,7 +3403,6 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            float cy = this.planCenter.Y;
             if (m.Scene != GeometrySceneKind.Iso)
             {
                 switch (m.SourceType)
@@ -2806,13 +3410,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                     case GeometrySourceType.Marinelli:
                     {
                         double rOut = 0.5 * Math.Max(m.MarinelliBeakerDiameter, 0.0);
-                        this.Dim(g, DimSide.Top, 0, this.PX(-rOut), this.PX(rOut), cy, cy, m.MarinelliBeakerDiameter, "MarinelliBeakerDiameter", RankMain);
+                        this.CircleDim(g, m, rOut, m.MarinelliBeakerDiameter, "MarinelliBeakerDiameter");
                         double[] xi = new double[4], yi = new double[4];
-                        if (m.HasTrapezoidHole && m.TrapezoidHoleVertices(0.0, xi, yi))
+                        if (m.HasTrapezoidHole && m.TrapezoidHoleVertices(0.0, xi, yi)
+                            && !(this.PlanFromDetector && Enumerable.Range(0, 4).All(i => this.UnderDetector(m, xi[i], yi[i]))))
                         {
                             // (`AMBER324`) Основание 1 лежит при y < 0, на плане сверху: со стороны пробы ось Y смотрит вниз.
-                            this.Dim(g, DimSide.Top, 0, this.PX(xi[0]), this.PX(xi[1]), this.PY(yi[0]), this.PY(yi[1]), m.MarinelliHoleBase1, "MarinelliHoleBase1", RankMain);
-                            this.Dim(g, DimSide.Bottom, 0, this.PX(xi[3]), this.PX(xi[2]), this.PY(yi[3]), this.PY(yi[2]), m.MarinelliHoleBase2, "MarinelliHoleBase2", RankMain);
+                            // (`AMBER325`) Со стороны детектора ось Y вверх: основание 1 снизу, основание 2 сверху.
+                            bool up = this.PlanFromDetector;
+                            this.Dim(g, up ? DimSide.Bottom : DimSide.Top, 0, this.PX(xi[0]), this.PX(xi[1]), this.PY(yi[0]), this.PY(yi[1]), m.MarinelliHoleBase1, "MarinelliHoleBase1", RankMain);
+                            this.Dim(g, up ? DimSide.Top : DimSide.Bottom, 0, this.PX(xi[3]), this.PX(xi[2]), this.PY(yi[3]), this.PY(yi[2]), m.MarinelliHoleBase2, "MarinelliHoleBase2", RankMain);
                             this.Dim(g, DimSide.Left, 0, this.PY(yi[0]), this.PY(yi[3]), this.PX(xi[0]), this.PX(xi[3]), m.MarinelliHoleWidth, "MarinelliHoleWidth", RankMain);
                         }
 
@@ -2826,14 +3433,22 @@ namespace BecquerelMonitor.EfficiencyMaker
                     case GeometrySourceType.Cylinder:
                     {
                         double rOut = 0.5 * Math.Max(m.BeakerDiameter, 0.0);
-                        this.Dim(g, DimSide.Top, 0, this.PX(-rOut), this.PX(rOut), cy, cy, m.BeakerDiameter, "BeakerDiameter", RankMain);
+                        this.CircleDim(g, m, rOut, m.BeakerDiameter, "BeakerDiameter");
                         break;
                     }
 
                     case GeometrySourceType.Box:
                     {
                         double hx = 0.5 * Math.Max(m.BoxSourceX, 0.0), hy = 0.5 * Math.Max(m.BoxSourceY, 0.0);
-                        this.Dim(g, DimSide.Top, 0, this.PX(-hx), this.PX(hx), this.PY(-hy), this.PY(-hy), m.BoxSourceX, "BoxSourceX", RankMain);
+                        // (`AMBER325`) Кювета целиком под прибором (угол под прибором — значит и весь контур: прибор выпуклый и
+                        // стоит на оси) — размеров на плане нет, они на разрезе; иначе углы, к которым идут выносные, видны.
+                        if (this.PlanFromDetector && this.UnderDetector(m, hx, hy))
+                        {
+                            break;
+                        }
+
+                        float edge = this.PlanRect(hx, hy).Top;
+                        this.Dim(g, DimSide.Top, 0, this.PX(-hx), this.PX(hx), edge, edge, m.BoxSourceX, "BoxSourceX", RankMain);
                         this.Dim(g, DimSide.Left, 0, this.PY(hy), this.PY(-hy), this.PX(-hx), this.PX(-hx), m.BoxSourceY, "BoxSourceY", RankMain);
                         break;
                     }
@@ -2843,6 +3458,38 @@ namespace BecquerelMonitor.EfficiencyMaker
                         break;
                 }
             }
+        }
+
+        /// <summary>
+        /// (`AMBER325`, второй заход; правило `AMBER324`: к невидимому контуру размер ставят, только если элемент нельзя
+        /// образмерить там, где он виден) ⌀ сосуда на плане. Со стороны пробы и где края сосуда по оси X видны — как прежде,
+        /// горизонтально через центр. Со стороны детектора контур целиком под прибором (банка ⌀40 на торце AS 80x80) — размера на
+        /// плане нет, ⌀ стоит на разрезе. Края по X закрыты, а по Y видны (круг шире узкой стороны бруска) — ⌀ вертикально, к
+        /// видимым краям.
+        /// </summary>
+        void CircleDim(Graphics g, GeometryModel m, double r, double value, string key)
+        {
+            float cx = this.planCenter.X, cy = this.planCenter.Y;
+            if (this.PlanFromDetector && this.UnderDetector(m, r, 0.0))
+            {
+                if (!this.UnderDetector(m, 0.0, r))
+                {
+                    this.Dim(g, DimSide.Left, 0, this.PY(r), this.PY(-r), cx, cx, value, key, RankMain);
+                }
+
+                return;
+            }
+
+            this.Dim(g, DimSide.Top, 0, this.PX(-r), this.PX(r), cy, cy, value, key, RankMain);
+        }
+
+        /// <summary>(`AMBER325`) Точка плана (мм от оси) под наружным контуром прибора — со стороны детектора она закрыта.</summary>
+        bool UnderDetector(GeometryModel m, double x, double y)
+        {
+            double hx, hy, tsr, tsg, tsc;
+            this.PlanCrystal(m, out hx, out hy, out tsr, out tsg, out tsc);
+            double ox = hx + tsr + tsg + tsc - 1e-6, oy = hy + tsr + tsg + tsc - 1e-6;
+            return m.Shape == CrystalShape.Box ? Math.Abs(x) < ox && Math.Abs(y) < oy : x * x + y * y < ox * ox;
         }
 
         /// <summary>

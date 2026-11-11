@@ -1839,6 +1839,18 @@
   <data name="EfficiencySketchHiddenHint" xml:space="preserve">
     <value>невидимый контур — штриховой</value>
   </data>
+  <data name="EfficiencySketchDetectorSideView" xml:space="preserve">
+    <value>Вид со стороны детектора</value>
+  </data>
+  <data name="EfficiencySketchDetectorSideHint" xml:space="preserve">
+    <value>Взгляд вдоль оси со стороны детектора на пробу</value>
+  </data>
+  <data name="EfficiencySketchFromSampleCheck" xml:space="preserve">
+    <value>Со стороны пробы</value>
+  </data>
+  <data name="EfficiencySketchFromSampleShort" xml:space="preserve">
+    <value>от пробы</value>
+  </data>
   <data name="EfficiencySketchDepth" xml:space="preserve">
     <value>Глубина: {0} {1}</value>
   </data>

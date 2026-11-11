@@ -452,6 +452,27 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// (`AMBER325`) С какой стороны второй вид чертежа вкладки «Источник» редактора геометрии: снято
+        /// (умолчание) — со стороны детектора, поставлено — со стороны пробы. Постановка Amber 11.11.2026,
+        /// дословно: «Сделай в скетче CheckBox - с какой стороны показывать образец. С верху или с низу.
+        /// Пускай пользователь решает.»; умолчание вопросником того же дня, дословно: «Со стороны детектора,
+        /// помнить в настройках (Рекомендую)». Одна настройка на приложение, на все кривые; настройка
+        /// РИСУНКА — кривая и матрица от неё не зависят. Старым файлам без элемента — умолчание поля,
+        /// со стороны детектора. Пишет галка самого чертежа (`GeometrySketch.PlanSideStore`).
+        /// </summary>
+        public bool GeometrySketchPlanFromSample
+        {
+            get
+            {
+                return this.geometrySketchPlanFromSample;
+            }
+            set
+            {
+                this.geometrySketchPlanFromSample = value;
+            }
+        }
+
+        /// <summary>
         /// (`AMBER202`) Нынешнее значение настройки для сериализации спектра.
         /// Недоступная конфигурация (проба, отказ чтения) — умолчание «писать».
         /// </summary>
@@ -539,6 +560,9 @@ namespace BecquerelMonitor
 
         // (`AMBER219`) галка «Use Nvidia GPU» окна матрицы отклика; умолчание ВЫКЛ (Amber 07.10.2026)
         bool useGpuForResponseMatrix = false;
+
+        // (`AMBER325`) второй вид чертежа «Источника»; умолчание — со стороны детектора (Amber 11.11.2026)
+        bool geometrySketchPlanFromSample = false;
 
         // Token: 0x040008BD RID: 2237
         ResultTranslation resultTranslation = ResultTranslation.Becquerels;
