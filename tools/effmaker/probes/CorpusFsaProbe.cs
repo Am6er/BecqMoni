@@ -1270,6 +1270,14 @@ namespace CorpusFsaProbe
                     o.BandKnife = v == "1" ? 1 : 0;
                     continue;
                 }
+                // (`AMBER295`, остаток, полоса `a295`) рычаг: окно опоры без снятых маской каналов
+                if (a.StartsWith("--anchor-skip-masked=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(21);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--anchor-skip-masked=0|1"); }
+                    o.AnchorSkipMasked = v == "1" ? 1 : 0;
+                    continue;
+                }
                 // (`AMBER269`, Н3) нож порога доверия целиком; обратное плечо — 0
                 if (a.StartsWith("--untie-low=", StringComparison.Ordinal))
                 {
@@ -2769,6 +2777,12 @@ namespace CorpusFsaProbe
             if (o.BandKnife >= 0)
             {
                 analyzer.BackgroundBandKnife = o.BandKnife == 1;
+            }
+
+            // (`AMBER295`, остаток, полоса `a295`) рычаг: окно опоры без снятых маской каналов
+            if (o.AnchorSkipMasked >= 0)
+            {
+                analyzer.AnchorWindowSkipsMasked = o.AnchorSkipMasked == 1;
             }
 
             // (`AMBER269`, Н3/Н5 02.11.2026) нож целиком и ширина опор при откате
@@ -6704,6 +6718,7 @@ namespace CorpusFsaProbe
             public int AnchorShareNet = -1;    // (`AMBER142`, П222) −1 — умолчание анализатора
             public int BackgroundMask = -1;    // (`AMBER295`) −1 — умолчание анализатора
             public int BandKnife = -1;         // (`AMBER295`) −1 — умолчание анализатора
+            public int AnchorSkipMasked = -1;  // (`AMBER295`, остаток) −1 — умолчание анализатора
             public int AnchorRollback = -1;    // (`AMBER269`, (А2)) −1 — умолчание анализатора
             public int UntieLow = -1;          // (`AMBER269`, Н3) −1 — умолчание анализатора
             public int AnchorRollbackWidth = -1;   // (`AMBER269`, Н5) −1 — умолчание анализатора

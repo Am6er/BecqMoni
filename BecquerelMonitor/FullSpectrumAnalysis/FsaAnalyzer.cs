@@ -6582,6 +6582,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public bool BackgroundMaskGuard { get; set; }
 
+        /// <summary>
+        /// (`AMBER295`, остаток, полоса `a295`) РЫЧАГ: окно опоры шкалы считается без каналов, снятых автомаской
+        /// фона (<see cref="BackgroundExcessMask"/>). Снятый канал несёт <see cref="MaskedVariance"/>, и окно опоры,
+        /// задевшее участок маски хотя бы одним каналом, получало значимость Σd/√ΣV около нуля: опора отпадала
+        /// «пик незначим» при целой вершине (`ASN16_Radon_filter2`: окно опоры 238.6 кэВ задевает участок маски,
+        /// опор с маской меньше, сторож отказывает маске). С ключом суммы окна (значимость, доля, центры тяжести,
+        /// шум центра, число каналов Бирге) идут по неснятым каналам; окно, снятое больше чем наполовину, опорой
+        /// не бывает; ширина по окну с дырой не мерится. Без маски в разборе ключ не меняет ни бита. Умолчание — в
+        /// конструкторе.
+        /// </summary>
+        public bool AnchorWindowSkipsMasked { get; set; }
+
         /// <summary>(`AMBER295`) Первый отказ сторожа маски в этом разборе; null — отказа нет.</summary>
         string backgroundMaskRefusal;
 
@@ -8197,8 +8209,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 bool shareNet = this.AnchorShareWithoutContinuum && this.ResponseMatrix != null;
                 double sumWhole = 0.0, sumCore = 0.0, sumData = 0.0, sumVar = 0.0;
                 double momentCore = 0.0, momentData = 0.0;
+                // (`AMBER295`, остаток) каналы, снятые автомаской фона, — мимо сумм окна (рычаг, доводы у свойства)
+                bool skipMasked = this.AnchorWindowSkipsMasked;
+                int maskedInWindow = 0;
                 for (int k = lo; k <= hi; k++)
                 {
+                    if (skipMasked && variance[k] >= MaskedVariance)
+                    {
+                        maskedInWindow++;
+                        continue;
+                    }
+
                     double d = fit.Residual[k] + core[k];
                     // (`AMBER142`, П222) доля без континуума — у свойства
                     sumWhole += shareNet ? net[k] : net[k] + continuum[k];
@@ -8216,7 +8237,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     FirstChannel = lo,
                     LastChannel = hi,
                     PeakShare = sumWhole > 0.0 ? sumCore / sumWhole : 0.0,
-                    Z = sumVar > 0.0 ? sumData / Math.Sqrt(sumVar) : 0.0
+                    // (`AMBER295`, остаток) окно, снятое маской больше чем наполовину, — не опора
+                    Z = sumVar > 0.0 && 2 * maskedInWindow <= hi - lo + 1 ? sumData / Math.Sqrt(sumVar) : 0.0
                 };
 
                 double peakEnergy = calibration.ChannelToEnergy(i);
@@ -8227,6 +8249,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     double varCentre = 0.0;
                     for (int k = lo; k <= hi; k++)
                     {
+                        if (skipMasked && variance[k] >= MaskedVariance)
+                        {
+                            continue;
+                        }
+
                         double dk = k - centreData;
                         varCentre += variance[k] * dk * dk;
                     }
@@ -8407,6 +8434,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             int nWin = 0;
                             for (int k = kLo; k <= kHi; k++)
                             {
+                                if (skipMasked && variance[k] >= MaskedVariance)
+                                {
+                                    continue;
+                                }
+
                                 double w = variance[k] > 0.0 ? 1.0 / variance[k] : 0.0;
                                 double r = fit.Residual[k] + net[k] - InterpolateAt(net, k - delta, chLo, chHi);
                                 chiWin += w * r * r;
@@ -8504,7 +8536,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             }
                         }
 
-                        if (coreLines == 1)
+                        // (`AMBER295`, остаток) ширина — вторым моментом по целому окну: с дырой маски не мерится
+                        if (coreLines == 1 && maskedInWindow == 0)
                         {
                             this.MeasureAnchorWidth(fit1, core, fit.Residual, variance, lo, hi,
                                                     centreModel, centreData, sumCore, sumData, fwhm);
@@ -10683,6 +10716,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.BackgroundExcessMask = true;
             this.BackgroundBandKnife = true;
             this.BackgroundMaskGuard = true;
+            // (`AMBER295`, остаток, полоса `a295`) рычаг выключен: умолчание побитно прежнее; включение —
+            // решением Amber по замеру (журнал handover/handover-2026-11-12-a295.md)
+            this.AnchorWindowSkipsMasked = false;
             // (`AMBER269`) нижняя граница разбора — настройка FSA, умолчание поставки (с 03.11.2026
             // нуль — правило порога, `AMBER274`; довод — у константы)
             this.FitLowerBoundKev = FsaBand.ShippedFitLowerBoundKev;
