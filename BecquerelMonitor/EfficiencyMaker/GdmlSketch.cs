@@ -983,10 +983,25 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.RenderCallouts(graphics, slot, placed);
         }
 
-        /// <summary>Задевает ли линия какой-нибудь выноски этот прямоугольник.</summary>
-        static bool LeaderHits(List<PlacedCallout> placed, RectangleF box)
+        /// <summary>
+        /// (`AMBER301`, остаток `a301c` 12.11.2026) Просветы выносок. На снимках гида подпись «Detector» стояла под самой
+        /// размерной линией «214 mm», её линия шла вплотную к числу, а «Детектор» окна импорта — вплотную к букве «A»:
+        /// прежде всё это мерилось «не пересекается», то есть нулевым просветом.
+        ///   * <see cref="CalloutBeyondDims"/> — подпись со стороны размера габарита (под чертежом и слева) стоит за его первым
+        ///     рядом: в 12 точках от размерной линии и в 9 от вылета выносных (было 8 и 5);
+        ///   * <see cref="CalloutMarkRoom"/> — просвет между подписью или линией выноски и буквой «A» линии разреза, числом размера.
+        /// Места выносок считаются первыми; им уступают буква «A» (другая сторона линии) и число размера (вдоль своей линии),
+        /// а ряд подписей над чертежом сам поднимается над буквой.
+        /// </summary>
+        const float CalloutMarkRoom = 4f;
+
+        /// <summary>Отступ подписи от чертежа со стороны размера габарита: первый ряд размера, вылет выносных и просвет.</summary>
+        const float CalloutBeyondDims = GeometrySketch.DimFirstPx + GeometrySketch.DimOverPx + 9f;
+
+        /// <summary>Задевает ли линия какой-нибудь выноски этот прямоугольник; <paramref name="room"/> — просвет вокруг него.</summary>
+        static bool LeaderHits(List<PlacedCallout> placed, RectangleF box, float room = 1f)
         {
-            box.Inflate(1f, 1f);
+            box.Inflate(room, room);
             foreach (PlacedCallout item in placed)
             {
                 PointF a = item.From, b = item.Anchor;
@@ -1177,7 +1192,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // Подпись не садится ни на взятое в расчёт тело, ни на ось, ни на линию A–A с её буквами.
                         if (!this.NumberFree(label, slot, placed) || this.OnTakenSolid(view, label, solids)
                             || (axisRow > label.Top - 1f && axisRow < label.Bottom + 1f)
-                            || (alongU && cutColumn > label.Left - 12f && cutColumn < label.Right + 12f && (label.Top < drawn.Top || label.Bottom > drawn.Bottom)))
+                            || (alongU && cutColumn > label.Left - 12f && cutColumn < label.Right + 12f && (label.Top < drawn.Top || label.Bottom > drawn.Bottom))
+                            // (`a301c`) У вертикальной стрелки подпись сбоку не ложится поперёк линии A–A вне тела: там её штрихи и
+                            // буква «A», и букве не остаётся ни одной стороны (RC-110, торец: место освободил поднятый ряд выносок).
+                            || (!alongU && cutColumn > label.Left && cutColumn < label.Right && (label.Top < drawn.Top || label.Bottom > drawn.Bottom)))
                         {
                             continue;
                         }
@@ -1302,8 +1320,31 @@ namespace BecquerelMonitor.EfficiencyMaker
                         // Справа от линии, а если там выноска — слева.
                         float yTop = drawn.Top - size.Height - 1f, yBottom = drawn.Bottom + 1f;
                         RectangleF atTop = new RectangleF(x + 2f, yTop, size.Width, size.Height), atBottom = new RectangleF(x + 2f, yBottom, size.Width, size.Height);
-                        float xTop = LeaderHits(placed, atTop) || arrow.IntersectsWith(atTop) ? x - 2f - size.Width : x + 2f;
-                        float xBottom = LeaderHits(placed, atBottom) || arrow.IntersectsWith(atBottom) ? x - 2f - size.Width : x + 2f;
+                        // (`a301c`) Не вплотную к линии выноски: та сторона, где просвет до неё больше (при равном — справа).
+                        // Прежде буква уходила налево, только когда линия выноски шла прямо через неё, и вставала в точке от линии.
+                        Func<RectangleF, float> letterAt = right =>
+                        {
+                            RectangleF left = new RectangleF(x - 2f - size.Width, right.Y, size.Width, size.Height);
+                            // Рамки подписей здесь не спрашиваются: ряд над чертежом уже поднят над буквой (`PlaceSide`), а подписи
+                            // под чертежом и в столбцах стоят от неё дальше 8 точек. Слагаемое с рамками было недостижимо (критик
+                            // 12.11.2026, мутант x1) и снято; исход держит проверка пробы «подпись не ближе 4 точек к букве».
+                            Func<RectangleF, float, bool> busy = (box, room) => LeaderHits(placed, box, room) || arrow.IntersectsWith(box);
+                            for (float room = CalloutMarkRoom; room >= 1f; room -= 1f)
+                            {
+                                if (!busy(right, room))
+                                {
+                                    return right.X;
+                                }
+
+                                if (!busy(left, room))
+                                {
+                                    return left.X;
+                                }
+                            }
+
+                            return left.X;
+                        };
+                        float xTop = letterAt(atTop), xBottom = letterAt(atBottom);
                         this.Mark(graphics, "A", this.LabelFont, InkBrush, xTop, yTop, size);
                         this.Mark(graphics, "A", this.LabelFont, InkBrush, xBottom, yBottom, size);
                     }
@@ -1337,9 +1378,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         }
 
         /// <summary>Рамка свободна: нет меток, выносок, подписей выносок и линий уже стоящих размеров.</summary>
-        bool NumberFree(RectangleF box, ViewSlot slot, List<PlacedCallout> placed)
+        /// <remarks><paramref name="room"/> — просвет до выносок (линии и подписи) и до меток; у числа размера — <see cref="CalloutMarkRoom"/>.</remarks>
+        bool NumberFree(RectangleF box, ViewSlot slot, List<PlacedCallout> placed, float room = 0f)
         {
-            if (!RectangleF.Inflate(slot.Panel, -1, -1).Contains(box) || LeaderHits(placed, box))
+            if (!RectangleF.Inflate(slot.Panel, -1, -1).Contains(box) || LeaderHits(placed, box, Math.Max(1f, room)))
             {
                 return false;
             }
@@ -1353,9 +1395,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
+            RectangleF wide = RectangleF.Inflate(box, room, room);
             foreach (PlacedCallout item in placed)
             {
-                if (RectangleF.Intersect(item.Box, box).Width > 0f && RectangleF.Intersect(item.Box, box).Height > 0f)
+                if (RectangleF.Intersect(item.Box, wide).Width > 0f && RectangleF.Intersect(item.Box, wide).Height > 0f)
                 {
                     return false;
                 }
@@ -1363,7 +1406,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             foreach (SketchMark mark in this.paintMarks)
             {
-                if (RectangleF.Intersect(mark.Bounds, box).Width > 0f && RectangleF.Intersect(mark.Bounds, box).Height > 0f)
+                if (RectangleF.Intersect(mark.Bounds, wide).Width > 0f && RectangleF.Intersect(mark.Bounds, wide).Height > 0f)
                 {
                     return false;
                 }
@@ -1448,7 +1491,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     float here = center + (k % 2 == 0 ? 1f : -1f) * ((k + 1) / 2) * 2f;
                     foreach (bool side in sides)
                     {
-                        if (!found && Math.Abs(here - center) <= reach && this.NumberFree(NumberBox(horizontal, line, here, size, side), slot, placed))
+                        if (!found && Math.Abs(here - center) <= reach && this.NumberFree(NumberBox(horizontal, line, here, size, side), slot, placed, CalloutMarkRoom))
                         {
                             at = here;
                             inner = side;
@@ -1464,7 +1507,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     float there = after ? afterAt : beforeAt;
                     foreach (bool side in sides)
                     {
-                    if (!found && this.NumberFree(NumberBox(horizontal, line, there, size, side), slot, placed)
+                    if (!found && this.NumberFree(NumberBox(horizontal, line, there, size, side), slot, placed, CalloutMarkRoom)
                         && this.LineFree(at2(after ? b : there - along / 2f, line), at2(after ? there + along / 2f : a, line), placed))
                     {
                         at = there;
@@ -1553,7 +1596,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (this.tooComplex.Count > 0)
             {
                 notes.Add(string.Format(CultureInfo.InvariantCulture,
-                    GdmlText.T("GdmlSketchTooComplex", "Not drawn, too many nested bodies ({0}): {1}"),
+                    GdmlText.T("GdmlSketchTooComplex", "Not drawn, too complex for this drawing ({0}): {1}"),
                     this.tooComplex.Count, NameList(this.tooComplex)));
             }
 
@@ -1909,8 +1952,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.calloutPlaces[key] = known;
             }
 
-            this.PlaceSide(graphics, slot, drawn, known[0], true, result);
-            this.PlaceSide(graphics, slot, drawn, known[1], false, result);
+            // Где встанет буква «A» линии разреза (то же условие, что в `DrawGuides`): ряд подписей над чертежом её обходит.
+            float letterColumn = slot.Axial && slot.Text && IsFinite(this.geometry.EndPlane) && this.geometry.EndPlane >= frame.UMin && this.geometry.EndPlane <= frame.UMax
+                ? cutColumn
+                : float.NaN;
+            this.PlaceSide(graphics, slot, drawn, known[0], true, result, letterColumn);
+            this.PlaceSide(graphics, slot, drawn, known[1], false, result, letterColumn);
             return result;
         }
 
@@ -2008,7 +2055,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// выноски не перекрещивались. Подписи стоят вплотную к чертежу, а не у края окна. Не помещаются с
         /// размерами — остаются только названия.
         /// </summary>
-        void PlaceSide(Graphics graphics, ViewSlot slot, RectangleF drawn, List<KeyValuePair<CalloutText, PointF>> items, bool first, List<PlacedCallout> result)
+        void PlaceSide(Graphics graphics, ViewSlot slot, RectangleF drawn, List<KeyValuePair<CalloutText, PointF>> items, bool first, List<PlacedCallout> result, float letterColumn)
         {
             if (items.Count == 0)
             {
@@ -2024,6 +2071,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             float Gap = columns ? 6f : 14f;
             float low = columns ? plot.Top : panel.Left + 6f;
             float high = columns ? plot.Bottom : panel.Right - 6f;
+
+            // (`a301c`) Со стороны, где стоит размер габарита (под чертежом и слева), подпись — за его первым рядом, с просветом:
+            // прежде она стояла в 5 точках от вылета выносных линий и читалась одной строкой с числом размера.
+            bool dimensions = slot.Text && !this.compact;
 
             bool brief = false;
             float length = 0f;
@@ -2043,14 +2094,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (columns)
                 {
                     x = first
-                        ? Math.Max(panel.Left + 6f, drawn.Left - 30f - size.Width)
+                        ? Math.Max(panel.Left + 6f, drawn.Left - (dimensions ? CalloutBeyondDims : 30f) - size.Width)
                         : Math.Min(panel.Right - 6f - size.Width, drawn.Right + 22f);
                     y = item.Value.Y - size.Height / 2f;
                 }
                 else
                 {
                     x = item.Value.X - size.Width / 2f;
-                    y = first ? drawn.Top - 16f - size.Height : drawn.Bottom + 34f;
+                    y = first ? drawn.Top - 16f - size.Height : drawn.Bottom + (dimensions ? CalloutBeyondDims : 34f);
                 }
 
                 boxes.Add(new RectangleF(x, y, size.Width, size.Height));
@@ -2087,6 +2138,24 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 boxes[i] = box;
+            }
+
+            // (`a301c`) Ряд над чертежом и буква «A» линии разреза: подпись над буквой (с любой стороны линии) поднимается
+            // выше неё на просвет — весь ряд разом, чтобы подписи остались в одну строку. Прежде подпись стояла вплотную к букве.
+            if (!columns && first && !float.IsNaN(letterColumn))
+            {
+                SizeF letter = graphics.MeasureString("A", this.LabelFont);
+                float reach = 2f + letter.Width + CalloutMarkRoom;
+                float lift = letter.Height + 1f + CalloutMarkRoom + 1f - 16f;
+                if (lift > 0f && boxes.Exists(box => box.Left < letterColumn + reach && box.Right > letterColumn - reach))
+                {
+                    for (int i = 0; i < boxes.Count; i++)
+                    {
+                        RectangleF box = boxes[i];
+                        box.Y -= lift;
+                        boxes[i] = box;
+                    }
+                }
             }
 
             for (int i = 0; i < items.Count; i++)
@@ -6080,7 +6149,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 mass += double.IsNaN(volume.MassG) ? 0.0 : volume.MassG;
             }
 
-            return string.Format(CultureInfo.InvariantCulture, GdmlText.T("GdmlUnusedHeader", "Not used in the geometry: {0} parts, {1} g"),
+            return string.Format(CultureInfo.InvariantCulture, GdmlText.T("GdmlUnusedHeader", "Not used in the geometry: parts {0}, {1} g"),
                 unused.Count, GdmlSketch.Fmt(mass));
         }
 
@@ -6191,9 +6260,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 : "?";
             this.Line(string.Format(CultureInfo.InvariantCulture,
                 GdmlText.T("GdmlOverviewLine", "{0} volume(s), {1} material(s), overall size {2}."),
-                // (`AMBER301`) Счёт веществ — по строкам списка ниже: вещество только непрочитанного содержимого
-                // (`<paramvol>`, `<replicavol>` вдоль rho/phi) в томах не встречается, а строка у него есть.
-                g.Volumes.Count, Math.Max(g.MaterialCount, this.Materials.Count), overall));
+                // (`AMBER301`) Счёт веществ — тот же, что в журнале окна (`GdmlGeometry.MaterialRowCount`): вещество только
+                // непрочитанного содержимого (`<paramvol>`, `<replicavol>` вдоль rho/phi) считается, строка «(нет вещества)» — нет.
+                g.Volumes.Count, g.MaterialRowCount, overall));
             if (this.envelopeOrder.Count > 0)
             {
                 List<string> names = new List<string>();
