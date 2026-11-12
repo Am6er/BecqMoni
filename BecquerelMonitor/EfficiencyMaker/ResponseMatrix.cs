@@ -1181,6 +1181,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return null;
             }
 
+            // (`AMBER274`, `a274s`) Строки ветвей раздела несут форму беты: раздел, посчитанный
+            // без кулоновских λ, при ключе ВКЛ не годен (и обратно), — иначе разбор молча смешал
+            // бы две формы (строки ветвей старой, веса узлов новой). При ВЫКЛ и разделе без поля
+            // `cl` — прежнее поведение.
+            if ((e.StampField("cl") == "1") != BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambda)
+            {
+                refusal = ElectronSectionRefusal.OtherPhysics;
+                return null;
+            }
+
             if (!(e.BinKev > 0.0) || e.BinKev != this.BinKev
                 || e.StampField("bin") != this.BinKev.ToString("R", CultureInfo.InvariantCulture))
             {
@@ -6957,6 +6967,14 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 sb.Append(";br=").Append(branches.Count.ToString(CultureInfo.InvariantCulture)).Append(',')
                   .Append(ShortHash(keys.ToString()));
+            }
+
+            // (`AMBER274`, полоса `a274s`) Форма уникальных запретов с кулоновскими λ
+            // (`FsaBetaLibrary.CoulombLambda`, умолчание ВЫКЛ): поле `cl=1` только при ВКЛ —
+            // при ВЫКЛ клеймо побитно прежнее. Разбор сверяет его (`ElectronSectionFor`).
+            if (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambda)
+            {
+                sb.Append(";cl=1");
             }
 
             sb.Append(";cap=").Append(CapsuleText(geometry));

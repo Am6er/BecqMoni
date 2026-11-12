@@ -42,6 +42,13 @@ namespace P324SeedErrataProbe
     ///    грузится; пять опечаток (две прежние + три новые) сверяются с сырым
     ///    файлом: перенесена ровно та запись, что побитово прежняя. <c>--dump=</c>
     ///    пишет ВСЕ загруженные записи («R»), и дампы ДО и ПОСЛЕ сличаются построчно.
+    /// 8. (`AMBER274`, `a274s`, поколение 14) ПЛОТНОСТЬ CeBr3 5.1 → 5.18: перенос побитово
+    ///    прежней записи, контроли правки человека, поколения 14, удаления, новой установки
+    ///    и слота геометрии. У каждой опечатки своё поколение: файл поколения 11–13 переносит
+    ///    только CeBr3 (раздел 5, контроль К1 критика `crit274t`); файл поколения 9–10 с
+    ///    прежними долями Freon-13ii и La2O2S — не переносится (З1 критика `crit274u`).
+    /// 9. СТРОЕНИЕ `SeedErrata` отражением (З2 критика `crit274u`): четыре поля, поколение в
+    ///    [1, SeedErrataVersion], наибольшее = SeedErrataVersion ≤ CurrentSeedVersion.
     ///
     /// Проба пишет в файл склада (<c>config\GeometryMaterials.xml</c> рядом с exe) и
     /// ВОЗВРАЩАЕТ его, как был; файл вне каталога пробы не трогает. Поток живёт
@@ -368,6 +375,8 @@ namespace P324SeedErrataProbe
                     Absent();
                     Once();
                     Slots();
+                    CeriumBromide();
+                    Structure();
                 }
             }
             finally
@@ -621,26 +630,189 @@ namespace P324SeedErrataProbe
             Check(Differences(second, first).Count == 0 && Differences(first, now).Count == 0,
                   "повторная загрузка даёт то же", "");
 
+            // (`a274s`) Поколение после Save — нынешнее из кода, а не число 11: с поколения 12
+            // эта проверка краснела на самой себе. Прочие контроли раздела — на поколении 11, как в П324.
+            int current = GeometryMaterialStore.CurrentSeedVersion;
             GeometryMaterialStore.Save(GeometryMaterialStore.Entries);
             int generation = FileGeneration();
-            Check(generation == 11, "после Save поколение файла = 11", "поколение " + generation.ToString(Inv));
+            Check(generation == current, "после Save поколение файла = " + current.ToString(Inv), "поколение " + generation.ToString(Inv));
             string h1 = Hash();
             List<GeometryMaterialLibrary.Entry> third = Load();
-            Check(Differences(third, now).Count == 0, "файл поколения 11 читается тем же составом", "");
+            Check(Differences(third, now).Count == 0, "файл нынешнего поколения читается тем же составом", "");
             GeometryMaterialStore.Save(GeometryMaterialStore.Entries);
             Check(Hash() == h1, "повторный Save побайтно тот же файл", "");
 
-            // Человек набрал прежние числа УЖЕ на поколении 11: перенос не вправе их тронуть.
-            WriteFile(SeedWith(true), 11);
-            List<GeometryMaterialLibrary.Entry> mine = Load();
+            // Человек набрал прежние числа УЖЕ на поколении 11 и выше: перенос не вправе их тронуть.
+            // Поколение 11 — как в П324; 13 и нынешнее — контроль К1 критика `crit274t`: подъём
+            // порога опечаток ради CeBr3 (поколение 14) не должен переписать опечатки поколения 11.
             List<GeometryMaterialLibrary.Entry> old = SeedWith(true);
-            bool kept = true;
-            foreach (Erratum x in Three)
+            foreach (int humanGeneration in new[] { 11, 13, current })
             {
-                kept &= Same(Find(mine, x.Name), Find(old, x.Name));
+                WriteFile(SeedWith(true), humanGeneration);
+                List<GeometryMaterialLibrary.Entry> mine = Load();
+                bool kept = true;
+                foreach (Erratum x in Three)
+                {
+                    kept &= Same(Find(mine, x.Name), Find(old, x.Name));
+                }
+
+                Check(kept, "файл поколения " + humanGeneration.ToString(Inv) + " с прежними числами (набрал человек) не переносится",
+                      Show(Find(mine, "Aniline")));
             }
 
-            Check(kept, "файл поколения 11 с прежними числами не переносится", Show(Find(mine, "Aniline")));
+            // (З1 критика `crit274u`) Опечатки поколения 9 (Freon-13ii, La2O2S): файл поколения 9 и 10
+            // с их прежними долями сохранён уже после исправления — числа набрал человек, переноса нет.
+            // Положительный контроль — раздел 2: на поколении 8 те же прежние доли переносятся.
+            foreach (int humanGeneration in new[] { 9, 10 })
+            {
+                List<GeometryMaterialLibrary.Entry> file = SeedWith(false);
+                foreach (Erratum x in Earlier)
+                {
+                    GeometryMaterialLibrary.Entry e = Find(file, x.Name);
+                    Set(e, x.OldFractions, e.Density);
+                }
+
+                WriteFile(file, humanGeneration);
+                List<GeometryMaterialLibrary.Entry> mine = Load();
+                bool kept = true;
+                foreach (Erratum x in Earlier)
+                {
+                    kept &= Same(Find(mine, x.Name), Find(file, x.Name));
+                }
+
+                Check(kept, "файл поколения " + humanGeneration.ToString(Inv) + " с прежними долями Freon-13ii и La2O2S (набрал человек) не переносится",
+                      Differences(mine, SeedWith(false)).Count.ToString(Inv) + " записей отличны от засева");
+            }
+        }
+
+        // 9 ------------------------------------------------------------------
+        /// <summary>
+        /// (З2 критика `crit274u`) СТРОЕНИЕ `GeometryMaterialStore.SeedErrata` отражением: у каждой
+        /// строки четыре поля, поколение — число в [1, SeedErrataVersion], наибольшее равно
+        /// SeedErrataVersion, SeedErrataVersion ≤ CurrentSeedVersion. Строка без поколения
+        /// переносом отключается молча (`ErratumGeneration` → 0) — здесь это видно сразу, и
+        /// забытый подъём внешнего порога для будущей опечатки тоже.
+        /// </summary>
+        static void Structure()
+        {
+            Say("");
+            Say("== 9. СТРОЕНИЕ SeedErrata (отражением) ==");
+            System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
+            System.Reflection.FieldInfo rowsField = typeof(GeometryMaterialStore).GetField("SeedErrata", flags);
+            System.Reflection.FieldInfo versionField = typeof(GeometryMaterialStore).GetField("SeedErrataVersion", flags);
+            string[][] rows = rowsField != null ? rowsField.GetValue(null) as string[][] : null;
+            Check(rows != null && versionField != null, "поля SeedErrata и SeedErrataVersion найдены", "");
+            if (rows == null || versionField == null)
+            {
+                return;
+            }
+
+            int threshold = (int)versionField.GetValue(null);
+            int highest = 0;
+            foreach (string[] row in rows)
+            {
+                int generation;
+                bool ok = row.Length == 4
+                          && int.TryParse(row[3], NumberStyles.None, Inv, out generation)
+                          && generation >= 1 && generation <= threshold;
+                generation = ok ? int.Parse(row[3], NumberStyles.None, Inv) : 0;
+                highest = Math.Max(highest, generation);
+                Check(ok, "строка «" + (row.Length > 0 ? row[0] : "?") + "»: четыре поля, поколение в [1, " + threshold.ToString(Inv) + "]",
+                      "полей " + row.Length.ToString(Inv) + (row.Length > 3 ? ", поколение «" + row[3] + "»" : ""));
+            }
+
+            Check(highest == threshold, "наибольшее поколение опечаток = SeedErrataVersion", highest.ToString(Inv) + " против " + threshold.ToString(Inv));
+            Check(threshold <= GeometryMaterialStore.CurrentSeedVersion, "SeedErrataVersion ≤ CurrentSeedVersion",
+                  threshold.ToString(Inv) + " против " + GeometryMaterialStore.CurrentSeedVersion.ToString(Inv));
+        }
+
+        // 8 ------------------------------------------------------------------
+        /// <summary>
+        /// (`AMBER274`, полоса `a274s`, поколение 14) ПЛОТНОСТЬ CeBr3 5.1 → 5.18. Запись засева —
+        /// формулой «Ce1 Br3» без долей. Файл = нынешний засев, у CeBr3 — 5.1 (прежний засев):
+        /// после загрузки CeBr3 5.18, ВСЕ прочие записи побитово засев (поколения 8, 11, 13).
+        /// Контроли: CeBr3 с правкой человека (плотность 5.2; сокращение) — не тронута, соседки
+        /// перенесены; файл поколения 14 с 5.1 — не тронут; новой установке (файла нет) — 5.18;
+        /// CeBr3 удалена человеком — не вернулась; слот геометрии CeBr3 5.1 — плотность и доли
+        /// побитово прежние (геометрия несёт свою плотность).
+        /// </summary>
+        static void CeriumBromide()
+        {
+            Say("");
+            Say("== 8. CeBr3: плотность 5.1 -> 5.18 (поколение 14) ==");
+            const string Name = "Cerium bromide";
+            List<GeometryMaterialLibrary.Entry> now = SeedWith(false);
+            GeometryMaterialLibrary.Entry seeded = Find(now, Name);
+            Check(seeded != null && seeded.Density == 5.18 && seeded.Formula == "Ce1 Br3" && seeded.ElementFractions.Count == 0,
+                  "засев: CeBr3 формулой, 5.18, долей нет", Show(seeded));
+
+            Func<double, string, List<GeometryMaterialLibrary.Entry>> withCe = (density, abbr) =>
+            {
+                List<GeometryMaterialLibrary.Entry> list = SeedWith(false);
+                GeometryMaterialLibrary.Entry e = Find(list, Name);
+                e.Density = density;
+                if (abbr != null)
+                {
+                    e.Abbr = abbr;
+                }
+
+                return list;
+            };
+
+            foreach (int generation in new[] { 8, 11, 13 })
+            {
+                WriteFile(withCe(5.1, null), generation);
+                List<GeometryMaterialLibrary.Entry> got = Load();
+                List<string> differs = Differences(got, now);
+                Check(differs.Count == 0, "поколение " + generation.ToString(Inv) + ", CeBr3 5.1 из засева: загружено = засев всеми записями (CeBr3 5.18)",
+                      "CeBr3 " + Show(Find(got, Name)) + (differs.Count > 0 ? "; различия: " + string.Join(", ", differs.ToArray()) : ""));
+            }
+
+            // Контроль «не тронута»: плотность человека, затем сокращение человека.
+            foreach (KeyValuePair<double, string> mine in new[] { new KeyValuePair<double, string>(5.2, null), new KeyValuePair<double, string>(5.1, "CeBr") })
+            {
+                List<GeometryMaterialLibrary.Entry> file = withCe(mine.Key, mine.Value);
+                // Соседка с прежней опечаткой в том же файле обязана перенестись — иначе «не тронута» мерила бы пустоту.
+                // Поколение файла 10 — ниже поколения опечатки криптона (11): прежнее число в нём — от засева.
+                Set(Find(file, Three[2].Name), Three[2].OldFractions, Three[2].OldDensity);
+                WriteFile(file, 10);
+                List<GeometryMaterialLibrary.Entry> got = Load();
+                GeometryMaterialLibrary.Entry ce = Find(got, Name);
+                bool untouched = Same(ce, Find(file, Name));
+                bool neighbour = Same(Find(got, Three[2].Name), Find(now, Three[2].Name));
+                Check(untouched && neighbour, "CeBr3 правлена человеком (ρ " + R(mine.Key) + (mine.Value != null ? ", сокращение «" + mine.Value + "»" : "") + ") — не тронута, соседка-криптон перенесена",
+                      "CeBr3 " + Show(ce) + ", криптон " + Show(Find(got, Three[2].Name)));
+            }
+
+            WriteFile(withCe(5.1, null), 14);
+            Check(Find(Load(), Name).Density == 5.1, "файл поколения 14 с 5.1 (человек набрал сам) — не переносится", Show(Find(GeometryMaterialStore.Entries, Name)));
+
+            List<GeometryMaterialLibrary.Entry> withoutCe = withCe(5.1, null);
+            withoutCe.Remove(Find(withoutCe, Name));
+            WriteFile(withoutCe, 13, Name);
+            Check(Find(Load(), Name) == null, "CeBr3 удалена человеком — не возвращается", "");
+
+            File.Delete(path);
+            List<GeometryMaterialLibrary.Entry> fresh = Load();
+            Check(Find(fresh, Name) != null && Find(fresh, Name).Density == 5.18 && Differences(fresh, now).Count == 0,
+                  "новая установка (файла нет): засев, CeBr3 5.18", Show(Find(fresh, Name)));
+
+            // Слот готовой геометрии: CeBr3 при 5.1 тем, что давал прежний засев.
+            GeometryMaterialLibrary.Entry before = seeded.Clone();
+            before.Density = 5.1;
+            GeometryMaterial slot = GeometryMaterialLibrary.Make(before, 5.1, n => null);
+            Dictionary<int, double> fractions = new Dictionary<int, double>(slot.Fractions);
+            GeometryModel model = new GeometryModel { Crystal = slot };
+            GeometryMaterialStore.MigrateGeometry(model);
+            bool sameSlot = model.Crystal.Density == 5.1 && model.Crystal.Fractions.Count == fractions.Count && fractions.Count == 2;
+            foreach (KeyValuePair<int, double> pair in fractions)
+            {
+                double got;
+                sameSlot &= model.Crystal.Fractions.TryGetValue(pair.Key, out got) && got == pair.Value;
+            }
+
+            Check(sameSlot, "слот геометрии CeBr3 5.1: плотность и доли побитово прежние (клеймо сцены не сдвигается)",
+                  "ρ " + R(model.Crystal.Density) + ", долей " + model.Crystal.Fractions.Count.ToString(Inv));
         }
 
         // 6 ------------------------------------------------------------------

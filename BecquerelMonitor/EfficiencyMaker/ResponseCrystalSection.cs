@@ -140,6 +140,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 sb.Append(";bz=").Append(geometry.CrystalBoxZ.ToString("R", CultureInfo.InvariantCulture));
             }
 
+            // (`AMBER274`, `a274s`) Бета слоя с кулоновскими λ (`FsaBetaLibrary.CoulombLambda`):
+            // поле только при ВКЛ, при ВЫКЛ клеймо побитно прежнее.
+            if (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambda)
+            {
+                sb.Append(";cl=1");
+            }
+
             return sb.ToString();
         }
 

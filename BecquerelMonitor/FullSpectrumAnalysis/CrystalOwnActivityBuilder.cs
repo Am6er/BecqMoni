@@ -36,6 +36,42 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>Природные нуклиды — свободной строкой: так меряется амплитуда по данным.</summary>
         public bool FreeNatural;
+
+        /// <summary>
+        /// (`AMBER274`, ревизия по статьям, 12.11.2026) Релаксация вакансии после ВНУТРЕННЕЙ КОНВЕРСИИ
+        /// в каскаде бета-ветви: энергия связи оболочки оседает в кристалле (K-рентген фотоном, оже
+        /// на месте). Выключить — прежний счёт с дефектом: электрон конверсии кладётся с
+        /// E_γ − E_связи, а энергия связи пропадает (у дочки Lu-176 переход 88.35 кэВ конвертирован
+        /// на 85 %). Рычаг — мутант пробы `CrystalOwnRevisionProbeA274`.
+        /// </summary>
+        public bool ConversionRelaxation = true;
+
+        /// <summary>
+        /// (`AMBER274`, ревизия по статьям, 12.11.2026) ШКАЛА ГИСТОГРАММЫ СЛОЯ:
+        /// <see cref="CrystalOwnActivityBuilder.ScaleEnergy"/> — осевшая энергия (прежний счёт: пики 37.4 и 1473.2 кэВ);
+        /// <see cref="CrystalOwnActivityBuilder.ScaleAnchor"/> — свет события на свет пика 661.657 кэВ, как у строк
+        /// электрона пробы (`ElectronSourceResponse`);
+        /// <see cref="CrystalOwnActivityBuilder.ScalePhoton"/> — свет события по ФОТОННОЙ шкале прибора: энергия E′, у
+        /// которой пик полного поглощения фотона даёт тот же свет. Так откалиброван прибор (по
+        /// пикам гамма-линий), и так стоят пики фотонных строк матрицы (каждый узел — на своей
+        /// энергии). У кристалла без кривой света все три совпадают.
+        /// </summary>
+        public int Scale = CrystalOwnActivityBuilder.ScalePhoton;
+
+        /// <summary>
+        /// Энергия связи L дочернего атома захвата — из `matdb.eadl_binding` (средняя L1–L3), а не
+        /// средняя линия L-рентгена `nucdb` (у Ba 4.97 вместо 5.2–6.0 кэВ). Выключить — прежнее.
+        /// </summary>
+        public bool LBindingFromEadl = true;
+
+        /// <summary>
+        /// ЗАМЕР, не настройка: подмена ветви беты перед сборкой события (проба кладёт сюда опытную
+        /// форму, не трогая `nucdb.beta_shapes`). null — ветвь как в базе.
+        /// </summary>
+        public Func<FsaBeta, FsaBeta> BetaOverride;
+
+        /// <summary>ЗАМЕР, не настройка: доля K-захвата вместо вычисленной из `nucdb` (≤ 0 — как в базе).</summary>
+        public double KCaptureOverride;
     }
 
     /// <summary>
@@ -62,6 +98,144 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     {
         /// <summary>Слой беты — единственный, который делает Э2.</summary>
         public const string BetaLayer = "beta";
+
+        /// <summary>Шкала гистограммы — осевшая энергия (см. <see cref="CrystalOwnParts.Scale"/>).</summary>
+        public const int ScaleEnergy = 0;
+
+        /// <summary>Шкала гистограммы — свет на свет пика 661.657 кэВ.</summary>
+        public const int ScaleAnchor = 1;
+
+        /// <summary>Шкала гистограммы — фотонная шкала прибора (умолчание слоя).</summary>
+        public const int ScalePhoton = 2;
+
+        /// <summary>
+        /// Узлы фотонной шкалы света, кэВ: гуще у K-краёв тяжёлых элементов кристалла (La 38.9,
+        /// Ce 40.4, Lu 63.3), где свет пика на кэВ меняется скачком, реже выше.
+        /// </summary>
+        static readonly double[] ScaleNodesKev =
+        {
+            6.0, 8.0, 10.0, 12.0, 14.0, 17.0, 20.0, 24.0, 28.0, 32.0, 36.0, 38.0, 40.0, 42.0, 46.0, 52.0, 60.0, 64.0,
+            70.0, 80.0, 100.0, 130.0, 170.0, 220.0, 300.0, 400.0, 511.0, 661.657, 900.0, 1200.0, 1436.0, 1500.0,
+            2000.0, 2614.5, 3200.0,
+        };
+
+        /// <summary>Историй на узел фотонной шкалы: якорь — среднее по пику, тысяч историй хватает с запасом.</summary>
+        const int ScaleNodeHistories = 20000;
+
+        /// <summary>
+        /// (`AMBER274`, ревизия по статьям, 12.11.2026) ФОТОННАЯ ШКАЛА СВЕТА кристалла сцены: свет
+        /// пика полного поглощения Λ(E) = E·s(E) в узлах, где s — `LastPhotonLightScale` того же
+        /// симулятора, что ведёт события слоя. Перевод света события в энергию шкалы прибора —
+        /// обратная функция (линейно между узлами; Λ приведена к неубыванию, скачок у K-края
+        /// сглаживается до плато). Ниже первого узла и выше последнего — крайним отношением.
+        /// </summary>
+        public sealed class PhotonLightScale
+        {
+            public double[] EnergyKev = new double[0];
+
+            /// <summary>Свет пика на кэВ, s(E).</summary>
+            public double[] PerKev = new double[0];
+
+            /// <summary>Свет пика Λ(E) = E·s(E), приведённый к неубыванию.</summary>
+            public double[] Light = new double[0];
+
+            /// <summary>Свет на кэВ у 661.657 кэВ — якорь строк электрона пробы.</summary>
+            public double AnchorPerKev;
+
+            public double ToEnergy(double light)
+            {
+                int n = this.Light.Length;
+                if (n == 0 || !(light > 0.0))
+                {
+                    return light;
+                }
+
+                if (light <= this.Light[0])
+                {
+                    return this.PerKev[0] > 0.0 ? light / this.PerKev[0] : light;
+                }
+
+                if (light >= this.Light[n - 1])
+                {
+                    return this.PerKev[n - 1] > 0.0 ? light / this.PerKev[n - 1] : light;
+                }
+
+                int lo = 0, hi = n - 1;
+                while (hi - lo > 1)
+                {
+                    int mid = (lo + hi) / 2;
+                    if (this.Light[mid] <= light)
+                    {
+                        lo = mid;
+                    }
+                    else
+                    {
+                        hi = mid;
+                    }
+                }
+
+                double span = this.Light[hi] - this.Light[lo];
+                return span > 0.0
+                    ? this.EnergyKev[lo] + (this.EnergyKev[hi] - this.EnergyKev[lo]) * (light - this.Light[lo]) / span
+                    : this.EnergyKev[lo];
+            }
+        }
+
+        /// <summary>
+        /// Фотонная шкала света сцены; null — у кристалла нет кривой света (шкала слоя — энергия).
+        /// Узел без пика (квант не поглощается целиком ни разу) пропускается.
+        /// </summary>
+        public static PhotonLightScale MeasurePhotonScale(GeometryModel geometry, double binKev, int seed)
+        {
+            var probe = new EfficiencySimulator(geometry);
+            if (!probe.HasLightCurve)
+            {
+                return null;
+            }
+
+            var energies = new List<double>();
+            var perKev = new List<double>();
+            double anchor = 0.0;
+            for (int i = 0; i < ScaleNodesKev.Length; i++)
+            {
+                var sim = new EfficiencySimulator(geometry) { Histories = ScaleNodeHistories, Seed = seed + 7919 * (i + 1) };
+                double error;
+                sim.Response(ScaleNodesKev[i], binKev, out error);
+                double s = sim.LastPhotonLightScale;
+                if (!(s > 0.0))
+                {
+                    continue;
+                }
+
+                energies.Add(ScaleNodesKev[i]);
+                perKev.Add(s);
+                if (Math.Abs(ScaleNodesKev[i] - 661.657) < 1e-6)
+                {
+                    anchor = s;
+                }
+            }
+
+            if (energies.Count < 2)
+            {
+                return null;
+            }
+
+            var scale = new PhotonLightScale
+            {
+                EnergyKev = energies.ToArray(),
+                PerKev = perKev.ToArray(),
+                Light = new double[energies.Count],
+                AnchorPerKev = anchor > 0.0 ? anchor : perKev[perKev.Count - 1],
+            };
+            double top = 0.0;
+            for (int i = 0; i < energies.Count; i++)
+            {
+                top = Math.Max(top, energies[i] * perKev[i]);
+                scale.Light[i] = top;
+            }
+
+            return scale;
+        }
 
         /// <summary>Шаг гистограммы слоя, кэВ: сетка матрицы отклика.</summary>
         public const double DefaultBinKev = 2.0;
@@ -234,6 +408,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             int bins = ResponseMatrix.ImageBins(HistogramTopKev, binKev);
             int total = 0;
 
+            // (`AMBER274`, ревизия по статьям, 12.11.2026) Шкала гистограммы — свет, если у кристалла
+            // есть кривая света; иначе энергия, и примечание это называет.
+            PhotonLightScale light = parts.Scale != ScaleEnergy ? MeasurePhotonScale(geometry, binKev, seed) : null;
+            notes.Add("шкала слоя: " + (light == null ? "энергия" : parts.Scale == ScaleAnchor ? "свет на якорь 661.657" : "свет, фотонная"));
+            if (parts.Scale != ScaleEnergy && light == null)
+            {
+                notes.Add("кривой света у кристалла нет — слой по осевшей энергии");
+            }
+
             foreach (string nucid in NaturalNuclides(geometry))
             {
                 string why;
@@ -245,7 +428,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 var member = new Member { Nuclide = nucid, Free = parts.FreeNatural, Weight = 1.0 };
-                CrystalOwnEntry entry = BuildEntry(geometry, member, bins, binKev, histories, seed + total, parts, notes);
+                CrystalOwnEntry entry = BuildEntry(geometry, member, bins, binKev, histories, seed + total, parts, light, notes);
                 if (entry == null)
                 {
                     continue;
@@ -277,7 +460,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     foreach (Member member in series)
                     {
-                        CrystalOwnEntry part = BuildEntry(geometry, member, bins, binKev, histories, seed + total, new CrystalOwnParts(), notes);
+                        var seriesParts = new CrystalOwnParts { Scale = parts.Scale, ConversionRelaxation = parts.ConversionRelaxation };
+                        CrystalOwnEntry part = BuildEntry(geometry, member, bins, binKev, histories, seed + total, seriesParts, light, notes);
                         total++;
                         if (part == null)
                         {
@@ -346,7 +530,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <see cref="CrystalOwnParts.DaughterRelaxation"/>.
         /// </summary>
         static CrystalOwnEntry BuildEntry(GeometryModel geometry, Member member, int bins, double binKev, int histories, int seed,
-                                          CrystalOwnParts parts, List<string> notes)
+                                          CrystalOwnParts parts, PhotonLightScale light, List<string> notes)
         {
             var entry = new CrystalOwnEntry
             {
@@ -370,11 +554,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<FsaBeta> betas = FsaBetaLibrary.Branches(member.Nuclide);
             double betaPercent = 0.0;
             var usable = new List<KeyValuePair<FsaBeta, ElectronBranchSpec>>();
-            foreach (FsaBeta beta in betas)
+            var atoms = new Dictionary<ElectronBranchSpec, CaptureRelaxation>();
+            foreach (FsaBeta source in betas)
             {
+                FsaBeta beta = source;
                 if (beta == null || beta.IsLine || beta.Positron || !(beta.Intensity > 0.0) || !(beta.EndpointKev > 0.0))
                 {
                     continue;
+                }
+
+                if (parts.BetaOverride != null)
+                {
+                    beta = parts.BetaOverride(beta) ?? beta;
                 }
 
                 string reason = "нет спектра беты";
@@ -396,6 +587,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 betaPercent += beta.Intensity;
                 usable.Add(new KeyValuePair<FsaBeta, ElectronBranchSpec>(beta, spec));
+
+                // (`AMBER274`, ревизия по статьям, 12.11.2026) Дочерний атом ветви — для вакансий
+                // после внутренней конверсии каскада: флуоресценция K и энергия связи L из `matdb`.
+                if (parts.ConversionRelaxation && spec.HasCascade)
+                {
+                    CaptureRelaxation atom = CaptureRelaxation.ForAtom(beta.DaughterZ, FsaBetaLibrary.Binding(beta.DaughterZ)[1]);
+                    if (atom != null)
+                    {
+                        atoms[spec] = atom;
+                    }
+                    else
+                    {
+                        notes.Add(Pretty(member.Nuclide) + ": нет данных атома Z=" + beta.DaughterZ.ToString(CultureInfo.InvariantCulture)
+                                  + " — энергия связи после конверсии не учтена");
+                    }
+                }
             }
 
             // ⛔ (`AMBER274`, Э2, 06.11.2026) Доля захвата — из таблицы ветвей `nucdb`, а не
@@ -435,8 +642,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     double gamma;
-                    double deposit = simulator.CrystalEventFrom(pair.Value, x, y, z, parts.Beta, out gamma);
-                    Add(entry.PerDecay, deposit, binKev, scale);
+                    CaptureRelaxation atom;
+                    atoms.TryGetValue(pair.Value, out atom);
+                    double deposit = simulator.CrystalEventFrom(pair.Value, atom, x, y, z, parts.Beta, out gamma);
+                    Add(entry.PerDecay, OnScale(deposit, simulator.CrystalEventLight, light, parts.Scale), binKev, scale);
                 }
             }
 
@@ -444,7 +653,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (parts.Capture && ecPercent > 0.05)
             {
                 double[] gammas = EcGammas(member.Nuclide, ecPercent);
-                CaptureRelaxation relaxation = parts.DaughterRelaxation ? RelaxationOf(member.Nuclide, ecPercent) : null;
+                CaptureRelaxation relaxation = parts.DaughterRelaxation ? RelaxationOf(member.Nuclide, ecPercent, parts.LBindingFromEadl) : null;
+                if (relaxation != null && parts.KCaptureOverride > 0.0)
+                {
+                    // Замер: иная доля K-захвата при тех же ДОЛЯХ линий K-рентгена (линии масштабируются).
+                    double factor = parts.KCaptureOverride / relaxation.KCapture;
+                    for (int i = 0; i < relaxation.LineCdf.Length; i++)
+                    {
+                        relaxation.LineCdf[i] *= factor;
+                    }
+
+                    relaxation.KCapture = parts.KCaptureOverride;
+                }
+
                 int n = (int)Math.Round(histories * ecPercent / 100.0);
                 for (int i = 0; i < n; i++)
                 {
@@ -454,11 +675,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     double deposit = simulator.CrystalGammaEvent(gammas, relaxation, x, y, z);
-                    Add(entry.PerDecay, deposit, binKev, scale);
+                    Add(entry.PerDecay, OnScale(deposit, simulator.CrystalEventLight, light, parts.Scale), binKev, scale);
                 }
             }
 
             return entry;
+        }
+
+        /// <summary>
+        /// Место события на шкале гистограммы: осевшая энергия, свет на якорь 661.657 кэВ или свет
+        /// по фотонной шкале прибора (<see cref="CrystalOwnParts.Scale"/>). Шкалы нет — энергия.
+        /// </summary>
+        static double OnScale(double depositKev, double lightKev, PhotonLightScale light, int mode)
+        {
+            if (light == null || mode == ScaleEnergy || !(depositKev > 0.0) || !(lightKev > 0.0))
+            {
+                return depositKev;
+            }
+
+            return mode == ScaleAnchor
+                ? (light.AnchorPerKev > 0.0 ? lightKev / light.AnchorPerKev : depositKev)
+                : light.ToEnergy(lightKev);
         }
 
         /// <summary>
@@ -544,7 +781,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// K-вакансии P(K-рентген) / ω_K дочернего атома, энергия связи L — средняя линия
         /// L-рентгена. null — данных нет, и событие остаётся без релаксации.
         /// </summary>
-        static CaptureRelaxation RelaxationOf(string nucid, double ecPercent)
+        static CaptureRelaxation RelaxationOf(string nucid, double ecPercent, bool lBindingFromEadl)
         {
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");
             double z = ProtonNumberOf(nucid);
@@ -589,6 +826,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (energies.Count == 0 || f == null || !(f.KEdgeKev > 0.0))
             {
                 return null;
+            }
+
+            // (`AMBER274`, ревизия по статьям, 12.11.2026) Осадок захвата не с K — ЭНЕРГИЯ СВЯЗИ L
+            // дочернего атома (`matdb.eadl_binding`), а не средняя линия L-рентгена.
+            if (lBindingFromEadl)
+            {
+                double bound = FsaBetaLibrary.Binding((int)z - 1)[1];
+                if (bound > 0.0)
+                {
+                    lKev = bound;
+                }
             }
 
             var relaxation = new CaptureRelaxation
