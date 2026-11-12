@@ -44,8 +44,18 @@ bool rayAllocated;                            // = `rayCross != null` C#: был
 int rayCount;
 real rayX, rayY, rayZ, rayUx, rayUy, rayUz;
 bool rayValid;
+// ⚡ (`AMBER315`, полоса `a315`) = EfficiencySimulator.rayLazy: кэш знает луч (точку и направление),
+// а разбиение ещё не собрано; собирается перед первым чтением (`SegmentAt`, `SaveRay`).
+bool rayLazy;
+// = EfficiencySimulator.LayerDeepMarginCm (см): запас «шаг вдали от границ области». Больше
+// float-допусков обхода (RM_BEHIND 1e-5 см, близость к лучу √RM_ON_RAY2 ≈ 3e-5 см).
+// -DRM_DEEP_MARGIN=<число> — замер; большое отрицательное — испорченный контроль.
+#ifndef RM_DEEP_MARGIN
+#define RM_DEEP_MARGIN 1e-3
+#endif
+static constexpr real LayerDeepMarginCm = (real)(RM_DEEP_MARGIN);
 // = EfficiencySimulator.ForgetRay (`A315`, П221): кэш луча не переживает историю.
-RM_DEV void ForgetRay() { rayValid = false; }
+RM_DEV void ForgetRay() { rayValid = false; rayLazy = false; }
 real eventT[RM_MAX_EVENTS];
 int eventCode[RM_MAX_EVENTS];
 real spanBuf[4];
@@ -100,6 +110,8 @@ RM_DEVF int ShapedSpan(const RegionG& g, real x, real y, real ux, real uy, real 
 RM_DEVF int At(real x, real y, real z);
 RM_DEVF int SegmentAt(real bound);
 RM_DEVF real StepToBoundary(real x, real y, real z, real ux, real uy, real uz);
+RM_DEVF void StepToBoundaryUnread(real x, real y, real z, real ux, real uy, real uz);
+RM_DEVF void MaterializeRay();
 RM_DEVF int SpanFlat(int i, real x, real y, real z, real ux, real uy, real uz, real* into);
 RM_DEVF void SaveRay();
 RM_DEVF void RestoreRay();

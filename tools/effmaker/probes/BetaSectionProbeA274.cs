@@ -158,6 +158,16 @@ public static class BetaSectionProbeA274
             if (a.StartsWith("--nuclides=", StringComparison.Ordinal)) { nuclides = a.Substring(11); continue; }
             if (a.StartsWith("--curve=", StringComparison.Ordinal)) { curve = a.Substring(8); continue; }
             if (a.StartsWith("--shape-csv=", StringComparison.Ordinal)) { shapeCsv = a.Substring(12); continue; }
+            if (a.StartsWith("--deep=", StringComparison.Ordinal))
+            {
+                // (`AMBER315`) Глубокий шаг переноса в слоях: `0` — прежний путь, `1` — умолчание,
+                // иное число — запас в см (испорченный контроль: `-1e9`, раздел обязан разойтись).
+                string deep = a.Substring(7);
+                if (deep == "0") EfficiencySimulator.LayerDeepStep = false;
+                else if (deep != "1") EfficiencySimulator.LayerDeepMarginCm = double.Parse(deep, CultureInfo.InvariantCulture);
+                continue;
+            }
+
             if (a.StartsWith("--estr=", StringComparison.Ordinal)) { estr = a.Substring(7) != "0" ? 1 : 0; continue; }
             if (a.StartsWith("--emix=", StringComparison.Ordinal)) { emix = a.Substring(7) != "0" ? 1 : 0; continue; }
             if (a.StartsWith("--mott=", StringComparison.Ordinal)) { mott = a.Substring(7) != "0" ? 1 : 0; continue; }

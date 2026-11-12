@@ -189,6 +189,8 @@ RM_DEV bool CrystalHardCollision(const ScatterElementG* elements, int elementsLe
                                  real hardPerCm, real t, real muCut, bool positron, real& ux, real& uy, real& uz);
 RM_DEV real CrystalNearestFace(real x, real y, real z);
 RM_DEV real RegionNearestFace(int r, real x, real y, real z);
+// = ElectronTransport.cs RegionThicknessCm (`AMBER274`; одно место для потолка шага и «глубокого шага» `AMBER315`).
+RM_DEV real RegionThicknessCm(int r);
 // (`AMBER282`) Расстояния у области формы в плане (ElectronTransport.cs).
 static RM_DEV real ShapedInnerDistance(const RegionG& r, real x, real y, real rad);
 static RM_DEV real ShapedOuterDistance(const RegionG& h, real x, real y, real rad);

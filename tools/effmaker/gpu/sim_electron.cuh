@@ -433,6 +433,22 @@ RM_DEV real Sim::CrystalNearestFace(real x, real y, real z)
     return d > (real)0 ? d : (real)0;
 }
 
+// = ElectronTransport.cs RegionThicknessCm (`AMBER274`, физика 30, бит 32): толщина тела области, см —
+// наименьший размер по z и поперёк. Зовут потолок шага в слое и проверка «глубокого шага» (`AMBER315`).
+RM_DEV real Sim::RegionThicknessCm(int r)
+{
+    const RegionG& rg = D.regions[r];
+    real thick = rg.ZMax - rg.ZMin;
+    real side = rg.IsBox ? (real)2 * M_Min(rg.AX, rg.AY)
+                         : (rg.RIn > (real)0 ? rg.ROut - rg.RIn : (real)2 * rg.ROut);
+    if (rg.Shape != 0)
+    {
+        side = rg.SideThickness;                       // (`AMBER282`) область формы
+    }
+
+    return M_Min(thick, side);
+}
+
 // = ElectronTransport.cs:514 RegionNearestFace
 // `Region r` → номер области; `regionArray` → D.regions (тот же порядок — приоритет `At`).
 RM_DEV real Sim::RegionNearestFace(int r, real x, real y, real z)
@@ -1517,24 +1533,77 @@ RM_DEVF bool Sim::TransportInLayers(real& x, real& y, real& z, real& ux, real& u
     bool stepMajorant = split && Refine(RefineStepMajorant);
     bool shareFix = Refine(RefineShareRecompute);
     int step = 0;
+    int known = -1;
     for (; step < maxSteps && t > TransportCutKev; step++)
     {
-        int here = At(x, y, z);
+        // ⚡ (`AMBER315`) После глубокого шага область та же (= ElectronTransport.cs).
+        int here;
+        if (known >= 0)
+        {
+            here = known;
+            known = -1;
+            CountAt++;
+        }
+        else
+        {
+            here = At(x, y, z);
+        }
+
         if (here >= 0 && D.regions[here].IsCrystal)
         {
             return true;
         }
 
-        real toNext = StepToBoundary(x, y, z, ux, uy, uz);
-        if (toNext >= CS_DOUBLE_MAX)
-        {
-            CountLayerLeftScene++;
-            layersLeftScene = true;
-            return false;           // ушёл из сцены
-        }
-
         int hereMat = here >= 0 ? D.regions[here].Material : -1;
         real density = hereMat >= 0 ? D.materials[hereMat].Density : (real)0;
+
+        // ⚡ (`AMBER315`, полоса `a315`) ГЛУБОКИЙ ШАГ (= ElectronTransport.cs TransportInLayers): шаг
+        // короче расстояния до ближайшей границы области на запас, либо электрон погибнет в области —
+        // расстояние до границы вдоль луча не читается, разбор луча откладывается.
+        bool deep = false, faceKnown = false, rangeKnown = false;
+        real face = (real)0, range = (real)0;
+        if (density > (real)0)
+        {
+            face = RegionNearestFace(here, x, y, z);
+            faceKnown = true;
+            if (face > LayerDeepMarginCm)
+            {
+                range = RangeOf(D.electronMats[CarryMedium(hereMat)], t);
+                rangeKnown = true;
+                if (range > (real)0)
+                {
+                    real reach = range * fraction / density;
+                    if (Refine(RefineLayerStepLimit))
+                    {
+                        real capDeep = (real)C.ElectronLayerStepMaxFraction * RegionThicknessCm(here);
+                        if (capDeep > (real)0 && reach > capDeep)
+                        {
+                            reach = capDeep;
+                        }
+                    }
+
+                    deep = range / density <= face || reach < face - LayerDeepMarginCm;
+                }
+            }
+        }
+
+        real toNext;
+        if (deep)
+        {
+            StepToBoundaryUnread(x, y, z, ux, uy, uz);
+            toNext = CS_DOUBLE_MAX;
+        }
+        else
+        {
+            toNext = StepToBoundary(x, y, z, ux, uy, uz);
+            if (toNext >= CS_DOUBLE_MAX)
+            {
+                CountLayerLeftScene++;
+                layersLeftScene = true;
+                return false;           // ушёл из сцены
+            }
+        }
+
         if (!(density > (real)0))
         {
             // Пустота — по прямой до следующей границы, без потерь.
@@ -1548,7 +1617,7 @@ RM_DEVF bool Sim::TransportInLayers(real& x, real& y, real& z, real& ux, real& u
 
         const ElectronMaterialG& medium = D.electronMats[CarryMedium(hereMat)];
         real x0 = LayerRadiationLength(hereMat);
-        real residual = RangeOf(medium, t);          // г/см²
+        real residual = rangeKnown ? range : RangeOf(medium, t);          // г/см²
         if (!(residual > (real)0))
         {
             return false;
@@ -1565,7 +1634,7 @@ RM_DEVF bool Sim::TransportInLayers(real& x, real& y, real& z, real& ux, real& u
         }
 
         // Ранний выход, как в кристалле.
-        if (residual / density <= RegionNearestFace(here, x, y, z))
+        if (residual / density <= (faceKnown ? face : RegionNearestFace(here, x, y, z)))
         {
             // (П106) Погибнет здесь — остаток тормозного толстой мишенью в точке гибели.
             if (lbrem && bremTable >= 0)
@@ -1584,15 +1653,7 @@ RM_DEVF bool Sim::TransportInLayers(real& x, real& y, real& z, real& ux, real& u
         // (= ElectronTransport.cs RegionThicknessCm; DSMAX PENELOPE).
         if (Refine(RefineLayerStepLimit))
         {
-            const RegionG& rg = D.regions[here];
-            real thick = rg.ZMax - rg.ZMin;
-            real side = rg.IsBox ? (real)2 * M_Min(rg.AX, rg.AY)
-                                 : (rg.RIn > (real)0 ? rg.ROut - rg.RIn : (real)2 * rg.ROut);
-            if (rg.Shape != 0)
-            {
-                side = rg.SideThickness;                       // (`AMBER282`) область формы
-            }
-            real capCm = (real)C.ElectronLayerStepMaxFraction * M_Min(thick, side);
+            real capCm = (real)C.ElectronLayerStepMaxFraction * RegionThicknessCm(here);
             if (capCm > (real)0 && stepCm > capCm)
             {
                 stepCm = capCm;
@@ -1740,12 +1801,20 @@ RM_DEVF bool Sim::TransportInLayers(real& x, real& y, real& z, real& ux, real& u
 
         // Прямой ход до конца шага — новым лучом.
         real second = stepCm - first;
-        toNext = StepToBoundary(x, y, z, ux, uy, uz);
-        if (toNext >= CS_DOUBLE_MAX)
+        if (deep)
         {
-            CountLayerLeftScene++;
-            layersLeftScene = true;
-            return false;
+            StepToBoundaryUnread(x, y, z, ux, uy, uz);      // (`AMBER315`) глубокий шаг
+            toNext = CS_DOUBLE_MAX;
+        }
+        else
+        {
+            toNext = StepToBoundary(x, y, z, ux, uy, uz);
+            if (toNext >= CS_DOUBLE_MAX)
+            {
+                CountLayerLeftScene++;
+                layersLeftScene = true;
+                return false;
+            }
         }
 
         if (second >= toNext)
@@ -1789,6 +1858,11 @@ RM_DEVF bool Sim::TransportInLayers(real& x, real& y, real& z, real& ux, real& u
                                     tXs, tA, tB, wStep, hardPerCm, t, muCut, positron, ux, uy, uz))
         {
             CountLayerHardCollisions++;
+        }
+
+        if (deep)
+        {
+            known = here;           // (`AMBER315`) шаг кончился в той же области
         }
     }
 

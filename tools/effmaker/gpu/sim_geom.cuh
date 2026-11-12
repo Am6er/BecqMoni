@@ -45,6 +45,7 @@ __device__ void Sim::InitGeom()
     rayCount = 0;
     rayX = rayY = rayZ = rayUx = rayUy = rayUz = (real)0;
     rayValid = false;
+    rayLazy = false;
     raySaveCount = 0;
     raySaveDepth = 0;
     raySaveX = raySaveY = raySaveZ = raySaveUx = raySaveUy = raySaveUz = (real)0;
@@ -567,6 +568,11 @@ __device__ int Sim::At(real x, real y, real z)
 // = EfficiencySimulator.cs:4057 SegmentAt
 __device__ int Sim::SegmentAt(real bound)
 {
+    if (rayLazy)
+    {
+        MaterializeRay();       // (`AMBER315`) разбиение отложено — собрать перед первым чтением
+    }
+
     const real* rayCross = rayCrossBuf[rayCur];
     int lo = 0, hi = rayCount;
     while (lo < hi)
@@ -604,6 +610,31 @@ __device__ real Sim::StepToBoundary(real x, real y, real z, real ux, real uy, re
     // ⚠ float: `along + 1e-7` при along ≳ 1 см во float не сдвигается.
     int lo = SegmentAt(along + RM_BEHIND);
     return lo < rayCount ? rayCrossBuf[rayCur][lo] - along : CS_DOUBLE_MAX;
+}
+
+// = EfficiencySimulator.cs MaterializeRay (`AMBER315`)
+__device__ void Sim::MaterializeRay()
+{
+    CollectCrossings(rayX, rayY, rayZ, rayUx, rayUy, rayUz);
+}
+
+// = EfficiencySimulator.cs StepToBoundaryUnread (`AMBER315`): то, что `StepToBoundary` делает с
+// кэшем луча, но без ответа — счётчик шага тот же, разбиение откладывается.
+__device__ void Sim::StepToBoundaryUnread(real x, real y, real z, real ux, real uy, real uz)
+{
+    CountStep++;
+    real along;
+    if (!RayCacheHit(x, y, z, ux, uy, uz, along))
+    {
+        rayX = x;
+        rayY = y;
+        rayZ = z;
+        rayUx = ux;
+        rayUy = uy;
+        rayUz = uz;
+        rayValid = true;
+        rayLazy = true;
+    }
 }
 
 // = EfficiencySimulator.cs:4136 SpanFlat
@@ -806,6 +837,11 @@ __device__ void Sim::SaveRay()
         return;                 // вложенный перенос — снимок уже есть
     }
 
+    if (rayLazy)
+    {
+        MaterializeRay();       // (`AMBER315`) в снимок идёт собранное разбиение
+    }
+
     raySaveValid = rayValid;
     raySaveSwapped = false;
     if (rayAllocated)           // C#: `this.rayCross != null`
@@ -838,6 +874,7 @@ __device__ void Sim::RestoreRay()
     }
 
     rayValid = raySaveValid;
+    rayLazy = false;            // (`AMBER315`) снимок всегда собран
 }
 
 // = EfficiencySimulator.cs:4407 RayCacheHit
@@ -980,6 +1017,7 @@ __device__ void Sim::CollectCrossings(real x, real y, real z, real ux, real uy, 
     rayUy = uy;
     rayUz = uz;
     rayValid = true;
+    rayLazy = false;
 }
 
 // = EfficiencySimulator.cs:4617 Winner (де Брёйн, таблица :4594-4606)

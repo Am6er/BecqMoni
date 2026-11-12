@@ -4960,6 +4960,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         int SegmentAt(double bound)
         {
+            if (this.rayLazy)
+            {
+                this.MaterializeRay();      // (`AMBER315`) разбиение отложено — собрать перед первым чтением
+            }
+
             int lo = 0, hi = this.rayCount;
             while (lo < hi)
             {
@@ -5239,6 +5244,54 @@ namespace BecquerelMonitor.EfficiencyMaker
         double rayX, rayY, rayZ, rayUx, rayUy, rayUz;
         bool rayValid;
 
+        // ⚡ (`AMBER315`, полоса `a315`, 11.11.2026) ОТЛОЖЕННЫЙ РАЗБОР ЛУЧА. Перенос электрона в слоях
+        // (`TransportInLayers`) на шаге, который заведомо не дойдёт до границы своей области, расстояние
+        // до границы не читает — ему нужен только сам факт «кэш теперь об этом луче». Тогда запоминается
+        // один луч (точка и направление), а разбиение (`rayCross`, `raySeg`, `rayCount`) собирается лишь
+        // перед первым чтением: `SegmentAt` (его зовут `At` и `StepToBoundary`) и `SaveRay`. Разбиение —
+        // функция луча и сцены, поэтому отложенный сбор даёт те же числа до бита, что сбор на месте.
+        bool rayLazy;
+
+        /// <summary>(`AMBER315`) Рычаг проб: шаг вдали от границ области — без разбора луча. ВЫКЛ — прежний путь.</summary>
+        public static bool LayerDeepStep = true;
+
+        /// <summary>
+        /// (`AMBER315`) Запас «вдали от границ», см: шаг считается глубоким, если он короче расстояния до
+        /// ближайшей границы области (<see cref="RegionNearestFace"/>) на этот запас. Запас на три-четыре
+        /// порядка больше допусков обхода (1e-7 см у отрезков луча, 1e-6 см у близости точки к лучу);
+        /// то же число — в ядре GPU (`LayerDeepMarginCm`, decl_geom.inc), где допуски float 1e-5 и 3e-5 см.
+        /// Рычаг проб: большое отрицательное значение — испорченный контроль (любой шаг «глубокий»).
+        /// </summary>
+        public static double LayerDeepMarginCm = 1e-3;
+
+        /// <summary>(`AMBER315`) Собрать отложенное разбиение запомненного луча.</summary>
+        void MaterializeRay()
+        {
+            this.CollectCrossings(this.rayX, this.rayY, this.rayZ, this.rayUx, this.rayUy, this.rayUz);
+        }
+
+        /// <summary>
+        /// (`AMBER315`) То, что <see cref="StepToBoundary"/> делает с кэшем луча, но без ответа: счётчик
+        /// шага тот же (по нему бюджет раздела, `AMBER318`); если кэш не об этом луче — кэш становится об
+        /// этом луче, разбиение откладывается. Зовётся только там, где ответ заведомо не нужен.
+        /// </summary>
+        void StepToBoundaryUnread(double x, double y, double z, double ux, double uy, double uz)
+        {
+            this.CountStep++;
+            double along;
+            if (!this.RayCacheHit(x, y, z, ux, uy, uz, out along))
+            {
+                this.rayX = x;
+                this.rayY = y;
+                this.rayZ = z;
+                this.rayUx = ux;
+                this.rayUy = uy;
+                this.rayUz = uz;
+                this.rayValid = true;
+                this.rayLazy = true;
+            }
+        }
+
         // рабочие буферы сбора: события «вход/выход» и отрезки одной области
         double[] eventT;
         int[] eventCode;
@@ -5262,6 +5315,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (this.raySaveDepth++ > 0)
             {
                 return;                 // вложенный перенос — снимок уже есть
+            }
+
+            if (this.rayLazy)
+            {
+                this.MaterializeRay();      // (`AMBER315`) в снимок идёт собранное разбиение
             }
 
             this.raySaveValid = this.rayValid;
@@ -5308,6 +5366,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             this.rayValid = this.raySaveValid;
+            this.rayLazy = false;           // (`AMBER315`) снимок всегда собран
         }
 
         /// <summary>
@@ -5331,6 +5390,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         void ForgetRay()
         {
             this.rayValid = false;
+            this.rayLazy = false;
         }
 
         /// <summary>
@@ -5519,6 +5579,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.rayUy = uy;
             this.rayUz = uz;
             this.rayValid = true;
+            this.rayLazy = false;
         }
 
         // Номер младшего установленного бита по последовательности де Брёйна.
