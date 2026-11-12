@@ -592,11 +592,29 @@ namespace BecquerelMonitor
             if (this.gdmlParts == GdmlParts.None || this.gdmlMap == null)
             {
                 this.gdmlSketch.SetPale(null);
+                this.MarkGdmlSketch();
                 return;
             }
 
             HashSet<GdmlVolumeInstance> unused = new HashSet<GdmlVolumeInstance>(this.gdmlMap.Unused(this.gdmlParts));
             this.gdmlSketch.SetPale(unused.Contains);
+            this.MarkGdmlSketch();
+        }
+
+        /// <summary>
+        /// (`AMBER301`) Чертежу — что взято в расчёт: выноски по ролям «Сопоставления», стрелка «к пробе» по списку
+        /// «Сторона к пробе», плашка отказа. Зовётся после бледности и при смене стороны.
+        /// </summary>
+        void MarkGdmlSketch()
+        {
+            if (this.gdmlSketch == null)
+            {
+                return;
+            }
+
+            bool side = this.facingCombo != null && this.facingCombo.Enabled && this.facingCombo.SelectedIndex == 1;
+            this.gdmlSketch.SetMarks(this.gdmlSketch.Geometry == null ? null
+                : GdmlSketchMarks.From(this.gdmlSketch.Geometry, this.gdmlMap, this.gdmlParts, side));
         }
 
         /// <summary>Отказ пересчёта: списки возвращаются к применённому выбору, под ними — причина.</summary>
@@ -675,7 +693,11 @@ namespace BecquerelMonitor
                     this.facingCombo.SelectedIndex = this.gdmlFacingCombo.SelectedIndex;
                 }
             };
-            this.facingCombo.SelectedIndexChanged += (s, e) => this.SyncDetectorExtras();
+            this.facingCombo.SelectedIndexChanged += (s, e) =>
+            {
+                this.SyncDetectorExtras();
+                this.MarkGdmlSketch();
+            };
         }
 
         /// <summary>Подсказка калибровки пришла от формы: кнопка двойника показывается вместе с кнопкой поля.</summary>
@@ -1333,9 +1355,11 @@ namespace BecquerelMonitor
             };
             this.gdmlMapping.ChoiceChanged += (sender, e) =>
             {
-                // До «Пересчитать» выбор только выделяется на чертеже: выбранные детали в полном цвете.
+                // До «Пересчитать» выбор только выделяется на чертеже: выбранные детали в полном цвете. Это подсветка, а не
+                // бледность «не вошло в расчёт» (`AMBER301`, критик 12.11.2026, п. 1.10): слова легенды и выноски остаются
+                // от применённой раскладки, иначе легенда писала «Не вошло в расчёт» про детали, которые в расчёте есть.
                 GdmlChoice now = this.gdmlMapping.Choice;
-                this.gdmlSketch.SetPale(volume => !(ReferenceEquals(volume, now.Crystal) || (now.TakeSample && ReferenceEquals(volume, now.Sample))
+                this.gdmlSketch.SetHighlight(volume => !(ReferenceEquals(volume, now.Crystal) || (now.TakeSample && ReferenceEquals(volume, now.Sample))
                                                     || (now.TakeShield && ReferenceEquals(volume, now.ShieldFrom))));
             };
             this.gdmlSummaryPanel.Controls.Add(this.gdmlMapping);

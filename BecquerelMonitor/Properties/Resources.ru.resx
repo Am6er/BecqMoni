@@ -4049,10 +4049,10 @@ http://xptable.sourceforge.net/</value>
     <value>Сетки CAD (STL/OBJ/PLY) не импортируются: читается только GDML. cadmesh — способ завести сетку CAD в Geant4, только справка.</value>
   </data>
   <data name="GdmlSketchAxial" xml:space="preserve">
-    <value>Разрез по оси ({0} = {1})</value>
+    <value>Вид сбоку, в разрезе ({0} = {1})</value>
   </data>
   <data name="GdmlSketchEnd" xml:space="preserve">
-    <value>Вид с торца ({0} = {1} мм)</value>
+    <value>Поперечный разрез ({0} = {1} мм)</value>
   </data>
   <data name="GdmlSketchNoGeometry" xml:space="preserve">
     <value>Геометрии GDML нет</value>
@@ -4397,7 +4397,7 @@ http://xptable.sourceforge.net/</value>
     <value>Плоскость идёт мимо оси, ширина здесь — хорда, а не диаметр ({0}): {1}</value>
   </data>
   <data name="GdmlSketchPlaneMiddle" xml:space="preserve">
-    <value>Плоскость {0} = 0 проходит мимо прибора: разрез идёт через середину его габарита</value>
+    <value>Плоскость {0} = 0 проходит мимо детектора: разрез идёт через середину его габарита</value>
   </data>
   <data name="GdmlSketchFailedLog" xml:space="preserve">
     <value>Чертёж GDML не построен: {0}</value>
@@ -4502,13 +4502,40 @@ http://xptable.sourceforge.net/</value>
     <value>Поперёк оси по линии A–A, через центр кристалла.</value>
   </data>
   <data name="GdmlSketchEndHintMiddle" xml:space="preserve">
-    <value>Поперёк оси по линии A–A, через середину прибора.</value>
+    <value>Поперёк оси по линии A–A, через середину сцены.</value>
   </data>
   <data name="GdmlSketchLegendTitle" xml:space="preserve">
     <value>Вещества:</value>
   </data>
   <data name="GdmlSketchLegendMore" xml:space="preserve">
     <value>ещё {0} — в сводке</value>
+  </data>
+  <data name="GdmlSketchAxialTitle" xml:space="preserve">
+    <value>Вид сбоку, в разрезе</value>
+  </data>
+  <data name="GdmlSketchEndTitle" xml:space="preserve">
+    <value>Поперечный разрез</value>
+  </data>
+  <data name="GdmlSketchAlongShort" xml:space="preserve">
+    <value>Разрезано вдоль оси.</value>
+  </data>
+  <data name="GdmlSketchAcrossShort" xml:space="preserve">
+    <value>Разрезано поперёк, по линии A–A.</value>
+  </data>
+  <data name="GdmlSketchToSample" xml:space="preserve">
+    <value>к пробе</value>
+  </data>
+  <data name="GdmlSketchLegendUsed" xml:space="preserve">
+    <value>В расчёте:</value>
+  </data>
+  <data name="GdmlSketchLegendUnused" xml:space="preserve">
+    <value>Не вошло в расчёт:</value>
+  </data>
+  <data name="GdmlSketchNoCrystal" xml:space="preserve">
+    <value>Кристалл не узнан. Выберите деталь в списке «Детектор, кристалл».</value>
+  </data>
+  <data name="GdmlRoleShield" xml:space="preserve">
+    <value>Защита</value>
   </data>
   <data name="GdmlSketchTrimmed" xml:space="preserve">
     <value>Не показано, в тысячи раз больше остального ({0}): {1}</value>
@@ -4532,7 +4559,7 @@ http://xptable.sourceforge.net/</value>
     <value>Газ</value>
   </data>
   <data name="GdmlRoleDevice" xml:space="preserve">
-    <value>Прибор</value>
+    <value>Детектор</value>
   </data>
   <data name="GdmlOverviewLine" xml:space="preserve">
     <value>Деталей: {0}, веществ: {1}, общий габарит {2}.</value>
@@ -4591,7 +4618,7 @@ http://xptable.sourceforge.net/</value>
     <value>Активность самого кристалла детектора (La-138, Lu-176, ряд Ac-227). Это прибор, а не проба: в состав пробы она не входит и в её активность не складывается. Природные строки вычислены из массы кристалла и данных нуклида; свободная строка (Ac-227) подбирается разбором.</value>
   </data>
   <data name="GdmlSketchAlongHint" xml:space="preserve">
-    <value>Плоскость вдоль оси прибора. Линия A–A: где снят вид с торца.</value>
+    <value>Плоскость вдоль оси детектора. Линия A–A: где снят поперечный разрез.</value>
   </data>
   <data name="GdmlSketchMeshOutline" xml:space="preserve">
     <value>Только контур, без заливки: сетка не определяет, где внутри, причина в сводке ({0}): {1}</value>

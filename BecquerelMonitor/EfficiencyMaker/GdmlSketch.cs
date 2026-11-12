@@ -256,7 +256,77 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.meshIds.Clear();
             this.calloutPlaces.Clear();
             this.reportedFailure = null;
+            this.marks = null;
+            this.highlight = null;
             this.Invalidate();
+        }
+
+        /// <summary>
+        /// (`AMBER301`, дизайнер 11.11.2026) Что из файла взято в расчёт: выноски чертежа равны ролям блока «Сопоставление»
+        /// (кристалл, проба, защита), стрелка «к пробе», плашка отказа. null — раскладки нет: выноски по ролям, узнанным
+        /// программой. Ставится после <see cref="SetGeometry"/>, тот её сбрасывает.
+        /// </summary>
+        public void SetMarks(GdmlSketchMarks value)
+        {
+            this.marks = value;
+            this.calloutPlaces.Clear();
+            this.Invalidate();
+        }
+
+        GdmlSketchMarks marks;
+
+        /// <summary>
+        /// (`AMBER301`) Маленький чертёж окна импорта: тот же рисунок без обвязки — без размерных линий габарита (линейка
+        /// масштаба остаётся), без строки пояснения под заголовком, выноски без размеров, легенда без граммов (массы стоят
+        /// в списках слева). Геометрия та же: человек не должен усомниться, что это тот же файл.
+        /// </summary>
+        public bool Compact
+        {
+            get { return this.compact; }
+            set
+            {
+                this.compact = value;
+                this.calloutPlaces.Clear();
+                this.Invalidate();
+            }
+        }
+
+        bool compact;
+
+        /// <summary>Пояснения видов последней отрисовки: где проходит плоскость, числом. Всплывающая подсказка; читает проба.</summary>
+        readonly List<string> paintDetails = new List<string>();
+
+        ToolTip planeTip;
+        string planeTipText;
+
+        /// <summary>
+        /// Координаты плоскости разреза — во всплывающей подсказке вида (решение Amber 11.11.2026 вопросником, дословно:
+        /// «Простые слова, координаты в подсказке (Рекомендую)»). Блоком, перенос по словам (`AMBER263`).
+        /// </summary>
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+            string text = null;
+            for (int i = 0; i < this.paintSlots.Count && i < this.paintDetails.Count; i++)
+            {
+                if (this.paintSlots[i].Panel.Contains(e.Location))
+                {
+                    text = this.paintDetails[i];
+                }
+            }
+
+            if (text == this.planeTipText)
+            {
+                return;
+            }
+
+            this.planeTipText = text;
+            if (this.planeTip == null)
+            {
+                this.planeTip = new ToolTip();
+            }
+
+            this.planeTip.SetToolTip(this, text == null ? null : AppUi.WrapWords(text, AppUi.TipWidth));
         }
 
         /// <summary>Сработал последний заслон; причина — аргумент. Журнал ведёт форма.</summary>
@@ -270,6 +340,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     this.labelFont.Dispose();
                 }
+
+                if (this.planeTip != null)
+                {
+                    this.planeTip.Dispose();
+                }
             }
 
             base.Dispose(disposing);
@@ -281,6 +356,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
             this.paintNotes.Clear();
             this.paintTitles.Clear();
+            this.paintDetails.Clear();
             this.paintMarks.Clear();
             this.paintCallouts.Clear();
             this.paintScales.Clear();
@@ -423,6 +499,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 graphics.Clear(Canvas);
                 this.paintNotes.Clear();
                 this.paintTitles.Clear();
+                this.paintDetails.Clear();
                 this.paintMarks.Clear();
                 this.paintDims.Clear();
                 this.paintContours.Clear();
@@ -430,6 +507,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.paintScales.Clear();
                 this.paintSlots.Clear();
                 this.regionsBuilt = 0;
+                this.paintBanner = RectangleF.Empty;
 
                 List<LegendCell> legend;
                 float legendHeight = this.LayoutLegend(graphics, out legend);
@@ -440,6 +518,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     this.DrawView(graphics, slot);
                 }
 
+                this.DrawBanner(graphics, area);
                 this.DrawLegend(graphics, legend, area.Bottom, legendHeight);
 
                 bool settled = true;
@@ -517,7 +596,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         float HeaderHeight(Graphics graphics, ViewSlot slot, float width)
         {
             float wrap = Math.Max(10f, width - 16f);
-            float hint = this.Tight ? 0f : graphics.MeasureString(this.HintOf(slot), this.Font, (int)wrap).Height;
+            float hint = this.Tight || this.compact ? 0f : graphics.MeasureString(this.HintOf(slot), this.Font, (int)wrap).Height;
             return 6f + graphics.MeasureString(this.TitleOf(slot), this.LabelFont, (int)wrap).Height
                  + hint
                  + this.reservedNotes[slot.Axial ? 0 : 1] + 2f;
@@ -547,7 +626,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             // В тесном окне полосу не расширять: чертёж мельчал на треть (92 → 59 точек в окне 320×367); там число встаёт
             // со стороны тела на продолжении линии, а нет места — размера нет, как было (`DrawDimensions`).
             this.leftStrip = LeftStrip;
-            if (known && !this.Tight)
+            if (known && !this.Tight && !this.compact)
             {
                 string unit = GdmlText.T("GdmlUnitMm", "mm");
                 float widest = Math.Max(graphics.MeasureString(Fmt(vA) + " " + unit, this.Font).Width,
@@ -567,7 +646,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             bool bestSide = true;
             CalloutMode bestMode = CalloutMode.None;
             double extent = Math.Max(Math.Max(uA, vA), Math.Max(uE, vE));
-            for (int detail = 2; detail >= 0; detail--)
+            for (int detail = this.compact ? 1 : 2; detail >= 0; detail--)
             {
                 labelWidth = labelHeight = 0f;
                 shortLabels = detail == 1;
@@ -653,20 +732,20 @@ namespace BecquerelMonitor.EfficiencyMaker
         void PlacePlot(Graphics graphics, ViewSlot slot)
         {
             int left, right, top, bottom;
-            Strips(slot.Mode, slot.Text, slot.LabelWidth, slot.LabelHeight, this.leftStrip, out left, out right, out top, out bottom);
+            Strips(slot.Mode, slot.Text, slot.LabelWidth, slot.LabelHeight, this.leftStrip, !this.compact, out left, out right, out top, out bottom);
             int header = slot.Text ? (int)Math.Ceiling(this.HeaderHeight(graphics, slot, slot.Panel.Width)) : 0;
             slot.Plot = new Rectangle(slot.Panel.Left + left, slot.Panel.Top + header + top,
                                       Math.Max(0, slot.Panel.Width - left - right),
                                       Math.Max(0, slot.Panel.Height - header - top - bottom));
         }
 
-        static void Strips(CalloutMode mode, bool text, float labelWidth, float labelHeight, int leftStrip,
+        static void Strips(CalloutMode mode, bool text, float labelWidth, float labelHeight, int leftStrip, bool dimensions,
                            out int left, out int right, out int top, out int bottom)
         {
             left = text ? leftStrip : 0;
             right = text ? RightStrip : 0;
             top = 0;
-            bottom = text ? DimStrip + ScaleStrip : 0;
+            bottom = text ? (dimensions ? DimStrip : 0) + ScaleStrip : 0;
             int w = (int)Math.Ceiling(labelWidth) + 14;
             int h = (int)Math.Ceiling(labelHeight) + 8;
             if (mode == CalloutMode.Columns)
@@ -687,7 +766,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                    out int wA, out int wE, out int hA, out int hE)
         {
             int left, right, top, bottom;
-            Strips(mode, true, labelWidth, labelHeight, this.leftStrip, out left, out right, out top, out bottom);
+            Strips(mode, true, labelWidth, labelHeight, this.leftStrip, !this.compact, out left, out right, out top, out bottom);
             double margins = 2.0 * FrameMargin;
             double insetX = left + right + margins;
             if (side)
@@ -748,29 +827,57 @@ namespace BecquerelMonitor.EfficiencyMaker
         // Вид
         // ------------------------------------------------------------------
 
+        /// <summary>
+        /// Заголовок вида простыми словами (решение Amber 11.11.2026 вопросником, дословно: «Простые слова, координаты в
+        /// подсказке (Рекомендую)»): координаты плоскости — в <see cref="DetailOf"/>, всплывающей подсказкой.
+        /// </summary>
         string TitleOf(ViewSlot slot)
         {
             return slot.Axial
+                ? GdmlText.T("GdmlSketchAxialTitle", "Side view, cut open")
+                : GdmlText.T("GdmlSketchEndTitle", "Cross-section");
+        }
+
+        /// <summary>Пояснение вида одной короткой строкой; линия A–A — единственная связь двух видов.</summary>
+        string HintOf(ViewSlot slot)
+        {
+            return slot.Axial
+                ? GdmlText.T("GdmlSketchAlongShort", "Cut along the axis.")
+                : GdmlText.T("GdmlSketchAcrossShort", "Cut across, along line A-A.");
+        }
+
+        /// <summary>
+        /// Где проходит плоскость, числом и полной фразой: всплывающая подсказка вида. Начинается теми же словами, что
+        /// заголовок вида («Вид сбоку, в разрезе (y = 0)», «Поперечный разрез (z = 0 мм)»; критик 12.11.2026, Р2).
+        /// </summary>
+        string DetailOf(ViewSlot slot)
+        {
+            return this.PlaneOf(slot) + ". " + this.PlaneHintOf(slot);
+        }
+
+        string PlaneOf(ViewSlot slot)
+        {
+            return slot.Axial
                 ? string.Format(CultureInfo.InvariantCulture,
-                    GdmlText.T("GdmlSketchAxial", "Axial section ({0} = {1})"),
+                    GdmlText.T("GdmlSketchAxial", "Side view, cut open ({0} = {1})"),
                     AxisLetter(slot.Normal),
                     slot.Plane == 0.0 ? "0" : GdmlText.N(slot.Plane) + " " + GdmlText.T("GdmlUnitMm", "mm"))
                 : string.Format(CultureInfo.InvariantCulture,
-                    GdmlText.T("GdmlSketchEnd", "End view ({0} = {1} mm)"),
+                    GdmlText.T("GdmlSketchEnd", "Cross-section ({0} = {1} mm)"),
                     this.geometry.Axis, GdmlText.N(slot.Plane));
         }
 
-        string HintOf(ViewSlot slot)
+        string PlaneHintOf(ViewSlot slot)
         {
             if (slot.Axial)
             {
                 // «Вдоль», а не «через ось»: плоскость бывает и мимо оси тела, и об этом рядом подпись.
-                return GdmlText.T("GdmlSketchAlongHint", "A plane along the device axis. Line A-A: where the end view is cut.");
+                return GdmlText.T("GdmlSketchAlongHint", "A plane along the detector axis. Line A-A: where the cross-section is cut.");
             }
 
             return this.geometry.CrystalName.Length > 0
                 ? GdmlText.T("GdmlSketchEndHint", "Cut across the axis along line A-A, through the crystal centre.")
-                : GdmlText.T("GdmlSketchEndHintMiddle", "Cut across the axis along line A-A, through the middle of the device.");
+                : GdmlText.T("GdmlSketchEndHintMiddle", "Cut across the axis along line A-A, through the middle of the scene.");
         }
 
         void DrawView(Graphics graphics, ViewSlot slot)
@@ -823,6 +930,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.viewVertices = 0;
 
             this.paintTitles.Add(this.TitleOf(slot));
+            this.paintDetails.Add(this.DetailOf(slot));
 
             // Вид не вылезает на соседний и на подписи: второе тело вычитания и начало координат бывают вне поля.
             graphics.SetClip(slot.Plot);
@@ -846,7 +954,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 graphics.DrawString(this.TitleOf(slot), this.LabelFont, InkBrush, new RectangleF(rect.Left + 8f, notesTop, wrap, titleSize.Height));
                 this.paintMarks.Add(new SketchMark { Bounds = new RectangleF(rect.Left + 8f, notesTop, titleSize.Width, titleSize.Height), Text = this.TitleOf(slot) });
                 notesTop += titleSize.Height;
-                if (!this.Tight)
+                if (!this.Tight && !this.compact)
                 {
                     SizeF hintSize = graphics.MeasureString(this.HintOf(slot), this.Font, (int)wrap);
                     graphics.DrawString(this.HintOf(slot), this.Font, DimBrush, new RectangleF(rect.Left + 8f, notesTop, wrap, hintSize.Height));
@@ -862,9 +970,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.DrawViewNotes(graphics, slot, index, notesTop);
             if (slot.Text)
             {
-                this.DrawGuides(graphics, frame, slot, placed);
+                // Стрелка «к пробе» — до буквы A и размеров: они обходят её, как выноски.
                 this.DrawScale(graphics, frame, slot);
-                this.DrawDimensions(graphics, frame, slot, placed);
+                RectangleF arrow = this.DrawSampleArrow(graphics, frame, slot, placed);
+                this.DrawGuides(graphics, frame, slot, placed, arrow);
+                if (!this.compact)
+                {
+                    this.DrawDimensions(graphics, frame, slot, placed);
+                }
             }
 
             this.RenderCallouts(graphics, slot, placed);
@@ -890,7 +1003,276 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Ось — тонким штрихпунктиром ПОВЕРХ тел: под телами её не было видно там, где она нужна.
         /// Линия A–A на разрезе показывает, где снят торец: тот же приём, что на машиностроительном чертеже.
         /// </summary>
-        void DrawGuides(Graphics graphics, ViewFrame frame, ViewSlot slot, List<PlacedCallout> placed)
+        /// <summary>
+        /// (`AMBER301`) Стрелка «к пробе» у грани, обращённой к пробе, — только когда пробы в файле нет (решение Amber
+        /// 11.11.2026 вопросником, дословно: «Только если пробы в файле нет (Рекомендую)»): отвечает на список «Сторона к
+        /// пробе» и переезжает при его смене. На виде, где сторона смотрит на зрителя или от него, стрелки нет. Место — у
+        /// грани детектора (при защите из файла — в её полости), в стороне от оси и линии A–A, свободное от выносок,
+        /// подписей и тел, взятых в расчёт; у стороны, где стоит размер габарита, — вдоль соседней грани. Нет места —
+        /// стрелки нет, как у размера. Возвращает занятую рамку (пусто — не нарисована).
+        /// </summary>
+        RectangleF DrawSampleArrow(Graphics graphics, ViewFrame frame, ViewSlot slot, List<PlacedCallout> placed)
+        {
+            GdmlSketchMarks m = this.marks;
+            if (m == null || m.SampleAxis < 0 || m.SampleSign == 0 || m.Crystal == null || !m.Crystal.BoundsKnown
+                || (m.SampleAxis != slot.U && m.SampleAxis != slot.V))
+            {
+                return RectangleF.Empty;
+            }
+
+            bool alongU = m.SampleAxis == slot.U;
+            double cu = 0.5 * (m.Crystal.Min[slot.U] + m.Crystal.Max[slot.U]);
+            double cv = 0.5 * (m.Crystal.Min[slot.V] + m.Crystal.Max[slot.V]);
+            if (!IsFinite(cu) || !IsFinite(cv))
+            {
+                return RectangleF.Empty;
+            }
+
+            // Грань ДЕТЕКТОРА со стороны пробы, а не край всего взятого: при защите из файла и пробе вручную стрелка
+            // стоит у детектора, в полости защиты, — там, куда человек положит пробу (критик 12.11.2026, Р3б: прежде
+            // краем считалась наружная грань защиты, места за ней нет, и стрелки не было вовсе).
+            double reach = m.SampleSign > 0 ? m.Crystal.Max[m.SampleAxis] : m.Crystal.Min[m.SampleAxis];
+            if (m.DetectorMin != null && m.DetectorMax != null)
+            {
+                reach = m.SampleSign > 0 ? Math.Max(reach, m.DetectorMax[m.SampleAxis]) : Math.Min(reach, m.DetectorMin[m.SampleAxis]);
+            }
+
+            if (!IsFinite(reach))
+            {
+                return RectangleF.Empty;
+            }
+
+            reach = m.SampleSign > 0 ? Math.Min(reach, alongU ? frame.UMax : frame.VMax) : Math.Max(reach, alongU ? frame.UMin : frame.VMin);
+            PointF edge = frame.ToScreen(alongU ? reach : cu, alongU ? cv : reach);
+            PointF inner = frame.ToScreen(cu, cv);
+            float dx = alongU ? Math.Sign(edge.X - inner.X) : 0f;
+            float dy = alongU ? 0f : Math.Sign(edge.Y - inner.Y);
+            if (dx == 0f && dy == 0f)
+            {
+                return RectangleF.Empty;
+            }
+
+            const float Gap = 3f, Length = 18f, Head = 5f, Beside = 9f;
+            string text = GdmlText.T("GdmlSketchToSample", "to sample");
+            SizeF size = graphics.MeasureString(text, this.Font);
+            RectangleF drawn = frame.Drawn;
+            float axisRow = slot.Axial && frame.VMin <= 0.0 && frame.VMax >= 0.0 ? frame.ToScreen(frame.UMin, 0.0).Y : float.NaN;
+            float cutColumn = slot.Axial && IsFinite(this.geometry.EndPlane) ? frame.ToScreen(this.geometry.EndPlane, 0.0).X : float.NaN;
+
+            // С этой стороны стоит размер габарита (вертикальный — слева, горизонтальный — снизу): стрелка наружу упёрлась бы
+            // наконечником в размерную линию (RC-110, бок −X; критик 12.11.2026, п. 1.9). Сперва место вдоль соседней грани.
+            bool towardDims = !this.compact && ((alongU && dx < 0f) || (!alongU && dy > 0f));
+
+            // Попытки: стрелка (откуда, куда) и места её подписи по порядку.
+            List<KeyValuePair<PointF[], RectangleF[]>> tries = new List<KeyValuePair<PointF[], RectangleF[]>>();
+            Action outside = () =>
+            {
+                // Наружу от грани; у размерной стороны короче: до размерной линии (`DimFirstPx`) остаётся просвет.
+                float length = towardDims ? Math.Min(Length, GeometrySketch.DimFirstPx - Gap - 8f) : Length;
+                foreach (float shift in new[] { 0f, 14f, -14f, 28f, -28f, 42f, -42f })
+                {
+                    PointF from = new PointF(edge.X + dx * Gap + (alongU ? 0f : shift), edge.Y + dy * Gap + (alongU ? shift : 0f));
+                    PointF to = new PointF(from.X + dx * length, from.Y + dy * length);
+
+                    // На оси и на линии A–A стрелка потерялась бы.
+                    if ((alongU && Math.Abs(from.Y - axisRow) < 7f) || (!alongU && Math.Abs(from.X - cutColumn) < 10f))
+                    {
+                        continue;
+                    }
+
+                    // Подпись: у горизонтальной стрелки над или под ней, от грани наружу (не на тело); у вертикальной —
+                    // справа или слева.
+                    RectangleF[] labels = new RectangleF[2];
+                    for (int k = 0; k < 2; k++)
+                    {
+                        labels[k] = alongU
+                            ? new RectangleF(dx > 0f ? from.X : from.X - size.Width, k == 0 ? from.Y - Head - size.Height + 2f : from.Y + Head - 2f, size.Width, size.Height)
+                            : new RectangleF(k == 0 ? from.X + Head - 1f : from.X - Head + 1f - size.Width, Math.Min(from.Y, to.Y) + (length - size.Height) / 2f, size.Width, size.Height);
+                    }
+
+                    tries.Add(new KeyValuePair<PointF[], RectangleF[]>(new[] { from, to }, labels));
+                }
+            };
+            Action beside = () =>
+            {
+                // Вдоль соседней грани, наконечник у грани пробы: только когда рядом с детектором на чертеже ничего нет
+                // (его грани — края чертежа), иначе стрелка в стороне от детектора читалась бы про другое тело.
+                if (m.DetectorMin == null || m.DetectorMax == null)
+                {
+                    return;
+                }
+
+                int across = alongU ? slot.V : slot.U;
+                PointF low = frame.ToScreen(alongU ? reach : m.DetectorMin[across], alongU ? m.DetectorMin[across] : reach);
+                PointF high = frame.ToScreen(alongU ? reach : m.DetectorMax[across], alongU ? m.DetectorMax[across] : reach);
+                float near = alongU ? Math.Min(low.Y, high.Y) : Math.Min(low.X, high.X), far = alongU ? Math.Max(low.Y, high.Y) : Math.Max(low.X, high.X);
+                if (Math.Abs(near - (alongU ? drawn.Top : drawn.Left)) > 2f || Math.Abs(far - (alongU ? drawn.Bottom : drawn.Right)) > 2f)
+                {
+                    return;
+                }
+
+                foreach (bool first in new[] { true, false })
+                {
+                    // Слева от тела стоит вертикальный размер габарита, под телом — горизонтальный: вертикальной стрелке
+                    // слева места нет (она пересекла бы выносную линию, и размер пропал бы), а под телом помещается только
+                    // сама стрелка с подписью в одну строку — до размерной линии остаётся просвет.
+                    bool dims = !this.compact && !first == alongU;
+                    if (dims && !alongU)
+                    {
+                        continue;
+                    }
+
+                    float line = first ? near - Beside : far + Beside;
+                    PointF to = alongU ? new PointF(edge.X - dx * 8f, line) : new PointF(line, edge.Y - dy * 8f);
+                    PointF from = new PointF(to.X - dx * Length, to.Y - dy * Length);
+                    List<RectangleF> labels = new List<RectangleF>();
+                    if (alongU)
+                    {
+                        // За хвостом стрелки, в одну строку с ней; иначе — второй строкой дальше от тела, от наконечника.
+                        labels.Add(new RectangleF(dx > 0f ? from.X - 2f - size.Width : from.X + 2f, line - size.Height / 2f, size.Width, size.Height));
+                        if (!dims)
+                        {
+                            labels.Add(new RectangleF(dx > 0f ? to.X - size.Width : to.X, first ? line - Head - size.Height + 1f : line + Head - 1f, size.Width, size.Height));
+                        }
+                    }
+                    else
+                    {
+                        labels.Add(new RectangleF(first ? line - Head + 1f - size.Width : line + Head - 1f, Math.Min(from.Y, to.Y) + (Length - size.Height) / 2f, size.Width, size.Height));
+                    }
+
+                    tries.Add(new KeyValuePair<PointF[], RectangleF[]>(new[] { from, to }, labels.ToArray()));
+                }
+            };
+            if (towardDims)
+            {
+                beside();
+                outside();
+            }
+            else
+            {
+                outside();
+                beside();
+            }
+
+            ViewContext view = new ViewContext { Frame = frame, Normal = slot.Normal, U = slot.U, V = slot.V, Plane = slot.Plane };
+            Dictionary<GdmlVolumeInstance, Region> solids = new Dictionary<GdmlVolumeInstance, Region>();
+            try
+            {
+                foreach (KeyValuePair<PointF[], RectangleF[]> attempt in tries)
+                {
+                    PointF from = attempt.Key[0], to = attempt.Key[1];
+
+                    // Рамка стрелки: вдоль — ровно стрелка, поперёк — её наконечник. Запас вдоль залезал бы на тело и на
+                    // выносную линию размера у того же края, и размер пропадал.
+                    RectangleF shaft = alongU
+                        ? RectangleF.FromLTRB(Math.Min(from.X, to.X), from.Y - Head, Math.Max(from.X, to.X), from.Y + Head)
+                        : RectangleF.FromLTRB(from.X - Head, Math.Min(from.Y, to.Y), from.X + Head, Math.Max(from.Y, to.Y));
+                    if (!this.NumberFree(shaft, slot, placed) || this.OnTakenSolid(view, shaft, solids))
+                    {
+                        continue;
+                    }
+
+                    foreach (RectangleF label in attempt.Value)
+                    {
+                        // Подпись не садится ни на взятое в расчёт тело, ни на ось, ни на линию A–A с её буквами.
+                        if (!this.NumberFree(label, slot, placed) || this.OnTakenSolid(view, label, solids)
+                            || (axisRow > label.Top - 1f && axisRow < label.Bottom + 1f)
+                            || (alongU && cutColumn > label.Left - 12f && cutColumn < label.Right + 12f && (label.Top < drawn.Top || label.Bottom > drawn.Bottom)))
+                        {
+                            continue;
+                        }
+
+                        using (Pen pen = new Pen(Ink, 1.6f))
+                        using (GraphicsPath head = new GraphicsPath())
+                        {
+                            graphics.DrawLine(pen, from, new PointF(to.X - dx * Head, to.Y - dy * Head));
+                            head.AddPolygon(new[]
+                            {
+                                to,
+                                new PointF(to.X - dx * 2f * Head - dy * Head, to.Y - dy * 2f * Head - dx * Head),
+                                new PointF(to.X - dx * 2f * Head + dy * Head, to.Y - dy * 2f * Head + dx * Head),
+                            });
+                            graphics.FillPath(InkBrush, head);
+                        }
+
+                        // Подложка цвета холста: подпись бывает поверх бледной пробы или защиты, не взятых в расчёт.
+                        using (Brush back = new SolidBrush(Color.FromArgb(0xC8, Canvas)))
+                        {
+                            graphics.FillRectangle(back, label.X + 1f, label.Y + 1f, label.Width - 2f, label.Height - 2f);
+                        }
+
+                        graphics.DrawString(text, this.Font, InkBrush, label.X, label.Y);
+
+                        // Две рамки, а не общая: в углу между стрелкой и подписью место свободно, и размер его берёт.
+                        this.paintMarks.Add(new SketchMark { Bounds = shaft, Text = "→" });
+                        this.paintMarks.Add(new SketchMark { Bounds = label, Text = text });
+                        return RectangleF.Union(shaft, label);
+                    }
+                }
+            }
+            finally
+            {
+                foreach (Region region in solids.Values)
+                {
+                    if (region != null)
+                    {
+                        region.Dispose();
+                    }
+                }
+
+                view.ReleaseCache();
+            }
+
+            return RectangleF.Empty;
+        }
+
+        /// <summary>
+        /// (`AMBER301`, критик 12.11.2026, п. 1.9) Рамка лежит на сечении тела, взятого в расчёт: стрелка «к пробе» и её
+        /// подпись туда не садятся (на RC-110 подпись лежала поверх стенки корпуса). Бледное и газ не в счёт: под подписью
+        /// у них подложка. Сечение считается только у тел, чей габарит задевает рамку, и один раз на отрисовку.
+        /// </summary>
+        bool OnTakenSolid(ViewContext view, RectangleF box, Dictionary<GdmlVolumeInstance, Region> solids)
+        {
+            foreach (GdmlVolumeInstance volume in this.geometry.Volumes)
+            {
+                if (volume == null || volume.Solid == null || volume.Transform == null || !volume.BoundsKnown || !volume.PlacementKnown
+                    || (this.pale != null && this.pale(volume)) || this.Overview.IsOutOfFrame(volume)
+                    || this.Overview.RoleOf(volume) == GdmlRole.Gas || !IntersectsPlane(volume, view.Normal, view.Plane))
+                {
+                    continue;
+                }
+
+                PointF a = view.Frame.ToScreen(volume.Min[view.U], volume.Min[view.V]), b = view.Frame.ToScreen(volume.Max[view.U], volume.Max[view.V]);
+                RectangleF bounds = RectangleF.FromLTRB(Math.Min(a.X, b.X) - 1f, Math.Min(a.Y, b.Y) - 1f, Math.Max(a.X, b.X) + 1f, Math.Max(a.Y, b.Y) + 1f);
+                if (!bounds.IntersectsWith(box))
+                {
+                    continue;
+                }
+
+                Region region;
+                if (!solids.TryGetValue(volume, out region))
+                {
+                    if (solids.Count >= 64)
+                    {
+                        // Слишком много тел у стрелки: считать дальше дорого, а место заведомо тесное.
+                        return true;
+                    }
+
+                    view.Volume = volume;
+                    region = this.AreaOf(view, volume);
+                    solids[volume] = region;
+                }
+
+                if (region != null && region.IsVisible(box))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        void DrawGuides(Graphics graphics, ViewFrame frame, ViewSlot slot, List<PlacedCallout> placed, RectangleF arrow)
         {
             RectangleF drawn = frame.Drawn;
             using (Pen axisPen = new Pen(GuideInk, 1.0f))
@@ -919,8 +1301,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                         SizeF size = graphics.MeasureString("A", this.LabelFont);
                         // Справа от линии, а если там выноска — слева.
                         float yTop = drawn.Top - size.Height - 1f, yBottom = drawn.Bottom + 1f;
-                        float xTop = LeaderHits(placed, new RectangleF(x + 2f, yTop, size.Width, size.Height)) ? x - 2f - size.Width : x + 2f;
-                        float xBottom = LeaderHits(placed, new RectangleF(x + 2f, yBottom, size.Width, size.Height)) ? x - 2f - size.Width : x + 2f;
+                        RectangleF atTop = new RectangleF(x + 2f, yTop, size.Width, size.Height), atBottom = new RectangleF(x + 2f, yBottom, size.Width, size.Height);
+                        float xTop = LeaderHits(placed, atTop) || arrow.IntersectsWith(atTop) ? x - 2f - size.Width : x + 2f;
+                        float xBottom = LeaderHits(placed, atBottom) || arrow.IntersectsWith(atBottom) ? x - 2f - size.Width : x + 2f;
                         this.Mark(graphics, "A", this.LabelFont, InkBrush, xTop, yTop, size);
                         this.Mark(graphics, "A", this.LabelFont, InkBrush, xBottom, yBottom, size);
                     }
@@ -1149,7 +1532,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (slot.Axial && slot.Plane != 0.0)
             {
                 notes.Add(string.Format(CultureInfo.InvariantCulture,
-                    GdmlText.T("GdmlSketchPlaneMiddle", "The plane {0} = 0 misses the device: the section goes through the middle of its extent"),
+                    GdmlText.T("GdmlSketchPlaneMiddle", "The plane {0} = 0 misses the detector: the section goes through the middle of its extent"),
                     AxisLetter(normal)));
             }
 
@@ -1273,13 +1656,21 @@ namespace BecquerelMonitor.EfficiencyMaker
             public string Head, Detail;
         }
 
-        List<CalloutText> CalloutTexts(bool shortLabels)
+        /// <summary>
+        /// (`AMBER301`, дизайнер 11.11.2026) Выноски равны ролям блока «Сопоставление»: кристалл, проба, защита — только
+        /// взятые в расчёт, плюс сборка детектора («Детектор», решение Amber 11.11.2026 вопросником, дословно:
+        /// ««Детектор» (Рекомендую)»), если её размеры не повторяют габарит на размерных линиях. Сосуд с чертежа ушёл:
+        /// его нет в «Сопоставлении», он остаётся в легенде. Бледная деталь выноски не получает. На поперечном разрезе
+        /// одна выноска — кристалл: остальное подписано на виде сбоку.
+        /// </summary>
+        List<CalloutText> CalloutTexts(bool shortLabels, bool axial)
         {
             List<CalloutText> items = new List<CalloutText>();
             GdmlOverview o = this.Overview;
+            GdmlSketchMarks m = this.marks;
             Action<GdmlRole, GdmlVolumeInstance, string> add = (role, volume, detail) =>
             {
-                if (volume != null)
+                if (volume != null && (this.pale == null || !this.pale(volume)))
                 {
                     items.Add(new CalloutText
                     {
@@ -1290,10 +1681,21 @@ namespace BecquerelMonitor.EfficiencyMaker
                     });
                 }
             };
-            add(GdmlRole.Crystal, o.Crystal, o.Crystal == null ? null : GdmlOverview.SizeText(o.Crystal, this.geometry.Axis));
-            add(GdmlRole.Sample, o.Sample, o.Sample == null ? null : GdmlOverview.SizeText(o.Sample, this.geometry.Axis));
-            add(GdmlRole.Vessel, o.Vessel, o.Vessel == null ? null : GdmlOverview.SizeText(o.Vessel, this.geometry.Axis));
-            add(GdmlRole.Device, o.DeviceBody, o.DeviceBody == null ? null : o.DeviceSizeText());
+            GdmlVolumeInstance crystal = m != null ? m.Crystal : o.Crystal;
+            GdmlVolumeInstance sample = m != null ? m.Sample : o.Sample;
+            add(GdmlRole.Crystal, crystal, crystal == null ? null : GdmlOverview.SizeText(crystal, this.geometry.Axis));
+            if (!axial)
+            {
+                return items;
+            }
+
+            add(GdmlRole.Sample, sample, sample == null ? null : GdmlOverview.SizeText(sample, this.geometry.Axis));
+            add(GdmlRole.Shield, m == null ? null : m.Shield, null);
+            if (o.DeviceBody != null && !ReferenceEquals(o.DeviceBody, crystal) && !o.DeviceFillsScene())
+            {
+                add(GdmlRole.Device, o.DeviceBody, o.DeviceSizeText());
+            }
+
             return items;
         }
 
@@ -1301,7 +1703,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             width = 0f;
             height = 0f;
-            foreach (CalloutText item in this.CalloutTexts(shortLabels))
+            foreach (CalloutText item in this.CalloutTexts(shortLabels, true))
             {
                 SizeF head = graphics.MeasureString(item.Head, this.LabelFont);
                 SizeF detail = item.Detail == null ? SizeF.Empty : graphics.MeasureString(item.Detail, this.Font);
@@ -1350,6 +1752,40 @@ namespace BecquerelMonitor.EfficiencyMaker
                         if (inner != null)
                         {
                             region.Exclude(inner);
+                        }
+                    }
+                }
+
+                // (`AMBER301`) Точка выноски не ставится на бледную деталь: на RC-110 «Прибор» упирался в аккумулятор,
+                // и человек читал «прибор = розовый прямоугольник». Бледные детали внутри тела вырезаются, как дети.
+                if (this.pale != null)
+                {
+                    // Предки не в счёт: сечение бледного тома-вместилища (воздух внутри корпуса) покрывает и само тело.
+                    HashSet<GdmlVolumeInstance> above = new HashSet<GdmlVolumeInstance>();
+                    for (GdmlVolumeInstance up = volume.Parent; up != null && above.Add(up); up = up.Parent)
+                    {
+                    }
+
+                    int faded = 0;
+                    foreach (GdmlVolumeInstance other in this.geometry.Volumes)
+                    {
+                        if (other == null || ReferenceEquals(other, volume) || other.Parent == volume || above.Contains(other) || !other.BoundsKnown
+                            || !IntersectsPlane(other, view.Normal, view.Plane) || !this.pale(other))
+                        {
+                            continue;
+                        }
+
+                        if (++faded > 64)
+                        {
+                            break;
+                        }
+
+                        using (Region inner = this.AreaOf(view, other))
+                        {
+                            if (inner != null)
+                            {
+                                region.Exclude(inner);
+                            }
                         }
                     }
                 }
@@ -1448,7 +1884,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         List<PlacedCallout> PlanCallouts(Graphics graphics, ViewFrame frame, ViewSlot slot)
         {
             List<PlacedCallout> result = new List<PlacedCallout>();
-            List<CalloutText> texts = this.CalloutTexts(slot.ShortLabels);
+            List<CalloutText> texts = this.CalloutTexts(slot.ShortLabels, slot.Axial);
             if (texts.Count == 0)
             {
                 return result;
@@ -1583,7 +2019,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             items.Sort((a, b) => columns ? a.Value.Y.CompareTo(b.Value.Y) : a.Value.X.CompareTo(b.Value.X));
             Rectangle panel = slot.Panel;
             Rectangle plot = slot.Plot;
-            const float Gap = 6f;
+            // (`AMBER301`, критик 12.11.2026) В ряд подписи стоят реже: «Защита» и «Проба» в 6 точках друг от друга читались
+            // одной строкой «Защита Проба». В столбце просвет прежний: строки и так раздельны.
+            float Gap = columns ? 6f : 14f;
             float low = columns ? plot.Top : panel.Left + 6f;
             float high = columns ? plot.Bottom : panel.Right - 6f;
 
@@ -1723,13 +2161,140 @@ namespace BecquerelMonitor.EfficiencyMaker
             public Color? Swatch;
             public float X, Y, Width, Height;
             public bool Bold;
+
+            /// <summary>Вещество не вошло в расчёт: значок бледный, как деталь на чертеже, в тонкой серой рамке.</summary>
+            public bool Faded;
+
+            /// <summary>Заголовок второй группы: с новой строки.</summary>
+            public bool NewLine;
         }
 
         const float SwatchSize = 10f;
 
+        /// <summary>Рамка бледного значка легенды: значок виден на холсте и не путается с газом.</summary>
+        static readonly Color FadedEdge = Color.FromArgb(0x8A, 0x92, 0x9C);
+
         /// <summary>
-        /// Легенда полосой снизу: значок, вещество, его роль, масса; тяжёлые первыми. Цвет сам по себе
-        /// ничего не говорил человеку. Больше четверти высоты не занимает: остальное названо числом и лежит в сводке.
+        /// Строки легенды по порядку. (`AMBER301`, дизайнер 11.11.2026) Когда известно, что вошло в расчёт (<see cref="SetPale"/>),
+        /// групп две: «В расчёте:» — по ролям (кристалл, отражатель, корпус, проба, сосуд, защита, прочее по массе) и
+        /// «Не вошло в расчёт:» — с бледными значками: бледность на чертеже получает имя прямо под ним. Роль стоит перед
+        /// именем вещества: человеческое слово не прячется за машинным. Вещество, занятое хотя бы одной деталью расчёта, —
+        /// в первой группе. Без раскладки группа одна, «Вещества:», тяжёлые первыми.
+        /// </summary>
+        List<LegendCell> LegendEntries()
+        {
+            GdmlOverview o = this.Overview;
+            GdmlSketchMarks m = this.marks;
+            List<LegendCell> entries = new List<LegendCell>();
+            HashSet<string> used = null;
+            if (this.pale != null)
+            {
+                used = new HashSet<string>(StringComparer.Ordinal);
+                foreach (GdmlVolumeInstance volume in this.geometry.Volumes)
+                {
+                    if (volume != null && !this.pale(volume))
+                    {
+                        used.Add(volume.MaterialName ?? "");
+                    }
+                }
+            }
+
+            string crystalMaterial = m == null || m.Crystal == null ? null : m.Crystal.MaterialName ?? "";
+            string sampleMaterial = m == null || m.Sample == null ? null : m.Sample.MaterialName ?? "";
+            Func<GdmlMaterialRow, GdmlRole> roleOf = row =>
+            {
+                // Роль вещества — по выбору человека в «Сопоставлении», если он есть: иначе «Кристалл:» остался бы у вещества,
+                // которое программа узнала сама, а человек поправил.
+                if (crystalMaterial != null && row.Name == crystalMaterial)
+                {
+                    return GdmlRole.Crystal;
+                }
+
+                if (sampleMaterial != null && row.Name == sampleMaterial)
+                {
+                    return GdmlRole.Sample;
+                }
+
+                if (m != null && m.ShieldMaterials.Contains(row.Name))
+                {
+                    return GdmlRole.Shield;
+                }
+
+                if ((row.Role == GdmlRole.Crystal && crystalMaterial != null) || (row.Role == GdmlRole.Sample && m != null))
+                {
+                    return GdmlRole.None;
+                }
+
+                return row.Role;
+            };
+            GdmlRole[] order = { GdmlRole.Crystal, GdmlRole.Reflector, GdmlRole.Housing, GdmlRole.Sample, GdmlRole.Vessel, GdmlRole.Shield };
+            Func<GdmlMaterialRow, int> rank = row =>
+            {
+                int at = Array.IndexOf(order, roleOf(row));
+                return at < 0 ? order.Length : at;
+            };
+
+            List<GdmlMaterialRow> first = new List<GdmlMaterialRow>(), second = new List<GdmlMaterialRow>();
+            foreach (GdmlMaterialRow row in o.Materials)
+            {
+                // Газ — в расчёте всегда: воздух зазоров модель кладёт сама. Иначе окно импорта (бледное — всё, что не легло в
+                // поля) и вкладка (бледное — твёрдое вне полей) ставили бы воздух в разные группы.
+                (used == null || used.Contains(row.Name) || (row.Role == GdmlRole.Gas && used.Count > 0) ? first : second).Add(row);
+            }
+
+            if (used != null)
+            {
+                // Устойчиво: внутри роли — прежний порядок, тяжёлые первыми.
+                List<KeyValuePair<int, GdmlMaterialRow>> keyed = new List<KeyValuePair<int, GdmlMaterialRow>>();
+                for (int i = 0; i < first.Count; i++)
+                {
+                    keyed.Add(new KeyValuePair<int, GdmlMaterialRow>(rank(first[i]) * 100000 + i, first[i]));
+                }
+
+                keyed.Sort((a, b) => a.Key.CompareTo(b.Key));
+                first.Clear();
+                foreach (KeyValuePair<int, GdmlMaterialRow> item in keyed)
+                {
+                    first.Add(item.Value);
+                }
+            }
+
+            Action<GdmlMaterialRow, bool> add = (row, faded) =>
+            {
+                GdmlRole role = roleOf(row);
+                string text = (role == GdmlRole.None ? "" : GdmlOverview.RoleName(role) + ": ") + row.Display
+                            + (this.compact ? "" : ", " + row.MassText() + row.UncountedText());
+                entries.Add(new LegendCell { Text = text, Swatch = faded ? Fade(row.Color) : row.Color, Faded = faded });
+            };
+            if (used == null)
+            {
+                entries.Add(new LegendCell { Text = GdmlText.T("GdmlSketchLegendTitle", "Materials:"), Bold = true });
+            }
+            else if (first.Count > 0)
+            {
+                entries.Add(new LegendCell { Text = GdmlText.T("GdmlSketchLegendUsed", "In the calculation:"), Bold = true });
+            }
+
+            foreach (GdmlMaterialRow row in first)
+            {
+                add(row, false);
+            }
+
+            if (second.Count > 0)
+            {
+                entries.Add(new LegendCell { Text = GdmlText.T("GdmlSketchLegendUnused", "Not in the calculation:"), Bold = true, NewLine = entries.Count > 0 });
+                foreach (GdmlMaterialRow row in second)
+                {
+                    add(row, true);
+                }
+            }
+
+            return entries;
+        }
+
+        /// <summary>
+        /// Легенда полосой снизу: значок, роль, вещество, масса. Цвет сам по себе ничего не говорил человеку.
+        /// Больше четверти высоты не занимает: остальное названо числом и лежит в сводке.
         /// </summary>
         float LayoutLegend(Graphics graphics, out List<LegendCell> cells)
         {
@@ -1740,30 +2305,32 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return 0f;
             }
 
-            GdmlOverview o = this.Overview;
-            string head = GdmlText.T("GdmlSketchLegendTitle", "Materials:");
-            SizeF headSize = graphics.MeasureString(head, this.LabelFont);
-            float line = Math.Max(headSize.Height, SwatchSize + 3f);
+            List<LegendCell> entries = this.LegendEntries();
+            float line = Math.Max(graphics.MeasureString("X", this.LabelFont).Height, SwatchSize + 3f);
             float maxHeight = Math.Max(line + 6f, height * (this.Tight ? 0.17f : 0.25f));
             float x = 6f, y = 4f;
-            cells.Add(new LegendCell { Text = head, X = x, Y = y, Width = headSize.Width, Height = headSize.Height, Bold = true });
-            x += headSize.Width + 6f;
-            for (int i = 0; i < o.Materials.Count; i++)
+            for (int i = 0; i < entries.Count; i++)
             {
-                GdmlMaterialRow row = o.Materials[i];
-                string text = row.LegendText();
-                SizeF size = graphics.MeasureString(text, this.Font);
-                float cell = SwatchSize + 3f + size.Width + 10f;
-                if (x + cell > width - 4f && x > 6f + headSize.Width + 6f)
+                LegendCell entry = entries[i];
+                bool title = entry.Swatch == null;
+                SizeF size = graphics.MeasureString(entry.Text, title ? this.LabelFont : this.Font);
+                float cell = title ? size.Width + 6f : SwatchSize + 3f + size.Width + 10f;
+                bool wrap = (entry.NewLine && x > 6f) || (x + cell > width - 4f && x > 6f && cells.Count > 0 && cells[cells.Count - 1].Swatch != null);
+                if (wrap)
                 {
                     if (y + 2f * line + 4f > maxHeight)
                     {
+                        int hidden = 0;
+                        for (int k = i; k < entries.Count; k++)
+                        {
+                            hidden += entries[k].Swatch != null ? 1 : 0;
+                        }
+
                         string more = string.Format(CultureInfo.InvariantCulture,
-                            GdmlText.T("GdmlSketchLegendMore", "+{0} more in the summary"), o.Materials.Count - i);
+                            GdmlText.T("GdmlSketchLegendMore", "+{0} more in the summary"), hidden);
                         SizeF moreSize = graphics.MeasureString(more, this.Font);
 
                         // Не влезает за последней ячейкой: та уступает место, число растёт.
-                        int hidden = o.Materials.Count - i;
                         while (x + moreSize.Width > width - 4f && cells.Count > 1 && cells[cells.Count - 1].Y == y && cells[cells.Count - 1].Swatch != null)
                         {
                             x = cells[cells.Count - 1].X;
@@ -1773,7 +2340,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                             moreSize = graphics.MeasureString(more, this.Font);
                         }
 
-                        cells.Add(new LegendCell { Text = more, X = x, Y = y, Width = moreSize.Width, Height = moreSize.Height });
+                        if (hidden > 0)
+                        {
+                            cells.Add(new LegendCell { Text = more, X = x, Y = y, Width = moreSize.Width, Height = moreSize.Height });
+                        }
+
                         break;
                     }
 
@@ -1781,7 +2352,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     y += line;
                 }
 
-                cells.Add(new LegendCell { Text = text, Swatch = row.Color, X = x, Y = y, Width = cell, Height = size.Height });
+                entry.X = x;
+                entry.Y = y;
+                entry.Width = title ? size.Width : cell;
+                entry.Height = size.Height;
+                cells.Add(entry);
                 x += cell;
             }
 
@@ -1807,7 +2382,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (cell.Swatch != null)
                 {
                     using (Brush fill = new SolidBrush(cell.Swatch.Value))
-                    using (Pen edge = new Pen(Darken(cell.Swatch.Value), 1f))
+                    using (Pen edge = new Pen(cell.Faded ? FadedEdge : Darken(cell.Swatch.Value), 1f))
                     {
                         graphics.FillRectangle(fill, x, y + 1f, SwatchSize, SwatchSize);
                         graphics.DrawRectangle(edge, x, y + 1f, SwatchSize, SwatchSize);
@@ -1820,6 +2395,38 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.Mark(graphics, cell.Text, font, InkBrush, x, y, graphics.MeasureString(cell.Text, font));
             }
         }
+
+        /// <summary>
+        /// (`AMBER301`, дизайнер 11.11.2026) Плашка поверх чертежа в верхней трети: файл нарисован, а в расчёт не взят —
+        /// без неё чертёж выглядел успешным, а причина стояла мелко в стороне.
+        /// </summary>
+        void DrawBanner(Graphics graphics, Rectangle area)
+        {
+            string text = this.marks == null ? null : this.marks.Banner;
+            if (string.IsNullOrEmpty(text) || area.Width < 200 || area.Height < 120)
+            {
+                return;
+            }
+
+            this.paintNotes.Add(text);
+            int wrap = Math.Min(area.Width - 40, 440);
+            SizeF size = graphics.MeasureString(text, this.LabelFont, wrap);
+            RectangleF box = new RectangleF(area.Left + (area.Width - size.Width) / 2f - 10f, area.Top + area.Height / 3f - size.Height / 2f - 6f,
+                                            size.Width + 20f, size.Height + 12f);
+            using (Brush back = new SolidBrush(Color.FromArgb(0xEE, 0xFF, 0xFF, 0xFF)))
+            using (Pen edge = new Pen(NoteInk, 1f))
+            {
+                graphics.FillRectangle(back, box);
+                graphics.DrawRectangle(edge, box.X, box.Y, box.Width, box.Height);
+                graphics.FillRectangle(NoteBrush, box.X, box.Y, 3f, box.Height);
+            }
+
+            graphics.DrawString(text, this.LabelFont, InkBrush, new RectangleF(box.X + 10f, box.Y + 6f, size.Width + 1f, size.Height + 1f));
+            this.paintBanner = box;
+        }
+
+        /// <summary>Рамка плашки последней отрисовки; пусто — плашки нет. Читает проба.</summary>
+        RectangleF paintBanner;
 
         /// <summary>Число: четыре значащие, как у чертежа редактора; от тысячи — целым, точка всегда.</summary>
         internal static string Fmt(double value)
@@ -3904,10 +4511,28 @@ namespace BecquerelMonitor.EfficiencyMaker
         public void SetPale(Func<GdmlVolumeInstance, bool> isPale)
         {
             this.pale = isPale;
+            this.highlight = null;
+            this.calloutPlaces.Clear();
             this.Invalidate();
         }
 
         Func<GdmlVolumeInstance, bool> pale;
+
+        /// <summary>
+        /// (`AMBER301`, критик 12.11.2026, п. 1.10) Предпросмотр выбора на вкладке, пока «Пересчитать» не нажата: выбранные
+        /// детали в полном цвете, остальные бледнее — ТОЛЬКО цветом заливки. Слова чертежа (группы легенды «В расчёте» /
+        /// «Не вошло в расчёт», выноски, стрелка «к пробе») по-прежнему говорят о применённой раскладке
+        /// (<see cref="SetPale"/>, <see cref="SetMarks"/>): прежде предпросмотр ставил саму бледность, и легенда писала
+        /// «Не вошло в расчёт» про защиту, отражатель и корпус, которые в расчёте есть. null — подсветки нет.
+        /// <see cref="SetPale"/> и <see cref="SetGeometry"/> её снимают.
+        /// </summary>
+        public void SetHighlight(Func<GdmlVolumeInstance, bool> isDim)
+        {
+            this.highlight = isDim;
+            this.Invalidate();
+        }
+
+        Func<GdmlVolumeInstance, bool> highlight;
 
         /// <summary>Доля холста в цвете бледной детали: деталь читается, но уходит на второй план.</summary>
         public const double PaleShare = 0.72;
@@ -3916,11 +4541,20 @@ namespace BecquerelMonitor.EfficiencyMaker
         internal Color FillOf(GdmlVolumeInstance volume)
         {
             Color color = this.ColorOf(volume.MaterialName);
-            if (this.pale == null || !this.pale(volume))
+
+            // Цвет заливки — по подсветке предпросмотра, если она есть; слова чертежа читают только `pale`.
+            Func<GdmlVolumeInstance, bool> dim = this.highlight ?? this.pale;
+            if (dim == null || !dim(volume))
             {
                 return color;
             }
 
+            return Fade(color);
+        }
+
+        /// <summary>Бледный цвет: смешан с холстом. Один на деталь чертежа и на значок легенды «Не вошло в расчёт».</summary>
+        internal static Color Fade(Color color)
+        {
             return Color.FromArgb(
                 (int)Math.Round(color.R + (Canvas.R - color.R) * PaleShare),
                 (int)Math.Round(color.G + (Canvas.G - color.G) * PaleShare),
@@ -4109,6 +4743,117 @@ namespace BecquerelMonitor.EfficiencyMaker
         Vessel,
         Gas,
         Device,
+
+        /// <summary>(`AMBER301`) Защита: роль не узнаётся по имени, её даёт раскладка лучами (<see cref="GdmlSketchMarks"/>).</summary>
+        Shield,
+    }
+
+    /// <summary>
+    /// (`AMBER301`, дизайнер 11.11.2026) Что из файла взято в расчёт — для чертежа: детали под выноски «Кристалл», «Проба»,
+    /// «Защита» (те же три роли, что в блоке «Сопоставление»), вещества защиты для легенды, сторона «к пробе» и плашка
+    /// отказа. Собирается из раскладки <see cref="GdmlFieldMap"/> одним вызовом, чтобы окно импорта и вкладка
+    /// «Файл GDML» говорили одно.
+    /// </summary>
+    public sealed class GdmlSketchMarks
+    {
+        public GdmlVolumeInstance Crystal, Sample;
+
+        /// <summary>Самая массивная деталь защиты: в неё показывает выноска «Защита».</summary>
+        public GdmlVolumeInstance Shield;
+
+        public readonly HashSet<string> ShieldMaterials = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Габарит деталей детектора, взятых в расчёт (кристалл, отражатель, корпус), по мировым осям: у его грани стоит
+        /// стрелка «к пробе». null — детектор не взят.
+        /// </summary>
+        public double[] DetectorMin, DetectorMax;
+
+        /// <summary>Мировая ось стороны «к пробе» (0, 1, 2) и её знак; −1 — стрелки нет (проба взята из файла).</summary>
+        public int SampleAxis = -1;
+
+        public int SampleSign;
+
+        /// <summary>Плашка поверх чертежа: файл в расчёт не взят и почему; null — взят.</summary>
+        public string Banner;
+
+        /// <summary>
+        /// Метки по раскладке. <paramref name="parts"/> — что берётся из файла; <paramref name="sideFacing"/> — в списке
+        /// «Сторона к пробе» выбран бок (у бруска), иначе передний торец.
+        /// </summary>
+        public static GdmlSketchMarks From(GdmlGeometry geometry, GdmlFieldMap map, GdmlParts parts, bool sideFacing)
+        {
+            GdmlSketchMarks marks = new GdmlSketchMarks();
+            if (map == null || (map.Found & GdmlParts.Detector) == 0 || (parts & GdmlParts.Detector) == 0)
+            {
+                marks.Banner = map == null || map.Crystal == null
+                    ? GdmlText.T("GdmlSketchNoCrystal", "Crystal not recognised. Pick the part in the “Detector, crystal” list.")
+                    : GdmlOverview.TakenText(map, GdmlParts.None);
+                return marks;
+            }
+
+            parts &= map.Found;
+            marks.Crystal = map.Crystal;
+            if (geometry != null)
+            {
+                foreach (GdmlVolumeInstance volume in geometry.Volumes)
+                {
+                    if (volume == null || volume.Solid == null || !volume.BoundsKnown || !map.IsUsed(volume, GdmlParts.Detector))
+                    {
+                        continue;
+                    }
+
+                    if (marks.DetectorMin == null)
+                    {
+                        marks.DetectorMin = (double[])volume.Min.Clone();
+                        marks.DetectorMax = (double[])volume.Max.Clone();
+                    }
+
+                    for (int i = 0; i < 3; i++)
+                    {
+                        marks.DetectorMin[i] = Math.Min(marks.DetectorMin[i], volume.Min[i]);
+                        marks.DetectorMax[i] = Math.Max(marks.DetectorMax[i], volume.Max[i]);
+                    }
+                }
+            }
+            if ((parts & GdmlParts.Sample) != 0)
+            {
+                marks.Sample = map.Sample;
+            }
+            else
+            {
+                // «+Z», «−X»: имя мировой оси стороны со знаком, как его пишет раскладка в сводке.
+                string name = sideFacing ? map.SideName : map.FrontName;
+                if (!string.IsNullOrEmpty(name) && name.Length == 2)
+                {
+                    marks.SampleAxis = "XYZ".IndexOf(name[1]);
+                    marks.SampleSign = name[0] == '+' ? 1 : -1;
+                }
+            }
+
+            if ((parts & GdmlParts.Shield) != 0 && geometry != null)
+            {
+                double best = -1.0;
+                foreach (GdmlVolumeInstance volume in geometry.Volumes)
+                {
+                    if (volume == null || volume.Solid == null || !map.IsUsed(volume, GdmlParts.Shield)
+                        || map.IsUsed(volume, GdmlParts.Detector | GdmlParts.Sample))
+                    {
+                        continue;
+                    }
+
+                    marks.ShieldMaterials.Add(volume.MaterialName ?? "");
+                    double mass = double.IsNaN(volume.MassG) ? 0.0 : volume.MassG;
+                    if (mass > best)
+                    {
+                        best = mass;
+                        marks.Shield = volume;
+                    }
+                }
+            }
+
+            return marks;
+        }
     }
 
     /// <summary>Вещество в легенде и в сводке.</summary>
@@ -4557,7 +5302,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 case GdmlRole.Gas:
                     return GdmlText.T("GdmlRoleGas", "Gas");
                 case GdmlRole.Device:
-                    return GdmlText.T("GdmlRoleDevice", "Device");
+                    // Решение Amber 11.11.2026 вопросником, дословно: ««Детектор» (Рекомендую)» — то же слово, что в блоке
+                    // «Сопоставление» и в строке итога; «Прибор» читался как «всё, что принёс человек».
+                    return GdmlText.T("GdmlRoleDevice", "Detector");
+                case GdmlRole.Shield:
+                    return GdmlText.T("GdmlRoleShield", "Shield");
                 default:
                     return "";
             }
@@ -5018,7 +5767,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             return true;
         }
 
-        GdmlRole RoleOf(GdmlVolumeInstance volume)
+        internal GdmlRole RoleOf(GdmlVolumeInstance volume)
         {
             if (ReferenceEquals(volume, this.Crystal))
             {
@@ -5210,6 +5959,29 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             return GdmlSketch.Fmt(dx) + " × " + GdmlSketch.Fmt(dy) + " × " + GdmlSketch.Fmt(dz) + " " + unit;
+        }
+
+        /// <summary>
+        /// (`AMBER301`) Сборка детектора занимает всю сцену: её размеры уже стоят на размерных линиях габарита, выноска
+        /// с теми же числами не рисуется (RC-110: «Прибор 126.6 × 34.1 × 21.7 мм» рядом с 126.6 и 21.7 на линиях).
+        /// </summary>
+        public bool DeviceFillsScene()
+        {
+            if (this.DeviceMin == null || this.SceneMin == null)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                double span = Math.Max(1e-9, this.SceneMax[i] - this.SceneMin[i]);
+                if (Math.Abs(this.DeviceMin[i] - this.SceneMin[i]) > 1e-6 * span || Math.Abs(this.DeviceMax[i] - this.SceneMax[i]) > 1e-6 * span)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public string DeviceSizeText()
@@ -5419,7 +6191,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 : "?";
             this.Line(string.Format(CultureInfo.InvariantCulture,
                 GdmlText.T("GdmlOverviewLine", "{0} volume(s), {1} material(s), overall size {2}."),
-                g.Volumes.Count, g.MaterialCount, overall));
+                // (`AMBER301`) Счёт веществ — по строкам списка ниже: вещество только непрочитанного содержимого
+                // (`<paramvol>`, `<replicavol>` вдоль rho/phi) в томах не встречается, а строка у него есть.
+                g.Volumes.Count, Math.Max(g.MaterialCount, this.Materials.Count), overall));
             if (this.envelopeOrder.Count > 0)
             {
                 List<string> names = new List<string>();

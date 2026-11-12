@@ -561,7 +561,8 @@ namespace BecquerelMonitor
             this.CancelButton = cancel;
 
             this.mapping = new GdmlMappingPanel(false) { Dock = DockStyle.Left, Width = 400 };
-            this.sketch = new GdmlSketch { Dock = DockStyle.Fill };
+            // (`AMBER301`) Маленький чертёж — тот же рисунок без обвязки: размеры, пояснения и граммы стоят в списках слева.
+            this.sketch = new GdmlSketch { Dock = DockStyle.Fill, Compact = true };
             this.Controls.Add(this.sketch);
             this.Controls.Add(this.mapping);
             this.Controls.Add(bottom);
@@ -598,6 +599,7 @@ namespace BecquerelMonitor
 
             // Подсветка: выбранное и всё, что по нему легло в поля, — в полном цвете; остальное бледное.
             this.sketch.SetPale(volume => !(good ? map.IsUsed(volume, parts) : ReferenceEquals(volume, choice.Crystal)));
+            this.sketch.SetMarks(GdmlSketchMarks.From(this.geometry, map, good ? parts : GdmlParts.None, false));
         }
 
         /// <summary>Выбрать в списках программно (проба): как человек, с пересчётом итога.</summary>

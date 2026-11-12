@@ -103,9 +103,14 @@ namespace GdmlSketchProbeA304
             string here = AppDomain.CurrentDomain.BaseDirectory;
             data = Path.Combine(here, "..", "data", "gdml_a303");
             tmp = Path.Combine(here, "tmp_a304");
+            bool onlyDesign = false;
+            string compactFile = null;
             foreach (string a in args)
             {
-                if (a.StartsWith("--data=", StringComparison.Ordinal)) data = a.Substring(7);
+                // (`AMBER301`) Только раздел оформления импорта: десяток отрисовок, времени не судит — лёгкий прогон между правками.
+                if (a == "--design301") onlyDesign = true;
+                else if (a.StartsWith("--design301=", StringComparison.Ordinal)) { onlyDesign = true; compactFile = a.Substring(12); }
+                else if (a.StartsWith("--data=", StringComparison.Ordinal)) data = a.Substring(7);
                 else if (a.StartsWith("--real=", StringComparison.Ordinal)) real = a.Substring(7);
                 else if (a.StartsWith("--column=", StringComparison.Ordinal)) column = a.Substring(9);
                 else if (a.StartsWith("--more=", StringComparison.Ordinal)) more.Add(a.Substring(7));
@@ -124,6 +129,18 @@ namespace GdmlSketchProbeA304
             Directory.CreateDirectory(tmp);
             if (shots != null) Directory.CreateDirectory(shots);
             Console.WriteLine("сборка приложения: {0}", typeof(GdmlSketch).Assembly.Location);
+            if (onlyDesign)
+            {
+                Design301();
+                if (compactFile != null)
+                {
+                    DesignFile301(compactFile);
+                }
+
+                Console.WriteLine();
+                Console.WriteLine(bad == 0 ? "ВСЕ СОШЛИСЬ (только раздел AMBER301)" : "НЕ СОШЛОСЬ: " + bad.ToString(CultureInfo.InvariantCulture));
+                return bad == 0 ? 0 : 1;
+            }
 
             WriteInlineCases();
             GostControl();
@@ -413,11 +430,16 @@ namespace GdmlSketchProbeA304
             return owner.GetType().GetField(name, Any).GetValue(owner);
         }
 
-        static Drawing Draw(GdmlGeometry g, Size size)
+        static Drawing Draw(GdmlGeometry g, Size size, Action<GdmlSketch> setup = null)
         {
             Drawing d = new Drawing { Geometry = g, Sketch = new GdmlSketch(), Bitmap = new Bitmap(Math.Max(1, size.Width), Math.Max(1, size.Height), PixelFormat.Format32bppArgb) };
             d.Sketch.Size = size;
             d.Sketch.SetGeometry(g);
+            if (setup != null)
+            {
+                setup(d.Sketch);
+            }
+
             int leftWidth = (size.Width - 16) / 2;
             d.Left = new Rectangle(0, 0, leftWidth, size.Height);
             d.Right = new Rectangle(leftWidth + 16, 0, size.Width - leftWidth - 16, size.Height);
@@ -496,9 +518,20 @@ namespace GdmlSketchProbeA304
             return (Color)typeof(GdmlSketch).GetMethod("ColorOf", Any).Invoke(d.Sketch, new object[] { material });
         }
 
+        /// <summary>
+        /// Где проходит плоскость вида. (`AMBER301`, 11.11.2026) Заголовок вида теперь простыми словами, а плоскость с
+        /// числом — во всплывающей подсказке (`paintDetails`): «Side view, cut open (y = 0). A plane along…»; здесь — её первая фраза.
+        /// </summary>
         static List<string> Titles(Drawing d)
         {
-            return (List<string>)Field(d.Sketch, "paintTitles");
+            List<string> planes = new List<string>();
+            foreach (string detail in (List<string>)Field(d.Sketch, "paintDetails"))
+            {
+                int at = detail.IndexOf("). ", StringComparison.Ordinal);
+                planes.Add(at < 0 ? detail : detail.Substring(0, at + 1));
+            }
+
+            return planes;
         }
 
         static double FillMm2(Drawing d, bool axial, string material)
@@ -1083,7 +1116,7 @@ namespace GdmlSketchProbeA304
                 Check("28_ylong_box: ось", d.Geometry.Axis == 'y', d.Geometry.Axis.ToString());
                 Area("28_ylong_box: разрез вдоль оси y (плоскость z = 0)", d, true, "G4_Al", 100.0 * 20.0);
                 Area("28_ylong_box: торец", d, false, "G4_Al", 20.0 * 10.0);
-                Check("28_ylong_box: заголовок разреза про z", Titles(d)[0] == "Axial section (z = 0)", Titles(d)[0]);
+                Check("28_ylong_box: заголовок разреза про z", Titles(d)[0] == "Side view, cut open (z = 0)", Titles(d)[0]);
             }
 
             // Читатель берёт ось у самого большого тела вращения (`DetectAxis`): здесь ось x, торец поперёк неё.
@@ -1160,7 +1193,12 @@ namespace GdmlSketchProbeA304
                 // Метка от ширины вида: высокое тонкое тело давало метку в три точки.
                 List<KeyValuePair<RectangleF, double>> scales = (List<KeyValuePair<RectangleF, double>>)Field(d.Sketch, "paintScales");
                 RectangleF bar = scales[scales.Count - 1].Key;
-                Check("метка масштаба: не меньше десятой части вида", bar.Width >= d.Right.Width / 10f && bar.Width <= d.Right.Width / 4f + 2f, bar.Width + " точек при ширине вида " + d.Right.Width);
+                // (`AMBER301`, 12.11.2026) При общем масштабе метка у видов одна и считается от УЗКОГО вида (`DrawScale`): с короткими пояснениями
+                // раскладка этого файла стала «виды разной ширины», и мерить метку шириной широкого вида неверно.
+                // Мера — поле без рамочных полей (2 × 16 точек): от него `ScaleLength` берёт четверть и округляет вниз по ряду 1–2–5,
+                // то есть не меньше десятой; у вида в 169 точек десятая всей ширины (16.9) больше честных 13.85.
+                float narrow = Math.Min(d.Left.Width, d.Right.Width) - 32f;
+                Check("метка масштаба: не меньше десятой части вида", bar.Width >= narrow / 10f && bar.Width <= narrow / 4f + 2f, bar.Width + " точек при ширине видов " + d.Left.Width + " и " + d.Right.Width);
                 int inked = 0;
                 for (int x = (int)bar.Left; x <= (int)bar.Right; x++)
                 {
@@ -1183,7 +1221,7 @@ namespace GdmlSketchProbeA304
                 // r = 30, ось в y = 20: на плоскости y = 0 полухорда sqrt(900 − 400).
                 Area("33_pc_offset_y: хорда 44.72×100", d, true, "G4_Al", 2.0 * Math.Sqrt(500.0) * 100.0);
                 Check("33_pc_offset_y: хорда подписана", d.Notes.Count == 1 && d.Notes[0].StartsWith("The plane misses the axis", StringComparison.Ordinal) && d.Notes[0].EndsWith("A", StringComparison.Ordinal), string.Join(" | ", d.Notes));
-                Check("33_pc_offset_y: заголовок", Titles(d)[0] == "Axial section (y = 0)", Titles(d)[0]);
+                Check("33_pc_offset_y: заголовок", Titles(d)[0] == "Side view, cut open (y = 0)", Titles(d)[0]);
                 Area("33_pc_offset_y: торец — круг r=30 со смещением", d, false, "G4_Al", Math.PI * 900.0);
                 PointF center = Screen(d, false, 0.0, 20.0);
                 Check("33_pc_offset_y: центр круга в y=20", d.Bitmap.GetPixel((int)center.X + 3, (int)center.Y + 3).ToArgb() == Fill(d, "G4_Al").ToArgb(), "точка вида");
@@ -1192,8 +1230,8 @@ namespace GdmlSketchProbeA304
             using (Drawing d = DrawFile(Inline("pc_far_y")))
             {
                 Area("прибор вдали от y=0: разрез через середину габарита", d, true, "G4_Al", 100.0 * 10.0);
-                Check("прибор вдали от y=0: плоскость в заголовке", Titles(d)[0] == "Axial section (y = 40 mm)", Titles(d)[0]);
-                Check("прибор вдали от y=0: правило названо", d.Notes.Count == 1 && d.Notes[0].StartsWith("The plane y = 0 misses the device", StringComparison.Ordinal), string.Join(" | ", d.Notes));
+                Check("прибор вдали от y=0: плоскость в заголовке", Titles(d)[0] == "Side view, cut open (y = 40 mm)", Titles(d)[0]);
+                Check("прибор вдали от y=0: правило названо", d.Notes.Count == 1 && d.Notes[0].StartsWith("The plane y = 0 misses the detector", StringComparison.Ordinal), string.Join(" | ", d.Notes));
             }
 
             using (Drawing d = DrawFile(Path.Combine(data, "35_partial_phi.gdml")))
@@ -1682,6 +1720,650 @@ namespace GdmlSketchProbeA304
             }
         }
 
+        /// <summary>
+        /// (`AMBER301`) Настоящий файл вне дерева (ключ `--design301=&lt;файл&gt;`, например публичный RC110_detector.gdml): только
+        /// детектор, бледные детали внутри корпуса. Большой чертёж и чертёж окна импорта: выноска кристалла есть, «Детектор»
+        /// с числами габарита не рисуется, оба размера габарита на месте рядом со стрелкой «к пробе», точка не на бледном.
+        /// </summary>
+        static void DesignFile301(string file)
+        {
+            GdmlGeometry g = GdmlGeometry.Read(file);
+            GdmlOverview o = GdmlOverview.Of(g);
+            GdmlFieldMap map = GdmlFieldMap.Build(g, o);
+            string name = Path.GetFileNameWithoutExtension(file);
+            GdmlParts parts = GdmlParts.Detector & map.Found;
+            HashSet<GdmlVolumeInstance> unused = new HashSet<GdmlVolumeInstance>(map.Unused(parts));
+            foreach (bool side in new[] { false, true })
+            foreach (bool compact in new[] { false, true })
+            {
+                foreach (Size size in compact ? new[] { new Size(462, 370), new Size(462, 300) } : new[] { new Size(712, 650), new Size(1100, 700) })
+                {
+                    using (Drawing d = Draw(g, size, sketch =>
+                    {
+                        sketch.Compact = compact;
+                        if (compact) sketch.SetPale(v => !map.IsUsed(v, parts)); else sketch.SetPale(unused.Contains);
+                        sketch.SetMarks(GdmlSketchMarks.From(g, map, parts, side));
+                    }))
+                    {
+                        string label = name + (compact ? " окно импорта " : " вкладка ") + size.Width + "x" + size.Height + (side ? ", бок " + map.SideName : ", торец " + map.FrontName);
+                        List<GdmlSketch.SketchCallout> callouts = (List<GdmlSketch.SketchCallout>)Field(d.Sketch, "paintCallouts");
+                        List<GdmlSketch.SketchMark> marks = (List<GdmlSketch.SketchMark>)Field(d.Sketch, "paintMarks");
+                        Check(label + ": кристалл подписан на разрезе", callouts.Exists(c => c.Axial && c.Role == GdmlRole.Crystal), string.Join(", ", callouts.Select(c => c.Role + (c.Axial ? "" : " поперёк"))));
+                        Check(label + ": «Детектор» с числами габарита не рисуется", !o.DeviceFillsScene() || !callouts.Exists(c => c.Role == GdmlRole.Device), o.DeviceSizeText());
+                        Check(label + ": стрелка «к пробе» есть", marks.Exists(m => m.Text == "to sample") && marks.Exists(m => m.Text == "→"), side ? map.SideName : map.FrontName);
+                        ArrowChecks301(label, d, o);
+                        if (compact)
+                        {
+                            // Критик, мутант c6: воздух внутри корпуса здесь бледен (окно импорта бледнит всё, что не легло в поля),
+                            // а в легенде обязан стоять в первой группе.
+                            int used = marks.FindIndex(m => m.Text == "In the calculation:"), gas = marks.FindIndex(m => m.Text.StartsWith("Gas: ", StringComparison.Ordinal));
+                            int later = marks.FindIndex(m => m.Text == "Not in the calculation:");
+                            Check(label + ": газ — в группе «В расчёте»", gas < 0 || (used >= 0 && gas > used && (later < 0 || gas < later)), "места " + used + ", " + gas + ", " + later);
+                        }
+                        if (!compact)
+                        {
+                            int rows = d.Sketch.DimensionLines.Count(x => x.Kind == GeometrySketch.DimLineKind.Dimension);
+                            Check(label + ": оба размера габарита на обоих видах", rows == 4, "размерных " + rows);
+                        }
+
+                        List<string> faults = new List<string>();
+                        for (int i = 0; i < marks.Count; i++)
+                        {
+                            for (int k = i + 1; k < marks.Count; k++)
+                            {
+                                RectangleF cross = RectangleF.Intersect(marks[i].Bounds, marks[k].Bounds);
+                                if (cross.Width > 3f && cross.Height > 3f) faults.Add("«" + marks[i].Text + "» и «" + marks[k].Text + "»");
+                            }
+                        }
+
+                        Check(label + ": подписи без наложения", faults.Count == 0, string.Join("; ", faults));
+                        Shot(d, "a301_" + name + (compact ? "_import_" : "_tab_") + size.Width + "x" + size.Height + (side ? "_side" : ""));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER301`, дизайнер чертежей 11.11.2026) Понятность числом: легенда двумя группами с ролью перед именем,
+        /// выноски равны ролям «Сопоставления» и не стоят на бледном, облегчённый чертёж окна импорта, плашка отказа,
+        /// стрелка «к пробе» только без пробы в файле, простые заголовки с плоскостью в подсказке, счёт веществ сводки.
+        /// У каждой проверки рядом её положительный контроль: та же сцена без признака, где ответ обязан быть другим.
+        /// </summary>
+        static void Design301()
+        {
+            Console.WriteLine();
+            Console.WriteLine("=== AMBER301: чертёж импорта, понятный человеку ===");
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
+            string file = Path.Combine(Path.GetDirectoryName(data.TrimEnd('\\', '/')), "gdml_a322", "a322_shielded.gdml");
+            if (!File.Exists(file))
+            {
+                Check("AMBER301: учебная сцена a322_shielded.gdml на месте", false, file);
+                return;
+            }
+
+            GdmlGeometry g = GdmlGeometry.Read(file);
+            GdmlOverview o = GdmlOverview.Of(g);
+            GdmlFieldMap map = GdmlFieldMap.Build(g, o);
+            GdmlParts all = GdmlParts.Detector | GdmlParts.Sample | GdmlParts.Shield;
+            Check("учебная сцена: раскладка нашла детектор, образец и защиту", (map.Found & all) == all, map.Found.ToString());
+            Size big = new Size(1100, 700);
+            Func<GdmlParts, bool, Action<GdmlSketch>> with = (parts, side) => sketch =>
+            {
+                sketch.SetPale(v => !map.IsUsed(v, parts));
+                sketch.SetMarks(GdmlSketchMarks.From(g, map, parts, side));
+            };
+            Func<Drawing, List<GdmlSketch.SketchMark>> marksOf = d => (List<GdmlSketch.SketchMark>)Field(d.Sketch, "paintMarks");
+            Func<Drawing, List<GdmlSketch.SketchCallout>> calloutsOf = d => (List<GdmlSketch.SketchCallout>)Field(d.Sketch, "paintCallouts");
+            Func<Drawing, string> rolesOf = d => string.Join(", ", calloutsOf(d).Select(c => (c.Axial ? "разрез " : "поперёк ") + c.Role));
+
+            // 1. Всё взято: легенда двумя группами, роль перед именем, выноски по ролям, стрелки нет.
+            using (Drawing d = Draw(g, big, with(all, false)))
+            {
+                Check("взято всё: заслон не сработал", d.Failure == null, d.Failure ?? "");
+                List<GdmlSketch.SketchMark> marks = marksOf(d);
+                int used = marks.FindIndex(m => m.Text == "In the calculation:");
+                int unused = marks.FindIndex(m => m.Text == "Not in the calculation:");
+                Check("легенда: две группы, «В расчёте» раньше «Не вошло в расчёт»", used >= 0 && unused > used, "места " + used + " и " + unused);
+                Check("легенда: слова «Вещества:» при раскладке нет", !marks.Exists(m => m.Text == "Materials:"), "");
+                Check("легенда: первым после заголовка — кристалл, роль перед именем", used >= 0 && used + 1 < marks.Count && marks[used + 1].Text.StartsWith("Crystal: SODIUM_IODIDE, ", StringComparison.Ordinal),
+                      used >= 0 && used + 1 < marks.Count ? marks[used + 1].Text : "?");
+                Check("легенда: роли в скобках после имени нет", !marks.Exists(m => m.Text.Contains("(crystal)") || m.Text.Contains("(sample)")), "");
+                Check("легенда: защита названа ролью", marks.Exists(m => m.Text.StartsWith("Shield: Pb, ", StringComparison.Ordinal)) && marks.Exists(m => m.Text.StartsWith("Shield: Cu, ", StringComparison.Ordinal)),
+                      string.Join(" | ", marks.Where(m => m.Text.StartsWith("Shield", StringComparison.Ordinal)).Select(m => m.Text)));
+                Check("легенда: не вошедшее стоит во второй группе", unused >= 0 && marks.FindIndex(m => m.Text.StartsWith("Pyrex_Glass, ", StringComparison.Ordinal)) > unused, "");
+
+                // Значок «не вошло» — бледный цвет вещества, тем же смешением, что деталь на чертеже.
+                GdmlSketch.SketchMark glass = marks.Find(m => m.Text != null && m.Text.StartsWith("Pyrex_Glass, ", StringComparison.Ordinal));
+                Color glassColor = o.Materials.Find(r => r.Display == "Pyrex_Glass").Color;
+                Color want = (Color)typeof(GdmlSketch).GetMethod("Fade", Any).Invoke(null, new object[] { glassColor });
+                Color seen = glass.Text == null ? Color.Empty : d.Bitmap.GetPixel((int)(glass.Bounds.Left - 8f), (int)(glass.Bounds.Top + 6f));
+                Check("легенда: значок не вошедшего бледный", glass.Text != null && seen.ToArgb() == want.ToArgb() && want.ToArgb() != glassColor.ToArgb(), seen + " при ожидаемом " + want);
+
+                List<GdmlSketch.SketchCallout> callouts = calloutsOf(d);
+                Check("выноски разреза: кристалл, проба, защита, детектор", callouts.FindAll(c => c.Axial).Count == 4 && callouts.Exists(c => c.Axial && c.Role == GdmlRole.Crystal)
+                      && callouts.Exists(c => c.Axial && c.Role == GdmlRole.Sample) && callouts.Exists(c => c.Axial && c.Role == GdmlRole.Shield) && callouts.Exists(c => c.Axial && c.Role == GdmlRole.Device), rolesOf(d));
+                Check("выноски: сосуда на чертеже нет", !callouts.Exists(c => c.Role == GdmlRole.Vessel), rolesOf(d));
+
+                // Критик 12.11.2026: «Защита» и «Проба» в одном ряду стояли вплотную и читались одной строкой. Соседние подписи
+                // одного ряда — не ближе 12 точек (рамка подписи включает поля шрифта).
+                List<GdmlSketch.SketchCallout> row = callouts.FindAll(c => c.Axial && (c.Role == GdmlRole.Shield || c.Role == GdmlRole.Sample));
+                row.Sort((p, q) => p.Label.Left.CompareTo(q.Label.Left));
+                Check("выноски одного ряда («Защита» и «Проба») разведены: просвет не меньше 12 точек", row.Count == 2 && Math.Abs(row[0].Label.Top - row[1].Label.Top) < 30f && row[1].Label.Left - row[0].Label.Right >= 12f,
+                      row.Count == 2 ? "просвет " + Num(row[1].Label.Left - row[0].Label.Right) + ", подписи " + row[0].Label + " и " + row[1].Label : "подписей " + row.Count);
+                Check("выноски поперечного разреза: один кристалл", callouts.FindAll(c => !c.Axial).Count == 1 && callouts.Find(c => !c.Axial).Role == GdmlRole.Crystal, rolesOf(d));
+                Check("подписи: «Detector» вместо «Device», «Shield» есть", marks.Exists(m => m.Text == "Detector") && marks.Exists(m => m.Text == "Shield") && !marks.Exists(m => m.Text == "Device"), "");
+                Check("стрелки «к пробе» нет: проба взята из файла", !marks.Exists(m => m.Text == "to sample"), "");
+
+                List<string> titles = (List<string>)Field(d.Sketch, "paintTitles");
+                List<string> details = (List<string>)Field(d.Sketch, "paintDetails");
+                Check("заголовки простыми словами, без координат", titles.Count == 2 && titles[0] == "Side view, cut open" && titles[1] == "Cross-section", string.Join(" | ", titles));
+                Check("координаты плоскости — в подсказке вида, теми же словами, что заголовок", details.Count == 2 && details[0].StartsWith(titles[0] + " (", StringComparison.Ordinal) && details[1].StartsWith(titles[1] + " (", StringComparison.Ordinal)
+                      && details[0].Contains(" = ") && details[1].Contains(" = "), string.Join(" | ", details));
+                Check("подсказка вида: «детектор», прежних слов «device», «end view», «axial section» нет", details[0].Contains("detector axis") && details[0].Contains("cross-section is cut")
+                      && !details.Exists(t => t.IndexOf("device", StringComparison.OrdinalIgnoreCase) >= 0 || t.IndexOf("end view", StringComparison.OrdinalIgnoreCase) >= 0 || t.IndexOf("axial section", StringComparison.OrdinalIgnoreCase) >= 0), string.Join(" | ", details));
+                Check("пояснение вида — одна короткая строка", marks.Exists(m => m.Text == "Cut along the axis.") && marks.Exists(m => m.Text == "Cut across, along line A-A."), "");
+            }
+
+            // 1а. То же по-русски (вердикт критика `crit301b`, мутант k7): русские значения ресурсов проба прежде не читала, и
+            //     возврат подсказки к «Разрез по оси» прошёл бы. Заголовки, подсказки, пояснения и слова легенды — дословно.
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo("ru");
+            try
+            {
+                using (Drawing d = Draw(g, big, with(all, false)))
+                {
+                    List<GdmlSketch.SketchMark> marks = marksOf(d);
+                    List<string> titles = (List<string>)Field(d.Sketch, "paintTitles");
+                    List<string> details = (List<string>)Field(d.Sketch, "paintDetails");
+                    Check("ru: заголовки видов", titles.Count == 2 && titles[0] == "Вид сбоку, в разрезе" && titles[1] == "Поперечный разрез", string.Join(" | ", titles));
+                    Check("ru: подсказка вида начинается словами заголовка и несёт плоскость", details.Count == 2 && details[0].StartsWith("Вид сбоку, в разрезе (y = 0). ", StringComparison.Ordinal)
+                          && details[1].StartsWith("Поперечный разрез (z = 0 мм). ", StringComparison.Ordinal), string.Join(" | ", details));
+                    Check("ru: подсказка говорит «детектор», прежних слов «прибор», «Разрез по оси», «с торца» нет", details.Count == 2 && details[0].Contains("вдоль оси детектора") && details[0].Contains("где снят поперечный разрез")
+                          && !details.Exists(t => t.IndexOf("прибор", StringComparison.OrdinalIgnoreCase) >= 0 || t.Contains("Разрез по оси") || t.IndexOf("с торца", StringComparison.OrdinalIgnoreCase) >= 0), string.Join(" | ", details));
+                    Check("ru: пояснения видов", marks.Exists(m => m.Text == "Разрезано вдоль оси.") && marks.Exists(m => m.Text == "Разрезано поперёк, по линии A–A."), "");
+                    Check("ru: группы легенды, роль перед именем, «Детектор» и «Защита»", marks.Exists(m => m.Text == "В расчёте:") && marks.Exists(m => m.Text == "Не вошло в расчёт:")
+                          && marks.Exists(m => m.Text.StartsWith("Кристалл: SODIUM_IODIDE, ", StringComparison.Ordinal)) && marks.Exists(m => m.Text.StartsWith("Защита: Pb, ", StringComparison.Ordinal))
+                          && marks.Exists(m => m.Text == "Детектор") && marks.Exists(m => m.Text == "Защита") && !marks.Exists(m => m.Text == "Прибор"), string.Join(" | ", marks.Select(m => m.Text)));
+                }
+
+                using (Drawing d = Draw(g, big, with(GdmlParts.Detector, false)))
+                {
+                    Check("ru: стрелка подписана «к пробе»", marksOf(d).Exists(m => m.Text == "к пробе") && marksOf(d).Exists(m => m.Text == "→"), "");
+                }
+            }
+            finally
+            {
+                Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
+            }
+
+            using (Drawing d = Draw(g, big, with(all, false)))
+            {
+                Check("размерные линии габарита на большом чертеже есть (контроль облегчённого)", d.Sketch.DimensionLines.Count(x => x.Kind == GeometrySketch.DimLineKind.Dimension) == 4, "");
+                Check("плашки нет: файл взят", ((RectangleF)Field(d.Sketch, "paintBanner")).IsEmpty, "");
+                Shot(d, "a301_shielded_all");
+            }
+
+            // 2. Контроль групп: без раскладки — одна группа «Вещества:», выноски по узнанному программой.
+            using (Drawing d = Draw(g, big))
+            {
+                List<GdmlSketch.SketchMark> marks = marksOf(d);
+                Check("контроль: без раскладки группа одна, «Вещества:»", marks.Exists(m => m.Text == "Materials:") && !marks.Exists(m => m.Text == "In the calculation:" || m.Text == "Not in the calculation:"), "");
+                Check("контроль: без раскладки выноски «Защита» нет", !calloutsOf(d).Exists(c => c.Role == GdmlRole.Shield), rolesOf(d));
+            }
+
+            // 3. Только детектор: проба и защита бледные и без выносок, стрелка «к пробе» есть и следует за стороной.
+            RectangleF front, sideBox;
+            using (Drawing d = Draw(g, big, with(GdmlParts.Detector, false)))
+            {
+                List<GdmlSketch.SketchCallout> callouts = calloutsOf(d);
+                Check("только детектор: выносок пробы и защиты нет", !callouts.Exists(c => c.Role == GdmlRole.Sample || c.Role == GdmlRole.Shield) && callouts.Exists(c => c.Role == GdmlRole.Crystal), rolesOf(d));
+                List<GdmlSketch.SketchMark> arrows = marksOf(d).FindAll(m => m.Text == "to sample");
+                Check("только детектор: стрелка «к пробе» есть", arrows.Count >= 1, "стрелок " + arrows.Count + ", сторона " + map.FrontName);
+                front = arrows.Count > 0 ? arrows[0].Bounds : RectangleF.Empty;
+                // Стрелка стоит у грани детектора, снаружи: на кристалл и корпус не садится (бледная проба под ней — можно).
+                ArrowChecks301("только детектор, торец", d, o);
+                Shot(d, "a301_shielded_detector");
+            }
+
+            using (Drawing d = Draw(g, big, with(GdmlParts.Detector, true)))
+            {
+                List<GdmlSketch.SketchMark> arrows = marksOf(d).FindAll(m => m.Text == "to sample");
+                sideBox = arrows.Count > 0 ? arrows[0].Bounds : RectangleF.Empty;
+                Check("сторона к пробе сменена на бок: стрелка переехала", arrows.Count >= 1 && sideBox != front, "торец " + front + ", бок " + sideBox + ", сторона " + map.SideName);
+                ArrowChecks301("только детектор, бок", d, o);
+            }
+
+            // 4. Точка выноски не на бледном: бледное всё — выносок нет вовсе (контроль: в п. 1 их пять).
+            using (Drawing d = Draw(g, big, sketch =>
+            {
+                sketch.SetPale(v => true);
+                sketch.SetMarks(GdmlSketchMarks.From(g, map, all, false));
+            }))
+            {
+                Check("всё бледное: выносок нет", calloutsOf(d).Count == 0, rolesOf(d));
+            }
+
+            // 5. Облегчённый чертёж окна импорта: без размеров габарита, пояснений и граммов; линейка масштаба осталась.
+            foreach (Size size in new[] { new Size(450, 300), new Size(620, 420) })
+            {
+                using (Drawing d = Draw(g, size, sketch =>
+                {
+                    sketch.Compact = true;
+                    with(all, false)(sketch);
+                }))
+                {
+                    string label = "окно импорта " + size.Width + "x" + size.Height;
+                    List<GdmlSketch.SketchMark> marks = marksOf(d);
+                    Check(label + ": размерных линий габарита нет", d.Sketch.DimensionLines.Length == 0, "линий " + d.Sketch.DimensionLines.Length);
+                    Check(label + ": пояснения под заголовком нет", !marks.Exists(m => m.Text == "Cut along the axis."), "");
+                    Check(label + ": легенда без граммов", marks.Exists(m => m.Text == "Crystal: SODIUM_IODIDE") && !marks.Exists(m => m.Text.EndsWith(" g", StringComparison.Ordinal)), string.Join(" | ", marks.Select(m => m.Text)));
+                    Check(label + ": выноски без размеров", !marks.Exists(m => m.Text.StartsWith("⌀", StringComparison.Ordinal)), "");
+                    Check(label + ": линейка масштаба осталась", ((IList)Field(d.Sketch, "paintScales")).Count == 2, "");
+                    List<string> faults = new List<string>();
+                    for (int i = 0; i < marks.Count; i++)
+                    {
+                        for (int k = i + 1; k < marks.Count; k++)
+                        {
+                            RectangleF cross = RectangleF.Intersect(marks[i].Bounds, marks[k].Bounds);
+                            if (cross.Width > 3f && cross.Height > 3f)
+                            {
+                                faults.Add("«" + marks[i].Text + "» и «" + marks[k].Text + "»");
+                            }
+                        }
+                    }
+
+                    Check(label + ": подписи без наложения", faults.Count == 0, string.Join("; ", faults));
+                    Shot(d, "a301_import_" + size.Width);
+                }
+            }
+
+            // 6. Файл без кристалла: плашка поверх чертежа; контроль — тот же файл без меток.
+            GdmlGeometry cup = GdmlGeometry.Read(Path.Combine(data, "27_cup.gdml"));
+            GdmlFieldMap cupMap = GdmlFieldMap.Build(cup, GdmlOverview.Of(cup));
+            using (Drawing d = Draw(cup, big, sketch => sketch.SetMarks(GdmlSketchMarks.From(cup, cupMap, GdmlParts.None, false))))
+            {
+                RectangleF banner = (RectangleF)Field(d.Sketch, "paintBanner");
+                Check("без кристалла: плашка «кристалл не узнан» поверх чертежа", !banner.IsEmpty && d.Notes.Exists(n => n.StartsWith("Crystal not recognised.", StringComparison.Ordinal)),
+                      banner + "; " + string.Join(" | ", d.Notes));
+                Check("без кристалла: плашка в верхней половине и в окне", banner.Top > 0f && banner.Bottom < big.Height / 2f && banner.Left >= 0f && banner.Right <= big.Width, banner.ToString());
+                Check("без кристалла: подсказка говорит «середина сцены», не «прибора»", ((List<string>)Field(d.Sketch, "paintDetails")).Exists(t => t.Contains("middle of the scene")), "");
+                Shot(d, "a301_cup");
+            }
+
+            using (Drawing d = Draw(cup, big))
+            {
+                Check("контроль: без меток плашки нет", ((RectangleF)Field(d.Sketch, "paintBanner")).IsEmpty && !d.Notes.Exists(n => n.StartsWith("Crystal not recognised.", StringComparison.Ordinal)), "");
+            }
+
+            // 7. Сборка детектора во всю сцену: выноска с числами габарита не рисуется. Сцена — кристалл в корпусе, больше ничего.
+            string solo = Path.Combine(tmp, "a301_solo.gdml");
+            File.WriteAllText(solo, "<?xml version=\"1.0\"?><gdml><define/><materials/>"
+                + "<solids><box name=\"WB\" x=\"2000\" y=\"2000\" z=\"2000\" lunit=\"mm\"/><tube name=\"CaseS\" rmax=\"30\" z=\"70\" deltaphi=\"360\" aunit=\"deg\" lunit=\"mm\"/>"
+                + "<tube name=\"CrysS\" rmax=\"25\" z=\"50\" deltaphi=\"360\" aunit=\"deg\" lunit=\"mm\"/></solids><structure>"
+                + "<volume name=\"Crystal\"><materialref ref=\"G4_SODIUM_IODIDE\"/><solidref ref=\"CrysS\"/></volume>"
+                + "<volume name=\"Housing\"><materialref ref=\"G4_Al\"/><solidref ref=\"CaseS\"/><physvol><volumeref ref=\"Crystal\"/></physvol></volume>"
+                + "<volume name=\"World\"><materialref ref=\"G4_AIR\"/><solidref ref=\"WB\"/><physvol><volumeref ref=\"Housing\"/></physvol></volume>"
+                + "</structure><setup name=\"Default\" version=\"1.0\"><world ref=\"World\"/></setup></gdml>");
+            GdmlGeometry lone = GdmlGeometry.Read(solo);
+            GdmlOverview loneOverview = GdmlOverview.Of(lone);
+            using (Drawing d = Draw(lone, big))
+            {
+                Check("детектор во всю сцену: выноски «Детектор» нет, кристалл подписан", loneOverview.DeviceBody != null && loneOverview.DeviceFillsScene()
+                      && !calloutsOf(d).Exists(c => c.Role == GdmlRole.Device) && calloutsOf(d).Exists(c => c.Role == GdmlRole.Crystal),
+                      (loneOverview.DeviceBody == null ? "корпус не узнан" : loneOverview.DeviceSizeText()) + "; " + rolesOf(d));
+            }
+
+            Check("контроль: в учебной сцене детектор меньше сцены", o.DeviceBody != null && !o.DeviceFillsScene(), o.DeviceSizeText());
+
+            // 8. Счёт веществ в первой строке сводки — по строкам списка: вещество только непрочитанного содержимого считается.
+            GdmlGeometry phi = GdmlGeometry.Read(Path.Combine(data, "a_replica_phi.gdml"));
+            GdmlOverview phiOverview = GdmlOverview.Of(phi);
+            string head = phiOverview.SummaryText().Split('\n')[1];
+            Check("сводка: «N веществ» считает вещество непрочитанного содержимого", phiOverview.Materials.Count > phi.MaterialCount
+                  && head.Contains(", " + phiOverview.Materials.Count.ToString(CultureInfo.InvariantCulture) + " material(s)"),
+                  "строк " + phiOverview.Materials.Count + ", у читателя " + phi.MaterialCount + ": " + head);
+
+            // ---- Второй заход (`a301b`, по вердикту критика 12.11.2026) ----
+
+            // 9. Р3а: проба взята из файла — стрелки нет. Правило держат три проверки: сами метки; учебная сцена «детектор и
+            //    проба, защита бледная»; своя сцена, где проба далеко от детектора. Учебная одна правила НЕ держит: место у
+            //    торца занято взятой пробой, и стрелка не встала бы и при сломанном правиле (мутант c5 критика).
+            GdmlSketchMarks withSample = GdmlSketchMarks.From(g, map, GdmlParts.Detector | GdmlParts.Sample, false);
+            GdmlSketchMarks withoutSample = GdmlSketchMarks.From(g, map, GdmlParts.Detector, false);
+            Check("Р3: проба взята — у меток стороны «к пробе» нет", withSample.Sample != null && withSample.SampleAxis < 0, "ось " + withSample.SampleAxis);
+            Check("Р3, контроль: проба не взята — сторона «к пробе» есть", withoutSample.Sample == null && withoutSample.SampleAxis >= 0 && withoutSample.SampleSign != 0, "ось " + withoutSample.SampleAxis);
+            using (Drawing d = Draw(g, big, with(GdmlParts.Detector | GdmlParts.Sample, false)))
+            {
+                Check("Р3: детектор и проба, защита бледная — стрелок 0", marksOf(d).Count(m => m.Text == "→") == 0, "стрелок " + marksOf(d).Count(m => m.Text == "→"));
+                Check("Р3: детектор и проба, защита бледная — выноски «Защита» нет, «Проба» есть", !calloutsOf(d).Exists(c => c.Role == GdmlRole.Shield) && calloutsOf(d).Exists(c => c.Role == GdmlRole.Sample), rolesOf(d));
+            }
+
+            string far = Path.Combine(tmp, "a301_far.gdml");
+            File.WriteAllText(far, "<?xml version=\"1.0\"?><gdml><define/><materials/>"
+                + "<solids><box name=\"WB\" x=\"2000\" y=\"2000\" z=\"2000\" lunit=\"mm\"/><tube name=\"CaseS\" rmax=\"30\" z=\"70\" deltaphi=\"360\" aunit=\"deg\" lunit=\"mm\"/>"
+                + "<tube name=\"CrysS\" rmax=\"25\" z=\"50\" deltaphi=\"360\" aunit=\"deg\" lunit=\"mm\"/><tube name=\"SoilS\" rmax=\"10\" z=\"10\" deltaphi=\"360\" aunit=\"deg\" lunit=\"mm\"/></solids><structure>"
+                + "<volume name=\"Crystal\"><materialref ref=\"G4_SODIUM_IODIDE\"/><solidref ref=\"CrysS\"/></volume>"
+                + "<volume name=\"Housing\"><materialref ref=\"G4_Al\"/><solidref ref=\"CaseS\"/><physvol><volumeref ref=\"Crystal\"/></physvol></volume>"
+                + "<volume name=\"Sample_soil\"><materialref ref=\"G4_SILICON_DIOXIDE\"/><solidref ref=\"SoilS\"/></volume>"
+                + "<volume name=\"World\"><materialref ref=\"G4_AIR\"/><solidref ref=\"WB\"/><physvol><volumeref ref=\"Housing\"/></physvol>"
+                + "<physvol><volumeref ref=\"Sample_soil\"/><position x=\"0\" y=\"0\" z=\"135\" unit=\"mm\"/></physvol></volume>"
+                + "</structure><setup name=\"Default\" version=\"1.0\"><world ref=\"World\"/></setup></gdml>");
+            GdmlGeometry farG = GdmlGeometry.Read(far);
+            GdmlFieldMap farMap = GdmlFieldMap.Build(farG, GdmlOverview.Of(farG));
+            Check("проба вдали: раскладка нашла детектор и образец", (farMap.Found & (GdmlParts.Detector | GdmlParts.Sample)) == (GdmlParts.Detector | GdmlParts.Sample), farMap.Found + ", сторона " + farMap.FrontName);
+            Func<GdmlParts, Action<GdmlSketch>> farWith = parts => sketch =>
+            {
+                sketch.SetPale(v => !farMap.IsUsed(v, parts));
+                sketch.SetMarks(GdmlSketchMarks.From(farG, farMap, parts, false));
+            };
+            using (Drawing d = Draw(farG, big, farWith(GdmlParts.Detector | GdmlParts.Sample)))
+            {
+                Check("проба вдали взята: стрелок 0, хотя место у торца свободно", marksOf(d).Count(m => m.Text == "→") == 0, "стрелок " + marksOf(d).Count(m => m.Text == "→"));
+                Shot(d, "a301b_far_taken");
+            }
+
+            using (Drawing d = Draw(farG, big, farWith(GdmlParts.Detector)))
+            {
+                Check("проба вдали не взята (контроль): стрелка есть — место у торца свободно", marksOf(d).Count(m => m.Text == "→") >= 1, "стрелок " + marksOf(d).Count(m => m.Text == "→"));
+                ArrowChecks301("проба вдали не взята", d, GdmlOverview.Of(farG));
+            }
+
+            // 10. Р3б: детектор и защита из файла, проба вручную — пробы в файле нет, стрелка обязана быть: у торца детектора,
+            //     в полости защиты (прежде краем «взятого» была наружная грань защиты, и стрелки не было).
+            using (Drawing d = Draw(g, big, with(GdmlParts.Detector | GdmlParts.Shield, false)))
+            {
+                List<GdmlSketch.SketchMark> marks = marksOf(d);
+                GdmlSketchMarks shielded = GdmlSketchMarks.From(g, map, GdmlParts.Detector | GdmlParts.Shield, false);
+                List<GdmlSketch.SketchMark> shafts = marks.FindAll(m => m.Text == "→");
+                Check("детектор и защита, проба вручную: стрелка «к пробе» есть", shafts.Count >= 1 && marks.Exists(m => m.Text == "to sample"), "стрелок " + shafts.Count);
+                if (shafts.Count >= 1 && shielded.DetectorMax != null)
+                {
+                    // Полость защиты перед торцом: вдоль оси от торца детектора до медной крышки (z = 70 мм), поперёк — до
+                    // медной гильзы (радиус 60 мм).
+                    RectangleF cavity = BoxOf301(d, true, new[] { -60.0, -60.0, shielded.DetectorMax[2] }, new[] { 60.0, 60.0, 70.0 });
+                    Check("детектор и защита: стрелка в полости защиты, у торца детектора", g.Axis == 'z' && RectangleF.Inflate(cavity, 1f, 1f).Contains(shafts[0].Bounds)
+                          && shafts[0].Bounds.Left - cavity.Left < 12f, shafts[0].Bounds + " при полости " + cavity + ", торец z = " + Num(shielded.DetectorMax[2]));
+                }
+
+                // Ни стрелка, ни подпись не лежат на свинце, меди и деталях детектора.
+                int solid = 0;
+                foreach (GdmlSketch.SketchMark mark in marks.FindAll(m => m.Text == "→" || m.Text == "to sample"))
+                {
+                    foreach (string material in new[] { "G4_Pb", "G4_Cu", "G4_Al", "G4_SODIUM_IODIDE", "G4_MAGNESIUM_OXIDE" })
+                    {
+                        int color = Fill(d, material).ToArgb();
+                        for (int y = (int)mark.Bounds.Top; y < (int)mark.Bounds.Bottom; y++)
+                        {
+                            for (int x = (int)mark.Bounds.Left; x < (int)mark.Bounds.Right; x++)
+                            {
+                                if (x >= 0 && y >= 0 && x < d.Bitmap.Width && y < d.Bitmap.Height && d.Bitmap.GetPixel(x, y).ToArgb() == color) solid++;
+                            }
+                        }
+                    }
+                }
+
+                Check("детектор и защита: стрелка и подпись не на взятых в расчёт телах", solid == 0, "точек цвета тел под ними " + solid);
+                ArrowChecks301("детектор и защита", d, o);
+                Shot(d, "a301b_det_shield");
+            }
+
+            // Места нет — стрелки нет, и это видно: защита вплотную к торцу детектора со всех сторон оси (своя сцена).
+            string tightFile = Path.Combine(tmp, "a301_tight.gdml");
+            File.WriteAllText(tightFile, File.ReadAllText(far).Replace("<tube name=\"SoilS\" rmax=\"10\" z=\"10\"", "<tube name=\"SoilS\" rmax=\"400\" z=\"300\"").Replace("Sample_soil", "Lead_wall")
+                .Replace("G4_SILICON_DIOXIDE", "G4_Pb").Replace("z=\"135\"", "z=\"185.5\""));
+            GdmlGeometry tightG = GdmlGeometry.Read(tightFile);
+            GdmlFieldMap tightMap = GdmlFieldMap.Build(tightG, GdmlOverview.Of(tightG));
+            using (Drawing d = Draw(tightG, big, sketch =>
+            {
+                // Стена считается взятой: бледен только мир.
+                sketch.SetPale(v => v.Solid == null || v.VolumeName == "World");
+                sketch.SetMarks(GdmlSketchMarks.From(tightG, tightMap, GdmlParts.Detector, false));
+            }))
+            {
+                Check("взятая стена в 0.5 мм от торца: места нет — стрелки нет (и на стену она не садится)", (tightMap.Found & GdmlParts.Detector) != 0 && marksOf(d).Count(m => m.Text == "→") == 0,
+                      tightMap.Found + ", стрелок " + marksOf(d).Count(m => m.Text == "→"));
+            }
+
+            using (Drawing d = Draw(tightG, big, sketch =>
+            {
+                sketch.SetPale(v => !tightMap.IsUsed(v, GdmlParts.Detector));
+                sketch.SetMarks(GdmlSketchMarks.From(tightG, tightMap, GdmlParts.Detector, false));
+            }))
+            {
+                Check("та же стена бледная (контроль): стрелка есть, поверх бледного можно", marksOf(d).Count(m => m.Text == "→") >= 1, "стрелок " + marksOf(d).Count(m => m.Text == "→"));
+            }
+
+            // 11. Предпросмотр выбора на вкладке (критик, п. 1.10): подсветка меняет только цвет заливки, слова легенды
+            //     остаются от применённой раскладки. Контроль — то же через SetPale (как было): легенда лжёт.
+            Func<GdmlVolumeInstance, bool> dimmed = v => !(ReferenceEquals(v, map.Crystal) || ReferenceEquals(v, map.Sample));
+            using (Drawing d = Draw(g, new Size(712, 650), sketch =>
+            {
+                with(all, false)(sketch);
+                sketch.SetHighlight(dimmed);
+            }))
+            {
+                List<GdmlSketch.SketchMark> marks = marksOf(d);
+                int unused = marks.FindIndex(m => m.Text == "Not in the calculation:");
+                Func<string, int> at = prefix => marks.FindIndex(m => m.Text.StartsWith(prefix, StringComparison.Ordinal));
+                Check("предпросмотр выбора: защита, отражатель и корпус остаются в группе «В расчёте»", unused > 0 && at("Shield: Pb, ") >= 0 && at("Shield: Pb, ") < unused
+                      && at("Reflector: ") >= 0 && at("Reflector: ") < unused && at("Housing: ") >= 0 && at("Housing: ") < unused && at("Pyrex_Glass, ") > unused,
+                      string.Join(" | ", marks.Select(m => m.Text).Where(t => t.Contains(": ") || t.Contains(", "))));
+                Color lead = Fill(d, "G4_Pb");
+                Color leadPale = (Color)typeof(GdmlSketch).GetMethod("Fade", Any).Invoke(null, new object[] { lead });
+                int full = 0, pale = 0;
+                for (int y = d.Left.Top; y < d.Left.Bottom; y += 2)
+                {
+                    for (int x = d.Left.Left; x < d.Left.Right; x += 2)
+                    {
+                        int c = d.Bitmap.GetPixel(x, y).ToArgb();
+                        if (c == lead.ToArgb()) full++; else if (c == leadPale.ToArgb()) pale++;
+                    }
+                }
+
+                Check("предпросмотр выбора: невыбранная защита на чертеже бледная (подсветка работает)", pale > 200 && full == 0, "бледных точек " + pale + ", полного цвета " + full);
+                GdmlSketch.SketchMark leadRow = marks.Find(m => m.Text != null && m.Text.StartsWith("Shield: Pb, ", StringComparison.Ordinal));
+                Color swatch = leadRow.Text == null ? Color.Empty : d.Bitmap.GetPixel((int)(leadRow.Bounds.Left - 8f), (int)(leadRow.Bounds.Top + 6f));
+                Check("предпросмотр выбора: значок защиты в легенде — полного цвета, как у взятого в расчёт", swatch.ToArgb() == lead.ToArgb(), swatch.ToString());
+                Check("предпросмотр выбора: выноска «Защита» на месте", calloutsOf(d).Exists(c => c.Role == GdmlRole.Shield), rolesOf(d));
+                Shot(d, "a301b_preview");
+            }
+
+            using (Drawing d = Draw(g, new Size(712, 650), sketch =>
+            {
+                with(all, false)(sketch);
+                sketch.SetPale(dimmed);
+            }))
+            {
+                List<GdmlSketch.SketchMark> marks = marksOf(d);
+                int unused = marks.FindIndex(m => m.Text == "Not in the calculation:");
+                Check("контроль предпросмотра: та же бледность через SetPale переводит защиту в «Не вошло в расчёт»", unused >= 0 && marks.FindIndex(m => m.Text.StartsWith("Shield: Pb, ", StringComparison.Ordinal)) > unused, "");
+            }
+
+            using (Drawing d = Draw(g, new Size(712, 650), sketch =>
+            {
+                with(all, false)(sketch);
+                sketch.SetHighlight(dimmed);
+                with(all, false)(sketch);
+            }))
+            {
+                Check("подсветку снимает применённая раскладка: защита снова в полном цвете", d.Bitmap.GetPixel((int)Screen(d, true, 80.0, 90.0).X, (int)Screen(d, true, 80.0, 90.0).Y).ToArgb() == Fill(d, "G4_Pb").ToArgb(), "");
+            }
+
+            // 12. Критик, п. 1.3а: точка выноски не ставится на бледную деталь внутри тела (не ребёнка: плоская сцена, как в
+            //     RC-110, где корпус — сплошное тело, а начинка лежит в мире поверх него). Корпус 100 × 40 × 40, бледная
+            //     «батарея» 60 × 40 × 30 закрывает его середину на всю высоту: без вырезания точка встала бы на неё.
+            string flat = Path.Combine(tmp, "a301_flat.gdml");
+            File.WriteAllText(flat, "<?xml version=\"1.0\"?><gdml><define/><materials/>"
+                + "<solids><box name=\"WB\" x=\"2000\" y=\"2000\" z=\"2000\" lunit=\"mm\"/><box name=\"CaseS\" x=\"40\" y=\"40\" z=\"100\" lunit=\"mm\"/>"
+                + "<box name=\"CrysS\" x=\"14\" y=\"14\" z=\"14\" lunit=\"mm\"/><box name=\"BatS\" x=\"40\" y=\"40\" z=\"60\" lunit=\"mm\"/><box name=\"TableS\" x=\"40\" y=\"5\" z=\"140\" lunit=\"mm\"/></solids><structure>"
+                + "<volume name=\"Crystal\"><materialref ref=\"G4_SODIUM_IODIDE\"/><solidref ref=\"CrysS\"/></volume>"
+                + "<volume name=\"Case_shell\"><materialref ref=\"G4_Al\"/><solidref ref=\"CaseS\"/></volume>"
+                + "<volume name=\"Battery\"><materialref ref=\"G4_Cu\"/><solidref ref=\"BatS\"/></volume>"
+                + "<volume name=\"Table\"><materialref ref=\"G4_Fe\"/><solidref ref=\"TableS\"/></volume>"
+                + "<volume name=\"Device_log\"><materialref ref=\"G4_AIR\"/><solidref ref=\"CaseS\"/>"
+                + "<physvol><volumeref ref=\"Case_shell\"/></physvol>"
+                + "<physvol><volumeref ref=\"Crystal\"/><position x=\"0\" y=\"0\" z=\"40\" unit=\"mm\"/></physvol>"
+                + "<physvol><volumeref ref=\"Battery\"/><position x=\"0\" y=\"0\" z=\"-10\" unit=\"mm\"/></physvol></volume>"
+                + "<volume name=\"World\"><materialref ref=\"G4_AIR\"/><solidref ref=\"WB\"/>"
+                + "<physvol><volumeref ref=\"Device_log\"/></physvol>"
+                + "<physvol><volumeref ref=\"Table\"/><position x=\"0\" y=\"-40\" z=\"0\" unit=\"mm\"/></physvol></volume>"
+                + "</structure><setup name=\"Default\" version=\"1.0\"><world ref=\"World\"/></setup></gdml>");
+            GdmlGeometry flatG = GdmlGeometry.Read(flat);
+            GdmlOverview flatO = GdmlOverview.Of(flatG);
+            GdmlVolumeInstance battery = flatG.Volumes.Find(v => v != null && v.VolumeName == "Battery");
+            GdmlVolumeInstance shell = flatG.Volumes.Find(v => v != null && v.VolumeName == "Case_shell");
+            Check("плоская сцена: корпус узнан сборкой детектора, он меньше сцены", ReferenceEquals(flatO.DeviceBody, shell) && !flatO.DeviceFillsScene() && battery != null,
+                  (flatO.DeviceBody == null ? "?" : flatO.DeviceBody.VolumeName) + ", ось " + flatG.Axis);
+            foreach (bool faded in new[] { true, false })
+            {
+                using (Drawing d = Draw(flatG, big, sketch => sketch.SetPale(v => faded && (ReferenceEquals(v, battery) || v.VolumeName == "Table"))))
+                {
+                    GdmlSketch.SketchCallout device = calloutsOf(d).Find(c => c.Axial && c.Role == GdmlRole.Device);
+                    bool drawn = calloutsOf(d).Exists(c => c.Axial && c.Role == GdmlRole.Device);
+                    RectangleF box = battery == null ? RectangleF.Empty : BoxOf301(d, true, battery.Min, battery.Max);
+                    bool onBattery = drawn && box.Contains(device.Anchor);
+                    if (faded)
+                    {
+                        Check("бледная деталь внутри корпуса: точка выноски «Детектор» не на ней", drawn && !onBattery, (drawn ? device.Anchor.ToString() : "выноски нет") + " при батарее " + box);
+                        Shot(d, "a301b_flat");
+                    }
+                    else
+                    {
+                        Check("та же деталь не бледная (контроль): точка «Детектора» стоит на ней — сцена различает", drawn && onBattery, (drawn ? device.Anchor.ToString() : "выноски нет") + " при батарее " + box);
+                    }
+                }
+            }
+
+            // 13. Критик, мутант c6: газ держится в первой группе легенды, даже когда его том бледен (окно импорта бледнит
+            //     всё, что не легло в поля, и воздух зазора тоже). Контроль — твёрдое бледное вещество той же сцены во второй.
+            string gap = Path.Combine(tmp, "a301_gap.gdml");
+            File.WriteAllText(gap, "<?xml version=\"1.0\"?><gdml><define/><materials/>"
+                + "<solids><box name=\"WB\" x=\"2000\" y=\"2000\" z=\"2000\" lunit=\"mm\"/><tube name=\"CaseS\" rmax=\"30\" z=\"70\" deltaphi=\"360\" aunit=\"deg\" lunit=\"mm\"/>"
+                + "<tube name=\"GapS\" rmax=\"28\" z=\"66\" deltaphi=\"360\" aunit=\"deg\" lunit=\"mm\"/><tube name=\"CrysS\" rmax=\"20\" z=\"40\" deltaphi=\"360\" aunit=\"deg\" lunit=\"mm\"/>"
+                + "<box name=\"StandS\" x=\"80\" y=\"80\" z=\"10\" lunit=\"mm\"/></solids><structure>"
+                + "<volume name=\"Crystal\"><materialref ref=\"G4_SODIUM_IODIDE\"/><solidref ref=\"CrysS\"/></volume>"
+                + "<volume name=\"Gap\"><materialref ref=\"G4_AIR\"/><solidref ref=\"GapS\"/><physvol><volumeref ref=\"Crystal\"/><position x=\"0\" y=\"0\" z=\"10\" unit=\"mm\"/></physvol></volume>"
+                + "<volume name=\"Housing\"><materialref ref=\"G4_Al\"/><solidref ref=\"CaseS\"/><physvol><volumeref ref=\"Gap\"/></physvol></volume>"
+                + "<volume name=\"Stand\"><materialref ref=\"G4_Fe\"/><solidref ref=\"StandS\"/></volume>"
+                + "<volume name=\"World\"><materialref ref=\"G4_AIR\"/><solidref ref=\"WB\"/><physvol><volumeref ref=\"Housing\"/></physvol>"
+                + "<physvol><volumeref ref=\"Stand\"/><position x=\"0\" y=\"0\" z=\"-60\" unit=\"mm\"/></physvol></volume>"
+                + "</structure><setup name=\"Default\" version=\"1.0\"><world ref=\"World\"/></setup></gdml>");
+            GdmlGeometry gapG = GdmlGeometry.Read(gap);
+            GdmlFieldMap gapMap = GdmlFieldMap.Build(gapG, GdmlOverview.Of(gapG));
+            GdmlVolumeInstance gapVolume = gapG.Volumes.Find(v => v != null && v.VolumeName == "Gap");
+            using (Drawing d = Draw(gapG, big, sketch =>
+            {
+                sketch.SetPale(v => !gapMap.IsUsed(v, GdmlParts.Detector));
+                sketch.SetMarks(GdmlSketchMarks.From(gapG, gapMap, GdmlParts.Detector, false));
+            }))
+            {
+                List<GdmlSketch.SketchMark> marks = marksOf(d);
+                int used = marks.FindIndex(m => m.Text == "In the calculation:");
+                int unused = marks.FindIndex(m => m.Text == "Not in the calculation:");
+                int gas = marks.FindIndex(m => m.Text.StartsWith("Gas: AIR", StringComparison.Ordinal));
+                int iron = marks.FindIndex(m => m.Text.StartsWith("Fe, ", StringComparison.Ordinal));
+                Check("воздух зазора: его том бледен (иначе проверка пуста)", (gapMap.Found & GdmlParts.Detector) != 0 && gapVolume != null && !gapMap.IsUsed(gapVolume, GdmlParts.Detector), gapMap.Found.ToString());
+                Check("воздух зазора при бледном томе — в группе «В расчёте»", used >= 0 && gas > used && (unused < 0 || gas < unused), "места: заголовок " + used + ", газ " + gas + ", «не вошло» " + unused);
+                Check("контроль: бледная подставка — в группе «Не вошло в расчёт»", unused > 0 && iron > unused, "места: «не вошло» " + unused + ", Fe " + iron + "; " + string.Join(" | ", marks.Select(m => m.Text)));
+            }
+
+            // 14. Критик, п. 1.9: сторона к пробе — там, где стоит размер габарита (у разреза слева), и с другой стороны.
+            //     Детектор во всю сцену (сцена п. 7), сторона задана прямо в метках. Стрелка встаёт вдоль соседней грани и
+            //     размер не трогает: все размерные линии остаются в первом ряду. Стрелка наружу сдвинула бы вертикальный
+            //     размер во второй ряд (так на RC-110, где вдоль грани места нет).
+            GdmlFieldMap loneMap = GdmlFieldMap.Build(lone, loneOverview);
+            foreach (int sign in new[] { -1, 1 })
+            {
+                using (Drawing d = Draw(lone, big, sketch =>
+                {
+                    sketch.SetPale(v => !loneMap.IsUsed(v, GdmlParts.Detector));
+                    GdmlSketchMarks own = GdmlSketchMarks.From(lone, loneMap, GdmlParts.Detector, false);
+                    own.SampleAxis = 2;
+                    own.SampleSign = sign;
+                    sketch.SetMarks(own);
+                }))
+                {
+                    string label = "детектор во всю сцену, сторона " + (sign < 0 ? "−Z" : "+Z");
+                    List<GdmlSketch.SketchMark> shafts = marksOf(d).FindAll(m => m.Text == "→");
+                    RectangleF body = Drawn(d, true);
+                    bool left = shafts.Count > 0 && shafts[0].Bounds.Left + shafts[0].Bounds.Width / 2f < body.Left + body.Width / 2f;
+                    Check(label + ": стрелка «к пробе» есть, у своей грани", lone.Axis == 'z' && (loneMap.Found & GdmlParts.Detector) != 0 && shafts.Count >= 1 && left == (Screen(d, true, sign * 35.0, 0.0).X < body.Left + body.Width / 2f),
+                          "ось " + lone.Axis + ", стрелок " + shafts.Count + (shafts.Count > 0 ? ", " + shafts[0].Bounds + " при теле " + body : ""));
+                    GeometrySketch.DimLine[] rows = d.Sketch.DimensionLines.Where(x => x.Kind == GeometrySketch.DimLineKind.Dimension).ToArray();
+                    Check(label + ": оба размера на обоих видах, все в первом ряду — стрелка размер не сдвинула", rows.Length == 4 && rows.All(x => x.Row == 0),
+                          "размерных " + rows.Length + ", ряды " + string.Join(", ", rows.Select(x => x.Row.ToString(CultureInfo.InvariantCulture))));
+                    ArrowChecks301(label, d, loneOverview);
+                    Shot(d, "a301b_solo_" + (sign < 0 ? "minus" : "plus"));
+                }
+            }
+        }
+
+        /// <summary>Рамка мирового бруска на виде, в точках экрана.</summary>
+        static RectangleF BoxOf301(Drawing d, bool axial, double[] min, double[] max)
+        {
+            object[] axes = { axial, d.Geometry.Axis, 0, 0, 0 };
+            typeof(GdmlSketch).GetMethod("ViewAxes", Any).Invoke(null, axes);
+            int u = (int)axes[3], v = (int)axes[4];
+            PointF a = Screen(d, axial, min[u], min[v]), b = Screen(d, axial, max[u], max[v]);
+            return RectangleF.FromLTRB(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Max(a.X, b.X), Math.Max(a.Y, b.Y));
+        }
+
+        /// <summary>
+        /// (`AMBER301`, критик 12.11.2026, п. 1.9) Стрелка «к пробе» и её подпись на любой сцене: не на детекторе своего
+        /// вида, не ближе 6 точек (подпись — 4) к размерным и выносным линиям, не на других подписях и не на оси. Прежде «не на детекторе» мерилось
+        /// только на учебной сцене, и подпись поверх стенки корпуса RC-110 (сторона — бок) прошла.
+        /// </summary>
+        static void ArrowChecks301(string label, Drawing d, GdmlOverview o)
+        {
+            List<GdmlSketch.SketchMark> marks = (List<GdmlSketch.SketchMark>)Field(d.Sketch, "paintMarks");
+            IList slots = (IList)Field(d.Sketch, "paintSlots");
+            List<string> onBody = new List<string>(), nearDims = new List<string>(), onMarks = new List<string>(), onAxis = new List<string>();
+            int arrows = 0;
+            foreach (GdmlSketch.SketchMark arrow in marks.FindAll(m => m.Text == "to sample" || m.Text == "→"))
+            {
+                arrows++;
+                PointF centre = new PointF(arrow.Bounds.Left + arrow.Bounds.Width / 2f, arrow.Bounds.Top + arrow.Bounds.Height / 2f);
+                foreach (object slot in slots)
+                {
+                    Rectangle panel = (Rectangle)slot.GetType().GetField("Panel").GetValue(slot);
+                    if (!panel.Contains(Point.Round(centre)) || o.DeviceMin == null)
+                    {
+                        continue;
+                    }
+
+                    RectangleF body = BoxOf301(d, (bool)slot.GetType().GetField("Axial").GetValue(slot), o.DeviceMin, o.DeviceMax);
+                    RectangleF cross = RectangleF.Intersect(arrow.Bounds, body);
+                    if (cross.Width > 1f && cross.Height > 1f) onBody.Add("«" + arrow.Text + "» " + arrow.Bounds + " на " + body);
+
+                    // Подпись не лежит на оси разреза (штрихпунктир выходит за тело на несколько точек).
+                    if ((bool)slot.GetType().GetField("Axial").GetValue(slot) && arrow.Text == "to sample")
+                    {
+                        RectangleF drawn = Drawn(d, true);
+                        float axisY = Screen(d, true, 0.0, 0.0).Y;
+                        if (axisY > drawn.Top && axisY < drawn.Bottom && axisY > arrow.Bounds.Top && axisY < arrow.Bounds.Bottom) onAxis.Add(arrow.Bounds + " при оси y = " + axisY);
+                    }
+                }
+
+                foreach (GeometrySketch.DimLine line in d.Sketch.DimensionLines)
+                {
+                    // Наконечник — не ближе 6 точек (на RC-110 он стоял в 5 точках от размерной линии), подпись — не ближе 4.
+                    float room = arrow.Text == "→" ? 6f : 4f;
+                    RectangleF extent = RectangleF.FromLTRB(Math.Min(line.A.X, line.B.X) - room, Math.Min(line.A.Y, line.B.Y) - room, Math.Max(line.A.X, line.B.X) + room, Math.Max(line.A.Y, line.B.Y) + room);
+                    if (extent.IntersectsWith(arrow.Bounds)) nearDims.Add("«" + arrow.Text + "» " + arrow.Bounds + " у линии " + line.A + "–" + line.B);
+                }
+
+                foreach (GdmlSketch.SketchMark other in marks)
+                {
+                    RectangleF cross = RectangleF.Intersect(arrow.Bounds, other.Bounds);
+                    if (other.Text != "to sample" && other.Text != "→" && cross.Width > 1f && cross.Height > 1f) onMarks.Add("«" + arrow.Text + "» и «" + other.Text + "»");
+                }
+            }
+
+            Check(label + ": стрелка «к пробе» и подпись не на детекторе", onBody.Count == 0, "меток стрелки " + arrows + "; " + string.Join("; ", onBody));
+            Check(label + ": стрелка не ближе 6, подпись не ближе 4 точек к размерным и выносным линиям", nearDims.Count == 0, string.Join("; ", nearDims));
+            Check(label + ": стрелка и подпись не на других подписях", onMarks.Count == 0, string.Join("; ", onMarks));
+            Check(label + ": подпись «к пробе» не на оси", onAxis.Count == 0, string.Join("; ", onAxis));
+        }
+
         /// <summary>Порог рамки: деталь не сводит прибор в точку, но большое тело сцены рамку не теряет.</summary>
         static void Thresholds()
         {
@@ -1903,6 +2585,7 @@ namespace GdmlSketchProbeA304
             Check("выноски редко идут через чужую точку", leaderDots * 50 <= leaders, "через чужую точку " + leaderDots + " из " + leaders);
             Roles();
             Thresholds();
+            Design301();
 
             if (real != null)
             {
@@ -1916,7 +2599,11 @@ namespace GdmlSketchProbeA304
                 using (Drawing d = Draw(g, new Size(1100, 600)))
                 {
                     Check("th232: два вида одним масштабом", Math.Abs(Scale(d, true) / Scale(d, false) - 1.0) < 1e-9, Scale(d, true).ToString("0.000", CultureInfo.InvariantCulture) + " и " + Scale(d, false).ToString("0.000", CultureInfo.InvariantCulture));
-                    Check("th232: выноски у всех четырёх частей в разрезе", ((List<GdmlSketch.SketchCallout>)Field(d.Sketch, "paintCallouts")).FindAll(c => c.Axial).Count == 4, "");
+                    // (`AMBER301`, 11.11.2026) Сосуд с чертежа ушёл в легенду: выноски — кристалл, проба, детектор; на поперечном — кристалл.
+                    List<GdmlSketch.SketchCallout> th232 = (List<GdmlSketch.SketchCallout>)Field(d.Sketch, "paintCallouts");
+                    Check("th232: выноски в разрезе — кристалл, проба, детектор; сосуда нет", th232.FindAll(c => c.Axial).Count == 3 && !th232.Exists(c => c.Role == GdmlRole.Vessel)
+                          && th232.FindAll(c => !c.Axial).Count == 1 && th232.Find(c => !c.Axial).Role == GdmlRole.Crystal,
+                          string.Join(", ", th232.Select(c => (c.Axial ? "разрез " : "поперёк ") + c.Role)));
                     // Стенка корпуса-сетки закрашена: прежде она была пустым контуром.
                     GdmlVolumeInstance shell = g.Volumes.Find(v => v.VolumeName == "LV_Shell_1_00");
                     Check("th232: стенка корпуса-сетки закрашена", FillMm2(d, true, "G4_Al") > 300.0, Num(FillMm2(d, true, "G4_Al")) + " мм², том " + shell.VolumeName);

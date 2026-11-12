@@ -605,11 +605,11 @@ static class GdmlFieldLayoutProbeA322
             Ok(Math.Abs(model.CrystalDiameter - 40.0) < 1e-3 && model.SourceType == GeometrySourceType.Cylinder && Math.Abs(model.BeakerDiameter - 62.0) < 1e-3
                && model.InShield && model.ShieldLayers.Count == 2 && Math.Abs(model.ShieldInnerDiameter - 120.0) < 1e-3,
                "в полях — геометрия файла: кристалл ⌀40, сосуд ⌀62, защита из двух слоёв");
-            Ok(status.Text.Contains("a322_shielded.gdml") && status.Text.Contains("detector, sample, shield") && status.Text.Contains("Not used in the geometry: 1 parts"),
+            Ok(status.Text.Contains("a322_shielded.gdml") && status.Text.Contains("detector, sample, shield") && status.Text.Contains("Not used in the geometry: parts 1, "),
                 "статус называет файл, что взято и что не используется", status.Text);
             Ok(panel.GdmlStripText.Contains("Taken from the file: detector, sample, shield"), "строка-итог над вкладками", panel.GdmlStripText);
             string summary = panel.GdmlSummaryText;
-            Ok(summary.Contains("In the file → in the fields") && summary.Contains("Simplifications") && summary.Contains("▸ Not used in the geometry: 1 parts")
+            Ok(summary.Contains("In the file → in the fields") && summary.Contains("Simplifications") && summary.Contains("▸ Not used in the geometry: parts 1, ")
                && !summary.Contains("PMT_glass — ") && summary.Contains("File details"),
                "сводка: сверка, упрощения, свёрнутый список «не используется», подробности файла");
             panel.ToggleGdmlUnused();
@@ -851,6 +851,87 @@ static class GdmlFieldLayoutProbeA322
         return colors.TryGetValue(color.ToArgb(), out count) ? count : 0;
     }
 
+    /// <summary>Подписи чертежа вкладки по порядку: чертёж рисуется в картинку вызовом OnPaint, окно не показывается.</summary>
+    static List<string> SketchWords(GdmlSketch sketch)
+    {
+        if (sketch.Width < 600 || sketch.Height < 500)
+        {
+            sketch.Dock = DockStyle.None;
+            sketch.Size = new Size(712, 650);
+        }
+
+        using (Bitmap bitmap = new Bitmap(sketch.Width, sketch.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+        using (Graphics graphics = Graphics.FromImage(bitmap))
+        {
+            typeof(GdmlSketch).GetMethod("OnPaint", Any).Invoke(sketch, new object[] { new PaintEventArgs(graphics, new Rectangle(0, 0, bitmap.Width, bitmap.Height)) });
+        }
+
+        return ((List<GdmlSketch.SketchMark>)Member(sketch, "paintMarks")).Select(m => m.Text).ToList();
+    }
+
+    static string GroupAfter(List<string> words, string head)
+    {
+        int at = words.FindIndex(t => t == head);
+        return at < 0 ? "(нет группы)" : string.Join(" | ", words.Skip(at + 1));
+    }
+
+    /// <summary>
+    /// (`AMBER301`, вердикт критика `crit301b`, мутант k1) Предпросмотр выбора через НАСТОЯЩИЙ обработчик `ChoiceChanged`
+    /// вкладки «Файл GDML»: импорт учебной сцены в окно конструктора, смена выбора в блоке «Сопоставление» без
+    /// «Пересчитать». Слова чертежа (легенда, выноски, стрелка) обязаны остаться от применённой раскладки, а свинец —
+    /// побледнеть (положительный контроль: подсветка работает). Прежний обработчик ставил саму бледность (`SetPale`), и
+    /// легенда писала «Не вошло в расчёт: Защита…» про детали, которые в расчёте есть. Сцена перенесена из пробы критика.
+    /// </summary>
+    static void Preview()
+    {
+        Console.WriteLine();
+        Console.WriteLine("=== К. Предпросмотр выбора на вкладке «Файл GDML»: слова чертежа — о применённой раскладке ===");
+        const string NotIn = "Not in the calculation:";
+        using (EfficiencyMakerForm form = new EfficiencyMakerForm())
+        {
+            GeometryEditorPanel panel = (GeometryEditorPanel)Member(form, "geometryPanel");
+            string problem;
+            bool imported = Import(form, sceneShielded, null, out problem);
+            Ok(imported && panel.GdmlTaken == (GdmlParts.Detector | GdmlParts.Sample | GdmlParts.Shield), "импорт учебной сцены: взято всё", panel.GdmlTaken + " " + problem);
+            GdmlSketch sketch = (GdmlSketch)Member(panel, "gdmlSketch");
+            GdmlMappingPanel mapping = (GdmlMappingPanel)Member(panel, "gdmlMapping");
+            MethodInfo fill = typeof(GdmlSketch).GetMethod("FillOf", Any);
+            GdmlVolumeInstance lead = panel.Gdml.Volumes.First(v => v != null && v.VolumeName == "Pb_side");
+
+            List<string> before = SketchWords(sketch);
+            Color full = (Color)fill.Invoke(sketch, new object[] { lead });
+            Ok(before.Contains("In the calculation:") && before.Any(t => t.StartsWith("Shield: Pb, ", StringComparison.Ordinal)) && !GroupAfter(before, NotIn).Contains("Pb"),
+                "применено всё: свинец в группе «В расчёте»", GroupAfter(before, NotIn));
+
+            // Человек снял галку «и защита»; «Пересчитать» не нажата.
+            GdmlChoice choice = panel.GdmlChoice.Clone();
+            choice.TakeShield = false;
+            choice.ShieldFrom = null;
+            mapping.Show(choice, false);
+            List<string> preview = SketchWords(sketch);
+            Color dim = (Color)fill.Invoke(sketch, new object[] { lead });
+            Ok(before.SequenceEqual(preview), "предпросмотр: слова чертежа (легенда, выноски, стрелка) те же, что у применённой раскладки", "«Не вошло»: " + GroupAfter(preview, NotIn));
+            Ok(dim.ToArgb() != full.ToArgb(), "предпросмотр: свинец на чертеже бледнее (подсветка работает — положительный контроль)", full + " → " + dim);
+            Ok(Member(sketch, "highlight") != null, "предпросмотр: подсветка стоит");
+
+            // «Пересчитать»: теперь защита не в расчёте, и слова обязаны это сказать.
+            typeof(EfficiencyMakerForm).GetMethod("GdmlRemap", Any).Invoke(form, new object[] { null, EventArgs.Empty });
+            List<string> applied = SketchWords(sketch);
+            Ok((panel.GdmlTaken & GdmlParts.Shield) == 0 && GroupAfter(applied, NotIn).Contains("Pb"), "после пересчёта свинец в группе «Не вошло в расчёт»", GroupAfter(applied, NotIn));
+            Ok(Member(sketch, "highlight") == null, "после пересчёта подсветка снята");
+            Ok(!applied.Contains("→"), "после пересчёта: проба взята из файла — стрелки «к пробе» нет", "взято " + panel.GdmlTaken);
+
+            // Отказ пересчёта (кристаллом выбрана негодная деталь): списки и чертёж возвращаются к применённому.
+            GdmlChoice wrong = panel.GdmlChoice.Clone();
+            wrong.Crystal = lead;
+            mapping.Show(wrong, false);
+            Ok(Member(sketch, "highlight") != null, "негодный выбор: подсветка стоит до пересчёта");
+            typeof(EfficiencyMakerForm).GetMethod("GdmlRemap", Any).Invoke(form, new object[] { null, EventArgs.Empty });
+            List<string> refused = SketchWords(sketch);
+            Ok(Member(sketch, "highlight") == null && applied.SequenceEqual(refused), "отказ пересчёта: подсветка снята, слова прежние", ((Label)Member(mapping, "notice")).Text);
+        }
+    }
+
     static void Sketch()
     {
         Console.WriteLine();
@@ -872,9 +953,11 @@ static class GdmlFieldLayoutProbeA322
             Dictionary<int, int> dimmed = Paint(sketch);
             Ok(full.ToArgb() != pale.ToArgb(), "цвет бледной детали отличается от цвета вещества", full + " → " + pale);
             Ok(Count(plain, full) > 200 && Count(plain, pale) == 0, "контроль: без бледности стекло в полном цвете", Count(plain, full).ToString(Inv) + " точек");
-            // Значок легенды остаётся цветом вещества: с тела детали ушли ровно те точки, что стали бледными.
-            Ok(Count(dimmed, pale) > 200 && Count(plain, full) - Count(dimmed, full) == Count(dimmed, pale) && Count(dimmed, full) < 400,
-                "с бледностью: тело стекла бледное, полного цвета — только значок легенды", Count(dimmed, pale).ToString(Inv) + " точек бледных, " + Count(dimmed, full).ToString(Inv) + " полного цвета");
+            // (`AMBER301`, 11.11.2026) Значок легенды вещества вне расчёта бледнеет вместе с деталью (группа «Не вошло в расчёт»):
+            // точки полного цвета ушли в бледные все, и с тела, и со значка.
+            // Значок 11×11 точек: бледный обведён серой рамкой, а не тёмным цветом вещества, и сглаживание края даёт разницу в несколько точек.
+            Ok(Count(dimmed, pale) > 200 && Count(dimmed, full) == 0 && Math.Abs(Count(plain, full) - Count(dimmed, pale)) <= 121,
+                "с бледностью: тело стекла и его значок легенды бледные, точки полного цвета ушли в бледные", Count(dimmed, pale).ToString(Inv) + " точек бледных, " + Count(dimmed, full).ToString(Inv) + " полного цвета, без бледности полного " + Count(plain, full).ToString(Inv));
             Ok(Count(dimmed, crystalColor) == Count(plain, crystalColor) && Count(plain, crystalColor) > 200, "кристалл (в полях) — в полном цвете, как и без бледности",
                 Count(dimmed, crystalColor).ToString(Inv) + " точек");
             sketch.SetPale(null);
@@ -1266,6 +1349,7 @@ static class GdmlFieldLayoutProbeA322
         Window();
         SaveOpen();
         Remap();
+        Preview();
         Sketch();
         Third();
 

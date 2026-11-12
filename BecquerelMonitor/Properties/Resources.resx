@@ -45295,10 +45295,10 @@ Entered: {0}</value>
     <value>CAD meshes (STL/OBJ/PLY) are not imported: only GDML is read. cadmesh is the Geant4 route for CAD meshes - reference only.</value>
   </data>
   <data name="GdmlSketchAxial" xml:space="preserve">
-    <value>Axial section ({0} = {1})</value>
+    <value>Side view, cut open ({0} = {1})</value>
   </data>
   <data name="GdmlSketchEnd" xml:space="preserve">
-    <value>End view ({0} = {1} mm)</value>
+    <value>Cross-section ({0} = {1} mm)</value>
   </data>
   <data name="GdmlSketchNoGeometry" xml:space="preserve">
     <value>No GDML geometry</value>
@@ -45643,7 +45643,7 @@ Entered: {0}</value>
     <value>The plane misses the axis, the width here is a chord, not the diameter ({0}): {1}</value>
   </data>
   <data name="GdmlSketchPlaneMiddle" xml:space="preserve">
-    <value>The plane {0} = 0 misses the device: the section goes through the middle of its extent</value>
+    <value>The plane {0} = 0 misses the detector: the section goes through the middle of its extent</value>
   </data>
   <data name="GdmlSketchFailedLog" xml:space="preserve">
     <value>The GDML drawing was not built: {0}</value>
@@ -45748,13 +45748,40 @@ The library was not changed.</value>
     <value>Cut across the axis along line A-A, through the crystal centre.</value>
   </data>
   <data name="GdmlSketchEndHintMiddle" xml:space="preserve">
-    <value>Cut across the axis along line A-A, through the middle of the device.</value>
+    <value>Cut across the axis along line A-A, through the middle of the scene.</value>
   </data>
   <data name="GdmlSketchLegendTitle" xml:space="preserve">
     <value>Materials:</value>
   </data>
   <data name="GdmlSketchLegendMore" xml:space="preserve">
     <value>+{0} more in the summary</value>
+  </data>
+  <data name="GdmlSketchAxialTitle" xml:space="preserve">
+    <value>Side view, cut open</value>
+  </data>
+  <data name="GdmlSketchEndTitle" xml:space="preserve">
+    <value>Cross-section</value>
+  </data>
+  <data name="GdmlSketchAlongShort" xml:space="preserve">
+    <value>Cut along the axis.</value>
+  </data>
+  <data name="GdmlSketchAcrossShort" xml:space="preserve">
+    <value>Cut across, along line A-A.</value>
+  </data>
+  <data name="GdmlSketchToSample" xml:space="preserve">
+    <value>to sample</value>
+  </data>
+  <data name="GdmlSketchLegendUsed" xml:space="preserve">
+    <value>In the calculation:</value>
+  </data>
+  <data name="GdmlSketchLegendUnused" xml:space="preserve">
+    <value>Not in the calculation:</value>
+  </data>
+  <data name="GdmlSketchNoCrystal" xml:space="preserve">
+    <value>Crystal not recognised. Pick the part in the “Detector, crystal” list.</value>
+  </data>
+  <data name="GdmlRoleShield" xml:space="preserve">
+    <value>Shield</value>
   </data>
   <data name="GdmlSketchTrimmed" xml:space="preserve">
     <value>Not shown, thousands of times larger than the rest ({0}): {1}</value>
@@ -45778,7 +45805,7 @@ The library was not changed.</value>
     <value>Gas</value>
   </data>
   <data name="GdmlRoleDevice" xml:space="preserve">
-    <value>Device</value>
+    <value>Detector</value>
   </data>
   <data name="GdmlOverviewLine" xml:space="preserve">
     <value>{0} volume(s), {1} material(s), overall size {2}.</value>
@@ -45837,7 +45864,7 @@ The file and its previous copy will not change.</value>
     <value>Activity of the detector crystal itself (La-138, Lu-176, the Ac-227 series). It belongs to the instrument, not to the sample: it is not part of the composition and is not added to the sample activity. The fixed rows are computed from the crystal mass and the nuclide data; the free row (Ac-227) is fitted.</value>
   </data>
   <data name="GdmlSketchAlongHint" xml:space="preserve">
-    <value>A plane along the device axis. Line A-A: where the end view is cut.</value>
+    <value>A plane along the detector axis. Line A-A: where the cross-section is cut.</value>
   </data>
   <data name="GdmlSketchMeshOutline" xml:space="preserve">
     <value>Outline only, no fill: the mesh does not define what is inside, see the summary ({0}): {1}</value>
