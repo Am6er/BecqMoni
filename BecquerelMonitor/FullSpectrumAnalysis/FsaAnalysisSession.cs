@@ -2492,4 +2492,167 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             get { return Math.Abs(this.DeviationPercent) > WarningPercent; }
         }
     }
+
+    /// <summary>
+    /// ⛔ (`AMBER326`, a326p; решение Amber 11.11.2026 вопросником, дословно: «Прогрев в фоне при запуске
+    /// (Рекомендую)») ПРОГРЕВ FSA ПРИ ЗАПУСКЕ ПРОГРАММЫ. Первый разбор процесса платил за то, чего второй уже
+    /// не платит: компиляцию кода разбора при первом исполнении и первое открытие базы нуклидов. Здесь то и
+    /// другое делается заранее, в фоновом потоке с пониженным приоритетом, по образцу фонового отпечатка
+    /// `matdb` (<c>MaterialDatabase.PrefetchSimulatorDataFingerprint</c>):
+    ///   1. база нуклидов открывается на чтение и закрывается — грузится библиотека SQLite и её родная часть;
+    ///   2. методы разбора компилируются без исполнения (<see cref="RuntimeHelpers.PrepareMethod(RuntimeMethodHandle)"/>):
+    ///      ни один расчёт не идёт, статических кэшей прогрев не трогает — числа разбора от него не зависят.
+    /// Отказ любого шага молчалив: прогрев ничего не обещает, первый разбор без него идёт как прежде.
+    /// </summary>
+    public static class FsaWarmup
+    {
+        static int started;
+        static readonly ManualResetEventSlim Finished = new ManualResetEventSlim(false);
+
+        /// <summary>Сколько методов скомпилировано и за сколько миллисекунд — пробам; до конца прогрева нули.</summary>
+        public static int MethodsPrepared { get; private set; }
+
+        /// <summary>См. <see cref="MethodsPrepared"/>.</summary>
+        public static double Milliseconds { get; private set; }
+
+        /// <summary>Запустить прогрев в фоне; повторный вызов ничего не делает.</summary>
+        public static void Start()
+        {
+            if (Interlocked.Exchange(ref started, 1) != 0)
+            {
+                return;
+            }
+
+            var thread = new Thread(Run)
+            {
+                IsBackground = true,
+                Priority = ThreadPriority.BelowNormal,
+                Name = "FSA warm-up"
+            };
+            thread.Start();
+        }
+
+        /// <summary>Дождаться конца прогрева (пробам: «как приложение, в котором человек успел открыть спектр»).</summary>
+        public static bool Wait(int milliseconds)
+        {
+            return Finished.Wait(milliseconds);
+        }
+
+        static void Run()
+        {
+            Stopwatch clock = Stopwatch.StartNew();
+            int prepared = 0;
+            try
+            {
+                OpenNuclideDatabase();
+                foreach (Type type in WarmTypes())
+                {
+                    prepared += Prepare(type);
+                }
+            }
+            catch (Exception)
+            {
+                // прогрев ничего не обещает
+            }
+            finally
+            {
+                MethodsPrepared = prepared;
+                Milliseconds = clock.Elapsed.TotalMilliseconds;
+                Finished.Set();
+            }
+        }
+
+        static void OpenNuclideDatabase()
+        {
+            try
+            {
+                string path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");
+                if (!System.IO.File.Exists(path))
+                {
+                    return;
+                }
+
+                using (var connection = new Microsoft.Data.Sqlite.SqliteConnection(
+                    EfficiencyMaker.MaterialDatabase.ReadOnlyConnection(path, true)))
+                {
+                    connection.Open();
+                    using (Microsoft.Data.Sqlite.SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = "SELECT count(*) FROM sqlite_master";
+                        command.ExecuteScalar();
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // отказ базы назовёт себя сам при первом настоящем чтении
+            }
+        }
+
+        /// <summary>Типы разбора: всё пространство имён FSA и матрица отклика с её вложенными типами.</summary>
+        static List<Type> WarmTypes()
+        {
+            Type[] all;
+            try
+            {
+                all = typeof(FsaWarmup).Assembly.GetTypes();
+            }
+            catch (System.Reflection.ReflectionTypeLoadException error)
+            {
+                all = error.Types;
+            }
+
+            string fsa = typeof(FsaWarmup).Namespace;
+            string matrix = typeof(EfficiencyMaker.ResponseMatrix).FullName;
+            var types = new List<Type>();
+            foreach (Type type in all)
+            {
+                if (type == null || type.ContainsGenericParameters || type.IsInterface)
+                {
+                    continue;
+                }
+
+                string name = type.FullName ?? string.Empty;
+                if (type.Namespace == fsa || name == matrix || name.StartsWith(matrix + "+", StringComparison.Ordinal))
+                {
+                    types.Add(type);
+                }
+            }
+
+            return types;
+        }
+
+        static int Prepare(Type type)
+        {
+            const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static
+                | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic
+                | System.Reflection.BindingFlags.DeclaredOnly;
+            int prepared = 0;
+            var methods = new List<System.Reflection.MethodBase>();
+            methods.AddRange(type.GetMethods(flags));
+            methods.AddRange(type.GetConstructors(flags));
+            foreach (System.Reflection.MethodBase method in methods)
+            {
+                // статический конструктор не трогаем: его время — первое обращение к типу, как и было
+                if (method.IsAbstract || method.ContainsGenericParameters || (method.IsConstructor && method.IsStatic)
+                    || (method.GetMethodImplementationFlags() & System.Reflection.MethodImplAttributes.InternalCall) != 0
+                    || (method.Attributes & System.Reflection.MethodAttributes.PinvokeImpl) != 0)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    RuntimeHelpers.PrepareMethod(method.MethodHandle);
+                    prepared++;
+                }
+                catch (Exception)
+                {
+                    // метод, который не компилируется заранее, скомпилируется при первом вызове
+                }
+            }
+
+            return prepared;
+        }
+    }
 }

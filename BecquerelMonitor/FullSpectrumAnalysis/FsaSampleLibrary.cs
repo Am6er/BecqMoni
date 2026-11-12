@@ -5527,6 +5527,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             string text = database + " (" + (key ?? string.Empty) + "): "
                           + (error != null ? error.Message : string.Empty);
             System.Diagnostics.Trace.WriteLine("FSA: отказ чтения базы — " + text);
+            List<string> tap = capture;
+            if (tap != null && tap.Count < MaxCollected && !tap.Contains(text))
+            {
+                tap.Add(text);
+            }
+
             List<string> sink = collected;
             if (sink != null && sink.Count < MaxCollected && !sink.Contains(text))
             {
@@ -5538,6 +5544,101 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public static void Begin()
         {
             collected = new List<string>();
+        }
+
+        [ThreadStatic]
+        static List<string> capture;
+
+        /// <summary>
+        /// (`AMBER326`, a326p) Начать запись отказов этого потока рядом с собирателем — на время построения элемента
+        /// общего кэша разбора (поправка суммирователя, гистограмма поглощения): строки потом хранятся при элементе и
+        /// отдаются каждому заходу разбора, который элемент взял (<see cref="Replay"/>). Возвращает прежнюю запись
+        /// (вложенность: гистограмма строится поверх поправок) — её и отдают в <see cref="EndCapture"/>.
+        /// </summary>
+        public static List<string> BeginCapture()
+        {
+            List<string> previous = capture;
+            capture = new List<string>();
+            return previous;
+        }
+
+        /// <summary>Кончить запись: записанное возвращается и дописывается в прежнюю (внешнюю) запись.</summary>
+        public static List<string> EndCapture(List<string> previous)
+        {
+            List<string> taken = capture ?? new List<string>();
+            capture = previous;
+            if (previous != null)
+            {
+                foreach (string text in taken)
+                {
+                    if (previous.Count < MaxCollected && !previous.Contains(text))
+                    {
+                        previous.Add(text);
+                    }
+                }
+            }
+
+            return taken;
+        }
+
+        /// <summary>
+        /// (`AMBER326`, a326p) Отказы, записанные при построении элемента общего кэша, — в собиратель и в запись ЭТОГО
+        /// потока, как если бы он строил элемент сам. Счётчики отказов не трогаются: чтения базы здесь не было.
+        /// </summary>
+        public static void Replay(List<string> texts)
+        {
+            if (texts == null || texts.Count == 0)
+            {
+                return;
+            }
+
+            List<string> tap = capture;
+            List<string> sink = collected;
+            foreach (string text in texts)
+            {
+                if (tap != null && tap.Count < MaxCollected && !tap.Contains(text))
+                {
+                    tap.Add(text);
+                }
+
+                if (sink != null && sink.Count < MaxCollected && !sink.Contains(text))
+                {
+                    sink.Add(text);
+                }
+            }
+        }
+
+        /// <summary>(`AMBER326`, a326p) Открыт ли собиратель на этом потоке — чтобы заход разбора на другом потоке завёл свой.</summary>
+        public static bool Collecting
+        {
+            get { return collected != null; }
+        }
+
+        /// <summary>
+        /// (`AMBER326`, a326p) Отказы, собранные заходом разбора на ДРУГОМ потоке (заходы ядра идут параллельно на
+        /// копиях анализатора), — в собиратель и счётчик этого потока, тем же порядком и с тем же потолком.
+        /// </summary>
+        public static void Absorb(List<string> texts)
+        {
+            if (texts == null || texts.Count == 0)
+            {
+                return;
+            }
+
+            threadCount += texts.Count;
+            List<string> sink = collected;
+            if (sink == null)
+            {
+                return;
+            }
+
+            foreach (string text in texts)
+            {
+                if (sink.Count < MaxCollected && !sink.Contains(text))
+                {
+                    sink.Add(text);
+                }
+            }
         }
 
         /// <summary>Закрыть собиратель и забрать собранное; не было отказов — пустой список.</summary>
