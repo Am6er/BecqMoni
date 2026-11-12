@@ -2313,23 +2313,83 @@ namespace BecquerelMonitor.EfficiencyMaker
             bool stepMajorant = split && this.Refine(RefineStepMajorant);
             bool shareFix = this.Refine(RefineShareRecompute);
             int step = 0;
+            Region known = null;
             for (; step < maxSteps && t > TransportCutKev; step++)
             {
-                Region here = this.At(x, y, z);
+                // ⚡ (`AMBER315`) После глубокого шага область та же: весь шаг прошёл дальше запаса от её
+                // границ, и поиск области (по кэшу луча или перебором) вернул бы её же.
+                Region here;
+                if (known != null)
+                {
+                    here = known;
+                    known = null;
+                    this.CountAt++;
+                }
+                else
+                {
+                    here = this.At(x, y, z);
+                }
+
                 if (here != null && here.IsCrystal)
                 {
                     return true;
                 }
 
-                double toNext = this.StepToBoundary(x, y, z, ux, uy, uz);
-                if (toNext >= double.MaxValue)
+                double density = here != null && here.Material != null ? here.Material.Density : 0.0;
+
+                // ⚡ (`AMBER315`, полоса `a315`) ГЛУБОКИЙ ШАГ. Расстояние до границы вдоль луча на шаге
+                // читается только сравнениями «отрезок шага ≥ расстояния» и «луч ушёл из сцены». Если шаг
+                // короче расстояния до ближайшей границы области по ЛЮБОМУ направлению
+                // (`RegionNearestFace`, оно же считается ниже для раннего выхода) на запас
+                // `LayerDeepMarginCm` — оба сравнения ложны заранее, и разбор луча (до двух на шаг) не
+                // нужен. То же, когда электрон погибнет в области (ранний выход ниже): расстояние там не
+                // читается вовсе. Потолок шага считается теми же выражениями, что ниже; жёсткое
+                // столкновение шаг только укорачивает. Случайных чисел решение не тянет, счётчик шага и
+                // память кэша луча ведутся как прежде (`StepToBoundaryUnread`) — числа те же до бита.
+                bool deep = false, faceKnown = false, rangeKnown = false;
+                double face = 0.0, range = 0.0;
+                if (LayerDeepStep && !MeasureCollectCost && density > 0.0)
                 {
-                    this.CountLayerLeftScene++;
-                    this.layersLeftScene = true;
-                    return false;           // ушёл из сцены
+                    face = this.RegionNearestFace(here, x, y, z);
+                    faceKnown = true;
+                    if (face > LayerDeepMarginCm)
+                    {
+                        range = ElectronData.RangeOf(this.CarryMedium(here.Material), t);
+                        rangeKnown = true;
+                        if (range > 0.0)
+                        {
+                            double reach = range * fraction / density;
+                            if (this.Refine(RefineLayerStepLimit))
+                            {
+                                double capDeep = this.ElectronLayerStepMaxFraction * RegionThicknessCm(here);
+                                if (capDeep > 0.0 && reach > capDeep)
+                                {
+                                    reach = capDeep;
+                                }
+                            }
+
+                            deep = range / density <= face || reach < face - LayerDeepMarginCm;
+                        }
+                    }
                 }
 
-                double density = here != null && here.Material != null ? here.Material.Density : 0.0;
+                double toNext;
+                if (deep)
+                {
+                    this.StepToBoundaryUnread(x, y, z, ux, uy, uz);
+                    toNext = double.PositiveInfinity;
+                }
+                else
+                {
+                    toNext = this.StepToBoundary(x, y, z, ux, uy, uz);
+                    if (toNext >= double.MaxValue)
+                    {
+                        this.CountLayerLeftScene++;
+                        this.layersLeftScene = true;
+                        return false;           // ушёл из сцены
+                    }
+                }
+
                 if (!(density > 0.0))
                 {
                     // Пустота — по прямой до следующей границы, без потерь.
@@ -2342,7 +2402,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 ElectronData.Material medium = this.CarryMedium(here.Material);
                 double x0 = this.LayerRadiationLength(here.Material);
-                double residual = ElectronData.RangeOf(medium, t);          // г/см²
+                double residual = rangeKnown ? range : ElectronData.RangeOf(medium, t);          // г/см²
                 if (!(residual > 0.0))
                 {
                     return false;
@@ -2363,7 +2423,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 // Ранний выход, как в кристалле: пробег короче расстояния до
                 // ближайшей границы области — погибнет в ней при любой траектории.
-                if (residual / density <= this.RegionNearestFace(here, x, y, z))
+                if (residual / density <= (faceKnown ? face : this.RegionNearestFace(here, x, y, z)))
                 {
                     // (П106) Погибнет здесь — остаток тормозного толстой мишенью
                     // в точке гибели, как `RestBremsstrahlung` в кристалле.
@@ -2539,12 +2599,20 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 // Прямой ход до конца шага — новым лучом.
                 double second = stepCm - first;
-                toNext = this.StepToBoundary(x, y, z, ux, uy, uz);
-                if (toNext >= double.MaxValue)
+                if (deep)
                 {
-                    this.CountLayerLeftScene++;
-                    this.layersLeftScene = true;
-                    return false;
+                    this.StepToBoundaryUnread(x, y, z, ux, uy, uz);     // (`AMBER315`) глубокий шаг
+                    toNext = double.PositiveInfinity;
+                }
+                else
+                {
+                    toNext = this.StepToBoundary(x, y, z, ux, uy, uz);
+                    if (toNext >= double.MaxValue)
+                    {
+                        this.CountLayerLeftScene++;
+                        this.layersLeftScene = true;
+                        return false;
+                    }
                 }
 
                 if (second >= toNext)
@@ -2593,6 +2661,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                  ref ux, ref uy, ref uz))
                 {
                     this.CountLayerHardCollisions++;
+                }
+
+                if (deep)
+                {
+                    known = here;           // (`AMBER315`) шаг кончился в той же области
                 }
             }
 

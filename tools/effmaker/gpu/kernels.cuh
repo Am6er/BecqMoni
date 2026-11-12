@@ -114,6 +114,7 @@ RM_DEV void ResetCarried(Sim& s, int mask)
     {
         s.rayCount = 0;
         s.rayValid = false;
+        s.rayLazy = false;
     }
 
     if (mask & 4)

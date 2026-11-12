@@ -603,6 +603,14 @@ class CorpusMatrixProbe
                 // dN/dk = C/k вместо сечений Зельцера — Бергера (физика 8).
                 // Действует только при `--brem=1`.
                 options.BremFromData = Flag(a, 9);
+            else if (a.StartsWith("--deep=", StringComparison.Ordinal))
+            {
+                // (`AMBER315`) Глубокий шаг переноса в слоях: `0` — прежний путь, `1` — умолчание,
+                // иное число — запас в см (испорченный контроль: `-1e9`, матрица обязана разойтись).
+                string deep = a.Substring(7);
+                if (deep == "0") EfficiencySimulator.LayerDeepStep = false;
+                else if (deep != "1") EfficiencySimulator.LayerDeepMarginCm = double.Parse(deep, System.Globalization.CultureInfo.InvariantCulture);
+            }
             else if (a == "--recollect")
                 // `T43`, ЗАМЕР: разбирать луч заново на каждом шаге. Считается
                 // то же самое, но разборов становится столько же, сколько шагов;

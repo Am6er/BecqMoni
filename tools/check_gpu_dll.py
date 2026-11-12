@@ -10,7 +10,7 @@ u"""Сторож поставочной GPU-библиотеки `BecquerelMonit
 Поэтому сборка (`build_gpu.cmd`) вшивает в `rm_build_info()` отпечаток исходников и
 поколение физики, а этот сторож пересчитывает отпечаток по дереву и сверяет.
 
-Семь сверок, каждая — отказ:
+Девять сверок, каждая — отказ:
   1. `src=` в паспорте DLL == sha256 (16 знаков) файлов `*.cu *.cuh *.h *.inc` каталога
      `tools/effmaker/gpu`, отсортированных по имени порядково без учёта регистра и
      склеенных подряд (то же правило — `tools/effmaker/gpu/src_hash.ps1`);
@@ -41,7 +41,12 @@ u"""Сторож поставочной GPU-библиотеки `BecquerelMonit
      проходил все сторожа (отпечаток исходников сходится сам с собой), а GPU считал прежний;
   8. (`AMBER274`, физика 30, Н7) `cfg=` в паспорте DLL == отпечаток списка полей `cfg.h` (FNV-1a 64 строки
      «вид:имя;» в порядке `RM_CFG_FIELDS`) — тот же, что приложение сверяет в `RmGpu.Probe`
-     (`RmGpu.SettingsFingerprint`); паспорт без `cfg=` — сборка до физики 30.
+     (`RmGpu.SettingsFingerprint`); паспорт без `cfg=` — сборка до физики 30;
+  9. (`AMBER315`, замечание критика 12.11.2026) запас «глубокого шага» один: умолчание
+     `#define RM_DEEP_MARGIN <число>` в `decl_geom.inc` == умолчание рычага проб
+     `public static double LayerDeepMarginCm = <число>;` в `EfficiencySimulator.cs`. Рычаг — не `const`
+     (проба ставит его ключом `--deep=`), поэтому седьмая сверка его не видит; разошлись бы числа —
+     ЦП и GPU решали бы «шаг глубокий» по-разному, и оба молча.
 
 Паспорт читается из самой DLL (`ctypes`): она слинкована со статическим рантаймом CUDA и
 зависит только от KERNEL32, а `rm_build_info` устройства не трогает — сторож идёт и на
@@ -330,6 +335,36 @@ def constant_problems(kernel, cs_texts):
     return problems
 
 
+DECL_GEOM = os.path.join(GPU_DIR, 'decl_geom.inc')
+DEEP_CS = os.path.join(EM_DIR, 'EfficiencySimulator.cs')
+
+
+def deep_margins(kernel_text, cs_text):
+    u"""(`AMBER315`) (запас ядра, запас C#) — умолчания `RM_DEEP_MARGIN` и `LayerDeepMarginCm`; None — не найдено."""
+    mk = re.search(r'^\s*#define\s+RM_DEEP_MARGIN\s+' + NUM + r'\s*$', kernel_text, re.M)
+    mc = re.search(r'\bpublic\s+static\s+double\s+LayerDeepMarginCm\s*=\s*' + NUM + r'\s*;', cs_text)
+    return (float(mk.group(1)) if mk else None, float(mc.group(1)) if mc else None)
+
+
+def deep_margin_problems(kernel_text, cs_text):
+    u"""(`AMBER315`) Девятая сверка: запас «глубокого шага» ядра == запас C#."""
+    g, c = deep_margins(kernel_text, cs_text)
+    if g is None:
+        return [u'в decl_geom.inc нет умолчания `#define RM_DEEP_MARGIN <число>` (запас «глубокого шага», AMBER315)']
+    if c is None:
+        return [u'в EfficiencySimulator.cs нет `public static double LayerDeepMarginCm = <число>;` '
+                u'(оригинал RM_DEEP_MARGIN ядра)']
+    if g != c:
+        return [u'запас «глубокого шага»: ядро RM_DEEP_MARGIN = %r, а C# LayerDeepMarginCm = %r — '
+                u'ЦП и GPU решают «шаг глубокий» по-разному; свести' % (g, c)]
+    return []
+
+
+def read_deep_texts():
+    return (io.open(DECL_GEOM, encoding='utf-8').read() if os.path.isfile(DECL_GEOM) else u'',
+            io.open(DEEP_CS, encoding='utf-8-sig').read() if os.path.isfile(DEEP_CS) else u'')
+
+
 def read_constants():
     kernel = kernel_constants(io.open(DECL_ELECTRON, encoding='utf-8').read())
     cs = {}
@@ -475,6 +510,24 @@ def selftest():
         ok8 = got8 == want8
         bad += 0 if ok8 else 1
         print(u'  %s %s → %s' % (u'✓' if ok8 else u'✗', what8, u'отказ' if got8 else u'сходится'))
+    # (`AMBER315`) Запас «глубокого шага»: дерево сходится; число, сменённое только в ядре или только
+    # в C#, и пропавшее объявление — отказ. Порча — на копиях текста.
+    kt, ct = read_deep_texts()
+    gm, cm = deep_margins(kt, ct)
+    deep_cases = [
+        (kt, ct, 0, u'запас глубокого шага: дерево (ядро %r, C# %r)' % (gm, cm)),
+        (re.sub(r'(#define\s+RM_DEEP_MARGIN\s+)\S+', r'\g<1>2e-3', kt, count=1), ct, 1,
+         u'запас глубокого шага: сменён только в ядре'),
+        (kt, re.sub(r'(LayerDeepMarginCm\s*=\s*)[^;]+;', r'\g<1>5e-4;', ct, count=1), 1,
+         u'запас глубокого шага: сменён только в C#'),
+        (kt.replace(u'#define RM_DEEP_MARGIN', u'#define RM_DEEP_MARGIN_GONE', 1), ct, 1,
+         u'запас глубокого шага: умолчание пропало из ядра'),
+    ]
+    for kk9, cc9, want9, what9 in deep_cases:
+        got9 = 1 if deep_margin_problems(kk9, cc9) else 0
+        ok9 = got9 == want9
+        bad += 0 if ok9 else 1
+        print(u'  %s %s → %s' % (u'✓' if ok9 else u'✗', what9, u'отказ' if got9 else u'сходится'))
     print(u'самопроверка: %s' % (u'ПРОЙДЕНА' if bad == 0 else u'ПРОВАЛЕНА (%d)' % bad))
     return 0 if bad == 0 else 1
 
@@ -526,6 +579,11 @@ def main(argv):
     if not cfgpp:
         print(u'состав настроек паспорта (cfg=%s) = cfg.h' % cfgw)
     problems.extend(cfgpp)
+    deepp = deep_margin_problems(*read_deep_texts())
+    if not deepp:
+        print(u'запас «глубокого шага» ядра (RM_DEEP_MARGIN) = LayerDeepMarginCm C#: %r см'
+              % deep_margins(*read_deep_texts())[0])
+    problems.extend(deepp)
     for p in problems:
         print(u'⛔ ' + p)
     print(u'положительный контроль этой проверки: python tools/check_gpu_dll.py --selftest')
