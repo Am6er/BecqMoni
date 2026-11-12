@@ -28,13 +28,25 @@ namespace BecquerelMonitor.Probes
     ///   (7) лабораторный фон на сильнейшей линии (`--lab-line=`): сторож отдаёт разбор без маски, побитно как без ключей, горит
     ///       красная строка, строки маски нет;
     ///   (8) `MaskRefusal` на собранных результатах: опор меньше; участок на сильнейшей линии; на слабой — нет;
-    ///       мешающий образ не в счёт.
+    ///       мешающий образ не в счёт;
+    ///   (9) (остаток `AMBER295`, полоса `a295`) окно опоры, задевшее участок маски (`--lab-line=`): фон завышен
+    ///       ниже линии так, что участок входит в окно её опоры, а саму линию не накрывает. Без рычага
+    ///       `FsaAnalyzer.AnchorWindowSkipsMasked` опора при маске отпадает и сторож отказывает маске «опор
+    ///       меньше»; с рычагом опора остаётся и маска принята;
+    ///   (10) граница правила «окно, снятое маской больше чем наполовину, — не опора» (тот же рычаг, сторож
+    ///       выключен, чтобы видеть проход с маской): узкая сильная подмена ниже окна поднимается по каналу; пока снято не больше
+    ///       половины окна, опора на линии берётся, первый же шаг за половину — опоры нет.
     ///
     /// Коды: 0 — сошлось; 1 — нет; 2 — ключи или файл.
     /// </summary>
     static class FsaBackgroundMaskProbeA295
     {
         static int bad;
+
+        /// <summary>(9) Рычаг окна опоры и сторож маски — в хук анализатора (<see cref="Run"/>).</summary>
+        static bool leverSkipMasked;
+
+        static bool guardOn = true;
 
         [STAThread]
         static int Main(string[] args)
@@ -192,6 +204,8 @@ namespace BecquerelMonitor.Probes
             }
 
             Refusals();
+            AnchorWindow(path, nuclides, labLine);
+            HalfWindow(path, nuclides, labLine);
 
             ResultData corridor = Load(path, nuclides);
             Dope(corridor, 45.0, 85.0);
@@ -251,8 +265,248 @@ namespace BecquerelMonitor.Probes
             Same("(8) участок на мешающем образе", true, refusal(60.0, 90.0, 2) == null);
         }
 
-        /// <summary>Фон выше спектра на треть в шкале пробы в полосе <paramref name="lo"/>…<paramref name="hi"/> кэВ.</summary>
-        static void Dope(ResultData rd, double lo, double hi)
+        /// <summary>Взятая опора шкалы на линии <paramref name="lineKev"/>; null — нет.</summary>
+        static FsaScaleAnchor AnchorAt(FsaResult result, double lineKev)
+        {
+            return result == null ? null : AnchorIn(result.ScaleAnchors, lineKev);
+        }
+
+        /// <summary>Взятая опора на линии <paramref name="lineKev"/> в списке опор; null — нет.</summary>
+        static FsaScaleAnchor AnchorIn(List<FsaScaleAnchor> anchors, double lineKev)
+        {
+            if (anchors == null)
+            {
+                return null;
+            }
+
+            foreach (FsaScaleAnchor anchor in anchors)
+            {
+                if (anchor.Used && Math.Abs(anchor.LineKev - lineKev) < 0.5)
+                {
+                    return anchor;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// (9) Окно опоры, задевшее участок маски. Полоса подмены подбирается замером: её верхний край поднимается
+        /// от трети окна ниже нижнего края окна опоры, пока участок маски (сторож выключен — чтобы увидеть участки) не войдёт в окно
+        /// опоры, не дойдя до самой линии.
+        /// </summary>
+        static void AnchorWindow(string path, NuclideDefinitionManager nuclides, double lineKev)
+        {
+            if (double.IsNaN(lineKev))
+            {
+                Console.WriteLine("(9) окно опоры у маски: нет --lab-line=, не мерено");
+                bad++;
+                return;
+            }
+
+            ResultData plain = Load(path, nuclides);
+            FsaResult bare = Run(plain, false);
+            FsaScaleAnchor anchor = AnchorAt(bare, lineKev);
+            Same("(9) без подмены на линии стоит взятая опора", true, anchor != null);
+            if (anchor == null)
+            {
+                return;
+            }
+
+            EnergyCalibration calibration = plain.EnergySpectrum.EnergyCalibration;
+            double winLo = calibration.ChannelToEnergy(anchor.FirstChannel), winHi = calibration.ChannelToEnergy(anchor.LastChannel);
+            double window = winHi - winLo;
+            ResultData doped = null;
+            FsaBandWarning touching = null;
+            double edge = double.NaN;
+            try
+            {
+                guardOn = false;
+                for (int step = 0; step <= 16 && touching == null; step++)
+                {
+                    edge = winLo - 0.3 * window + 0.05 * window * step;
+                    ResultData candidate = Load(path, nuclides);
+                    Dope(candidate, edge - 1.5 * window, edge);
+                    FsaResult seen = Run(candidate, true);
+                    if (seen == null || seen.BackgroundMaskBands == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (FsaBandWarning band in seen.BackgroundMaskBands)
+                    {
+                        // участок вошёл в окно опоры снизу и до линии не дошёл на пятую долю окна
+                        if (band.HiKev > winLo + 0.1 * window && band.HiKev < lineKev - 0.2 * window && band.LoKev < winLo)
+                        {
+                            touching = band;
+                            doped = candidate;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                guardOn = true;
+            }
+
+            Same("(9) подмена, задевающая окно опоры, найдена", true, touching != null);
+            if (touching == null)
+            {
+                return;
+            }
+
+            Console.WriteLine("(9) линия {0:F1} кэВ, окно опоры {1:F1}–{2:F1} кэВ; подмена до {3:F1} кэВ; участок маски {4:F1}–{5:F1} кэВ",
+                              lineKev, winLo, winHi, edge, touching.LoKev, touching.HiKev);
+            FsaResult without = Run(doped, false);
+            FsaResult off = Run(doped, true);
+            FsaResult on;
+            try
+            {
+                leverSkipMasked = true;
+                on = Run(doped, true);
+            }
+            finally
+            {
+                leverSkipMasked = false;
+            }
+
+            Same("(9) разбор состоялся", true, without != null && off != null && on != null);
+            if (without == null || off == null || on == null)
+            {
+                return;
+            }
+
+            Console.WriteLine("(9) без маски опор {0}; рычаг выкл: отказ «{1}», снято {2}; рычаг вкл: отказ «{3}», снято {4}, опор {5}, усиление {6:F6} против {7:F6}",
+                              without.ScaleAnchorsUsed, off.BackgroundMaskRefused ?? "—", off.BackgroundMaskChannels,
+                              on.BackgroundMaskRefused ?? "—", on.BackgroundMaskChannels, on.ScaleAnchorsUsed, on.Gain, without.Gain);
+            Same("(9) без маски опора на линии взята", true, AnchorAt(without, lineKev) != null);
+            Same("(9) рычаг выкл: сторож отказал маске", true, off.BackgroundMaskRefused != null);
+            Same("(9) рычаг выкл: разбор побитно как без маски", without.Chi2NdfPoisson, off.Chi2NdfPoisson);
+            Same("(9) рычаг вкл: маска принята", (string)null, on.BackgroundMaskRefused);
+            Same("(9) рычаг вкл: участок снят", true, on.BackgroundMaskChannels > 0);
+            // откат привязки (χ² без неё лучше) отдаёт шкалу файла: опора тогда значится в списке отменённой подстройки
+            Console.WriteLine("(9) рычаг вкл: откат привязки {0}", on.AnchorRolledBack);
+            Same("(9) рычаг вкл: опора на линии взята в проходе с маской", true,
+                 on.AnchorRolledBack ? AnchorIn(on.AnchorRollbackScaleAnchors, lineKev) != null : AnchorAt(on, lineKev) != null);
+        }
+
+        /// <summary>Опора на линии взята в проходе с привязкой: у отката она значится в списке отменённой подстройки.</summary>
+        static bool TakenAt(FsaResult result, double lineKev)
+        {
+            return result != null && (result.AnchorRolledBack
+                ? AnchorIn(result.AnchorRollbackScaleAnchors, lineKev) != null
+                : AnchorAt(result, lineKev) != null);
+        }
+
+        /// <summary>
+        /// (10) Граница правила половины окна. Судится запись опоры на линии в разборе с маской (сторож выключен):
+        /// её окно и значимость. Правило обнуляет значимость, когда каналов окна под участками маски больше
+        /// половины; иначе значимость окна этой линии — десятки. Взятой опора при этом может значиться по прежнему
+        /// проходу привязки, поэтому признак — значимость, а не «взята».
+        /// </summary>
+        static void HalfWindow(string path, NuclideDefinitionManager nuclides, double lineKev)
+        {
+            if (double.IsNaN(lineKev))
+            {
+                Console.WriteLine("(10) граница половины окна: нет --lab-line=, не мерено");
+                bad++;
+                return;
+            }
+
+            ResultData plain = Load(path, nuclides);
+            FsaScaleAnchor anchor = AnchorAt(Run(plain, false), lineKev);
+            Same("(10) без подмены на линии стоит взятая опора", true, anchor != null);
+            if (anchor == null)
+            {
+                return;
+            }
+
+            EnergyCalibration calibration = plain.EnergySpectrum.EnergyCalibration;
+            int first = anchor.FirstChannel, size = anchor.LastChannel - anchor.FirstChannel + 1;
+            int wrong = 0, justBelow = 0, justAbove = 0, beyond = 0;
+            try
+            {
+                guardOn = false;
+                leverSkipMasked = true;
+                // узкая сильная подмена ниже окна: участок маски тянется от неё вверх на ширину окна признака, и его
+                // верхний край идёт по каналу вслед за подменой
+                for (int channel = first - size / 2 - 6; channel <= first && beyond < 3; channel++)
+                {
+                    double edge = calibration.ChannelToEnergy(channel) + 0.5 * (calibration.ChannelToEnergy(channel + 1) - calibration.ChannelToEnergy(channel));
+                    ResultData candidate = Load(path, nuclides);
+                    Dope(candidate, calibration.ChannelToEnergy(channel - 8), edge, 30.0);
+                    FsaResult seen = Run(candidate, true);
+                    if (seen == null || seen.BackgroundMaskBands == null)
+                    {
+                        continue;
+                    }
+
+                    FsaScaleAnchor record = null;
+                    foreach (FsaScaleAnchor a in (seen.AnchorRolledBack ? seen.AnchorRollbackScaleAnchors : seen.ScaleAnchors) ?? new List<FsaScaleAnchor>())
+                    {
+                        if (Math.Abs(a.LineKev - lineKev) < 0.5)
+                        {
+                            record = a;
+                        }
+                    }
+
+                    if (record == null)
+                    {
+                        continue;
+                    }
+
+                    int n = record.LastChannel - record.FirstChannel + 1, masked = 0;
+                    for (int k = record.FirstChannel; k <= record.LastChannel; k++)
+                    {
+                        double kev = calibration.ChannelToEnergy(k);
+                        foreach (FsaBandWarning band in seen.BackgroundMaskBands)
+                        {
+                            if (kev >= band.LoKev && kev <= band.HiKev)
+                            {
+                                masked++;
+                                break;
+                            }
+                        }
+                    }
+
+                    bool over = 2 * masked > n, dead = !(record.Z > 0.0);
+                    Console.WriteLine("(10) край подмены {0:F1} кэВ: окно {1}…{2}, снято {3} из {4}, значимость {5:F1}{6}",
+                                      edge, record.FirstChannel, record.LastChannel, masked, n, record.Z, over == dead ? "" : " — НЕ ПО ПРАВИЛУ");
+                    if (over != dead)
+                    {
+                        wrong++;
+                    }
+
+                    if (!over && 2 * masked >= n - 5)
+                    {
+                        justBelow++;
+                    }
+
+                    if (over && 2 * masked <= n + 5)
+                    {
+                        justAbove++;
+                    }
+
+                    if (over)
+                    {
+                        beyond++;
+                    }
+                }
+            }
+            finally
+            {
+                guardOn = true;
+                leverSkipMasked = false;
+            }
+
+            Console.WriteLine("(10) шагов у границы: снято не больше половины {0}, больше половины {1}; не по правилу {2}", justBelow, justAbove, wrong);
+            Same("(10) у границы есть шаг «не больше половины»", true, justBelow > 0);
+            Same("(10) у границы есть шаг «больше половины»", true, justAbove > 0);
+            Same("(10) значимость нулевая тогда и только тогда, когда снято больше половины окна", 0, wrong);
+        }
+
+        /// <summary>Фон выше спектра на треть (или в <paramref name="factor"/> раз) в шкале пробы в полосе <paramref name="lo"/>…<paramref name="hi"/> кэВ.</summary>
+        static void Dope(ResultData rd, double lo, double hi, double factor = 1.33)
         {
             EnergySpectrum background = rd.BackgroundEnergySpectrum;
             EnergyCalibration calibration = background.EnergyCalibration;
@@ -263,7 +517,7 @@ namespace BecquerelMonitor.Probes
                 double kev = calibration.ChannelToEnergy(i);
                 if (kev >= lo && kev <= hi)
                 {
-                    background.Spectrum[i] = (int)Math.Ceiling(1.33 * spectrum[i] / scale);
+                    background.Spectrum[i] = (int)Math.Ceiling(factor * spectrum[i] / scale);
                 }
             }
         }
@@ -350,6 +604,8 @@ namespace BecquerelMonitor.Probes
 
                 an.BackgroundExcessMask = mask;
                 an.BackgroundBandKnife = mask;
+                an.AnchorWindowSkipsMasked = leverSkipMasked;
+                an.BackgroundMaskGuard = guardOn;
                 FsaTuningReport.Print(an);
             };
             try
