@@ -188,7 +188,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             add("NaI", "Sodium iodide", "Na1 I1", 3.667, MaterialKind.Crystal);
             add("BGO", "Bismuth germanate", "Bi4 Ge3 O12", 7.13, MaterialKind.Crystal);
             add("LaBr3", "Lanthanum bromide", "La1 Br3", 5.08, MaterialKind.Crystal);
-            add("CeBr3", "Cerium bromide", "Ce1 Br3", 5.1, MaterialKind.Crystal);
+            // (`AMBER274`, `a274s`) 5.18 г/см³ — Quarati и др., NIM A 729 (2013) 596; прежде 5.1.
+            // Решение Amber 12.11.2026 вопросником, дословно: «Исправить на 5.18 (Рекомендую)».
+            // К тем, у кого файл библиотеки уже есть, доезжает переносом поколения 14
+            // (`GeometryMaterialStore.SeedErrata`, только побитово прежняя запись 5.1); готовая
+            // геометрия несёт свою плотность в файле сцены и не переписывается.
+            add("CeBr3", "Cerium bromide", "Ce1 Br3", 5.18, MaterialKind.Crystal);
             add("SrI2", "Strontium iodide", "Sr1 I2", 4.55, MaterialKind.Crystal);
             add("CdTe", "Cadmium telluride", "Cd1 Te1", 5.85, MaterialKind.Crystal);
             add("CZT", "Cadmium zinc telluride", "Cd9 Zn1 Te10", 5.78, MaterialKind.Crystal);

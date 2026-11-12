@@ -160,7 +160,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// 13 (06.11.2026, `AMBER307`) — «ABS plastic» по файлу модели RadiaCode-110: корпус
         ///     шаблона «RadiaCode-110». Новое ИМЯ, довозится сведением по именам; переноса не
         ///     нужно.
-        public const int CurrentSeedVersion = 13;
+        /// 14 (12.11.2026, `AMBER274`, полоса `a274s`) — ПЛОТНОСТЬ CeBr3 5.1 → 5.18 г/см³
+        ///     (Quarati и др., NIM A 729 (2013) 596; решение Amber 12.11.2026 вопросником,
+        ///     дословно: «Исправить на 5.18 (Рекомендую)»). Имя прежнее — нужен ПЕРЕНОС тем
+        ///     же правилом «только побитово прежний засев» (<see cref="MigrateSeedErrata"/>,
+        ///     прежняя плотность — третьим полем <see cref="SeedErrata"/>, как у криптона).
+        public const int CurrentSeedVersion = 14;
 
         /// <summary>
         /// (`AMBER107`, П324) Поколение, начиная с которого ВСЕ опечатки таблицы
@@ -169,8 +174,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// поколений проходит перенос заново — ради трёх новых; две прежние у
         /// него уже исправлены, а перенос узнаёт лишь запись, побитово равную
         /// ПРЕЖНЕМУ засеву, — исправленную он не узнает и не тронет.
+        /// (`a274s`) 14 — с плотностью CeBr3. Это лишь ВНЕШНИЙ порог (наибольшее поколение
+        /// опечаток): каждая опечатка несёт СВОЁ поколение (четвёртое поле
+        /// <see cref="SeedErrata"/>) и применяется только к файлу поколения НИЖЕ своего —
+        /// иначе подъём порога ради CeBr3 переписал бы на файлах поколений 11–13 прежние
+        /// числа Aniline, Skin и криптона, которые там мог набрать только человек (гарантия
+        /// П324; находка критика `crit274t`, контроль К1).
         /// </summary>
-        const int SeedErrataVersion = 11;
+        const int SeedErrataVersion = 14;
 
         /// <summary>
         /// (`AMBER104`, П172 28.09.2026) Поколение, начиная с которого формулы
@@ -343,7 +354,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             if (config.SeedVersion < SeedErrataVersion)
             {
-                MigrateSeedErrata(list, seed);
+                MigrateSeedErrata(list, seed, config.SeedVersion);
             }
 
             entries = list;
@@ -353,23 +364,44 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// (`AMBER107`, П172 28.09.2026) Опечатки таблицы ЛСРМ, исправленные
         /// поколением 9 и 11: имя и ПРЕЖНИЕ доли строкой «Z:доля …» — ровно те, что
         /// лежали в <c>GeometryMaterialSeed</c> до исправления. Новые доли
-        /// берутся из самого засева, второй их копии здесь нет. Третье поле, если
-        /// оно есть, — ПРЕЖНЯЯ ПЛОТНОСТЬ строкой (опечатка не в долях, а в ней).
+        /// берутся из самого засева, второй их копии здесь нет. Третье поле — ПРЕЖНЯЯ
+        /// ПЛОТНОСТЬ строкой, если опечатка в ней (иначе пусто). Четвёртое (`a274s`) —
+        /// ПОКОЛЕНИЕ, которым опечатка исправлена: перенос идёт только у файла поколения
+        /// НИЖЕ этого (<see cref="ErratumGeneration"/>); поля нет или оно не число —
+        /// опечатка не переносится вовсе (проба `P324SeedErrataProbe` это ловит).
         /// </summary>
         static readonly string[][] SeedErrata =
         {
             // CF3I: в `materials.dat` ЛСРМ (строка 92) Z 55 (Cs) вместо 53 (I).
-            new[] { "Freon-13ii", "6:0.061309 9:0.290924 55:0.647767" },
+            new[] { "Freon-13ii", "6:0.061309 9:0.290924 55:0.647767", "", "9" },
             // La2O2S: в `materials.dat` ЛСРМ доли La2OS.
-            new[] { "Lanthanum oxysulfide", "8:0.049097 16:0.098383 57:0.85252" },
+            new[] { "Lanthanum oxysulfide", "8:0.049097 16:0.098383 57:0.85252", "", "9" },
             // (П324, поколение 11) C6H5NH2: доля C 0.775838 вместо NIST 0.773838.
-            new[] { "Aniline", "1:0.075759 6:0.775838 7:0.150403" },
+            new[] { "Aniline", "1:0.075759 6:0.775838 7:0.150403", "", "11" },
             // (П324, поколение 11) доля N 0.04602 вместо NIST 0.04642.
-            new[] { "Skin (icrp)", "1:0.100588 6:0.22825 7:0.04602 8:0.619002 11:7e-05 12:6e-05 15:0.00033 16:0.00159 17:0.00267 19:0.00085 20:0.00015 26:1e-05 30:1e-05" },
+            new[] { "Skin (icrp)", "1:0.100588 6:0.22825 7:0.04602 8:0.619002 11:7e-05 12:6e-05 15:0.00033 16:0.00159 17:0.00267 19:0.00085 20:0.00015 26:1e-05 30:1e-05", "", "11" },
             // (П324, поколение 11) плотность 0.002418 — легче газа 0.003478; сдвиг
             // порядка, верная 2.418 (жидкий криптон при кипении 2.41 г/см³).
-            new[] { "Krypton, liquid", "36:1", "0.002418" },
+            new[] { "Krypton, liquid", "36:1", "0.002418", "11" },
+            // (`a274s`, поколение 14) CeBr3: плотность 5.1 вместо 5.18 (Quarati 2013). Запись засева
+            // задана ФОРМУЛОЙ «Ce1 Br3» без долей, поэтому прежние доли — пустая строка: прежняя
+            // запись — та же формула, долей нет, плотность 5.1.
+            new[] { "Cerium bromide", "", "5.1", "14" },
         };
+
+        /// <summary>
+        /// (`a274s`) Поколение опечатки — четвёртое поле <see cref="SeedErrata"/>; поля нет или
+        /// оно не число — 0, то есть опечатка не переносится ни у какого файла (отказ тихий,
+        /// но его видит проба: переноса нет там, где он обязан быть).
+        /// </summary>
+        static int ErratumGeneration(string[] erratum)
+        {
+            int generation;
+            return erratum.Length > 3
+                   && int.TryParse(erratum[3], NumberStyles.None, CultureInfo.InvariantCulture, out generation)
+                ? generation
+                : 0;
+        }
 
         /// <summary>
         /// Запись засева с ПРЕЖНИМИ долями опечатки (и прежней плотностью, если
@@ -400,10 +432,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             return before;
         }
 
-        /// <summary>Прежняя плотность опечатки (третье поле) или null, если опечатка не в ней.</summary>
+        /// <summary>Прежняя плотность опечатки (третье поле) или null, если опечатка не в ней (поле пустое).</summary>
         static string PreviousDensity(string[] erratum)
         {
-            return erratum.Length > 2 ? erratum[2] : null;
+            return erratum.Length > 2 && !string.IsNullOrEmpty(erratum[2]) ? erratum[2] : null;
         }
 
         /// <summary>
@@ -414,10 +446,17 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// перенос живёт в памяти, файл переписывает только редактор.
         /// </summary>
         static void MigrateSeedErrata(List<GeometryMaterialLibrary.Entry> list,
-                                      List<GeometryMaterialLibrary.Entry> seed)
+                                      List<GeometryMaterialLibrary.Entry> seed, int fileGeneration)
         {
             foreach (string[] erratum in SeedErrata)
             {
+                // (`a274s`) Файл поколения не ниже поколения опечатки сохранён уже ПОСЛЕ её
+                // исправления: прежние числа в нём набрал человек — не трогать (гарантия П324).
+                if (fileGeneration >= ErratumGeneration(erratum))
+                {
+                    continue;
+                }
+
                 GeometryMaterialLibrary.Entry now = Find(seed, erratum[0]);
                 Migrate(list, PreviousErratum(now, erratum[1], PreviousDensity(erratum)), now);
             }
@@ -626,7 +665,10 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             foreach (string[] erratum in SeedErrata)
             {
-                if (!string.Equals(material.Name, erratum[0], StringComparison.OrdinalIgnoreCase))
+                // (`a274s`) Опечатка только в плотности, доли те же (CeBr3 формулой): слоту
+                // переносить нечего — плотность слота не трогается, а доли совпадают.
+                if (string.IsNullOrEmpty(erratum[1])
+                    || !string.Equals(material.Name, erratum[0], StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }

@@ -5670,7 +5670,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     ///
     /// Форма ветви без таблицы: N(T) ∝ p·W·q²·F₀(Z, W)·Sₙ(p, q) — W, p, q в единицах mₑc
     /// (q = W₀ − W); F₀ — релятивистская функция Ферми точечного ядра R = 1.2·A^⅓ фм; Sₙ —
-    /// фактор уникального n-го запрета Σₖ p²ᵏq²⁽ⁿ⁻ᵏ⁾/((2k+1)!(2n−2k+1)!), λₖ = 1. Характер
+    /// фактор уникального n-го запрета Σₖ p²ᵏq²⁽ⁿ⁻ᵏ⁾/((2k+1)!(2n−2k+1)!), λₖ = 1 (кулоновские
+    /// λₖ — ключом <see cref="FsaBetaLibrary.CoulombLambda"/>, умолчание ВЫКЛ, `a274s`). Характер
     /// перехода — по ΔJ и ЧЕТНОСТИ (`Ф1`): разрешённый; первый неуникальный (ΔJ ≤ 1 со
     /// сменой чётности) — разрешённой формой (ξ-приближение); уникальный n-й (ΔJ = n + 1,
     /// Δπ = (−1)ⁿ) — Sₙ; неуникальный k-й (ΔJ = k, иная чётность) — формой уникального
@@ -6657,7 +6658,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>(`Ф4`) Энергии связи K, средняя L1–L3, средняя M1–M5 атома Z, кэВ (`matdb.eadl_binding`).</summary>
-        static double[] Binding(int z)
+        internal static double[] Binding(int z)
         {
             var result = new double[3];
             var sums = new double[3];
@@ -6947,7 +6948,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double s = beta.ShapeFactor != null
                 ? Math.Max(0.0, beta.ShapeFactor[0] + beta.ShapeFactor[1] * w + beta.ShapeFactor[2] / w
                                 + beta.ShapeFactor[3] * w * w)
-                : UniqueShape(beta.UniqueOrder, p, q);
+                : (CoulombLambda && !beta.Positron && beta.DaughterZ > 0 && beta.UniqueOrder > 0
+                    ? UniqueShapeCoulomb(beta.UniqueOrder, p, q, beta.DaughterZ, beta.MassNumber, w)
+                    : UniqueShape(beta.UniqueOrder, p, q));
             double value = p * w * q * q * f * s;
             return value > 0.0 && !double.IsInfinity(value) ? value : 0.0;
         }
@@ -7030,6 +7033,81 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return s / lead;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, ревизия по статьям, полоса `a274s` 12.11.2026) КУЛОНОВСКИЕ λₖ В ФАКТОРЕ
+        /// УНИКАЛЬНОГО ЗАПРЕТА — ключ, умолчание ВЫКЛ. Решение Amber 12.11.2026 вопросником,
+        /// дословно: «λ ключом выкл, таблицу не писать (Рекомендую)».
+        ///
+        /// ВЫКЛ — λₖ = 1 (<see cref="UniqueShape"/>), форма побитно прежняя. ВКЛ — фактор
+        /// Σₖ λₖ₊₁·p²ᵏq²⁽ⁿ⁻ᵏ⁾/((2k+1)!(2n−2k+1)!) с λₖ = F₍ₖ₋₁₎/F₀ точечного ядра
+        /// (<see cref="CoulombAmplitudeRatio"/>), у ветвей β⁻ без таблицы и фактора базы; β⁺ —
+        /// λ = 1 по-прежнему (сверять не с чем). Замер (проба `CrystalOwnActivityProbeA274
+        /// --mode=clambda`): средняя формы к средней базы у Z ≤ 58 сходится до 0.2–0.4 %, у Z ≥ 81
+        /// точечное ядро перелетает на 3–4 % в другую сторону (конечный размер ядра не учтён).
+        ///
+        /// ⛔ Ключ меняет функцию распределения формы в строках ветвей раздела электрона склада
+        /// (`ElectronBranchSpec.BetaCdf`, поле `br=` клейма) и веса узлов беты без строки
+        /// (<see cref="Weights"/>, кэш — с ключом). Включать — после замера корпуса «до/после»,
+        /// критиков и вместе с общим пересчётом склада; клеймо раздела при ВКЛ несёт `cl=1`, и
+        /// разбор старый раздел не берёт (`ResponseMatrix.ElectronSectionFor`).
+        /// </summary>
+        public static bool CoulombLambda = false;
+
+        /// <summary>
+        /// (`a274s`) Фактор уникального n-го запрета с кулоновскими λ (<see cref="CoulombLambda"/>),
+        /// нормированный, как <see cref="UniqueShape"/>, на коэффициент при q²ⁿ (λ₁ = 1).
+        /// </summary>
+        static double UniqueShapeCoulomb(int n, double p, double q, int z, int massNumber, double w)
+        {
+            double lead = 1.0 / (Factorial(1) * Factorial(2 * n + 1));
+            double s = 0.0;
+            for (int k = 0; k <= n; k++)
+            {
+                double term = Math.Pow(p, 2 * k) * Math.Pow(q, 2 * (n - k)) / (Factorial(2 * k + 1) * Factorial(2 * n - 2 * k + 1));
+                if (k > 0)
+                {
+                    term *= CoulombAmplitudeRatio(k + 1, z, massNumber, w, p);
+                }
+
+                s += term;
+            }
+
+            return s / lead;
+        }
+
+        /// <summary>
+        /// (`a274s`) Отношение кулоновских амплитуд λₖ = F₍ₖ₋₁₎/F₀ точечного ядра радиуса
+        /// R = 1.2·A^⅓ фм (Behrens–Jänecke): F₍ₖ₋₁₎ = [k(2k−1)!!]²·4ᵏ·(2pR)^{2(γₖ−k)}·e^{πy}·
+        /// |Γ(γₖ+iy)|²/Γ(1+2γₖ)², γₖ = √(k² − (αZ)²), y = αZW/p (β⁻). При Z → 0 λₖ → 1.
+        /// Та же формула, что у пробы `CrystalOwnActivityProbeA274` (её средние сверены с
+        /// независимым расчётом критика `crit274r`).
+        /// </summary>
+        internal static double CoulombAmplitudeRatio(int k, int z, int massNumber, double w, double p)
+        {
+            if (k <= 1 || z <= 0 || !(p > 0.0))
+            {
+                return 1.0;
+            }
+
+            double az = FineStructure * z;
+            double y = az * w / p;
+            double radius = 1.2 * Math.Pow(Math.Max(1, massNumber), 1.0 / 3.0) / ComptonFm;
+            Func<int, double> lnF = m =>
+            {
+                double g = Math.Sqrt(m * m - az * az);
+                double odd = 1.0;
+                for (int j = 2 * m - 1; j > 1; j -= 2)
+                {
+                    odd *= j;
+                }
+
+                return 2.0 * Math.Log(m * odd) + m * Math.Log(4.0) + 2.0 * (g - m) * Math.Log(2.0 * p * radius)
+                       + Math.PI * y + 2.0 * ReLnGamma(g, y) - 2.0 * ReLnGamma(1.0 + 2.0 * g, 0.0);
+            };
+            double ratio = Math.Exp(lnF(k) - lnF(1));
+            return ratio > 0.0 && !double.IsInfinity(ratio) ? ratio : 1.0;
         }
 
         static double Factorial(int n)
@@ -7547,7 +7625,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                          + "|" + beta.DaughterZ.ToString(CultureInfo.InvariantCulture) + "|" + beta.MassNumber.ToString(CultureInfo.InvariantCulture)
                          + "|" + beta.UniqueOrder.ToString(CultureInfo.InvariantCulture) + (beta.Positron ? "+" : "-")
                          + "|" + beta.ShapeId.ToString(CultureInfo.InvariantCulture)
-                         + "|" + beta.Nuclide + (EfficiencyMaker.ResponseElectronSection.BranchEvents ? "|E" : "|-");
+                         + "|" + beta.Nuclide + (EfficiencyMaker.ResponseElectronSection.BranchEvents ? "|E" : "|-")
+                         + (CoulombLambda ? "|cl" : "");   // (`a274s`) форма с λ — свой вес; ВЫКЛ — ключ прежний
             lock (WeightGate)
             {
                 double[] cached;
