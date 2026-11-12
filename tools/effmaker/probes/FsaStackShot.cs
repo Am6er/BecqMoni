@@ -2244,15 +2244,41 @@ namespace FsaStackShot
             return false;
         }
 
+        /// <summary>
+        /// Кривая `--efficiency=` по имени: СПЕРВА среди кривых прибора самого спектра (`rd.DeviceConfig`, его ставит
+        /// `ProbeDeviceConfig.Attach` в `Load`), и только потом — у прочих приборов конфигурации. (`AMBER311`, полоса
+        /// `a311h`, находка критика `crit311h`) Прежде бралась первая кривая с этим именем среди ВСЕХ приборов в порядке
+        /// загрузки: «Точка» для спектра AS80 (NaI 80×80) приходила от ASN16 (CsI) — и с ней чужие кристалл, размер и
+        /// линии вылета. Кривая чужого прибора называется строкой `SETUP`.
+        /// </summary>
         static bool AttachEfficiency(ResultData rd, string name)
         {
+            var devices = new List<DeviceConfigInfo>();
+            if (rd.DeviceConfig != null && rd.DeviceConfig.EfficiencyConfigs != null)
+            {
+                devices.Add(rd.DeviceConfig);
+            }
+
             foreach (DeviceConfigInfo device in DeviceConfigManager.GetInstance().DeviceConfigList)
+            {
+                if (!ReferenceEquals(device, rd.DeviceConfig))
+                {
+                    devices.Add(device);
+                }
+            }
+
+            foreach (DeviceConfigInfo device in devices)
             {
                 foreach (EfficiencyConfigData curve in device.EfficiencyConfigs)
                 {
                     if (string.Equals(curve.Name, name, StringComparison.OrdinalIgnoreCase))
                     {
                         rd.Efficiency = curve.Copy();
+                        if (!ReferenceEquals(device, rd.DeviceConfig))
+                        {
+                            Console.WriteLine("SETUP\tкривая «{0}» — чужого прибора «{1}»: у прибора спектра такой нет", curve.Name, device.Name);
+                        }
+
                         return true;
                     }
                 }

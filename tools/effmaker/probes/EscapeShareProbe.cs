@@ -21,7 +21,9 @@ namespace BecquerelMonitor.Probes
     /// Печатает: найденные пики; по компоненту — вид, доля, доля в пиках, скорость, z, отсчёты
     /// образа всего и в окнах ±1 FWHM вокруг заданных энергий (`--at=`), центр масс образа в
     /// кэВ; шкалу (усиление, нуль, опоры), порог k_α. Ключи: --spectrum=&lt;файл&gt;
-    /// [--at=898,949.8,1461] [--no-escape] [--labels] [--set=<имя набора>] [--efficiency=<кривая прибора>] [--timeout=600].
+    /// [--at=898,949.8,1461] [--no-escape] [--labels] [--set=<имя набора>] [--efficiency=<кривая прибора>] [--timeout=600]
+    /// [--lever=Имя=0|1 …] — булево свойство анализатора сеанса (`AMBER311`, полоса `a311f`: `EscapeBoundToParent`,
+    /// `EscapeOutOfTopZ`), ставится крючком `FsaAnalysisSession.ProbeAnalyzerHook`; строка `ESCBOUND` — кто на границе.
     /// Сравнивать «без образов» (`--no-escape`) — положительный контроль того, что образ
     /// действительно забирает пик. Кодов приёмки нет: это замер (0 — разбор дошёл, 3 — нет).
     /// </summary>
@@ -39,6 +41,7 @@ namespace BecquerelMonitor.Probes
             string setName = null;
             string efficiencyName = null;
             int timeoutS = 600;
+            var levers = new List<KeyValuePair<System.Reflection.PropertyInfo, bool>>();
             foreach (string arg in args)
             {
                 if (arg.StartsWith("--spectrum=", StringComparison.Ordinal)) path = arg.Substring(11);
@@ -49,6 +52,17 @@ namespace BecquerelMonitor.Probes
                 else if (arg.StartsWith("--set=", StringComparison.Ordinal)) setName = arg.Substring(6);
                 else if (arg.StartsWith("--efficiency=", StringComparison.Ordinal)) efficiencyName = arg.Substring(13);
                 else if (arg.StartsWith("--timeout=", StringComparison.Ordinal)) timeoutS = int.Parse(arg.Substring(10), CultureInfo.InvariantCulture);
+                else if (arg.StartsWith("--lever=", StringComparison.Ordinal))
+                {
+                    string[] kv = arg.Substring(8).Split('=');
+                    System.Reflection.PropertyInfo lever = kv.Length == 2 ? typeof(FsaAnalyzer).GetProperty(kv[0].Trim()) : null;
+                    if (lever == null || lever.PropertyType != typeof(bool) || !lever.CanWrite || (kv[1] != "0" && kv[1] != "1"))
+                    {
+                        Console.Error.WriteLine("--lever=Имя=0|1 булева свойства FsaAnalyzer; дано: " + arg);
+                        return 2;
+                    }
+                    levers.Add(new KeyValuePair<System.Reflection.PropertyInfo, bool>(lever, kv[1] == "1"));
+                }
                 else { Console.Error.WriteLine("неизвестный ключ: " + arg); return 2; }
             }
             if (path == null || !File.Exists(path)) { Console.Error.WriteLine("нужен --spectrum=<файл>"); return 2; }
@@ -103,11 +117,18 @@ namespace BecquerelMonitor.Probes
             if (noEscape) options.EscapeAndAnnihilation = false;
             if (labels) options.DbLookups = false;
             Console.WriteLine("OPTIONS\t{0}", options.Stamp);
+            foreach (var lever in levers) Console.WriteLine("SETUP\tрычаг {0} = {1}", lever.Key.Name, lever.Value);
+            FsaAnalysisSession.ProbeAnalyzerHook = an =>
+            {
+                foreach (var lever in levers) lever.Key.SetValue(an, lever.Value, null);
+            };
             var session = new FsaAnalysisSession();
             var done = new ManualResetEvent(false);
             session.Completed += (o, e) => done.Set();
             session.EnsureUpToDate(rd, rd.BackgroundEnergySpectrum != null, options);
-            if (!done.WaitOne(TimeSpan.FromSeconds(timeoutS)) || session.Result == null)
+            bool finished = done.WaitOne(TimeSpan.FromSeconds(timeoutS));
+            FsaAnalysisSession.ProbeAnalyzerHook = null;
+            if (!finished || session.Result == null)
             {
                 Console.WriteLine("⛔ разбора нет: {0}", session.Status ?? "причина не названа");
                 return 3;
@@ -156,6 +177,7 @@ namespace BecquerelMonitor.Probes
                                   string.Join("\t", windows.Select(w => w.ToString("F0", CultureInfo.InvariantCulture))));
             }
             Console.WriteLine("TOPZ\tнаибольшая z не-мешающих {0:F2}; 0.3×{0:F2} = {1:F2}", topZ, 0.3 * topZ);
+            Console.WriteLine("ESCBOUND\tна границе раз {0}; в итоге: {1}", r.EscapeBoundHits, r.EscapeBoundNote ?? "никого");
             if (r.UncoveredPeaks != null)
             {
                 foreach (var u in r.UncoveredPeaks) Console.WriteLine("UNCOVERED\t{0}", Describe(u));

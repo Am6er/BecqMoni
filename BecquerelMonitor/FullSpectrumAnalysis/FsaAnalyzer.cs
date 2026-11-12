@@ -6611,6 +6611,58 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool BackgroundOverflowOut { get; set; }
 
         /// <summary>
+        /// (`AMBER311`, полосы `a311f`/`a311g`) РЫЧАГ: СУММА площадей образов вылета одной родительской линии
+        /// (`SE-*` + `DE-*`) без матрицы отклика не больше площади пика полного поглощения этой линии В РЕШЕНИИ БЕЗ
+        /// ОБРАЗОВ (родитель от образа не зависит — правило тяги, решение Amber 12.11.2026 «Правило до включения
+        /// (Рекомендую)»), умноженной на границу
+        /// <see cref="FsaComponent.EscapeShareCap"/> (σ_пар/σ_фото вещества кристалла, довод —
+        /// <see cref="FsaLibrary.PairToPhotoRatio"/>). Без рычага образ — свободная колонка NNLS, с амплитудой
+        /// родителя не связанная: на спектре без родителя в данных он брал ближайшую необъяснённую структуру
+        /// (замер полосы `fixFsa2` 07.11.2026: `DE` линии 1461 кэВ — 64164 отсч. на краю Комптона цезия при 3304
+        /// отсч. пика родителя). Решение Amber 07.11.2026 вопросником, дословно: «Связать с родителем
+        /// (Рекомендую)»; граница на сумму — решение Amber 12.11.2026, дословно: «На сумму SE+DE (Рекомендую)».
+        /// Граница — в решателе (<see cref="ApplyEscapeBounds"/>): группа, вышедшая за неё, ставится НА неё. Образ без известного вещества кристалла,
+        /// без родительской колонки или без пика родителя в образе остаётся свободным, как прежде. При матрице
+        /// отклика рычаг не читается вовсе: вылеты там внутри слоя нуклида. Умолчание — в конструкторе.
+        /// </summary>
+        public bool EscapeBoundToParent { get; set; }
+
+        /// <summary>
+        /// (`AMBER311`, полоса `a311f`) РЫЧАГ: образы вылета не входят в «наибольшую значимость», от которой
+        /// считается порог отсева (<see cref="RefitThreshold"/>) и порог предела неизмеримого члена ряда. Образ
+        /// вылета — доля отклика родительской линии, а не самостоятельная находка: порог «нуклид найден, если
+        /// z ≥ …» обязан мериться нуклидами и прочими образами, а не тем, что выведено из них (замер `fixFsa2`:
+        /// порог 0.69 = 0.3 × z образа `SE` 2.30 при наибольшей z нуклида 1.28). Сами образы судятся тем же
+        /// порогом, как прежде. Умолчание — в конструкторе.
+        /// </summary>
+        public bool EscapeOutOfTopZ { get; set; }
+
+        /// <summary>
+        /// (`AMBER311`, полоса `a311f`) Сколько раз за разбор группа образов вылета ставилась на границу
+        /// (<see cref="EscapeBoundToParent"/>) — по всем решениям (сетка, перевзвешивания, перефиты).
+        /// Сбрасывается в начале <see cref="Analyze"/>.
+        /// </summary>
+        public int EscapeBoundHits { get; private set; }
+
+        /// <summary>
+        /// (`AMBER311`, полоса `a311f`) Образы вылета, стоящие на границе в ИТОГОВОМ фите последнего разбора:
+        /// «SE-… + DE-… ≤ граница·родитель (линия … кэВ)» через «; »; null — ни одного (или рычаг выключен).
+        /// </summary>
+        public string EscapeBoundNote { get; private set; }
+
+        /// <summary>
+        /// (`AMBER311`, полоса `a311h`) Сколько раз за разбор опорный образ грани вышел отрицательным и был сменён
+        /// (или закреплён в нуле) — <see cref="ApplyEscapeBounds"/>. Сбрасывается в начале <see cref="Analyze"/>.
+        /// </summary>
+        public int EscapePivotSwitches { get; private set; }
+
+        /// <summary>
+        /// (`AMBER311`, полоса `a311h`) Сколько принятых решений граней несли ОТРИЦАТЕЛЬНУЮ амплитуду образа — быть
+        /// не должно (сторож смены опорного). Сбрасывается в начале <see cref="Analyze"/>.
+        /// </summary>
+        public int EscapeNegativeAccepted { get; private set; }
+
+        /// <summary>
         /// (`AMBER295`, полоса `a295o`) Сколько отсчётов переполнения фона выведено из ЭТОГО захода ядра рычагом
         /// <see cref="BackgroundOverflowOut"/> (в своей шкале фона, до нормировки временем). Сбрасывается в начале
         /// каждого захода, до всякой ветки фона; наружу уходит полем <see cref="FsaResult.BackgroundOverflowDropped"/>.
@@ -10745,6 +10797,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`AMBER295`, остаток, полоса `a295o`) рычаг выключен: умолчание побитно прежнее; включение —
             // решением Amber по замеру (журнал handover/handover-2026-11-12-a295o.md)
             this.BackgroundOverflowOut = false;
+            // (`AMBER311`, полосы `a311f`/`a311g`) рычаги ВКЛЮЧЕНЫ умолчанием — решение Amber 12.11.2026 вопросником,
+            // дословно: «Оба, после доработок (Рекомендую)»; замер и критики — журнал handover/handover-2026-11-12-a311f.md
+            this.EscapeBoundToParent = true;
+            this.EscapeOutOfTopZ = true;
             // (`AMBER269`) нижняя граница разбора — настройка FSA, умолчание поставки (с 03.11.2026
             // нуль — правило порога, `AMBER274`; довод — у константы)
             this.FitLowerBoundKev = FsaBand.ShippedFitLowerBoundKev;
@@ -12824,6 +12880,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.PileUpCurveUsed = null;
             this.PileUpLossUsed = double.NaN;
             this.PileUpCapHits = 0;
+            this.EscapeBoundHits = 0;
+            this.EscapeBoundNote = null;
+            this.EscapePivotSwitches = 0;
+            this.EscapeNegativeAccepted = 0;
             this.PileUpCapPairs = double.NaN;
             this.PileUpUncappedPairs = double.NaN;
             // (`AMBER65`) Колонка наложений — на каждый разбор своя.
@@ -15019,7 +15079,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     limitThreshold = this.ChainLimitZ > 0.0
                         ? this.ChainLimitZ
-                        : this.RefitThreshold(TopZ(best));
+                        : this.RefitThreshold(TopZ(best, this.EscapeOutOfTopZ));
                     if (!(limitThreshold > 0.0))
                     {
                         break;
@@ -15107,6 +15167,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     total++;
+
+                    // (`AMBER311`, полоса `a311f`) образ вылета судится, но вершиной порога не бывает —
+                    // <see cref="EscapeOutOfTopZ"/>; тем же правилом, что <see cref="TopZ"/>
+                    if (this.EscapeOutOfTopZ && !string.IsNullOrEmpty(best.Columns[k].Component.EscapeParent))
+                    {
+                        continue;
+                    }
 
                     // (`T240`) Знаменатель приговора: НАИБОЛЬШАЯ значимость
                     // среди судимых. Без неё «порог выше всех» неотличимо от
@@ -15662,6 +15729,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // фит давал сверх неё.
             result.PileUpCapPairs = this.PileUpCapPairs;
             result.PileUpUncappedPairs = this.PileUpUncappedPairs;
+            // (`AMBER311`, полоса `a311f`) кто стоит на границе в итоговом фите
+            this.EscapeBoundNote = EscapeBoundNoteOf(best);
+            result.EscapeBoundHits = this.EscapeBoundHits;
+            result.EscapeBoundNote = this.EscapeBoundNote;
+            result.EscapePivotSwitches = this.EscapePivotSwitches;
+            result.EscapeNegativeAccepted = this.EscapeNegativeAccepted;
             // (`AMBER118`, П168) Линии состава, которые делит природный спутник,
             // отсутствующий в составе (U-235 под 186 кэВ Ra-226): только сказать,
             // в состав ничего не добавляется (~~`S110`~~).
@@ -17023,6 +17096,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             FromCrystal = host.FromCrystal,
                             CrystalEscape = host.CrystalEscape,
                             EscapeParent = host.EscapeParent,
+                            EscapeParentEnergy = host.EscapeParentEnergy,
+                            EscapeShareCap = host.EscapeShareCap,
                             TotalYieldPercent = host.TotalYieldPercent,
                             DecayChainRoot = host.DecayChainRoot,
                             Ties = new List<FsaTie>()
@@ -17194,12 +17269,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Наибольшая значимость среди колонок компонентов фита; NaN — судить
         /// некого. Тот же знаменатель, что у отсева (`T240`).
         /// </summary>
-        static double TopZ(FitResult fit)
+        static double TopZ(FitResult fit, bool escapeOut)
         {
             double top = double.NaN;
             for (int k = 0; k < fit.Columns.Count; k++)
             {
                 if (fit.Columns[k].Component == null)
+                {
+                    continue;
+                }
+
+                // (`AMBER311`, полоса `a311f`) образ вылета вершиной не бывает — <see cref="EscapeOutOfTopZ"/>
+                if (escapeOut && !string.IsNullOrEmpty(fit.Columns[k].Component.EscapeParent))
                 {
                     continue;
                 }
@@ -20568,11 +20649,43 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// по ключу проб — в <see cref="FsaResult.UntiedTail"/>.
             /// </summary>
             public FsaComponent TailOf;
+
+            /// <summary>
+            /// (`AMBER311`, полоса `a311f`) У образа вылета под рычагом <see cref="EscapeBoundToParent"/> —
+            /// номер колонки родителя в этом же списке; −1 — границы нет (все прочие колонки и все колонки
+            /// без рычага).
+            /// </summary>
+            public int BoundParent = -1;
+
+            /// <summary>
+            /// (`AMBER311`) Граница в АМПЛИТУДАХ: κ = граница по площади × площадь пика родительской линии на
+            /// единицу амплитуды родителя / площадь образа на единицу его амплитуды. Ограничение группы —
+            /// Σ x_образа/κ_образа ≤ x_родителя (<see cref="BoundGroup"/>).
+            /// </summary>
+            public double BoundRatio = double.NaN;
+
+            /// <summary>
+            /// (`AMBER311`, полоса `a311g`) Группа образа — одна родительская линия одного родителя (её SE и DE):
+            /// граница стоит на СУММУ группы. −1 — границы нет.
+            /// </summary>
+            public int BoundGroup = -1;
+
+            /// <summary>(`AMBER311`, полоса `a311h`) Площадь пика родительской линии на единицу амплитуды родителя.</summary>
+            public double BoundLineArea = double.NaN;
         }
 
         sealed class FitResult
         {
             public List<FitColumn> Columns;
+
+            /// <summary>(`AMBER311`) Колонки образов вылета, поставленные этим решением на границу; null — ни одной.</summary>
+            public List<int> EscapeBound;
+
+            /// <summary>(`AMBER311`, полоса `a311h`) x_р⁰ — амплитуда родителя без образов, по группам на границе.</summary>
+            public Dictionary<int, double> EscapeBoundParent0;
+
+            /// <summary>(`AMBER311`, полоса `a311h`) Бюджет перерешений граней исчерпан в этом решении.</summary>
+            public bool EscapeBudgetOut;
             public double[] Amplitude;
             public double[] Sigma;
             public double[] Z;
@@ -20798,7 +20911,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 List<FitColumn> columns = new List<FitColumn>(built.Count);
                 foreach (FitColumn column in built)
                 {
-                    columns.Add(new FitColumn { Component = column.Component, Values = column.Values, TailOf = column.TailOf });
+                    columns.Add(new FitColumn
+                    {
+                        Component = column.Component, Values = column.Values, TailOf = column.TailOf,
+                        BoundParent = column.BoundParent, BoundRatio = column.BoundRatio,
+                        BoundGroup = column.BoundGroup, BoundLineArea = column.BoundLineArea
+                    });
                 }
 
                 best = this.SolveFitColumns(columns, fromMatrix, fixedColumns.Count, chLo, chHi, channels, y, weights);
@@ -21909,12 +22027,661 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // (`AMBER311`, полоса `a311f`) границы образов вылета — пока колонки компонентов стоят одни:
+            // приписанные ниже номеров не сдвигают. При матрице рычаг не читается.
+            if (this.EscapeBoundToParent && this.ResponseMatrix == null)
+            {
+                this.BindEscapeColumns(columns, efficiency);
+            }
+
             foreach (double[] column in fixedColumns)
             {
                 columns.Add(new FitColumn { Component = null, Values = column });
             }
 
             return columns;
+        }
+
+        /// <summary>
+        /// (`AMBER311`, полосы `a311f`/`a311g`) Раздать образам вылета их границы (<see cref="EscapeBoundToParent"/>):
+        /// колонку родителя, ГРУППУ (одна родительская линия — её SE и DE вместе, граница на их сумму) и долю
+        /// амплитуды κ_i = σ_пар/σ_фото · A_линии / A_образа (на единицу амплитуды). Площади на единицу
+        /// амплитуды — той же меркой, какой образ кладёт свои пики (<see cref="PeakWindowLinePeakCounts"/>):
+        /// выход на эффективность; у родителя — ТОЛЬКО пик родительской линии, а не все его линии. Образ остаётся
+        /// свободным, когда границы у него нет (вещество кристалла неизвестно), родительской колонки в этом фите
+        /// нет или пика родительской линии в образе родителя нет (линия вне кривой эффективности): ограничивать
+        /// нечем, и догадка сюда не подставляется.
+        /// </summary>
+        void BindEscapeColumns(List<FitColumn> columns, FsaEfficiency efficiency)
+        {
+            var groups = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (int k = 0; k < columns.Count; k++)
+            {
+                FsaComponent image = columns[k].Component;
+                if (image == null || string.IsNullOrEmpty(image.EscapeParent) || image.FixedTemplate != null
+                    || !(image.EscapeShareCap >= 0.0) || !(image.EscapeParentEnergy > 0.0))
+                {
+                    continue;
+                }
+
+                int parent = -1;
+                for (int p = 0; p < columns.Count; p++)
+                {
+                    FsaComponent candidate = columns[p].Component;
+                    if (p != k && candidate != null && string.IsNullOrEmpty(candidate.EscapeParent)
+                        && string.Equals(candidate.Name, image.EscapeParent, StringComparison.Ordinal))
+                    {
+                        parent = p;
+                        break;
+                    }
+                }
+
+                if (parent < 0)
+                {
+                    continue;
+                }
+
+                double imageArea = 0.0;
+                double[] own = this.PeakWindowLinePeakCounts(image, efficiency);
+                for (int i = 0; own != null && i < own.Length; i++)
+                {
+                    imageArea += own[i];
+                }
+
+                double lineArea = 0.0;
+                FsaComponent host = columns[parent].Component;
+                double[] hosted = this.PeakWindowLinePeakCounts(host, efficiency);
+                for (int i = 0; hosted != null && i < hosted.Length; i++)
+                {
+                    if (Math.Abs(host.Lines[i].Energy - image.EscapeParentEnergy)
+                        <= 1.0E-6 * image.EscapeParentEnergy)
+                    {
+                        lineArea += hosted[i];
+                    }
+                }
+
+                if (!(imageArea > 0.0) || !(lineArea > 0.0) || !(image.EscapeShareCap > 0.0))
+                {
+                    continue;
+                }
+
+                string key = parent.ToString(CultureInfo.InvariantCulture) + "\u0001"
+                             + image.EscapeParentEnergy.ToString("R", CultureInfo.InvariantCulture);
+                int group;
+                if (!groups.TryGetValue(key, out group))
+                {
+                    group = groups.Count;
+                    groups.Add(key, group);
+                }
+
+                columns[k].BoundParent = parent;
+                columns[k].BoundGroup = group;
+                columns[k].BoundRatio = image.EscapeShareCap * lineArea / imageArea;
+                columns[k].BoundLineArea = lineArea;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER311`, полосы `a311f`/`a311g`/`a311h`) Строка <see cref="EscapeBoundNote"/> по фиту — по группе на
+        /// родительскую линию, стоящую на границе: «SE-… + DE-… ≤ граница·пик родителя без образов (линия … кэВ,
+        /// … отсч.)», и строка об исчерпанном бюджете перерешений; null — на границе никого.
+        /// </summary>
+        static string EscapeBoundNoteOf(FitResult fit)
+        {
+            if (fit == null || ((fit.EscapeBound == null || fit.EscapeBound.Count == 0) && !fit.EscapeBudgetOut))
+            {
+                return null;
+            }
+
+            var byGroup = new SortedDictionary<int, List<int>>();
+            for (int b = 0; fit.EscapeBound != null && b < fit.EscapeBound.Count; b++)
+            {
+                int k = fit.EscapeBound[b];
+                List<int> members;
+                if (!byGroup.TryGetValue(fit.Columns[k].BoundGroup, out members))
+                {
+                    members = new List<int>();
+                    byGroup.Add(fit.Columns[k].BoundGroup, members);
+                }
+
+                members.Add(k);
+            }
+
+            var note = new StringBuilder();
+            foreach (KeyValuePair<int, List<int>> group in byGroup)
+            {
+                List<int> members = group.Value;
+                FitColumn first = fit.Columns[members[0]];
+                if (note.Length > 0)
+                {
+                    note.Append("; ");
+                }
+
+                for (int i = 0; i < members.Count; i++)
+                {
+                    if (i > 0)
+                    {
+                        note.Append(" + ");
+                    }
+
+                    note.Append(fit.Columns[members[i]].Component.Name);
+                }
+
+                double x0 = double.NaN;
+                if (fit.EscapeBoundParent0 != null)
+                {
+                    fit.EscapeBoundParent0.TryGetValue(group.Key, out x0);
+                }
+
+                note.AppendFormat(CultureInfo.InvariantCulture,
+                                  " ≤ {0:G6}·пик {1} без образов (линия {2:G6} кэВ, {3:G6} отсч.)",
+                                  first.Component.EscapeShareCap,
+                                  fit.Columns[first.BoundParent].Component.Name,
+                                  first.Component.EscapeParentEnergy,
+                                  x0 * first.BoundLineArea);
+            }
+
+            if (fit.EscapeBudgetOut)
+            {
+                if (note.Length > 0)
+                {
+                    note.Append("; ");
+                }
+
+                note.Append("⚠ бюджет перерешений исчерпан — граница вылета в этом решении могла остаться нарушенной");
+            }
+
+            return note.ToString();
+        }
+
+        /// <summary>
+        /// (`AMBER311`, полосы `a311f`/`a311g`/`a311h`) ГРАНИЦА ОБРАЗОВ ВЫЛЕТА В РЕШАТЕЛЕ — НА СУММУ SE+DE ОДНОЙ
+        /// РОДИТЕЛЬСКОЙ ЛИНИИ (решение Amber 12.11.2026 вопросником, дословно: «На сумму SE+DE (Рекомендую)») И ОТ
+        /// РОДИТЕЛЯ БЕЗ ОБРАЗОВ (решение Amber 12.11.2026 вопросником, дословно: «Правило до включения
+        /// (Рекомендую)»): Σ_{i ∈ группа} x_i/κ_i ≤ x_р⁰, то есть A_SE + A_DE ≤ σ_пар/σ_фото·A⁰_пика линии, где x_р⁰ —
+        /// амплитуда родителя в решении С ОБРАЗАМИ СВОЕЙ ГРУППЫ В НУЛЕ (решение Amber 12.11.2026 вопросником,
+        /// дословно: «Только своей группы (Рекомендую)»; по решению NNLS на группу, прочие образы свободны, те же
+        /// Грам и веса, шапка наложений — КАКОЙ ОНА БЫЛА ПРИ ВХОДЕ в решатель: если шапка впервые сработает внутри
+        /// цикла граней, x_р⁰ не пересчитывается — ветка недостижима на корпусе, критик `crit311i`). Граница ПОСТОЯННАЯ: родитель в решении остаётся свободной
+        /// колонкой и от образа не зависит — образ на грани не поднимает родителя выше его собственного пика без
+        /// образов. Довод (критик `crit311h`): граница вольнее физики в десятки раз, поэтому группа, вставшая на
+        /// неё, — уже почти доказательство, что образ описывает не вылет; сцепка «образ = κ·родитель» переносила
+        /// бы чужую структуру в активность родителя (Y-88: K-40 +47 %; Medal: линия 1588 кэВ из нуля).
+        ///
+        /// Нарушенная группа (наибольшее относительное превышение) ставится на грань, и решение повторяется;
+        /// поставленная с грани не снимается (кругов не больше числа групп; при нескольких группах решение
+        /// допустимо, но не обязательно оптимально). Грань снимается подстановкой x = T·u + x₀: один образ группы
+        /// («опорный», q) выражен через остальных, x_q = κ_q·x_р⁰ − Σ_{j≠q} (κ_q/κ_j)·x_j — постоянная часть уходит в
+        /// x₀, Грам и правая часть сворачиваются (TᵀGT, Tᵀ(c − G·x₀)), задача снова NNLS — точный минимум на грани,
+        /// если опорный вышел ≥ 0. Опорный < 0 — опорным берётся другой член; не вышло и с ним — последний опорный
+        /// закрепляется в нуле, и группа идёт оставшимся (x = κ·x_р⁰ − …, у одного образа — постоянная). x_р⁰ = 0 —
+        /// все образы группы в нуле. Счётчик смен опорного — <see cref="EscapePivotSwitches"/>; принятое решение с
+        /// отрицательным образом (быть не должно) — <see cref="EscapeNegativeAccepted"/>.
+        ///
+        /// ⛔ Граница амплитуды наложений (<see cref="ApplyAmplitudeCaps"/>) проверяется и ПОСЛЕ каждого
+        /// перерешения: вышедшая колонка закрепляется на шапке (в правую часть), и решение повторяется (замечание
+        /// (а) критика `crit311g`). ⚠ Ветка подтверждена только чтением: сцены, где колонка наложений задета
+        /// перерешением граней, в корпусе и в пробе нет (критик `crit311h`: ни одного срабатывания).
+        ///
+        /// ⚠ Бюджет перерешений (4·(групп + колонок) + 8) на практике недостижим; если он кончится, решение остаётся
+        /// последним принятым, а в заметке встаёт строка «бюджет перерешений исчерпан» (<see cref="FitResult.EscapeBudgetOut"/>).
+        ///
+        /// Образ на грани — НЕ свободный параметр (то же правило, что у `AMBER137`): из активного множества он
+        /// уходит, σ соседей и число степеней свободы считаются без него; его собственная σ — дополнением Шура
+        /// (<see cref="ColumnSigma"/>), и судьбу при отсеве решает его z, как прежде.
+        /// </summary>
+        double[] ApplyEscapeBounds(List<FitColumn> columns, double[,] gram, double[] c, int m,
+                                   double[] x, ref bool[] active, ref int capped, out List<int> bound,
+                                   out Dictionary<int, double> parent0, out bool budgetOut)
+        {
+            bound = null;
+            parent0 = null;
+            budgetOut = false;
+            int groupCount = 0;
+            for (int k = 0; k < m; k++)
+            {
+                if (columns[k].BoundParent >= 0 && columns[k].BoundGroup >= groupCount)
+                {
+                    groupCount = columns[k].BoundGroup + 1;
+                }
+            }
+
+            if (groupCount == 0)
+            {
+                return x;
+            }
+
+            var members = new List<int>[groupCount];
+            var parentOf = new int[groupCount];
+            for (int g = 0; g < groupCount; g++)
+            {
+                members[g] = new List<int>();
+                parentOf[g] = -1;
+            }
+
+            for (int k = 0; k < m; k++)
+            {
+                if (columns[k].BoundParent >= 0 && columns[k].BoundGroup >= 0)
+                {
+                    members[columns[k].BoundGroup].Add(k);
+                    parentOf[columns[k].BoundGroup] = columns[k].BoundParent;
+                }
+            }
+
+            bool[] tied = new bool[groupCount];
+            int[] pivot = new int[groupCount];
+            double[] limit = null;   // x_р⁰ по группам — считается при первом нарушении
+            bool[] zeroed = new bool[m];
+            double capValue = capped >= 0 ? x[capped] : 0.0;
+            int budget = 4 * (groupCount + m) + 8;
+            bool any = false;
+            while (true)
+            {
+                if (budget-- <= 0)
+                {
+                    budgetOut = true;
+                    break;
+                }
+
+                if (limit == null)
+                {
+                    // нарушение без пересчёта ещё возможно только против x_р в решении С образами: если и его
+                    // нет, x_р⁰ не нужен вовсе (умолчание и решения без нарушения — побитно прежние)
+                    bool maybe = false;
+                    for (int g = 0; g < groupCount && !maybe; g++)
+                    {
+                        double load = 0.0;
+                        foreach (int k in members[g])
+                        {
+                            load += x[k] / columns[k].BoundRatio;
+                        }
+
+                        maybe = load > 0.0;
+                    }
+
+                    if (!maybe)
+                    {
+                        break;
+                    }
+
+                    // x_р⁰ группы: решение с образами ТОЛЬКО СВОЕЙ группы в нуле (решение Amber 12.11.2026
+                    // вопросником, дословно: «Только своей группы (Рекомендую)»), прочие образы и родители
+                    // свободны; шапка наложений — какой она была при входе в решатель
+                    limit = new double[groupCount];
+                    for (int g = 0; g < groupCount; g++)
+                    {
+                        if (parentOf[g] < 0)
+                        {
+                            continue;
+                        }
+
+                        bool[] ownImages = new bool[m];
+                        foreach (int k in members[g])
+                        {
+                            ownImages[k] = true;
+                        }
+
+                        bool[] scratch;
+                        double[] free = this.SolveEscapeFaces(columns, gram, c, m, members, tied, pivot, null,
+                                                              ownImages, capped, capValue, out scratch);
+                        limit[g] = Math.Max(0.0, free[parentOf[g]]);
+                    }
+                }
+
+                // нарушитель с наибольшим относительным превышением среди ещё не поставленных групп
+                int worst = -1;
+                double worstExcess = 0.0;
+                for (int g = 0; g < groupCount; g++)
+                {
+                    if (tied[g] || parentOf[g] < 0)
+                    {
+                        continue;
+                    }
+
+                    double load = 0.0;
+                    bool blocked = false;
+                    foreach (int k in members[g])
+                    {
+                        blocked |= k == capped;
+                        load += x[k] / columns[k].BoundRatio;
+                    }
+
+                    if (blocked || !(load > limit[g]))
+                    {
+                        continue;
+                    }
+
+                    double excess = (load - limit[g]) / load;
+                    if (worst < 0 || excess > worstExcess)
+                    {
+                        worst = g;
+                        worstExcess = excess;
+                    }
+                }
+
+                if (worst < 0)
+                {
+                    break;
+                }
+
+                any = true;
+                tied[worst] = true;
+                this.EscapeBoundHits++;
+                if (!(limit[worst] > 0.0))
+                {
+                    // родителя без образов нет — все образы группы в нуле
+                    foreach (int k in members[worst])
+                    {
+                        zeroed[k] = true;
+                    }
+
+                    pivot[worst] = -1;
+                }
+                else
+                {
+                    pivot[worst] = Largest(members[worst], x);
+                }
+
+                var tried = new HashSet<int>();
+                if (pivot[worst] >= 0)
+                {
+                    tried.Add(pivot[worst]);
+                }
+
+                bool accepted = false;
+                while (budget-- > 0)
+                {
+                    bool[] solvedActive;
+                    double[] solved = this.SolveEscapeFaces(columns, gram, c, m, members, tied, pivot, limit,
+                                                            zeroed, capped, capValue, out solvedActive);
+
+                    // опорный отрицателен — сменить опорного, а не принять недопустимое решение
+                    int negative = -1;
+                    for (int g = 0; g < groupCount && negative < 0; g++)
+                    {
+                        int q = tied[g] ? pivot[g] : -1;
+                        if (q >= 0 && solved[q] < 0.0)
+                        {
+                            // округление на самой грани (опорный ровно ноль) — не повод менять опорного
+                            if (-solved[q] > 1.0E-9 * columns[q].BoundRatio * limit[g])
+                            {
+                                negative = g;
+                            }
+                            else
+                            {
+                                solved[q] = 0.0;
+                            }
+                        }
+                    }
+
+                    if (negative >= 0)
+                    {
+                        this.EscapePivotSwitches++;
+                        int other = -1;
+                        foreach (int k in members[negative])
+                        {
+                            if (!zeroed[k] && k != pivot[negative] && !tried.Contains(k))
+                            {
+                                other = k;
+                                break;
+                            }
+                        }
+
+                        if (other >= 0)
+                        {
+                            tried.Add(other);
+                            pivot[negative] = other;
+                            continue;
+                        }
+
+                        // обе опоры отрицательны: последний опорный — в ноль, группа идёт оставшимися
+                        zeroed[pivot[negative]] = true;
+                        int rest = -1;
+                        foreach (int k in members[negative])
+                        {
+                            if (!zeroed[k])
+                            {
+                                rest = k;
+                                break;
+                            }
+                        }
+
+                        pivot[negative] = rest;
+                        tried.Clear();
+                        if (rest >= 0)
+                        {
+                            tried.Add(rest);
+                        }
+
+                        continue;
+                    }
+
+                    // (замечание (а) `crit311g`) шапка наложений после перерешения
+                    if (capped < 0)
+                    {
+                        int over = -1;
+                        for (int k = 0; k < m && over < 0; k++)
+                        {
+                            FsaComponent component = columns[k].Component;
+                            if (component != null && !double.IsNaN(component.AmplitudeCap)
+                                && solved[k] > component.AmplitudeCap && columns[k].BoundParent < 0)
+                            {
+                                over = k;
+                            }
+                        }
+
+                        if (over >= 0)
+                        {
+                            capped = over;
+                            capValue = Math.Max(0.0, columns[over].Component.AmplitudeCap);
+                            if (solved[over] > this.PileUpUncappedPairs || double.IsNaN(this.PileUpUncappedPairs))
+                            {
+                                this.PileUpUncappedPairs = solved[over];
+                            }
+
+                            this.PileUpCapHits++;
+                            continue;
+                        }
+                    }
+
+                    for (int g = 0; g < groupCount; g++)
+                    {
+                        foreach (int k in members[g])
+                        {
+                            if (solved[k] < 0.0)
+                            {
+                                this.EscapeNegativeAccepted++;
+                                break;
+                            }
+                        }
+                    }
+
+                    x = solved;
+                    active = solvedActive;
+                    accepted = true;
+                    break;
+                }
+
+                if (!accepted)
+                {
+                    budgetOut = true;
+                    break;
+                }
+            }
+
+            if (!any)
+            {
+                return x;
+            }
+
+            parent0 = new Dictionary<int, double>();
+            for (int g = 0; g < groupCount; g++)
+            {
+                if (!tied[g])
+                {
+                    continue;
+                }
+
+                parent0[g] = limit[g];
+                foreach (int k in members[g])
+                {
+                    if (!zeroed[k])
+                    {
+                        if (bound == null)
+                        {
+                            bound = new List<int>();
+                        }
+
+                        bound.Add(k);
+                    }
+                }
+            }
+
+            return x;
+        }
+
+        /// <summary>(`AMBER311`) Член группы с наибольшей амплитудой — первый опорный.</summary>
+        static int Largest(List<int> members, double[] x)
+        {
+            int best = members[0];
+            foreach (int k in members)
+            {
+                if (x[k] > x[best])
+                {
+                    best = k;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// (`AMBER311`, полосы `a311g`/`a311h`) Решение NNLS на гранях поставленных групп: подстановка
+        /// x = T·u + x₀ (см. <see cref="ApplyEscapeBounds"/>). Опорный член группы, закреплённый в нуле образ и
+        /// колонка наложений на шапке — зависимые (их u — тождественная строка с нулём справа); остальные свободны.
+        /// <paramref name="limit"/> — x_р⁰ групп (постоянная часть опорного κ_q·x_р⁰); null — граней нет (решение
+        /// для x_р⁰ с образами в нуле).
+        /// </summary>
+        double[] SolveEscapeFaces(List<FitColumn> columns, double[,] gram, double[] c, int m,
+                                  List<int>[] members, bool[] tied, int[] pivot, double[] limit, bool[] zeroed,
+                                  int capped, double capValue, out bool[] solvedActive)
+        {
+            var rows = new List<KeyValuePair<int, double>>[m];
+            double[] constant = new double[m];
+            bool[] dependent = new bool[m];
+            for (int k = 0; k < m; k++)
+            {
+                rows[k] = new List<KeyValuePair<int, double>>();
+            }
+
+            for (int k = 0; k < m; k++)
+            {
+                if (k == capped)
+                {
+                    dependent[k] = true;
+                    constant[k] = capValue;
+                }
+                else if (zeroed[k])
+                {
+                    dependent[k] = true;
+                }
+            }
+
+            for (int g = 0; limit != null && g < members.Length; g++)
+            {
+                if (tied[g] && pivot[g] >= 0)
+                {
+                    dependent[pivot[g]] = true;
+                }
+            }
+
+            for (int k = 0; k < m; k++)
+            {
+                if (!dependent[k])
+                {
+                    rows[k].Add(new KeyValuePair<int, double>(k, 1.0));
+                }
+            }
+
+            for (int g = 0; limit != null && g < members.Length; g++)
+            {
+                int q = pivot[g];
+                if (!tied[g] || q < 0)
+                {
+                    continue;
+                }
+
+                double kq = columns[q].BoundRatio;
+                constant[q] = kq * limit[g];
+                foreach (int j in members[g])
+                {
+                    if (j != q && !zeroed[j])
+                    {
+                        rows[q].Add(new KeyValuePair<int, double>(j, -kq / columns[j].BoundRatio));
+                    }
+                }
+            }
+
+            // правая часть с постоянными: c − G·x₀
+            double[] right = new double[m];
+            for (int a = 0; a < m; a++)
+            {
+                double s = c[a];
+                for (int b = 0; b < m; b++)
+                {
+                    if (constant[b] != 0.0)
+                    {
+                        s -= gram[a, b] * constant[b];
+                    }
+                }
+
+                right[a] = s;
+            }
+
+            double[,] reduced = new double[m, m];
+            double[] rhs = new double[m];
+            for (int a = 0; a < m; a++)
+            {
+                foreach (KeyValuePair<int, double> ta in rows[a])
+                {
+                    rhs[ta.Key] += ta.Value * right[a];
+                    for (int b = 0; b < m; b++)
+                    {
+                        foreach (KeyValuePair<int, double> tb in rows[b])
+                        {
+                            reduced[ta.Key, tb.Key] += ta.Value * tb.Value * gram[a, b];
+                        }
+                    }
+                }
+            }
+
+            for (int k = 0; k < m; k++)
+            {
+                if (dependent[k])
+                {
+                    reduced[k, k] = 1.0;
+                    rhs[k] = 0.0;
+                }
+            }
+
+            double[] u = NnlsSolve(reduced, rhs, m, out solvedActive);
+            double[] xNew = new double[m];
+            for (int k = 0; k < m; k++)
+            {
+                double v = constant[k];
+                foreach (KeyValuePair<int, double> t in rows[k])
+                {
+                    v += t.Value * u[t.Key];
+                }
+
+                xNew[k] = v;
+                if (dependent[k])
+                {
+                    solvedActive[k] = false;
+                }
+            }
+
+            return xNew;
         }
 
         /// <summary>
@@ -22096,6 +22863,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] x = NnlsSolve(gram, rhs, m, out active);
             int capped;
             x = this.ApplyAmplitudeCaps(columns, gram, rhs, m, x, ref active, out capped);
+            // (`AMBER311`, полоса `a311f`) граница образов вылета; без рычага границ нет ни у одной колонки,
+            // и массив возвращается тот же
+            List<int> escapeBound;
+            Dictionary<int, double> escapeParent0;
+            bool escapeBudgetOut;
+            x = this.ApplyEscapeBounds(columns, gram, rhs, m, x, ref active, ref capped, out escapeBound,
+                                       out escapeParent0, out escapeBudgetOut);
             if (shift != null)
             {
                 for (int k = 0; k < m; k++)
@@ -22209,7 +22983,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Active = active,
                 ActiveIndices = activeIndices,
                 ActiveInverse = activeInverse,
-                FixedFirst = fixedFirst
+                FixedFirst = fixedFirst,
+                EscapeBound = escapeBound,
+                EscapeBoundParent0 = escapeParent0,
+                EscapeBudgetOut = escapeBudgetOut
             };
 
             // (`AMBER137`, П182) Колонка, закреплённая на границе, вне
@@ -22225,6 +23002,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     sigma[capped] = own;
                     z[capped] = x[capped] / own;
+                }
+            }
+
+            // (`AMBER311`, полоса `a311f`) образ вылета на границе — та же мера, что у закреплённой колонки
+            // выше: σ дополнением Шура против свободных колонок, z решает его судьбу при отсеве.
+            for (int b = 0; escapeBound != null && b < escapeBound.Count; b++)
+            {
+                int k = escapeBound[b];
+                if (!(x[k] > 0.0))
+                {
+                    continue;
+                }
+
+                double own = ColumnSigma(result, k);
+                if (own > 0.0 && !double.IsInfinity(own) && !double.IsNaN(own))
+                {
+                    sigma[k] = own;
+                    z[k] = x[k] / own;
                 }
             }
 
