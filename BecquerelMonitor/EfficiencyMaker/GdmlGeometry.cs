@@ -416,6 +416,32 @@ namespace BecquerelMonitor.EfficiencyMaker
         public int MaterialCount;
 
         /// <summary>
+        /// (`AMBER301`, остаток `a301c`) Сколько веществ в файле для человека: вещества томов и вещества только непрочитанного
+        /// содержимого (<see cref="UncountedMaterials"/>) — у них в сводке есть строка «не учтено». Это ЕДИНСТВЕННЫЙ счёт
+        /// для всех трёх мест, где число называется: первая строка сводки чертежа, строка журнала окна и запасной текст
+        /// сводки. Прежде журнал и запасной текст не считали непрочитанное («веществ 1» над списком из двух строк), а
+        /// сводка считала строки списка — и том без вещества («(нет вещества)») выходил у неё веществом: «веществ: 1»
+        /// при «веществ 0» в журнале (критик 12.11.2026). Том без имени вещества веществом не считается нигде: строка
+        /// «(нет вещества)» в списке остаётся и говорит именно это.
+        /// </summary>
+        public int MaterialRowCount
+        {
+            get
+            {
+                int count = this.MaterialCount;
+                foreach (string name in this.UncountedMaterials.Keys)
+                {
+                    if (!this.Materials.Contains(name))
+                    {
+                        count++;
+                    }
+                }
+
+                return count;
+            }
+        }
+
+        /// <summary>
         /// (fixGdml2, третий заход) Вещества томов, чьи копии не размещены (`replicavol` вдоль rho/phi, `paramvol`,
         /// `divisionvol`), с причиной: в файле они есть, а в сцене и массе — нет. Сводка и легенда называют их «не учтено».
         /// </summary>
@@ -4536,7 +4562,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             text.AppendLine(string.Format(CultureInfo.InvariantCulture,
                 GdmlText.T("GdmlSummaryHeader",
                     "{0}: GDML geometry - {1} volume(s), {2} material(s); unsupported bodies: {3}, unknown compositions: {4}."),
-                Path.GetFileName(this.FileName), this.Volumes.Count, this.MaterialCount,
+                Path.GetFileName(this.FileName), this.Volumes.Count, this.MaterialRowCount,
                 this.UnknownSolids, this.UnknownMaterials));
             text.AppendLine(string.Format(CultureInfo.InvariantCulture,
                 GdmlText.T("GdmlSummaryBodies", "Bodies: {0}"), this.SolidSummary()));
@@ -4832,7 +4858,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             return string.Format(CultureInfo.InvariantCulture,
                 GdmlText.T("GdmlImported",
                     "GDML imported: {0}; {1} volume(s), {2} material(s), unsupported bodies: {3}, unknown compositions: {4}."),
-                Path.GetFileName(this.FileName), this.Volumes.Count, this.MaterialCount,
+                Path.GetFileName(this.FileName), this.Volumes.Count, this.MaterialRowCount,
                 this.UnknownSolids, this.UnknownMaterials);
         }
 

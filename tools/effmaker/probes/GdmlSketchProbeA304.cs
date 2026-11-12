@@ -2022,6 +2022,79 @@ namespace GdmlSketchProbeA304
                   && head.Contains(", " + phiOverview.Materials.Count.ToString(CultureInfo.InvariantCulture) + " material(s)"),
                   "строк " + phiOverview.Materials.Count + ", у читателя " + phi.MaterialCount + ": " + head);
 
+            // (`a301c`) То же число — в строке журнала окна и в запасном тексте сводки: прежде они считали только вещества томов
+            // («веществ 1» над списком из двух строк). Контроль: у файла без непрочитанного содержимого счёт прежний.
+            string wanted = ", " + phiOverview.Materials.Count.ToString(CultureInfo.InvariantCulture) + " material(s)";
+            Check("журнал окна: «N веществ» считает вещество непрочитанного содержимого", phi.MaterialRowCount == phiOverview.Materials.Count && phi.DescribeLog().Contains(wanted),
+                  phi.DescribeLog());
+            Check("запасной текст сводки: «N веществ» то же", phi.Describe().Split('\n')[0].Contains(wanted), phi.Describe().Split('\n')[0].Trim());
+            Check("контроль: без непрочитанного содержимого счёт веществ прежний", g.UncountedMaterials.Count == 0 && g.MaterialRowCount == g.MaterialCount
+                  && g.DescribeLog().Contains(", " + g.MaterialCount.ToString(CultureInfo.InvariantCulture) + " material(s)"), g.DescribeLog());
+
+            // (`a301c`, критик `crit301d`) Счёт один на все три места. Сводка считала строки списка, и том без вещества
+            // выходил у неё веществом: «1 material(s)» при «0 material(s)» в журнале окна (`t14_mat_noname`, `v02_no_materialref`).
+            Func<string, int> said = text =>
+            {
+                Match m = Regex.Match(text, @"(\d+) material\(s\)");
+                return m.Success ? int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) : -1;
+            };
+            Func<GdmlGeometry, int[]> counts = geometry => new[]
+            {
+                said(GdmlOverview.Of(geometry).SummaryText().Split('\n')[1]), said(geometry.DescribeLog()), said(geometry.Describe().Split('\n')[0]),
+            };
+            foreach (string nameless in new[] { "t14_mat_noname.gdml", "v02_no_materialref.gdml" })
+            {
+                GdmlGeometry bare = GdmlGeometry.Read(Path.Combine(data, nameless));
+                GdmlOverview bareOverview = GdmlOverview.Of(bare);
+                int[] c = counts(bare);
+                Check(nameless + ": том без вещества веществом не считается — сводка, журнал окна и запасной текст говорят 0",
+                      c[0] == 0 && c[1] == 0 && c[2] == 0, "сводка " + c[0] + ", журнал " + c[1] + ", запасной текст " + c[2]);
+                Check(nameless + ": строка «(нет вещества)» в списке сводки осталась", bareOverview.Materials.Count == 1 && bareOverview.SummaryText().Contains("(no material)"),
+                      "строк " + bareOverview.Materials.Count);
+            }
+
+            // Мутант x2 критика: вещество и у тома, и у непрочитанного содержимого — одна строка, счёт 1 (не дважды).
+            // Сцена — `a_replica_phi` со свинцом сегмента, заменённым на воздух тома; контроль — сам `a_replica_phi`: 2.
+            string sameFile = Path.Combine(tmp, "a301c_same_air.gdml");
+            File.WriteAllText(sameFile, File.ReadAllText(Path.Combine(data, "a_replica_phi.gdml")).Replace("G4_Pb", "G4_AIR"));
+            GdmlGeometry same = GdmlGeometry.Read(sameFile);
+            {
+                int[] c = counts(same);
+                Check("вещество и у тома, и у непрочитанного содержимого: одна строка и счёт 1 во всех трёх местах",
+                      same.UncountedMaterials.Count == 1 && same.Materials.Count == 1 && GdmlOverview.Of(same).Materials.Count == 1 && c[0] == 1 && c[1] == 1 && c[2] == 1,
+                      "непрочитанных " + same.UncountedMaterials.Count + ", строк " + GdmlOverview.Of(same).Materials.Count + "; сводка " + c[0] + ", журнал " + c[1] + ", запасной текст " + c[2]);
+                int[] p = counts(phi);
+                Check("контроль: то же с другим веществом сегмента — 2 во всех трёх местах", p[0] == 2 && p[1] == 2 && p[2] == 2, "сводка " + p[0] + ", журнал " + p[1] + ", запасной текст " + p[2]);
+            }
+
+            // Все входы пробы: три места называют одно число.
+            int agreed = 0;
+            List<string> split = new List<string>();
+            foreach (string path in Directory.GetFiles(data, "*.gdml"))
+            {
+                GdmlGeometry any;
+                int[] c;
+                try
+                {
+                    any = GdmlGeometry.Read(path);
+                    if (!string.IsNullOrEmpty(any.FatalError) || any.Volumes.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    c = counts(any);
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+
+                agreed++;
+                if (c[0] != c[1] || c[1] != c[2] || c[0] != any.MaterialRowCount) split.Add(Path.GetFileName(path) + " " + c[0] + "/" + c[1] + "/" + c[2]);
+            }
+
+            Check("все входы пробы: сводка, журнал окна и запасной текст называют одно число веществ", agreed > 50 && split.Count == 0, "файлов " + agreed + "; " + string.Join("; ", split));
+
             // ---- Второй заход (`a301b`, по вердикту критика 12.11.2026) ----
 
             // 9. Р3а: проба взята из файла — стрелки нет. Правило держат три проверки: сами метки; учебная сцена «детектор и
@@ -2295,6 +2368,65 @@ namespace GdmlSketchProbeA304
                     Shot(d, "a301b_solo_" + (sign < 0 ? "minus" : "plus"));
                 }
             }
+
+            // 15. Остаток (`a301c`, 12.11.2026): подпись выноски не ложится на размерные линии и не стоит вплотную к буквам
+            //     линии разреза. На снимках гида «Detector» стояла под самой размерной линией «214 mm», а «Детектор» окна
+            //     импорта — вплотную к букве «A». Учебная сцена в размерах снимков гида и пробы, по-английски и по-русски.
+            foreach (string culture in new[] { "", "ru" })
+            {
+                Thread.CurrentThread.CurrentUICulture = culture.Length == 0 ? CultureInfo.InvariantCulture : new CultureInfo(culture);
+                try
+                {
+                    foreach (bool compact in new[] { false, true })
+                    foreach (Size size in compact ? new[] { new Size(462, 370), new Size(462, 300), new Size(520, 420), new Size(400, 300), new Size(600, 450), new Size(430, 340), new Size(360, 300), new Size(360, 380) }
+                                                  : new[] { new Size(712, 650), new Size(1100, 700), new Size(900, 560), new Size(800, 600), new Size(640, 520), new Size(1000, 640) })
+                    foreach (GdmlParts parts in new[] { all, GdmlParts.Detector | GdmlParts.Sample, GdmlParts.Detector })
+                    {
+                        using (Drawing d = Draw(g, size, sketch =>
+                        {
+                            sketch.Compact = compact;
+                            with(parts, false)(sketch);
+                        }))
+                        {
+                            string label = "выноски, " + (culture.Length == 0 ? "en" : culture) + (compact ? ", окно импорта " : ", вкладка ") + size.Width + "x" + size.Height + ", " + parts;
+                            CalloutChecks301(label, d, true);
+                            Shot(d, "a301c_" + (culture.Length == 0 ? "en" : culture) + (compact ? "_import_" : "_tab_") + size.Width + "x" + size.Height + "_" + (int)parts);
+                        }
+                    }
+                }
+                finally
+                {
+                    Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
+                }
+            }
+
+            // 16. То же при подписях столбцами (слева и справа от чертежа): широкое низкое окно. Слева стоит вертикальный размер
+            //     габарита, и подпись левого столбца — за его первым рядом. Контроль: раскладка здесь и правда столбцами.
+            int columnScenes = 0, leftLabels = 0;
+            foreach (Size size in new[] { new Size(1100, 330), new Size(1300, 360), new Size(1000, 300), new Size(900, 300) })
+            foreach (GdmlParts parts in new[] { all, GdmlParts.Detector })
+            {
+                using (Drawing d = Draw(g, size, with(parts, false)))
+                {
+                    IList slots = (IList)Field(d.Sketch, "paintSlots");
+                    string mode = slots.Count > 0 ? slots[0].GetType().GetField("Mode").GetValue(slots[0]).ToString() : "?";
+                    if (mode != "Columns")
+                    {
+                        continue;
+                    }
+
+                    columnScenes++;
+                    foreach (GdmlSketch.SketchCallout c in calloutsOf(d))
+                    {
+                        if (c.Axial && c.Label.Right < Drawn(d, true).Left) leftLabels++;
+                    }
+
+                    CalloutChecks301("выноски столбцами, вкладка " + size.Width + "x" + size.Height + ", " + parts, d, true);
+                    Shot(d, "a301c_columns_" + size.Width + "x" + size.Height + "_" + (int)parts);
+                }
+            }
+
+            Check("контроль: раскладка столбцами встретилась, и подписи слева от разреза в ней есть", columnScenes > 0 && leftLabels > 0, "сцен " + columnScenes + ", подписей слева " + leftLabels);
         }
 
         /// <summary>Рамка мирового бруска на виде, в точках экрана.</summary>
@@ -2362,6 +2494,93 @@ namespace GdmlSketchProbeA304
             Check(label + ": стрелка не ближе 6, подпись не ближе 4 точек к размерным и выносным линиям", nearDims.Count == 0, string.Join("; ", nearDims));
             Check(label + ": стрелка и подпись не на других подписях", onMarks.Count == 0, string.Join("; ", onMarks));
             Check(label + ": подпись «к пробе» не на оси", onAxis.Count == 0, string.Join("; ", onAxis));
+        }
+
+        /// <summary>Просвет между двумя рамками, точек; 0 — касаются или пересекаются.</summary>
+        static float Gap301(RectangleF a, RectangleF b)
+        {
+            float dx = Math.Max(0f, Math.Max(a.Left - b.Right, b.Left - a.Right));
+            float dy = Math.Max(0f, Math.Max(a.Top - b.Bottom, b.Top - a.Bottom));
+            return (float)Math.Sqrt(dx * dx + dy * dy);
+        }
+
+        const float CalloutDimRoom301 = 10f, CalloutExtRoom301 = 6f, CalloutMarkRoom301 = 4f, LeaderMarkRoom301 = 3f;
+
+        /// <summary>
+        /// (`AMBER301`, остаток `a301c`) Выноски на любой сцене: подпись не ближе 10 точек к размерной линии и 6 — к выносной, не
+        /// ближе 4 точек к буквам «A» линии разреза и к числам размеров; линия выноски не ближе 3 точек к букве «A» и к числу
+        /// размера (пересечь размерную линию она может: подписи стоят снаружи размеров); число размера не ближе 4 точек к букве
+        /// «A». <paramref name="needCallouts"/> — на сцене обязана быть хотя бы одна выноска.
+        /// </summary>
+        static void CalloutChecks301(string label, Drawing d, bool needCallouts)
+        {
+            List<GdmlSketch.SketchMark> marks = (List<GdmlSketch.SketchMark>)Field(d.Sketch, "paintMarks");
+            List<GdmlSketch.SketchCallout> callouts = (List<GdmlSketch.SketchCallout>)Field(d.Sketch, "paintCallouts");
+            GeometrySketch.DimLine[] dims = d.Sketch.DimensionLines;
+            HashSet<string> numbers = new HashSet<string>(dims.Select(x => x.Key));
+            List<GdmlSketch.SketchMark> letters = marks.FindAll(m => m.Text == "A");
+            List<GdmlSketch.SketchMark> values = marks.FindAll(m => numbers.Contains(m.Text));
+            List<string> onDims = new List<string>(), onLetters = new List<string>(), onNumbers = new List<string>(), leaders = new List<string>();
+            float nearDim = float.MaxValue, nearLetter = float.MaxValue, nearNumber = float.MaxValue, nearLeader = float.MaxValue;
+            foreach (GdmlSketch.SketchCallout c in callouts)
+            {
+                foreach (GeometrySketch.DimLine line in dims)
+                {
+                    float gap = Gap301(c.Label, RectangleF.FromLTRB(Math.Min(line.A.X, line.B.X), Math.Min(line.A.Y, line.B.Y), Math.Max(line.A.X, line.B.X), Math.Max(line.A.Y, line.B.Y)));
+                    nearDim = Math.Min(nearDim, gap);
+                    if (gap < (line.Kind == GeometrySketch.DimLineKind.Dimension ? CalloutDimRoom301 : CalloutExtRoom301)) onDims.Add(c.Role + " " + c.Label + " в " + Num(gap) + " от линии «" + line.Key + "» " + line.A + "–" + line.B);
+                }
+
+                foreach (GdmlSketch.SketchMark letter in letters)
+                {
+                    float gap = Gap301(c.Label, letter.Bounds);
+                    nearLetter = Math.Min(nearLetter, gap);
+                    if (gap < CalloutMarkRoom301) onLetters.Add(c.Role + " " + c.Label + " в " + Num(gap) + " от «A» " + letter.Bounds);
+                }
+
+                foreach (GdmlSketch.SketchMark value in values)
+                {
+                    float gap = Gap301(c.Label, value.Bounds);
+                    nearNumber = Math.Min(nearNumber, gap);
+                    if (gap < CalloutMarkRoom301) onNumbers.Add(c.Role + " " + c.Label + " в " + Num(gap) + " от «" + value.Text + "» " + value.Bounds);
+                }
+
+                // Линия выноски: точки через одну точку экрана.
+                double length = Math.Sqrt(Math.Pow(c.Anchor.X - c.From.X, 2) + Math.Pow(c.Anchor.Y - c.From.Y, 2));
+                foreach (GdmlSketch.SketchMark mark in letters.Concat(values))
+                {
+                    float gap = float.MaxValue;
+                    for (int i = 0; i <= (int)length; i++)
+                    {
+                        float t = length < 1.0 ? 0f : (float)(i / length);
+                        gap = Math.Min(gap, Gap301(new RectangleF(c.From.X + (c.Anchor.X - c.From.X) * t, c.From.Y + (c.Anchor.Y - c.From.Y) * t, 0f, 0f), mark.Bounds));
+                    }
+
+                    nearLeader = Math.Min(nearLeader, gap);
+                    if (gap < LeaderMarkRoom301) leaders.Add("линия " + c.Role + " в " + Num(gap) + " от «" + mark.Text + "» " + mark.Bounds);
+                }
+            }
+
+            Func<float, string> near = v => v == float.MaxValue ? "нет" : Num(v);
+            if (needCallouts)
+            {
+                Check(label + ": выноски на чертеже есть", callouts.Count > 0, "выносок " + callouts.Count);
+            }
+
+            List<string> lettersAtNumbers = new List<string>();
+            foreach (GdmlSketch.SketchMark letter in letters)
+            {
+                foreach (GdmlSketch.SketchMark value in values)
+                {
+                    if (Gap301(letter.Bounds, value.Bounds) < CalloutMarkRoom301) lettersAtNumbers.Add("«" + value.Text + "» " + value.Bounds + " в " + Num(Gap301(letter.Bounds, value.Bounds)) + " от «A» " + letter.Bounds);
+                }
+            }
+
+            Check(label + ": число размера не ближе 4 точек к букве «A»", lettersAtNumbers.Count == 0, string.Join("; ", lettersAtNumbers));
+            Check(label + ": подпись выноски не ближе 10 точек к размерной линии и 6 — к выносной", onDims.Count == 0, "ближайшая " + near(nearDim) + "; " + string.Join("; ", onDims));
+            Check(label + ": подпись выноски не ближе 4 точек к букве «A» линии разреза", onLetters.Count == 0, "ближайшая " + near(nearLetter) + "; " + string.Join("; ", onLetters));
+            Check(label + ": подпись выноски не ближе 4 точек к числу размера", onNumbers.Count == 0, "ближайшая " + near(nearNumber) + "; " + string.Join("; ", onNumbers));
+            Check(label + ": линия выноски не ближе 3 точек к букве «A» и к числу размера", leaders.Count == 0, "ближайшая " + near(nearLeader) + "; " + string.Join("; ", leaders));
         }
 
         /// <summary>Порог рамки: деталь не сводит прибор в точку, но большое тело сцены рамку не теряет.</summary>
