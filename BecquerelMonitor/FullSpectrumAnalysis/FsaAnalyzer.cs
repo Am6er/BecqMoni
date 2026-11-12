@@ -6594,6 +6594,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public bool AnchorWindowSkipsMasked { get; set; }
 
+        /// <summary>
+        /// (`AMBER295`, остаток, полоса `a295o`) РЫЧАГ: канал переполнения ФОНА в разбор не идёт. Крайний канал
+        /// фона, который правило <see cref="OverflowChannel"/> (то же, что у спектра пробы, `A220`) признаёт
+        /// переполнением, собирает всё, что вне шкалы фона: энергии у этих отсчётов нет. У пробы такой канал
+        /// выведен из полосы фита; у фона он до сих пор перекладывался по энергии как обычный и попадал ВНУТРЬ
+        /// полосы — при разных калибровках пробы и фона сразу, при равных — через подстройку шкалы фона
+        /// (`backgroundGain`, `backgroundOffset`). Оттуда красная строка «фон больше спектра» у верха шкалы и
+        /// участок автомаски там, где ни в пробе, ни в фоне ничего нет (`ASN16_Radon_filter2`: 29479 отсч.,
+        /// строка 3109–3287 кэВ, z 71.5). С ключом отсчёты такого канала фона не вычитаются, не входят в
+        /// дисперсию, в красную строку, в автомаску и в меру дрейфа фона: канал зануляется в СВОЕЙ шкале, до
+        /// перекладки (ядру отдаётся копия фона без этого канала — её же читают правило порога АЦП и профиль рампы).
+        /// Признак — правило крайнего канала, а не номер канала прибора. Фон без переполнения — ни одного бита.
+        /// Умолчание — в конструкторе.
+        /// </summary>
+        public bool BackgroundOverflowOut { get; set; }
+
+        /// <summary>
+        /// (`AMBER295`, полоса `a295o`) Сколько отсчётов переполнения фона выведено из ЭТОГО захода ядра рычагом
+        /// <see cref="BackgroundOverflowOut"/> (в своей шкале фона, до нормировки временем). Сбрасывается в начале
+        /// каждого захода, до всякой ветки фона; наружу уходит полем <see cref="FsaResult.BackgroundOverflowDropped"/>.
+        /// </summary>
+        double backgroundOverflowDropped;
+
         /// <summary>(`AMBER295`) Первый отказ сторожа маски в этом разборе; null — отказа нет.</summary>
         string backgroundMaskRefusal;
 
@@ -10719,6 +10742,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`AMBER295`, остаток, полоса `a295`) рычаг выключен: умолчание побитно прежнее; включение —
             // решением Amber по замеру (журнал handover/handover-2026-11-12-a295.md)
             this.AnchorWindowSkipsMasked = false;
+            // (`AMBER295`, остаток, полоса `a295o`) рычаг выключен: умолчание побитно прежнее; включение —
+            // решением Amber по замеру (журнал handover/handover-2026-11-12-a295o.md)
+            this.BackgroundOverflowOut = false;
             // (`AMBER269`) нижняя граница разбора — настройка FSA, умолчание поставки (с 03.11.2026
             // нуль — правило порога, `AMBER274`; довод — у константы)
             this.FitLowerBoundKev = FsaBand.ShippedFitLowerBoundKev;
@@ -13067,6 +13093,38 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     Resources.FSABackgroundChannelMismatch,
                     background.NumberOfChannels, channels);
                 background = null;
+            }
+
+            // (`AMBER295`, полоса `a295o`) канал переполнения фона — вне разбора (<see cref="BackgroundOverflowOut"/>).
+            // Счётчик — состояние ЭТОГО захода: сброс здесь, до всякой ветки фона, иначе после спектра без фона
+            // осталось бы число прежнего разбора. Фон читают не только вычитание, но и правило порога АЦП, пол
+            // полосы и профиль рампы ниже (`FsaBand.PairThreshold`, `FloorCutsData`, `PairRampProfile`) — и все
+            // по сырым отсчётам: переполнение в НУЛЕВОМ канале фона иначе доходило бы до них. Поэтому ядру
+            // отдаётся КОПИЯ фона без канала переполнения; спектр вызывающего не трогается. Правило то же, что
+            // у пробы (`A220`), судится по отсчётам самого фона, оба конца шкалы — от калибровки признак не
+            // зависит, поэтому фон без калибровки (поканальное вычитание) идёт тем же правилом.
+            this.backgroundOverflowDropped = 0.0;
+            if (this.BackgroundOverflowOut && background != null)
+            {
+                bool[] backgroundOverflow = OverflowChannel.Mask(background.Spectrum);
+                bool any = false;
+                for (int i = 0; i < backgroundOverflow.Length; i++)
+                {
+                    any |= backgroundOverflow[i];
+                }
+
+                if (any)
+                {
+                    background = CopyForCore(background);
+                    for (int i = 0; i < backgroundOverflow.Length; i++)
+                    {
+                        if (backgroundOverflow[i])
+                        {
+                            this.backgroundOverflowDropped += background.Spectrum[i];
+                            background.Spectrum[i] = 0;
+                        }
+                    }
+                }
             }
 
             double backgroundScale = 0.0;
@@ -18795,6 +18853,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             };
         }
 
+        /// <summary>
+        /// (`AMBER295`, полоса `a295o`) Копия фона для ядра — то, что ядро у фона читает: отсчёты, число каналов,
+        /// времена, калибровка. <see cref="EnergySpectrum.Clone"/> без калибровки отказывает, а фон без неё
+        /// законен (поканальное вычитание), поэтому такой копируется по полям.
+        /// </summary>
+        static EnergySpectrum CopyForCore(EnergySpectrum source)
+        {
+            if (source.EnergyCalibration != null)
+            {
+                return source.Clone();
+            }
+
+            var copy = new EnergySpectrum(source.ChannelPitch, source.NumberOfChannels);
+            copy.Spectrum = (int[])source.Spectrum.Clone();
+            copy.MeasurementTime = source.MeasurementTime;
+            copy.LiveTime = source.LiveTime;
+            copy.NumberOfSamples = source.NumberOfSamples;
+            copy.TotalPulseCount = source.TotalPulseCount;
+            copy.ValidPulseCount = source.ValidPulseCount;
+            return copy;
+        }
+
         FsaResult BuildResult(FitResult fit, EnergySpectrum spectrum, FwhmCalibration fwhmCalibration,
                               double[] backgroundCurve, int[] snipContinuum,
                               int chLo, int chHi, int channels, double gain, double offset, double liveTime,
@@ -18824,6 +18904,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Chi2NdfPoisson = fit.Chi2NdfBase,
                 BackgroundMaskBands = this.backgroundMaskBands,
                 BackgroundMaskChannels = this.backgroundMaskCount,
+                BackgroundOverflowDropped = this.backgroundOverflowDropped,
                 ModelResidual = fit.ModelResidual,
                 Gain = gain,
                 OffsetChannels = offset,

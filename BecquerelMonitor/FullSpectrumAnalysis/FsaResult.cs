@@ -1444,6 +1444,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>(`AMBER295`) Сколько каналов не вошло в подгонку по автомаске фона.</summary>
         public int BackgroundMaskChannels { get; set; }
 
+        /// <summary>
+        /// (`AMBER295`, полоса `a295o`) Сколько отсчётов канала переполнения фона не пошло в разбор
+        /// (`FsaAnalyzer.BackgroundOverflowOut`), в своей шкале фона, до нормировки временем. Нуль — рычаг выключен,
+        /// фона нет или переполнения в нём нет. Читает корпусная проба (`*_bgoverflow.csv`); в окно отчёта не идёт.
+        /// </summary>
+        public double BackgroundOverflowDropped { get; set; }
+
         /// <summary>(`AMBER295`) Этот разбор шёл с ножом при красной строке (`FsaAnalyzer.BackgroundBandKnife`).</summary>
         public bool BackgroundBandKnifeApplied { get; set; }
 
