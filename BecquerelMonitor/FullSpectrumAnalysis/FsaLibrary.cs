@@ -263,8 +263,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 used++;
-                extra.Add(OneLine("SE-" + tag, parent.Line.Energy - 511.0, parent.Owner));
-                extra.Add(OneLine("DE-" + tag, parent.Line.Energy - 1022.0, parent.Owner));
+                // (`AMBER311`, полоса `a311f`) образ помнит и ЛИНИЮ родителя, и границу своей площади в
+                // долях её пика — читает их фит при рычаге `FsaAnalyzer.EscapeBoundToParent`.
+                double cap = PairToPhotoRatio(crystalFractions, parent.Line.Energy);
+                extra.Add(OneLine("SE-" + tag, parent.Line.Energy - 511.0, parent.Owner,
+                                  parent.Line.Energy, cap));
+                extra.Add(OneLine("DE-" + tag, parent.Line.Energy - 1022.0, parent.Owner,
+                                  parent.Line.Energy, cap));
             }
 
             return extra;
@@ -387,11 +392,79 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return total > 0.0 ? pair / total : double.NaN;
         }
 
-        static FsaComponent OneLine(string name, double energy, string escapeParent = null)
+        /// <summary>
+        /// (`AMBER311`, полосы `a311f`/`a311g`) ВЕРХНЯЯ ГРАНИЦА СУММЫ площадей пиков вылета одной линии
+        /// (одиночного и двойного вместе) в долях площади пика полного поглощения той же линии:
+        /// σ_пар(E)/σ_фото(E) вещества кристалла.
+        ///
+        /// Довод — по шагам истории кванта, без подгонки. Пусть в кристалле провзаимодействовало N квантов
+        /// энергии E. На каждом шаге i фотон энергии E_i (E_0 = E, дальше — после комптоновских рассеяний)
+        /// взаимодействует с вероятностью P_i; в пики вылета этот шаг может дать не больше P_i·p_пар(E_i) (SE и DE
+        /// — взаимоисключающие исходы ОДНОГО рождения пары: ушёл один квант 511 кэВ или оба; поэтому граница — на
+        /// их СУММУ), а в пик полного поглощения — не меньше P_i·p_фото(E_i) (фотоэффект на этом шаге, если ничего
+        /// не ушло). σ_пар/σ_фото растёт с энергией строго (критик `crit311g` проверил по
+        /// `matdb.xcom_cross_sections` для NaI, CsI, LaBr3, BGO и CdTe на 1050…3000 кэВ), а E_i ≤ E, значит на
+        /// любом шаге отношение вклада не больше, чем на первом: Σ A_вылета/A_пика ≤ σ_пар(E)/σ_фото(E). Пары после
+        /// комптона (E_i > 1022 кэВ) тем самым учтены. Когерентное рассеяние энергию не меняет и в отношение не
+        /// входит; сечение пар включает поле электрона (`PhotonProcess.PairProduction`).
+        ///
+        /// Размер кристалла сюда не входит: он задаёт вероятность вылета 511 кэВ и долю многократных поглощений,
+        /// и у кристаллов корпуса граница выше отклика в десятки раз (замер `EscapeGateProbe` на 2614.5 кэВ:
+        /// отклик SE 0.21–0.22, DE 0.09–0.15 пика при границе 7.92 для NaI). ⚠ Это НЕ «худшая сторона» в строгом
+        /// смысле: утечка электронов из малого кристалла несимметрична — фотоэлектрон несёт всю энергию E, а
+        /// лептоны пары делят E − 1022 кэВ и пробегают меньше, поэтому в очень малом кристалле пик полного
+        /// поглощения теряет больше пика вылета, и отношение может превысить границу. Утечка в границу не
+        /// внесена; у кристаллов корпуса (от 10 мм) запас границы — десятки раз.
+        ///
+        /// NaN — вещество неизвестно, у элемента нет сечений или фотоэффекта на этой энергии нет: тогда границы
+        /// нет вовсе, и образ остаётся свободным, как прежде (правило <see cref="PairShare"/>: не подменяется
+        /// догадкой). Сечения — теми же функциями и той же пороговой интерполяцией пар, что доля пар.
+        /// </summary>
+        public static double PairToPhotoRatio(IDictionary<int, double> crystalFractions, double energyKev)
+        {
+            if (crystalFractions == null || crystalFractions.Count == 0
+                || !(energyKev > 0.0))
+            {
+                return double.NaN;
+            }
+
+            double logEnergyKev = Math.Log(energyKev);
+            double pair = 0.0;
+            double photo = 0.0;
+            foreach (KeyValuePair<int, double> f in crystalFractions)
+            {
+                if (!(f.Value > 0.0))
+                {
+                    continue;
+                }
+
+                MaterialDatabase.Element element;
+                int lo, hi;
+                if (!MaterialDatabase.TryGet(f.Key, out element)
+                    || !MaterialDatabase.Bracket(element.EnergyKev, energyKev, out lo, out hi))
+                {
+                    return double.NaN;
+                }
+
+                pair += f.Value * PartialCrossSections.MassCrossSection(
+                    element, lo, hi, energyKev, logEnergyKev,
+                    PhotonProcess.PairProduction, true);
+                photo += f.Value * PartialCrossSections.MassCrossSection(
+                    element, lo, hi, energyKev, logEnergyKev,
+                    PhotonProcess.Photoelectric, true);
+            }
+
+            return photo > 0.0 && pair >= 0.0 ? pair / photo : double.NaN;
+        }
+
+        static FsaComponent OneLine(string name, double energy, string escapeParent = null,
+                                    double escapeParentEnergy = double.NaN, double escapeShareCap = double.NaN)
         {
             var component = new FsaComponent(name, FsaComponentKind.Nuisance);
             component.Lines.Add(new FsaLine(name, energy, 100.0));
             component.EscapeParent = escapeParent;
+            component.EscapeParentEnergy = escapeParentEnergy;
+            component.EscapeShareCap = escapeShareCap;
             return component;
         }
 

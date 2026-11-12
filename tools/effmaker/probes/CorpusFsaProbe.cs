@@ -1286,6 +1286,21 @@ namespace CorpusFsaProbe
                     o.BgOverflowOut = v == "1" ? 1 : 0;
                     continue;
                 }
+                // (`AMBER311`, полоса `a311f`) рычаги: образ вылета без матрицы связан с родителем; образы вне вершины порога
+                if (a.StartsWith("--esc-bound=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(12);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--esc-bound=0|1"); }
+                    o.EscBound = v == "1" ? 1 : 0;
+                    continue;
+                }
+                if (a.StartsWith("--esc-topz=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(11);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--esc-topz=0|1"); }
+                    o.EscTopZ = v == "1" ? 1 : 0;
+                    continue;
+                }
                 // (`AMBER269`, Н3) нож порога доверия целиком; обратное плечо — 0
                 if (a.StartsWith("--untie-low=", StringComparison.Ordinal))
                 {
@@ -2797,6 +2812,17 @@ namespace CorpusFsaProbe
             if (o.BgOverflowOut >= 0)
             {
                 analyzer.BackgroundOverflowOut = o.BgOverflowOut == 1;
+            }
+
+            // (`AMBER311`, полоса `a311f`) рычаги образов вылета без матрицы: граница по родителю, вне вершины порога
+            if (o.EscBound >= 0)
+            {
+                analyzer.EscapeBoundToParent = o.EscBound == 1;
+            }
+
+            if (o.EscTopZ >= 0)
+            {
+                analyzer.EscapeOutOfTopZ = o.EscTopZ == 1;
             }
 
             // (`AMBER269`, Н3/Н5 02.11.2026) нож целиком и ширина опор при откате
@@ -5932,6 +5958,8 @@ namespace CorpusFsaProbe
                 // (`AMBER295`, полоса `a295o`) то же для `_bgoverflow.csv`: дописывается построчно и только при
                 // включённом рычаге — без снятия повтор задваивал бы строки, а прогон без рычага оставлял старый файл
                 File.Delete(prefix + "_bgoverflow.csv");
+                // (`AMBER311`, полоса `a311f`) то же для `_escbound.csv`
+                File.Delete(prefix + "_escbound.csv");
                 using (var runs = new StreamWriter(prefix + "_runs.csv", false, new UTF8Encoding(true)))
                 using (var comps = new StreamWriter(prefix + "_components.csv", false, new UTF8Encoding(true)))
                 using (var limits = new StreamWriter(prefix + "_limits.csv", false, new UTF8Encoding(true)))
@@ -6152,6 +6180,21 @@ namespace CorpusFsaProbe
                             {
                                 File.AppendAllText(prefix + "_bgoverflow.csv", string.Join(",", r.Key,
                                     F(r.Result.BackgroundOverflowDropped, "F0")) + Environment.NewLine);
+                            }
+
+                            // (`AMBER311`, полоса `a311f`) образы вылета на границе «не больше доли родителя» — своим
+                            // файлом и только когда граница задета (без рычага файла нет, база побитно прежняя)
+                            if (r.Result.EscapeBoundHits > 0)
+                            {
+                                if (!File.Exists(prefix + "_escbound.csv"))
+                                {
+                                    // (замечание (г) `crit311g`) строка заголовка
+                                    File.WriteAllText(prefix + "_escbound.csv", "spectrum,bound_hits,note" + Environment.NewLine);
+                                }
+
+                                File.AppendAllText(prefix + "_escbound.csv", string.Join(",", r.Key,
+                                    r.Result.EscapeBoundHits.ToString(CultureInfo.InvariantCulture),
+                                    Csv(r.Result.EscapeBoundNote ?? "")) + Environment.NewLine);
                             }
 
                             FsaBandWarning neg = r.Result.BackgroundOversubtracted;
@@ -6745,6 +6788,8 @@ namespace CorpusFsaProbe
             public int BandKnife = -1;         // (`AMBER295`) −1 — умолчание анализатора
             public int AnchorSkipMasked = -1;  // (`AMBER295`, остаток) −1 — умолчание анализатора
             public int BgOverflowOut = -1;     // (`AMBER295`, полоса `a295o`) −1 — умолчание анализатора
+            public int EscBound = -1;          // (`AMBER311`, полоса `a311f`) −1 — умолчание анализатора
+            public int EscTopZ = -1;           // (`AMBER311`, полоса `a311f`) −1 — умолчание анализатора
             public int AnchorRollback = -1;    // (`AMBER269`, (А2)) −1 — умолчание анализатора
             public int UntieLow = -1;          // (`AMBER269`, Н3) −1 — умолчание анализатора
             public int AnchorRollbackWidth = -1;   // (`AMBER269`, Н5) −1 — умолчание анализатора

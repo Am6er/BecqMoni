@@ -1451,6 +1451,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public double BackgroundOverflowDropped { get; set; }
 
+        /// <summary>
+        /// (`AMBER311`, полоса `a311f`) Сколько раз за разбор образ вылета ставился на границу «не больше доли
+        /// родителя» (`FsaAnalyzer.EscapeBoundToParent`) — по всем решениям разбора. Нуль — рычаг выключен, есть
+        /// матрица или граница не задета ни разу. Читает корпусная проба (`*_escbound.csv`); в окно отчёта не идёт.
+        /// </summary>
+        public int EscapeBoundHits { get; set; }
+
+        /// <summary>
+        /// (`AMBER311`, полосы `a311f`/`a311h`) Образы вылета на границе в ИТОГОВОМ фите: по группе «SE-… + DE-… ≤
+        /// граница·пик родителя без образов (линия … кэВ, … отсч.)» через «; »; null — никого.
+        /// </summary>
+        public string EscapeBoundNote { get; set; }
+
+        /// <summary>(`AMBER311`, полоса `a311h`) Смен опорного образа грани за разбор (`FsaAnalyzer.EscapePivotSwitches`).</summary>
+        public int EscapePivotSwitches { get; set; }
+
+        /// <summary>
+        /// (`AMBER311`, полоса `a311h`) Принятых решений граней с отрицательной амплитудой образа
+        /// (`FsaAnalyzer.EscapeNegativeAccepted`); быть не должно — читает проба `FsaEscapeBoundProbeA311`.
+        /// </summary>
+        public int EscapeNegativeAccepted { get; set; }
+
         /// <summary>(`AMBER295`) Этот разбор шёл с ножом при красной строке (`FsaAnalyzer.BackgroundBandKnife`).</summary>
         public bool BackgroundBandKnifeApplied { get; set; }
 
