@@ -1278,6 +1278,14 @@ namespace CorpusFsaProbe
                     o.AnchorSkipMasked = v == "1" ? 1 : 0;
                     continue;
                 }
+                // (`AMBER295`, остаток, полоса `a295o`) рычаг: канал переполнения фона вне разбора
+                if (a.StartsWith("--bg-overflow-out=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(18);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--bg-overflow-out=0|1"); }
+                    o.BgOverflowOut = v == "1" ? 1 : 0;
+                    continue;
+                }
                 // (`AMBER269`, Н3) нож порога доверия целиком; обратное плечо — 0
                 if (a.StartsWith("--untie-low=", StringComparison.Ordinal))
                 {
@@ -2783,6 +2791,12 @@ namespace CorpusFsaProbe
             if (o.AnchorSkipMasked >= 0)
             {
                 analyzer.AnchorWindowSkipsMasked = o.AnchorSkipMasked == 1;
+            }
+
+            // (`AMBER295`, остаток, полоса `a295o`) рычаг: канал переполнения фона вне разбора
+            if (o.BgOverflowOut >= 0)
+            {
+                analyzer.BackgroundOverflowOut = o.BgOverflowOut == 1;
             }
 
             // (`AMBER269`, Н3/Н5 02.11.2026) нож целиком и ширина опор при откате
@@ -5915,6 +5929,9 @@ namespace CorpusFsaProbe
                 // маски, тогда как соседние файлы группы перезаписываются. Снимаем в начале
                 // записи группы — так же, как перезапись соседей.
                 File.Delete(prefix + "_bgmask.csv");
+                // (`AMBER295`, полоса `a295o`) то же для `_bgoverflow.csv`: дописывается построчно и только при
+                // включённом рычаге — без снятия повтор задваивал бы строки, а прогон без рычага оставлял старый файл
+                File.Delete(prefix + "_bgoverflow.csv");
                 using (var runs = new StreamWriter(prefix + "_runs.csv", false, new UTF8Encoding(true)))
                 using (var comps = new StreamWriter(prefix + "_components.csv", false, new UTF8Encoding(true)))
                 using (var limits = new StreamWriter(prefix + "_limits.csv", false, new UTF8Encoding(true)))
@@ -6127,6 +6144,14 @@ namespace CorpusFsaProbe
                                     File.AppendAllText(prefix + "_bgmask.csv", string.Join(",", r.Key, F(band.LoKev, "F1"), F(band.HiKev, "F1"),
                                         F(band.Z, "F2"), F(band.Ratio, "F3"), band.Bands.ToString(CultureInfo.InvariantCulture)) + Environment.NewLine);
                                 }
+                            }
+
+                            // (`AMBER295`, полоса `a295o`) выведенный канал переполнения фона — своим файлом и
+                            // только когда рычаг что-то вывел (без рычага файла нет, база побитно прежняя)
+                            if (r.Result.BackgroundOverflowDropped > 0.0)
+                            {
+                                File.AppendAllText(prefix + "_bgoverflow.csv", string.Join(",", r.Key,
+                                    F(r.Result.BackgroundOverflowDropped, "F0")) + Environment.NewLine);
                             }
 
                             FsaBandWarning neg = r.Result.BackgroundOversubtracted;
@@ -6719,6 +6744,7 @@ namespace CorpusFsaProbe
             public int BackgroundMask = -1;    // (`AMBER295`) −1 — умолчание анализатора
             public int BandKnife = -1;         // (`AMBER295`) −1 — умолчание анализатора
             public int AnchorSkipMasked = -1;  // (`AMBER295`, остаток) −1 — умолчание анализатора
+            public int BgOverflowOut = -1;     // (`AMBER295`, полоса `a295o`) −1 — умолчание анализатора
             public int AnchorRollback = -1;    // (`AMBER269`, (А2)) −1 — умолчание анализатора
             public int UntieLow = -1;          // (`AMBER269`, Н3) −1 — умолчание анализатора
             public int AnchorRollbackWidth = -1;   // (`AMBER269`, Н5) −1 — умолчание анализатора
