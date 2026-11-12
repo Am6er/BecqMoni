@@ -459,7 +459,7 @@ namespace FixGdml2Probe
             d = Draw(CriticFile("f3_vacuum_container", "",
                 CriticCrystal + "<volume name=\"vTop\"><materialref ref=\"G4_Galactic\"/><solidref ref=\"sGap\"/><physvol name=\"C\"><volumeref ref=\"vCrystal\"/></physvol></volume>\n", TopOnly), "f3");
             Check("f3 банка G4_Galactic с кристаллом — не оболочка и не корпус: прибора в сводке нет", NoEnvelope(d) && Near(d.Spans[0], 60.0)
-                  && !d.Summary.Contains("Device:") && !d.Summary.Contains("(housing)") && d.Summary.Contains("Galactic (gas)"), Spans(d) + " | " + FirstLines(d.Summary));
+                  && !d.Summary.Contains("Detector:") && !d.Summary.Contains("(housing)") && d.Summary.Contains("Galactic (gas)"), Spans(d) + " | " + FirstLines(d.Summary));
 
             d = Draw(CriticFile("f4_housing_gap", "",
                 CriticCrystal + "<volume name=\"vGap\"><materialref ref=\"G4_AIR\"/><solidref ref=\"sGap\"/><physvol name=\"C\"><volumeref ref=\"vCrystal\"/></physvol></volume>\n"
