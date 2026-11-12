@@ -991,6 +991,8 @@ namespace CorpusFsaProbe
 
     static class Program
     {
+        static bool envLeversSaid;
+
         [STAThread]
         static int Main(string[] args)
         {
@@ -3814,6 +3816,27 @@ namespace CorpusFsaProbe
                     string traceKey = row.Key;
                     FsaAnalyzer.ProbeCoreTrace = line => System.IO.File.AppendAllText(
                         coreTracePath, traceKey + "\t" + line + "\n", new System.Text.UTF8Encoding(false));
+                }
+
+                // (`AMBER326`, a326p) замер полосы: режим заходов ядра на копиях анализатора (BQ_FSA_CORE_PARALLEL = 0, 1, 2)
+                // и разбор «как приложение», без повтора стража (BQ_FSA_GUARD_REPLAY = 0); без переменных — как прежде
+                string coreMode = Environment.GetEnvironmentVariable("BQ_FSA_CORE_PARALLEL");
+                if (!string.IsNullOrEmpty(coreMode))
+                {
+                    FsaAnalyzer.CoreParallelMode = int.Parse(coreMode, System.Globalization.CultureInfo.InvariantCulture);
+                }
+
+                if (Environment.GetEnvironmentVariable("BQ_FSA_GUARD_REPLAY") == "0")
+                {
+                    analyzer.AnchorZeroGuardReplay = false;
+                }
+
+                if (!envLeversSaid && (!string.IsNullOrEmpty(coreMode) || !analyzer.AnchorZeroGuardReplay))
+                {
+                    // клеймо `.run.json` пишет сторож оснастки, а не проба: рычаги из окружения названы здесь, в журнале прогона
+                    envLeversSaid = true;
+                    Console.WriteLine("ENV\tрычаги из переменных окружения (в клеймо прогона НЕ входят): BQ_FSA_CORE_PARALLEL={0}; BQ_FSA_GUARD_REPLAY={1}",
+                                      string.IsNullOrEmpty(coreMode) ? "(нет)" : coreMode, analyzer.AnchorZeroGuardReplay ? "(нет)" : "0");
                 }
 
                 FsaResult result = analyzer.Analyze(rd.EnergySpectrum, background,

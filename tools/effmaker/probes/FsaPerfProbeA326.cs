@@ -97,6 +97,20 @@ namespace BecquerelMonitor.Probes
                 else if (a == "--eq=on" || a == "--eq=off") eq = a.EndsWith("on", StringComparison.Ordinal);
                 else if (a == "--db=on" || a == "--db=off") db = a.EndsWith("on", StringComparison.Ordinal);
                 else if (a == "--replay") replay = true;
+                // (a326p) заходы ядра на копиях анализатора: 0 — подряд, 1 — заход с привязкой на копии, 2 — и запасные впрок
+                else if (a.StartsWith("--core=", StringComparison.Ordinal)) FsaAnalyzer.CoreParallelMode = int.Parse(a.Substring(7), Inv);
+                else if (a.StartsWith("--specdeg=", StringComparison.Ordinal)) FsaAnalyzer.CoreSpeculationMinDegree = int.Parse(a.Substring(10), Inv);
+                // (a326p) прогрев как у приложения при запуске, с ожиданием конца (человек успел открыть спектр)
+                else if (a == "--warmup")
+                {
+                    FsaWarmup.Start();
+                    FsaWarmup.Wait(120000);
+                    Console.WriteLine("SETUP\tпрогрев: методов {0}, {1:F0} мс", FsaWarmup.MethodsPrepared, FsaWarmup.Milliseconds);
+                }
+                // (a326p) замер памяти: держать сеансы живыми (как открытые документы с разбором) и выдержка перед замером
+                else if (a == "--keep") keep = new List<object>();
+                else if (a.StartsWith("--pause=", StringComparison.Ordinal)) pauseMs = int.Parse(a.Substring(8), Inv);
+                else if (a == "--audit") { Console.Write(FsaAnalyzer.CoreFieldAudit()); return 0; }
                 else if (a == "--nomask") noMask = true;
                 // как приложение при запуске (`Program.cs`): отпечаток данных переноса matdb — до разбора
                 else if (a == "--prefetch") BecquerelMonitor.EfficiencyMaker.MaterialDatabase.SimulatorDataFingerprint();
@@ -122,6 +136,7 @@ namespace BecquerelMonitor.Probes
                               eq ? "on" : "off", db ? "on" : "off", noMask ? "ВЫКЛ (--nomask, замер)" : "как приложение");
             Console.WriteLine("SETUP\tконфигурация {0}", Package.GetInstance().Config);
 
+            Console.WriteLine("SETUP	заходы ядра на копиях: режим {0}, впрок при степени от {1}", FsaAnalyzer.CoreParallelMode, FsaAnalyzer.CoreSpeculationMinDegree);
             GlobalConfigManager.GetInstance();
             DeviceConfigManager.GetInstance();
             NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
@@ -161,6 +176,21 @@ namespace BecquerelMonitor.Probes
             }
 
             return code;
+        }
+
+        static List<object> keep;
+        static int pauseMs;
+
+        /// <summary>(a326p) Память процесса: рабочий набор, частная, пик рабочего набора, куча сборщика; сборщик серверный или нет.</summary>
+        static string MemText()
+        {
+            if (pauseMs > 0) Thread.Sleep(pauseMs);
+            Process me = Process.GetCurrentProcess();
+            me.Refresh();
+            return string.Format(Inv, "рабочий набор {0:F0} МБ\tчастная {1:F0} МБ\tпик рабочего набора {2:F0} МБ\tпик частной {3:F0} МБ\tкуча {4:F0} МБ\tсборщик {5}\tпотоков {6}",
+                me.WorkingSet64 / 1048576.0, me.PrivateMemorySize64 / 1048576.0, me.PeakWorkingSet64 / 1048576.0,
+                me.PeakPagedMemorySize64 / 1048576.0, GC.GetTotalMemory(false) / 1048576.0,
+                System.Runtime.GCSettings.IsServerGC ? "серверный" : "рабочей станции", me.Threads.Count);
         }
 
         static int RunSession(string name, ResultData rd, FsaCalculationOptions options, int runs, int timeoutS,
@@ -212,6 +242,8 @@ namespace BecquerelMonitor.Probes
                                       session.Status ?? "null");
                     Console.WriteLine("PASSES\t{0}\t{1}\tAnalyzeCore {2}\tAnalyzeOnce {4}\tбанк {3}", name, r + 1,
                                       FsaAnalyzer.CorePassCount - cores0, BankText(), FsaAnalyzer.OncePassCount - once0);
+                    if (keep != null) { keep.Add(session); keep.Add(result); }
+                    Console.WriteLine("MEM\t{0}\t{1}\t{2}", name, r + 1, MemText());
                     if (r == 0)
                     {
                         firstSha = sha;

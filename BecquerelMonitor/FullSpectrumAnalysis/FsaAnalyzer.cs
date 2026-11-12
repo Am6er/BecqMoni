@@ -7778,6 +7778,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                  out double a, out double b, out double beta,
                                                  out int used, out string note)
         {
+            this.CoreCheckpoint();
             a = 1.0;
             b = 0.0;
             beta = 0.0;
@@ -10207,7 +10208,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool DepositCarry { get; set; }
 
         /// <summary>(`T265` А, П207) Гистограммы по ключу содержимого и состояния — весь <see cref="Analyze"/>.</summary>
-        readonly Dictionary<string, Deposit> depositCarry = new Dictionary<string, Deposit>(StringComparer.Ordinal);
+        readonly Dictionary<string, DepositSlot> depositCarry = new Dictionary<string, DepositSlot>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// (`AMBER326`, a326p) Ячейка кэша гистограмм через проходы. Копии анализатора считают заходы ядра параллельно:
+        /// гистограмму ключа строит тот, кто спросил первым, остальные ждут ЕЁ, а не общий замок, — разные ключи
+        /// строятся одновременно, один ключ — один раз. Значение от строителя не зависит: ключ — всё, из чего оно строится.
+        /// </summary>
+        sealed class DepositSlot
+        {
+            public Deposit Value;
+            public bool Ready;
+            public bool Failed;
+
+            /// <summary>Отказы баз, случившиеся при построении; отдаются каждому, кто взял готовую гистограмму (см. <see cref="correctionNotes"/>).</summary>
+            public List<string> Notes;
+        }
 
         /// <summary>(`T265` А, П207) Поправки суммирователя по ключу содержимого компонента — весь <see cref="Analyze"/>.</summary>
         readonly Dictionary<string, FsaCascadeSummer.Correction> correctionCarry =
@@ -10228,8 +10244,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         readonly List<object> carryRefs = new List<object>();
 
         /// <summary>(`T265` А, П207) Суммирователь разбора и ключ его входов.</summary>
-        FsaCascadeSummer carrySummer;
-        string carrySummerKey;
+        /// <remarks>(`AMBER326`, a326p) Держатель — общий у анализатора и его копий на заход ядра; под <see cref="carryGate"/>.</remarks>
+        sealed class CarryShared
+        {
+            public FsaCascadeSummer Summer;
+            public string SummerKey;
+
+            /// <summary>Отказы баз, случившиеся при создании суммирователя; отдаются каждому проходу, который его взял.</summary>
+            public List<string> SummerNotes;
+        }
+
+        readonly CarryShared carryShared = new CarryShared();
+
+        /// <summary>
+        /// (`AMBER326`, a326p) Отказы чтения баз, случившиеся при счёте поправки суммирователя (<see cref="correctionCarry"/>,
+        /// тот же ключ). Поправку общего кэша считает тот заход ядра, что спросил первым, — а строка отказа обязана
+        /// попасть в отчёт так, как при счёте подряд: каждый заход, взявший поправку из кэша, получает её отказы в
+        /// свой собиратель (<see cref="FsaDatabaseFailures.Replay"/>) в том месте, где сам считал бы её. Повторы
+        /// собиратель снимает сам. То же у гистограмм (<see cref="DepositSlot.Notes"/>) и суммирователя.
+        /// </summary>
+        readonly Dictionary<string, List<string>> correctionNotes = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// (`AMBER326`, a326p) Замок общего у копий анализатора: кэши через проходы (<see cref="depositCarry"/>,
+        /// <see cref="correctionCarry"/>, <see cref="windowCarry"/>), номера объектов ключа (<see cref="carryRefs"/>)
+        /// и сам суммирователь разбора. Под замком счёт идёт так же, как шёл подряд, — значения кэша от того, кто
+        /// посчитал первым, не зависят (ключ — содержимое).
+        /// </summary>
+        readonly object carryGate = new object();
 
         /// <summary>(`T265` А, П207) Попаданий и построений гистограмм за последний <see cref="Analyze"/> — для проб.</summary>
         public int DepositCarryHits { get; private set; }
@@ -10874,14 +10916,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.kernelBank = null;
             // (`T265` А, П207; `AMBER326`) кэш образов и суммирователь — свои на верхний разбор:
             // через все заходы ядра (<see cref="AnalyzeCore"/>), между разборами — заново
-            this.depositCarry.Clear();
-            this.correctionCarry.Clear();
-            this.windowCarry.Clear();
+            lock (this.carryGate)
+            {
+                this.depositCarry.Clear();
+                this.correctionCarry.Clear();
+                this.windowCarry.Clear();
+                this.carryRefs.Clear();
+                this.correctionNotes.Clear();
+                this.carryShared.Summer = null;
+                this.carryShared.SummerKey = null;
+                this.carryShared.SummerNotes = null;
+            }
+
             this.preMask.Clear();
             this.preMaskKey = null;
-            this.carryRefs.Clear();
-            this.carrySummer = null;
-            this.carrySummerKey = null;
             try
             {
                 this.backgroundMaskSuppressed = false;
@@ -10927,6 +10975,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
             finally
             {
+                // (`AMBER326`, a326p) снятые копии анализатора делят с ним кэши: до их конца разбор не отдаётся
+                this.DrainCoreFutures();
                 this.preMask.Clear();
                 this.preMaskKey = null;
                 // (П304) банк ядер живёт процесс; между разборами реестр держит
@@ -11114,6 +11164,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// состояние отвечало отданному.
         /// </summary>
         FsaResult AnalyzeRolledBack(
+            EnergySpectrum spectrum,
+            EnergySpectrum backgroundSpectrum,
+            FwhmCalibration fwhmCalibration,
+            List<FsaComponent> originalLibrary,
+            FsaEfficiency efficiency)
+        {
+            // (`AMBER326`, a326p) заходы ядра этого отката — параллельно на копиях анализатора (см. <see cref="StartCoreFutures"/>)
+            if (!this.StartCoreFutures(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency))
+            {
+                return this.AnalyzeRolledBackBody(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+            }
+
+            try
+            {
+                return this.AnalyzeRolledBackBody(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+            }
+            finally
+            {
+                this.CancelCoreFutures(false);
+            }
+        }
+
+        /// <summary>Тело <see cref="AnalyzeRolledBack"/> — прежний порядок заходов и сборки итога.</summary>
+        FsaResult AnalyzeRolledBackBody(
             EnergySpectrum spectrum,
             EnergySpectrum backgroundSpectrum,
             FwhmCalibration fwhmCalibration,
@@ -11324,6 +11398,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // совместной привязки нуля по съёмке
             if (this.shareRefit || main == null || !main.AnchorZeroJoint || !main.AnchorUnsettled)
             {
+                this.CancelCoreFutures(true);
                 return main;
             }
 
@@ -11340,6 +11415,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (words.Count == 0)
             {
+                this.CancelCoreFutures(true);
                 return main;
             }
 
@@ -11430,7 +11506,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>(`AMBER326`) Итоги цепочек проходов «до маски» захода с маской — по ключу входов захода ядра; на один верхний <see cref="Analyze"/>.</summary>
-        readonly Dictionary<string, FsaResult> preMask = new Dictionary<string, FsaResult>(StringComparer.Ordinal);
+        Dictionary<string, FsaResult> preMask = new Dictionary<string, FsaResult>(StringComparer.Ordinal);
 
         /// <summary>(`AMBER326`) Ключ идущего захода ядра для <see cref="preMask"/>; null — память выключена.</summary>
         string preMaskKey;
@@ -11444,6 +11520,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         string PreMaskKeyOf(EnergySpectrum spectrum, EnergySpectrum backgroundSpectrum, FwhmCalibration fwhmCalibration,
                             List<FsaComponent> originalLibrary, FsaEfficiency efficiency)
         {
+            return this.PreMaskKeyFor(this.AnchorScale, this.AnchorZero, this.rollbackWidth,
+                                      spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+        }
+
+        /// <summary>(`AMBER326`, a326p) <see cref="PreMaskKeyOf"/> для названных привязки, нуля и ширины отката.</summary>
+        string PreMaskKeyFor(bool anchorScale, string anchorZero, double width,
+                             EnergySpectrum spectrum, EnergySpectrum backgroundSpectrum, FwhmCalibration fwhmCalibration,
+                             List<FsaComponent> originalLibrary, FsaEfficiency efficiency)
+        {
             if (this.AnchorZeroGuardReplay || this.shareRefit || this.fixedBetaRows != null
                 || !this.BackgroundExcessMask || !this.BackgroundMaskGuard)
             {
@@ -11451,12 +11536,612 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return string.Join("|",
-                this.AnchorScale ? "1" : "0", this.AnchorZero ?? "", Bits(this.rollbackWidth),
+                anchorScale ? "1" : "0", anchorZero ?? "", Bits(width),
                 this.CarryRef(spectrum).ToString(CultureInfo.InvariantCulture),
                 this.CarryRef(backgroundSpectrum).ToString(CultureInfo.InvariantCulture),
                 this.CarryRef(fwhmCalibration).ToString(CultureInfo.InvariantCulture),
                 this.CarryRef(originalLibrary).ToString(CultureInfo.InvariantCulture),
                 this.CarryRef(efficiency).ToString(CultureInfo.InvariantCulture));
+        }
+
+        // ======================================================================================
+        // (`AMBER326`, полоса a326p) ЗАХОДЫ ЯДРА ПАРАЛЛЕЛЬНО — НА КОПИЯХ АНАЛИЗАТОРА
+        // ======================================================================================
+
+        /// <summary>
+        /// ⛔ (`AMBER326`, a326p; решение Amber 11.11.2026 вопросником, дословно: «Да, отдельной полосой
+        /// (Рекомендую)») ЗАХОДЫ ЯДРА ОДНОГО ОТКАТА ПРИВЯЗКИ — ПАРАЛЛЕЛЬНО. Откат привязки
+        /// (<see cref="AnalyzeRolledBack"/>) считает заход без привязки, затем заход с привязкой, а при
+        /// несошедшемся нуле — ещё и запасные заходы стража нуля (<see cref="AnalyzeGuarded"/>). Заходы друг от
+        /// друга не зависят: каждый ставит своё состояние сам (на этом же стоят повтор стража `A320` и память
+        /// «до маски»). Поэтому заход с привязкой и запасные заходы стража считаются на КОПИЯХ анализатора в
+        /// своих потоках, пока сам анализатор считает заход без привязки; распорядители идут прежним порядком
+        /// и там, где раньше считали заход, забирают готовый (<see cref="TakeCoreFuture"/>,
+        /// <see cref="AdoptCore"/>): результат, состояние копии, её след, отказы баз, память «до маски» и
+        /// обрыв сторожа маски — в том же порядке, что при счёте подряд. Числа каждого захода те же: внутри
+        /// захода порядок счёта прежний, а общее у копий — только кэши по содержимому под замком
+        /// (<see cref="carryGate"/>).
+        ///
+        /// Режим: ноль — выключено (счёт подряд, как прежде); единица — заход с привязкой на копии; двойка — к
+        /// тому же запасные заходы стража нуля ВПРОК, до вердикта основного (не понадобились — снимаются).
+        /// Последовательная степень <see cref="FsaParallel.Degree"/> выключает всё, как и остальные параллельные места.
+        /// Следы проб, которым нужен порядок строк (<see cref="ZeroTraceSink"/>, <see cref="AnchorPassSink"/>,
+        /// <see cref="NnlsTraceSink"/>, <see cref="BackgroundGainTraceSink"/>), выключают копии тоже.
+        /// </summary>
+        public static int CoreParallelMode = 2;
+
+        /// <summary>(`AMBER326`, a326p) Запасные заходы стража нуля впрок — только при степени не ниже этой.</summary>
+        public static int CoreSpeculationMinDegree = 4;
+
+        /// <summary>(`AMBER326`, a326p) Заход ядра на копии анализатора: что считается, чем кончилось и что копия собрала по дороге.</summary>
+        sealed class CoreFuture
+        {
+            public FsaAnalyzer Clone;
+            public System.Threading.Tasks.Task Task;
+            public FsaResult Result;
+            public System.Runtime.ExceptionServices.ExceptionDispatchInfo Error;
+            public bool AnchorScale;
+            public string AnchorZero;
+            public bool Suppressed;
+            public bool Speculative;
+            public object Spectrum, Background, Fwhm, Library, Efficiency, FixedBetaRows;
+            public List<string> Trace;
+            public List<string> DatabaseFailures;
+            public long OncePasses;
+            public System.Diagnostics.Stopwatch Clock;
+            public volatile bool Cancelled;
+        }
+
+        /// <summary>(`AMBER326`, a326p) Знак «заход копии снят» — от точки отмены до задачи копии; наружу не выходит.</summary>
+        sealed class CoreCancelledSignal : Exception
+        {
+        }
+
+        /// <summary>(`AMBER326`, a326p) Заходы на копиях, ещё не забранные распорядителем; только у исходного анализатора.</summary>
+        List<CoreFuture> coreFutures;
+
+        /// <summary>(`AMBER326`, a326p) Снятые заходы: их ждёт конец верхнего <see cref="Analyze"/>.</summary>
+        List<CoreFuture> coreStale;
+
+        /// <summary>(`AMBER326`, a326p) У копии — её заход; у исходного анализатора null.</summary>
+        CoreFuture coreSelf;
+
+        enum CoreFieldKind
+        {
+            /// <summary>Настройка (открытое поле или свойство с открытой записью): у копии та же, назад не переносится.</summary>
+            Setting,
+            /// <summary>Состояние-значение (число, признак, строка): копия получает своё, назад переносится.</summary>
+            Value,
+            /// <summary>Состояние-вместилище (массив, список, словарь, набор, строитель строк): копия получает свою копию, назад переносится.</summary>
+            Container,
+            /// <summary>Состояние-объект, который заход заменяет целиком, а не правит на месте: ссылка та же, назад переносится.</summary>
+            Reference,
+            /// <summary>Общее у копий под замком <see cref="carryGate"/>.</summary>
+            Shared,
+            /// <summary>Копия получает новое пустое.</summary>
+            Fresh,
+            /// <summary>Состояние распорядителей (<see cref="Analyze"/>, откат, страж нуля): назад не переносится.</summary>
+            Orchestrator,
+            /// <summary>Не разобрано — копии анализатора выключены.</summary>
+            Unknown
+        }
+
+        sealed class CoreField
+        {
+            public System.Reflection.FieldInfo Field;
+            public string Name;
+            public CoreFieldKind Kind;
+        }
+
+        static readonly HashSet<string> CoreSharedFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "depositCarry", "correctionCarry", "correctionNotes", "windowCarry", "carryRefs", "carryShared", "carryGate"
+        };
+
+        // Объекты, которые заход ЗАМЕНЯЕТ (новый объект или null в начале прохода либо захода), а на месте не правит:
+        // у копии та же ссылка, пока она не поставила свою.
+        static readonly HashSet<string> CoreReferenceFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "thresholdRamp", "noiseTerms", "reportNoise", "pileUpColumn", "calibrationInverse", "calibrationInverseRefused",
+            "depositChannelsCalibration", "anchorWarmIn", "anchorWarmOut", "anchorEfficiency", "sumTransfer", "cascade",
+            "kernelBank"
+        };
+
+        static readonly HashSet<string> CoreFreshFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "lazyGate", "sourcePool", "preMask"
+        };
+
+        static readonly HashSet<string> CoreOrchestratorFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "AnchorRolledBack", "AnchorZeroGuardFired", "AnchorZeroGuardTaken", "backgroundMaskRefusal",
+            "backgroundMaskSuppressed", "fixedBetaRows", "fixedBetaCounts", "coreFutures", "coreStale", "coreSelf"
+        };
+
+        static CoreField[] corePlan;
+        static bool corePlanSound;
+        static readonly object CorePlanGate = new object();
+
+        /// <summary>
+        /// (`AMBER326`, a326p) Перечень ВСЕХ полей экземпляра анализатора с тем, что с каждым делает копия на
+        /// заход ядра. Снимается отражением: поле, которого перечень не знает (новое поле-объект), даёт
+        /// <see cref="CoreFieldKind.Unknown"/>, и копии выключаются — счёт идёт подряд, как прежде.
+        /// </summary>
+        static CoreField[] CorePlan()
+        {
+            lock (CorePlanGate)
+            {
+                if (corePlan != null)
+                {
+                    return corePlan;
+                }
+
+                const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic
+                    | System.Reflection.BindingFlags.DeclaredOnly;
+                var plan = new List<CoreField>();
+                bool sound = true;
+                foreach (System.Reflection.FieldInfo field in typeof(FsaAnalyzer).GetFields(flags))
+                {
+                    string name = field.Name;
+                    bool setting = field.IsPublic;
+                    if (name.StartsWith("<", StringComparison.Ordinal))
+                    {
+                        name = name.Substring(1, name.IndexOf('>') - 1);
+                        System.Reflection.PropertyInfo property = typeof(FsaAnalyzer).GetProperty(name, flags);
+                        System.Reflection.MethodInfo setter = property != null ? property.GetSetMethod(true) : null;
+                        setting = setter != null && setter.IsPublic;
+                    }
+
+                    CoreFieldKind kind;
+                    if (CoreOrchestratorFields.Contains(name))
+                    {
+                        kind = CoreFieldKind.Orchestrator;
+                    }
+                    else if (CoreSharedFields.Contains(name))
+                    {
+                        kind = CoreFieldKind.Shared;
+                    }
+                    else if (CoreFreshFields.Contains(name))
+                    {
+                        kind = CoreFieldKind.Fresh;
+                    }
+                    else if (setting)
+                    {
+                        kind = CoreFieldKind.Setting;
+                    }
+                    else if (CoreReferenceFields.Contains(name))
+                    {
+                        kind = CoreFieldKind.Reference;
+                    }
+                    else if (field.FieldType.IsValueType || field.FieldType == typeof(string))
+                    {
+                        kind = CoreFieldKind.Value;
+                    }
+                    else if (IsCoreContainer(field.FieldType))
+                    {
+                        kind = CoreFieldKind.Container;
+                    }
+                    else
+                    {
+                        kind = CoreFieldKind.Unknown;
+                        sound = false;
+                    }
+
+                    plan.Add(new CoreField { Field = field, Name = name, Kind = kind });
+                }
+
+                plan.Sort((left, right) => string.CompareOrdinal(left.Name, right.Name));
+                corePlanSound = sound;
+                corePlan = plan.ToArray();
+                return corePlan;
+            }
+        }
+
+        static bool IsCoreContainer(Type type)
+        {
+            if (type.IsArray || type == typeof(StringBuilder))
+            {
+                return true;
+            }
+
+            if (!type.IsGenericType)
+            {
+                return false;
+            }
+
+            Type open = type.GetGenericTypeDefinition();
+            return open == typeof(List<>) || open == typeof(Dictionary<,>) || open == typeof(HashSet<>);
+        }
+
+        /// <summary>Копия вместилища того же типа и с тем же сравнением ключей; элементы — те же объекты.</summary>
+        static object CopyCoreContainer(object value)
+        {
+            Type type = value.GetType();
+            if (type.IsArray)
+            {
+                return ((Array)value).Clone();
+            }
+
+            var text = value as StringBuilder;
+            if (text != null)
+            {
+                return new StringBuilder(text.ToString());
+            }
+
+            Type open = type.GetGenericTypeDefinition();
+            if (open == typeof(List<>))
+            {
+                return Activator.CreateInstance(type, value);
+            }
+
+            object comparer = type.GetProperty("Comparer").GetValue(value, null);
+            return Activator.CreateInstance(type, value, comparer);
+        }
+
+        /// <summary>
+        /// (`AMBER326`, a326p) Перечень полей анализатора для журнала и сторожа: «имя TAB вид TAB тип» по строке;
+        /// первая строка — годен ли перечень (нет неразобранных полей).
+        /// </summary>
+        public static string CoreFieldAudit()
+        {
+            CoreField[] plan = CorePlan();
+            var sb = new StringBuilder();
+            sb.Append(corePlanSound ? "sound" : "UNSOUND").Append('\t').Append(plan.Length.ToString(CultureInfo.InvariantCulture)).Append('\n');
+            foreach (CoreField field in plan)
+            {
+                sb.Append(field.Name).Append('\t').Append(field.Kind).Append('\t').Append(field.Field.FieldType.Name).Append('\n');
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>(`AMBER326`, a326p) Копия анализатора на один заход ядра; см. <see cref="CoreFieldKind"/>.</summary>
+        FsaAnalyzer ForkForCore()
+        {
+            var clone = (FsaAnalyzer)this.MemberwiseClone();
+            foreach (CoreField field in CorePlan())
+            {
+                if (field.Kind != CoreFieldKind.Container)
+                {
+                    continue;
+                }
+
+                object value = field.Field.GetValue(this);
+                if (value != null)
+                {
+                    field.Field.SetValue(clone, CopyCoreContainer(value));
+                }
+            }
+
+            clone.lazyGate = new object();
+            clone.sourcePool = new Stack<SourceScratch>();
+            clone.preMask = new Dictionary<string, FsaResult>(StringComparer.Ordinal);
+            clone.preMaskKey = null;
+            clone.coreFutures = null;
+            clone.coreStale = null;
+            return clone;
+        }
+
+        /// <summary>
+        /// (`AMBER326`, a326p) Состояние копии после её захода — анализатору: то же, что оставил бы заход, посчитанный
+        /// здесь. Настройки и состояние распорядителей не трогаются (у копии они те же или устарели).
+        /// </summary>
+        void AdoptCoreState(FsaAnalyzer clone)
+        {
+            foreach (CoreField field in CorePlan())
+            {
+                if (field.Kind == CoreFieldKind.Value || field.Kind == CoreFieldKind.Container || field.Kind == CoreFieldKind.Reference)
+                {
+                    field.Field.SetValue(this, field.Field.GetValue(clone));
+                }
+            }
+
+            this.lazyGate = clone.lazyGate;
+            this.sourcePool = clone.sourcePool;
+        }
+
+        /// <summary>След заходов: у копии — в свой список (отдаётся при заборе захода), у анализатора — пробе.</summary>
+        Action<string> CoreTraceSink()
+        {
+            CoreFuture self = this.coreSelf;
+            if (self == null)
+            {
+                return ProbeCoreTrace;
+            }
+
+            List<string> lines = self.Trace;
+            if (lines == null)
+            {
+                return null;
+            }
+
+            // метка — время от запуска копии: по ней видно стену захода, шедшего параллельно
+            return line => lines.Add(string.Format(CultureInfo.InvariantCulture, "{0}	[копия{1}, {2} мс от запуска]",
+                                                   line, self.Speculative ? " впрок" : "", self.Clock.ElapsedMilliseconds));
+        }
+
+        /// <summary>Точка отмены: снятый заход копии дальше не считается.</summary>
+        void CoreCheckpoint()
+        {
+            CoreFuture self = this.coreSelf;
+            if (self != null && self.Cancelled)
+            {
+                throw new CoreCancelledSignal();
+            }
+        }
+
+        /// <summary>Слова запасных нулей стража — тем же разбором, что в <see cref="AnalyzeGuarded"/>; негодное слово — пусто (впрок не считаем).</summary>
+        List<string> CoreGuardWords()
+        {
+            var words = new List<string>();
+            try
+            {
+                foreach (string part in (this.AnchorZeroGuard ?? "").Split(','))
+                {
+                    string w = part.Trim().ToLowerInvariant();
+                    if (w.Length > 0 && w != "off" && w != "adc" && !words.Contains(w))
+                    {
+                        ParseAnchorZero(w);
+                        words.Add(w);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                words.Clear();
+            }
+
+            return words;
+        }
+
+        /// <summary>
+        /// (`AMBER326`, a326p) Запустить на копиях заходы этого отката привязки: заход с привязкой и, в режиме 2,
+        /// запасные заходы стража нуля впрок. Ложь — копий нет, счёт подряд.
+        /// </summary>
+        bool StartCoreFutures(EnergySpectrum spectrum, EnergySpectrum backgroundSpectrum, FwhmCalibration fwhmCalibration,
+                              List<FsaComponent> originalLibrary, FsaEfficiency efficiency)
+        {
+            if (this.coreSelf != null || this.shareRefit || !this.AnchorRollback || !this.AnchorScale)
+            {
+                return false;
+            }
+
+            int mode = CoreParallelMode;
+            if (mode <= 0 || FsaParallel.Degree < 2 || BackgroundGainTraceSink != null || NnlsTraceSink != null
+                || ZeroTraceSink != null || AnchorPassSink != null)
+            {
+                return false;
+            }
+
+            CorePlan();
+            if (!corePlanSound || (this.coreFutures != null && this.coreFutures.Count > 0))
+            {
+                return false;
+            }
+
+            string zero = this.AnchorZero;
+            if (this.backgroundMaskSuppressed)
+            {
+                // заход с привязкой отдаст память «до маски» — считать нечего
+                string key = this.PreMaskKeyFor(true, zero, double.NaN, spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+                if (key != null && this.preMask.ContainsKey(key))
+                {
+                    return false;
+                }
+            }
+
+            if (this.coreFutures == null)
+            {
+                this.coreFutures = new List<CoreFuture>();
+            }
+
+            this.coreFutures.Add(this.StartCore(true, zero, false, spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency));
+            if (mode >= 2 && FsaParallel.Degree >= CoreSpeculationMinDegree)
+            {
+                foreach (string word in this.CoreGuardWords())
+                {
+                    if (!string.Equals(word, zero, StringComparison.Ordinal))
+                    {
+                        this.coreFutures.Add(this.StartCore(true, word, true, spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency));
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        CoreFuture StartCore(bool anchorScale, string anchorZero, bool speculative,
+                             EnergySpectrum spectrum, EnergySpectrum backgroundSpectrum, FwhmCalibration fwhmCalibration,
+                             List<FsaComponent> originalLibrary, FsaEfficiency efficiency)
+        {
+            FsaAnalyzer clone = this.ForkForCore();
+            var future = new CoreFuture
+            {
+                Clone = clone,
+                AnchorScale = anchorScale,
+                AnchorZero = anchorZero,
+                Suppressed = this.backgroundMaskSuppressed,
+                Speculative = speculative,
+                Spectrum = spectrum,
+                Background = backgroundSpectrum,
+                Fwhm = fwhmCalibration,
+                Library = originalLibrary,
+                Efficiency = efficiency,
+                FixedBetaRows = this.fixedBetaRows,
+                Trace = ProbeCoreTrace != null ? new List<string>() : null,
+                Clock = System.Diagnostics.Stopwatch.StartNew()
+            };
+            clone.coreSelf = future;
+            clone.AnchorScale = anchorScale;
+            clone.AnchorZero = anchorZero;
+            clone.rollbackWidth = double.NaN;
+            clone.backgroundMaskRefusal = null;
+            bool collect = FsaDatabaseFailures.Collecting;
+            future.Task = System.Threading.Tasks.Task.Factory.StartNew(
+                () =>
+                {
+                    if (collect)
+                    {
+                        FsaDatabaseFailures.Begin();
+                    }
+
+                    try
+                    {
+                        future.Result = clone.AnalyzeCore(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+                    }
+                    catch (Exception error)
+                    {
+                        future.Error = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error);
+                    }
+                    finally
+                    {
+                        if (collect)
+                        {
+                            future.DatabaseFailures = FsaDatabaseFailures.End();
+                        }
+
+                        if (future.Trace != null)
+                        {
+                            future.Trace.Add(string.Format(CultureInfo.InvariantCulture, "COPY	заход копии кончен{0}	[копия{1}, {2} мс от запуска]",
+                                future.Error != null ? " (" + future.Error.SourceException.GetType().Name + ")" : "",
+                                speculative ? " впрок" : "", future.Clock.ElapsedMilliseconds));
+                        }
+                    }
+                },
+                System.Threading.CancellationToken.None,
+                System.Threading.Tasks.TaskCreationOptions.LongRunning,
+                System.Threading.Tasks.TaskScheduler.Default);
+            return future;
+        }
+
+        /// <summary>Заход на копии с теми же входами, что у захода, который распорядитель сейчас начал бы считать; нет — null.</summary>
+        CoreFuture TakeCoreFuture(EnergySpectrum spectrum, EnergySpectrum backgroundSpectrum, FwhmCalibration fwhmCalibration,
+                                  List<FsaComponent> originalLibrary, FsaEfficiency efficiency)
+        {
+            List<CoreFuture> futures = this.coreFutures;
+            if (futures == null || futures.Count == 0 || this.shareRefit || !double.IsNaN(this.rollbackWidth))
+            {
+                return null;
+            }
+
+            for (int i = 0; i < futures.Count; i++)
+            {
+                CoreFuture future = futures[i];
+                if (future.AnchorScale == this.AnchorScale && string.Equals(future.AnchorZero, this.AnchorZero, StringComparison.Ordinal)
+                    && future.Suppressed == this.backgroundMaskSuppressed && ReferenceEquals(future.FixedBetaRows, this.fixedBetaRows)
+                    && ReferenceEquals(future.Spectrum, spectrum) && ReferenceEquals(future.Background, backgroundSpectrum)
+                    && ReferenceEquals(future.Fwhm, fwhmCalibration) && ReferenceEquals(future.Library, originalLibrary)
+                    && ReferenceEquals(future.Efficiency, efficiency))
+                {
+                    futures.RemoveAt(i);
+                    return future;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// (`AMBER326`, a326p) Забрать заход копии на место захода, который считался бы здесь: дождаться, отдать след
+        /// и отказы баз, перенести состояние и память «до маски», затем — результат или то исключение, которым
+        /// заход кончился (обрыв сторожа маски в том числе), с исходным стеком.
+        /// </summary>
+        FsaResult AdoptCore(CoreFuture future)
+        {
+            try
+            {
+                future.Task.Wait();
+            }
+            catch (Exception)
+            {
+                // исключение захода — в future.Error; сама задача не бросает
+            }
+
+            if (future.Trace != null)
+            {
+                Action<string> sink = ProbeCoreTrace;
+                if (sink != null)
+                {
+                    foreach (string line in future.Trace)
+                    {
+                        sink(line);
+                    }
+                }
+            }
+
+            FsaDatabaseFailures.Absorb(future.DatabaseFailures);
+            System.Threading.Interlocked.Add(ref oncePassCount, future.OncePasses);
+            FsaAnalyzer clone = future.Clone;
+            this.AdoptCoreState(clone);
+            foreach (KeyValuePair<string, FsaResult> kept in clone.preMask)
+            {
+                this.preMask[kept.Key] = kept.Value;
+            }
+
+            if (clone.backgroundMaskRefusal != null)
+            {
+                this.backgroundMaskRefusal = this.backgroundMaskRefusal ?? clone.backgroundMaskRefusal;
+            }
+
+            if (future.Error != null)
+            {
+                future.Error.Throw();
+            }
+
+            return future.Result;
+        }
+
+        /// <summary>Снять незабранные заходы копий (все или только запасные впрок): дальше они не нужны; ждёт их <see cref="DrainCoreFutures"/>.</summary>
+        void CancelCoreFutures(bool sparesOnly)
+        {
+            List<CoreFuture> futures = this.coreFutures;
+            if (futures == null || this.shareRefit)
+            {
+                return;
+            }
+
+            for (int i = futures.Count - 1; i >= 0; i--)
+            {
+                CoreFuture future = futures[i];
+                if (sparesOnly && !future.Speculative)
+                {
+                    continue;
+                }
+
+                future.Cancelled = true;
+                futures.RemoveAt(i);
+                if (this.coreStale == null)
+                {
+                    this.coreStale = new List<CoreFuture>();
+                }
+
+                this.coreStale.Add(future);
+            }
+        }
+
+        /// <summary>Дождаться конца всех снятых заходов копий: они делят с анализатором кэши разбора.</summary>
+        void DrainCoreFutures()
+        {
+            this.CancelCoreFutures(false);
+            List<CoreFuture> stale = this.coreStale;
+            if (stale == null)
+            {
+                return;
+            }
+
+            foreach (CoreFuture future in stale)
+            {
+                try
+                {
+                    future.Task.Wait();
+                }
+                catch (Exception)
+                {
+                }
+            }
+
+            stale.Clear();
         }
 
         /// <summary>(`A320`, П258, внесён П277) Сработал ли страж нуля на последнем <see cref="Analyze"/> (пробам).</summary>
@@ -11476,9 +12161,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<FsaComponent> originalLibrary,
             FsaEfficiency efficiency)
         {
-            // (`A320`, П323) счёт проходов — положительному контролю проб
-            System.Threading.Interlocked.Increment(ref corePassCount);
-            Action<string> coreTrace = ProbeCoreTrace;
+            // (`A320`, П323) счёт проходов — положительному контролю проб; (`AMBER326`, a326p) заход копии
+            // анализатора считает тот, кто его забирает, — заход впрок, оставшийся невостребованным, в счёт не идёт
+            if (this.coreSelf == null)
+            {
+                System.Threading.Interlocked.Increment(ref corePassCount);
+                CoreFuture ready = this.TakeCoreFuture(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
+                if (ready != null)
+                {
+                    return this.AdoptCore(ready);
+                }
+            }
+
+            Action<string> coreTrace = this.CoreTraceSink();
             if (coreTrace != null)
             {
                 coreTrace(string.Format(CultureInfo.InvariantCulture,
@@ -11790,7 +12485,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                      FwhmCalibration fwhmCalibration, List<FsaComponent> originalLibrary,
                                      FsaEfficiency efficiency, double gain, double offset)
         {
-            Action<string> maskTrace = ProbeCoreTrace;
+            Action<string> maskTrace = this.CoreTraceSink();
             if (!this.BackgroundExcessMask || this.backgroundMaskSuppressed || current == null || current.BackgroundOversubtracted == null)
             {
                 if (maskTrace != null)
@@ -11978,7 +12673,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<FsaComponent> originalLibrary,
             FsaEfficiency efficiency)
         {
-            System.Threading.Interlocked.Increment(ref oncePassCount);
+            this.CoreCheckpoint();
+            if (this.coreSelf != null)
+            {
+                this.coreSelf.OncePasses++;
+            }
+            else
+            {
+                System.Threading.Interlocked.Increment(ref oncePassCount);
+            }
+
             this.Refusal = FsaRefusal.None;
             this.RefusalNote = null;
             // (`S204`) рампа — состояние ЭТОГО разбора; отказ до её замера не
@@ -12131,19 +12835,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // (`T265` А, П207) суммирователь — один на весь разбор, пока его
                 // входы те же; сменились — новый, и кэши через проходы сброшены:
                 // поправки и образы с поправками построены прежним
-                string summerKey = this.DepositCarry ? this.SummerCarryKey() : null;
-                if (summerKey != null && this.carrySummer != null && summerKey == this.carrySummerKey)
+                lock (this.carryGate)
                 {
-                    this.cascade = this.carrySummer;
-                }
-                else
-                {
-                    this.cascade = this.CreateCascadeSummer();
-                    this.correctionCarry.Clear();
-                    this.depositCarry.Clear();
-                    this.windowCarry.Clear();
-                    this.carrySummer = summerKey != null ? this.cascade : null;
-                    this.carrySummerKey = summerKey;
+                    string summerKey = this.DepositCarry ? this.SummerCarryKey() : null;
+                    if (summerKey != null && this.carryShared.Summer != null && summerKey == this.carryShared.SummerKey)
+                    {
+                        this.cascade = this.carryShared.Summer;
+                        FsaDatabaseFailures.Replay(this.carryShared.SummerNotes);
+                    }
+                    else
+                    {
+                        List<string> outerNotes = FsaDatabaseFailures.BeginCapture();
+                        List<string> summerNotes;
+                        try
+                        {
+                            this.cascade = this.CreateCascadeSummer();
+                        }
+                        finally
+                        {
+                            summerNotes = FsaDatabaseFailures.EndCapture(outerNotes);
+                        }
+
+                        this.correctionCarry.Clear();
+                        this.correctionNotes.Clear();
+                        this.depositCarry.Clear();
+                        this.windowCarry.Clear();
+                        this.carryShared.Summer = summerKey != null ? this.cascade : null;
+                        this.carryShared.SummerKey = summerKey;
+                        this.carryShared.SummerNotes = summerKey != null && summerNotes.Count > 0 ? summerNotes : null;
+                    }
                 }
             }
             else
@@ -18044,6 +18764,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                               int chLo, int chHi, int channels, double gain, double offset, double liveTime,
                               FsaEfficiency efficiency, bool gainOnEdge, bool offsetOnEdge)
         {
+            this.CoreCheckpoint();
             // Калибровка — та же, по которой строились образы; берётся у
             // спектра, как в Analyze. ПШПВ приходит параметром: у спектра её
             // может не быть вовсе, она достраивается выше.
@@ -19927,6 +20648,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                            double[] y, double[] variance, double[] baseWeights, double[] reportWeights,
                            List<FsaComponent> subset)
         {
+            this.CoreCheckpoint();
             double[] weights = (double[])baseWeights.Clone();
             // Дисперсия, от которой берутся вес `1/σ²` и порог Хубера `m·σ`
             // ТЕКУЩЕГО перевзвешивания: по данным — поданная `variance`; по
@@ -20924,6 +21646,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                           double gain, double offset, int chLo, int chHi, int channels,
                           double[] y, double[] weights, List<FsaComponent> subset)
         {
+            this.CoreCheckpoint();
             bool fromMatrix;
             List<FitColumn> columns = this.BuildFitColumns(library, fixedColumns, calibration, fwhmCalibration,
                                                            efficiency, gain, offset, chLo, chHi, channels,
@@ -23094,7 +23817,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     int carried = Math.Min(floorBins, deposit.Length);
                     windowKey = depositKey + "|w" + carried.ToString(CultureInfo.InvariantCulture);
-                    if (this.windowCarry.TryGetValue(windowKey, out inWindow))
+                    bool carriedWindow;
+                    lock (this.carryGate)
+                    {
+                        carriedWindow = this.windowCarry.TryGetValue(windowKey, out inWindow);
+                    }
+
+                    if (carriedWindow)
                     {
                         windowsOf[carried] = inWindow;
                         return CutTailByMask(deposit, part, channelParts, inWindow);
@@ -23268,7 +23997,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 windowsOf[limit] = inWindow;
                 if (windowKey != null)
                 {
-                    this.windowCarry[windowKey] = inWindow;
+                    lock (this.carryGate)
+                    {
+                        this.windowCarry[windowKey] = inWindow;
+                    }
                 }
 
                 return CutTailByMask(deposit, part, channelParts, inWindow);
@@ -23501,25 +24233,106 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return cached;
             }
 
+            this.CoreCheckpoint();
             // (`T265` А, П207) через проходы — по содержимому и состоянию
             string carryKey = this.DepositCarry ? this.DepositKey(component, calibration, fwhmCalibration, channels) : null;
-            if (carryKey != null && this.depositCarry.TryGetValue(carryKey, out cached))
+            if (carryKey == null)
             {
-                this.DepositCarryHits++;
-                this.deposits[component] = cached;
-                if (cached != null && cached.CascadeApplied)
+                return this.BuildDeposit(component, calibration, fwhmCalibration, channels);
+            }
+
+            // (`AMBER326`, a326p) ячейка ключа: первый спросивший строит, остальные ждут готового
+            while (true)
+            {
+                DepositSlot slot;
+                bool owner = false;
+                lock (this.carryGate)
                 {
-                    this.cascadeApplied = true;
+                    if (!this.depositCarry.TryGetValue(carryKey, out slot))
+                    {
+                        slot = new DepositSlot();
+                        this.depositCarry[carryKey] = slot;
+                        owner = true;
+                    }
                 }
 
-                return cached;
-            }
+                if (owner)
+                {
+                    this.DepositCarryMisses++;
+                    Deposit built;
+                    List<string> outerNotes = FsaDatabaseFailures.BeginCapture();
+                    List<string> builtNotes = null;
+                    try
+                    {
+                        try
+                        {
+                            built = this.BuildDeposit(component, calibration, fwhmCalibration, channels);
+                        }
+                        finally
+                        {
+                            builtNotes = FsaDatabaseFailures.EndCapture(outerNotes);
+                        }
+                    }
+                    catch
+                    {
+                        // строитель не достроил (исключение, снятый заход копии): ячейка снимается, ждавшие строят сами
+                        lock (this.carryGate)
+                        {
+                            DepositSlot current;
+                            if (this.depositCarry.TryGetValue(carryKey, out current) && ReferenceEquals(current, slot))
+                            {
+                                this.depositCarry.Remove(carryKey);
+                            }
+                        }
 
-            if (carryKey != null)
-            {
-                this.DepositCarryMisses++;
-            }
+                        lock (slot)
+                        {
+                            slot.Failed = true;
+                            System.Threading.Monitor.PulseAll(slot);
+                        }
 
+                        throw;
+                    }
+
+                    lock (slot)
+                    {
+                        slot.Value = built;
+                        slot.Notes = builtNotes != null && builtNotes.Count > 0 ? builtNotes : null;
+                        slot.Ready = true;
+                        System.Threading.Monitor.PulseAll(slot);
+                    }
+
+                    return built;
+                }
+
+                lock (slot)
+                {
+                    while (!slot.Ready && !slot.Failed)
+                    {
+                        System.Threading.Monitor.Wait(slot);
+                    }
+                }
+
+                if (slot.Ready)
+                {
+                    FsaDatabaseFailures.Replay(slot.Notes);
+                    cached = slot.Value;
+                    this.DepositCarryHits++;
+                    this.deposits[component] = cached;
+                    if (cached != null && cached.CascadeApplied)
+                    {
+                        this.cascadeApplied = true;
+                    }
+
+                    return cached;
+                }
+            }
+        }
+
+        /// <summary>Построить гистограмму поглощения компонента и положить её в кэш прохода; см. <see cref="DepositOf"/>.</summary>
+        Deposit BuildDeposit(FsaComponent component, EnergyCalibration calibration,
+                             FwhmCalibration fwhmCalibration, int channels)
+        {
             double bin = this.ResponseMatrix.BinKev;
             bool before = this.cascadeApplied;
             this.cascadeApplied = false;
@@ -23573,11 +24386,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             this.cascadeApplied = before || this.cascadeApplied;
             this.deposits[component] = deposit;
-            if (carryKey != null)
-            {
-                this.depositCarry[carryKey] = deposit;
-            }
-
             return deposit;
         }
 
@@ -23590,7 +24398,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         FsaCascadeSummer.Correction CorrectionOf(FsaComponent component)
         {
-            string key = this.DepositCarry && this.carrySummer != null && ReferenceEquals(this.cascade, this.carrySummer)
+            // (`AMBER326`, a326p) суммирователь и кэш поправок — общие у копий анализатора: под замком
+            lock (this.carryGate)
+            {
+                return this.CorrectionOfCarried(component);
+            }
+        }
+
+        /// <summary>Тело <see cref="CorrectionOf"/>; зовётся под <see cref="carryGate"/>.</summary>
+        FsaCascadeSummer.Correction CorrectionOfCarried(FsaComponent component)
+        {
+            string key = this.DepositCarry && this.carryShared.Summer != null && ReferenceEquals(this.cascade, this.carryShared.Summer)
                 ? this.ComponentCarryKey(component)
                 : null;
             if (key == null)
@@ -23608,8 +24426,30 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (!this.correctionCarry.TryGetValue(key, out correction))
             {
-                correction = this.cascade.For(component);
+                List<string> outerNotes = FsaDatabaseFailures.BeginCapture();
+                List<string> notes;
+                try
+                {
+                    correction = this.cascade.For(component);
+                }
+                finally
+                {
+                    notes = FsaDatabaseFailures.EndCapture(outerNotes);
+                }
+
                 this.correctionCarry[key] = correction;
+                if (notes.Count > 0)
+                {
+                    this.correctionNotes[key] = notes;
+                }
+            }
+            else
+            {
+                List<string> notes;
+                if (this.correctionNotes.TryGetValue(key, out notes))
+                {
+                    FsaDatabaseFailures.Replay(notes);
+                }
             }
 
             this.correctionByRef[component] = correction;
@@ -23744,16 +24584,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return -1;
             }
 
-            for (int i = 0; i < this.carryRefs.Count; i++)
+            lock (this.carryGate)
             {
-                if (ReferenceEquals(this.carryRefs[i], item))
+                for (int i = 0; i < this.carryRefs.Count; i++)
                 {
-                    return i;
+                    if (ReferenceEquals(this.carryRefs[i], item))
+                    {
+                        return i;
+                    }
                 }
-            }
 
-            this.carryRefs.Add(item);
-            return this.carryRefs.Count - 1;
+                this.carryRefs.Add(item);
+                return this.carryRefs.Count - 1;
+            }
         }
 
         /// <summary>(`T265` А, П207) Число в ключ — его 64 битами.</summary>
@@ -25571,15 +26414,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public int[] Bands;
         }
 
-        readonly Stack<SourceScratch> sourcePool = new Stack<SourceScratch>();
+        Stack<SourceScratch> sourcePool = new Stack<SourceScratch>();
 
         SourceScratch RentSource(int size)
         {
-            lock (this.sourcePool)
+            Stack<SourceScratch> pool = this.sourcePool;
+            lock (pool)
             {
-                while (this.sourcePool.Count > 0)
+                while (pool.Count > 0)
                 {
-                    SourceScratch kept = this.sourcePool.Pop();
+                    SourceScratch kept = pool.Pop();
                     if (kept.Source.Length >= size)
                     {
                         return kept;
@@ -25592,9 +26436,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         void ReturnSource(SourceScratch scratch)
         {
-            lock (this.sourcePool)
+            Stack<SourceScratch> pool = this.sourcePool;
+            lock (pool)
             {
-                this.sourcePool.Push(scratch);
+                pool.Push(scratch);
             }
         }
 
@@ -25605,7 +26450,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// калибровки (<see cref="InverseOf"/>). Все три хранят чистые функции
         /// ключа — кто бы ни посчитал первым, значения те же.
         /// </summary>
-        readonly object lazyGate = new object();
+        object lazyGate = new object();
         double[] depositChannels;
         double depositChannelsBin;
         EnergyCalibration depositChannelsCalibration;
