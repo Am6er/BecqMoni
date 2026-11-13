@@ -541,7 +541,34 @@
     <value>toolStripSplitButton9</value>
   </data>
   <data name="toolStripSplitButton9.ToolTipText" xml:space="preserve">
-    <value>Specify Detected Peak Visibility</value>
+    <value>Specify Detected Peak Visibility on All Spectra</value>
+  </data>
+  <data name="fsaOnToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>260, 22</value>
+  </data>
+  <data name="fsaOnToolStripMenuItem.Text" xml:space="preserve">
+    <value>Enable FSA on All Spectra</value>
+  </data>
+  <data name="fsaOffToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
+    <value>260, 22</value>
+  </data>
+  <data name="fsaOffToolStripMenuItem.Text" xml:space="preserve">
+    <value>Disable FSA on All Spectra</value>
+  </data>
+  <data name="toolStripSplitButtonFsa.ImageScaling" type="System.Windows.Forms.ToolStripItemImageScaling, System.Windows.Forms">
+    <value>None</value>
+  </data>
+  <data name="toolStripSplitButtonFsa.ImageTransparentColor" type="System.Drawing.Color, System.Drawing">
+    <value>White</value>
+  </data>
+  <data name="toolStripSplitButtonFsa.Size" type="System.Drawing.Size, System.Drawing">
+    <value>34, 22</value>
+  </data>
+  <data name="toolStripSplitButtonFsa.Text" xml:space="preserve">
+    <value>toolStripSplitButtonFsa</value>
+  </data>
+  <data name="toolStripSplitButtonFsa.ToolTipText" xml:space="preserve">
+    <value>Full-spectrum analysis (FSA) on all spectra: on/off. Can be turned on only while detected peaks are on; can always be turned off. Peaks off hides FSA, peaks on brings it back.</value>
   </data>
   <data name="toolStripScreenShotButton.Size" type="System.Drawing.Size, System.Drawing">
     <value>23, 22</value>
@@ -580,7 +607,7 @@
     <value>492, 0</value>
   </data>
   <data name="toolStrip2.Size" type="System.Drawing.Size, System.Drawing">
-    <value>363, 25</value>
+    <value>397, 25</value>
   </data>
   <data name="toolStrip2.TabIndex" type="System.Int32, mscorlib">
     <value>80</value>
@@ -5317,6 +5344,24 @@
     <value>hidePeaksToolStripMenuItem</value>
   </data>
   <data name="&gt;&gt;hidePeaksToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;toolStripSplitButtonFsa.Name" xml:space="preserve">
+    <value>toolStripSplitButtonFsa</value>
+  </data>
+  <data name="&gt;&gt;toolStripSplitButtonFsa.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripSplitButton, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;fsaOnToolStripMenuItem.Name" xml:space="preserve">
+    <value>fsaOnToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;fsaOnToolStripMenuItem.Type" xml:space="preserve">
+    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;fsaOffToolStripMenuItem.Name" xml:space="preserve">
+    <value>fsaOffToolStripMenuItem</value>
+  </data>
+  <data name="&gt;&gt;fsaOffToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;toolStripScreenShotButton.Name" xml:space="preserve">

@@ -43148,6 +43148,9 @@ Use {1} % from the device calibration?</value>
   <data name="FsaNoFwhmSource" xml:space="preserve">
     <value>Device configuration "{0}" has no FWHM calibration either.</value>
   </data>
+  <data name="ContinuumNoFwhmRefusal" xml:space="preserve">
+    <value>Continuum not built: the spectrum has no FWHM calibration, and the continuum window is the peak width. Calibrate FWHM (Energy and FWHM Calibration panel) to see the continuum.</value>
+  </data>
   <data name="EfficiencyTabResponseMatrix" xml:space="preserve">
     <value>Response matrix...</value>
   </data>

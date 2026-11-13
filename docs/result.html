@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Активность и результат — BecqMoni гид</title>
-<script src="assets/theme.js?v=53cbbd2b"></script>
-<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
+<script src="assets/theme.js?v=7b7024a7"></script>
+<link rel="stylesheet" href="assets/guide.css?v=7307f135">
 <style>
 /* только эта глава */
 figure.shot.side{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:6px 16px;align-items:start;margin-top:22px}
@@ -55,7 +55,7 @@ figure.shot.wide{margin-top:22px}
   <div class="kicker" data-t="w.k"></div>
   <h2 data-t="w.h"></h2>
   <p class="lead" data-t="w.lead"></p>
-  <figure class="shot side nr" data-shot="panel-result" data-hot='[[0.0109,0.0737,0.1739,0.0491],[0.2065,0.0737,0.3261,0.0491],[0.0065,0.1400,0.3478,0.0344],[0.3630,0.1400,0.2130,0.0344],[0.5804,0.1400,0.2239,0.0344],[0.8087,0.1400,0.1565,0.0344],[0.0065,0.1794,0.9565,0.0639]]'>
+  <figure class="shot side nr" data-shot="panel-result" data-hot='[[0.0109,0.0688,0.1783,0.0516],[0.2022,0.0688,0.3326,0.0516],[0.0065,0.1327,0.3543,0.0786],[0.3609,0.1327,0.2174,0.0786],[0.5783,0.1327,0.2283,0.0786],[0.8065,0.1327,0.163,0.0786],[0.0065,0.2113,0.963,0.0737]]' data-hot-en='[[0.0109,0.0688,0.1783,0.0516],[0.2022,0.0688,0.3326,0.0516],[0.0065,0.1327,0.3217,0.0786],[0.3283,0.1327,0.2174,0.0786],[0.5457,0.1327,0.2283,0.0786],[0.7739,0.1327,0.163,0.0786],[0.0065,0.2113,0.9304,0.0737]]'>
     <figcaption data-t="w.cap"></figcaption>
     <ol class="shot-legend">
       <li data-t="w.l1"></li><li data-t="w.l2"></li><li data-t="w.l3"></li><li data-t="w.l4"></li>
@@ -205,8 +205,8 @@ figure.shot.wide{margin-top:22px}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=6a6efa81"></script>
-<script src="assets/quanta.js?v=67b2c2dc"></script>
+<script src="assets/guide.js?v=ba59e47f"></script>
+<script src="assets/quanta.js?v=b92ab866"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
 GUIDE.texts({ ru: {"mc.n": "Распады", "mc.k": "Монте-Карло", "mc.h": "От распадов к отсчётам", "mc.lead": "Почему отсчётов в пике так мало по сравнению с распадами? Каждая ступень отнимает свою долю: не каждый распад даёт фотон, не каждый фотон летит в кристалл, не каждый попавший отдаёт всю энергию. Смотрите, как это складывается на распадах Cs-137 в банке.", "mc.lab": "Cs-137 в банке на торце, Ø63 × 63 мм", "mc.fh": "Воронка счёта", "mc.r1": "распадов", "mc.r2": "дали фотон 662 кэВ", "mc.r3": "долетели до кристалла", "mc.r4": "отдали всю энергию — в пике", "mc.form": "y = <b>{0}</b> · ε = в пике / фотонов = <b>{1}</b><br>из 1000 распадов в пике ≈ <b>{2}</b><br>A = N / (t × ε × y)", "mc.wait": "считаю распады…", "mc.f1": "<b>ε × y</b> — доля распадов, дающих отсчёт в пике. Её BecqMoni берёт из кривой эффективности или матрицы отклика.", "mc.f2": "<b>Ступени перемножаются:</b> 85 % × десяток процентов × доля пика — поэтому из тысячи распадов в пике лишь десятки.", "mc.f3": "<b>Отсюда формула окна результата:</b> A = N / (t · ε · y) — отсчёты делятся на время и на эту долю."},
@@ -252,7 +252,7 @@ GUIDE.texts({ru:{
 'd.s1':'по матрице','d.s2':'по кривой','d.s3':'Бк скрыты: поле','d.s4':'Бк скрыты: измерение','d.s5':'ошибка','d.s6':'идёт расчёт','d.s7':'Бк/кг без массы',
 'd.h1':'FSA: Бк по матрице отклика','d.h2':'FSA: Бк по кривой (расчёт)','d.h3':'FSA: Бк скрыты — кривая сцены поля (см² на единичный флюенс)','d.h4':'FSA: Бк скрыты — кривая без абсолютного уровня (измерение)','d.h5':'FSA: ошибка','d.h6':'FSA: идёт расчёт…','d.h7':'FSA: Бк по матрице отклика',
 'd.t1':'Лучший случай: кривая с геометрией и годная матрица. Каскадное суммирование учтено. K-40 здесь едва выше порога обнаружения при k = 2: 60.03 при ±58.06 (2σ) — строка без ND; при k = 3 была бы с ND.',
-'d.t2':'Матрицы нет или она устарела: беккерели — по кривой, суммирование не учтено. На снимке без матрицы Th-232 вышел 1066.89 вместо 1088.42 Бк — на 2 % ниже. Посчитайте матрицу (глава <a href="geometry.html#matrix">8</a>).',
+'d.t2':'Матрицы нет или она устарела: беккерели — по кривой, суммирование не учтено. На снимке без матрицы Th-232 вышел 1034.16 вместо 1088.42 Бк — на 5 % ниже. Посчитайте матрицу (глава <a href="geometry.html#matrix">8</a>).',
 'd.t3':'Кривая сцены «Изотропное поле (ISO)» меряет отклик на единичный флюенс (см²), а не долю квантов: для дозы — да, для беккерелей — нет. Строки пишут «нет K». Сцены «Детектор на земле» и «в лунке» беккерели дают.',
 'd.t4':'Кривая снята по измерениям или введена руками, а геометрию к ней дописали через «Изменить…»: разбор идёт, но абсолютного уровня у самой кривой нет — без матрицы беккерели скрыты. Посчитайте матрицу (тогда Бк — по ней) или кривую из геометрии.',
 'd.t5':'Разбор отказал: вместо строк — одна строка «FSA» с причиной, той же, что в строке состояния «Отчёта FSA». Здесь — нет геометрии у кривой (глава <a href="geometry.html">8</a>).',
@@ -305,7 +305,7 @@ GUIDE.texts({ru:{
 'p.s2':'Наберите пробу. В <span class="ui">Информация об образце</span> впишите <span class="ui">Вес</span> и <span class="ui">Дата отбора</span>.',
 'p.s3':'<span class="ui">Геометрия</span> — кривая этого сосуда с геометрией (глава <a href="geometry.html">8</a>).',
 'p.s4':'<span class="ui m">Вид → Обнаружение пиков</span> → <span class="ui">Набор:</span> — с Cs-137.',
-'p.s5':'<span class="ui">Просмотр:</span> → <span class="ui">Показать FSA (полноспектральный разбор)</span>.',
+'p.s5':'Кнопка <span class="ui">FSA</span> на полосе под графиком, справа от кнопки пиков (пики должны быть включены).',
 'p.s6':'<span class="ui m">Вид → Результат измерений</span> → единицы <span class="ui">Бк/кг</span>, коррекция <span class="ui">Корр. пер. полураспада</span>.',
 'p.s7':'Заголовок должен быть <span class="ui">FSA: Бк по матрице отклика</span>; второй столбец — <span class="ui">На дату отбора</span>.',
 'p.warn':'<b>Вес вводится в граммах</b> (если в настройках не выбраны килограммы), а Бк/кг считаются на килограмм. 250 г грибов — пишите 250, программа сама переведёт.',
@@ -346,7 +346,7 @@ GUIDE.texts({ru:{
 'd.s1':'by matrix','d.s2':'by curve','d.s3':'Bq hidden: field','d.s4':'Bq hidden: measurement','d.s5':'error','d.s6':'computing','d.s7':'Bq/kg without weight',
 'd.h1':'FSA: Bq by response matrix','d.h2':'FSA: Bq by simulation curve','d.h3':'FSA: Bq hidden — field-scene curve (cm² per unit fluence)','d.h4':'FSA: Bq hidden — curve without absolute scale (measurement)','d.h5':'FSA: error','d.h6':'FSA: computing…','d.h7':'FSA: Bq by response matrix',
 'd.t1':'The best case: a curve with a geometry and a valid matrix. Cascade summing is applied. K-40 is barely above the detection threshold at k = 2 here: 60.03 at ±58.06 (2σ) — a row without ND; at k = 3 it would carry ND.',
-'d.t2':'No matrix or a stale one: becquerels by the curve, summing not applied. In the shot without a matrix Th-232 came out 1066.89 instead of 1088.42 Bq — 2 % lower. Compute the matrix (chapter <a href="geometry.html#matrix">8</a>).',
+'d.t2':'No matrix or a stale one: becquerels by the curve, summing not applied. In the shot without a matrix Th-232 came out 1034.16 instead of 1088.42 Bq — 5 % lower. Compute the matrix (chapter <a href="geometry.html#matrix">8</a>).',
 'd.t3':'A curve of the “Isotropic field (ISO)” scene measures the response per unit fluence (cm²), not a share of photons: fine for dose, not for becquerels. Rows say “no K”. The “Detector on the ground” and “in a borehole” scenes do give becquerels.',
 'd.t4':'The curve comes from measurements or was typed by hand, and a geometry was added with “Edit...”: the decomposition runs, but the curve has no absolute scale — without a matrix becquerels are hidden. Compute the matrix (then Bq come from it) or a curve from the geometry.',
 'd.t5':'The decomposition refused: instead of rows there is one “FSA” row with the reason, the same as in the status line of the “FSA Report”. Here — the curve has no geometry (chapter <a href="geometry.html">8</a>).',
@@ -399,7 +399,7 @@ GUIDE.texts({ru:{
 'p.s2':'Count the sample. In <span class="ui">Sample Information</span> type the <span class="ui">Weight</span> and the <span class="ui">Sampling Date</span>.',
 'p.s3':'<span class="ui">Geometry</span> — the curve of this vessel with a geometry (chapter <a href="geometry.html">8</a>).',
 'p.s4':'<span class="ui m">View → Peak Detection</span> → <span class="ui">Use set:</span> — one with Cs-137.',
-'p.s5':'<span class="ui">View:</span> → <span class="ui">Show FSA (full-spectrum decomposition)</span>.',
+'p.s5':'The <span class="ui">FSA</span> button on the bar under the chart, right of the peaks button (peaks must be shown).',
 'p.s6':'<span class="ui m">View → Measurement Result</span> → units <span class="ui">Bq/kg</span>, correction <span class="ui">Half Lifetime Correction</span>.',
 'p.s7':'The header must read <span class="ui">FSA: Bq by response matrix</span>; the second column — <span class="ui">At sampling</span>.',
 'p.warn':'<b>Weight is typed in grams</b> (unless kilograms are chosen in the preferences), while Bq/kg is per kilogram. 250 g of mushrooms — type 250, the program converts it.',
@@ -425,7 +425,7 @@ GUIDE.texts({ru:{
 /* ── 1. заголовок окна результата: что значит каждое состояние ── */
 (function states() {
   const ROWS = [['K-40', '60.03', '±58.06 (96.71%)', '133.8'], ['Th-232', '1088.42', '±9.26 (0.85%)', '10.79']];
-  const ROWS2 = [['K-40', '181.74', '±76.32 (41.99%)', '167.47'], ['Th-232', '1066.89', '±16.42 (1.54%)', '17.72']];
+  const ROWS2 = [['K-40', '196.09', '±79.76 (40.67%)', '169.76'], ['Th-232', '1034.16', '±16.99 (1.64%)', '17.66']];
   let s = 1;
   function draw() {
     $('#dStates').innerHTML = [1, 2, 3, 4, 5, 6, 7].map(i => '<button class="chip' + (i === s ? ' on' : '') + '" data-i="' + i + '">' + t('d.s' + i) + '</button>').join('');

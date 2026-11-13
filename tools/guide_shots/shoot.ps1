@@ -3,10 +3,13 @@
 # ЧТО СНИМАЕТ. Снимки гида RU и EN; сцена — один запуск программы, из неё берутся снимки:
 #
 #   сцена              снимки                                что на них
-#   main               main, panel-control, panel-sample     ASN16_Cs137 корпуса, сет «Cs-137 + K-40»,
-#                                                            «Обнаружение пиков», курсор у 3172 кэВ
-#   main-fsa           main-fsa, panel-result, panel-fsa     ториевый диск AS80, сет «Th-232 + K-40»,
-#                                                            график FSA; отчёт прокручен к «Качеству»
+#   main               main, panel-control, panel-sample,    ASN16_Cs137 корпуса, сет «Cs-137 + K-40»,
+#                      spectrum-bar, view-modes              «Обнаружение пиков», курсор у 3172 кэВ;
+#                                                            полоса под графиком и раскрытый список
+#                                                            режимов фона (`AMBER328`)
+#   main-fsa           main-fsa, panel-result, panel-fsa,    ториевый диск AS80, сет «Th-232 + K-40»,
+#                      fsa-button                            FSA включён кнопкой FSA; отчёт прокручен
+#                                                            к «Качеству»; раскрытый список кнопки FSA
 #   main-fsa-nomatrix  main-fsa-nomatrix                     то же без матрицы на складе копии
 #   devcfg             devcfg-general, -device-rc, -analysis, окно конфигурации прибора, набор
 #                      -refs, -device-obs, -audio,           приборов гида (`make_copy.py`, GUIDE_SET);
@@ -24,7 +27,7 @@
 #                      prefs-system
 #
 # НЕ снимаются (вырезки другой раскладки окна, меню, всплывающие окна): panel-ecal, panel-fwhm,
-# panel-peaks, panel-speclist, spectrum-bar, select-panel, set-hint, view-modes, graph-peak-shape,
+# panel-peaks, panel-speclist, select-panel, set-hint, graph-peak-shape,
 # menu-file, menu-file-import, menu-view, menu-spectrum, menu-tool, menu-help — таблица
 # «снимок → сцена» и причины — в журнале `handover/handover-2026-11-08-guideshot.md`. Новая сцена
 # добавляется в `GuideShot.cs` (действия человека) и в `make_copy.py` (`SCENES`: спектр, набор
@@ -41,6 +44,10 @@
 #             без ключа берётся сборка, уже лежащая в bin\guideshot (её нет — собирается).
 #   -Install  положить снятое в docs\img\<язык>\ (`install_shots.ps1`): попиксельная сверка с
 #             прежним снимком печатается до замены. Без ключа снимки только в <Work>\shots.
+#             Снимок другого размера ставится, только если назван в -Resized.
+#   -Resized  снимки, которым разрешено сменить размер при установке (их точки `data-hot`
+#             пересчитаны по <Work>\shots\<язык>\<снимок>.hot.txt): так 13.11.2026 впервые
+#             сняты конвейером `spectrum-bar` и `view-modes` (`AMBER328`).
 #   -Work     временный каталог (умолчание D:\BqMoni_Claude\guideshot); в git он не идёт.
 #   -StaleControl  положительный контроль метки «!»: сцена `main` после кадра выбирает в
 #             списке «Геометрия» первую помеченную кривую и снимает панель ещё раз
@@ -88,7 +95,8 @@ param(
     [switch]$StaleControl,
     [string]$Store = '',
     [ValidateSet('corpus', 'file')][string]$DiskCurve = 'corpus',
-    [string]$Gdml = ''
+    [string]$Gdml = '',
+    [string[]]$Resized = @()
 )
 if (-not $Gdml) { $Gdml = Join-Path $PSScriptRoot '..\effmaker\probes\data\gdml_a322\a322_shielded.gdml' }
 $Gdml = [IO.Path]::GetFullPath($Gdml)
@@ -103,8 +111,9 @@ $app = Join-Path $Work 'app'
 
 # Снимок -> сцена (таблица снимков гида и режимов — в журнале handover/handover-2026-11-08-guideshot.md).
 $sceneOf = [ordered]@{
-    'main' = 'main'; 'panel-control' = 'main'; 'panel-sample' = 'main'
-    'main-fsa' = 'main-fsa'; 'panel-result' = 'main-fsa'; 'panel-fsa' = 'main-fsa'; 'main-fsa-nomatrix' = 'main-fsa-nomatrix'
+    'main' = 'main'; 'panel-control' = 'main'; 'panel-sample' = 'main'; 'spectrum-bar' = 'main'; 'view-modes' = 'main'
+    'main-fsa' = 'main-fsa'; 'panel-result' = 'main-fsa'; 'panel-fsa' = 'main-fsa'; 'fsa-button' = 'main-fsa'
+    'main-fsa-nomatrix' = 'main-fsa-nomatrix'
     'devcfg-general' = 'devcfg'; 'devcfg-device-rc' = 'devcfg'; 'devcfg-analysis' = 'devcfg'; 'devcfg-refs' = 'devcfg'
     'devcfg-ecal' = 'devcfg-ecal'; 'devcfg-device-obs' = 'devcfg'; 'devcfg-device-audio' = 'devcfg'
     'devcfg-device-ausb' = 'devcfg'; 'devcfg-device-aser' = 'devcfg'; 'devcfg-device-as' = 'devcfg'
@@ -157,7 +166,7 @@ if ($failed.Count -gt 0) { $failed | ForEach-Object { Write-Host "ОТКАЗ $_"
 if ($LASTEXITCODE -ne 0) { Write-Host 'в текстах окна найдено личное — снимки не установлены' -ForegroundColor Red; exit 3 }
 
 if ($Install) {
-    & (Join-Path $PSScriptRoot 'install_shots.ps1') -Shots $Shots -Lang $Lang -Work $Work
+    & (Join-Path $PSScriptRoot 'install_shots.ps1') -Shots $Shots -Lang $Lang -Work $Work -Resized $Resized
     exit $LASTEXITCODE
 }
 exit 0

@@ -2055,6 +2055,15 @@ namespace BecquerelMonitor
                 return;
             }
 
+            this.DrawStatusPanel(g, x, y, width, text);
+        }
+
+        /// <summary>
+        /// Панель строки состояния — общая для отказа FSA и (`AMBER328`, находка Н2)
+        /// отказа континуума: тень, белая заливка, чёрная рамка, перенос по ширине.
+        /// </summary>
+        void DrawStatusPanel(Graphics g, int x, int y, int width, string text)
+        {
             int height = (int)Math.Ceiling(g.MeasureString(text, this.Font, width - 12).Height) + 8;
             g.FillRectangle(Brushes.DarkGray, x + 3, y + 3, width, height);
             g.FillRectangle(Brushes.White, x, y, width, height);

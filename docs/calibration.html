@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Калибровка — BecqMoni гид</title>
-<script src="assets/theme.js?v=53cbbd2b"></script>
-<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
+<script src="assets/theme.js?v=7b7024a7"></script>
+<link rel="stylesheet" href="assets/guide.css?v=7307f135">
 </head>
 <body data-chapter="calibration">
 
@@ -140,8 +140,8 @@
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=6a6efa81"></script>
-<script src="assets/quanta.js?v=67b2c2dc"></script>
+<script src="assets/guide.js?v=ba59e47f"></script>
+<script src="assets/quanta.js?v=b92ab866"></script>
 <script>
 'use strict';
 const { $, $$, clamp, lerp, fx, sig, setup, scale, axes, rgba, visible, io, t, gauss, poisson } = GUIDE;
@@ -210,7 +210,7 @@ GUIDE.texts({ru:{
 'fs.warn':'<b>«Кривая FWHM даёт нулевую ширину на каналах 0…N»</b> — простой корень по двум пикам ушёл в ноль внизу шкалы. Добавьте пик у нижнего края или выберите «Степенная»: её ширина положительна на всех каналах выше нуля.',
 'f.l3':'<b>Кривая</b> — «Простой квадратный корень» (от 2 пиков), «Квадратный корень полинома» (от 3), «Степенная» (от 2)','f.l4':'<b>Выполнить калибровку</b> — подогнать кривую ширины; заодно подбирается форма пика',
 'f.l5':'<b>Форма пика</b> — строка «Функция пика» в блоке кривой: какую форму выбрала калибровка и с какими параметрами (параметры видны, только когда форма не гауссиана); сама кривая формы — в окне «График», пункт «Функция пика»','f.l6':'<b>Сохр. в конф. устр.</b> — передать калибровку прибору',
-'f.info':'<b>Как быстро:</b> <span class="ui m">Вид → Калибровка энергии и FWHM</span> → <span class="ui">Собрать всё</span> соберёт опоры всех открытых спектров с тем же числом каналов → <span class="ui">Выполнить калибровку</span> → <span class="ui">Сохр. в конф. устр.</span>. Без FWHM поиск пиков не идёт, а FSA спросит, у какого прибора её взять.',
+'f.info':'<b>Как быстро:</b> <span class="ui m">Вид → Калибровка энергии и FWHM</span> → <span class="ui">Собрать всё</span> соберёт опоры всех открытых спектров с тем же числом каналов → <span class="ui">Выполнить калибровку</span> → <span class="ui">Сохр. в конф. устр.</span>. Без FWHM поиск пиков не идёт, а FSA откажет с причиной в отчёте.',
 'fps.h':'График формы пика',
 'fps.lead':'Третий вид окна «График» — <b>Функция пика</b>. Окно открывается кнопкой <span class="ui">График</span> панели калибровки; пункт в списке есть всегда, и у спектра без кривой FWHM окно пишет на его месте причину, а не прячет пункт. Саму форму берут из калибровки FWHM этого спектра: её выбирает «Выполнить калибровку», сравнивая гауссиану, экспоненциально-гауссову форму и Фойгта по всем строкам таблицы.',
 'fps.cap':'Окно «График», пункт «Функция пика»',
@@ -291,7 +291,7 @@ GUIDE.texts({ru:{
 'fs.warn':'<b>“The FWHM curve gives zero width on channels 0…N”</b> — a simple square root through two peaks went to zero at the bottom of the scale. Add a peak near the low end or choose “Power law”: its width is positive at every channel above zero.',
 'f.l3':'<b>Curve</b> — “Simple Square root” (2+ peaks), “Square root polynomial” (3+), “Power law” (2+)','f.l4':'<b>Execute calibration</b> — fit the width curve; the peak shape is chosen too',
 'f.l5':'<b>Peak shape</b> — the “Peak function” row of the curve block: which shape the calibration chose and with which parameters (the parameters show only when the shape is not Gaussian); the shape curve itself is in the “Graph” window, the “Peak function” item','f.l6':'<b>Save to Device Cfg.</b> — hand the calibration to the detector',
-'f.info':'<b>The quick way:</b> <span class="ui m">View → Energy and FWHM Calibration</span> → <span class="ui">Get all peaks</span> collects the anchors of all open spectra with the same channel count → <span class="ui">Execute calibration</span> → <span class="ui">Save to Device Cfg.</span>. Without FWHM peak search does not run, and FSA asks which device to take it from.',
+'f.info':'<b>The quick way:</b> <span class="ui m">View → Energy and FWHM Calibration</span> → <span class="ui">Get all peaks</span> collects the anchors of all open spectra with the same channel count → <span class="ui">Execute calibration</span> → <span class="ui">Save to Device Cfg.</span>. Without FWHM peak search does not run, and FSA refuses, naming the reason in its report.',
 'fps.h':'Peak shape graph',
 'fps.lead':'The third view of the “Graph” window is <b>Peak function</b>. The window opens with the <span class="ui">Graph</span> button of the calibration panel; the item is always in the list, and for a spectrum without an FWHM curve the window writes the reason in its place instead of hiding the item. The shape itself comes from the FWHM calibration of this spectrum: “Execute calibration” chooses it by comparing the Gaussian, the exponentially modified Gaussian and the Voigt over all rows of the table.',
 'fps.cap':'The “Graph” window, the “Peak function” item',

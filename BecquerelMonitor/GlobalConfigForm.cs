@@ -166,9 +166,17 @@ namespace BecquerelMonitor
             this.comboBox4.SelectedIndex = (int)globalConfig.ChartViewConfig.DefaultVerticalFittingMode;
             this.comboBox5.SelectedIndex = (int)globalConfig.ChartViewConfig.DefaultHorizontalUnit;
             this.comboBox6.SelectedIndex = (int)globalConfig.ChartViewConfig.DefaultSmoothingMothod;
-            this.comboBox7.SelectedIndex = (int)globalConfig.ChartViewConfig.DefaultBackgroundMode;
+            // (`AMBER328`, находка Н3 полосы a328) В списке два пункта — «Показать» и
+            // «Скрыть», а режим фона по умолчанию в файле может стоять и другим
+            // («Вычесть», «Континуум», «Нормировка», вписанные руками): индекс вне
+            // списка ронял окно `ArgumentOutOfRangeException`. Такой режим список не
+            // выбирает (пусто), и при сохранении окно его НЕ перезаписывает
+            // (<see cref="SaveFormContents"/>): сохраняемое значение то же.
+            int backgroundIndex = (int)globalConfig.ChartViewConfig.DefaultBackgroundMode;
+            this.comboBox7.SelectedIndex = backgroundIndex >= 0 && backgroundIndex < this.comboBox7.Items.Count ? backgroundIndex : -1;
             this.comboBox8.SelectedIndex = (int)globalConfig.ChartViewConfig.DefaultDrawingMode;
             this.comboBox9.SelectedIndex = (int)globalConfig.ChartViewConfig.DefaultPeakMode;
+            this.peakModeShown = this.comboBox9.SelectedIndex;
             this.comboBox10.SelectedIndex = (int)globalConfig.ChartViewConfig.DefaultHorizontalMagnification;
             this.doubleTextBox3.Text = globalConfig.ChartViewConfig.Energy2ndCoefficientStep.ToString(CultureInfo.InvariantCulture);
             this.doubleTextBox1.Text = globalConfig.ChartViewConfig.EnergyCoefficientStep.ToString(CultureInfo.InvariantCulture);
@@ -249,9 +257,20 @@ namespace BecquerelMonitor
             globalConfig.ChartViewConfig.DefaultVerticalFittingMode = (VerticalFittingMode)this.comboBox4.SelectedIndex;
             globalConfig.ChartViewConfig.DefaultHorizontalUnit = (HorizontalUnit)this.comboBox5.SelectedIndex;
             globalConfig.ChartViewConfig.DefaultSmoothingMothod = (SmoothingMethod)this.comboBox6.SelectedIndex;
-            globalConfig.ChartViewConfig.DefaultBackgroundMode = (BackgroundMode)this.comboBox7.SelectedIndex;
+            if (this.comboBox7.SelectedIndex >= 0)
+            {
+                globalConfig.ChartViewConfig.DefaultBackgroundMode = (BackgroundMode)this.comboBox7.SelectedIndex;
+            }
             globalConfig.ChartViewConfig.DefaultDrawingMode = (DrawingMode)this.comboBox8.SelectedIndex;
-            globalConfig.ChartViewConfig.DefaultPeakMode = (PeakMode)this.comboBox9.SelectedIndex;
+            // (`AMBER328`) Пики по умолчанию — общее состояние пиков, и кнопка пиков
+            // пишет его, пока это окно открыто (окно немодальное). Окно пишет его,
+            // только если человек сменил список здесь, — иначе «Применить» вернуло бы
+            // поверх кнопки то, что окно показало при открытии.
+            if (this.comboBox9.SelectedIndex != this.peakModeShown)
+            {
+                globalConfig.ChartViewConfig.DefaultPeakMode = (PeakMode)this.comboBox9.SelectedIndex;
+                this.peakModeShown = this.comboBox9.SelectedIndex;
+            }
             globalConfig.ChartViewConfig.DefaultHorizontalMagnification = (HorizontalMagnification)this.comboBox10.SelectedIndex;
             globalConfig.ChartViewConfig.Energy2ndCoefficientStep = this.doubleTextBox3.GetValue();
             globalConfig.ChartViewConfig.EnergyCoefficientStep = this.doubleTextBox1.GetValue();
@@ -283,13 +302,7 @@ namespace BecquerelMonitor
         // Token: 0x06000AC9 RID: 2761 RVA: 0x00041130 File Offset: 0x0003F330
         void button1_Click(object sender, EventArgs e)
         {
-            GlobalConfigInfo globalConfig = GlobalConfigManager.GetInstance().GlobalConfig;
-            this.SaveFormContents(globalConfig);
-            // (`AMBER201`, мелочь 3.5) Принятые настройки — на диск сразу, а не
-            // только при закрытии программы: падение или выключение до закрытия
-            // теряло их целиком. Отказ записи называет сам менеджер.
-            GlobalConfigManager.GetInstance().SaveConfigFile();
-            this.mainForm.RefreshAllView();
+            this.AcceptFormContents();
             base.Close();
         }
 
@@ -307,12 +320,56 @@ namespace BecquerelMonitor
         // Token: 0x06000ACA RID: 2762 RVA: 0x00041164 File Offset: 0x0003F364
         void button3_Click(object sender, EventArgs e)
         {
+            this.AcceptFormContents();
+        }
+
+        /// <summary>
+        /// (`AMBER328`) Индекс списка пиков, показанный окном при открытии (или подтянутый
+        /// <see cref="OnActivated"/>): окно пишет пики, только если список сменили в нём.
+        /// </summary>
+        int peakModeShown = -1;
+
+        /// <summary>
+        /// (`AMBER328`) Окно немодальное, а пики по умолчанию меняет и кнопка пиков. Вернулись
+        /// в окно — нетронутый в нём список пиков показывает текущее значение (тронутый —
+        /// остаётся выбором человека, его запишет «Применить»).
+        /// </summary>
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+            if (this.peakModeShown >= 0 && this.comboBox9.SelectedIndex == this.peakModeShown)
+            {
+                int now = (int)GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.DefaultPeakMode;
+                if (now >= 0 && now < this.comboBox9.Items.Count && now != this.peakModeShown)
+                {
+                    this.comboBox9.SelectedIndex = now;
+                    this.peakModeShown = now;
+                }
+            }
+        }
+
+        /// <summary>
+        /// «OK» и «Применить» — один путь: настройки формы в настройку программы, на
+        /// диск, на открытые вкладки.
+        /// </summary>
+        void AcceptFormContents()
+        {
             GlobalConfigInfo globalConfig = GlobalConfigManager.GetInstance().GlobalConfig;
+            PeakMode peaksBefore = globalConfig.ChartViewConfig.DefaultPeakMode;
             this.SaveFormContents(globalConfig);
             // (`AMBER201`, мелочь 3.5) Принятые настройки — на диск сразу, а не
             // только при закрытии программы: падение или выключение до закрытия
             // теряло их целиком. Отказ записи называет сам менеджер.
             GlobalConfigManager.GetInstance().SaveConfigFile();
+            // (`AMBER328`, решение Amber 13.11.2026 «Пики станут общими») Пики по
+            // умолчанию и есть общее состояние пиков: кнопка пиков пишет его сюда, и
+            // смена его в этом окне приводит все открытые вкладки тем же путём, что
+            // кнопка, — вместе с FSA, который гаснет и возвращается с пиками.
+            PeakMode peaksAfter = globalConfig.ChartViewConfig.DefaultPeakMode;
+            if (peaksAfter != peaksBefore)
+            {
+                DocEnergySpectrum.SetPeakModeEverywhere(peaksAfter, null);
+            }
             this.mainForm.RefreshAllView();
         }
 

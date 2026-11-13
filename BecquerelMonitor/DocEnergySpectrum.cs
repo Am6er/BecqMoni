@@ -411,6 +411,14 @@ namespace BecquerelMonitor
             this.view.BackgroundMode = globalConfig.ChartViewConfig.DefaultBackgroundMode;
             this.view.DrawingMode = globalConfig.ChartViewConfig.DefaultDrawingMode;
             this.view.PeakMode = globalConfig.ChartViewConfig.DefaultPeakMode;
+            // (`AMBER328`) Новая вкладка следует глобальной галочке FSA: галочка ВКЛ и
+            // пики ВКЛ — вкладка открывается сразу в FSA, а режим фона по умолчанию
+            // становится тем, куда она вернётся, когда FSA погаснет.
+            this.ApplyFsaLink();
+            // Пункт «Показать FSA» списка режимов фона виден, но недоступен (решение
+            // Amber 12.11.2026): включается FSA теперь только своей кнопкой.
+            this.ShowFsaToolStripMenuItem.Enabled = false;
+            this.toolStripSplitButtonFsa.ToolTipText = AppUi.WrapTip(this.toolStripSplitButtonFsa.ToolTipText);
             this.view.HorizontalMagnification = globalConfig.ChartViewConfig.DefaultHorizontalMagnification;
             // (П259, 14.10.2026) Нижний предел поля масштаба — 0.01, а не 0.1 из
             // конструктора формы: подгонка во всю ширину у длинного спектра в
@@ -730,32 +738,36 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// Иконка кнопки режима фона для режима <paramref name="mode"/> — одна на все
+        /// места, где режим ставится не своим пунктом меню (`AMBER328`: возврат из FSA
+        /// в бывший до него режим).
+        /// </summary>
+        static Image BackgroundModeImage(BackgroundMode mode)
+        {
+            switch (mode)
+            {
+                case BackgroundMode.Invisible:
+                    return Properties.Resources.NOBG;
+                case BackgroundMode.Substract:
+                    return Properties.Resources.SUB;
+                case BackgroundMode.ShowContinuum:
+                    return Properties.Resources.CONT;
+                case BackgroundMode.ShowFSA:
+                    return Properties.Resources.FSA;
+                case BackgroundMode.NormalizeByEfficiency:
+                    return Properties.Resources.NORM;
+                default:
+                    return Properties.Resources.BG;
+            }
+        }
+
         // Token: 0x06000330 RID: 816 RVA: 0x0000FE1C File Offset: 0x0000E01C
         void SetToolStripIcons()
         {
-            Image image = Properties.Resources.BG;
-            switch (this.view.BackgroundMode)
-            {
-                case BackgroundMode.Visible:
-                    image = Properties.Resources.BG;
-                    break;
-                case BackgroundMode.Invisible:
-                    image = Properties.Resources.NOBG;
-                    break;
-                case BackgroundMode.Substract:
-                    image = Properties.Resources.SUB;
-                    break;
-                case BackgroundMode.ShowContinuum:
-                    image = Properties.Resources.CONT;
-                    break;
-                case BackgroundMode.ShowFSA:
-                    image = Properties.Resources.FSA;
-                    break;
-                case BackgroundMode.NormalizeByEfficiency:
-                    image = Properties.Resources.NORM;
-                    break;
-            }
+            Image image = BackgroundModeImage(this.view.BackgroundMode);
             this.toolStripSplitButtonBgMode.Image = image;
+            this.UpdateFsaButton();
             image = Properties.Resources.HD1;
             switch (this.view.DrawingMode)
             {
@@ -878,17 +890,12 @@ namespace BecquerelMonitor
                     image = Properties.Resources.CONT;
                     break;
                 case BackgroundMode.ShowContinuum:
-                    // FSA стоит в цикле СРАЗУ ЗА континуумом — рядом по смыслу:
-                    // обе строят подложку, только вторая раскладывает её на
-                    // нуклиды. Прежде режима в цикле не было вовсе, и кнопка
-                    // его перепрыгивала; попасть в него можно было только через
-                    // выпадающий список.
-                    if (this.CanShowFsa())
-                    {
-                        backgroundMode = BackgroundMode.ShowFSA;
-                        image = Properties.Resources.FSA;
-                    }
-                    else if (this.IsNormalizeByEfficiencyAvailable())
+                    // (`AMBER328`, решение Amber 12.11.2026) FSA из цикла СНЯТ: его
+                    // включает и выключает своя кнопка справа от кнопки пиков, на всех
+                    // вкладках разом. Цикл, вводящий одну вкладку в FSA мимо этой
+                    // кнопки, разводил бы вкладки с её галочкой. Прежде (с `A145`) FSA
+                    // стоял здесь, сразу за континуумом.
+                    if (this.IsNormalizeByEfficiencyAvailable())
                     {
                         backgroundMode = BackgroundMode.NormalizeByEfficiency;
                         image = Properties.Resources.NORM;
@@ -904,6 +911,10 @@ namespace BecquerelMonitor
                     // Без этой ветки кнопка, нажатая В РЕЖИМЕ FSA, попадала не
                     // в следующий режим, а в заготовку выше по функции —
                     // «спрятать фон». То есть цикл рвался в обе стороны.
+                    // (`AMBER328`) Вкладка ВЫХОДИТ из FSA своей кнопкой фона, а
+                    // глобальная галочка FSA остаётся как была — вернёт FSA на эту
+                    // вкладку следующее включение пиков или галочки (журнал
+                    // `handover-2026-11-12-a328.md`, развилка Р1).
                     if (this.IsNormalizeByEfficiencyAvailable())
                     {
                         backgroundMode = BackgroundMode.NormalizeByEfficiency;
@@ -926,13 +937,8 @@ namespace BecquerelMonitor
             this.UpdateDetectedPeaks = true;
             this.UpdateDoseRate = true;
             this.RefreshView();
-            if (backgroundMode == BackgroundMode.ShowFSA)
-            {
-                // Циклический вход: отчёт показывается, но фокус остаётся у
-                // графика — человек листает режимы кнопкой и ждёт следующий
-                // вид, а не переезд клавиатуры в другое окно.
-                this.OnFsaModeEntered(false);
-            }
+            // (`AMBER328`) Входа в FSA у цикла больше нет — значит, нет и события
+            // `FsaModeEntered` отсюда: отчёт показывает вход своей кнопкой FSA.
         }
 
         /// <summary>
@@ -964,6 +970,8 @@ namespace BecquerelMonitor
             this.SubstractBgToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Substract);
             this.ShowConToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.ShowContinuum);
             this.ShowFsaToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.ShowFSA);
+            // (`AMBER328`) Виден (галочкой — показан ли FSA на вкладке), но недоступен.
+            this.ShowFsaToolStripMenuItem.Enabled = false;
             this.NormByEffToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.NormalizeByEfficiency);
         }
 
@@ -1118,6 +1126,16 @@ namespace BecquerelMonitor
             }
         }
 
+        // (`AMBER328`) `CanShowFsa` — «можно ли войти в FSA циклом кнопки фона молча» —
+        // снята вместе со входом FSA в цикл: читателя у неё не осталось. Кнопка FSA
+        // вопросов не задаёт вовсе (решение Amber 12.11.2026 «Просто включить режим, а
+        // отображать причины как сейчас они отображаются»): чего разбору не хватает,
+        // называет сам разбор — отказом в окне отчёта.
+        //
+        // ⚠ `EnsureFsaInputs` ниже остаётся у пункта меню «Показать FSA»
+        // (`ShowFsaToolStripMenuItem_Click`): пункт виден, но недоступен, и звать его
+        // могут только пробы и конвейер снимков гида.
+
         /// <summary>
         /// Двух вещей разложению может не хватать, и обеим есть замена, но
         /// назвать её должен человек.
@@ -1135,23 +1153,6 @@ namespace BecquerelMonitor
         /// false — от выбора отказались, режим не включаем: молча включённое
         /// разложение на чужих числах хуже невключённого.
         /// </summary>
-        /// <summary>
-        /// Можно ли встать в режим FSA МОЛЧА — без единого вопроса.
-        ///
-        /// Кнопка листает режимы, и вопрос посреди листания читался бы как
-        /// сбой: человек нажал «следующий вид», а получил диалог про
-        /// калибровку. Поэтому в цикл FSA входит только когда всё нужное уже
-        /// есть, а недостающее по-прежнему спрашивает пункт МЕНЮ, где выбор
-        /// режима явный. Проверяется ровно то же, что требует
-        /// <see cref="EnsureFsaInputs"/>, — иначе цикл обещал бы режим,
-        /// который тут же откажется включаться.
-        /// </summary>
-        bool CanShowFsa()
-        {
-            ResultData active = this.ActiveResultData;
-            return active != null && active.FwhmCalibration != null && active.Efficiency != null;
-        }
-
         bool EnsureFsaInputs()
         {
             ResultData active = this.ActiveResultData;
@@ -1746,34 +1747,13 @@ namespace BecquerelMonitor
         }
 
         // Token: 0x06000353 RID: 851 RVA: 0x0001090C File Offset: 0x0000EB0C
+        // (`AMBER328`, решение Amber 13.11.2026 «Пики станут общими») Кнопка пиков и оба
+        // её пункта действуют на ВСЕ открытые вкладки и пишут состояние в общую
+        // настройку `ChartViewConfig.DefaultPeakMode` — одним путём,
+        // <see cref="SetPeakModeEverywhere"/>.
         void toolStripSplitButton9_ButtonClick(object sender, EventArgs e)
         {
-            PeakMode peakMode = PeakMode.Invisible;
-            Image image = Properties.Resources.nopeak;
-            switch (this.view.PeakMode)
-            {
-                case PeakMode.Visible:
-                    peakMode = PeakMode.Invisible;
-                    image = Properties.Resources.nopeak;
-                    FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.PeakDetectionMethodConfig;
-                    FWHMPeakDetectionMethodConfig devcfg = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.DeviceConfig.PeakDetectionMethodConfig;
-                    cfg.Enabled = false;
-                    devcfg.Enabled = false;
-                    this.UpdateDetectedPeaks = false;
-                    break;
-                case PeakMode.Invisible:
-                    peakMode = PeakMode.Visible;
-                    image = Properties.Resources.peak;
-                    FWHMPeakDetectionMethodConfig peakConfig = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.PeakDetectionMethodConfig;
-                    FWHMPeakDetectionMethodConfig devConfig = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.DeviceConfig.PeakDetectionMethodConfig;
-                    peakConfig.Enabled = true;
-                    devConfig.Enabled = true;
-                    this.UpdateDetectedPeaks = true;
-                    break;
-            }
-            this.view.PeakMode = peakMode;
-            this.toolStripSplitButton9.Image = image;
-            this.RefreshView();
+            SetPeakModeEverywhere(this.view.PeakMode == PeakMode.Visible ? PeakMode.Invisible : PeakMode.Visible, this);
         }
 
         // Token: 0x06000354 RID: 852 RVA: 0x00010978 File Offset: 0x0000EB78
@@ -1786,23 +1766,371 @@ namespace BecquerelMonitor
         // Token: 0x06000355 RID: 853 RVA: 0x000109BC File Offset: 0x0000EBBC
         void showPeaksToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            this.view.PeakMode = PeakMode.Visible;
-            this.toolStripSplitButton9.Image = Properties.Resources.peak;
-            FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.PeakDetectionMethodConfig;
-            cfg.Enabled = true;
-            this.UpdateDetectedPeaks = true;
-            this.RefreshView();
+            SetPeakModeEverywhere(PeakMode.Visible, this);
         }
 
         // Token: 0x06000356 RID: 854 RVA: 0x000109E0 File Offset: 0x0000EBE0
         void hidePeaksToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            this.view.PeakMode = PeakMode.Invisible;
-            this.toolStripSplitButton9.Image = Properties.Resources.nopeak;
-            FWHMPeakDetectionMethodConfig cfg = (FWHMPeakDetectionMethodConfig)this.ActiveResultData.PeakDetectionMethodConfig;
-            cfg.Enabled = false;
-            this.UpdateDetectedPeaks = false;
+            SetPeakModeEverywhere(PeakMode.Invisible, this);
+        }
+
+        /// <summary>
+        /// (`AMBER328`, решение Amber 13.11.2026 «Пики станут общими» и «Запоминать, как
+        /// галочку FSA») Пики для всего приложения: записать в
+        /// `ChartViewConfig.DefaultPeakMode` (её же показывает окно настроек, и с неё
+        /// открывается новая вкладка), сохранить конфиг — только в приложении, как
+        /// <see cref="SetFsaModeEverywhere"/>, — и привести ВСЕ открытые вкладки:
+        /// пики, картинка кнопки, признак метода, затем правило показа FSA (пики
+        /// выключили — FSA гаснет везде; включили при галочке FSA — возвращается везде).
+        /// Зовут кнопка пиков, оба её пункта и окно настроек (`GlobalConfigForm`), то
+        /// есть поведение у всех путей одно. <paramref name="origin"/> — вкладка, чьей
+        /// кнопкой нажато (входит в список, даже если менеджер документов её не знает),
+        /// или null. Возвращает число приведённых вкладок.
+        /// </summary>
+        internal static int SetPeakModeEverywhere(PeakMode mode, DocEnergySpectrum origin)
+        {
+            GlobalConfigManager manager = GlobalConfigManager.GetInstance();
+            manager.GlobalConfig.ChartViewConfig.DefaultPeakMode = mode;
+            if (FullSpectrumAnalysis.FsaCalculationOptions.ApplicationSource != null)
+            {
+                manager.SaveConfigFile();
+            }
+
+            int count = 0;
+            foreach (DocEnergySpectrum document in OpenDocuments(origin))
+            {
+                document.ApplyPeakMode(mode);
+                document.RefreshViewWithFsaLink();
+                count++;
+            }
+            return count;
+        }
+
+        /// <summary>
+        /// Пики этой вкладки — без перерисовки. ⚠ Признак `Enabled` пишется в
+        /// настройки поиска пиков СПЕКТРА (у всех спектров документа, как при
+        /// загрузке — `CreateResultData`), но НЕ в конфигурацию прибора: у спектра
+        /// она — живой объект менеджера приборов, и кнопка прежде молча меняла
+        /// общую конфигурацию (а пункты списка — нет, находка Н4 полосы a328).
+        /// Читателя, решающего по `Enabled` показ пиков, нет ни у прибора, ни у
+        /// спектра: показ решает `view.PeakMode`, а общее состояние живёт в
+        /// `DefaultPeakMode` (журнал `handover-2026-11-12-a328.md`, доделка a328b).
+        /// </summary>
+        void ApplyPeakMode(PeakMode mode)
+        {
+            bool visible = mode == PeakMode.Visible;
+            this.view.PeakMode = mode;
+            this.toolStripSplitButton9.Image = visible ? Properties.Resources.peak : Properties.Resources.nopeak;
+            if (this.resultDataFile != null && this.resultDataFile.ResultDataList != null)
+            {
+                foreach (ResultData resultData in this.resultDataFile.ResultDataList)
+                {
+                    FWHMPeakDetectionMethodConfig cfg = resultData != null
+                        ? resultData.PeakDetectionMethodConfig as FWHMPeakDetectionMethodConfig
+                        : null;
+                    if (cfg != null)
+                    {
+                        cfg.Enabled = visible;
+                    }
+                }
+            }
+            this.UpdateDetectedPeaks = visible;
+        }
+
+        /// <summary>
+        /// Все открытые вкладки (`DocumentManager.DocumentList`) и вкладка-источник,
+        /// если менеджер её не знает; закрытые пропускаются.
+        /// </summary>
+        static List<DocEnergySpectrum> OpenDocuments(DocEnergySpectrum origin)
+        {
+            List<DocEnergySpectrum> documents = new List<DocEnergySpectrum>();
+            foreach (DocEnergySpectrum document in DocumentManager.GetInstance().DocumentList)
+            {
+                if (document != null && !document.IsDisposed && !documents.Contains(document))
+                {
+                    documents.Add(document);
+                }
+            }
+            if (origin != null && !origin.IsDisposed && !documents.Contains(origin))
+            {
+                documents.Add(origin);
+            }
+            return documents;
+        }
+
+        // ====================================================================
+        // (`AMBER328`, постановка и решения Amber 12.11.2026) Кнопка-флажок FSA
+        // справа от кнопки пиков и её связь с поиском пиков.
+        //
+        // АВТОМАТ. Галочка FSA одна на приложение и живёт в конфиге между
+        // запусками (`ChartViewConfig.FsaModeEnabled`). Пики тоже общие (решение
+        // Amber 13.11.2026 «Пики станут общими»): кнопка пиков и её пункты меняют
+        // `ChartViewConfig.DefaultPeakMode` и ВСЕ вкладки разом
+        // (<see cref="SetPeakModeEverywhere"/>); у вкладки остаётся копия —
+        // `view.PeakMode`. Правило показа одно:
+        //     FSA показан на вкладке ⇔ галочка ВКЛ И пики вкладки ВКЛ
+        // (<see cref="IsFsaShownBy"/>). Отсюда переходы:
+        //   П1 пики ВЫКЛ при галочке ВКЛ — FSA гаснет на всех вкладках, каждая
+        //      возвращается в режим фона, бывший до FSA; галочка НЕ сбрасывается;
+        //   П2 пики ВКЛ при галочке ВКЛ — FSA возвращается сам, везде;
+        //   П3 кнопка FSA ВЫКЛ — галочка сброшена, FSA гаснет на ВСЕХ вкладках;
+        //      пики дальше на FSA не влияют (без галочки показа нет);
+        //   П4 кнопка FSA ВКЛ — галочка поднята, FSA загорается на всех вкладках.
+        //      ВКЛЮЧИТЬ галочку можно только при включённых пиках (решение Amber
+        //      13.11.2026 «Кнопка FSA доступна к включению только после включения
+        //      поиска пиков.»): при пиках ВЫКЛ и галочке ВЫКЛ кнопка недоступна, пункт
+        //      «Включить» недоступен всегда, пока пики ВЫКЛ; ВЫКЛЮЧИТЬ — можно всегда
+        //      (<see cref="UpdateFsaButton"/>, <see cref="RequestFsaMode"/>).
+        // Связь срабатывает на СОБЫТИЯХ — конструктор вкладки, кнопка пиков и её
+        // пункты, пики по умолчанию в окне настроек, кнопка FSA и её пункты, — а не на
+        // каждом обновлении вида: вкладку,
+        // выведенную из FSA кнопкой фона, следующее обновление назад не тянет
+        // (развилка Р1 журнала `handover-2026-11-12-a328.md`).
+        // ====================================================================
+
+        enum FsaLinkStep
+        {
+            None,
+            Entered,
+            Left
+        }
+
+        /// <summary>Правило показа FSA на вкладке (`AMBER328`) — единственное место, где оно записано.</summary>
+        internal static bool IsFsaShownBy(bool fsaModeEnabled, PeakMode peakMode)
+        {
+            return fsaModeEnabled && peakMode == PeakMode.Visible;
+        }
+
+        static bool GlobalFsaModeEnabled
+        {
+            get
+            {
+                return GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.FsaModeEnabled;
+            }
+        }
+
+        /// <summary>
+        /// Режим фона, в котором вкладка была, когда в неё вошёл FSA: туда она и
+        /// вернётся, когда FSA погаснет (прежде выход из FSA всегда вёл в
+        /// «Показать»). До первого входа — «Показать».
+        /// </summary>
+        BackgroundMode backgroundModeBeforeFsa = BackgroundMode.Visible;
+
+        /// <summary>
+        /// Куда вернуться из FSA: в бывший до него режим, если в нём можно стоять
+        /// сейчас. Нормировка по эффективности без годной кривой — «Показать», тем
+        /// же правилом, что у <see cref="EvaluateNormByEffMode"/>.
+        /// </summary>
+        BackgroundMode BackgroundModeAfterFsa()
+        {
+            BackgroundMode mode = this.backgroundModeBeforeFsa;
+            if (mode == BackgroundMode.ShowFSA
+                || (mode == BackgroundMode.NormalizeByEfficiency && !this.IsNormalizeByEfficiencyAvailable()))
+            {
+                mode = BackgroundMode.Visible;
+            }
+            return mode;
+        }
+
+        /// <summary>
+        /// Привести вкладку к правилу показа. Вид не перерисовывает — это делает
+        /// вызывающий, и он же после перерисовки говорит о входе
+        /// (<see cref="OnFsaModeEntered"/>), как прежде делал пункт меню.
+        /// Вопросов не задаёт (решение Amber 12.11.2026 «Просто включить режим, а
+        /// отображать причины как сейчас они отображаются»): спектр без кривой или
+        /// FWHM входит в FSA, а чего не хватает, называет отказ самого разбора.
+        /// </summary>
+        FsaLinkStep ApplyFsaLink()
+        {
+            bool shown = IsFsaShownBy(GlobalFsaModeEnabled, this.view.PeakMode);
+            FsaLinkStep step = FsaLinkStep.None;
+            if (shown && this.view.BackgroundMode != BackgroundMode.ShowFSA)
+            {
+                this.backgroundModeBeforeFsa = this.view.BackgroundMode;
+                this.view.BackgroundMode = BackgroundMode.ShowFSA;
+                step = FsaLinkStep.Entered;
+            }
+            else if (!shown && this.view.BackgroundMode == BackgroundMode.ShowFSA)
+            {
+                this.view.BackgroundMode = this.BackgroundModeAfterFsa();
+                step = FsaLinkStep.Left;
+            }
+
+            if (step != FsaLinkStep.None)
+            {
+                this.toolStripSplitButtonBgMode.Image = BackgroundModeImage(this.view.BackgroundMode);
+                this.UpdateDoseRate = true;
+                // Пики выключены — их обновления не заказывать: обработчик пиков
+                // только что сбросил признак нарочно.
+                if (this.view.PeakMode == PeakMode.Visible)
+                {
+                    this.UpdateDetectedPeaks = true;
+                }
+            }
+
+            this.UpdateFsaButton();
+            return step;
+        }
+
+        /// <summary>Перерисовать вкладку после смены пиков, приведя её к правилу показа FSA.</summary>
+        void RefreshViewWithFsaLink()
+        {
+            FsaLinkStep step = this.ApplyFsaLink();
             this.RefreshView();
+            if (step == FsaLinkStep.Entered)
+            {
+                // Как циклическая кнопка прежде: отчёт показывается, фокус остаётся
+                // у графика — человек нажал кнопку на панели графика.
+                this.OnFsaModeEntered(false);
+            }
+        }
+
+        /// <summary>
+        /// Галочка FSA для всего приложения: записать, сохранить конфиг (только в
+        /// приложении — у проб общей настройки нет, как у `FSAReportView`) и
+        /// привести к правилу ВСЕ открытые вкладки. <paramref name="origin"/> —
+        /// вкладка, чьей кнопкой нажато (она входит в список, даже если менеджер
+        /// документов её не знает). Возвращает число вкладок, сменивших режим.
+        /// </summary>
+        internal static int SetFsaModeEverywhere(bool enabled, DocEnergySpectrum origin)
+        {
+            GlobalConfigManager manager = GlobalConfigManager.GetInstance();
+            manager.GlobalConfig.ChartViewConfig.FsaModeEnabled = enabled;
+            if (FullSpectrumAnalysis.FsaCalculationOptions.ApplicationSource != null)
+            {
+                manager.SaveConfigFile();
+            }
+
+            int changed = 0;
+            foreach (DocEnergySpectrum document in OpenDocuments(origin))
+            {
+                FsaLinkStep step = document.ApplyFsaLink();
+                if (step == FsaLinkStep.None)
+                {
+                    continue;
+                }
+
+                changed++;
+                document.RefreshView();
+                if (step == FsaLinkStep.Entered)
+                {
+                    // Отчёт показывает главная форма и только для активной вкладки
+                    // (`MainForm.DocEnergySpectrum_FsaModeEntered`).
+                    document.OnFsaModeEntered(false);
+                }
+            }
+            return changed;
+        }
+
+        void toolStripSplitButtonFsa_ButtonClick(object sender, EventArgs e)
+        {
+            this.RequestFsaMode(!GlobalFsaModeEnabled);
+        }
+
+        void toolStripSplitButtonFsa_DropDownOpening(object sender, EventArgs e)
+        {
+            bool enabled = GlobalFsaModeEnabled;
+            this.fsaOnToolStripMenuItem.Checked = enabled;
+            this.fsaOffToolStripMenuItem.Checked = !enabled;
+            this.UpdateFsaButton();
+        }
+
+        void fsaOnToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.RequestFsaMode(true);
+        }
+
+        void fsaOffToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.RequestFsaMode(false);
+        }
+
+        /// <summary>
+        /// (`AMBER328`, решение Amber 13.11.2026 «Кнопка FSA доступна к включению только
+        /// после включения поиска пиков.») Можно ли с этой вкладки ВКЛЮЧИТЬ галочку FSA:
+        /// только при включённых пиках. Выключение этим не ограничено.
+        /// </summary>
+        bool CanEnableFsaMode
+        {
+            get
+            {
+                return this.view.PeakMode == PeakMode.Visible;
+            }
+        }
+
+        /// <summary>
+        /// Галочка FSA с кнопки и её пунктов — один путь для всех трёх. Включить при
+        /// пиках ВЫКЛ нельзя: кнопка и пункт в этом состоянии недоступны
+        /// (<see cref="UpdateFsaButton"/>), а здесь тот же запрет стоит для обработчика,
+        /// позванного мимо недоступного пункта. false — ничего не сделано.
+        /// </summary>
+        bool RequestFsaMode(bool enabled)
+        {
+            if (enabled && !this.CanEnableFsaMode)
+            {
+                this.UpdateFsaButton();
+                return false;
+            }
+            SetFsaModeEverywhere(enabled, this);
+            return true;
+        }
+
+        /// <summary>
+        /// Кнопка показывает ГАЛОЧКУ, а не показ на этой вкладке: щелчок меняет
+        /// галочку, и картинка обязана говорить, что именно он сменит. ВКЛ — цветная
+        /// иконка FSA, ВЫКЛ — серая, как у пар «пики/нет пиков» и «фон/нет фона».
+        ///
+        /// Доступность (решение Amber 13.11.2026): при пиках ВЫКЛ включить FSA нельзя —
+        /// пункт «Включить» недоступен, а при галочке ВЫКЛ недоступна и вся кнопка
+        /// (её щелчок был бы включением; WinForms рисует её блёклой). При галочке ВКЛ
+        /// кнопка доступна и при пиках ВЫКЛ: её щелчок — выключение, а оно можно всегда.
+        /// </summary>
+        void UpdateFsaButton()
+        {
+            bool flag = GlobalFsaModeEnabled;
+            bool canEnable = this.CanEnableFsaMode;
+            this.toolStripSplitButtonFsa.Image = flag ? Properties.Resources.FSA : FsaOffImage();
+            this.toolStripSplitButtonFsa.Enabled = flag || canEnable;
+            this.fsaOnToolStripMenuItem.Enabled = canEnable;
+            this.fsaOffToolStripMenuItem.Enabled = true;
+        }
+
+        static Image fsaOffImage;
+
+        /// <summary>
+        /// Серая иконка «FSA выкл» — из той же `FSA.bmp`, двумя серыми соседних
+        /// иконок «выкл»; белый фон остаётся белым (прозрачный цвет кнопки).
+        /// Своего файла картинки нет нарочно: вторая копия рисунка разошлась бы с
+        /// первой при первой же правке.
+        /// </summary>
+        static Image FsaOffImage()
+        {
+            if (fsaOffImage == null)
+            {
+                Bitmap source = Properties.Resources.FSA;
+                Bitmap grey = new Bitmap(source.Width, source.Height);
+                for (int y = 0; y < source.Height; y++)
+                {
+                    for (int x = 0; x < source.Width; x++)
+                    {
+                        Color c = source.GetPixel(x, y);
+                        if (c.R == 255 && c.G == 255 && c.B == 255)
+                        {
+                            grey.SetPixel(x, y, Color.White);
+                            continue;
+                        }
+                        // Две серых соседних иконок «выкл» (`nopeak`, `NOBG`): тёмное —
+                        // 808080, светлое — C0C0C0. Порог посередине разводит синий пик
+                        // (тёмный) и золотые (светлые), чтобы рисунок не слился в пятно.
+                        double luminance = 0.30 * c.R + 0.59 * c.G + 0.11 * c.B;
+                        grey.SetPixel(x, y, luminance < 128.0 ? Color.FromArgb(0x80, 0x80, 0x80) : Color.FromArgb(0xC0, 0xC0, 0xC0));
+                    }
+                }
+                source.Dispose();
+                fsaOffImage = grey;
+            }
+            return fsaOffImage;
         }
 
         // Token: 0x06000357 RID: 855 RVA: 0x00010A04 File Offset: 0x0000EC04

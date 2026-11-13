@@ -1915,7 +1915,21 @@ namespace BecquerelMonitor
                 }
             }
 
-            if (this.backgroundMode == BackgroundMode.ShowContinuum)
+            this.continuumRefusal = null;
+            if (this.backgroundMode == BackgroundMode.ShowContinuum && this.activeResultData.FwhmCalibration == null)
+            {
+                // (`AMBER328`, находка Н2 полосы a328; решение Amber 13.11.2026 «Чинить
+                // сейчас: отказ с причиной») Без калибровки FWHM континуум не строится:
+                // окно SNIP — это ширина пика. Прежде здесь падало приложение
+                // (`NullReferenceException` в `SpectrumAriphmetics.FWHM`). Теперь
+                // графику нечего рисовать под пиками, а причину он называет тем же
+                // способом, что отказ FSA, — строкой на панели под значениями курсора
+                // (<see cref="ShowContinuumRefusal"/>).
+                this.continuumEnergySpectrum = null;
+                this.peakEnergySpectrum.Clear();
+                this.continuumRefusal = Resources.ContinuumNoFwhmRefusal;
+            }
+            else if (this.backgroundMode == BackgroundMode.ShowContinuum)
             {
                 SpectrumAriphmetics sa = new SpectrumAriphmetics(this.activeResultData.FwhmCalibration, this.energySpectrum, this.smoothingMethod);
                 List<Peak> peaks = this.activeResultData.DetectedPeaks != null
@@ -5162,6 +5176,7 @@ namespace BecquerelMonitor
 
             // Состав разложения — одной таблицей под левой панелью курсора.
             this.ShowFsaTable(g, table_width_origin);
+            this.ShowContinuumRefusal(g, table_width_origin);
         }
 
         double Log10(double x)
@@ -5736,6 +5751,35 @@ namespace BecquerelMonitor
         EnergySpectrum substractedEnergySpectrum;
 
         EnergySpectrum continuumEnergySpectrum;
+
+        /// <summary>
+        /// (`AMBER328`, находка Н2) Почему в режиме «континуум» континуума нет — или
+        /// null. Ставит <c>CalculateDataForSpecificModes</c>, рисует
+        /// <see cref="ShowContinuumRefusal"/>.
+        /// </summary>
+        string continuumRefusal;
+
+        /// <summary>Причина, по которой континуум не построен (null — построен или режим другой).</summary>
+        public string ContinuumRefusal
+        {
+            get
+            {
+                return this.backgroundMode == BackgroundMode.ShowContinuum ? this.continuumRefusal : null;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER328`, находка Н2) Отказ континуума — тем же видом и на том же месте,
+        /// что строка отказа FSA (<c>DrawFsaStatus</c>): панель под значениями курсора.
+        /// </summary>
+        void ShowContinuumRefusal(Graphics g, int width)
+        {
+            string text = this.ContinuumRefusal;
+            if (!string.IsNullOrEmpty(text))
+            {
+                this.DrawStatusPanel(g, this.cursorPanelLeft, this.cursorPanelBottom + 6, width, text);
+            }
+        }
 
         List<PeakEnergySpectrumInfo> peakEnergySpectrum = new List<PeakEnergySpectrumInfo>();
 

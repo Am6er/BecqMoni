@@ -1785,6 +1785,9 @@
   <data name="FsaNoFwhmSource" xml:space="preserve">
     <value>У конфигурации прибора «{0}» калибровки FWHM тоже нет.</value>
   </data>
+  <data name="ContinuumNoFwhmRefusal" xml:space="preserve">
+    <value>Континуум не построен: у спектра нет калибровки FWHM, а окно континуума — это ширина пика. Откалибруйте FWHM (панель «Калибровка энергии и FWHM»), чтобы увидеть континуум.</value>
+  </data>
   <data name="EfficiencyTabResponseMatrix" xml:space="preserve">
     <value>Матрица отклика…</value>
   </data>

@@ -104,7 +104,40 @@
             }
             set
             {
+                // (`AMBER328`, 12.11.2026) FSA больше не режим фона «по умолчанию», а
+                // глобальная галочка (<see cref="FsaModeEnabled"/>). Старый конфиг с
+                // `<DefaultBackgroundMode>ShowFSA</DefaultBackgroundMode>` значил «новые
+                // вкладки — сразу в FSA»: он читается как галочка FSA ВКЛ и фон
+                // «Показать» под ней. Элемент `FsaModeEnabled` в файле стоит ПОСЛЕ этого
+                // (порядок объявления), так что записанное новым приложением значение
+                // галочки перекрывает этот перенос; старый файл его не несёт.
+                if (value == BackgroundMode.ShowFSA)
+                {
+                    this.fsaModeEnabled = true;
+                    value = BackgroundMode.Visible;
+                }
                 this.defaultBackgroundMode = value;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER328`, решение Amber 12.11.2026) Режим FSA включён ПОЛЬЗОВАТЕЛЕМ —
+        /// кнопкой рядом с кнопкой пиков, на всех вкладках разом, и запоминается между
+        /// запусками. Это намерение, а не показ: вкладка рисует FSA, только пока на
+        /// ней включён поиск пиков (<c>DocEnergySpectrum.IsFsaShownBy</c>). Пики
+        /// выключили — показ гаснет, а галочка остаётся; включили снова — FSA
+        /// возвращается сам. Умолчание — выкл (как и прежнее умолчание режима фона
+        /// «Показать»).
+        /// </summary>
+        public bool FsaModeEnabled
+        {
+            get
+            {
+                return this.fsaModeEnabled;
+            }
+            set
+            {
+                this.fsaModeEnabled = value;
             }
         }
 
@@ -367,6 +400,8 @@
 
         // Token: 0x040008D2 RID: 2258
         BackgroundMode defaultBackgroundMode;
+
+        bool fsaModeEnabled;
 
         // Token: 0x040008D3 RID: 2259
         DrawingMode defaultDrawingMode = DrawingMode.Normal;

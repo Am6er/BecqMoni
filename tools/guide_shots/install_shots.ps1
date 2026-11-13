@@ -6,7 +6,10 @@
 # До замены каждого файла печатается попиксельная сверка с прежним (`GuideShot.exe --diff`):
 # размер, число разных точек, прямоугольники изменившихся областей — это и есть ответ на
 # «что изменилось» для журнала полосы. Снимок другого размера НЕ ставится (точки `data-hot`
-# страниц гида заданы долями кадра, но кадр другого размера — другая раскладка окна).
+# страниц гида заданы долями кадра, но кадр другого размера — другая раскладка окна), если
+# его нет в `-Resized`: туда — снимки, чьи точки `data-hot` пересчитаны по <снимок>.hot.txt
+# съёмки (`AMBER328`, 13.11.2026: `spectrum-bar`, `view-modes` впервые сняты конвейером).
+# Снимка, которого в docs\img нет (новый), сверять не с чем — он ставится.
 # `-Shots all` — все снимки, что лежат в <Work>\shots\<язык>\ под именами снимков гида.
 # `-DiffOnly` — сверка без установки; в конце — сводка «снимок: разных точек / размер».
 # После установки — `python tools/docs_stamp.py` (версия снимков `IMGV`), иначе браузер
@@ -16,7 +19,8 @@ param(
     [string[]]$Shots = @('main', 'panel-control', 'main-fsa', 'main-fsa-nomatrix'),
     [string[]]$Lang = @('ru', 'en'),
     [string]$Work = 'D:\BqMoni_Claude\guideshot',
-    [switch]$DiffOnly
+    [switch]$DiffOnly,
+    [string[]]$Resized = @()
 )
 $ErrorActionPreference = 'Continue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -24,6 +28,7 @@ $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $diff = Join-Path $Work 'tools\GuideShot.exe'
 $Shots = @($Shots | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 $Lang = @($Lang | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
+$Resized = @($Resized | ForEach-Object { $_ -split ',' } | Where-Object { $_ })
 $code = 0
 $summary = @()
 foreach ($l in $Lang) {
@@ -48,7 +53,8 @@ foreach ($l in $Lang) {
                 $line = "размер другой: $sizes"
             }
             $summary += ("{0}/{1}: {2}" -f $l, $s, $line)
-            if ($rc -eq 2) { if (-not $DiffOnly) { Write-Host "размер не тот — $l/$s не установлен" -ForegroundColor Red; $code = 2 }; continue }
+            if ($rc -eq 2 -and $Resized -notcontains $s) { if (-not $DiffOnly) { Write-Host "размер не тот — $l/$s не установлен" -ForegroundColor Red; $code = 2 }; continue }
+            if ($rc -eq 2) { Write-Host "размер другой, разрешено -Resized: точки data-hot — по $Work\shots\$l\$s.hot.txt" -ForegroundColor Yellow }
         }
         if (-not $DiffOnly) {
             Copy-Item -LiteralPath $src -Destination $dst -Force

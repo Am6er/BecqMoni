@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BecqMoni — как это работает</title>
-<script src="assets/theme.js?v=53cbbd2b"></script>
+<script src="assets/theme.js?v=7b7024a7"></script>
 <meta name="description" content="Геометрия, кривые эффективности, матрица отклика, режим FSA и расчёт активности в BecqMoni — наглядно и интерактивно.">
 <!--
   Самодостаточная страница: ни шрифтов, ни библиотек из сети. Всё, что движется, считается здесь же:
@@ -661,7 +661,7 @@ const HOOD = {ru:{
   '<li>Между узлами строки сдвигаются к энергии линии (пик — сдвигом, пики вылета — постоянным смещением, комптон — по карте узлов) и смешиваются.</li>'+
   '<li>Матрица своя у каждой геометрии, на ней стоит клеймо — отпечаток геометрии и версии физики. Изменили геометрию — матрица «устарела», и разбор идёт без неё, пока её не пересчитают.</li>'+
   '<li>Без матрицы слой — только узкие пики, взвешенные кривой эффективности: нет ни плато, ни каскадного суммирования (сумм-пики Co-60 и подобных строятся поверх матрицы).</li>',
-4:'<li>Включается в выпадающем списке фона на панели спектра — «Показать FSA (полноспектральный разбор)»; подробности — в окне «Отчёт FSA». Во время набора разбор пересчитывается не чаще раза в 30 с.</li>'+
+4:'<li>Включается кнопкой FSA на панели спектра, справа от кнопки пиков, — сразу на всех открытых спектрах, пока включены пики; подробности — в окне «Отчёт FSA». Во время набора разбор пересчитывается не чаще раза в 30 с.</li>'+
   '<li>Состав («Из NucBase»): поиск пиков подписывает пики, нуклид принимается, если подтверждено не меньше 30 % его групп линий; затем из базы берётся весь ряд со всеми излучениями. Ряд в равновесии — одна общая амплитуда.</li>'+
   '<li>Фон вычитается измеренный; сверху — неотрицательная кусочно-линейная подложка. Подбор — взвешенный МНК с неотрицательностью (NNLS) и защитой от выбросов (Хубер); слои со значимостью ниже 3 отбрасываются.</li>'+
   '<li>Шкала привязывается по пикам полного поглощения самой модели: усиление, ноль и ширина пересчитываются по центрам пиков. Перебор растяжений шкалы в программе есть, но выключен.</li>'+
@@ -683,7 +683,7 @@ const HOOD = {ru:{
   '<li>Between nodes the rows are moved to the line energy (peak by a shift, escape peaks by a constant offset, Compton by a node map) and blended.</li>'+
   '<li>Every geometry has its own matrix, stamped with a fingerprint of the geometry and the physics version. Change the geometry — the matrix is "stale" and the decomposition runs without it until it is recomputed.</li>'+
   '<li>Without a matrix a layer is just narrow peaks weighted by the efficiency curve: no plateau and no cascade summing (sum peaks of Co-60 and the like are built on top of the matrix).</li>',
-4:'<li>Switched on in the background drop-down of the spectrum toolbar — "Show FSA"; details in the FSA Report window. During acquisition it is recomputed at most every 30 s.</li>'+
+4:'<li>Switched on by the FSA button on the spectrum toolbar, right of the peaks button — on all open spectra at once, while peaks are shown; details in the FSA Report window. During acquisition it is recomputed at most every 30 s.</li>'+
   '<li>Composition ("From NucBase"): peak search labels the peaks, a nuclide is accepted if at least 30 % of its line groups are confirmed; then its whole chain with all radiations is taken from the database. A chain in equilibrium has one shared amplitude.</li>'+
   '<li>The measured background is subtracted; a non-negative piecewise-linear continuum goes on top. The fit is weighted non-negative least squares (NNLS) with outlier protection (Huber); layers with significance below 3 are dropped.</li>'+
   '<li>The scale is anchored on the model\'s own full-energy peaks: gain, zero and width are recomputed from peak centres. A scale-stretch search exists in the app but is switched off.</li>'+
