@@ -821,7 +821,7 @@ RM_DEV int Sim::DpwaLocate(const real* d, int n, real invStep, real lt, real& u)
 }
 
 // = ElectronTransport.cs RefinedElasticStep
-RM_DEV void Sim::RefinedElasticStep(const ScatterElementG* elements, int elementsLen, real tKev, real muCut,
+RM_UC_NOINL void Sim::RefinedElasticStep(const ScatterElementG* elements, int elementsLen, real tKev, real muCut,
                                     bool positron, real& hardPerCm, real& softTransportPerCm, real* hardShare)
 {
     layerShareWrites++;
@@ -2036,6 +2036,209 @@ RM_DEVF real Sim::ResidualAfter(const ElectronMaterialG& medium, real t, real re
 // = ElectronTransport.cs UrbanLoss (`G4UniversalFluctuation::SampleFluctuations` +
 // `G4UrbanFluctuation::SampleGlandz`). ⚠ float: арифметика модели — в double: обращение
 // Пуассона, суммы столкновений `w3/(1 − w·u)` и `alfa − alfa1²` во float теряли бы хвост.
+// (`AMBER315`, ярус 2 `uc`) Режим `RM_UC` (умолчание float-сборки, `common.cuh`): модель — во float `real` (Пуассон у порога — в double),
+// как DLL полосы perf `3461927c`; без режима (double-ступень, `-DRM_UC_OFF`) — прежняя модель в double ниже, после `#else`.
+#ifdef RM_UC
+RM_DEVF real Sim::UrbanLoss(const ElectronMaterialG& m, real tR, real meanLossR)
+{
+    const real ElectronMassD = 510.99895f;
+    real ipot = m.Urban[0], ipotLog = m.Urban[1], f1 = m.Urban[2], f2 = m.Urban[3];
+    real e1Fluct = m.Urban[4], e2Fluct = m.Urban[5], e1Log = m.Urban[6], e2Log = m.Urban[7];
+    real t = tR;
+    real meanLoss = meanLossR;
+    real tcut = 0.5f * t;
+    real e0 = StragglingE0Kev;
+    if (tcut <= e0)
+    {
+        return meanLoss;
+    }
+
+    real gam = t / ElectronMassD + 1.0f;
+    real gam2 = gam * gam;
+    real beta2 = 1.0f - 1.0f / gam2;
+    real scaling = fmin(1.0f + 0.5f / tcut, 1.5f);
+    meanLoss /= scaling;
+    real w2 = tcut > ipot ? log(2.0f * ElectronMassD * beta2 * gam2) - beta2 : 0.0f;
+
+    real a1 = 0.0f, a2 = 0.0f;
+    real e1 = e1Fluct, e2 = e2Fluct;
+    if (tcut > ipot && w2 > ipotLog)
+    {
+        if (w2 > e2Log)
+        {
+            real c = meanLoss * (1.0f - UrbanRate) / (w2 - ipotLog);
+            a1 = c * f1 * (w2 - e1Log) / e1Fluct;
+            a2 = c * f2 * (w2 - e2Log) / e2Fluct;
+        }
+        else
+        {
+            a1 = meanLoss * (1.0f - UrbanRate) / e1;
+        }
+
+        if (a1 < UrbanA0)
+        {
+            real fwnow = 0.5f + (UrbanFw - 0.5f) * sqrt(a1 / UrbanA0);
+            a1 /= fwnow;
+            e1 *= fwnow;
+        }
+        else
+        {
+            a1 /= UrbanFw;
+            e1 *= UrbanFw;
+        }
+    }
+
+    real w1 = tcut / e0;
+    real a3 = UrbanRate * meanLoss * (tcut - e0) / (e0 * tcut * log(w1));
+    if (a1 + a2 <= 0.0f)
+    {
+        a3 /= UrbanRate;
+    }
+
+    real loss = 0.0f, emean = 0.0f, sig2e = 0.0f;
+    if (a1 > 0.0f)
+    {
+        UrbanExcitation(a1, e1, emean, loss, sig2e);
+    }
+
+    if (a2 > 0.0f)
+    {
+        UrbanExcitation(a2, e2, emean, loss, sig2e);
+    }
+
+    if (sig2e > 0.0f)
+    {
+        UrbanGauss(emean, sig2e, loss);
+    }
+
+    if (a3 > 0.0f)
+    {
+        emean = 0.0f;
+        sig2e = 0.0f;
+        real p3 = a3, alfa = 1.0f;
+        if (a3 > UrbanNmaxCont)
+        {
+            alfa = w1 * (UrbanNmaxCont + a3) / (w1 * UrbanNmaxCont + a3);
+            real alfa1 = alfa * log(alfa) / (alfa - 1.0f);
+            real namean = a3 * w1 * (alfa - 1.0f) / ((w1 - 1.0f) * alfa);
+            emean += namean * e0 * alfa1;
+            sig2e += e0 * e0 * namean * (alfa - alfa1 * alfa1);
+            p3 -= namean;
+        }
+
+        real w3 = alfa * e0;
+        if (tcut > w3)
+        {
+            real w = (tcut - w3) / tcut;
+            int nnb = PoissonG4(p3);
+            for (int k = 0; k < nnb; k++)
+            {
+                loss += w3 / (1.0f - w * (real)Uniform());
+            }
+        }
+
+        if (sig2e > 0.0f)
+        {
+            UrbanGauss(emean, sig2e, loss);
+        }
+    }
+
+    return loss * scaling;
+}
+
+// = ElectronTransport.cs UrbanExcitation (`G4UniversalFluctuation::AddExcitation`)
+RM_DEVF void Sim::UrbanExcitation(real ax, real ex, real& eav, real& eloss, real& esig2)
+{
+    if (ax > UrbanNmaxCont)
+    {
+        eav += ax * ex;
+        esig2 += ax * ex * ex;
+    }
+    else
+    {
+        int p = PoissonG4(ax);
+        if (p > 0)
+        {
+            eloss += ((p + 1) - 2.0f * (real)Uniform()) * ex;
+        }
+    }
+}
+
+// = ElectronTransport.cs UrbanGauss (`G4UniversalFluctuation::SampleGauss`)
+RM_DEVF void Sim::UrbanGauss(real eav, real esig2, real& eloss)
+{
+    real x = eav;
+    real sig = sqrt(esig2);
+    if (eav < 0.25f * sig)
+    {
+        x += (2.0f * (real)Uniform() - 1.0f) * eav;
+    }
+    else
+    {
+        int guard = 0;
+        do
+        {
+            x = eav + sig * Gaussian();
+        }
+        while ((x < 0.0f || x > 2.0f * eav) && ++guard < 1000);
+        if (guard >= 1000)
+        {
+            x = eav;
+        }
+    }
+
+    eloss += x;
+}
+
+// = ElectronTransport.cs Gaussian — Бокс—Мюллер, два равномерных на вызов.
+RM_DEVF real Sim::Gaussian()
+{
+    real r = sqrt(-2.0f * log((real)Uniform()));
+    return r * cos(6.283185307179586f * (real)Uniform());
+}
+
+// = ElectronTransport.cs PoissonG4 (как `G4Poisson`; сумма — в real, потолок 100).
+RM_DEVF int Sim::PoissonG4(real mean)
+{
+    if (!(mean > 0.0f))
+    {
+        return 0;
+    }
+
+    if (mean <= 16.0f)
+    {
+        float pf = Uniform();
+        float vf = expf(-mean), sf = vf;
+        int nf = 0;
+        while (nf < 100)
+        {
+            float d = sf - pf;
+            if (d < 1.0e-4f && d > -1.0e-4f) { break; }
+            if (d > 0.0f) { return nf; }
+            nf++;
+            vf *= mean / (float)nf;
+            sf += vf;
+        }
+
+        double position = (double)pf;
+        double m = (double)mean;
+        double value = exp(-m);
+        double sum = value;
+        int number = 0;
+        while (sum <= position && number < 100)
+        {
+            number++;
+            value *= m / number;
+            sum += value;
+        }
+
+        return number;
+    }
+
+    real g = mean + Gaussian() * sqrtf(mean) + 0.5f;
+    return g <= 0.0f ? 0 : (int)fminf(g, 2.0e9f);
+}
+#else
 RM_DEVF double Sim::UrbanLoss(const ElectronMaterialG& m, real tR, real meanLossR)
 {
     const double ElectronMassD = 510.99895;
@@ -2221,6 +2424,7 @@ RM_DEVF int Sim::PoissonG4(double mean)
     double g = mean + Gaussian() * sqrt(mean) + 0.5;
     return g <= 0.0 ? 0 : (int)fmin(g, 2.0e9);
 }
+#endif
 
 // = ElectronTransport.cs:1599 EscapeEnergy
 RM_DEV real Sim::EscapeEnergy(real residualG, real cap)

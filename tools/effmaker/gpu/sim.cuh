@@ -30,7 +30,7 @@ struct Sim
     // на устройстве не зовётся — состояние ставит ядро.
     // ⚠ Во float число 1 − 2⁻⁵⁴ округляется в РОВНО 1.0f, и `−log(1 − u)` дал бы
     // бесконечность: верх зажат последним float меньше единицы.
-    RM_DEV real Uniform()
+    RM_UC_NOINL real Uniform()
     {
 #ifdef RM_REAL_FLOAT
         // (`AMBER161`) Рабочий режим (Philox) — float из одного слова (`RngUniformF`);

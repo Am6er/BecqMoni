@@ -6978,7 +6978,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             // (`AMBER274`, полоса `a274s`) Форма уникальных запретов с кулоновскими λ
-            // (`FsaBetaLibrary.CoulombLambda`, умолчание ВЫКЛ): поле `cl=1` только при ВКЛ —
+            // (`FsaBetaLibrary.CoulombLambda`, умолчание ВКЛ с rev55 13.11.2026): поле `cl=` только при ВКЛ —
             // при ВЫКЛ клеймо побитно прежнее. Разбор сверяет его (`ElectronSectionFor`).
             if (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambda)
             {
@@ -6987,7 +6987,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             // (`AMBER274`, полоса `a274L`) F₀L₀ заряженной сферы в функции Ферми
-            // (`FsaBetaLibrary.FermiFiniteSize`, умолчание ВЫКЛ): поле `l0=` только при ВКЛ.
+            // (`FsaBetaLibrary.FermiFiniteSize`, умолчание ВКЛ с rev55 13.11.2026): поле `l0=` только при ВКЛ.
             if (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSize)
             {
                 sb.Append(";l0=").Append(BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSizeVersion);

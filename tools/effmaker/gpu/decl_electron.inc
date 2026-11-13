@@ -177,7 +177,7 @@ RM_DEV bool Refine(int bit);
 RM_DEV real EeLimitMu(real tKev, bool positron);
 static RM_DEV real SoftScreened(real a, real muCut);
 static RM_DEV int DpwaLocate(const real* d, int n, real invStep, real lt, real& u);
-RM_DEV void RefinedElasticStep(const ScatterElementG* elements, int elementsLen, real tKev, real muCut, bool positron,
+RM_UC_NOINL void RefinedElasticStep(const ScatterElementG* elements, int elementsLen, real tKev, real muCut, bool positron,
                                real& hardPerCm, real& softTransportPerCm, real* hardShare);
 RM_DEV bool RefinedHardCollision(const ScatterElementG* elements, int elementsLen, const real* shareA,
                                  const real* shareB, real w, real majorant, bool allowEmpty, real tKev, real muCut,
@@ -234,11 +234,19 @@ RM_DEVF void EmitBremsstrahlung(real x, real y, real z, real ux, real uy, real u
 RM_DEV real EscapeEnergy(real residualG, real cap);
 // (`AMBER274`, физика 28) страгглинг потерь — модель Урбана
 RM_DEVF real ResidualAfter(const ElectronMaterialG& medium, real t, real residual, real pathG);
+#ifdef RM_UC
+RM_DEVF real UrbanLoss(const ElectronMaterialG& m, real t, real meanLoss);
+RM_DEVF void UrbanExcitation(real ax, real ex, real& eav, real& eloss, real& esig2);
+RM_DEVF void UrbanGauss(real eav, real esig2, real& eloss);
+RM_DEVF real Gaussian();
+RM_DEVF int PoissonG4(real mean);
+#else
 RM_DEVF double UrbanLoss(const ElectronMaterialG& m, real t, real meanLoss);
 RM_DEVF void UrbanExcitation(double ax, double ex, double& eav, double& eloss, double& esig2);
 RM_DEVF void UrbanGauss(double eav, double esig2, double& eloss);
 RM_DEVF double Gaussian();
 RM_DEVF int PoissonG4(double mean);
+#endif
 
 // EfficiencySimulator.cs — занос электрона, рождённого вне кристалла
 RM_DEVF bool ElectronReachesCrystal(real x, real y, real z, real ux, real uy, real uz, real energyKev);
