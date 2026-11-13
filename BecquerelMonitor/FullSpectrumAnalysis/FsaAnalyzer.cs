@@ -3082,6 +3082,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool BackgroundZeroFollowsSample { get; set; }
 
         /// <summary>
+        /// (`AMBER295`, остаток, полоса `a295z`) РЫЧАГ: ступень нуля хранимого фона (<see cref="BackgroundZeroFollowsSample"/>)
+        /// берёт ЛУЧШИЙ из двух кандидатов, а не первый, улучшивший χ². Кандидатов два: совместная мера (g, o) и нуль
+        /// при прежнем усилении; без рычага второй не пробуется, как только первый улучшил χ²/ndf текущего прохода, — и
+        /// там, где второй лучше, разбор отдаёт худший (`RC103_K40` с <see cref="BackgroundOverflowOut"/>: χ²/ndf 1.0703
+        /// при достижимых меньших, K-40 −0.95 %; журнал handover/handover-2026-11-13-a295s.md, находка 1). С рычагом
+        /// считаются оба прохода, отдаётся меньший χ²/ndf (равенство — первый). Анализатор после выбора приводится в
+        /// состояние отданного прохода повтором — только при <see cref="AnchorZeroGuardReplay"/>, как у стража нуля.
+        /// Где первый кандидат не улучшил или не значим, ни бита не меняется. Умолчание — в конструкторе.
+        /// </summary>
+        public bool BackgroundZeroBestOfTwo { get; set; }
+
+        /// <summary>
         /// (`AMBER142` п.3, П224) Доля вынутого образа пробы, идущая в
         /// дисперсию остатка у меры усиления и нуля фона: остаток образа
         /// (форма, ширина) там, где образ во много раз сильнее фона, весит
@@ -6744,6 +6756,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool AnchorShiftFreeAmplitude { get; set; }
 
         /// <summary>
+        /// (`AMBER295`, остаток, полоса `a295z`) РЫЧАГ ЗАМЕРА: наибольшее число шагов замера сдвига опоры
+        /// (<see cref="AnchorShiftMeasure"/>). Восемь — прежнее число; больше — дать медленно сходящемуся сдвигу дойти
+        /// до места (рычаг для замера сходимости сдвига, `AMBER295`). Умолчание — в конструкторе.
+        /// </summary>
+        public int AnchorShiftSteps { get; set; }
+
+        /// <summary>
         /// (`AMBER269`, плечо (Д2) доводки (Д); решение Amber 29.10.2026 вопросником,
         /// дословно: «(Д-амп)+(Д2) (Рекомендую)») ВЫБРОСЫ СОВМЕСТНОГО ШАГА — ЕГО ЖЕ
         /// МОДЕЛЬЮ: у совместного шага нуля света и усиления
@@ -8405,7 +8424,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             }
                         }
 
-                        for (int it = 0; it < 8; it++)
+                        for (int it = 0; it < this.AnchorShiftSteps; it++)
                         {
                             double num = 0.0;
                             den = 0.0;
@@ -10823,6 +10842,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`AMBER295`, остаток, полоса `a295o`) рычаг выключен: умолчание побитно прежнее; включение —
             // решением Amber по замеру (журнал handover/handover-2026-11-12-a295o.md)
             this.BackgroundOverflowOut = false;
+            // (`AMBER295`, полоса `a295z`) лучший из двух кандидатов нуля фона — ВКЛЮЧЁН умолчанием. Решение Amber
+            // 13.11.2026 вопросником, дословно: «Включить (Рекомендую)»; критик `crit295z` принял. На rev54 корпус, малая
+            // база и витрина побитно те же (меняется только текст строки привязки); с `BackgroundOverflowOut` снимает
+            // ухудшение `RC103_K40` (журнал handover/handover-2026-11-13-a295z.md)
+            this.BackgroundZeroBestOfTwo = true;
             // (`AMBER311`, полосы `a311f`/`a311g`) рычаги ВКЛЮЧЕНЫ умолчанием — решение Amber 12.11.2026 вопросником,
             // дословно: «Оба, после доработок (Рекомендую)»; замер и критики — журнал handover/handover-2026-11-12-a311f.md
             this.EscapeBoundToParent = true;
@@ -10831,6 +10855,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // нуль — правило порога, `AMBER274`; довод — у константы)
             this.FitLowerBoundKev = FsaBand.ShippedFitLowerBoundKev;
             this.AnchorShiftFreeAmplitude = false;
+            // (`AMBER295`, полоса `a295z`) шагов замера сдвига опоры — прежние восемь (рычаг замера сходимости)
+            this.AnchorShiftSteps = 8;
             this.AnchorJointOutliers = false;
             // (`A320`, П323) повтор отданного разбора — пробам и корпусу; сеанс
             // приложения снимает (`FsaAnalysisSession.Capture`)
@@ -12530,7 +12556,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // (`RC103_K40`: g −0.68 %, o +0.94 кан., χ²/ndf 1.6057 →
                     // 1.6841), а не там, где лучше разбор
                     bool improved = false;
-                    for (int candidate = 0; candidate < 2 && !improved; candidate++)
+                    // (`AMBER295`, полоса `a295z`) рычаг «лучший из двух»: без него — первый улучшивший, как прежде
+                    bool bestOfTwo = this.BackgroundZeroBestOfTwo;
+                    FsaResult best = null;
+                    double bestGain = double.NaN, bestOffset = double.NaN;
+                    int bestCandidate = -1, lastComputed = -1;
+                    for (int candidate = 0; candidate < 2 && (!improved || bestOfTwo); candidate++)
                     {
                         bool fixGain = candidate == 1;
                         double measuredGain, measuredOffset, sigmaOffset;
@@ -12567,6 +12598,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         FsaResult shifted = this.AnalyzeOnce(spectrum, backgroundSpectrum, fwhmCalibration,
                                                              originalLibrary, efficiency);
                         this.anchorWarmIn = null;
+                        lastComputed = candidate;
                         if (shifted != null)
                         {
                             shifted.AnchorWarmOut = this.anchorWarmOut;
@@ -12592,12 +12624,59 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             continue;
                         }
 
+                        if (bestOfTwo)
+                        {
+                            notes.Add(string.Format(CultureInfo.InvariantCulture,
+                                "кандидат {0}: с фоном на усилении {1:F5}, нуле {2:+0.000;-0.000} кан. χ²/ndf {3:F4}",
+                                candidate, nextGain, nextOffset, shifted.Chi2Ndf));
+                            if (best == null || shifted.Chi2Ndf < best.Chi2Ndf)
+                            {
+                                best = shifted;
+                                bestGain = nextGain;
+                                bestOffset = nextOffset;
+                                bestCandidate = candidate;
+                            }
+
+                            improved = true;
+                            continue;
+                        }
+
                         shifted.BackgroundGain = nextGain;
                         shifted.BackgroundOffset = nextOffset;
                         applied = nextGain;
                         appliedOffset = nextOffset;
                         current = shifted;
                         improved = true;
+                    }
+
+                    if (bestOfTwo && best != null)
+                    {
+                        if (bestCandidate != lastComputed && this.AnchorZeroGuardReplay)
+                        {
+                            // состояние анализатора (ход привязки, след фита) — от отданного прохода, как у стража
+                            // нуля: повтор числа не меняет, расхождение пишется в записку
+                            this.backgroundGain = bestGain;
+                            this.backgroundOffset = bestOffset;
+                            this.anchorWarmIn = this.AnchorWarmStart ? current.AnchorWarmOut : null;
+                            FsaResult replay = this.AnalyzeOnce(spectrum, backgroundSpectrum, fwhmCalibration,
+                                                                originalLibrary, efficiency);
+                            this.anchorWarmIn = null;
+                            this.backgroundGain = 1.0;
+                            this.backgroundOffset = 0.0;
+                            if (replay == null || !(replay.Chi2Ndf == best.Chi2Ndf))
+                            {
+                                notes.Add("⚠ повтор лучшего кандидата разошёлся");
+                                this.Refusal = FsaRefusal.None;
+                                this.RefusalNote = null;
+                            }
+                        }
+
+                        notes.Add(string.Format(CultureInfo.InvariantCulture, "лучший из двух — кандидат {0}", bestCandidate));
+                        best.BackgroundGain = bestGain;
+                        best.BackgroundOffset = bestOffset;
+                        applied = bestGain;
+                        appliedOffset = bestOffset;
+                        current = best;
                     }
 
                     if (!improved)
