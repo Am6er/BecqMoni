@@ -1032,6 +1032,36 @@ namespace CorpusFsaProbe
                 // остановки, 511 своей аннигиляции снимается).
                 if (a.StartsWith("--sample-beta=", StringComparison.Ordinal)) { o.SampleBeta = a.Substring(14) != "0"; continue; }
                 if (a.StartsWith("--positron-stop=", StringComparison.Ordinal)) { o.PositronStop = a.Substring(16) != "0"; continue; }
+                // (`AMBER274`, полоса `a274k` 13.11.2026) РЫЧАГИ ЗАМЕРА беты K-40 цилиндров G1S24,
+                // умолчание — выкл, разбор без ключа тот же побитно:
+                // `--beta-free=1` — бета каждого образа с линиями уходит в свою строку «по сплошному
+                //   спектру» (`FsaComponent.BetaOnly`, имя `<образ> beta`) со СВОБОДНОЙ амплитудой;
+                //   у образа с линиями бета снимается. Отношение `decay_s` строки беты к образу —
+                //   свободная амплитуда беты в долях расчёта;
+                // `--bg-scale=<f>` — фон × f (живое время фона делится на f; дисперсия фона — f²,
+                //   как у пересчитанного замера): плечо «фон × (1 − x)», f = 1 − x;
+                // `--dump-beta=1` — у `--dump-curves=` столбец `beta_channel` (канал беты всех
+                //   образов, отсчёты разбора).
+                if (a.StartsWith("--beta-free=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(12);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--beta-free=0|1"); }
+                    o.BetaFree = v == "1";
+                    continue;
+                }
+                if (a.StartsWith("--bg-scale=", StringComparison.Ordinal))
+                {
+                    o.BgScale = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
+                    if (!(o.BgScale > 0.0)) { throw new ArgumentException("--bg-scale=<f>, f > 0"); }
+                    continue;
+                }
+                if (a.StartsWith("--dump-beta=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(12);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--dump-beta=0|1"); }
+                    o.DumpBeta = v == "1";
+                    continue;
+                }
                 // (`S107`, П10 12.09.2026) Форма образа наложений по свету:
                 // `0` — выкл (умолчание анализатора), `1` — кривая по веществу
                 // кристалла, `energy` — той же формой, но координата
@@ -2370,7 +2400,7 @@ namespace CorpusFsaProbe
         /// (`AS80_Onyx` — 2672 из 8192, 07.09.2026), иначе признак остался бы без
         /// читателя.
         /// </summary>
-        static void DumpCurves(string dir, string key, EnergySpectrum spectrum, FsaResult result)
+        static void DumpCurves(string dir, string key, EnergySpectrum spectrum, FsaResult result, bool dumpBeta)
         {
             Directory.CreateDirectory(dir);
             List<FsaStackLayer> layers = result.BuildStackedLayers(FsaResult.DefaultMaxNamedLayers);
@@ -2402,6 +2432,26 @@ namespace CorpusFsaProbe
                 head.Append(',').Append(layer.Name.Replace(',', ';'));
             }
 
+            // (`AMBER274`, `a274k`) `--dump-beta=1`: канал беты всех образов, отсчёты разбора
+            double[] betaChannel = null;
+            if (dumpBeta)
+            {
+                head.Append(",beta_channel");
+                betaChannel = new double[spectrum.NumberOfChannels];
+                foreach (FsaComponentResult component in result.Components)
+                {
+                    if (component.ChannelCurves != null && component.ChannelCurves.Length > FsaAnalyzer.BetaChannel
+                        && component.ChannelCurves[FsaAnalyzer.BetaChannel] != null)
+                    {
+                        double[] c = component.ChannelCurves[FsaAnalyzer.BetaChannel];
+                        for (int i = 0; i < c.Length && i < betaChannel.Length; i++)
+                        {
+                            betaChannel[i] += c[i];
+                        }
+                    }
+                }
+            }
+
             RejectDuplicateColumns(head.ToString(), "--dump-curves");
             double[] tailSum = result.TailCurveSum();
             string path = Path.Combine(dir, key + "_curves.csv");
@@ -2424,9 +2474,47 @@ namespace CorpusFsaProbe
                         line.Append(',').Append(Cell(layer.Curve, i));
                     }
 
+                    if (betaChannel != null)
+                    {
+                        line.Append(',').Append(Cell(betaChannel, i));
+                    }
+
                     w.WriteLine(line.ToString());
                 }
             }
+        }
+
+        /// <summary>
+        /// (`AMBER274`, полоса `a274k` 13.11.2026) Рычаг замера `--beta-free=1`: бета каждого образа
+        /// с линиями — в свою строку «по сплошному спектру» (<see cref="FsaComponent.BetaOnly"/>,
+        /// имя `<образ> beta`) со свободной амплитудой; у образа с линиями бета снимается. Образы
+        /// библиотеки строятся на каждый спектр заново, правка списка беты спектра не переживает.
+        /// </summary>
+        static List<FsaComponent> SplitBetas(List<FsaComponent> library, string key)
+        {
+            var result = new List<FsaComponent>(library.Count + 2);
+            var split = new List<FsaComponent>();
+            foreach (FsaComponent component in library)
+            {
+                result.Add(component);
+                if (component == null || component.BetaOnly || component.Lines.Count == 0
+                    || component.Betas == null || component.Betas.Count == 0)
+                {
+                    continue;
+                }
+
+                var beta = new FsaComponent(component.Name + " beta", FsaComponentKind.Single);
+                beta.CopyBetas(component, null);
+                beta.BetaOnly = true;
+                beta.TotalYieldPercent = double.NaN;
+                component.Betas.Clear();
+                split.Add(beta);
+                Console.WriteLine("  {0}: бета образа {1} — своей строкой ({2} ветвей, рычаг --beta-free)",
+                                  key, component.Name, beta.Betas.Count.ToString(CultureInfo.InvariantCulture));
+            }
+
+            result.AddRange(split);
+            return result;
         }
 
         /// <summary>
@@ -3627,6 +3715,20 @@ namespace CorpusFsaProbe
             {
                 ResultData rd = Load(path);
                 EnergySpectrum background = o.Background ? rd.BackgroundEnergySpectrum : null;
+                // (`AMBER274`, `a274k`) рычаг замера `--bg-scale=<f>`: фон × f через живое время фона
+                // (анализатор нормирует фон отношением живых времён); 1 — не трогается вовсе
+                if (background != null && o.BgScale != 1.0)
+                {
+                    background.LiveTime = background.EffectiveLiveTime / o.BgScale;
+                    Console.WriteLine("  {0}: фон × {1} (рычаг --bg-scale)", row.Key,
+                                      o.BgScale.ToString("R", CultureInfo.InvariantCulture));
+                }
+
+                if (background != null)
+                {
+                    ProbeSwitches.Witness("BgScale", o.BgScale);
+                }
+
                 row.HasBackground = background != null;
                 // (`T115`) Свидетель точки применения `--no-background`: что
                 // ПОДАНО анализатору, а не что стоит в поле. Судится только там,
@@ -3667,6 +3769,13 @@ namespace CorpusFsaProbe
                     ProbeSwitches.Witness("Equilibrium", spec.Equilibrium);
                     ProbeSwitches.Witness("CrystalShield", spec.CrystalShield);
                     library = FsaSampleLibrary.Build(spec, out built);
+                    // (`AMBER274`, `a274k`) рычаг замера `--beta-free=1`: бета — своей строкой
+                    if (o.BetaFree)
+                    {
+                        library = SplitBetas(library, row.Key);
+                    }
+
+                    ProbeSwitches.Witness("BetaFree", o.BetaFree);
                     row.LibraryNote = built.ToString();
                     row.MinRangeKev = spec.MinEnergyKev;
                     row.CurveFloorKev = spec.CurveFloorKev;
@@ -3965,7 +4074,7 @@ namespace CorpusFsaProbe
                 // модели решается ими, а не числом в таблице.
                 if (!string.IsNullOrEmpty(o.DumpCurves))
                 {
-                    DumpCurves(o.DumpCurves, row.Key, rd.EnergySpectrum, result);
+                    DumpCurves(o.DumpCurves, row.Key, rd.EnergySpectrum, result, o.DumpBeta);
                 }
 
                 // (`AMBER213`, П241) полный снимок результата — до сводок, которые
@@ -6701,6 +6810,9 @@ namespace CorpusFsaProbe
             public bool PileUp = true;
             public bool SampleBeta = true;      // (`AMBER274`) умолчание анализатора
             public bool PositronStop;           // (`AMBER274`) умолчание анализатора
+            public bool BetaFree;               // (`AMBER274`, `a274k`) рычаг замера: бета своей строкой
+            public double BgScale = 1.0;        // (`AMBER274`, `a274k`) рычаг замера: фон × f
+            public bool DumpBeta;               // (`AMBER274`, `a274k`) столбец канала беты в дампе кривых
             public bool Backscatter = true;
             public bool BackscatterWithMatrix = false;
             public bool Background = true;
