@@ -6461,6 +6461,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public double AnchorGainBrakeZeroMaxKev { get; set; }
 
         /// <summary>
+        /// (`AMBER295`, остаток, полоса `a295s`) РЫЧАГ ЗАМЕРА «ВЕРХ БЕЗ ОПОРЫ»: тормоз усиления
+        /// (<see cref="AnchorGainBrake"/>) срабатывает ещё и тогда, когда верхняя взятая опора прохода ниже
+        /// этой доли верхней значимой линии, по которой растянута карта "adc" (<see cref="adcTopKev"/>,
+        /// <see cref="AdcScaleOf"/>). Тогда шкалу держат одни нижние опоры, и усиление экстраполируется на
+        /// верх, где опоры нет: `ASN16_Radon_filter2` (витрина) — опоры не выше 586 кэВ при верхней линии
+        /// 2614.5 кэВ, усиление 1.015 при ~1.000 по пикам самого спектра, линия 2614.5 кэВ модели на 2654.6.
+        /// Доля, а не порог в кэВ, нарочно: порог 600 кэВ замерен и снят — у спектров, где выше 600 кэВ линий
+        /// нет вовсе (Am-241, Cd-109, Ce-139, Ba-133), он отнимал законную шкалу (Am-241 P5 0.996 → 0.224).
+        /// Значение 0 — рычаг не действует (прежнее поведение побитно); карты "adc" нет — тоже не действует.
+        /// Умолчание — в конструкторе; замер — `handover/handover-2026-11-13-a295s.md`.
+        /// </summary>
+        public double AnchorGainBrakeTopFraction { get; set; }
+
+        /// <summary>
         /// (`AMBER269`, Н5 критика FSA 02.11.2026; решение Amber 02.11.2026 вопросником,
         /// дословно: «Дефект „откат (А2) снимает и ширину“») ОТКАТ ОСТАВЛЯЕТ ШИРИНУ ОПОР.
         /// Откат (<see cref="AnchorRollback"/>) отменяет привязку ШКАЛЫ, а ширину пиков,
@@ -9299,6 +9313,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (!(topKev < this.AnchorGainBrakeZeroMaxKev))
             {
+                // (`AMBER295`, `a295s`) верх без опоры — рычаг, доводы у <see cref="AnchorGainBrakeTopFraction"/>
+                if (this.AnchorGainBrakeTopFraction > 0.0 && this.adcTopKev > 0.0
+                    && topKev < this.AnchorGainBrakeTopFraction * this.adcTopKev)
+                {
+                    return string.Format(CultureInfo.InvariantCulture,
+                        "верх без опоры: верхняя взятая опора {0:F1} кэВ ниже доли {1:F2} верхней линии карты {2:F1} кэВ",
+                        topKev, this.AnchorGainBrakeTopFraction, this.adcTopKev);
+                }
+
                 return null;
             }
 
@@ -10750,6 +10773,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // порог 25 меняет 3 спектра из 5 (G1S16_Ce139_P25: χ²/ndf 17.95 при 30, 13.98 при 25).
             // Обратное плечо — порог 0: ни одна опора не ниже нуля, тормоз не срабатывает никогда.
             this.AnchorGainBrakeZeroMaxKev = 30.0;
+            // (`AMBER295`, остаток, полоса `a295s`) рычаг «верх без опоры» выключен: умолчание побитно прежнее;
+            // включение — решением Amber после критика (журнал handover/handover-2026-11-13-a295s.md)
+            this.AnchorGainBrakeTopFraction = 0.0;
             // (`AMBER269`, Н5; `AMBER274`) откат оставляет ширину опор — ВКЛЮЧЁН умолчанием.
             // Решение Amber 03.11.2026 вопросником, дословно: «Правило порога + откат с шириной
             // (Рекомендую)» — умолчание базы rev52 вместе с нижней границей разбора нулём
