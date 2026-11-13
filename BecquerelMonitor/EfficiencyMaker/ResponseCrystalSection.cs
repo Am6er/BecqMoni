@@ -164,6 +164,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 sb.Append(";cl=").Append(BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambdaVersion);
             }
 
+            // (`AMBER274`, `a274L`) Бета слоя с F₀L₀ заряженной сферы (`FsaBetaLibrary.FermiFiniteSize`):
+            // поле только при ВКЛ, при ВЫКЛ клеймо побитно прежнее.
+            if (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSize)
+            {
+                sb.Append(";l0=").Append(BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSizeVersion);
+            }
+
             sb.Append(";rcp=").Append(BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnActivityBuilder.RecipeStamp(recipe));
             return sb.ToString();
         }

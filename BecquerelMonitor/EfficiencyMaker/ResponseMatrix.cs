@@ -1186,9 +1186,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             // бы две формы (строки ветвей старой, веса узлов новой). При ВЫКЛ и разделе без поля
             // `cl` — прежнее поведение.
             // (`a274t`) Значение поля — версия формы: «1» точечное ядро, «2» заряженная сфера.
+            // (`a274L`) Так же поле `l0` — F₀L₀ заряженной сферы в функции Ферми
+            // (`FsaBetaLibrary.FermiFiniteSize`): раздел без поля при ВКЛ не годен, с полем при ВЫКЛ — тоже.
             if ((e.StampField("cl") ?? "") != (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambda
                                                    ? BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambdaVersion
-                                                   : ""))
+                                                   : "")
+                || (e.StampField("l0") ?? "") != (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSize
+                                                      ? BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSizeVersion
+                                                      : ""))
             {
                 refusal = ElectronSectionRefusal.OtherPhysics;
                 return null;
@@ -6979,6 +6984,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 // (`a274t`) значение — версия формы (`FsaBetaLibrary.CoulombLambdaVersion`)
                 sb.Append(";cl=").Append(BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambdaVersion);
+            }
+
+            // (`AMBER274`, полоса `a274L`) F₀L₀ заряженной сферы в функции Ферми
+            // (`FsaBetaLibrary.FermiFiniteSize`, умолчание ВЫКЛ): поле `l0=` только при ВКЛ.
+            if (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSize)
+            {
+                sb.Append(";l0=").Append(BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSizeVersion);
             }
 
             sb.Append(";cap=").Append(CapsuleText(geometry));

@@ -6945,6 +6945,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double p = Math.Sqrt(w * w - 1.0);
             double q = w0 - w;
             double f = Fermi(beta.DaughterZ, beta.MassNumber, w, p, beta.Positron);
+            if (FermiFiniteSize && beta.DaughterZ > 0)
+            {
+                // (`AMBER274`, полоса `a274L` 13.11.2026) F₀ → F₀L₀ заряженной сферы; λₖ ниже —
+                // отношение амплитуд, L₀ в нём не сидит, двойного учёта нет.
+                f *= CoulombSphere.FiniteSizeL0(beta.DaughterZ, beta.MassNumber, beta.Positron, p);
+            }
+
             double s = beta.ShapeFactor != null
                 ? Math.Max(0.0, beta.ShapeFactor[0] + beta.ShapeFactor[1] * w + beta.ShapeFactor[2] / w
                                 + beta.ShapeFactor[3] * w * w)
@@ -7080,6 +7087,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// (`AMBER274`, полоса `a274L` 13.11.2026) ПОПРАВКА L₀ НА КОНЕЧНЫЙ РАЗМЕР ЯДРА В ФУНКЦИИ
+        /// ФЕРМИ — ключ, умолчание ВЫКЛ. Решение Amber 13.11.2026 вопросником, дословно:
+        /// «Выключенным ключом + замер (Рекомендую)»; находка критика `crit274t`: разрешённые
+        /// ветви у Z ≈ 90 на 0.4–1.1 % выше средних ENSDF, F₀ точечного ядра.
+        ///
+        /// ВЫКЛ — F₀ точечного ядра (<see cref="Fermi"/>), форма побитно прежняя. ВКЛ — F₀·L₀, где
+        /// L₀ = F₀L₀ равномерно заряженной сферы ((α₋₁² + α₁²)/(2p²), уравнения Дирака численно)
+        /// к F₀ точечного ядра того же радиуса (<see cref="CoulombSphere.FiniteSizeL0"/>); у всех
+        /// форм кодом (разрешённые, уникальные, фактор формы базы), у β⁻ и β⁺; таблицы
+        /// `beta_shapes` — как есть. С ключом λ двойного учёта нет: λₖ = (α₋ₖ² + αₖ²)/(α₋₁² + α₁²)
+        /// — отношение, а L₀ — в общем множителе F₀L₀ = (α₋₁² + α₁²)/(2p²).
+        ///
+        /// ⛔ Ключ меняет функцию распределения формы в строках ветвей раздела электрона склада
+        /// (`ElectronBranchSpec.BetaCdf`, поле `br=`), бету слоя кристалла и веса узлов беты без
+        /// строки (<see cref="Weights"/>, кэш — с ключом). Клеймо раздела при ВКЛ несёт `l0=1`
+        /// (<see cref="FermiFiniteSizeVersion"/>), разбор раздел без поля при ВКЛ (и с полем при
+        /// ВЫКЛ) не берёт (`ResponseMatrix.ElectronSectionFor`). Включать — вместе с общим
+        /// пересчётом склада, после замера корпуса «до/после» и критиков.
+        /// </summary>
+        public static bool FermiFiniteSize = false;
+
+        /// <summary>(`a274L`) Значение поля `l0=` в клеймах разделов при ВКЛ <see cref="FermiFiniteSize"/>.</summary>
+        public const string FermiFiniteSizeVersion = "1";
+
+        /// <summary>
         /// (`a274s`, `a274t`) Фактор уникального n-го запрета с кулоновскими λ (<see cref="CoulombLambda"/>),
         /// нормированный, как <see cref="UniqueShape"/>, на коэффициент при q²ⁿ (λ₁ = 1). λₖ —
         /// заряженной сферы (β⁻ и β⁺), при рычаге <see cref="CoulombLambdaPointNucleus"/> — точечного ядра.
@@ -7175,7 +7207,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>Re ln Γ(x + iy) при x &gt; 0 — приближение Ланцоша (g = 7, 9 членов).</summary>
-        static double ReLnGamma(double x, double y)
+        internal static double ReLnGamma(double x, double y)
         {
             double[] c =
             {
@@ -7653,7 +7685,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                          + "|" + beta.UniqueOrder.ToString(CultureInfo.InvariantCulture) + (beta.Positron ? "+" : "-")
                          + "|" + beta.ShapeId.ToString(CultureInfo.InvariantCulture)
                          + "|" + beta.Nuclide + (EfficiencyMaker.ResponseElectronSection.BranchEvents ? "|E" : "|-")
-                         + (CoulombLambda ? "|cl" + CoulombLambdaVersion : "");   // (`a274s`, `a274t`) форма с λ — свой вес; ВЫКЛ — ключ прежний
+                         + (CoulombLambda ? "|cl" + CoulombLambdaVersion : "")    // (`a274s`, `a274t`) форма с λ — свой вес; ВЫКЛ — ключ прежний
+                         + (FermiFiniteSize ? "|l0" + FermiFiniteSizeVersion : "");   // (`a274L`) F₀L₀ — свой вес; ВЫКЛ — ключ прежний
             lock (WeightGate)
             {
                 double[] cached;
@@ -7754,6 +7787,128 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public static double Radius(int massNumber)
         {
             return 1.2 * Math.Pow(Math.Max(1, massNumber), 1.0 / 3.0) / ComptonFm;
+        }
+
+        static readonly Dictionary<string, double[]> FiniteSizeTables = new Dictionary<string, double[]>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// (`AMBER274`, полоса `a274L` 13.11.2026) L₀ — поправка на конечный размер ядра к F₀
+        /// точечного ядра того же радиуса: L₀ = (α₋₁² + α₁²)/(2p²·F₀), F₀ = 4(2pR)^{2(γ−1)}e^{πy}
+        /// |Γ(γ+iy)|²/Γ(2γ+1)², y = ±αZW/p (запись Hayen 2018, ур. 6; к ней относится L₀ Уилкинсона,
+        /// ур. 16). Множитель F₀ ключа <see cref="FsaBetaLibrary.FermiFiniteSize"/>. Z ≤ 0 или
+        /// p ≤ 0 — единица; при Z → 0 L₀ → 1. Таблица по тем же 160 узлам ln p, что у λₖ; ниже и
+        /// выше таблицы — крайний узел. Узел, где решатель не сошёлся (медленный позитрон под
+        /// барьером: плотность там нулевая) или L₀ вне 0.5…2, берёт ближайший годный узел сверху.
+        /// </summary>
+        public static double FiniteSizeL0(int z, int massNumber, bool positron, double p)
+        {
+            if (z <= 0 || !(p > 0.0))
+            {
+                return 1.0;
+            }
+
+            string key = z.ToString(CultureInfo.InvariantCulture) + "|" + massNumber.ToString(CultureInfo.InvariantCulture)
+                         + "|" + (positron ? "+" : "-");
+            double[] table;
+            lock (Gate)
+            {
+                FiniteSizeTables.TryGetValue(key, out table);
+            }
+
+            if (table == null)
+            {
+                table = FiniteSizeTable(z, massNumber, positron);
+                lock (Gate)
+                {
+                    FiniteSizeTables[key] = table;
+                }
+            }
+
+            double x = (Math.Log(p) - LnPMin) / (LnPMax - LnPMin) * (Nodes - 1);
+            if (x <= 0.0)
+            {
+                return table[0];
+            }
+
+            if (x >= Nodes - 1)
+            {
+                return table[Nodes - 1];
+            }
+
+            int i = (int)Math.Floor(x);
+            double t = x - i;
+            double y0 = table[Math.Max(0, i - 1)], y1 = table[i], y2 = table[Math.Min(Nodes - 1, i + 1)], y3 = table[Math.Min(Nodes - 1, i + 2)];
+            double value = 0.5 * (2.0 * y1 + (-y0 + y2) * t + (2.0 * y0 - 5.0 * y1 + 4.0 * y2 - y3) * t * t
+                                  + (-y0 + 3.0 * y1 - 3.0 * y2 + y3) * t * t * t);
+            return value > 0.0 && !double.IsInfinity(value) ? value : y1;
+        }
+
+        /// <summary>(`a274L`) L₀ прямым счётом в точке (без таблицы) — пробе для сверки интерполяции; NaN — не сошёлся.</summary>
+        public static double FiniteSizeL0Direct(int z, int massNumber, bool positron, double p, double reach)
+        {
+            double az = (positron ? -1.0 : 1.0) * FineStructure * z;
+            double radius = Radius(massNumber);
+            double w = Math.Sqrt(1.0 + p * p);
+            double sum = AmplitudeSquared(-1, az, radius, w, reach) + AmplitudeSquared(1, az, radius, w, reach);
+            return sum / (2.0 * p * p * PointF0(az, radius, w, p));
+        }
+
+        /// <summary>(`a274L`) Число узлов таблицы L₀, взятых у соседа (решатель не сошёлся или L₀ вне 0.5…2), — пробе.</summary>
+        public static int FiniteSizeL0Patched(int z, int massNumber, bool positron)
+        {
+            int patched = 0;
+            double[] minus1 = Table(-1, z, massNumber, positron), plus1 = Table(1, z, massNumber, positron);
+            double az = (positron ? -1.0 : 1.0) * FineStructure * z, radius = Radius(massNumber);
+            for (int i = 0; i < Nodes; i++)
+            {
+                double p = Math.Exp(LnPMin + (LnPMax - LnPMin) * i / (Nodes - 1));
+                double l0 = (minus1[i] + plus1[i]) / (2.0 * p * p * PointF0(az, radius, Math.Sqrt(1.0 + p * p), p));
+                if (!(l0 >= 0.5 && l0 <= 2.0))
+                {
+                    patched++;
+                }
+            }
+
+            return patched;
+        }
+
+        static double[] FiniteSizeTable(int z, int massNumber, bool positron)
+        {
+            double[] minus1 = Table(-1, z, massNumber, positron);
+            double[] plus1 = Table(1, z, massNumber, positron);
+            double az = (positron ? -1.0 : 1.0) * FineStructure * z;
+            double radius = Radius(massNumber);
+            var table = new double[Nodes];
+            for (int i = 0; i < Nodes; i++)
+            {
+                double p = Math.Exp(LnPMin + (LnPMax - LnPMin) * i / (Nodes - 1));
+                table[i] = (minus1[i] + plus1[i]) / (2.0 * p * p * PointF0(az, radius, Math.Sqrt(1.0 + p * p), p));
+            }
+
+            // Негодные узлы — у медленного позитрона снизу: берут ближайший годный сверху.
+            double next = 1.0;
+            for (int i = Nodes - 1; i >= 0; i--)
+            {
+                if (table[i] >= 0.5 && table[i] <= 2.0)
+                {
+                    next = table[i];
+                }
+                else
+                {
+                    table[i] = next;
+                }
+            }
+
+            return table;
+        }
+
+        /// <summary>F₀ точечного ядра радиуса R в записи Hayen 2018 (множитель 4); αZ со знаком (+ — β⁻).</summary>
+        static double PointF0(double az, double radius, double w, double p)
+        {
+            double g = Math.Sqrt(1.0 - az * az);
+            double y = az * w / p;
+            return Math.Exp(Math.Log(4.0) + 2.0 * (g - 1.0) * Math.Log(2.0 * p * radius) + Math.PI * y
+                            + 2.0 * FsaBetaLibrary.ReLnGamma(g, y) - 2.0 * FsaBetaLibrary.ReLnGamma(2.0 * g + 1.0, 0.0));
         }
 
         /// <summary>λₖ сферы при импульсе p (единицы mₑc); k ≤ 1, Z ≤ 0 или p ≤ 0 — единица.</summary>
