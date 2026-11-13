@@ -6948,8 +6948,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double s = beta.ShapeFactor != null
                 ? Math.Max(0.0, beta.ShapeFactor[0] + beta.ShapeFactor[1] * w + beta.ShapeFactor[2] / w
                                 + beta.ShapeFactor[3] * w * w)
-                : (CoulombLambda && !beta.Positron && beta.DaughterZ > 0 && beta.UniqueOrder > 0
-                    ? UniqueShapeCoulomb(beta.UniqueOrder, p, q, beta.DaughterZ, beta.MassNumber, w)
+                : (CoulombLambda && beta.DaughterZ > 0 && beta.UniqueOrder > 0 && (!beta.Positron || !CoulombLambdaPointNucleus)
+                    ? UniqueShapeCoulomb(beta.UniqueOrder, p, q, beta.DaughterZ, beta.MassNumber, w, beta.Positron)
                     : UniqueShape(beta.UniqueOrder, p, q));
             double value = p * w * q * q * f * s;
             return value > 0.0 && !double.IsInfinity(value) ? value : 0.0;
@@ -7042,24 +7042,49 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         ///
         /// ВЫКЛ — λₖ = 1 (<see cref="UniqueShape"/>), форма побитно прежняя. ВКЛ — фактор
         /// Σₖ λₖ₊₁·p²ᵏq²⁽ⁿ⁻ᵏ⁾/((2k+1)!(2n−2k+1)!) с λₖ = F₍ₖ₋₁₎/F₀ точечного ядра
-        /// (<see cref="CoulombAmplitudeRatio"/>), у ветвей β⁻ без таблицы и фактора базы; β⁺ —
-        /// λ = 1 по-прежнему (сверять не с чем). Замер (проба `CrystalOwnActivityProbeA274
-        /// --mode=clambda`): средняя формы к средней базы у Z ≤ 58 сходится до 0.2–0.4 %, у Z ≥ 81
-        /// точечное ядро перелетает на 3–4 % в другую сторону (конечный размер ядра не учтён).
+        /// (<see cref="CoulombAmplitudeRatio"/>), у ветвей β⁻ без таблицы и фактора базы. Замер
+        /// (проба `CrystalOwnActivityProbeA274 --mode=clambda`): средняя формы к средней базы у
+        /// Z ≤ 58 сходится до 0.2–0.4 %, у Z ≥ 81 точечное ядро перелетает на 3–6 % в другую сторону.
+        ///
+        /// ➕ (`a274t` 13.11.2026) Умолчание ВКЛ-формы — λₖ РАВНОМЕРНО ЗАРЯЖЕННОЙ СФЕРЫ
+        /// (<see cref="CoulombSphere"/>, численно по уравнениям Дирака), у β⁻ и у β⁺ (знак заряда
+        /// обратный); точечное ядро — рычагом <see cref="CoulombLambdaPointNucleus"/>. Замер
+        /// (`--mode=sphere`): у Z ≥ 81 отклонение средней от базы −3…−6 % → −0.04…−2.2 %, у Z ≤ 58
+        /// наибольшее 0.38 % → 0.23 %, у β⁺ (K-40, Al-26) ближе к базе, чем λ = 1.
         ///
         /// ⛔ Ключ меняет функцию распределения формы в строках ветвей раздела электрона склада
         /// (`ElectronBranchSpec.BetaCdf`, поле `br=` клейма) и веса узлов беты без строки
         /// (<see cref="Weights"/>, кэш — с ключом). Включать — после замера корпуса «до/после»,
-        /// критиков и вместе с общим пересчётом склада; клеймо раздела при ВКЛ несёт `cl=1`, и
-        /// разбор старый раздел не берёт (`ResponseMatrix.ElectronSectionFor`).
+        /// критиков и вместе с общим пересчётом склада; клеймо раздела при ВКЛ несёт `cl=` с версией
+        /// формы (<see cref="CoulombLambdaVersion"/>), и разбор раздел другой формы не берёт
+        /// (`ResponseMatrix.ElectronSectionFor`).
         /// </summary>
         public static bool CoulombLambda = false;
 
         /// <summary>
-        /// (`a274s`) Фактор уникального n-го запрета с кулоновскими λ (<see cref="CoulombLambda"/>),
-        /// нормированный, как <see cref="UniqueShape"/>, на коэффициент при q²ⁿ (λ₁ = 1).
+        /// (`AMBER274`, полоса `a274t` 13.11.2026) РЫЧАГ ЗАМЕРА: λₖ точечного ядра (прежняя форма
+        /// полосы `a274s`, только β⁻) вместо равномерно заряженной сферы. Умолчание — сфера
+        /// (<see cref="CoulombSphere"/>): у Z ≥ 81 точечное ядро перелетало справочную среднюю на
+        /// 3–6 %. Действует только при <see cref="CoulombLambda"/>; пробе — мутант и сравнение.
         /// </summary>
-        static double UniqueShapeCoulomb(int n, double p, double q, int z, int massNumber, double w)
+        public static bool CoulombLambdaPointNucleus = false;
+
+        /// <summary>
+        /// (`a274t`) Значение поля `cl=` в клеймах разделов при ВКЛ <see cref="CoulombLambda"/>:
+        /// «1» — точечное ядро (`a274s`), «2» — заряженная сфера, β⁻ и β⁺. Раздел, посчитанный
+        /// другой формой, разбор не берёт (`ResponseMatrix.ElectronSectionFor`).
+        /// </summary>
+        public static string CoulombLambdaVersion
+        {
+            get { return CoulombLambdaPointNucleus ? "1" : "2"; }
+        }
+
+        /// <summary>
+        /// (`a274s`, `a274t`) Фактор уникального n-го запрета с кулоновскими λ (<see cref="CoulombLambda"/>),
+        /// нормированный, как <see cref="UniqueShape"/>, на коэффициент при q²ⁿ (λ₁ = 1). λₖ —
+        /// заряженной сферы (β⁻ и β⁺), при рычаге <see cref="CoulombLambdaPointNucleus"/> — точечного ядра.
+        /// </summary>
+        static double UniqueShapeCoulomb(int n, double p, double q, int z, int massNumber, double w, bool positron)
         {
             double lead = 1.0 / (Factorial(1) * Factorial(2 * n + 1));
             double s = 0.0;
@@ -7068,7 +7093,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double term = Math.Pow(p, 2 * k) * Math.Pow(q, 2 * (n - k)) / (Factorial(2 * k + 1) * Factorial(2 * n - 2 * k + 1));
                 if (k > 0)
                 {
-                    term *= CoulombAmplitudeRatio(k + 1, z, massNumber, w, p);
+                    term *= CoulombLambdaPointNucleus
+                        ? CoulombAmplitudeRatio(k + 1, z, massNumber, w, p)
+                        : CoulombSphere.Lambda(k + 1, z, massNumber, positron, p);
                 }
 
                 s += term;
@@ -7626,7 +7653,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                          + "|" + beta.UniqueOrder.ToString(CultureInfo.InvariantCulture) + (beta.Positron ? "+" : "-")
                          + "|" + beta.ShapeId.ToString(CultureInfo.InvariantCulture)
                          + "|" + beta.Nuclide + (EfficiencyMaker.ResponseElectronSection.BranchEvents ? "|E" : "|-")
-                         + (CoulombLambda ? "|cl" : "");   // (`a274s`) форма с λ — свой вес; ВЫКЛ — ключ прежний
+                         + (CoulombLambda ? "|cl" + CoulombLambdaVersion : "");   // (`a274s`, `a274t`) форма с λ — свой вес; ВЫКЛ — ключ прежний
             lock (WeightGate)
             {
                 double[] cached;
@@ -7683,6 +7710,310 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return w;
+        }
+    }
+
+    /// <summary>
+    /// (`AMBER274`, полоса `a274t` 13.11.2026) КУЛОНОВСКИЕ АМПЛИТУДЫ РАВНОМЕРНО ЗАРЯЖЕННОЙ СФЕРЫ —
+    /// λₖ фактора уникального запрета при ключе <see cref="FsaBetaLibrary.CoulombLambda"/>.
+    ///
+    /// Определение (Behrens–Bühring; Hayen и др., Rev. Mod. Phys. 90 (2018) 015008, ур. 12–13):
+    /// радиальные функции электрона у начала координат раскладываются как
+    /// g₋ₖ(r) = α₋ₖ·(pr)^(k−1)/(2k−1)!!·(1 + …), fₖ(r) = αₖ·(pr)^(k−1)/(2k−1)!!·(1 + …), и
+    /// F₀L₀ = (α₋₁² + α₁²)/(2p²); λₖ = (α₋ₖ² + αₖ²)/(α₋₁² + α₁²) (BetaShape, Mougeot 2015).
+    /// Ядро — равномерно заряженная сфера радиуса R = 1.2·A^⅓ фм (тот же R, что у точечной
+    /// формулы `a274s`), потенциал внутри −αZ(3 − r²/R²)/(2R), снаружи −αZ/r; у β⁺ знак заряда
+    /// обратный — та же формула закрывает и позитрон.
+    ///
+    /// Счёт численный: уравнения Дирака для u = r·g, v = r·f
+    /// u′ = −(κ/r)·u + (W − V + 1)·v, v′ = (κ/r)·v − (W − V − 1)·u (ħ = mₑ = c = 1)
+    /// от r₀ = 10⁻⁴R с ведущим членом ряда (α = 1) наружу адаптивным Дорманом–Принсом до
+    /// r_end, где ВКБ-инвариант A² = P·[u²/(W−V+1) + v²/(W−V−1)], P = √((W−V)² − 1), усреднён
+    /// по периоду; нормировка «на бесконечности» A² = p/W даёт α² = (p/W)/A² (при Z = 0
+    /// α₋₁² + α₁² = 2p², то есть F₀L₀ = 1). Таблица λₖ по 160 узлам ln p считается один раз на
+    /// (Z, A, знак, k) и читается кубической интерполяцией.
+    ///
+    /// Проверки (проба `CrystalOwnActivityProbeA274 --mode=sphere`): L₀ = (α₋₁² + α₁²)/(2p²F₀)
+    /// против формулы Уилкинсона (Hayen 2018, ур. 16, табл. I) при Z ≤ 60; Z → 0 даёт λ = 1;
+    /// сходимость по r_end; средние уникальных ветвей к средним `nucdb`.
+    /// </summary>
+    public static class CoulombSphere
+    {
+        const double FineStructure = 1.0 / 137.035999084;
+        const double ComptonFm = 386.15926796;   // ħ/(mₑc), фм
+
+        /// <summary>Узлы таблицы по ln p: p от 0.004 (4 эВ) до 40 (≈ 20 МэВ).</summary>
+        const int Nodes = 160;
+        static readonly double LnPMin = Math.Log(0.004);
+        static readonly double LnPMax = Math.Log(40.0);
+
+        static readonly object Gate = new object();
+        static readonly Dictionary<string, double[]> Amplitudes = new Dictionary<string, double[]>(StringComparer.Ordinal);
+
+        /// <summary>Радиус сферы, единицы ħ/(mₑc).</summary>
+        public static double Radius(int massNumber)
+        {
+            return 1.2 * Math.Pow(Math.Max(1, massNumber), 1.0 / 3.0) / ComptonFm;
+        }
+
+        /// <summary>λₖ сферы при импульсе p (единицы mₑc); k ≤ 1, Z ≤ 0 или p ≤ 0 — единица.</summary>
+        public static double Lambda(int k, int z, int massNumber, bool positron, double p)
+        {
+            if (k <= 1 || z <= 0 || !(p > 0.0))
+            {
+                return 1.0;
+            }
+
+            double[] lam = LambdaTable(k, z, massNumber, positron);
+            double x = (Math.Log(p) - LnPMin) / (LnPMax - LnPMin) * (Nodes - 1);
+            if (x <= 0.0)
+            {
+                return Finite(lam[0]);
+            }
+
+            if (x >= Nodes - 1)
+            {
+                return Finite(lam[Nodes - 1]);
+            }
+
+            int i = (int)Math.Floor(x);
+            double t = x - i;
+            double y0 = lam[Math.Max(0, i - 1)], y1 = lam[i], y2 = lam[Math.Min(Nodes - 1, i + 1)], y3 = lam[Math.Min(Nodes - 1, i + 2)];
+            if (!(IsFinite(y0) && IsFinite(y1) && IsFinite(y2) && IsFinite(y3)))
+            {
+                return Finite(t < 0.5 ? y1 : y2);
+            }
+
+            // Катмулл–Ром: проходит через узлы, гладкая первая производная.
+            double value = 0.5 * (2.0 * y1 + (-y0 + y2) * t + (2.0 * y0 - 5.0 * y1 + 4.0 * y2 - y3) * t * t
+                                  + (-y0 + 3.0 * y1 - 3.0 * y2 + y3) * t * t * t);
+            return Finite(value);
+        }
+
+        /// <summary>λₖ сферы прямым счётом в точке (без таблицы) — пробе для сверки интерполяции.</summary>
+        public static double LambdaDirect(int k, int z, int massNumber, bool positron, double p, double reach)
+        {
+            double az = (positron ? -1.0 : 1.0) * FineStructure * z;
+            double radius = Radius(massNumber);
+            double w = Math.Sqrt(1.0 + p * p);
+            double top = AmplitudeSquared(-k, az, radius, w, reach) + AmplitudeSquared(k, az, radius, w, reach);
+            double bottom = AmplitudeSquared(-1, az, radius, w, reach) + AmplitudeSquared(1, az, radius, w, reach);
+            return Finite(top / bottom);
+        }
+
+        static bool IsFinite(double v)
+        {
+            return !double.IsNaN(v) && !double.IsInfinity(v) && v > 0.0;
+        }
+
+        static double Finite(double v)
+        {
+            return IsFinite(v) ? v : 1.0;
+        }
+
+        static double[] LambdaTable(int k, int z, int massNumber, bool positron)
+        {
+            double[] minus1 = Table(-1, z, massNumber, positron);
+            double[] plus1 = Table(1, z, massNumber, positron);
+            double[] minusK = Table(-k, z, massNumber, positron);
+            double[] plusK = Table(k, z, massNumber, positron);
+            var lam = new double[Nodes];
+            for (int i = 0; i < Nodes; i++)
+            {
+                lam[i] = (minusK[i] + plusK[i]) / (minus1[i] + plus1[i]);
+            }
+
+            return lam;
+        }
+
+        static double[] Table(int kappa, int z, int massNumber, bool positron)
+        {
+            string key = z.ToString(CultureInfo.InvariantCulture) + "|" + massNumber.ToString(CultureInfo.InvariantCulture)
+                         + "|" + (positron ? "+" : "-") + "|" + kappa.ToString(CultureInfo.InvariantCulture);
+            lock (Gate)
+            {
+                double[] cached;
+                if (Amplitudes.TryGetValue(key, out cached))
+                {
+                    return cached;
+                }
+            }
+
+            double az = (positron ? -1.0 : 1.0) * FineStructure * z;
+            double radius = Radius(massNumber);
+            var table = new double[Nodes];
+            for (int i = 0; i < Nodes; i++)
+            {
+                double p = Math.Exp(LnPMin + (LnPMax - LnPMin) * i / (Nodes - 1));
+                table[i] = AmplitudeSquared(kappa, az, radius, Math.Sqrt(1.0 + p * p), 1.0);
+            }
+
+            lock (Gate)
+            {
+                Amplitudes[key] = table;
+            }
+
+            return table;
+        }
+
+        /// <summary>
+        /// α_κ² для полной энергии W (единицы mₑc²), заряда αZ со знаком (+ — притяжение, β⁻) и
+        /// радиуса сферы R; нормировка — F₀L₀ = (α₋₁² + α₁²)/(2p²). <paramref name="reach"/> —
+        /// множитель дальности r_end (1 — рабочий, больше — проверка сходимости). NaN — счёт не
+        /// удался (переполнение под барьером у медленного позитрона: плотность там нулевая).
+        /// </summary>
+        public static double AmplitudeSquared(int kappa, double az, double radius, double w, double reach)
+        {
+            double p = Math.Sqrt(Math.Max(0.0, w * w - 1.0));
+            if (kappa == 0 || !(p > 0.0) || !(radius > 0.0))
+            {
+                return double.NaN;
+            }
+
+            int k = Math.Abs(kappa);
+            double v0 = -1.5 * az / radius;
+            double odd = 1.0;
+            for (int j = 2 * k - 1; j > 1; j -= 2)
+            {
+                odd *= j;
+            }
+
+            double c = Math.Pow(p, k - 1) / odd;
+            double r0 = 1.0e-4 * radius;
+            double u, v;
+            if (kappa < 0)
+            {
+                u = c * Math.Pow(r0, k);
+                v = -(w - v0 - 1.0) * c * Math.Pow(r0, k + 1) / (2 * k + 1);
+            }
+            else
+            {
+                v = c * Math.Pow(r0, k);
+                u = (w - v0 + 1.0) * c * Math.Pow(r0, k + 1) / (2 * k + 1);
+            }
+
+            // Дальность: ≥ 400 длин 1/p и область, где ВКБ по кулоновскому хвосту точен (|dP/dr|/P² ≤ 10⁻⁵).
+            double rEnd = reach * Math.Max(400.0 / p, Math.Sqrt(Math.Abs(az) * w / (1.0e-5 * p * p * p)));
+            rEnd = Math.Max(rEnd, 50.0 * radius);
+            if (!Integrate(kappa, az, radius, w, ref u, ref v, r0, radius) || !Integrate(kappa, az, radius, w, ref u, ref v, radius, rEnd))
+            {
+                return double.NaN;
+            }
+
+            // Среднее инварианта по периоду 2π/P (два периода квадрата синуса), шаг RK4 — 1/256 периода.
+            double pEnd = LocalMomentum(az, radius, w, rEnd);
+            double period = 2.0 * Math.PI / pEnd;
+            const int Steps = 256;
+            double h = period / Steps, r = rEnd, sum = 0.0;
+            for (int s = 0; s <= Steps; s++)
+            {
+                double inv = Invariant(az, radius, w, r, u, v);
+                sum += (s == 0 || s == Steps ? 0.5 : 1.0) * inv;
+                if (s < Steps)
+                {
+                    Rk4(kappa, az, radius, w, r, h, ref u, ref v);
+                    r += h;
+                }
+            }
+
+            double a2 = sum / Steps;
+            double alpha2 = (p / w) / a2;
+            return alpha2 > 0.0 && !double.IsInfinity(alpha2) ? alpha2 : double.NaN;
+        }
+
+        static double Potential(double az, double radius, double r)
+        {
+            return r < radius ? -az / (2.0 * radius) * (3.0 - r * r / (radius * radius)) : -az / r;
+        }
+
+        static double LocalMomentum(double az, double radius, double w, double r)
+        {
+            double e = w - Potential(az, radius, r);
+            return Math.Sqrt(Math.Max(1e-300, e * e - 1.0));
+        }
+
+        static double Invariant(double az, double radius, double w, double r, double u, double v)
+        {
+            double e = w - Potential(az, radius, r);
+            return LocalMomentum(az, radius, w, r) * (u * u / (e + 1.0) + v * v / (e - 1.0));
+        }
+
+        static void Derivative(int kappa, double az, double radius, double w, double r, double u, double v,
+                               out double du, out double dv)
+        {
+            double e = w - Potential(az, radius, r);
+            du = -kappa / r * u + (e + 1.0) * v;
+            dv = kappa / r * v - (e - 1.0) * u;
+        }
+
+        static void Rk4(int kappa, double az, double radius, double w, double r, double h, ref double u, ref double v)
+        {
+            double k1u, k1v, k2u, k2v, k3u, k3v, k4u, k4v;
+            Derivative(kappa, az, radius, w, r, u, v, out k1u, out k1v);
+            Derivative(kappa, az, radius, w, r + 0.5 * h, u + 0.5 * h * k1u, v + 0.5 * h * k1v, out k2u, out k2v);
+            Derivative(kappa, az, radius, w, r + 0.5 * h, u + 0.5 * h * k2u, v + 0.5 * h * k2v, out k3u, out k3v);
+            Derivative(kappa, az, radius, w, r + h, u + h * k3u, v + h * k3v, out k4u, out k4v);
+            u += h / 6.0 * (k1u + 2.0 * k2u + 2.0 * k3u + k4u);
+            v += h / 6.0 * (k1v + 2.0 * k2v + 2.0 * k3v + k4v);
+        }
+
+        /// <summary>Дорман–Принс 5(4) с выбором шага; ложь — переполнение или исчерпан счётчик шагов.</summary>
+        static bool Integrate(int kappa, double az, double radius, double w, ref double u, ref double v, double from, double to)
+        {
+            const double Tol = 1.0e-10;
+            double r = from;
+            double h = Math.Max(1e-3 * (to - from), 1e-6 * from);
+            for (int guard = 0; guard < 2000000 && r < to; guard++)
+            {
+                if (r + h > to)
+                {
+                    h = to - r;
+                }
+
+                double k1u, k1v, k2u, k2v, k3u, k3v, k4u, k4v, k5u, k5v, k6u, k6v, k7u, k7v;
+                Derivative(kappa, az, radius, w, r, u, v, out k1u, out k1v);
+                Derivative(kappa, az, radius, w, r + h / 5.0, u + h * (k1u / 5.0), v + h * (k1v / 5.0), out k2u, out k2v);
+                Derivative(kappa, az, radius, w, r + 3.0 * h / 10.0,
+                           u + h * (3.0 / 40.0 * k1u + 9.0 / 40.0 * k2u), v + h * (3.0 / 40.0 * k1v + 9.0 / 40.0 * k2v), out k3u, out k3v);
+                Derivative(kappa, az, radius, w, r + 4.0 * h / 5.0,
+                           u + h * (44.0 / 45.0 * k1u - 56.0 / 15.0 * k2u + 32.0 / 9.0 * k3u),
+                           v + h * (44.0 / 45.0 * k1v - 56.0 / 15.0 * k2v + 32.0 / 9.0 * k3v), out k4u, out k4v);
+                Derivative(kappa, az, radius, w, r + 8.0 * h / 9.0,
+                           u + h * (19372.0 / 6561.0 * k1u - 25360.0 / 2187.0 * k2u + 64448.0 / 6561.0 * k3u - 212.0 / 729.0 * k4u),
+                           v + h * (19372.0 / 6561.0 * k1v - 25360.0 / 2187.0 * k2v + 64448.0 / 6561.0 * k3v - 212.0 / 729.0 * k4v),
+                           out k5u, out k5v);
+                Derivative(kappa, az, radius, w, r + h,
+                           u + h * (9017.0 / 3168.0 * k1u - 355.0 / 33.0 * k2u + 46732.0 / 5247.0 * k3u + 49.0 / 176.0 * k4u - 5103.0 / 18656.0 * k5u),
+                           v + h * (9017.0 / 3168.0 * k1v - 355.0 / 33.0 * k2v + 46732.0 / 5247.0 * k3v + 49.0 / 176.0 * k4v - 5103.0 / 18656.0 * k5v),
+                           out k6u, out k6v);
+                double nu = u + h * (35.0 / 384.0 * k1u + 500.0 / 1113.0 * k3u + 125.0 / 192.0 * k4u - 2187.0 / 6784.0 * k5u + 11.0 / 84.0 * k6u);
+                double nv = v + h * (35.0 / 384.0 * k1v + 500.0 / 1113.0 * k3v + 125.0 / 192.0 * k4v - 2187.0 / 6784.0 * k5v + 11.0 / 84.0 * k6v);
+                Derivative(kappa, az, radius, w, r + h, nu, nv, out k7u, out k7v);
+                double eu = h * (71.0 / 57600.0 * k1u - 71.0 / 16695.0 * k3u + 71.0 / 1920.0 * k4u - 17253.0 / 339200.0 * k5u + 22.0 / 525.0 * k6u - 1.0 / 40.0 * k7u);
+                double ev = h * (71.0 / 57600.0 * k1v - 71.0 / 16695.0 * k3v + 71.0 / 1920.0 * k4v - 17253.0 / 339200.0 * k5v + 22.0 / 525.0 * k6v - 1.0 / 40.0 * k7v);
+                double scale = Math.Max(Math.Sqrt(nu * nu + nv * nv), Math.Sqrt(u * u + v * v));
+                if (!(scale > 0.0) || double.IsInfinity(scale) || double.IsNaN(scale))
+                {
+                    return false;
+                }
+
+                double err = Math.Sqrt(eu * eu + ev * ev) / (Tol * scale);
+                if (err <= 1.0)
+                {
+                    r += h;
+                    u = nu;
+                    v = nv;
+                }
+
+                double factor = err > 0.0 ? 0.9 * Math.Pow(err, -0.2) : 5.0;
+                h *= Math.Min(5.0, Math.Max(0.2, factor));
+                if (!(h > 0.0))
+                {
+                    return false;
+                }
+            }
+
+            return r >= to;
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 using System.IO;
 using Microsoft.Data.Sqlite;
 using BecquerelMonitor.EfficiencyMaker;
@@ -240,6 +241,42 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Шаг гистограммы слоя, кэВ: сетка матрицы отклика.</summary>
         public const double DefaultBinKev = 2.0;
 
+        /// <summary>
+        /// ⛔ (`AMBER274`, полоса `a274t` 13.11.2026) ВЕРСИЯ РЕЦЕПТА СЛОЯ — поднимать при ЛЮБОЙ правке
+        /// счёта события слоя в коде (не рычагом), которая меняет гистограмму: раздел прежнего
+        /// рецепта разбор после этого не возьмёт (`ResponseCrystalSection.UsableFor`). 2 — рецепт
+        /// ревизии по статьям 12.11.2026 (`a274r`/`a274s`): энергия связи после конверсии оседает,
+        /// свет по фотонной шкале, L захвата из EADL. Разделов рецепта 1 не писалось (слой выключен).
+        /// </summary>
+        public const int RecipeVersion = 2;
+
+        /// <summary>
+        /// (`a274t`) Рецепт слоя в клейме раздела: версия и рычаги, меняющие гистограмму
+        /// (<see cref="CrystalOwnParts"/>); null — рецепт умолчания. Подмены замера (форма беты,
+        /// доля K-захвата) пишутся признаком: раздел с ними разбору не годен никогда.
+        /// </summary>
+        public static string RecipeStamp(CrystalOwnParts parts)
+        {
+            CrystalOwnParts p = parts ?? new CrystalOwnParts();
+            var sb = new StringBuilder();
+            sb.Append(RecipeVersion.ToString(CultureInfo.InvariantCulture)).Append(':');
+            sb.Append(p.Beta ? 'b' : '-').Append(p.BranchGamma ? 'g' : '-').Append(p.Capture ? 'c' : '-')
+              .Append(p.DaughterRelaxation ? 'd' : '-').Append(p.Series ? 's' : '-').Append(p.FreeNatural ? 'f' : '-')
+              .Append(p.ConversionRelaxation ? 'v' : '-').Append(p.LBindingFromEadl ? 'l' : '-');
+            sb.Append(":sc").Append(p.Scale.ToString(CultureInfo.InvariantCulture));
+            if (p.BetaOverride != null)
+            {
+                sb.Append(":bo");
+            }
+
+            if (p.KCaptureOverride > 0.0)
+            {
+                sb.Append(":kc").Append(p.KCaptureOverride.ToString("R", CultureInfo.InvariantCulture));
+            }
+
+            return sb.ToString();
+        }
+
         /// <summary>Верх гистограммы, кэВ: выше самой жёсткой линии слоя (1473 у La-138).</summary>
         public const double HistogramTopKev = 3000.0;
 
@@ -386,7 +423,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             var section = new ResponseCrystalSection
             {
-                Stamp = ResponseCrystalSection.ComputeStamp(geometry, binKev),
+                // (`a274t`) клеймо несёт рецепт, которым раздел собран, — не умолчание
+                Stamp = ResponseCrystalSection.ComputeStamp(geometry, binKev, parts),
                 BinKev = binKev,
                 Histories = histories,
             };

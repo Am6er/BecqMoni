@@ -109,9 +109,25 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>
         /// Клеймо раздела для сцены: вещество кристалла, его плотность и размер,
-        /// физика матрицы и шаг сетки. Сцена другой геометрии раздел не получит.
+        /// физика матрицы и шаг сетки, рецепт слоя умолчания. Сцена другой геометрии раздел
+        /// не получит. Так зовёт разбор (<see cref="UsableFor"/>): ждёт раздел нынешнего рецепта.
         /// </summary>
         public static string ComputeStamp(GeometryModel geometry, double binKev)
+        {
+            return ComputeStamp(geometry, binKev, null);
+        }
+
+        /// <summary>
+        /// (`AMBER274`, полоса `a274t` 13.11.2026) То же с РЕЦЕПТОМ, которым раздел собран
+        /// (<paramref name="recipe"/>; null — рецепт умолчания). Поле `rcp=` — версия рецепта
+        /// слоя и его рычаги (<see cref="FullSpectrumAnalysis.CrystalOwnActivityBuilder.RecipeStamp"/>):
+        /// шкала гистограммы, осадок конверсии, L из EADL, релаксация захвата, части, подмены
+        /// замера. Раздел прежнего рецепта (или без поля вовсе — до 13.11.2026) разбор не берёт,
+        /// как раздел электрона с чужим `cl=`. Пока слой выключен
+        /// (<see cref="FullSpectrumAnalysis.FsaAnalyzer.CrystalOwnLayer"/>), раздел никто не пишет
+        /// и не читает — числа разбора от поля не зависят.
+        /// </summary>
+        public static string ComputeStamp(GeometryModel geometry, double binKev, BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnParts recipe)
         {
             var sb = new StringBuilder();
             sb.Append("phys=").Append(ResponseMatrix.PhysicsVersion.ToString(CultureInfo.InvariantCulture));
@@ -144,10 +160,27 @@ namespace BecquerelMonitor.EfficiencyMaker
             // поле только при ВКЛ, при ВЫКЛ клеймо побитно прежнее.
             if (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambda)
             {
-                sb.Append(";cl=1");
+                // (`a274t`) значение — версия формы: «1» точечное ядро, «2» заряженная сфера
+                sb.Append(";cl=").Append(BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambdaVersion);
             }
 
+            sb.Append(";rcp=").Append(BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnActivityBuilder.RecipeStamp(recipe));
             return sb.ToString();
+        }
+
+        /// <summary>(`a274t`) Поле клейма по имени (null — поля нет): разбору и пробе — назвать причину отказа.</summary>
+        public static string StampField(string stamp, string name)
+        {
+            foreach (string part in (stamp ?? "").Split(';'))
+            {
+                int eq = part.IndexOf('=');
+                if (eq > 0 && string.Equals(part.Substring(0, eq), name, StringComparison.Ordinal))
+                {
+                    return part.Substring(eq + 1);
+                }
+            }
+
+            return null;
         }
 
         /// <summary>Совпадает ли раздел со сценой (null — раздел чужой).</summary>

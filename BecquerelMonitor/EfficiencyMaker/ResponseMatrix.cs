@@ -1185,7 +1185,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             // без кулоновских λ, при ключе ВКЛ не годен (и обратно), — иначе разбор молча смешал
             // бы две формы (строки ветвей старой, веса узлов новой). При ВЫКЛ и разделе без поля
             // `cl` — прежнее поведение.
-            if ((e.StampField("cl") == "1") != BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambda)
+            // (`a274t`) Значение поля — версия формы: «1» точечное ядро, «2» заряженная сфера.
+            if ((e.StampField("cl") ?? "") != (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambda
+                                                   ? BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambdaVersion
+                                                   : ""))
             {
                 refusal = ElectronSectionRefusal.OtherPhysics;
                 return null;
@@ -6974,7 +6977,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             // при ВЫКЛ клеймо побитно прежнее. Разбор сверяет его (`ElectronSectionFor`).
             if (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambda)
             {
-                sb.Append(";cl=1");
+                // (`a274t`) значение — версия формы (`FsaBetaLibrary.CoulombLambdaVersion`)
+                sb.Append(";cl=").Append(BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambdaVersion);
             }
 
             sb.Append(";cap=").Append(CapsuleText(geometry));
