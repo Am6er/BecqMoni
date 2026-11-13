@@ -1316,6 +1316,14 @@ namespace CorpusFsaProbe
                     o.BgOverflowOut = v == "1" ? 1 : 0;
                     continue;
                 }
+                // (`AMBER295`, остаток, полоса `a295s`) рычаг: тормоз усиления при «верхе без опоры», доля верхней линии карты
+                if (a.StartsWith("--anchor-brake-top=", StringComparison.Ordinal))
+                {
+                    double v = double.Parse(a.Substring(19), NumberStyles.Float, CultureInfo.InvariantCulture);
+                    if (!(v >= 0.0 && v <= 1.0)) { throw new ArgumentException("--anchor-brake-top=<доля 0…1>"); }
+                    o.AnchorBrakeTop = v;
+                    continue;
+                }
                 // (`AMBER311`, полоса `a311f`) рычаги: образ вылета без матрицы связан с родителем; образы вне вершины порога
                 if (a.StartsWith("--esc-bound=", StringComparison.Ordinal))
                 {
@@ -2900,6 +2908,12 @@ namespace CorpusFsaProbe
             if (o.BgOverflowOut >= 0)
             {
                 analyzer.BackgroundOverflowOut = o.BgOverflowOut == 1;
+            }
+
+            // (`AMBER295`, остаток, полоса `a295s`) рычаг: тормоз усиления при «верхе без опоры»
+            if (!double.IsNaN(o.AnchorBrakeTop))
+            {
+                analyzer.AnchorGainBrakeTopFraction = o.AnchorBrakeTop;
             }
 
             // (`AMBER311`, полоса `a311f`) рычаги образов вылета без матрицы: граница по родителю, вне вершины порога
@@ -6900,6 +6914,7 @@ namespace CorpusFsaProbe
             public int BandKnife = -1;         // (`AMBER295`) −1 — умолчание анализатора
             public int AnchorSkipMasked = -1;  // (`AMBER295`, остаток) −1 — умолчание анализатора
             public int BgOverflowOut = -1;     // (`AMBER295`, полоса `a295o`) −1 — умолчание анализатора
+            public double AnchorBrakeTop = double.NaN; // (`AMBER295`, полоса `a295s`) NaN — умолчание анализатора
             public int EscBound = -1;          // (`AMBER311`, полоса `a311f`) −1 — умолчание анализатора
             public int EscTopZ = -1;           // (`AMBER311`, полоса `a311f`) −1 — умолчание анализатора
             public int AnchorRollback = -1;    // (`AMBER269`, (А2)) −1 — умолчание анализатора
