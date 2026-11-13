@@ -23,7 +23,11 @@ namespace CrystalOwnActivityProbeA274
     ///      788.7 погашена каскадом, у Lu-176 — 307/202 кэВ, у ряда Ac-227 — бета
     ///      без альф, по одному распаду члена на распад головы;
     ///   2. РАЗБОР на спектрах корпуса `LABR_BRIL` (`LaBrBril_Th228`, `LaBrBril_Eu152`):
-    ///      χ²/ndf, активность пробы и отсчёты слоя ДО и ПОСЛЕ;
+    ///      χ²/ndf, активность пробы и отсчёты слоя ДО и ПОСЛЕ; сторож привязки (`--mode=fsa`,
+    ///      13.11.2026, `a274g`) — опор со слоем не меньше и положение слоя против данных в
+    ///      окнах K 33–47 и La-138 1420–1530 кэВ не дальше 0.15 ПШПВ при амплитуде 1 ± 0.2, отданная
+    ///      привязка со слоем не дальше 0.15 ПШПВ от привязки без слоя; мутанты `--mut-shift=кэВ[:от:до]`
+    ///      (сдвиг гистограммы слоя), `--own-scale=k`, `--crit-amp=k[:от:до]`, `--crit-width=f`, `--crit-cal=g`;
     ///   3. ПУСТОЙ ФОН: синтетический спектр из одного слоя — слой включён, проба
     ///      должна выйти нулевой; выключен — активность уезжает в K-40 и прочих;
     ///   4. ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: NaI (своей активности нет) — побитово прежний
@@ -83,6 +87,8 @@ namespace CrystalOwnActivityProbeA274
             string mode = "all";
             int histories = 100000;
             double ownScale = 1.0;
+            double mutShift = 0.0, mutLo = -1.0, mutHi = 1e9;
+            double camp = 1.0, campLo = -1.0, campHi = 1e9, cwidth = 1.0, ccal = 1.0;
             string matrixMode = "build";
             string sceneName = "labr";
             double sceneHeight = 38.0;
@@ -166,6 +172,32 @@ namespace CrystalOwnActivityProbeA274
                 else if (a.StartsWith("--own-scale=", StringComparison.Ordinal))
                 {
                     ownScale = double.Parse(a.Substring(12), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--mut-shift=", StringComparison.Ordinal))
+                {
+                    // (критик `crit295z`, перенесено полосой `a274g`) МУТАНТ сторожа привязки: сдвиг
+                    // гистограммы слоя на кэВ, по желанию только в полосе [от, до] кэВ.
+                    string[] mp = a.Substring(12).Split(':');
+                    mutShift = double.Parse(mp[0], CultureInfo.InvariantCulture);
+                    if (mp.Length == 3)
+                    {
+                        mutLo = double.Parse(mp[1], CultureInfo.InvariantCulture);
+                        mutHi = double.Parse(mp[2], CultureInfo.InvariantCulture);
+                    }
+                }
+                else if (a.StartsWith("--crit-amp=", StringComparison.Ordinal))
+                {
+                    string[] mp = a.Substring(11).Split(':');
+                    camp = double.Parse(mp[0], CultureInfo.InvariantCulture);
+                    if (mp.Length == 3) { campLo = double.Parse(mp[1], CultureInfo.InvariantCulture); campHi = double.Parse(mp[2], CultureInfo.InvariantCulture); }
+                }
+                else if (a.StartsWith("--crit-width=", StringComparison.Ordinal))
+                {
+                    cwidth = double.Parse(a.Substring(13), CultureInfo.InvariantCulture);
+                }
+                else if (a.StartsWith("--crit-cal=", StringComparison.Ordinal))
+                {
+                    ccal = double.Parse(a.Substring(11), CultureInfo.InvariantCulture);
                 }
                 else if (a.StartsWith("--chains=", StringComparison.Ordinal))
                 {
@@ -417,6 +449,11 @@ namespace CrystalOwnActivityProbeA274
                 Console.WriteLine();
                 Console.WriteLine("=== Разбор: {0} ===", Path.GetFileName(spectrumPath));
                 ScaleOwn(section, ownScale);
+                MutShift(section, mutShift, mutLo, mutHi);
+                CritAmp(section, camp, campLo, campHi);
+                CritWidth(section, rd, cwidth);
+                CritCal(rd, ccal);
+                calMutated = ccal != 1.0;
                 RunPair(rd, background, lanthanum, matrix, section);
             }
 
@@ -556,6 +593,108 @@ namespace CrystalOwnActivityProbeA274
             }
 
             Console.WriteLine("амплитуда слоя умножена на {0:F3}", scale);
+        }
+
+        /// <summary>
+        /// МУТАНТ (критик `crit295z`, 13.11.2026): гистограмма слоя сдвинута на <paramref name="shift"/> кэВ
+        /// (линейная интерполяция, площадь сохраняется) в полосе [lo, hi] кэВ. Сторож привязки обязан его поймать.
+        /// </summary>
+        static void MutShift(ResponseCrystalSection section, double shift, double lo, double hi)
+        {
+            if (section == null || shift == 0.0)
+            {
+                return;
+            }
+
+            double bin = section.BinKev;
+            foreach (CrystalOwnEntry entry in section.Entries)
+            {
+                double[] src = entry.PerDecay;
+                int n = src.Length;
+                var dst = new double[n];
+                double before = 0.0, after = 0.0;
+                for (int i = 0; i < n; i++)
+                {
+                    before += src[i];
+                }
+
+                for (int i = 0; i < n; i++)
+                {
+                    double e = i * bin;
+                    if (e < lo || e > hi)
+                    {
+                        dst[i] += src[i];
+                        continue;
+                    }
+
+                    double target = i + shift / bin;
+                    int j = (int)Math.Floor(target);
+                    double f = target - j;
+                    if (j >= 0 && j < n) dst[j] += src[i] * (1.0 - f);
+                    if (j + 1 >= 0 && j + 1 < n) dst[j + 1] += src[i] * f;
+                }
+
+                for (int i = 0; i < n; i++)
+                {
+                    after += dst[i];
+                }
+
+                entry.PerDecay = dst;
+                Console.WriteLine("МУТАНТ: {0} сдвиг {1:F2} кэВ в полосе {2:F0}…{3:F0} кэВ, сумма {4:F5} -> {5:F5}",
+                                  entry.Nuclide, shift, lo, hi, before, after);
+            }
+        }
+
+        // ---- МУТАНТЫ КРИТИКА crit274g (перенесены полосой `a274g`): амплитуда в полосе, ширина, шкала спектра ----
+        static void CritAmp(ResponseCrystalSection section, double k, double lo, double hi)
+        {
+            if (section == null || k == 1.0) return;
+            foreach (CrystalOwnEntry entry in section.Entries)
+            {
+                double[] h = (double[])entry.PerDecay.Clone();
+                double b = 0, c = 0;
+                for (int i = 0; i < h.Length; i++) { b += h[i]; double e = i * section.BinKev; if (e >= lo && e <= hi) h[i] *= k; c += h[i]; }
+                entry.PerDecay = h;
+                Console.WriteLine("КРИТИК: {0} амплитуда ×{1:F3} в полосе {2:F0}…{3:F0} кэВ, сумма {4:F5} -> {5:F5}", entry.Nuclide, k, lo, hi, b, c);
+            }
+        }
+
+        static void CritWidth(ResponseCrystalSection section, ResultData rd, double f)
+        {
+            if (section == null || f == 1.0) return;
+            double bin = section.BinKev;
+            foreach (CrystalOwnEntry entry in section.Entries)
+            {
+                double[] src = entry.PerDecay;
+                var dst = new double[src.Length];
+                double b = 0, c = 0;
+                for (int i = 0; i < src.Length; i++)
+                {
+                    b += src[i];
+                    if (src[i] == 0.0) continue;
+                    double e = Math.Max(i * bin, 5.0);
+                    double sig = Math.Sqrt(f * f - 1.0) * DeviceFwhmKev(rd, e) / 2.3548;
+                    int half = (int)Math.Ceiling(5.0 * sig / bin) + 1;
+                    double norm = 0;
+                    var kern = new double[2 * half + 1];
+                    for (int k = -half; k <= half; k++) { kern[k + half] = Math.Exp(-0.5 * (k * bin / sig) * (k * bin / sig)); norm += kern[k + half]; }
+                    for (int k = -half; k <= half; k++) { int t = i + k; if (t >= 0 && t < dst.Length) dst[t] += src[i] * kern[k + half] / norm; }
+                }
+                for (int i = 0; i < dst.Length; i++) c += dst[i];
+                entry.PerDecay = dst;
+                Console.WriteLine("КРИТИК: {0} ширина ×{1:F2} (добавочная σ), сумма {2:F5} -> {3:F5}", entry.Nuclide, f, b, c);
+            }
+        }
+
+        static void CritCal(ResultData rd, double g)
+        {
+            if (g == 1.0) return;
+            var pc = rd.EnergySpectrum.EnergyCalibration as PolynomialEnergyCalibration;
+            if (pc == null) { Console.WriteLine("КРИТИК: калибровка не полином"); return; }
+            var c = (double[])pc.Coefficients.Clone();
+            for (int i = 0; i < c.Length; i++) c[i] *= g;
+            pc.Coefficients = c;
+            Console.WriteLine("КРИТИК: шкала спектра ×{0:F4}: 1468 кэВ данных теперь читается как {1:F2} кэВ", g, 1468.0 * g);
         }
 
         static void ReportSection(ResponseCrystalSection section)
@@ -757,6 +896,7 @@ namespace CrystalOwnActivityProbeA274
         {
             FsaResult without = Run(rd, background, geometry, matrix, null);
             FsaResult with = Run(rd, background, geometry, matrix, section);
+            double[] layerWith = lastFixed;
             if (without == null || with == null)
             {
                 Console.Error.WriteLine("разбор не прошёл");
@@ -843,6 +983,14 @@ namespace CrystalOwnActivityProbeA274
                                   paired.CountRate - component.CountRate);
             }
 
+            foreach (FsaComponentResult component in with.Components)
+            {
+                if (component.Kind != FsaComponentKind.Nuisance && component.CountRate > 0.0)
+                {
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "z со слоем: {0} {1:F2}", component.Name, component.Z));
+                }
+            }
+
             Console.WriteLine();
             Console.WriteLine("слой в разборе: {0}",
                               with.CrystalOwn != null && with.CrystalOwn.Count > 0 ? "взят" : "не взят");
@@ -866,9 +1014,396 @@ namespace CrystalOwnActivityProbeA274
                               with.CascadeSummingUsed ? "учтён" : "нет",
                               with.Gain, with.OffsetChannels, without.Gain, without.OffsetChannels);
             Check("каскадное суммирование не изменилось слоем", with.CascadeSummingUsed == without.CascadeSummingUsed);
-            Check("привязка шкалы не сдвинута слоем",
-                  Math.Abs(with.Gain - without.Gain) < 1e-9
-                  && Math.Abs(with.OffsetChannels - without.OffsetChannels) < 1e-9);
+            // ⛔ (`AMBER274`; полосы `a295z`, `a274g`; критики `crit295z`, `crit274g`) СТОРОЖ ПРИВЯЗКИ ПРИ ВКЛЮЧЁННОМ СЛОЕ.
+            //
+            // Чем он НЕ является. Прежний сторож требовал «усиление со слоем то же до 1e-9» на ОТДАННОМ разборе.
+            // Это неверно дважды. (1) Слой вычитает известную часть данных, и опоры, лежащие на его линиях
+            // (Sm K 40.1 кэВ на K-пике слоя у 37 кэВ, Eu-152 1408 кэВ рядом с La-138 1436/1468 кэВ), ОБЯЗАНЫ
+            // сдвинуться (`a295z`: Σ(сдвиг/σ)² взятых опор 5.22 → 4.89 — слой опоры исправляет). (2) Отданный разбор
+            // несёт решение отката привязки (`AnalyzeRolledBack`), а у `LaBrBril_Eu152` его переключают каналы
+            // 22.9 и 25.6 кэВ — полка данных ниже K-пика. Это НЕ ширина K-пика: пик данных 5.0–5.3 кэВ при
+            // 4.66 кэВ прибора (`a274t`), а избыток 24–33 кэВ — собственный, механизм не установлен (`a274x`).
+            // «Средний (сдвиг/σ)² опор не больше» (`a295z`) тоже не мера (`crit295z`): σ опоры растёт по Бирге
+            // вместе с невязкой окна, и мера награждает худшую модель. Её число печатается, но не судится.
+            //
+            // Что судится:
+            //   1. Опор со слоем не меньше, чем без него (откат выкл).
+            //   2. ОТДАННАЯ ПРИВЯЗКА: усиление и нуль со слоем против разбора без слоя — сдвиг шкалы у энергий
+            //      взятых опор не больше 0.15 ПШПВ (`crit274g`: слой ×2 уводил усиление Th228 на 0.009).
+            //   3. ПОЛОЖЕНИЕ И АМПЛИТУДА СЛОЯ ПРОТИВ ДАННЫХ в окнах его линий: y ≈ прочее + a·слой(E − d) на
+            //      ОТДАННОМ разборе со слоем (`FitLayerShift`; прочее — модель разбора, слой — вычтенный на шкале его
+            //      привязки, a — линейно, d — сеткой). Плечо «откат выкл» печатается: с правкой `a274g` слой следует
+            //      привязке, а привязку этого плеча у `LaBrBril_Th228` разбор и откатывает (у K она на 2 кэВ мимо). Окна: K 33–47 кэВ (выше полки ниже 33 кэВ, к которой мера съезжала бы) и La-138
+            //      1420–1530 кэВ (1436 и сумма с K у 1468; ядро Eu-152 1408 кэВ вне окна). Окно судится, если
+            //      поданный слой в нём главный (доля в модели окна ≥ 0.5). В судимом окне: минимум χ² на краю сетки
+            //      d или неочерченный минимум (σ_d = ∞) — ПРОВАЛ (`crit274g`: так проходили K +8, K −6); σ_d не
+            //      меньше порога — окно не меряет; иначе |d| ≤ 0.15 ПШПВ и |a − 1| ≤ 0.2. Порог строгий, без запаса
+            //      σ_d — решение Amber 13.11.2026 вопросником, дословно: «Строгий 0.15 (Рекомендую)». Провал у
+            //      `LaBrBril_Eu152` при шкале спектра ×1.005 — тревога ИСТИННАЯ (`crit274g2`, заход 3): со слоем разбор
+            //      откатывает верное усиление 1.005512 в 1.000000 (шкала результата −7.76 кэВ у 1408), откат решает
+            //      полоса 28–47 кэВ, которую модель слоя не описывает (полка под K-пиком) — до включения слоя.
+            // У `LaBrBril_Eu152` K-окно занято Sm K источника (доля слоя 0.31): K там не судится, сдвиг слоя у K на
+            // этом спектре ловит только `LaBrBril_Th228`. Ширина слоя печатается, но не судится (журнал `a274g`).
+            rollbackOff = true;
+            FsaResult bareA = Run(rd, background, geometry, matrix, null);
+            FsaResult layerA = Run(rd, background, geometry, matrix, section);
+            double[] layerFixed = lastFixed;
+            rollbackOff = false;
+            if (bareA == null || layerA == null || layerFixed == null)
+            {
+                Check("разбор со слоем при выключенном откате прошёл", false);
+                return;
+            }
+
+            int n0, n1;
+            double s0 = AnchorChi2(bareA, out n0), s1 = AnchorChi2(layerA, out n1);
+            Console.WriteLine("привязка при выключенном откате: gain {0:F6} → {1:F6}; опор {2} → {3}; Σ(сдвиг/σ)² {4:F3} → {5:F3} (не судится)",
+                              bareA.Gain, layerA.Gain, n0, n1, s0, s1);
+            Check("опор со слоем не меньше, чем без него (откат выкл)", n0 > 0 && n1 >= n0);
+            foreach (FsaComponentResult component in layerA.Components)
+            {
+                if (component.Kind != FsaComponentKind.Nuisance && component.CountRate > 0.0)
+                {
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "z со слоем, откат выкл: {0} {1:F2}", component.Name, component.Z));
+                }
+            }
+            AnchorTable("без слоя, откат выкл", bareA);
+            AnchorTable("со слоем, откат выкл", layerA);
+
+            // Отданная привязка: сдвиг шкалы слоем у энергий взятых опор разбора без слоя.
+            EnergyCalibration cal = rd.EnergySpectrum.EnergyCalibration;
+            double worst = 0.0, worstKev = 0.0, worstShift = 0.0;
+            foreach (FsaScaleAnchor anchor in bareA.ScaleAnchors ?? new List<FsaScaleAnchor>())
+            {
+                if (!anchor.Used || double.IsNaN(anchor.LineKev))
+                {
+                    continue;
+                }
+
+                double e = anchor.LineKev;
+                int c = (int)Math.Round(cal.EnergyToChannel(e, rd.EnergySpectrum.NumberOfChannels));
+                double kevPerChannel = cal.ChannelToEnergy(c + 1) - cal.ChannelToEnergy(c);
+                double shift = (with.Gain - without.Gain) * e + (with.OffsetChannels - without.OffsetChannels) * kevPerChannel;
+                double ratio = Math.Abs(shift) / DeviceFwhmKev(rd, e);
+                if (ratio >= worst)
+                {
+                    worst = ratio;
+                    worstKev = e;
+                    worstShift = shift;
+                }
+            }
+
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "отданная привязка: gain {0:F6} → {1:F6}, нуль {2:F3} → {3:F3} кан.; наибольший сдвиг шкалы {4:+0.00;-0.00} кэВ у {5:F1} кэВ = {6:F3} ПШПВ",
+                without.Gain, with.Gain, without.OffsetChannels, with.OffsetChannels, worstShift, worstKev, worst));
+            Check("отданная привязка со слоем не дальше 0.15 ПШПВ от привязки без слоя", worst <= 0.15);
+
+            var data = new double[rd.EnergySpectrum.NumberOfChannels];
+            for (int i = 0; i < data.Length; i++)
+            {
+                data[i] = rd.EnergySpectrum.Spectrum[i];
+            }
+
+            int judged = 0;
+            foreach (double[] w in new[] { new[] { 33.0, 47.0, 37.0, 5.0, 0.05 }, new[] { 1420.0, 1530.0, 1468.0, 20.0, 0.25 } })
+            {
+                double tolerance = 0.15 * DeviceFwhmKev(rd, w[2]);
+                // Судится ОТДАННЫЙ разбор: слой следует его привязке (`FsaAnalyzer.CrystalOwnLayerAt`), и мера видит
+                // и слой, и шкалу, на которой его вычли. Плечо «откат выкл» — печать: его привязку разбор и откатывает.
+                LayerShift off = FitLayerShift(data, layerA.Model, layerFixed, cal, w[0], w[1], w[3], w[4], true);
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                    "  (не судится) откат выкл, gain {0:F6}: d {1:+0.00;-0.00} ± {2:F2} кэВ{3}, a {4:F3}",
+                    layerA.Gain, off.ShiftKev, off.SigmaKev, off.AtEdge ? " на краю" : "", off.Amp));
+                LayerShift ls = FitLayerShift(data, with.Model, layerWith, cal, w[0], w[1], w[3], w[4], true);
+                double stretch = FitLayerStretch(data, with.Model, layerWith, cal, w[0], w[1], ls.ShiftKev);
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                    "положение слоя {0:F0}–{1:F0} кэВ: d {2:+0.00;-0.00} ± {3:F2} кэВ{4} (a {5:F3}, χ² {6:F0} на {7} кан., при d = 0 — {8:F0}); доля слоя {9:F2}; порог 0.15 ПШПВ = {10:F2} кэВ; растяжение слоя (не судится) {11:F2}",
+                    w[0], w[1], ls.ShiftKev, ls.SigmaKev, ls.AtEdge ? " НА КРАЮ СЕТКИ" : "", ls.Amp, ls.Chi2, ls.Points, ls.Chi2AtZero, ls.Share, tolerance, stretch));
+                if (ls.Share < 0.5)
+                {
+                    Console.WriteLine("  окно занято линиями источника (слой меньше половины модели) — положение слоя здесь не судится");
+                    continue;
+                }
+
+                string where = string.Format(CultureInfo.InvariantCulture, "{0:F0}–{1:F0} кэВ", w[0], w[1]);
+                if (ls.AtEdge)
+                {
+                    judged++;
+                    Check(string.Format(CultureInfo.InvariantCulture, "минимум χ² по сдвигу слоя внутри сетки ±{0:F0} кэВ, окно {1}", w[3], where), false);
+                    continue;
+                }
+
+                if (double.IsInfinity(ls.SigmaKev))
+                {
+                    double gap = ls.Chi2AtZero - ls.Chi2;
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "  минимум не очерчен: χ²(0) − χ²min = {0:F0} при Бирге {1:F1}", gap, ls.Birge));
+                    // Слой в окне главный, а своё положение не задаёт: образ не похож на данные (K +8: a = −0.13).
+                    judged++;
+                    Check("минимум χ² по сдвигу слоя очерчен там, где слой главный — окно " + where, false);
+                    continue;
+                }
+
+                if (!(ls.SigmaKev < tolerance))
+                {
+                    Console.WriteLine("  σ положения не меньше порога — окно положение не меряет, не судится");
+                    continue;
+                }
+
+                judged++;
+                bool placed = Math.Abs(ls.ShiftKev) <= tolerance;
+                if (!placed && calMutated && w[0] > 1000.0)
+                {
+                    // Решение Amber 13.11.2026 вопросником, дословно: «Строгий 0.15 (Рекомендую)».
+                    Console.WriteLine("  ⚠ шкала спектра изменена мутантом (`--crit-cal`). Если разбор со слоем откатил привязку"
+                                      + " и отдал данные на неверной шкале, провал верный: так у `LaBrBril_Th228`, и так у"
+                                      + " `LaBrBril_Eu152` при ×1.005 — откат бросает верное усиление 1.0055, его решает полоса"
+                                      + " 28–47 кэВ, которую модель слоя не описывает (`crit274g2`; порог — решение Amber"
+                                      + " 13.11.2026: «Строгий 0.15 (Рекомендую)»).");
+                }
+
+                Check("слой на месте в окне " + where + ": |d| ≤ 0.15 ПШПВ", placed);
+                Check("амплитуда слоя в окне " + where + ": |a − 1| ≤ 0.2", Math.Abs(ls.Amp - 1.0) <= 0.2);
+            }
+
+            Check("положение слоя судилось хотя бы в одном окне", judged > 0);
+        }
+
+        /// <summary>
+        /// Ширина слоя против данных (печать, не суд): слой растянут вокруг своего центра тяжести в окне в s раз
+        /// (s меньше 1 — уже), со сдвигом d, амплитуда линейно; s — сеткой 0.70…1.40 с шагом 0.01.
+        /// </summary>
+        static double FitLayerStretch(double[] y, double[] other, double[] layer, EnergyCalibration calibration,
+                                      double lo, double hi, double shiftKev)
+        {
+            int c0 = -1, c1 = -1;
+            for (int i = 0; i < y.Length; i++)
+            {
+                double e = calibration.ChannelToEnergy(i);
+                if (e >= lo && e <= hi)
+                {
+                    if (c0 < 0) c0 = i;
+                    c1 = i;
+                }
+            }
+
+            if (c0 < 0)
+            {
+                return double.NaN;
+            }
+
+            double kevPerCh = (calibration.ChannelToEnergy(c1 + 1) - calibration.ChannelToEnergy(c0)) / (c1 + 1 - c0);
+            const int Margin = 40;
+            const int Sub = 10;
+            int w0 = Math.Max(0, c0 - Margin), w1 = Math.Min(layer.Length - 1, c1 + Margin);
+            int n = w1 - w0 + 1;
+            double centre = 0.0, mass = 0.0;
+            for (int i = c0; i <= c1; i++)
+            {
+                centre += layer[i] * (i - w0 + 0.5);
+                mass += layer[i];
+            }
+
+            centre = mass > 0.0 ? centre / mass : 0.5 * n;
+            double bestChi = double.MaxValue, best = double.NaN;
+            for (int k = 70; k <= 140; k++)
+            {
+                double sf = k / 100.0;
+                var stretched = new double[n];
+                for (int f = 0; f < n * Sub; f++)
+                {
+                    double x = (f + 0.5) / Sub;
+                    double src = centre + (x - centre) / sf;
+                    int j = (int)Math.Floor(src);
+                    if (j >= 0 && j < n)
+                    {
+                        stretched[f / Sub] += layer[w0 + j] / Sub / sf;
+                    }
+                }
+
+                double[] part = Reshape(stretched, shiftKev / kevPerCh, 0.0);
+                double num = 0.0, den = 0.0;
+                for (int i = c0; i <= c1; i++)
+                {
+                    double t = part[i - w0];
+                    double wt = 1.0 / Math.Max(y[i], 1.0);
+                    num += (y[i] - other[i]) * t * wt;
+                    den += t * t * wt;
+                }
+
+                double a = den > 0.0 ? num / den : 0.0;
+                double chi = 0.0;
+                for (int i = c0; i <= c1; i++)
+                {
+                    double r = y[i] - other[i] - a * part[i - w0];
+                    chi += r * r / Math.Max(y[i], 1.0);
+                }
+
+                if (chi < bestChi)
+                {
+                    bestChi = chi;
+                    best = sf;
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>ПШПВ прибора у энергии <paramref name="kev"/>, кэВ (кривая спектра).</summary>
+        static double DeviceFwhmKev(ResultData rd, double kev)
+        {
+            EnergyCalibration calibration = rd.EnergySpectrum.EnergyCalibration;
+            int channels = rd.EnergySpectrum.NumberOfChannels;
+            double channel = calibration.EnergyToChannel(kev, channels);
+            int c = (int)Math.Round(channel);
+            double kevPerChannel = calibration.ChannelToEnergy(c + 1) - calibration.ChannelToEnergy(c);
+            return rd.FwhmCalibration.ChannelToFwhm(channel) * kevPerChannel;
+        }
+
+        static void AnchorTable(string title, FsaResult result)
+        {
+            Console.WriteLine("опоры [{0}] gain {1:F6}:", title, result.Gain);
+            if (result.ScaleAnchors == null)
+            {
+                return;
+            }
+
+            foreach (FsaScaleAnchor a in result.ScaleAnchors)
+            {
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                    "  {0,-10} линия {1,8:F2} модель {2,8:F2} данные {3,8:F2} сдвиг {4,7:F3} σ {5,6:F3} доля {6:F2} z {7,7:F1} {8} {9}",
+                    a.Component, a.LineKev, a.ModelKev, a.MeasuredKev, a.ShiftKev, a.SigmaKev, a.PeakShare, a.Z,
+                    a.Used ? "ВЗЯТА" : "-", a.Refusal ?? ""));
+            }
+        }
+
+        sealed class LayerShift
+        {
+            public double ShiftKev, SigmaKev, Amp, Chi2, Chi2AtZero, Share, Birge;
+            public int Points;
+            public bool AtEdge;
+        }
+
+        /// <summary>
+        /// Положение вычтенного слоя против данных в окне [lo, hi] кэВ: y ≈ прочее + a·слой(E − d);
+        /// d — сеткой ±dmax с шагом step, a — линейно (или 1). σ_d — по Δχ² = χ²/ndf (Бирге окна).
+        /// </summary>
+        static LayerShift FitLayerShift(double[] y, double[] other, double[] layer, EnergyCalibration calibration,
+                                        double lo, double hi, double dmax, double step, bool freeAmp)
+        {
+            int c0 = -1, c1 = -1;
+            for (int i = 0; i < y.Length; i++)
+            {
+                double e = calibration.ChannelToEnergy(i);
+                if (e >= lo && e <= hi)
+                {
+                    if (c0 < 0) c0 = i;
+                    c1 = i;
+                }
+            }
+
+            var res = new LayerShift { Chi2 = double.MaxValue };
+            if (c0 < 0)
+            {
+                return res;
+            }
+
+            double kevPerCh = (calibration.ChannelToEnergy(c1 + 1) - calibration.ChannelToEnergy(c0)) / (c1 + 1 - c0);
+            int margin = (int)Math.Ceiling(dmax / kevPerCh) + 15;
+            int w0 = Math.Max(0, c0 - margin), w1 = Math.Min(layer.Length - 1, c1 + margin);
+            var piece = new double[w1 - w0 + 1];
+            Array.Copy(layer, w0, piece, 0, piece.Length);
+            var ds = new List<double>();
+            var chis = new List<double>();
+            int steps = (int)Math.Round(dmax / step);
+            for (int s = -steps; s <= steps; s++)
+            {
+                double d = s * step;
+                double[] part = Reshape(piece, d / kevPerCh, 0.0);
+                double num = 0.0, den = 0.0;
+                for (int i = c0; i <= c1; i++)
+                {
+                    double t = part[i - w0];
+                    double w = 1.0 / Math.Max(y[i], 1.0);
+                    num += (y[i] - other[i]) * t * w;
+                    den += t * t * w;
+                }
+
+                double a = freeAmp ? (den > 0.0 ? num / den : 0.0) : 1.0;
+                double chi = 0.0;
+                for (int i = c0; i <= c1; i++)
+                {
+                    double r = y[i] - other[i] - a * part[i - w0];
+                    chi += r * r / Math.Max(y[i], 1.0);
+                }
+
+                ds.Add(d);
+                chis.Add(chi);
+                if (s == 0)
+                {
+                    res.Chi2AtZero = chi;
+                }
+
+                if (chi < res.Chi2)
+                {
+                    res.Chi2 = chi;
+                    res.ShiftKev = d;
+                    res.Amp = a;
+                }
+            }
+
+            res.Points = c1 - c0 + 1;
+            double sl = 0.0, so = 0.0;
+            for (int i = c0; i <= c1; i++)
+            {
+                sl += layer[i];
+                so += other[i];
+            }
+
+            // Доля слоя — поданного разделом (амплитуда 1): судится ли окно, решает модель, а не подгонка.
+            res.Share = sl / Math.Max(sl + so, 1.0);
+            int ndf = Math.Max(1, res.Points - (freeAmp ? 2 : 1));
+            double birge = Math.Max(1.0, res.Chi2 / ndf);
+            // σ_d: полуширина интервала, где χ² ≤ χ²min + birge
+            double left = double.NaN, right = double.NaN;
+            int best = ds.IndexOf(res.ShiftKev);
+            res.AtEdge = best == 0 || best == ds.Count - 1;
+            res.Birge = birge;
+            for (int k = best; k >= 0; k--)
+            {
+                if (chis[k] > res.Chi2 + birge) { left = ds[k]; break; }
+            }
+
+            for (int k = best; k < ds.Count; k++)
+            {
+                if (chis[k] > res.Chi2 + birge) { right = ds[k]; break; }
+            }
+
+            res.SigmaKev = double.IsNaN(left) || double.IsNaN(right) ? double.PositiveInfinity : 0.5 * (right - left);
+            return res;
+        }
+
+        static double AnchorChi2(FsaResult result, out int used)
+        {
+            used = 0;
+            double sum = 0.0;
+            if (result.ScaleAnchors == null)
+            {
+                return 0.0;
+            }
+
+            foreach (FsaScaleAnchor anchor in result.ScaleAnchors)
+            {
+                if (!anchor.Used || !(anchor.SigmaKev > 0.0) || double.IsNaN(anchor.ShiftKev))
+                {
+                    continue;
+                }
+
+                used++;
+                double z = anchor.ShiftKev / anchor.SigmaKev;
+                sum += z * z;
+            }
+
+            return sum;
         }
 
         /// <summary>
@@ -1100,6 +1635,10 @@ namespace CrystalOwnActivityProbeA274
         /// <summary>Плечо замера: свободная колонка без отсева по значимости.</summary>
         static bool noGate;
 
+        /// <summary>(`a274g`) Шкала спектра изменена мутантом `--crit-cal` — для подписи известной ложной тревоги.</summary>
+        static bool calMutated;
+        static bool rollbackOff;
+
         static FsaResult Run(ResultData rd, EnergySpectrum background, GeometryModel geometry,
                              ResponseMatrix matrix, ResponseCrystalSection section)
         {
@@ -1109,6 +1648,10 @@ namespace CrystalOwnActivityProbeA274
             // и требование «кривая с геометрией» (RequireGeometry) к ней не относится.
             analyzer.RequireGeometry = false;
             analyzer.CrystalOwnLayer = section != null;
+            if (rollbackOff)
+            {
+                analyzer.AnchorRollback = false;
+            }
             if (noGate)
             {
                 // Свободная колонка без отсева по значимости: что выбирает сам фит.
@@ -1148,7 +1691,10 @@ namespace CrystalOwnActivityProbeA274
             }
 
             FsaResult result = analyzer.Analyze(rd.EnergySpectrum, background, rd.FwhmCalibration, library, efficiency);
-            lastFixed = analyzer.CrystalOwnFixedCountsOfLastRun();
+            // (`a274g`) вычтенный слой — на шкале привязки отданного разбора (слой следует привязке, `crit274g`)
+            lastFixed = result != null
+                ? analyzer.CrystalOwnFixedCountsAt(result.Gain, result.OffsetChannels)
+                : analyzer.CrystalOwnFixedCountsOfLastRun();
             if (result == null)
             {
                 Console.Error.WriteLine("отказ разбора: {0} — {1}", analyzer.Refusal, analyzer.RefusalNote);
