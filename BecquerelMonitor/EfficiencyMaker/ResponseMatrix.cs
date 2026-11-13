@@ -1193,7 +1193,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                                                    : "")
                 || (e.StampField("l0") ?? "") != (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSize
                                                       ? BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSizeVersion
-                                                      : ""))
+                                                      : "")
+                // (`a274s`) и поле `scr` — экранирование в функции Ферми (`FsaBetaLibrary.FermiScreening`)
+                || (e.StampField("scr") ?? "") != (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiScreening
+                                                       ? BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiScreeningVersion
+                                                       : ""))
             {
                 refusal = ElectronSectionRefusal.OtherPhysics;
                 return null;
@@ -2333,7 +2337,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             // Зазор нулевой толщины в сцену не кладётся вовсе — блок с ним
             // и файл без блока обязаны давать ОДНО клеймо (`AMBER1`).
             bool dropGap = !(geometry.FrontGapThickness > 0.0
-                             || geometry.SideGapThickness > 0.0);
+                             || geometry.SideGapThickness > 0.0)
+                           && !geometry.MagneticShieldLeavesGap;    // (`AMBER323` Ф1) остаток рубашки экрана — вещество зазора
             // (`AMBER274`, Э1) ВЕЩЕСТВО капсулы точечного источника — поле переноса
             // ПЕРВИЧНОЙ БЕТЫ, а не фотонов: в фотонное клеймо оно не входит (клеймо раздела
             // электрона несёт его само). Сдвиг точки в капсуле фотоны видят — он входит
@@ -6991,6 +6996,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSize)
             {
                 sb.Append(";l0=").Append(BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSizeVersion);
+            }
+
+            // (`AMBER274`, полоса `a274s` 13.11.2026) экранирование атомными электронами в функции Ферми
+            // (`FsaBetaLibrary.FermiScreening`, умолчание ВЫКЛ): поле `scr=` только при ВКЛ.
+            if (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiScreening)
+            {
+                sb.Append(";scr=").Append(BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiScreeningVersion);
             }
 
             sb.Append(";cap=").Append(CapsuleText(geometry));

@@ -292,6 +292,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             // только у защиты, входящей в сцену. Текст прежних геометрий (и клеймо их матриц) — байт в байт.
             bool writeTrapezoid = model.HasTrapezoidHole;
             bool writeShield = model.ShieldInScene;
+            // (`AMBER323`) Магнитный экран — строками только у заданного экрана: текст прежних геометрий
+            // (и клеймо их матриц) — байт в байт.
+            bool writeMagneticShield = model.HasMagneticShield;
             model = model.InCentimeters();
             StringBuilder text = new StringBuilder();
             Action<string> line = value => text.Append(value).Append("\r\n");
@@ -586,6 +589,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                     cm("DS_" + part + "LidThickness", layer.LidThickness);
                     Material(text, ShieldSlot(part), layer.Material ?? new GeometryMaterial());
                 }
+            }
+
+            if (writeMagneticShield)
+            {
+                // (`AMBER323`) МАГНИТНЫЙ ЭКРАН (наше расширение формата): боковая рубашка между
+                // зазором и корпусом, от тыла кристалла к торцу на заданную длину. Её видят фотон
+                // и электрон, и она входит в клеймо матрицы. Программа ЛСРМ этих ключей не знает.
+                line("");
+                line("// Магнитный экран: толщина, длина от тыла кристалла, вещество, см. GeometryModel.MagneticShieldThickness.");
+                cm("DS_MagneticShieldThickness", model.MagneticShieldThickness);
+                cm("DS_MagneticShieldLength", model.MagneticShieldLength);
+                Material(text, ShieldSlot("MagneticShield"), model.MagneticShield ?? new GeometryMaterial());
             }
 
             // (`AMBER274`, Э1) Капсула точечного источника (наше расширение формата):

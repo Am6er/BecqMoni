@@ -1432,6 +1432,14 @@ namespace CorpusFsaProbe
                     BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSize = v == "1";
                     continue;
                 }
+                // (`AMBER274`, a274s 13.11.2026) ключ экранирования `FsaBetaLibrary.FermiScreening` (клеймо раздела `scr=`)
+                if (a.StartsWith("--screening=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(12);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--screening=0|1"); }
+                    BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiScreening = v == "1";
+                    continue;
+                }
                 if (a.StartsWith("--bg-zero=", StringComparison.Ordinal))
                 {
                     string v = a.Substring(10);

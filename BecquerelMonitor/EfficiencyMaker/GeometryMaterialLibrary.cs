@@ -264,6 +264,27 @@ namespace BecquerelMonitor.EfficiencyMaker
                 list.Add(steel);
             }
 
+            // (`AMBER323`, полоса `a323` 13.11.2026) ПЕРМАЛЛОЙ — магнитный экран прибора на LaBr3
+            // («магнитный экран из пермаллоя (никель 79-80%, железо - почти всё остальное емнип)»,
+            // Amber 11.11.2026). Состав — решение Amber того же дня вопросником, дословно: «пермаллой
+            // Ni 80 % / Fe 20 % — материалом конфигурации, не в базе»: массовые доли Ni 0.80, Fe 0.20.
+            // Плотность 8.7 г/см³ — справочная плотность пермаллоя 80Ni-20Fe; правило смеси по массе
+            // из плотностей чистых металлов (Ni 8.908, Fe 7.874) даёт 8.68 — те же 8.7 до разряда.
+            // Сокращение «Py» — принятое обозначение пермаллоя. Вид — корпус: в его списке металлы.
+            {
+                Entry permalloy = new Entry
+                {
+                    Abbr = "Py", Name = "Permalloy", Formula = "",
+                    Density = 8.7, Kind = MaterialKind.Cladding,
+                };
+                foreach (KeyValuePair<int, double> pair in GeometryMaterialSeed.Fractions("26:0.2 28:0.8"))
+                {
+                    permalloy.ElementFractions[pair.Key] = pair.Value;
+                }
+
+                list.Add(permalloy);
+            }
+
             // Стенки сосудов
             add("PET", "Polyethylene terephthalate", "C10 H8 O4", 1.38, MaterialKind.BeakerWall);
             add("PE", "Polyethylene", "C2 H4", 0.94, MaterialKind.BeakerWall);

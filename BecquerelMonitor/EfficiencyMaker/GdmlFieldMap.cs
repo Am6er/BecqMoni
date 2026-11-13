@@ -1381,6 +1381,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Take(f.Reflector, m => g.Reflector = m);
                 Take(f.Gap, m => g.Gap = m);
                 Take(f.Cladding, m => g.Cladding = m);
+                // (`AMBER323`) Магнитного экрана GDML не раскладывает: детектор из файла — без экрана
+                // прежнего прибора.
+                g.MagneticShieldThickness = 0.0;
+                g.MagneticShieldLength = 0.0;
+                g.MagneticShield = new GeometryMaterial();
                 g.DropDeadCrystalSize();
             }
 

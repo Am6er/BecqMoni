@@ -1324,6 +1324,21 @@
   <data name="GeometryEditorGapMaterial" xml:space="preserve">
     <value>Наполнитель зазора</value>
   </data>
+  <data name="GeometryEditorMagneticShield" xml:space="preserve">
+    <value>Магнитный экран сбоку (под корпусом)</value>
+  </data>
+  <data name="GeometryEditorMagneticShieldLength" xml:space="preserve">
+    <value>Длина экрана от тыла кристалла</value>
+  </data>
+  <data name="GeometryEditorMagneticShieldMaterial" xml:space="preserve">
+    <value>Магнитный экран</value>
+  </data>
+  <data name="GeometryFacingSideMagneticShield" xml:space="preserve">
+    <value>Боковая постановка пробы не задана для детектора с магнитным экраном: экран идёт вокруг оси ФЭУ, а боковая постановка разворачивает кристалл поперёк неё.</value>
+  </data>
+  <data name="GeometryCrystalMagneticShield" xml:space="preserve">
+    <value>; магнитный экран {0:F2} мм, длина {1:F1} мм, {2}</value>
+  </data>
   <data name="GeometryEditorReflectorMaterial" xml:space="preserve">
     <value>Отражатель</value>
   </data>

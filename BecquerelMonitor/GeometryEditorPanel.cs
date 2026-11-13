@@ -1516,6 +1516,9 @@ namespace BecquerelMonitor
             // рассказать про прибор неправду.
             this.Row(rest, ref y, "FrontGapThickness", Resources.GeometryEditorFrontGap);
             this.Row(rest, ref y, "SideGapThickness", Resources.GeometryEditorSideGap);
+            // (`AMBER323`) Магнитный экран — между зазором и корпусом, тем же порядком слоёв.
+            this.Row(rest, ref y, "MagneticShieldThickness", Resources.GeometryEditorMagneticShield);
+            this.Row(rest, ref y, "MagneticShieldLength", Resources.GeometryEditorMagneticShieldLength);
             this.Row(rest, ref y, "FrontCladdingThickness", Resources.GeometryEditorFrontCladding);
             this.Row(rest, ref y, "SideCladdingThickness", Resources.GeometryEditorSideCladding);
             this.Row(rest, ref y, "MountingThickness", Resources.GeometryEditorMounting);
@@ -1567,13 +1570,16 @@ namespace BecquerelMonitor
             // которые дописываются в конец любого списка.
             this.MaterialRow(mats, ref y, "Gap", Resources.GeometryEditorGapMaterial,
                              GeometryMaterialLibrary.MaterialKind.Source);
+            // (`AMBER323`) Вещество магнитного экрана — из списка корпуса: там металлы.
+            this.MaterialRow(mats, ref y, "MagneticShield", Resources.GeometryEditorMagneticShieldMaterial,
+                             GeometryMaterialLibrary.MaterialKind.Cladding);
             this.MaterialRow(mats, ref y, "Cladding", Resources.GeometryEditorCladdingMaterial,
                              GeometryMaterialLibrary.MaterialKind.Cladding);
             page.Controls.Add(mats);
 
-            // Окно открывается цилиндром, а у цилиндра бока у зазора нет
+            // Окно открывается цилиндром; (`AMBER323`) с 13.11.2026 бок у зазора есть и у цилиндра
             // (`AMBER1`). Событие смены формы здесь не сработает — переключатель
-            // УЖЕ отмечен, — поэтому строка снимается прямо тут.
+            // УЖЕ отмечен, — поэтому раскладка строк зазора ставится прямо тут.
             this.UpdateGapRows(this.boxRadio.Checked);
         }
 
@@ -1888,10 +1894,15 @@ namespace BecquerelMonitor
         ///
         /// ⚠ Правило сказано ПРО ЗАЗОР и только про него: боковые толщины
         /// отражателя и корпуса у цилиндра остаются на месте.
+        ///
+        /// ⛔ (`AMBER323`) ПРАВИЛО ОТМЕНЕНО для цилиндра: Amber 13.11.2026 вопросником, дословно:
+        /// «Разрешить, умолчание 0 (Рекомендую)». Повод — прибор на LaBr3: кристалл Ø25 в корпусе
+        /// Ø55, между оболочкой кристалла и экраном у корпуса — воздух. Строка «зазор сбоку» стоит
+        /// у обеих форм; умолчание 0 — сцена прежняя. Метод оставлен ради одного места раскладки.
         /// </summary>
         void UpdateGapRows(bool box)
         {
-            this.ShowRow("SideGapThickness", box, null);
+            this.ShowRow("SideGapThickness", true, null);
             this.ReflowDetector();
         }
 
@@ -3109,6 +3120,9 @@ namespace BecquerelMonitor
             add("SideReflectorThickness", g => g.SideReflectorThickness, (g, v) => g.SideReflectorThickness = v);
             add("FrontGapThickness", g => g.FrontGapThickness, (g, v) => g.FrontGapThickness = v);
             add("SideGapThickness", g => g.SideGapThickness, (g, v) => g.SideGapThickness = v);
+            // (`AMBER323`) Магнитный экран: толщина и длина от тыла кристалла.
+            add("MagneticShieldThickness", g => g.MagneticShieldThickness, (g, v) => g.MagneticShieldThickness = v);
+            add("MagneticShieldLength", g => g.MagneticShieldLength, (g, v) => g.MagneticShieldLength = v);
             add("FrontCladdingThickness", g => g.FrontCladdingThickness, (g, v) => g.FrontCladdingThickness = v);
             add("SideCladdingThickness", g => g.SideCladdingThickness, (g, v) => g.SideCladdingThickness = v);
             add("MountingThickness", g => g.MountingThickness, (g, v) => g.MountingThickness = v);
@@ -3275,6 +3289,7 @@ namespace BecquerelMonitor
                 this.SelectMaterial("Reflector", g.Reflector, true);
                 this.SelectMaterial("Gap", g.Gap, true);
                 this.SelectMaterial("Cladding", g.Cladding, true);
+                this.SelectMaterial("MagneticShield", g.MagneticShield, true);    // (`AMBER323`)
                 this.SelectMaterial("BeakerWall", g.BeakerWall, true);
                 this.SelectMaterial("Source", g.Source, true);
 
@@ -3722,7 +3737,7 @@ namespace BecquerelMonitor
 
             this.MarkBadValues();
             this.UpdateEquivalent();
-            foreach (string key in new[] { "Crystal", "Reflector", "Gap", "Cladding", "BeakerWall", "Source" })
+            foreach (string key in new[] { "Crystal", "Reflector", "Gap", "MagneticShield", "Cladding", "BeakerWall", "Source" })
             {
                 this.compositions[key].Text = GeometryMaterialLibrary.Describe(
                     this.MaterialOf(key, this.Get(key + ".Density")));
@@ -4787,6 +4802,8 @@ namespace BecquerelMonitor
             // здесь оставил бы сцену посчитанной по прежнему прибору.
             "FrontGapThickness", "SideGapThickness",
             "FrontCladdingThickness", "SideCladdingThickness",
+            // (`AMBER323`) Магнитный экран раздувает поперечник, как боковая обвязка.
+            "MagneticShieldThickness",
             // (`AMBER94`, П150) Плотность пробы — через свободный пробег; её
             // вещество зовёт пересчёт из `MaterialChanged`, верх энергии — из
             // `SetSceneEnergy`. Пробег читают и глубина, и радиус сцены.
@@ -5323,17 +5340,11 @@ namespace BecquerelMonitor
             g.Reflector = this.MaterialOf("Reflector", this.Get("Reflector.Density"));
             g.Gap = this.MaterialOf("Gap", this.Get("Gap.Density"));
 
-            // ⛔ (`AMBER1`) У ЦИЛИНДРА БОКА У ЗАЗОРА НЕТ — решение Amber
-            // 07.09.2026. Ноль ставится ЗДЕСЬ, а не стиранием поля: поле у
-            // цилиндра снято с окна, и число в нём — это значение, набранное
-            // для бруска. Стереть его значило бы потерять набранное при
-            // случайном переключении формы туда и обратно; оставить как есть —
-            // тихо посчитать цилиндр с боковым зазором.
-            if (g.Shape != CrystalShape.Box)
-            {
-                g.SideGapThickness = 0.0;
-            }
+            // (`AMBER323`) Прежде здесь у цилиндра боковой зазор ставился нулём (правило `AMBER1`
+            // 07.09.2026 «у цилиндра бока у зазора нет»). Amber 13.11.2026 вопросником, дословно:
+            // «Разрешить, умолчание 0 (Рекомендую)» — поле видно у обеих форм и уходит в расчёт как набрано.
             g.Cladding = this.MaterialOf("Cladding", this.Get("Cladding.Density"));
+            g.MagneticShield = this.MaterialOf("MagneticShield", this.Get("MagneticShield.Density"));    // (`AMBER323`)
             g.BeakerWall = this.MaterialOf("BeakerWall", this.Get("BeakerWall.Density"));
             g.Source = this.MaterialOf("Source", this.Get("Source.Density"));
             return g;
@@ -5478,7 +5489,7 @@ namespace BecquerelMonitor
         {
             string first = null;
             this.materialProblemInShield = false;
-            foreach (string key in new[] { "Crystal", "Reflector", "Gap", "Cladding", "BeakerWall", "Source" })
+            foreach (string key in new[] { "Crystal", "Reflector", "Gap", "MagneticShield", "Cladding", "BeakerWall", "Source" })
             {
                 bool shown;
                 ComboBox combo;

@@ -64,6 +64,35 @@ namespace BecquerelMonitor.EfficiencyMaker
         public GeometryMaterial Gap = new GeometryMaterial();
         public GeometryMaterial Cladding = new GeometryMaterial();
 
+        /// <summary>
+        /// (`AMBER323`) Магнитный экран — часть детектора, как обвязка: его задаёт вшитый шаблон
+        /// «AtomSpectra Pro LaBr3(Ce)», значит переносит и свой. В XML и отпечаток — только у
+        /// заданного экрана: прежние файлы шаблонов и их отпечатки побайтно прежние.
+        /// </summary>
+        public double MagneticShieldThickness;
+        public double MagneticShieldLength;
+        public GeometryMaterial MagneticShield = new GeometryMaterial();
+
+        bool MagneticShieldSet
+        {
+            get { return this.MagneticShieldThickness != 0.0 || this.MagneticShieldLength != 0.0; }
+        }
+
+        public bool ShouldSerializeMagneticShieldThickness()
+        {
+            return this.MagneticShieldSet;
+        }
+
+        public bool ShouldSerializeMagneticShieldLength()
+        {
+            return this.MagneticShieldSet;
+        }
+
+        public bool ShouldSerializeMagneticShield()
+        {
+            return this.MagneticShieldSet;
+        }
+
         public override string ToString()
         {
             return this.Name;
@@ -105,6 +134,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.Reflector = Copy(g.Reflector);
             this.Gap = Copy(g.Gap);
             this.Cladding = Copy(g.Cladding);
+            this.MagneticShieldThickness = g.MagneticShieldThickness;    // (`AMBER323`)
+            this.MagneticShieldLength = g.MagneticShieldLength;
+            this.MagneticShield = Copy(g.MagneticShield);
         }
 
         /// <summary>
@@ -143,6 +175,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             // Заданное вещество шаблона переносится как есть.
             g.ApplyGapDefault();
             g.Cladding = Copy(this.Cladding);
+            // (`AMBER323`) Экран — как у вшитых: шаблон без экрана снимает экран прежнего прибора.
+            g.MagneticShieldThickness = this.MagneticShieldThickness;
+            g.MagneticShieldLength = this.MagneticShieldLength;
+            g.MagneticShield = Copy(this.MagneticShield);
         }
 
         public GeometryTemplate Clone()
@@ -152,6 +188,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             copy.Reflector = Copy(this.Reflector);
             copy.Gap = Copy(this.Gap);
             copy.Cladding = Copy(this.Cladding);
+            copy.MagneticShield = Copy(this.MagneticShield);    // (`AMBER323`)
             return copy;
         }
 
@@ -177,6 +214,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.Reflector = Copy(other.Reflector);
             this.Gap = Copy(other.Gap);
             this.Cladding = Copy(other.Cladding);
+            this.MagneticShieldThickness = other.MagneticShieldThickness;    // (`AMBER323`)
+            this.MagneticShieldLength = other.MagneticShieldLength;
+            this.MagneticShield = Copy(other.MagneticShield);
         }
 
         /// <summary>
@@ -207,6 +247,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             Describe(sb, "reflector", this.Reflector);
             Describe(sb, "gap", this.Gap);
             Describe(sb, "cladding", this.Cladding);
+            // (`AMBER323`) Экран — только заданный: отпечатки шаблонов без экрана прежние.
+            if (this.MagneticShieldSet)
+            {
+                sb.Append(";msh=").Append(this.MagneticShieldThickness.ToString("R", ic));
+                sb.Append(";msl=").Append(this.MagneticShieldLength.ToString("R", ic));
+                Describe(sb, "magnetic", this.MagneticShield);
+            }
+
             return sb.ToString();
         }
 

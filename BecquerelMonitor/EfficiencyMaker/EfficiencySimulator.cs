@@ -3383,6 +3383,27 @@ namespace BecquerelMonitor.EfficiencyMaker
             double tm = Math.Max(0.0, g.MountingThickness);
             double zFace = -(tfr + tfg + tfc) - (this.MountingInFront ? tm : 0.0);
 
+            // ⛔ (`AMBER323`) МАГНИТНЫЙ ЭКРАН — боковая рубашка между зазором и корпусом, от тыла
+            // кристалла к торцу на длину экрана (`GeometryModel.MagneticShieldStart`); остаток
+            // рубашки до торцевого корпуса — вещество зазора, корпус ложится поверх экрана. Без
+            // экрана `tsh` = 0, обе области нулевой толщины `Add`/`AddBox` не кладут, а радиусы
+            // `x + 0.0` равны `x` до бита: сцена побитово прежняя. Боковой постановки с экраном
+            // нет (`GeometryModel.FacingError`) — здесь отказ, если её не остановили раньше.
+            double tsh = 0.0, lsh = 0.0;
+            GeometryMaterial magnetic = null;
+            if (g.HasMagneticShield)
+            {
+                if (g.Facing == GeometryDetectorFacing.Side)
+                {
+                    throw new InvalidOperationException(
+                        "magnetic shield: the sample at the side of the detector is not defined for it");
+                }
+
+                tsh = g.MagneticShieldThickness;
+                lsh = g.MagneticShieldLength;
+                magnetic = OrVacuum(g.MagneticShield);
+            }
+
             // Кристалл и его обвязка. Области вкладываются, порядок значим:
             // кристалл кладётся первым, чтобы точка внутри него доставалась ему,
             // а не объемлющему слою.
@@ -3406,7 +3427,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.AddBox(ax + tsr, ay + tsr, -(tfr + tfg), -tfr, gap, false);
                 this.AddBox(ax + tsr + tsg, ay + tsr + tsg, -(tfr + tfg), hc, gap, false);
 
-                double wx = ax + tsr + tsg + tsc, wy = ay + tsr + tsg + tsc;
+                // (`AMBER323`) Магнитный экран — следующим вложением, до корпуса.
+                double sx = ax + tsr + tsg + tsh, sy = ay + tsr + tsg + tsh;
+                if (tsh > 0.0)
+                {
+                    double zs = GeometryModel.MagneticShieldStart(hc, tfr + tfg, lsh);
+                    this.AddBox(sx, sy, zs, hc, magnetic, false);
+                    this.AddBox(sx, sy, -(tfr + tfg), zs, gap, false);
+                }
+
+                double wx = sx + tsc, wy = sy + tsc;
                 this.AddBox(wx, wy, -(tfr + tfg + tfc), -(tfr + tfg), cladding, false);
                 this.AddBox(wx, wy, -(tfr + tfg), hc, cladding, false);
                 if (this.MountingInFront && tm > 0.0)
@@ -3427,7 +3457,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 // Внешний радиус собранного детектора нужен только цилиндру:
                 // у бруска обвязка прямоугольная и считается по полуширинам.
                 double rGap = rc + tsr + tsg;
-                double rDet = rGap + tsc;
+                double rShield = rGap + tsh;       // (`AMBER323`) без экрана — rGap до бита
+                double rDet = rShield + tsc;
                 this.Add(0.0, rc, 0.0, hc, g.Crystal, true);
                 this.Add(0.0, rc, -tfr, 0.0, reflector, false);
                 this.Add(rc, rc + tsr, -tfr, hc, reflector, false);
@@ -3437,8 +3468,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.Add(0.0, rc + tsr, -(tfr + tfg), -tfr, gap, false);
                 this.Add(rc + tsr, rGap, -(tfr + tfg), hc, gap, false);
 
+                // (`AMBER323`) Магнитный экран: кольцо между зазором и корпусом, от тыла к торцу.
+                if (tsh > 0.0)
+                {
+                    double zs = GeometryModel.MagneticShieldStart(hc, tfr + tfg, lsh);
+                    this.Add(rGap, rShield, zs, hc, magnetic, false);
+                    this.Add(rGap, rShield, -(tfr + tfg), zs, gap, false);
+                }
+
                 this.Add(0.0, rDet, -(tfr + tfg + tfc), -(tfr + tfg), cladding, false);
-                this.Add(rGap, rDet, -(tfr + tfg), hc, cladding, false);
+                this.Add(rShield, rDet, -(tfr + tfg), hc, cladding, false);
                 if (this.MountingInFront && tm > 0.0)
                 {
                     this.Add(0.0, rDet, zFace, -(tfr + tfg + tfc), cladding, false);

@@ -42690,6 +42690,21 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="GeometryEditorGapMaterial" xml:space="preserve">
     <value>Gap filler</value>
   </data>
+  <data name="GeometryEditorMagneticShield" xml:space="preserve">
+    <value>Magnetic shield thickness (side, under the cladding)</value>
+  </data>
+  <data name="GeometryEditorMagneticShieldLength" xml:space="preserve">
+    <value>Magnetic shield length from the crystal back</value>
+  </data>
+  <data name="GeometryEditorMagneticShieldMaterial" xml:space="preserve">
+    <value>Magnetic shield</value>
+  </data>
+  <data name="GeometryFacingSideMagneticShield" xml:space="preserve">
+    <value>The sample at the side of the detector is not defined for a detector with a magnetic shield: the shield surrounds the photomultiplier axis, and the side setup turns the crystal across it.</value>
+  </data>
+  <data name="GeometryCrystalMagneticShield" xml:space="preserve">
+    <value>; magnetic shield {0:F2} mm, {1:F1} mm long, {2}</value>
+  </data>
   <data name="GeometryEditorReflectorMaterial" xml:space="preserve">
     <value>Reflector</value>
   </data>
