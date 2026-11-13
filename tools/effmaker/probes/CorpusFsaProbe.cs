@@ -824,6 +824,7 @@ namespace CorpusFsaProbe
     ///                  [--anchor-rollback=0|1]
     ///                  [--beta-two-pass=0|1] [--limit-free-hats=0|1] [--limit-window=0|1]   (`AMBER274`: два захода строки беты, шапки в оценщик пределов, MDA под порог окна — умолчание вкл.)
     ///                  [--anchor-free-amp=0|1] [--anchor-joint-outliers=0|1]   (`AMBER269`: плечи (А2) — умолчание вкл., (Д-амп), (Д2); (Б) и (Г) сняты 01.11.2026)
+    ///                  [--anchor-shift-tol=&lt;доля σ&gt;] [--anchor-shift-newton=0|1] [--anchor-shift-bracket=0|1]   (`AMBER295`, `a295c`: сходимость замера сдвига опоры — умолчание выкл.)
     ///                  [--anchor-passes]   (`AMBER269`: опоры каждого прохода привязки — в вывод)
     ///                  [--untie-low=0|1] [--anchor-rollback-width=0|1]   (`AMBER269`, Н3/Н5 02.11.2026: нож порога доверия целиком — умолчание выкл. с 02.11.2026, критик `critfsa30`; откат с шириной опор — умолчание вкл. с 03.11.2026, решение Amber, `AMBER274`)
     ///                  [--band-warn-ramp=0|1]   (`AMBER269`: предупреждения по полосе от верха рампы порога — умолчание вкл.; 0 — вся полоса фита)
@@ -1322,6 +1323,21 @@ namespace CorpusFsaProbe
                     int v = int.Parse(a.Substring(21), CultureInfo.InvariantCulture);
                     if (v < 1 || v > 256) { throw new ArgumentException("--anchor-shift-steps=1…256"); }
                     o.AnchorShiftSteps = v;
+                    continue;
+                }
+                // (`AMBER295`, остаток, полоса `a295c`) рычаги сходимости замера сдвига опоры
+                if (a.StartsWith("--anchor-shift-tol=", StringComparison.Ordinal))
+                {
+                    double v = double.Parse(a.Substring(19), NumberStyles.Float, CultureInfo.InvariantCulture);
+                    if (!(v >= 0.0 && v <= 10.0)) { throw new ArgumentException("--anchor-shift-tol=<доля σ центра, 0…10>"); }
+                    o.AnchorShiftTol = v;
+                    continue;
+                }
+                if (a.StartsWith("--anchor-shift-newton=", StringComparison.Ordinal) || a.StartsWith("--anchor-shift-bracket=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(a.IndexOf('=') + 1);
+                    if (v != "0" && v != "1") { throw new ArgumentException(a.Substring(0, a.IndexOf('=')) + "=0|1"); }
+                    if (a.StartsWith("--anchor-shift-newton=", StringComparison.Ordinal)) { o.AnchorShiftNewton = v == "1" ? 1 : 0; } else { o.AnchorShiftBracket = v == "1" ? 1 : 0; }
                     continue;
                 }
                 // (`AMBER295`, остаток, полоса `a295z`) рычаг: лучший из двух кандидатов нуля фона
@@ -2930,6 +2946,22 @@ namespace CorpusFsaProbe
             if (o.AnchorShiftSteps > 0)
             {
                 analyzer.AnchorShiftSteps = o.AnchorShiftSteps;
+            }
+
+            // (`AMBER295`, остаток, полоса `a295c`) рычаги сходимости замера сдвига опоры
+            if (o.AnchorShiftTol >= 0.0)
+            {
+                analyzer.AnchorShiftTolSigma = o.AnchorShiftTol;
+            }
+
+            if (o.AnchorShiftNewton >= 0)
+            {
+                analyzer.AnchorShiftNewton = o.AnchorShiftNewton == 1;
+            }
+
+            if (o.AnchorShiftBracket >= 0)
+            {
+                analyzer.AnchorShiftBracket = o.AnchorShiftBracket == 1;
             }
 
             // (`AMBER295`, остаток, полоса `a295z`) рычаг: лучший из двух кандидатов нуля фона
@@ -6943,6 +6975,9 @@ namespace CorpusFsaProbe
             public int AnchorSkipMasked = -1;  // (`AMBER295`, остаток) −1 — умолчание анализатора
             public int BgOverflowOut = -1;     // (`AMBER295`, полоса `a295o`) −1 — умолчание анализатора
             public int AnchorShiftSteps = 0;   // (`AMBER295`, полоса `a295z`) 0 — умолчание анализатора
+            public double AnchorShiftTol = -1.0; // (`AMBER295`, полоса `a295c`) −1 — умолчание анализатора
+            public int AnchorShiftNewton = -1;   // (`AMBER295`, полоса `a295c`) −1 — умолчание анализатора
+            public int AnchorShiftBracket = -1;   // (`AMBER295`, полоса `a295c`) −1 — умолчание анализатора
             public int BgZeroBest = -1;        // (`AMBER295`, полоса `a295z`) −1 — умолчание анализатора
             public double AnchorBrakeTop = double.NaN; // (`AMBER295`, полоса `a295s`) NaN — умолчание анализатора
             public int EscBound = -1;          // (`AMBER311`, полоса `a311f`) −1 — умолчание анализатора

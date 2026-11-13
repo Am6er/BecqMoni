@@ -6763,6 +6763,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public int AnchorShiftSteps { get; set; }
 
         /// <summary>
+        /// (`AMBER295`, остаток, полоса `a295c`) РЫЧАГ ЗАМЕРА: ОТНОСИТЕЛЬНЫЙ ПОРОГ ОСТАНОВКИ шагов замера сдвига
+        /// опоры — в долях статистической σ центра (1/√Σw·N′², каналы, до Бирге), но не мельче прежней
+        /// сотой канала. Нуль — прежний абсолютный порог 0.01 кан. Довод: на радоне ASN16 FWHM ≈ 26 кан.,
+        /// σ центра 5–7 кан., и порог 0.01 кан. ≈ 0.002σ меряет не сходимость, а число шагов. Умолчание — в конструкторе.
+        /// </summary>
+        public double AnchorShiftTolSigma { get; set; }
+
+        /// <summary>
+        /// (`AMBER295`, остаток, полоса `a295c`) РЫЧАГ ЗАМЕРА: шаг сдвига с фиксированной амплитудой — НЬЮТОНОМ
+        /// с полной кривизной χ² окна, H = Σw·(N′² − r·N″), а не Гауссом — Ньютоном (Σw·N′²). Механизм
+        /// несходимости (журнал `handover/handover-2026-11-13-a295c.md`): у пика, где данные выше модели в
+        /// A/a раз, истинная кривизна ≈ A·a·S, а у Гаусса — Ньютона a²·S; шаг выходит в A/a раз длиннее, и
+        /// ошибка за шаг множится на (1 − A/a). На радоне A/a ≈ 1.3…2.1 (множитель свободной амплитуды), то есть
+        /// −0.3…−1.1 за шаг: качание без сходимости. Кривизна не выше нуля — шаг Гаусса — Ньютона; меньше
+        /// десятой доли Σw·N′² — десятая доля (предохранитель). ⚠ Без <see cref="AnchorShiftBracket"/> шаг не
+        /// ограничен: на полной части known первый проход уводил опору на сотни каналов (`ASN16_Lu176` 401 кэВ —
+        /// 438 кан.), опору снимал отказ «shift». Мерено и предлагается только в паре с вилкой. Умолчание — в конструкторе.
+        /// </summary>
+        public bool AnchorShiftNewton { get; set; }
+
+        /// <summary>
+        /// (`AMBER295`, остаток, полоса `a295c`) РЫЧАГ ЗАМЕРА: ветке с фиксированной амплитудой — тот же
+        /// предохранитель, что у свободной (шаг не дальше половины FWHM), и ВИЛКА КОРНЯ: запоминаются последние
+        /// сдвиги, где наклон χ² окна (Σw·r·N′) отрицателен и положителен; если первый левее второго (вилка
+        /// минимума), шаг, выводящий из неё, заменяется её серединой (деление пополам). Ищется тот же корень
+        /// наклона, что у шага Гаусса — Ньютона (там, где тот сходится, — тот же сдвиг), без лишних проходов
+        /// по окну, которых требовал перебор χ² окна делением шага. Умолчание — в конструкторе.
+        /// </summary>
+        public bool AnchorShiftBracket { get; set; }
+
+        /// <summary>
         /// (`AMBER269`, плечо (Д2) доводки (Д); решение Amber 29.10.2026 вопросником,
         /// дословно: «(Д-амп)+(Д2) (Рекомендую)») ВЫБРОСЫ СОВМЕСТНОГО ШАГА — ЕГО ЖЕ
         /// МОДЕЛЬЮ: у совместного шага нуля света и усиления
@@ -8570,11 +8601,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             }
                         }
 
+                        // (`AMBER295`, полоса `a295c`) рычаги сходимости — доводы у свойств; выключены — прежний ход побитно
+                        bool shiftNewton = this.AnchorShiftNewton && !freeAmplitude;
+                        bool shiftBracket = this.AnchorShiftBracket && !freeAmplitude;
+                        double shiftTolSigma = this.AnchorShiftTolSigma;
+                        // (`AMBER295`, `a295c`) вилка корня: последние сдвиги со знаком наклона χ² минус и плюс
+                        double bracketNeg = double.NaN, bracketPos = double.NaN;
                         for (int it = 0; it < this.AnchorShiftSteps; it++)
                         {
                             double num = 0.0;
                             den = 0.0;
                             double a12 = 0.0, a22 = 0.0, b2 = 0.0;
+                            double curv = 0.0;
                             for (int k = kLo; k <= kHi; k++)
                             {
                                 double at = k - delta;
@@ -8587,6 +8625,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                     double r = fit.Residual[k] + net[k] - shifted;
                                     num += w * r * d;
                                     den += w * d * d;
+                                    if (shiftNewton)
+                                    {
+                                        // N″ — вторая разность той же интерполяции; H = Σw·(N′² − r·N″)
+                                        double d2 = InterpolateAt(net, at + 1.0, chLo, chHi) - 2.0 * shifted
+                                                    + InterpolateAt(net, at - 1.0, chLo, chHi);
+                                        curv += w * (d * d - r * d2);
+                                    }
                                 }
                                 else
                                 {
@@ -8609,7 +8654,47 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             double step;
                             if (!freeAmplitude)
                             {
-                                step = -num / den;
+                                if (!shiftNewton && !shiftBracket)
+                                {
+                                    step = -num / den;
+                                }
+                                else
+                                {
+                                    // (`AMBER295`, `a295c`) Ньютон с полной кривизной; кривизна не выше нуля —
+                                    // Гаусс — Ньютон, ниже десятой доли Σw·N′² — десятая доля
+                                    double h = shiftNewton && curv > 0.0 ? Math.Max(curv, 0.1 * den) : den;
+                                    step = -num / h;
+                                    if (shiftBracket)
+                                    {
+                                        // предохранитель свободной ветки (шаг не дальше половины FWHM) и вилка:
+                                        // шаг, выходящий из вилки смены знака наклона, — середина вилки
+                                        double cap = 0.5 * fwhm;
+                                        if (Math.Abs(step) > cap)
+                                        {
+                                            step = step > 0.0 ? cap : -cap;
+                                        }
+
+                                        if (num < 0.0)
+                                        {
+                                            bracketNeg = delta;
+                                        }
+                                        else if (num > 0.0)
+                                        {
+                                            bracketPos = delta;
+                                        }
+
+                                        // вилка минимума — наклон минус слева, плюс справа (dχ²/dδ = 2Σw·r·N′);
+                                        // обратная вилка держит максимум χ² и не используется
+                                        if (!double.IsNaN(bracketNeg) && !double.IsNaN(bracketPos) && bracketNeg < bracketPos)
+                                        {
+                                            double target = delta + step;
+                                            if (!(target > bracketNeg && target < bracketPos))
+                                            {
+                                                step = 0.5 * (bracketNeg + bracketPos) - delta;
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             else
                             {
@@ -8644,7 +8729,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 break;
                             }
 
-                            if (Math.Abs(step) < 0.01)
+                            // (`AMBER295`, `a295c`) порог остановки: прежняя сотая канала либо доля σ центра
+                            double shiftTol = 0.01;
+                            if (shiftTolSigma > 0.0)
+                            {
+                                double sigmaShift = freeAmplitude ? Math.Sqrt(varDelta) : 1.0 / Math.Sqrt(den);
+                                if (PositiveFinite(sigmaShift))
+                                {
+                                    shiftTol = Math.Max(0.01, shiftTolSigma * sigmaShift);
+                                }
+                            }
+
+                            if (Math.Abs(step) < shiftTol)
                             {
                                 shiftSettled = true;
                                 break;
@@ -11003,6 +11099,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.AnchorShiftFreeAmplitude = false;
             // (`AMBER295`, полоса `a295z`) шагов замера сдвига опоры — прежние восемь (рычаг замера сходимости)
             this.AnchorShiftSteps = 8;
+            // (`AMBER295`, полоса `a295c`) рычаги сходимости замера сдвига — выключены (прежний ход побитно)
+            this.AnchorShiftTolSigma = 0.0;
+            this.AnchorShiftNewton = false;
+            this.AnchorShiftBracket = false;
             this.AnchorJointOutliers = false;
             // (`A320`, П323) повтор отданного разбора — пробам и корпусу; сеанс
             // приложения снимает (`FsaAnalysisSession.Capture`)
