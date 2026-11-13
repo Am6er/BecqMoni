@@ -259,7 +259,7 @@
     <value>Выключить FSA на всех спектрах</value>
   </data>
   <data name="toolStripSplitButtonFsa.ToolTipText" xml:space="preserve">
-    <value>Полноспектральный разбор (FSA) на всех спектрах: вкл/выкл. Включить можно, только когда включены обнаруженные пики; выключить — всегда. Пики выключили — FSA гаснет, включили — возвращается.</value>
+    <value>FSA на всех спектрах: вкл/выкл; включить — только при пиках</value>
   </data>
   <data name="toolStripScreenShotButton.ToolTipText" xml:space="preserve">
     <value>Снять скрин спектра в файл</value>

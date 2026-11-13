@@ -568,7 +568,7 @@
     <value>toolStripSplitButtonFsa</value>
   </data>
   <data name="toolStripSplitButtonFsa.ToolTipText" xml:space="preserve">
-    <value>Full-spectrum analysis (FSA) on all spectra: on/off. Can be turned on only while detected peaks are on; can always be turned off. Peaks off hides FSA, peaks on brings it back.</value>
+    <value>FSA on all spectra: on/off; turning on needs detected peaks</value>
   </data>
   <data name="toolStripScreenShotButton.Size" type="System.Drawing.Size, System.Drawing">
     <value>23, 22</value>

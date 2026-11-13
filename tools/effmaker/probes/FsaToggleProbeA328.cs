@@ -67,6 +67,10 @@ namespace BecquerelMonitor.Probes
     ///   К14 (Н2) «континуум» на спектре без FWHM: исключения нет, континуума нет, есть
     ///      отказ с причиной (`EnergySpectrumView.ContinuumRefusal`) и он рисуется панелью;
     ///      контроль — тот же спектр С FWHM: континуум есть, отказа нет;
+    ///   К15 (дефект 13.11.2026, полоса a328g) иконка и подсказка кнопки: при галочке ВКЛ на
+    ///      кнопке `Resources.FSAToggle` попиксельно и НЕ `Resources.FSA`; два обновления
+    ///      кнопки подряд и открытие её списка ссылку `Image` не меняют (ВКЛ и ВЫКЛ), картинка
+    ///      одна на все вкладки; подсказка — одна строка не длиннее `AppUi.TipWidth` в en и ru;
     ///   конец: проба конфиг на диске НЕ пишет (mtime файла рядом с exe не сдвинулся).
     ///
     ///     fsatoggleprobea328 --spectrum=&lt;xml&gt; --second=&lt;xml&gt; [--spoil=peaks] [--only=n2]
@@ -463,6 +467,11 @@ namespace BecquerelMonitor.Probes
             SettingsFormSection(manager);
             WindowPeaksSection(manager, a, docs);
 
+            // К15 — иконка и подсказка кнопки (дефект 13.11.2026)
+            Console.WriteLine();
+            Console.WriteLine("=== К15. иконка кнопки FSA — своя (FSAToggle), картинка не перекладывается, подсказка в одну строку ===");
+            IconAndTipSection(chart, a, b, docs);
+
             // К14 — Н2
             ContinuumSection(a, c);
 
@@ -737,6 +746,78 @@ namespace BecquerelMonitor.Probes
             var parts = new List<string>();
             foreach (DocEnergySpectrum d in docs) parts.Add(Name(d) + ":" + d.EnergySpectrumView.PeakMode + ":" + d.EnergySpectrumView.BackgroundMode);
             return string.Join("/", parts);
+        }
+
+        /// <summary>
+        /// К15 — дефект 13.11.2026 (подсказка в три строки у нижнего края экрана вставала на
+        /// саму кнопку и глотала нажатие стрелки; иконка дублировала `FSA.bmp` кнопки фона):
+        /// (а) при галочке ВКЛ на кнопке — `Resources.FSAToggle` попиксельно и НЕ `Resources.FSA`;
+        /// (б) два обновления кнопки подряд (и открытие её списка) ссылку `Image` не меняют —
+        ///     ни при ВКЛ, ни при ВЫКЛ; картинка одна на все вкладки;
+        /// (в) подсказка кнопки — одна строка не длиннее `AppUi.TipWidth` в en и ru; язык
+        ///     вкладки проверен буквами (контроль, что культура и впрямь сменилась), текст
+        ///     кнопки равен строке `*.resx` той же культуры (перенос ничего не добавил).
+        /// Сцена восстанавливается: пики ВКЛ, галочка ВЫКЛ.
+        /// </summary>
+        static void IconAndTipSection(ChartViewConfig chart, DocEnergySpectrum a, DocEnergySpectrum b, DocEnergySpectrum[] docs)
+        {
+            Invoke(a, "showPeaksToolStripMenuItem_Click", null, EventArgs.Empty);
+            Invoke(a, "fsaOnToolStripMenuItem_Click", null, EventArgs.Empty);
+            Same("сцена: галочка ВКЛ, пики ВКЛ", "True|Visible", chart.FsaModeEnabled + "|" + a.EnergySpectrumView.PeakMode);
+            Image on = Button(a).Image;
+            Same("(а) ВКЛ: картинка кнопки — Resources.FSAToggle попиксельно", true,
+                 SameImage(on, BecquerelMonitor.Properties.Resources.FSAToggle));
+            Same("(а) ВКЛ: картинка кнопки — НЕ Resources.FSA (иконка кнопки фона в FSA)", false,
+                 SameImage(on, BecquerelMonitor.Properties.Resources.FSA));
+            Same("(а) контроль судьи: FSAToggle и FSA — разные рисунки", false,
+                 SameImage(BecquerelMonitor.Properties.Resources.FSAToggle, BecquerelMonitor.Properties.Resources.FSA));
+            Invoke(a, "UpdateFsaButton");
+            Invoke(a, "UpdateFsaButton");
+            Same("(б) ВКЛ: два обновления подряд — ссылка Image та же", true, ReferenceEquals(on, Button(a).Image));
+            Invoke(a, "toolStripSplitButtonFsa_DropDownOpening", null, EventArgs.Empty);
+            Same("(б) ВКЛ: открытие списка кнопки — ссылка Image та же", true, ReferenceEquals(on, Button(a).Image));
+            Same("(б) ВКЛ: у вкладки B та же картинка (одна на приложение)", true, ReferenceEquals(on, Button(b).Image));
+
+            Invoke(a, "fsaOffToolStripMenuItem_Click", null, EventArgs.Empty);
+            Image off = Button(a).Image;
+            Same("(б) ВЫКЛ: картинка сменилась на серую", "False|False", ReferenceEquals(on, off) + "|" + Colored(off));
+            Invoke(a, "UpdateFsaButton");
+            Invoke(a, "UpdateFsaButton");
+            Same("(б) ВЫКЛ: два обновления подряд — ссылка Image та же", true, ReferenceEquals(off, Button(a).Image));
+            Invoke(a, "toolStripSplitButtonFsa_DropDownOpening", null, EventArgs.Empty);
+            Same("(б) ВЫКЛ: открытие списка кнопки — ссылка Image та же", true, ReferenceEquals(off, Button(a).Image));
+
+            var resources = new System.ComponentModel.ComponentResourceManager(typeof(DocEnergySpectrum));
+            CultureInfo keep = Thread.CurrentThread.CurrentUICulture;
+            int width = (int)typeof(AppUi).GetField("TipWidth", Any).GetValue(null);
+            foreach (string lang in new[] { "en-US", "ru-RU" })
+            {
+                CultureInfo culture = new CultureInfo(lang);
+                Thread.CurrentThread.CurrentUICulture = culture;
+                DocEnergySpectrum fresh = null;
+                try
+                {
+                    fresh = new DocEnergySpectrum();
+                    string tip = Button(fresh).ToolTipText ?? "";
+                    Console.WriteLine("        {0}: «{1}» ({2} знаков)", lang, tip.Replace("\r", "\\r").Replace("\n", "\\n"),
+                                      tip.Length.ToString(CultureInfo.InvariantCulture));
+                    bool cyrillic = false;
+                    foreach (char ch in tip) if (ch >= '\u0400' && ch <= '\u04FF') cyrillic = true;
+                    Same("(в) " + lang + ": язык подсказки тот (кириллица " + (lang == "ru-RU" ? "есть" : "нет") + ")",
+                         lang == "ru-RU", cyrillic);
+                    Same("(в) " + lang + ": подсказка — одна строка (нет \\r и \\n)", true,
+                         tip.Length > 0 && tip.IndexOf('\n') < 0 && tip.IndexOf('\r') < 0);
+                    Same("(в) " + lang + ": подсказка не длиннее AppUi.TipWidth = " + width.ToString(CultureInfo.InvariantCulture), true,
+                         tip.Length <= width);
+                    Same("(в) " + lang + ": подсказка кнопки = строка resx этой культуры", true,
+                         tip == resources.GetString("toolStripSplitButtonFsa.ToolTipText", culture));
+                }
+                finally
+                {
+                    Thread.CurrentThread.CurrentUICulture = keep;
+                    if (fresh != null) fresh.Dispose();
+                }
+            }
         }
 
         /// <summary>

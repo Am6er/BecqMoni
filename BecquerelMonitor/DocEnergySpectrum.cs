@@ -2090,16 +2090,41 @@ namespace BecquerelMonitor
         {
             bool flag = GlobalFsaModeEnabled;
             bool canEnable = this.CanEnableFsaMode;
-            this.toolStripSplitButtonFsa.Image = flag ? Properties.Resources.FSA : FsaOffImage();
+            // Картинка — одна на приложение (`FsaOnImage`/`FsaOffImage`): свойство ресурса
+            // отдаёт НОВЫЙ Bitmap при каждом чтении, и присвоение его кнопке при каждом
+            // обновлении (в том числе из `DropDownOpening`) перекладывало панель зря.
+            Image image = flag ? FsaOnImage() : FsaOffImage();
+            if (!ReferenceEquals(this.toolStripSplitButtonFsa.Image, image))
+            {
+                this.toolStripSplitButtonFsa.Image = image;
+            }
             this.toolStripSplitButtonFsa.Enabled = flag || canEnable;
             this.fsaOnToolStripMenuItem.Enabled = canEnable;
             this.fsaOffToolStripMenuItem.Enabled = true;
         }
 
+        static Image fsaOnImage;
         static Image fsaOffImage;
 
         /// <summary>
-        /// Серая иконка «FSA выкл» — из той же `FSA.bmp`, двумя серыми соседних
+        /// Цветная иконка кнопки-флажка FSA — `FSAToggle.bmp`: буквы «FSA» над двумя
+        /// пиками, в стиле соседней «BG». Своя, а не `FSA.bmp`: ту показывает кнопка
+        /// режима фона, когда вкладка в FSA, и две одинаковые иконки рядом путали
+        /// (Amber 13.11.2026, дословно: «замени иконку у Enable/Disable FSA - она
+        /// получается полностью дублирует существующую и вызывает путанницу»; рисунок —
+        /// вопросником того же дня: «A: буквы FSA + слои (Рекомендую)»).
+        /// </summary>
+        static Image FsaOnImage()
+        {
+            if (fsaOnImage == null)
+            {
+                fsaOnImage = Properties.Resources.FSAToggle;
+            }
+            return fsaOnImage;
+        }
+
+        /// <summary>
+        /// Серая иконка «FSA выкл» — из той же `FSAToggle.bmp`, двумя серыми соседних
         /// иконок «выкл»; белый фон остаётся белым (прозрачный цвет кнопки).
         /// Своего файла картинки нет нарочно: вторая копия рисунка разошлась бы с
         /// первой при первой же правке.
@@ -2108,7 +2133,7 @@ namespace BecquerelMonitor
         {
             if (fsaOffImage == null)
             {
-                Bitmap source = Properties.Resources.FSA;
+                Bitmap source = Properties.Resources.FSAToggle;
                 Bitmap grey = new Bitmap(source.Width, source.Height);
                 for (int y = 0; y < source.Height; y++)
                 {
