@@ -33,9 +33,10 @@ namespace FsaReportViewProbe
     ///   2. ОКНО (критерий 2): создаётся, persist-string ходит кругом через
     ///      `MainForm.GetContentFromPersistString`, переживает hide/show,
     ///      отслеживает активный документ (строки — от сеанса того документа).
-    ///   3. ВХОД В `ShowFSA` (критерий 3): явная команда документа и цикл
-    ///      кнопки поднимают событие с верным признаком; закрытие отчёта не
-    ///      меняет режим графика и не сбрасывает результат.
+    ///   3. ВХОД В `ShowFSA` (критерий 3): явная команда документа и кнопка
+    ///      FSA (`AMBER328`; цикл кнопки фона FSA теперь пропускает) поднимают
+    ///      событие с верным признаком; закрытие отчёта не меняет режим графика
+    ///      и не сбрасывает результат.
     ///   4. ОДИН РЕЗУЛЬТАТ (критерий 4): график и таблица держат ОДИН объект
     ///      `FsaResult`; два потребителя дают один запуск (`RunCount`).
     ///   0. ВИД ЧИСЕЛ (`A244`): у чисел блока качества НЕТ разделителя
@@ -364,7 +365,7 @@ namespace FsaReportViewProbe
         static void EntrySection(MainForm mainForm, DocEnergySpectrum doc)
         {
             Console.WriteLine();
-            Console.WriteLine("=== 3. вход в ShowFSA: явный и циклический; закрытие отчёта режим не меняет ===");
+            Console.WriteLine("=== 3. вход в ShowFSA: явный и кнопкой FSA, цикл фона FSA пропускает; закрытие отчёта режим не меняет ===");
             var seen = new List<bool>();
             EventHandler<FsaModeEnteredEventArgs> handler = (s, e) => seen.Add(e.Explicit);
             doc.FsaModeEntered += handler;
@@ -376,19 +377,46 @@ namespace FsaReportViewProbe
                 Same("явная команда: событие одно", 1, seen.Count);
                 Same("явная команда: признак Explicit = true", true, seen.Count == 1 && seen[0]);
 
-                // Цикл: из ShowContinuum кнопка ведёт в ShowFSA (кривая и ПШПВ есть).
+                // Цикл: из ShowFSA кнопка фона выводит, события не поднимая.
+                seen.Clear();
+                Invoke(doc, "toolStripSplitButton7_ButtonClick", null, EventArgs.Empty);
+                Same("цикл: выход из ShowFSA событие не поднимает", 0, seen.Count);
+                Same("цикл: и режим уже не ShowFSA", true, doc.EnergySpectrumView.BackgroundMode != BackgroundMode.ShowFSA);
+
+                // (`AMBER328`, 12.11.2026) Цикл FSA ПРОПУСКАЕТ: из ShowContinuum
+                // кнопка фона ведёт мимо ShowFSA (прежде — в него), события нет.
                 seen.Clear();
                 doc.EnergySpectrumView.BackgroundMode = BackgroundMode.ShowContinuum;
                 Invoke(doc, "toolStripSplitButton7_ButtonClick", null, EventArgs.Empty);
-                Same("цикл: режим графика ShowFSA", BackgroundMode.ShowFSA, doc.EnergySpectrumView.BackgroundMode);
-                Same("цикл: событие одно", 1, seen.Count);
-                Same("цикл: признак Explicit = false", false, seen.Count == 1 && seen[0]);
+                Same("цикл (AMBER328): из ShowContinuum — не в ShowFSA", true,
+                     doc.EnergySpectrumView.BackgroundMode != BackgroundMode.ShowFSA);
+                Same("цикл (AMBER328): события нет", 0, seen.Count);
 
-                // Контроль: цикл дальше (из ShowFSA) события не поднимает.
-                seen.Clear();
-                Invoke(doc, "toolStripSplitButton7_ButtonClick", null, EventArgs.Empty);
-                Same("контроль: выход из ShowFSA событие не поднимает", 0, seen.Count);
-                Same("контроль: и режим уже не ShowFSA", true, doc.EnergySpectrumView.BackgroundMode != BackgroundMode.ShowFSA);
+                // Вход своей кнопкой FSA (пики вкл): событие одно, Explicit = false;
+                // второе нажатие выводит в бывший режим, события нет.
+                ChartViewConfig chart = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig;
+                bool flagBefore = chart.FsaModeEnabled;
+                PeakMode peaksBefore = doc.EnergySpectrumView.PeakMode;
+                try
+                {
+                    chart.FsaModeEnabled = false;
+                    doc.EnergySpectrumView.PeakMode = PeakMode.Visible;
+                    doc.EnergySpectrumView.BackgroundMode = BackgroundMode.Invisible;
+                    seen.Clear();
+                    Invoke(doc, "toolStripSplitButtonFsa_ButtonClick", null, EventArgs.Empty);
+                    Same("кнопка FSA: режим графика ShowFSA", BackgroundMode.ShowFSA, doc.EnergySpectrumView.BackgroundMode);
+                    Same("кнопка FSA: событие одно", 1, seen.Count);
+                    Same("кнопка FSA: признак Explicit = false", false, seen.Count == 1 && seen[0]);
+                    seen.Clear();
+                    Invoke(doc, "toolStripSplitButtonFsa_ButtonClick", null, EventArgs.Empty);
+                    Same("кнопка FSA второй раз: возврат в бывший режим", BackgroundMode.Invisible, doc.EnergySpectrumView.BackgroundMode);
+                    Same("кнопка FSA второй раз: события нет", 0, seen.Count);
+                }
+                finally
+                {
+                    chart.FsaModeEnabled = flagBefore;
+                    doc.EnergySpectrumView.PeakMode = peaksBefore;
+                }
             }
             finally
             {

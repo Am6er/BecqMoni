@@ -3436,8 +3436,8 @@ namespace BecquerelMonitor
         /// (<c>FsaAnalysisSession.MatrixFileStamp(resultData.Efficiency)</c>),
         /// поэтому экспортированный и импортированный В НОВЫЙ ДОКУМЕНТ файл остаётся без
         /// активности выделения, без активности зон, без полноспектрального
-        /// разбора (<c>DocEnergySpectrum.CanShowFsa</c> требует
-        /// <c>Efficiency != null</c>) и без нормировки по эффективности
+        /// разбора (гейт геометрии <c>FsaAnalyzer.RequireGeometry</c> без кривой
+        /// с геометрией отказывает) и без нормировки по эффективности
         /// (<c>IsNormalizeByEfficiencyAvailable</c>).
         ///
         /// ⛔ НЕ ПУТАТЬ с ~~<c>A260</c>~~: при импорте в СУЩЕСТВУЮЩИЙ документ

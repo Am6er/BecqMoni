@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Геометрия и матрица — BecqMoni гид</title>
-<script src="assets/theme.js?v=53cbbd2b"></script>
-<link rel="stylesheet" href="assets/guide.css?v=d6ac00ed">
+<script src="assets/theme.js?v=7b7024a7"></script>
+<link rel="stylesheet" href="assets/guide.css?v=7307f135">
 <style>
 /* только эта глава: вкладки снимков, конвейер «где лежит кривая» */
 .tabsel{display:flex;flex-wrap:wrap;gap:6px;margin-top:18px}
@@ -287,8 +287,8 @@ figure.shot.side>ol.shot-legend{grid-column:2;grid-row:1 / span 2;margin-top:0}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=6a6efa81"></script>
-<script src="assets/quanta.js?v=67b2c2dc"></script>
+<script src="assets/guide.js?v=ba59e47f"></script>
+<script src="assets/quanta.js?v=b92ab866"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
 GUIDE.texts({ ru: {"mc.n": "Маринелли", "mc.k": "Монте-Карло", "mc.h": "Банка или Маринелли", "mc.lead": "Один и тот же кристалл Ø63 × 63 мм, одна и та же вода с одним нуклидом. Слева банка 0.2 л на торце, справа сосуд Маринелли, обнимающий кристалл. Видно, откуда фотоны входят в кристалл и сколько их пролетает мимо.", "mc.pick": "Фотоны:", "mc.l1": "банка на торце", "mc.l2": "Маринелли", "mc.t1": "в пике: банка", "mc.t2": "в пике: Маринелли", "mc.t3": "Маринелли ловит в пик больше", "mc.f1": "<b>Маринелли окружает кристалл</b> — больше телесного угла, больше пик на испущенный фотон.", "mc.f2": "<b>Зато путь сквозь пробу длиннее.</b> Плотная проба сильнее гасит низкие энергии — попробуйте Am-241.", "mc.f3": "<b>Обе кривые BecqMoni строит из геометрии</b> тем же переносом фотонов — в конструкторе кривой ниже на этой странице."},
@@ -432,7 +432,7 @@ GUIDE.texts({ru:{
 'u.l2':'<b>Геометрия</b> — кривая этого спектра: «(нет)», кривые прибора или «… — из файла спектра»; красный «!» — у неё устарела кривая или матрица отклика',
 'u.l3':'<b>✕</b> — сбросить кривую эффективности у спектра',
 'u.l4':'<b>Фон</b> — спектр фона (нужен для активности по выделению)',
-'u.tip':'<b>Кривую выбирают у каждого спектра.</b> Сменили кривую в списке — FSA, активность и мощность дозы пересчитаются по ней. Если FSA включён без кривой, программа сама спросит, какую взять.',
+'u.tip':'<b>Кривую выбирают у каждого спектра.</b> Сменили кривую в списке — FSA, активность и мощность дозы пересчитаются по ней. Если FSA включён без кривой, вопросов не будет: отчёт FSA назовёт причину отказа, а выбранная кривая сразу пустит разбор.',
 'u.f1':'<b>«— из файла спектра»</b> — кривая, приехавшая вместе со спектром. Она может отличаться от кривой прибора с тем же именем.',
 'u.f2':'<b>Мощность дозы</b> справа в строке состояния тоже считается по выбранной кривой; для фона нужна сцена «Изотропное поле (ISO)».',
 'u.f3':'<b>«Сохранить» — обязательно.</b> Закрыть окно конфигурации и ответить «Нет» на «Сохранить?» — потерять и кривые, и посчитанные матрицы.',
@@ -556,7 +556,7 @@ GUIDE.texts({ru:{
 'u.l2':'<b>Geometry</b> — this spectrum’s curve: “(none)”, the device curves or “… - from the spectrum file”; a red “!” means its curve or response matrix is outdated',
 'u.l3':'<b>✕</b> — reset the efficiency curve of the spectrum',
 'u.l4':'<b>Background</b> — the background spectrum (needed for activity from a selection)',
-'u.tip':'<b>A curve is chosen per spectrum.</b> Change it in the list and FSA, activity and dose rate are recomputed with it. If FSA is turned on without a curve, the program asks which one to take.',
+'u.tip':'<b>A curve is chosen per spectrum.</b> Change it in the list and FSA, activity and dose rate are recomputed with it. If FSA is on without a curve, there is no question: the FSA report names the reason for the refusal, and choosing a curve starts the analysis at once.',
 'u.f1':'<b>“- from the spectrum file”</b> — the curve that came with the spectrum. It may differ from the device curve of the same name.',
 'u.f2':'<b>The dose rate</b> on the right of the status bar is also computed from the chosen curve; for background you need the “Isotropic field (ISO)” scene.',
 'u.f3':'<b>“Save” is a must.</b> Closing the configuration window and answering “No” to “Save?” loses both the curves and the computed matrices.',

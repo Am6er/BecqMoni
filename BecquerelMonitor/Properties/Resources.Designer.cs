@@ -5129,6 +5129,12 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string ContinuumNoFwhmRefusal {
+            get {
+                return ResourceManager.GetString("ContinuumNoFwhmRefusal", resourceCulture);
+            }
+        }
+
         public static string NucBase_Fluorescence {
             get {
                 return ResourceManager.GetString("NucBase.Fluorescence", resourceCulture);

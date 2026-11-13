@@ -69,6 +69,9 @@ namespace BecquerelMonitor
             this.toolStripSplitButton9 = new System.Windows.Forms.ToolStripSplitButton();
             this.showPeaksToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.hidePeaksToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSplitButtonFsa = new System.Windows.Forms.ToolStripSplitButton();
+            this.fsaOnToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.fsaOffToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripScreenShotButton = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripLabel4 = new System.Windows.Forms.ToolStripLabel();
@@ -385,6 +388,7 @@ namespace BecquerelMonitor
             this.toolStripSplitButton3,
             this.toolStripSplitButton6,
             this.toolStripSplitButton9,
+            this.toolStripSplitButtonFsa,
             this.toolStripScreenShotButton,
             this.toolStripSeparator4,
             this.toolStripLabel4,
@@ -553,6 +557,30 @@ namespace BecquerelMonitor
             this.hidePeaksToolStripMenuItem.Name = "hidePeaksToolStripMenuItem";
             resources.ApplyResources(this.hidePeaksToolStripMenuItem, "hidePeaksToolStripMenuItem");
             this.hidePeaksToolStripMenuItem.Click += new System.EventHandler(this.hidePeaksToolStripMenuItem_Click);
+            // 
+            // toolStripSplitButtonFsa
+            // 
+            this.toolStripSplitButtonFsa.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripSplitButtonFsa.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.fsaOnToolStripMenuItem,
+            this.fsaOffToolStripMenuItem});
+            this.toolStripSplitButtonFsa.Image = global::BecquerelMonitor.Properties.Resources.FSA;
+            resources.ApplyResources(this.toolStripSplitButtonFsa, "toolStripSplitButtonFsa");
+            this.toolStripSplitButtonFsa.Name = "toolStripSplitButtonFsa";
+            this.toolStripSplitButtonFsa.ButtonClick += new System.EventHandler(this.toolStripSplitButtonFsa_ButtonClick);
+            this.toolStripSplitButtonFsa.DropDownOpening += new System.EventHandler(this.toolStripSplitButtonFsa_DropDownOpening);
+            // 
+            // fsaOnToolStripMenuItem
+            // 
+            this.fsaOnToolStripMenuItem.Name = "fsaOnToolStripMenuItem";
+            resources.ApplyResources(this.fsaOnToolStripMenuItem, "fsaOnToolStripMenuItem");
+            this.fsaOnToolStripMenuItem.Click += new System.EventHandler(this.fsaOnToolStripMenuItem_Click);
+            // 
+            // fsaOffToolStripMenuItem
+            // 
+            this.fsaOffToolStripMenuItem.Name = "fsaOffToolStripMenuItem";
+            resources.ApplyResources(this.fsaOffToolStripMenuItem, "fsaOffToolStripMenuItem");
+            this.fsaOffToolStripMenuItem.Click += new System.EventHandler(this.fsaOffToolStripMenuItem_Click);
             // 
             // toolStripScreenShotButton
             // 
@@ -885,6 +913,13 @@ namespace BecquerelMonitor
 
 		// Token: 0x04000145 RID: 325
 		global::System.Windows.Forms.ToolStripMenuItem hidePeaksToolStripMenuItem;
+
+		// (`AMBER328`) Кнопка-флажок FSA справа от кнопки пиков.
+		global::System.Windows.Forms.ToolStripSplitButton toolStripSplitButtonFsa;
+
+		global::System.Windows.Forms.ToolStripMenuItem fsaOnToolStripMenuItem;
+
+		global::System.Windows.Forms.ToolStripMenuItem fsaOffToolStripMenuItem;
 
 		// Token: 0x04000146 RID: 326
 		global::System.Windows.Forms.ToolStripSplitButton toolStripSplitButton10;

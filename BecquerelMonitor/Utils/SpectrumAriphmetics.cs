@@ -755,8 +755,22 @@ namespace BecquerelMonitor.Utils
             return normalizedSpectrum;
         }
 
+        /// <summary>
+        /// Континуум SNIP. ⚠ (`AMBER328`, находка Н2 полосы a328) Окно SNIP строится по
+        /// ширине пика (<see cref="FWHM"/>), и без калибровки FWHM континуума НЕТ:
+        /// возвращается null, а не исключение (прежде — `NullReferenceException` в
+        /// <see cref="FWHM"/>, и график с режимом «континуум» ронял приложение).
+        /// Подставлять ширину нельзя — подложка на выдуманной ширине неотличима от
+        /// настоящей. Причину называет вызывающий: график —
+        /// `EnergySpectrumView.ContinuumRefusal`, FSA — свой отказ входа
+        /// (`FsaAnalyzer.Analyze` без FWHM отказывает раньше SNIP).
+        /// </summary>
         public EnergySpectrum Continuum(List<Peak> peaks = null, double coeff = 1.0, double peakWidthWidenFactor = DefaultPeakWidthWidenFactor)
         {
+            if (this.FwhmCalibration == null || this.EnergySpectrum == null)
+            {
+                return null;
+            }
             this.peakWidthWidenFactor = IsFinite(peakWidthWidenFactor) && peakWidthWidenFactor >= 1.0
                 ? peakWidthWidenFactor
                 : DefaultPeakWidthWidenFactor;

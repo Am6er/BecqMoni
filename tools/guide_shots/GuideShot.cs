@@ -21,7 +21,10 @@
 //
 // Выход: <out>\<имя>.png (кадр окна и вырезки панелей) и <out>\<scene>.txt — тексты
 // всех элементов окна (подписи, поля, списки, строки таблиц): по ним `check.py` ищет
-// личное без распознавания картинки. Коды возврата: 0 — снято; 2 — доводы; 3 — окно
+// личное без распознавания картинки. У снимков с пунктами полосы под графиком
+// (`spectrum-bar`, `view-modes`, `fsa-button`, кадры главного окна) — ещё
+// <out>\<имя>.hot.txt: прямоугольники пунктов долями кадра, из них берутся точки
+// `data-hot` страниц гида (`AMBER328`). Коды возврата: 0 — снято; 2 — доводы; 3 — окно
 // не дождались; 4 — разбор не завершился; 5 — поднялось модальное окно (текст в журнал);
 // 6 — исключение.
 using System;
@@ -305,11 +308,18 @@ static class GuideShot
         });
         Say("сет: " + set);
 
-        // 2. Режим FSA графика — обработчик пункта «Показать FSA» выпадающего списка фона.
+        // 2. Режим FSA графика — кнопка-флажок FSA справа от кнопки пиков (`AMBER328`):
+        //    обработчик её щелчка. Пункт «Показать FSA» списка фона виден, но недоступен,
+        //    и человек его не нажмёт. Кнопка включает FSA только при включённых пиках
+        //    (в конфиге гида `DefaultPeakMode=Visible`); не включила — отказ, а не снимок
+        //    без FSA. Галочку FSA приложение пишет в конфиг КОПИИ (`<Work>\app\config`),
+        //    а `make_copy.py stage` перед каждой сценой кладёт конфиг заново.
         if (fsa)
         {
-            Ui(mf, () => Call(doc, "ShowFsaToolStripMenuItem_Click", null, EventArgs.Empty));
-            Say("режим графика: FSA");
+            Ui(mf, () => Call(doc, "toolStripSplitButtonFsa_ButtonClick", null, EventArgs.Empty));
+            string mode = Ui(mf, () => doc.EnergySpectrumView.BackgroundMode + "/" + doc.EnergySpectrumView.PeakMode);
+            if (mode != "ShowFSA/Visible") throw new InvalidOperationException("кнопка FSA не включила режим: фон/пики " + mode);
+            Say("режим графика: FSA (кнопка FSA), фон/пики " + mode);
         }
 
         // 3. Дождаться поиска пиков и разбора: сеанс не считает, результат есть, и так
@@ -346,6 +356,11 @@ static class GuideShot
         Thread.Sleep(500);
 
         Ui(mf, () => Shoot(mf, doc));
+
+        // Раскрытые списки кнопок полосы под графиком (`AMBER328`): список режимов фона —
+        // у главного снимка, список кнопки FSA (FSA включён) — у снимка FSA.
+        if (scene == "main") ShootDropDown(mf, doc, "toolStripSplitButtonBgMode", "view-modes");
+        else if (scene == "main-fsa") ShootDropDown(mf, doc, "toolStripSplitButtonFsa", "fsa-button");
 
         // Вырезки панелей из того же состояния окна (прежние снимки гида, раскладка та же).
         if (scene == "main")
@@ -534,6 +549,57 @@ static class GuideShot
         r.Intersect(new Rectangle(0, 0, shot.Width, shot.Height));
         using (Bitmap crop = shot.Clone(r, PixelFormat.Format24bppRgb)) Save(crop, name);
         Say("вырезка " + name + ": " + r);
+        WriteHot(name, new Rectangle(r.X + origin.X, r.Y + origin.Y, r.Width, r.Height), PaneItems(content));
+    }
+
+    /// <summary>
+    /// Элементы панели дока для точек `data-hot` (Н8 полосы a328c): видимые именованные
+    /// элементы и, у таблиц XPTable, шапки колонок и строки (только видимые в окне таблицы),
+    /// с прямоугольниками на экране.
+    /// </summary>
+    static List<KeyValuePair<string, Rectangle>> PaneItems(Control root)
+    {
+        var items = new List<KeyValuePair<string, Rectangle>>();
+        WalkPane(root, items, 0);
+        return items;
+    }
+
+    static void WalkPane(Control c, List<KeyValuePair<string, Rectangle>> items, int depth)
+    {
+        foreach (Control child in c.Controls)
+        {
+            if (!child.Visible) continue;
+            string text = (child.Text ?? "").Replace("\r", " ").Replace("\n", " ");
+            if (text.Length > 60) text = text.Substring(0, 60) + "…";
+            if (!string.IsNullOrEmpty(child.Name))
+                items.Add(new KeyValuePair<string, Rectangle>(new string(' ', depth * 2) + child.GetType().Name + ":" + child.Name + " «" + text + "»",
+                                                              c.RectangleToScreen(child.Bounds)));
+            var table = child as XPTable.Models.Table;
+            if (table != null && table.ColumnModel != null && table.TableModel != null)
+            {
+                Rectangle client = table.ClientRectangle;
+                for (int i = 0; i < table.ColumnModel.Columns.Count; i++)
+                {
+                    Rectangle h = table.ColumnHeaderRect(i);
+                    if (h.IsEmpty) continue;
+                    items.Add(new KeyValuePair<string, Rectangle>(new string(' ', depth * 2 + 2) + "шапка[" + i + "] «" + table.ColumnModel.Columns[i].Text + "»",
+                                                                  table.RectangleToScreen(h)));
+                }
+
+                for (int i = 0; i < table.TableModel.Rows.Count; i++)
+                {
+                    Rectangle row = table.RowRect(i);
+                    if (row.IsEmpty || !row.IntersectsWith(client)) continue;
+                    var cells = table.TableModel.Rows[i].Cells;
+                    string first = cells.Count > 0 && cells[0] != null ? cells[0].Text : "";
+                    string last = cells.Count > 1 && cells[cells.Count - 1] != null ? cells[cells.Count - 1].Text : "";
+                    items.Add(new KeyValuePair<string, Rectangle>(new string(' ', depth * 2 + 2) + "строка[" + i + "] «" + first + "» | «" + last + "»",
+                                                                  table.RectangleToScreen(Rectangle.Intersect(row, client))));
+                }
+            }
+
+            WalkPane(child, items, depth + 1);
+        }
     }
 
     static void ShootPanel(MainForm mf, string name)
@@ -548,7 +614,13 @@ static class GuideShot
         using (Bitmap shot = Capture(mf, out origin))
         {
             Save(shot, scene);
-            if (scene == "main") SavePanel(mf, shot, origin, "panel-control");
+            // Пункты полосы под графиком — доли кадра окна (точки `data-hot` страниц гида).
+            WriteHot(scene + ".bar", new Rectangle(origin, shot.Size), BarItems(doc));
+            if (scene == "main")
+            {
+                SavePanel(mf, shot, origin, "panel-control");
+                SaveBar(doc, shot, origin, "spectrum-bar");
+            }
             else LogStaleMarks(Field(mf, "dcControlPanel"));
             if (scene == "main-fsa")
             {
@@ -561,6 +633,135 @@ static class GuideShot
         dump.Append("[окно] ").Append(mf.Text).Append("\r\n");
         DumpTexts(mf, dump, 0);
         File.WriteAllText(Path.Combine(outDir, scene + ".txt"), dump.ToString(), new UTF8Encoding(false));
+    }
+
+    /// <summary>
+    /// Пункты обеих полос под графиком (`toolStrip1` — оси, `toolStrip2` — просмотр и правка)
+    /// по порядку, с прямоугольниками на экране. Имя — поле формы и подсказка/текст пункта.
+    /// </summary>
+    static List<KeyValuePair<string, Rectangle>> BarItems(DocEnergySpectrum doc)
+    {
+        var items = new List<KeyValuePair<string, Rectangle>>();
+        foreach (string field in new[] { "toolStrip1", "toolStrip2" })
+        {
+            var strip = (ToolStrip)Field(doc, field);
+            foreach (ToolStripItem it in strip.Items)
+            {
+                if (!it.Visible) continue;
+                string text = !string.IsNullOrEmpty(it.ToolTipText) ? it.ToolTipText : it.Text;
+                items.Add(new KeyValuePair<string, Rectangle>(field + "." + it.Name + (it.Enabled ? "" : " (недоступен)") + " «" + (text ?? "").Replace("\r", " ").Replace("\n", " ") + "»",
+                                                              strip.RectangleToScreen(it.Bounds)));
+            }
+        }
+
+        return items;
+    }
+
+    /// <summary>
+    /// Точки `data-hot` снимка: каждый пункт — доли кадра [x, y, w, h] (4 знака, точка), в
+    /// <c>&lt;out&gt;\&lt;имя&gt;.hot.txt</c>. <paramref name="crop"/> — рамка снимка на экране.
+    /// Точки гида считаются отсюда, а не на глаз (`AMBER328`).
+    /// </summary>
+    static void WriteHot(string name, Rectangle crop, IEnumerable<KeyValuePair<string, Rectangle>> items)
+    {
+        var sb = new StringBuilder();
+        sb.Append("# ").Append(name).Append(": кадр ").Append(crop.Width).Append("x").Append(crop.Height)
+          .Append(", пункт: доли кадра [x, y, w, h] и точки\r\n");
+        foreach (KeyValuePair<string, Rectangle> kv in items)
+        {
+            Rectangle r = kv.Value;
+            sb.Append(string.Format(CultureInfo.InvariantCulture, "[{0:F4},{1:F4},{2:F4},{3:F4}]\t{4},{5} {6}x{7}\t{8}\r\n",
+                (double)(r.X - crop.X) / crop.Width, (double)(r.Y - crop.Y) / crop.Height,
+                (double)r.Width / crop.Width, (double)r.Height / crop.Height,
+                r.X - crop.X, r.Y - crop.Y, r.Width, r.Height, kv.Key));
+        }
+
+        File.WriteAllText(Path.Combine(outDir, name + ".hot.txt"), sb.ToString(), new UTF8Encoding(false));
+    }
+
+    /// <summary>
+    /// Полоса под графиком целиком (`spectrum-bar` гида, глава 5): нижняя панель полос окна
+    /// документа — оси, просмотр и правка, с пустым хвостом до правого края документа.
+    /// </summary>
+    static void SaveBar(DocEnergySpectrum doc, Bitmap shot, Point origin, string name)
+    {
+        var container = (ToolStripContainer)Field(doc, "toolStripContainer1");
+        Control panel = container.BottomToolStripPanel;
+        Rectangle screen = panel.RectangleToScreen(panel.ClientRectangle);
+        Rectangle r = screen;
+        r.Offset(-origin.X, -origin.Y);
+        r.Intersect(new Rectangle(0, 0, shot.Width, shot.Height));
+        using (Bitmap crop = shot.Clone(r, PixelFormat.Format24bppRgb)) Save(crop, name);
+        Say("вырезка " + name + ": " + r);
+        WriteHot(name, screen, BarItems(doc));
+    }
+
+    /// <summary>
+    /// Раскрытый список кнопки полосы под графиком (`AMBER328`: `view-modes` — режимы фона,
+    /// `fsa-button` — кнопка FSA). Список раскрывает `ShowDropDown` (событие открытия —
+    /// то же, что у щелчка по стрелке: доступность и галочки пунктов ставит приложение).
+    /// Всплывающее окно списка — своё окно верхнего уровня: `PrintWindow` главного окна его
+    /// не рисует, поэтому оно снимается отдельным кадром и кладётся на кадр окна по своему
+    /// месту на экране (так снят прежний `view-modes`, журнал 07.11.2026, Н5). Вырезка — от
+    /// подписи «Просмотр:» до правого края списка или полосы, сверху — над списком.
+    /// </summary>
+    static void ShootDropDown(MainForm mf, DocEnergySpectrum doc, string buttonField, string name)
+    {
+        var button = (ToolStripDropDownItem)Ui(mf, () => Field(doc, buttonField));
+        Ui(mf, () => button.ShowDropDown());
+        Thread.Sleep(1200);
+        CheckDialogs();
+        Ui(mf, () =>
+        {
+            ToolStripDropDown dd = button.DropDown;
+            if (!dd.Visible) throw new InvalidOperationException("список кнопки " + buttonField + " не раскрылся");
+            Rectangle ddScreen = dd.Bounds;
+            Point origin;
+            using (Bitmap shot = Capture(mf, out origin))
+            {
+                using (var pop = new Bitmap(ddScreen.Width, ddScreen.Height, PixelFormat.Format32bppArgb))
+                {
+                    using (Graphics g = Graphics.FromImage(pop))
+                    {
+                        g.Clear(Color.White);
+                        IntPtr hdc = g.GetHdc();
+                        bool ok = PrintWindow(dd.Handle, hdc, 2);
+                        g.ReleaseHdc(hdc);
+                        if (!ok) throw new InvalidOperationException("PrintWindow списка отказал");
+                    }
+
+                    using (Graphics g = Graphics.FromImage(shot)) g.DrawImageUnscaled(pop, ddScreen.X - origin.X, ddScreen.Y - origin.Y);
+                }
+
+                ToolStrip strip = button.Owner;
+                Rectangle label = strip.RectangleToScreen(((ToolStripItem)Field(doc, "toolStripLabel2")).Bounds);
+                Rectangle last = strip.RectangleToScreen(strip.Items[strip.Items.Count - 1].Bounds);
+                Rectangle stripScreen = strip.RectangleToScreen(strip.ClientRectangle);
+                Rectangle screen = Rectangle.FromLTRB(Math.Min(label.Left, ddScreen.Left) - 6, ddScreen.Top - 10,
+                                                      Math.Max(ddScreen.Right, last.Right) + 10, stripScreen.Bottom + 1);
+                Rectangle r = screen;
+                r.Offset(-origin.X, -origin.Y);
+                r.Intersect(new Rectangle(0, 0, shot.Width, shot.Height));
+                screen = new Rectangle(r.X + origin.X, r.Y + origin.Y, r.Width, r.Height);
+                using (Bitmap crop = shot.Clone(r, PixelFormat.Format24bppRgb)) Save(crop, name);
+                Say("вырезка " + name + ": " + r + ", список " + ddScreen);
+
+                var items = new List<KeyValuePair<string, Rectangle>>();
+                items.Add(new KeyValuePair<string, Rectangle>(buttonField, strip.RectangleToScreen(((ToolStripItem)button).Bounds)));
+                foreach (ToolStripItem it in dd.Items)
+                {
+                    var menu = it as ToolStripMenuItem;
+                    string state = (it.Enabled ? "" : " (недоступен)") + (menu != null && menu.Checked ? " (галочка)" : "");
+                    items.Add(new KeyValuePair<string, Rectangle>(it.Name + state + " «" + it.Text + "»", dd.RectangleToScreen(it.Bounds)));
+                    Say("пункт " + it.Name + state + ": " + it.Text);
+                }
+
+                WriteHot(name, screen, items);
+            }
+
+            button.HideDropDown();
+        });
+        Thread.Sleep(500);
     }
 
     // ------------------------------------------------------------------------------------
