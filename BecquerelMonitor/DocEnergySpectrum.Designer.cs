@@ -564,7 +564,7 @@ namespace BecquerelMonitor
             this.toolStripSplitButtonFsa.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fsaOnToolStripMenuItem,
             this.fsaOffToolStripMenuItem});
-            this.toolStripSplitButtonFsa.Image = global::BecquerelMonitor.Properties.Resources.FSA;
+            this.toolStripSplitButtonFsa.Image = global::BecquerelMonitor.Properties.Resources.FSAToggle;
             resources.ApplyResources(this.toolStripSplitButtonFsa, "toolStripSplitButtonFsa");
             this.toolStripSplitButtonFsa.Name = "toolStripSplitButtonFsa";
             this.toolStripSplitButtonFsa.ButtonClick += new System.EventHandler(this.toolStripSplitButtonFsa_ButtonClick);
