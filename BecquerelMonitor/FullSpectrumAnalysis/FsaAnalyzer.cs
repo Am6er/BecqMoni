@@ -6941,6 +6941,152 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return this.crystalOwnFixedCounts;
         }
 
+        /// <summary>
+        /// (`AMBER274`, полоса `a274g`, критик `crit274g`) Отсчёты слоя по каналам на шкале привязки
+        /// (<paramref name="gain"/>, <paramref name="offsetChannels"/> — как у <see cref="FsaResult.Gain"/> и
+        /// <see cref="FsaResult.OffsetChannels"/>): то, что разбор на этой шкале на деле вычел из данных. null — слоя не было.
+        /// </summary>
+        public double[] CrystalOwnFixedCountsAt(double gain, double offsetChannels)
+        {
+            return this.crystalOwnFixedCounts == null ? null : this.CrystalOwnLayerAt(gain, offsetChannels);
+        }
+
+        /// <summary>
+        /// (`AMBER274`, `a274g`) Что нужно, чтобы построить слой заново на другой шкале: гистограммы природных
+        /// записей с множителем «активность × живое время» и гистограммы свободных колонок (на 1 Бк·с), полоса и
+        /// порог прибора — те же, что у <see cref="PrepareCrystalOwn"/>. null — слоя нет.
+        /// </summary>
+        CrystalOwnScaleSource crystalOwnSource;
+
+        sealed class CrystalOwnScaleSource
+        {
+            public EnergyCalibration Calibration;
+            public FwhmCalibration FwhmCalibration;
+            public double BinKev;
+            public int ChLo, ChHi, Channels, FirstSeen;
+            public double LiveTime;
+            public readonly List<KeyValuePair<double[], double>> Fixed = new List<KeyValuePair<double[], double>>();
+            public readonly Dictionary<FsaComponent, double[]> Free = new Dictionary<FsaComponent, double[]>();
+        }
+
+        /// <summary>
+        /// (`AMBER274`, `a274g`, критик `crit274g`) СЛОЙ НА ШКАЛЕ ПРИВЯЗКИ. Природная часть слоя вычитается из
+        /// данных до фита (<see cref="PrepareCrystalOwn"/>) на шкале спектра, а образы модели строятся на найденных
+        /// усилении и нуле. Замер `crit274g`: при шкале спектра ×1.005 образы уезжали за данными, слой оставался —
+        /// d La-138 +6.75 / +7.25 кэВ. Здесь слой строится тем же уширением на той же шкале, что и образы.
+        ///
+        /// ⛔ Строится заново на КАЖДЫЙ вызов, без кэша (`crit274g2`). Уширение зависит не только от усиления и нуля:
+        /// ещё от световой координаты, множителя ширины образов (`ImageFwhm`) и карты «adc» (`DepositChannels`), и кэш с
+        /// неполным ключом отдавал устаревший слой (у Eu152 до 152.6 отсчёта в канале, z Eu-152 72.67 против 72.80).
+        /// </summary>
+        double[] CrystalOwnLayerAt(double gain, double offset)
+        {
+            CrystalOwnScaleSource source = this.crystalOwnSource;
+            if (source == null)
+            {
+                return null;
+            }
+
+            var counts = new double[source.Channels];
+            foreach (KeyValuePair<double[], double> entry in source.Fixed)
+            {
+                double[] broadened = this.BroadenResponseDeposit(entry.Key, source.Calibration, source.FwhmCalibration,
+                                                                 source.BinKev, gain, offset, source.ChLo, source.ChHi, source.Channels);
+                if (broadened == null)
+                {
+                    continue;
+                }
+
+                for (int i = Math.Min(source.FirstSeen, broadened.Length); i < source.Channels && i < broadened.Length; i++)
+                {
+                    counts[i] += broadened[i] * entry.Value;
+                }
+            }
+
+            return counts;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, `a274g`) Данные фита на шкале (усиление, нуль): <paramref name="y"/> уже без слоя шкалы
+        /// спектра, сюда возвращается он и вычитается слой этой шкалы. Без слоя — <paramref name="y"/> как есть
+        /// (путь побитно прежний).
+        /// </summary>
+        double[] CrystalOwnDataAt(double[] y, double gain, double offset)
+        {
+            if (this.crystalOwnFixedCounts == null || this.crystalOwnSource == null || y == null)
+            {
+                return y;
+            }
+
+            double[] shift = this.CrystalOwnSubtractedShift(gain, offset);
+            if (shift == null)
+            {
+                return y;
+            }
+
+            var adjusted = (double[])y.Clone();
+            for (int i = 0; i < adjusted.Length && i < shift.Length; i++)
+            {
+                adjusted[i] -= shift[i];
+            }
+
+            return adjusted;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, `a274g`, `crit274g2`) На сколько вычтенное из сырых данных на шкале (усиление, нуль) больше
+        /// вычтенного при подготовке: слой(g, o) − слой подготовки. Ожидание сырого отсчёта μ̂ = модель + вычтенное
+        /// (веса Пирсона, порог Хубера, отчётные веса, `LastFitSubtracted`) обязано нести тот же слой, что и данные
+        /// фита. null — слоя нет (путь побитно прежний).
+        /// </summary>
+        double[] CrystalOwnSubtractedShift(double gain, double offset)
+        {
+            if (this.crystalOwnFixedCounts == null || this.crystalOwnSource == null)
+            {
+                return null;
+            }
+
+            double[] layer = this.CrystalOwnLayerAt(gain, offset);
+            if (layer == null)
+            {
+                return null;
+            }
+
+            var shift = new double[layer.Length];
+            for (int i = 0; i < shift.Length && i < this.crystalOwnFixedCounts.Length; i++)
+            {
+                shift[i] = layer[i] - this.crystalOwnFixedCounts[i];
+            }
+
+            return shift;
+        }
+
+        /// <summary>(`AMBER274`, `a274g`) Образ свободной колонки слоя на шкале (усиление, нуль); null — колонка не слоя.</summary>
+        double[] CrystalOwnFreeTemplateAt(FsaComponent component, double gain, double offset)
+        {
+            CrystalOwnScaleSource source = this.crystalOwnSource;
+            double[] perDecay;
+            if (source == null || component == null || !source.Free.TryGetValue(component, out perDecay))
+            {
+                return null;
+            }
+
+            double[] broadened = this.BroadenResponseDeposit(perDecay, source.Calibration, source.FwhmCalibration,
+                                                             source.BinKev, gain, offset, source.ChLo, source.ChHi, source.Channels);
+            if (broadened == null)
+            {
+                return null;
+            }
+
+            var template = new double[source.Channels];
+            for (int i = Math.Min(source.FirstSeen, broadened.Length); i < source.Channels && i < broadened.Length; i++)
+            {
+                template[i] = broadened[i] * source.LiveTime;
+            }
+
+            return template;
+        }
+
         /// <summary>(`AMBER274`, `Д2`) Почему раздел электрона не взят (`None` — взят).</summary>
         public EfficiencyMaker.ElectronSectionRefusal SampleBetaRefusal { get; set; } = EfficiencyMaker.ElectronSectionRefusal.Missing;
 
@@ -13576,6 +13722,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.crystalOwnFixedCounts = null;
             this.crystalOwnFreeColumns = null;
             this.crystalOwnFreeTemplates = null;
+            this.crystalOwnSource = null;
             this.CrystalOwnResults = null;
             this.CrystalOwnNote = null;
             if (this.CrystalOwnLayer && this.CrystalOwnSection != null && this.CrystalOwnSection.Count > 0)
@@ -18092,6 +18239,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             double[] r = fit.Residual, v = fit.Variance, model = fit.Model;
             double[] subtracted = this.reportNoise != null ? this.reportNoise.Subtracted : null;
+            // (`AMBER274`, `a274g`) вычтенный слой — на шкале результата, как и данные фита; без слоя побитно прежнее
+            double[] ownShift = subtracted != null ? this.CrystalOwnSubtractedShift(result.Gain, result.OffsetChannels) : null;
+            if (ownShift != null)
+            {
+                subtracted = (double[])subtracted.Clone();
+                for (int i = 0; i < subtracted.Length && i < ownShift.Length; i++)
+                {
+                    subtracted[i] += ownShift[i];
+                }
+            }
             int lo = Math.Max(chLo, result.ResidualFloorChannel);
             int hi = Math.Min(chHi, Math.Min(channels, Math.Min(r.Length, Math.Min(v.Length, model.Length))) - 1);
             if (lo >= hi)
@@ -19078,6 +19235,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.LastFitResidual = fit.Residual;
             this.LastFitModel = fit.Model;
             this.LastFitSubtracted = this.reportNoise != null ? this.reportNoise.Subtracted : null;
+            // (`AMBER274`, `a274g`) `сырой = y + это` — y фита стоит на шкале результата, и вычтенный слой тоже
+            double[] ownShiftResult = this.LastFitSubtracted != null ? this.CrystalOwnSubtractedShift(gain, offset) : null;
+            if (ownShiftResult != null)
+            {
+                double[] shifted = (double[])this.LastFitSubtracted.Clone();
+                for (int i = 0; i < shifted.Length && i < ownShiftResult.Length; i++)
+                {
+                    shifted[i] += ownShiftResult[i];
+                }
+
+                this.LastFitSubtracted = shifted;
+            }
+
             this.LastFitFirstChannel = chLo;
             this.LastFitLastChannel = chHi;
 
@@ -20984,6 +21154,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                            List<FsaComponent> subset)
         {
             this.CoreCheckpoint();
+            // (`AMBER274`, `a274g`) слой собственной активности — на шкале образов: и данные, и ожидание сырого
+            // отсчёта μ̂ = модель + вычтенное (`crit274g2`); без слоя y как есть, сдвиг null
+            double[] ownShift = this.CrystalOwnSubtractedShift(gain, offset);
+            y = this.CrystalOwnDataAt(y, gain, offset);
             double[] weights = (double[])baseWeights.Clone();
             // Дисперсия, от которой берутся вес `1/σ²` и порог Хубера `m·σ`
             // ТЕКУЩЕГО перевзвешивания: по данным — поданная `variance`; по
@@ -21032,7 +21206,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 if (pearson)
                 {
-                    scale = this.ModelVariance(best, variance, chLo, chHi);
+                    scale = this.ModelVariance(best, variance, chLo, chHi, ownShift);
                 }
 
                 // (`AMBER65`, П136) Сумм-область колонки наложений — вне
@@ -21058,7 +21232,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     thresholdScale = (double[])scale.Clone();
                     for (int i = chLo; i <= chHi; i++)
                     {
-                        double mu = best.Model[i] + (subtracted != null ? subtracted[i] : 0.0);
+                        double mu = best.Model[i] + (subtracted != null ? subtracted[i] : 0.0)
+                                    + (subtracted != null && ownShift != null ? ownShift[i] : 0.0);
                         if (mu > 0.0)
                         {
                             thresholdScale[i] += gamma2 * mu * mu;
@@ -21128,7 +21303,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // (<see cref="reportNoise"/>), то есть без составного шума
                 // `S43`. Гейты остаются на `reportWeights`: им нужна мерка,
                 // общая для двух сравниваемых моделей.
-                double[] report = this.ReportWeights(best, reportWeights, chLo, chHi);
+                double[] report = this.ReportWeights(best, reportWeights, chLo, chHi, ownShift);
                 double chi2Base = 0.0;
                 double dataWeighted = 0.0;
 
@@ -21318,7 +21493,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// ни пределы не читаются. Массив — НОВЫЙ на каждый проход: поданная
         /// `variance` живёт у вызывающего и другим фитам нужна нетронутой.
         /// </summary>
-        double[] ModelVariance(FitResult fit, double[] variance, int chLo, int chHi)
+        double[] ModelVariance(FitResult fit, double[] variance, int chLo, int chHi, double[] ownShift = null)
         {
             double[] v = (double[])variance.Clone();
             NoiseTerms terms = this.noiseTerms;
@@ -21329,7 +21504,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             for (int i = chLo; i <= chHi; i++)
             {
-                double mu = fit.Model[i] + terms.Subtracted[i];
+                // (`a274g`) слой на шкале фита — в вычтенном (без слоя ownShift == null, побитно прежнее)
+                double mu = fit.Model[i] + terms.Subtracted[i] + (ownShift != null ? ownShift[i] : 0.0);
                 v[i] = Math.Max(mu, 1.0) + terms.Extra[i];
             }
 
@@ -21369,7 +21545,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// не считает. Молча оставить ему пол значило бы вернуть ровно то
         /// смещение, ради которого пол и снят.
         /// </summary>
-        double[] ReportWeights(FitResult fit, double[] report, int chLo, int chHi)
+        double[] ReportWeights(FitResult fit, double[] report, int chLo, int chHi, double[] ownShift = null)
         {
             NoiseTerms terms = this.reportNoise;
             if (!this.ReportModelWeights || fit == null || fit.Model == null || terms == null)
@@ -21380,7 +21556,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] w = (double[])report.Clone();
             for (int i = chLo; i <= chHi; i++)
             {
-                double mu = fit.Model[i] + terms.Subtracted[i];
+                // (`a274g`) слой на шкале фита — в вычтенном (без слоя ownShift == null, побитно прежнее)
+                double mu = fit.Model[i] + terms.Subtracted[i] + (ownShift != null ? ownShift[i] : 0.0);
                 double variance = mu + terms.Extra[i];
                 w[i] = PositiveFinite(variance) ? 1.0 / variance : 0.0;
             }
@@ -21987,6 +22164,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                           double[] y, double[] weights, List<FsaComponent> subset)
         {
             this.CoreCheckpoint();
+            // (`AMBER274`, `a274g`) слой собственной активности — на шкале образов; без слоя y как есть
+            y = this.CrystalOwnDataAt(y, gain, offset);
             bool fromMatrix;
             List<FitColumn> columns = this.BuildFitColumns(library, fixedColumns, calibration, fwhmCalibration,
                                                            efficiency, gain, offset, chLo, chHi, channels,
@@ -22058,13 +22237,28 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[][] tails = new double[count][];
             List<FsaLine>[] notes = new List<FsaLine>[count];
             double bin = this.ResponseMatrix != null ? this.ResponseMatrix.BinKev : 0.0;
+            // (`AMBER274`, `a274g`) свободная колонка слоя (Ac-227) — гистограмма прибора, и строится на шкале
+            // образов, а не на шкале спектра; прочие готовые образы — как прежде. Подряд, до параллельной части.
+            double[][] ownFree = null;
+            if (this.crystalOwnSource != null && this.crystalOwnSource.Free.Count > 0)
+            {
+                ownFree = new double[count][];
+                for (int i = 0; i < count; i++)
+                {
+                    if (route[i] == 0)
+                    {
+                        ownFree[i] = this.CrystalOwnFreeTemplateAt(chosen[i], gain, offset);
+                    }
+                }
+            }
+
             FsaParallel.For(count, i =>
             {
                 FsaComponent component = chosen[i];
                 if (route[i] == 0)
                 {
                     // Готовый образ (наложения): ни линий, ни дрейфа.
-                    templates[i] = component.FixedTemplate;
+                    templates[i] = ownFree != null && ownFree[i] != null ? ownFree[i] : component.FixedTemplate;
                 }
                 else if (route[i] == 1)
                 {
@@ -23429,8 +23623,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         ///
         /// Уширение — тем же движением, что у образов по матрице
         /// (<see cref="BroadenResponseDeposit"/>): гистограмма слоя живёт на сетке
-        /// матрицы, а шкала прибора — своя. Дрейф сетки к слою не применяется: он
-        /// не образ нуклида, а измеренная часть прибора, и стоит в своей шкале.
+        /// матрицы, а шкала прибора — своя. Здесь слой строится на шкале спектра (усиление 1, нуль 0) и
+        /// вычитается до фита; на шкале привязки его заново строит <see cref="CrystalOwnLayerAt"/> — фит
+        /// (<see cref="FitOnce"/>, <see cref="FitHuber"/>) вычитает слой той шкалы, на которой стоят образы.
+        /// Прежняя редакция («дрейф сетки к слою не применяется, слой стоит в своей шкале») опровергнута
+        /// замером `crit274g` 13.11.2026: при шкале спектра ×1.005 образы уезжали за данными, слой — нет.
         /// </summary>
         void PrepareCrystalOwn(EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
                                int channels, double liveTime, int chLo, int chHi, int[] raw)
@@ -23453,6 +23650,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var free = new List<FsaComponent>();
             var notes = new List<string>();
             bool anyFixed = false;
+            // (`AMBER274`, `a274g`) источник слоя для шкалы привязки (<see cref="CrystalOwnLayerAt"/>)
+            var scaleSource = new CrystalOwnScaleSource
+            {
+                Calibration = calibration,
+                FwhmCalibration = fwhmCalibration,
+                BinKev = section.BinKev,
+                ChLo = chLo,
+                ChHi = chHi,
+                Channels = channels,
+                FirstSeen = firstSeen,
+                LiveTime = liveTime,
+            };
 
             foreach (EfficiencyMaker.CrystalOwnEntry entry in section.Entries)
             {
@@ -23486,6 +23695,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         WeightsAreFinal = true,
                     };
                     free.Add(column);
+                    scaleSource.Free[column] = entry.PerDecay;
                     if (this.crystalOwnFreeTemplates == null)
                     {
                         this.crystalOwnFreeTemplates = new Dictionary<string, double[]>(StringComparer.Ordinal);
@@ -23509,6 +23719,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 double scale = entry.ActivityBq * liveTime;
+                scaleSource.Fixed.Add(new KeyValuePair<double[], double>(entry.PerDecay, scale));
                 double sum = 0.0;
                 for (int i = 0; i < channels; i++)
                 {
@@ -23536,6 +23747,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             this.crystalOwnFixedCounts = anyFixed ? fixedCounts : null;
             this.crystalOwnFreeColumns = free.Count > 0 ? free : null;
+            this.crystalOwnSource = anyFixed || free.Count > 0 ? scaleSource : null;
             this.CrystalOwnResults = results;
             this.CrystalOwnNote = notes.Count > 0 ? string.Join("; ", notes.ToArray()) : null;
         }
@@ -23585,6 +23797,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     || !this.crystalOwnFreeTemplates.TryGetValue(row.Nuclide, out template))
                 {
                     continue;
+                }
+
+                // (`AMBER274`, `a274g`) кривая колонки построена на шкале привязки результата — и образ для
+                // пересчёта в Бк берётся на той же шкале (`CrystalOwnFreeTemplateAt`)
+                if (this.crystalOwnFreeColumns != null)
+                {
+                    foreach (FsaComponent column in this.crystalOwnFreeColumns)
+                    {
+                        if (column != null && string.Equals(column.Name, CrystalOwnFreeName + row.Nuclide, StringComparison.Ordinal))
+                        {
+                            template = this.CrystalOwnFreeTemplateAt(column, result.Gain, result.OffsetChannels) ?? template;
+                            break;
+                        }
+                    }
                 }
 
                 // Сумма образа — по тем же каналам, что и кривая колонки: образ шире полосы фита
