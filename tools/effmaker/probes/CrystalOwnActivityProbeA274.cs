@@ -66,6 +66,7 @@ namespace CrystalOwnActivityProbeA274
         static int matrixNodes = 16;
         static int matrixHistories = 20000;
         static string cacheDir;
+        static readonly HashSet<string> armFilter = new HashSet<string>(StringComparer.Ordinal);
 
         [STAThread]
         static int Main(string[] args)
@@ -181,6 +182,14 @@ namespace CrystalOwnActivityProbeA274
                     }
 
                     nuclidesGiven = nuclides.Count > 0;
+                }
+                else if (a.StartsWith("--arms=", StringComparison.Ordinal))
+                {
+                    // (`a274t`) только плечи с этими номерами (с нуля, порядок таблицы)
+                    foreach (string part in a.Substring(7).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        armFilter.Add(part.Trim());
+                    }
                 }
                 else if (a.StartsWith("--scenes=", StringComparison.Ordinal))
                 {
@@ -303,6 +312,34 @@ namespace CrystalOwnActivityProbeA274
             if (mode == "clambda")
             {
                 CoulombKeyChecks(histories);
+                Console.WriteLine();
+                Console.WriteLine(bad == 0 ? "ВСЁ СОШЛОСЬ" : "НЕ СОШЛОСЬ: " + bad.ToString(CultureInfo.InvariantCulture));
+                return bad == 0 ? 0 : 1;
+            }
+
+            if (mode == "kpeak")
+            {
+                // (`a274t`) ширина K-пика слоя у 37 кэВ: подгонка, синтетика, мутант
+                ResponseMatrix kMatrix = Matrix(lanthanum, matrixMode);
+                KPeakChecks(spectrumPath, useBackground, lanthanum, kMatrix, histories);
+                Console.WriteLine();
+                Console.WriteLine(bad == 0 ? "ВСЁ СОШЛОСЬ" : "НЕ СОШЛОСЬ: " + bad.ToString(CultureInfo.InvariantCulture));
+                return bad == 0 ? 0 : 1;
+            }
+
+            if (mode == "recipe")
+            {
+                // (`a274t`) клеймо раздела слоя с версией рецепта
+                RecipeChecks(lanthanum, Math.Min(histories, 20000));
+                Console.WriteLine();
+                Console.WriteLine(bad == 0 ? "ВСЁ СОШЛОСЬ" : "НЕ СОШЛОСЬ: " + bad.ToString(CultureInfo.InvariantCulture));
+                return bad == 0 ? 0 : 1;
+            }
+
+            if (mode == "sphere")
+            {
+                // (`a274t`) λ заряженной сферы: решатель, сходимость, средние к базе, мутант точечного ядра
+                SphereChecks();
                 Console.WriteLine();
                 Console.WriteLine(bad == 0 ? "ВСЁ СОШЛОСЬ" : "НЕ СОШЛОСЬ: " + bad.ToString(CultureInfo.InvariantCulture));
                 return bad == 0 ? 0 : 1;
@@ -1810,6 +1847,10 @@ namespace CrystalOwnActivityProbeA274
         static void CoulombKeyChecks(int histories)
         {
             bool saved = FsaBetaLibrary.CoulombLambda;
+            // (`a274t`) Эти проверки — формы точечного ядра (`a274s`): сверка с копией её формулы.
+            // Умолчание ключа теперь — заряженная сфера (её проверки — `--mode=sphere`).
+            bool savedPoint = FsaBetaLibrary.CoulombLambdaPointNucleus;
+            FsaBetaLibrary.CoulombLambdaPointNucleus = true;
             Check("умолчание ключа λ — ВЫКЛ", !FsaBetaLibrary.CoulombLambda);
             List<string> list = nuclidesGiven ? nuclides : new List<string>(CoulombDefaultNuclides);
 
@@ -1920,6 +1961,7 @@ namespace CrystalOwnActivityProbeA274
             }
 
             FsaBetaLibrary.CoulombLambda = saved;
+            FsaBetaLibrary.CoulombLambdaPointNucleus = savedPoint;
         }
 
         /// <summary>
@@ -2200,6 +2242,738 @@ namespace CrystalOwnActivityProbeA274
             }
 
             return sb.ToString();
+        }
+
+        // ------------------------------------------------------------------
+        // (`a274t`, 13.11.2026) λ ЗАРЯЖЕННОЙ СФЕРЫ — `--mode=sphere`
+        // ------------------------------------------------------------------
+
+        /// <summary>Нуклиды сверки средних: уникальные запреты лёгких/средних и тяжёлых ядер, β⁺.</summary>
+        static readonly string[] SphereNuclides =
+        {
+            "40K", "138LA", "89SR", "91Y", "85KR", "36CL", "87RB", "10BE", "22NA", "26AL",
+            "204TL", "228AC", "210TL", "234PA", "237U", "214BI", "214PB", "212BI", "208TL", "212PB", "210BI",
+        };
+
+        /// <summary>Таблица I Уилкинсона (1990) для электронов по Hayen и др. 2018: строки a₋₁, a₀…a₅, столбцы b₁…b₆.</summary>
+        static readonly double[,] WilkinsonB =
+        {
+            { 0.115, -1.8123, 8.2498, -11.223, -14.854, 32.086 },
+            { -0.00062, 0.007165, 0.01841, -0.53736, 1.2691, -1.5467 },
+            { 0.02482, -0.5975, 4.84199, -15.3374, 23.9774, -12.6534 },
+            { -0.14038, 3.64953, -38.8143, 172.1368, -346.708, 288.7873 },
+            { 0.008152, -1.15664, 49.9663, -273.711, 657.6292, -603.7033 },
+            { 1.2145, -23.9931, 149.9718, -471.2985, 662.1909, -305.6804 },
+            { -1.5632, 33.4192, -255.1333, 938.5297, -1641.2845, 1095.358 },
+        };
+
+        /// <summary>L₀ Уилкинсона для электронов (Hayen 2018, ур. 16–17); R — в единицах ħ/(mₑc).</summary>
+        static double WilkinsonL0(int z, double w, double radius)
+        {
+            double az = z / 137.035999084;
+            double g = Math.Sqrt(1.0 - az * az);
+            var a = new double[7];
+            for (int n = 0; n < 7; n++)
+            {
+                for (int x = 1; x <= 6; x++)
+                {
+                    a[n] += WilkinsonB[n, x - 1] * Math.Pow(az, x);
+                }
+            }
+
+            double sum = a[0] * radius / w;
+            for (int n = 0; n <= 5; n++)
+            {
+                sum += a[n + 1] * Math.Pow(w * radius, n);
+            }
+
+            return 1.0 + 13.0 / 60.0 * az * az - az * w * radius * (41.0 - 26.0 * g) / (15.0 * (2.0 * g - 1.0))
+                   - az * radius * g * (17.0 - 2.0 * g) / (30.0 * w * (2.0 * g - 1.0)) + sum
+                   + 0.41 * (radius - 0.0164) * Math.Pow(az, 4.5);
+        }
+
+        /// <summary>F₀ точечного ядра в записи Hayen 2018, ур. 6 (множитель 4): к нему относится L₀ ур. 13.</summary>
+        static double HayenF0(int z, double w, double radius)
+        {
+            double az = z / 137.035999084;
+            double g = Math.Sqrt(1.0 - az * az);
+            double p = Math.Sqrt(w * w - 1.0);
+            double y = az * w / p;
+            double ln = Math.Log(4.0) + 2.0 * (g - 1.0) * Math.Log(2.0 * p * radius) + Math.PI * y
+                        + 2.0 * LnAbsGamma(g, y) - 2.0 * LnAbsGamma(1.0 + 2.0 * g, 0.0);
+            return Math.Exp(ln);
+        }
+
+        /// <summary>ln|Γ(x + iy)| — Стирлинг со сдвигом аргумента (своя реализация, не кода приложения).</summary>
+        static double LnAbsGamma(double x, double y)
+        {
+            double shift = 0.0;
+            while (x < 12.0)
+            {
+                shift -= 0.5 * Math.Log(x * x + y * y);
+                x += 1.0;
+            }
+
+            double r2 = x * x + y * y;
+            double lnr = 0.5 * Math.Log(r2);
+            double th = Math.Atan2(y, x);
+            // Re[(z − ½)ln z − z + ½ln 2π + 1/(12z) − 1/(360z³) + 1/(1260z⁵)]
+            double re = (x - 0.5) * lnr - y * th - x + 0.5 * Math.Log(2.0 * Math.PI);
+            double invRe = x / r2;
+            double z3re = Math.Cos(3 * th) / Math.Pow(r2, 1.5), z5re = Math.Cos(5 * th) / Math.Pow(r2, 2.5);
+            re += invRe / 12.0 - z3re / 360.0 + z5re / 1260.0;
+            return re + shift;
+        }
+
+        static void SphereChecks()
+        {
+            bool savedKey = FsaBetaLibrary.CoulombLambda, savedPoint = FsaBetaLibrary.CoulombLambdaPointNucleus;
+            Check("умолчание ключа λ — ВЫКЛ", !FsaBetaLibrary.CoulombLambda);
+            Check("умолчание формы при ВКЛ — заряженная сфера (рычаг точечного ядра выключен)", !FsaBetaLibrary.CoulombLambdaPointNucleus);
+
+            // 1. Положительный контроль решателя: L₀ = (α₋₁² + α₁²)/(2p²F₀) против Уилкинсона (Z ≤ 60).
+            Console.WriteLine();
+            Console.WriteLine("=== 1. L₀ решателя сферы против формулы Уилкинсона (Hayen 2018, ур. 16) ===");
+            Console.WriteLine("{0,4} {1,4} {2,9} {3,10} {4,10} {5,10}", "Z", "A", "T, кэВ", "L₀ счёт", "L₀ Уилк.", "разница");
+            double worstL0 = 0.0;
+            int[][] pairs = { new[] { 20, 40 }, new[] { 38, 89 }, new[] { 58, 138 } };
+            foreach (int[] za in pairs)
+            {
+                double radius = CoulombSphere.Radius(za[1]);
+                foreach (double t in new[] { 5.0, 20.0, 100.0, 300.0, 1000.0, 2500.0 })
+                {
+                    double w = 1.0 + t / 510.99895, p = Math.Sqrt(w * w - 1.0);
+                    double az = za[0] / 137.035999084;
+                    double sum = CoulombSphere.AmplitudeSquared(-1, az, radius, w, 1.0) + CoulombSphere.AmplitudeSquared(1, az, radius, w, 1.0);
+                    double l0 = sum / (2.0 * p * p * HayenF0(za[0], w, radius));
+                    double wl = WilkinsonL0(za[0], w, radius);
+                    worstL0 = Math.Max(worstL0, Math.Abs(l0 / wl - 1.0));
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0,4} {1,4} {2,9:F1} {3,10:F6} {4,10:F6} {5,10:E2}", za[0], za[1], t, l0, wl, l0 / wl - 1.0));
+                }
+            }
+
+            Check("L₀ решателя = Уилкинсон до 1·10⁻⁴ (Z = 20, 38, 58; 5…2500 кэВ; формула точна до 10⁻⁴)", worstL0 < 1e-4);
+
+            // Мутант нормировки: без множителя p/W нормировки (α² = 1/A²) L₀ уходит от Уилкинсона.
+            {
+                double radius = CoulombSphere.Radius(138), w = 1.0 + 100.0 / 510.99895, p = Math.Sqrt(w * w - 1.0), az = 58 / 137.035999084;
+                double sum = (CoulombSphere.AmplitudeSquared(-1, az, radius, w, 1.0) + CoulombSphere.AmplitudeSquared(1, az, radius, w, 1.0)) / (p / w);
+                double l0 = sum / (2.0 * p * p * HayenF0(58, w, radius));
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "мутант «нормировка без p/W»: L₀ {0:F4} против {1:F4}", l0, WilkinsonL0(58, w, radius)));
+                Check("мутант нормировки той же проверкой пойман", Math.Abs(l0 / WilkinsonL0(58, w, radius) - 1.0) >= 1e-4);
+            }
+
+            // 2. Z = 0: λ ≡ 1 (свободные волны), сходимость по дальности, таблица против прямого счёта.
+            Console.WriteLine();
+            Console.WriteLine("=== 2. Z = 0, сходимость, интерполяция ===");
+            double worstFree = 0.0;
+            foreach (double t in new[] { 1.0, 30.0, 300.0, 3000.0 })
+            {
+                double w = 1.0 + t / 510.99895, radius = CoulombSphere.Radius(100);
+                for (int k = 2; k <= 3; k++)
+                {
+                    double lam = (CoulombSphere.AmplitudeSquared(-k, 0.0, radius, w, 1.0) + CoulombSphere.AmplitudeSquared(k, 0.0, radius, w, 1.0))
+                                 / (CoulombSphere.AmplitudeSquared(-1, 0.0, radius, w, 1.0) + CoulombSphere.AmplitudeSquared(1, 0.0, radius, w, 1.0));
+                    worstFree = Math.Max(worstFree, Math.Abs(lam - 1.0));
+                }
+            }
+
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "Z = 0: наибольшее |λ₂,₃ − 1| = {0:E2}", worstFree));
+            Check("Z = 0: λ₂ = λ₃ = 1 до 1·10⁻⁴ (точность усреднения инварианта, та же, что у сходимости)", worstFree < 1e-4);
+
+            double worstReach = 0.0, worstTable = 0.0;
+            foreach (int[] za in new[] { new[] { 82, 204 }, new[] { 90, 228 }, new[] { 58, 138 }, new[] { 20, 40 } })
+            {
+                foreach (double t in new[] { 3.0, 17.3, 95.0, 420.0, 1700.0 })
+                {
+                    double w = 1.0 + t / 510.99895, p = Math.Sqrt(w * w - 1.0);
+                    for (int k = 2; k <= 3; k++)
+                    {
+                        foreach (bool positron in new[] { false, true })
+                        {
+                            double direct = CoulombSphere.LambdaDirect(k, za[0], za[1], positron, p, 1.0);
+                            double far = CoulombSphere.LambdaDirect(k, za[0], za[1], positron, p, 4.0);
+                            double table = CoulombSphere.Lambda(k, za[0], za[1], positron, p);
+                            if (positron && t < 10.0)
+                            {
+                                continue;   // под барьером плотность β⁺ — нуль; λ там не нужна
+                            }
+
+                            worstReach = Math.Max(worstReach, Math.Abs(far / direct - 1.0));
+                            worstTable = Math.Max(worstTable, Math.Abs(table / direct - 1.0));
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "дальность ×4 против ×1: наибольшее отн. {0:E2}; таблица против прямого счёта: {1:E2}", worstReach, worstTable));
+            Check("сходимость по дальности до 1·10⁻⁴", worstReach < 1e-4);
+            Check("таблица (160 узлов ln p) = прямой счёт до 5·10⁻⁴", worstTable < 5e-4);
+
+            // λ₂ у трёх ядер: точечное ядро против сферы — что меняется.
+            Console.WriteLine();
+            Console.WriteLine("λ₂: точечное ядро (a274s) / сфера (a274t), β⁻");
+            Console.WriteLine("{0,4} {1,4} {2,9} {3,9} {4,9}", "Z", "A", "T, кэВ", "точка", "сфера");
+            foreach (int[] za in new[] { new[] { 58, 138 }, new[] { 82, 204 }, new[] { 90, 228 } })
+            {
+                foreach (double t in new[] { 5.0, 20.0, 60.0, 120.0, 250.0, 700.0 })
+                {
+                    double w = 1.0 + t / 510.99895, p = Math.Sqrt(w * w - 1.0);
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0,4} {1,4} {2,9:F1} {3,9:F4} {4,9:F4}", za[0], za[1], t,
+                        PointLambda(2, za[0], za[1], w, p), CoulombSphere.Lambda(2, za[0], za[1], false, p)));
+                }
+            }
+
+            // 3. Средние уникальных ветвей к средним базы: ВЫКЛ, точечное ядро, сфера.
+            Console.WriteLine();
+            Console.WriteLine("=== 3. Средние форм к средней базы (`nucdb`): λ = 1 / точечное ядро / сфера ===");
+            Console.WriteLine("{0,-7} {1,2} {2,4} {3,9} {4,8} {5,-24} {6,8} {7,8} {8,8} {9,8}",
+                              "нуклид", "±", "Z", "E0, кэВ", "выход %", "переход", "база", "λ=1/б", "точка/б", "сфера/б");
+            int heavy = 0, heavyBetter = 0, heavyInside = 0, light = 0, mutantHeavy = 0, positrons = 0, positronCloser = 0;
+            double lightWorstSphere = 0.0, lightWorstPoint = 0.0;
+            foreach (string nucid in SphereNuclides)
+            {
+                foreach (FsaBeta beta in FsaBetaLibrary.Branches(nucid))
+                {
+                    if (beta == null || beta.IsLine || beta.Intensity < 0.0005 || !(beta.MeanKev > 0.0)
+                        || beta.UniqueOrder < 1 || beta.ShapeT != null || beta.ShapeFactor != null)
+                    {
+                        continue;
+                    }
+
+                    double off, point, sphere;
+                    FsaBetaLibrary.CoulombLambda = false;
+                    FsaBetaLibrary.Integral(beta, out off);
+                    FsaBetaLibrary.CoulombLambda = true;
+                    FsaBetaLibrary.CoulombLambdaPointNucleus = true;
+                    FsaBetaLibrary.Integral(beta, out point);
+                    FsaBetaLibrary.CoulombLambdaPointNucleus = false;
+                    FsaBetaLibrary.Integral(beta, out sphere);
+                    FsaBetaLibrary.CoulombLambda = false;
+
+                    string kind = beta.Transition ?? "";
+                    bool xi = kind.IndexOf("неуник", StringComparison.OrdinalIgnoreCase) >= 0 || kind.IndexOf("non", StringComparison.OrdinalIgnoreCase) >= 0;
+                    // Мерка — ветви с записанным в базе уникальным запретом и выходом ≥ 0.5 %:
+                    // «ΔJ=2 (π?)» — характер не установлен, малые ветви — справка.
+                    bool measured = !xi && kind.IndexOf("unique", StringComparison.OrdinalIgnoreCase) >= 0 && beta.Intensity >= 0.5;
+                    double rOff = off / beta.MeanKev, rPoint = point / beta.MeanKev, rSphere = sphere / beta.MeanKev;
+                    string verdict = "";
+                    if (beta.Positron)
+                    {
+                        // β⁺: точечное ядро (`a274s`) брало λ = 1; сфера — та же формула с обратным знаком заряда.
+                        if (!xi)
+                        {
+                            positrons++;
+                            bool closer = Math.Abs(rSphere - 1.0) < Math.Abs(rOff - 1.0);
+                            if (closer) positronCloser++;
+                            verdict = closer ? "β⁺, ближе λ = 1" : "β⁺, ✗ не ближе λ = 1";
+                        }
+                        else
+                        {
+                            verdict = "β⁺, ξ (справка)";
+                        }
+                    }
+                    else if (!measured)
+                    {
+                        verdict = xi ? "ξ (справка)" : "справка";
+                    }
+                    else if (beta.DaughterZ >= 81)
+                    {
+                        heavy++;
+                        bool better = Math.Abs(rSphere - 1.0) < 0.5 * Math.Abs(rPoint - 1.0);
+                        bool inside = rSphere >= 0.975 && rSphere <= 1.01;
+                        if (better) heavyBetter++;
+                        if (inside) heavyInside++;
+                        if (!(rPoint >= 0.975 && rPoint <= 1.01)) mutantHeavy++;
+                        verdict = (better ? "отклонение вдвое меньше точки" : "✗ не вдвое меньше точки") + (inside ? ", в 0.975…1.01" : ", ✗ вне 0.975…1.01");
+                    }
+                    else if (beta.DaughterZ <= 58 && Math.Abs(rOff - 1.0) > 0.1 && Math.Abs(rPoint - rOff) < 0.01)
+                    {
+                        // Be-10 (Z = 5): λ ≈ 1, расхождение формы с базой не от кулоновских λ (находка `a274s`).
+                        verdict = "справка: расхождение не от λ";
+                    }
+                    else if (beta.DaughterZ <= 58)
+                    {
+                        light++;
+                        lightWorstSphere = Math.Max(lightWorstSphere, Math.Abs(rSphere - 1.0));
+                        lightWorstPoint = Math.Max(lightWorstPoint, Math.Abs(rPoint - 1.0));
+                        verdict = "Z ≤ 58";
+                    }
+
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                        "{0,-7} {1,2} {2,4} {3,9:F1} {4,8:F4} {5,-24} {6,8:F2} {7,8:F4} {8,8:F4} {9,8:F4}  {10}",
+                        nucid, beta.Positron ? "+" : "-", beta.DaughterZ, beta.EndpointKev, beta.Intensity,
+                        kind.Length > 24 ? kind.Substring(0, 24) : kind, beta.MeanKev, rOff, rPoint, rSphere, verdict));
+                }
+            }
+
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "уникальные β⁻ Z ≥ 81 (выход ≥ 0.5 %): {0}, отклонение вдвое меньше точки у {1}, в 0.975…1.01 у {2}; Z ≤ 58: {3}, наибольшее |откл.| сфера {4:F4} / точка {5:F4}; β⁺ уникальных: {6}, сфера ближе λ = 1 у {7}",
+                heavy, heavyBetter, heavyInside, light, lightWorstSphere, lightWorstPoint, positrons, positronCloser));
+            Check("Z ≥ 81: отклонение от средней базы у сферы вдвое меньше, чем у точечного ядра", heavy > 0 && heavyBetter == heavy);
+            Check("Z ≥ 81: сфера в 0.975…1.01 средней базы", heavy > 0 && heavyInside == heavy);
+            Check("Z ≤ 58: наибольшее отклонение сферы не больше точечного ядра и не больше 0.3 %", light > 0 && lightWorstSphere <= lightWorstPoint && lightWorstSphere <= 0.003);
+            Check("β⁺ (знак заряда обратный): сфера ближе к средней базы, чем λ = 1", positrons > 0 && positronCloser == positrons);
+            Console.WriteLine(mutantHeavy > 0
+                ? "мутант «точечное ядро» пойман: вне 0.975…1.01 у " + mutantHeavy.ToString(CultureInfo.InvariantCulture) + " из " + heavy.ToString(CultureInfo.InvariantCulture)
+                : "⛔ МУТАНТ НЕ ПОЙМАН: точечное ядро проходит проверку 0.975…1.01");
+            Check("мутант «точечное ядро» той же проверкой пойман", mutantHeavy > 0);
+
+            // 4. Клеймо: версия формы в поле cl= при ВКЛ, при ВЫКЛ — поля нет.
+            FsaBetaLibrary.CoulombLambda = true;
+            string sphereVersion = FsaBetaLibrary.CoulombLambdaVersion;
+            FsaBetaLibrary.CoulombLambdaPointNucleus = true;
+            string pointVersion = FsaBetaLibrary.CoulombLambdaVersion;
+            FsaBetaLibrary.CoulombLambdaPointNucleus = false;
+            FsaBetaLibrary.CoulombLambda = false;
+            Check("версия формы в клейме: сфера «2», точечное ядро «1»", sphereVersion == "2" && pointVersion == "1");
+
+            FsaBetaLibrary.CoulombLambda = savedKey;
+            FsaBetaLibrary.CoulombLambdaPointNucleus = savedPoint;
+        }
+
+        /// <summary>λₖ точечного ядра — своя копия формулы `a274s` (F₍ₖ₋₁₎/F₀ с R = 1.2·A^⅓ фм).</summary>
+        static double PointLambda(int k, int z, int a, double w, double p)
+        {
+            double az = z / 137.035999084, y = az * w / p, radius = CoulombSphere.Radius(a);
+            Func<int, double> lnF = m =>
+            {
+                double g = Math.Sqrt(m * m - az * az), odd = 1.0;
+                for (int j = 2 * m - 1; j > 1; j -= 2)
+                {
+                    odd *= j;
+                }
+
+                return 2.0 * Math.Log(m * odd) + m * Math.Log(4.0) + 2.0 * (g - m) * Math.Log(2.0 * p * radius)
+                       + Math.PI * y + 2.0 * LnAbsGamma(g, y) - 2.0 * LnAbsGamma(1.0 + 2.0 * g, 0.0);
+            };
+            return Math.Exp(lnF(k) - lnF(1));
+        }
+
+        // ------------------------------------------------------------------
+        // (`a274t`, 13.11.2026) КЛЕЙМО РЕЦЕПТА РАЗДЕЛА СЛОЯ — `--mode=recipe`
+        // ------------------------------------------------------------------
+
+        /// <summary>Клеймо без поля рецепта — каким оно было до 13.11.2026 (и мутант проверки «без rcp=»).</summary>
+        static string WithoutRecipe(string stamp)
+        {
+            var parts = new List<string>();
+            foreach (string part in (stamp ?? "").Split(';'))
+            {
+                if (!part.StartsWith("rcp=", StringComparison.Ordinal))
+                {
+                    parts.Add(part);
+                }
+            }
+
+            return string.Join(";", parts.ToArray());
+        }
+
+        /// <summary>
+        /// (`a274t`) Раздел слоя несёт рецепт, которым собран (`rcp=`), разбор берёт только рецепт
+        /// умолчания. Положительный контроль: раздел нынешнего рецепта годен и сквозь файл матрицы,
+        /// и сквозь привязку разбора. Отказ: прежний рецепт (энергия, без осадка конверсии, L 4.97),
+        /// раздел без поля (до 13.11.2026), другая версия рецепта, подмены замера. Мутант — сверка
+        /// клейм без поля `rcp=`: прежний рецепт ею проходит (то есть отказ держит именно поле).
+        /// </summary>
+        static void RecipeChecks(GeometryModel geometry, int histories)
+        {
+            const double Bin = 2.0;
+            string note;
+            ResponseCrystalSection current = CrystalOwnActivityBuilder.Build(geometry, Bin, histories, 0x274, out note);
+            string expected = ResponseCrystalSection.ComputeStamp(geometry, Bin);
+            Console.WriteLine("клеймо раздела: {0}", current.Stamp);
+            Console.WriteLine("рецепт умолчания: rcp={0}", ResponseCrystalSection.StampField(expected, "rcp"));
+            Check("раздел нынешнего рецепта годен сцене (положительный контроль)", current.UsableFor(geometry, Bin));
+            string version = CrystalOwnActivityBuilder.RecipeVersion.ToString(CultureInfo.InvariantCulture);
+            Check("в клейме поле рецепта с версией " + version,
+                  (ResponseCrystalSection.StampField(current.Stamp, "rcp") ?? "").StartsWith(version + ":", StringComparison.Ordinal));
+
+            // Прежний рецепт (до ревизии 12.11.2026): энергия, без осадка конверсии, L — линия nucdb.
+            var oldParts = new CrystalOwnParts { Scale = CrystalOwnActivityBuilder.ScaleEnergy, ConversionRelaxation = false, LBindingFromEadl = false };
+            ResponseCrystalSection old = CrystalOwnActivityBuilder.Build(geometry, Bin, histories, 0x274, oldParts, out note);
+            Console.WriteLine("клеймо прежнего рецепта: rcp={0}", ResponseCrystalSection.StampField(old.Stamp, "rcp"));
+            Check("раздел прежнего рецепта разбору не годен", !old.UsableFor(geometry, Bin));
+
+            // По одному рычагу: каждый меняет клеймо.
+            int distinct = 0, levers = 0;
+            foreach (CrystalOwnParts lever in new[]
+            {
+                new CrystalOwnParts { Scale = CrystalOwnActivityBuilder.ScaleAnchor },
+                new CrystalOwnParts { ConversionRelaxation = false },
+                new CrystalOwnParts { LBindingFromEadl = false },
+                new CrystalOwnParts { DaughterRelaxation = false },
+                new CrystalOwnParts { Series = false },
+                new CrystalOwnParts { FreeNatural = true },
+                new CrystalOwnParts { Beta = false },
+                new CrystalOwnParts { BranchGamma = false },
+                new CrystalOwnParts { Capture = false },
+                new CrystalOwnParts { KCaptureOverride = 0.670 },
+                new CrystalOwnParts { BetaOverride = b => b },
+            })
+            {
+                levers++;
+                string stamp = ResponseCrystalSection.ComputeStamp(geometry, Bin, lever);
+                if (!string.Equals(stamp, expected, StringComparison.Ordinal))
+                {
+                    distinct++;
+                }
+            }
+
+            Console.WriteLine("рычагов рецепта {0}, клеймо отличает {1}", levers, distinct);
+            Check("каждый рычаг рецепта меняет клеймо", distinct == levers);
+
+            // Раздел без поля (так писался до 13.11.2026) и с другой версией рецепта.
+            var bare = new ResponseCrystalSection { Stamp = WithoutRecipe(current.Stamp), BinKev = current.BinKev, Entries = current.Entries };
+            Check("раздел без поля rcp= (до 13.11.2026) разбору не годен", !bare.UsableFor(geometry, Bin));
+            string next = (CrystalOwnActivityBuilder.RecipeVersion + 1).ToString(CultureInfo.InvariantCulture);
+            var bumped = new ResponseCrystalSection
+            {
+                Stamp = current.Stamp.Replace(";rcp=" + version + ":", ";rcp=" + next + ":"),
+                BinKev = current.BinKev,
+                Entries = current.Entries,
+            };
+            Check("раздел другой версии рецепта разбору не годен", !bumped.UsableFor(geometry, Bin));
+
+            // Мутант: сверка без поля rcp= — прежний рецепт ею проходит.
+            bool mutantAccepts = current.Count > 0 && string.Equals(WithoutRecipe(old.Stamp), WithoutRecipe(expected), StringComparison.Ordinal);
+            Console.WriteLine(mutantAccepts
+                ? "мутант пойман: без поля rcp= клейма прежнего и нынешнего рецепта совпадают — раздел старого рецепта взялся бы молча"
+                : "⛔ МУТАНТ НЕ ПОЙМАН: клейма различаются и без поля rcp=");
+            Check("мутант «сверка без rcp=» пропускает прежний рецепт (отказ держит именно поле)", mutantAccepts);
+
+            // Сквозь файл матрицы и привязку разбора.
+            ResponseMatrix matrix = Matrix(geometry, "file");
+            if (matrix == null)
+            {
+                bad++;
+                return;
+            }
+
+            string path = Path.Combine(cacheDir ?? Path.GetTempPath(), "a274t_recipe.rmx");
+            foreach (KeyValuePair<string, ResponseCrystalSection> arm in new[]
+            {
+                new KeyValuePair<string, ResponseCrystalSection>("нынешний", current),
+                new KeyValuePair<string, ResponseCrystalSection>("прежний", old),
+            })
+            {
+                matrix.CrystalSection = arm.Value;
+                matrix.Save(path);
+                MatrixRefusal refusal;
+                int format;
+                ResponseMatrix loaded = ResponseMatrix.Load(path, out refusal, out format);
+                var analyzer = new FsaAnalyzer();
+                if (loaded != null)
+                {
+                    FsaMatrixBinding.Bind(analyzer, geometry, loaded);
+                }
+
+                bool stampKept = loaded != null && loaded.CrystalSection != null
+                                 && string.Equals(loaded.CrystalSection.Stamp, arm.Value.Stamp, StringComparison.Ordinal);
+                bool given = analyzer.CrystalOwnSection != null;
+                Console.WriteLine("файл, рецепт {0}: клеймо сохранено {1}, разбору раздел {2}", arm.Key, stampKept ? "да" : "нет", given ? "дан" : "не дан");
+                Check("файл, рецепт " + arm.Key + ": клеймо раздела сохранено побитно", stampKept);
+                Check("файл, рецепт " + arm.Key + ": привязка " + (arm.Key == "нынешний" ? "даёт" : "не даёт") + " раздел разбору",
+                      given == (arm.Key == "нынешний"));
+            }
+
+            matrix.CrystalSection = null;
+            try
+            {
+                File.Delete(path);
+            }
+            catch (IOException)
+            {
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // (`a274t`, 13.11.2026) ШИРИНА K-ПИКА СЛОЯ У 37 кэВ — `--mode=kpeak`
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Вычтенный слой (по каналам, уже уширенный ПШПВ прибора) со сдвигом <paramref name="shiftCh"/>
+        /// и добавочным гауссом <paramref name="sigmaCh"/> (в каналах): ступенчатая плотность на сетке
+        /// 1/10 канала, сдвиг, свёртка, обратно в каналы. Площадь сохраняется.
+        /// </summary>
+        static double[] Reshape(double[] layer, double shiftCh, double sigmaCh)
+        {
+            const int Sub = 10;
+            int n = layer.Length;
+            var fine = new double[n * Sub];
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < Sub; j++)
+                {
+                    fine[i * Sub + j] = layer[i] / Sub;
+                }
+            }
+
+            // Сдвиг дробный: доля ячейки сетки делится между двумя соседними (площадь та же).
+            var moved = new double[fine.Length];
+            double exact = shiftCh * Sub;
+            int shift = (int)Math.Floor(exact);
+            double frac = exact - shift;
+            for (int f = 0; f < fine.Length; f++)
+            {
+                int t = f + shift;
+                if (t >= 0 && t < fine.Length)
+                {
+                    moved[t] += fine[f] * (1.0 - frac);
+                }
+
+                if (t + 1 >= 0 && t + 1 < fine.Length)
+                {
+                    moved[t + 1] += fine[f] * frac;
+                }
+            }
+
+            double[] spread = moved;
+            if (sigmaCh > 1e-6)
+            {
+                double s = sigmaCh * Sub;
+                int half = (int)Math.Ceiling(5.0 * s);
+                var kernel = new double[2 * half + 1];
+                double norm = 0.0;
+                for (int k = -half; k <= half; k++)
+                {
+                    kernel[k + half] = Math.Exp(-0.5 * (k / s) * (k / s));
+                    norm += kernel[k + half];
+                }
+
+                spread = new double[fine.Length];
+                for (int f = 0; f < fine.Length; f++)
+                {
+                    if (moved[f] == 0.0)
+                    {
+                        continue;
+                    }
+
+                    for (int k = -half; k <= half; k++)
+                    {
+                        int t = f + k;
+                        if (t >= 0 && t < fine.Length)
+                        {
+                            spread[t] += moved[f] * kernel[k + half] / norm;
+                        }
+                    }
+                }
+            }
+
+            var result = new double[n];
+            for (int f = 0; f < fine.Length; f++)
+            {
+                result[f / Sub] += spread[f];
+            }
+
+            return result;
+        }
+
+        sealed class KFit
+        {
+            public double Amp = 1.0, ShiftKev, SigmaKev, Chi2;
+        }
+
+        /// <summary>
+        /// Подгонка K-пика слоя в полосе [lo, hi] кэВ: y = прочее + a·Reshape(слой, d, σx); a — линейно,
+        /// d и σx — сеткой (шаг 0.1 кэВ). χ² Пуассона по данным.
+        /// </summary>
+        static KFit FitKPeak(double[] y, double[] other, double[] layer, EnergyCalibration calibration,
+                             double lo, double hi, bool freeShift, bool freeSigma)
+        {
+            int c0 = -1, c1 = -1;
+            for (int i = 0; i < y.Length; i++)
+            {
+                double e = calibration.ChannelToEnergy(i);
+                if (e >= lo && e <= hi)
+                {
+                    if (c0 < 0) c0 = i;
+                    c1 = i;
+                }
+            }
+
+            double kevPerCh = (calibration.ChannelToEnergy(c1 + 1) - calibration.ChannelToEnergy(c0)) / (c1 + 1 - c0);
+            // Окно с запасом 15 каналов (≈ 40 кэВ > 5σ наибольшего уширения): так подгонка — секунды.
+            int w0 = Math.Max(0, c0 - 15), w1 = Math.Min(layer.Length - 1, c1 + 15);
+            var piece = new double[w1 - w0 + 1];
+            Array.Copy(layer, w0, piece, 0, piece.Length);
+            var best = new KFit { Chi2 = double.MaxValue };
+            for (double d = freeShift ? -1.5 : 0.0; d <= (freeShift ? 1.5001 : 0.0); d += 0.1)
+            {
+                for (double sx = 0.0; sx <= (freeSigma ? 6.0001 : 0.0); sx += 0.1)
+                {
+                    double[] part = Reshape(piece, d / kevPerCh, sx / kevPerCh);
+                    var t = new double[layer.Length];
+                    Array.Copy(part, 0, t, w0, part.Length);
+                    double num = 0.0, den = 0.0;
+                    for (int i = c0; i <= c1; i++)
+                    {
+                        double w = 1.0 / Math.Max(y[i], 1.0);
+                        num += (y[i] - other[i]) * t[i] * w;
+                        den += t[i] * t[i] * w;
+                    }
+
+                    double a = den > 0.0 ? num / den : 0.0;
+                    double chi = 0.0;
+                    for (int i = c0; i <= c1; i++)
+                    {
+                        double r = y[i] - other[i] - a * t[i];
+                        chi += r * r / Math.Max(y[i], 1.0);
+                    }
+
+                    if (chi < best.Chi2)
+                    {
+                        best = new KFit { Amp = a, ShiftKev = d, SigmaKev = sx, Chi2 = chi };
+                    }
+                }
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// (`a274t`) ШИРИНА K-ПИКА СЛОЯ. Мерило «данные ≈ 10 кэВ против 4.6 по кривой прибора» (`fixE2`):
+        /// гистограмма слоя до уширения (ширина самого события), ПШПВ прибора у 37 кэВ, подгонка слоя
+        /// в 29–47 кэВ сдвигом и добавочным гауссом, крылья пика по отдельности. Положительный
+        /// контроль — синтетика: модель + слой с известными сдвигом и уширением (в том числе «ПШПВ 10
+        /// кэВ») + Пуассон, подгонка обязана вернуть заложенное. Мутант — та же синтетика, подгонка без
+        /// уширения: χ² обязан вырасти.
+        /// </summary>
+        static void KPeakChecks(string path, bool useBackground, GeometryModel geometry, ResponseMatrix matrix, int histories)
+        {
+            ResultData rd = Load(path);
+            if (useBackground)
+            {
+                EnergySpectrum own = rd.BackgroundEnergySpectrum;
+                own.EnergyCalibration = rd.EnergySpectrum.EnergyCalibration;
+                rd.EnergySpectrum = own;
+            }
+
+            string note;
+            ResponseCrystalSection section = CrystalOwnActivityBuilder.Build(geometry, 2.0, histories, 0x274, out note);
+            CrystalOwnEntry la = section.Find("138LA", "beta");
+            double sum = 0.0, moment = 0.0, moment2 = 0.0;
+            for (int i = 0; la != null && i < la.PerDecay.Length; i++)
+            {
+                double e = i * section.BinKev;
+                if (e >= 30.0 && e <= 44.0)
+                {
+                    sum += la.PerDecay[i];
+                    moment += la.PerDecay[i] * e;
+                    moment2 += la.PerDecay[i] * e * e;
+                }
+            }
+
+            double centre = sum > 0.0 ? moment / sum : 0.0;
+            double rms = sum > 0.0 ? Math.Sqrt(Math.Max(0.0, moment2 / sum - centre * centre)) : 0.0;
+            EnergySpectrum data = rd.EnergySpectrum;
+            int ch37 = (int)Math.Round(data.EnergyCalibration.EnergyToChannel(37.0, data.NumberOfChannels));
+            double deviceFwhm = rd.FwhmCalibration.ChannelToFwhm(ch37) * (data.EnergyCalibration.ChannelToEnergy(ch37 + 1) - data.EnergyCalibration.ChannelToEnergy(ch37));
+            Console.WriteLine();
+            Console.WriteLine("=== K-пик слоя: {0}{1} ===", Path.GetFileName(path), useBackground ? " (встроенный фон)" : "");
+            Console.WriteLine("гистограмма слоя до уширения, 30–44 кэВ: доля {0:F4} на распад, центр {1:F2} кэВ, СКО {2:F2} кэВ (шаг сетки 2 кэВ: СКО ступеньки 0.58)",
+                              sum, centre, rms);
+            Console.WriteLine("ПШПВ прибора у 37 кэВ: {0:F2} кэВ (кривая спектра)", deviceFwhm);
+
+            FsaResult result = Run(rd, null, geometry, matrix, section);
+            double[] layer = lastFixed;
+            if (result == null || layer == null)
+            {
+                Check("разбор со слоем прошёл", false);
+                return;
+            }
+
+            var y = new double[data.Spectrum.Length];
+            for (int i = 0; i < y.Length; i++)
+            {
+                y[i] = data.Spectrum[i];
+            }
+
+            double[] other = result.Model;
+            KFit asIs = FitKPeak(y, other, layer, data.EnergyCalibration, 29.0, 47.0, false, false);
+            KFit width = FitKPeak(y, other, layer, data.EnergyCalibration, 29.0, 47.0, false, true);
+            KFit both = FitKPeak(y, other, layer, data.EnergyCalibration, 29.0, 47.0, true, true);
+            KFit shift = FitKPeak(y, other, layer, data.EnergyCalibration, 29.0, 47.0, true, false);
+            Func<KFit, double> total = f => Math.Sqrt(deviceFwhm * deviceFwhm + Math.Pow(2.3548200450309493 * f.SigmaKev, 2));
+            Console.WriteLine("подгонка 29–47 кэВ (χ² Пуассона, амплитуда a к расчёту по массе):");
+            foreach (KeyValuePair<string, KFit> f in new[]
+            {
+                new KeyValuePair<string, KFit>("амплитуда", asIs),
+                new KeyValuePair<string, KFit>("+ уширение", width),
+                new KeyValuePair<string, KFit>("+ сдвиг", shift),
+                new KeyValuePair<string, KFit>("+ сдвиг + уширение", both),
+            })
+            {
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "  {0,-20} χ² {1,9:F0}  a {2:F3}  сдвиг {3:+0.00;-0.00} кэВ  доб. σ {4:F2} кэВ → ПШПВ {5:F2} кэВ",
+                    f.Key, f.Value.Chi2, f.Value.Amp, f.Value.ShiftKev, f.Value.SigmaKev, total(f.Value)));
+            }
+
+            // Крылья: где данные расходятся с моделью — по каналам 26–47 кэВ.
+            Console.WriteLine("каналы (данные / модель со слоем, σ):");
+            double lowExcess = 0.0;
+            for (int i = 0; i < y.Length; i++)
+            {
+                double e = data.EnergyCalibration.ChannelToEnergy(i);
+                if (e >= 24.0 && e <= 47.0)
+                {
+                    double m = other[i] + layer[i];
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "  {0,6:F1} кэВ  {1,7:F0} / {2,8:F0}  {3,6:F1}", e, y[i], m, (y[i] - m) / Math.Sqrt(Math.Max(y[i], 1.0))));
+                    if (e >= 28.0 && e < 33.0)
+                    {
+                        lowExcess += y[i] - m;
+                    }
+                }
+            }
+
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "избыток данных 28–33 кэВ: {0:F0} отсчётов", lowExcess));
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "ИТОГ: ширина пика данных по подгонке {0:F2} кэВ при ПШПВ прибора {1:F2} (гипотеза `fixE2` — около 10)", total(both), deviceFwhm));
+            // Мерой ширины слоя окно служит, только если слой в нём главный: у `LaBrBril_Eu152` под ним
+            // Sm Kα/Kβ 40–46 кэВ источника, и подгонка уширением слоя закрывает их невязку.
+            double layerArea = 0.0, otherArea = 0.0;
+            for (int i = 0; i < y.Length; i++)
+            {
+                double e = data.EnergyCalibration.ChannelToEnergy(i);
+                if (e >= 29.0 && e <= 47.0)
+                {
+                    layerArea += layer[i];
+                    otherArea += other[i];
+                }
+            }
+
+            double share = layerArea / Math.Max(layerArea + otherArea, 1.0);
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "доля слоя в модели окна 29–47 кэВ: {0:F3}", share));
+            if (share >= 0.5)
+            {
+                Check("ширина K-пика данных по подгонке меньше 7 кэВ (гипотеза «около 10» опровергнута)", total(both) < 7.0);
+            }
+            else
+            {
+                Console.WriteLine("окно занято линиями источника (слой меньше половины модели) — ширину слоя этот спектр не меряет, проверка пропущена");
+            }
+
+            // Положительный контроль и мутант — синтетика с известным сдвигом и уширением.
+            var random = new Random(0x2747);
+            foreach (double[] truth in new[] { new[] { 0.4, 1.5 }, new[] { 0.0, Math.Sqrt(Math.Max(0.0, 100.0 - deviceFwhm * deviceFwhm)) / 2.3548200450309493 } })
+            {
+                double kevPerCh = data.EnergyCalibration.ChannelToEnergy(ch37 + 1) - data.EnergyCalibration.ChannelToEnergy(ch37);
+                double[] t = Reshape(layer, truth[0] / kevPerCh, truth[1] / kevPerCh);
+                var syn = new double[y.Length];
+                for (int i = 0; i < y.Length; i++)
+                {
+                    syn[i] = Poisson(other[i] + t[i], random);
+                }
+
+                KFit got = FitKPeak(syn, other, layer, data.EnergyCalibration, 29.0, 47.0, true, true);
+                KFit narrow = FitKPeak(syn, other, layer, data.EnergyCalibration, 29.0, 47.0, true, false);
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                    "синтетика: заложено сдвиг {0:+0.00;-0.00}, доб. σ {1:F2} (ПШПВ {2:F2}) → найдено {3:+0.00;-0.00}, {4:F2} (ПШПВ {5:F2}), χ² {6:F0}; мутант без уширения χ² {7:F0}",
+                    truth[0], truth[1], Math.Sqrt(deviceFwhm * deviceFwhm + Math.Pow(2.3548200450309493 * truth[1], 2)),
+                    got.ShiftKev, got.SigmaKev, total(got), got.Chi2, narrow.Chi2));
+                Check(string.Format(CultureInfo.InvariantCulture, "положительный контроль: уширение {0:F2} кэВ найдено до 0.3 кэВ, сдвиг до 0.2 кэВ", truth[1]),
+                      Math.Abs(got.SigmaKev - truth[1]) <= 0.3 && Math.Abs(got.ShiftKev - truth[0]) <= 0.2);
+                Check("мутант «без уширения» на синтетике пойман: χ² вдвое больше", narrow.Chi2 > 2.0 * Math.Max(got.Chi2, 1.0));
+            }
         }
 
         static List<Arm> RevisionArms()
@@ -2649,6 +3423,11 @@ namespace CrystalOwnActivityProbeA274
             Console.WriteLine(sbHead);
             foreach (Arm arm in arms)
             {
+                if (armFilter.Count > 0 && !armFilter.Contains(arms.IndexOf(arm).ToString(CultureInfo.InvariantCulture)))
+                {
+                    continue;
+                }
+
                 ResponseCrystalSection section = null;
                 if (!arm.None)
                 {
@@ -2680,6 +3459,38 @@ namespace CrystalOwnActivityProbeA274
                 }
 
                 double[] fixedLayer = lastFixed;
+                if (!string.IsNullOrEmpty(dumpPath))
+                {
+                    // (`a274t`) поканальный дамп плеча: данные, модель, вычтенный слой, ПШПВ прибора
+                    string armFile = dumpPath + "." + arms.IndexOf(arm).ToString(CultureInfo.InvariantCulture) + ".csv";
+                    using (var writer = new StreamWriter(armFile, false, new UTF8Encoding(false)))
+                    {
+                        writer.WriteLine("# " + arm.Name);
+                        writer.WriteLine("channel;kev;fwhm_kev;raw;model;layer");
+                        for (int i = 0; i < raw.Length; i++)
+                        {
+                            double kev = data.EnergyCalibration.ChannelToEnergy(i);
+                            double width = rd.FwhmCalibration.ChannelToFwhm(i) * (data.EnergyCalibration.ChannelToEnergy(i + 1) - kev);
+                            writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0};{1:F3};{2:F3};{3};{4:F3};{5:F3}", i, kev, width, raw[i],
+                                                           result.Model[i], fixedLayer != null ? fixedLayer[i] : 0.0));
+                        }
+                    }
+
+                    CrystalOwnEntry la = section != null ? section.Find("138LA", "beta") : null;
+                    if (la != null)
+                    {
+                        // гистограмма слоя на распад до уширения (шаг сетки раздела)
+                        using (var writer = new StreamWriter(armFile + ".hist.csv", false, new UTF8Encoding(false)))
+                        {
+                            writer.WriteLine("kev;per_decay");
+                            for (int i = 0; i < la.PerDecay.Length; i++)
+                            {
+                                writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0:F3};{1:R}", i * section.BinKev, la.PerDecay[i]));
+                            }
+                        }
+                    }
+                }
+
                 double[] bands = BandChi(raw, result.Model, fixedLayer, data.EnergyCalibration);
                 double chi = 0.0;
                 foreach (double v in bands)
