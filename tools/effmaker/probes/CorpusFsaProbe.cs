@@ -1316,6 +1316,22 @@ namespace CorpusFsaProbe
                     o.BgOverflowOut = v == "1" ? 1 : 0;
                     continue;
                 }
+                // (`AMBER295`, остаток, полоса `a295z`) рычаг замера: шагов сдвига опоры
+                if (a.StartsWith("--anchor-shift-steps=", StringComparison.Ordinal))
+                {
+                    int v = int.Parse(a.Substring(21), CultureInfo.InvariantCulture);
+                    if (v < 1 || v > 256) { throw new ArgumentException("--anchor-shift-steps=1…256"); }
+                    o.AnchorShiftSteps = v;
+                    continue;
+                }
+                // (`AMBER295`, остаток, полоса `a295z`) рычаг: лучший из двух кандидатов нуля фона
+                if (a.StartsWith("--bg-zero-best=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(15);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--bg-zero-best=0|1"); }
+                    o.BgZeroBest = v == "1" ? 1 : 0;
+                    continue;
+                }
                 // (`AMBER295`, остаток, полоса `a295s`) рычаг: тормоз усиления при «верхе без опоры», доля верхней линии карты
                 if (a.StartsWith("--anchor-brake-top=", StringComparison.Ordinal))
                 {
@@ -2908,6 +2924,18 @@ namespace CorpusFsaProbe
             if (o.BgOverflowOut >= 0)
             {
                 analyzer.BackgroundOverflowOut = o.BgOverflowOut == 1;
+            }
+
+            // (`AMBER295`, остаток, полоса `a295z`) рычаг замера: шагов сдвига опоры
+            if (o.AnchorShiftSteps > 0)
+            {
+                analyzer.AnchorShiftSteps = o.AnchorShiftSteps;
+            }
+
+            // (`AMBER295`, остаток, полоса `a295z`) рычаг: лучший из двух кандидатов нуля фона
+            if (o.BgZeroBest >= 0)
+            {
+                analyzer.BackgroundZeroBestOfTwo = o.BgZeroBest == 1;
             }
 
             // (`AMBER295`, остаток, полоса `a295s`) рычаг: тормоз усиления при «верхе без опоры»
@@ -6914,6 +6942,8 @@ namespace CorpusFsaProbe
             public int BandKnife = -1;         // (`AMBER295`) −1 — умолчание анализатора
             public int AnchorSkipMasked = -1;  // (`AMBER295`, остаток) −1 — умолчание анализатора
             public int BgOverflowOut = -1;     // (`AMBER295`, полоса `a295o`) −1 — умолчание анализатора
+            public int AnchorShiftSteps = 0;   // (`AMBER295`, полоса `a295z`) 0 — умолчание анализатора
+            public int BgZeroBest = -1;        // (`AMBER295`, полоса `a295z`) −1 — умолчание анализатора
             public double AnchorBrakeTop = double.NaN; // (`AMBER295`, полоса `a295s`) NaN — умолчание анализатора
             public int EscBound = -1;          // (`AMBER311`, полоса `a311f`) −1 — умолчание анализатора
             public int EscTopZ = -1;           // (`AMBER311`, полоса `a311f`) −1 — умолчание анализатора
