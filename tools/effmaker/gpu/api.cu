@@ -189,6 +189,12 @@ RM_API const char* rm_build_info()
         info = std::string("src=") + RM_SRC_HASH + ";phys=" + std::to_string(RM_PHYSICS_VERSION)
              + ";arch=" + RM_ARCH + ";real=" + (sizeof(real) == 4 ? "float" : "double")
              + ";cudart=" + std::to_string(CUDART_VERSION) + ";cfg=" + cfgHex + ";";
+        // (`AMBER315`, ярус 2) режим `uc` (common.cuh, RM_UC_SHIPPED); сверяет tools/check_gpu_dll.py
+#ifdef RM_UC
+        info += "uc=1;";
+#else
+        info += "uc=0;";
+#endif
     }
 
     return info.c_str();

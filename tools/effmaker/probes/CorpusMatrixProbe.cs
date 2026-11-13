@@ -302,6 +302,12 @@ class CorpusMatrixProbe
             else if (a.StartsWith("--jper=", StringComparison.Ordinal))
                 // (`AMBER147`) Историй на энергию в наборе точки κ.
                 options.JointHistoriesPerPoint = int.Parse(a.Substring(7), CultureInfo.InvariantCulture);
+            else if (a.StartsWith("--clambda=", StringComparison.Ordinal))
+                // (`AMBER274`/`AMBER315`, a315u) ключ λ: тело фото от него не зависит, ставится ради единого набора ключей склада
+                BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambda = a.Substring(10) == "1";
+            else if (a.StartsWith("--l0=", StringComparison.Ordinal))
+                // (`AMBER274`/`AMBER315`, a315u) ключ L0 — то же
+                BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSize = a.Substring(5) == "1";
             else if (a.StartsWith("--seed=", StringComparison.Ordinal))
                 // `T43`: независимая выборка тем же кодом. Нужна для приёмки
                 // правок, меняющих ЧИСЛО розыгрышей: сравнивать «было/стало»

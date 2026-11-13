@@ -10,7 +10,7 @@ u"""Сторож поставочной GPU-библиотеки `BecquerelMonit
 Поэтому сборка (`build_gpu.cmd`) вшивает в `rm_build_info()` отпечаток исходников и
 поколение физики, а этот сторож пересчитывает отпечаток по дереву и сверяет.
 
-Девять сверок, каждая — отказ:
+Десять сверок, каждая — отказ:
   1. `src=` в паспорте DLL == sha256 (16 знаков) файлов `*.cu *.cuh *.h *.inc` каталога
      `tools/effmaker/gpu`, отсортированных по имени порядково без учёта регистра и
      склеенных подряд (то же правило — `tools/effmaker/gpu/src_hash.ps1`);
@@ -46,7 +46,11 @@ u"""Сторож поставочной GPU-библиотеки `BecquerelMonit
      `#define RM_DEEP_MARGIN <число>` в `decl_geom.inc` == умолчание рычага проб
      `public static double LayerDeepMarginCm = <число>;` в `EfficiencySimulator.cs`. Рычаг — не `const`
      (проба ставит его ключом `--deep=`), поэтому седьмая сверка его не видит; разошлись бы числа —
-     ЦП и GPU решали бы «шаг глубокий» по-разному, и оба молча.
+     ЦП и GPU решали бы «шаг глубокий» по-разному, и оба молча;
+ 10. (`AMBER315`, ярус 2 `uc`, решение Amber 13.11.2026 — вносить) поле `uc=` паспорта поставочной DLL ==
+     объявленный режим `#define RM_UC_SHIPPED 0|1` в `common.cuh` (паспорт без поля — сборка до режима, = 0).
+     Склады матриц `uc` и без `uc` клеймом не различаются (DLL в клеймо не входит): DLL, собранная ключом
+     `-DRM_UC_OFF` (или прежняя), считала бы склад другого режима молча.
 
 Паспорт читается из самой DLL (`ctypes`): она слинкована со статическим рантаймом CUDA и
 зависит только от KERNEL32, а `rm_build_info` устройства не трогает — сторож идёт и на
@@ -365,6 +369,34 @@ def read_deep_texts():
             io.open(DEEP_CS, encoding='utf-8-sig').read() if os.path.isfile(DEEP_CS) else u'')
 
 
+COMMON_CUH = os.path.join(GPU_DIR, 'common.cuh')
+
+
+def uc_shipped(common_text):
+    u"""(`AMBER315`, ярус 2 `uc`) Объявленный режим поставочной float-сборки: `#define RM_UC_SHIPPED 0|1`
+    в common.cuh — '0'/'1'; None — объявления нет."""
+    m = re.search(r'^\s*#define\s+RM_UC_SHIPPED\s+([01])\s*$', common_text, re.M)
+    return m.group(1) if m else None
+
+
+def uc_mode_problems(fields, common_text):
+    u"""(`AMBER315`) Десятая сверка: поле `uc=` паспорта поставочной DLL == объявленный режим `RM_UC_SHIPPED`.
+    Склады `uc` и без `uc` клеймом не различаются (DLL в клеймо не входит), и смесь складов иначе не видна.
+    Паспорт без поля `uc=` — сборка до режима (`uc` тогда не было) — читается как 0."""
+    want = uc_shipped(common_text)
+    if want is None:
+        return [u'в common.cuh нет объявления режима `#define RM_UC_SHIPPED 0|1` (AMBER315, ярус 2 `uc`)']
+    got = fields.get(u'uc', u'0')
+    if got != want:
+        return [u'режим `uc` поставочной DLL: паспорт uc=%s, а объявлено RM_UC_SHIPPED %s — DLL собрана не тем '
+                u'режимом (ключ -DRM_UC / -DRM_UC_OFF?); пересобрать build_gpu.cmd без ключей' % (got, want)]
+    return []
+
+
+def read_common_text():
+    return io.open(COMMON_CUH, encoding='utf-8').read() if os.path.isfile(COMMON_CUH) else u''
+
+
 def read_constants():
     kernel = kernel_constants(io.open(DECL_ELECTRON, encoding='utf-8').read())
     cs = {}
@@ -528,6 +560,24 @@ def selftest():
         ok9 = got9 == want9
         bad += 0 if ok9 else 1
         print(u'  %s %s → %s' % (u'✓' if ok9 else u'✗', what9, u'отказ' if got9 else u'сходится'))
+    # (`AMBER315`, ярус 2 `uc`) Режим `uc`: паспорт объявленного режима сходится; DLL «не того режима», паспорт
+    # без поля при объявленном 1 и пропавшее объявление — отказ. Порча — на копиях текста и подложных паспортах.
+    ut = read_common_text()
+    uw = uc_shipped(ut)
+    other = u'0' if uw == u'1' else u'1'
+    uc_cases = [
+        ({u'uc': uw}, ut, 0, u'режим uc: паспорт uc=%s = объявлено RM_UC_SHIPPED %s' % (uw, uw)),
+        ({u'uc': other}, ut, 1, u'режим uc: DLL не того режима (uc=%s при объявленном %s)' % (other, uw)),
+        ({}, re.sub(r'(#define\s+RM_UC_SHIPPED\s+)[01]', r'\g<1>1', ut, count=1), 1,
+         u'режим uc: паспорт без поля uc= (сборка до режима) при объявленном 1'),
+        ({u'uc': uw}, ut.replace(u'#define RM_UC_SHIPPED', u'#define RM_UC_SHIPPED_GONE', 1), 1,
+         u'режим uc: объявление пропало из common.cuh'),
+    ]
+    for ff10, tt10, want10, what10 in uc_cases:
+        got10 = 1 if uc_mode_problems(ff10, tt10) else 0
+        ok10 = got10 == want10
+        bad += 0 if ok10 else 1
+        print(u'  %s %s → %s' % (u'✓' if ok10 else u'✗', what10, u'отказ' if got10 else u'сходится'))
     print(u'самопроверка: %s' % (u'ПРОЙДЕНА' if bad == 0 else u'ПРОВАЛЕНА (%d)' % bad))
     return 0 if bad == 0 else 1
 
@@ -584,6 +634,11 @@ def main(argv):
         print(u'запас «глубокого шага» ядра (RM_DEEP_MARGIN) = LayerDeepMarginCm C#: %r см'
               % deep_margins(*read_deep_texts())[0])
     problems.extend(deepp)
+    ucp = uc_mode_problems(parse_info(info), read_common_text())
+    if not ucp:
+        print(u'режим `uc` поставочной DLL (uc=%s) = объявленный RM_UC_SHIPPED (common.cuh)'
+              % parse_info(info).get(u'uc', u'0'))
+    problems.extend(ucp)
     for p in problems:
         print(u'⛔ ' + p)
     print(u'положительный контроль этой проверки: python tools/check_gpu_dll.py --selftest')

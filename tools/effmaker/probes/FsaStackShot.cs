@@ -297,6 +297,7 @@ namespace FsaStackShot
             double pownum = 4.0;
             // (`AMBER45`) Слой матрицы отклика на снимке; умолчание — «All», стопка как есть.
             FsaMatrixLayer matrixLayer = FsaMatrixLayer.All;
+            int shiftNewton = -1, shiftBracket = -1; double shiftTol = -1.0;   // (`a295c`, a315u) −1 — умолчание анализатора
             foreach (string a in args)
             {
                 if (a.StartsWith("--spectrum=", StringComparison.Ordinal)) spectrumPath = a.Substring(11);
@@ -311,6 +312,13 @@ namespace FsaStackShot
                     }
                 }
                 else if (a.StartsWith("--efficiency=", StringComparison.Ordinal)) efficiencyName = a.Substring(13);
+                // (`AMBER274`/`AMBER315`, a315u 13.11.2026) ключи λ и L0 разбора — как у CorpusFsaProbe (раздел `cl=2;l0=1`)
+                else if (a.StartsWith("--clambda=", StringComparison.Ordinal)) BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambda = a.Substring(10) == "1";
+                else if (a.StartsWith("--l0=", StringComparison.Ordinal)) BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSize = a.Substring(5) == "1";
+                // (`AMBER295` NBT, `a295c`; a315u) рычаги сходимости сдвига опор — как у CorpusFsaProbe; нет ключа — умолчание анализатора
+                else if (a.StartsWith("--anchor-shift-newton=", StringComparison.Ordinal)) shiftNewton = a.Substring(22) == "1" ? 1 : 0;
+                else if (a.StartsWith("--anchor-shift-bracket=", StringComparison.Ordinal)) shiftBracket = a.Substring(23) == "1" ? 1 : 0;
+                else if (a.StartsWith("--anchor-shift-tol=", StringComparison.Ordinal)) shiftTol = double.Parse(a.Substring(19), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--out=", StringComparison.Ordinal)) outPath = a.Substring(6);
                 else if (a.StartsWith("--from=", StringComparison.Ordinal)) fromKev = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--to=", StringComparison.Ordinal)) toKev = double.Parse(a.Substring(5), CultureInfo.InvariantCulture);
@@ -676,6 +684,9 @@ namespace FsaStackShot
             // его за настоящий: у `G1S_K40_Denta` это χ²/ndf 3.62 против 1.72.
             // (ключ снят по B6 15.08.2026, тот же спектр — `G1S24_K40_Denta120`)
             var analyzer = new FsaAnalyzer();
+            if (shiftNewton >= 0) analyzer.AnchorShiftNewton = shiftNewton == 1;      // (`a295c`, a315u)
+            if (shiftBracket >= 0) analyzer.AnchorShiftBracket = shiftBracket == 1;
+            if (shiftTol >= 0.0) analyzer.AnchorShiftTolSigma = shiftTol;
             // ⛔ Матрица кладётся ТЕМ ЖЕ кодом, что и в приложении
             // (`FsaMatrixBinding`, `AMBER12`): с нею едут вещество кристалла
             // (`S20`, иначе сумм-пики считаются не по свету) и признак защиты

@@ -1416,6 +1416,22 @@ namespace CorpusFsaProbe
                     continue;
                 }
                 // (`AMBER142` п. 3, П224) нуль хранимого фона против пробы: 1 — мерить с усилением, 0 — одно усиление
+                // (`AMBER274`/`AMBER315`, a315u 13.11.2026) ключ λ `FsaBetaLibrary.CoulombLambda` (сфера; клеймо раздела `cl=2`)
+                if (a.StartsWith("--clambda=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(10);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--clambda=0|1"); }
+                    BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambda = v == "1";
+                    continue;
+                }
+                // (`AMBER274`/`AMBER315`, a315u) ключ L0 `FsaBetaLibrary.FermiFiniteSize` (клеймо раздела `l0=`)
+                if (a.StartsWith("--l0=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(5);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--l0=0|1"); }
+                    BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSize = v == "1";
+                    continue;
+                }
                 if (a.StartsWith("--bg-zero=", StringComparison.Ordinal))
                 {
                     string v = a.Substring(10);

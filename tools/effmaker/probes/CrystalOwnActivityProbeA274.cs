@@ -2397,7 +2397,12 @@ namespace CrystalOwnActivityProbeA274
             // Умолчание ключа теперь — заряженная сфера (её проверки — `--mode=sphere`).
             bool savedPoint = FsaBetaLibrary.CoulombLambdaPointNucleus;
             FsaBetaLibrary.CoulombLambdaPointNucleus = true;
-            Check("умолчание ключа λ — ВЫКЛ", !FsaBetaLibrary.CoulombLambda);
+            // (rev55, полоса `d55` 13.11.2026) умолчания λ и L₀ — ВКЛ (решение Amber 13.11.2026:
+            // «Да, одним пересчётом»); проверки написаны от базы ВЫКЛ и без L₀ — ключи явно выключаются.
+            Check("умолчание ключа λ — ВКЛ (rev55)", FsaBetaLibrary.CoulombLambda);
+            bool savedL0 = FsaBetaLibrary.FermiFiniteSize;
+            FsaBetaLibrary.CoulombLambda = false;
+            FsaBetaLibrary.FermiFiniteSize = false;
             List<string> list = nuclidesGiven ? nuclides : new List<string>(CoulombDefaultNuclides);
 
             Console.WriteLine();
@@ -2508,6 +2513,7 @@ namespace CrystalOwnActivityProbeA274
 
             FsaBetaLibrary.CoulombLambda = saved;
             FsaBetaLibrary.CoulombLambdaPointNucleus = savedPoint;
+            FsaBetaLibrary.FermiFiniteSize = savedL0;
         }
 
         /// <summary>
@@ -2874,7 +2880,11 @@ namespace CrystalOwnActivityProbeA274
         static void SphereChecks()
         {
             bool savedKey = FsaBetaLibrary.CoulombLambda, savedPoint = FsaBetaLibrary.CoulombLambdaPointNucleus;
-            Check("умолчание ключа λ — ВЫКЛ", !FsaBetaLibrary.CoulombLambda);
+            // (rev55, `d55`) умолчания λ и L₀ — ВКЛ; проверки сферы — от базы ВЫКЛ и без L₀.
+            Check("умолчание ключа λ — ВКЛ (rev55)", FsaBetaLibrary.CoulombLambda);
+            bool savedL0 = FsaBetaLibrary.FermiFiniteSize;
+            FsaBetaLibrary.CoulombLambda = false;
+            FsaBetaLibrary.FermiFiniteSize = false;
             Check("умолчание формы при ВКЛ — заряженная сфера (рычаг точечного ядра выключен)", !FsaBetaLibrary.CoulombLambdaPointNucleus);
 
             // 1. Положительный контроль решателя: L₀ = (α₋₁² + α₁²)/(2p²F₀) против Уилкинсона (Z ≤ 60).
@@ -3076,6 +3086,7 @@ namespace CrystalOwnActivityProbeA274
 
             FsaBetaLibrary.CoulombLambda = savedKey;
             FsaBetaLibrary.CoulombLambdaPointNucleus = savedPoint;
+            FsaBetaLibrary.FermiFiniteSize = savedL0;
         }
 
         /// <summary>λₖ точечного ядра — своя копия формулы `a274s` (F₍ₖ₋₁₎/F₀ с R = 1.2·A^⅓ фм).</summary>

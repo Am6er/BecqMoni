@@ -64,8 +64,13 @@ namespace FermiFiniteSizeProbeA274
                 }
             }
 
-            Check("умолчание ключа L₀ (FermiFiniteSize) — ВЫКЛ", !FsaBetaLibrary.FermiFiniteSize);
-            Check("умолчание ключа λ — ВЫКЛ", !FsaBetaLibrary.CoulombLambda);
+            // (rev55, полоса `d55` 13.11.2026) умолчания λ и L₀ — ВКЛ вместе со складом `uc_full`
+            // (решение Amber 13.11.2026: «Да, одним пересчётом»); замеры этой пробы написаны от базы
+            // ВЫКЛ, поэтому после проверки умолчаний ключи явно выключаются — числа пробы прежние.
+            Check("умолчание ключа L₀ (FermiFiniteSize) — ВКЛ (rev55)", FsaBetaLibrary.FermiFiniteSize);
+            Check("умолчание ключа λ — ВКЛ (rev55)", FsaBetaLibrary.CoulombLambda);
+            FsaBetaLibrary.FermiFiniteSize = false;
+            FsaBetaLibrary.CoulombLambda = false;
             var started = DateTime.UtcNow;
             if (mode == "control" || mode == "all")
             {

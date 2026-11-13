@@ -21,6 +21,20 @@ typedef double real;
 // 15.8–19.5 с против 9.8–11.2), а с `-maxrregcount` такая сборка ещё и портит локальную
 // память стадии 3 (compute-sanitizer: чтение по мусорному адресу; без потолка — чисто).
 #define RM_DEVF __device__
+// (`AMBER315`, ярус 2 `uc`, полоса a315u) Режим `uc`: `Uniform` и `RefinedElasticStep` вне встраивания,
+// страгглинг Урбана во float (`sim_electron.cuh`). Решение Amber 13.11.2026 — вносить: `uc` — УМОЛЧАНИЕ
+// поставочной float-сборки (`rmgpu_f.dll`). ⛔ ОБЪЯВЛЕННЫЙ РЕЖИМ — `RM_UC_SHIPPED` ниже, одно место: его сверяет
+// `tools/check_gpu_dll.py` с полем `uc=` паспорта поставочной DLL (склады `uc` и без `uc` клеймом не различаются).
+// Double-ступень (`rmgpu.dll`) — без `uc`, как прежде. Выключить у float-сборки — `-DRM_UC_OFF`.
+#define RM_UC_SHIPPED 1
+#if defined(RM_REAL_FLOAT) && RM_UC_SHIPPED && !defined(RM_UC_OFF) && !defined(RM_UC)
+#define RM_UC
+#endif
+#ifdef RM_UC
+#define RM_UC_NOINL __device__ __noinline__
+#else
+#define RM_UC_NOINL RM_DEV
+#endif
 
 // double.MaxValue / double.MinValue C#. ⚠ В режиме float число 1.79e308 не
 // представимо: сравнения «step == double.MaxValue» в переносе пишутся через
