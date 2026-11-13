@@ -57,6 +57,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// читаться как вещество обвязки.
         /// </summary>
         static readonly Color GapColor = Color.FromArgb(0xE8, 0xEE, 0xF6);
+
+        /// <summary>(`AMBER323`) Магнитный экран — тёмный металл, темнее корпуса: тонкая полоса под ним.</summary>
+        static readonly Color MagneticShieldColor = Color.FromArgb(0x4A, 0x4E, 0x5C);
+
+        /// <summary>
+        /// (`AMBER323`) Толщина магнитного экрана на чертеже — та же, что кладёт сцена счёта
+        /// (`EfficiencySimulator.Build`); у боковой постановки экрана нет — её счёт отказывает.
+        /// </summary>
+        static double MagneticShieldOf(GeometryModel m)
+        {
+            return m.HasMagneticShield && m.Facing != GeometryDetectorFacing.Side ? m.MagneticShieldThickness : 0.0;
+        }
         static readonly Color WallColor = Color.FromArgb(0xA6, 0xD5, 0xE8);
         static readonly Color SampleColor = Color.FromArgb(0x78, 0x80, 0x8E);
         static readonly Color Ink = Color.FromArgb(0x20, 0x20, 0x20);
@@ -543,7 +555,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            double outerHalf = halfWidth + tsr + tsg + tsc;
+            double outerHalf = halfWidth + tsr + tsg + MagneticShieldOf(m) + tsc;    // (`AMBER323`)
             double zFace = -(tfr + tfg + tfc);
             double zBack = height + tm;
 
@@ -1200,7 +1212,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                           double tfr, double tsr, double tfc, double tsc, double tm,
                           double tfg, double tsg)
         {
-            double outerHalf = halfWidth + tsr + tsg + tsc;
+            double tsh = MagneticShieldOf(m);
+            double outerHalf = halfWidth + tsr + tsg + tsh + tsc;
             double zFace = -(tfr + tfg + tfc);
 
             // Слои рисуются снаружи внутрь: корпус целиком, потом зазор, потом
@@ -1208,6 +1221,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             // — там побеждает первая область, в которую попала точка.
             Fill(g, CladdingColor, -outerHalf, zFace, 2.0 * outerHalf, height + tm - zFace);
             double gapHalf = halfWidth + tsr + tsg;
+            if (tsh > 0.0)
+            {
+                // (`AMBER323`) Рубашка экрана: зазором до начала экрана, экраном — от него до тыла.
+                double shieldHalf = gapHalf + tsh;
+                double z0 = GeometryModel.MagneticShieldStart(height, tfr + tfg, m.MagneticShieldLength);
+                Fill(g, GapColor, -shieldHalf, -(tfr + tfg), 2.0 * shieldHalf, height + tfr + tfg);
+                Fill(g, MagneticShieldColor, -shieldHalf, z0, 2.0 * shieldHalf, height - z0);
+            }
+
             Fill(g, GapColor, -gapHalf, -(tfr + tfg), 2.0 * gapHalf, height + tfr + tfg);
             double reflHalf = halfWidth + tsr;
             Fill(g, ReflectorColor, -reflHalf, -tfr, 2.0 * reflHalf, height + tfr);
@@ -1224,9 +1246,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                       double tfr, double tsr, double tfc, double tsc, double tm,
                       double tfg, double tsg)
         {
-            double outerHalf = halfWidth + tsr + tsg + tsc;
+            double tsh = MagneticShieldOf(m);    // (`AMBER323`)
+            double outerHalf = halfWidth + tsr + tsg + tsh + tsc;
             double zFace = -(tfr + tfg + tfc);
             double gapHalf = halfWidth + tsr + tsg, reflHalf = halfWidth + tsr;
+            double shieldHalf = gapHalf + tsh;
 
             // (`AMBER201`, Р4, мелочь G.3) Ключи подсветки едут ВМЕСТЕ с
             // толщинами, переставленными вызывающим: размер у грани, обращённой
@@ -1269,7 +1293,8 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             // Обвязка сбоку — на уровне кристалла, числа слева: короткой выноской в свободное поле.
             float level = this.Y(0.3 * height);
-            this.DimThrough(g, DimSide.Left, 1, this.X(-outerHalf), this.X(-gapHalf), level, tsc, ksc, RankSecond);
+            this.DimThrough(g, DimSide.Left, 1, this.X(-outerHalf), this.X(-shieldHalf), level, tsc, ksc, RankSecond);
+            this.DimThrough(g, DimSide.Left, 1, this.X(-shieldHalf), this.X(-gapHalf), level, tsh, "MagneticShieldThickness", RankThin);
             this.DimThrough(g, DimSide.Left, 1, this.X(-gapHalf), this.X(-reflHalf), level, tsg, ksg, RankThin);
             this.DimThrough(g, DimSide.Left, 1, this.X(-reflHalf), this.X(-halfWidth), level, tsr, ksr, RankThin);
         }
@@ -2745,6 +2770,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             tsr = Math.Max(side ? m.FrontReflectorThickness : m.SideReflectorThickness, 0.0);
             tsg = Math.Max(side ? m.FrontGapThickness : m.SideGapThickness, 0.0);
             tsc = Math.Max(side ? m.FrontCladdingThickness : m.SideCladdingThickness, 0.0);
+            // (`AMBER323`) Магнитный экран лежит под корпусом: на плане он — часть наружного кольца,
+            // которое рисует корпус; само кольцо экрана кладёт `DrawPlanDetector`.
+            tsc += MagneticShieldOf(m);
         }
 
         void FillCircle(Graphics g, Color color, float r)
@@ -3367,6 +3395,12 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             };
             layer(CladdingColor, tsr + tsg + tsc);
+            double tsh = MagneticShieldOf(m);    // (`AMBER323`) экран — под корпусом
+            if (tsh > 0.0)
+            {
+                layer(MagneticShieldColor, tsr + tsg + tsh);
+            }
+
             layer(GapColor, tsr + tsg);
             layer(ReflectorColor, tsr);
             layer(CrystalColor, 0.0);

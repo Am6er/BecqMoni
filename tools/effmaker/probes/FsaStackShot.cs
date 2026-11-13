@@ -315,6 +315,8 @@ namespace FsaStackShot
                 // (`AMBER274`/`AMBER315`, a315u 13.11.2026) ключи λ и L0 разбора — как у CorpusFsaProbe (раздел `cl=2;l0=1`)
                 else if (a.StartsWith("--clambda=", StringComparison.Ordinal)) BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.CoulombLambda = a.Substring(10) == "1";
                 else if (a.StartsWith("--l0=", StringComparison.Ordinal)) BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSize = a.Substring(5) == "1";
+                // (`AMBER274`, a274s 13.11.2026) ключ экранирования в функции Ферми — как у CorpusFsaProbe (раздел `scr=1`)
+                else if (a.StartsWith("--screening=", StringComparison.Ordinal)) BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiScreening = a.Substring(12) == "1";
                 // (`AMBER295` NBT, `a295c`; a315u) рычаги сходимости сдвига опор — как у CorpusFsaProbe; нет ключа — умолчание анализатора
                 else if (a.StartsWith("--anchor-shift-newton=", StringComparison.Ordinal)) shiftNewton = a.Substring(22) == "1" ? 1 : 0;
                 else if (a.StartsWith("--anchor-shift-bracket=", StringComparison.Ordinal)) shiftBracket = a.Substring(23) == "1" ? 1 : 0;

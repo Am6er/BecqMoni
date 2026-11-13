@@ -4178,6 +4178,36 @@ namespace BecquerelMonitor.Properties {
             }
         }
 
+        public static string GeometryEditorMagneticShield {
+            get {
+                return ResourceManager.GetString("GeometryEditorMagneticShield", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorMagneticShieldLength {
+            get {
+                return ResourceManager.GetString("GeometryEditorMagneticShieldLength", resourceCulture);
+            }
+        }
+
+        public static string GeometryEditorMagneticShieldMaterial {
+            get {
+                return ResourceManager.GetString("GeometryEditorMagneticShieldMaterial", resourceCulture);
+            }
+        }
+
+        public static string GeometryFacingSideMagneticShield {
+            get {
+                return ResourceManager.GetString("GeometryFacingSideMagneticShield", resourceCulture);
+            }
+        }
+
+        public static string GeometryCrystalMagneticShield {
+            get {
+                return ResourceManager.GetString("GeometryCrystalMagneticShield", resourceCulture);
+            }
+        }
+
         public static string GeometryEditorGapMaterial {
             get {
                 return ResourceManager.GetString("GeometryEditorGapMaterial", resourceCulture);

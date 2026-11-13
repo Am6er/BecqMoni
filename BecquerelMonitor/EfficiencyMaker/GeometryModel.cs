@@ -696,7 +696,14 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 if (this.Shape == CrystalShape.Box)
                 {
-                    return "";
+                    // (`AMBER323`) Магнитный экран идёт вокруг оси ФЭУ, а боковая постановка
+                    // разворачивает брусок поперёк неё: такой сцены модель не выражает.
+                    return this.HasMagneticShield
+                        ? Res("GeometryFacingSideMagneticShield",
+                              "The sample at the side of the detector is not defined for a detector with a magnetic"
+                              + " shield: the shield surrounds the photomultiplier axis, and the side setup turns"
+                              + " the crystal across it.")
+                        : "";
                 }
 
                 // (`AMBER201`, Р4, мелочь 9.2) Строкой ресурсов, а не русским
@@ -915,10 +922,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double FrontGapThickness;
 
         /// <summary>
-        /// Тот же зазор с БОКА. ⚠ У ЦИЛИНДРА бока у зазора НЕТ (решение Amber
-        /// 07.09.2026, вопросником): поле остаётся нулём и в окне не
-        /// показывается. Заведено ради видов, у которых торец и бок
-        /// различаются, — там у каждого своё число.
+        /// Тот же зазор с БОКА. До 13.11.2026 у ЦИЛИНДРА бока у зазора не было (решение Amber
+        /// 07.09.2026): поле держалось нулём и в окне не показывалось. ⛔ (`AMBER323`) Отменено для
+        /// цилиндра: Amber 13.11.2026 вопросником, дословно: «Разрешить, умолчание 0 (Рекомендую)».
+        /// Сцена (`EfficiencySimulator.Build`) боковой зазор цилиндра строила и прежде — правка
+        /// только в редакторе; умолчание 0, и прежние сцены, клейма, текст `.in` и XML те же.
         ///
         /// ⚠ Правило «бока нет» сказано ПРО ЗАЗОР и только про него: обвязка
         /// (отражатель и корпус) у цилиндра по-прежнему несёт оба размера.
@@ -928,6 +936,107 @@ namespace BecquerelMonitor.EfficiencyMaker
         public double FrontCladdingThickness;
         public double SideCladdingThickness;
         public double MountingThickness;
+
+        /// <summary>
+        /// ⛔ (`AMBER323`, полоса `a323` 13.11.2026) МАГНИТНЫЙ ЭКРАН — боковой слой вокруг кристалла,
+        /// мм: толщина. Решение Amber 11.11.2026 вопросником, дословно: «Новый боковой слой в модели
+        /// (Рекомендую)»; повод — её слова о приборе на LaBr3: «С фэу в сторону кристалла нависает
+        /// магнитный экран из пермаллоя …, толщина его 0.2-0.3 мм и это заметно срезает 30 кэВ
+        /// летящие сбоку».
+        /// <para>Где лежит: рубашкой МЕЖДУ боковым зазором и боковым корпусом (радиально — от
+        /// <c>r + отражатель + зазор</c> наружу на эту толщину; корпус ложится поверх и наружный
+        /// размер прибора растёт на неё). Вдоль оси — от тыла кристалла (сторона ФЭУ) к торцу на
+        /// <see cref="MagneticShieldLength"/>, не дальше внутренней грани торцевого корпуса
+        /// (<see cref="MagneticShieldStart"/>); остаток рубашки до торца — вещество зазора. Сцену
+        /// строит <c>EfficiencySimulator.Build</c>, её же читают перенос ЦП и GPU (область сцены).</para>
+        /// <para>⛔ Ноль — умолчание: экрана нет, сцена, клеймо матрицы, текст `.in` и XML побайтно
+        /// прежние (в `.in` ключи и в XML элементы — только у заданного экрана). Постановка пробы
+        /// у БОКОВОЙ грани с экраном — отказ (<see cref="FacingError"/>): экран идёт вокруг оси ФЭУ,
+        /// а боковая постановка разворачивает брусок поперёк неё.</para>
+        /// </summary>
+        public double MagneticShieldThickness;
+
+        /// <summary>(`AMBER323`) Длина магнитного экрана вдоль кристалла от его тыла (стороны ФЭУ) к торцу, мм.</summary>
+        public double MagneticShieldLength;
+
+        /// <summary>(`AMBER323`) Вещество магнитного экрана — из библиотеки веществ (у Amber — пермаллой).</summary>
+        public GeometryMaterial MagneticShield = new GeometryMaterial();
+
+        /// <summary>(`AMBER323`) Экран задан хоть одним размером — тогда и только тогда он пишется в XML.</summary>
+        bool MagneticShieldToXml
+        {
+            get { return this.MagneticShieldThickness != 0.0 || this.MagneticShieldLength != 0.0; }
+        }
+
+        public bool ShouldSerializeMagneticShieldThickness()
+        {
+            return this.MagneticShieldToXml;
+        }
+
+        public bool ShouldSerializeMagneticShieldLength()
+        {
+            return this.MagneticShieldToXml;
+        }
+
+        public bool ShouldSerializeMagneticShield()
+        {
+            return this.MagneticShieldToXml;
+        }
+
+        /// <summary>
+        /// (`AMBER323`) Экран ВХОДИТ в сцену: положительные толщина и длина. Его видят фотон и
+        /// электрон, он входит в текст `.in` и клеймо матрицы.
+        /// </summary>
+        [XmlIgnore]
+        public bool HasMagneticShield
+        {
+            get { return this.MagneticShieldThickness > 0.0 && this.MagneticShieldLength > 0.0; }
+        }
+
+        /// <summary>
+        /// (`AMBER323`) Начало экрана по оси сцены (торец кристалла — 0, тыл — <paramref name="crystalDepth"/>):
+        /// от тыла к торцу на <paramref name="length"/>, но не дальше внутренней грани торцевого
+        /// корпуса (<paramref name="frontInner"/> — отражатель плюс зазор у торца). Одно место для
+        /// сцены счёта и чертежа.
+        /// </summary>
+        public static double MagneticShieldStart(double crystalDepth, double frontInner, double length)
+        {
+            return Math.Max(-frontInner, crystalDepth - length);
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER323`, находка Ф1 критика `crit323`) Кладёт ли сцена ОСТАТОК рубашки экрана — кольцо
+        /// от внутренней грани торцевого корпуса до начала экрана — ВЕЩЕСТВОМ ЗАЗОРА. Тогда вещество
+        /// зазора — часть сцены даже при нулевых толщинах зазора, и клеймо матрицы обязано его нести
+        /// (<c>ResponseMatrix.StampView</c>, `dropGap`). Размеры — те же, что у
+        /// <c>EfficiencySimulator.Build</c> (торец к пробе; боковая постановка с экраном — отказ).
+        /// Ложь без экрана: клеймо прежних сцен не трогается.
+        /// </summary>
+        [XmlIgnore]
+        public bool MagneticShieldLeavesGap
+        {
+            get
+            {
+                if (!this.HasMagneticShield)
+                {
+                    return false;
+                }
+
+                double depth;
+                if (this.Shape == CrystalShape.Box)
+                {
+                    double hx, hy;
+                    this.CrystalBoxInScene(out hx, out hy, out depth);
+                }
+                else
+                {
+                    depth = this.CrystalHeight;
+                }
+
+                double frontInner = this.FrontReflectorThickness + Math.Max(0.0, this.FrontGapThickness);
+                return MagneticShieldStart(depth, frontInner, this.MagneticShieldLength) > -frontInner;
+            }
+        }
 
         // Источник, мм
         public double PointDistance;
@@ -1569,6 +1678,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             copy.Reflector = this.Reflector.Clone();
             copy.Gap = this.Gap.Clone();
             copy.Cladding = this.Cladding.Clone();
+            // (`AMBER323`) Магнитный экран — своё вещество у копии.
+            copy.MagneticShield = this.MagneticShield != null ? this.MagneticShield.Clone() : new GeometryMaterial();
             copy.BeakerWall = this.BeakerWall.Clone();
             copy.Source = this.Source.Clone();
             copy.SourceCapsule = this.SourceCapsule != null ? this.SourceCapsule.Clone() : new GeometryMaterial();
@@ -1623,6 +1734,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.FrontCladdingThickness *= factor;
             g.SideCladdingThickness *= factor;
             g.MountingThickness *= factor;
+            g.MagneticShieldThickness *= factor;    // (`AMBER323`)
+            g.MagneticShieldLength *= factor;
 
             g.PointDistance *= factor;
             g.FieldRadius *= factor;
@@ -1975,6 +2088,10 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.FrontCladdingThickness = Len(kv, "DS_CrystalFrontCladdingThickness");
             g.SideCladdingThickness = Len(kv, "DS_CrystalSideCladdingThickness");
             g.MountingThickness = Len(kv, "DS_DetectorMountingThickness");
+            // (`AMBER323`) Магнитный экран — наше расширение формата; ключа нет — экрана нет,
+            // то есть прежнее поведение и все файлы ЛСРМ. Вещество — своим блоком ниже.
+            g.MagneticShieldThickness = Len(kv, "DS_MagneticShieldThickness");
+            g.MagneticShieldLength = Len(kv, "DS_MagneticShieldLength");
 
             // E21: сторона, обращённая к пробе. Ключа нет — передний торец, то
             // есть прежнее поведение; так читаются все файлы до 15.08.2026 и
@@ -2117,6 +2234,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     : new GeometryMaterial();
             }
             g.ApplyGapDefault();
+            if (g.MagneticShieldThickness != 0.0 || g.MagneticShieldLength != 0.0)
+            {
+                g.MagneticShield = Material(kv, "DS_", "MagneticShield", "M_DS_MagneticShield.MName",
+                                            "DS_FractionTypeMagneticShield", g.ParseWarnings);
+            }
 
             // (`AMBER282`) Слои защиты в расчёте — наше расширение формата; нет ключа — слоёв нет,
             // и признак `DS_Shield` значит прежнее (`AMBER12`).
@@ -2305,6 +2427,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                   this.Gap, Properties.Resources.GeometryEditorGapMaterial);
             check(Math.Max(this.FrontCladdingThickness, this.SideCladdingThickness),
                   this.Cladding, Properties.Resources.GeometryEditorCladdingMaterial);
+            // (`AMBER323`) Магнитный экран — слой, только когда он в сцене.
+            check(this.HasMagneticShield ? this.MagneticShieldThickness : 0.0,
+                  this.MagneticShield, Properties.Resources.GeometryEditorMagneticShieldMaterial);
 
             double wall;
             // Высота пробы берётся ОДНИМ местом (`SampleHeightMm`): её же
@@ -2574,8 +2699,18 @@ namespace BecquerelMonitor.EfficiencyMaker
                 : string.Format(CultureInfo.InvariantCulture, Resources.GeometryCrystalCylinder,
                                 this.CrystalDiameter, this.CrystalHeight);
 
-            return string.Format(CultureInfo.InvariantCulture, Resources.GeometryDescription,
+            string text = string.Format(CultureInfo.InvariantCulture, Resources.GeometryDescription,
                 this.Name, this.Crystal.Name, crystal, this.Crystal.Density, source, this.Source.Name);
+            if (this.HasMagneticShield)
+            {
+                // (`AMBER323`) Магнитный экран — толщина, длина и вещество хвостом; без экрана строка прежняя.
+                text += string.Format(CultureInfo.InvariantCulture,
+                    Res("GeometryCrystalMagneticShield", "; magnetic shield {0:F2} mm, {1:F1} mm long, {2}"),
+                    this.MagneticShieldThickness, this.MagneticShieldLength,
+                    this.MagneticShield != null ? this.MagneticShield.Name : "");
+            }
+
+            return text;
         }
     }
 }

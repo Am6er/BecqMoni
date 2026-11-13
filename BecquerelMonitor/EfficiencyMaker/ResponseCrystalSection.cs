@@ -171,6 +171,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 sb.Append(";l0=").Append(BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSizeVersion);
             }
 
+            // (`AMBER274`, `a274s`) Бета слоя с экранированием в функции Ферми (`FsaBetaLibrary.FermiScreening`):
+            // поле только при ВКЛ, при ВЫКЛ клеймо побитно прежнее.
+            if (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiScreening)
+            {
+                sb.Append(";scr=").Append(BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiScreeningVersion);
+            }
+
             sb.Append(";rcp=").Append(BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnActivityBuilder.RecipeStamp(recipe));
             return sb.ToString();
         }

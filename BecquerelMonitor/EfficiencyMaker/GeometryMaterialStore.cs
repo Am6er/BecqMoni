@@ -165,7 +165,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///     дословно: «Исправить на 5.18 (Рекомендую)»). Имя прежнее — нужен ПЕРЕНОС тем
         ///     же правилом «только побитово прежний засев» (<see cref="MigrateSeedErrata"/>,
         ///     прежняя плотность — третьим полем <see cref="SeedErrata"/>, как у криптона).
-        public const int CurrentSeedVersion = 14;
+        /// 15 (13.11.2026, `AMBER323`, полоса `a323`) — «Permalloy» (Ni 0.80 / Fe 0.20 по массе,
+        ///     8.7 г/см³): магнитный экран шаблона «AtomSpectra Pro LaBr3(Ce)». Новое ИМЯ, довозится
+        ///     сведением по именам; переноса не нужно.
+        public const int CurrentSeedVersion = 15;
 
         /// <summary>
         /// (`AMBER107`, П324) Поколение, начиная с которого ВСЕ опечатки таблицы

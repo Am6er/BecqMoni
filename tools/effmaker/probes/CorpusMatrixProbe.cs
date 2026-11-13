@@ -308,6 +308,9 @@ class CorpusMatrixProbe
             else if (a.StartsWith("--l0=", StringComparison.Ordinal))
                 // (`AMBER274`/`AMBER315`, a315u) ключ L0 — то же
                 BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiFiniteSize = a.Substring(5) == "1";
+            else if (a.StartsWith("--screening=", StringComparison.Ordinal))
+                // (`AMBER274`, a274s 13.11.2026) ключ экранирования в функции Ферми — то же, что `--l0=`
+                BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiScreening = a.Substring(12) == "1";
             else if (a.StartsWith("--seed=", StringComparison.Ordinal))
                 // `T43`: независимая выборка тем же кодом. Нужна для приёмки
                 // правок, меняющих ЧИСЛО розыгрышей: сравнивать «было/стало»

@@ -155,6 +155,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             double side = Math.Max(0.0, g.SideReflectorThickness)
                           + Math.Max(0.0, g.SideGapThickness)
                           + Math.Max(0.0, g.SideCladdingThickness);
+            // (`AMBER323`) Магнитный экран — боковая рубашка под корпусом: раздувает поперечник.
+            if (g.HasMagneticShield)
+            {
+                side += g.MagneticShieldThickness;
+            }
+
             if (g.Facing == GeometryDetectorFacing.Side)
             {
                 toSample = side;
@@ -893,6 +899,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 Length("FrontCladdingThickness", g.FrontCladdingThickness),
                 Length("SideCladdingThickness", g.SideCladdingThickness),
                 Length("MountingThickness", g.MountingThickness),
+                // (`AMBER323`) Магнитный экран — тоже длины обвязки.
+                Length("MagneticShieldThickness", g.MagneticShieldThickness),
+                Length("MagneticShieldLength", g.MagneticShieldLength),
             };
 
             switch (g.SourceType)
