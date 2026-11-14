@@ -1107,6 +1107,8 @@ namespace BecquerelMonitor
             // (`AMBER270`) спектр, откуда строка, — по индексу `peaks`: центр масс пика линии
             // для κ мерится по НЕМУ, а не по спектру, в чью таблицу строка уходит
             List<EnergySpectrum> sources = new List<EnergySpectrum>();
+            // (`AMBER295`, «κ только по строкам спектра») откуда строка: пусто — свой спектр
+            List<string> origins = new List<string>();
 
             if (mainForm.DocumentList != null)
             {
@@ -1127,13 +1129,24 @@ namespace BecquerelMonitor
                                 continue;
                             }
                             peaks.AddRange(data.CalibrationLines);
+                            string origin = data == activeResultData ? string.Empty : SourceName(doc, data);
                             for (int k = 0; k < data.CalibrationLines.Count; k++)
                             {
                                 sources.Add(data.EnergySpectrum);
+                                origins.Add(origin);
                             }
                         }
                     }
                 }
+                // ⛔ (`AMBER295`, находка критика `crit270k`) строки активного спектра — ПЕРВЫМИ: сбор
+                // оставляет одну строку на канал, и при активном документе, открытом последним, его
+                // свои строки вытеснялись чужими на тех же каналах (те помечались «другая съёмка» и
+                // не шли в κ). Порядок внутри своих и внутри чужих — прежний (порядок документов).
+                List<int> order = Enumerable.Range(0, peaks.Count).Where(k => origins[k].Length == 0)
+                                            .Concat(Enumerable.Range(0, peaks.Count).Where(k => origins[k].Length > 0)).ToList();
+                peaks = order.Select(k => peaks[k]).ToList();
+                sources = order.Select(k => sources[k]).ToList();
+                origins = order.Select(k => origins[k]).ToList();
                 List<CalibrationPeak> target = activeResultData.CalibrationLines;
                 if (peaks.Count > 0)
                 {
@@ -1147,6 +1160,13 @@ namespace BecquerelMonitor
                         if (channels.Add(peak.Channel))
                         {
                             RememberCentroid(peak, sources[i]);
+                            // (`AMBER295`) строка ДРУГОГО документа помечается источником (пометка
+                            // идёт в файл); своя остаётся своей, даже если спектр набирался дальше.
+                            // Строка, уже помеченная прежним сбором, свою пометку сохраняет.
+                            if (origins[i].Length > 0 && string.IsNullOrEmpty(peak.Source))
+                            {
+                                peak.Source = origins[i];
+                            }
                             target.Add(peak);
                         }
                     }
@@ -1162,6 +1182,28 @@ namespace BecquerelMonitor
                                  Resources.NotificationDialogTitle, MessageBoxIcon.Information);
                 }
             }
+        }
+
+        /// <summary>
+        /// (`AMBER295`) Имя источника строки для пометки «другая съёмка»: имя файла документа,
+        /// без файла — время начала съёмки спектра; не пусто.
+        /// </summary>
+        static string SourceName(DocEnergySpectrum doc, ResultData data)
+        {
+            string name = null;
+            try
+            {
+                name = doc != null && !string.IsNullOrEmpty(doc.Filename) ? System.IO.Path.GetFileName(doc.Filename) : null;
+            }
+            catch (ArgumentException)
+            {
+                name = null;
+            }
+            if (string.IsNullOrEmpty(name) && data != null && data.StartTime != default(DateTime))
+            {
+                name = data.StartTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+            }
+            return string.IsNullOrEmpty(name) ? "?" : name;
         }
 
         // ══════════════════════════════════════════════════════════════════════
@@ -1234,8 +1276,9 @@ namespace BecquerelMonitor
             /// <summary>Линий в подгонке.</summary>
             public int Lines;
             /// <summary>
-            /// Из них — каналом центра масс пика (<see cref="CentroidOf"/>); прочие — целым
-            /// каналом строки (центр по спектру строки не измерен).
+            /// Из них — каналом центра масс пика (<see cref="CentroidOf"/>). С `AMBER295` у
+            /// подгонки по строкам это все линии: строка с неизмеренным центром отбрасывается
+            /// (<see cref="Rejected"/>), а не идёт целым каналом.
             /// </summary>
             public int CentroidLines;
             /// <summary>Верхняя линия набора, кэВ.</summary>
@@ -1246,7 +1289,92 @@ namespace BecquerelMonitor
             public string Material;
             /// <summary>Причина отказа словами (ресурс), null — подогнана.</summary>
             public string Refusal;
+            /// <summary>
+            /// (`AMBER295`, 14.11.2026) Линии, не пошедшие в κ, по возрастанию энергии: центр
+            /// пика не измерен либо промах от подгонки больше <see cref="TractCurvatureMissFwhm"/>.
+            /// </summary>
+            public List<TractLineRejection> Rejected = new List<TractLineRejection>();
+            /// <summary>Отказ «линий меньше трёх» (после отбора) — его текст заменяет обёртка по строкам.</summary>
+            public bool TooFewLines;
+            /// <summary>
+            /// (`AMBER295`) Сумм-пики, пошедшие в κ светом суммы: {E, E₁, E₂}, кэВ
+            /// (<see cref="SumPartsOf"/>).
+            /// </summary>
+            public List<double[]> SumPeaks = new List<double[]>();
+            /// <summary>
+            /// (`AMBER295`, третий круг) Сумм-пик, взятый кнопкой самой: {E, E₁, E₂, канал центра};
+            /// null — не брался (<see cref="FindAutoSum"/>).
+            /// </summary>
+            public double[] AutoSum;
+            /// <summary>
+            /// (`AMBER295`) Сумм-пик, который искали и не нашли: {E, E₁, E₂, ожидаемый канал, число
+            /// каналов спектра, если пик за его краем, иначе 0}; null — не искали или нашли.
+            /// </summary>
+            public double[] AutoSumMissing;
         }
+
+        /// <summary>(`AMBER295`) Линия, отброшенная из подгонки κ, и почему.</summary>
+        public sealed class TractLineRejection
+        {
+            /// <summary>Энергия линии, кэВ.</summary>
+            public double Energy;
+            /// <summary>Центр пика по спектру строки не измерен (<see cref="CentroidOf"/> — <c>NaN</c>).</summary>
+            public bool CentreNotMeasured;
+            /// <summary>
+            /// (`AMBER295`) Строка другой съёмки: пришла «Собрать всё» из другого документа
+            /// (<see cref="CalibrationPeak.Source"/>); в κ не идёт.
+            /// </summary>
+            public bool OtherAcquisition;
+            /// <summary>Промах центра пика от подгонки «свет → канал», каналы (при <see cref="CentreNotMeasured"/> — <c>NaN</c>).</summary>
+            public double MissChannels = double.NaN;
+            /// <summary>Тот же промах в долях FWHM строки.</summary>
+            public double MissFwhm = double.NaN;
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER295`, решение Amber вопросником 14.11.2026, дословно: «Отказ с причиной
+        /// (Рекомендую)») ПОРОГ ПРОМАХА ЛИНИИ ДЛЯ κ, доли FWHM строки: линии, чей центр пика
+        /// отходит от подгонки «свет → канал» дальше, не согласны (порядок отбора — в ядре,
+        /// перегрузка с FWHM линий). Промах мерится подгонкой без весов (в обоих режимах) по
+        /// центрам гаусса. Обоснование — журнал `handover/handover-2026-11-14-a270k.md` §2: на
+        /// годных спектрах, где κ пишется (Ra-226 Gamma-1S, восемь; ASN16 природные с 1764 кэВ),
+        /// наибольший промах 0.059 FWHM; у Th-232 NaI (дублет 911 + 969 кэВ) — до 0.114; у
+        /// мутантов критика `crit270k` (центр линии сдвинут на 0.2…0.5 FWHM) — 0.111…0.177, с
+        /// промахом 140 каналов — 0.80…1.67. При центре масс (первый круг) годные доходили до
+        /// 0.164, с весами — до 0.228, и порог стоял 0.25: мутанты 0.2–0.5 FWHM им не ловились.
+        /// </summary>
+        public const double TractCurvatureMissFwhm = 0.10;
+
+        /// <summary>
+        /// ⛔ (`AMBER295`, решение Amber вопросником 14.11.2026, дословно: «Две линии ≥ 1.5 МэВ
+        /// (Рекомендую)») Нижняя граница «верхних» линий, кэВ: годных линий от неё нужно не
+        /// меньше двух — они проверяют друг друга; иначе κ не подгоняется.
+        /// </summary>
+        public const double TractCurvatureHighLineKev = 1500.0;
+
+        /// <summary>
+        /// (`AMBER295`) Допуск совпадения энергии сумм-пика с суммой двух линий таблицы, кэВ:
+        /// энергии строк вписаны из библиотеки с точностью до сотых — тысячных, вручную — до
+        /// десятых (1173.2 + 1332.5 = 2505.7).
+        /// </summary>
+        public const double TractCurvatureSumToleranceKev = 0.3;
+
+        /// <summary>
+        /// ⛔ (`AMBER295`, решение Amber вопросником 14.11.2026, дословно: «Да, не меньше четырёх
+        /// (Рекомендую)») Наименьшее число годных линий для κ: свободных чисел три, на трёх
+        /// линиях квадрат проходит через все точки и линиям нечем проверить друг друга.
+        /// </summary>
+        public const int TractCurvatureMinLines = 4;
+
+        /// <summary>
+        /// (`AMBER295`) Доля силы каскада, начиная с которой одиночная гамма-линия того же нуклида
+        /// при энергии суммы делает эту энергию фотопиком, а не сумм-пиком: сумм-пик слабее
+        /// каскада на полную эффективность второго кванта (порядка 0.01…0.3), и одиночная
+        /// линия в 5 % каскада уже сопоставима с ним. Bi-214 1729.6 (2.8 % при силе 609.3 → 1120.3
+        /// около 15) — фотопик; Y-88 2734.0 (0.7 % при 93) и Tl-208 3197.7 (нет) — суммы.
+        /// </summary>
+        public const double TractCurvatureCrossoverShare = 0.05;
+
 
         /// <summary>
         /// ⛔ (`AMBER270`, 29.10.2026) ВЕЩЕСТВО КРИСТАЛЛА СПЕКТРА — ДЛЯ КРИВОЙ СВЕТА, тем
@@ -1332,16 +1460,31 @@ namespace BecquerelMonitor
         /// (<see cref="CalibrationPeak.EnergyLine"/>), канал — один раз, как у шкалы энергии</param>
         /// <param name="spectrum">спектр, чья это таблица (активный документ), — по нему мерится
         /// центр масс его строк, у которых он ещё не измерен (<see cref="CentroidOf"/>)</param>
+        /// <remarks>
+        /// ⛔ (`AMBER295`, решение Amber вопросником 14.11.2026, дословно: «Отказ с причиной
+        /// (Рекомендую)») ОТБОР ЛИНИЙ. Прежде строка с неизмеренным центром шла в κ целым
+        /// каналом, а промах линии не проверялся, и κ ложилась в спектр как есть: на граните
+        /// ASN16 — −0.0224 1/МэВ при промахе линии на 140 каналов, у `BrazilNuts` — −0.036
+        /// (верное ≈ −0.009; находка полос `a295k` и `crit295k`). Теперь: центр не измерен —
+        /// линия вон; промах от подгонки больше <see cref="TractCurvatureMissFwhm"/> FWHM —
+        /// вон (ядро); годных меньше трёх — отказ, κ спектра прежняя, причина называет
+        /// отброшенные линии.
+        /// </remarks>
         public static TractCurvatureFit FitTractCurvature(List<CalibrationPeak> lines, EnergySpectrum spectrum,
                                                             EnergyCalibration energyScale, string scintillator, bool weighted)
         {
             var channels = new List<double>();
             var energies = new List<double>();
             var weights = new List<double>();
+            var fwhms = new List<double>();
+            var parts = new List<double[]>();
+            var notMeasured = new List<TractLineRejection>();
             var seen = new HashSet<int>();
-            int centroids = 0;
             if (lines != null)
             {
+                // энергии СВОИХ линий таблицы — для распознавания сумм-пиков (`SumPartsOf`)
+                List<double> tableEnergies = lines.Where(l => l != null && l.EnergyLine && l.Energy > 0.0 && string.IsNullOrEmpty(l.Source))
+                                                  .Select(l => l.Energy).ToList();
                 // порядок и отбор — как у точек шкалы энергии (`EnergyPoints`)
                 foreach (CalibrationPeak line in lines.Where(l => l != null).OrderBy(l => l.Channel))
                 {
@@ -1349,23 +1492,279 @@ namespace BecquerelMonitor
                     {
                         continue;
                     }
+                    // ⛔ (`AMBER295`, решение Amber вопросником 14.11.2026, дословно: «κ только по
+                    // строкам спектра (Рекомендую)») строка из «Собрать всё» — другой съёмки (другое
+                    // усиление, другая сцена): в шкалу энергии и FWHM идёт, в κ — нет
+                    if (!string.IsNullOrEmpty(line.Source))
+                    {
+                        notMeasured.Add(new TractLineRejection { Energy = line.Energy, OtherAcquisition = true });
+                        continue;
+                    }
                     double centroid = CentroidOf(line, spectrum);
                     if (double.IsNaN(centroid))
                     {
-                        centroid = line.Channel;
-                    }
-                    else
-                    {
-                        centroids++;
+                        // (`AMBER295`) центр не измерен — строка не на пике своего спектра
+                        // либо чужая: её целый канал в κ больше не идёт
+                        notMeasured.Add(new TractLineRejection { Energy = line.Energy, CentreNotMeasured = true });
+                        continue;
                     }
                     channels.Add(centroid);
                     energies.Add(line.Energy);
                     weights.Add(weighted && line.Count > 0 ? (double)line.Count : 1.0);
+                    fwhms.Add(line.FWHM);
+                    parts.Add(SumPartsOf(line.Energy, tableEnergies));
                 }
             }
-            TractCurvatureFit fit = FitTractCurvature(channels, energies, weights, energyScale, scintillator);
-            fit.CentroidLines = centroids;
+            // ⛔ (`AMBER295`, третий круг; решение Amber вопросником 14.11.2026, дословно: «Сумм-пик
+            // 3197.7 как вторая (Рекомендую)») ВТОРАЯ ВЕРХНЯЯ ЛИНИЯ — СУММ-ПИК, НАЙДЕННЫЙ САМ. Когда
+            // годных линий от 1500 кэВ меньше двух (торий: сверху одна 2614.5), кнопка ищет сумм-пик
+            // каскадной пары линий таблицы (583.2 + 2614.5 = 3197.7 кэВ Tl-208) у ожидаемого канала
+            // и, если гаусс мерит его центр, берёт его строкой в κ светом суммы и называет это. Не
+            // нашла — отказ с причиной «добавьте сумм-пик». В таблицу калибровки строка не
+            // добавляется: шкала энергии сумм-пиком не подгоняется.
+            double[] autoSum = null, autoMissing = null;
+            if (spectrum != null && lines != null && energies.Count(e => e >= TractCurvatureHighLineKev) < 2)
+            {
+                List<double> table = lines.Where(l => l != null && l.EnergyLine && l.Energy > 0.0 && string.IsNullOrEmpty(l.Source)).Select(l => l.Energy).ToList();
+                double[] pair = AutoSumPair(energies, parts, table);
+                if (pair != null)
+                {
+                    double expected, fwhm;
+                    int peakChannel;
+                    double centre = FindAutoSum(spectrum, channels, energies, fwhms, parts, pair, out expected, out fwhm, out peakChannel);
+                    double sumEnergy = pair[0] + pair[1];
+                    if (!double.IsNaN(centre))
+                    {
+                        channels.Add(centre);
+                        energies.Add(sumEnergy);
+                        int count = spectrum.Spectrum[peakChannel];
+                        weights.Add(weighted && count > 0 ? (double)count : 1.0);
+                        fwhms.Add(fwhm);
+                        parts.Add(pair);
+                        autoSum = new[] { sumEnergy, pair[0], pair[1], centre };
+                    }
+                    else
+                    {
+                        int n = Math.Min(spectrum.NumberOfChannels, spectrum.Spectrum.Length);
+                        bool outside = !double.IsNaN(expected) && !double.IsNaN(fwhm) && expected > n - 1 - 0.5 * fwhm;
+                        autoMissing = new[] { sumEnergy, pair[0], pair[1], expected, outside ? n : 0.0 };
+                    }
+                }
+            }
+            TractCurvatureFit fit = FitTractCurvature(channels, energies, weights, fwhms, parts, energyScale, scintillator);
+            fit.CentroidLines = fit.Lines;
+            fit.AutoSum = autoSum != null && fit.SumPeaks.Any(sp => Math.Abs(sp[0] - autoSum[0]) < 1e-9) ? autoSum : (fit.Ok ? null : autoSum);
+            fit.AutoSumMissing = autoMissing;
+            if (notMeasured.Count > 0)
+            {
+                fit.Rejected.AddRange(notMeasured);
+                fit.Rejected.Sort((a, b) => a.Energy.CompareTo(b.Energy));
+            }
+            if (!fit.Ok)
+            {
+                var reason = new List<string>();
+                reason.Add(fit.TooFewLines && (fit.Rejected.Count > 0 || autoSum != null)
+                    ? String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureFewGoodLines,
+                                    fit.Lines.ToString(CultureInfo.InvariantCulture),
+                                    TractCurvatureMinLines.ToString(CultureInfo.InvariantCulture))
+                    : fit.Refusal);
+                if (autoMissing != null)
+                {
+                    reason.Add(AutoSumMissingNote(autoMissing));
+                }
+                if (autoSum != null)
+                {
+                    // сумм-пик взят сам, но κ всё равно нет: человек должен видеть, что он был в подгонке
+                    reason.Add(String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureAutoSum,
+                                             autoSum[0].ToString("0.###", CultureInfo.InvariantCulture),
+                                             autoSum[1].ToString("0.###", CultureInfo.InvariantCulture),
+                                             autoSum[2].ToString("0.###", CultureInfo.InvariantCulture),
+                                             autoSum[3].ToString("0.0", CultureInfo.InvariantCulture)));
+                }
+                if (fit.Rejected.Count > 0)
+                {
+                    reason.Add(RejectedNote(fit));
+                }
+                if (autoSum != null)
+                {
+                    // (`AMBER295`, находка 1 второго круга критика) сумм-пик взят, а κ всё равно нет —
+                    // выход тот же, что при сумм-пике за краем спектра (решение Amber «κ по Ra-226»)
+                    reason.Add(Resources.MSGTractCurvatureUseRa226);
+                }
+                fit.Refusal = string.Join("; ", reason);
+            }
             return fit;
+        }
+
+        /// <summary>
+        /// (`AMBER295`, третий круг) Каскадная пара для сумм-пика, найденного самим: две одиночные
+        /// измеренные линии с суммой от <see cref="TractCurvatureHighLineKev"/>, которой нет
+        /// строкой в таблице, и наибольшей силой каскада в `nucdb` (<see cref="CascadeFraction"/>). null — пары нет.
+        /// </summary>
+        static double[] AutoSumPair(List<double> energies, List<double[]> parts, List<double> table)
+        {
+            double[] best = null;
+            double bestFraction = 0.0;
+            for (int i = 0; i < energies.Count; i++)
+            {
+                for (int j = i + 1; j < energies.Count; j++)
+                {
+                    if (parts[i] != null || parts[j] != null)
+                    {
+                        continue;
+                    }
+                    double sum = energies[i] + energies[j];
+                    if (sum < TractCurvatureHighLineKev || table.Any(e => Math.Abs(e - sum) <= TractCurvatureSumToleranceKev))
+                    {
+                        continue;
+                    }
+                    double fraction = CascadeFraction(Math.Min(energies[i], energies[j]), Math.Max(energies[i], energies[j]));
+                    if (fraction > bestFraction || (fraction == bestFraction && fraction > 0.0 && sum > best[0] + best[1]))
+                    {
+                        bestFraction = fraction;
+                        best = new[] { Math.Min(energies[i], energies[j]), Math.Max(energies[i], energies[j]) };
+                    }
+                }
+            }
+            return best;
+        }
+
+        /// <summary>
+        /// (`AMBER295`, третий круг) Ищет сумм-пик пары <paramref name="pair"/>: ожидаемый канал —
+        /// c₁ + c₂ − c₀ (свет суммы — сумма светов; c₀ — канал нуля по прямой МНК «энергия →
+        /// центр» одиночных линий), FWHM — от верхней линии пары как √E; в окне ±1.5 FWHM берётся
+        /// канал наибольшего счёта, а центр — гауссом на прямой (<see cref="LineCentroid"/>).
+        /// NaN — пика нет (центр не измерен или вне окна).
+        /// </summary>
+        static double FindAutoSum(EnergySpectrum spectrum, List<double> channels, List<double> energies, List<double> fwhms,
+                                  List<double[]> parts, double[] pair, out double expected, out double fwhm, out int peakChannel)
+        {
+            expected = double.NaN;
+            fwhm = double.NaN;
+            peakChannel = -1;
+            int i1 = -1, i2 = -1;
+            double sx = 0.0, sy = 0.0, sxx = 0.0, sxy = 0.0;
+            int k = 0;
+            for (int i = 0; i < energies.Count; i++)
+            {
+                if (parts[i] != null)
+                {
+                    continue;
+                }
+                if (i1 < 0 && Math.Abs(energies[i] - pair[0]) < 1e-9) i1 = i;
+                if (i2 < 0 && Math.Abs(energies[i] - pair[1]) < 1e-9) i2 = i;
+                sx += energies[i];
+                sy += channels[i];
+                sxx += energies[i] * energies[i];
+                sxy += energies[i] * channels[i];
+                k++;
+            }
+            double det = k * sxx - sx * sx;
+            if (i1 < 0 || i2 < 0 || k < 2 || !(Math.Abs(det) > 0.0))
+            {
+                return double.NaN;
+            }
+            double slope = (k * sxy - sx * sy) / det;
+            double zero = (sy - slope * sx) / k;
+            expected = channels[i1] + channels[i2] - zero;
+            fwhm = fwhms[i2] * Math.Sqrt((pair[0] + pair[1]) / pair[1]);
+            int n = Math.Min(spectrum.NumberOfChannels, spectrum.Spectrum.Length);
+            int half = Math.Max(3, (int)Math.Ceiling(1.5 * fwhm));
+            if (!(slope > 0.0) || expected > n - 1 - 0.5 * fwhm)
+            {
+                // сумм-пик лежит за краем спектра (Gamma-1S: 1024 канала до ~3 МэВ)
+                return double.NaN;
+            }
+            int start = Math.Max(0, (int)Math.Round(expected) - half);
+            int end = Math.Min(n - 1, (int)Math.Round(expected) + half);
+            if (start >= end)
+            {
+                return double.NaN;
+            }
+            int top = start;
+            for (int c = start; c <= end; c++)
+            {
+                if (spectrum.Spectrum[c] > spectrum.Spectrum[top])
+                {
+                    top = c;
+                }
+            }
+            peakChannel = top;
+            double centre = LineCentroid(spectrum, top, fwhm);
+            if (double.IsNaN(centre) || Math.Abs(centre - expected) > 1.5 * fwhm)
+            {
+                return double.NaN;
+            }
+            return centre;
+        }
+
+        /// <summary>(`AMBER295`) Причина «сумм-пик не найден — добавьте его строкой».</summary>
+        static string AutoSumMissingNote(double[] missing)
+        {
+            if (missing.Length > 4 && missing[4] > 0.0)
+            {
+                return String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureAutoSumOutside,
+                                     missing[0].ToString("0.###", CultureInfo.InvariantCulture),
+                                     missing[1].ToString("0.###", CultureInfo.InvariantCulture),
+                                     missing[2].ToString("0.###", CultureInfo.InvariantCulture),
+                                     missing[3].ToString("0", CultureInfo.InvariantCulture),
+                                     missing[4].ToString("0", CultureInfo.InvariantCulture));
+            }
+            return String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureAutoSumMissing,
+                                 missing[0].ToString("0.###", CultureInfo.InvariantCulture),
+                                 missing[1].ToString("0.###", CultureInfo.InvariantCulture),
+                                 missing[2].ToString("0.###", CultureInfo.InvariantCulture),
+                                 double.IsNaN(missing[3]) ? "?" : missing[3].ToString("0", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// (`AMBER295`) Отброшенные линии словами: «отброшено N из M: E кэВ — причина; …».
+        /// Пусто — не отброшено ни одной.
+        /// </summary>
+        internal static string RejectedNote(TractCurvatureFit fit)
+        {
+            if (fit == null || fit.Rejected == null || fit.Rejected.Count == 0)
+            {
+                return string.Empty;
+            }
+            // (`AMBER295`, находка 5 критика `crit270k`) свёрнуто по причине: строки без
+            // центра — одним перечнем энергий (не больше шести, дальше «+N»), иначе длинный
+            // перечень вытеснял из строки под таблицей итог FWHM
+            var parts = new List<string>();
+            List<string> other = fit.Rejected.Where(r => r.OtherAcquisition)
+                                    .Select(r => r.Energy.ToString("0.###", CultureInfo.InvariantCulture)).ToList();
+            if (other.Count > 0)
+            {
+                string list = string.Join(", ", other.Take(6));
+                if (other.Count > 6)
+                {
+                    list += " +" + (other.Count - 6).ToString(CultureInfo.InvariantCulture);
+                }
+                parts.Add(String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureLineOtherAcquisition, list));
+            }
+            List<string> noCentre = fit.Rejected.Where(r => r.CentreNotMeasured)
+                                       .Select(r => r.Energy.ToString("0.###", CultureInfo.InvariantCulture)).ToList();
+            if (noCentre.Count > 0)
+            {
+                string list = string.Join(", ", noCentre.Take(6));
+                if (noCentre.Count > 6)
+                {
+                    list += " +" + (noCentre.Count - 6).ToString(CultureInfo.InvariantCulture);
+                }
+                parts.Add(String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureLineNoCentre, list));
+            }
+            foreach (TractLineRejection r in fit.Rejected.Where(r => !r.CentreNotMeasured && !r.OtherAcquisition))
+            {
+                parts.Add(String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureLineMiss,
+                                        r.Energy.ToString("0.###", CultureInfo.InvariantCulture),
+                                        RoundUp(r.MissFwhm).ToString("0.00", CultureInfo.InvariantCulture),
+                                        r.MissChannels.ToString("0.0", CultureInfo.InvariantCulture),
+                                        TractCurvatureMissFwhm.ToString("0.00", CultureInfo.InvariantCulture)));
+            }
+            return String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureRejected,
+                                 fit.Rejected.Count.ToString(CultureInfo.InvariantCulture),
+                                 (fit.Rejected.Count + fit.Lines).ToString(CultureInfo.InvariantCulture),
+                                 string.Join("; ", parts));
         }
 
         /// <summary>
@@ -1388,12 +1787,12 @@ namespace BecquerelMonitor
         /// <item>иначе — по <paramref name="spectrum"/> (<see cref="LineCentroid"/>), но только
         /// если строка — ЕГО: отсчёты в канале строки (<see cref="CalibrationPeak.Count"/>) те
         /// же, что у спектра в этом канале. ⛔ Без этой сверки строка, собранная из другого
-        /// спектра и прочитанная из файла (центр масс в файл не пишется — формат не меняется),
+        /// спектра и прочитанная из файла прежней версии (центра в нём нет; с `AMBER295` он пишется в файл),
         /// мерилась бы по ЧУЖОМУ пику: замер пробы `TractCurvatureFitProbeA270` на шести
         /// источниках G1S24 — κ 0.00776 вместо 0.00591 1/МэВ, промах линии до 6.5 канала.</item>
         /// </list>
         /// <c>NaN</c> — центр не измерен (строка не этого спектра либо пика у её канала нет):
-        /// строка идёт в κ своим целым каналом.
+        /// строка в κ не идёт (`AMBER295`, прежде шла своим целым каналом).
         /// </summary>
         public static double CentroidOf(CalibrationPeak line, EnergySpectrum spectrum)
         {
@@ -1414,7 +1813,7 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// (`AMBER270`) Мерит центр масс пика строки по её спектру и запоминает его в строке
+        /// (`AMBER270`) Мерит центр пика строки (с `AMBER295` — гаусс на прямой) по её спектру и запоминает его в строке
         /// (<see cref="CalibrationPeak.SpectrumCentroid"/>): когда строка заведена (спектр
         /// может набираться дальше — отсчёты канала разойдутся с весом строки) и когда она
         /// уходит «Собрать всё» в таблицу ДРУГОГО спектра. Не измерился — строка без него.
@@ -1431,15 +1830,20 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// (`AMBER270`) Центр масс пика у канала <paramref name="channel"/> — ТЕМ ЖЕ способом,
-        /// каким программа уточняет центр пика при выделении и поиске пиков
-        /// (<see cref="SpectrumAriphmetics.FindCentroid(EnergySpectrum, int, int, int, bool)"/>:
-        /// центр масс ядра пика выше полувысоты над минимумом окна), в окне ±1.5 FWHM строки,
-        /// не меньше ±3 каналов — том же, каким «Добавить в калибровку» выделяет пик
-        /// (<see cref="AddDetectedPeak"/>). Спектр — отсчёты файла, а не показанный вид:
-        /// κ не должна зависеть от того, вычтен ли на экране фон. <c>NaN</c> — пика нет:
-        /// окно плоское либо центр ушёл от канала строки дальше max(1, ½ FWHM) (строка
-        /// стоит не на пике этого спектра).
+        /// ⛔ (`AMBER295`, решение Amber вопросником 14.11.2026, дословно: «Гаусс для κ
+        /// (Рекомендую)»; отменяет для κ её же «Центр масс пика (Рекомендую)» 30.10.2026)
+        /// ЦЕНТР ПИКА СТРОКИ ДЛЯ κ — ГАУСС НА ПРЯМОЙ у канала <paramref name="channel"/>:
+        /// подгонка y = b₀ + b₁·(x − x̄) + A·exp(−(x − μ)²/2σ²) по отсчётам файла (а не по
+        /// показанному виду — κ не зависит от вычтенного на экране фона), веса Пуассона, окно
+        /// ±<see cref="TractCentreWindowFwhm"/> FWHM строки, не меньше ±3 каналов; начало — центр
+        /// масс тем же способом, что при выделении пика (<see cref="SpectrumAriphmetics.FindCentroid(EnergySpectrum, int, int, int, bool)"/>),
+        /// σ — FWHM строки / 2.355 и держится в <see cref="TractCentreSigmaMin"/>…<see cref="TractCentreSigmaMax"/> от неё. Прежний центр масс ядра пика
+        /// смещался на слабых пиках и на склоне комптона: у `ASN16_Charoite` 1460.8 кэВ — на
+        /// 19 каналов (0.13 FWHM), и κ чароитов выходила −0.0025 и −0.0126 при верной ≈ −0.009
+        /// (журнал `a295k`, раздел 1). <c>NaN</c> — центр не измерен: окно плоское, подгонка
+        /// не сошлась, площадь не положительна, ошибка центра больше ¼ FWHM либо центр ушёл
+        /// от канала строки дальше max(1, ½ FWHM) (строка стоит не на пике этого спектра).
+        /// Имя прежнее (его зовут пробы), смысл — «центр пика для κ».
         /// </summary>
         public static double LineCentroid(EnergySpectrum spectrum, int channel, double fwhmChannels)
         {
@@ -1453,15 +1857,347 @@ namespace BecquerelMonitor
                 return double.NaN;
             }
             double fwhm = fwhmChannels > 0.0 && !double.IsInfinity(fwhmChannels) ? fwhmChannels : 0.0;
-            int half = Math.Max(3, (int)Math.Ceiling(1.5 * fwhm));
+            int seedHalf = Math.Max(3, (int)Math.Ceiling(1.5 * fwhm));
+            double seed = new SpectrumAriphmetics().FindCentroid(spectrum, channel, Math.Max(0, channel - seedHalf),
+                                                                  Math.Min(n - 1, channel + seedHalf), true);
+            if (double.IsNaN(seed) || double.IsInfinity(seed))
+            {
+                seed = channel;
+            }
+            int half = Math.Max(3, (int)Math.Ceiling(TractCentreWindowFwhm * fwhm));
             int start = Math.Max(0, channel - half);
             int end = Math.Min(n - 1, channel + half);
-            double centroid = new SpectrumAriphmetics().FindCentroid(spectrum, channel, start, end, true);
-            if (double.IsNaN(centroid) || double.IsInfinity(centroid) || Math.Abs(centroid - channel) > Math.Max(1.0, 0.5 * fwhm))
+            double sigma0 = fwhm > 0.0 ? fwhm / 2.3548200450309493 : Math.Max(1.0, (end - start) / 6.0);
+            double centre = GaussOnLineCentre(spectrum.Spectrum, start, end, seed, sigma0);
+            if (double.IsNaN(centre) || double.IsInfinity(centre) || Math.Abs(centre - channel) > Math.Max(1.0, 0.5 * fwhm))
             {
                 return double.NaN;
             }
-            return centroid;
+            return centre;
+        }
+
+        /// <summary>
+        /// (`AMBER295`) Окно гаусса центра пика для κ, доли FWHM строки в каждую сторону: то же
+        /// ±1.5 FWHM, каким «Добавить в калибровку» выделяет пик (<see cref="AddDetectedPeak"/>).
+        /// </summary>
+        public const double TractCentreWindowFwhm = 1.5;
+
+        /// <summary>
+        /// (`AMBER295`) Пределы σ гаусса центра пика от σ строки (FWHM строки — из калибровки
+        /// FWHM, она известна с точностью порядка десяти процентов). Опыт полосы (журнал
+        /// `a270k`, раздел 2): при пределах 0.5…2 гаусс на дублетах NaI (911 + 969 кэВ Ac-228)
+        /// расширялся и съедал соседа — центр 911 не мерился у 6 спектров Th-232 (набор 239…2615), κ
+        /// `G1S24_Th232_Petri` 0.00014; при 0.85…1.2 — не мерился у двух, κ −0.0072. На ASN16 пределы
+        /// κ не меняют (−0.00867 и −0.00868 у `ASN16_Th232_Am241`).
+        /// </summary>
+        public const double TractCentreSigmaMin = 0.85;
+
+        /// <summary>(`AMBER295`) Верхний предел σ гаусса центра пика от σ строки (<see cref="TractCentreSigmaMin"/>).</summary>
+        public const double TractCentreSigmaMax = 1.2;
+
+        /// <summary>
+        /// (`AMBER295`) Центр гаусса на прямой в окне [<paramref name="start"/>, <paramref name="end"/>]
+        /// — Левенберг — Марквардт по пяти числам (b₀, b₁, A, μ, σ), веса 1/max(y, 1). <c>NaN</c> —
+        /// не сошлось, площадь не положительна или ошибка центра (ковариация, умноженная на
+        /// max(1, χ²/ndf)) больше ¼ FWHM.
+        /// </summary>
+        static double GaussOnLineCentre(int[] counts, int start, int end, double seed, double sigma0)
+        {
+            int m = end - start + 1;
+            if (m < 7 || !(sigma0 > 0.0))
+            {
+                return double.NaN;
+            }
+            double[] x = new double[m], y = new double[m], w = new double[m];
+            for (int i = 0; i < m; i++)
+            {
+                x[i] = start + i;
+                y[i] = counts[start + i];
+                w[i] = 1.0 / Math.Max(y[i], 1.0);
+            }
+            double xc = 0.5 * (x[0] + x[m - 1]);
+            double left = (y[0] + y[1]) / 2.0, right = (y[m - 1] + y[m - 2]) / 2.0;
+            double b1 = (right - left) / Math.Max(1.0, x[m - 1] - x[0] - 1.0);
+            double b0 = 0.5 * (left + right);
+            int k0 = (int)Math.Round(seed) - start;
+            k0 = Math.Max(0, Math.Min(m - 1, k0));
+            double a = y[k0] - (b0 + b1 * (x[k0] - xc));
+            if (!(a > 0.0))
+            {
+                return double.NaN;
+            }
+            double[] p = { b0, b1, a, seed, sigma0 };
+            double sMin = TractCentreSigmaMin * sigma0, sMax = TractCentreSigmaMax * sigma0;
+            Func<double[], double> chi2 = q =>
+            {
+                double sum = 0.0;
+                for (int i = 0; i < m; i++)
+                {
+                    double d = (x[i] - q[3]) / q[4];
+                    double r = y[i] - (q[0] + q[1] * (x[i] - xc) + q[2] * Math.Exp(-0.5 * d * d));
+                    sum += w[i] * r * r;
+                }
+                return sum;
+            };
+            double current = chi2(p);
+            double lambda = 1e-3;
+            double[,] jtj = new double[5, 5];
+            bool converged = false;
+            for (int iteration = 0; iteration < 200; iteration++)
+            {
+                double[] jtr = new double[5];
+                Array.Clear(jtj, 0, jtj.Length);
+                for (int i = 0; i < m; i++)
+                {
+                    double d = (x[i] - p[3]) / p[4];
+                    double g = Math.Exp(-0.5 * d * d);
+                    double r = y[i] - (p[0] + p[1] * (x[i] - xc) + p[2] * g);
+                    double[] jac = { 1.0, x[i] - xc, g, p[2] * g * d / p[4], p[2] * g * d * d / p[4] };
+                    for (int u = 0; u < 5; u++)
+                    {
+                        jtr[u] += w[i] * jac[u] * r;
+                        for (int v = 0; v < 5; v++)
+                        {
+                            jtj[u, v] += w[i] * jac[u] * jac[v];
+                        }
+                    }
+                }
+                bool stepTaken = false;
+                for (int attempt = 0; attempt < 30 && !stepTaken; attempt++)
+                {
+                    double[,] aug = new double[5, 6];
+                    for (int u = 0; u < 5; u++)
+                    {
+                        for (int v = 0; v < 5; v++)
+                        {
+                            aug[u, v] = jtj[u, v] + (u == v ? lambda * Math.Max(jtj[u, u], 1e-300) : 0.0);
+                        }
+                        aug[u, 5] = jtr[u];
+                    }
+                    double[] delta = SolveDense(aug, 5);
+                    if (delta == null)
+                    {
+                        lambda *= 10.0;
+                        continue;
+                    }
+                    double[] trial = new double[5];
+                    for (int u = 0; u < 5; u++)
+                    {
+                        trial[u] = p[u] + delta[u];
+                    }
+                    trial[4] = Math.Max(sMin, Math.Min(sMax, trial[4]));
+                    trial[3] = Math.Max(x[0], Math.Min(x[m - 1], trial[3]));
+                    double next = trial[2] > 0.0 ? chi2(trial) : double.PositiveInfinity;
+                    if (next <= current)
+                    {
+                        double change = current - next;
+                        double move = Math.Abs(trial[3] - p[3]);
+                        p = trial;
+                        current = next;
+                        lambda = Math.Max(lambda / 10.0, 1e-12);
+                        stepTaken = true;
+                        if (change <= 1e-10 * Math.Max(current, 1e-300) && move < 1e-7)
+                        {
+                            converged = true;
+                        }
+                    }
+                    else
+                    {
+                        lambda *= 10.0;
+                    }
+                }
+                if (!stepTaken)
+                {
+                    // шаг не уменьшает χ² ни при каком λ — минимум достигнут
+                    converged = true;
+                }
+                if (converged)
+                {
+                    break;
+                }
+            }
+            if (!converged || !(p[2] > 0.0))
+            {
+                return double.NaN;
+            }
+            // ошибка центра: (JᵀWJ)⁻¹ на минимуме, умноженная на max(1, χ²/ndf)
+            double[,] cov = new double[5, 6];
+            for (int u = 0; u < 5; u++)
+            {
+                for (int v = 0; v < 5; v++)
+                {
+                    cov[u, v] = jtj[u, v];
+                }
+                cov[u, 5] = u == 3 ? 1.0 : 0.0;
+            }
+            double[] column = SolveDense(cov, 5);
+            if (column == null || !(column[3] > 0.0))
+            {
+                return double.NaN;
+            }
+            double scaleChi = Math.Max(1.0, current / Math.Max(1, m - 5));
+            double sigmaMu = Math.Sqrt(column[3] * scaleChi);
+            if (sigmaMu > 0.25 * 2.3548200450309493 * sigma0)
+            {
+                return double.NaN;
+            }
+            return p[3];
+        }
+
+        /// <summary>Гаусс с выбором главного по столбцу для расширенной матрицы n×(n+1); null — вырождена.</summary>
+        static double[] SolveDense(double[,] m, int n)
+        {
+            for (int col = 0; col < n; col++)
+            {
+                int pivot = col;
+                for (int r = col + 1; r < n; r++)
+                {
+                    if (Math.Abs(m[r, col]) > Math.Abs(m[pivot, col]))
+                    {
+                        pivot = r;
+                    }
+                }
+                if (!(Math.Abs(m[pivot, col]) > 1e-300))
+                {
+                    return null;
+                }
+                if (pivot != col)
+                {
+                    for (int k = 0; k <= n; k++)
+                    {
+                        double tmp = m[col, k];
+                        m[col, k] = m[pivot, k];
+                        m[pivot, k] = tmp;
+                    }
+                }
+                for (int r = 0; r < n; r++)
+                {
+                    if (r == col)
+                    {
+                        continue;
+                    }
+                    double f = m[r, col] / m[col, col];
+                    for (int k = col; k <= n; k++)
+                    {
+                        m[r, k] -= f * m[col, k];
+                    }
+                }
+            }
+            double[] x = new double[n];
+            for (int r = 0; r < n; r++)
+            {
+                x[r] = m[r, n] / m[r, r];
+                if (double.IsNaN(x[r]) || double.IsInfinity(x[r]))
+                {
+                    return null;
+                }
+            }
+            return x;
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER295`, решение Amber вопросником 14.11.2026, дословно: «Считать свет суммой
+        /// (Рекомендую)») СТРОКА СУММ-ПИКА. Строка таблицы признака «сумм-пик» не несёт — у неё
+        /// только энергия, поэтому сумм-пик распознаётся так: в таблице есть две ДРУГИЕ линии
+        /// энергии E₁ + E₂ = E (в пределах <see cref="TractCurvatureSumToleranceKev"/>), и `nucdb`
+        /// знает их каскадное совпадение (`v_gamma_coincidence`, любой нуклид) — как у Co-60
+        /// 1173.2 + 1332.5 = 2505.7 и Y-88 898.0 + 1836.1 = 2734.1. Тогда свет строки —
+        /// L(E₁) + L(E₂), а не L(E). Возвращает {E₁, E₂} либо null (одиночная линия). Пары нет в
+        /// таблице или база не читается — строка одиночная, как прежде.
+        /// </summary>
+        public static double[] SumPartsOf(double energy, IList<double> tableEnergies)
+        {
+            if (!(energy > 0.0) || tableEnergies == null)
+            {
+                return null;
+            }
+            double tolerance = TractCurvatureSumToleranceKev;
+            List<double> others = tableEnergies.Where(e => e > 0.0 && e < energy - tolerance).Distinct().OrderBy(e => e).ToList();
+            for (int i = 0; i < others.Count; i++)
+            {
+                for (int j = i; j < others.Count; j++)
+                {
+                    if (Math.Abs(others[i] + others[j] - energy) <= tolerance && CascadePair(others[i], others[j]))
+                    {
+                        return new[] { others[i], others[j] };
+                    }
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// (`AMBER295`) Знает ли `nucdb` каскадное совпадение квантов <paramref name="a"/> и
+        /// <paramref name="b"/> кэВ (в любом порядке, допуск <see cref="TractCurvatureSumToleranceKev"/>).
+        /// База не читается — нет.
+        /// </summary>
+        static bool CascadePair(double a, double b)
+        {
+            return CascadeFraction(a, b) > 0.0;
+        }
+
+        /// <summary>
+        /// (`AMBER295`) Сила каскада квантов a и b в `nucdb` (любой порядок): наибольшее
+        /// «интенсивность первого кванта, % × доля совпадения» — у Tl-208 пара 583.2 + 2614.5
+        /// (84.5 × 0.989) сильнее пары 860.6 + 2614.5 (12.4 × 0.989); 0 — пары нет или база не читается.
+        /// Нуклид пары, у которого при энергии суммы есть своя одиночная гамма-линия не слабее
+        /// <see cref="TractCurvatureCrossoverShare"/> силы каскада, в счёт не идёт: у него эта
+        /// энергия — фотопик, а не сумма (Bi-214: 609.3 + 1120.3 = 1729.6 кэВ, линия 2.8 %).
+        /// </summary>
+        static double CascadeFraction(double a, double b)
+        {
+            try
+            {
+                string path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");
+                if (!System.IO.File.Exists(path))
+                {
+                    return 0.0;
+                }
+                using (var connection = new Microsoft.Data.Sqlite.SqliteConnection(
+                    EfficiencyMaker.MaterialDatabase.ReadOnlyConnection(path, true)))
+                {
+                    connection.Open();
+                    using (var command = connection.CreateCommand())
+                    {
+                        // сила каскада по нуклидам; у каждого — его же одиночная гамма-линия
+                        // при энергии суммы (переход «через уровень», crossover)
+                        command.CommandText =
+                            "select c.nucid, max(c.fraction * coalesce(l.intensity_pct, 1e-6)), "
+                            + "(select coalesce(max(r.intensity_num), 0) from decay_radiations r where r.parent_nucid = c.nucid "
+                            + "and r.type_a = 'G' and abs(r.energy_num - $s) <= $t) "
+                            + "from v_gamma_coincidence c "
+                            + "left join v_gamma_coincidence_line l on l.nucid = c.nucid and l.isomer = c.isomer "
+                            + "and abs(l.energy_kev - c.energy_kev) < 0.001 where "
+                            + "(abs(c.energy_kev - $a) <= $t and abs(c.coinc_energy_kev - $b) <= $t) or "
+                            + "(abs(c.energy_kev - $b) <= $t and abs(c.coinc_energy_kev - $a) <= $t) "
+                            + "group by c.nucid";
+                        command.Parameters.AddWithValue("$a", a);
+                        command.Parameters.AddWithValue("$b", b);
+                        command.Parameters.AddWithValue("$s", a + b);
+                        command.Parameters.AddWithValue("$t", TractCurvatureSumToleranceKev);
+                        double best = 0.0;
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                double strength = reader.IsDBNull(1) ? 0.0 : reader.GetDouble(1);
+                                double crossover = reader.IsDBNull(2) ? 0.0 : reader.GetDouble(2);
+                                // ⛔ у Bi-214 609.3 + 1120.3 = 1729.6 — это и его ОДИНОЧНАЯ линия 1729.6
+                                // (2.8 %): такая энергия — не сумм-пик
+                                if (crossover < TractCurvatureCrossoverShare * strength)
+                                {
+                                    best = Math.Max(best, strength);
+                                }
+                            }
+                        }
+                        return best;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return 0.0;
+            }
         }
 
         /// <summary>
@@ -1470,6 +2206,31 @@ namespace BecquerelMonitor
         /// пробы — каналами карты разбора без округления.
         /// </summary>
         public static TractCurvatureFit FitTractCurvature(IList<double> pointChannels, IList<double> pointEnergies, IList<double> pointWeights,
+                                                            EnergyCalibration energyScale, string scintillator)
+        {
+            return FitTractCurvature(pointChannels, pointEnergies, pointWeights, null, energyScale, scintillator);
+        }
+
+        /// <summary>
+        /// (`AMBER295`) То же ядро с отбором линий: <paramref name="pointFwhm"/> — FWHM линий,
+        /// каналы (null — без отбора и без правила двух верхних линий, как прежде у проб).
+        /// FWHM строки не задана (ноль) — промах делится на один канал.
+        /// </summary>
+        public static TractCurvatureFit FitTractCurvature(IList<double> pointChannels, IList<double> pointEnergies, IList<double> pointWeights,
+                                                            IList<double> pointFwhm, EnergyCalibration energyScale, string scintillator)
+        {
+            return FitTractCurvature(pointChannels, pointEnergies, pointWeights, pointFwhm, null, energyScale, scintillator);
+        }
+
+        /// <summary>
+        /// (`AMBER295`) Ядро целиком. <paramref name="pointParts"/> — у строки сумм-пика две
+        /// энергии квантов {E₁, E₂}: её свет — сумма светов L(E₁) + L(E₂) (решение Amber
+        /// 14.11.2026, дословно: «Считать свет суммой (Рекомендую)»; так κ Gamma-1S мерили
+        /// сумм-пиками в корпусе, журнал П218 §3); null у одиночной линии или весь список null.
+        /// Порядок отбора и правило двух верхних линий — в теле.
+        /// </summary>
+        public static TractCurvatureFit FitTractCurvature(IList<double> pointChannels, IList<double> pointEnergies, IList<double> pointWeights,
+                                                            IList<double> pointFwhm, IList<double[]> pointParts,
                                                             EnergyCalibration energyScale, string scintillator)
         {
             TractCurvatureFit fit = new TractCurvatureFit();
@@ -1497,11 +2258,21 @@ namespace BecquerelMonitor
             fit.Curve = curve;
 
             // свет фотопика каждой линии: x = E + s(E) — тем же вызовом и с теми же
-            // умолчаниями, что у разбора (`FsaAnalyzer.CurveShiftKev`)
+            // умолчаниями, что у разбора (`FsaAnalyzer.CurveShiftKev`); у сумм-пика —
+            // сумма светов двух квантов
+            Func<double, double> lightOf = e =>
+            {
+                double s = defaults.AnchorLightMaxKev > 0.0 && e > defaults.AnchorLightMaxKev
+                    ? 0.0
+                    : FullSpectrumAnalysis.FsaLightScale.ShiftKev(curve, e, defaults.AnchorLightReferenceKev);
+                return e + s;
+            };
             var channels = new List<double>();
             var lights = new List<double>();
             var weights = new List<double>();
             var energies = new List<double>();
+            var fwhms = new List<double>();
+            var parts = new List<double[]>();
             int count = pointChannels != null && pointEnergies != null ? Math.Min(pointChannels.Count, pointEnergies.Count) : 0;
             for (int i = 0; i < count; i++)
             {
@@ -1511,30 +2282,38 @@ namespace BecquerelMonitor
                 {
                     continue;
                 }
-                double s = defaults.AnchorLightMaxKev > 0.0 && e > defaults.AnchorLightMaxKev
-                    ? 0.0
-                    : FullSpectrumAnalysis.FsaLightScale.ShiftKev(curve, e, defaults.AnchorLightReferenceKev);
-                if (double.IsNaN(s) || double.IsInfinity(s))
+                double[] sum = pointParts != null && i < pointParts.Count ? pointParts[i] : null;
+                double light = sum == null ? lightOf(e) : lightOf(sum[0]) + lightOf(sum[1]);
+                if (double.IsNaN(light) || double.IsInfinity(light))
                 {
                     continue;
                 }
                 double w = pointWeights != null && i < pointWeights.Count && pointWeights[i] > 0.0 ? pointWeights[i] : 1.0;
                 channels.Add(ch);
-                lights.Add(e + s);
+                lights.Add(light);
                 energies.Add(e);
                 weights.Add(w);
+                double fw = pointFwhm != null && i < pointFwhm.Count ? pointFwhm[i] : double.NaN;
+                fwhms.Add(fw > 0.0 && !double.IsInfinity(fw) ? fw : 1.0);
+                parts.Add(sum);
             }
             fit.Lines = channels.Count;
             fit.TopLineKev = energies.Count > 0 ? energies.Max() : 0.0;
-            if (channels.Count < 3)
+            // (`AMBER295`) с отбором (путь приложения) — не меньше четырёх линий: «нечем проверить»;
+            // без отбора (ядро проб) — три свободных числа, как прежде
+            int minLines = pointFwhm != null ? TractCurvatureMinLines : 3;
+            if (channels.Count < minLines)
             {
+                fit.TooFewLines = true;
                 fit.Refusal = String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureFewLines,
-                                            channels.Count.ToString(CultureInfo.InvariantCulture));
+                                            channels.Count.ToString(CultureInfo.InvariantCulture),
+                                            minLines.ToString(CultureInfo.InvariantCulture));
                 return fit;
             }
-            // ⛔ решение Amber 30.10.2026 «Только с линиями до ≥ 2 МэВ»: κ спектра прежняя,
-            // причина — словами (строка состояния и подпись под полем)
-            if (fit.TopLineKev < TractCurvatureTopLineKev)
+            // ⛔ решение Amber 30.10.2026 «Только с линиями до ≥ 2 МэВ» — ЗАМЕНЕНО у приложения её
+            // решением 14.11.2026, дословно: «Заменить новым (Рекомендую)» — правилом двух годных
+            // линий от 1500 кэВ (ниже). Остаётся только у ядра проб без отбора (`pointFwhm` null).
+            if (pointFwhm == null && fit.TopLineKev < TractCurvatureTopLineKev)
             {
                 fit.Refusal = String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureNoHighLine,
                                             TractCurvatureTopLineKev.ToString("0", CultureInfo.InvariantCulture),
@@ -1543,22 +2322,111 @@ namespace BecquerelMonitor
             }
 
             // МНК c(x) = p0 + p1·x + p2·x² (свет — от середины, чтобы система была обусловлена)
-            double mid = lights.Average();
-            double[,] m = new double[3, 4];
-            for (int i = 0; i < channels.Count; i++)
+            double mid;
+            double[] p = SolveTractQuadratic(channels, lights, weights, out mid);
+            // ⛔ (`AMBER295`) ОТБОР ПО ПРОМАХУ. Три свободных числа: на трёх линиях квадрат
+            // проходит через все точки и промаха не видно; на четырёх промах виден, но КАКАЯ
+            // линия промахнулась — нет (остаток с одной степенью свободы ложится на линии
+            // одним и тем же вектором, какая бы ни ошиблась). Поэтому: линии согласны (промах
+            // каждой от подгонки по всем ≤ порога) — подгонка как есть; не согласны — пробуется
+            // снять каждую по очереди. Ровно одна снятая даёт согласный остаток — она вон
+            // (промах — от подгонки по остальным). Больше одной (на четырёх линиях — всегда) —
+            // промахнувшуюся не определить; ни одной — промахнулись несколько: отказ (решение
+            // Amber 14.11.2026 о четырёх линиях, дословно: «Отказ (Рекомендую)»). Угадывать
+            // нельзя: снятие «самой мешающей» на мутанте с двумя промахами из пяти снимало
+            // верхнюю линию 2614.5 кэВ — у неё наибольший рычаг.
+            // Промах мерится подгонкой БЕЗ весов в обоих режимах: с весами по отсчётам линия
+            // со слабым пиком отходит от квадрата дальше, и порог зависел бы от режима (находка
+            // критика `crit270k`: `AS80_Th232_v2` с весами — 0.228 FWHM на годных линиях).
+            while (pointFwhm != null && p != null && channels.Count > 3)
             {
-                double t = lights[i] - mid;
-                double[] basis = { 1.0, t, t * t };
-                for (int r = 0; r < 3; r++)
+                double um;
+                double[] up = SolveTractQuadratic(channels, lights, Ones(channels.Count), out um);
+                if (up == null)
                 {
-                    for (int c = 0; c < 3; c++)
+                    break;
+                }
+                double spread = WorstMissFwhm(up, um, channels, lights, fwhms);
+                if (!(spread > TractCurvatureMissFwhm))
+                {
+                    break;
+                }
+                int best = -1, agreeing = 0;
+                double bestSpread = double.PositiveInfinity;
+                double[] bestP = null;
+                double bestMid = 0.0;
+                for (int k = 0; k < channels.Count; k++)
+                {
+                    List<double> c = Without(channels, k), l = Without(lights, k), f = Without(fwhms, k);
+                    double kMid;
+                    double[] kp = SolveTractQuadratic(c, l, Ones(c.Count), out kMid);
+                    if (kp == null)
                     {
-                        m[r, c] += weights[i] * basis[r] * basis[c];
+                        continue;
                     }
-                    m[r, 3] += weights[i] * basis[r] * channels[i];
+                    double kSpread = c.Count > 3 ? WorstMissFwhm(kp, kMid, c, l, f) : 0.0;
+                    if (!(kSpread > TractCurvatureMissFwhm))
+                    {
+                        agreeing++;
+                    }
+                    if (kSpread < bestSpread)
+                    {
+                        best = k;
+                        bestSpread = kSpread;
+                        bestP = kp;
+                        bestMid = kMid;
+                    }
+                }
+                if (best < 0 || agreeing != 1)
+                {
+                    fit.Lines = channels.Count;
+                    fit.Refusal = String.Format(CultureInfo.InvariantCulture,
+                                                agreeing > 1 ? Resources.MSGTractCurvatureAmbiguous : Resources.MSGTractCurvatureSeveralMiss,
+                                                channels.Count.ToString(CultureInfo.InvariantCulture),
+                                                RoundUp(spread).ToString("0.00", CultureInfo.InvariantCulture),
+                                                TractCurvatureMissFwhm.ToString("0.00", CultureInfo.InvariantCulture));
+                    return fit;
+                }
+                double bt = lights[best] - bestMid;
+                double bestMiss = Math.Abs(bestP[0] + bestP[1] * bt + bestP[2] * bt * bt - channels[best]);
+                fit.Rejected.Add(new TractLineRejection { Energy = energies[best], MissChannels = bestMiss, MissFwhm = bestMiss / fwhms[best] });
+                channels.RemoveAt(best);
+                lights.RemoveAt(best);
+                energies.RemoveAt(best);
+                weights.RemoveAt(best);
+                fwhms.RemoveAt(best);
+                parts.RemoveAt(best);
+                p = SolveTractQuadratic(channels, lights, weights, out mid);
+            }
+            if (fit.Rejected.Count > 0)
+            {
+                fit.Lines = channels.Count;
+                fit.TopLineKev = energies.Max();
+                if (channels.Count < minLines)
+                {
+                    fit.TooFewLines = true;
+                    fit.Refusal = String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureFewLines,
+                                                channels.Count.ToString(CultureInfo.InvariantCulture),
+                                                minLines.ToString(CultureInfo.InvariantCulture));
+                    return fit;
                 }
             }
-            double[] p = SolveSmall(m);
+            // ⛔ (`AMBER295`, решение Amber 14.11.2026 вопросником, дословно: «Две линии ≥ 1.5 МэВ
+            // (Рекомендую)») ВЕРХ ПРОВЕРЯЮТ ДВЕ ЛИНИИ: верхняя линия держит шкалу карты и сильнее
+            // всех тянет κ, а промах её одной не виден (мутант критика: 2614.5 +40 кан. у
+            // `G1S24_Th228_P5` давал κ 0.033). Годных линий от 1500 кэВ (сумм-пик — по своей
+            // энергии) нужно не меньше двух, иначе отказ.
+            if (pointFwhm != null)
+            {
+                int high = energies.Count(e => e >= TractCurvatureHighLineKev);
+                if (high < 2)
+                {
+                    fit.Refusal = String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureNoTwoHigh,
+                                                TractCurvatureHighLineKev.ToString("0", CultureInfo.InvariantCulture),
+                                                high.ToString(CultureInfo.InvariantCulture));
+                    return fit;
+                }
+            }
             double edge = defaults.AdcZeroAtChannelEdge ? -0.5 : 0.0;
             double zeroT;
             if (p == null || !TractZero(p, edge, lights.Min() - mid, out zeroT))
@@ -1569,13 +2437,25 @@ namespace BecquerelMonitor
             double slope = p[1] + 2.0 * p[2] * zeroT;
             double zeroLight = zeroT + mid;
 
-            // шкала карты: верхняя линия держится на месте, как у разбора
-            int top = 0;
-            for (int i = 1; i < energies.Count; i++)
+            // шкала карты: верхняя ОДИНОЧНАЯ линия держится на месте, как у разбора (сумм-пик
+            // её не заменяет: у разбора верх шкалы — фотопик); одиночных нет — верхняя вообще
+            int top = -1;
+            for (int i = 0; i < energies.Count; i++)
             {
-                if (energies[i] > energies[top])
+                if (parts[i] == null && (top < 0 || energies[i] > energies[top]))
                 {
                     top = i;
+                }
+            }
+            if (top < 0)
+            {
+                top = 0;
+                for (int i = 1; i < energies.Count; i++)
+                {
+                    if (energies[i] > energies[top])
+                    {
+                        top = i;
+                    }
                 }
             }
             double e0;
@@ -1604,12 +2484,87 @@ namespace BecquerelMonitor
                 double t = lights[i] - mid;
                 double c = p[0] + p[1] * t + p[2] * t * t;
                 worst = Math.Max(worst, Math.Abs(c - channels[i]));
+                if (parts[i] != null)
+                {
+                    fit.SumPeaks.Add(new[] { energies[i], parts[i][0], parts[i][1] });
+                }
             }
             fit.Ok = true;
             fit.Kappa = kappa;
             fit.ZeroLightKev = zeroLight;
             fit.WorstChannels = worst;
             return fit;
+        }
+
+        /// <summary>Веса «без весов» — единицы.</summary>
+        static List<double> Ones(int n)
+        {
+            var ones = new List<double>(n);
+            for (int i = 0; i < n; i++)
+            {
+                ones.Add(1.0);
+            }
+            return ones;
+        }
+
+        /// <summary>
+        /// МНК c(x) = p0 + p1·t + p2·t², t = x − <paramref name="mid"/> (среднее света линий),
+        /// веса — <paramref name="weights"/>; null — система вырождена. Арифметика — прежняя
+        /// побитово (до `AMBER295` стояла в ядре строкой).
+        /// </summary>
+        static double[] SolveTractQuadratic(List<double> channels, List<double> lights, List<double> weights, out double mid)
+        {
+            mid = lights.Average();
+            double[,] m = new double[3, 4];
+            for (int i = 0; i < channels.Count; i++)
+            {
+                double t = lights[i] - mid;
+                double[] basis = { 1.0, t, t * t };
+                for (int r = 0; r < 3; r++)
+                {
+                    for (int c = 0; c < 3; c++)
+                    {
+                        m[r, c] += weights[i] * basis[r] * basis[c];
+                    }
+                    m[r, 3] += weights[i] * basis[r] * channels[i];
+                }
+            }
+            return SolveSmall(m);
+        }
+
+        /// <summary>(`AMBER295`) Наибольший промах линии от квадрата <paramref name="p"/>, доли её FWHM.</summary>
+        static double WorstMissFwhm(double[] p, double mid, List<double> channels, List<double> lights, List<double> fwhms)
+        {
+            double worst = 0.0;
+            for (int i = 0; i < channels.Count; i++)
+            {
+                double t = lights[i] - mid;
+                worst = Math.Max(worst, Math.Abs(p[0] + p[1] * t + p[2] * t * t - channels[i]) / fwhms[i]);
+            }
+            return worst;
+        }
+
+        /// <summary>
+        /// Доли FWHM для показа — вверх до сотых: промах выше порога не печатается равным ему
+        /// (0.2501 при пороге 0.25 — «0.26», а не «0.25»).
+        /// </summary>
+        static double RoundUp(double value)
+        {
+            return Math.Ceiling(value * 100.0 - 1e-9) / 100.0;
+        }
+
+        /// <summary>Копия списка без элемента <paramref name="skip"/>.</summary>
+        static List<double> Without(List<double> list, int skip)
+        {
+            var copy = new List<double>(list.Count - 1);
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (i != skip)
+                {
+                    copy.Add(list[i]);
+                }
+            }
+            return copy;
         }
 
         /// <summary>
@@ -1807,8 +2762,23 @@ namespace BecquerelMonitor
                         // линиям; в спектр (`AMBER271`). Не вышло — κ спектра прежняя,
                         // а причина идёт в строку состояния и под поле κ. Канал линии —
                         // центр масс её пика, набор — с линией от 2 МэВ (решения Amber
-                        // 30.10.2026).
-                        tractFit = FitTractCurvature(lines, resultData.EnergySpectrum, fitted, ScintillatorOf(resultData), checkBox2.Checked);
+                        // 30.10.2026). (`AMBER295`) Линия без измеренного центра или с
+                        // промахом — вон; годных меньше трёх или промахнувшуюся не
+                        // определить — отказ, κ спектра прежняя (Amber 14.11.2026).
+                        // (`AMBER295`, «Писать центр в файл») центр пика — в строку, пока отсчёты
+                        // канала ещё те: строка, у которой центра нет, получает его здесь, и он
+                        // уезжает в файл вместе со строкой
+                        foreach (CalibrationPeak line in lines)
+                        {
+                            if (line != null && line.EnergyLine && !(line.SpectrumCentroidChannel == line.Channel && !double.IsNaN(line.SpectrumCentroid)))
+                            {
+                                RememberCentroid(line, resultData.EnergySpectrum);
+                            }
+                        }
+                        // ⛔ (`AMBER295`, решение Amber вопросником 14.11.2026, дословно: «„Веса“ для κ
+                        // (Рекомендую)») κ подгоняется С ВЕСАМИ по счёту пика всегда, какой бы режим
+                        // ни стоял на вкладке; промах для отбора мерится без весов (ядро)
+                        tractFit = FitTractCurvature(lines, resultData.EnergySpectrum, fitted, ScintillatorOf(resultData), true);
                         if (tractFit.Ok)
                         {
                             resultData.TractCurvature = tractFit.Kappa;
@@ -1887,10 +2857,6 @@ namespace BecquerelMonitor
             if (energyDone)
             {
                 status.AppendFormat(CultureInfo.InvariantCulture, " {0}: {1} = {2:0.00000};", Resources.MSGEnergyShort, mseLabel, energyMse);
-                if (tractFit != null)
-                {
-                    status.Append(' ').Append(TractCurvatureStatus(tractFit)).Append(';');
-                }
             }
             else if (energyRefused)
             {
@@ -1907,10 +2873,18 @@ namespace BecquerelMonitor
                     status.Append(", ").AppendFormat(CultureInfo.InvariantCulture, OwnText("SummaryPeakShape", "peak shape: {0}"),
                                                      GetPeakShapeName(peakType));
                 }
+                status.Append(';');
             }
             else if (fwhmRefused)
             {
-                status.AppendFormat(CultureInfo.InvariantCulture, " FWHM: {0}", refusedWord);
+                status.AppendFormat(CultureInfo.InvariantCulture, " FWHM: {0};", refusedWord);
+            }
+            // (`AMBER295`, находка 2 второго круга критика `crit270k`) итог κ — ПОСЛЕДНИМ: его
+            // причина бывает длинной (торий, отброшенные линии) и вытесняла итог FWHM из двух
+            // видимых строк под таблицей
+            if (energyDone && tractFit != null)
+            {
+                status.Append(' ').Append(TractCurvatureStatus(tractFit)).Append(';');
             }
             return status.ToString().TrimEnd(';', ' ');
         }
@@ -2930,22 +3904,38 @@ namespace BecquerelMonitor
             return fit.Ok
                 ? String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureFitted,
                                 fit.Kappa.ToString("0.00000", CultureInfo.InvariantCulture), fit.Curve,
-                                fit.Lines.ToString(CultureInfo.InvariantCulture)) + RowChannelNote(fit)
+                                fit.Lines.ToString(CultureInfo.InvariantCulture)) + RejectedTail(fit)
                 : fit.Refusal;
         }
 
         /// <summary>
-        /// (`AMBER270`) Хвост итога κ, когда не у всех линий нашёлся пик у канала строки:
-        /// сколько из них пошло в κ целым каналом строки, а не центром масс. Пусто — у всех.
+        /// (`AMBER295`) Хвост итога подогнанной κ, когда часть линий в неё не пошла: какие и
+        /// почему (<see cref="RejectedNote"/>). Пусто — пошли все. Прежний хвост `AMBER270`
+        /// «центр не измерен: взят канал строки» снят: такая строка в κ больше не идёт.
         /// </summary>
-        static string RowChannelNote(TractCurvatureFit fit)
+        static string RejectedTail(TractCurvatureFit fit)
         {
-            int rowChannels = fit.Lines - fit.CentroidLines;
-            return rowChannels > 0
-                ? "; " + String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureRowChannels,
-                                       rowChannels.ToString(CultureInfo.InvariantCulture),
-                                       fit.Lines.ToString(CultureInfo.InvariantCulture))
-                : string.Empty;
+            string tail = string.Empty;
+            if (fit.AutoSum != null)
+            {
+                tail += "; " + String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureAutoSum,
+                                             fit.AutoSum[0].ToString("0.###", CultureInfo.InvariantCulture),
+                                             fit.AutoSum[1].ToString("0.###", CultureInfo.InvariantCulture),
+                                             fit.AutoSum[2].ToString("0.###", CultureInfo.InvariantCulture),
+                                             fit.AutoSum[3].ToString("0.0", CultureInfo.InvariantCulture));
+            }
+            List<double[]> listed = fit.SumPeaks == null ? new List<double[]>()
+                : fit.SumPeaks.Where(sp => fit.AutoSum == null || Math.Abs(sp[0] - fit.AutoSum[0]) > 1e-9).ToList();
+            if (listed.Count > 0)
+            {
+                tail += "; " + String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureSumNote,
+                    string.Join(", ", listed.Select(sp => String.Format(CultureInfo.InvariantCulture, "{0} = {1} + {2}",
+                        sp[0].ToString("0.###", CultureInfo.InvariantCulture),
+                        sp[1].ToString("0.###", CultureInfo.InvariantCulture),
+                        sp[2].ToString("0.###", CultureInfo.InvariantCulture)))));
+            }
+            string note = RejectedNote(fit);
+            return note.Length > 0 ? tail + "; " + note : tail;
         }
 
         /// <summary>Подсказка поля κ из resx (см. конструктор): основа, над которой встаёт <see cref="tractCurvatureNote"/>.</summary>
@@ -3002,7 +3992,7 @@ namespace BecquerelMonitor
                 // подпись короткая: число уже в поле; полный текст — в строке состояния
                 note = this.lastTractFit.Ok
                     ? String.Format(CultureInfo.InvariantCulture, Resources.MSGTractCurvatureFittedNote, this.lastTractFit.Curve,
-                                    this.lastTractFit.Lines.ToString(CultureInfo.InvariantCulture)) + RowChannelNote(this.lastTractFit)
+                                    this.lastTractFit.Lines.ToString(CultureInfo.InvariantCulture)) + RejectedTail(this.lastTractFit)
                     : this.lastTractFit.Refusal;
             }
             this.tractCurvatureNote = note ?? string.Empty;

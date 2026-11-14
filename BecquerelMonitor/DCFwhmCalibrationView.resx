@@ -535,7 +535,7 @@
     <value>κ</value>
   </data>
   <data name="tractCurvatureLabel.ToolTip" xml:space="preserve">
-    <value>Tract curvature of the spectrum, 1/MeV: how the tract (PMT, ADC) departs from a straight light-to-channel line in the full-spectrum analysis, c = c0 + v·(1 + κ·L/1000). “Execute Calibration” fits it from the energy lines and the photon light curve of the crystal material — only when one of the lines is at 2000 keV or above, and with each line at the centre of mass of its peak; you can also type it. “Reset” returns the device value; “Save to Device Cfg.” writes it into the device. A grey value is the device value, a black one is the spectrum’s own.</value>
+    <value>Tract curvature of the spectrum, 1/MeV: how the tract (PMT, ADC) departs from a straight light-to-channel line in the full-spectrum analysis, c = c0 + v·(1 + κ·L/1000). “Execute Calibration” fits it from the energy lines and the photon light curve of the crystal material — only from at least four usable lines, two of them at 1500 keV or above checking each other (for thorium the sum peak 583.2 + 2614.5 = 3197.7 keV is looked for automatically); each line at the centre of a Gaussian on a straight line fitted to its peak, a sum peak as the sum of two lights; you can also type it. “Reset” returns the device value; “Save to Device Cfg.” writes it into the device. A grey value is the device value, a black one is the spectrum’s own.</value>
   </data>
   <data name="&gt;&gt;tractCurvatureLabel.Name" xml:space="preserve">
     <value>tractCurvatureLabel</value>
@@ -559,7 +559,7 @@
     <value>6</value>
   </data>
   <data name="tractCurvatureTextBox.ToolTip" xml:space="preserve">
-    <value>Tract curvature of the spectrum, 1/MeV: how the tract (PMT, ADC) departs from a straight light-to-channel line in the full-spectrum analysis, c = c0 + v·(1 + κ·L/1000). “Execute Calibration” fits it from the energy lines and the photon light curve of the crystal material — only when one of the lines is at 2000 keV or above, and with each line at the centre of mass of its peak; you can also type it. “Reset” returns the device value; “Save to Device Cfg.” writes it into the device. A grey value is the device value, a black one is the spectrum’s own.</value>
+    <value>Tract curvature of the spectrum, 1/MeV: how the tract (PMT, ADC) departs from a straight light-to-channel line in the full-spectrum analysis, c = c0 + v·(1 + κ·L/1000). “Execute Calibration” fits it from the energy lines and the photon light curve of the crystal material — only from at least four usable lines, two of them at 1500 keV or above checking each other (for thorium the sum peak 583.2 + 2614.5 = 3197.7 keV is looked for automatically); each line at the centre of a Gaussian on a straight line fitted to its peak, a sum peak as the sum of two lights; you can also type it. “Reset” returns the device value; “Save to Device Cfg.” writes it into the device. A grey value is the device value, a black one is the spectrum’s own.</value>
   </data>
   <data name="&gt;&gt;tractCurvatureTextBox.Name" xml:space="preserve">
     <value>tractCurvatureTextBox</value>

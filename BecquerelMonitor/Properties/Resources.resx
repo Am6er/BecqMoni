@@ -8169,7 +8169,7 @@ http://xptable.sourceforge.net/</value>
     <value>κ not fitted: no photon light curve for “{0}”</value>
   </data>
   <data name="MSGTractCurvatureFewLines" xml:space="preserve">
-    <value>κ not fitted: at least 3 energy lines are needed (there are {0})</value>
+    <value>κ not fitted: at least {1} energy lines are needed — fewer have nothing to check each other with (there are {0})</value>
   </data>
   <data name="MSGTractCurvatureFailed" xml:space="preserve">
     <value>κ not fitted: the light-to-channel fit has no solution</value>
@@ -8177,8 +8177,44 @@ http://xptable.sourceforge.net/</value>
   <data name="MSGTractCurvatureNoHighLine" xml:space="preserve">
     <value>κ not fitted: an energy line at {0} keV or above is needed (the highest is {1} keV); the spectrum κ is unchanged</value>
   </data>
-  <data name="MSGTractCurvatureRowChannels" xml:space="preserve">
-    <value>peak centre not measured on their own spectrum for {0} of {1}: row channel taken</value>
+  <data name="MSGTractCurvatureFewGoodLines" xml:space="preserve">
+    <value>κ not fitted: {0} usable energy lines, at least {1} are needed — fewer have nothing to check each other with; the spectrum κ is unchanged</value>
+  </data>
+  <data name="MSGTractCurvatureAmbiguous" xml:space="preserve">
+    <value>κ not fitted: the energy lines ({0} of them) disagree — misses up to {1} FWHM, limit {2} — and which one is off cannot be told; the spectrum κ is unchanged</value>
+  </data>
+  <data name="MSGTractCurvatureSumNote" xml:space="preserve">
+    <value>sum peaks taken as the sum of two lights: {0} keV</value>
+  </data>
+  <data name="MSGTractCurvatureAutoSumMissing" xml:space="preserve">
+    <value>the sum peak {1} + {2} = {0} keV was not found near channel {3} — add it as a row or calibrate κ on a Ra-226 spectrum (lines 1764.5 and 2204.2 keV)</value>
+  </data>
+  <data name="MSGTractCurvatureAutoSumOutside" xml:space="preserve">
+    <value>the sum peak {1} + {2} = {0} keV lies beyond the end of the spectrum (channel ≈{3} of {4}) — calibrate κ on a Ra-226 spectrum (lines 1764.5 and 2204.2 keV)</value>
+  </data>
+  <data name="MSGTractCurvatureLineOtherAcquisition" xml:space="preserve">
+    <value>rows from another acquisition («Get all peaks»), not used for κ: {0} keV</value>
+  </data>
+  <data name="MSGTractCurvatureUseRa226" xml:space="preserve">
+    <value>calibrate κ on a Ra-226 spectrum (lines 1764.5 and 2204.2 keV)</value>
+  </data>
+  <data name="MSGTractCurvatureAutoSum" xml:space="preserve">
+    <value>sum peak {0} = {1} + {2} keV taken automatically (peak at channel {3})</value>
+  </data>
+  <data name="MSGTractCurvatureNoTwoHigh" xml:space="preserve">
+    <value>κ not fitted: two usable energy lines at {0} keV or above are needed to check each other (there are {1}); the spectrum κ is unchanged</value>
+  </data>
+  <data name="MSGTractCurvatureSeveralMiss" xml:space="preserve">
+    <value>κ not fitted: the energy lines ({0} of them) disagree — misses up to {1} FWHM, limit {2} — and removing any single line does not help: several lines are off; the spectrum κ is unchanged</value>
+  </data>
+  <data name="MSGTractCurvatureRejected" xml:space="preserve">
+    <value>left out {0} of {1}: {2}</value>
+  </data>
+  <data name="MSGTractCurvatureLineNoCentre" xml:space="preserve">
+    <value>peak centre not measured on its own spectrum: {0} keV</value>
+  </data>
+  <data name="MSGTractCurvatureLineMiss" xml:space="preserve">
+    <value>{0} keV — misses the fit of the other lines by {1} FWHM ({2} channels; limit {3} FWHM)</value>
   </data>
   <data name="MSGTractCurvatureFitted" xml:space="preserve">
     <value>κ = {0} 1/MeV ({1}, {2} lines)</value>

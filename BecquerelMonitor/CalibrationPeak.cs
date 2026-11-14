@@ -85,21 +85,64 @@ namespace BecquerelMonitor
 
         /// <summary>
         /// ⛔ (`AMBER270`, решение Amber вопросником 30.10.2026, дословно: «Центр масс пика
-        /// (Рекомендую)») ДРОБНЫЙ ЦЕНТР МАСС ПИКА СТРОКИ ПО ЕЁ СОБСТВЕННОМУ СПЕКТРУ — для
+        /// (Рекомендую)»; для κ заменено гауссом 14.11.2026, см. ниже) ДРОБНЫЙ ЦЕНТР ПИКА СТРОКИ ПО ЕЁ СОБСТВЕННОМУ СПЕКТРУ — для
         /// подгонки кривизны тракта (<c>DCFwhmCalibrationView.CentroidOf</c>). Нужен строке,
         /// пришедшей «Собрать всё» из ДРУГОГО документа: её пик лежит в чужом спектре, и центр
         /// масс по спектру, где её считают, был бы центром чужого пика. Мерится, когда строку
         /// заводят и когда её собирают (по спектру документа, откуда строка), и действует,
         /// пока канал строки тот же (<see cref="SpectrumCentroidChannel"/>): правка канала его
-        /// отменяет. Только в памяти — формат файла не меняется (решение того же дня);
-        /// <c>NaN</c> — не измерен.
+        /// отменяет. <c>NaN</c> — не измерен.
+        ///
+        /// ⛔ (`AMBER295`, решения Amber вопросником 14.11.2026, дословно: «Гаусс для κ
+        /// (Рекомендую)» и «Писать центр в файл (Рекомендую)») Центр — гаусс на прямой
+        /// (<c>DCFwhmCalibrationView.LineCentroid</c>), а не центр масс, и он ПИШЕТСЯ В ФАЙЛ
+        /// элементами <c>&lt;Centroid&gt;</c> и <c>&lt;CentroidChannel&gt;</c> внутри
+        /// <c>&lt;Peak&gt;</c> — только у линии энергии с измеренным центром
+        /// (<see cref="ShouldSerializeSpectrumCentroid"/>). Прежде центр жил только в памяти, и
+        /// после повторного открытия файла строка, собранная «Собрать всё» из другого спектра,
+        /// и своя строка, заведённая во время набора (отсчёты канала с тех пор выросли), шли в
+        /// κ без центра — отбрасывались (находка 4 критика `crit270k`). Старый файл без
+        /// элементов читается как прежде (центр не измерен); прежняя версия программы
+        /// незнакомые элементы пропускает. Число — инвариантной культурой (`XmlSerializer`).
         /// </summary>
-        [XmlIgnore]
+        [XmlElement("Centroid")]
         public double SpectrumCentroid { get => spectrumCentroid; set => spectrumCentroid = value; }
 
+        /// <summary>(`AMBER295`) Писать ли <see cref="SpectrumCentroid"/>: линия энергии с центром, измеренным у её канала.</summary>
+        public bool ShouldSerializeSpectrumCentroid()
+        {
+            return energyLine && !double.IsNaN(spectrumCentroid) && !double.IsInfinity(spectrumCentroid) && spectrumCentroidChannel == channel;
+        }
+
         /// <summary>(`AMBER270`) Канал строки, у которого измерен <see cref="SpectrumCentroid"/>; −1 — не измерен.</summary>
-        [XmlIgnore]
+        [XmlElement("CentroidChannel")]
         public int SpectrumCentroidChannel { get => spectrumCentroidChannel; set => spectrumCentroidChannel = value; }
+
+        /// <summary>(`AMBER295`) Писать ли <see cref="SpectrumCentroidChannel"/> — вместе с центром.</summary>
+        public bool ShouldSerializeSpectrumCentroidChannel()
+        {
+            return ShouldSerializeSpectrumCentroid();
+        }
+
+        string source;
+
+        /// <summary>
+        /// ⛔ (`AMBER295`, решение Amber вопросником 14.11.2026, дословно: «κ только по строкам
+        /// спектра (Рекомендую)») ОТКУДА СТРОКА. Пусто — строка своего спектра (заведена щелчком,
+        /// «Добавить в калибровку» или собрана «Собрать всё» из него же), даже если спектр после
+        /// этого набирался дальше. Иначе — имя документа, из которого её принесло «Собрать всё»:
+        /// такая строка идёт в шкалу энергии и FWHM, а в кривизну тракта κ — нет (другая съёмка,
+        /// другое усиление). Пишется в файл элементом <c>&lt;Source&gt;</c> только у такой линии;
+        /// старый файл без элемента читается как прежде (строка своя).
+        /// </summary>
+        [XmlElement("Source")]
+        public string Source { get => source; set => source = value; }
+
+        /// <summary>(`AMBER295`) Писать ли <see cref="Source"/>: линия энергии другой съёмки.</summary>
+        public bool ShouldSerializeSource()
+        {
+            return energyLine && !string.IsNullOrEmpty(source);
+        }
 
         [XmlIgnore]
         public int PeakType { get => peak_type; set => peak_type = value; }
@@ -186,6 +229,7 @@ namespace BecquerelMonitor
                     Count = point.Count,
                     SpectrumCentroid = point.SpectrumCentroid,
                     SpectrumCentroidChannel = point.SpectrumCentroidChannel,
+                    Source = point.Source,
                     PeakType = point.PeakType,
                     ExpGaussExpLeftTail = point.ExpGaussExpLeftTail,
                     ExpGaussExpRightTail = point.ExpGaussExpRightTail,
