@@ -76,11 +76,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`AMBER274`, Э2) РАЗДЕЛ СОБСТВЕННОЙ АКТИВНОСТИ КРИСТАЛЛА — той же сверкой
             // клейма со сценой: гистограмма чужого кристалла в разбор не ложится. Раздел
             // необязательный: нет его — разбор побитово прежний.
-            EfficiencyMaker.ResponseCrystalSection own = matrix.CrystalSection;
-            analyzer.CrystalOwnSection = own != null && own.Count > 0 && geometry != null
-                                         && own.UsableFor(geometry, matrix.BinKev)
-                ? own
-                : null;
+            // (`a274m` 14.11.2026) Решение то же (`UsableFor`), но с ПРИЧИНОЙ: негодный раздел у кристалла,
+            // которому слой положен, — отказ, и разбор с включённым слоем его называет
+            // (`FsaAnalyzer.CrystalOwnRefusal`), а не идёт молча без слоя.
+            EfficiencyMaker.CrystalSectionRefusal ownRefusal;
+            string ownDetail;
+            analyzer.CrystalOwnSection = matrix.CrystalSectionFor(geometry, out ownRefusal, out ownDetail);
+            analyzer.CrystalOwnRefusal = ownRefusal;
+            analyzer.CrystalOwnRefusalDetail = ownDetail;
         }
     }
 }

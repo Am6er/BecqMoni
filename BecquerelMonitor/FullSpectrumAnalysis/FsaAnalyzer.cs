@@ -7063,6 +7063,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public EfficiencyMaker.ResponseCrystalSection CrystalOwnSection { get; set; }
 
+        /// <summary>
+        /// (`AMBER274`, полоса `a274m` 14.11.2026) Почему привязка не дала раздел слоя
+        /// (<see cref="EfficiencyMaker.ResponseMatrix.CrystalSectionFor"/>): ставит её <see cref="FsaMatrixBinding.Bind"/>
+        /// вместе с <see cref="CrystalOwnSection"/>. Читается только при включённом слое и пустом разделе: причина-отказ
+        /// (<see cref="EfficiencyMaker.ResponseCrystalSection.IsRefusal"/>) уходит в <see cref="CrystalOwnNote"/> —
+        /// «слой включён, а раздела нет» перестаёт быть молчаливым разбором без слоя. На числа не влияет.
+        /// </summary>
+        public EfficiencyMaker.CrystalSectionRefusal CrystalOwnRefusal { get; set; } = EfficiencyMaker.CrystalSectionRefusal.NoMatrix;
+
+        /// <summary>(`a274m`) К <see cref="CrystalOwnRefusal"/>: какие поля клейма раздела разошлись со сценой.</summary>
+        public string CrystalOwnRefusalDetail { get; set; }
+
         /// <summary>(`AMBER274`, Э2) Почему слой не лёг в разбор (null — лёг или раздела нет).</summary>
         public string CrystalOwnNote { get; private set; }
 
@@ -13967,6 +13979,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     this.PrepareCrystalOwn(calibration, fwhmCalibration, channels, liveTime, chLo, chHi, raw);
                 }
+            }
+            else if (this.CrystalOwnLayer
+                     && EfficiencyMaker.ResponseCrystalSection.IsRefusal(this.CrystalOwnRefusal))
+            {
+                // (`AMBER274`, `a274m`) Слой включён, кристаллу он положен, а годного раздела привязка не дала:
+                // разбор идёт без слоя (числа — как при выключенном), но причина названа.
+                this.CrystalOwnNote = "слой не взят: "
+                    + EfficiencyMaker.ResponseCrystalSection.RefusalText(this.CrystalOwnRefusal, this.CrystalOwnRefusalDetail);
             }
 
             if (this.crystalOwnFixedCounts != null)
@@ -23875,6 +23895,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var fixedCounts = new double[channels];
             var free = new List<FsaComponent>();
             var notes = new List<string>();
+            // (`AMBER274` Э3, полоса `a274a`; вызов поставлен полосой `a274m` 14.11.2026) ряд Ac-227 с альфами —
+            // амплитуда СЧЁТОМ АЛЬФ этого спектра (решение Amber 13.11.2026 «По счёту альф в Э3»): запись становится
+            // известной (вычитается до фита) или снимается (ряда нет); счёт не годен (чужие линии в окне альф) —
+            // запись остаётся свободной. Раздел без альф возвращается тем же объектом — путь побитно прежний.
+            // ⚠ Раздел с альфами привязка пока не отдаёт: клеймо сверяется с рецептом умолчания (без `:aq`).
+            string alphaNote;
+            section = CrystalOwnActivityBuilder.FixSeriesByAlphas(section, raw, liveTime, calibration, fwhmCalibration, null, out alphaNote);
+            if (alphaNote != null)
+            {
+                notes.Add(alphaNote);
+            }
+
             bool anyFixed = false;
             // (`AMBER274`, `a274g`) источник слоя для шкалы привязки (<see cref="CrystalOwnLayerAt"/>)
             var scaleSource = new CrystalOwnScaleSource
