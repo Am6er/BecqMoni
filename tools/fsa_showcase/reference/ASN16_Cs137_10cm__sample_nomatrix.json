@@ -128,8 +128,8 @@
    3000
   ]
  ],
- "declared": "2026-11-13 21:44",
- "head": "2caf244d",
+ "declared": "2026-11-14 08:53",
+ "head": "8dfacd4c",
  "head_lines": {
   "chi2": "chi2/ndf 0.635, невязка модели 27.8 %, суммирование нет",
   "composition": "состав объявлен: 137CS; ряды: нет; распад 1, атомных 2, линий 18; полоса сведена ПОЛОМ ПО КРИВОЙ 40.0 кэВ (10.0 % от максимума, Min_Range 5.0), фит на всём спектре (умолчание); аннигиляционный образ НЕ взят: в составе нет линии выше 1022 кэВ",
@@ -139,18 +139,18 @@
  },
  "inputs": {
   "devices": {
-   "1.Atom Spectra Nano 16 Pro RadiaScan 701A.xml": "f9390fdd7240a33e",
+   "1.Atom Spectra Nano 16 Pro RadiaScan 701A.xml": "a179865c7c5085ad",
    "Atom Spectra 80x80.xml": "358eede0038aedfc",
-   "Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2024).xml": "3649478fa0c55e35"
+   "Gamma-1S UDS-GC 63x63 1024 (corpus, поверка 2024).xml": "c8b6655ff64e971b"
   },
   "library_sha": "5ae488901f2defe7",
   "matrices": {},
   "probes": {
-   "app_sha": "37e1cd37ced95259",
-   "built": "2026-11-13 21:23:57",
+   "app_sha": "417fe1c4ec8bcc74",
+   "built": "2026-11-14 05:23:38",
    "dir": "tools/effmaker/probes/build",
    "freshness_checked": true,
-   "shot_sha": "673890d2fd7aa4cd"
+   "shot_sha": "657a93c7aa6d923c"
   },
   "spectrum": "../CORPUS/corpus/spectra/ASN16_Cs137_10cm.xml",
   "spectrum_sha": "ea120ff56cc63e9b"
@@ -348,7 +348,7 @@
    "Вероятно, фон снят без пробы (пустой сосуд) или в другой обстановке. Модель по этим каналам не подгоняется, в χ² они не входят. Судится участок целиком, а не отдельные каналы, поэтому шум участок не снимает. Не учтено каналов: 452. Наиболее значимое окно 3147–3349 кэВ: z 19.4, фон ×35.676 измеренного спектра."
   ]
  ],
- "seconds": 3.3,
+ "seconds": 4.1,
  "spectrum": "../CORPUS/corpus/spectra/ASN16_Cs137_10cm.xml",
  "tolerance": {
   "abs": 1e-06,
