@@ -2163,7 +2163,7 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   (`AMBER270`) κ not fitted: at least 3 energy lines are needed (there are {0})
+        ///   (`AMBER295`) κ not fitted: at least {1} energy lines are needed — fewer have nothing to check each other with (there are {0})
         /// </summary>
         public static string MSGTractCurvatureFewLines {
             get {
@@ -2190,11 +2190,119 @@ namespace BecquerelMonitor.Properties {
         }
 
         /// <summary>
-        ///   (`AMBER270`) peak centre not measured on their own spectrum for {0} of {1}: row channel taken
+        ///   (`AMBER295`) κ not fitted: {0} usable energy lines, at least {1} are needed — fewer have nothing to check each other with; the spectrum κ is unchanged
         /// </summary>
-        public static string MSGTractCurvatureRowChannels {
+        public static string MSGTractCurvatureFewGoodLines {
             get {
-                return ResourceManager.GetString("MSGTractCurvatureRowChannels", resourceCulture);
+                return ResourceManager.GetString("MSGTractCurvatureFewGoodLines", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   (`AMBER295`) κ not fitted: the energy lines ({0} of them) disagree — misses up to {1} FWHM, limit {2} — and which one is off cannot be told; the spectrum κ is unchanged
+        /// </summary>
+        public static string MSGTractCurvatureAmbiguous {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureAmbiguous", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   (`AMBER295`) sum peaks taken as the sum of two lights: {0} keV
+        /// </summary>
+        public static string MSGTractCurvatureSumNote {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureSumNote", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   (`AMBER295`) the sum peak {1} + {2} = {0} keV was not found near channel {3} — add it as a row or calibrate κ on a Ra-226 spectrum (lines 1764.5 and 2204.2 keV)
+        /// </summary>
+        public static string MSGTractCurvatureAutoSumMissing {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureAutoSumMissing", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   (`AMBER295`) the sum peak {1} + {2} = {0} keV lies beyond the end of the spectrum (channel ≈{3} of {4}) — calibrate κ on a Ra-226 spectrum (lines 1764.5 and 2204.2 keV)
+        /// </summary>
+        public static string MSGTractCurvatureAutoSumOutside {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureAutoSumOutside", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   (`AMBER295`) rows from another acquisition («Get all peaks»), not used for κ: {0} keV
+        /// </summary>
+        public static string MSGTractCurvatureLineOtherAcquisition {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureLineOtherAcquisition", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   (`AMBER295`) calibrate κ on a Ra-226 spectrum (lines 1764.5 and 2204.2 keV)
+        /// </summary>
+        public static string MSGTractCurvatureUseRa226 {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureUseRa226", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   (`AMBER295`) sum peak {0} = {1} + {2} keV taken automatically (peak at channel {3})
+        /// </summary>
+        public static string MSGTractCurvatureAutoSum {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureAutoSum", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   (`AMBER295`) κ not fitted: two usable energy lines at {0} keV or above are needed to check each other (there are {1}); the spectrum κ is unchanged
+        /// </summary>
+        public static string MSGTractCurvatureNoTwoHigh {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureNoTwoHigh", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   (`AMBER295`) κ not fitted: the energy lines ({0} of them) disagree — misses up to {1} FWHM, limit {2} — and removing any single line does not help: several lines are off; the spectrum κ is unchanged
+        /// </summary>
+        public static string MSGTractCurvatureSeveralMiss {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureSeveralMiss", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   (`AMBER295`) left out {0} of {1}: {2}
+        /// </summary>
+        public static string MSGTractCurvatureRejected {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureRejected", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   (`AMBER295`) peak centre not measured on its own spectrum: {0} keV
+        /// </summary>
+        public static string MSGTractCurvatureLineNoCentre {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureLineNoCentre", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   (`AMBER295`) {0} keV — misses the fit of the other lines by {1} FWHM ({2} channels; limit {3} FWHM)
+        /// </summary>
+        public static string MSGTractCurvatureLineMiss {
+            get {
+                return ResourceManager.GetString("MSGTractCurvatureLineMiss", resourceCulture);
             }
         }
 

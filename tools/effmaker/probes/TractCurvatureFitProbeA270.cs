@@ -32,15 +32,17 @@ namespace BecquerelMonitor.Probes
     ///       настоящие спектры и НАСТОЯЩАЯ «Выполнить калибровку» вкладки (<c>RunCalibration</c>
     ///       на оболочке главного окна): строки — пики линий выделением ±1.5 FWHM (канал —
     ///       целый центр масс, как строка таблицы), κ спектра до и после, подпись итога,
-    ///       число линий центром масс. Для сравнения — κ целыми каналами строк (прежний путь)
+    ///       число линий центром пика (с `AMBER295` — центр гаусса на прямой). Для сравнения — κ целыми каналами строк (прежний путь)
     ///       тем же ядром и тем же полиномом. Верх набора ≥ 2000 кэВ — κ обязана лечь в спектр
-    ///       центрами масс всех линий; ниже — отказ словами, κ спектра побитово прежняя.
+    ///       центрами пиков годных линий (`AMBER295`: отбор, четыре линии, две от 1500 кэВ — иначе отказ словами), κ спектра при отказе побитово прежняя.
     ///       Несколько файлов — строки каждого в СВОЁМ документе, затем настоящее «Собрать
-    ///       всё» в первый: центр масс строки обязан мериться по её спектру (⛔ контроль — те
+    ///       всё» в первый: центр пика строки обязан мериться по её спектру (⛔ контроль — те
     ///       же строки, мерянные по спектру первого документа, дают другое).
     ///       --shift=Δκ — ⛔ положительный контроль на данных: каждый спектр ПЕРЕСЧИТАН с
     ///       добавочной кривизной тракта Δκ (каналы пересобраны, верхняя линия на месте), и
     ///       подогнанная κ обязана сдвинуться на Δκ.
+    ///       --active=last — активный документ (куда «Собрать всё») открыт последним, а не первым
+    ///       (`AMBER295`): его строки обязаны остаться своими и при совпадении каналов с чужими.
     ///       --kappa0=κ — спектр до расчёта несёт свою κ (как файл с `&lt;TractCurvature&gt;`):
     ///       отказ обязан оставить её побитово (без ключа «до» — κ прибора).
     /// Запускать из каталога, где лежит приложение (рядом `config\`, `matdb.sqlite`).
@@ -89,7 +91,9 @@ namespace BecquerelMonitor.Probes
                         string shift, kappa0;
                         double dk = opt.TryGetValue("shift", out shift) ? double.Parse(shift, Inv) : 0.0;
                         double k0 = opt.TryGetValue("kappa0", out kappa0) ? double.Parse(kappa0, Inv) : double.NaN;
-                        return Corpus(Need(opt, "spectra"), dk, k0);
+                        string activeKey;
+                        bool activeLast = opt.TryGetValue("active", out activeKey) && activeKey == "last";
+                        return Corpus(Need(opt, "spectra"), dk, k0, activeLast);
                     default:
                         Console.Error.WriteLine("неизвестный режим: " + mode);
                         return 2;
@@ -318,7 +322,7 @@ namespace BecquerelMonitor.Probes
             public List<CalibrationPeak> Rows;
         }
 
-        static int Corpus(string spec, double shift, double kappa0)
+        static int Corpus(string spec, double shift, double kappa0, bool activeLast)
         {
             var sources = new List<Source>();
             foreach (string part in spec.Split(';').Where(p => p.Length > 0))
@@ -354,7 +358,11 @@ namespace BecquerelMonitor.Probes
                 rd.CalibrationLines.AddRange(s.Rows);
                 sources.Add(s);
             }
-            Source first = sources[0];
+            // (`AMBER295`) --active=last — активный документ открыт ПОСЛЕДНИМ: его строки обязаны
+            // остаться своими и при совпадении каналов с чужими (находка критика `crit270k`)
+            Source first = activeLast ? sources[sources.Count - 1] : sources[0];
+            List<Source> others = sources.Where(o => o != first).ToList();
+            Console.WriteLine("активный документ: {0} ({1})", first.Name, activeLast ? "открыт последним" : "открыт первым");
             ResultData active = first.Doc.ActiveResultData;
             MainForm form = Shell(first.Doc);
             System.Windows.Forms.Timer closer = new System.Windows.Forms.Timer { Interval = 150 };
@@ -401,7 +409,7 @@ namespace BecquerelMonitor.Probes
                 Console.WriteLine("«Выполнить калибровку»: {0}", done ? "принята" : "ОТКАЗ");
                 Console.WriteLine("  строка состояния: " + status);
                 Console.WriteLine("  подпись под полем κ: " + note);
-                Console.WriteLine("κ (центры масс, как приложение): " + Describe(fit));
+                Console.WriteLine("κ (центр гаусса, как приложение): " + Describe(fit));
 
                 // прежний путь — целые каналы строк, тем же ядром и тем же полиномом
                 var lines = rows.Where(r => r.EnergyLine).GroupBy(r => r.Channel).Select(g => g.First()).OrderBy(r => r.Channel).ToList();
@@ -411,33 +419,42 @@ namespace BecquerelMonitor.Probes
                 Console.WriteLine("KAPPA\t{0}\t{1}\t{2}\t{3}", fit != null && fit.Ok ? fit.Kappa.ToString("R", Inv) : "NaN",
                                   integer.Ok ? integer.Kappa.ToString("R", Inv) : "NaN", shift.ToString("R", Inv), after.ToString("R", Inv));
 
-                double top = first.Lines.Concat(sources.Skip(1).SelectMany(s => s.Lines)).Max();
+                double top = first.Lines.Concat(others.SelectMany(s => s.Lines)).Max();
                 Check("«Выполнить калибровку» принята (шкала энергии)", done);
-                if (top >= DCFwhmCalibrationView.TractCurvatureTopLineKev)
+                // ⛔ (`AMBER295`, второй круг полосы `a270k`) ожидания переписаны: κ подгоняется
+                // только по годным линиям (центр — гаусс на прямой, промах ≤ порога, две линии
+                // от 1500 кэВ), поэтому и набор с верхом от 2000 кэВ может получить отказ —
+                // проба требует не «подогнана», а одно из двух, с исходом в спектре и словами
+                if (fit != null && fit.Ok)
                 {
-                    Check("верх набора " + top.ToString("0.##", Inv) + " кэВ ≥ 2000: κ подогнана", fit != null && fit.Ok);
-                    Check("κ спектра = подогнанной (" + after.ToString("R", Inv) + ")", fit != null && fit.Ok && after.Equals(fit.Kappa) && active.HasOwnTractCurvature);
-                    Check("все линии — центром масс пика (" + (fit != null ? fit.CentroidLines + " из " + fit.Lines : "-") + ")",
-                          fit != null && fit.Ok && fit.CentroidLines == fit.Lines && fit.Lines == lines.Count);
-                    Check("строка состояния говорит κ", fit != null && status.Contains(fit.Kappa.ToString("0.00000", Inv)));
+                    Check("κ подогнана: κ спектра = подогнанной (" + after.ToString("R", Inv) + ")", after.Equals(fit.Kappa) && active.HasOwnTractCurvature);
+                    Check("все линии подгонки — центром пика (" + fit.CentroidLines + " из " + fit.Lines + "), прочие названы отброшенными ("
+                          + fit.Rejected.Count + ")", fit.CentroidLines == fit.Lines && fit.Lines + fit.Rejected.Count == lines.Count);
+                    Check("строка состояния говорит κ", status.Contains(fit.Kappa.ToString("0.00000", Inv)));
+                    Check("верх набора " + top.ToString("0.##", Inv) + " кэВ ≥ 2000", top >= DCFwhmCalibrationView.TractCurvatureTopLineKev);
                 }
                 else
                 {
-                    Check("верх набора " + top.ToString("0.##", Inv) + " кэВ < 2000: κ НЕ подогнана", fit != null && !fit.Ok);
-                    Check("причина называет порог 2000 кэВ и верхнюю линию " + top.ToString("0.##", Inv),
-                          fit != null && fit.Refusal != null && fit.Refusal.Contains("2000") && fit.Refusal.Contains(top.ToString("0.##", Inv)));
-                    Check("κ спектра побитово прежняя (" + after.ToString("R", Inv) + "), признак своей κ прежний",
-                          BitConverter.DoubleToInt64Bits(after) == BitConverter.DoubleToInt64Bits(before) && active.HasOwnTractCurvature == ownBefore);
+                    Check("κ не подогнана: κ спектра побитово прежняя (" + after.ToString("R", Inv) + "), признак своей κ прежний",
+                          fit != null && BitConverter.DoubleToInt64Bits(after) == BitConverter.DoubleToInt64Bits(before) && active.HasOwnTractCurvature == ownBefore);
                     Check("причина — в строке состояния и под полем", fit != null && fit.Refusal != null && status.Contains(fit.Refusal) && note == fit.Refusal);
+                    if (top < DCFwhmCalibrationView.TractCurvatureTopLineKev)
+                    {
+                        Check("причина называет порог 2000 кэВ и верхнюю линию " + top.ToString("0.##", Inv),
+                              fit != null && fit.Refusal != null && fit.Refusal.Contains("2000") && fit.Refusal.Contains(top.ToString("0.##", Inv)));
+                    }
                 }
                 if (sources.Count > 1)
                 {
-                    // строки других документов несут центр масс СВОЕГО спектра; ⛔ контроль —
-                    // те же строки без него мерятся по спектру первого документа
+                    // строки других документов несут центр СВОЕГО спектра; ⛔ контроль — те же
+                    // строки без него мерятся по спектру первого документа
                     int foreign = 0, measured = 0;
-                    foreach (Source s in sources.Skip(1))
+                    foreach (Source s in others)
                     {
-                        foreach (CalibrationPeak r in rows.Where(r => s.Rows.Any(o => o.Channel == r.Channel && o.Energy == r.Energy)))
+                        // своя строка первого документа на том же канале «Собрать всё» оставляет своей (сбор
+                        // не дублирует канал) — чужой считается только строка, которой у первого документа нет
+                        foreach (CalibrationPeak r in rows.Where(r => s.Rows.Any(o => o.Channel == r.Channel && o.Energy == r.Energy)
+                                                                     && !first.Rows.Any(o => o.Channel == r.Channel && o.Energy == r.Energy)))
                         {
                             foreign++;
                             if (r.SpectrumCentroidChannel == r.Channel && !double.IsNaN(r.SpectrumCentroid))
@@ -446,9 +463,24 @@ namespace BecquerelMonitor.Probes
                             }
                         }
                     }
-                    Check("строки других документов несут центр масс своего спектра: " + measured + " из " + foreign, foreign > 0 && measured == foreign);
-                    var right = DCFwhmCalibrationView.FitTractCurvature(rows, active.EnergySpectrum, cal, material, false);
-                    // ⛔ контроль: центр масс ВСЕХ строк по спектру первого документа, без сверки
+                    Check("строки других документов несут центр своего спектра: " + measured + " из " + foreign, foreign > 0 && measured == foreign);
+                    // ⛔ (`AMBER295`, решение Amber 14.11.2026 «κ только по строкам спектра») строки других
+                    // документов помечены источником, свои — нет; в κ идут только свои
+                    int marked = rows.Count(r => !string.IsNullOrEmpty(r.Source));
+                    Check("строки других документов помечены «другая съёмка»: " + marked + " из " + foreign + " (своих помеченных нет)",
+                          marked == foreign && first.Rows.All(o => rows.Any(r => r.Channel == o.Channel && string.IsNullOrEmpty(r.Source))));
+                    var right = DCFwhmCalibrationView.FitTractCurvature(rows, active.EnergySpectrum, cal, material, true);
+                    Check("строки другой съёмки в κ не пошли и названы (" + right.Rejected.Count(r => r.OtherAcquisition) + " из " + foreign + ")",
+                          right.Rejected.Count(r => r.OtherAcquisition) == foreign);
+                    // κ «Собрать всё» = κ по одним своим строкам (та же шкала энергии)
+                    List<CalibrationPeak> ownRows = CalibrationPeak.ClonePeaks(rows.Where(r => string.IsNullOrEmpty(r.Source)).ToList());
+                    var ownOnly = DCFwhmCalibrationView.FitTractCurvature(ownRows, active.EnergySpectrum, cal, material, true);
+                    Console.WriteLine("  только свои строки (тот же спектр, та же шкала): {0}", Describe(ownOnly));
+                    Check("κ «Собрать всё» = κ по своим строкам побитово (" + (ownOnly.Ok ? ownOnly.Kappa.ToString("R", Inv) : "отказ") + ")",
+                          ownOnly.Ok == right.Ok && (!right.Ok || BitConverter.DoubleToInt64Bits(ownOnly.Kappa) == BitConverter.DoubleToInt64Bits(right.Kappa)));
+                    Check("и приложение записало то же (" + (fit != null && fit.Ok ? fit.Kappa.ToString("R", Inv) : "отказ") + ")",
+                          fit != null && fit.Ok == right.Ok && (!right.Ok || BitConverter.DoubleToInt64Bits(fit.Kappa) == BitConverter.DoubleToInt64Bits(right.Kappa)));
+                    // ⛔ контроль: центр ВСЕХ строк по спектру первого документа, без сверки
                     // «строка — его» — то, от чего защищают память строки и сверка отсчётов
                     var naive = lines.Select(r =>
                     {
@@ -456,26 +488,43 @@ namespace BecquerelMonitor.Probes
                         return double.IsNaN(c) ? r.Channel : c;
                     }).ToList();
                     var wrong = DCFwhmCalibrationView.FitTractCurvature(naive, lines.Select(r => r.Energy).ToList(), null, cal, material);
-                    wrong.CentroidLines = lines.Count(r => !double.IsNaN(DCFwhmCalibrationView.LineCentroid(active.EnergySpectrum, r.Channel, r.FWHM)));
-                    Console.WriteLine("  контроль: центры масс всех строк по спектру первого документа — {0}", Describe(wrong));
-                    Console.WriteLine("            по своим спектрам (как приложение)                — {0}", Describe(right));
-                    Check("контроль: мерянные по чужому спектру строки дают другую κ (" + (wrong.Ok ? wrong.Kappa.ToString("0.00000", Inv) : "-") + " против "
-                          + (right.Ok ? right.Kappa.ToString("0.00000", Inv) : "-") + ")", wrong.Ok && right.Ok && Math.Abs(wrong.Kappa - right.Kappa) > 1e-4);
-                    // файл сохранён и открыт заново: центра масс в памяти строк нет — свои строки
-                    // мерятся по спектру, чужие (отсчёты канала не те) идут целым каналом
-                    List<CalibrationPeak> reread = CalibrationPeak.ClonePeaks(rows);
-                    foreach (CalibrationPeak r in reread)
+                    Console.WriteLine("  контроль: центры всех строк по спектру первого документа — {0}", Describe(wrong));
+                    Console.WriteLine("            по своим спектрам (как приложение)           — {0}", Describe(right));
+                    Check("контроль: мерянные по чужому спектру строки дают другой исход (" + (wrong.Ok ? wrong.Kappa.ToString("0.00000", Inv) : "отказ") + " против "
+                          + (right.Ok ? right.Kappa.ToString("0.00000", Inv) : "отказ") + ")",
+                          wrong.Ok != right.Ok || (wrong.Ok && Math.Abs(wrong.Kappa - right.Kappa) > 1e-4));
+                    // (`AMBER295`, «Писать центр в файл») файл записан и прочитан: центр едет в
+                    // строке — проверяется сериализатором XML тех же атрибутов, что у файла спектра
+                    var serializer = new System.Xml.Serialization.XmlSerializer(typeof(List<CalibrationPeak>));
+                    List<CalibrationPeak> reread;
+                    using (var buffer = new MemoryStream())
+                    {
+                        serializer.Serialize(buffer, rows);
+                        buffer.Position = 0;
+                        reread = (List<CalibrationPeak>)serializer.Deserialize(buffer);
+                    }
+                    Check("пометка «другая съёмка» пережила запись и чтение (" + reread.Count(r => !string.IsNullOrEmpty(r.Source)) + ")",
+                          reread.Count(r => !string.IsNullOrEmpty(r.Source)) == foreign);
+                    var reopened = DCFwhmCalibrationView.FitTractCurvature(reread, active.EnergySpectrum, cal, material, true);
+                    Console.WriteLine("  после записи и чтения (центр в файле): {0}", Describe(reopened));
+                    Check("после чтения исход тот же, что до записи (" + (reopened.Ok ? reopened.Kappa.ToString("R", Inv) : "отказ") + ")",
+                          reopened.Ok == right.Ok && (!right.Ok || BitConverter.DoubleToInt64Bits(reopened.Kappa) == BitConverter.DoubleToInt64Bits(right.Kappa)));
+                    // ⛔ контроль — файл прежней версии (ни центра, ни пометки): свои строки мерятся по
+                    // спектру, чужие (отсчёты канала не те) отброшены «центр не измерен» и названы
+                    List<CalibrationPeak> legacy = CalibrationPeak.ClonePeaks(rows);
+                    foreach (CalibrationPeak r in legacy)
                     {
                         r.SpectrumCentroid = double.NaN;
                         r.SpectrumCentroidChannel = -1;
+                        r.Source = null;
                     }
-                    var reopened = DCFwhmCalibrationView.FitTractCurvature(reread, active.EnergySpectrum, cal, material, false);
+                    var old = DCFwhmCalibrationView.FitTractCurvature(legacy, active.EnergySpectrum, cal, material, true);
                     int own = lines.Count - foreign;
-                    Console.WriteLine("  после открытия файла (центров в памяти нет): {0}", Describe(reopened));
-                    Check("после открытия файла центром масс — ровно свои строки (" + reopened.CentroidLines + " из " + own + "), чужие — целым каналом",
-                          reopened.Ok && reopened.CentroidLines == own);
-                    Check("и итог об этом говорит: «" + Status(reopened) + "»",
-                          Status(reopened).Contains(foreign.ToString(Inv)));
+                    Console.WriteLine("  файл прежней версии (центра нет):       {0}", Describe(old));
+                    Check("файл прежней версии: чужие строки отброшены «центр не измерен» (" + old.Rejected.Count(r => r.CentreNotMeasured) + " из " + foreign + ")",
+                          old.Rejected.Count(r => r.CentreNotMeasured) == foreign);
+                    Check("и итог об этом говорит", old.Rejected.Where(r => r.CentreNotMeasured).Take(6)
+                          .All(r => Status(old).Contains(r.Energy.ToString("0.###", Inv))));
                 }
             }
             finally
@@ -504,10 +553,10 @@ namespace BecquerelMonitor.Probes
             {
                 return "подгонки не было";
             }
-            return f.Ok
-                ? string.Format(Inv, "{0} 1/МэВ (кривая {1}, z₀ {2} кэВ, линий {3}, центром масс {4}, наибольший промах линии {5} кан.)", f.Kappa.ToString("0.00000", Inv), f.Curve,
+            return (f.Ok
+                ? string.Format(Inv, "{0} 1/МэВ (кривая {1}, z₀ {2} кэВ, линий {3}, центром гаусса {4}, наибольший промах линии {5} кан.)", f.Kappa.ToString("0.00000", Inv), f.Curve,
                                 f.ZeroLightKev.ToString("0.00", Inv), f.Lines, f.CentroidLines, f.WorstChannels.ToString("0.000", Inv))
-                : "ОТКАЗ: " + f.Refusal;
+                : "ОТКАЗ: " + f.Refusal);
         }
 
         /// <summary>Пики линий: окно ±1.5 FWHM вокруг канала линии, центр масс; второй проход — вокруг найденного.</summary>

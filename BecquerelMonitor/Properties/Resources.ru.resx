@@ -314,7 +314,7 @@
     <value>κ не подогнана: для вещества «{0}» нет фотонной кривой света</value>
   </data>
   <data name="MSGTractCurvatureFewLines" xml:space="preserve">
-    <value>κ не подогнана: нужно не меньше трёх линий энергии (есть {0})</value>
+    <value>κ не подогнана: нужно не меньше {1} линий энергии — меньшим нечем проверить друг друга (есть {0})</value>
   </data>
   <data name="MSGTractCurvatureFailed" xml:space="preserve">
     <value>κ не подогнана: подгонка «свет → канал» не сошлась</value>
@@ -322,8 +322,44 @@
   <data name="MSGTractCurvatureNoHighLine" xml:space="preserve">
     <value>κ не подогнана: нужна линия энергии от {0} кэВ (верхняя — {1} кэВ); κ спектра прежняя</value>
   </data>
-  <data name="MSGTractCurvatureRowChannels" xml:space="preserve">
-    <value>у {0} из {1} центр пика по их спектру не измерен: взят канал строки</value>
+  <data name="MSGTractCurvatureFewGoodLines" xml:space="preserve">
+    <value>κ не подогнана: годных линий энергии {0}, нужно не меньше {1} — меньшим нечем проверить друг друга; κ спектра прежняя</value>
+  </data>
+  <data name="MSGTractCurvatureAmbiguous" xml:space="preserve">
+    <value>κ не подогнана: линии энергии (их {0}) не согласуются — промах до {1} FWHM при пороге {2}, а какая из них промахнулась, не определить; κ спектра прежняя</value>
+  </data>
+  <data name="MSGTractCurvatureSumNote" xml:space="preserve">
+    <value>сумм-пики светом суммы двух квантов: {0} кэВ</value>
+  </data>
+  <data name="MSGTractCurvatureAutoSumMissing" xml:space="preserve">
+    <value>сумм-пик {1} + {2} = {0} кэВ у канала ≈{3} не найден — добавьте его строкой или калибруйте κ по спектру Ra-226 (линии 1764.5 и 2204.2 кэВ)</value>
+  </data>
+  <data name="MSGTractCurvatureAutoSumOutside" xml:space="preserve">
+    <value>сумм-пик {1} + {2} = {0} кэВ лежит за краем спектра (канал ≈{3} из {4}) — калибруйте κ по спектру Ra-226 (линии 1764.5 и 2204.2 кэВ)</value>
+  </data>
+  <data name="MSGTractCurvatureLineOtherAcquisition" xml:space="preserve">
+    <value>строки другой съёмки («Собрать всё»), в κ не идут: {0} кэВ</value>
+  </data>
+  <data name="MSGTractCurvatureUseRa226" xml:space="preserve">
+    <value>калибруйте κ по спектру Ra-226 (линии 1764.5 и 2204.2 кэВ)</value>
+  </data>
+  <data name="MSGTractCurvatureAutoSum" xml:space="preserve">
+    <value>сумм-пик {0} = {1} + {2} кэВ взят сам (пик у канала {3})</value>
+  </data>
+  <data name="MSGTractCurvatureNoTwoHigh" xml:space="preserve">
+    <value>κ не подогнана: нужны две годные линии энергии от {0} кэВ, проверяющие друг друга (есть {1}); κ спектра прежняя</value>
+  </data>
+  <data name="MSGTractCurvatureSeveralMiss" xml:space="preserve">
+    <value>κ не подогнана: линии энергии (их {0}) не согласуются — промах до {1} FWHM при пороге {2}, и снятие любой одной линии не помогает: промахнулись несколько; κ спектра прежняя</value>
+  </data>
+  <data name="MSGTractCurvatureRejected" xml:space="preserve">
+    <value>отброшено {0} из {1}: {2}</value>
+  </data>
+  <data name="MSGTractCurvatureLineNoCentre" xml:space="preserve">
+    <value>центр пика по своему спектру не измерен: {0} кэВ</value>
+  </data>
+  <data name="MSGTractCurvatureLineMiss" xml:space="preserve">
+    <value>{0} кэВ — промах от подгонки по остальным линиям {1} FWHM ({2} кан.; порог {3} FWHM)</value>
   </data>
   <data name="MSGTractCurvatureFitted" xml:space="preserve">
     <value>κ = {0} 1/МэВ ({1}, линий: {2})</value>
