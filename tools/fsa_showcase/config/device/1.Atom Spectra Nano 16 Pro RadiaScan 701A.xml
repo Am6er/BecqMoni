@@ -98,6 +98,7 @@
   <BackgroundSpectrumPathname>C:\Users\moroz\YandexDisk\Спектры\!ASN16\Фон дом 13.01.2025.xml</BackgroundSpectrumPathname>
   <EfficencyROIGuid>e05ebcae-4d7d-4c76-ab9b-fba9cd2166f3</EfficencyROIGuid>
   <CrystalMaterialName />
+  <TractCurvature>-0.0084</TractCurvature>
   <EfficiencyConfigs>
     <EfficiencyConfigData>
       <Guid>7fbb8fc3-24b8-440a-b750-80fb11b5a0e6</Guid>

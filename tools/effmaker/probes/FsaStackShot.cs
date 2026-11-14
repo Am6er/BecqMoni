@@ -689,6 +689,13 @@ namespace FsaStackShot
             if (shiftNewton >= 0) analyzer.AnchorShiftNewton = shiftNewton == 1;      // (`a295c`, a315u)
             if (shiftBracket >= 0) analyzer.AnchorShiftBracket = shiftBracket == 1;
             if (shiftTol >= 0.0) analyzer.AnchorShiftTolSigma = shiftTol;
+            // ⛔ (`AMBER295`, полоса d56 14.11.2026; решение Amber вопросником, дословно:
+            // «Да, как в приложении (Рекомендую)») Кривизна тракта — ТЕМ ЖЕ вызовом, что у
+            // сеанса приложения (`FsaAnalysisSession`, перед матрицей): своя κ спектра, а у
+            // файла без поля — κ его прибора (`ResultData.TractCurvature`, `AMBER271`). До этой
+            // правки проба κ не брала вовсе, и пары приборов с κ ≠ 0 витрина разбирала прямым
+            // трактом. Рычаг `BQ_FSA_LEVERS=AdcTractCurvature=…` ниже по-прежнему перекрывает.
+            analyzer.AdoptSpectrum(rd);
             // ⛔ Матрица кладётся ТЕМ ЖЕ кодом, что и в приложении
             // (`FsaMatrixBinding`, `AMBER12`): с нею едут вещество кристалла
             // (`S20`, иначе сумм-пики считаются не по свету) и признак защиты
