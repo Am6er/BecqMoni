@@ -489,6 +489,9 @@ namespace BecquerelMonitor
         const string KeyBackgroundMaskValue = "FSAReport_BackgroundMaskValue";
         const string KeyBackgroundMaskValueOne = "FSAReport_BackgroundMaskValueOne";
         const string KeyBackgroundMaskTip = "FSAReport_BackgroundMaskTip";
+        const string KeyCrystalShelfRow = "FSAReport_CrystalShelfRow";
+        const string KeyCrystalShelfValue = "FSAReport_CrystalShelfValue";
+        const string KeyCrystalShelfTip = "FSAReport_CrystalShelfTip";
         const string KeyAnchorRow = "FSAReport_AnchorRow";
         const string KeyAnchorNone = "FSAReport_AnchorNone";
         const string KeyAnchorGainRow = "FSAReport_AnchorGainRow";
@@ -3006,6 +3009,20 @@ namespace BecquerelMonitor
                 made.Add(above);
             }
 
+            // (`AMBER274`, полоса `a274u`; решение Amber 14.11.2026 вопросником, дословно: «Да, строка и штрих
+            // (Рекомендую)») ОКНО K-ПИКА СЛОЯ СОБСТВЕННОЙ АКТИВНОСТИ КРИСТАЛЛА, снятое из подгонки, χ² и суда отката
+            // привязки (`FsaAnalyzer.CrystalOwnShelfMask`), — строкой, как участки автомаски фона; число каналов — в
+            // подсказке. Окно не снято — строки нет.
+            string shelf = CrystalShelfText(result);
+            if (shelf != null)
+            {
+                Row shelfRow = this.MakeMarkRowText(shelf, OwnText(KeyCrystalShelfValue), false, true);
+                string tip = CrystalShelfTip(result);
+                shelfRow.Cells[0].ToolTipText = tip;
+                shelfRow.Cells[1].ToolTipText = tip;
+                made.Add(shelfRow);
+            }
+
             // (`AMBER295`) нож при красной строке: откуда активность
             string knife = BackgroundKnifeText(result);
             if (knife != null)
@@ -3118,6 +3135,29 @@ namespace BecquerelMonitor
                                  flag != null ? flag.HiKev.ToString("F0", CultureInfo.InvariantCulture) : "—",
                                  flag != null ? flag.Z.ToString("F1", CultureInfo.InvariantCulture) : "—",
                                  flag != null ? flag.Ratio.ToString("F3", CultureInfo.InvariantCulture) : "—");
+        }
+
+        /// <summary>
+        /// (`AMBER274`, `a274u`) Строка окна K-пика слоя собственной активности кристалла: края окна по снятым каналам;
+        /// null — окно не снималось (<see cref="FsaResult.CrystalShelfMaskChannels"/> нуль). Открыта пробе.
+        /// </summary>
+        public static string CrystalShelfText(FsaResult result)
+        {
+            if (result == null || result.CrystalShelfMaskChannels <= 0)
+            {
+                return null;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyCrystalShelfRow),
+                                 result.CrystalShelfMaskLoKev.ToString("F0", CultureInfo.InvariantCulture),
+                                 result.CrystalShelfMaskHiKev.ToString("F0", CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>(`AMBER274`, `a274u`) Подсказка строки окна слоя: зачем окно снято и сколько каналов. Открыта пробе.</summary>
+        public static string CrystalShelfTip(FsaResult result)
+        {
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyCrystalShelfTip),
+                                 result != null ? result.CrystalShelfMaskChannels.ToString(CultureInfo.InvariantCulture) : "0");
         }
 
         /// <summary>(`AMBER295`) Строка ножа при красной строке; null — ножа не было. Открыта пробе.</summary>

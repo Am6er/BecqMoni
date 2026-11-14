@@ -5349,6 +5349,15 @@
   <data name="FSAReport_BackgroundMaskTip" xml:space="preserve">
     <value>The background was probably measured without the sample (an empty vessel) or in other surroundings. The model is not fitted to these channels and they are not in χ². A whole region is judged, not single channels, so noise does not remove it. Channels left out: {0}. Most significant window {1}–{2} keV: z {3}, background ×{4} of the measured spectrum.</value>
   </data>
+  <data name="FSAReport_CrystalShelfRow" xml:space="preserve">
+    <value>Region {0}–{1} keV is left out of the fit: the K peak of the crystal's own activity lies there</value>
+  </data>
+  <data name="FSAReport_CrystalShelfValue" xml:space="preserve">
+    <value>not fitted</value>
+  </data>
+  <data name="FSAReport_CrystalShelfTip" xml:space="preserve">
+    <value>The crystal's own activity is subtracted as a layer, and under its K-capture peak the spectrum has a shelf that the layer model does not describe. The model is not fitted to these channels; they are not in χ² and do not decide the scale anchoring. The residual in the region stays on the chart as it is. Channels left out: {0}.</value>
+  </data>
   <data name="FSAReport_AnchorRow" xml:space="preserve">
     <value>Reference peaks for the scale</value>
   </data>

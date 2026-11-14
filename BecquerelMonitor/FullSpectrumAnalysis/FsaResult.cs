@@ -1445,6 +1445,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public int BackgroundMaskChannels { get; set; }
 
         /// <summary>
+        /// (`AMBER274`, полоса `a274u`) Сколько каналов снято окном K-пика слоя собственной активности кристалла
+        /// (`FsaAnalyzer.CrystalOwnShelfMask`): они вне весов решателя, отчётного χ² и суда отката привязки. Нуль —
+        /// окно не снималось (слоя нет, ключ выключен или у слоя нет пика в окне); тогда строки отчёта и штриха нет.
+        /// </summary>
+        public int CrystalShelfMaskChannels { get; set; }
+
+        /// <summary>(`AMBER274`, `a274u`) Энергия первого снятого канала окна слоя, кэВ шкалы спектра; при нуле каналов — 0.</summary>
+        public double CrystalShelfMaskLoKev { get; set; }
+
+        /// <summary>(`AMBER274`, `a274u`) Энергия последнего снятого канала окна слоя, кэВ шкалы спектра; при нуле каналов — 0.</summary>
+        public double CrystalShelfMaskHiKev { get; set; }
+
+        /// <summary>
         /// (`AMBER295`, полоса `a295o`) Сколько отсчётов канала переполнения фона не пошло в разбор
         /// (`FsaAnalyzer.BackgroundOverflowOut`), в своей шкале фона, до нормировки временем. Нуль — рычаг выключен,
         /// фона нет или переполнения в нём нет. Читает корпусная проба (`*_bgoverflow.csv`); в окно отчёта не идёт.

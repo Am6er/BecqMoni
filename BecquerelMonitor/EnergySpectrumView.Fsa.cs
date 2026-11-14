@@ -1349,6 +1349,7 @@ namespace BecquerelMonitor
                 // поглощения, к которому привязана шкала, и стоит она там же
                 // при любом слое, как и лента невязки.
                 this.DrawFsaBackgroundMask(g, result);
+                this.DrawFsaCrystalShelfMask(g, result);
                 this.DrawFsaAnchors(g, result, this.fsaModelTop);
             }
             finally
@@ -1488,6 +1489,33 @@ namespace BecquerelMonitor
                     {
                         g.FillRectangle(hatch, lo, 0, hi - lo, this.height);
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER274`, полоса `a274u`; решение Amber 14.11.2026 «Да, строка и штрих (Рекомендую)») Окно K-пика слоя
+        /// собственной активности кристалла, снятое из подгонки (`FsaAnalyzer.CrystalOwnShelfMask`), — тем же штрихом
+        /// на всю высоту поля, что участки автомаски фона: смысл один — разбор эти каналы не судит. Окно не снято
+        /// (<see cref="FsaResult.CrystalShelfMaskChannels"/> нуль) — не рисует ничего.
+        /// </summary>
+        void DrawFsaCrystalShelfMask(Graphics g, FsaResult result)
+        {
+            if (result == null || result.CrystalShelfMaskChannels <= 0
+                || this.energyCalibration == null || this.energySpectrum == null)
+            {
+                return;
+            }
+
+            int x0 = this.FsaEnergyToPixel(result.CrystalShelfMaskLoKev);
+            int x1 = this.FsaEnergyToPixel(result.CrystalShelfMaskHiKev);
+            int lo = Math.Max(x0, Math.Max(this.VisibleLeftPixel, this.left));
+            int hi = Math.Min(x1, this.VisibleRightPixel);
+            if (hi > lo)
+            {
+                using (Brush hatch = new HatchBrush(HatchStyle.WideUpwardDiagonal, FsaPalette.BackgroundMaskColor, Color.Transparent))
+                {
+                    g.FillRectangle(hatch, lo, 0, hi - lo, this.height);
                 }
             }
         }

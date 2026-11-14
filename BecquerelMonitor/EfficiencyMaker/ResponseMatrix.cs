@@ -1126,6 +1126,19 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public ResponseCrystalSection CrystalSectionFor(GeometryModel geometry, out CrystalSectionRefusal refusal, out string detail)
         {
+            return this.CrystalSectionFor(geometry, null, out refusal, out detail);
+        }
+
+        /// <summary>
+        /// (`AMBER274` Э3, полоса `a274f` 14.11.2026) То же для ПРИБОРА <paramref name="efficiency"/>: клеймо раздела
+        /// сверяется с рецептом слоя прибора (<see cref="ResponseCrystalSection.RecipeFor"/>: источник QF альф и форма
+        /// групп — поля прибора), а не с рецептом умолчания. Прибора нет (null) или источник QF у него пуст — рецепт
+        /// умолчания, как прежде: раздел с альфами такой прибор не возьмёт (отказ `OtherRecipe`), и наоборот.
+        /// Рецепт читается (таблица QF `matdb`) только когда в матрице есть раздел: у матриц без раздела — ни чтения.
+        /// </summary>
+        public ResponseCrystalSection CrystalSectionFor(GeometryModel geometry, EfficiencyConfigData efficiency,
+                                                        out CrystalSectionRefusal refusal, out string detail)
+        {
             detail = null;
             ResponseCrystalSection own = this.CrystalSection;
             if (geometry == null)
@@ -1136,7 +1149,10 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             if (own != null && own.Count > 0)
             {
-                refusal = own.Judge(geometry, this.BinKev, out detail);
+                string recipeNote;
+                BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnParts recipe =
+                    efficiency != null ? ResponseCrystalSection.RecipeFor(geometry, efficiency, out recipeNote) : null;
+                refusal = own.Judge(geometry, this.BinKev, recipe, out detail);
                 if (refusal == CrystalSectionRefusal.None)
                 {
                     return own;

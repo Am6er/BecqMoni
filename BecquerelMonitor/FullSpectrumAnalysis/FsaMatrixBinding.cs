@@ -35,6 +35,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static void Bind(FsaAnalyzer analyzer, GeometryModel geometry, ResponseMatrix matrix)
         {
+            Bind(analyzer, geometry, matrix, null);
+        }
+
+        /// <summary>
+        /// (`AMBER274` Э3, полоса `a274f` 14.11.2026) То же для ПРИБОРА <paramref name="efficiency"/> — его геометрия и
+        /// его поля слоя кристалла: источник QF альф и форма групп (раздел слоя сверяется с рецептом прибора,
+        /// <see cref="EfficiencyMaker.ResponseMatrix.CrystalSectionFor(GeometryModel, EfficiencyConfigData, out EfficiencyMaker.CrystalSectionRefusal, out string)"/>)
+        /// и активность ряда с датой — запасной путь счёта по альфам (<see cref="FsaAnalyzer.CrystalOwnSeriesFallback"/>).
+        /// У прибора без этих полей — ровно <see cref="Bind(FsaAnalyzer, GeometryModel, ResponseMatrix)"/>. Имя своё, а не
+        /// перегрузка: пробы зовут <c>Bind(analyzer, null, matrix)</c>, и перегрузка сделала бы такой вызов неоднозначным.
+        /// </summary>
+        public static void BindDevice(FsaAnalyzer analyzer, EfficiencyConfigData efficiency, ResponseMatrix matrix)
+        {
+            Bind(analyzer, efficiency != null ? efficiency.Geometry : null, matrix, efficiency);
+        }
+
+        static void Bind(FsaAnalyzer analyzer, GeometryModel geometry, ResponseMatrix matrix, EfficiencyConfigData efficiency)
+        {
             if (analyzer == null || matrix == null)
             {
                 return;
@@ -81,9 +99,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`FsaAnalyzer.CrystalOwnRefusal`), а не идёт молча без слоя.
             EfficiencyMaker.CrystalSectionRefusal ownRefusal;
             string ownDetail;
-            analyzer.CrystalOwnSection = matrix.CrystalSectionFor(geometry, out ownRefusal, out ownDetail);
+            // (`a274f` 14.11.2026) рецепт слоя — ПРИБОРА (источник QF альф и форма групп — его поля); прибора нет —
+            // рецепт умолчания, как прежде
+            analyzer.CrystalOwnSection = matrix.CrystalSectionFor(geometry, efficiency, out ownRefusal, out ownDetail);
             analyzer.CrystalOwnRefusal = ownRefusal;
             analyzer.CrystalOwnRefusalDetail = ownDetail;
+
+            // (`a274f`) запасной путь счёта ряда по альфам — активность ряда кристалла из поля прибора
+            CrystalSeriesActivity series = efficiency != null ? efficiency.CrystalSeriesActivity : null;
+            analyzer.CrystalOwnSeriesFallback = series != null && series.ActivityBq > 0.0
+                ? new CrystalOwnSeriesFallback { ActivityBq = series.ActivityBq, Date = series.Date }
+                : null;
         }
     }
 }

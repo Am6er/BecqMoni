@@ -1020,7 +1020,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // кристалла (`S20`) и признак защиты. Пробы зовут его же —
                     // иначе стенд и экран расходятся молча, а снимок «до/после»
                     // выходит побитово одинаковым.
-                    FsaMatrixBinding.Bind(analyzer, efficiencyConfig.Geometry, matrix);
+                    // (`AMBER274` Э3, `a274f`) привязка — с прибором: его поля слоя кристалла (источник QF альф,
+                    // форма групп, активность ряда); у прибора без них — ровно прежняя привязка по геометрии
+                    FsaMatrixBinding.BindDevice(analyzer, efficiencyConfig, matrix);
                 }
                 else
                 {

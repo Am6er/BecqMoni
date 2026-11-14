@@ -310,6 +310,15 @@
   <data name="FSAReport_BackgroundMaskTip" xml:space="preserve">
     <value>Вероятно, фон снят без пробы (пустой сосуд) или в другой обстановке. Модель по этим каналам не подгоняется, в χ² они не входят. Судится участок целиком, а не отдельные каналы, поэтому шум участок не снимает. Не учтено каналов: {0}. Наиболее значимое окно {1}–{2} кэВ: z {3}, фон ×{4} измеренного спектра.</value>
   </data>
+  <data name="FSAReport_CrystalShelfRow" xml:space="preserve">
+    <value>Участок {0}–{1} кэВ не учтён в подгонке: здесь K-пик собственной активности кристалла</value>
+  </data>
+  <data name="FSAReport_CrystalShelfValue" xml:space="preserve">
+    <value>не учтён</value>
+  </data>
+  <data name="FSAReport_CrystalShelfTip" xml:space="preserve">
+    <value>Собственная активность кристалла вычитается слоем, а под её K-пиком захвата в спектре лежит полка, которую модель слоя не описывает. Модель по этим каналам не подгоняется, в χ² они не входят и привязку шкалы не решают. Невязка на участке остаётся на графике как есть. Не учтено каналов: {0}.</value>
+  </data>
   <data name="FSAReport_AnchorRow" xml:space="preserve">
     <value>Опорных пиков для шкалы</value>
   </data>
