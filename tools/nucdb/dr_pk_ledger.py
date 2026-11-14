@@ -37,6 +37,8 @@ RANGES = (
     (u'добор слабых гамм', 100001, 199999),
     (u'L-подлинии', 200001, 299999),
     (u'строки LNHB', 300001, 399999),
+    # (`AMBER274` Э3, полоса `a274n`, 14.11.2026) альфы и β⁻ ряда Ac-227 по LNHB, `correct_lnhb_alpha.py`
+    (u'альфы ряда Ac-227 по LNHB', 400001, 499999),
 )
 COLUMNS = ('parent_l_seqno', 'parent_nucid', 'dec_type', 'type_a', 'type_c', 'intensity', 'intensity_unc',
            'intensity_num', 'energy_num', 'energy', 'energy_unc', 'endpoint', 'endpoint_unc')

@@ -3183,7 +3183,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         + " where parent_nucid = $n and type_a in ('G', 'X', 'B+')"
                         + " and (energy_num not null or type_a = 'B+') and intensity_num > 0"
                         + DecayParentRule.NotLimitClause
-                        + DecayParentRule.LevelClause;
+                        + DecayParentRule.LevelClause
+                        // (`AMBER274` Э3, `a274n`) заменённая строка (`decay_radiations_superseded`) — не выход
+                        + DecayParentRule.NotSupersededClauseFor(connection);
                     command.Parameters.AddWithValue("$n", nucid);
                     using (SqliteDataReader reader = command.ExecuteReader())
                     {
@@ -6038,7 +6040,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         "select type_a, energy_num, endpoint, intensity_num, parent_l_seqno, dec_type, intensity_unc, dr_pk"
                         + " from decay_radiations"
                         + " where parent_nucid = $n and type_a in ('B-', 'B+', 'G') and intensity_num > 0"
-                        + DecayParentRule.LevelClause;
+                        + DecayParentRule.LevelClause
+                        // (`AMBER274` Э3, `a274n`) заменённая строка (Tl-207 β⁻ 1431 → 1418 LNHB) — не ветвь
+                        + DecayParentRule.NotSupersededClauseFor(connection);
                     command.Parameters.AddWithValue("$n", nucid);
                     using (SqliteDataReader r = command.ExecuteReader())
                     {

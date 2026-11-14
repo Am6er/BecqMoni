@@ -119,6 +119,39 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>
+        /// ⛔ (`AMBER274` Э3, полоса `a274n`, 14.11.2026; решение Amber вопросником, дословно: «Строка остаётся,
+        /// отсев (Рекомендую)») ЗАМЕНЁННАЯ СТРОКА — НЕ ВЫХОД. Строка поставки, у которой оценка LNHB сдвинула
+        /// ключ ветви сверх допуска номера (`AMBER281`: Tl-207 β⁻ 1431 кэВ NuDat → 1418(5) кэВ LNHB), из базы НЕ
+        /// удаляется (правило 02.11.2026 «исходные данные с признаком не удалять — отсеивать у читателей»):
+        /// её замена лежит новой строкой, а пара «строка → замена» — в таблице
+        /// `decay_radiations_superseded` (<see cref="SupersededTable"/>). Читатели, которые складывают выходы β
+        /// (`FsaSampleLibrary`: ветви β и позитроны β⁺, `CascadeAtomicData`: доля β⁺), отсеивают заменённые этим
+        /// довеском. Сторож `tools/check_nucdb_superseded.py` держит, что замена — того же родителя и типа и что
+        /// заменяются только строки β (`B-`, `B+`): читатели гамм и рентгена довеска не несут.
+        /// </summary>
+        public const string SupersededTable = "decay_radiations_superseded";
+
+        /// <summary>Довесок к `where` (столбец `dr_pk` — без алиаса); только при таблице в базе — см. <see cref="NotSupersededClauseFor"/>.</summary>
+        public const string NotSupersededClause =
+            " and dr_pk not in (select dr_pk from decay_radiations_superseded)";
+
+        /// <summary>
+        /// <see cref="NotSupersededClause"/>, если таблица замен в базе есть; пусто — база до 14.11.2026, читатель
+        /// работает, как прежде.
+        /// </summary>
+        public static string NotSupersededClauseFor(Microsoft.Data.Sqlite.SqliteConnection connection)
+        {
+            using (Microsoft.Data.Sqlite.SqliteCommand command = connection.CreateCommand())
+            {
+                command.CommandText = "select count(*) from sqlite_master where type = 'table' and name = $t";
+                command.Parameters.AddWithValue("$t", SupersededTable);
+                return System.Convert.ToInt64(command.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture) > 0
+                    ? NotSupersededClause
+                    : "";
+            }
+        }
+
+        /// <summary>
         /// Довесок к `where` для запроса к `decay_chain`: какая из строк
         /// описывает ФИЗИЧЕСКИЙ распад, а какая — тот же переход у
         /// ВОЗБУЖДЁННОГО уровня. Вопрос свой, отдельный от
