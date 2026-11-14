@@ -1059,7 +1059,18 @@ namespace CrystalOwnActivityProbeA274
             double s0 = AnchorChi2(bareA, out n0), s1 = AnchorChi2(layerA, out n1);
             Console.WriteLine("привязка при выключенном откате: gain {0:F6} → {1:F6}; опор {2} → {3}; Σ(сдвиг/σ)² {4:F3} → {5:F3} (не судится)",
                               bareA.Gain, layerA.Gain, n0, n1, s0, s1);
-            Check("опор со слоем не меньше, чем без него (откат выкл)", n0 > 0 && n1 >= n0);
+            // (`a274c`, критик `crit274c`) Окно K-пика слоя (`FsaAnalyzer.CrystalOwnShelfMask`) снято из подгонки: опора
+            // внутри него (Sm K 40.12 кэВ у `LaBrBril_Eu152`) отпадает по построению, и счёт «7 → 6» был ложной тревогой.
+            // Судятся опоры с линией выше окна; окно не снято — порог −∞, счёт прежний.
+            double shelfTop = lastShelfChannels > 0 ? lastShelfHiKev : double.NegativeInfinity;
+            int a0 = AnchorsAbove(bareA, shelfTop), a1 = AnchorsAbove(layerA, shelfTop);
+            if (lastShelfChannels > 0)
+            {
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                    "окно K-пика слоя снято ({0} кан., верх {1:F0} кэВ): опор выше окна {2} → {3}", lastShelfChannels, shelfTop, a0, a1));
+            }
+
+            Check("опор выше окна слоя со слоем не меньше, чем без него (откат выкл)", a0 > 0 && a1 >= a0);
             foreach (FsaComponentResult component in layerA.Components)
             {
                 if (component.Kind != FsaComponentKind.Nuisance && component.CountRate > 0.0)
@@ -1382,6 +1393,21 @@ namespace CrystalOwnActivityProbeA274
             return res;
         }
 
+        /// <summary>(`a274c`) Взятых опор с линией выше <paramref name="aboveKev"/>.</summary>
+        static int AnchorsAbove(FsaResult result, double aboveKev)
+        {
+            int used = 0;
+            foreach (FsaScaleAnchor anchor in result.ScaleAnchors ?? new List<FsaScaleAnchor>())
+            {
+                if (anchor.Used && !double.IsNaN(anchor.LineKev) && anchor.LineKev > aboveKev)
+                {
+                    used++;
+                }
+            }
+
+            return used;
+        }
+
         static double AnchorChi2(FsaResult result, out int used)
         {
             used = 0;
@@ -1639,6 +1665,10 @@ namespace CrystalOwnActivityProbeA274
         static bool calMutated;
         static bool rollbackOff;
 
+        /// <summary>(`a274c`) Сколько каналов сняло окно K-пика слоя на последнем разборе и его верх, кэВ.</summary>
+        static int lastShelfChannels;
+        static double lastShelfHiKev;
+
         static FsaResult Run(ResultData rd, EnergySpectrum background, GeometryModel geometry,
                              ResponseMatrix matrix, ResponseCrystalSection section)
         {
@@ -1695,6 +1725,8 @@ namespace CrystalOwnActivityProbeA274
             lastFixed = result != null
                 ? analyzer.CrystalOwnFixedCountsAt(result.Gain, result.OffsetChannels)
                 : analyzer.CrystalOwnFixedCountsOfLastRun();
+            lastShelfChannels = analyzer.CrystalOwnShelfMaskChannels;
+            lastShelfHiKev = analyzer.CrystalOwnShelfHiKev;
             if (result == null)
             {
                 Console.Error.WriteLine("отказ разбора: {0} — {1}", analyzer.Refusal, analyzer.RefusalNote);

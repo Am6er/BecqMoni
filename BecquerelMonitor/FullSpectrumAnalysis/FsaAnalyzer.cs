@@ -6936,6 +6936,121 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool CrystalOwnLayer { get; set; }
 
         /// <summary>
+        /// ⛔ (`AMBER274`, полоса `a274c`, 14.11.2026) ОКНО K-ПИКА СЛОЯ ВНЕ ПОДГОНКИ И χ². Решение Amber 13.11.2026
+        /// вопросником, дословно: «Записать + сверить бету La-138 (Рекомендую)» — под ключом слоя исключить 20–44 кэВ
+        /// из χ² слоя. Под K-пиком захвата у слоя лежит полка данных, которую модель слоя не описывает: это не форма
+        /// пика и не бета, механизм не установлен (журналы `a274x`, `a274y`, `a274b`). Пока слой вычитается, полка
+        /// решала откат привязки: у `LaBrBril_Eu152` разбор бросал верное усиление (`crit274g2`).
+        ///
+        /// Действует ТОЛЬКО при вычтенном природном слое (<see cref="CrystalOwnLayer"/> включён, раздел есть, фон не
+        /// вычитается) и только если слой несёт в окне пик: наибольший канал слоя в окне не меньше
+        /// <see cref="CrystalOwnShelfPeakRatio"/> средних слоя в полосе той же ширины над окном. У слоя без пика
+        /// захвата (лютециевый кристалл) окно не снимается. Каналы окна получают <see cref="MaskedVariance"/> — тем
+        /// же приёмом, что автомаска фона (<see cref="BackgroundExcessMask"/>): они уходят из весов решателя, из
+        /// отчётного χ² и из числа степеней свободы, а значит, и из суда отката привязки и стража нуля — оба судят по
+        /// <see cref="FsaResult.Chi2NdfPoisson"/>. Окно стоит в каналах шкалы спектра и у обоих плеч отката одно.
+        /// Невязка в окне остаётся в кривых результата как есть: полка — известный остаток, а не подгонка.
+        /// Без слоя ключ не меняет ни одного бита. Умолчание — в конструкторе.
+        /// </summary>
+        public bool CrystalOwnShelfMask { get; set; }
+
+        /// <summary>(`AMBER274`, `a274c`) Низ окна <see cref="CrystalOwnShelfMask"/>, кэВ шкалы спектра.</summary>
+        public double CrystalOwnShelfLoKev { get; set; }
+
+        /// <summary>(`AMBER274`, `a274c`) Верх окна <see cref="CrystalOwnShelfMask"/>, кэВ шкалы спектра.</summary>
+        public double CrystalOwnShelfHiKev { get; set; }
+
+        /// <summary>
+        /// (`AMBER274`, `a274c`) Во сколько раз вершина слоя в окне обязана быть выше среднего слоя над окном, чтобы
+        /// окно снималось (<see cref="CrystalOwnShelfMask"/>); ноль и меньше — окно снимается при любом слое.
+        /// </summary>
+        public double CrystalOwnShelfPeakRatio { get; set; }
+
+        /// <summary>(`AMBER274`, `a274c`) Сколько каналов снято окном <see cref="CrystalOwnShelfMask"/> на последнем заходе ядра (пробам).</summary>
+        public int CrystalOwnShelfMaskChannels
+        {
+            get { return this.crystalShelfMaskCount; }
+        }
+
+        int crystalShelfMaskCount;
+
+        /// <summary>
+        /// (`AMBER274`, `a274c`) Снять окно K-пика слоя (<see cref="CrystalOwnShelfMask"/>): каналы окна получают
+        /// <see cref="MaskedVariance"/>. Зовётся там же, где автомаска фона, — до отчётных весов и весов решателя.
+        /// </summary>
+        void MaskCrystalShelf(double[] variance, EnergyCalibration calibration, int chLo, int chHi)
+        {
+            this.crystalShelfMaskCount = 0;
+            double[] layer = this.crystalOwnFixedCounts;
+            if (!this.CrystalOwnShelfMask || layer == null || calibration == null || chHi <= chLo
+                || !(this.CrystalOwnShelfHiKev > this.CrystalOwnShelfLoKev))
+            {
+                return;
+            }
+
+            int first = -1, last = -1;
+            for (int i = chLo; i <= chHi && i < layer.Length; i++)
+            {
+                double kev = calibration.ChannelToEnergy(i);
+                if (kev >= this.CrystalOwnShelfLoKev && kev <= this.CrystalOwnShelfHiKev)
+                {
+                    if (first < 0)
+                    {
+                        first = i;
+                    }
+
+                    last = i;
+                }
+            }
+
+            if (first < 0)
+            {
+                return;
+            }
+
+            if (this.CrystalOwnShelfPeakRatio > 0.0)
+            {
+                double top = 0.0;
+                for (int i = first; i <= last; i++)
+                {
+                    top = Math.Max(top, layer[i]);
+                }
+
+                double above = 0.0;
+                int used = 0;
+                double edge = this.CrystalOwnShelfHiKev + (this.CrystalOwnShelfHiKev - this.CrystalOwnShelfLoKev);
+                for (int i = last + 1; i <= chHi && i < layer.Length && calibration.ChannelToEnergy(i) <= edge; i++)
+                {
+                    above += layer[i];
+                    used++;
+                }
+
+                if (used == 0 || !(top >= this.CrystalOwnShelfPeakRatio * above / used))
+                {
+                    return;
+                }
+            }
+
+            for (int i = first; i <= last; i++)
+            {
+                variance[i] = MaskedVariance;
+            }
+
+            this.crystalShelfMaskCount = last - first + 1;
+            string note = string.Format(CultureInfo.InvariantCulture,
+                "окно K-пика слоя {0:F0}–{1:F0} кэВ вне подгонки и χ² ({2} кан., AMBER274)",
+                this.CrystalOwnShelfLoKev, this.CrystalOwnShelfHiKev, this.crystalShelfMaskCount);
+            if (string.IsNullOrEmpty(this.CrystalOwnNote))
+            {
+                this.CrystalOwnNote = note;
+            }
+            else if (this.CrystalOwnNote.IndexOf(note, StringComparison.Ordinal) < 0)
+            {
+                this.CrystalOwnNote += "; " + note;
+            }
+        }
+
+        /// <summary>
         /// (`AMBER274`, Э2, 04.11.2026) Раздел «собственная активность кристалла» —
         /// ставит его <see cref="FsaMatrixBinding.Bind"/> из той же матрицы, сверкой
         /// клейма со сценой (<see cref="EfficiencyMaker.ResponseCrystalSection.UsableFor"/>).
@@ -11077,6 +11192,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`AMBER295`) решение Amber 06.11.2026 вопросником, дословно: «Маска и нож при красной (Рекомендую)»
             this.BackgroundExcessMask = true;
             this.BackgroundBandKnife = true;
+            // (`AMBER274`, полоса `a274c`) окно K-пика слоя вне подгонки и χ² — ВКЛЮЧЕНО, но действует только при
+            // включённом слое (<see cref="CrystalOwnLayer"/>, умолчание ВЫКЛ): без слоя ни одного бита. Окно 20–44 кэВ —
+            // решение Amber 13.11.2026 вопросником, дословно: «Записать + сверить бету La-138 (Рекомендую)»; замер —
+            // журнал handover/handover-2026-11-14-a274c.md
+            this.CrystalOwnShelfMask = true;
+            this.CrystalOwnShelfLoKev = 20.0;
+            this.CrystalOwnShelfHiKev = 44.0;
+            this.CrystalOwnShelfPeakRatio = 2.0;
             this.BackgroundMaskGuard = true;
             // (`AMBER295`, остаток, полоса `a295`) рычаг выключен: умолчание побитно прежнее; включение —
             // решением Amber по замеру (журнал handover/handover-2026-11-12-a295.md)
@@ -14375,6 +14498,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             // (`AMBER295`) автомаска фона: каналы участка уходят из весов решателя и отчёта
             this.MaskBackgroundExcess(raw, backgroundFull, variance, calibration, fwhmCalibration, chLo, chHi, backgroundScale);
+
+            // (`AMBER274`, `a274c`) окно K-пика слоя собственной активности: без вычтенного слоя — ни одного бита
+            this.MaskCrystalShelf(variance, calibration, chLo, chHi);
 
             // Отчётные веса — ПРЕЖНЯЯ метрика (пуассон плюс шум вычтенного
             // фона), какой бы ни была метрика решателя: χ², посчитанный ими
@@ -21493,7 +21619,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     : ReportNdfPooled(best, report, pool, poolVariance, chLo, chHi);
                 if (exact > 0.0)
                 {
-                    best.NdfBase = Math.Max(1.0, exact - this.backgroundMaskCount);
+                    best.NdfBase = Math.Max(1.0, exact - this.backgroundMaskCount - this.crystalShelfMaskCount);
                 }
 
                 int cells = chHi - chLo + 1;
@@ -23331,7 +23457,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             // (`A291`) ndf — ЭФФЕКТИВНОЕ, а не «n минус активных».
-            double ndf = EffectiveNdf(n - this.backgroundMaskCount, activeIndices, activeInverse,
+            double ndf = EffectiveNdf(n - this.backgroundMaskCount - this.crystalShelfMaskCount, activeIndices, activeInverse,
                                       gramUnpenalized);
             double chi2ndf = chi2 / ndf;
 

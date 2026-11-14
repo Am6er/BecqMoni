@@ -180,6 +180,13 @@ namespace BecquerelMonitor
         double[][] fsaStackCurves;
 
         /// <summary>
+        /// (`AMBER274`, полоса `a274c`) Есть ли у k-го слоя стопки этого кадра отрицательный участок кривой:
+        /// знакопеременный канал «Бета пробы» под пиком гаммы уходит в минус (вынос из пика). Только у таких
+        /// слоёв рисуется минус (<see cref="DrawFsaMinus"/>); у прочих — ни одного пикселя сверх прежнего.
+        /// </summary>
+        bool[] fsaStackNegative;
+
+        /// <summary>
         /// Верх ПОЛНОЙ модели — сумма лент ВСЕХ слоёв представления. При «All»
         /// это та же ссылка, что верх стопки <see cref="fsaCumulative"/>[последний]
         /// (побитово, тот же порядок сложения); при канале стопка ниже, а лента
@@ -801,6 +808,7 @@ namespace BecquerelMonitor
             this.fsaNetSpectrum = null;
             this.fsaStack = null;
             this.fsaStackCurves = null;
+            this.fsaStackNegative = null;
             this.fsaModelTop = null;
             this.fsaFrameLayer = FsaMatrixLayer.All;
         }
@@ -914,6 +922,7 @@ namespace BecquerelMonitor
             this.fsaBackscatterLevel = new double[count][];
             this.fsaBackscatterBase = new double[count][];
             this.fsaStackCurves = new double[count][];
+            this.fsaStackNegative = new bool[count];
 
             double[] running = this.fsaZeroLevel;
             for (int k = 0; k < count; k++)
@@ -924,6 +933,10 @@ namespace BecquerelMonitor
                 for (int i = 0; i < channels; i++)
                 {
                     level[i] = running[i] + (i < curve.Length ? curve[i] : 0.0);
+                    if (i < curve.Length && curve[i] < 0.0)
+                    {
+                        this.fsaStackNegative[k] = true;
+                    }
                 }
 
                 // Подслой сумм-пиков кладётся на НИЗ ленты: так его высота
@@ -1204,6 +1217,25 @@ namespace BecquerelMonitor
                     {
                         this.DrawFsaSelectedPart(g, k, color);
                     }
+                }
+
+                // (`AMBER274`, `a274c`) Минус слоя — поверх всей стопки: ленты выше него стоят на его
+                // пониженном уровне и закрыли бы штрих.
+                for (int k = 0; k < stack.Count; k++)
+                {
+                    if (this.fsaStackNegative == null || k >= this.fsaStackNegative.Length || !this.fsaStackNegative[k])
+                    {
+                        continue;
+                    }
+
+                    Color color = this.fsaPresentation.ColorOf(stack[k].Name);
+                    bool muted = muting
+                        && !string.Equals(stack[k].Name, highlight, StringComparison.Ordinal)
+                        && !(chainRoot != null && string.Equals(stack[k].ChainRoot, chainRoot, StringComparison.Ordinal));
+                    // как у ленты: приглушён, вдвое слабее у слоя выбранной части (`AMBER327`) или полный цвет
+                    this.DrawFsaMinus(g, k, muted ? MuteFsaColor(color)
+                        : k == partLayer ? HalfMuteFsaColor(color)
+                        : Color.FromArgb(FullBandAlpha, color));
                 }
             }
             finally
@@ -1744,6 +1776,24 @@ namespace BecquerelMonitor
                                                  Color.Transparent))
             {
                 this.DrawFsaBand(g, excess, below, model);
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER274`, полоса `a274c`) МИНУС СЛОЯ. Слой стопки с отрицательным участком (канал «Бета пробы»: под
+        /// пиком гаммы бета выносит счёт из пика, и канал там меньше нуля) опускает уровень стопки ниже верха
+        /// предыдущего слоя. <see cref="DrawFsaBand"/> перевёрнутую пару пропускает, и такой участок прежде не
+        /// рисовался вовсе: слои выше молча ложились поверх нижних. Здесь он рисуется горизонтальным штрихом цвета
+        /// своего слоя между пониженным уровнем и верхом предыдущего слоя — «этот слой здесь вычитает». Пара подаётся
+        /// перевёрнутой нарочно: там, где слой положителен, <see cref="DrawFsaBand"/> не ставит ни пикселя. Участок
+        /// ниже нуля шкалы не рисуется: места на шкале ему нет.
+        /// </summary>
+        void DrawFsaMinus(Graphics g, int k, Color color)
+        {
+            double[] upper = k > 0 ? this.fsaCumulative[k - 1] : this.fsaZeroLevel;
+            using (Brush minus = new HatchBrush(HatchStyle.DarkHorizontal, color, Color.Transparent))
+            {
+                this.DrawFsaBand(g, minus, this.fsaCumulative[k], upper);
             }
         }
 
