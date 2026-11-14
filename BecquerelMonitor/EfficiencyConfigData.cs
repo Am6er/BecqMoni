@@ -169,6 +169,27 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// (`AMBER274` Э3, полоса `a274n`, 14.11.2026) ИСТОЧНИК ГАШЕНИЯ АЛЬФ кристалла этого прибора — имя строки
+        /// (`source`) таблицы `matdb.scint_alpha_quenching` (<see cref="FullSpectrumAnalysis.ScintAlphaQuenching"/>).
+        /// Решение Amber 14.11.2026 вопросником, дословно: «Источник QF — полем прибора (Рекомендую)». QF альф LaBr₃
+        /// измерен на ОДНОМ кристалле (второй прибор, строка `a274a_bg_vertices`, `is_default = 0`), и брать его «по
+        /// веществу» нельзя: у `LABR_BRIL` (тот же LaBr₃) альфы не включаются (решение Amber 13.11.2026). Поэтому
+        /// источник называет ПРИБОР: заполнено — слой кристалла берёт альфы с этим QF; пусто — строка `is_default = 1`
+        /// вещества, а её нет — альф нет, как прежде. Пустое поле в XML не пишется — прежние конфигурации и
+        /// спектры побайтно прежние.
+        /// </summary>
+        public string AlphaQuenchingSource
+        {
+            get { return this.alphaQuenchingSource; }
+            set { this.alphaQuenchingSource = value ?? ""; }
+        }
+
+        public bool ShouldSerializeAlphaQuenchingSource()
+        {
+            return !string.IsNullOrEmpty(this.alphaQuenchingSource);
+        }
+
+        /// <summary>
         /// Пустой отпечаток в XML не пишется: конфигурации и спектры без
         /// кривой из геометрии остаются побайтно прежними (образец `XmlSerializer`
         /// «ShouldSerialize&lt;имя&gt;»).
@@ -311,6 +332,7 @@ namespace BecquerelMonitor
                 embeddedMatrix = this.embeddedMatrix,
                 geometry = this.geometry == null ? null : this.geometry.Clone(),
                 gdmlImport = this.gdmlImport == null ? null : this.gdmlImport.Clone(),
+                alphaQuenchingSource = this.alphaQuenchingSource,     // (`a274n`) источник QF альф прибора
                 curve = new List<ROIEfficiencyData>(),
             };
 
@@ -350,6 +372,8 @@ namespace BecquerelMonitor
 
         GeometryModel geometry;
         BecquerelMonitor.EfficiencyMaker.GdmlImportInfo gdmlImport;
+
+        string alphaQuenchingSource = "";
 
         CDATA note = new CDATA("");
     }

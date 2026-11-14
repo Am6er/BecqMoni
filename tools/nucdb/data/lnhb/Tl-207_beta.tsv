@@ -1,0 +1,8 @@
+# LNHB/DDEP, Table de Radionucleides: Tl-207 (207TL)
+# https://www.lnhb.fr/nuclides/Tl-207_tables.pdf, sha256 e1c20744e6b905a1e61fd7c2e12fdcfbea5ddc38e4b2698b8e39c7ed49c4a119 (снято 14.11.2026, полоса a274n, AMBER274 Э3)
+# оценка: ANL /F. G. Kondev, 21/10/2010 - 30/5/2011
+# раздел «Electron Emissions», строки β− max/avg (граница, вероятность, средняя); признак AP — ≈
+label	type	max_kev	max_unc	prob	prob_unc	avg_kev	avg_unc	flag
+β−0,0	B-	1418	5	99.729	10	492.5	21	-
+β−0,1	B-	848	5	0.00008	-	273.2	18	LT
+β−0,2	B-	520	5	0.271	10	155.0	17	-

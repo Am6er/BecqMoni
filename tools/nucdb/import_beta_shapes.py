@@ -261,9 +261,14 @@ def check_branch(db, sid, nucid, type_a, endpoint):
     z_parent = row[0]
     tol = max(2.0, 0.005 * endpoint)
     hits = []
+    # (`AMBER274` Э3, `a274n`) заменённая строка (`decay_radiations_superseded`, решение Amber 14.11.2026 «Строка
+    # остаётся, отсев») — не ветвь: та же ветвь лежит её заменой (Tl-207 β⁻ 1431 → 1418 кэВ LNHB). Нет таблицы — как прежде.
+    superseded = ''
+    if db.execute("select 1 from sqlite_master where type = 'table' and name = 'decay_radiations_superseded'").fetchone():
+        superseded = ' and dr_pk not in (select dr_pk from decay_radiations_superseded)'
     for (ep, inten, mean, lseq) in db.execute(
             'select endpoint, intensity_num, energy_num, parent_l_seqno from decay_radiations'
-            ' where parent_nucid = ? and type_a = ?', (nucid, type_a)):
+            ' where parent_nucid = ? and type_a = ?' + superseded, (nucid, type_a)):
         v = db_endpoint(ep)
         if math.isfinite(v) and abs(v - endpoint) <= tol:
             hits.append((v, inten, mean, lseq, ep))

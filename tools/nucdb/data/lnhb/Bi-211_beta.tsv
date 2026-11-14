@@ -1,0 +1,6 @@
+# LNHB/DDEP, Table de Radionucleides: Bi-211 (211BI)
+# https://www.lnhb.fr/nuclides/Bi-211_tables.pdf, sha256 c9271c5886b87868af85580bfe6bd7db612997a8b9bdb132b7a00a728d0e6360 (снято 14.11.2026, полоса a274n, AMBER274 Э3)
+# оценка: IFIN-HH /A. Luca, 07/07/2009 - 9/1/2012
+# раздел «Electron Emissions», строки β− max/avg (граница, вероятность, средняя); признак AP — ≈
+label	type	max_kev	max_unc	prob	prob_unc	avg_kev	avg_unc	flag
+β−0,0	B-	574	5	0.276	4	172.9	18	-

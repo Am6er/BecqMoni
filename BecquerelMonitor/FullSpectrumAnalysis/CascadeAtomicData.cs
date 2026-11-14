@@ -1223,6 +1223,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     + " where parent_nucid = $n and intensity_num > 0"
                     + DecayParentRule.NotLimitClause
                     + DecayParentRule.LevelClause
+                    // (`AMBER274` Э3, `a274n`) заменённая строка (`decay_radiations_superseded`) — не выход
+                    + DecayParentRule.NotSupersededClauseFor(connection)
                     + " order by dr_pk";
                 command.Parameters.AddWithValue("$n", nucid);
                 using (SqliteDataReader reader = command.ExecuteReader())
