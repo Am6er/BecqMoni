@@ -16,7 +16,7 @@ namespace AlphaDataProbeA274n
     ///                  (`ActiniumSeries`: Th-227 — β⁻ Ac-227, Ra-223 / Rn-219 / Po-215 — 1, альфы Ac-227 и Bi-211 —
     ///                  своими строками). Гоняется на каталоге проб с прежней и с новой базой.
     ///   --mode=qf      таблица гашения альф `matdb.scint_alpha_quenching` (`ScintAlphaQuenching`): чтение обратно,
-    ///                  QF на энергиях ряда против закона 0.3785 + 0.019·(E − 6 МэВ); строка «по веществу» (её
+    ///                  QF на энергиях ряда против закона строки файла (прямой SQL, `a274w`); строка «по веществу» (её
     ///                  нет — is_default 0); отпечаток склада `MaterialDatabase.SimulatorDataFingerprint` двух файлов
     ///                  (`--a=`, `--b=`) — обязан совпасть; положительный контроль — `--spoiled=` (QF другой — чтение
     ///                  обязано дать другое), `--old=` (база без таблицы — пусто), `--fp-spoiled=` (тронута таблица
@@ -317,10 +317,37 @@ namespace AlphaDataProbeA274n
                 return 1;
             }
 
+            // (`a274w` 14.11.2026) Закон — СТРОКОЙ ФАЙЛА `--b=`, прочитанной прямым SQL мимо читателя, а не числами в коде:
+            // QF переписывается импортёром (поправка по форме `a274f`, решение Amber «Поправить по форме (Рекомендую)»),
+            // и вписанный сюда закон 0.3785 + 0.019 делал сверку неверной на каждой правке таблицы.
+            double rawRef, rawQf, rawSlope;
+            using (var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=" + b + ";Mode=ReadOnly"))
+            {
+                connection.Open();
+                using (Microsoft.Data.Sqlite.SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "select ref_kev, qf_ref, slope_per_mev from " + ScintAlphaQuenching.Table
+                                          + " where material = 'LaBr3:Ce' and source = 'a274a_bg_vertices'";
+                    using (Microsoft.Data.Sqlite.SqliteDataReader reader = command.ExecuteReader())
+                    {
+                        if (!reader.Read())
+                        {
+                            Console.WriteLine("⛔ прямым SQL строки LaBr3:Ce / a274a_bg_vertices нет");
+                            return 1;
+                        }
+
+                        rawRef = reader.GetDouble(0);
+                        rawQf = reader.GetDouble(1);
+                        rawSlope = reader.GetDouble(2);
+                    }
+                }
+            }
+
+            Console.WriteLine("закон строкой файла (прямой SQL): QF(" + F(rawRef, "0") + ") = " + F(rawQf, "R") + ", наклон " + F(rawSlope, "R") + "/МэВ");
             double maxDiff = 0.0;
             foreach (double e in new[] { 4953.23, 6038.01, 6622.4, 6819.2, 7386.1, 7450.2 })
             {
-                double want = 0.3785 + 0.019 * (e - 6000.0) / 1000.0;
+                double want = rawQf + rawSlope * (e - rawRef) / 1000.0;
                 double got = m.At(e);
                 maxDiff = Math.Max(maxDiff, Math.Abs(got - want));
                 Console.WriteLine("  E " + F(e, "0.00") + " кэВ: QF " + F(got, "0.000000") + " (закон " + F(want, "0.000000") + ")"

@@ -307,9 +307,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Решение Amber 14.11.2026 вопросником, дословно: «Источник QF — полем прибора (Рекомендую)»: альфы ряда входят
         /// в слой, когда у вещества кристалла сцены есть закон гашения по источнику, названному прибором
         /// (<see cref="EfficiencyConfigData.AlphaQuenchingSource"/> → `matdb.scint_alpha_quenching`,
-        /// <see cref="FullSpectrumAnalysis.ScintAlphaQuenching.Find"/>); поле пусто — строка «по веществу»
-        /// (`is_default = 1`), а её нет — альф нет, рецепт умолчания (так у `LABR_BRIL` и у всех прежних
-        /// конфигураций). Форма групп альф — поле прибора <see cref="EfficiencyConfigData.AlphaGroupShape"/>, действует
+        /// <see cref="FullSpectrumAnalysis.ScintAlphaQuenching.Find"/>); поле пусто или прибора нет (null) — строка «по
+        /// веществу» (`is_default = 1`), а её нет — альф нет, рецепт умолчания (так у `LABR_BRIL` и у всех прежних
+        /// конфигураций). ⛔ (`Д2` критика `crit274f`, полоса `a274w`) Сборка и сверка зовут этот метод ВСЕГДА, и при
+        /// null тоже: прежние входы без прибора и новые с пустым источником — один рецепт. Форма групп альф — поле прибора <see cref="EfficiencyConfigData.AlphaGroupShape"/>, действует
         /// только при альфах. Числа QF и формы уходят в клеймо раздела (`rcp=…:aq:as:av[:aw:af:al]`): раздел,
         /// собранный другим источником или другой формой, разбор не возьмёт (<see cref="CrystalSectionRefusal.OtherRecipe"/>).
         /// <paramref name="note"/> — источник назван, а строки в таблице нет (альф нет); иначе null.

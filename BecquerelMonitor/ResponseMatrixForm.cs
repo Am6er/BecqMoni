@@ -873,6 +873,62 @@ namespace BecquerelMonitor
             }
         }
 
+        /// <summary>
+        /// (`AMBER274`, полоса `a274w` 14.11.2026; решение Amber 14.11.2026 вопросником, дословно: «Да, отдельной полосой
+        /// (Рекомендую)») РАЗДЕЛ СОБСТВЕННОЙ АКТИВНОСТИ КРИСТАЛЛА К ПОСЧИТАННОЙ МАТРИЦЕ — тем же входом, что у склада и
+        /// замеров (<see cref="ResponseMatrixBuilder.AttachCrystalSection(GeometryModel, ResponseMatrix, EfficiencyConfigData)"/>),
+        /// с полями ПРИБОРА <paramref name="device"/> (источник QF альф, форма групп альф): разбор
+        /// (`FsaMatrixBinding.BindDevice`) сверяет раздел с рецептом того же прибора и берёт его. Кристалл без
+        /// собственной активности (решает состав кристалла, а не имена нуклидов) — раздела нет и счёта нет, матрица
+        /// побитно та же, что без этого шага. Счёт — секунды ЦП, и на GPU-пути тоже.
+        /// ⛔ Слой в разборе ВЫКЛЮЧЕН (`FsaAnalyzer.CrystalOwnLayer`): раздел в матрице лежит, а числа разбора от него не
+        /// зависят. Отказ раздела фотонную матрицу и раздел электрона НЕ снимает: возвращается строка для хода на языке
+        /// окна, внутренний текст причины — только в журнал (`AppLog`), как у отказа GPU (`Н7`).
+        /// </summary>
+        static string AddCrystalSection(GeometryModel geometry, ResponseMatrix matrix, EfficiencyConfigData device,
+                                        IProgress<ResponseMatrixProgress> progress, CancellationToken token)
+        {
+            if (!FullSpectrumAnalysis.CrystalOwnActivityBuilder.HasOwnActivity(geometry))
+            {
+                return null;
+            }
+
+            token.ThrowIfCancellationRequested();
+            if (progress != null)
+            {
+                progress.Report(new ResponseMatrixProgress { CrystalSection = true });
+            }
+
+            Stopwatch clock = Stopwatch.StartNew();
+            string why;
+            try
+            {
+                ResponseMatrixBuilder.AttachCrystalSection(geometry, matrix, device);
+                CrystalSectionRefusal refusal;
+                string detail;
+                ResponseCrystalSection own = matrix.CrystalSectionFor(geometry, device, out refusal, out detail);
+                why = own != null ? null : ResponseCrystalSection.RefusalText(refusal, detail);
+            }
+            catch (Exception ex)
+            {
+                matrix.CrystalSection = null;
+                why = ex.ToString();
+            }
+
+            // ⛔ (`Д-1` критика `crit274w`) «Отмена» во время раздела — отмена всего счёта, как у фотонов и раздела
+            // электрона (П291, Н6, решение Amber 14.10.2026: отменённый пересчёт `computed` не трогает). Построитель
+            // раздела токена не принимает (секунды ЦП), поэтому отмена исполняется здесь, сразу по его окончании, — вне
+            // `catch (Exception)`, иначе она проглатывалась и счёт кончался «Готово» с заменой прежнего результата.
+            token.ThrowIfCancellationRequested();
+
+            // «Посчитано за» — всё ожидание человека, с разделами.
+            matrix.BuildSeconds += clock.Elapsed.TotalSeconds;
+            Trace.WriteLine("Response matrix: crystal own-activity section "
+                            + (why == null ? "built" : "not built: " + why) + ", "
+                            + clock.Elapsed.TotalSeconds.ToString("F1", CultureInfo.InvariantCulture) + " s");
+            return why == null ? null : SectionText("ResponseMatrixCrystalSectionFailed");
+        }
+
         /// <summary>Строка раздела по имени ключа; свойств в `Resources.Designer.cs` у них нет.</summary>
         static string SectionText(string key)
         {
@@ -889,6 +945,82 @@ namespace BecquerelMonitor
             return matrix.NeedsElectronSection(this.config.Geometry)
                 ? SectionText("ResponseMatrixStateNeedsSection")
                 : Resources.ResponseMatrixStateValid;
+        }
+
+        /// <summary>
+        /// Слой «собственная активность кристалла» в разборе включён — умолчание анализатора
+        /// (<see cref="FullSpectrumAnalysis.FsaAnalyzer.CrystalOwnLayer"/>; сегодня ВЫКЛ). <see cref="crystalLayerForProbe"/> —
+        /// только для пробы окна (положительный контроль подсказки при включённом слое), приложение его не ставит.
+        /// </summary>
+        static bool CrystalLayerOn
+        {
+            get { return crystalLayerForProbe ?? new FullSpectrumAnalysis.FsaAnalyzer().CrystalOwnLayer; }
+        }
+
+        /// <summary>Подмена признака слоя для пробы окна (отражением); null — умолчание анализатора.</summary>
+        static bool? crystalLayerForProbe = null;
+
+        /// <summary>
+        /// (`AMBER274`, полоса `a274w` 14.11.2026) Строка подробностей о разделе собственной активности кристалла —
+        /// той же сверкой, что у разбора (<see cref="ResponseMatrix.CrystalSectionFor(GeometryModel, EfficiencyConfigData, out CrystalSectionRefusal, out string)"/>
+        /// с полями этого прибора): годен — чьи строки в нём (имена — из самого раздела, не из кода) и, при альфах, источник
+        /// QF; нет или есть, но не годен (другой кристалл, физика, данные распада или рецепт прибора) — «пересчитайте»
+        /// (с причиной словами окна), но ТОЛЬКО при включённом слое (<see cref="CrystalLayerOn"/>; решение Amber 14.11.2026
+        /// «Только при включённом слое (Рекомендую)»). Кристалл без собственной активности — строки нет вовсе.
+        /// </summary>
+        string DescribeCrystalSection(ResponseMatrix matrix)
+        {
+            GeometryModel geometry = this.config != null ? this.config.Geometry : null;
+            if (matrix == null || geometry == null
+                || !FullSpectrumAnalysis.CrystalOwnActivityBuilder.HasOwnActivity(geometry))
+            {
+                return "";
+            }
+
+            CrystalSectionRefusal refusal;
+            string detail;
+            ResponseCrystalSection own = matrix.CrystalSectionFor(geometry, this.config, out refusal, out detail);
+            if (own == null)
+            {
+                // ⛔ Решение Amber 14.11.2026 вопросником, дословно: «Только при включённом слое (Рекомендую)» — подсказка
+                // «раздела нет, пересчитайте» (и «не годен, пересчитайте» — тот же совет) только когда слой в разборе
+                // включён: при выключенном раздел разбору не нужен, и совет пересчитать матрицу человеку не нужен тоже.
+                // Раздел при «Посчитать» считается всё равно.
+                if (!CrystalLayerOn)
+                {
+                    return "";
+                }
+
+                return Environment.NewLine + SectionText(refusal == CrystalSectionRefusal.Missing
+                    ? "ResponseMatrixCrystalSectionMissing"
+                    : "ResponseMatrixCrystalSectionStale");
+            }
+
+            // имена в разделе — `nucid` базы («138LA»); человеку — «La-138» (`FsaSampleLibrary.PrettyName`)
+            var names = new System.Collections.Generic.List<string>();
+            foreach (CrystalOwnEntry entry in own.Entries)
+            {
+                string name = string.IsNullOrEmpty(entry.Nuclide) ? null : FullSpectrumAnalysis.FsaSampleLibrary.PrettyName(entry.Nuclide);
+                if (name != null && !names.Contains(name))
+                {
+                    names.Add(name);
+                }
+            }
+
+            string text = string.Format(CultureInfo.InvariantCulture, SectionText("ResponseMatrixCrystalSectionRows"),
+                                        string.Join(", ", names.ToArray()));
+            string recipeNote;
+            if (ResponseCrystalSection.RecipeFor(geometry, this.config, out recipeNote).HasAlpha)
+            {
+                // источник — строка таблицы, по которой рецепт взят (поле прибора пусто — строка «по веществу»)
+                string source = this.config.AlphaQuenchingSource;
+                FullSpectrumAnalysis.ScintAlphaQuenching.Law law = FullSpectrumAnalysis.ScintAlphaQuenching.Find(
+                    EfficiencySimulator.ScintillatorNameOf(geometry), string.IsNullOrEmpty(source) ? null : source);
+                text += string.Format(CultureInfo.InvariantCulture, SectionText("ResponseMatrixCrystalSectionAlphas"),
+                                      law != null ? law.Source : source);
+            }
+
+            return Environment.NewLine + text;
         }
 
         /// <summary>
@@ -956,7 +1088,8 @@ namespace BecquerelMonitor
                                  matrix.CreatedUtc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture),
                                  matrix.BuildSeconds)
                    + DescribeFingerprint(matrix)
-                   + this.DescribeElectronSection(matrix);
+                   + this.DescribeElectronSection(matrix)
+                   + this.DescribeCrystalSection(matrix);
         }
 
         /// <summary>
@@ -1051,6 +1184,10 @@ namespace BecquerelMonitor
             string guid = this.config.Guid;
             ResponseMatrixSource source = this.shownSource;
             string sectionFailure = null;
+            // (`AMBER274`, `a274w`) Раздел собственной активности кристалла — с полями ЭТОГО прибора (источник QF альф,
+            // форма групп): тем же рецептом его сверит разбор (`FsaMatrixBinding.BindDevice`).
+            EfficiencyConfigData device = this.config;
+            string crystalFailure = null;
             this.cancellation = new CancellationTokenSource();
             this.SetBusy(true);
             this.progressBar.Value = 0;
@@ -1076,6 +1213,7 @@ namespace BecquerelMonitor
                             sectionFailure = AddElectronSection(geometry, onCpu, unsavedSection, guid, source, null,
                                                                 options.Threads, betaHistories, options.ContinuumErrorTarget,
                                                                 progress, token);
+                            crystalFailure = AddCrystalSection(geometry, onCpu, device, progress, token);
                             return onCpu;
                         }
 
@@ -1084,13 +1222,17 @@ namespace BecquerelMonitor
                             // (`AMBER219`) Устройство берётся на время счёта и отдаётся
                             // в `finally`: контекст CUDA между счётами держать незачем,
                             // а живым должен быть один `RmGpu` на процесс.
+                            ResponseMatrix onGpu;
                             using (var gpu = new RmGpu(RmGpu.DefaultPath, RmGpu.DefaultStackBytes))
                             {
-                                ResponseMatrix onGpu = GpuBuild.Build(gpu, geometry, options, progress, token, null);
+                                onGpu = GpuBuild.Build(gpu, geometry, options, progress, token, null);
                                 sectionFailure = AddElectronSection(geometry, onGpu, unsavedSection, guid, source, gpu,
                                                                     options.Threads, betaHistories, 0.0, progress, token);
-                                return onGpu;
                             }
+
+                            // (`a274w`) раздел слоя кристалла — на ЦП, устройство уже отдано
+                            crystalFailure = AddCrystalSection(geometry, onGpu, device, progress, token);
+                            return onGpu;
                         }
                         catch (Exception ex)
                         {
@@ -1116,7 +1258,8 @@ namespace BecquerelMonitor
                         ? " " + string.Format(CultureInfo.InvariantCulture,
                                               SectionText("ResponseMatrixSectionFailed"),
                                               sectionFailure)
-                        : "");
+                        : "")
+                    + (crystalFailure != null ? " " + crystalFailure : "");
 
                 this.SetDetails(this.Describe(matrix));
                 this.stateLabel.Text = this.ValidState(matrix);
@@ -1341,6 +1484,14 @@ namespace BecquerelMonitor
         {
             if (this.IsDisposed)
             {
+                return;
+            }
+
+            // (`AMBER274`, `a274w`) Раздел собственной активности кристалла — только подпись: хода внутри нет,
+            // а полоса стоит там, куда её довели фотоны и раздел электрона.
+            if (p.CrystalSection)
+            {
+                this.progressLabel.Text = SectionText("ResponseMatrixCrystalSectionProgress");
                 return;
             }
 

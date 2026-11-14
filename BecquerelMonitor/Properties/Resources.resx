@@ -45726,6 +45726,24 @@ Entered: {0}</value>
   <data name="ResponseMatrixSectionGpuProgress" xml:space="preserve">
     <value>GPU: electron section, row {0} of {1}.</value>
   </data>
+  <data name="ResponseMatrixCrystalSectionRows" xml:space="preserve">
+    <value>Crystal own activity section: {0}</value>
+  </data>
+  <data name="ResponseMatrixCrystalSectionAlphas" xml:space="preserve">
+    <value>; alphas, QF source «{0}»</value>
+  </data>
+  <data name="ResponseMatrixCrystalSectionMissing" xml:space="preserve">
+    <value>Crystal own activity section: none. Recompute the matrix to build it.</value>
+  </data>
+  <data name="ResponseMatrixCrystalSectionStale" xml:space="preserve">
+    <value>Crystal own activity section: not usable, it was built for another crystal, physics, decay data or device settings (alpha quenching, alpha shape). Recompute the matrix to rebuild it.</value>
+  </data>
+  <data name="ResponseMatrixCrystalSectionFailed" xml:space="preserve">
+    <value>Crystal own activity section not built; the reason is in the log.</value>
+  </data>
+  <data name="ResponseMatrixCrystalSectionProgress" xml:space="preserve">
+    <value>Crystal own activity section…</value>
+  </data>
   <data name="GdmlFatalDtd" xml:space="preserve">
     <value>the file uses &lt;!DOCTYPE&gt; or &lt;!ENTITY&gt; to include other files; this is not supported and is not read, for safety: put the included text into the file itself</value>
   </data>
