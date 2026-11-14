@@ -27,7 +27,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>Имя нуклида как в `nucdb` (`138LA`, `176LU`, `227AC`).</summary>
         public string Nuclide = "";
 
-        /// <summary>Слой: `beta` сейчас, `alpha` — этап Э3.</summary>
+        /// <summary>Слой: `beta` (Э2); у ряда с альфами (Э3) — тоже `beta`: альфы лежат в той же записи, их часть — <see cref="AlphaPerDecay"/>.</summary>
         public string Layer = "beta";
 
         /// <summary>
@@ -45,6 +45,15 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>Отсчётов на один распад в бине сетки матрицы (длина = число бинов).</summary>
         public double[] PerDecay;
+
+        /// <summary>
+        /// (`AMBER274` Э3, полоса `a274a` 14.11.2026) ЧАСТЬ <see cref="PerDecay"/> ОТ АЛЬФ — события альфа-распада
+        /// (свет альфы с гашением плюс её каскад) на тот же один распад головы, на той же сетке. Уже входит в
+        /// <see cref="PerDecay"/>, отдельно нужна счёту ряда по альфам
+        /// (<see cref="FullSpectrumAnalysis.CrystalOwnActivityBuilder.CountByAlphas(CrystalOwnEntry, double, double[], double, System.Func{double, double}, System.Func{double, double}, double)"/>):
+        /// окно счёта — там, где лежат альфы. null — альф в записи нет (запись этапа Э2).
+        /// </summary>
+        public double[] AlphaPerDecay;
     }
 
     /// <summary>
@@ -66,6 +75,33 @@ namespace BecquerelMonitor.EfficiencyMaker
         public const string Magic = "CWNA";
         public const string EndMark = "CWNE";
         public const int Version = 1;
+
+        /// <summary>
+        /// (`AMBER274` Э3, `a274a`) Версия записи с частью альф (<see cref="CrystalOwnEntry.AlphaPerDecay"/>). Пишется
+        /// ТОЛЬКО когда у раздела есть альфы: раздел без альф пишется версией 1 побайтно, как прежде; чтение
+        /// понимает обе.
+        /// </summary>
+        public const int VersionAlpha = 2;
+
+        /// <summary>(`a274a`) Есть ли у раздела записи с частью альф.</summary>
+        public bool HasAlpha
+        {
+            get
+            {
+                if (this.Entries != null)
+                {
+                    foreach (CrystalOwnEntry entry in this.Entries)
+                    {
+                        if (entry != null && entry.AlphaPerDecay != null)
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            }
+        }
 
         /// <summary>Клеймо раздела: вещество кристалла, размер, физика, сетка.</summary>
         public string Stamp = "";
@@ -360,7 +396,8 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         static void Write(BinaryWriter writer, ResponseCrystalSection section)
         {
-            writer.Write(Version);
+            bool alpha = section.HasAlpha;
+            writer.Write(alpha ? VersionAlpha : Version);
             writer.Write(section.Stamp ?? "");
             writer.Write(section.BinKev);
             writer.Write(section.Histories);
@@ -381,13 +418,26 @@ namespace BecquerelMonitor.EfficiencyMaker
                         writer.Write(value);
                     }
                 }
+
+                if (alpha)
+                {
+                    // (`a274a`) часть альф: длина (0 — альф в записи нет) и значения
+                    writer.Write(entry.AlphaPerDecay != null ? entry.AlphaPerDecay.Length : 0);
+                    if (entry.AlphaPerDecay != null)
+                    {
+                        foreach (double value in entry.AlphaPerDecay)
+                        {
+                            writer.Write(value);
+                        }
+                    }
+                }
             }
         }
 
         static ResponseCrystalSection Read(BinaryReader reader)
         {
             int version = reader.ReadInt32();
-            if (version != Version)
+            if (version != Version && version != VersionAlpha)
             {
                 throw new InvalidDataException("версия раздела " + version.ToString(CultureInfo.InvariantCulture));
             }
@@ -427,6 +477,24 @@ namespace BecquerelMonitor.EfficiencyMaker
                 for (int k = 0; k < bins; k++)
                 {
                     entry.PerDecay[k] = reader.ReadDouble();
+                }
+
+                if (version == VersionAlpha)
+                {
+                    int alphaBins = reader.ReadInt32();
+                    if (alphaBins < 0 || alphaBins > 1 << 22)
+                    {
+                        throw new InvalidDataException("длина части альф " + alphaBins.ToString(CultureInfo.InvariantCulture));
+                    }
+
+                    if (alphaBins > 0)
+                    {
+                        entry.AlphaPerDecay = new double[alphaBins];
+                        for (int k = 0; k < alphaBins; k++)
+                        {
+                            entry.AlphaPerDecay[k] = reader.ReadDouble();
+                        }
+                    }
                 }
 
                 section.Entries.Add(entry);
