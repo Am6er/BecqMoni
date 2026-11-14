@@ -43,6 +43,8 @@ namespace BecquerelMonitor.Probes
     ///        --audit-control=forget=&lt;имя&gt;|extra — положительный контроль сторожа
     ///        `tools/check_fsa_core_futures.py` (`AMBER315`, a326u): имя вычеркнуто из списков видов либо добавлено
     ///        чужое поле-объект — перечень обязан назвать его неизвестным.
+    ///        --bank-mb=N — предел реестра банков ядер формы, МБ (`AMBER315`, a315f; ЗАМЕР цены подрезки, не режим окна).
+    ///        Строка GC у сеанса и стадий (a315f): выделено процессом за разбор, сборок мусора по поколениям.
     /// Коды: 0 — посчитано; 2 — ключи/файлы; 3 — разбор не завершился; 4 — прогоны разошлись.
     /// </summary>
     static class FsaPerfProbeA326
@@ -82,10 +84,34 @@ namespace BecquerelMonitor.Probes
             }
         }
 
+        /// <summary>(`AMBER315`, a315f) Выделено памяти процессом и сборки мусора по поколениям за отрезок.</summary>
+        sealed class GcMeter
+        {
+            readonly long alloc0;
+            readonly int g0, g1, g2;
+
+            public GcMeter()
+            {
+                this.alloc0 = AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize;
+                this.g0 = GC.CollectionCount(0);
+                this.g1 = GC.CollectionCount(1);
+                this.g2 = GC.CollectionCount(2);
+            }
+
+            public string Text()
+            {
+                return string.Format(Inv, "выделено {0:F0} МБ\tсборок gen0 {1} gen1 {2} gen2 {3}",
+                                     (AppDomain.CurrentDomain.MonitoringTotalAllocatedMemorySize - this.alloc0) / 1048576.0,
+                                     GC.CollectionCount(0) - this.g0, GC.CollectionCount(1) - this.g1, GC.CollectionCount(2) - this.g2);
+            }
+        }
+
         [STAThread]
         static int Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
+            // (`AMBER315`, a315f) счёт выделенной памяти процесса — строка GC у сеанса и стадий
+            AppDomain.MonitoringIsEnabled = true;
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             var spectra = new List<string>();
             int runs = 3, timeoutS = 600, threads = 0;
@@ -131,6 +157,15 @@ namespace BecquerelMonitor.Probes
                     return 0;
                 }
                 else if (a == "--nomask") noMask = true;
+                // (`AMBER315`, a315f) ЗАМЕР, не режим окна: предел реестра банков ядер формы, МБ (умолчание 48, решение
+                // Amber 11.11.2026 «Не поднимать») — цена пересчёта ядер, снятых подрезкой, как разность времён
+                else if (a.StartsWith("--bank-mb=", StringComparison.Ordinal))
+                {
+                    Type bankType = typeof(FsaAnalyzer).GetNestedType("ShapeKernelBank", BindingFlags.NonPublic);
+                    FieldInfo limit = bankType != null ? bankType.GetField("RetainLimitBytes", BindingFlags.Static | BindingFlags.NonPublic) : null;
+                    if (limit == null) { Console.Error.WriteLine("нет ShapeKernelBank.RetainLimitBytes"); return 2; }
+                    limit.SetValue(null, (long)(double.Parse(a.Substring(10), Inv) * 1048576.0));
+                }
                 // как приложение при запуске (`Program.cs`): отпечаток данных переноса matdb — до разбора
                 else if (a == "--prefetch") BecquerelMonitor.EfficiencyMaker.MaterialDatabase.SimulatorDataFingerprint();
                 else if (a == "--trace")
@@ -231,6 +266,7 @@ namespace BecquerelMonitor.Probes
                     var done = new ManualResetEvent(false);
                     session.Completed += (s, e) => done.Set();
                     var load = new Load();
+                    var gcm = new GcMeter();
                     long cores0 = FsaAnalyzer.CorePassCount;
                     long once0 = FsaAnalyzer.OncePassCount;
                     var sw = Stopwatch.StartNew();
@@ -261,6 +297,7 @@ namespace BecquerelMonitor.Probes
                                       session.Status ?? "null");
                     Console.WriteLine("PASSES\t{0}\t{1}\tAnalyzeCore {2}\tAnalyzeOnce {4}\tбанк {3}", name, r + 1,
                                       FsaAnalyzer.CorePassCount - cores0, BankText(), FsaAnalyzer.OncePassCount - once0);
+                    Console.WriteLine("GC\t{0}\t{1}\t{2}", name, r + 1, gcm.Text());
                     if (keep != null) { keep.Add(session); keep.Add(result); }
                     Console.WriteLine("MEM\t{0}\t{1}\t{2}", name, r + 1, MemText());
                     if (r == 0)
@@ -312,6 +349,7 @@ namespace BecquerelMonitor.Probes
             {
                 var t = new double[names.Length];
                 var load = new Load();
+                var gcm = new GcMeter();
                 long cores0 = FsaAnalyzer.CorePassCount;
                 var session = new FsaAnalysisSession();
                 var sw = Stopwatch.StartNew();
@@ -375,6 +413,7 @@ namespace BecquerelMonitor.Probes
                 line.Append("\tAnalyzeCore ").Append((FsaAnalyzer.CorePassCount - cores0).ToString(Inv));
                 line.Append("\tsha ").Append(sha.Length >= 16 ? sha.Substring(0, 16) : sha);
                 line.Append("\tбанк ").Append(BankText());
+                line.Append('\t').Append(gcm.Text());
                 Console.WriteLine(line.ToString());
                 if (r == 0)
                 {

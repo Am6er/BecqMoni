@@ -8127,11 +8127,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double az = (positron ? -1.0 : 1.0) * FineStructure * z;
             double radius = Radius(massNumber);
             var table = new double[Nodes];
-            for (int i = 0; i < Nodes; i++)
+            // (`AMBER315`, полоса `a315f` 14.11.2026) узлы — параллельно: каждый узел — чистая функция
+            // своего импульса (решатель Дирака, без общего состояния) и пишет свою ячейку, поэтому
+            // таблица побитно та же, что при счёте подряд. Профиль: холодный разбор тория с матрицей
+            // (`AS80_Th232Medal`) стоял на этих таблицах ~12 с одного потока. Пул потоков, а не
+            // планировщик разбора — таблицу строят внутри ячейки гистограммы, которую ждут другие
+            // заходы (см. `FsaParallel.ForPure`).
+            FsaParallel.ForPure(Nodes, i =>
             {
                 double p = Math.Exp(LnPMin + (LnPMax - LnPMin) * i / (Nodes - 1));
                 table[i] = AmplitudeSquared(kappa, az, radius, Math.Sqrt(1.0 + p * p), 1.0);
-            }
+            });
 
             lock (Gate)
             {
