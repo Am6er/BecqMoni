@@ -7401,6 +7401,35 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return null;
             }
 
+            // (`AMBER274` Э3, полоса `a274a` 14.11.2026) таблицы каскада — общий кусок с альфой (<see cref="CascadeTables"/>)
+            EfficiencyMaker.ElectronBranchSpec spec = CascadeTables(scheme, start, beta.DaughterZ);
+            spec.Nuclide = beta.Nuclide;
+            spec.EndpointKev = beta.EndpointKev;
+            spec.Intensity = beta.Intensity;
+            double[] tGrid, cdf;
+            BetaCdf(beta, out tGrid, out cdf);
+            spec.BetaT = tGrid;
+            spec.BetaCdf = cdf;
+            if (!spec.HasCascade)
+            {
+                reason = "уровень " + start.Kev.ToString("F2", CultureInfo.InvariantCulture)
+                         + " кэВ — изомер или без переходов: каскад — отдельное событие";
+                return null;
+            }
+
+            reason = spec.Problem();
+            return reason == null ? spec : null;
+        }
+
+        /// <summary>
+        /// (`AMBER274` Э3, полоса `a274a` 14.11.2026) ТАБЛИЦЫ КАСКАДА от уровня <paramref name="start"/> схемы
+        /// Geant4 дочки — общий кусок строки ветви беты (<see cref="EventSpec"/>) и события альфы
+        /// (<see cref="AlphaEventSpec"/>): уровни, достижимые вниз, переходы ∝ Iγ·(1 + α), доли конверсии
+        /// K/L/M/внешних, энергии связи дочки <paramref name="daughterZ"/>. Вынесено без правки счёта:
+        /// строки ветвей беты побитно прежние. Поля ветви (нуклид, граница, выход, форма) ставит зовущий.
+        /// </summary>
+        static EfficiencyMaker.ElectronBranchSpec CascadeTables(G4Scheme scheme, G4Level start, int daughterZ)
+        {
             // Достижимые с начального уровня — по возрастанию номера (энергии): переход ведёт только вниз.
             var reach = new SortedSet<int>();
             var stack = new Stack<int>();
@@ -7438,7 +7467,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var trTo = new List<int>();
             var emitCdf = new List<double>();
             var emitKev = new List<double>();
-            double[] bind = Binding(beta.DaughterZ);
+            double[] bind = Binding(daughterZ);
             foreach (int seq in reach)
             {
                 G4Level l = scheme.Levels[seq];
@@ -7504,11 +7533,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 count[i] = rows.Count;
             }
 
-            var spec = new EfficiencyMaker.ElectronBranchSpec
+            return new EfficiencyMaker.ElectronBranchSpec
             {
-                Nuclide = beta.Nuclide,
-                EndpointKev = beta.EndpointKev,
-                Intensity = beta.Intensity,
                 LevelKev = start.Kev,
                 StartLevel = index[start.Seq],
                 LevelFirst = first,
@@ -7519,19 +7545,6 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 EmitCdf = emitCdf.ToArray(),
                 EmitKev = emitKev.ToArray(),
             };
-            double[] tGrid, cdf;
-            BetaCdf(beta, out tGrid, out cdf);
-            spec.BetaT = tGrid;
-            spec.BetaCdf = cdf;
-            if (!spec.HasCascade)
-            {
-                reason = "уровень " + start.Kev.ToString("F2", CultureInfo.InvariantCulture)
-                         + " кэВ — изомер или без переходов: каскад — отдельное событие";
-                return null;
-            }
-
-            reason = spec.Problem();
-            return reason == null ? spec : null;
         }
 
         /// <summary>
@@ -7569,6 +7582,72 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 BetaT = t,
                 BetaCdf = cdf,
             };
+        }
+
+        /// <summary>
+        /// (`AMBER274` Э3, полоса `a274a` 14.11.2026) КАСКАД ПОСЛЕ АЛЬФЫ: таблицы строки события с
+        /// уровня <paramref name="levelKev"/> ядра-дочки (<paramref name="daughterZ"/>,
+        /// <paramref name="daughterA"/>) по схеме Geant4 — тем же куском, что у беты
+        /// (<see cref="CascadeTables"/>), и тем же допуском поиска уровня
+        /// (max(<see cref="SchemeLevelToleranceKev"/>, 0.2 % уровня)). Беты нет: форма — вырожденная
+        /// пара узлов, и <c>CrystalEventFrom</c> зовётся с <c>withBeta = false</c>. null — каскада нет:
+        /// альфа на основное состояние, уровня в схеме нет, изомер дольше
+        /// <see cref="EfficiencyMaker.ElectronBranchSpec.PromptHalfLifeSec"/>; причина — в
+        /// <paramref name="reason"/>, событие тогда — одна альфа.
+        /// </summary>
+        public static EfficiencyMaker.ElectronBranchSpec AlphaEventSpec(int daughterZ, int daughterA, double levelKev, out string reason)
+        {
+            reason = null;
+            if (!(levelKev >= GroundLevelKev))
+            {
+                reason = "альфа на основное состояние";
+                return null;
+            }
+
+            G4Scheme scheme = SchemeOf(daughterZ, daughterA);
+            if (scheme == null || scheme.Levels.Count == 0)
+            {
+                reason = "схемы уровней дочки в schemedb нет";
+                return null;
+            }
+
+            G4Level start = null;
+            double distance = Math.Max(SchemeLevelToleranceKev, 0.002 * levelKev);
+            foreach (G4Level l in scheme.Levels.Values)
+            {
+                double d = Math.Abs(l.Kev - levelKev);
+                if (d <= distance)
+                {
+                    distance = d;
+                    start = l;
+                }
+            }
+
+            if (start == null)
+            {
+                reason = "уровня " + levelKev.ToString("F2", CultureInfo.InvariantCulture) + " кэВ в схеме Geant4 нет";
+                return null;
+            }
+
+            if (start.Seq == 0)
+            {
+                reason = "альфа на основное состояние";
+                return null;
+            }
+
+            EfficiencyMaker.ElectronBranchSpec spec = CascadeTables(scheme, start, daughterZ);
+            spec.EndpointKev = 0.0;
+            spec.BetaT = new[] { 0.0, 0.0 };
+            spec.BetaCdf = new[] { 0.0, 1.0 };
+            if (!spec.HasCascade)
+            {
+                reason = "уровень " + start.Kev.ToString("F2", CultureInfo.InvariantCulture)
+                         + " кэВ — изомер или без переходов: каскад — отдельное событие";
+                return null;
+            }
+
+            reason = spec.Problem();
+            return reason == null ? spec : null;
         }
 
         /// <summary>(`Ф8`) Каскад кончается на уровне: основное состояние или изомер дольше порога (кроме начального — тот разбирает `HasCascade`).</summary>

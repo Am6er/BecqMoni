@@ -73,6 +73,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>ЗАМЕР, не настройка: доля K-захвата вместо вычисленной из `nucdb` (≤ 0 — как в базе).</summary>
         public double KCaptureOverride;
+
+        /// <summary>
+        /// (`AMBER274` Э3, полоса `a274a` 14.11.2026) АЛЬФЫ РЯДА В СЛОЕ: фактор гашения света альфы QF на
+        /// энергии <see cref="CrystalOwnActivityBuilder.AlphaQuenchingReferenceKev"/> — свет альфы с энергией
+        /// E_α ложится на фотонную шкалу прибора в E_α·QF(E_α) кэВ-экв (QF меряется по пикам альф на шкале,
+        /// откалиброванной гамма-линиями, — так и задан). ≤ 0 — АЛЬФ НЕТ (умолчание): раздел, клеймо и счёт
+        /// побитно прежние (этап Э2). Числа QF в коде нет: таблица QF(E) по веществу — `matdb` словом Amber
+        /// (решение 29.10.2026 «Таблица + уточнение по фону»), уточнение — по альфам фона прибора
+        /// (проба `CrystalOwnAlphaProbeA274a`).
+        /// </summary>
+        public double AlphaQuenching;
+
+        /// <summary>
+        /// (`a274a`) Наклон QF по энергии альфы, на 1 МэВ: QF(E) = <see cref="AlphaQuenching"/> + наклон·(E − E_ref)/1000.
+        /// Гашение у альфы тем слабее, чем она быстрее (тормозная способность ниже), — QF растёт с энергией.
+        /// </summary>
+        public double AlphaQuenchingSlopePerMev;
+
+        /// <summary>(`a274a`) Альфы в слое включены.</summary>
+        public bool HasAlpha
+        {
+            get { return this.AlphaQuenching > 0.0; }
+        }
     }
 
     /// <summary>
@@ -85,8 +108,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     ///   * Ac-227 — свободной строкой FSA: загрязнение своё у каждого кристалла,
     ///     поэтому его амплитуда не вычисляется, а подбирается;
     ///   * распад в объёме кристалла ведётся СОБЫТИЕМ ЦЕЛИКОМ (итог `AMBER273`);
-    ///   * ⛔ АЛЬФЫ НЕ ВХОДЯТ: ряд Ac-227 даёт в слой только бета-члены
-    ///     (<see cref="ActiniumSeries"/>), гашения света альф нет (этап Э3). У La-138 и
+    ///   * ⛔ АЛЬФЫ — ТОЛЬКО ПО РЫЧАГУ (`AMBER274` Э3, полоса `a274a` 14.11.2026): умолчанием ряд Ac-227
+    ///     даёт в слой только бета-члены (<see cref="ActiniumSeries"/>), и раздел побитно прежний. С
+    ///     <see cref="CrystalOwnParts.AlphaQuenching"/> &gt; 0 в ряд входят альфы (свет с гашением QF плюс
+    ///     каскад дочки), а активность ряда разбор берёт СЧЁТОМ АЛЬФ спектра
+    ///     (<see cref="FixSeriesByAlphas"/>; решение Amber 13.11.2026 «По счёту альф в Э3»). У La-138 и
     ///     Lu-176 альф нет вовсе.
     ///
     /// ⛔ Числа природной активности НЕ хранятся в коде: они считаются здесь из
@@ -142,6 +168,49 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             /// <summary>Свет на кэВ у 661.657 кэВ — якорь строк электрона пробы.</summary>
             public double AnchorPerKev;
+
+            /// <summary>
+            /// (`AMBER274` Э3, `a274a`) Обратное к <see cref="ToEnergy"/>: свет пика полного поглощения на энергии
+            /// <paramref name="energyKev"/> фотонной шкалы — линейно между узлами, за краями — крайним отношением.
+            /// Нужен свету альфы: её E_α·QF задан на фотонной шкале, а складывается свет.
+            /// </summary>
+            public double ToLight(double energyKev)
+            {
+                int n = this.EnergyKev.Length;
+                if (n == 0 || !(energyKev > 0.0))
+                {
+                    return energyKev;
+                }
+
+                if (energyKev <= this.EnergyKev[0])
+                {
+                    return energyKev * this.PerKev[0];
+                }
+
+                if (energyKev >= this.EnergyKev[n - 1])
+                {
+                    return energyKev * this.PerKev[n - 1];
+                }
+
+                int lo = 0, hi = n - 1;
+                while (hi - lo > 1)
+                {
+                    int mid = (lo + hi) / 2;
+                    if (this.EnergyKev[mid] <= energyKev)
+                    {
+                        lo = mid;
+                    }
+                    else
+                    {
+                        hi = mid;
+                    }
+                }
+
+                double span = this.EnergyKev[hi] - this.EnergyKev[lo];
+                return span > 0.0
+                    ? this.Light[lo] + (this.Light[hi] - this.Light[lo]) * (energyKev - this.EnergyKev[lo]) / span
+                    : this.Light[lo];
+            }
 
             public double ToEnergy(double light)
             {
@@ -274,11 +343,36 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 sb.Append(":kc").Append(p.KCaptureOverride.ToString("R", CultureInfo.InvariantCulture));
             }
 
+            // (`AMBER274` Э3, `a274a`) альфы и их гашение — только при ВКЛ: клеймо умолчания побитно прежнее
+            if (p.HasAlpha)
+            {
+                sb.Append(":aq").Append(p.AlphaQuenching.ToString("R", CultureInfo.InvariantCulture))
+                  .Append(":as").Append(p.AlphaQuenchingSlopePerMev.ToString("R", CultureInfo.InvariantCulture))
+                  .Append(":av").Append(AlphaRecipeVersion.ToString(CultureInfo.InvariantCulture));
+            }
+
             return sb.ToString();
         }
 
         /// <summary>Верх гистограммы, кэВ: выше самой жёсткой линии слоя (1473 у La-138).</summary>
         public const double HistogramTopKev = 3000.0;
+
+        /// <summary>
+        /// (`AMBER274` Э3, `a274a`) Верх гистограммы раздела С АЛЬФАМИ, кэВ-экв: альфа Po-215 7386 кэВ при QF ≈ 0.4 —
+        /// ≈ 3000, альфа Rn-219 с каскадом 271 + 402 кэВ — до ≈ 3400. Выше верха событие легло бы в последний бин
+        /// (<see cref="Add"/>), поэтому верх раздела с альфами свой; без альф — прежний.
+        /// </summary>
+        public const double AlphaHistogramTopKev = 4500.0;
+
+        /// <summary>(`a274a`) Энергия альфы, на которой задан QF (<see cref="CrystalOwnParts.AlphaQuenching"/>), кэВ.</summary>
+        public const double AlphaQuenchingReferenceKev = 6000.0;
+
+        /// <summary>
+        /// (`a274a`) Версия счёта событий альф в клейме (`:av`) — поднимать при правке счёта альф в коде.
+        /// 1 — альфа светит E_α·QF(E_α) на фотонной шкале, каскад дочки по схеме Geant4 из той же точки, свет
+        /// складывается; отдача ядра — внутри QF; вылет альфы с поверхности кристалла не ведётся.
+        /// </summary>
+        public const int AlphaRecipeVersion = 1;
 
         /// <summary>Меньше этого числа историй на нуклид слой не строят — шум съел бы смысл.</summary>
         public const int MinHistories = 200;
@@ -443,7 +537,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return section;
             }
 
-            int bins = ResponseMatrix.ImageBins(HistogramTopKev, binKev);
+            int bins = ResponseMatrix.ImageBins(parts.HasAlpha ? AlphaHistogramTopKev : HistogramTopKev, binKev);
             int total = 0;
 
             // (`AMBER274`, ревизия по статьям, 12.11.2026) Шкала гистограммы — свет, если у кристалла
@@ -479,7 +573,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (parts.Series && HasActiniumSeries(geometry))
             {
-                List<Member> series = ActiniumSeries(notes);
+                List<Member> series = ActiniumSeries(notes, parts.HasAlpha);
                 double weight = 0.0;
                 foreach (Member member in series)
                 {
@@ -494,11 +588,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         Layer = BetaLayer,
                         Free = true,
                         PerDecay = new double[bins],
+                        AlphaPerDecay = parts.HasAlpha ? new double[bins] : null,
                     };
 
                     foreach (Member member in series)
                     {
-                        var seriesParts = new CrystalOwnParts { Scale = parts.Scale, ConversionRelaxation = parts.ConversionRelaxation };
+                        var seriesParts = new CrystalOwnParts
+                        {
+                            Scale = parts.Scale,
+                            ConversionRelaxation = parts.ConversionRelaxation,
+                            AlphaQuenching = parts.AlphaQuenching,                          // (`a274a`) 0 — как прежде
+                            AlphaQuenchingSlopePerMev = parts.AlphaQuenchingSlopePerMev,
+                        };
                         CrystalOwnEntry part = BuildEntry(geometry, member, bins, binKev, histories, seed + total, seriesParts, light, notes);
                         total++;
                         if (part == null)
@@ -509,6 +610,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         for (int i = 0; i < bins; i++)
                         {
                             combined.PerDecay[i] += member.Weight * part.PerDecay[i];
+                        }
+
+                        if (combined.AlphaPerDecay != null && part.AlphaPerDecay != null)
+                        {
+                            for (int i = 0; i < bins; i++)
+                            {
+                                combined.AlphaPerDecay[i] += member.Weight * part.AlphaPerDecay[i];
+                            }
                         }
                     }
 
@@ -529,7 +638,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// 7.6e-6 вместо 0.00276. Pb-211 и Bi-211 распадаются на каждый распад головы, Tl-207 — на
         /// α-ветвь Bi-211. Ответвление Fr-223 (α Ac-227, 1.38 %) не ведётся. Доля читается из `nucdb`.
         /// </summary>
-        static List<Member> ActiniumSeries(List<string> notes)
+        static List<Member> ActiniumSeries(List<string> notes, bool alpha)
         {
             var list = new List<Member>();
             double head = BetaSharePercent("227AC");
@@ -543,6 +652,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             list.Add(new Member { Nuclide = "211PB", Weight = 1.0 });
             list.Add(new Member { Nuclide = "211BI", Weight = 1.0 });
             list.Add(new Member { Nuclide = "207TL", Weight = 1.0 - BetaSharePercent("211BI") / 100.0 });
+
+            // (`AMBER274` Э3, `a274a`) ЧИСТЫЕ АЛЬФА-ИЗЛУЧАТЕЛИ ряда — только при альфах, В КОНЕЦ списка: зерно
+            // члена — номер в списке, и бета-члены остаются со своими зёрнами. Веса — распадов члена на распад
+            // головы: Th-227 питается β⁻ Ac-227, Ra-223 — Th-227 и ответвлением Fr-223 (вместе — каждый распад),
+            // Rn-219 и Po-215 — каждый распад. Альфы Ac-227 (ответвление на Fr-223) и Bi-211 несут их записи
+            // выше. Бета Fr-223 (1.38 %) и альфа Po-211 (β⁻ Bi-211, 0.28 %) не ведутся — названо в примечании.
+            if (alpha)
+            {
+                list.Add(new Member { Nuclide = "227TH", Weight = head / 100.0 });
+                list.Add(new Member { Nuclide = "223RA", Weight = 1.0 });
+                list.Add(new Member { Nuclide = "219RN", Weight = 1.0 });
+                list.Add(new Member { Nuclide = "215PO", Weight = 1.0 });
+                notes.Add("ряд Ac-227: бета Fr-223 и альфа Po-211 не ведутся");
+            }
+
             return list;
         }
 
@@ -578,6 +702,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Histories = histories,
                 PerDecay = new double[bins],
             };
+
+            // (`AMBER274` Э3, `a274a`) альфа-ветви члена — только при альфах; без них список пуст и счёт прежний
+            List<AlphaLine> alphas = parts.HasAlpha ? AlphaLines(member.Nuclide) : new List<AlphaLine>();
+            double alphaPercent = 0.0;
+            foreach (AlphaLine line in alphas)
+            {
+                alphaPercent += line.Intensity;
+            }
 
             var simulator = new EfficiencySimulator(geometry);
             double x, y, z;
@@ -648,7 +780,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // считаются на распад нуклида: ветвь, которой нет в слое (альфа), историй не получает,
             // и гистограмма остаётся «на распад».
             double ecPercent = CapturePercent(member.Nuclide);
-            if (!(betaPercent + ecPercent > 0.0))
+            if (!(betaPercent + ecPercent + alphaPercent > 0.0))
             {
                 notes.Add(Pretty(member.Nuclide) + ": ни одной ветви распада");
                 return null;
@@ -717,7 +849,234 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // (`AMBER274` Э3, `a274a`) АЛЬФА-ВЕТВИ: событие — альфа (свет с гашением) плюс каскад дочки из той же
+            // точки (<see cref="AlphaEvent"/>). Истории — на распад нуклида по выходу линии, как у беты.
+            if (alphas.Count > 0)
+            {
+                entry.AlphaPerDecay = new double[bins];
+                foreach (AlphaLine line in alphas)
+                {
+                    int n = (int)Math.Round(histories * line.Intensity / 100.0);
+                    for (int i = 0; i < n; i++)
+                    {
+                        if (!simulator.TryCrystalPoint(out x, out y, out z))
+                        {
+                            break;
+                        }
+
+                        AlphaSample sample = AlphaEvent(simulator, line, x, y, z);
+                        double position = AlphaPosition(sample, parts, light);
+                        Add(entry.PerDecay, position, binKev, scale);
+                        Add(entry.AlphaPerDecay, position, binKev, scale);
+                    }
+                }
+            }
+
             return entry;
+        }
+
+        /// <summary>
+        /// (`AMBER274` Э3, `a274a`) АЛЬФА-ЛИНИЯ нуклида: энергия и выход (`nucdb.decay_radiations`, `type_a = 'A'`,
+        /// ветвь `dec_type = 0`), уровень дочки, который она питает (баланс Q_α − E_α·A/(A − 4), Q_α — `nuclides.qa`),
+        /// и строка каскада с этого уровня (<see cref="FsaBetaLibrary.AlphaEventSpec"/>; null — каскада нет).
+        /// </summary>
+        public sealed class AlphaLine
+        {
+            public string Nuclide;
+            public double EnergyKev;
+
+            /// <summary>Выход, % на распад нуклида.</summary>
+            public double Intensity;
+
+            /// <summary>Уровень дочки по балансу, кэВ.</summary>
+            public double LevelKev;
+
+            public int DaughterZ;
+            public int DaughterA;
+
+            /// <summary>Каскад с уровня (null — альфа на основное состояние, изомер или уровня в схеме нет).</summary>
+            public ElectronBranchSpec Cascade;
+
+            /// <summary>Атом дочки — энергия связи после конверсии каскада оседает (как у беты); null — данных нет.</summary>
+            public CaptureRelaxation Atom;
+
+            /// <summary>Почему каскада нет (null — есть).</summary>
+            public string NoCascade;
+        }
+
+        /// <summary>(`a274a`) Одно разыгранное событие альфы: энергия альфы, осевшее и свет каскада.</summary>
+        public struct AlphaSample
+        {
+            public double AlphaKev;
+            public double CascadeKev;
+            public double CascadeLight;
+        }
+
+        /// <summary>
+        /// (`a274a`) Альфа-линии нуклида из `nucdb` со строками каскада. Пусто — альф нет или базы нет. Кэш по нуклиду.
+        /// </summary>
+        public static List<AlphaLine> AlphaLines(string nucid)
+        {
+            lock (AlphaGate)
+            {
+                List<AlphaLine> cached;
+                if (AlphaCache.TryGetValue(nucid ?? "", out cached))
+                {
+                    return cached;
+                }
+            }
+
+            var list = new List<AlphaLine>();
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");
+            if (string.IsNullOrEmpty(nucid) || !File.Exists(path))
+            {
+                return list;
+            }
+
+            double z = 0.0, q = double.NaN;
+            var rows = new List<double[]>();
+            using (var connection = new SqliteConnection("Data Source=" + path + ";Mode=ReadOnly"))
+            {
+                connection.Open();
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "select z, qa from nuclides where nucid = $n order by l_seqno limit 1";
+                    command.Parameters.AddWithValue("$n", nucid);
+                    using (SqliteDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            z = reader.IsDBNull(0) ? 0.0 : Convert.ToDouble(reader.GetValue(0), CultureInfo.InvariantCulture);
+                            double qa;
+                            if (!reader.IsDBNull(1) && double.TryParse(Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture),
+                                                                       NumberStyles.Float, CultureInfo.InvariantCulture, out qa))
+                            {
+                                q = qa;
+                            }
+                        }
+                    }
+                }
+
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "select energy_num, intensity_num from decay_radiations"
+                                          + " where parent_nucid = $n and type_a = 'A' and dec_type = '0' order by energy_num desc";
+                    command.Parameters.AddWithValue("$n", nucid);
+                    using (SqliteDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            double energy = Number(reader, 0);
+                            double intensity = Number(reader, 1);
+                            if (energy > 0.0 && intensity > 0.0)
+                            {
+                                rows.Add(new[] { energy, intensity });
+                            }
+                        }
+                    }
+                }
+            }
+
+            int a = MassNumberOf(nucid);
+            if (z > 2.0 && a > 4 && !double.IsNaN(q))
+            {
+                int dz = (int)z - 2;
+                int da = a - 4;
+                CaptureRelaxation atom = CaptureRelaxation.ForAtom(dz, FsaBetaLibrary.Binding(dz)[1]);
+                foreach (double[] row in rows)
+                {
+                    double level = Math.Max(0.0, q - row[0] * a / (a - 4.0));
+                    string why;
+                    ElectronBranchSpec cascade = FsaBetaLibrary.AlphaEventSpec(dz, da, level, out why);
+                    list.Add(new AlphaLine
+                    {
+                        Nuclide = nucid,
+                        EnergyKev = row[0],
+                        Intensity = row[1],
+                        LevelKev = level,
+                        DaughterZ = dz,
+                        DaughterA = da,
+                        Cascade = cascade,
+                        Atom = atom,
+                        NoCascade = cascade == null ? why : null,
+                    });
+                }
+            }
+
+            lock (AlphaGate)
+            {
+                AlphaCache[nucid] = list;
+            }
+
+            return list;
+        }
+
+        static readonly object AlphaGate = new object();
+        static readonly Dictionary<string, List<AlphaLine>> AlphaCache = new Dictionary<string, List<AlphaLine>>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Массовое число из имени `nucdb` (`227TH` → 227); 0 — не разобралось.</summary>
+        static int MassNumberOf(string nucid)
+        {
+            int i = 0;
+            while (i < nucid.Length && char.IsDigit(nucid[i]))
+            {
+                i++;
+            }
+
+            int a;
+            return i > 0 && int.TryParse(nucid.Substring(0, i), NumberStyles.Integer, CultureInfo.InvariantCulture, out a) ? a : 0;
+        }
+
+        /// <summary>
+        /// (`a274a`) Событие альфы в точке (x, y, z): каскад дочки — <c>CrystalEventFrom</c> без беты (свет каскада —
+        /// <c>CrystalEventLight</c>); сама альфа — пробег в микроны, оседает на месте целиком, её свет ставит
+        /// <see cref="AlphaPosition"/> гашением.
+        /// </summary>
+        public static AlphaSample AlphaEvent(EfficiencySimulator simulator, AlphaLine line, double x, double y, double z)
+        {
+            var sample = new AlphaSample { AlphaKev = line.EnergyKev };
+            if (line.Cascade != null)
+            {
+                double gamma;
+                sample.CascadeKev = simulator.CrystalEventFrom(line.Cascade, line.Atom, x, y, z, false, out gamma);
+                sample.CascadeLight = simulator.CrystalEventLight;
+            }
+
+            return sample;
+        }
+
+        /// <summary>(`a274a`) Свет альфы на фотонной шкале прибора, кэВ-экв: E_α·QF(E_α).</summary>
+        public static double AlphaLightKev(double alphaKev, CrystalOwnParts parts)
+        {
+            double qf = parts.AlphaQuenching + parts.AlphaQuenchingSlopePerMev * (alphaKev - AlphaQuenchingReferenceKev) / 1000.0;
+            return alphaKev * Math.Max(0.0, qf);
+        }
+
+        /// <summary>
+        /// (`a274a`) Место события альфы на шкале гистограммы. Свет складывается: каскад (электроны и фотоны —
+        /// своей кривой света) плюс альфа (E_α·QF на фотонной шкале → свет обратной функцией
+        /// <see cref="PhotonLightScale.ToLight"/>). Шкала — энергия (кривой света нет): осевшее каскада + E_α·QF.
+        /// </summary>
+        public static double AlphaPosition(AlphaSample sample, CrystalOwnParts parts, PhotonLightScale light)
+        {
+            double alphaEq = AlphaLightKev(sample.AlphaKev, parts);
+            if (light == null || parts.Scale == ScaleEnergy || !(sample.CascadeKev > 0.0) || !(sample.CascadeLight > 0.0))
+            {
+                if (light == null || parts.Scale == ScaleEnergy)
+                {
+                    return sample.CascadeKev + alphaEq;
+                }
+
+                // каскад не осел — одна альфа: на фотонной шкале она и есть E_α·QF
+                return parts.Scale == ScaleAnchor && light.AnchorPerKev > 0.0
+                    ? light.ToLight(alphaEq) / light.AnchorPerKev
+                    : alphaEq;
+            }
+
+            double total = sample.CascadeLight + light.ToLight(alphaEq);
+            return parts.Scale == ScaleAnchor
+                ? (light.AnchorPerKev > 0.0 ? total / light.AnchorPerKev : sample.CascadeKev + alphaEq)
+                : light.ToEnergy(total);
         }
 
         /// <summary>
@@ -1075,6 +1434,558 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static string Pretty(string nucid)
         {
             return FsaSampleLibrary.PrettyName(nucid);
+        }
+
+        // ------------------------------------------------------------------
+        // (`AMBER274` Э3, полоса `a274a` 14.11.2026) СЧЁТ РЯДА ПО АЛЬФАМ
+        // ------------------------------------------------------------------
+
+        /// <summary>(`a274a`) Итог счёта ряда по альфам спектра.</summary>
+        public sealed class AlphaCount
+        {
+            /// <summary>Активность головы ряда, Бк (0 — альф не найдено).</summary>
+            public double ActivityBq;
+
+            /// <summary>Погрешность (Пуассон окна и подложки), Бк.</summary>
+            public double SigmaBq;
+
+            /// <summary>Значимость: активность / погрешность.</summary>
+            public double Z;
+
+            /// <summary>Окно счёта, кэВ-экв шкалы спектра.</summary>
+            public double WindowLoKev, WindowHiKev;
+
+            /// <summary>Полоса подложки ниже окна, кэВ-экв.</summary>
+            public double SideLoKev, SideHiKev;
+
+            /// <summary>Отсчётов в окне; подложка в окне (оценка); отсчётов образа ряда в окне на 1 Бк·с.</summary>
+            public double Counts, Baseline, TemplatePerBqS;
+
+            /// <summary>Доля альф образа выше верха шкалы спектра (срезана АЦП): счёт на неё поправлен образом, но это допущение.</summary>
+            public double CutAboveTop;
+
+            /// <summary>χ²/ndf подгонки «образ ряда + постоянная» по окну и полосе подложки (Пирсон по данным).</summary>
+            public double ChiPerNdf;
+
+            /// <summary>Найден ли ряд (значимость не меньше <see cref="AlphaCountMinZ"/>).</summary>
+            public bool Found;
+
+            /// <summary>
+            /// Счёт годен: подложка в окне не больше <see cref="AlphaCountMaxBaselineShare"/> отсчётов окна. Больше —
+            /// в окне альф лежат чужие линии или их комптон (проба с U/Th/Ra), и постоянная подложка их не вычитает.
+            /// </summary>
+            public bool Reliable;
+
+            public string Note;
+        }
+
+        /// <summary>(`a274a`) Значимость счёта альф, с которой ряд считается найденным.</summary>
+        public const double AlphaCountMinZ = 3.0;
+
+        /// <summary>
+        /// (`a274a`) Наибольшая доля подложки в окне альф, при которой счёт годен. Замер на втором приборе LaBr3
+        /// (журнал `handover-2026-11-14-a274a.md`): 11 фонов — 4.7…7.0 %, пробы без линий выше 1.7 МэВ — 4.6…8.7 %;
+        /// пробы с U/Th/Ra — 12…75 %, и их счёт уходит от счёта своего фона на −7…+1900 %.
+        /// </summary>
+        public const double AlphaCountMaxBaselineShare = 0.10;
+
+        /// <summary>(`a274a`) Ширина полосы подложки ниже окна альф, кэВ-экв.</summary>
+        public const double AlphaSideBandKev = 300.0;
+
+        /// <summary>
+        /// (`AMBER274` Э3, `a274a`) АКТИВНОСТЬ РЯДА ПО СЧЁТУ АЛЬФ СПЕКТРА — решение Amber 13.11.2026 вопросником,
+        /// дословно: «По счёту альф в Э3 (Рекомендую)». Окно — область альф образа
+        /// (<see cref="CrystalOwnEntry.AlphaPerDecay"/>, от 0.1 до 99.9 % их доли) с запасом в две FWHM с каждой
+        /// стороны, сверху — не выше шкалы спектра; ниже окна — полоса подложки <see cref="AlphaSideBandKev"/>.
+        /// По окну и полосе подгоняются две величины — активность при ПОЛНОМ образе ряда (альфы, бета, каскады)
+        /// и постоянная подложка на канал (взвешенные наименьшие квадраты, вес 1/max(y, 1)). Активность —
+        /// (отсчёты окна − подложка) / (образ окна на 1 Бк·с): СЧЁТ, а не форма, — сдвиг групп альф внутри окна
+        /// (QF, шкала) его не меняет. ⚠ Подложка постоянная: гамма-линия пробы внутри окна (2614 кэВ рядом с
+        /// группой Rn-219 + Bi-211) счёт завышает — её видно по <see cref="AlphaCount.ChiPerNdf"/>.
+        /// </summary>
+        /// <param name="entry">запись ряда с частью альф</param>
+        /// <param name="binKev">шаг сетки раздела</param>
+        /// <param name="counts">отсчёты спектра по каналам</param>
+        /// <param name="liveTime">живое время, с</param>
+        /// <param name="energyAt">энергия (кэВ-экв) дробного канала — шкала спектра</param>
+        /// <param name="fwhmKevAt">FWHM на энергии, кэВ</param>
+        /// <param name="topKev">верх счёта, кэВ-экв (≤ 0 — верх шкалы спектра)</param>
+        public static AlphaCount CountByAlphas(CrystalOwnEntry entry, double binKev, double[] counts, double liveTime,
+                                               Func<double, double> energyAt, Func<double, double> fwhmKevAt, double topKev)
+        {
+            return CountByAlphas(entry, binKev, counts, liveTime, energyAt, fwhmKevAt, topKev, null);
+        }
+
+        /// <summary>
+        /// (`a274a`) То же с ИЗВЕСТНОЙ частью слоя <paramref name="fixedPerSecond"/> (природные записи раздела ×
+        /// их активность, отсчётов в секунду по бинам сетки): она уширяется тем же гауссом и вычитается из данных
+        /// до счёта, а полоса подложки начинается не ниже её верха (99.99 % её доли плюс три FWHM) — иначе в
+        /// полосу подложки ложится пик суммы La-138 1436 + K (у LaBr3 он на 300 кэВ ниже группы альф) и
+        /// постоянная подложка его съедает. Полоса подложки уже 50 кэВ — подложки нет (b = 0), это в примечании.
+        /// </summary>
+        public static AlphaCount CountByAlphas(CrystalOwnEntry entry, double binKev, double[] counts, double liveTime,
+                                               Func<double, double> energyAt, Func<double, double> fwhmKevAt, double topKev,
+                                               double[] fixedPerSecond)
+        {
+            var result = new AlphaCount();
+            if (entry == null || entry.AlphaPerDecay == null || entry.PerDecay == null || counts == null || counts.Length < 16
+                || !(binKev > 0.0) || !(liveTime > 0.0) || energyAt == null || fwhmKevAt == null)
+            {
+                result.Note = "нет части альф, спектра или шкалы";
+                return result;
+            }
+
+            int channels = counts.Length;
+            var edge = new double[channels + 1];
+            for (int i = 0; i <= channels; i++)
+            {
+                edge[i] = energyAt(i - 0.5);
+            }
+
+            for (int i = 1; i <= channels; i++)
+            {
+                if (!(edge[i] > edge[i - 1]))
+                {
+                    result.Note = "шкала спектра не возрастает";
+                    return result;
+                }
+            }
+
+            double spectrumTop = edge[channels];
+            double top = topKev > 0.0 ? Math.Min(topKev, spectrumTop) : spectrumTop;
+
+            // Область альф образа: 0.1 … 99.9 % их доли.
+            double alphaSum = 0.0;
+            foreach (double v in entry.AlphaPerDecay)
+            {
+                alphaSum += v;
+            }
+
+            if (!(alphaSum > 0.0))
+            {
+                result.Note = "часть альф пуста";
+                return result;
+            }
+
+            double run = 0.0, eLo = double.NaN, eHi = double.NaN;
+            for (int k = 0; k < entry.AlphaPerDecay.Length; k++)
+            {
+                run += entry.AlphaPerDecay[k];
+                if (double.IsNaN(eLo) && run >= 0.001 * alphaSum)
+                {
+                    eLo = k * binKev;
+                }
+
+                if (double.IsNaN(eHi) && run >= 0.999 * alphaSum)
+                {
+                    eHi = k * binKev;
+                }
+            }
+
+            result.WindowLoKev = eLo - 2.0 * Math.Max(0.0, fwhmKevAt(eLo));
+            result.WindowHiKev = Math.Min(top, eHi + 2.0 * Math.Max(0.0, fwhmKevAt(eHi)));
+            result.SideHiKev = result.WindowLoKev;
+            result.SideLoKev = result.WindowLoKev - AlphaSideBandKev;
+            double fixedTop = 0.0;
+            if (fixedPerSecond != null)
+            {
+                double fixedSum = 0.0, fixedRun = 0.0;
+                foreach (double v in fixedPerSecond)
+                {
+                    fixedSum += Math.Max(0.0, v);
+                }
+
+                for (int k = 0; k < fixedPerSecond.Length && fixedSum > 0.0; k++)
+                {
+                    fixedRun += Math.Max(0.0, fixedPerSecond[k]);
+                    if (fixedRun >= 0.9999 * fixedSum)
+                    {
+                        fixedTop = k * binKev + 3.0 * Math.Max(0.0, fwhmKevAt(k * binKev));
+                        break;
+                    }
+                }
+
+                result.SideLoKev = Math.Max(result.SideLoKev, fixedTop);
+            }
+
+            bool noSide = result.SideHiKev - result.SideLoKev < 50.0;
+            if (!(result.WindowHiKev > result.WindowLoKev) || result.SideLoKev < edge[0])
+            {
+                result.Note = "окно альф вне шкалы спектра";
+                return result;
+            }
+
+            // Образ ряда и его альф на 1 Бк·с по каналам: гаусс с FWHM шкалы, по бинам сетки.
+            double[] template = Broaden(entry.PerDecay, binKev, edge, fwhmKevAt);
+            double[] known = fixedPerSecond != null ? Broaden(fixedPerSecond, binKev, edge, fwhmKevAt) : null;
+            double alphaAll = 0.0, alphaAbove = 0.0;
+            for (int k = 0; k < entry.AlphaPerDecay.Length; k++)
+            {
+                alphaAll += entry.AlphaPerDecay[k];
+                if (k * binKev > top)
+                {
+                    alphaAbove += entry.AlphaPerDecay[k];
+                }
+            }
+
+            result.CutAboveTop = alphaAll > 0.0 ? alphaAbove / alphaAll : 0.0;
+
+            // Каналы окна и полосы подложки (по центру канала).
+            double sww = 0.0, swt = 0.0, swtt = 0.0, swy = 0.0, swty = 0.0;
+            double nWin = 0.0, yWin = 0.0, tWin = 0.0;
+            int used = 0;
+            for (int i = 0; i < channels; i++)
+            {
+                double centre = 0.5 * (edge[i] + edge[i + 1]);
+                bool win = centre >= result.WindowLoKev && centre < result.WindowHiKev;
+                bool side = !noSide && centre >= result.SideLoKev && centre < result.SideHiKev;
+                if (!win && !side)
+                {
+                    continue;
+                }
+
+                double y = counts[i] - (known != null ? known[i] * liveTime : 0.0);
+                double tt = template[i] * liveTime;
+                double w = 1.0 / Math.Max(y, 1.0);
+                sww += w;
+                swt += w * tt;
+                swtt += w * tt * tt;
+                swy += w * y;
+                swty += w * tt * y;
+                used++;
+                if (win)
+                {
+                    nWin += 1.0;
+                    yWin += y;
+                    tWin += tt;
+                }
+            }
+
+            double det = sww * swtt - swt * swt;
+            if (used < 4 || !(det > 0.0) || !(tWin > 0.0))
+            {
+                result.Note = "окно альф без отсчётов или без образа";
+                return result;
+            }
+
+            // y = A·t + b: решение 2×2 и ковариация подложки; без полосы подложки — b = 0.
+            double aFit = (sww * swty - swt * swy) / det;
+            double bFit = (swtt * swy - swt * swty) / det;
+            double varB = swtt / det;
+            if (noSide)
+            {
+                aFit = swty / swtt;
+                bFit = 0.0;
+                varB = 0.0;
+            }
+
+            if (aFit < 0.0)
+            {
+                aFit = 0.0;
+                bFit = noSide ? 0.0 : swy / sww;
+                varB = noSide ? 0.0 : 1.0 / sww;
+            }
+
+            double chi = 0.0;
+            for (int i = 0; i < channels; i++)
+            {
+                double centre = 0.5 * (edge[i] + edge[i + 1]);
+                if ((centre >= result.WindowLoKev && centre < result.WindowHiKev)
+                    || (!noSide && centre >= result.SideLoKev && centre < result.SideHiKev))
+                {
+                    double r = counts[i] - (known != null ? known[i] * liveTime : 0.0) - aFit * template[i] * liveTime - bFit;
+                    chi += r * r / Math.Max(counts[i], 1.0);
+                }
+            }
+
+            result.ChiPerNdf = used > 2 ? chi / (used - (noSide ? 1 : 2)) : 0.0;
+            result.Counts = yWin;
+            result.Baseline = Math.Max(0.0, bFit) * nWin;
+            result.TemplatePerBqS = tWin / liveTime;
+            double net = yWin - result.Baseline;
+            result.ActivityBq = Math.Max(0.0, net / tWin);
+            result.SigmaBq = Math.Sqrt(Math.Max(yWin, 1.0) + varB * nWin * nWin) / tWin;
+            result.Z = result.SigmaBq > 0.0 ? result.ActivityBq / result.SigmaBq : 0.0;
+            result.Found = result.Z >= AlphaCountMinZ;
+            result.Reliable = result.Found && yWin > 0.0 && result.Baseline <= AlphaCountMaxBaselineShare * yWin;
+            var note = new StringBuilder();
+            note.Append("окно ").Append(result.WindowLoKev.ToString("F0", CultureInfo.InvariantCulture)).Append('–')
+                .Append(result.WindowHiKev.ToString("F0", CultureInfo.InvariantCulture)).Append(" кэВ-экв, подложка ")
+                .Append((result.Counts > 0.0 ? 100.0 * result.Baseline / result.Counts : 0.0).ToString("F1", CultureInfo.InvariantCulture))
+                .Append(" %, χ²/ndf ").Append(result.ChiPerNdf.ToString("F2", CultureInfo.InvariantCulture));
+            if (noSide)
+            {
+                note.Append("; полосы подложки нет (известная часть слоя до ")
+                    .Append(fixedTop.ToString("F0", CultureInfo.InvariantCulture)).Append(" кэВ-экв) — подложка 0");
+            }
+
+            if (result.CutAboveTop > 0.001)
+            {
+                note.Append("; выше верха шкалы ").Append((100.0 * result.CutAboveTop).ToString("F1", CultureInfo.InvariantCulture))
+                    .Append(" % альф образа");
+            }
+
+            result.Note = note.ToString();
+            return result;
+        }
+
+        /// <summary>
+        /// (`a274a`) Счёт по альфам на шкале спектра приложения: энергия — <paramref name="calibration"/>, FWHM —
+        /// <paramref name="fwhmCalibration"/> (в каналах) через шаг шкалы. Нет FWHM — счёт не идёт.
+        /// </summary>
+        public static AlphaCount CountByAlphas(CrystalOwnEntry entry, double binKev, int[] raw, double liveTime,
+                                               EnergyCalibration calibration, FwhmCalibration fwhmCalibration)
+        {
+            return CountByAlphas(entry, binKev, raw, liveTime, calibration, fwhmCalibration, null);
+        }
+
+        /// <summary>(`a274a`) То же с известной частью слоя (см. перегрузку с <c>fixedPerSecond</c>).</summary>
+        public static AlphaCount CountByAlphas(CrystalOwnEntry entry, double binKev, int[] raw, double liveTime,
+                                               EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                                               double[] fixedPerSecond)
+        {
+            if (raw == null || calibration == null || fwhmCalibration == null)
+            {
+                return new AlphaCount { Note = "нет спектра, шкалы или FWHM" };
+            }
+
+            var counts = new double[raw.Length];
+            for (int i = 0; i < raw.Length; i++)
+            {
+                counts[i] = raw[i];
+            }
+
+            int channels = raw.Length;
+            Func<double, double> energyAt = calibration.ChannelToEnergy;
+            Func<double, double> fwhmKevAt = e =>
+            {
+                double ch = calibration.EnergyToChannel(e, Math.Max(channels * 4, 10000));
+                double step = Math.Abs(calibration.ChannelToEnergy(ch + 0.5) - calibration.ChannelToEnergy(ch - 0.5));
+                return fwhmCalibration.ChannelToFwhm(ch) * step;
+            };
+            return CountByAlphas(entry, binKev, counts, liveTime, energyAt, fwhmKevAt, 0.0, fixedPerSecond);
+        }
+
+        /// <summary>
+        /// (`AMBER274` Э3, `a274a`) РАЗДЕЛ ДЛЯ РАЗБОРА СПЕКТРА: свободная запись ряда с частью альф получает
+        /// активность СЧЁТОМ АЛЬФ ЭТОГО спектра (<see cref="CountByAlphas(CrystalOwnEntry, double, int[], double, EnergyCalibration, FwhmCalibration)"/>)
+        /// и становится записью с известной амплитудой (вычитается до фита, как природные); ряд не найден
+        /// (значимость ниже <see cref="AlphaCountMinZ"/>) — запись снимается; счёт не годен
+        /// (<see cref="AlphaCount.Reliable"/>: в окне альф чужие линии) — запись остаётся свободной.
+        /// ⚠ Решение Amber 13.11.2026 «у `LABR_BRIL` строку не включать» данными НЕ исполняется: на фоне корпусного
+        /// `LABR_BRIL` счёт даёт 0.311 Бк при Z = 50 и подложке 21.6 % (критик `crit274a`) — ряд «найден», счёт
+        /// негоден, строка остаётся свободной. Исполнять его — выбором источника QF (без QF у прибора альф в разделе
+        /// нет вовсе), а не этим входом.
+        /// Записи без части альф и природные — как есть. Возвращает копию; исходный раздел не меняется.
+        /// </summary>
+        public static ResponseCrystalSection FixSeriesByAlphas(ResponseCrystalSection section, int[] raw, double liveTime,
+                                                               EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                                                               List<AlphaCount> counted, out string note)
+        {
+            note = null;
+            if (section == null || !section.HasAlpha)
+            {
+                return section;
+            }
+
+            var copy = new ResponseCrystalSection
+            {
+                Stamp = section.Stamp,
+                BinKev = section.BinKev,
+                Histories = section.Histories,
+                Note = section.Note,
+            };
+            var notes = new List<string>();
+            double[] known = KnownPerSecond(section);
+            foreach (CrystalOwnEntry entry in section.Entries)
+            {
+                if (entry == null || !entry.Free || entry.AlphaPerDecay == null)
+                {
+                    copy.Entries.Add(entry);
+                    continue;
+                }
+
+                AlphaCount count = CountByAlphas(entry, section.BinKev, raw, liveTime, calibration, fwhmCalibration, known);
+                if (counted != null)
+                {
+                    counted.Add(count);
+                }
+
+                string head = Pretty(entry.Nuclide) + " по альфам: ";
+                if (!count.Found)
+                {
+                    notes.Add(head + "ряд не найден (" + count.ActivityBq.ToString("F3", CultureInfo.InvariantCulture) + " ± "
+                              + count.SigmaBq.ToString("F3", CultureInfo.InvariantCulture) + " Бк; " + count.Note + ") — строка снята");
+                    continue;
+                }
+
+                if (!count.Reliable)
+                {
+                    // Ряд есть, но в окне альф чужие линии: счёт не годен, строка остаётся СВОБОДНОЙ — амплитуду
+                    // делит с образами пробы подгонка FSA (решение о запасном пути — за Amber, журнал `a274a`).
+                    notes.Add(head + "счёт не годен (подложка " + (count.Counts > 0.0 ? 100.0 * count.Baseline / count.Counts : 0.0)
+                                  .ToString("F1", CultureInfo.InvariantCulture) + " % > "
+                              + (100.0 * AlphaCountMaxBaselineShare).ToString("F0", CultureInfo.InvariantCulture)
+                              + " %: в окне альф чужие линии) — строка свободная");
+                    copy.Entries.Add(entry);
+                    continue;
+                }
+
+                notes.Add(head + count.ActivityBq.ToString("F3", CultureInfo.InvariantCulture) + " ± "
+                          + count.SigmaBq.ToString("F3", CultureInfo.InvariantCulture) + " Бк (" + count.Note + ")");
+                copy.Entries.Add(new CrystalOwnEntry
+                {
+                    Nuclide = entry.Nuclide,
+                    Layer = entry.Layer,
+                    Free = false,
+                    ActivityBq = count.ActivityBq,
+                    Histories = entry.Histories,
+                    PerDecay = entry.PerDecay,
+                    AlphaPerDecay = entry.AlphaPerDecay,
+                });
+            }
+
+            note = notes.Count > 0 ? string.Join("; ", notes.ToArray()) : null;
+            return copy;
+        }
+
+        /// <summary>
+        /// (`a274a`) Известная часть слоя в секунду по бинам сетки: природные записи раздела (не свободные) ×
+        /// их активность. null — таких записей нет.
+        /// </summary>
+        public static double[] KnownPerSecond(ResponseCrystalSection section)
+        {
+            if (section == null || section.Entries == null)
+            {
+                return null;
+            }
+
+            double[] known = null;
+            foreach (CrystalOwnEntry entry in section.Entries)
+            {
+                if (entry == null || entry.Free || entry.PerDecay == null || !(entry.ActivityBq > 0.0))
+                {
+                    continue;
+                }
+
+                if (known == null)
+                {
+                    known = new double[entry.PerDecay.Length];
+                }
+
+                for (int k = 0; k < entry.PerDecay.Length && k < known.Length; k++)
+                {
+                    known[k] += entry.PerDecay[k] * entry.ActivityBq;
+                }
+            }
+
+            return known;
+        }
+
+        /// <summary>
+        /// (`a274a`) Гистограмма на сетке <paramref name="binKev"/> (бин k — центр k·шаг) → каналы с границами
+        /// <paramref name="edge"/>: гаусс с FWHM <paramref name="fwhmKevAt"/> на энергии бина, доля канала — разность
+        /// функции ошибок. Для счёта альф, а не для фита: уширение разбора — своё (`BroadenResponseDeposit`).
+        /// </summary>
+        static double[] Broaden(double[] histogram, double binKev, double[] edge, Func<double, double> fwhmKevAt)
+        {
+            int channels = edge.Length - 1;
+            var result = new double[channels];
+            for (int k = 0; k < histogram.Length; k++)
+            {
+                double v = histogram[k];
+                if (!(v > 0.0))
+                {
+                    continue;
+                }
+
+                double e = k * binKev;
+                double sigma = Math.Max(fwhmKevAt(e), binKev) / 2.3548200450309493;
+                double lo = e - 5.0 * sigma, hi = e + 5.0 * sigma;
+                int i0 = Lower(edge, lo);
+                for (int i = Math.Max(0, i0 - 1); i < channels && edge[i] < hi; i++)
+                {
+                    double a = Phi((edge[i] - e) / sigma), b = Phi((edge[i + 1] - e) / sigma);
+                    result[i] += v * (b - a);
+                }
+            }
+
+            return result;
+        }
+
+        static int Lower(double[] edge, double value)
+        {
+            int lo = 0, hi = edge.Length - 1;
+            while (hi - lo > 1)
+            {
+                int mid = (lo + hi) / 2;
+                if (edge[mid] <= value)
+                {
+                    lo = mid;
+                }
+                else
+                {
+                    hi = mid;
+                }
+            }
+
+            return lo;
+        }
+
+        /// <summary>Функция нормального распределения (Абрамовиц — Стиган 7.1.26, погрешность 1.5·10⁻⁷).</summary>
+        static double Phi(double x)
+        {
+            double z = Math.Abs(x) / Math.Sqrt(2.0);
+            double t = 1.0 / (1.0 + 0.3275911 * z);
+            double erf = 1.0 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.Exp(-z * z);
+            return x >= 0.0 ? 0.5 * (1.0 + erf) : 0.5 * (1.0 - erf);
+        }
+
+        /// <summary>
+        /// (`a274a`) ЗАМЕР, не разбор: разыгранные события альф ряда Ac-227 в кристалле сцены — для уточнения QF
+        /// по альфам фона (пробе не надо пересобирать раздел на каждое QF: место события пересчитывает
+        /// <see cref="AlphaPosition"/>). Вес — доля распада головы на событие (вес члена / историй).
+        /// </summary>
+        public static List<KeyValuePair<double, AlphaSample>> SampleSeriesAlphas(GeometryModel geometry, int histories, int seed,
+                                                                                 List<string> notes)
+        {
+            var list = new List<KeyValuePair<double, AlphaSample>>();
+            var members = ActiniumSeries(notes ?? new List<string>(), true);
+            int index = 0;
+            foreach (Member member in members)
+            {
+                List<AlphaLine> lines = AlphaLines(member.Nuclide);
+                if (lines.Count == 0)
+                {
+                    index++;
+                    continue;
+                }
+
+                var simulator = new EfficiencySimulator(geometry) { Seed = seed + 104729 * (index + 1) };
+                index++;
+                foreach (AlphaLine line in lines)
+                {
+                    if (notes != null && line.Cascade == null && line.Intensity >= 1.0)
+                    {
+                        notes.Add(Pretty(member.Nuclide) + " α " + line.EnergyKev.ToString("F1", CultureInfo.InvariantCulture)
+                                  + ": " + line.NoCascade);
+                    }
+
+                    int n = (int)Math.Round(histories * line.Intensity / 100.0);
+                    for (int i = 0; i < n; i++)
+                    {
+                        double x, y, z;
+                        if (!simulator.TryCrystalPoint(out x, out y, out z))
+                        {
+                            break;
+                        }
+
+                        list.Add(new KeyValuePair<double, AlphaSample>(member.Weight / histories, AlphaEvent(simulator, line, x, y, z)));
+                    }
+                }
+            }
+
+            return list;
         }
     }
 }
