@@ -4477,6 +4477,24 @@ http://xptable.sourceforge.net/</value>
   <data name="ResponseMatrixSectionGpuProgress" xml:space="preserve">
     <value>GPU: раздел электронов, строка {0} из {1}.</value>
   </data>
+  <data name="ResponseMatrixCrystalSectionRows" xml:space="preserve">
+    <value>Раздел собственной активности кристалла: {0}</value>
+  </data>
+  <data name="ResponseMatrixCrystalSectionAlphas" xml:space="preserve">
+    <value>; альфы, источник QF «{0}»</value>
+  </data>
+  <data name="ResponseMatrixCrystalSectionMissing" xml:space="preserve">
+    <value>Раздела собственной активности кристалла нет. Пересчитайте матрицу, и раздел будет построен.</value>
+  </data>
+  <data name="ResponseMatrixCrystalSectionStale" xml:space="preserve">
+    <value>Раздел собственной активности кристалла не годен: он посчитан для другого кристалла, физики, данных распада или настроек прибора (гашение и форма альф). Пересчитайте матрицу, и раздел будет построен заново.</value>
+  </data>
+  <data name="ResponseMatrixCrystalSectionFailed" xml:space="preserve">
+    <value>Раздел собственной активности кристалла не построен; причина — в журнале.</value>
+  </data>
+  <data name="ResponseMatrixCrystalSectionProgress" xml:space="preserve">
+    <value>Раздел собственной активности кристалла…</value>
+  </data>
   <data name="GdmlFatalDtd" xml:space="preserve">
     <value>файл подключает другие файлы через &lt;!DOCTYPE&gt; или &lt;!ENTITY&gt;; это не поддержано и ради безопасности не читается: вставьте подключаемый текст в сам файл</value>
   </data>

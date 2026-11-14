@@ -516,7 +516,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
 
                     string name = string.Format(CultureInfo.InvariantCulture, CrystalOwnText("FSAReportCrystalOwnRow"),
-                                                FsaPalette.DisplayName(own.Nuclide), own.Layer ?? string.Empty);
+                                                // (`a274w`, находка) имя — `nucid` базы («138LA»); человеку — «La-138»,
+                                                // как в окне матрицы (`FsaSampleLibrary.PrettyName`); от языка не зависит
+                                                FsaSampleLibrary.PrettyName(own.Nuclide), own.Layer ?? string.Empty);
                     string value = own.Free
                         ? string.Format(CultureInfo.InvariantCulture, CrystalOwnText("FSAReportCrystalOwnFree"),
                                         own.ActivityBq, own.ActivitySigmaBq, own.Counts)

@@ -52,6 +52,8 @@ using System.Threading;
 // к готовому файлу, остальное остаётся побайтно прежним (сверка sha256 на месте). Счёт — ЦП,
 // секунды на сцену; GPU не нужен. Раздел не собран — код 4. Без ключа проба раздел не пишет и
 // не трогает; разбор берёт его только при `CorpusFsaProbe --crystal-own=1` (слой ВЫКЛ умолчанием).
+// Рецепт слоя — прибора сцены (`<Efficiency>` её спектров по `index.csv`: источник QF альф, форма
+// групп), как у разбора `FsaMatrixBinding.BindDevice` (`З2` критика `crit274f`, полоса `a274w`).
 //
 // ⚡ `--gpu` (`AMBER160`, П221; решения Amber 02.10.2026 «float + статистика
 // (Рекомендую)» и «Только оснастка (Рекомендую)») — УЗЛЫ матрицы на GPU:
@@ -870,7 +872,7 @@ class CorpusMatrixProbe
                     Console.WriteLine("   пропущена: клеймо сошлось, пересчитывать нечего");
                     if (crystalOwn)
                     {
-                        layerFailed += CrystalLayer.Ensure(geometry, have, outPathExisting, ref layerAttached, ref layerKept, ref layerNone);
+                        layerFailed += CrystalLayer.Ensure(geometry, dir, key, have, outPathExisting, ref layerAttached, ref layerKept, ref layerNone);
                     }
 
                     Console.WriteLine();
@@ -901,7 +903,7 @@ class CorpusMatrixProbe
                                       have.Histories, options.Histories);
                     if (crystalOwn)
                     {
-                        layerFailed += CrystalLayer.Ensure(geometry, have, outPathExisting, ref layerAttached, ref layerKept, ref layerNone);
+                        layerFailed += CrystalLayer.Ensure(geometry, dir, key, have, outPathExisting, ref layerAttached, ref layerKept, ref layerNone);
                     }
 
                     Console.WriteLine();
@@ -935,7 +937,7 @@ class CorpusMatrixProbe
             string layerLine = null;
             if (crystalOwn)
             {
-                layerFailed += CrystalLayer.Attach(geometry, matrix, ref layerAttached, ref layerNone, out layerLine);
+                layerFailed += CrystalLayer.Attach(geometry, dir, key, matrix, ref layerAttached, ref layerNone, out layerLine);
             }
 
             matrix.Save(outPath);
@@ -1230,11 +1232,22 @@ class CorpusMatrixProbe
 /// готовому файлу. Сохранность всего прочего доказывается на месте: файл с разделом читается, раздел из него
 /// снимается, запись без раздела обязана побайтно (sha256) равняться исходному файлу; не равна — исходный файл
 /// возвращается, сцена идёт в «не собран».
+///
+/// ⛔ (`З2` критика `crit274f`, полоса `a274w` 14.11.2026) РЕЦЕПТ СЛОЯ — ПРИБОРА СЦЕНЫ, как у разбора. Разбор
+/// (`CorpusFsaProbe`, приложение) привязывает матрицу через `FsaMatrixBinding.BindDevice` и сверяет раздел с рецептом
+/// прибора спектра (источник QF альф, форма групп — поля `<Efficiency>`); раздел, собранный рецептом умолчания, у
+/// прибора с источником QF отвергается (`OtherRecipe`). Поэтому проба берёт прибор сцены тем же путём, каким склад
+/// раскладывается по guid (`mx_swap.py`): спектры сцены из `index.csv` каталога сцен, их узел `<Efficiency>`. Спектры
+/// одной сцены, расходящиеся рецептом слоя, — отказ сцены (раздел в файле один). Нет `index.csv` или ни у одного
+/// спектра нет `<Efficiency>` — рецепт без полей прибора (`ResponseCrystalSection.RecipeFor(geometry, null)`), как
+/// прежде. Прибор читается только у сцен, чьему кристаллу слой положен: склад корпуса (таких сцен 0 из 51) не читает
+/// ни одного спектра.
 /// </summary>
 static class CrystalLayer
 {
     /// <summary>Раздел к матрице в памяти. Возвращает 1, если кристаллу слой положен, а раздел не собран.</summary>
-    public static int Attach(GeometryModel geometry, ResponseMatrix matrix, ref int attached, ref int none, out string line)
+    public static int Attach(GeometryModel geometry, string dir, string key, ResponseMatrix matrix, ref int attached, ref int none,
+                             out string line)
     {
         if (!BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnActivityBuilder.HasOwnActivity(geometry))
         {
@@ -1243,12 +1256,27 @@ static class CrystalLayer
             return 0;
         }
 
+        EfficiencyConfigData device;
+        string deviceNote;
+        if (!DeviceOf(dir, key, geometry, out device, out deviceNote))
+        {
+            line = "   слой     : ⛔ раздел НЕ СОБРАН — " + deviceNote;
+            return 1;
+        }
+
+        int failed = AttachWith(geometry, device, matrix, ref attached, out line);
+        line = "   прибор   : " + deviceNote + "\n" + line;
+        return failed;
+    }
+
+    static int AttachWith(GeometryModel geometry, EfficiencyConfigData device, ResponseMatrix matrix, ref int attached, out string line)
+    {
         var watch = Stopwatch.StartNew();
-        ResponseMatrixBuilder.AttachCrystalSection(geometry, matrix);
+        ResponseMatrixBuilder.AttachCrystalSection(geometry, matrix, device);
         watch.Stop();
         CrystalSectionRefusal refusal;
         string detail;
-        ResponseCrystalSection own = matrix.CrystalSectionFor(geometry, out refusal, out detail);
+        ResponseCrystalSection own = matrix.CrystalSectionFor(geometry, device, out refusal, out detail);
         if (own == null)
         {
             line = "   слой     : ⛔ раздел НЕ СОБРАН — " + ResponseCrystalSection.RefusalText(refusal, detail);
@@ -1273,11 +1301,26 @@ static class CrystalLayer
     /// Раздел к ГОТОВОМУ файлу матрицы: годен — не трогать; нет или негоден — посчитать и дописать, тело и раздел
     /// электрона не пересчитывая. Возвращает 1 при отказе.
     /// </summary>
-    public static int Ensure(GeometryModel geometry, ResponseMatrix have, string path, ref int attached, ref int kept, ref int none)
+    public static int Ensure(GeometryModel geometry, string dir, string key, ResponseMatrix have, string path,
+                             ref int attached, ref int kept, ref int none)
     {
         CrystalSectionRefusal refusal;
         string detail;
-        if (have.CrystalSectionFor(geometry, out refusal, out detail) != null)
+        // (`a274w`, `З2`) прибор сцены — только там, где слой положен; иначе прибора не читаем вовсе
+        EfficiencyConfigData device = null;
+        if (BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnActivityBuilder.HasOwnActivity(geometry))
+        {
+            string deviceNote;
+            if (!DeviceOf(dir, key, geometry, out device, out deviceNote))
+            {
+                Console.WriteLine("   слой     : ⛔ ОТКАЗ — " + deviceNote + "; файл не тронут");
+                return 1;
+            }
+
+            Console.WriteLine("   прибор   : " + deviceNote);
+        }
+
+        if (have.CrystalSectionFor(geometry, device, out refusal, out detail) != null)
         {
             kept++;
             Console.WriteLine("   слой     : раздел в файле годен — не пересчитывается");
@@ -1342,9 +1385,8 @@ static class CrystalLayer
                 }
             }
 
-            int ignoredNone = 0;
             string line;
-            int failed = Attach(geometry, have, ref attached, ref ignoredNone, out line);
+            int failed = AttachWith(geometry, device, have, ref attached, out line);
             Console.WriteLine(line);
             if (failed != 0)
             {
@@ -1357,7 +1399,7 @@ static class CrystalLayer
 
             // Сверка: прочитать записанное, снять раздел, записать — обязан выйти эталон.
             ResponseMatrix back = ResponseMatrix.Load(path);
-            ResponseCrystalSection read = back != null ? back.CrystalSectionFor(geometry, out refusal, out detail) : null;
+            ResponseCrystalSection read = back != null ? back.CrystalSectionFor(geometry, device, out refusal, out detail) : null;
             string stripped = null;
             if (back != null)
             {
@@ -1390,6 +1432,144 @@ static class CrystalLayer
                 File.Delete(scratch);
             }
         }
+    }
+
+    /// <summary>
+    /// (`a274w`, `З2` критика `crit274f`) ПРИБОР СЦЕНЫ <paramref name="key"/> — узел `<Efficiency>` её спектров:
+    /// `index.csv` каталога сцен <paramref name="dir"/> называет спектры сцены, сами спектры лежат в `spectra` рядом
+    /// с каталогом сцен (раскладка корпуса; тот же путь у `mx_swap.py`, а разбор берёт ровно этот узел спектра —
+    /// `rd.Efficiency`). Спектр читается тем же `XmlSerializer(ResultDataFile)`, что у `CorpusFsaProbe`. Спектры сцены
+    /// с РАЗНЫМ рецептом слоя (`ResponseCrystalSection.RecipeFor` → `RecipeStamp`) — false и причина: раздел в файле
+    /// один, и половина спектров его не взяла бы. Прибора нет — true и null (рецепт без полей прибора), с причиной.
+    /// </summary>
+    static bool DeviceOf(string dir, string key, GeometryModel geometry, out EfficiencyConfigData device, out string note)
+    {
+        device = null;
+        string index = Path.Combine(dir, "index.csv");
+        if (!File.Exists(index))
+        {
+            note = "в каталоге сцен нет index.csv — прибора сцены нет, рецепт слоя без полей прибора";
+            return true;
+        }
+
+        string parent = Path.GetDirectoryName(Path.GetFullPath(dir).TrimEnd('\\', '/'));
+        string spectra = Path.Combine(parent ?? "", "spectra");
+        List<string[]> rows = ReadCsv(index);
+        if (rows.Count == 0)
+        {
+            note = "index.csv пуст — прибора сцены нет, рецепт слоя без полей прибора";
+            return true;
+        }
+
+        int geometryColumn = Array.IndexOf(rows[0], "geometry");
+        int spectrumColumn = Array.IndexOf(rows[0], "spectrum");
+        if (geometryColumn < 0 || spectrumColumn < 0)
+        {
+            note = "в index.csv нет столбцов geometry/spectrum — прибор сцены не найти";
+            return false;
+        }
+
+        string firstName = null, firstRecipe = null;
+        int agreed = 0;
+        for (int i = 1; i < rows.Count; i++)
+        {
+            string[] row = rows[i];
+            if (row.Length <= Math.Max(geometryColumn, spectrumColumn)
+                || !string.Equals(row[geometryColumn], key, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            string file = Path.Combine(spectra, row[spectrumColumn] + ".xml");
+            if (!File.Exists(file))
+            {
+                continue;
+            }
+
+            EfficiencyConfigData eff = LoadEfficiency(file);
+            if (eff == null)
+            {
+                continue;
+            }
+
+            string ignored;
+            string recipe = BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnActivityBuilder.RecipeStamp(
+                ResponseCrystalSection.RecipeFor(geometry, eff, out ignored));
+            if (device == null)
+            {
+                device = eff;
+                firstName = row[spectrumColumn];
+                firstRecipe = recipe;
+            }
+            else if (!string.Equals(recipe, firstRecipe, StringComparison.Ordinal))
+            {
+                note = string.Format(CultureInfo.InvariantCulture,
+                                     "спектры сцены расходятся рецептом слоя: {0} «{1}» против {2} «{3}» — раздел в файле один",
+                                     firstName, firstRecipe, row[spectrumColumn], recipe);
+                device = null;
+                return false;
+            }
+
+            agreed++;
+        }
+
+        if (device == null)
+        {
+            note = "ни один спектр сцены в index.csv не несёт <Efficiency> — рецепт слоя без полей прибора";
+            return true;
+        }
+
+        note = string.Format(CultureInfo.InvariantCulture,
+                             "<Efficiency> спектра {0} («{1}», источник QF «{2}»); рецептом сошлись спектров: {3}; рецепт {4}",
+                             firstName, device.Name, device.AlphaQuenchingSource ?? "", agreed, firstRecipe);
+        return true;
+    }
+
+    static EfficiencyConfigData LoadEfficiency(string path)
+    {
+        var serializer = new System.Xml.Serialization.XmlSerializer(typeof(ResultDataFile));
+        using (FileStream stream = File.OpenRead(path))
+        {
+            var file = (ResultDataFile)serializer.Deserialize(stream);
+            return file != null && file.ResultDataList != null && file.ResultDataList.Count > 0
+                ? file.ResultDataList[0].Efficiency
+                : null;
+        }
+    }
+
+    /// <summary>CSV с кавычками (`index.csv` корпуса: последний столбец в кавычках и с запятыми); BOM снимается.</summary>
+    static List<string[]> ReadCsv(string path)
+    {
+        var rows = new List<string[]>();
+        foreach (string raw in File.ReadAllLines(path, Encoding.UTF8))
+        {
+            if (raw.Length == 0)
+            {
+                continue;
+            }
+
+            var cells = new List<string>();
+            var cell = new StringBuilder();
+            bool quoted = false;
+            for (int i = 0; i < raw.Length; i++)
+            {
+                char c = raw[i];
+                if (quoted)
+                {
+                    if (c == '"' && i + 1 < raw.Length && raw[i + 1] == '"') { cell.Append('"'); i++; }
+                    else if (c == '"') quoted = false;
+                    else cell.Append(c);
+                }
+                else if (c == '"') quoted = true;
+                else if (c == ',') { cells.Add(cell.ToString()); cell.Clear(); }
+                else cell.Append(c);
+            }
+
+            cells.Add(cell.ToString());
+            rows.Add(cells.ToArray());
+        }
+
+        return rows;
     }
 
     static string Sha256(string path)

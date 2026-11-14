@@ -1100,8 +1100,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// (`AMBER274`, этап Э2, 04.11.2026) РАЗДЕЛ «СОБСТВЕННАЯ АКТИВНОСТЬ КРИСТАЛЛА»:
         /// готовые гистограммы распадов в объёме кристалла (La-138, Lu-176, ряд Ac-227).
         /// null — раздела нет: так у всех матриц, что построены без явного
-        /// <see cref="ResponseMatrixBuilder.AttachCrystalSection"/> (окно его не зовёт; склад — ключом
-        /// `CorpusMatrixProbe --crystal-own=1`, полоса `a274m` 14.11.2026),
+        /// <see cref="ResponseMatrixBuilder.AttachCrystalSection"/> (окно «Матрица отклика…» зовёт его после счёта —
+        /// полоса `a274w` 14.11.2026; склад — ключом `CorpusMatrixProbe --crystal-own=1`, полоса `a274m`),
         /// у всех матриц, собранных до Э2, и у сцен, чей
         /// кристалл собственной активности не имеет (NaI, CsI, Ge). Разбор тогда
         /// побитово прежний. Запись — хвостом `CWNA` ПЕРЕД `ELSC`; `FormatVersion` не
@@ -1132,9 +1132,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>
         /// (`AMBER274` Э3, полоса `a274f` 14.11.2026) То же для ПРИБОРА <paramref name="efficiency"/>: клеймо раздела
         /// сверяется с рецептом слоя прибора (<see cref="ResponseCrystalSection.RecipeFor"/>: источник QF альф и форма
-        /// групп — поля прибора), а не с рецептом умолчания. Прибора нет (null) или источник QF у него пуст — рецепт
-        /// умолчания, как прежде: раздел с альфами такой прибор не возьмёт (отказ `OtherRecipe`), и наоборот.
-        /// Рецепт читается (таблица QF `matdb`) только когда в матрице есть раздел: у матриц без раздела — ни чтения.
+        /// групп — поля прибора), а не с рецептом умолчания. Прибора нет (null) или источник QF у него пуст — строка
+        /// «по веществу» (`matdb.scint_alpha_quenching`, `is_default = 1`), а её нет — рецепт умолчания: раздел с
+        /// альфами такой прибор не возьмёт (отказ `OtherRecipe`), и наоборот.
+        /// ⛔ (`Д2` критика `crit274f`, полоса `a274w` 14.11.2026) Рецепт ВСЕГДА из <see cref="ResponseCrystalSection.RecipeFor"/>,
+        /// и при null тоже, — тем же путём, что сборка раздела: прежде null сверялся с рецептом умолчания, а пустой
+        /// источник — со строкой `is_default = 1`, и с появлением такой строки старый вход и новый разошлись бы. Пока её
+        /// нет, оба пути — рецепт умолчания, как прежде. Рецепт читается (таблица QF `matdb`) только когда в матрице есть раздел: у матриц без раздела — ни чтения.
         /// </summary>
         public ResponseCrystalSection CrystalSectionFor(GeometryModel geometry, EfficiencyConfigData efficiency,
                                                         out CrystalSectionRefusal refusal, out string detail)
@@ -1151,7 +1155,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 string recipeNote;
                 BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnParts recipe =
-                    efficiency != null ? ResponseCrystalSection.RecipeFor(geometry, efficiency, out recipeNote) : null;
+                    ResponseCrystalSection.RecipeFor(geometry, efficiency, out recipeNote);
                 refusal = own.Judge(geometry, this.BinKev, recipe, out detail);
                 if (refusal == CrystalSectionRefusal.None)
                 {

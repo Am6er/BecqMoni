@@ -106,6 +106,14 @@ namespace BecquerelMonitor.EfficiencyMaker
         public int SectionTotal;
 
         /// <summary>
+        /// (`AMBER274`, полоса `a274w` 14.11.2026) Идёт РАЗДЕЛ СОБСТВЕННОЙ АКТИВНОСТИ КРИСТАЛЛА
+        /// (<see cref="ResponseMatrixBuilder.AttachCrystalSection(GeometryModel, ResponseMatrix, EfficiencyConfigData)"/>) —
+        /// последняя часть работы окна, после фотонной матрицы и раздела электрона; секунды ЦП, хода внутри нет.
+        /// Отчёт несёт только подпись: полоса стоит, где стояла.
+        /// </summary>
+        public bool CrystalSection;
+
+        /// <summary>
         /// (`AMBER318`, пятый заход) Строк раздела, прошедших пробный проход останова по шуму; 0 — останова нет.
         /// </summary>
         public int SectionPilotDone;
@@ -891,12 +899,13 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>
         /// (`AMBER274`, Э2, 04.11.2026) СОБСТВЕННАЯ АКТИВНОСТЬ КРИСТАЛЛА — раздел `CWNA` к
-        /// готовой матрице, один вход для матриц путей CPU и GPU. ⛔ СЛОЙ ВЫКЛЮЧЕН (решение Amber
-        /// 05.11.2026 вопросником, дословно: «Разобрать χ², слой выкл (Рекомендую)»): построитель,
-        /// окно этот вход НЕ зовёт, раздел не считается и файл прежний до бита; зовут замер
-        /// (`CrystalOwnActivityProbeA274`) и склад — только ключом `CorpusMatrixProbe --crystal-own=1`
-        /// (полоса `a274m` 14.11.2026; решение Amber того же дня: «Сперва запись в матрицу (Рекомендую)»).
-        /// Парный ключ разбора —
+        /// готовой матрице, один вход для матриц путей CPU и GPU. Построитель этот вход НЕ зовёт; зовут окно
+        /// «Матрица отклика…» после счёта с полями прибора (`ResponseMatrixForm.AddCrystalSection`, полоса `a274w`
+        /// 14.11.2026; решение Amber того же дня вопросником, дословно: «Да, отдельной полосой (Рекомендую)»), замер
+        /// (`CrystalOwnActivityProbeA274`) и склад — только ключом `CorpusMatrixProbe --crystal-own=1` (полоса `a274m`;
+        /// решение Amber: «Сперва запись в матрицу (Рекомендую)»). ⛔ СЛОЙ В РАЗБОРЕ ВЫКЛЮЧЕН (решение Amber 05.11.2026
+        /// вопросником, дословно: «Разобрать χ², слой выкл (Рекомендую)»): раздел в матрице лежит, а числа разбора от
+        /// него не зависят. Парный ключ разбора —
         /// <see cref="FullSpectrumAnalysis.FsaAnalyzer.CrystalOwnLayer"/>. Считается
         /// от фотонного тела независимо (событие распада в объёме кристалла, перенос ЦП
         /// `InCrystal`/`ElectronLoss`, в ядре GPU его нет), поэтому фотонные строки остаются
@@ -912,7 +921,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// (`AMBER274` Э3, полоса `a274f` 14.11.2026) То же для ПРИБОРА <paramref name="efficiency"/>: рецепт слоя —
         /// <see cref="ResponseCrystalSection.RecipeFor"/> (решение Amber 14.11.2026 «Источник QF — полем прибора»):
         /// источник QF альф назван — в ряд входят альфы с этим QF и формой групп прибора, и клеймо раздела несёт их
-        /// числа; источник пуст или прибора нет (null) — рецепт умолчания, раздел побитно прежний.
+        /// числа. Источник пуст или прибора нет (null) — строка «по веществу» (`matdb.scint_alpha_quenching`,
+        /// `is_default = 1`), а её нет — рецепт умолчания.
+        /// ⛔ (`Д2` критика `crit274f`, полоса `a274w` 14.11.2026) Рецепт ВСЕГДА из <see cref="ResponseCrystalSection.RecipeFor"/>,
+        /// и при null тоже: прежде null вёл прямо в рецепт умолчания, а пустой источник — в строку `is_default = 1`, и
+        /// с появлением такой строки старый вход и новый с пустым источником собрали бы РАЗНЫЕ разделы. Пока строки
+        /// `is_default = 1` нет, оба пути — рецепт умолчания, раздел побитно прежний.
         /// </summary>
         public static void AttachCrystalSection(GeometryModel geometry, ResponseMatrix matrix, EfficiencyConfigData efficiency)
         {
@@ -923,10 +937,8 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             try
             {
-                string ownNote, recipeNote = null;
-                FullSpectrumAnalysis.CrystalOwnParts recipe = efficiency != null
-                    ? ResponseCrystalSection.RecipeFor(geometry, efficiency, out recipeNote)
-                    : new FullSpectrumAnalysis.CrystalOwnParts();
+                string ownNote, recipeNote;
+                FullSpectrumAnalysis.CrystalOwnParts recipe = ResponseCrystalSection.RecipeFor(geometry, efficiency, out recipeNote);
                 matrix.CrystalSection = FullSpectrumAnalysis.CrystalOwnActivityBuilder.Build(
                     geometry, matrix.BinKev, OwnActivityHistories, 0x274, recipe, out ownNote);
                 if (recipeNote != null && matrix.CrystalSection != null)
