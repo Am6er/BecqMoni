@@ -290,8 +290,66 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <summary>Совпадает ли раздел со сценой (null — раздел чужой).</summary>
         public bool UsableFor(GeometryModel geometry, double binKev)
         {
+            return this.UsableFor(geometry, binKev, null);
+        }
+
+        /// <summary>(`a274f`) То же для рецепта прибора <paramref name="recipe"/> (<see cref="RecipeFor"/>); null — рецепт умолчания.</summary>
+        public bool UsableFor(GeometryModel geometry, double binKev, BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnParts recipe)
+        {
             return this.Count > 0
-                   && string.Equals(this.Stamp, ComputeStamp(geometry, binKev), StringComparison.Ordinal);
+                   && string.Equals(this.Stamp, ComputeStamp(geometry, binKev, recipe), StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// (`AMBER274` Э3, полоса `a274f` 14.11.2026) РЕЦЕПТ СЛОЯ ПРИБОРА — один для сборки раздела
+        /// (<see cref="ResponseMatrixBuilder.AttachCrystalSection(GeometryModel, ResponseMatrix, EfficiencyConfigData)"/>)
+        /// и для сверки его клейма разбором (<see cref="ResponseMatrix.CrystalSectionFor(GeometryModel, EfficiencyConfigData, out CrystalSectionRefusal, out string)"/>).
+        /// Решение Amber 14.11.2026 вопросником, дословно: «Источник QF — полем прибора (Рекомендую)»: альфы ряда входят
+        /// в слой, когда у вещества кристалла сцены есть закон гашения по источнику, названному прибором
+        /// (<see cref="EfficiencyConfigData.AlphaQuenchingSource"/> → `matdb.scint_alpha_quenching`,
+        /// <see cref="FullSpectrumAnalysis.ScintAlphaQuenching.Find"/>); поле пусто — строка «по веществу»
+        /// (`is_default = 1`), а её нет — альф нет, рецепт умолчания (так у `LABR_BRIL` и у всех прежних
+        /// конфигураций). Форма групп альф — поле прибора <see cref="EfficiencyConfigData.AlphaGroupShape"/>, действует
+        /// только при альфах. Числа QF и формы уходят в клеймо раздела (`rcp=…:aq:as:av[:aw:af:al]`): раздел,
+        /// собранный другим источником или другой формой, разбор не возьмёт (<see cref="CrystalSectionRefusal.OtherRecipe"/>).
+        /// <paramref name="note"/> — источник назван, а строки в таблице нет (альф нет); иначе null.
+        /// У сцены без собственной активности базу не читает.
+        /// </summary>
+        public static BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnParts RecipeFor(GeometryModel geometry, EfficiencyConfigData efficiency, out string note)
+        {
+            note = null;
+            var parts = new BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnParts();
+            if (geometry == null || !BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnActivityBuilder.HasActiniumSeries(geometry))
+            {
+                return parts;                       // альфы — только у ряда; ряда у кристалла нет — рецепт умолчания
+            }
+
+            string source = efficiency != null ? efficiency.AlphaQuenchingSource : null;
+            BecquerelMonitor.FullSpectrumAnalysis.ScintAlphaQuenching.Law law =
+                BecquerelMonitor.FullSpectrumAnalysis.ScintAlphaQuenching.Find(EfficiencySimulator.ScintillatorNameOf(geometry),
+                                                                               string.IsNullOrEmpty(source) ? null : source);
+            if (law == null)
+            {
+                if (!string.IsNullOrEmpty(source))
+                {
+                    note = "источник QF «" + source + "» в matdb." + BecquerelMonitor.FullSpectrumAnalysis.ScintAlphaQuenching.Table
+                           + " для вещества «" + (EfficiencySimulator.ScintillatorNameOf(geometry) ?? "") + "» не найден — альф в слое нет";
+                }
+
+                return parts;
+            }
+
+            parts.AlphaQuenching = law.QfAtBuilderReference;          // QF на опорной энергии рычага слоя
+            parts.AlphaQuenchingSlopePerMev = law.SlopePerMev;
+            AlphaGroupShape shape = efficiency != null ? efficiency.AlphaGroupShape : null;
+            if (shape != null && parts.HasAlpha)
+            {
+                parts.AlphaExtraFwhmShare = Math.Max(0.0, shape.ExtraFwhmShare);
+                parts.AlphaShelfShare = Math.Min(1.0, Math.Max(0.0, shape.ShelfShare));
+                parts.AlphaShelfLength = Math.Min(0.999, Math.Max(0.0, shape.ShelfLength));
+            }
+
+            return parts;
         }
 
         /// <summary>
@@ -306,13 +364,20 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public CrystalSectionRefusal Judge(GeometryModel geometry, double binKev, out string detail)
         {
+            return this.Judge(geometry, binKev, null, out detail);
+        }
+
+        /// <summary>(`a274f`) То же для рецепта прибора <paramref name="deviceRecipe"/> (<see cref="RecipeFor"/>); null — рецепт умолчания.</summary>
+        public CrystalSectionRefusal Judge(GeometryModel geometry, double binKev, BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnParts deviceRecipe,
+                                           out string detail)
+        {
             detail = null;
             if (this.Count == 0)
             {
                 return CrystalSectionRefusal.Missing;
             }
 
-            string expected = ComputeStamp(geometry, binKev);
+            string expected = ComputeStamp(geometry, binKev, deviceRecipe);
             if (string.Equals(this.Stamp, expected, StringComparison.Ordinal))
             {
                 return CrystalSectionRefusal.None;

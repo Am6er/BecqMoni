@@ -905,6 +905,17 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public static void AttachCrystalSection(GeometryModel geometry, ResponseMatrix matrix)
         {
+            AttachCrystalSection(geometry, matrix, null);
+        }
+
+        /// <summary>
+        /// (`AMBER274` Э3, полоса `a274f` 14.11.2026) То же для ПРИБОРА <paramref name="efficiency"/>: рецепт слоя —
+        /// <see cref="ResponseCrystalSection.RecipeFor"/> (решение Amber 14.11.2026 «Источник QF — полем прибора»):
+        /// источник QF альф назван — в ряд входят альфы с этим QF и формой групп прибора, и клеймо раздела несёт их
+        /// числа; источник пуст или прибора нет (null) — рецепт умолчания, раздел побитно прежний.
+        /// </summary>
+        public static void AttachCrystalSection(GeometryModel geometry, ResponseMatrix matrix, EfficiencyConfigData efficiency)
+        {
             if (matrix == null || !FullSpectrumAnalysis.CrystalOwnActivityBuilder.HasOwnActivity(geometry))
             {
                 return;
@@ -912,9 +923,20 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             try
             {
-                string ownNote;
+                string ownNote, recipeNote = null;
+                FullSpectrumAnalysis.CrystalOwnParts recipe = efficiency != null
+                    ? ResponseCrystalSection.RecipeFor(geometry, efficiency, out recipeNote)
+                    : new FullSpectrumAnalysis.CrystalOwnParts();
                 matrix.CrystalSection = FullSpectrumAnalysis.CrystalOwnActivityBuilder.Build(
-                    geometry, matrix.BinKev, OwnActivityHistories, 0x274, out ownNote);
+                    geometry, matrix.BinKev, OwnActivityHistories, 0x274, recipe, out ownNote);
+                if (recipeNote != null && matrix.CrystalSection != null)
+                {
+                    // источник QF назван, а строки нет — видно в примечании раздела (на числа не влияет)
+                    matrix.CrystalSection.Note = string.IsNullOrEmpty(matrix.CrystalSection.Note)
+                        ? recipeNote : matrix.CrystalSection.Note + "; " + recipeNote;
+                    ownNote = matrix.CrystalSection.Note;
+                }
+
                 matrix.CrystalSectionDamage = ownNote;
             }
             catch (Exception error)

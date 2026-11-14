@@ -18,7 +18,13 @@ u"""Сторож отпечатка `matdb` в клейме матрицы и к
   2. каждая таблица списка обязана быть в базе (иначе отпечаток несёт метку
      отсутствия, и правка данных в ней невозможна — список устарел);
   3. клеймо матрицы (`ResponseMatrix.ComputeStamp`) и кривой
-     (`EfficiencyCalculation`) обязаны нести отпечаток (`mdb=`).
+     (`EfficiencyCalculation`) обязаны нести отпечаток (`mdb=`);
+  4. (`AMBER274` Э3, 14.11.2026) КОСВЕННОЕ ЧТЕНИЕ: таблица базы, имя которой
+     стоит в коде файла ВНЕ `EfficiencyMaker/`, а класс этого файла зовёт код
+     переноса, обязана стоять в `SimulatorTables` — или в `OUTSIDE_TRANSPORT`
+     с причиной, почему её правка тело матрицы не меняет. Повод: источник QF
+     альф слоя кристалла (`ScintAlphaQuenching`, таблица
+     `scint_alpha_quenching`) зовёт `ResponseCrystalSection.RecipeFor`.
 
 Запуск:
     python tools/check_matdb_fingerprint.py            # проверить дерево
@@ -91,6 +97,58 @@ def check(em_sources, md_text, stamp_texts, tables_in_db):
     return problems
 
 
+#: таблицы matdb, которые читает код ВНЕ переноса, хотя его зовёт код переноса, — и почему их нет в
+#: SimulatorTables (их правка тело матрицы не меняет); пусто в причине — отказ
+OUTSIDE_TRANSPORT = {
+    'scint_photon_light_curves': u'фотонные кривые света FSA (AMBER272): перенос не читает',
+    'scint_photon_light_yield': u'то же',
+    'scint_alpha_quenching': u'QF альф слоя кристалла (AMBER274 Э3): число — в клейме раздела (RecipeStamp :aq/:as)',
+}
+
+
+def outside_sources(app_dir):
+    u"""Исходники приложения ВНЕ EfficiencyMaker/ (каталоги сборки bin/obj не берутся)."""
+    out = {}
+    em = os.path.normcase(os.path.abspath(EM))
+    for root, dirs, files in os.walk(app_dir):
+        dirs[:] = [d for d in dirs if d.lower() not in ('bin', 'obj')]
+        if os.path.normcase(os.path.abspath(root)).startswith(em):
+            continue
+        for f in files:
+            if f.endswith('.cs'):
+                # часть старых исходников не в UTF-8 (знак © в cp1252): читаются с заменой — имён таблиц это не трогает
+                with io.open(os.path.join(root, f), encoding='utf-8-sig', errors='replace') as src:
+                    out[os.path.relpath(os.path.join(root, f), app_dir)] = src.read()
+    return out
+
+
+def indirect(outside, em_sources, md_text, tables_in_db, excused=None):
+    u"""Таблица, имя которой стоит в коде файла ВНЕ EfficiencyMaker/, а класс этого файла зовёт код переноса."""
+    excused = OUTSIDE_TRANSPORT if excused is None else excused
+    listed = listed_tables(md_text) or []
+    em_code = '\n'.join(code_only(t) for t in em_sources.values())
+    problems = []
+    for f in sorted(outside):
+        code = code_only(outside[f])
+        named = [t for t in tables_in_db if re.search(r'\b' + re.escape(t) + r'\b', code)]
+        if not named:
+            continue
+        # верхние классы файла: вложенные (`Law`, `Entry`) именем в коде переноса ничего не значат
+        classes = re.findall(r'^\s*(?:public|internal)?\s*(?:static\s+|sealed\s+|abstract\s+|partial\s+)*(?:class|struct)\s+([A-Za-z_]\w*)',
+                             code, re.M)
+        indent = lambda name: min(len(l) - len(l.lstrip()) for l in code.splitlines()
+                                  if re.search(r'\b(?:class|struct)\s+' + re.escape(name) + r'\b', l))
+        top = min([indent(c) for c in classes]) if classes else 0
+        callers = [c for c in classes if indent(c) == top and re.search(r'\b' + re.escape(c) + r'\s*\.', em_code)]
+        if not callers:
+            continue
+        for t in named:
+            if t not in listed and not excused.get(t):
+                problems.append(u'таблицу `%s` читает %s (%s), а его зовёт код переноса — в SimulatorTables её нет'
+                                u' и причины в OUTSIDE_TRANSPORT нет' % (t, f, ', '.join(callers)))
+    return problems
+
+
 def tree_inputs():
     sources = {}
     for f in sorted(os.listdir(EM)):
@@ -134,6 +192,29 @@ def selftest():
     r5 = check(src5, md, stamps, tables)
     print(u'К5 таблица в коде вне списка: %s' % (u'поймано' if r5 else u'НЕ ПОЙМАНО'))
     ok &= bool(r5)
+    # К6: косвенное чтение — таблицу читает класс ВНЕ EfficiencyMaker/, а его зовёт код переноса
+    outside = outside_sources(APP)
+    r6 = indirect(outside, sources, md, tables)
+    print(u'К6а дерево как есть, косвенное чтение: %s' % (u'зелено' if not r6 else u'КРАСНО: ' + '; '.join(r6)))
+    ok &= not r6
+    out6 = dict(outside)
+    out6['Q.cs'] = u'namespace N\n{\n    public static class Q\n    {\n        static string T = "select * from icc_coefficients";\n    }\n}\n'
+    src6 = dict(sources)
+    src6['X.cs'] = u'var v = Q.Read();\n'
+    r6b = indirect(out6, src6, md, tables)
+    print(u'К6б класс вне переноса читает таблицу вне списка, перенос его зовёт: %s'
+          % (u'поймано' if any('icc_coefficients' in p_ for p_ in r6b) else u'НЕ ПОЙМАНО'))
+    ok &= any('icc_coefficients' in p_ for p_ in r6b)
+    r6c = indirect(out6, sources, md, tables)
+    print(u'К6в тот же класс, перенос его НЕ зовёт: %s' % (u'не считается' if not r6c else u'ЛОЖНАЯ НАХОДКА'))
+    ok &= not r6c
+    # К6г: источник QF альф зовёт код переноса — без причины в OUTSIDE_TRANSPORT обязан покраснеть
+    bare = dict(OUTSIDE_TRANSPORT)
+    bare.pop('scint_alpha_quenching', None)
+    r6d = indirect(outside, sources, md, tables, bare)
+    hit6 = any('scint_alpha_quenching' in p_ for p_ in r6d)
+    print(u'К6г scint_alpha_quenching без причины в OUTSIDE_TRANSPORT: %s' % (u'поймано' if hit6 else u'НЕ ПОЙМАНО'))
+    ok &= hit6
     return 0 if ok else 1
 
 
@@ -144,12 +225,14 @@ def main(argv):
         return selftest()
     sources, md, stamps, tables = tree_inputs()
     problems = check(sources, md, stamps, tables)
+    problems += indirect(outside_sources(APP), sources, md, tables)
     listed = listed_tables(md) or []
     print(u'отпечаток matdb (S202): таблиц в SimulatorTables %d, в базе %d' % (len(listed), len(tables)))
     for p in problems:
         print(u'  ⛔ ' + p)
     if not problems:
-        print(u'  согласовано: всё, что читает код переноса, входит в отпечаток; оба клейма его несут')
+        print(u'  согласовано: всё, что читает код переноса, входит в отпечаток; оба клейма его несут;'
+              u' косвенное чтение — в списке или с причиной (%d)' % len(OUTSIDE_TRANSPORT))
     return 1 if problems else 0
 
 

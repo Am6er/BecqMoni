@@ -31,6 +31,64 @@ namespace BecquerelMonitor
     }
 
     /// <summary>
+    /// (`AMBER274` Э3, полоса `a274f` 14.11.2026) ФОРМА ГРУПП АЛЬФ кристалла этого прибора — замер по его защищённым
+    /// фонам. Решение Amber 14.11.2026 вопросником, дословно: «Мерить форму по фону». Параметры — те, что кладёт в
+    /// слой <see cref="FullSpectrumAnalysis.CrystalOwnParts"/>: добавочная FWHM групп (доля места группы, сверх
+    /// приборной), доля событий в низкой полке и длина полки (доля места).
+    ///
+    /// ⛔ Почему полем прибора, а не строкой `matdb.scint_alpha_quenching` рядом с QF: форма измерена на ОДНОМ
+    /// кристалле одного прибора и описывает его, а не вещество (ширина и полка групп — свойство сбора света и
+    /// упаковки этого кристалла; QF — тоже замер одного кристалла, но таблица QF уже заведена словом Amber, а
+    /// новые её столбцы — запись в базу и смена схемы, на которую слова нет). Поле едет с конфигурацией прибора
+    /// и со снимком кривой в файле спектра; числа формы входят в клеймо раздела слоя значением
+    /// (`RecipeStamp`, `:aw/:af/:al`), так что правка поля раздел отвергает сама. Действует только вместе с
+    /// источником QF (<see cref="EfficiencyConfigData.AlphaQuenchingSource"/>): без QF альф в слое нет.
+    /// </summary>
+    public class AlphaGroupShape
+    {
+        /// <summary>Добавочная FWHM группы альф, доля места группы на шкале (сверх приборной FWHM, в квадратуре).</summary>
+        public double ExtraFwhmShare { get; set; }
+
+        /// <summary>Доля событий альфы в низкой полке, 0…1.</summary>
+        public double ShelfShare { get; set; }
+
+        /// <summary>Длина полки, доля места группы.</summary>
+        public double ShelfLength { get; set; }
+
+        /// <summary>Чем измерено (метка замера) — человеку, на числа не влияет.</summary>
+        public string Origin { get; set; }
+
+        public AlphaGroupShape Clone()
+        {
+            return (AlphaGroupShape)this.MemberwiseClone();
+        }
+    }
+
+    /// <summary>
+    /// (`AMBER274` Э3, полоса `a274f` 14.11.2026) АКТИВНОСТЬ РЯДА Ac-227 КРИСТАЛЛА этого прибора: активность головы
+    /// ряда и дата, на которую она задана (по счёту альф фонов). Решение Amber 14.11.2026 вопросником, дословно:
+    /// «По фону с распадом (Рекомендую)»: когда счёт ряда по альфам спектра не годен (в окне альф линии пробы),
+    /// разбор берёт ряд отсюда с распадом головы (T½ — `nucdb`). Имени нуклида в поле нет: голова ряда — запись
+    /// раздела слоя.
+    /// </summary>
+    public class CrystalSeriesActivity
+    {
+        /// <summary>Активность головы ряда на дату <see cref="Date"/>, Бк.</summary>
+        public double ActivityBq { get; set; }
+
+        /// <summary>Дата, на которую задана активность.</summary>
+        public DateTime Date { get; set; }
+
+        /// <summary>Чем измерено (метка замера) — человеку.</summary>
+        public string Origin { get; set; }
+
+        public CrystalSeriesActivity Clone()
+        {
+            return (CrystalSeriesActivity)this.MemberwiseClone();
+        }
+    }
+
+    /// <summary>
     /// Кривая эффективности регистрации вместе с геометрией, в которой она
     /// получена. Живёт в конфигурации устройства: кривая привязана к ПРИБОРУ И
     /// ГЕОМЕТРИИ, а не к набору зон, — эффективность полного поглощения зависит
@@ -190,6 +248,38 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
+        /// (`AMBER274` Э3, полоса `a274f` 14.11.2026) Форма групп альф кристалла прибора (<see cref="BecquerelMonitor.AlphaGroupShape"/>).
+        /// null — формы нет: элемента в XML нет, прежние конфигурации и спектры побайтно прежние; альфы слоя (если
+        /// задан источник QF) ложатся без формы.
+        /// </summary>
+        public AlphaGroupShape AlphaGroupShape
+        {
+            get { return this.alphaGroupShape; }
+            set { this.alphaGroupShape = value; }
+        }
+
+        public bool ShouldSerializeAlphaGroupShape()
+        {
+            return this.alphaGroupShape != null;
+        }
+
+        /// <summary>
+        /// (`AMBER274` Э3, полоса `a274f` 14.11.2026) Активность ряда Ac-227 кристалла прибора и её дата
+        /// (<see cref="BecquerelMonitor.CrystalSeriesActivity"/>) — запасной путь счёта ряда по альфам. null — поля нет:
+        /// элемента в XML нет, негодный счёт оставляет строку ряда свободной, как прежде.
+        /// </summary>
+        public CrystalSeriesActivity CrystalSeriesActivity
+        {
+            get { return this.crystalSeriesActivity; }
+            set { this.crystalSeriesActivity = value; }
+        }
+
+        public bool ShouldSerializeCrystalSeriesActivity()
+        {
+            return this.crystalSeriesActivity != null;
+        }
+
+        /// <summary>
         /// Пустой отпечаток в XML не пишется: конфигурации и спектры без
         /// кривой из геометрии остаются побайтно прежними (образец `XmlSerializer`
         /// «ShouldSerialize&lt;имя&gt;»).
@@ -333,6 +423,8 @@ namespace BecquerelMonitor
                 geometry = this.geometry == null ? null : this.geometry.Clone(),
                 gdmlImport = this.gdmlImport == null ? null : this.gdmlImport.Clone(),
                 alphaQuenchingSource = this.alphaQuenchingSource,     // (`a274n`) источник QF альф прибора
+                alphaGroupShape = this.alphaGroupShape == null ? null : this.alphaGroupShape.Clone(),                 // (`a274f`)
+                crystalSeriesActivity = this.crystalSeriesActivity == null ? null : this.crystalSeriesActivity.Clone(),
                 curve = new List<ROIEfficiencyData>(),
             };
 
@@ -374,6 +466,10 @@ namespace BecquerelMonitor
         BecquerelMonitor.EfficiencyMaker.GdmlImportInfo gdmlImport;
 
         string alphaQuenchingSource = "";
+
+        AlphaGroupShape alphaGroupShape;
+
+        CrystalSeriesActivity crystalSeriesActivity;
 
         CDATA note = new CDATA("");
     }

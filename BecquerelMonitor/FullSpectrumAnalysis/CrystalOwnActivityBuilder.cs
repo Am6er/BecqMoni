@@ -96,6 +96,86 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             get { return this.AlphaQuenching > 0.0; }
         }
+
+        /// <summary>
+        /// (`AMBER274` Э3, полоса `a274f` 14.11.2026) ФОРМА ГРУПП АЛЬФ — решение Amber 14.11.2026 вопросником,
+        /// дословно: «Мерить форму по фону» (исключение из правила «Сбор света НЕ подгонять» её словом). Группы альф
+        /// в данных шире гамма-пика той же шкалы и несут низкую полку; с гамма-шириной слой с альфами съедал
+        /// линию 2614 кэВ проб тория (журнал `handover-2026-11-14-a274a.md` §7). Форма события альфы на шкале
+        /// гистограммы (место p): доля <see cref="AlphaShelfShare"/> событий размазана равномерно по отрезку
+        /// [p·(1 − <see cref="AlphaShelfLength"/>), p] («полка»), и всё вместе уширено гауссом с FWHM
+        /// <see cref="AlphaExtraFwhmShare"/>·p — СВЕРХ приборного (приборное кладёт разбор, как у всех образов).
+        /// Числа — замер по защищённым фонам прибора, хранит их прибор
+        /// (<see cref="EfficiencyConfigData.AlphaGroupShape"/>), в коде чисел нет. Все нули — формы нет: событие
+        /// альфы ложится в свой бин, как у полосы `a274a`.
+        /// </summary>
+        public double AlphaExtraFwhmShare;
+
+        /// <summary>(`a274f`) Доля событий альфы в низкой полке (0…1).</summary>
+        public double AlphaShelfShare;
+
+        /// <summary>(`a274f`) Длина полки, доля места события.</summary>
+        public double AlphaShelfLength;
+
+        /// <summary>(`a274f`) У альф задана форма групп (иначе событие — в свой бин).</summary>
+        public bool HasAlphaShape
+        {
+            get
+            {
+                return this.HasAlpha && (this.AlphaExtraFwhmShare > 0.0 || (this.AlphaShelfShare > 0.0 && this.AlphaShelfLength > 0.0));
+            }
+        }
+    }
+
+    /// <summary>
+    /// (`AMBER274` Э3, полоса `a274f` 14.11.2026) АКТИВНОСТЬ РЯДА КРИСТАЛЛА ИЗ ПОЛЯ ПРИБОРА — запасной путь счёта ряда
+    /// по альфам. Решение Amber 14.11.2026 вопросником, дословно: «По фону с распадом (Рекомендую)»: у прибора
+    /// записаны активность головы ряда A₀ и её дата (<see cref="EfficiencyConfigData.CrystalSeriesActivity"/>, по
+    /// счёту альф фонов); когда счёт по альфам ЭТОГО спектра не годен (в окне альф линии пробы), ряд берётся из
+    /// поля с распадом головы: A = A₀·2^(−Δt/T½), T½ — из `nucdb`. Кладёт привязка
+    /// (<see cref="FsaMatrixBinding.BindDevice"/>), дату
+    /// спектра — <see cref="FsaAnalyzer.AdoptSpectrum"/>.
+    /// </summary>
+    public sealed class CrystalOwnSeriesFallback
+    {
+        /// <summary>Активность головы ряда на дату <see cref="Date"/>, Бк.</summary>
+        public double ActivityBq;
+
+        /// <summary>Дата, на которую задана активность.</summary>
+        public DateTime Date;
+
+        /// <summary>Начало набора спектра; <see cref="ResultData.UnknownStartTime"/> — неизвестно (поправки на распад нет — путь закрыт).</summary>
+        public DateTime SpectrumStart = ResultData.UnknownStartTime;
+
+        /// <summary>
+        /// Активность головы ряда <paramref name="nucid"/> на начало набора спектра, Бк; 0 и причина — поля нет,
+        /// дата спектра неизвестна или периода нет в базе.
+        /// </summary>
+        public double ActivityAtSpectrum(string nucid, out string why)
+        {
+            why = null;
+            if (!(this.ActivityBq > 0.0))
+            {
+                why = "у прибора нет активности ряда";
+                return 0.0;
+            }
+
+            if (this.SpectrumStart == ResultData.UnknownStartTime || this.SpectrumStart.Year < 1990)
+            {
+                why = "дата набора спектра неизвестна — поправку на распад не взять";
+                return 0.0;
+            }
+
+            double halfLife = CrystalOwnActivityBuilder.HalfLifeSeconds(nucid);
+            if (!(halfLife > 0.0))
+            {
+                why = "в nucdb нет периода " + FsaSampleLibrary.PrettyName(nucid);
+                return 0.0;
+            }
+
+            double seconds = (this.SpectrumStart - this.Date).TotalSeconds;
+            return this.ActivityBq * Math.Pow(2.0, -seconds / halfLife);
+        }
     }
 
     /// <summary>
@@ -349,6 +429,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 sb.Append(":aq").Append(p.AlphaQuenching.ToString("R", CultureInfo.InvariantCulture))
                   .Append(":as").Append(p.AlphaQuenchingSlopePerMev.ToString("R", CultureInfo.InvariantCulture))
                   .Append(":av").Append(AlphaRecipeVersion.ToString(CultureInfo.InvariantCulture));
+
+                // (`a274f`) форма групп альф — только когда задана: клеймо альф без формы прежнее
+                if (p.HasAlphaShape)
+                {
+                    sb.Append(":aw").Append(p.AlphaExtraFwhmShare.ToString("R", CultureInfo.InvariantCulture))
+                      .Append(":af").Append(p.AlphaShelfShare.ToString("R", CultureInfo.InvariantCulture))
+                      .Append(":al").Append(p.AlphaShelfLength.ToString("R", CultureInfo.InvariantCulture));
+                }
             }
 
             return sb.ToString();
@@ -599,6 +687,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             ConversionRelaxation = parts.ConversionRelaxation,
                             AlphaQuenching = parts.AlphaQuenching,                          // (`a274a`) 0 — как прежде
                             AlphaQuenchingSlopePerMev = parts.AlphaQuenchingSlopePerMev,
+                            AlphaExtraFwhmShare = parts.AlphaExtraFwhmShare,                // (`a274f`) форма групп альф
+                            AlphaShelfShare = parts.AlphaShelfShare,
+                            AlphaShelfLength = parts.AlphaShelfLength,
                         };
                         CrystalOwnEntry part = BuildEntry(geometry, member, bins, binKev, histories, seed + total, seriesParts, light, notes);
                         total++;
@@ -964,6 +1055,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             if (alphas.Count > 0)
             {
                 entry.AlphaPerDecay = new double[bins];
+
+                // (`a274f`) с формой групп события альф сперва копятся отдельно (место без формы), форма кладётся
+                // на всю их гистограмму разом; без формы — прежний счёт, событие в свой бин
+                bool shaped = parts.HasAlphaShape;
+                double[] bare = shaped ? new double[bins] : null;
                 foreach (AlphaLine line in alphas)
                 {
                     int n = (int)Math.Round(histories * line.Intensity / 100.0);
@@ -976,8 +1072,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                         AlphaSample sample = AlphaEvent(simulator, line, x, y, z);
                         double position = AlphaPosition(sample, parts, light);
-                        Add(entry.PerDecay, position, binKev, scale);
-                        Add(entry.AlphaPerDecay, position, binKev, scale);
+                        if (shaped)
+                        {
+                            Add(bare, position, binKev, scale);
+                        }
+                        else
+                        {
+                            Add(entry.PerDecay, position, binKev, scale);
+                            Add(entry.AlphaPerDecay, position, binKev, scale);
+                        }
+                    }
+                }
+
+                if (shaped)
+                {
+                    entry.AlphaPerDecay = ShapeAlphaGroups(bare, binKev, parts);
+                    for (int i = 0; i < bins; i++)
+                    {
+                        entry.PerDecay[i] += entry.AlphaPerDecay[i];
                     }
                 }
             }
@@ -1218,6 +1330,131 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return parts.Scale == ScaleAnchor
                 ? (light.AnchorPerKev > 0.0 ? total / light.AnchorPerKev : sample.CascadeKev + alphaEq)
                 : light.ToEnergy(total);
+        }
+
+        /// <summary>
+        /// (`AMBER274` Э3, полоса `a274f` 14.11.2026) ФОРМА ГРУПП АЛЬФ на гистограмме событий альф
+        /// (<paramref name="bare"/>: бин k — место k·шаг, событие без формы). Сперва полка: доля
+        /// <see cref="CrystalOwnParts.AlphaShelfShare"/> содержимого бина ложится равномерно на отрезок
+        /// [p·(1 − <see cref="CrystalOwnParts.AlphaShelfLength"/>), p]; затем гаусс с FWHM
+        /// <see cref="CrystalOwnParts.AlphaExtraFwhmShare"/>·p (доли бинов — разность функции ошибок). Сумма
+        /// гистограммы сохраняется: то, что гаусс вынес бы за края сетки, остаётся внутри (перенормировка ядра).
+        /// Возвращает новую гистограмму; формы нет — копию.
+        /// </summary>
+        public static double[] ShapeAlphaGroups(double[] bare, double binKev, CrystalOwnParts parts)
+        {
+            int bins = bare.Length;
+            var shelf = new double[bins];
+            double share = parts != null ? Math.Min(1.0, Math.Max(0.0, parts.AlphaShelfShare)) : 0.0;
+            double length = parts != null ? Math.Min(0.999, Math.Max(0.0, parts.AlphaShelfLength)) : 0.0;
+            double extra = parts != null ? Math.Max(0.0, parts.AlphaExtraFwhmShare) : 0.0;
+            for (int k = 0; k < bins; k++)
+            {
+                double v = bare[k];
+                if (v == 0.0)
+                {
+                    continue;
+                }
+
+                double p = k * binKev;
+                double lo = p * (1.0 - length);
+                if (!(share > 0.0) || !(p - lo > 1e-9 * binKev))
+                {
+                    shelf[k] += v;
+                    continue;
+                }
+
+                shelf[k] += (1.0 - share) * v;
+                double perKev = share * v / (p - lo);
+                int first = Math.Max(0, (int)Math.Floor(lo / binKev + 0.5));
+                for (int j = first; j <= k; j++)
+                {
+                    double a = Math.Max(lo, (j - 0.5) * binKev), b = Math.Min(p, (j + 0.5) * binKev);
+                    if (b > a)
+                    {
+                        shelf[j] += perKev * (b - a);
+                    }
+                }
+            }
+
+            if (!(extra > 0.0))
+            {
+                return shelf;
+            }
+
+            var result = new double[bins];
+            var weights = new List<double>();
+            for (int k = 0; k < bins; k++)
+            {
+                double v = shelf[k];
+                if (v == 0.0)
+                {
+                    continue;
+                }
+
+                double p = k * binKev;
+                double sigma = extra * p / 2.3548200450309493;
+                if (!(sigma > 0.05 * binKev))
+                {
+                    result[k] += v;
+                    continue;
+                }
+
+                int j0 = Math.Max(0, (int)Math.Floor((p - 5.0 * sigma) / binKev + 0.5));
+                int j1 = Math.Min(bins - 1, (int)Math.Floor((p + 5.0 * sigma) / binKev + 0.5));
+                weights.Clear();
+                double sum = 0.0;
+                for (int j = j0; j <= j1; j++)
+                {
+                    double w = Phi(((j + 0.5) * binKev - p) / sigma) - Phi(((j - 0.5) * binKev - p) / sigma);
+                    weights.Add(w);
+                    sum += w;
+                }
+
+                if (!(sum > 0.0))
+                {
+                    result[k] += v;
+                    continue;
+                }
+
+                for (int j = j0; j <= j1; j++)
+                {
+                    result[j] += v * weights[j - j0] / sum;
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>(`a274f`) Период полураспада нуклида по `nucdb` (`nuclides.half_life_sec`, основное состояние), с; 0 — нет.</summary>
+        public static double HalfLifeSeconds(string nucid)
+        {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite");
+            if (string.IsNullOrEmpty(nucid) || !File.Exists(path))
+            {
+                return 0.0;
+            }
+
+            try
+            {
+                using (var connection = new SqliteConnection("Data Source=" + path + ";Mode=ReadOnly"))
+                {
+                    connection.Open();
+                    using (SqliteCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = "select half_life_sec from nuclides where nucid = $n order by l_seqno limit 1";
+                        command.Parameters.AddWithValue("$n", nucid);
+                        using (SqliteDataReader reader = command.ExecuteReader())
+                        {
+                            return reader.Read() ? Number(reader, 0) : 0.0;
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return 0.0;
+            }
         }
 
         /// <summary>
@@ -1612,10 +1849,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public bool Found;
 
             /// <summary>
-            /// Счёт годен: подложка в окне не больше <see cref="AlphaCountMaxBaselineShare"/> отсчётов окна. Больше —
-            /// в окне альф лежат чужие линии или их комптон (проба с U/Th/Ra), и постоянная подложка их не вычитает.
+            /// Счёт годен: подложка в окне не больше <see cref="AlphaCountMaxBaselineShare"/> отсчётов окна (больше —
+            /// в окне альф лежит комптон чужих линий, и постоянная подложка его не вычитает) И в окне нет узкой линии
+            /// (<see cref="LineFound"/>).
             /// </summary>
             public bool Reliable;
+
+            /// <summary>
+            /// (`a274f`) В окне альф или полосе подложки стоит УЗКАЯ ЛИНИЯ — гамма-линия пробы: остаток «данные −
+            /// образ ряда − подложка» в полосе шириной с приборный пик выше своих боков значимее
+            /// <see cref="AlphaLineMinZ"/> и больше <see cref="AlphaLineMinShare"/> ЧИСТОГО СЧЁТА ОКНА — то есть линия
+            /// сама сдвигает активность ряда больше этой доли (а её комптон в окне — ещё на столько же и больше).
+            /// Группы альф шире приборного пика (<see cref="CrystalOwnParts.AlphaExtraFwhmShare"/>), поэтому гладкая
+            /// невязка формы групп даёт признак слабее. Имён нуклидов признак не знает.
+            /// </summary>
+            public bool LineFound;
+
+            /// <summary>(`a274f`) Самая сильная узкая особенность остатка: место (кэВ-экв), значимость и доля от чистого счёта окна.</summary>
+            public double LineKev, LineZ, LineShare;
 
             public string Note;
         }
@@ -1632,6 +1883,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>(`a274a`) Ширина полосы подложки ниже окна альф, кэВ-экв.</summary>
         public const double AlphaSideBandKev = 300.0;
+
+        /// <summary>
+        /// (`a274f`) Значимость узкой особенности остатка, с которой она считается линией пробы в окне альф.
+        /// Замер на втором приборе LaBr3 (журнал `handover-2026-11-14-a274f.md`): фоны и пробы без линий выше
+        /// 1.7 МэВ против проб с Th/U/Ra — там же числа.
+        /// </summary>
+        public const double AlphaLineMinZ = 5.0;
+
+        /// <summary>(`a274f`) Наименьшая доля узкой особенности от чистого счёта окна альф (см. <see cref="AlphaLineMinZ"/>).</summary>
+        public const double AlphaLineMinShare = 0.04;
 
         /// <summary>
         /// (`AMBER274` Э3, `a274a`) АКТИВНОСТЬ РЯДА ПО СЧЁТУ АЛЬФ СПЕКТРА — решение Amber 13.11.2026 вопросником,
@@ -1840,6 +2101,74 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             result.ChiPerNdf = used > 2 ? chi / (used - (noSide ? 1 : 2)) : 0.0;
+
+            // (`a274f`) УЗКАЯ ЛИНИЯ в окне и полосе подложки: остаток в полосе ±0.6 приборной FWHM против своих
+            // боков (0.6…1.8 FWHM с каждой стороны) — сумма с нулевой площадью ядра, гладкую невязку она гасит.
+            {
+                double scanLo = noSide ? result.WindowLoKev : result.SideLoKev;
+                var centre = new double[channels];
+                var cumR = new double[channels + 1];
+                var cumY = new double[channels + 1];
+                for (int i = 0; i < channels; i++)
+                {
+                    centre[i] = 0.5 * (edge[i] + edge[i + 1]);
+                    double model = (known != null ? known[i] * liveTime : 0.0) + aFit * template[i] * liveTime + bFit;
+                    cumR[i + 1] = cumR[i] + counts[i] - model;
+                    cumY[i + 1] = cumY[i] + Math.Max(counts[i], 0.0);
+                }
+
+                double bestScore = 0.0;
+                double netWindow = yWin - Math.Max(0.0, bFit) * nWin;
+                for (int i = 0; i < channels && netWindow > 0.0; i++)
+                {
+                    double e = centre[i];
+                    if (e < scanLo || e >= result.WindowHiKev)
+                    {
+                        continue;
+                    }
+
+                    double width = Math.Max(fwhmKevAt(e), 0.0);
+                    if (!(width > 0.0))
+                    {
+                        continue;
+                    }
+
+                    // ядро целиком внутри области подгонки: за её краями образа нет, и остаток там — не невязка;
+                    // у края шкалы ядро вышло бы усечённым с одной стороны и приняло бы склон за линию
+                    if (e - 1.8 * width < scanLo || e + 1.8 * width > result.WindowHiKev)
+                    {
+                        continue;
+                    }
+
+                    int c0 = Lower(edge, e - 0.6 * width), c1 = Lower(edge, e + 0.6 * width) + 1;
+                    int f0 = Lower(edge, e - 1.8 * width), f1 = Lower(edge, e + 1.8 * width) + 1;
+                    if (f0 < 0 || f1 > channels || c1 <= c0 || f1 - f0 <= c1 - c0)
+                    {
+                        continue;
+                    }
+
+                    double nC = c1 - c0, nS = (f1 - f0) - nC;
+                    double rC = cumR[c1] - cumR[c0], rS = (cumR[f1] - cumR[f0]) - rC;
+                    double yC = cumY[c1] - cumY[c0], yS = (cumY[f1] - cumY[f0]) - yC;
+                    double ratio = nC / nS;
+                    double excess = rC - ratio * rS;
+                    double sigma = Math.Sqrt(Math.Max(yC + ratio * ratio * yS, 1.0));
+                    double z = excess / sigma;
+
+                    // доля — от чистого счёта окна: на столько линия сама сдвигает активность ряда. Доля от местного
+                    // образа не годится: на склонах групп и у низа окна образ мал, и любая невязка даёт десятки процентов
+                    double lineShare = excess / netWindow;
+                    if (z >= AlphaLineMinZ && lineShare > bestScore)
+                    {
+                        bestScore = lineShare;
+                        result.LineKev = e;
+                        result.LineZ = z;
+                        result.LineShare = lineShare;
+                    }
+                }
+
+                result.LineFound = result.LineZ >= AlphaLineMinZ && result.LineShare >= AlphaLineMinShare;
+            }
             result.Counts = yWin;
             result.Baseline = Math.Max(0.0, bFit) * nWin;
             result.TemplatePerBqS = tWin / liveTime;
@@ -1848,7 +2177,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             result.SigmaBq = Math.Sqrt(Math.Max(yWin, 1.0) + varB * nWin * nWin) / tWin;
             result.Z = result.SigmaBq > 0.0 ? result.ActivityBq / result.SigmaBq : 0.0;
             result.Found = result.Z >= AlphaCountMinZ;
-            result.Reliable = result.Found && yWin > 0.0 && result.Baseline <= AlphaCountMaxBaselineShare * yWin;
+            result.Reliable = result.Found && yWin > 0.0 && result.Baseline <= AlphaCountMaxBaselineShare * yWin && !result.LineFound;
             var note = new StringBuilder();
             note.Append("окно ").Append(result.WindowLoKev.ToString("F0", CultureInfo.InvariantCulture)).Append('–')
                 .Append(result.WindowHiKev.ToString("F0", CultureInfo.InvariantCulture)).Append(" кэВ-экв, подложка ")
@@ -1858,6 +2187,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 note.Append("; полосы подложки нет (известная часть слоя до ")
                     .Append(fixedTop.ToString("F0", CultureInfo.InvariantCulture)).Append(" кэВ-экв) — подложка 0");
+            }
+
+            if (result.LineZ >= AlphaLineMinZ)
+            {
+                note.Append(result.LineFound ? "; ЛИНИЯ в окне альф у " : "; узкая особенность у ")
+                    .Append(result.LineKev.ToString("F0", CultureInfo.InvariantCulture)).Append(" кэВ-экв (")
+                    .Append((100.0 * result.LineShare).ToString("F2", CultureInfo.InvariantCulture)).Append(" % счёта окна, z ")
+                    .Append(result.LineZ.ToString("F1", CultureInfo.InvariantCulture)).Append(')');
             }
 
             if (result.CutAboveTop > 0.001)
@@ -1923,6 +2260,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                                EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
                                                                List<AlphaCount> counted, out string note)
         {
+            return FixSeriesByAlphas(section, raw, liveTime, calibration, fwhmCalibration, counted, null, out note);
+        }
+
+        /// <summary>
+        /// (`AMBER274` Э3, полоса `a274f` 14.11.2026) То же с ЗАПАСНЫМ ПУТЁМ <paramref name="fallback"/> — решение
+        /// Amber 14.11.2026 вопросником, дословно: «По фону с распадом (Рекомендую)»: счёт по альфам этого спектра не
+        /// годен (подложка окна, узкая линия в окне) или невозможен (окно альф вне шкалы, ряд по счёту не найден) —
+        /// ряд берётся из поля прибора с распадом головы (<see cref="CrystalOwnSeriesFallback.ActivityAtSpectrum"/>)
+        /// и вычитается известной частью. Поля нет (null, активность 0, дата спектра неизвестна) — как прежде:
+        /// негодный счёт оставляет строку свободной, не найденный ряд её снимает.
+        /// </summary>
+        public static ResponseCrystalSection FixSeriesByAlphas(ResponseCrystalSection section, int[] raw, double liveTime,
+                                                               EnergyCalibration calibration, FwhmCalibration fwhmCalibration,
+                                                               List<AlphaCount> counted, CrystalOwnSeriesFallback fallback,
+                                                               out string note)
+        {
             note = null;
             if (section == null || !section.HasAlpha)
             {
@@ -1953,21 +2306,63 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 string head = Pretty(entry.Nuclide) + " по альфам: ";
-                if (!count.Found)
+                if (!count.Found || !count.Reliable)
                 {
-                    notes.Add(head + "ряд не найден (" + count.ActivityBq.ToString("F3", CultureInfo.InvariantCulture) + " ± "
-                              + count.SigmaBq.ToString("F3", CultureInfo.InvariantCulture) + " Бк; " + count.Note + ") — строка снята");
-                    continue;
-                }
-
-                if (!count.Reliable)
-                {
-                    // Ряд есть, но в окне альф чужие линии: счёт не годен, строка остаётся СВОБОДНОЙ — амплитуду
-                    // делит с образами пробы подгонка FSA (решение о запасном пути — за Amber, журнал `a274a`).
-                    notes.Add(head + "счёт не годен (подложка " + (count.Counts > 0.0 ? 100.0 * count.Baseline / count.Counts : 0.0)
+                    string why;
+                    if (!count.Found)
+                    {
+                        why = "ряд не найден (" + count.ActivityBq.ToString("F3", CultureInfo.InvariantCulture) + " ± "
+                              + count.SigmaBq.ToString("F3", CultureInfo.InvariantCulture) + " Бк; " + count.Note + ")";
+                    }
+                    else if (count.LineFound)
+                    {
+                        why = "счёт не годен (в окне альф линия у " + count.LineKev.ToString("F0", CultureInfo.InvariantCulture)
+                              + " кэВ-экв: " + (100.0 * count.LineShare).ToString("F2", CultureInfo.InvariantCulture) + " % счёта окна, z "
+                              + count.LineZ.ToString("F1", CultureInfo.InvariantCulture) + "; счёт дал "
+                              + count.ActivityBq.ToString("F3", CultureInfo.InvariantCulture) + " Бк)";
+                    }
+                    else
+                    {
+                        why = "счёт не годен (подложка " + (count.Counts > 0.0 ? 100.0 * count.Baseline / count.Counts : 0.0)
                                   .ToString("F1", CultureInfo.InvariantCulture) + " % > "
                               + (100.0 * AlphaCountMaxBaselineShare).ToString("F0", CultureInfo.InvariantCulture)
-                              + " %: в окне альф чужие линии) — строка свободная");
+                              + " %: в окне альф чужие линии; счёт дал "
+                              + count.ActivityBq.ToString("F3", CultureInfo.InvariantCulture) + " Бк)";
+                    }
+
+                    // (`a274f`) Запасной путь — активность ряда из поля прибора с распадом головы (решение Amber
+                    // 14.11.2026 «По фону с распадом»): запись становится известной и вычитается до фита.
+                    string noField = null;
+                    double known0 = fallback != null ? fallback.ActivityAtSpectrum(entry.Nuclide, out noField) : 0.0;
+                    if (known0 > 0.0)
+                    {
+                        notes.Add(head + why + " — ряд из поля прибора с распадом: "
+                                  + known0.ToString("F3", CultureInfo.InvariantCulture) + " Бк ("
+                                  + fallback.ActivityBq.ToString("F3", CultureInfo.InvariantCulture) + " Бк на "
+                                  + fallback.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ")");
+                        copy.Entries.Add(new CrystalOwnEntry
+                        {
+                            Nuclide = entry.Nuclide,
+                            Layer = entry.Layer,
+                            Free = false,
+                            ActivityBq = known0,
+                            Histories = entry.Histories,
+                            PerDecay = entry.PerDecay,
+                            AlphaPerDecay = entry.AlphaPerDecay,
+                        });
+                        continue;
+                    }
+
+                    string tail = fallback != null && noField != null ? " (поле прибора: " + noField + ")" : "";
+                    if (!count.Found)
+                    {
+                        notes.Add(head + why + " — строка снята" + tail);
+                        continue;
+                    }
+
+                    // Ряд есть, но счёт не годен, а поля прибора нет: строка остаётся СВОБОДНОЙ — амплитуду делит с
+                    // образами пробы подгонка FSA.
+                    notes.Add(head + why + " — строка свободная" + tail);
                     copy.Entries.Add(entry);
                     continue;
                 }

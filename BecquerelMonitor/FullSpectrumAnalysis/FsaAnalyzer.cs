@@ -4351,6 +4351,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double k = data.TractCurvature;
                 this.AdcTractCurvature = Finite(k) ? k : 0.0;
             }
+
+            // (`AMBER274` Э3, `a274f`) начало набора — поправке на распад запасного пути счёта ряда по альфам
+            this.CrystalOwnSpectrumStart = data != null ? data.StartTime : ResultData.UnknownStartTime;
         }
 
         /// <summary>(`AMBER155`, П220) Число каналов спектра этого разбора — для канала верхней линии прямой карты.</summary>
@@ -6974,6 +6977,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         int crystalShelfMaskCount;
 
+        // (`AMBER274`, `a274u`) края снятого окна, кэВ шкалы спектра (первый и последний канал) — окну отчёта и графику
+        double crystalShelfMaskLoKev, crystalShelfMaskHiKev;
+
         /// <summary>
         /// (`AMBER274`, `a274c`) Снять окно K-пика слоя (<see cref="CrystalOwnShelfMask"/>): каналы окна получают
         /// <see cref="MaskedVariance"/>. Зовётся там же, где автомаска фона, — до отчётных весов и весов решателя.
@@ -6981,6 +6987,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         void MaskCrystalShelf(double[] variance, EnergyCalibration calibration, int chLo, int chHi)
         {
             this.crystalShelfMaskCount = 0;
+            this.crystalShelfMaskLoKev = 0.0;
+            this.crystalShelfMaskHiKev = 0.0;
             double[] layer = this.crystalOwnFixedCounts;
             if (!this.CrystalOwnShelfMask || layer == null || calibration == null || chHi <= chLo
                 || !(this.CrystalOwnShelfHiKev > this.CrystalOwnShelfLoKev))
@@ -7037,6 +7045,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             this.crystalShelfMaskCount = last - first + 1;
+            this.crystalShelfMaskLoKev = calibration.ChannelToEnergy(first);
+            this.crystalShelfMaskHiKev = calibration.ChannelToEnergy(last);
             string note = string.Format(CultureInfo.InvariantCulture,
                 "окно K-пика слоя {0:F0}–{1:F0} кэВ вне подгонки и χ² ({2} кан., AMBER274)",
                 this.CrystalOwnShelfLoKev, this.CrystalOwnShelfHiKev, this.crystalShelfMaskCount);
@@ -7074,6 +7084,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>(`a274m`) К <see cref="CrystalOwnRefusal"/>: какие поля клейма раздела разошлись со сценой.</summary>
         public string CrystalOwnRefusalDetail { get; set; }
+
+        /// <summary>
+        /// (`AMBER274` Э3, полоса `a274f` 14.11.2026) Активность ряда кристалла из поля прибора — запасной путь счёта
+        /// ряда по альфам (решение Amber 14.11.2026 «По фону с распадом»). Ставит
+        /// <see cref="FsaMatrixBinding.BindDevice"/>; null —
+        /// поля нет. Читается только у раздела с альфами при включённом слое.
+        /// </summary>
+        public CrystalOwnSeriesFallback CrystalOwnSeriesFallback { get; set; }
+
+        /// <summary>(`a274f`) Начало набора спектра (<see cref="AdoptSpectrum"/>) — поправке на распад запасного пути; неизвестно — пути нет.</summary>
+        public DateTime CrystalOwnSpectrumStart { get; set; } = ResultData.UnknownStartTime;
 
         /// <summary>(`AMBER274`, Э2) Почему слой не лёг в разбор (null — лёг или раздела нет).</summary>
         public string CrystalOwnNote { get; private set; }
@@ -19506,6 +19527,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Chi2NdfPoisson = fit.Chi2NdfBase,
                 BackgroundMaskBands = this.backgroundMaskBands,
                 BackgroundMaskChannels = this.backgroundMaskCount,
+                // (`AMBER274`, `a274u`) окно K-пика слоя — окну отчёта и графику
+                CrystalShelfMaskChannels = this.crystalShelfMaskCount,
+                CrystalShelfMaskLoKev = this.crystalShelfMaskLoKev,
+                CrystalShelfMaskHiKev = this.crystalShelfMaskHiKev,
                 BackgroundOverflowDropped = this.backgroundOverflowDropped,
                 ModelResidual = fit.ModelResidual,
                 Gain = gain,
@@ -23901,7 +23926,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // запись остаётся свободной. Раздел без альф возвращается тем же объектом — путь побитно прежний.
             // ⚠ Раздел с альфами привязка пока не отдаёт: клеймо сверяется с рецептом умолчания (без `:aq`).
             string alphaNote;
-            section = CrystalOwnActivityBuilder.FixSeriesByAlphas(section, raw, liveTime, calibration, fwhmCalibration, null, out alphaNote);
+            CrystalOwnSeriesFallback fallback = this.CrystalOwnSeriesFallback;
+            if (fallback != null)
+            {
+                fallback.SpectrumStart = this.CrystalOwnSpectrumStart;      // (`a274f`) дата спектра — поправке на распад
+            }
+
+            section = CrystalOwnActivityBuilder.FixSeriesByAlphas(section, raw, liveTime, calibration, fwhmCalibration, null, fallback, out alphaNote);
             if (alphaNote != null)
             {
                 notes.Add(alphaNote);
