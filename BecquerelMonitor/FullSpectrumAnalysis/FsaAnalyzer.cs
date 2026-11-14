@@ -12139,8 +12139,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Последовательная степень <see cref="FsaParallel.Degree"/> выключает всё, как и остальные параллельные места.
         /// Следы проб, которым нужен порядок строк (<see cref="ZeroTraceSink"/>, <see cref="AnchorPassSink"/>,
         /// <see cref="NnlsTraceSink"/>, <see cref="BackgroundGainTraceSink"/>), выключают копии тоже.
+        ///
+        /// (`AMBER315`, полоса `a315f`) Умолчание — заход с привязкой на копии, без запасных заходов впрок; довод и
+        /// решения Amber — в комментарии у поля.
         /// </summary>
-        public static int CoreParallelMode = 2;
+        // (`AMBER315`, a315f) Было «двойка». Amber 14.11.2026 вопросником, дословно: «Оставить режим 2 (Рекомендую)»;
+        // 15.11.2026 по описи памяти (пик частной с заходами впрок — до 1.6 ГБ на один спектр с матрицей: заходы
+        // идут разом, каждый со своими потоками) вопросником, дословно: «Режим 1 + чистка (Рекомендую)» — это
+        // отменяет решение 14.11.2026. Числа разбора от режима не зависят (все три сверены побитно, `a326u`).
+        public static int CoreParallelMode = 1;
 
         /// <summary>(`AMBER326`, a326p) Запасные заходы стража нуля впрок — только при степени не ниже этой.</summary>
         public static int CoreSpeculationMinDegree = 4;
@@ -27569,21 +27576,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] source = scratch.Source;
             int[] bands = scratch.Bands;
 
-            // Буферы частей — свои и одноразовые: подслой и каналы строятся
-            // один раз на готовый результат, а не на каждом узле сетки дрейфа,
-            // и делить ради них общий буфер незачем.
-            double[][] partSources = null;
+            // Части уширения (подслой и каналы — один раз на готовый результат, а не на каждом узле
+            // сетки дрейфа) живут в сжатом хранилище `PartStore` (см. ниже), не в общем буфере источника.
+            PartStore partSources = null;
             double[] partAreas = null;
             double[] partWeights = null;
+            // (`AMBER315`, a315f) части — не буферы во весь источник ((каналы + 2·запас)·16 ячеек, у 8192
+            // каналов больше мегабайта на часть: большой объект на каждое уширение с частями — главный
+            // источник сборок мусора разбора, профиль `a315f`), а СЖАТО: только занятые ячейки
+            // (`PartStore`, номер ячейки → строка значений). Числа те же: значение части в ячейке копится
+            // теми же прибавками в том же порядке, что прежде в буфере, а незанятая ячейка читается нулём,
+            // как непогашенный новый буфер.
             if (partCount > 0)
             {
-                partSources = new double[partCount][];
+                partSources = PartStore.Rent(scratch, partCount);
                 partAreas = new double[partCount];
                 partWeights = new double[partCount];
-                for (int p = 0; p < partCount; p++)
-                {
-                    partSources[p] = new double[size];
-                }
             }
 
             int srcLo = Int32.MaxValue;
@@ -27695,8 +27703,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // своя. Границы источников и номера ядер уже записаны
                     // полной гистограммой: часть их не расширяет, потому что
                     // непустой быть там, где полная пуста, не может.
-                    SplatPart(partSources[pt], pad, channels, cell, partAreas[pt] * (1.0 - frac));
-                    SplatPart(partSources[pt], pad, channels, cell + 1, partAreas[pt] * frac);
+                    SplatPart(partSources, pt, pad, channels, cell, partAreas[pt] * (1.0 - frac));
+                    SplatPart(partSources, pt, pad, channels, cell + 1, partAreas[pt] * frac);
                 }
             }
 
@@ -27721,8 +27729,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 source[idx] = 0.0;
                 for (int p = 0; p < partCount; p++)
                 {
-                    partWeights[p] = partSources[p][idx];
-                    partSources[p][idx] = 0.0;
+                    partWeights[p] = partSources.Get(p, idx);
                 }
 
                 int phase = idx % SourcePhases;
@@ -27779,8 +27786,88 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
+            // (`AMBER315`, a315f) части уходят: занятые ячейки номеров снимаются, запас — погашенным
+            if (partSources != null)
+            {
+                partSources.Release();
+            }
+
             this.ReturnSource(scratch);
             return any ? template : null;
+        }
+
+        /// <summary>
+        /// (`AMBER315`, полоса `a315f` 15.11.2026) Части уширения СЖАТО: значения только в занятых ячейках
+        /// источника. Номер строки ячейки — в <see cref="SourceScratch.Slots"/> (запас, длина источника, 0 —
+        /// «пусто»), значения частей — короткие строки по номеру. Прежде каждая часть была буфером во весь
+        /// источник ((каналы + 2·запас)·16 ячеек — у 8192 каналов больше мегабайта), и запас держал их живыми
+        /// сотнями мегабайт (опись `a315f`, §8). Число в ячейке копится теми же прибавками и в том же порядке,
+        /// что в буфере, а незанятая читается нулём — как непогашенный новый буфер, поэтому образы те же до бита.
+        /// Amber 15.11.2026 вопросником, дословно: «Режим 1 + чистка (Рекомендую)».
+        /// </summary>
+        sealed class PartStore
+        {
+            int[] slots;
+            double[][] values;
+            int count;
+            readonly List<int> used = new List<int>();
+
+            public static PartStore Rent(SourceScratch scratch, int parts)
+            {
+                if (scratch.Slots == null || scratch.Slots.Length < scratch.Source.Length)
+                {
+                    scratch.Slots = new int[scratch.Source.Length];
+                }
+
+                var store = new PartStore { slots = scratch.Slots, values = new double[parts][] };
+                for (int p = 0; p < parts; p++)
+                {
+                    store.values[p] = new double[64];
+                }
+
+                return store;
+            }
+
+            /// <summary>Прибавить вес части <paramref name="part"/> в ячейку <paramref name="idx"/>.</summary>
+            public void Add(int part, int idx, double weight)
+            {
+                int s = this.slots[idx];
+                if (s == 0)
+                {
+                    if (this.count == this.values[0].Length)
+                    {
+                        for (int p = 0; p < this.values.Length; p++)
+                        {
+                            Array.Resize(ref this.values[p], this.count * 2);
+                        }
+                    }
+
+                    s = ++this.count;
+                    this.slots[idx] = s;
+                    this.used.Add(idx);
+                }
+
+                this.values[part][s - 1] += weight;
+            }
+
+            /// <summary>Вес части в ячейке; незанятая — нуль.</summary>
+            public double Get(int part, int idx)
+            {
+                int s = this.slots[idx];
+                return s == 0 ? 0.0 : this.values[part][s - 1];
+            }
+
+            /// <summary>Снять номера занятых ячеек — запас уходит погашенным.</summary>
+            public void Release()
+            {
+                foreach (int idx in this.used)
+                {
+                    this.slots[idx] = 0;
+                }
+
+                this.used.Clear();
+                this.count = 0;
+            }
         }
 
         /// <summary>
@@ -27795,8 +27882,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// в минус нигде, Σ каналов расходилась с лентой ровно на выброшенное, а
         /// «в образах N отсч.» строки отчёта завышалось. У прочих частей вес
         /// неотрицателен, и для них условие «не нуль» — то же «больше нуля», до бита.
+        /// (`AMBER315`, a315f) Пишет в сжатые части (<see cref="PartStore"/>) — те же условия и прибавки.
         /// </summary>
-        static void SplatPart(double[] source, int pad, int channels, int cell, double weight)
+        static void SplatPart(PartStore parts, int part, int pad, int channels, int cell, double weight)
         {
             int idx = SourceIndex(pad, channels, cell);
             if (!(Math.Abs(weight) > 0.0) || idx < 0)
@@ -27804,7 +27892,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return;
             }
 
-            source[idx] += weight;
+            parts.Add(part, idx, weight);
         }
 
         /// <summary>
@@ -27990,6 +28078,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             public double[] Source;
             public int[] Bands;
+
+            /// <summary>(`AMBER315`, a315f) Номера строк сжатых частей по ячейкам источника (<see cref="PartStore"/>); 0 — пусто.</summary>
+            public int[] Slots;
         }
 
         Stack<SourceScratch> sourcePool = new Stack<SourceScratch>();
@@ -28277,9 +28368,45 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     int span = leftSpan + rightSpan + 1;
                     double[] shape = new double[span];
                     double area = 0.0;
+                    // (`AMBER315`, a315f) то же, что `ChannelShapeValue(i − leftSpan − shift, fwhm, …)`
+                    // на канал, побитно: ветвь формы пика выбрана один раз (`PeakShapeModel.Prepare`),
+                    // а правый конец отрезка Симпсона канала i — левый конец канала i + 1: значение в нём
+                    // берётся готовым, только если аргумент совпал ДО БИТА (чистая функция того же числа)
+                    PeakShapeModel.Prepared prepared = PeakShapeModel.Prepare(fwhm, this.calibration);
+                    long lastRightBits = 0;
+                    double lastRightValue = 0.0;
+                    bool haveRight = false;
                     for (int i = 0; i < span; i++)
                     {
-                        double v = ChannelShapeValue(i - leftSpan - shift, fwhm, this.calibration, this.mode);
+                        double offset = i - leftSpan - shift;
+                        double v;
+                        if (this.mode == FsaKernelSampling.Point)
+                        {
+                            v = PeakShapeModel.RelativeValue(offset, ref prepared);
+                        }
+                        else
+                        {
+                            const int Parts = 8;
+                            double h = 1.0 / Parts;
+                            double a = offset - 0.5;
+                            double b = offset + 0.5;
+                            double fa = haveRight && BitConverter.DoubleToInt64Bits(a) == lastRightBits
+                                ? lastRightValue
+                                : PeakShapeModel.RelativeValue(a, ref prepared);
+                            double fb = PeakShapeModel.RelativeValue(b, ref prepared);
+                            lastRightBits = BitConverter.DoubleToInt64Bits(b);
+                            lastRightValue = fb;
+                            haveRight = true;
+                            double sum = fa + fb;
+                            for (int s = 1; s < Parts; s++)
+                            {
+                                sum += (s % 2 == 1 ? 4.0 : 2.0)
+                                       * PeakShapeModel.RelativeValue(offset - 0.5 + s * h, ref prepared);
+                            }
+
+                            v = sum * h / 3.0;
+                        }
+
                         shape[i] = v;
                         area += v;
                     }
@@ -30453,6 +30580,75 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         errors[i] = ex;
                     }
                 });
+            for (int i = 0; i < count; i++)
+            {
+                if (errors[i] != null)
+                {
+                    System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(errors[i]).Throw();
+                }
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER315`, полоса `a315f` 14.11.2026) То же, что <see cref="For"/> (та же степень, каждый
+        /// кусок пишет свою ячейку, исключение — наименьшего индекса), но куски идут общим пулом
+        /// потоков, а не планировщиком разбора. Для ЧИСТОГО счёта, который вызывающий ведёт, пока
+        /// другие потоки разбора ЖДУТ его (ячейка гистограммы поглощения `DepositSlot`: её строит
+        /// первый спросивший, прочие стоят): если все места планировщика разбора заняты такими
+        /// ждущими, куски <see cref="For"/> не начались бы, а пул потоков при голодании добавляет
+        /// потоки сам. Зовётся там, где счёт не трогает состояния разбора и баз (кулоновские таблицы
+        /// <see cref="CoulombSphere"/>).
+        /// </summary>
+        public static void ForPure(int count, Action<int> body)
+        {
+            int degree = Degree;
+            if (count <= 0)
+            {
+                return;
+            }
+
+            if (degree <= 1 || count == 1)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    body(i);
+                }
+
+                return;
+            }
+
+            // Куски раздаются ПО ОДНОМУ общим счётчиком, по возрастанию индекса: цена кусков бывает
+            // очень неровной (узел кулоновской таблицы с малым импульсом считается в сотни раз дольше
+            // большого), и раздача диапазонами (`Parallel.For`) оставляла один поток со связкой
+            // дорогих кусков, пока остальные стояли (профиль `a315f`: ~4 ядра из 15).
+            Exception[] errors = new Exception[count];
+            int next = -1;
+            Action work = () =>
+            {
+                int i;
+                while ((i = System.Threading.Interlocked.Increment(ref next)) < count)
+                {
+                    try
+                    {
+                        body(i);
+                    }
+                    catch (Exception ex)
+                    {
+                        errors[i] = ex;
+                    }
+                }
+            };
+            int helpers = Math.Min(degree, count) - 1;
+            var tasks = new System.Threading.Tasks.Task[helpers];
+            for (int h = 0; h < helpers; h++)
+            {
+                tasks[h] = System.Threading.Tasks.Task.Factory.StartNew(
+                    work, System.Threading.CancellationToken.None, System.Threading.Tasks.TaskCreationOptions.None,
+                    System.Threading.Tasks.TaskScheduler.Default);
+            }
+
+            work();
+            System.Threading.Tasks.Task.WaitAll(tasks);
             for (int i = 0; i < count; i++)
             {
                 if (errors[i] != null)

@@ -143,6 +143,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public static Action<FsaAnalyzer> ProbeAnalyzerHook = null;
 
         /// <summary>
+        /// (`AMBER315`, полоса `a315f`) Полная сборка мусора со сжатием кучи больших объектов, когда сеанс
+        /// отдал результат и встал (<see cref="Finish"/>). Разбор оставляет после себя сотни мегабайт мусора
+        /// (выходные массивы уширения, колонки фита), а приложение, стоящее без дела, сборок не делает: частная
+        /// память после разбора тория держалась ~1.1 ГБ, живого в ней — ~60 МБ (опись `a315f`, §8). Amber
+        /// 15.11.2026 вопросником, дословно: «Режим 1 + чистка (Рекомендую)». Ставит только приложение
+        /// (<c>Program</c>): пробам и корпусу лишняя сборка не нужна; числа разбора от неё не зависят.
+        /// </summary>
+        public static bool CompactHeapAfterAnalysis = false;
+
+        /// <summary>
         /// (`AMBER211`, П238 07.10.2026) ЧАСЫ ПАУЗЫ ПРИ ЗАПИСИ — подменяются ТОЛЬКО пробами
         /// (`FsaThrottleProbeP238`): с поддельными часами проверка паузы детерминирована
         /// и не зависит от скорости счёта. Приложение часов не трогает.
@@ -1592,6 +1602,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 if (handler != null)
                 {
                     handler(this, EventArgs.Empty);
+                }
+
+                // (`AMBER315`, a315f) чистка после разбора — см. CompactHeapAfterAnalysis; результат уже отдан
+                if (CompactHeapAfterAnalysis)
+                {
+                    System.Runtime.GCSettings.LargeObjectHeapCompactionMode =
+                        System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+                    GC.Collect();
                 }
             }
         }
