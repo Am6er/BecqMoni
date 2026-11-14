@@ -845,6 +845,7 @@ namespace CorpusFsaProbe
     ///                  [--pileup-cap=0|1]   (`AMBER123`, П166: граница числа пар наложений R·τ_d)
     ///                  [--branch-sum=0|1]   (`AMBER134`, П166: вынос суммой по исключающим ветвям питания)
     ///                  [--crystal-shield=0|1]   (`A30`, П21: заслон сведения рентгена кристалла — как до 12.09.2026)
+    ///                  [--crystal-own=0|1]   (`AMBER274`, `a274m`: слой собственной активности кристалла; умолчание анализатора — выкл.; раздел слоя не взят — код 69)
     ///                  [--anchor-zero=calib|adc|adc-fixed] [--anchor-zero-kev=&lt;кэВ&gt;]   (`S169`, нуль шкалы образа)
     ///                  [--anchor-zero-share=&lt;доля&gt;] [--anchor-zero-max=&lt;кэВ&gt;]   (`S169`, П13, ножи кандидата нуля съёмки)
     ///                  [--no-xray] [--no-ann] [--no-isomer] [--no-decay-time-prob]
@@ -1033,6 +1034,17 @@ namespace CorpusFsaProbe
                 // остановки, 511 своей аннигиляции снимается).
                 if (a.StartsWith("--sample-beta=", StringComparison.Ordinal)) { o.SampleBeta = a.Substring(14) != "0"; continue; }
                 if (a.StartsWith("--positron-stop=", StringComparison.Ordinal)) { o.PositronStop = a.Substring(16) != "0"; continue; }
+                // (`AMBER274`, полоса `a274m` 14.11.2026) КЛЮЧ СЛОЯ собственной активности кристалла
+                // (`FsaAnalyzer.CrystalOwnLayer`, умолчание анализатора — ВЫКЛ): 1 — слой вычитается у спектров,
+                // чья матрица несёт годный раздел слоя (`CorpusMatrixProbe --crystal-own=1`); кристаллу слой
+                // положен, а раздела нет или он чужой — счётчик и код конца 69. Разбор строгий (`A77`).
+                if (a.StartsWith("--crystal-own=", StringComparison.Ordinal))
+                {
+                    string v = a.Substring(14);
+                    if (v != "0" && v != "1") { throw new ArgumentException("--crystal-own=0|1"); }
+                    o.CrystalOwn = v == "1" ? 1 : 0;
+                    continue;
+                }
                 // (`AMBER274`, полоса `a274k` 13.11.2026) РЫЧАГИ ЗАМЕРА беты K-40 цилиндров G1S24,
                 // умолчание — выкл, разбор без ключа тот же побитно:
                 // `--beta-free=1` — бета каждого образа с линиями уходит в свою строку «по сплошному
@@ -2314,6 +2326,27 @@ namespace CorpusFsaProbe
             Write(rows, o);
             DumpBandAudit(rows, o);
             Summary(rows, o, clock.Elapsed.TotalSeconds);
+            // (Д3 критика `crit274m`) Перепись слоя и строка об отказе раздела слоя печатаются ДО кода раздела
+            // электрона: при коде 68 они иначе не печатались бы вовсе. Код 68 старше кода 69.
+            bool crystalRefusedExit = false;
+            // (`AMBER274`, `a274m`) Перепись слоя кристалла — при включённом ключе всегда, чтобы «слой включён и
+            // ничего не изменил» читалось причиной (кристаллы без собственной активности), а не догадкой.
+            if (CrystalLayerCensus.Count > 0)
+            {
+                Console.WriteLine();
+                Console.WriteLine("СЛОЙ КРИСТАЛЛА (ключ ВКЛ), спектров по исходам: "
+                                  + string.Join("; ", CrystalLayerCensus.OrderBy(p => p.Key, StringComparer.Ordinal)
+                                                                         .Select(p => p.Key + " — " + p.Value.ToString(CultureInfo.InvariantCulture))));
+            }
+
+            if (CrystalLayerRefused > 0)
+            {
+                Console.WriteLine("⛔ РАЗДЕЛ СЛОЯ КРИСТАЛЛА НЕ ВЗЯТ у " + CrystalLayerRefused.ToString(CultureInfo.InvariantCulture)
+                                  + " спектр(ов): слой заказан ключом, кристаллу он положен, а годного раздела в матрице нет."
+                                  + " Посчитать разделы (`CorpusMatrixProbe --crystal-own=1`); эти числа — без слоя (`AMBER274`).");
+                crystalRefusedExit = true;
+            }
+
             // ⛔ (`AMBER305`) Файлы записаны, но прогон — не база: бета пробы выпала бы иначе молча.
             // Осознанный прогон без беты — ключ `--sample-beta=0`.
             if (SectionRefused.Count > 0)
@@ -2325,8 +2358,19 @@ namespace CorpusFsaProbe
                 return 68;
             }
 
+            if (crystalRefusedExit)
+            {
+                return 69;
+            }
+
             return 0;
         }
+
+        /// <summary>(`AMBER274`, `a274m`) Исходы слоя кристалла по спектрам при включённом ключе.</summary>
+        static readonly Dictionary<string, int> CrystalLayerCensus = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        /// <summary>(`a274m`) Спектров, у которых слой заказан и положен кристаллу, а раздел не взят.</summary>
+        static int CrystalLayerRefused;
 
         /// <summary>(`AMBER305`) Спектров с матрицей, у которых раздел не взят, по причинам.</summary>
         static readonly Dictionary<string, int> SectionRefused = new Dictionary<string, int>();
@@ -3051,6 +3095,11 @@ namespace CorpusFsaProbe
             if (o.AnchorJointOut >= 0)
             {
                 analyzer.AnchorJointOutliers = o.AnchorJointOut == 1;
+            }
+
+            if (o.CrystalOwn >= 0)
+            {
+                analyzer.CrystalOwnLayer = o.CrystalOwn == 1;      // (`AMBER274`, `a274m`)
             }
 
             if (o.AnchorWidthFreeze >= 0)
@@ -4287,6 +4336,62 @@ namespace CorpusFsaProbe
                         int seen;
                         SectionRefused.TryGetValue(result.SampleBetaRefusal.ToString(), out seen);
                         SectionRefused[result.SampleBetaRefusal.ToString()] = seen + 1;
+                    }
+                }
+
+                // (`AMBER274`, `a274m`) Ключ слоя — свидетельством У ПОТРЕБИТЕЛЯ (анализатор после привязки и
+                // разбора), и перепись того, что слой СДЕЛАЛ: вычтен, снят вычитаемым фоном, не положен
+                // кристаллу или отказан разделом. Отказ раздела — счётчик и код конца 69: слой заказан, кристаллу
+                // он положен, а числа посчитаны без него.
+                if (o.CrystalOwn >= 0)
+                {
+                    ProbeSwitches.Witness("CrystalOwn", analyzer.CrystalOwnLayer ? 1 : 0);
+                }
+
+                if (analyzer.CrystalOwnLayer)
+                {
+                    bool layerUsed = result.CrystalOwn != null && result.CrystalOwn.Count > 0;
+                    bool layerRefused = !layerUsed && ResponseCrystalSection.IsRefusal(analyzer.CrystalOwnRefusal);
+                    string layerState;
+                    if (layerUsed)
+                    {
+                        layerState = "вычтен";
+                    }
+                    else if (layerRefused)
+                    {
+                        layerState = "ОТКАЗ РАЗДЕЛА " + analyzer.CrystalOwnRefusal.ToString();
+                    }
+                    else if (analyzer.CrystalOwnRefusal == CrystalSectionRefusal.None)
+                    {
+                        layerState = "раздел есть, слой не лёг";       // вычитается измеренный фон — причина в примечании
+                    }
+                    else
+                    {
+                        layerState = "не положен (" + analyzer.CrystalOwnRefusal.ToString() + ")";
+                    }
+
+                    lock (CrystalLayerCensus)
+                    {
+                        int seen;
+                        CrystalLayerCensus.TryGetValue(layerState, out seen);
+                        CrystalLayerCensus[layerState] = seen + 1;
+                        if (layerRefused)
+                        {
+                            CrystalLayerRefused++;
+                        }
+                    }
+
+                    if (layerUsed || layerRefused || analyzer.CrystalOwnRefusal == CrystalSectionRefusal.None)
+                    {
+                        var layerRows = new List<string>();
+                        foreach (FsaCrystalOwnResult own in result.CrystalOwn ?? new List<FsaCrystalOwnResult>())
+                        {
+                            layerRows.Add(string.Format(CultureInfo.InvariantCulture, "{0} {1} {2:F4} Бк, {3:F1} отсч",
+                                                        own.Nuclide, own.Free ? "свободная" : "известная", own.ActivityBq, own.Counts));
+                        }
+
+                        Console.WriteLine("LAYER\t{0}\t{1}\t{2}\t{3}", row.Key, layerState,
+                                          string.Join("; ", layerRows.ToArray()), result.CrystalOwnNote ?? "");
                     }
                 }
 
@@ -7015,6 +7120,7 @@ namespace CorpusFsaProbe
             public int LimitFreeHats = -1;     // (`AMBER274`) −1 — умолчание анализатора
             public int LimitWindow = -1;       // (`AMBER274`) −1 — умолчание анализатора
             public int AnchorJointOut = -1;    // (`AMBER269`, (Д2)) −1 — умолчание анализатора
+            public int CrystalOwn = -1;        // (`AMBER274`, `a274m`) слой собственной активности кристалла; −1 — умолчание анализатора
             public int AnchorWidthFreeze = -1; // (`AMBER142`, П222) −1 — умолчание анализатора
             public int TailEscape = -1;        // (`AMBER142` (6), П226) −1 — умолчание анализатора
             public int AnchorWidthOn = -1;     // (`AMBER142`, П226) −1 — умолчание анализатора

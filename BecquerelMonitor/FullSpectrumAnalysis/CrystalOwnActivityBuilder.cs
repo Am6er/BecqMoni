@@ -670,6 +670,116 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return list;
         }
 
+        /// <summary>
+        /// (`AMBER274`, предложение `a274n` (в), полоса `a274m` 14.11.2026) ОТПЕЧАТОК ДАННЫХ РАСПАДА СЛОЯ — в клеймо
+        /// раздела (поле `ndb=`): SHA-256 (16 знаков) строк `nuclides`, `decay_radiations` и `l_decays` базы `nucdb` у
+        /// нуклидов, которые слой этой сцены читает (природные по составу кристалла; у лантановых и цериевых — члены
+        /// ряда Ac-227, бета и альфа). Без него правка `nucdb` (выход ветви, период, распространённость) оставляла бы
+        /// посчитанный раздел «годным». Базы нет — `none`. Кэш по файлу базы (путь, длина, время) и набору нуклидов.
+        /// ⚠ Не покрыты: формы бет (`beta_shapes`), схемы уровней дочек (`schemedb`), атомные данные (`matdb`).
+        /// </summary>
+        public static string DecayDataFingerprint(GeometryModel geometry)
+        {
+            return DecayDataFingerprint(geometry, Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nucdb.sqlite"));
+        }
+
+        /// <summary>То же для явного файла базы (проба положительного контроля).</summary>
+        public static string DecayDataFingerprint(GeometryModel geometry, string path)
+        {
+            var nuclides = new List<string>(NaturalNuclides(geometry));
+            if (HasActiniumSeries(geometry))
+            {
+                nuclides.AddRange(ActiniumSeriesNuclides);
+            }
+
+            var info = new FileInfo(path);
+            if (!info.Exists || nuclides.Count == 0)
+            {
+                return "none";
+            }
+
+            string key = info.FullName + "|" + info.Length.ToString(CultureInfo.InvariantCulture) + "|"
+                         + info.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture) + "|" + string.Join(",", nuclides.ToArray());
+            lock (DecayFingerprintGate)
+            {
+                string cached;
+                if (DecayFingerprintCache.TryGetValue(key, out cached))
+                {
+                    return cached;
+                }
+            }
+
+            string result;
+            try
+            {
+                var text = new StringBuilder();
+                using (var connection = new SqliteConnection("Data Source=" + info.FullName + ";Mode=ReadOnly"))
+                {
+                    connection.Open();
+                    foreach (string nucid in nuclides)
+                    {
+                        foreach (string query in new[]
+                        {
+                            "select * from nuclides where nucid = $n order by rowid",
+                            "select * from decay_radiations where parent_nucid = $n order by rowid",
+                            "select * from l_decays where nucid = $n order by rowid",
+                        })
+                        {
+                            text.Append('#').Append(nucid).Append('\n');
+                            using (SqliteCommand command = connection.CreateCommand())
+                            {
+                                command.CommandText = query;
+                                command.Parameters.AddWithValue("$n", nucid);
+                                using (SqliteDataReader reader = command.ExecuteReader())
+                                {
+                                    while (reader.Read())
+                                    {
+                                        for (int i = 0; i < reader.FieldCount; i++)
+                                        {
+                                            text.Append(reader.IsDBNull(i) ? "" : Convert.ToString(reader.GetValue(i), CultureInfo.InvariantCulture))
+                                                .Append('\t');
+                                        }
+
+                                        text.Append('\n');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                using (var sha = System.Security.Cryptography.SHA256.Create())
+                {
+                    byte[] digest = sha.ComputeHash(Encoding.UTF8.GetBytes(text.ToString()));
+                    var hex = new StringBuilder();
+                    for (int i = 0; i < 8; i++)
+                    {
+                        hex.Append(digest[i].ToString("x2", CultureInfo.InvariantCulture));
+                    }
+
+                    result = hex.ToString();
+                }
+            }
+            catch (Exception)
+            {
+                // база не читается — раздел по ней не собрать и не сверить; «unread» с годным клеймом не совпадёт
+                return "unread";
+            }
+
+            lock (DecayFingerprintGate)
+            {
+                DecayFingerprintCache[key] = result;
+            }
+
+            return result;
+        }
+
+        /// <summary>Члены ряда Ac-227, которых читает слой (бета-члены и чистые альфа-излучатели) — для отпечатка данных.</summary>
+        static readonly string[] ActiniumSeriesNuclides = { "227AC", "211PB", "211BI", "207TL", "227TH", "223RA", "219RN", "215PO" };
+
+        static readonly object DecayFingerprintGate = new object();
+        static readonly Dictionary<string, string> DecayFingerprintCache = new Dictionary<string, string>(StringComparer.Ordinal);
+
         /// <summary>Сумма интенсивностей β⁻/β⁺-ветвей нуклида, % на распад.</summary>
         static double BetaSharePercent(string nucid)
         {
@@ -973,6 +1083,37 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                 rows.Add(new[] { energy, intensity });
                             }
                         }
+                    }
+                }
+
+                // (`a274n`, внесено полосой `a274m` 14.11.2026) Σ выходов α строк базы — не доля α-моды. В базе дерева
+                // `5db1d5e0`: Ra-223 97.8 %, Rn-219 99.8 %, Th-227 99.156 % при моде 100 %, Ac-227 1.413 % при моде
+                // 1.38 %; база полосы `a274n` (правка по LNHB, ещё не перенесена) даст 100.82 / 100.03 / 1.422. Слою нужна
+                // доля моды на распад нуклида (`l_decays`, род 0, уровень 0) — строки нормируются на неё; моды нет —
+                // как в базе. Зовётся только при альфах (QF > 0): при выключенных альфах ни бита.
+                double mode = 0.0;
+                using (SqliteCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "select perc_num from l_decays where nucid = $n and l_seqno = 0 and dec_type = 0";
+                    command.Parameters.AddWithValue("$n", nucid);
+                    object v = command.ExecuteScalar();
+                    if (v != null && !(v is DBNull))
+                    {
+                        mode = Convert.ToDouble(v, CultureInfo.InvariantCulture);
+                    }
+                }
+
+                double rowSum = 0.0;
+                foreach (double[] r in rows)
+                {
+                    rowSum += r[1];
+                }
+
+                if (mode > 0.0 && rowSum > 0.0)
+                {
+                    foreach (double[] r in rows)
+                    {
+                        r[1] *= mode / rowSum;
                     }
                 }
             }

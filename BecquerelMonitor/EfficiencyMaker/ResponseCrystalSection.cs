@@ -57,6 +57,44 @@ namespace BecquerelMonitor.EfficiencyMaker
     }
 
     /// <summary>
+    /// (`AMBER274`, полоса `a274m` 14.11.2026) Почему разбор не получил раздел собственной активности кристалла —
+    /// как <see cref="ElectronSectionRefusal"/> у раздела электрона. Отказ — только пять последних
+    /// (<see cref="ResponseCrystalSection.IsRefusal"/>): кристалл слой иметь должен, а годного раздела нет.
+    /// </summary>
+    public enum CrystalSectionRefusal
+    {
+        /// <summary>Раздел годен и отдан разбору.</summary>
+        None = 0,
+
+        /// <summary>Матрица к разбору не привязана (умолчание анализатора) — судить нечего.</summary>
+        NoMatrix,
+
+        /// <summary>Геометрии у разбора нет — клеймо раздела сверить не с чем.</summary>
+        NoScene,
+
+        /// <summary>У кристалла сцены собственной активности нет (NaI, CsI, Ge) — разделу не место.</summary>
+        NoOwnActivity,
+
+        /// <summary>Раздела в матрице нет: посчитана без него.</summary>
+        Missing,
+
+        /// <summary>Раздел в файле был, но не прочитан (обрубок, отпечаток) или не собран.</summary>
+        Damaged,
+
+        /// <summary>Раздел другого кристалла (вещество, плотность, состав, размер) или другой сетки.</summary>
+        OtherScene,
+
+        /// <summary>Раздел другой физики: версия переноса или форма беты слоя (`cl`, `l0`, `scr`).</summary>
+        OtherPhysics,
+
+        /// <summary>Раздел другого рецепта слоя (`rcp`).</summary>
+        OtherRecipe,
+
+        /// <summary>Раздел посчитан по другим данным распада: отпечаток строк `nucdb` нуклидов слоя (`ndb`) не тот.</summary>
+        OtherData,
+    }
+
+    /// <summary>
     /// (`AMBER274`, Э2) РАЗДЕЛ ФАЙЛА МАТРИЦЫ «СОБСТВЕННАЯ АКТИВНОСТЬ КРИСТАЛЛА».
     ///
     /// ⛔ Раздел ДОПИСЫВАЕТСЯ к готовой матрице отдельной хвостовой записью `CWNA`
@@ -172,7 +210,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 GeometryMaterial crystal = geometry.Crystal;
                 sb.Append(";mat=").Append(crystal != null ? (crystal.Name ?? "") : "");
-                sb.Append(";rho=").Append(crystal != null ? crystal.Density.ToString("R", CultureInfo.InvariantCulture) : "0");
+                // ⛔ (`a274m` 14.11.2026) ТОЧНОСТЬ ЧИСЕЛ КЛЕЙМА — ТА ЖЕ, ЧТО У ТЕКСТА ГЕОМЕТРИИ (`GeometryWriter`: доли
+                // состава `G6`, плотность и размеры `G8`), а не «R». Клеймо матрицы стоит на тексте геометрии, и сцена,
+                // прошедшая через файл `.in`, матрице годна; раздел слоя с долями «R» той же сцене был НЕ годен:
+                // 0.633124 из файла против 0.63312445313046661 из библиотеки веществ. Поймано стендом ключа
+                // `CorpusFsaProbe --crystal-own=1` (раздел посчитан пробой склада из `.in`, спектр несёт геометрию
+                // из библиотеки) — до причины отказа раздел в таком случае снимался молча. Разделов прежнего вида
+                // клейма не писалось (слой выключен, склад раздела не имел).
+                sb.Append(";rho=").Append(crystal != null ? crystal.Density.ToString("G8", CultureInfo.InvariantCulture) : "0");
                 if (crystal != null && crystal.Fractions != null)
                 {
                     var keys = new List<int>(crystal.Fractions.Keys);
@@ -180,16 +225,16 @@ namespace BecquerelMonitor.EfficiencyMaker
                     foreach (int z in keys)
                     {
                         sb.Append(';').Append(z.ToString(CultureInfo.InvariantCulture))
-                          .Append(':').Append(crystal.Fractions[z].ToString("R", CultureInfo.InvariantCulture));
+                          .Append(':').Append(crystal.Fractions[z].ToString("G6", CultureInfo.InvariantCulture));
                     }
                 }
 
-                sb.Append(";d=").Append(geometry.CrystalDiameter.ToString("R", CultureInfo.InvariantCulture));
-                sb.Append(";h=").Append(geometry.CrystalHeight.ToString("R", CultureInfo.InvariantCulture));
+                sb.Append(";d=").Append(geometry.CrystalDiameter.ToString("G8", CultureInfo.InvariantCulture));
+                sb.Append(";h=").Append(geometry.CrystalHeight.ToString("G8", CultureInfo.InvariantCulture));
                 sb.Append(";shape=").Append(geometry.Shape.ToString());
-                sb.Append(";bx=").Append(geometry.CrystalBoxX.ToString("R", CultureInfo.InvariantCulture));
-                sb.Append(";by=").Append(geometry.CrystalBoxY.ToString("R", CultureInfo.InvariantCulture));
-                sb.Append(";bz=").Append(geometry.CrystalBoxZ.ToString("R", CultureInfo.InvariantCulture));
+                sb.Append(";bx=").Append(geometry.CrystalBoxX.ToString("G8", CultureInfo.InvariantCulture));
+                sb.Append(";by=").Append(geometry.CrystalBoxY.ToString("G8", CultureInfo.InvariantCulture));
+                sb.Append(";bz=").Append(geometry.CrystalBoxZ.ToString("G8", CultureInfo.InvariantCulture));
             }
 
             // (`AMBER274`, `a274s`) Бета слоя с кулоновскими λ (`FsaBetaLibrary.CoulombLambda`):
@@ -212,6 +257,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiScreening)
             {
                 sb.Append(";scr=").Append(BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiScreeningVersion);
+            }
+
+            // (`AMBER274`, предложение `a274n` (в), полоса `a274m` 14.11.2026) ДАННЫЕ РАСПАДА слоя — отпечатком строк
+            // `nucdb` нуклидов, которые слой сцены читает: правка базы (выход ветви, период, распространённость) раздел
+            // отвергает, как правка формы беты. Считается только там, где клеймо раздела вообще нужно (сборка раздела и
+            // сверка матрицы, несущей раздел): у матриц без раздела — ни одного чтения базы.
+            if (geometry != null)
+            {
+                sb.Append(";ndb=").Append(BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnActivityBuilder.DecayDataFingerprint(geometry));
             }
 
             sb.Append(";rcp=").Append(BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnActivityBuilder.RecipeStamp(recipe));
@@ -238,6 +292,141 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             return this.Count > 0
                    && string.Equals(this.Stamp, ComputeStamp(geometry, binKev), StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// (`AMBER274`, полоса `a274m` 14.11.2026) ПОЧЕМУ раздел не годен сцене — причиной, а не молчаливым null:
+        /// клеймо раздела сверяется с ожидаемым по полям. Чужой кристалл (вещество, плотность, состав, размер,
+        /// шаг сетки) — <see cref="CrystalSectionRefusal.OtherScene"/>; физика матрицы или форма беты слоя
+        /// (`phys`, `cl`, `l0`, `scr`) — <see cref="CrystalSectionRefusal.OtherPhysics"/>; данные распада (`ndb`) —
+        /// <see cref="CrystalSectionRefusal.OtherData"/>; рецепт слоя (`rcp`) —
+        /// <see cref="CrystalSectionRefusal.OtherRecipe"/>. Разошлось несколько — называется старшая причина
+        /// (сцена, физика, данные, рецепт), а <paramref name="detail"/> перечисляет все поля: «поле: в разделе «…», нужно «…»».
+        /// Годен — <see cref="CrystalSectionRefusal.None"/> и null. Решение то же, что у <see cref="UsableFor"/>.
+        /// </summary>
+        public CrystalSectionRefusal Judge(GeometryModel geometry, double binKev, out string detail)
+        {
+            detail = null;
+            if (this.Count == 0)
+            {
+                return CrystalSectionRefusal.Missing;
+            }
+
+            string expected = ComputeStamp(geometry, binKev);
+            if (string.Equals(this.Stamp, expected, StringComparison.Ordinal))
+            {
+                return CrystalSectionRefusal.None;
+            }
+
+            SortedDictionary<string, string> have = StampFields(this.Stamp);
+            SortedDictionary<string, string> need = StampFields(expected);
+            var names = new SortedSet<string>(have.Keys, StringComparer.Ordinal);
+            names.UnionWith(need.Keys);
+            var differ = new List<string>();
+            bool scene = false, physics = false, recipe = false, data = false;
+            foreach (string name in names)
+            {
+                string a, b;
+                have.TryGetValue(name, out a);
+                need.TryGetValue(name, out b);
+                if (string.Equals(a, b, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                differ.Add(name + ": в разделе " + (a == null ? "нет" : "«" + a + "»") + ", нужно " + (b == null ? "нет" : "«" + b + "»"));
+                if (name == "rcp")
+                {
+                    recipe = true;
+                }
+                else if (name == "phys" || name == "cl" || name == "l0" || name == "scr")
+                {
+                    physics = true;
+                }
+                else if (name == "ndb")
+                {
+                    data = true;
+                }
+                else
+                {
+                    scene = true;
+                }
+            }
+
+            // клейма разные, а поля одинаковые (порядок, повтор поля) — раздел всё равно не годен
+            detail = differ.Count > 0 ? string.Join("; ", differ.ToArray()) : "клеймо раздела не совпало с клеймом сцены";
+            return scene || differ.Count == 0 ? CrystalSectionRefusal.OtherScene
+                 : physics ? CrystalSectionRefusal.OtherPhysics
+                 : data ? CrystalSectionRefusal.OtherData
+                 : recipe ? CrystalSectionRefusal.OtherRecipe
+                 : CrystalSectionRefusal.OtherScene;
+        }
+
+        /// <summary>(`a274m`) Поля клейма по именам; доля элемента состава (`57:0.3485`) — полем `Z57`.</summary>
+        static SortedDictionary<string, string> StampFields(string stamp)
+        {
+            var fields = new SortedDictionary<string, string>(StringComparer.Ordinal);
+            foreach (string part in (stamp ?? "").Split(';'))
+            {
+                if (part.Length == 0)
+                {
+                    continue;
+                }
+
+                int eq = part.IndexOf('=');
+                int colon = part.IndexOf(':');
+                string name, value;
+                if (eq > 0)
+                {
+                    name = part.Substring(0, eq);
+                    value = part.Substring(eq + 1);
+                }
+                else if (colon > 0)
+                {
+                    name = "Z" + part.Substring(0, colon);
+                    value = part.Substring(colon + 1);
+                }
+                else
+                {
+                    name = part;
+                    value = "";
+                }
+
+                // повтор имени — признак порчи: значение склеивается, и сверка его увидит
+                fields[name] = fields.ContainsKey(name) ? fields[name] + "|" + value : value;
+            }
+
+            return fields;
+        }
+
+        /// <summary>(`a274m`) Отказ это или нет: «у кристалла слоя нет», «сцены нет», «матрицы нет» — не отказ, разделу там не место.</summary>
+        public static bool IsRefusal(CrystalSectionRefusal refusal)
+        {
+            return refusal == CrystalSectionRefusal.Missing || refusal == CrystalSectionRefusal.Damaged
+                   || refusal == CrystalSectionRefusal.OtherScene || refusal == CrystalSectionRefusal.OtherPhysics
+                   || refusal == CrystalSectionRefusal.OtherRecipe || refusal == CrystalSectionRefusal.OtherData;
+        }
+
+        /// <summary>(`a274m`) Причина словами — в примечание слоя разбора и в отчёт проб.</summary>
+        public static string RefusalText(CrystalSectionRefusal refusal, string detail)
+        {
+            string head;
+            switch (refusal)
+            {
+                case CrystalSectionRefusal.None: return "раздел годен";
+                case CrystalSectionRefusal.NoMatrix: return "матрица не привязана";
+                case CrystalSectionRefusal.NoScene: return "у разбора нет геометрии — раздел сверить не с чем";
+                case CrystalSectionRefusal.NoOwnActivity: return "у кристалла сцены собственной активности нет";
+                case CrystalSectionRefusal.Missing: head = "в матрице нет раздела слоя (матрица посчитана без него)"; break;
+                case CrystalSectionRefusal.Damaged: head = "раздел слоя в файле матрицы испорчен или не собран"; break;
+                case CrystalSectionRefusal.OtherScene: head = "раздел слоя посчитан для другого кристалла или сетки"; break;
+                case CrystalSectionRefusal.OtherPhysics: head = "раздел слоя посчитан другой физикой (версия переноса или форма беты)"; break;
+                case CrystalSectionRefusal.OtherRecipe: head = "раздел слоя посчитан другим рецептом слоя"; break;
+                case CrystalSectionRefusal.OtherData: head = "раздел слоя посчитан по другим данным распада (nucdb изменилась)"; break;
+                default: head = refusal.ToString(); break;
+            }
+
+            return string.IsNullOrEmpty(detail) ? head : head + " — " + detail;
         }
 
         // ------------------------------------------------------------------

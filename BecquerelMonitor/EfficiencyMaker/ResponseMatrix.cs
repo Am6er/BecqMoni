@@ -1100,7 +1100,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// (`AMBER274`, этап Э2, 04.11.2026) РАЗДЕЛ «СОБСТВЕННАЯ АКТИВНОСТЬ КРИСТАЛЛА»:
         /// готовые гистограммы распадов в объёме кристалла (La-138, Lu-176, ряд Ac-227).
         /// null — раздела нет: так у всех матриц, что построены без явного
-        /// <see cref="ResponseMatrixBuilder.AttachCrystalSection"/> (окно и склад его не зовут),
+        /// <see cref="ResponseMatrixBuilder.AttachCrystalSection"/> (окно его не зовёт; склад — ключом
+        /// `CorpusMatrixProbe --crystal-own=1`, полоса `a274m` 14.11.2026),
         /// у всех матриц, собранных до Э2, и у сцен, чей
         /// кристалл собственной активности не имеет (NaI, CsI, Ge). Разбор тогда
         /// побитово прежний. Запись — хвостом `CWNA` ПЕРЕД `ELSC`; `FormatVersion` не
@@ -1110,6 +1111,51 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>(`AMBER274`, Э2) Раздел собственной активности в файле негоден — причина; null — годен или отсутствует.</summary>
         public string CrystalSectionDamage { get; set; }
+
+        /// <summary>
+        /// (`AMBER274`, полоса `a274m` 14.11.2026) Раздел собственной активности кристалла, ГОДНЫЙ ДЛЯ СЦЕНЫ
+        /// <paramref name="geometry"/>, — иначе null и причина, как <see cref="ElectronSectionFor"/> у раздела
+        /// электрона. Годность — та же сверка клейма, что была в привязке (<see cref="ResponseCrystalSection.UsableFor"/>:
+        /// вещество и размер кристалла, физика, сетка, `cl`/`l0`/`scr`, рецепт слоя `rcp`); новое — причина:
+        /// прежде негодный раздел снимался молча, и «слой включён, а не действует» было не отличить от «слоя у
+        /// кристалла нет». Раздела нет или он негоден, а кристалл слой иметь должен
+        /// (<see cref="FullSpectrumAnalysis.CrystalOwnActivityBuilder.HasOwnActivity"/>) — отказ
+        /// (<see cref="ResponseCrystalSection.IsRefusal"/>); у кристалла без собственной активности — не отказ.
+        /// ⚠ Клеймо раздела видит только кристалл, не обвязку: годность матрицы этой сцене
+        /// (<see cref="IsValidFor(GeometryModel)"/>) сверяет тот, кто матрицу привязывает.
+        /// </summary>
+        public ResponseCrystalSection CrystalSectionFor(GeometryModel geometry, out CrystalSectionRefusal refusal, out string detail)
+        {
+            detail = null;
+            ResponseCrystalSection own = this.CrystalSection;
+            if (geometry == null)
+            {
+                refusal = CrystalSectionRefusal.NoScene;
+                return null;
+            }
+
+            if (own != null && own.Count > 0)
+            {
+                refusal = own.Judge(geometry, this.BinKev, out detail);
+                if (refusal == CrystalSectionRefusal.None)
+                {
+                    return own;
+                }
+            }
+            else
+            {
+                refusal = this.CrystalSectionDamage != null ? CrystalSectionRefusal.Damaged : CrystalSectionRefusal.Missing;
+                detail = this.CrystalSectionDamage;
+            }
+
+            if (!BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnActivityBuilder.HasOwnActivity(geometry))
+            {
+                refusal = CrystalSectionRefusal.NoOwnActivity;
+                detail = null;
+            }
+
+            return null;
+        }
 
         /// <summary>
         /// (`AMBER274`) Раздел электрона, если он есть И годен для ЭТОЙ матрицы без

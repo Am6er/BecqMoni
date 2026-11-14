@@ -44,6 +44,14 @@ using System.Threading;
 //                     [--eref=0|1] [--dpwa=0|1] [--ckv=0|1]
 //                     [--xray=0] [--coh=0] [--brem=0] [--bremsb=0]
 //                     [--gpu | --gpu=<dll>] [--gpu-check=N [--gpu-branch=0,1] [--gpu-node=i,j]]
+//                     [--crystal-own=1]
+//
+// `--crystal-own=1` (`AMBER274`, полоса `a274m` 14.11.2026) — РАЗДЕЛ СЛОЯ СОБСТВЕННОЙ АКТИВНОСТИ
+// КРИСТАЛЛА (`CWNA`) в файл матрицы сцен с лантаном, церием или лютецием в кристалле (класс
+// `CrystalLayer` в конце файла). Сцена с годной матрицей НЕ пересчитывается: раздел дописывается
+// к готовому файлу, остальное остаётся побайтно прежним (сверка sha256 на месте). Счёт — ЦП,
+// секунды на сцену; GPU не нужен. Раздел не собран — код 4. Без ключа проба раздел не пишет и
+// не трогает; разбор берёт его только при `CorpusFsaProbe --crystal-own=1` (слой ВЫКЛ умолчанием).
 //
 // ⚡ `--gpu` (`AMBER160`, П221; решения Amber 02.10.2026 «float + статистика
 // (Рекомендую)» и «Только оснастка (Рекомендую)») — УЗЛЫ матрицы на GPU:
@@ -248,6 +256,7 @@ class CorpusMatrixProbe
         string gpuBranches = "0,1";
         string gpuNodes = null;
         long gpuStack = 65536;
+        bool crystalOwn = false;                 // (`AMBER274`, `a274m`) `--crystal-own=1`: раздел слоя кристалла
         try
         {
         foreach (string a in args)
@@ -311,6 +320,12 @@ class CorpusMatrixProbe
             else if (a.StartsWith("--screening=", StringComparison.Ordinal))
                 // (`AMBER274`, a274s 13.11.2026) ключ экранирования в функции Ферми — то же, что `--l0=`
                 BecquerelMonitor.FullSpectrumAnalysis.FsaBetaLibrary.FermiScreening = a.Substring(12) == "1";
+            else if (a.StartsWith("--crystal-own=", StringComparison.Ordinal))
+                // (`AMBER274`, полоса `a274m` 14.11.2026) РАЗДЕЛ СЛОЯ собственной активности кристалла (`CWNA`) —
+                // в файл матрицы сцен, чей кристалл её имеет (La, Ce, Lu — по составу вещества, без имён в ключе).
+                // Тело фото и раздел электрона НЕ пересчитываются: у сцены с годной матрицей раздел дописывается к
+                // готовому файлу, и побайтная сохранность всего прочего сверяется на месте. Без ключа — как прежде.
+                crystalOwn = Flag(a, 14);
             else if (a.StartsWith("--seed=", StringComparison.Ordinal))
                 // `T43`: независимая выборка тем же кодом. Нужна для приёмки
                 // правок, меняющих ЧИСЛО розыгрышей: сравнивать «было/стало»
@@ -802,6 +817,8 @@ class CorpusMatrixProbe
         bool quiet = true;
         int skipped = 0, built = 0;
         int skippedStamp = 0, skippedDenser = 0;   // (П209/П211) причины пропуска порознь
+        // (`AMBER274`, `a274m`) раздел слоя кристалла: посчитан, уже годен, кристаллу не положен, не собран
+        int layerAttached = 0, layerKept = 0, layerNone = 0, layerFailed = 0;
         var total = Stopwatch.StartNew();
         foreach (string path in files)
         {
@@ -851,6 +868,11 @@ class CorpusMatrixProbe
                 {
                     Console.WriteLine("== {0} ==", key);
                     Console.WriteLine("   пропущена: клеймо сошлось, пересчитывать нечего");
+                    if (crystalOwn)
+                    {
+                        layerFailed += CrystalLayer.Ensure(geometry, have, outPathExisting, ref layerAttached, ref layerKept, ref layerNone);
+                    }
+
                     Console.WriteLine();
                     skipped++;
                     skippedStamp++;
@@ -877,6 +899,11 @@ class CorpusMatrixProbe
                     Console.WriteLine("   пропущена: посчитана ГУЩЕ штатной ({0} историй против {1}),"
                                       + " понижать без --force не буду (T36)",
                                       have.Histories, options.Histories);
+                    if (crystalOwn)
+                    {
+                        layerFailed += CrystalLayer.Ensure(geometry, have, outPathExisting, ref layerAttached, ref layerKept, ref layerNone);
+                    }
+
                     Console.WriteLine();
                     skipped++;
                     skippedDenser++;
@@ -904,6 +931,13 @@ class CorpusMatrixProbe
                                 .TotalSeconds;
 
             string outPath = Path.Combine(dir, key + ".rmx");
+            // (`AMBER274`, `a274m`) Раздел слоя — к свежей матрице до записи: один файл, одна запись.
+            string layerLine = null;
+            if (crystalOwn)
+            {
+                layerFailed += CrystalLayer.Attach(geometry, matrix, ref layerAttached, ref layerNone, out layerLine);
+            }
+
             matrix.Save(outPath);
             built++;
 
@@ -918,6 +952,11 @@ class CorpusMatrixProbe
             quiet &= !noisy;
             Console.WriteLine("== {0} ==", key);
             Console.WriteLine("   клеймо   : {0}", matrix.Stamp);
+            if (layerLine != null)
+            {
+                Console.WriteLine(layerLine);
+            }
+
             // Время НА ЧАСАХ про эту машину, а не про этот счёт, и путать их
             // дорого: T28 трое суток числилась «матрица подорожала вдвое»
             // (34.7 → 67.3 мин на девяти геометриях, результат тот же). Замер
@@ -1162,8 +1201,210 @@ class CorpusMatrixProbe
                               EfficiencySimulator.TotalPendingDropped);
         }
 
+        // (`AMBER274`, `a274m`) Раздел слоя — своей строкой итога и своим кодом: «матриц посчитано 0» при ключе
+        // слоя не должно читаться как «ничего не сделано».
+        if (crystalOwn)
+        {
+            Console.WriteLine("раздел слоя кристалла (--crystal-own=1): посчитан у {0}, уже годен у {1},"
+                              + " кристаллу не положен у {2}, НЕ СОБРАН у {3}",
+                              layerAttached, layerKept, layerNone, layerFailed);
+            if (layerFailed > 0)
+            {
+                Console.WriteLine("⛔ РАЗДЕЛ СЛОЯ НЕ СОБРАН — см. строки сцен выше");
+                return 4;
+            }
+        }
+
         Console.WriteLine(quiet ? "ВСЕ СОШЛИСЬ" : "ЕСТЬ ШУМНЫЕ");
         return quiet ? 0 : 1;
+    }
+}
+
+/// <summary>
+/// (`AMBER274`, полоса `a274m` 14.11.2026) РАЗДЕЛ СЛОЯ собственной активности кристалла в файле матрицы склада —
+/// ключ `--crystal-own=1`. Считает раздел тот же вход, что у замеров
+/// (<see cref="ResponseMatrixBuilder.AttachCrystalSection"/>, ЦП, секунды на сцену), хранит файл матрицы
+/// (хвост `CWNA` перед `ELSC`), берёт разбор сверкой клейма (<see cref="ResponseMatrix.CrystalSectionFor"/>).
+///
+/// ⛔ ПОСЧИТАННОЕ НЕ ПЕРЕСЧИТЫВАЕТСЯ (правило Amber 13.11.2026): у сцены с годной матрицей раздел дописывается к
+/// готовому файлу. Сохранность всего прочего доказывается на месте: файл с разделом читается, раздел из него
+/// снимается, запись без раздела обязана побайтно (sha256) равняться исходному файлу; не равна — исходный файл
+/// возвращается, сцена идёт в «не собран».
+/// </summary>
+static class CrystalLayer
+{
+    /// <summary>Раздел к матрице в памяти. Возвращает 1, если кристаллу слой положен, а раздел не собран.</summary>
+    public static int Attach(GeometryModel geometry, ResponseMatrix matrix, ref int attached, ref int none, out string line)
+    {
+        if (!BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnActivityBuilder.HasOwnActivity(geometry))
+        {
+            none++;
+            line = "   слой     : собственной активности у кристалла нет — раздел не положен";
+            return 0;
+        }
+
+        var watch = Stopwatch.StartNew();
+        ResponseMatrixBuilder.AttachCrystalSection(geometry, matrix);
+        watch.Stop();
+        CrystalSectionRefusal refusal;
+        string detail;
+        ResponseCrystalSection own = matrix.CrystalSectionFor(geometry, out refusal, out detail);
+        if (own == null)
+        {
+            line = "   слой     : ⛔ раздел НЕ СОБРАН — " + ResponseCrystalSection.RefusalText(refusal, detail);
+            return 1;
+        }
+
+        attached++;
+        var names = new List<string>();
+        foreach (CrystalOwnEntry entry in own.Entries)
+        {
+            names.Add(string.Format(CultureInfo.InvariantCulture, "{0} {1}", entry.Nuclide,
+                                    entry.Free ? "свободная" : entry.ActivityBq.ToString("F4", CultureInfo.InvariantCulture) + " Бк"));
+        }
+
+        line = string.Format(CultureInfo.InvariantCulture,
+                             "   слой     : раздел посчитан за {0:F1} с на часах (ЦП) — {1}; {2} историй на нуклид\n   клеймо сл.: {3}",
+                             watch.Elapsed.TotalSeconds, string.Join(", ", names.ToArray()), own.Histories, own.Stamp);
+        return 0;
+    }
+
+    /// <summary>
+    /// Раздел к ГОТОВОМУ файлу матрицы: годен — не трогать; нет или негоден — посчитать и дописать, тело и раздел
+    /// электрона не пересчитывая. Возвращает 1 при отказе.
+    /// </summary>
+    public static int Ensure(GeometryModel geometry, ResponseMatrix have, string path, ref int attached, ref int kept, ref int none)
+    {
+        CrystalSectionRefusal refusal;
+        string detail;
+        if (have.CrystalSectionFor(geometry, out refusal, out detail) != null)
+        {
+            kept++;
+            Console.WriteLine("   слой     : раздел в файле годен — не пересчитывается");
+            return 0;
+        }
+
+        if (refusal == CrystalSectionRefusal.NoOwnActivity)
+        {
+            none++;
+            Console.WriteLine("   слой     : собственной активности у кристалла нет — раздел не положен, файл не тронут");
+            return 0;
+        }
+
+        Console.WriteLine("   слой     : в файле раздела нет или он негоден ({0}) — считается, тело и раздел электрона не пересчитываются",
+                          ResponseCrystalSection.RefusalText(refusal, detail));
+
+        // Эталон сохранности: исходный файл БЕЗ раздела слоя. Если раздела в нём не было — это он сам.
+        string before = Sha256(path);
+        string baseline = before;
+        string scratch = path + ".tmp";
+        try
+        {
+            if (have.CrystalSection != null && have.CrystalSection.Count > 0)
+            {
+                // (Д2 критика `crit274m`) И в ветви замены: запись прочитанного обязана вернуть тот же файл —
+                // иначе «файл без раздела слоя» мерился бы не с исходным файлом, а с тем, что о нём понял читатель.
+                have.Save(scratch);
+                string same = Sha256(scratch);
+                if (same != before)
+                {
+                    Console.WriteLine("   слой     : ⛔ ОТКАЗ — запись прочитанной матрицы не равна файлу побайтно ({0} против {1});"
+                                      + " заменять раздел в таком файле нельзя, файл не тронут", same, before);
+                    return 1;
+                }
+
+                ResponseCrystalSection old = have.CrystalSection;
+                have.CrystalSection = null;
+                have.Save(scratch);
+                baseline = Sha256(scratch);
+                have.CrystalSection = old;
+            }
+            else if (refusal == CrystalSectionRefusal.Damaged)
+            {
+                // (Д1 критика `crit274m`) РАЗДЕЛ `CWNA` В ФАЙЛЕ ИСПОРЧЕН: читатель его снял, матрица годна. Побайтно
+                // вернуть такой файл записью нельзя по построению (порченые байты не пишутся), поэтому эталон —
+                // запись прочитанной матрицы без раздела, как в ветви замены; раздел считается заново и дописывается.
+                Console.WriteLine("   слой     : раздел CWNA в файле испорчен ({0}) — чинится: эталон — прочитанная матрица без раздела",
+                                  detail ?? "причина не названа");
+                have.Save(scratch);
+                baseline = Sha256(scratch);
+            }
+            else
+            {
+                // Запись прочитанного обязана вернуть тот же файл — иначе дописывать к нему нельзя.
+                have.Save(scratch);
+                string again = Sha256(scratch);
+                if (again != before)
+                {
+                    Console.WriteLine("   слой     : ⛔ ОТКАЗ — запись прочитанной матрицы не равна файлу побайтно ({0} против {1});"
+                                      + " дописывать раздел к такому файлу нельзя, файл не тронут", again, before);
+                    return 1;
+                }
+            }
+
+            int ignoredNone = 0;
+            string line;
+            int failed = Attach(geometry, have, ref attached, ref ignoredNone, out line);
+            Console.WriteLine(line);
+            if (failed != 0)
+            {
+                return 1;
+            }
+
+            string backup = path + ".bak";
+            File.Copy(path, backup, true);
+            have.Save(path);
+
+            // Сверка: прочитать записанное, снять раздел, записать — обязан выйти эталон.
+            ResponseMatrix back = ResponseMatrix.Load(path);
+            ResponseCrystalSection read = back != null ? back.CrystalSectionFor(geometry, out refusal, out detail) : null;
+            string stripped = null;
+            if (back != null)
+            {
+                back.CrystalSection = null;
+                back.Save(scratch);
+                stripped = Sha256(scratch);
+            }
+
+            if (read == null || stripped != baseline)
+            {
+                File.Copy(backup, path, true);
+                File.Delete(backup);
+                attached--;
+                Console.WriteLine("   слой     : ⛔ ОТКАЗ — {0}; исходный файл возвращён (sha256 {1})",
+                                  read == null ? "записанный раздел не читается годным: " + ResponseCrystalSection.RefusalText(refusal, detail)
+                                               : "файл без раздела слоя перестал равняться исходному (" + stripped + " против " + baseline + ")",
+                                  Sha256(path));
+                return 1;
+            }
+
+            File.Delete(backup);
+            Console.WriteLine("   слой     : дописан; без раздела слоя файл побайтно прежний (sha256 {0}); новый sha256 {1}, {2:F1} МБ",
+                              baseline, Sha256(path), new FileInfo(path).Length / 1048576.0);
+            return 0;
+        }
+        finally
+        {
+            if (File.Exists(scratch))
+            {
+                File.Delete(scratch);
+            }
+        }
+    }
+
+    static string Sha256(string path)
+    {
+        using (var sha = System.Security.Cryptography.SHA256.Create())
+        using (FileStream stream = File.OpenRead(path))
+        {
+            var sb = new StringBuilder();
+            foreach (byte b in sha.ComputeHash(stream))
+            {
+                sb.Append(b.ToString("x2", CultureInfo.InvariantCulture));
+            }
+
+            return sb.ToString();
+        }
     }
 }
 
