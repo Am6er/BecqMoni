@@ -38,6 +38,11 @@ namespace BecquerelMonitor.Probes
     ///        --nomask — автомаска фона ВЫКЛ (<c>BackgroundExcessMask</c>): ЗАМЕР, а не режим окна, —
     ///        цена повторного захода «весь разбор заново без маски» (`AMBER295`) как разность времён;
     ///        дамп такого прогона с дампом окна не сверяется (служебные строки маски другие).
+    ///        --core=0|1|2, --specdeg=N, --warmup, --keep, --pause=мс, --prefetch — замеры `a326p`;
+    ///        --audit — перечень полей копий ядра (<c>FsaAnalyzer.CoreFieldAudit</c>), первая строка sound|UNSOUND;
+    ///        --audit-control=forget=&lt;имя&gt;|extra — положительный контроль сторожа
+    ///        `tools/check_fsa_core_futures.py` (`AMBER315`, a326u): имя вычеркнуто из списков видов либо добавлено
+    ///        чужое поле-объект — перечень обязан назвать его неизвестным.
     /// Коды: 0 — посчитано; 2 — ключи/файлы; 3 — разбор не завершился; 4 — прогоны разошлись.
     /// </summary>
     static class FsaPerfProbeA326
@@ -111,6 +116,20 @@ namespace BecquerelMonitor.Probes
                 else if (a == "--keep") keep = new List<object>();
                 else if (a.StartsWith("--pause=", StringComparison.Ordinal)) pauseMs = int.Parse(a.Substring(8), Inv);
                 else if (a == "--audit") { Console.Write(FsaAnalyzer.CoreFieldAudit()); return 0; }
+                // (`AMBER315`, a326u) положительный контроль сторожа `tools/check_fsa_core_futures.py` — тот же разбор
+                // полей: «forget=<имя>» — имя вычеркнуто из списков видов (как `crystalOwnSource` до правки a326u),
+                // «extra» — к полям анализатора добавлено чужое поле-объект (как новое поле, которого перечень не знает)
+                else if (a.StartsWith("--audit-control=", StringComparison.Ordinal))
+                {
+                    string what = a.Substring(16);
+                    string forget = what.StartsWith("forget=", StringComparison.Ordinal) ? what.Substring(7) : null;
+                    FieldInfo extra = what == "extra"
+                        ? typeof(AuditControlCarrier).GetField("a326uControlField", BindingFlags.Instance | BindingFlags.NonPublic)
+                        : null;
+                    if (forget == null && extra == null) { Console.Error.WriteLine("--audit-control=forget=<имя>|extra"); return 2; }
+                    Console.Write(FsaAnalyzer.CoreFieldAuditControl(forget, extra));
+                    return 0;
+                }
                 else if (a == "--nomask") noMask = true;
                 // как приложение при запуске (`Program.cs`): отпечаток данных переноса matdb — до разбора
                 else if (a == "--prefetch") BecquerelMonitor.EfficiencyMaker.MaterialDatabase.SimulatorDataFingerprint();
@@ -457,5 +476,17 @@ namespace BecquerelMonitor.Probes
                               rd.BackgroundEnergySpectrum != null ? "есть" : "нет");
             return rd;
         }
+    }
+
+    /// <summary>
+    /// (`AMBER315`, a326u) Носитель чужого поля для контроля «extra» ключа <c>--audit-control</c>: поле того же вида,
+    /// что `crystalOwnSource` (поле-объект своего запечатанного класса: не значение, не строка, не вместилище) — перечень обязан
+    /// назвать его неизвестным.
+    /// </summary>
+    sealed class AuditControlCarrier
+    {
+#pragma warning disable 0169, 0649
+        AuditControlCarrier a326uControlField;
+#pragma warning restore 0169, 0649
     }
 }

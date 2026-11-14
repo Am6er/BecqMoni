@@ -12212,11 +12212,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         // Объекты, которые заход ЗАМЕНЯЕТ (новый объект или null в начале прохода либо захода), а на месте не правит:
         // у копии та же ссылка, пока она не поставила свою.
+        // ⛔ (`AMBER315`, полоса `a326u` 14.11.2026) `crystalOwnSource` (`a274g`, `e1d8c675`) — того же рода: проход
+        // (`AnalyzeOnce`) сперва ставит null, затем `PrepareCrystalOwn` заполняет НОВЫЙ объект в локальной переменной
+        // и лишь потом присваивает его полю; после присвоения его только читают (`CrystalOwnLayerAt`,
+        // `CrystalOwnFreeTemplateAt`, `Free.Count` у сборки образов). Без этой записи перечень отвечал `UNSOUND`, и
+        // параллельные заходы ядра 13–14.11.2026 были выключены у ВСЕХ разборов — молча, числа те же, время дольше.
         static readonly HashSet<string> CoreReferenceFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "thresholdRamp", "noiseTerms", "reportNoise", "pileUpColumn", "calibrationInverse", "calibrationInverseRefused",
             "depositChannelsCalibration", "anchorWarmIn", "anchorWarmOut", "anchorEfficiency", "sumTransfer", "cascade",
-            "kernelBank"
+            "kernelBank", "crystalOwnSource"
         };
 
         static readonly HashSet<string> CoreFreshFields = new HashSet<string>(StringComparer.Ordinal)
@@ -12248,66 +12253,84 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     return corePlan;
                 }
 
-                const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance
-                    | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic
-                    | System.Reflection.BindingFlags.DeclaredOnly;
-                var plan = new List<CoreField>();
-                bool sound = true;
-                foreach (System.Reflection.FieldInfo field in typeof(FsaAnalyzer).GetFields(flags))
-                {
-                    string name = field.Name;
-                    bool setting = field.IsPublic;
-                    if (name.StartsWith("<", StringComparison.Ordinal))
-                    {
-                        name = name.Substring(1, name.IndexOf('>') - 1);
-                        System.Reflection.PropertyInfo property = typeof(FsaAnalyzer).GetProperty(name, flags);
-                        System.Reflection.MethodInfo setter = property != null ? property.GetSetMethod(true) : null;
-                        setting = setter != null && setter.IsPublic;
-                    }
-
-                    CoreFieldKind kind;
-                    if (CoreOrchestratorFields.Contains(name))
-                    {
-                        kind = CoreFieldKind.Orchestrator;
-                    }
-                    else if (CoreSharedFields.Contains(name))
-                    {
-                        kind = CoreFieldKind.Shared;
-                    }
-                    else if (CoreFreshFields.Contains(name))
-                    {
-                        kind = CoreFieldKind.Fresh;
-                    }
-                    else if (setting)
-                    {
-                        kind = CoreFieldKind.Setting;
-                    }
-                    else if (CoreReferenceFields.Contains(name))
-                    {
-                        kind = CoreFieldKind.Reference;
-                    }
-                    else if (field.FieldType.IsValueType || field.FieldType == typeof(string))
-                    {
-                        kind = CoreFieldKind.Value;
-                    }
-                    else if (IsCoreContainer(field.FieldType))
-                    {
-                        kind = CoreFieldKind.Container;
-                    }
-                    else
-                    {
-                        kind = CoreFieldKind.Unknown;
-                        sound = false;
-                    }
-
-                    plan.Add(new CoreField { Field = field, Name = name, Kind = kind });
-                }
-
-                plan.Sort((left, right) => string.CompareOrdinal(left.Name, right.Name));
+                bool sound;
+                corePlan = BuildCorePlan(null, null, out sound);
                 corePlanSound = sound;
-                corePlan = plan.ToArray();
                 return corePlan;
             }
+        }
+
+        /// <summary>
+        /// (`AMBER326`, a326p; разнесено полосой `a326u` 14.11.2026) Разбор полей экземпляра анализатора по видам
+        /// копирования. <paramref name="forget"/> и <paramref name="extra"/> — только положительному контролю сторожа
+        /// (<see cref="CoreFieldAuditControl"/>): имя, вычеркнутое из списков видов, и чужое поле, добавленное к перечню.
+        /// </summary>
+        static CoreField[] BuildCorePlan(string forget, System.Reflection.FieldInfo extra, out bool sound)
+        {
+            const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic
+                | System.Reflection.BindingFlags.DeclaredOnly;
+            var fields = new List<System.Reflection.FieldInfo>(typeof(FsaAnalyzer).GetFields(flags));
+            if (extra != null)
+            {
+                fields.Add(extra);
+            }
+
+            var plan = new List<CoreField>();
+            sound = true;
+            foreach (System.Reflection.FieldInfo field in fields)
+            {
+                string name = field.Name;
+                bool setting = field.IsPublic;
+                if (name.StartsWith("<", StringComparison.Ordinal))
+                {
+                    name = name.Substring(1, name.IndexOf('>') - 1);
+                    System.Reflection.PropertyInfo property = field.DeclaringType.GetProperty(name, flags);
+                    System.Reflection.MethodInfo setter = property != null ? property.GetSetMethod(true) : null;
+                    setting = setter != null && setter.IsPublic;
+                }
+
+                bool listed = !string.Equals(name, forget, StringComparison.Ordinal);
+                CoreFieldKind kind;
+                if (listed && CoreOrchestratorFields.Contains(name))
+                {
+                    kind = CoreFieldKind.Orchestrator;
+                }
+                else if (listed && CoreSharedFields.Contains(name))
+                {
+                    kind = CoreFieldKind.Shared;
+                }
+                else if (listed && CoreFreshFields.Contains(name))
+                {
+                    kind = CoreFieldKind.Fresh;
+                }
+                else if (setting)
+                {
+                    kind = CoreFieldKind.Setting;
+                }
+                else if (listed && CoreReferenceFields.Contains(name))
+                {
+                    kind = CoreFieldKind.Reference;
+                }
+                else if (field.FieldType.IsValueType || field.FieldType == typeof(string))
+                {
+                    kind = CoreFieldKind.Value;
+                }
+                else if (IsCoreContainer(field.FieldType))
+                {
+                    kind = CoreFieldKind.Container;
+                }
+                else
+                {
+                    kind = CoreFieldKind.Unknown;
+                    sound = false;
+                }
+
+                plan.Add(new CoreField { Field = field, Name = name, Kind = kind });
+            }
+
+            plan.Sort((left, right) => string.CompareOrdinal(left.Name, right.Name));
+            return plan.ToArray();
         }
 
         static bool IsCoreContainer(Type type)
@@ -12358,8 +12381,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public static string CoreFieldAudit()
         {
             CoreField[] plan = CorePlan();
+            return CoreFieldAuditText(plan, corePlanSound);
+        }
+
+        /// <summary>
+        /// (`AMBER315`, полоса `a326u` 14.11.2026) ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ сторожа `tools/check_fsa_core_futures.py`:
+        /// тот же разбор полей (<see cref="BuildCorePlan"/>), что у <see cref="CoreFieldAudit"/>, но с именем
+        /// <paramref name="forget"/>, вычеркнутым из списков видов (так выглядел перечень до правки `a326u` для
+        /// `crystalOwnSource`), и/или с чужим полем <paramref name="extra"/> неизвестного вида. Перечень разбора не
+        /// кэшируется и на заходы ядра не влияет.
+        /// </summary>
+        public static string CoreFieldAuditControl(string forget, System.Reflection.FieldInfo extra)
+        {
+            bool sound;
+            CoreField[] plan = BuildCorePlan(forget, extra, out sound);
+            return CoreFieldAuditText(plan, sound);
+        }
+
+        static string CoreFieldAuditText(CoreField[] plan, bool planSound)
+        {
             var sb = new StringBuilder();
-            sb.Append(corePlanSound ? "sound" : "UNSOUND").Append('\t').Append(plan.Length.ToString(CultureInfo.InvariantCulture)).Append('\n');
+            sb.Append(planSound ? "sound" : "UNSOUND").Append('\t').Append(plan.Length.ToString(CultureInfo.InvariantCulture)).Append('\n');
             foreach (CoreField field in plan)
             {
                 sb.Append(field.Name).Append('\t').Append(field.Kind).Append('\t').Append(field.Field.FieldType.Name).Append('\n');
@@ -23921,10 +23963,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var free = new List<FsaComponent>();
             var notes = new List<string>();
             // (`AMBER274` Э3, полоса `a274a`; вызов поставлен полосой `a274m` 14.11.2026) ряд Ac-227 с альфами —
-            // амплитуда СЧЁТОМ АЛЬФ этого спектра (решение Amber 13.11.2026 «По счёту альф в Э3»): запись становится
-            // известной (вычитается до фита) или снимается (ряда нет); счёт не годен (чужие линии в окне альф) —
-            // запись остаётся свободной. Раздел без альф возвращается тем же объектом — путь побитно прежний.
-            // ⚠ Раздел с альфами привязка пока не отдаёт: клеймо сверяется с рецептом умолчания (без `:aq`).
+            // амплитуда СЧЁТОМ АЛЬФ этого спектра (решение Amber 13.11.2026 «По счёту альф в Э3»): счёт годен — запись
+            // становится известной (вычитается до фита). Счёт не годен (чужие линии или подложка в окне альф) или ряд
+            // по счёту не найден — ряд берётся из поля прибора `CrystalSeriesActivity` с распадом головы
+            // (`CrystalOwnSeriesFallback`, `a274f`, решение Amber 14.11.2026 «По фону с распадом»), и запись тоже
+            // вычитается известной; поля нет — при негодном счёте запись остаётся свободной, при ненайденном ряде
+            // снимается. Раздел без альф возвращается тем же объектом — путь побитно прежний.
+            // Раздел с альфами отдаёт привязка прибора (`FsaMatrixBinding.BindDevice`): клеймо раздела сверяется с
+            // рецептом ПРИБОРА — источник QF альф и форма групп из его полей (`a274f`).
             string alphaNote;
             CrystalOwnSeriesFallback fallback = this.CrystalOwnSeriesFallback;
             if (fallback != null)
