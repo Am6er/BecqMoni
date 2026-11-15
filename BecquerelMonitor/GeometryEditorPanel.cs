@@ -322,7 +322,6 @@ namespace BecquerelMonitor
         // 11.11.2026: «Исчезает», «Геометрия их GDML читается в режиме Read-only. Можно править только то, чего там нет»),
         // а файл показан на своей подвкладке «Файл GDML»: сопоставление, сверка «в файле → в полях» и чертёж.
         TabPage sourceTab, gdmlTab;
-        bool gdmlTabBuilt;
         GdmlMappingPanel gdmlMapping;
         Label gdmlStrip;
         GdmlOverview gdmlOverview;
@@ -1363,7 +1362,6 @@ namespace BecquerelMonitor
                                                     || (now.TakeShield && ReferenceEquals(volume, now.ShieldFrom))));
             };
             this.gdmlSummaryPanel.Controls.Add(this.gdmlMapping);
-            this.gdmlTabBuilt = true;
 
             // Раздел между сводкой и чертежом двигает человек; стыковка идёт с конца списка:
             // сводка самой последней, раздел перед ней, чертёж берёт остаток.
