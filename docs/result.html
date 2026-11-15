@@ -205,7 +205,7 @@ figure.shot.wide{margin-top:22px}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=eed1a167"></script>
+<script src="assets/guide.js?v=3422bc11"></script>
 <script src="assets/quanta.js?v=b92ab866"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
@@ -249,14 +249,15 @@ GUIDE.texts({ru:{
 'w.l7':'<b>Строки</b> — нуклиды из FSA; член связанного ряда даёт строку родителя (здесь Th-232)',
 'd.h':'Что говорит заголовок',
 'd.hint':'Щёлкайте состояния — ниже макет окна с тем, что вы увидите. Числа строк — пример: разбор с матрицей и без неё.',
-'d.s1':'по матрице','d.s2':'по кривой','d.s3':'Бк скрыты: поле','d.s4':'Бк скрыты: измерение','d.s5':'ошибка','d.s6':'идёт расчёт','d.s7':'Бк/кг без массы',
-'d.h1':'FSA: Бк по матрице отклика','d.h2':'FSA: Бк по кривой (расчёт)','d.h3':'FSA: Бк скрыты — кривая сцены поля (см² на единичный флюенс)','d.h4':'FSA: Бк скрыты — кривая без абсолютного уровня (измерение)','d.h5':'FSA: ошибка','d.h6':'FSA: идёт расчёт…','d.h7':'FSA: Бк по матрице отклика',
+'d.s8':'FSA выключен','d.s1':'по матрице','d.s2':'по кривой','d.s3':'Бк скрыты: поле','d.s4':'Бк скрыты: измерение','d.s5':'ошибка','d.s6':'идёт расчёт','d.s7':'Бк/кг без массы',
+'d.h8':'FSA выключен (кнопка FSA на панели графика)','d.h1':'FSA: Бк по матрице отклика','d.h2':'FSA: Бк по кривой (расчёт)','d.h3':'FSA: Бк скрыты — кривая сцены поля (см² на единичный флюенс)','d.h4':'FSA: Бк скрыты — кривая без абсолютного уровня (измерение)','d.h5':'FSA: ошибка','d.h6':'FSA: идёт расчёт…','d.h7':'FSA: Бк по матрице отклика',
 'd.t1':'Лучший случай: кривая с геометрией и годная матрица. Каскадное суммирование учтено. K-40 здесь едва выше порога обнаружения при k = 2: 60.03 при ±58.06 (2σ) — строка без ND; при k = 3 была бы с ND.',
 'd.t2':'Матрицы нет или она устарела: беккерели — по кривой, суммирование не учтено. На снимке без матрицы Th-232 вышел 1034.16 вместо 1088.42 Бк — на 5 % ниже. Посчитайте матрицу (глава <a href="geometry.html#matrix">8</a>).',
 'd.t3':'Кривая сцены «Изотропное поле (ISO)» меряет отклик на единичный флюенс (см²), а не долю квантов: для дозы — да, для беккерелей — нет. Строки пишут «нет K». Сцены «Детектор на земле» и «в лунке» беккерели дают.',
 'd.t4':'Кривая снята по измерениям или введена руками, а геометрию к ней дописали через «Изменить…»: разбор идёт, но абсолютного уровня у самой кривой нет — без матрицы беккерели скрыты. Посчитайте матрицу (тогда Бк — по ней) или кривую из геометрии.',
 'd.t5':'Разбор отказал: вместо строк — одна строка «FSA» с причиной, той же, что в строке состояния «Отчёта FSA». Здесь — нет геометрии у кривой (глава <a href="geometry.html">8</a>).',
 'd.t6':'Разбор ещё идёт. Если прошлый результат уже есть, строки остаются от него, а к заголовку добавляется «(пересчёт…)»; при наборе пересчёт — не чаще раза в 30 с.',
+'d.t8':'Кнопка FSA на панели графика выключена — разбора FSA нет, и строк нет: окно остаётся на месте и пишет причину. При выключенных пиках — то же, причина «поиск пиков выключен на панели графика». Включите кнопку FSA (и пики) — строки появятся сами.',
 'd.t7':'Выбраны Бк/кг, а в «Информации об образце» вес равен нулю: строки пишут «нет массы». Впишите вес — и числа появятся.',
 'c.nok':'нет K','c.nom':'нет массы','c.comp':'FSA: идёт расчёт…','c.geo':'Полноспектральному разбору нужна геометрия прибора: опишите кристалл в редакторе геометрии у кривой эффективности',
 'col.n':'Нуклид','col.mean':'Ср. за набор','col.samp':'На дату отбора','col.u':'Неопред.','col.mda':'МДА, z ≥ 3','u.bq':'Бк','u.bqkg':'Бк/кг','u.bql':'Бк/л','corr.no':'Нет коррекции','corr.hl':'Корр. пер. полураспада',
@@ -343,14 +344,15 @@ GUIDE.texts({ru:{
 'w.l7':'<b>Rows</b> — nuclides from FSA; a tied chain member gives the row of the parent (Th-232 here)',
 'd.h':'What the header says',
 'd.hint':'Click the states — below is a mock-up of the window with what you will see. Row numbers are an example: an analysis with and without a matrix.',
-'d.s1':'by matrix','d.s2':'by curve','d.s3':'Bq hidden: field','d.s4':'Bq hidden: measurement','d.s5':'error','d.s6':'computing','d.s7':'Bq/kg without weight',
-'d.h1':'FSA: Bq by response matrix','d.h2':'FSA: Bq by simulation curve','d.h3':'FSA: Bq hidden — field-scene curve (cm² per unit fluence)','d.h4':'FSA: Bq hidden — curve without absolute scale (measurement)','d.h5':'FSA: error','d.h6':'FSA: computing…','d.h7':'FSA: Bq by response matrix',
+'d.s8':'FSA off','d.s1':'by matrix','d.s2':'by curve','d.s3':'Bq hidden: field','d.s4':'Bq hidden: measurement','d.s5':'error','d.s6':'computing','d.s7':'Bq/kg without weight',
+'d.h8':'FSA is off (FSA button on the chart toolbar)','d.h1':'FSA: Bq by response matrix','d.h2':'FSA: Bq by simulation curve','d.h3':'FSA: Bq hidden — field-scene curve (cm² per unit fluence)','d.h4':'FSA: Bq hidden — curve without absolute scale (measurement)','d.h5':'FSA: error','d.h6':'FSA: computing…','d.h7':'FSA: Bq by response matrix',
 'd.t1':'The best case: a curve with a geometry and a valid matrix. Cascade summing is applied. K-40 is barely above the detection threshold at k = 2 here: 60.03 at ±58.06 (2σ) — a row without ND; at k = 3 it would carry ND.',
 'd.t2':'No matrix or a stale one: becquerels by the curve, summing not applied. In the shot without a matrix Th-232 came out 1034.16 instead of 1088.42 Bq — 5 % lower. Compute the matrix (chapter <a href="geometry.html#matrix">8</a>).',
 'd.t3':'A curve of the “Isotropic field (ISO)” scene measures the response per unit fluence (cm²), not a share of photons: fine for dose, not for becquerels. Rows say “no K”. The “Detector on the ground” and “in a borehole” scenes do give becquerels.',
 'd.t4':'The curve comes from measurements or was typed by hand, and a geometry was added with “Edit...”: the decomposition runs, but the curve has no absolute scale — without a matrix becquerels are hidden. Compute the matrix (then Bq come from it) or a curve from the geometry.',
 'd.t5':'The decomposition refused: instead of rows there is one “FSA” row with the reason, the same as in the status line of the “FSA Report”. Here — the curve has no geometry (chapter <a href="geometry.html">8</a>).',
 'd.t6':'The decomposition is still running. If an earlier result exists, its rows stay and the header gets “(recomputing…)”; while recording it recomputes no more often than every 30 s.',
+'d.t8':'The FSA button on the chart toolbar is off — there is no FSA decomposition and no rows: the window stays in place and names the reason. With the peaks hidden it is the same, the reason being “peak search is off on the chart toolbar”. Turn the FSA button (and the peaks) on — the rows come back by themselves.',
 'd.t7':'Bq/kg is chosen while the weight in “Sample Information” is zero: rows say “no weight”. Type the weight — and the numbers appear.',
 'c.nok':'no K','c.nom':'no weight','c.comp':'FSA: computing…','c.geo':'Full-spectrum decomposition needs a detector geometry: describe the crystal in the geometry editor of the efficiency curve',
 'col.n':'Nuclide','col.mean':'Acq. mean','col.samp':'At sampling','col.u':'Uncertainty','col.mda':'MDA, z ≥ 3','u.bq':'Bq','u.bqkg':'Bq/kg','u.bql':'Bq/l','corr.no':'No Correction','corr.hl':'Half Lifetime Correction',
@@ -428,7 +430,7 @@ GUIDE.texts({ru:{
   const ROWS2 = [['K-40', '196.09', '±79.76 (40.67%)', '169.76'], ['Th-232', '1034.16', '±16.99 (1.64%)', '17.66']];
   let s = 1;
   function draw() {
-    $('#dStates').innerHTML = [1, 2, 3, 4, 5, 6, 7].map(i => '<button class="chip' + (i === s ? ' on' : '') + '" data-i="' + i + '">' + t('d.s' + i) + '</button>').join('');
+    $('#dStates').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8].map(i => '<button class="chip' + (i === s ? ' on' : '') + '" data-i="' + i + '">' + t('d.s' + i) + '</button>').join('');
     $$('#dStates .chip').forEach(b => b.onclick = () => { s = +b.dataset.i; draw(); });
     const unit = s === 7 ? t('u.bqkg') : t('u.bq');
     let body;
@@ -436,6 +438,7 @@ GUIDE.texts({ru:{
     else if (s === 2) body = ROWS2.map(r => '<tr><td>' + r[0] + '</td><td class="n">' + r[1] + '</td><td class="n">' + r[2] + '</td><td class="n">' + r[3] + '</td></tr>').join('');
     else if (s === 6) body = '<tr><td>FSA</td><td colspan="3" class="span">' + t('c.comp') + '</td></tr>';
     else if (s === 5) body = '<tr><td>FSA</td><td colspan="3" class="span">' + t('c.geo') + '</td></tr>';
+    else if (s === 8) body = '';   // (`AMBER329`) FSA выключен — строк нет, причина в заголовке
     else body = ROWS.map(r => '<tr><td>' + r[0] + '</td><td colspan="3" class="span">' + t(s === 7 ? 'c.nom' : 'c.nok') + '</td></tr>').join('');
     $('#dWin').innerHTML = '<div class="bar"><span>' + unit + ' ▾</span><span>' + t('corr.no') + ' ▾</span></div><table><tr><th>' + t('d.h' + s) + '</th><th>' + t('col.mean') + '</th><th>' + t('col.u') + ' 2σ</th><th>' + t('col.mda') + '</th></tr>' + body + '</table>';
     $('#dTxt').innerHTML = t('d.t' + s);

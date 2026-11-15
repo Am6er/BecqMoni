@@ -226,7 +226,7 @@ figure.shot.side.tall>.shot-frame{max-width:330px;width:100%}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=eed1a167"></script>
+<script src="assets/guide.js?v=3422bc11"></script>
 <script src="assets/quanta.js?v=b92ab866"></script>
 <script>
 /* Монте-Карло-сцена главы (`AMBER246`) */
@@ -259,17 +259,17 @@ GUIDE.texts({ru:{
 'h.h':'Разобрать <em>весь спектр</em>, а не отдельные пики',
 'h.lead':'FSA (полноспектральное разложение) складывает спектр из «образов» нуклидов — каждый со своими пиками, комптоном и вылетами — и подбирает, сколько какого нужно. Как он устроен внутри — в главе <a href="how-it-works.html#fsa">«Как это работает» → FSA</a>; здесь — как его включить и как читать отчёт.',
 'o.k':'Шаг 1','o.h':'Включить FSA — кнопка рядом с кнопкой пиков',
-'o.lead':'FSA — это режим показа спектра, как «фон» или «за вычетом фона». Включается он одной кнопкой FSA на полосе под графиком — сразу на всех открытых спектрах, и программа помнит его до следующего запуска. Включили — программа разбирает спектр и раскрашивает его по нуклидам. Но, как повару, ей нужны все ингредиенты: без них она вежливо откажет и скажет, чего не хватает.',
+'o.lead':'FSA — это режим показа спектра, как «фон» или «за вычетом фона». Включается он одной кнопкой FSA на полосе под графиком — сразу на всех открытых спектрах, и программа помнит его до следующего запуска. Включили — программа разбирает спектр и раскрашивает его по нуклидам. Но, как повару, ей нужны все ингредиенты: без них она вежливо откажет и скажет, чего не хватает. Выключили — FSA выключен полностью: разбора нет нигде, ни на графике, ни в окнах «Отчёт FSA» и «Результат измерений». Окна остаются на месте и пишут «FSA выключен» с причиной — для тех, кому FSA сейчас не нужен.',
 'o.cap':'Полоса под графиком: кнопка FSA и её раскрытый список (FSA включён)',
-'o.l1':'<b>Кнопка пиков</b> (флажок) — показать или скрыть обнаруженные пики на всех спектрах; FSA держится, пока они включены',
+'o.l1':'<b>Кнопка пиков</b> (флажок) — показать или скрыть обнаруженные пики на всех спектрах; FSA держится, пока они включены: пики выключены — разбора нет, окна пишут «FSA выключен (поиск пиков выключен на панели графика)»',
 'o.l2':'<b>Кнопка FSA</b> (на значке буквы «FSA» над двумя пиками) — щелчок включает или выключает FSA на всех спектрах; цветная — включён, серая — выключен, бледная — недоступна (пики выключены)',
 'o.l3':'<b>Включить FSA на всех спектрах</b> — то же, что щелчок по серой кнопке; недоступен, пока пики выключены',
-'o.l4':'<b>Выключить FSA на всех спектрах</b> — доступен всегда; галка стоит у того, что включено сейчас',
+'o.l4':'<b>Выключить FSA на всех спектрах</b> — доступен всегда; галка стоит у того, что включено сейчас. Выключен — разбора нет, окна пишут «FSA выключен (кнопка FSA на панели графика)»',
 'c.h':'Проверьте сами: что скажет программа',
 'c.hint':'Снимайте и ставьте галки — ниже появится то, что вы увидите в программе: строка состояния отчёта и заголовок окна результата. Вопросов программа не задаёт: чего не хватает, называет сам отчёт FSA. Тексты — дословно из программы.',
-'c.ecal':'Калибровка энергии','c.fwhm':'Калибровка FWHM','c.curve':'Кривая эффективности выбрана','c.geo':'У кривой есть геометрия','c.peaks':'Пики найдены и подписаны','c.mx':'Матрица отклика посчитана',
+'c.btn':'Кнопка FSA включена','c.show':'Пики показаны (кнопка пиков)','c.ecal':'Калибровка энергии','c.fwhm':'Калибровка FWHM','c.curve':'Кривая эффективности выбрана','c.geo':'У кривой есть геометрия','c.peaks':'Пики найдены и подписаны','c.mx':'Матрица отклика посчитана',
 'c.status':'Строка состояния отчёта:','c.head':'Окно «Результат измерений»:','c.qual':'В «Качестве разбора»:',
-'s.done':'FSA: расчёт завершён','s.err':'FSA: ошибка',
+'s.done':'FSA: расчёт завершён','s.err':'FSA: ошибка','s.offBtn':'FSA выключен (кнопка FSA на панели графика)','s.offPeaks':'FSA выключен (поиск пиков выключен на панели графика)',
 'e.cal':'Полноспектральному разбору нужны энергетическая калибровка и калибровка FWHM спектра',
 'e.geo':'Полноспектральному разбору нужна геометрия прибора: опишите кристалл в редакторе геометрии у кривой эффективности',
 'e.peaks':'Полноспектральный разбор: нет опознанных пиков — сначала поиск пиков',
@@ -365,17 +365,17 @@ GUIDE.texts({ru:{
 'h.h':'Decompose <em>the whole spectrum</em>, not single peaks',
 'h.lead':'FSA (full-spectrum decomposition) builds the spectrum from nuclide “images” — each with its peaks, Compton and escapes — and finds how much of each is needed. How it works inside is in <a href="how-it-works.html#fsa">“How it works” → FSA</a>; here is how to turn it on and read the report.',
 'o.k':'Step 1','o.h':'Turn FSA on — the button next to the peaks button',
-'o.lead':'FSA is a display mode of the spectrum, like “background” or “background subtracted”. One FSA button on the bar under the chart turns it on for all open spectra at once, and the program remembers it until the next start. Turn it on and the program decomposes the spectrum and colours it by nuclide. But like a cook it needs all the ingredients: without them it politely refuses and says what is missing.',
+'o.lead':'FSA is a display mode of the spectrum, like “background” or “background subtracted”. One FSA button on the bar under the chart turns it on for all open spectra at once, and the program remembers it until the next start. Turn it on and the program decomposes the spectrum and colours it by nuclide. But like a cook it needs all the ingredients: without them it politely refuses and says what is missing. Turn it off and FSA is off completely: no decomposition anywhere — not on the chart, not in the “FSA Report” and “Measurement Result” windows. The windows stay in place and say “FSA is off” with the reason — for those who do not need FSA right now.',
 'o.cap':'The bar under the chart: the FSA button and its list, opened (FSA is on)',
-'o.l1':'<b>The peaks button</b> (flag) — show or hide the detected peaks on all spectra; FSA lasts while they are shown',
+'o.l1':'<b>The peaks button</b> (flag) — show or hide the detected peaks on all spectra; FSA lasts while they are shown: peaks hidden — no decomposition, the windows say “FSA is off (peak search is off on the chart toolbar)”',
 'o.l2':'<b>The FSA button</b> (the letters “FSA” over two peaks on its icon) — a click turns FSA on or off on all spectra; coloured — on, grey — off, pale — unavailable (peaks are hidden)',
 'o.l3':'<b>Enable FSA on All Spectra</b> — the same as a click on the grey button; greyed out while peaks are hidden',
-'o.l4':'<b>Disable FSA on All Spectra</b> — always available; the check mark shows the current state',
+'o.l4':'<b>Disable FSA on All Spectra</b> — always available; the check mark shows the current state. Off — no decomposition, the windows say “FSA is off (FSA button on the chart toolbar)”',
 'c.h':'Check it yourself: what the program will say',
 'c.hint':'Tick and untick the boxes — below appears what you will see in the program: the status line of the report and the header of the result window. The program asks no questions: the FSA report itself names what is missing. The texts are word for word from the program.',
-'c.ecal':'Energy calibration','c.fwhm':'FWHM calibration','c.curve':'Efficiency curve chosen','c.geo':'The curve has a geometry','c.peaks':'Peaks found and labelled','c.mx':'Response matrix computed',
+'c.btn':'FSA button on','c.show':'Peaks shown (peaks button)','c.ecal':'Energy calibration','c.fwhm':'FWHM calibration','c.curve':'Efficiency curve chosen','c.geo':'The curve has a geometry','c.peaks':'Peaks found and labelled','c.mx':'Response matrix computed',
 'c.status':'Report status line:','c.head':'The “Measurement Result” window:','c.qual':'In “Analysis quality”:',
-'s.done':'FSA completed','s.err':'FSA error',
+'s.done':'FSA completed','s.err':'FSA error','s.offBtn':'FSA is off (FSA button on the chart toolbar)','s.offPeaks':'FSA is off (peak search is off on the chart toolbar)',
 'e.cal':'Full-spectrum decomposition needs an energy calibration and an FWHM calibration of the spectrum',
 'e.geo':'Full-spectrum decomposition needs a detector geometry: describe the crystal in the geometry editor of the efficiency curve',
 'e.peaks':'Full-spectrum decomposition: no identified peaks to build the library from — run peak detection first',
@@ -509,8 +509,8 @@ GUIDE.texts({ru:{
 
 /* ── 1. проверка готовности: какие тексты покажет программа ── */
 (function ready() {
-  const KEYS = ['ecal', 'fwhm', 'curve', 'geo', 'peaks', 'mx'];
-  const on = { ecal: true, fwhm: true, curve: true, geo: true, peaks: true, mx: true };
+  const KEYS = ['btn', 'show', 'ecal', 'fwhm', 'curve', 'geo', 'peaks', 'mx'];
+  const on = { btn: true, show: true, ecal: true, fwhm: true, curve: true, geo: true, peaks: true, mx: true };
   function draw() {
     $('#cChecks').innerHTML = KEYS.map(k => {
       const dis = (k === 'geo' || k === 'mx') && !on.curve || k === 'mx' && !on.geo;
@@ -521,11 +521,14 @@ GUIDE.texts({ru:{
     // (`AMBER328`) Кнопка FSA вопросов не задаёт: нет FWHM или кривой — режим включается,
     // а причину называет отказ самого разбора (`FsaAnalyzer.Analyze`: сперва калибровки, потом геометрия).
     let status, head, qual = '';
-    if (!on.peaks) status = ['#c0262d', t('s.err') + ': ' + t('e.peaks')];   // как в программе: пустой состав — отказ ещё до разбора
+    // (`AMBER329`) кнопка FSA ВЫКЛ или пики ВЫКЛ — разбора нет вовсе: оба окна пишут причину серым
+    const off = !on.btn ? 's.offBtn' : !on.show ? 's.offPeaks' : null;
+    if (off) status = ['#808080', t(off)];
+    else if (!on.peaks) status = ['#c0262d', t('s.err') + ': ' + t('e.peaks')];   // как в программе: пустой состав — отказ ещё до разбора
     else if (!on.ecal || !on.fwhm) status = ['#c0262d', t('s.err') + ': ' + t('e.cal')];
     else if (!geo) status = ['#c0262d', t('s.err') + ': ' + t('e.geo')];
     else { status = ['#1a8a1a', t('s.done')]; qual = t(mx ? 'q.mxOk' : 'q.mxNo'); }
-    head = status[0] === '#1a8a1a' ? t(mx ? 'h.mx' : 'h.curve') : t('h.err');
+    head = off ? t(off) : status[0] === '#1a8a1a' ? t(mx ? 'h.mx' : 'h.curve') : t('h.err');
     $('#cOut').innerHTML =
       '<div class="statusbar"><span style="color:#555">' + t('c.status') + '</span> <b style="color:' + status[0] + '">' + status[1] + '</b></div>' +
       (qual ? '<div class="statusbar"><span style="color:#555">' + t('c.qual') + '</span> ' + qual + '</div>' : '') +

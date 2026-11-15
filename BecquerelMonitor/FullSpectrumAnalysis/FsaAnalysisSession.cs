@@ -80,6 +80,24 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         StaleGeometry
     }
 
+    /// <summary>
+    /// (`AMBER329`, 15.11.2026) ПОЧЕМУ FSA ВЫКЛЮЧЕН — ворота разбора. Amber, дословно: «Если кнопка
+    /// FSA выключена, то вообще никакого разбора FSA быть не должно. … Эта кнопка ГЛОБАЛЬНО
+    /// выключает FSA ПОЛНОСТЬЮ.» Вопросником того же дня: разбор идёт ровно тогда, когда FSA
+    /// показан (`DocEnergySpectrum.IsFsaShownBy`), а окна пишут свою причину — кнопка или пики.
+    /// </summary>
+    public enum FsaOffReason
+    {
+        /// <summary>FSA включён — разбор заказывается как прежде.</summary>
+        None,
+
+        /// <summary>Выключена кнопка-флажок FSA на панели графика (`AMBER328`).</summary>
+        Button,
+
+        /// <summary>Кнопка FSA включена, но выключен поиск пиков — FSA не показан.</summary>
+        Peaks
+    }
+
     public sealed class FsaAnalysisSession
     {
         readonly object sync = new object();
@@ -206,6 +224,42 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return lines;
+        }
+
+        /// <summary>
+        /// (`AMBER329`) ИСТОЧНИК ВОРОТ: почему FSA сейчас выключен для спектра этого сеанса. Ставит
+        /// владелец — документ (`DocEnergySpectrum`), по кнопке FSA и пикам своей вкладки; у сеанса
+        /// без документа (пробы, корпус, витрина) источника нет, и ворота всегда открыты. Читается
+        /// на UI-потоке — из <see cref="EnsureUpToDate(ResultData, bool, FsaCalculationOptions)"/> и
+        /// окнами, которые пишут причину.
+        /// </summary>
+        public Func<FsaOffReason> OffReasonSource;
+
+        /// <summary>(`AMBER329`) Почему FSA выключен; <see cref="FsaOffReason.None"/> — включён.</summary>
+        public FsaOffReason OffReason
+        {
+            get
+            {
+                Func<FsaOffReason> source = this.OffReasonSource;
+                return source != null ? source() : FsaOffReason.None;
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER329`) Строка окна при выключенном FSA — одна на окно отчёта и окно результата
+        /// (решение Amber 15.11.2026 «Строка «FSA выключен» (Рекомендую)»); null — FSA включён.
+        /// </summary>
+        public static string OffText(FsaOffReason reason)
+        {
+            switch (reason)
+            {
+                case FsaOffReason.Button:
+                    return Properties.Resources.FSAOffByButton;
+                case FsaOffReason.Peaks:
+                    return Properties.Resources.FSAOffByPeaks;
+                default:
+                    return null;
+            }
         }
 
         /// <summary>Готовое разложение или null, пока его нет.</summary>
@@ -448,6 +502,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public void EnsureUpToDate(ResultData resultData, bool subtractBackground, FsaCalculationOptions options)
         {
             if (resultData == null || resultData.EnergySpectrum == null || resultData.EnergySpectrum.Spectrum == null)
+            {
+                return;
+            }
+
+            // ⛔ (`AMBER329`) ВОРОТА: FSA выключен (кнопка FSA или пики) — разбора нет ни у одного
+            // потребителя. Здесь, а не у каждого: заказчиков три (график, окно отчёта, окно
+            // результата), и четвёртый, заведённый мимо правила, был бы тем же дефектом. Снимок
+            // спектра не снимается, отпечаток не считается, счёт не ставится.
+            if (this.OffReason != FsaOffReason.None)
             {
                 return;
             }

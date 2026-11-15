@@ -258,7 +258,7 @@ figure.shot.side.md .shot-frame{width:100%;max-width:470px;justify-self:center}
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=eed1a167"></script>
+<script src="assets/guide.js?v=3422bc11"></script>
 <script src="assets/quanta.js?v=b92ab866"></script>
 <script>
 'use strict';
@@ -306,12 +306,12 @@ GUIDE.texts({ru:{
 'i.warn':'<b>Второе окно не откроется.</b> Если BecqMoni уже запущена, новый запуск отменится с сообщением «Приложение BecqMoni уже запущено!» — так программа бережёт файлы раскладки. Не видите окна — проверьте Диспетчер задач: процесс <code>BecquerelMonitor.exe</code>.',
 't.k':'Экскурсия','t.h':'Одно окно — пять зон',
 't.lead':'Окно BecqMoni устроено как стол лаборанта: в центре лист со спектром, по краям пульт и журналы. Наведите на номер или строку — место подсветится; щелчок по снимку увеличит его.',
-'t.cap':'Главное окно: открыт спектр Cs-137, слева отчёт FSA, справа набор и найденные пики',
+'t.cap':'Главное окно: открыт спектр Cs-137, слева отчёт FSA (кнопка FSA выключена — разбора нет), справа набор и найденные пики',
 't.l1':'<b>Меню</b> — Файл, Спектр, Вид, Инструменты, Помощь. Своей панели кнопок у окна нет',
 't.l2':'<b>Вкладки документов</b> — по одной на открытый файл; щелчок переключает, крестик закрывает',
 't.l3':'<b>График спектра</b> — кэВ или каналы по X, отсчёты по Y; подписи пиков сверху, подсказка у курсора',
 't.l4':'<b>Полоса под графиком</b> — Ось Y, Ось X, Просмотр (фон, FSA, сглаживание) и Изменить',
-'t.l5':'<b>Отчёт FSA</b> — из чего сложен спектр по полноспектральному разбору и насколько разбор надёжен',
+'t.l5':'<b>Отчёт FSA</b> — из чего сложен спектр по полноспектральному разбору и насколько разбор надёжен. Здесь кнопка FSA выключена: разбора нет, отчёт пишет «FSA выключен (кнопка FSA на панели графика)» (глава 9)',
 't.l6':'<b>Управление измерением</b> — прибор, кривая, фон, Старт/Стоп/Сброс, время и счёт. Под ней — вкладки соседних панелей',
 't.l7':'<b>Обнаружение пиков</b> — таблица найденных пиков: нуклид, энергия, канал, SNR, FWHM',
 't.l8':'<b>Строка состояния</b> — слева сообщения, в центре состояние прибора, справа мощность дозы',
@@ -331,7 +331,7 @@ GUIDE.texts({ru:{
 'q6':'Сделайте вертикальную шкалу логарифмической.','e6':'Группа «Ось Y» на полосе под графиком: шкала ходит по кругу «линейная → степень → логарифм».',
 'q7':'Откройте настройки программы.','e7':'Меню «Инструменты» → «Настройки».',
 'q8':'Откройте панель «Калибровка энергии» — она спрятана в стопке.','e8':'Вкладки под панелью «Управление измерением»: панели сложены стопкой.',
-'q9':'Какой нуклид дал самый высокий пик? Найдите строку с ответом.','e9':'Cs-137 — в таблице «Обнаружение пиков» и первой строкой отчёта FSA.',
+'q9':'Какой нуклид дал самый высокий пик? Найдите строку с ответом.','e9':'Cs-137 — в таблице «Обнаружение пиков». Отчёт FSA здесь пуст: кнопка FSA выключена; включите её — Cs-137 встанет первой строкой отчёта.',
 'z.menu':'главное меню','z.tabs':'вкладки документов','z.chart':'график спектра','z.bar':'полоса под графиком','z.fsa':'отчёт FSA',
 'z.ctrl':'панель «Управление измерением»','z.ptabs':'вкладки панелей','z.peaks':'панель «Обнаружение пиков»','z.status':'строка состояния','z.title':'заголовок окна',
 'q.f1':'<b>Всё для набора — справа вверху.</b> Прибор, время, Старт и счётчики собраны на одной панели.',
@@ -435,12 +435,12 @@ GUIDE.texts({ru:{
 'i.warn':'<b>A second window will not open.</b> If BecqMoni is already running, a new start is cancelled with “BecqMoni already running!” — the program protects its layout files. No window in sight? Check Task Manager for <code>BecquerelMonitor.exe</code>.',
 't.k':'Tour','t.h':'One window — five zones',
 't.lead':'The BecqMoni window is laid out like a lab bench: the spectrum sheet in the middle, controls and logs around it. Hover a number or a line — the spot lights up; click the picture to enlarge it.',
-'t.cap':'The main window: a Cs-137 spectrum is open, the FSA report on the left, acquisition and detected peaks on the right',
+'t.cap':'The main window: a Cs-137 spectrum is open, the FSA report on the left (the FSA button is off — no decomposition), acquisition and detected peaks on the right',
 't.l1':'<b>Menu</b> — File, Spectrum, View, Tool, Help. The window has no toolbar of its own',
 't.l2':'<b>Document tabs</b> — one per open file; click to switch, the cross closes it',
 't.l3':'<b>Spectrum chart</b> — keV or channels along X, counts along Y; peak labels on top, a tooltip at the cursor',
 't.l4':'<b>Bar under the chart</b> — Y-Axis, X-Axis, View (background, FSA, smoothing) and Modify',
-'t.l5':'<b>FSA Report</b> — what the spectrum is made of by full-spectrum analysis, and how reliable that is',
+'t.l5':'<b>FSA Report</b> — what the spectrum is made of by full-spectrum analysis, and how reliable that is. Here the FSA button is off: there is no decomposition, and the report says “FSA is off (FSA button on the chart toolbar)” (chapter 9)',
 't.l6':'<b>Measurement Control</b> — device, curve, background, Start/Stop/Clear, time and counts. Below it — tabs of neighbouring panels',
 't.l7':'<b>Peak Detection</b> — the table of found peaks: nuclide, energy, channel, SNR, FWHM',
 't.l8':'<b>Status bar</b> — messages on the left, device state in the middle, dose rate on the right',
@@ -460,7 +460,7 @@ GUIDE.texts({ru:{
 'q6':'Make the vertical scale logarithmic.','e6':'The “Y-Axis” group on the bar under the chart: the scale cycles “linear → power → logarithmic”.',
 'q7':'Open the program preferences.','e7':'Menu “Tool” → “Preferences”.',
 'q8':'Open the “Energy Calibration” panel — it is hidden in a stack.','e8':'The tabs below the Measurement Control panel: panels are stacked.',
-'q9':'Which nuclide made the tallest peak? Find the line with the answer.','e9':'Cs-137 — in the “Peak Detection” table and the first line of the FSA report.',
+'q9':'Which nuclide made the tallest peak? Find the line with the answer.','e9':'Cs-137 — in the “Peak Detection” table. The FSA report is empty here: the FSA button is off; turn it on and Cs-137 becomes the first line of the report.',
 'z.menu':'the main menu','z.tabs':'the document tabs','z.chart':'the spectrum chart','z.bar':'the bar under the chart','z.fsa':'the FSA report',
 'z.ctrl':'the Measurement Control panel','z.ptabs':'the panel tabs','z.peaks':'the Peak Detection panel','z.status':'the status bar','z.title':'the window title',
 'q.f1':'<b>Everything for acquisition is top right.</b> Device, time, Start and counters sit on one panel.',

@@ -8501,6 +8501,12 @@ Increase the preset time or press Clear to start over.</value>
   <data name="FSAStatusIdle" xml:space="preserve">
     <value>FSA idle</value>
   </data>
+  <data name="FSAOffByButton" xml:space="preserve">
+    <value>FSA is off (FSA button on the chart toolbar)</value>
+  </data>
+  <data name="FSAOffByPeaks" xml:space="preserve">
+    <value>FSA is off (peak search is off on the chart toolbar)</value>
+  </data>
   <data name="FSACalculating" xml:space="preserve">
     <value>Full-spectrum decomposition: calculating…</value>
   </data>

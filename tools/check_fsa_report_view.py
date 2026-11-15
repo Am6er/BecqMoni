@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-u"""Сторож ОКНА ОТЧЁТА FSA (`FSAReportView`): приёмка СЕМИ проб окна на спектрах
+u"""Сторож ОКНА ОТЧЁТА FSA (`FSAReportView`): приёмка ВОСЬМИ проб окна на спектрах
 корпуса — `FsaReportViewProbe` (блок «Качество разбора»: χ²/ndf, σ×, пометки, строки
 привязки шкалы `AMBER17`; состав строк по `Tag.Kind`, один результат на график и
 таблицу, родители/дочерние, повторяемость, снимки en/ru без обрезанных подписей),
@@ -17,7 +17,10 @@ u"""Сторож ОКНА ОТЧЁТА FSA (`FSAReportView`): приёмка С�
 вкладках, пики общие и гасят/возвращают FSA везде, FSA включается только при пиках ВКЛ,
 возврат в бывший режим фона, цикл фона FSA пропускает, галочка и пики в конфиге между
 запусками, перенос старого `DefaultBackgroundMode=ShowFSA`, окно настроек с фоном вне
-списка, «континуум» без FWHM — отказ с причиной, а не падение).
+списка, «континуум» без FWHM — отказ с причиной, а не падение) и `FsaGateProbeA329` (кнопка FSA
+выключает разбор ПОЛНОСТЬЮ `AMBER329`: при кнопке ВЫКЛ или пиках ВЫКЛ ни график, ни окно
+отчёта, ни окно результата разбора не заказывают, оба окна пишут «FSA выключен» с причиной,
+включение оживляет окна само, счёт, шедший при выключении, отбрасывается).
 
 ## Зачем
 
@@ -45,11 +48,11 @@ P195 не звал никто, и все три были красны на чи�
    что судят оснастку корпуса (`Get-AppWdSourceRecord`, `Get-AppWdStampSources`,
    `Compare-AppWdSourceMap`, `Get-AppWdSha256`; своей копии отпечатка нет — `T61`):
    заверение `.appwd.json`, набор исходников ПРИЛОЖЕНИЯ (по `.csproj`), набор
-   КАЖДОЙ из семи проб (её `.cs` + довески), sha `BecquerelMonitor.exe` и exe
+   КАЖДОЙ из восьми проб (её `.cs` + довески), sha `BecquerelMonitor.exe` и exe
    проб против заверённых. Протух — код 3 с находками, а не прогон старым кодом
    (`A77`: проверять то, что БУДЕТ ИСПОЛЬЗОВАНО). Чужая незакоммиченная правка
    `.cs` приложения в дереве — законный код 3.
-2. Прогон семи проб из каталога проб (параллельно; каждая пишет снимки во
+2. Прогон восьми проб из каталога проб (параллельно; каждая пишет снимки во
    временный каталог системы, снимается после прогона, `--keep` оставляет; в
    дерево и в каталог проб не пишется ничего):
      report — `FsaReportViewProbe --spectrum=AS80_Th232Medal --control=AS80_Cs137_0cm
@@ -70,7 +73,10 @@ P195 не звал никто, и все три были красны на чи�
               сам — критерий В9 пробы);
      a328   — `FsaToggleProbeA328 --spectrum=AS80_Cs137_0cm --second=AS80_Th232Medal`
               (`AMBER328`; документы без окна, кнопки — их обработчиками; склад не нужен;
-              положительный контроль сборками-мутантами — журнал `handover-2026-11-12-a328.md`).
+              положительный контроль сборками-мутантами — журнал `handover-2026-11-12-a328.md`);
+     a329   — `FsaGateProbeA329 --spectrum=AS80_Cs137_0cm` (`AMBER329`; настоящие окна отчёта
+              и результата на документе пробы, ворота включены признаком приложения;
+              склад не нужен).
 3. Приговор каждой — ТРИ признака разом: код пробы 0, последняя строка «ВСЕ
    СОШЛИСЬ» и ни одной строки отказа (у `FsaReportViewProbe` и P195 — «  ⛔» с двумя
    пробелами, у F16/F21 — «  НЕТ »). Расхождение любого из трёх у любой пробы —
@@ -80,7 +86,7 @@ P195 не звал никто, и все три были красны на чи�
 
 ## Положительный контроль — `--selftest` (обе стороны)
 
-  (в) штатный прогон семи проб — ОБЯЗАН пройти (сторож, отказывающий всегда,
+  (в) штатный прогон восьми проб — ОБЯЗАН пройти (сторож, отказывающий всегда,
       бесполезен так же, как молчащий всегда);
   (а) каталог проб подменён пустым — ОБЯЗАН дать код 3 со словом причины;
   (б) подброшенный неверный вход report: `--control` = тот же спектр С РЯДОМ Th-232 —
@@ -101,11 +107,13 @@ P195 не звал никто, и все три были красны на чи�
   (к) P195 со счётом окна `AS80_Lu176`, задержанным на 90 с (`--delay-compute=90000:AS80_Lu176`,
       задвижка проб сеанса) — проба ОБЯЗАНА пройти: ждёт сеанс по признаку, а не ~60–76 с молча;
   (л) a328 с подсаженным дефектом «пики не гасят FSA» (`--spoil=peaks`: после выключения пиков
-      проба сама возвращает вкладку в ShowFSA) — проба ОБЯЗАНА отказать, сторож — код 1.
+      проба сама возвращает вкладку в ShowFSA) — проба ОБЯЗАНА отказать, сторож — код 1;
+  (м) a329 с подсаженным дефектом «ворот нет» (`--spoil=gate`: у сеанса документа снят
+      источник ворот, как в сборке до правки) — проба ОБЯЗАНА отказать, сторож — код 1.
 
   python tools/check_fsa_report_view.py [--probes=<каталог проб>] [--spectrum=<xml>]
                                         [--control=<xml>] [--store=<склад по guid>]
-                                        [--only=report,f16,f21,p195,a320,a327,a328]
+                                        [--only=report,f16,f21,p195,a320,a327,a328,a329]
                                         [--skip-freshness] [--keep] [--selftest]
 
   --probes=         каталог проб вместо `tools/effmaker/probes/build`
@@ -194,6 +202,10 @@ PROBES = [
           u'выделение строки-потомка на графике (AMBER327): часть ярко, родитель вдвое слабее, прочие приглушены'),
     # (`AMBER328`, полоса a328 12.11.2026) кнопка-флажок FSA рядом с кнопкой пиков: автомат
     # «галочка FSA × пики вкладки» на трёх вкладках разом, конфиг и перенос старого ShowFSA.
+    # (`AMBER329`, полоса a329 15.11.2026) кнопка FSA выключает разбор полностью: ворота сеанса
+    # документа против графика, окна отчёта и окна результата; причина «кнопка»/«пики» в окнах.
+    Probe(u'a329', u'FsaGateProbeA329.exe', RE_RED_SIGN, RE_OK_LOWER,
+          u'кнопка FSA выключает разбор (AMBER329): ни один потребитель не заказывает, окна пишут причину, включение оживляет окна, идущий счёт отбрасывается'),
     Probe(u'a328', u'FsaToggleProbeA328.exe', RE_RED_SIGN, RE_OK_LOWER,
           u'кнопка FSA (AMBER328): галочка и пики на всех вкладках, включение FSA только при пиках, бывший режим, цикл без FSA, конфиг, окно настроек, континуум без FWHM, своя иконка и подсказка в одну строку'),
 ]
@@ -364,6 +376,12 @@ def probe_args(probe, plan, out_dir):
         if plan.get('a328_spoil'):
             args.append(u'--spoil=peaks')
         return args
+    if probe.name == u'a329':
+        # (`AMBER329`) цезий; склад не нужен
+        args = [u'--spectrum=' + plan['control']]
+        if plan.get('a329_spoil'):
+            args.append(u'--spoil=gate')
+        return args
     args = [u'--spectrum=' + plan['p195_spectrum'], u'--store=' + plan['store']]
     if plan.get('p195_delay'):
         # (p195flake) задвижка фонового счёта одного окна — дольше прежнего молчаливого срока (61–76 с)
@@ -380,6 +398,8 @@ def inputs_of(probe, plan):
         return [(u'спектр', plan['spectrum'], False)]
     if probe.name == u'a328':
         return [(u'спектр', plan['control'], False), (u'второй спектр', plan['spectrum'], False)]
+    if probe.name == u'a329':
+        return [(u'спектр', plan['control'], False)]
     if probe.name in (u'a320', u'a327'):
         return [(u'спектр', plan['spectrum'], False),
                 (u'склад матриц корпуса (вне git, tools/CORPUS/README.md §1.5)', plan['store'], True)]
@@ -422,11 +442,12 @@ def rel(path):
 
 def make_plan(spectrum=SPECTRUM_DEFAULT, control=CONTROL_DEFAULT, store=STORE_DEFAULT,
               p195_spectrum=P195_SPECTRUM, f16_layer=None, f21_against=None, a320_spoil=False,
-              a320_delay=0, p195_delay=None, a328_spoil=False):
+              a320_delay=0, p195_delay=None, a328_spoil=False, a329_spoil=False):
     return {'spectrum': os.path.abspath(spectrum), 'control': os.path.abspath(control),
             'store': os.path.abspath(store), 'p195_spectrum': os.path.abspath(p195_spectrum),
             'f16_layer': f16_layer, 'f21_against': f21_against, 'a320_spoil': a320_spoil,
-            'a320_delay': a320_delay, 'p195_delay': p195_delay, 'a328_spoil': a328_spoil}
+            'a320_delay': a320_delay, 'p195_delay': p195_delay, 'a328_spoil': a328_spoil,
+            'a329_spoil': a329_spoil}
 
 
 def run_check(probes, plan, only=None, keep=False, skip_freshness=False, out=None):
@@ -525,7 +546,7 @@ def selftest(probes, plan, skip_freshness=False):
     слоем — код 1; F21 с пустыми опорными кадрами — код 1; P195 с пустым складом —
     код 2; a320 с подсаженным «раскрыто по умолчанию» — код 1; a320 с опозданием события
     конца счёта — код 0; P195 с долгим счётом окна AS80_Lu176 — код 0; a328 с пиками, не
-    гасящими FSA, — код 1.
+    гасящими FSA, — код 1; a329 без ворот у сеанса документа — код 1.
 
     Свежесть каталога судится ОДИН раз — в (в): плечи (б)…(ж) гонят тот же каталог
     и судят приговор проб, не его свежесть (иначе соседняя полоса, правящая `.cs`
@@ -548,7 +569,7 @@ def selftest(probes, plan, skip_freshness=False):
 
     o = Out(silent=True)
     code = run_check(probes, plan, skip_freshness=skip_freshness, out=o)
-    record(u'(в) штатный прогон семи проб проходит', 0, code, o.buf, [u'СОШЛОСЬ', u'7 из 7'])
+    record(u'(в) штатный прогон восьми проб проходит', 0, code, o.buf, [u'СОШЛОСЬ', u'8 из 8'])
 
     empty = tempfile.mkdtemp(prefix=u'bq_fsa_report_view_empty_')
     try:
@@ -618,6 +639,13 @@ def selftest(probes, plan, skip_freshness=False):
         code = run_check(probes, bad_plan, only=[u'a328'], skip_freshness=True, out=o)
         record(u'(л) a328 с пиками, не гасящими FSA, — проба отказывает, сторож код 1', 1, code, o.buf,
                [u'проба нашла расхождения', u'НЕ СОШЛОСЬ', u'  ⛔'])
+
+        # (`AMBER329`) подсаженный дефект «ворот нет» — судья пробы не слеп к нему
+        o = Out(silent=True)
+        bad_plan = dict(plan, a329_spoil=True)
+        code = run_check(probes, bad_plan, only=[u'a329'], skip_freshness=True, out=o)
+        record(u'(м) a329 без ворот у сеанса документа — проба отказывает, сторож код 1', 1, code, o.buf,
+               [u'проба нашла расхождения', u'НЕ СОШЛОСЬ', u'  ⛔'])
     finally:
         shutil.rmtree(empty, ignore_errors=True)
 
@@ -630,7 +658,7 @@ def selftest(probes, plan, skip_freshness=False):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description=u'сторож окна отчёта FSA: приёмка семи проб окна', add_help=True)
+    ap = argparse.ArgumentParser(description=u'сторож окна отчёта FSA: приёмка восьми проб окна', add_help=True)
     ap.add_argument(u'--probes', default=None)
     ap.add_argument(u'--spectrum', default=SPECTRUM_DEFAULT)
     ap.add_argument(u'--control', default=CONTROL_DEFAULT)

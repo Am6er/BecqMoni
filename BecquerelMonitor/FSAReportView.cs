@@ -1213,11 +1213,15 @@ namespace BecquerelMonitor
                 if (this.document != null)
                 {
                     this.document.ViewRefreshed -= this.DocumentViewRefreshed;
+                    this.document.FsaSwitchChanged -= this.DocumentFsaSwitchChanged;
                 }
 
                 if (doc != null)
                 {
                     doc.ViewRefreshed += this.DocumentViewRefreshed;
+                    // (`AMBER329`) кнопка FSA или пики сменили ворота — перечитать и, если FSA
+                    // включился, заказать разбор: окна оживают сами, без переоткрытия
+                    doc.FsaSwitchChanged += this.DocumentFsaSwitchChanged;
                 }
             }
 
@@ -1365,6 +1369,12 @@ namespace BecquerelMonitor
                 return;
             }
 
+            // (`AMBER329`) FSA выключен — заказа нет; те же ворота стоят и в самом сеансе
+            if (this.session.OffReason != FsaOffReason.None)
+            {
+                return;
+            }
+
             // Тот же довод «фон вычитается», что у графика
             // (`EnergySpectrumView.UpdateFsaOverlay`): у обоих потребителей
             // один отпечаток, иначе они заказывали бы два разных счёта по
@@ -1381,6 +1391,29 @@ namespace BecquerelMonitor
         void DocumentViewRefreshed(object sender, EventArgs e)
         {
             this.Consume();
+        }
+
+        /// <summary>
+        /// (`AMBER329`) Ворота FSA документа сменились: закрылись — таблица пустеет, строка
+        /// состояния пишет причину; открылись — разбор заказывается тем же путём, что всегда.
+        /// Скрытое окно только перечитается, когда станет видно (<see cref="ConsumerStateChanged"/>).
+        /// </summary>
+        void DocumentFsaSwitchChanged(object sender, EventArgs e)
+        {
+            if (!ReferenceEquals(sender, this.document))
+            {
+                return;
+            }
+
+            if (this.session != null && this.session.OffReason != FsaOffReason.None)
+            {
+                // выбранной строки больше нет — и подсветки её на графике тоже
+                this.ForgetSelectedRow();
+                this.PushHighlight();
+            }
+
+            this.Consume();
+            this.RefreshReport();
         }
 
         void ConsumerStateChanged(object sender, EventArgs e)
@@ -2048,6 +2081,14 @@ namespace BecquerelMonitor
                 return rows;
             }
 
+            // (`AMBER329`, решение Amber 15.11.2026 «Строка «FSA выключен» (Рекомендую)») FSA
+            // выключен — строк разбора нет; причину пишет строка состояния над таблицей.
+            if (this.session.OffReason != FsaOffReason.None)
+            {
+                this.presentation = null;
+                return rows;
+            }
+
             // Один снимок на заполнение: фон публикует результат в любой момент.
             FsaResult result = this.session.Result;
             string status = this.session.Status;
@@ -2184,6 +2225,12 @@ namespace BecquerelMonitor
             if (this.session == null || this.ActiveResultData == null)
             {
                 text = Resources.FSAStatusIdle;
+                color = StatusIdleColor;
+            }
+            else if (this.session.OffReason != FsaOffReason.None)
+            {
+                // (`AMBER329`) FSA выключен кнопкой или пиками — причина словами, серым
+                text = FsaAnalysisSession.OffText(this.session.OffReason);
                 color = StatusIdleColor;
             }
             else
@@ -4515,6 +4562,7 @@ namespace BecquerelMonitor
                 if (this.document != null)
                 {
                     this.document.ViewRefreshed -= this.DocumentViewRefreshed;
+                    this.document.FsaSwitchChanged -= this.DocumentFsaSwitchChanged;   // (`AMBER329`)
                 }
 
                 if (this.session != null)
