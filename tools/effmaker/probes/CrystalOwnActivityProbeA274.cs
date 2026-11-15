@@ -32,8 +32,9 @@ namespace CrystalOwnActivityProbeA274
     ///      должна выйти нулевой; выключен — активность уезжает в K-40 и прочих;
     ///   4. ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ: NaI (своей активности нет) — побитово прежний
     ///      разбор, слой не берётся вовсе;
-    ///   5. КЛЮЧ (`--mode=key`): выключен умолчанием — раздел не считается и не читается,
-    ///      файл матрицы и разбор побитно прежние, включён — слой есть;
+    ///   5. КЛЮЧ (`--mode=key`): включён умолчанием с 15.11.2026 (`a274v`); выключен — раздел не читается,
+    ///      файл матрицы и разбор побитно прежние, включён — слой есть; включён, а раздела нет — разбор побитно
+    ///      прежний, окно отчёта говорит «пересчитайте матрицу»;
     ///   7. ПОРОГ (`--mode=floor`): одиночные отсчёты в пустых каналах образ слоя не включают;
     ///   8. МАТЕРИАЛ (`--mode=material`): чем стал бы цериевый состав в библиотеке для переноса;
     ///   6. ЧАСТИ (`--mode=parts`, 06.11.2026): отключение La-138 β, 788.7, 1436, Ac-227,
@@ -1986,7 +1987,7 @@ namespace CrystalOwnActivityProbeA274
         static void KeyChecks(GeometryModel geometry, int histories, string spectrumPath, string naiPath)
         {
             var off = new ResponseMatrixOptions { NodeCount = 6, Histories = 4000, BinKev = 2.0, MinEnergyKev = 30.0, MaxEnergyKev = 3000.0 };
-            Check("умолчание разбора: ключ выключен", !new FsaAnalyzer().CrystalOwnLayer);
+            Check("умолчание разбора: ключ ВКЛ (`a274v` 15.11.2026; ветвь «выключен» судится ниже явным ключом)", new FsaAnalyzer().CrystalOwnLayer);
             ResponseMatrix mOff = ResponseMatrixBuilder.Build(geometry, off, null, System.Threading.CancellationToken.None);
             ResponseMatrix mOn = ResponseMatrixBuilder.Build(geometry, off, null, System.Threading.CancellationToken.None);
             Check("построитель сам раздела не считает", mOff.CrystalSection == null && mOn.CrystalSection == null);
@@ -2027,6 +2028,46 @@ namespace CrystalOwnActivityProbeA274
             Check("разбор: при выключенном ключе строк слоя нет", sectionOff != null && (sectionOff.CrystalOwn == null || sectionOff.CrystalOwn.Count == 0));
             Check("контроль: при включённом ключе модель расходится", sectionOn != null && plain != null && !Same(plain.Model, sectionOn.Model));
             Check("контроль: при включённом ключе строки слоя есть", sectionOn != null && sectionOn.CrystalOwn != null && sectionOn.CrystalOwn.Count > 0);
+
+            // (`a274v` 15.11.2026) СЛОЙ ВКЛ, МАТРИЦА БЕЗ РАЗДЕЛА: разбор побитно как при выключенном ключе, а окно отчёта
+            // говорит «пересчитайте матрицу» (`FSAReportView.CrystalOwnRefusedText`, та же функция, что у окна). Ключ ВЫКЛ
+            // и годный раздел — строки нет.
+            FsaResult missingOn = RunKeyed(rd, geometry, readOff, null, true);
+            bool sameMissing = plain != null && missingOn != null && Same(plain.Model, missingOn.Model)
+                               && BitConverter.DoubleToInt64Bits(plain.Chi2Ndf) == BitConverter.DoubleToInt64Bits(missingOn.Chi2Ndf);
+            Check("разбор: ключ ВКЛ, раздела в матрице нет — побитно как при выключенном ключе", sameMissing);
+            string textMissing = missingOn != null ? FSAReportView.CrystalOwnRefusedText(missingOn) : null;
+            Console.WriteLine("окно отчёта, ключ ВКЛ, раздела нет: {0} (причина {1})", textMissing ?? "<строки нет>",
+                              missingOn != null ? missingOn.CrystalOwnRefusal.ToString() : "—");
+            Check("окно отчёта: ключ ВКЛ, раздела нет — строка «пересчитайте матрицу»",
+                  missingOn != null && missingOn.CrystalOwnRefusal == CrystalSectionRefusal.Missing && textMissing != null
+                  && (textMissing.Contains("recompute the matrix") || textMissing.Contains("пересчитайте матрицу"))
+                  && !textMissing.StartsWith("FSAReport_", StringComparison.Ordinal));
+            Check("окно отчёта: ключ ВЫКЛ — строки нет", plain != null && plain.CrystalOwnRefusal == CrystalSectionRefusal.None
+                                                          && FSAReportView.CrystalOwnRefusedText(plain) == null);
+            Check("окно отчёта: раздел годен, слой лёг — строки нет", sectionOn != null && sectionOn.CrystalOwnRefusal == CrystalSectionRefusal.None
+                                                                       && FSAReportView.CrystalOwnRefusedText(sectionOn) == null);
+            // (`a274v`, второй круг, критик `crit274v`) С ВЫЧИТАЕМЫМ ФОНОМ слой не кладётся и с годным разделом — совет
+            // «пересчитайте матрицу» был бы ложным: строки нет. Положительный контроль — тот же спектр без фона (выше).
+            EnergySpectrum bg = rd.BackgroundEnergySpectrum;
+            Check("у спектра есть фон (опыт с вычитаемым фоном ставится на нём)", bg != null);
+            if (bg != null)
+            {
+                FsaResult missingBg = RunKeyed(rd, geometry, readOff, null, true, bg);
+                string textBg = missingBg != null ? FSAReportView.CrystalOwnRefusedText(missingBg) : "<разбор не прошёл>";
+                Console.WriteLine("окно отчёта, ключ ВКЛ, раздела нет, фон вычитается: {0} (примечание: {1})", textBg ?? "<строки нет>",
+                                  missingBg != null ? missingBg.CrystalOwnNote : "—");
+                Check("окно отчёта: ключ ВКЛ, раздела нет, фон вычитается — строки «пересчитайте» нет",
+                      missingBg != null && missingBg.BackgroundUsed && missingBg.CrystalOwnRefusal == CrystalSectionRefusal.None && textBg == null);
+            }
+
+            Check("контроль: причина «испорченный раздел» — свой текст, не «другого кристалла»",
+                  (FSAReportView.CrystalOwnRefusedText(new FsaResult { CrystalOwnRefusal = CrystalSectionRefusal.Damaged }) ?? "")
+                      != (FSAReportView.CrystalOwnRefusedText(new FsaResult { CrystalOwnRefusal = CrystalSectionRefusal.OtherRecipe }) ?? "")
+                  && (FSAReportView.CrystalOwnRefusedText(new FsaResult { CrystalOwnRefusal = CrystalSectionRefusal.Damaged }) ?? "").Length > 0);
+            Check("контроль: причина «раздел другого рецепта» — тоже «пересчитайте»",
+                  (FSAReportView.CrystalOwnRefusedText(new FsaResult { CrystalOwnRefusal = CrystalSectionRefusal.OtherRecipe }) ?? "").Length > 0
+                  && FSAReportView.CrystalOwnRefusedText(new FsaResult { CrystalOwnRefusal = CrystalSectionRefusal.NoOwnActivity }) == null);
         }
 
         /// <summary>
@@ -2135,6 +2176,13 @@ namespace CrystalOwnActivityProbeA274
 
         static FsaResult RunKeyed(ResultData rd, GeometryModel geometry, ResponseMatrix matrix, ResponseCrystalSection section, bool key)
         {
+            return RunKeyed(rd, geometry, matrix, section, key, null);
+        }
+
+        /// <summary>(`a274v`, второй круг) То же с вычитаемым фоном <paramref name="background"/> (null — без фона).</summary>
+        static FsaResult RunKeyed(ResultData rd, GeometryModel geometry, ResponseMatrix matrix, ResponseCrystalSection section, bool key,
+                                  EnergySpectrum background)
+        {
             var analyzer = new FsaAnalyzer();
             analyzer.PileUp = false;
             analyzer.RequireGeometry = false;
@@ -2154,7 +2202,7 @@ namespace CrystalOwnActivityProbeA274
             FsaEfficiency efficiency = FsaEfficiency.FromConfig(rd.Efficiency);
             FsaSampleSpec spec = FsaSampleSpec.FromManifest(rd, chains, nuclides, true, true);
             FsaCalculationOptions.Of(rd).ApplyTo(spec);
-            return analyzer.Analyze(rd.EnergySpectrum, null, rd.FwhmCalibration, FsaSampleLibrary.Build(spec), efficiency);
+            return analyzer.Analyze(rd.EnergySpectrum, background, rd.FwhmCalibration, FsaSampleLibrary.Build(spec), efficiency);
         }
 
         static string Sha(string path)

@@ -963,6 +963,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public string CrystalOwnNote { get; set; }
 
         /// <summary>
+        /// (`AMBER274`, полоса `a274v` 15.11.2026) Слой собственной активности кристалла включён, кристаллу он положен, а
+        /// годного раздела матрица не дала (<see cref="EfficiencyMaker.ResponseCrystalSection.IsRefusal"/>), а измеренный фон НЕ
+        /// вычитается (при вычитаемом фоне слоя нет и с разделом — пересчёт ничего не изменил бы; второй круг `a274v`): разбор шёл
+        /// без слоя, и окно отчёта говорит «пересчитайте матрицу», как окно матрицы. <see cref="EfficiencyMaker.CrystalSectionRefusal.None"/> —
+        /// слой лёг, ему не место (кристалл без собственной активности, разбор без матрицы) или ключ выключен.
+        /// </summary>
+        public EfficiencyMaker.CrystalSectionRefusal CrystalOwnRefusal { get; set; }
+
+        /// <summary>
         /// (`S104`) ВЕРДИКТ: имя приборного образа, который в одиночку взял
         /// больше, чем ВЕСЬ нуклидный состав вместе; null — не взял, состав
         /// объясняет спектр сам.

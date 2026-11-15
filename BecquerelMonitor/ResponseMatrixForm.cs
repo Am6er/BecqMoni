@@ -881,8 +881,8 @@ namespace BecquerelMonitor
         /// (`FsaMatrixBinding.BindDevice`) сверяет раздел с рецептом того же прибора и берёт его. Кристалл без
         /// собственной активности (решает состав кристалла, а не имена нуклидов) — раздела нет и счёта нет, матрица
         /// побитно та же, что без этого шага. Счёт — секунды ЦП, и на GPU-пути тоже.
-        /// ⛔ Слой в разборе ВЫКЛЮЧЕН (`FsaAnalyzer.CrystalOwnLayer`): раздел в матрице лежит, а числа разбора от него не
-        /// зависят. Отказ раздела фотонную матрицу и раздел электрона НЕ снимает: возвращается строка для хода на языке
+        /// Слой в разборе ВКЛЮЧЁН умолчанием с 15.11.2026 (`FsaAnalyzer.CrystalOwnLayer`, полоса `a274v`): годный раздел
+        /// разбор вычитает. Отказ раздела фотонную матрицу и раздел электрона НЕ снимает: возвращается строка для хода на языке
         /// окна, внутренний текст причины — только в журнал (`AppLog`), как у отказа GPU (`Н7`).
         /// </summary>
         static string AddCrystalSection(GeometryModel geometry, ResponseMatrix matrix, EfficiencyConfigData device,
@@ -949,7 +949,7 @@ namespace BecquerelMonitor
 
         /// <summary>
         /// Слой «собственная активность кристалла» в разборе включён — умолчание анализатора
-        /// (<see cref="FullSpectrumAnalysis.FsaAnalyzer.CrystalOwnLayer"/>; сегодня ВЫКЛ). <see cref="crystalLayerForProbe"/> —
+        /// (<see cref="FullSpectrumAnalysis.FsaAnalyzer.CrystalOwnLayer"/>; с 15.11.2026 ВКЛ, полоса `a274v`). <see cref="crystalLayerForProbe"/> —
         /// только для пробы окна (положительный контроль подсказки при включённом слое), приложение его не ставит.
         /// </summary>
         static bool CrystalLayerOn

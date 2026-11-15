@@ -45936,7 +45936,7 @@ The file and its previous copy will not change.</value>
     <value>{0:f2} ± {1:f2} Bq (fitted), {2:f0} counts</value>
   </data>
   <data name="FSAReportCrystalOwnHint" xml:space="preserve">
-    <value>Activity of the detector crystal itself (La-138, Lu-176, the Ac-227 series). It belongs to the instrument, not to the sample: it is not part of the composition and is not added to the sample activity. The fixed rows are computed from the crystal mass and the nuclide data; the free row (Ac-227) is fitted.</value>
+    <value>Activity of the detector crystal itself (La-138, Lu-176, the Ac-227 series). It belongs to the instrument, not to the sample: it is not part of the composition and is not added to the sample activity. La-138 and Lu-176 are computed from the crystal mass and the nuclide data. The Ac-227 series is counted from the alpha groups of this spectrum; if that count is unreliable, the activity from the device settings is used with decay correction, and without it the row is fitted (marked “fitted”); if the count finds no series and the device settings have no activity, there is no series row.</value>
   </data>
   <data name="GdmlSketchAlongHint" xml:space="preserve">
     <value>A plane along the detector axis. Line A-A: where the cross-section is cut.</value>

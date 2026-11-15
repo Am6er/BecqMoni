@@ -197,9 +197,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// слоя и его рычаги (<see cref="FullSpectrumAnalysis.CrystalOwnActivityBuilder.RecipeStamp"/>):
         /// шкала гистограммы, осадок конверсии, L из EADL, релаксация захвата, части, подмены
         /// замера. Раздел прежнего рецепта (или без поля вовсе — до 13.11.2026) разбор не берёт,
-        /// как раздел электрона с чужим `cl=`. Пока слой выключен
-        /// (<see cref="FullSpectrumAnalysis.FsaAnalyzer.CrystalOwnLayer"/>), раздел никто не пишет
-        /// и не читает — числа разбора от поля не зависят.
+        /// как раздел электрона с чужим `cl=`. Слой выключен
+        /// (<see cref="FullSpectrumAnalysis.FsaAnalyzer.CrystalOwnLayer"/>; умолчание — ВКЛ с 15.11.2026) — раздел
+        /// разбор не читает, и числа разбора от поля не зависят.
         /// </summary>
         public static string ComputeStamp(GeometryModel geometry, double binKev, BecquerelMonitor.FullSpectrumAnalysis.CrystalOwnParts recipe)
         {
