@@ -225,13 +225,7 @@ namespace BecquerelMonitor
                 resultCollection = measurementResultManager.Correct(resultCollection);
             }
             this.ShowMomentHeader(resultCollection);
-            if (errorLevel == 1m)
-            {
-                this.columnModel1.Columns[2].Text = Resources.Uncertain + " " + Resources.Sigma;
-            } else
-            {
-                this.columnModel1.Columns[2].Text = Resources.Uncertain + " " + errorLevel.ToString(CultureInfo.InvariantCulture) + Resources.Sigma;
-            }
+            this.SetUncertaintyHeader(errorLevel);
             this.table1.EnableToolTips = true;
             this.table1.BeginUpdate();
             string format = "f2";
@@ -708,6 +702,19 @@ namespace BecquerelMonitor
         /// (пределов не считали) — прежние «MDA» и подсказка. Колонка растёт под текст, как
         /// первая (<see cref="SetFsaHeader"/>), но не сжимается: ширину решает человек.
         /// </summary>
+        /// <summary>Заголовок колонки неопределённости по уровню ошибки настроек («Неопред. σ» / «Неопред. 2σ»).</summary>
+        void SetUncertaintyHeader(decimal errorLevel)
+        {
+            if (errorLevel == 1m)
+            {
+                this.columnModel1.Columns[2].Text = Resources.Uncertain + " " + Resources.Sigma;
+            }
+            else
+            {
+                this.columnModel1.Columns[2].Text = Resources.Uncertain + " " + errorLevel.ToString(CultureInfo.InvariantCulture) + Resources.Sigma;
+            }
+        }
+
         void SetFsaMdaHeader(FullSpectrumAnalysis.FsaResult result)
         {
             Column column = this.columnModel1.Columns[3];
@@ -1008,6 +1015,7 @@ namespace BecquerelMonitor
                 if (this.fsaDocument != null)
                 {
                     this.fsaDocument.ViewRefreshed -= this.FsaDocumentViewRefreshed;
+                    this.fsaDocument.FsaSwitchChanged -= this.FsaDocumentViewRefreshed;
                     if (this.fsaDocument.FsaSession != null)
                     {
                         this.fsaDocument.FsaSession.Completed -= this.FsaSessionCompleted;
@@ -1017,6 +1025,9 @@ namespace BecquerelMonitor
                 if (document != null)
                 {
                     document.ViewRefreshed += this.FsaDocumentViewRefreshed;
+                    // (`AMBER329`) кнопка FSA или пики сменили ворота — перечитать тем же путём,
+                    // что обновление вида: включился FSA — окно заказывает разбор само
+                    document.FsaSwitchChanged += this.FsaDocumentViewRefreshed;
                     if (document.FsaSession != null)
                     {
                         document.FsaSession.Completed += this.FsaSessionCompleted;
@@ -1029,6 +1040,20 @@ namespace BecquerelMonitor
             if (rd == null || session == null || rd.EnergySpectrum == null)
             {
                 this.SetFsaHeader(OwnText(KeyFsaNoSpectrum), null);
+                return null;
+            }
+            // ⛔ (`AMBER329`, решение Amber 15.11.2026 «Строка «FSA выключен» (Рекомендую)») FSA
+            // выключен кнопкой FSA или пиками — разбор не заказывается (ворота стоят и в сеансе),
+            // строк активностей нет, заголовок называет причину.
+            FullSpectrumAnalysis.FsaOffReason off = session.OffReason;
+            if (off != FullSpectrumAnalysis.FsaOffReason.None)
+            {
+                string offText = FullSpectrumAnalysis.FsaAnalysisSession.OffText(off);
+                this.SetFsaHeader(offText, offText);
+                this.SetFsaMdaHeader(null);
+                // (`AMBER329`, критик `crit329`) Заголовок неопределённости тот же, что при
+                // разборе: без этого при ВЫКЛ он оставался «Неопред.» из конструктора.
+                this.SetUncertaintyHeader(this.globalConfigManager.GlobalConfig.MeasurementConfig.ErrorLevel);
                 return null;
             }
             // (`AMBER211`) Отказа «выберите сет» больше нет: строки — по списку изотопов
@@ -1111,6 +1136,7 @@ namespace BecquerelMonitor
             if (this.fsaDocument != null)
             {
                 this.fsaDocument.ViewRefreshed -= this.FsaDocumentViewRefreshed;
+                this.fsaDocument.FsaSwitchChanged -= this.FsaDocumentViewRefreshed;   // (`AMBER329`)
                 if (this.fsaDocument.FsaSession != null)
                 {
                     this.fsaDocument.FsaSession.Completed -= this.FsaSessionCompleted;

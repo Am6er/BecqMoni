@@ -25,7 +25,8 @@
 // (`spectrum-bar`, `view-modes`, `fsa-button`, кадры главного окна) — ещё
 // <out>\<имя>.hot.txt: прямоугольники пунктов долями кадра, из них берутся точки
 // `data-hot` страниц гида (`AMBER328`). Коды возврата: 0 — снято; 2 — доводы; 3 — окно
-// не дождались; 4 — разбор не завершился; 5 — поднялось модальное окно (текст в журнал);
+// не дождались; 4 — разбор не завершился (при выключенной кнопке FSA — поиск пиков не дал
+// пиков, `AMBER329`); 5 — поднялось модальное окно (текст в журнал);
 // 6 — исключение.
 using System;
 using System.Collections;
@@ -324,6 +325,8 @@ static class GuideShot
 
         // 3. Дождаться поиска пиков и разбора: сеанс не считает, результат есть, и так
         //    подряд несколько опросов (очередь снимков сеанса гасит повторный счёт не сразу).
+        //    (`AMBER329`) У главного снимка кнопка FSA выключена — разбора нет, ждётся поиск пиков,
+        //    а окно отчёта на кадре пишет «FSA выключен (кнопка FSA на панели графика)».
         WaitAnalysis(mf, doc);
 
         // 4. Вкладки нижнего правого дока: «Обнаружение пиков» у главного снимка,
@@ -423,9 +426,18 @@ static class GuideShot
         {
             Thread.Sleep(500);
             CheckDialogs();
+            // (`AMBER329`) Кнопка FSA выключена (конфиг гида: галочки FSA нет) — разбора нет вовсе, и
+            // ждать надо не его, а поиска пиков: окна пишут «FSA выключен», а «Обнаружение пиков»
+            // главного снимка заполняет поиск, который идёт и без FSA.
             string state = Ui(mf, () =>
             {
                 var s = doc.FsaSession;
+                if (s.OffReason != BecquerelMonitor.FullSpectrumAnalysis.FsaOffReason.None)
+                {
+                    ResultData rd = doc.ActiveResultData;
+                    int peaks = rd != null && rd.DetectedPeaks != null ? rd.DetectedPeaks.Count : 0;
+                    return "выключен (" + s.OffReason + ")" + (s.IsRunning ? "; считает" : "") + "; пиков " + peaks;
+                }
                 return (s.IsRunning ? "считает" : "стоит") + "; результат " + (s.Result != null ? "есть" : "нет")
                        + "; " + (s.Status ?? "");
             });
@@ -435,7 +447,9 @@ static class GuideShot
                 last = state;
             }
 
-            calm = state.StartsWith("стоит; результат есть") ? calm + 1 : 0;
+            bool off = state.StartsWith("выключен") && !state.Contains("считает")
+                       && (scene != "main" || !state.EndsWith("пиков 0"));
+            calm = state.StartsWith("стоит; результат есть") || off ? calm + 1 : 0;
             if (calm >= 6) return;
         }
 

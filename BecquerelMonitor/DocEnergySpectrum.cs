@@ -395,6 +395,8 @@ namespace BecquerelMonitor
             // (`fixFsa2`, 07.11.2026) набор нуклидов разбора — СВОЙ, а не общий выбор панели пиков
             // для активного документа (`FsaAnalysisSession.NuclideSetSource`)
             this.fsaSession.NuclideSetSource = () => this.selectedNuclideSet;
+            // (`AMBER329`) ворота разбора — правило показа FSA этой вкладки (кнопка FSA и пики)
+            this.fsaSession.OffReasonSource = this.FsaOffReasonNow;
             this.fsaSession.Completed += this.FsaSessionCompleted;
             this.toolTip1.SetToolTip(this.view, AppUi.WrapTip(this.toolTip1.GetToolTip(this.energySpectrumView1)));
             this.energySpectrumView1.Controls.Add(this.view);
@@ -1970,7 +1972,82 @@ namespace BecquerelMonitor
             }
 
             this.UpdateFsaButton();
+            this.ApplyFsaGate();
             return step;
+        }
+
+        // ====================================================================
+        // (`AMBER329`, 15.11.2026) ВОРОТА РАЗБОРА. Amber, консоль, дословно: «Если кнопка
+        // FSA выключена, то вообще никакого разбора FSA быть не должно. но в окне отчёта
+        // FSA мы видим, что разбор произведён. Эта кнопка ГЛОБАЛЬНО выключает FSA
+        // ПОЛНОСТЬЮ.» Вопросником того же дня, дословно: окна — «Строка «FSA выключен»
+        // (Рекомендую)»; при кнопке ВКЛ и пиках ВЫКЛ — «Да, по правилу показа
+        // (Рекомендую)». Отсюда: разбор идёт ровно тогда, когда FSA показан
+        // (<see cref="IsFsaShownBy"/>), и ворота стоят в самом сеансе
+        // (`FsaAnalysisSession.EnsureUpToDate`), через который заказывают все три
+        // потребителя — график, окно отчёта, окно результата. Вне ворот документ сбрасывает
+        // результат (идущий счёт по возвращении промолчит — поколение сеанса), окна пишут
+        // причину; при открытии ворот окна заказывают разбор сами, по
+        // <see cref="FsaSwitchChanged"/>.
+        // ====================================================================
+
+        /// <summary>
+        /// (`AMBER329`) Ворота стоят только в приложении (<c>Program.Main</c>): у проб, корпуса и
+        /// витрины кнопки нет, общая галочка у них по умолчанию ВЫКЛ, и разбор их не должен от неё
+        /// зависеть. Проба ворот ставит признак сама.
+        /// </summary>
+        public static bool FsaGateEnforced = false;
+
+        /// <summary>Почему FSA этой вкладки выключен сейчас; источник ворот её сеанса.</summary>
+        internal FullSpectrumAnalysis.FsaOffReason FsaOffReasonNow()
+        {
+            if (!FsaGateEnforced)
+            {
+                return FullSpectrumAnalysis.FsaOffReason.None;
+            }
+
+            bool enabled = GlobalFsaModeEnabled;
+            if (IsFsaShownBy(enabled, this.view.PeakMode))
+            {
+                return FullSpectrumAnalysis.FsaOffReason.None;
+            }
+
+            return enabled ? FullSpectrumAnalysis.FsaOffReason.Peaks : FullSpectrumAnalysis.FsaOffReason.Button;
+        }
+
+        /// <summary>Причина, о которой окна уже знают (последняя, с которой поднято событие).</summary>
+        FullSpectrumAnalysis.FsaOffReason fsaGateSeen = FullSpectrumAnalysis.FsaOffReason.None;
+
+        /// <summary>
+        /// (`AMBER329`) Ворота сменились (FSA включён/выключен или сменилась причина): окна
+        /// отчёта и результата перечитывают сеанс и при открытых воротах заказывают разбор.
+        /// Приходит на UI-потоке, из <see cref="ApplyFsaLink"/>.
+        /// </summary>
+        public event EventHandler FsaSwitchChanged;
+
+        /// <summary>
+        /// Привести сеанс к воротам: закрылись — забыть результат и представление графика
+        /// (память, и готовый разбор не показывается); сменились — сказать окнам.
+        /// </summary>
+        void ApplyFsaGate()
+        {
+            FullSpectrumAnalysis.FsaOffReason now = this.FsaOffReasonNow();
+            if (now == this.fsaGateSeen)
+            {
+                return;
+            }
+
+            this.fsaGateSeen = now;
+            if (now != FullSpectrumAnalysis.FsaOffReason.None)
+            {
+                this.view.ResetFsaOverlay();
+            }
+
+            EventHandler handler = this.FsaSwitchChanged;
+            if (handler != null)
+            {
+                handler(this, EventArgs.Empty);
+            }
         }
 
         /// <summary>Перерисовать вкладку после смены пиков, приведя её к правилу показа FSA.</summary>

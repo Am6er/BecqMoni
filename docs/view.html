@@ -203,7 +203,7 @@
 
 <footer><div class="wrap" data-t="foot"></div></footer>
 
-<script src="assets/guide.js?v=eed1a167"></script>
+<script src="assets/guide.js?v=3422bc11"></script>
 <script src="assets/quanta.js?v=b92ab866"></script>
 <script>
 'use strict';
@@ -267,7 +267,7 @@ GUIDE.texts({ru:{
 'md.l6':'<b>Показать нормализованный по эффективности спектр</b> — спектр, делённый на кривую эффективности',
 'md.l7':'<b>Кнопка BG</b> — щелчок листает режимы по кругу (FSA пропускает), стрелка открывает этот список',
 'md.f1':'<b>Вычет — честный, а не «на глаз».</b> Фон умножается на отношение живых времён, каналы ниже нуля обнуляются.',
-'md.f2':'<b>FSA — режим, а не отдельное окно.</b> Кнопка FSA включает его сразу на всех спектрах и помнит до следующего запуска; разбор пересчитывается сам, отчёт и результат — в своих панелях. FSA держится, пока включены пики: выключили пики — FSA гаснет везде и каждая вкладка возвращается в свой прежний режим, включили — FSA возвращается. Выбрали на вкладке другой режим фона — эта вкладка выходит из FSA, а кнопка FSA остаётся включённой.',
+'md.f2':'<b>FSA — режим, а не отдельное окно.</b> Кнопка FSA включает его сразу на всех спектрах и помнит до следующего запуска; разбор пересчитывается сам, отчёт и результат — в своих панелях. FSA держится, пока включены пики: выключили пики — FSA гаснет везде и каждая вкладка возвращается в свой прежний режим, включили — FSA возвращается. Выбрали на вкладке другой режим фона — эта вкладка выходит из FSA на графике, а кнопка FSA остаётся включённой, и окна «Отчёт FSA» и «Результат измерений» продолжают считать: разбор выключают только кнопка FSA и пики. Кнопка FSA выключена или пики выключены — разбора FSA нет вовсе: окна «Отчёт FSA» и «Результат измерений» пишут «FSA выключен» и причину.',
 'md.f3':'<b>Нормировке нужна кривая эффективности.</b> Без кривой у спектра пункт недоступен, а кнопка BG его пропускает; если кривая выбрана, но делить по ней нельзя, щелчок по пункту называет причину.',
 'md.info':'<b>Режим влияет на поиск пиков.</b> «Показать спектр за вычетом фона» — пики ищутся по вычтенному спектру; в остальных режимах — по исходному. Тот же вычтенный спектр уходит в «Расширенный CSV файл» и «Жёсткий вычет в файл» (глава 12).',
 'ms.k':'Мышь','ms.h':'Выделение мышью и панель «Выбранная область»',
@@ -365,7 +365,7 @@ GUIDE.texts({ru:{
 'md.l6':'<b>Show Normalized by Efficiency Spectrum</b> — the spectrum divided by the efficiency curve',
 'md.l7':'<b>The BG button</b> — a click cycles the modes (skipping FSA), the arrow opens this list',
 'md.f1':'<b>Subtraction is honest, not “by eye”.</b> The background is multiplied by the ratio of live times; channels below zero are set to zero.',
-'md.f2':'<b>FSA is a mode, not a separate window.</b> The FSA button turns it on for all spectra at once and keeps it until the next start; the decomposition refreshes itself, the report and the result live in their own panels. FSA lasts while peaks are shown: hide the peaks and FSA goes off everywhere, each tab back in its former mode; show them and FSA comes back. Pick another background mode on a tab and that tab leaves FSA, while the FSA button stays on.',
+'md.f2':'<b>FSA is a mode, not a separate window.</b> The FSA button turns it on for all spectra at once and keeps it until the next start; the decomposition refreshes itself, the report and the result live in their own panels. FSA lasts while peaks are shown: hide the peaks and FSA goes off everywhere, each tab back in its former mode; show them and FSA comes back. Pick another background mode on a tab and that tab leaves FSA on the chart, while the FSA button stays on and the “FSA Report” and “Measurement Result” windows keep computing: only the FSA button and the peaks switch the decomposition off. With the FSA button off, or the peaks hidden, there is no decomposition at all: the “FSA Report” and “Measurement Result” windows say “FSA is off” and why.',
 'md.f3':'<b>Normalisation needs an efficiency curve.</b> Without a curve the item is greyed out and the BG button skips it; if a curve is chosen but cannot be used, clicking the item tells why.',
 'md.info':'<b>The mode affects peak search.</b> With “Show Spectrum with Background Subtracted” peaks are searched on the subtracted spectrum; in the other modes, on the raw one. The same subtracted spectrum goes into the “Extended CSV File” and “Hard subtract to File” (chapter 12).',
 'ms.k':'Mouse','ms.h':'Mouse selection and the “Selected Region” panel',

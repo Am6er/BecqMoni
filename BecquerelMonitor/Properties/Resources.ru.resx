@@ -463,6 +463,12 @@
   <data name="FSAStatusIdle" xml:space="preserve">
     <value>FSA: расчёта не было</value>
   </data>
+  <data name="FSAOffByButton" xml:space="preserve">
+    <value>FSA выключен (кнопка FSA на панели графика)</value>
+  </data>
+  <data name="FSAOffByPeaks" xml:space="preserve">
+    <value>FSA выключен (поиск пиков выключен на панели графика)</value>
+  </data>
   <data name="FSACalculating" xml:space="preserve">
     <value>Полноспектральный разбор: считается…</value>
   </data>

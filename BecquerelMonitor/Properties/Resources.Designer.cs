@@ -3200,6 +3200,24 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to FSA is off (FSA button on the chart toolbar).
+        /// </summary>
+        public static string FSAOffByButton {
+            get {
+                return ResourceManager.GetString("FSAOffByButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to FSA is off (peak search is off on the chart toolbar).
+        /// </summary>
+        public static string FSAOffByPeaks {
+            get {
+                return ResourceManager.GetString("FSAOffByPeaks", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to FSA in progress.
         /// </summary>
         public static string FSAStatusRunning {
