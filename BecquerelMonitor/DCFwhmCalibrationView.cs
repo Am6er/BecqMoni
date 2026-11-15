@@ -2911,24 +2911,114 @@ namespace BecquerelMonitor
             {
                 return;
             }
-            double[] rcMatrix = null;
-            try
-            {
-                rcMatrix = this.checkBox2.Checked
-                    ? CalibrationSolver.SolveWeighted(points, 2)
-                    : CalibrationSolver.Solve(points, 2);
-            }
-            catch (Exception)
-            {
-                rcMatrix = null;
-            }
-            if (rcMatrix != null && rcMatrix.Length == 3
-                && !Array.Exists(rcMatrix, v => double.IsNaN(v) || double.IsInfinity(v)))
+            double[] rcMatrix = SolveRcQuadratic(points, resultData.EnergySpectrum.NumberOfChannels, this.checkBox2.Checked);
+            if (rcMatrix != null)
             {
                 rc_EnergyCalibration = new PolynomialEnergyCalibration();
                 rc_EnergyCalibration.Coefficients = rcMatrix;
                 rc_EnergyCalibration.PolynomialOrder = 2;
             }
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER330`, 15.11.2026) Квадратичная шкала для RadiaCode/Obsidian — ТЕМ ЖЕ
+        /// сторожем изгиба, что и шкала спектра (<see cref="CalibrationSolver.SolveGuarded"/>).
+        /// Прежде здесь стоял голый <c>Solve(points, 2)</c> без <c>CheckCalibration</c> и
+        /// без <c>BendOk</c>: парабола по трём нижним опорам могла улететь вверх шкалы, и
+        /// «Сохранить в конфигурацию прибора» уносила её в прибор мимо сторожа, хотя шкала
+        /// спектра рядом была понижена. Годная парабола выходит побитово прежней (тот же
+        /// <c>Solve</c>); сторож понизил степень до прямой — она кладётся тремя числами с
+        /// a₂ = 0 (такая шкала годна с `AMBER269`); годной нет — <c>null</c>, и прибор
+        /// получает то, что дал <see cref="SyncRcEnergyCalibration"/>.
+        /// </summary>
+        internal static double[] SolveRcQuadratic(List<CalibrationPoint> points, int channels, bool weighted)
+        {
+            if (points == null || points.Count < 3)
+            {
+                return null;
+            }
+            int usedOrder;
+            double[] matrix;
+            try
+            {
+                matrix = CalibrationSolver.SolveGuarded(points, 2, channels, weighted, out usedOrder);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+            if (matrix == null || Array.Exists(matrix, v => double.IsNaN(v) || double.IsInfinity(v)))
+            {
+                return null;
+            }
+            if (matrix.Length == 3)
+            {
+                return matrix;
+            }
+            return PadToQuadratic(matrix);
+        }
+
+        /// <summary>
+        /// (`AMBER330`) Прямая тремя числами (a₂ = 0) — так прибор RadiaCode/Obsidian
+        /// получает шкалу, которую сторож понизил до прямой. Парабола — как есть; прочее —
+        /// <c>null</c>.
+        /// </summary>
+        static double[] PadToQuadratic(double[] matrix)
+        {
+            if (matrix == null)
+            {
+                return null;
+            }
+            if (matrix.Length == 3)
+            {
+                return (double[])matrix.Clone();
+            }
+            if (matrix.Length == 2)
+            {
+                return new double[] { matrix[0], matrix[1], 0.0 };
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// ⛔ (`AMBER330`, второй круг, находка критика `crit330`) Квадратичная шкала, которую
+        /// «Сохранить в конфигурацию прибора» кладёт RadiaCode/Obsidian. Основная шкала второй
+        /// степени — она сама; выше второй — парабола <see cref="FitRcEnergyCalibration"/>
+        /// (<see cref="SolveRcQuadratic"/>), если она есть. Прежде основная шкала ПЕРВОЙ
+        /// степени (сторож понизил подгонку до прямой или прямая введена руками) уносила в
+        /// прибор <c>null</c>, хотя годная прямая была готова. Теперь — парабола
+        /// <see cref="SolveRcQuadratic"/>, если она подогнана, иначе сама прямая тремя
+        /// числами (a₂ = 0), тем же <see cref="PadToQuadratic"/>; негодная — <c>null</c>.
+        /// </summary>
+        internal static PolynomialEnergyCalibration DeviceQuadratic(PolynomialEnergyCalibration main, PolynomialEnergyCalibration fittedQuadratic)
+        {
+            if (main == null)
+            {
+                return null;
+            }
+            if (main.PolynomialOrder == 2)
+            {
+                return (PolynomialEnergyCalibration)main.Clone();
+            }
+            if (fittedQuadratic != null && (main.PolynomialOrder > 2 || main.PolynomialOrder == 1))
+            {
+                return (PolynomialEnergyCalibration)fittedQuadratic.Clone();
+            }
+            if (main.PolynomialOrder == 1)
+            {
+                double[] padded = PadToQuadratic(main.Coefficients);
+                if (padded == null || Array.Exists(padded, v => double.IsNaN(v) || double.IsInfinity(v)))
+                {
+                    return null;
+                }
+                PolynomialEnergyCalibration line = new PolynomialEnergyCalibration
+                {
+                    Coefficients = padded,
+                    PolynomialOrder = 2
+                };
+                return line;
+            }
+            return null;
         }
 
         /// <summary>
@@ -3522,33 +3612,11 @@ namespace BecquerelMonitor
             deviceConfig.TractCurvature = resultData.TractCurvature;
             if (rc_deviceConfig != null)
             {
-                if (this.energyCalibration.PolynomialOrder == 2)
-                {
-                    rc_deviceConfig.RC_EnergyCalibration = (PolynomialEnergyCalibration)this.energyCalibration.Clone();
-                }
-                else if (this.energyCalibration.PolynomialOrder > 2 && this.rc_EnergyCalibration != null)
-                {
-                    rc_deviceConfig.RC_EnergyCalibration = (PolynomialEnergyCalibration)this.rc_EnergyCalibration.Clone();
-                }
-                else
-                {
-                    rc_deviceConfig.RC_EnergyCalibration = null;
-                }
+                rc_deviceConfig.RC_EnergyCalibration = DeviceQuadratic(this.energyCalibration, this.rc_EnergyCalibration);
             }
             else if (obs_deviceConfig != null)
             {
-                if (this.energyCalibration.PolynomialOrder == 2)
-                {
-                    obs_deviceConfig.OBS_EnergyCalibration = (PolynomialEnergyCalibration)this.energyCalibration.Clone();
-                }
-                else if (this.energyCalibration.PolynomialOrder > 2 && this.rc_EnergyCalibration != null)
-                {
-                    obs_deviceConfig.OBS_EnergyCalibration = (PolynomialEnergyCalibration)this.rc_EnergyCalibration.Clone();
-                }
-                else
-                {
-                    obs_deviceConfig.OBS_EnergyCalibration = null;
-                }
+                obs_deviceConfig.OBS_EnergyCalibration = DeviceQuadratic(this.energyCalibration, this.rc_EnergyCalibration);
             }
             if (fitted != null)
             {
