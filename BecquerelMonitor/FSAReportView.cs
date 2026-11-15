@@ -614,18 +614,31 @@ namespace BecquerelMonitor
         const string KeySampleBetaOtherCapsule = "FSAReport_SampleBetaOtherCapsule";
         const string KeySampleBetaIsoScene = "FSAReport_SampleBetaIsoScene";
         const string KeySampleBetaNoScene = "FSAReport_SampleBetaNoScene";
+        const string KeySampleBetaMissing = "FSAReport_SampleBetaMissing";
 
         /// <summary>
         /// (`AMBER274`, `Р5`) Значение строки «бета пробы» словами окна; null — строки нет
-        /// (разбор без матрицы или у матрицы нет раздела электронов). Открыта пробе: приёмка
+        /// (разбор без матрицы; у матрицы без раздела электронов — только при выключенном ключе беты). Открыта пробе: приёмка
         /// читает ТУ ЖЕ строку, что окно. Числа — инвариантной культурой (`A242`).
         /// </summary>
         public static string SampleBetaText(FsaResult result)
         {
-            if (result == null || !result.ResponseMatrixUsed
-                || result.SampleBetaRefusal == EfficiencyMaker.ElectronSectionRefusal.Missing)
+            if (result == null || !result.ResponseMatrixUsed)
             {
                 return null;
+            }
+
+            // ⛔ (`AMBER274`, критик `critamb56`; `a305m` 15.11.2026) У матрицы нет раздела электронов:
+            // при включённом ключе строка ГОВОРИТ об этом (раньше молчала — окно матрицы и метка «!» в
+            // списке кривых говорили «пересчитайте», а отчёт не говорил ничего; у 9 из 12 матриц
+            // рабочего склада бета пробы выпадала молча). Ключ ВЫКЛ — строки нет, разбор побитово прежний.
+            // Сцене `Iso` раздел не положен — её причина `IsoScene` ставится привязкой.
+            if (result.SampleBetaRefusal == EfficiencyMaker.ElectronSectionRefusal.Missing)
+            {
+                return result.SampleBetaKeyOn
+                    ? string.Format(CultureInfo.InvariantCulture, OwnText(KeySampleBetaRefused),
+                                    OwnText(KeySampleBetaMissing))
+                    : null;
             }
 
             string capsule = string.IsNullOrEmpty(result.SampleBetaCapsule) ? "none" : result.SampleBetaCapsule;
@@ -2735,9 +2748,10 @@ namespace BecquerelMonitor
                                       result.CascadeSummingUsed,
                                       result.CascadeSummingRefusedFieldMatrix));
 
-            // (`AMBER274`, `Р5`/`Д2`) БЕТА ПРОБЫ — когда у матрицы ЕСТЬ раздел электронов
-            // (или он был и испорчен): легла ли бета, сколько отсчётов в образах, какая
-            // капсула; не взята — почему. У матрицы без раздела строки нет: сказать нечего,
+            // (`AMBER274`, `Р5`/`Д2`) БЕТА ПРОБЫ — когда в разборе матрица: легла ли бета, сколько
+            // отсчётов в образах, какая капсула; не взята — почему. ⛔ (`a305m`) У матрицы БЕЗ раздела
+            // электронов при включённом ключе строка тоже есть — отказом «пересчитайте матрицу»
+            // (молчание расходилось с окном матрицы и меткой «!»); при ВЫКЛ ключе строки нет:
             // разбор идёт прежним путём побитово.
             string sampleBeta = SampleBetaText(result);
             if (sampleBeta != null)

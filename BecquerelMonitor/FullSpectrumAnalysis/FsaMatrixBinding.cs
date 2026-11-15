@@ -88,6 +88,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     : EfficiencyMaker.ElectronSectionRefusal.Missing;
             }
 
+            // ⛔ (`a305m` 15.11.2026) Сцене изотропного поля раздел не положен: у матрицы БЕЗ раздела
+            // `ElectronSectionFor` отвечает `Missing` раньше сцены, и отчёт принял бы это за «пересчитайте
+            // матрицу». Причина сцены — `IsoScene`, как у матрицы с разделом.
+            if (geometry != null && geometry.Scene == GeometrySceneKind.Iso)
+            {
+                refusal = EfficiencyMaker.ElectronSectionRefusal.IsoScene;
+            }
+
             analyzer.SampleBetaSection = section;
             analyzer.SampleBetaRefusal = refusal;
 

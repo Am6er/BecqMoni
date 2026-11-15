@@ -1850,10 +1850,29 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             /// <summary>
             /// Счёт годен: подложка в окне не больше <see cref="AlphaCountMaxBaselineShare"/> отсчётов окна (больше —
-            /// в окне альф лежит комптон чужих линий, и постоянная подложка его не вычитает) И в окне нет узкой линии
-            /// (<see cref="LineFound"/>).
+            /// под окном альф лежит гамма-континуум пробы, а он не постоянен: падает ступенями к верху окна, и
+            /// постоянная подложка, взятая с его уровня ниже окна, вычитает лишнее), в окне нет узкой линии
+            /// (<see cref="LineFound"/>) И группы альф не уходят за верх шкалы (<see cref="Overflow"/>).
             /// </summary>
             public bool Reliable;
+
+            /// <summary>
+            /// (`a274z`) ГРУППЫ АЛЬФ УХОДЯТ ЗА ВЕРХ ШКАЛЫ: окно счёта упирается в верх шкалы, а последний канал спектра
+            /// (у АЦП он копит всё, что выше шкалы; в сам счёт он не входит) держит больше
+            /// <see cref="AlphaOverflowMaxShare"/> счёта окна. Счёт
+            /// тогда зависит от того, где шкала режет верхнюю группу, то есть от шкалы у самого верха, а её там
+            /// привязать нечем.
+            /// </summary>
+            public bool Overflow;
+
+            /// <summary>
+            /// (`a274z`) Ушедшее за шкалу в долях счёта окна: отсчёты последнего канала спектра (если окно упирается в
+            /// верх шкалы) и избыток каналов-выбросов (<see cref="HotChannels"/>). В сам счёт ни то, ни другое не входит.
+            /// </summary>
+            public double OverflowShare;
+
+            /// <summary>(`a274z`) Каналов-выбросов в области счёта: одиночные каналы, где осело переполнение АЦП; в счёт вместо них идёт медиана соседей.</summary>
+            public int HotChannels;
 
             /// <summary>
             /// (`a274f`) В окне альф или полосе подложки стоит УЗКАЯ ЛИНИЯ — гамма-линия пробы: остаток «данные −
@@ -1875,11 +1894,53 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public const double AlphaCountMinZ = 3.0;
 
         /// <summary>
-        /// (`a274a`) Наибольшая доля подложки в окне альф, при которой счёт годен. Замер на втором приборе LaBr3
-        /// (журнал `handover-2026-11-14-a274a.md`): 11 фонов — 4.7…7.0 %, пробы без линий выше 1.7 МэВ — 4.6…8.7 %;
-        /// пробы с U/Th/Ra — 12…75 %, и их счёт уходит от счёта своего фона на −7…+1900 %.
+        /// (`a274a`; порог пересчитан полосой `a274z` 15.11.2026) Наибольшая доля подложки в окне альф, при которой
+        /// счёт годен. Прежние 10 % мерены на образе альф БЕЗ формы групп (журнал `handover-2026-11-14-a274a.md`:
+        /// фоны 4.7…7.0 %, пробы без линий выше 1.7 МэВ 4.6…8.7 %): провалы между группами тот счёт относил к
+        /// подложке. С формой групп (`a274f`) подложка фонов — 0.8…1.6 % окна, годных проб — до 2.3 %, а порог
+        /// остался прежним и пропускал пробы с Th/U: у них подложка 3.7…6.6 %, а счёт ниже счёта фона той же поры на
+        /// 0.9…3.3 %. Механизм измерен (журнал `handover-2026-11-15-a274z.md`): избыток пробы над фоном на кэВ под
+        /// окном альф не постоянен — у низа окна он тот же, что в полосе подложки (0.9…1.5 её уровня), выше падает
+        /// до 0.1…0.5 и к верху окна сходит в нуль: континуум линий пробы кончается у их комптоновских краёв. В
+        /// целом по окну избыток — 0.3…0.7 того, что вычитает постоянная подложка с уровня полосы, и счёт занижен на
+        /// 0.4…0.75 прироста подложки над фоновой; опыт с подложенным континуумом это воспроизводит
+        /// (`CrystalOwnBaselineProbeA274z`). Исправить это в счёте нельзя: форму континуума задаёт состав пробы,
+        /// которого счёт не знает (его знает подгонка разбора — у негодного счёта ряд берётся из поля прибора с
+        /// распадом, а без поля строка остаётся свободной и делит амплитуду с образами пробы).
+        /// ПОРОГ 2 % — решение Amber 15.11.2026 вопросником, дословно: «Снизить до 2 % (Рекомендую)» (был 2.5 %:
+        /// между 2.30 % годной пробы и 3.70 % пробы с торием). ⚠ Что порог 2 % пропускает — годный счёт со смещением,
+        /// ЗАМЕР опытом с подложенной ступенью (`CrystalOwnBaselineProbeA274z`, шаг ступени 0.1 % счёта окна): на
+        /// десяти годных фонах (подложка 1.32…1.66 %) — до −0.34 % при обрыве у края линии 2614 кэВ и до −0.51 % у
+        /// края линии 2204 кэВ (ряд урана; критик `crit274z`); на спектре с наименьшей подложкой (0.64 %) — до
+        /// −0.70 % и до −1.01 %: сдвиг идёт за приростом подложки (0.54…0.56 и 0.80…0.81 прироста), а запас до
+        /// порога у такого спектра вдвое больше. Разброс защищённых фонов — 0.19 %.
         /// </summary>
-        public const double AlphaCountMaxBaselineShare = 0.10;
+        public const double AlphaCountMaxBaselineShare = 0.02;
+
+        /// <summary>
+        /// (`a274z`, 15.11.2026) Наибольшая доля последнего канала спектра в счёте окна альф, при которой счёт годен.
+        /// Замер на втором приборе LaBr3 (журнал `handover-2026-11-15-a274z.md`): у 29 спектров из 34 последний канал
+        /// с каналами-выбросами держит не больше 1.5 % счёта окна, у пяти спектров одной поры — 3.7…7.7 %, и без
+        /// ушедшего за шкалу их счёт ниже счёта фонов на 1.3…3.7 % (образ ряда отводит выше их шкалы 0.5…2.8 % альф:
+        /// шкала у верха не та). Сам последний канал и выбросы в счёт не входят — они только мерило.
+        /// </summary>
+        public const double AlphaOverflowMaxShare = 0.03;
+
+        /// <summary>
+        /// (`a274z`) СКОЛЬКО ВЕРХНИХ КАНАЛОВ ШКАЛЫ СНЯТЬ ИЗ СЧЁТА АЛЬФ — выбор одной строкой. 1 — последний канал:
+        /// решения Amber 15.11.2026 вопросником, дословно: «Исключить (Рекомендую)» и, на переспрос критика
+        /// `crit274z` (один канал или девять), — «Последний канал (Рекомендую)». 0 — как было до решения (последний
+        /// канал в окне); 9 — отвергнутый вариант (у одного фона второго прибора переполнение осело в канале за
+        /// восемь до последнего). То же переполнение, осевшее ниже последнего канала, снимают каналы-выбросы
+        /// (<see cref="AlphaHotChannelRatio"/>; 0 — не снимать) — её слово того же дня: «Оставить фильтр (Рекомендую)».
+        /// </summary>
+        public const int AlphaTopChannelsOut = 1;
+
+        /// <summary>(`a274z`) Канал-выброс области счёта альф: отсчётов больше стольких медиан соседей (0 — выбросы не снимаются).</summary>
+        public const double AlphaHotChannelRatio = 5.0;
+
+        /// <summary>(`a274z`) Соседей с каждой стороны, по которым берётся медиана для канала-выброса.</summary>
+        public const int AlphaHotChannelReach = 15;
 
         /// <summary>(`a274a`) Ширина полосы подложки ниже окна альф, кэВ-экв.</summary>
         public const double AlphaSideBandKev = 300.0;
@@ -1953,7 +2014,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            double spectrumTop = edge[channels];
+            // (`a274z`, второй круг) ПОСЛЕДНИЙ КАНАЛ СПЕКТРА В СЧЁТ НЕ ВХОДИТ — решение Amber 15.11.2026 вопросником,
+            // дословно: «Исключить (Рекомендую)». У АЦП он копит всё, что выше шкалы (наложения, космика, срезанные
+            // альфы): в образе ряда этого нет, а в окне счёта, упиравшемся в верх шкалы, он давал ≈ 1.1 % счёта.
+            // Верх шкалы для счёта — нижняя граница снятых каналов: они выпадают из окна, из подгонки подложки,
+            // из χ² и из поиска узкой линии. Признак <see cref="AlphaCount.Overflow"/> на них по-прежнему смотрит.
+            // Сколько каналов снять — одна константа <see cref="AlphaTopChannelsOut"/>.
+            int topOut = Math.Max(0, Math.Min(AlphaTopChannelsOut, channels - 16));
+            double spectrumTop = edge[channels - topOut];
             double top = topKev > 0.0 ? Math.Min(topKev, spectrumTop) : spectrumTop;
 
             // Область альф образа: 0.1 … 99.9 % их доли.
@@ -2017,6 +2085,50 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return result;
             }
 
+            // (`a274z`, второй круг) КАНАЛЫ-ВЫБРОСЫ. У спектра, сложенного из наборов с разной шкалой, переполнение
+            // АЦП оседает не только в последнем канале, но и в одиночных каналах ниже него (замер: у трёх спектров
+            // второго прибора 1, 2 и 4 таких канала с 0.8…3.6 % счёта окна при 15…7000 отсчётах в соседних). Одиночный
+            // канал — не черта спектра: приборный пик здесь шире сотни каналов. Выброс — канал области счёта, где
+            // отсчётов больше пяти медиан 30 соседей (и больше медианы на десять её корней). В счёт идёт медиана
+            // соседей, избыток над ней — в то же мерило, что и последний канал (AlphaCount.OverflowShare).
+            double[] data = (double[])counts.Clone();
+            double hotExcess = 0.0;
+            {
+                double regionLo = noSide ? result.WindowLoKev : result.SideLoKev;
+                var near = new List<double>(2 * AlphaHotChannelReach);
+                for (int i = 0; i < channels - Math.Max(topOut, 1) && AlphaHotChannelRatio > 0.0; i++)
+                {
+                    double centre = 0.5 * (edge[i] + edge[i + 1]);
+                    if (centre < regionLo || centre >= result.WindowHiKev)
+                    {
+                        continue;
+                    }
+
+                    near.Clear();
+                    for (int j = Math.Max(0, i - AlphaHotChannelReach); j <= Math.Min(channels - 1 - Math.Max(topOut, 1), i + AlphaHotChannelReach); j++)
+                    {
+                        if (j != i)
+                        {
+                            near.Add(counts[j]);
+                        }
+                    }
+
+                    if (near.Count < 4)
+                    {
+                        continue;
+                    }
+
+                    near.Sort();
+                    double median = 0.5 * (near[(near.Count - 1) / 2] + near[near.Count / 2]);
+                    if (counts[i] > AlphaHotChannelRatio * Math.Max(median, 5.0) && counts[i] > median + 10.0 * Math.Sqrt(Math.Max(median, 1.0)))
+                    {
+                        hotExcess += counts[i] - median;
+                        data[i] = median;
+                        result.HotChannels++;
+                    }
+                }
+            }
+
             // Образ ряда и его альф на 1 Бк·с по каналам: гаусс с FWHM шкалы, по бинам сетки.
             double[] template = Broaden(entry.PerDecay, binKev, edge, fwhmKevAt);
             double[] known = fixedPerSecond != null ? Broaden(fixedPerSecond, binKev, edge, fwhmKevAt) : null;
@@ -2046,7 +2158,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double y = counts[i] - (known != null ? known[i] * liveTime : 0.0);
+                double y = data[i] - (known != null ? known[i] * liveTime : 0.0);
                 double tt = template[i] * liveTime;
                 double w = 1.0 / Math.Max(y, 1.0);
                 sww += w;
@@ -2095,8 +2207,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 if ((centre >= result.WindowLoKev && centre < result.WindowHiKev)
                     || (!noSide && centre >= result.SideLoKev && centre < result.SideHiKev))
                 {
-                    double r = counts[i] - (known != null ? known[i] * liveTime : 0.0) - aFit * template[i] * liveTime - bFit;
-                    chi += r * r / Math.Max(counts[i], 1.0);
+                    double r = data[i] - (known != null ? known[i] * liveTime : 0.0) - aFit * template[i] * liveTime - bFit;
+                    chi += r * r / Math.Max(data[i], 1.0);
                 }
             }
 
@@ -2113,8 +2225,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     centre[i] = 0.5 * (edge[i] + edge[i + 1]);
                     double model = (known != null ? known[i] * liveTime : 0.0) + aFit * template[i] * liveTime + bFit;
-                    cumR[i + 1] = cumR[i] + counts[i] - model;
-                    cumY[i + 1] = cumY[i] + Math.Max(counts[i], 0.0);
+                    cumR[i + 1] = cumR[i] + data[i] - model;
+                    cumY[i + 1] = cumY[i] + Math.Max(data[i], 0.0);
                 }
 
                 double bestScore = 0.0;
@@ -2177,7 +2289,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             result.SigmaBq = Math.Sqrt(Math.Max(yWin, 1.0) + varB * nWin * nWin) / tWin;
             result.Z = result.SigmaBq > 0.0 ? result.ActivityBq / result.SigmaBq : 0.0;
             result.Found = result.Z >= AlphaCountMinZ;
-            result.Reliable = result.Found && yWin > 0.0 && result.Baseline <= AlphaCountMaxBaselineShare * yWin && !result.LineFound;
+
+            // (`a274z`) Окно упирается в верх шкалы — сразу за ним стоит последний канал (переполнение АЦП). В счёт он
+            // не входит (см. выше), но мерит, сколько событий ушло за шкалу: его отсчёты и избыток каналов-выбросов
+            // в долях счёта окна.
+            if (yWin > 0.0)
+            {
+                // мерило — верхние каналы шкалы (снятые из счёта; не снято ни одного — последний) и избыток выбросов
+                double beyond = hotExcess;
+                for (int i = channels - Math.Max(topOut, 1); i < channels && result.WindowHiKev >= spectrumTop; i++)
+                {
+                    beyond += Math.Max(0.0, counts[i]);
+                }
+
+                result.OverflowShare = beyond / yWin;
+                result.Overflow = result.OverflowShare > AlphaOverflowMaxShare;
+            }
+
+            result.Reliable = result.Found && yWin > 0.0 && result.Baseline <= AlphaCountMaxBaselineShare * yWin && !result.LineFound
+                              && !result.Overflow;
             var note = new StringBuilder();
             note.Append("окно ").Append(result.WindowLoKev.ToString("F0", CultureInfo.InvariantCulture)).Append('–')
                 .Append(result.WindowHiKev.ToString("F0", CultureInfo.InvariantCulture)).Append(" кэВ-экв, подложка ")
@@ -2195,6 +2325,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     .Append(result.LineKev.ToString("F0", CultureInfo.InvariantCulture)).Append(" кэВ-экв (")
                     .Append((100.0 * result.LineShare).ToString("F2", CultureInfo.InvariantCulture)).Append(" % счёта окна, z ")
                     .Append(result.LineZ.ToString("F1", CultureInfo.InvariantCulture)).Append(')');
+            }
+
+            if (result.Overflow)
+            {
+                note.Append("; ГРУППЫ АЛЬФ ЗА ВЕРХОМ ШКАЛЫ: последний канал и каналы-выбросы — ")
+                    .Append((100.0 * result.OverflowShare).ToString("F2", CultureInfo.InvariantCulture)).Append(" % счёта окна");
+            }
+
+            if (result.HotChannels > 0)
+            {
+                note.Append("; каналов-выбросов снято ").Append(result.HotChannels.ToString(CultureInfo.InvariantCulture));
             }
 
             if (result.CutAboveTop > 0.001)
@@ -2268,7 +2409,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// Amber 14.11.2026 вопросником, дословно: «По фону с распадом (Рекомендую)»: счёт по альфам этого спектра не
         /// годен (подложка окна, узкая линия в окне) или невозможен (окно альф вне шкалы, ряд по счёту не найден) —
         /// ряд берётся из поля прибора с распадом головы (<see cref="CrystalOwnSeriesFallback.ActivityAtSpectrum"/>)
-        /// и вычитается известной частью. Поля нет (null, активность 0, дата спектра неизвестна) — как прежде:
+        /// и вычитается известной частью. Негодность счёта — `AlphaCount.Reliable`: подложка окна больше порога
+        /// (под окном гамма-континуум пробы, `a274z`), узкая линия в окне, группы альф за верхом шкалы (`a274z`).
+        /// Поля нет (null, активность 0, дата спектра неизвестна) — как прежде:
         /// негодный счёт оставляет строку свободной, не найденный ряд её снимает.
         /// </summary>
         public static ResponseCrystalSection FixSeriesByAlphas(ResponseCrystalSection section, int[] raw, double liveTime,
@@ -2321,12 +2464,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                               + count.LineZ.ToString("F1", CultureInfo.InvariantCulture) + "; счёт дал "
                               + count.ActivityBq.ToString("F3", CultureInfo.InvariantCulture) + " Бк)";
                     }
+                    else if (count.Overflow)
+                    {
+                        why = "счёт не годен (группы альф уходят за верх шкалы: последний канал и каналы-выбросы — "
+                              + (100.0 * count.OverflowShare).ToString("F2", CultureInfo.InvariantCulture) + " % счёта окна > "
+                              + (100.0 * AlphaOverflowMaxShare).ToString("0.#", CultureInfo.InvariantCulture) + " %; счёт дал "
+                              + count.ActivityBq.ToString("F3", CultureInfo.InvariantCulture) + " Бк)";
+                    }
                     else
                     {
                         why = "счёт не годен (подложка " + (count.Counts > 0.0 ? 100.0 * count.Baseline / count.Counts : 0.0)
                                   .ToString("F1", CultureInfo.InvariantCulture) + " % > "
-                              + (100.0 * AlphaCountMaxBaselineShare).ToString("F0", CultureInfo.InvariantCulture)
-                              + " %: в окне альф чужие линии; счёт дал "
+                              + (100.0 * AlphaCountMaxBaselineShare).ToString("0.#", CultureInfo.InvariantCulture)
+                              + " %: под окном альф гамма-континуум пробы, постоянная подложка вычитает лишнее; счёт дал "
                               + count.ActivityBq.ToString("F3", CultureInfo.InvariantCulture) + " Бк)";
                     }
 

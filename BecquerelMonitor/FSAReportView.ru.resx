@@ -499,6 +499,9 @@
   <data name="FSAReport_SampleBetaNoScene" xml:space="preserve">
     <value>сцена разбора неизвестна</value>
   </data>
+  <data name="FSAReport_SampleBetaMissing" xml:space="preserve">
+    <value>у матрицы отклика нет раздела электронов; пересчитайте матрицу</value>
+  </data>
   <data name="FSAReport_SupplyRow" xml:space="preserve">
     <value>Справочники распада расходятся</value>
   </data>
