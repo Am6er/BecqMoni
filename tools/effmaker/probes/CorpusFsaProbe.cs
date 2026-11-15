@@ -845,7 +845,7 @@ namespace CorpusFsaProbe
     ///                  [--pileup-cap=0|1]   (`AMBER123`, П166: граница числа пар наложений R·τ_d)
     ///                  [--branch-sum=0|1]   (`AMBER134`, П166: вынос суммой по исключающим ветвям питания)
     ///                  [--crystal-shield=0|1]   (`A30`, П21: заслон сведения рентгена кристалла — как до 12.09.2026)
-    ///                  [--crystal-own=0|1]   (`AMBER274`, `a274m`: слой собственной активности кристалла; умолчание анализатора — выкл.; раздел слоя не взят — код 69)
+    ///                  [--crystal-own=0|1]   (`AMBER274`, `a274m`: слой собственной активности кристалла; умолчание анализатора — ВКЛ с 15.11.2026, `a274v`; раздел слоя не взят — код 69)
     ///                  [--anchor-zero=calib|adc|adc-fixed] [--anchor-zero-kev=&lt;кэВ&gt;]   (`S169`, нуль шкалы образа)
     ///                  [--anchor-zero-share=&lt;доля&gt;] [--anchor-zero-max=&lt;кэВ&gt;]   (`S169`, П13, ножи кандидата нуля съёмки)
     ///                  [--no-xray] [--no-ann] [--no-isomer] [--no-decay-time-prob]
@@ -1035,7 +1035,7 @@ namespace CorpusFsaProbe
                 if (a.StartsWith("--sample-beta=", StringComparison.Ordinal)) { o.SampleBeta = a.Substring(14) != "0"; continue; }
                 if (a.StartsWith("--positron-stop=", StringComparison.Ordinal)) { o.PositronStop = a.Substring(16) != "0"; continue; }
                 // (`AMBER274`, полоса `a274m` 14.11.2026) КЛЮЧ СЛОЯ собственной активности кристалла
-                // (`FsaAnalyzer.CrystalOwnLayer`, умолчание анализатора — ВЫКЛ): 1 — слой вычитается у спектров,
+                // (`FsaAnalyzer.CrystalOwnLayer`, умолчание анализатора — ВКЛ с 15.11.2026, `a274v`): 1 — слой вычитается у спектров,
                 // чья матрица несёт годный раздел слоя (`CorpusMatrixProbe --crystal-own=1`); кристаллу слой
                 // положен, а раздела нет или он чужой — счётчик и код конца 69. Разбор строгий (`A77`).
                 if (a.StartsWith("--crystal-own=", StringComparison.Ordinal))

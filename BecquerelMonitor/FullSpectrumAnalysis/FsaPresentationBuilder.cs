@@ -452,8 +452,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// свёрнутые необнаруженные; «без фона»; невязка; качество.
         /// </summary>
         /// <summary>
-        /// (`AMBER274`, Э2) Текст строки слоя по имени ключа ресурса. Слой выключен умолчанием, и
-        /// строки зовутся только при включённом: ключи в `Properties/Resources*` по имени, без `Designer`.
+        /// (`AMBER274`, Э2) Текст строки слоя по имени ключа ресурса. Строки зовутся, только когда слой лёг
+        /// (умолчание ключа — ВКЛ с 15.11.2026, `a274v`): ключи в `Properties/Resources*` по имени, без `Designer`.
         /// </summary>
         static string CrystalOwnText(string key)
         {

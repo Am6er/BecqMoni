@@ -42,12 +42,16 @@ namespace CrystalOwnBaselineProbeA274z
     ///   6. «выброс» — доля счёта окна добавлена в ОДИН канал посреди окна (так оседает переполнение у спектра,
     ///      сложенного из наборов с разной шкалой): канал снят (в счёт идёт медиана соседей), активность не
     ///      сдвинулась (|сдвиг| ≤ 0.01 %), добавленное ушло в мерило ушедшего за шкалу; выше порога счёт негоден.
+    ///   7. (`a274v`, замечание критика `crit274z`) «форма остатка» — к фону добавлена линия (доля счёта окна, четверть,
+    ///      середина и три четверти окна; FWHM прибора, у середины ещё FWHM/4 и FWHM/8) или ступень от середины окна до
+    ///      верха шкалы: случаи критика (линия 3 % у середины; ступень +4 медианы) названы негодными, у каждого случая,
+    ///      названного годным, |сдвиг| ≤ `--max-shape-bias=` (6 %; граница, которую признаки держат, — печатается).
     /// На списке спектров (`--expect-unreliable=`): годность счёта каждого спектра — как названо ключом.
     ///
     ///     CrystalOwnBaselineProbeA274z --device=прибор.xml --spectra=list.csv --out=каталог --tags=B06,B10
     ///         [--shape=доб.FWHM,доля полки,длина полки] [--series=Бк,yyyy-MM-dd] [--bin=1] [--histories=200000]
     ///         [--line=2614.511] [--max-bias=0.77] [--expect-unreliable=S05,S06,…]
-    ///         [--shares=0,0.5,1,2,3,5] (подложенные доли, %; первая — 0, последняя — самая сильная) [--flat-tol=0.15]
+    ///         [--shares=0,0.5,1,2,3,5] (подложенные доли, %; первая — 0, последняя — самая сильная) [--flat-tol=0.15] [--max-shape-bias=6]
     /// Список — как у `CrystalOwnAlphaProbeA274f`: `метка;файл отсчётов;живое время;c0 c1 …;FWHM % на 662;верх;[дата]`.
     /// </summary>
     internal static class Program
@@ -116,7 +120,7 @@ namespace CrystalOwnBaselineProbeA274z
 
             string outDir = null, spectra = null, devicePath = null, shape = null, series = null, tags = null, expect = null;
             int histories = 200000;
-            double bin = 1.0, line = 2614.511, maxBias = 0.77, flatTol = 0.15;
+            double bin = 1.0, line = 2614.511, maxBias = 0.77, flatTol = 0.15, maxShapeBias = 6.0;
             double[] shares = { 0.0, 0.5, 1.0, 2.0, 3.0, 5.0 };
             foreach (string a in args)
             {
@@ -128,6 +132,7 @@ namespace CrystalOwnBaselineProbeA274z
                 else if (a.StartsWith("--line=", StringComparison.Ordinal)) line = double.Parse(v, CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--max-bias=", StringComparison.Ordinal)) maxBias = double.Parse(v, CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--flat-tol=", StringComparison.Ordinal)) flatTol = double.Parse(v, CultureInfo.InvariantCulture);
+                else if (a.StartsWith("--max-shape-bias=", StringComparison.Ordinal)) maxShapeBias = double.Parse(v, CultureInfo.InvariantCulture);
                 else if (a.StartsWith("--shares=", StringComparison.Ordinal)) shares = v.Split(',').Select(x => double.Parse(x, CultureInfo.InvariantCulture)).ToArray();
                 else if (a.StartsWith("--shape=", StringComparison.Ordinal)) shape = v;
                 else if (a.StartsWith("--series=", StringComparison.Ordinal)) series = v;
@@ -197,12 +202,12 @@ namespace CrystalOwnBaselineProbeA274z
 
             double[] known = CrystalOwnActivityBuilder.KnownPerSecond(section);
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "порог годности счёта: подложка ≤ {0:0.#} % окна альф; линия в окне: z ≥ {1:0.#} и ≥ {2:0.#} % счёта окна",
+                "порог годности счёта: подложка ≤ {0:0.#} % окна альф; линия в окне: z ≥ {1:0.#} и ≥ {2:0.#} % счёта окна; половины окна: |расхождение| < {3:0.#} % или z < {1:0.#}",
                 100.0 * CrystalOwnActivityBuilder.AlphaCountMaxBaselineShare, CrystalOwnActivityBuilder.AlphaLineMinZ,
-                100.0 * CrystalOwnActivityBuilder.AlphaLineMinShare));
+                100.0 * CrystalOwnActivityBuilder.AlphaLineMinShare, 100.0 * CrystalOwnActivityBuilder.AlphaSplitMaxShare));
 
             List<Row> rows = ReadList(spectra);
-            var text = new StringBuilder("tag;A_Bq;base_pct;line_share_pct;overflow_pct;hot_channels;reliable;entry;entry_Bq\n");
+            var text = new StringBuilder("tag;A_Bq;base_pct;line_share_pct;overflow_pct;hot_channels;reliable;entry;entry_Bq;line_z;split_pct;split_z;split_kev\n");
 
             // ---- Список: годность счёта каждого спектра и запись ряда на входе разбора ----
             HashSet<string> unreliable = expect != null ? new HashSet<string>(expect.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)) : null;
@@ -236,14 +241,19 @@ namespace CrystalOwnBaselineProbeA274z
                 string state = h == null ? "снята" : h.Free ? "свободная" : (hookNote ?? "").Contains("из поля прибора") ? "поле" : "счёт";
                 string entryBq = h != null && !h.Free ? h.ActivityBq.ToString("F4", CultureInfo.InvariantCulture) : "";
                 double basePct = c.Counts > 0.0 ? 100.0 * c.Baseline / c.Counts : 0.0;
-                Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0,-4} | {1,7:F5}  {2,5:F2}  {3,6:F2}  {4,6:F2}  {5}  {6} | {7} {8}",
-                                                row.Tag, c.ActivityBq, basePct, 100.0 * c.LineShare, 100.0 * c.OverflowShare, c.HotChannels, c.Reliable ? "да " : "НЕТ", state, entryBq));
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "{0,-4} | {1,7:F5}  {2,5:F2}  {3,6:F2} (z {9,6:F1})  {4,6:F2}  {5}  половины {10,7:F2} % (z {11,6:F1}, граница {12:F0})  {6} | {7} {8}",
+                                                row.Tag, c.ActivityBq, basePct, 100.0 * c.LineShare, 100.0 * c.OverflowShare, c.HotChannels, c.Reliable ? "да " : "НЕТ", state, entryBq,
+                                                c.LineZ, 100.0 * c.SplitShare, c.SplitZ, c.SplitKev));
                 text.Append(row.Tag).Append(';').Append(c.ActivityBq.ToString("R", CultureInfo.InvariantCulture)).Append(';')
                     .Append(basePct.ToString("F3", CultureInfo.InvariantCulture)).Append(';')
                     .Append((100.0 * c.LineShare).ToString("F3", CultureInfo.InvariantCulture)).Append(';')
                     .Append((100.0 * c.OverflowShare).ToString("F3", CultureInfo.InvariantCulture)).Append(';')
                     .Append(c.HotChannels.ToString(CultureInfo.InvariantCulture)).Append(';').Append(c.Reliable ? 1 : 0).Append(';')
-                    .Append(state).Append(';').Append(entryBq).Append('\n');
+                    .Append(state).Append(';').Append(entryBq).Append(';')
+                    .Append(c.LineZ.ToString("F2", CultureInfo.InvariantCulture)).Append(';')
+                    .Append((100.0 * c.SplitShare).ToString("F3", CultureInfo.InvariantCulture)).Append(';')
+                    .Append(c.SplitZ.ToString("F2", CultureInfo.InvariantCulture)).Append(';')
+                    .Append(c.SplitKev.ToString("F1", CultureInfo.InvariantCulture)).Append('\n');
                 if (unreliable != null && c.Reliable == unreliable.Contains(row.Tag))
                 {
                     wrong++;
@@ -397,12 +407,122 @@ namespace CrystalOwnBaselineProbeA274z
                         Check(what + "добавленное ушло в мерило (± 0.05 % счёта окна)", Math.Abs(100.0 * (c.OverflowShare - c0.OverflowShare) - share) <= 0.05);
                         Check(what + (over ? "счёт назван негодным" : "счёт годен"), c.Reliable == !over && c.Overflow == over);
                     }
+
+                    ShapeExperiment(row, c0, series227, bin, known, maxShapeBias);
                 }
             }
 
             Console.WriteLine();
             Console.WriteLine(bad == 0 ? "ВСЁ СОШЛОСЬ" : "НЕ СОШЛОСЬ: " + bad.ToString(CultureInfo.InvariantCulture));
             return bad == 0 ? 0 : 1;
+        }
+
+        /// <summary>
+        /// (`AMBER274`, полоса `a274v`, замечание критика `crit274z`) ФОРМА ОСТАТКА. Добавки, которых нет в образе ряда:
+        ///   «линия» — гаусс площадью доли счёта окна в одной из трёх точек окна (четверть, середина, три четверти), FWHM
+        ///             прибора, а у середины ещё FWHM/4 и FWHM/8 (одиночные каналы приборного пика уже);
+        ///   «ступень» — постоянная на канал от середины окна до верха шкалы (без последнего канала).
+        /// Судится: случаи критика (линия 3 % у середины любой из трёх ширин; ступень +4 медианы соседей середины) —
+        /// счёт негоден; у каждого случая, названного годным, сдвиг активности не больше <paramref name="maxShapeBias"/> %.
+        /// Печатается всё: что признаки пропускают — число, а не догадка.
+        /// </summary>
+        static void ShapeExperiment(Row row, CrystalOwnActivityBuilder.AlphaCount c0, CrystalOwnEntry series, double bin, double[] known,
+                                    double maxShapeBias)
+        {
+            int n = row.Counts.Length;
+            double eMid = 0.5 * (c0.WindowLoKev + c0.WindowHiKev);
+            int mid = 0;
+            for (int i = 0; i < n; i++)
+            {
+                if (row.EnergyAt(i) < eMid)
+                {
+                    mid = i;
+                }
+            }
+
+            var near = new List<double>();
+            for (int j = mid - 15; j <= mid + 15; j++)
+            {
+                if (j != mid && j >= 0 && j < n - 1)
+                {
+                    near.Add(row.Counts[j]);
+                }
+            }
+
+            near.Sort();
+            double median = near.Count > 0 ? 0.5 * (near[(near.Count - 1) / 2] + near[near.Count / 2]) : 0.0;
+            double worst = 0.0;
+            string worstWhat = "—";
+            Console.WriteLine("  форма остатка        доля, %   A, Бк     сдвиг A, %   линия, %   половины, %   годен");
+            Func<double[], string, double, bool?, bool> run = (y, what, share, critic) =>
+            {
+                CrystalOwnActivityBuilder.AlphaCount c = CrystalOwnActivityBuilder.CountByAlphas(series, bin, y, row.Live, row.EnergyAt, row.FwhmAt, 0.0, known);
+                double shift = 100.0 * (c.ActivityBq / c0.ActivityBq - 1.0);
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "  {0,-20} {1,7:F2}   {2,8:F5}   {3,8:F3}   {4,7:F2}   {5,9:F2}     {6}",
+                                                what, share, c.ActivityBq, shift, 100.0 * c.LineShare, 100.0 * c.SplitShare, c.Reliable ? "да" : "НЕТ"));
+                if (c.Reliable && Math.Abs(shift) > Math.Abs(worst))
+                {
+                    worst = shift;
+                    worstWhat = what + " " + share.ToString("0.##", CultureInfo.InvariantCulture) + " %";
+                }
+
+                if (critic == true)
+                {
+                    Check(row.Tag + ", " + what + " (случай критика `crit274z`): счёт назван негодным", !c.Reliable);
+                }
+
+                return c.Reliable;
+            };
+
+            foreach (double frac in new[] { 0.25, 0.5, 0.75 })
+            {
+                double e = c0.WindowLoKev + frac * (c0.WindowHiKev - c0.WindowLoKev);
+                foreach (double widthPart in frac == 0.5 ? new[] { 1.0, 0.25, 0.125 } : new[] { 1.0 })
+                {
+                    foreach (double share in new[] { 0.5, 1.0, 1.5, 2.0, 3.0, 5.0 })
+                    {
+                        double sigma = widthPart * row.FwhmAt(e) / 2.3548;
+                        double area = share / 100.0 * c0.Counts;
+                        var y = (double[])row.Counts.Clone();
+                        for (int i = 0; i < n - 1; i++)
+                        {
+                            double lo = row.EnergyAt(i - 0.5), hi = row.EnergyAt(i + 0.5);
+                            y[i] += area * (Phi((hi - e) / sigma) - Phi((lo - e) / sigma));
+                        }
+
+                        string what = string.Format(CultureInfo.InvariantCulture, "линия {0:F0} кэВ{1}", e,
+                                                    widthPart == 1.0 ? "" : " FWHM/" + (1.0 / widthPart).ToString("F0", CultureInfo.InvariantCulture));
+                        run(y, what, share, frac == 0.5 && share == 3.0 ? (bool?)true : null);
+                    }
+                }
+            }
+
+            int last = n - 1;
+            foreach (double share in new[] { 0.5, 1.0, 2.0, 5.0, 10.0, -1.0 })
+            {
+                var y = (double[])row.Counts.Clone();
+                double perChannel = share > 0.0 ? share / 100.0 * c0.Counts / Math.Max(1, last - mid) : 4.0 * median;
+                for (int i = mid; i < last; i++)
+                {
+                    y[i] += perChannel;
+                }
+
+                double shown = share > 0.0 ? share : 100.0 * perChannel * (last - mid) / c0.Counts;
+                run(y, share > 0.0 ? "ступень" : "ступень +4 медианы", shown, share > 0.0 ? null : (bool?)true);
+            }
+
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "  наибольший сдвиг у счёта, названного годным: {0:F3} % ({1})", worst, worstWhat));
+            Check(row.Tag + ": форма остатка — у каждого годного случая |сдвиг| ≤ " + maxShapeBias.ToString("0.##", CultureInfo.InvariantCulture) + " %",
+                  Math.Abs(worst) <= maxShapeBias);
+        }
+
+        /// <summary>Функция распределения стандартного нормального (Абрамовиц — Стиган 7.1.26, погрешность ~1e-7).</summary>
+        static double Phi(double x)
+        {
+            double t = 1.0 / (1.0 + 0.3275911 * Math.Abs(x) / Math.Sqrt(2.0));
+            double erf = 1.0 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t
+                         * Math.Exp(-x * x / 2.0);
+            return x >= 0.0 ? 0.5 * (1.0 + erf) : 0.5 * (1.0 - erf);
         }
 
         static List<Row> ReadList(string spectra)

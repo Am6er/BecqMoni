@@ -6930,13 +6930,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public EfficiencyMaker.ResponseElectronSection SampleBetaSection { get; set; }
 
         /// <summary>
-        /// ⛔ (`AMBER274`, Э2, 06.11.2026) КЛЮЧ СЛОЯ «СОБСТВЕННАЯ АКТИВНОСТЬ КРИСТАЛЛА»,
-        /// ВЫКЛЮЧЕН умолчанием. Решение Amber 05.11.2026 вопросником, дословно: «Разобрать χ²,
-        /// слой выкл (Рекомендую)». Выключен — раздел матрицы не читается разбором вовсе, даже
-        /// если он в файле есть, и числа разбора побитно прежние. Включает только замер
-        /// (`CrystalOwnActivityProbeA274`); решение о включении — за критиками `AMBER301` и Amber.
+        /// ⛔ (`AMBER274`, Э2, 06.11.2026) КЛЮЧ СЛОЯ «СОБСТВЕННАЯ АКТИВНОСТЬ КРИСТАЛЛА». С 05.11.2026 был выключен
+        /// умолчанием (решение Amber вопросником, дословно: «Разобрать χ², слой выкл (Рекомендую)»); ВКЛЮЧЁН умолчанием
+        /// полосой `a274v` 15.11.2026 по решению Amber 15.11.2026 вопросником, дословно: «Починить оба, потом включить
+        /// (Рекомендую)» (сторож K-пика и счёт альф починены полосой `a274z`). Включённый слой действует только там, где
+        /// привязка дала годный раздел матрицы (<see cref="CrystalOwnSection"/>: кристалл с собственной активностью — La,
+        /// Ce, Lu в составе — и матрица, посчитанная с разделом), и только без вычитаемого фона. У матрицы без раздела, у
+        /// кристалла без собственной активности (NaI, CsI, Ge…) и без матрицы разбор побитно тот же, что при выключенном
+        /// ключе. Выключен — раздел матрицы не читается разбором вовсе. Пробы ставят ключ сами
+        /// (`CorpusFsaProbe --crystal-own=0|1`).
         /// </summary>
-        public bool CrystalOwnLayer { get; set; }
+        public bool CrystalOwnLayer { get; set; } = true;
 
         /// <summary>
         /// ⛔ (`AMBER274`, полоса `a274c`, 14.11.2026) ОКНО K-ПИКА СЛОЯ ВНЕ ПОДГОНКИ И χ². Решение Amber 13.11.2026
@@ -7107,6 +7111,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         /// <summary>(`AMBER274`, Э2) Готовые отсчёты слоя по каналам — вычитаются из данных до фита, как фон.</summary>
         double[] crystalOwnFixedCounts;
+
+        /// <summary>
+        /// (`AMBER274`, полоса `a274v`) Последний проход: слой включён, кристаллу положен, годного раздела нет и фон НЕ
+        /// вычитается — окну отчёта отдаётся причина отказа (<see cref="FsaResult.CrystalOwnRefusal"/>). При вычитаемом
+        /// фоне false: слоя нет и с разделом, совет «пересчитайте матрицу» был бы ложным.
+        /// </summary>
+        bool crystalOwnRefusedRun;
 
         /// <summary>(`AMBER274`, Э2) Свободные колонки слоя (Ac-227): готовая гистограмма, амплитуда в Бк.</summary>
         List<FsaComponent> crystalOwnFreeColumns;
@@ -11226,7 +11237,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.BackgroundExcessMask = true;
             this.BackgroundBandKnife = true;
             // (`AMBER274`, полоса `a274c`) окно K-пика слоя вне подгонки и χ² — ВКЛЮЧЕНО, но действует только при
-            // включённом слое (<see cref="CrystalOwnLayer"/>, умолчание ВЫКЛ): без слоя ни одного бита. Окно 20–44 кэВ —
+            // вычтенном слое (<see cref="CrystalOwnLayer"/>, умолчание ВКЛ с 15.11.2026): без слоя ни одного бита. Окно 20–44 кэВ —
             // решение Amber 13.11.2026 вопросником, дословно: «Записать + сверить бету La-138 (Рекомендую)»; замер —
             // журнал handover/handover-2026-11-14-a274c.md
             this.CrystalOwnShelfMask = true;
@@ -14030,6 +14041,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.crystalOwnSource = null;
             this.CrystalOwnResults = null;
             this.CrystalOwnNote = null;
+            this.crystalOwnRefusedRun = false;
             if (this.CrystalOwnLayer && this.CrystalOwnSection != null && this.CrystalOwnSection.Count > 0)
             {
                 // ⛔ (`AMBER274`, Э2, 05.11.2026, `crit8`) СЛОЙ — ЭТО ВЫЧИТАНИЕ
@@ -14055,8 +14067,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 // (`AMBER274`, `a274m`) Слой включён, кристаллу он положен, а годного раздела привязка не дала:
                 // разбор идёт без слоя (числа — как при выключенном), но причина названа.
-                this.CrystalOwnNote = "слой не взят: "
-                    + EfficiencyMaker.ResponseCrystalSection.RefusalText(this.CrystalOwnRefusal, this.CrystalOwnRefusalDetail);
+                // ⛔ (`a274v`, второй круг, критик `crit274v`) При вычитаемом фоне слой не кладётся и с годным разделом:
+                // совет «пересчитайте матрицу» был бы ложным — пересчёт ничего не изменит. Отказ раздела окну отчёта
+                // отдаётся (<see cref="crystalOwnRefusedRun"/>) только без вычитаемого фона.
+                if (background != null)
+                {
+                    this.CrystalOwnNote = "слой снят: измеренный фон вычитается, собственная активность уже в нём (раздел матрицы к тому же не годен: "
+                        + EfficiencyMaker.ResponseCrystalSection.RefusalText(this.CrystalOwnRefusal, this.CrystalOwnRefusalDetail) + ")";
+                }
+                else
+                {
+                    this.CrystalOwnNote = "слой не взят: "
+                        + EfficiencyMaker.ResponseCrystalSection.RefusalText(this.CrystalOwnRefusal, this.CrystalOwnRefusalDetail);
+                    this.crystalOwnRefusedRun = true;
+                }
             }
 
             if (this.crystalOwnFixedCounts != null)
@@ -24109,6 +24133,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             result.CrystalOwn = this.CrystalOwnResults;
             result.CrystalOwnNote = this.CrystalOwnNote;
+            // (`a274v`) тот же признак, что у ветви «слой не взят» разбора: ключ включён, годного раздела нет, отказ,
+            // и фон НЕ вычитается (второй круг, `crit274v`: при вычитаемом фоне слоя нет и с разделом)
+            result.CrystalOwnRefusal = this.crystalOwnRefusedRun
+                ? this.CrystalOwnRefusal
+                : EfficiencyMaker.CrystalSectionRefusal.None;
             if (this.CrystalOwnResults == null || this.CrystalOwnResults.Count == 0)
             {
                 return;

@@ -1852,7 +1852,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             /// Счёт годен: подложка в окне не больше <see cref="AlphaCountMaxBaselineShare"/> отсчётов окна (больше —
             /// под окном альф лежит гамма-континуум пробы, а он не постоянен: падает ступенями к верху окна, и
             /// постоянная подложка, взятая с его уровня ниже окна, вычитает лишнее), в окне нет узкой линии
-            /// (<see cref="LineFound"/>) И группы альф не уходят за верх шкалы (<see cref="Overflow"/>).
+            /// (<see cref="LineFound"/>), группы альф не уходят за верх шкалы (<see cref="Overflow"/>) И половины окна
+            /// дают одну активность (<see cref="SplitFound"/>, `a274v`).
             /// </summary>
             public bool Reliable;
 
@@ -1886,6 +1887,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             /// <summary>(`a274f`) Самая сильная узкая особенность остатка: место (кэВ-экв), значимость и доля от чистого счёта окна.</summary>
             public double LineKev, LineZ, LineShare;
+
+            /// <summary>
+            /// (`a274v`, замечание критика `crit274z`) ПОЛОВИНЫ ОКНА НЕ СОГЛАСНЫ: активность по верхней и нижней половине
+            /// окна (граница — <see cref="SplitKev"/>, там, где образ ряда реже всего) с общей подложкой расходится
+            /// больше <see cref="AlphaSplitMaxShare"/> активности окна при значимости не меньше <see cref="AlphaLineMinZ"/>.
+            /// В окне лежит добавка, которой нет в образе ряда, — счёт её считает альфами.
+            /// </summary>
+            public bool SplitFound;
+
+            /// <summary>(`a274v`) Граница половин окна (кэВ-экв), их расхождение (верхняя − нижняя) в долях активности окна и его значимость.</summary>
+            public double SplitKev, SplitShare, SplitZ;
 
             public string Note;
         }
@@ -1952,8 +1964,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public const double AlphaLineMinZ = 5.0;
 
-        /// <summary>(`a274f`) Наименьшая доля узкой особенности от чистого счёта окна альф (см. <see cref="AlphaLineMinZ"/>).</summary>
-        public const double AlphaLineMinShare = 0.04;
+        /// <summary>
+        /// (`a274f`; порог пересчитан полосой `a274v` 15.11.2026) Наименьшая доля узкой особенности от чистого счёта окна
+        /// альф (см. <see cref="AlphaLineMinZ"/>). Было 4 %, и линия приборной ширины площадью 3 % счёта окна (критик
+        /// `crit274z`: счёт сдвинут на +3.1 %) находилась долей 2.2…2.9 % и проходила годной. Замер на 38 спектрах
+        /// второго прибора LaBr3 (журнал `handover-2026-11-15-a274v.md`): у годного счёта особенность не больше 1.68 %
+        /// (KCl, наложения; счёт при этом в −0.08 % от поля прибора), у фонов — 0.31…0.74 %. Порог 2 % — между ними.
+        /// Ложное срабатывание дёшево: негодный счёт берёт ряд из поля прибора с распадом.
+        /// </summary>
+        public const double AlphaLineMinShare = 0.02;
+
+        /// <summary>
+        /// (`a274v`, замечание критика `crit274z`) Наибольшее расхождение активности половин окна альф в долях активности
+        /// окна, при котором счёт годен (<see cref="AlphaCount.SplitFound"/>). Замер на 38 спектрах второго прибора LaBr3
+        /// (журнал `handover-2026-11-15-a274v.md`): у годного счёта половины расходятся на −5.8…+1.8 % (у всех, кроме
+        /// KCl, верхняя ниже нижней на 1.5…5.8 % — форма образа у верха окна не та; на счёт это не влияет), ступень
+        /// +4 медианы от середины окна до верха шкалы — +112 %. Порог 8 % — с запасом над годными.
+        /// </summary>
+        public const double AlphaSplitMaxShare = 0.08;
+
+        /// <summary>(`a274v`) Граница половин окна ищется там, где набралось от <see cref="AlphaSplitLo"/> до <see cref="AlphaSplitHi"/> образа окна.</summary>
+        public const double AlphaSplitLo = 0.3, AlphaSplitHi = 0.7;
 
         /// <summary>
         /// (`AMBER274` Э3, `a274a`) АКТИВНОСТЬ РЯДА ПО СЧЁТУ АЛЬФ СПЕКТРА — решение Amber 13.11.2026 вопросником,
@@ -2281,6 +2312,82 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 result.LineFound = result.LineZ >= AlphaLineMinZ && result.LineShare >= AlphaLineMinShare;
             }
+
+            // (`a274v`, замечание критика `crit274z`) СОГЛАСИЕ ПОЛОВИН ОКНА. Счёт — не форма: сдвиг групп внутри окна
+            // его не меняет. Но и признаки годности формы не судили — гладкая добавка, похожая на образ не больше, чем
+            // ступень, проходила годной (ступень +4 медианы от середины окна до верха шкалы давала счёт в 3.4 раза
+            // больше при подложке 0.14 %). Окно делится надвое там, где образ ряда реже всего (наименьшая плотность
+            // образа на кэВ в средней части окна, от 30 до 70 % его счёта: сдвиг групп через границу там меньше всего
+            // переносит), и активность считается по каждой половине с той же подложкой. Верный счёт даёт одну
+            // активность в обеих; добавка, которой нет в образе, — разную.
+            {
+                var winIdx = new List<int>();
+                double tAll = 0.0;
+                for (int i = 0; i < channels; i++)
+                {
+                    double centre = 0.5 * (edge[i] + edge[i + 1]);
+                    if (centre >= result.WindowLoKev && centre < result.WindowHiKev)
+                    {
+                        winIdx.Add(i);
+                        tAll += template[i];
+                    }
+                }
+
+                int split = -1;
+                double run2 = 0.0, best = double.MaxValue;
+                foreach (int i in winIdx)
+                {
+                    double before = run2;
+                    run2 += template[i];
+                    if (!(tAll > 0.0) || before < AlphaSplitLo * tAll || run2 > AlphaSplitHi * tAll)
+                    {
+                        continue;
+                    }
+
+                    double density = template[i] / (edge[i + 1] - edge[i]);
+                    if (density < best)
+                    {
+                        best = density;
+                        split = i;
+                    }
+                }
+
+                if (split >= 0)
+                {
+                    double yLo = 0.0, tLo = 0.0, nLo = 0.0, yHi = 0.0, tHi = 0.0, nHi = 0.0;
+                    foreach (int i in winIdx)
+                    {
+                        double y = data[i] - (known != null ? known[i] * liveTime : 0.0);
+                        double tt = template[i] * liveTime;
+                        if (i < split)
+                        {
+                            yLo += y;
+                            tLo += tt;
+                            nLo += 1.0;
+                        }
+                        else
+                        {
+                            yHi += y;
+                            tHi += tt;
+                            nHi += 1.0;
+                        }
+                    }
+
+                    double aAll = (yWin - Math.Max(0.0, bFit) * nWin) / tWin;
+                    if (tLo > 0.0 && tHi > 0.0 && aAll > 0.0)
+                    {
+                        double b = Math.Max(0.0, bFit);
+                        double aLo = (yLo - b * nLo) / tLo, aHi = (yHi - b * nHi) / tHi;
+                        double lever = nLo / tLo - nHi / tHi;
+                        double sigma = Math.Sqrt(Math.Max(yLo, 1.0) / (tLo * tLo) + Math.Max(yHi, 1.0) / (tHi * tHi) + varB * lever * lever);
+                        result.SplitKev = edge[split];
+                        result.SplitShare = (aHi - aLo) / aAll;
+                        result.SplitZ = sigma > 0.0 ? (aHi - aLo) / sigma : 0.0;
+                        result.SplitFound = Math.Abs(result.SplitZ) >= AlphaLineMinZ && Math.Abs(result.SplitShare) >= AlphaSplitMaxShare;
+                    }
+                }
+            }
+
             result.Counts = yWin;
             result.Baseline = Math.Max(0.0, bFit) * nWin;
             result.TemplatePerBqS = tWin / liveTime;
@@ -2307,7 +2414,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             result.Reliable = result.Found && yWin > 0.0 && result.Baseline <= AlphaCountMaxBaselineShare * yWin && !result.LineFound
-                              && !result.Overflow;
+                              && !result.Overflow && !result.SplitFound;
             var note = new StringBuilder();
             note.Append("окно ").Append(result.WindowLoKev.ToString("F0", CultureInfo.InvariantCulture)).Append('–')
                 .Append(result.WindowHiKev.ToString("F0", CultureInfo.InvariantCulture)).Append(" кэВ-экв, подложка ")
@@ -2331,6 +2438,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 note.Append("; ГРУППЫ АЛЬФ ЗА ВЕРХОМ ШКАЛЫ: последний канал и каналы-выбросы — ")
                     .Append((100.0 * result.OverflowShare).ToString("F2", CultureInfo.InvariantCulture)).Append(" % счёта окна");
+            }
+
+            if (result.SplitFound)
+            {
+                note.Append("; ПОЛОВИНЫ ОКНА НЕ СОГЛАСНЫ (граница ").Append(result.SplitKev.ToString("F0", CultureInfo.InvariantCulture))
+                    .Append(" кэВ-экв): верхняя − нижняя ").Append((100.0 * result.SplitShare).ToString("F1", CultureInfo.InvariantCulture))
+                    .Append(" % активности окна, z ").Append(result.SplitZ.ToString("F1", CultureInfo.InvariantCulture));
             }
 
             if (result.HotChannels > 0)
@@ -2410,7 +2524,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// годен (подложка окна, узкая линия в окне) или невозможен (окно альф вне шкалы, ряд по счёту не найден) —
         /// ряд берётся из поля прибора с распадом головы (<see cref="CrystalOwnSeriesFallback.ActivityAtSpectrum"/>)
         /// и вычитается известной частью. Негодность счёта — `AlphaCount.Reliable`: подложка окна больше порога
-        /// (под окном гамма-континуум пробы, `a274z`), узкая линия в окне, группы альф за верхом шкалы (`a274z`).
+        /// (под окном гамма-континуум пробы, `a274z`), узкая линия в окне, группы альф за верхом шкалы (`a274z`),
+        /// половины окна не согласны (`a274v`).
         /// Поля нет (null, активность 0, дата спектра неизвестна) — как прежде:
         /// негодный счёт оставляет строку свободной, не найденный ряд её снимает.
         /// </summary>
@@ -2462,6 +2577,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         why = "счёт не годен (в окне альф линия у " + count.LineKev.ToString("F0", CultureInfo.InvariantCulture)
                               + " кэВ-экв: " + (100.0 * count.LineShare).ToString("F2", CultureInfo.InvariantCulture) + " % счёта окна, z "
                               + count.LineZ.ToString("F1", CultureInfo.InvariantCulture) + "; счёт дал "
+                              + count.ActivityBq.ToString("F3", CultureInfo.InvariantCulture) + " Бк)";
+                    }
+                    else if (count.SplitFound)
+                    {
+                        why = "счёт не годен (половины окна альф не согласны: верхняя − нижняя "
+                              + (100.0 * count.SplitShare).ToString("F1", CultureInfo.InvariantCulture) + " % активности окна > "
+                              + (100.0 * AlphaSplitMaxShare).ToString("0.#", CultureInfo.InvariantCulture) + " %, z "
+                              + count.SplitZ.ToString("F1", CultureInfo.InvariantCulture)
+                              + ": в окне добавка, которой нет в образе ряда; счёт дал "
                               + count.ActivityBq.ToString("F3", CultureInfo.InvariantCulture) + " Бк)";
                     }
                     else if (count.Overflow)

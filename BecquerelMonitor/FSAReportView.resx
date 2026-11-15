@@ -5541,6 +5541,21 @@
   <data name="FSAReport_SampleBetaMissing" xml:space="preserve">
     <value>the response matrix has no electron section; recompute the matrix</value>
   </data>
+  <data name="FSAReport_CrystalOwnRow" xml:space="preserve">
+    <value>Crystal own activity</value>
+  </data>
+  <data name="FSAReport_CrystalOwnRefused" xml:space="preserve">
+    <value>not used: {0}</value>
+  </data>
+  <data name="FSAReport_CrystalOwnMissing" xml:space="preserve">
+    <value>the response matrix has no crystal own activity section; recompute the matrix</value>
+  </data>
+  <data name="FSAReport_CrystalOwnStale" xml:space="preserve">
+    <value>the crystal own activity section of the response matrix was built for another crystal, physics, decay data or device settings; recompute the matrix</value>
+  </data>
+  <data name="FSAReport_CrystalOwnDamaged" xml:space="preserve">
+    <value>the crystal own activity section in the response matrix file is damaged and could not be read; recompute the matrix</value>
+  </data>
   <data name="FSAReport_SupplyRow" xml:space="preserve">
     <value>Decay data references disagree</value>
   </data>

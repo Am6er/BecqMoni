@@ -615,6 +615,34 @@ namespace BecquerelMonitor
         const string KeySampleBetaIsoScene = "FSAReport_SampleBetaIsoScene";
         const string KeySampleBetaNoScene = "FSAReport_SampleBetaNoScene";
         const string KeySampleBetaMissing = "FSAReport_SampleBetaMissing";
+        // (`AMBER274`, `a274v`) слой собственной активности кристалла ВКЛ, а годного раздела в матрице нет: строка, «не взята», две причины
+        const string KeyCrystalOwnRow = "FSAReport_CrystalOwnRow";
+        const string KeyCrystalOwnRefused = "FSAReport_CrystalOwnRefused";
+        const string KeyCrystalOwnMissing = "FSAReport_CrystalOwnMissing";
+        const string KeyCrystalOwnStale = "FSAReport_CrystalOwnStale";
+        const string KeyCrystalOwnDamaged = "FSAReport_CrystalOwnDamaged";
+
+        /// <summary>
+        /// (`AMBER274`, полоса `a274v` 15.11.2026) Значение строки «собственная активность кристалла», когда слой включён,
+        /// кристаллу положен, а годного раздела в матрице нет (<see cref="FsaResult.CrystalOwnRefusal"/>): «не взята» и
+        /// причина со словом «пересчитайте» — как окно матрицы (`ResponseMatrixCrystalSectionMissing`/`Stale`); у испорченного
+        /// раздела (`Damaged`) — своя причина. Фон вычитается — строки нет (слоя нет и с разделом). null —
+        /// строки нет (слой лёг — его строки в блоке состава; кристаллу слой не положен; ключ выключен). Открыта пробе.
+        /// </summary>
+        public static string CrystalOwnRefusedText(FsaResult result)
+        {
+            if (result == null || !EfficiencyMaker.ResponseCrystalSection.IsRefusal(result.CrystalOwnRefusal))
+            {
+                return null;
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, OwnText(KeyCrystalOwnRefused),
+                                 OwnText(result.CrystalOwnRefusal == EfficiencyMaker.CrystalSectionRefusal.Missing
+                                             ? KeyCrystalOwnMissing
+                                             : result.CrystalOwnRefusal == EfficiencyMaker.CrystalSectionRefusal.Damaged
+                                                 ? KeyCrystalOwnDamaged
+                                                 : KeyCrystalOwnStale));
+        }
 
         /// <summary>
         /// (`AMBER274`, `Р5`) Значение строки «бета пробы» словами окна; null — строки нет
@@ -2769,6 +2797,14 @@ namespace BecquerelMonitor
                 }
 
                 made.Add(betaRow);
+            }
+
+            // (`AMBER274`, полоса `a274v`) СЛОЙ СОБСТВЕННОЙ АКТИВНОСТИ КРИСТАЛЛА ВКЛ умолчанием, а матрица без годного
+            // раздела: разбор шёл без слоя — строка говорит «пересчитайте матрицу», как окно матрицы. Иначе строки нет.
+            string crystalRefused = CrystalOwnRefusedText(result);
+            if (crystalRefused != null)
+            {
+                made.Add(this.MakeMarkRow(KeyCrystalOwnRow, crystalRefused, false, true));
             }
 
             // (`AMBER274`, Ф14) СТРОКИ ПО СПЛОШНОМУ СПЕКТРУ, СНЯТЫЕ ДО ФИТА — происшествие, только

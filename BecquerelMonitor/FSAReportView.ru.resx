@@ -502,6 +502,21 @@
   <data name="FSAReport_SampleBetaMissing" xml:space="preserve">
     <value>у матрицы отклика нет раздела электронов; пересчитайте матрицу</value>
   </data>
+  <data name="FSAReport_CrystalOwnRow" xml:space="preserve">
+    <value>Собственная активность кристалла</value>
+  </data>
+  <data name="FSAReport_CrystalOwnRefused" xml:space="preserve">
+    <value>не взята: {0}</value>
+  </data>
+  <data name="FSAReport_CrystalOwnMissing" xml:space="preserve">
+    <value>у матрицы отклика нет раздела собственной активности кристалла; пересчитайте матрицу</value>
+  </data>
+  <data name="FSAReport_CrystalOwnStale" xml:space="preserve">
+    <value>раздел собственной активности кристалла в матрице посчитан для другого кристалла, физики, данных распада или настроек прибора; пересчитайте матрицу</value>
+  </data>
+  <data name="FSAReport_CrystalOwnDamaged" xml:space="preserve">
+    <value>раздел собственной активности кристалла в файле матрицы испорчен и не прочитан; пересчитайте матрицу</value>
+  </data>
   <data name="FSAReport_SupplyRow" xml:space="preserve">
     <value>Справочники распада расходятся</value>
   </data>

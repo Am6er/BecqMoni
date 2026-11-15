@@ -322,26 +322,28 @@ static class CrystalSectionWindowProbeA274w
             back.Save(path);
             // Решение Amber 14.11.2026: подсказка «пересчитайте» — «Только при включённом слое (Рекомендую)».
             FieldInfo layer = typeof(ResponseMatrixForm).GetField("crystalLayerForProbe", BindingFlags.Static | BindingFlags.NonPublic);
-            Check(layer != null && !new FsaAnalyzer().CrystalOwnLayer, "слой в разборе ВЫКЛ умолчанием; подмена для пробы есть");
+            // (`a274v` 15.11.2026) слой ВКЛ умолчанием — окно над матрицей без раздела говорит «пересчитайте»; контроль
+            // подменой пробы: слой ВЫКЛ — подсказки нет (решение Amber 14.11.2026 «Только при включённом слое»)
+            Check(layer != null && new FsaAnalyzer().CrystalOwnLayer, "слой в разборе ВКЛ умолчанием; подмена для пробы есть");
             string missing = Text("ResponseMatrixCrystalSectionMissing"), stale = Text("ResponseMatrixCrystalSectionStale");
             using (var reopened = new ResponseMatrixForm(eff))
             {
                 string text = (string)Field(reopened, "detailsText");
-                Check(text.IndexOf(missing, StringComparison.Ordinal) < 0 && text.IndexOf(stale, StringComparison.Ordinal) < 0
-                      && text.IndexOf(rowsHead, StringComparison.Ordinal) < 0,
-                      "слой ВЫКЛ: окно над матрицей без раздела подсказки «пересчитайте» не показывает");
+                Check(text.IndexOf(missing, StringComparison.Ordinal) >= 0,
+                      "слой ВКЛ (умолчание): окно над матрицей без раздела говорит «пересчитайте»");
             }
 
             if (layer != null)
             {
-                layer.SetValue(null, true);
+                layer.SetValue(null, false);
                 try
                 {
                     using (var reopened = new ResponseMatrixForm(eff))
                     {
                         string text = (string)Field(reopened, "detailsText");
-                        Check(text.IndexOf(missing, StringComparison.Ordinal) >= 0,
-                              "контроль: слой ВКЛ (подмена пробы) — окно над матрицей без раздела говорит «пересчитайте»");
+                        Check(text.IndexOf(missing, StringComparison.Ordinal) < 0 && text.IndexOf(stale, StringComparison.Ordinal) < 0
+                              && text.IndexOf(rowsHead, StringComparison.Ordinal) < 0,
+                              "контроль: слой ВЫКЛ (подмена пробы) — окно над матрицей без раздела подсказки «пересчитайте» не показывает");
                     }
                 }
                 finally
