@@ -5538,6 +5538,9 @@
   <data name="FSAReport_SampleBetaNoScene" xml:space="preserve">
     <value>the scene of the analysis is unknown</value>
   </data>
+  <data name="FSAReport_SampleBetaMissing" xml:space="preserve">
+    <value>the response matrix has no electron section; recompute the matrix</value>
+  </data>
   <data name="FSAReport_SupplyRow" xml:space="preserve">
     <value>Decay data references disagree</value>
   </data>

@@ -1044,6 +1044,18 @@ namespace CrystalOwnActivityProbeA274
             //      полоса 28–47 кэВ, которую модель слоя не описывает (полка под K-пиком) — до включения слоя.
             // У `LaBrBril_Eu152` K-окно занято Sm K источника (доля слоя 0.31): K там не судится, сдвиг слоя у K на
             // этом спектре ловит только `LaBrBril_Th228`. Ширина слоя печатается, но не судится (журнал `a274g`).
+            //
+            // (`a274z`, 15.11.2026; критик `crit274c`, второй круг) ДОПУСК ОКНА К СУДУ НЕ ДОЛЖЕН ЗАВИСЕТЬ ОТ ТОГО, ЧТО
+            // СУДИТСЯ. Прежний допуск считал долю слоя в самом окне суда: слой, уехавший из окна (K −6 кэВ: пик у
+            // 31 кэВ при окне 33–47), терял долю (0.31 < 0.5), окно переставало судиться, и мутант проходил зелёным
+            // на обоих спектрах. Теперь:
+            //   3а. допуск — доля слоя в окне суда ИЛИ в окне, расширенном на сетку поиска d с каждой стороны
+            //       (`LayerShift.ShareWide`): слой, сдвинутый в пределах сетки, остаётся судимым, и его ловит край сетки;
+            //   3б. МЕСТО ПИКА ПОДАННОГО СЛОЯ (`LayerApex`; по самому слою, но на шкале, подогнанной разбором, — судится
+            //       на любом спектре, а сдвиг слоя разбор отчасти гасит привязкой: K +6 у Eu152 дал +2.9 кэВ): если у слоя в
+            //       окрестности окна (± три сетки поиска) есть пик, его вершина обязана лежать в окне суда. Это ловит
+            //       сдвиг за сетку поиска, где слой уходит и из расширенного окна (K −12, K +12), и работает у
+            //       `LaBrBril_Eu152`, где K по данным не судится.
             rollbackOff = true;
             FsaResult bareA = Run(rd, background, geometry, matrix, null);
             FsaResult layerA = Run(rd, background, geometry, matrix, section);
@@ -1128,15 +1140,35 @@ namespace CrystalOwnActivityProbeA274
                 LayerShift ls = FitLayerShift(data, with.Model, layerWith, cal, w[0], w[1], w[3], w[4], true);
                 double stretch = FitLayerStretch(data, with.Model, layerWith, cal, w[0], w[1], ls.ShiftKev);
                 Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                    "положение слоя {0:F0}–{1:F0} кэВ: d {2:+0.00;-0.00} ± {3:F2} кэВ{4} (a {5:F3}, χ² {6:F0} на {7} кан., при d = 0 — {8:F0}); доля слоя {9:F2}; порог 0.15 ПШПВ = {10:F2} кэВ; растяжение слоя (не судится) {11:F2}",
-                    w[0], w[1], ls.ShiftKev, ls.SigmaKev, ls.AtEdge ? " НА КРАЮ СЕТКИ" : "", ls.Amp, ls.Chi2, ls.Points, ls.Chi2AtZero, ls.Share, tolerance, stretch));
-                if (ls.Share < 0.5)
+                    "положение слоя {0:F0}–{1:F0} кэВ: d {2:+0.00;-0.00} ± {3:F2} кэВ{4} (a {5:F3}, χ² {6:F0} на {7} кан., при d = 0 — {8:F0}); доля слоя {9:F2} (в окне ± сетка поиска {12:F2}); порог 0.15 ПШПВ = {10:F2} кэВ; растяжение слоя (не судится) {11:F2}",
+                    w[0], w[1], ls.ShiftKev, ls.SigmaKev, ls.AtEdge ? " НА КРАЮ СЕТКИ" : "", ls.Amp, ls.Chi2, ls.Points, ls.Chi2AtZero, ls.Share, tolerance, stretch, ls.ShareWide));
+                string where = string.Format(CultureInfo.InvariantCulture, "{0:F0}–{1:F0} кэВ", w[0], w[1]);
+
+                // (`a274z`) 3б. Место пика поданного слоя — по самому слою, без данных.
+                double apexRatio;
+                double apex = LayerApex(layerWith, cal, w[0] - 3.0 * w[3], w[1] + 3.0 * w[3], DeviceFwhmKev(rd, w[2]), out apexRatio);
+                if (!double.IsNaN(apex))
                 {
-                    Console.WriteLine("  окно занято линиями источника (слой меньше половины модели) — положение слоя здесь не судится");
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                        "  пик поданного слоя в {0:F0}–{1:F0} кэВ: вершина у {2:F1} кэВ (вершина к среднему вне пика {3:F1})",
+                        w[0] - 3.0 * w[3], w[1] + 3.0 * w[3], apex, apexRatio));
+                    Check("пик поданного слоя лежит в окне суда " + where, apex >= w[0] && apex <= w[1]);
+                }
+                else
+                {
+                    // (критик `crit274z`) молчаливый пропуск проверки — тоже исход: его печатаем
+                    Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                        "  пик поданного слоя в {0:F0}–{1:F0} кэВ НЕ НАЙДЕН (вершина к среднему вне пика {2:F1} < 2 или слоя в полосе нет) — место пика здесь не судится",
+                        w[0] - 3.0 * w[3], w[1] + 3.0 * w[3], apexRatio));
+                }
+
+                // (`a274z`) 3а. Допуск: слой главный в окне суда или в окне, расширенном на сетку поиска.
+                if (Math.Max(ls.Share, ls.ShareWide) < 0.5)
+                {
+                    Console.WriteLine("  окно занято линиями источника (слой меньше половины модели и в окне, расширенном на сетку поиска) — положение слоя здесь не судится");
                     continue;
                 }
 
-                string where = string.Format(CultureInfo.InvariantCulture, "{0:F0}–{1:F0} кэВ", w[0], w[1]);
                 if (ls.AtEdge)
                 {
                     judged++;
@@ -1289,7 +1321,7 @@ namespace CrystalOwnActivityProbeA274
 
         sealed class LayerShift
         {
-            public double ShiftKev, SigmaKev, Amp, Chi2, Chi2AtZero, Share, Birge;
+            public double ShiftKev, SigmaKev, Amp, Chi2, Chi2AtZero, Share, ShareWide, Birge;
             public int Points;
             public bool AtEdge;
         }
@@ -1372,6 +1404,21 @@ namespace CrystalOwnActivityProbeA274
 
             // Доля слоя — поданного разделом (амплитуда 1): судится ли окно, решает модель, а не подгонка.
             res.Share = sl / Math.Max(sl + so, 1.0);
+
+            // (`a274z`) То же в окне, расширенном на сетку поиска d с каждой стороны: слой, сдвинутый в пределах
+            // сетки, из такого окна не уходит, и допуск к суду от судимого сдвига не зависит.
+            double slWide = 0.0, soWide = 0.0;
+            for (int i = 0; i < y.Length; i++)
+            {
+                double e = calibration.ChannelToEnergy(i);
+                if (e >= lo - dmax && e <= hi + dmax)
+                {
+                    slWide += layer[i];
+                    soWide += other[i];
+                }
+            }
+
+            res.ShareWide = slWide / Math.Max(slWide + soWide, 1.0);
             int ndf = Math.Max(1, res.Points - (freeAmp ? 2 : 1));
             double birge = Math.Max(1.0, res.Chi2 / ndf);
             // σ_d: полуширина интервала, где χ² ≤ χ²min + birge
@@ -1391,6 +1438,66 @@ namespace CrystalOwnActivityProbeA274
 
             res.SigmaKev = double.IsNaN(left) || double.IsNaN(right) ? double.PositiveInfinity : 0.5 * (right - left);
             return res;
+        }
+
+        /// <summary>
+        /// (`a274z`) Место пика поданного слоя в полосе [lo, hi] кэВ: центр тяжести канала с наибольшим слоем и двух
+        /// его соседей за вычетом среднего вне пика (один канал — до 4 кэВ, и вершина по номеру канала гуляла бы на
+        /// канал). Пик есть, если вершина не меньше двух средних слоя по полосе вне ± ПШПВ от вершины (то же
+        /// правило «два средних», что у окна K-пика разбора, `FsaAnalyzer.CrystalOwnShelfPeakRatio`); пика нет или
+        /// слоя в полосе нет — NaN.
+        /// </summary>
+        static double LayerApex(double[] layer, EnergyCalibration calibration, double lo, double hi, double fwhmKev, out double ratio)
+        {
+            ratio = 0.0;
+            int best = -1;
+            for (int i = 0; i < layer.Length; i++)
+            {
+                double e = calibration.ChannelToEnergy(i);
+                if (e >= lo && e <= hi && (best < 0 || layer[i] > layer[best]))
+                {
+                    best = i;
+                }
+            }
+
+            if (best < 0 || !(layer[best] > 0.0))
+            {
+                return double.NaN;
+            }
+
+            double apex = calibration.ChannelToEnergy(best), sum = 0.0;
+            int n = 0;
+            for (int i = 0; i < layer.Length; i++)
+            {
+                double e = calibration.ChannelToEnergy(i);
+                if (e >= lo && e <= hi && Math.Abs(e - apex) > fwhmKev)
+                {
+                    sum += layer[i];
+                    n++;
+                }
+            }
+
+            if (n == 0)
+            {
+                return double.NaN;
+            }
+
+            double mean = sum / n;
+            ratio = mean > 0.0 ? layer[best] / mean : double.PositiveInfinity;
+            if (!(ratio >= 2.0))
+            {
+                return double.NaN;
+            }
+
+            double mass = 0.0, centre = 0.0;
+            for (int i = Math.Max(0, best - 1); i <= Math.Min(layer.Length - 1, best + 1); i++)
+            {
+                double over = Math.Max(0.0, layer[i] - mean);
+                mass += over;
+                centre += over * calibration.ChannelToEnergy(i);
+            }
+
+            return mass > 0.0 ? centre / mass : apex;
         }
 
         /// <summary>(`a274c`) Взятых опор с линией выше <paramref name="aboveKev"/>.</summary>
