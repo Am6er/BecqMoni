@@ -2875,41 +2875,12 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Наполнить список веществ: сначала СВОЙ вид, потом «прочие».
-        ///
-        /// Прочие — 268 веществ таблицы ЛСРМ (`materials.dat`), у которых
-        /// назначения в файле нет. Разложить их по нашим пяти видам можно было
-        /// бы только угадыванием — свинец это оправа или проба, стекло сосуд
-        /// или образец, зависит от съёмки. Поэтому они идут ПОСЛЕ выверенного
-        /// короткого списка, а не вместо него и не вместо выбора человека: и
-        /// привычные вещества остаются сверху, и не спрятано ничего.
+        /// Наполнить список веществ: сначала СВОЙ вид, потом «прочие» — порядок и состав строк в
+        /// <see cref="GeometryMaterialLibrary.ForSlot"/> (`AMBER332`: тот же список берёт окно импорта GDML).
         /// </summary>
         static void FillMaterialCombo(ComboBox combo, GeometryMaterialLibrary.MaterialKind kind)
         {
-            foreach (GeometryMaterialLibrary.Entry entry in GeometryMaterialLibrary.Of(kind))
-            {
-                combo.Items.Add(entry);
-            }
-
-            // (`AMBER282`) Стенка сосуда бывает и металлической — гильза колодца пробы
-            // Amber алюминиевая (её слово 02.11.2026: «алюминий толщина 0.45 мм»). Металлы
-            // библиотеки значатся у корпуса, а «прочие» таблицы ЛСРМ одноимённых строк не
-            // несут (их место занято нашими), и выбрать алюминий стенке было нельзя вовсе.
-            if (kind == GeometryMaterialLibrary.MaterialKind.BeakerWall)
-            {
-                foreach (GeometryMaterialLibrary.Entry entry in GeometryMaterialLibrary.Of(GeometryMaterialLibrary.MaterialKind.Cladding))
-                {
-                    combo.Items.Add(entry);
-                }
-            }
-
-            if (kind == GeometryMaterialLibrary.MaterialKind.Other)
-            {
-                return;
-            }
-
-            foreach (GeometryMaterialLibrary.Entry entry
-                     in GeometryMaterialLibrary.Of(GeometryMaterialLibrary.MaterialKind.Other))
+            foreach (GeometryMaterialLibrary.Entry entry in GeometryMaterialLibrary.ForSlot(kind))
             {
                 combo.Items.Add(entry);
             }
@@ -3649,6 +3620,13 @@ namespace BecquerelMonitor
             finally
             {
                 this.loading = wasLoading;
+            }
+
+            // (`AMBER332`, критик `crit332`) Список «вещество пробы из редактора геометрии» блока «Сопоставление» — те же
+            // вещества: перезаполняется тем же ходом, выбор остаётся.
+            if (this.gdmlMapping != null)
+            {
+                this.gdmlMapping.RefillMaterials();
             }
 
             // Состав правленого вещества мог измениться — а он ХРАНИТСЯ в

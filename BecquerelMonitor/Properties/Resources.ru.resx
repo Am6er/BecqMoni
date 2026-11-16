@@ -4830,6 +4830,27 @@ http://xptable.sourceforge.net/</value>
   <data name="GdmlMapSampleRole" xml:space="preserve">
     <value>и образец, вещество пробы</value>
   </data>
+  <data name="GdmlMapMaterialMissing" xml:space="preserve">
+    <value>Вещества пробы {0} нет ни в сохранённых полях, ни в библиотеке веществ: в списке «(из файла)». Поля — как сохранены.</value>
+  </data>
+  <data name="GdmlMapFromFile" xml:space="preserve">
+    <value>(из файла)</value>
+  </data>
+  <data name="GdmlMapSampleMaterial" xml:space="preserve">
+    <value>Вещество пробы из редактора геометрии</value>
+  </data>
+  <data name="GdmlMapSampleMaterialEditor" xml:space="preserve">
+    <value>{0} из редактора, {1} г/см3, {2} г</value>
+  </data>
+  <data name="GdmlMapSampleMaterialFile" xml:space="preserve">
+    <value>Вещество пробы {0}, {1} г</value>
+  </data>
+  <data name="GdmlMapSampleMaterialTip" xml:space="preserve">
+    <value>Заменяется только вещество пробы: её форма, размеры, сосуд и положение остаются как в файле. «(из файла)» — вещество детали файла.</value>
+  </data>
+  <data name="GdmlSampleMaterialNote" xml:space="preserve">
+    <value>Вещество пробы из редактора: {0}, {1} г/см3, {2} г.</value>
+  </data>
   <data name="GdmlMapShieldCavity" xml:space="preserve">
     <value>Полость: {0} мм в поперечнике, {1} мм вдоль оси</value>
   </data>

@@ -1216,13 +1216,24 @@ namespace BecquerelMonitor
                 GdmlOverview overview = GdmlOverview.Of(file);
                 GdmlFieldMap guessed = GdmlFieldMap.Build(file, overview);
                 List<string> missing = new List<string>();
-                GdmlChoice choice = GdmlChoice.FromInfo(info, file, guessed, missing);
+                // (`AMBER332`) Вещество пробы из редактора — из сохранённых полей: плотность и состав те, что сохранены.
+                List<string> lostMaterials = new List<string>();
+                GdmlChoice choice = GdmlChoice.FromInfo(info, file, guessed, missing, config.Geometry.Source, lostMaterials);
                 GdmlFieldMap map = choice.Same(GdmlChoice.Guess(guessed)) ? guessed : choice.Build(file, overview);
                 List<string> notes = new List<string>();
                 foreach (string name in missing)
                 {
                     notes.Add(string.Format(CultureInfo.InvariantCulture,
                         ResourceText("GdmlMapMissing", "Part {0} is not in the file copy. The fields are as saved."), name));
+                }
+
+                // (`AMBER332`, критик `crit332`) Вещество пробы из записи пропало и из полей, и из библиотеки — назвать его.
+                foreach (string name in lostMaterials)
+                {
+                    notes.Add(string.Format(CultureInfo.InvariantCulture,
+                        ResourceText("GdmlMapMaterialMissing",
+                            "Sample material {0} is neither in the saved fields nor in the material library: the list shows “(from file)”. The fields are as saved."),
+                        name));
                 }
 
                 bool good = (map.Found & GdmlParts.Detector) != 0;
@@ -1364,6 +1375,10 @@ namespace BecquerelMonitor
             this.geometryPanel.GdmlChoice.ToInfo(info, this.geometryPanel.GdmlGuess);
             info.Sample = (this.geometryPanel.GdmlTaken & GdmlParts.Sample) != 0;
             info.Shield = (this.geometryPanel.GdmlTaken & GdmlParts.Shield) != 0;
+            if (!info.Sample)
+            {
+                info.SampleMaterial = "";
+            }
             this.boundConfig.GdmlImport = info;
         }
 
