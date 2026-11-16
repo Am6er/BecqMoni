@@ -151,11 +151,11 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>
         /// (`AMBER262`) Рантайм CUDA, слинкованный в поставочную библиотеку статически (`cudart=`
-        /// паспорта; `build_gpu.cmd`: `set CUDA_VER=13.4` → 13040). Нужен ДО загрузки библиотеки —
-        /// предпроверке драйвера (<see cref="CheckDriver"/>); расхождение с паспортом ловит
-        /// `tools/check_gpu_dll.py`.
+        /// паспорта; `build_gpu.cmd`: `set CUDA_VER=13.5` → 13050, `AMBER331` 16.11.2026; прежде
+        /// 13.4 → 13040). Нужен ДО загрузки библиотеки — предпроверке драйвера
+        /// (<see cref="CheckDriver"/>); расхождение с паспортом ловит `tools/check_gpu_dll.py`.
         /// </summary>
-        public const int LinkedCudaRuntime = 13040;
+        public const int LinkedCudaRuntime = 13050;
 
         /// <summary>Поставочная копия библиотеки — рядом с исполняемым файлом приложения.</summary>
         public static string DefaultPath
@@ -423,7 +423,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///
         /// Отказы: нет `nvcuda.dll`, нет нужного вызова, драйвер отвечает 100 или 0 устройств —
         /// <see cref="GpuProbeReason.NoDevice"/>; драйвер поддерживает CUDA старше крупной версии
-        /// рантайма (<see cref="LinkedCudaRuntime"/>: 13.4 → нужен драйвер с CUDA 13.0 и новее) —
+        /// рантайма (<see cref="LinkedCudaRuntime"/>: 13.5 → нужен драйвер с CUDA 13.0 и новее) —
         /// <see cref="GpuProbeReason.DriverTooOld"/>; иной код драйвера —
         /// <see cref="GpuProbeReason.RuntimeError"/>. `nvcudaPath` — для положительного контроля
         /// поддельным драйвером (<see cref="ProbeDriver"/>); null — `nvcuda.dll` из System32.

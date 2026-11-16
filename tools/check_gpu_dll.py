@@ -24,7 +24,7 @@ u"""Сторож поставочной GPU-библиотеки `BecquerelMonit
      было: поле, заведённое в C# мимо `gen_cfg.ps1`, проходило все сторожа, а в приложении
      счёт на GPU отказывал у человека;
   5. (`AMBER233`, П337, 18.10.2026) `cudart=` в паспорте DLL == закреплённый в `build_gpu.cmd`
-     тулкит (`set CUDA_VER=13.4` → 13040). Рантайм CUDA слинкован статически и задаёт
+     тулкит (`set CUDA_VER=13.5` → 13050; до `AMBER331` 16.11.2026 — 13.4). Рантайм CUDA слинкован статически и задаёт
      наименьший драйвер NVIDIA у каждого человека; прежде `nvcc` брался из PATH, и снос
      CUDA 12 (18.10.2026) поднял бы это требование следующей же пересборкой молча.
      Поставочная DLL сборки 07–14.10.2026 (CUDA 12.8) принимается по своему отпечатку
@@ -146,7 +146,7 @@ def linked_problems(fields, linked):
 
 
 def pinned_cudart(path=BUILD_CMD):
-    u"""`CUDART_VERSION` закреплённого в `build_gpu.cmd` тулкита: `set CUDA_VER=13.4` → 13040."""
+    u"""`CUDART_VERSION` закреплённого в `build_gpu.cmd` тулкита: `set CUDA_VER=13.5` → 13050."""
     text = io.open(path, encoding='ascii', errors='replace').read()
     m = re.search(r'^set CUDA_VER=(\d+)\.(\d+)\s*$', text, re.M)
     return int(m.group(1)) * 1000 + int(m.group(2)) * 10 if m else None
