@@ -8,8 +8,9 @@ rem "in git, like SpecUtilsNet.dll"). tools\check_gpu_dll.py recomputes the same
 rem AMBER233 (P337, 18.10.2026): the CUDA toolkit is PINNED and nvcc is called by full path, never from PATH -
 rem the static CUDA runtime linked into the DLL sets the minimum NVIDIA driver of every user (README, "Build").
 rem check_gpu_dll.py reads CUDA_VER from this line and compares it with cudart= in the DLL passport.
+rem AMBER331 (16.11.2026): toolkit 13.4 replaced by 13.5 (decision of Amber); RmGpu.LinkedCudaRuntime moves with it.
 setlocal
-set CUDA_VER=13.4
+set CUDA_VER=13.5
 set "NVCC=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v%CUDA_VER%\bin\nvcc.exe"
 if not exist "%NVCC%" ( echo CUDA %CUDA_VER% is not installed: %NVCC% & exit /b 2 )
 call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat" >nul || exit /b 2
