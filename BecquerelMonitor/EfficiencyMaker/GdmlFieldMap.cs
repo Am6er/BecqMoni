@@ -81,6 +81,45 @@ namespace BecquerelMonitor.EfficiencyMaker
             get { return this.sampleVolume; }
         }
 
+        GeometryMaterial sampleMaterial;
+
+        /// <summary>
+        /// (`AMBER332`) Вещество пробы, выбранное человеком из веществ редактора вместо вещества детали файла; null — вещество
+        /// файла. Форма, размеры, сосуд и положение пробы — по-прежнему из файла (решение Amber 16.11.2026 «Только вещество пробы»).
+        /// </summary>
+        public GeometryMaterial SampleMaterial
+        {
+            get { return this.sampleMaterial; }
+        }
+
+        /// <summary>
+        /// (`AMBER332`) Масса пробы в полях, г: собственный объём детали-пробы (без вложенных деталей, как у читателя) на
+        /// плотность вещества в полях. NaN — проба не разложена или объём детали не известен.
+        /// </summary>
+        public double SampleMassG
+        {
+            get
+            {
+                return (this.Found & GdmlParts.Sample) == 0 ? double.NaN : this.MassOfSample();
+            }
+        }
+
+        double MassOfSample()
+        {
+            GdmlVolumeInstance sample = this.sampleVolume;
+            if (sample == null)
+            {
+                return double.NaN;
+            }
+
+            if (this.sampleMaterial == null)
+            {
+                return sample.MassG;
+            }
+
+            return sample.OwnVolumeCm3 >= 0.0 ? sample.OwnVolumeCm3 * this.sampleMaterial.Density : double.NaN;
+        }
+
         /// <summary>Вещества защиты изнутри наружу через запятую и число её деталей: строка списка «найдено лучами».</summary>
         public string ShieldMaterials = "";
 
@@ -131,10 +170,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         public static GdmlFieldMap Build(GdmlGeometry geometry, GdmlOverview overview, GdmlVolumeInstance crystal, GdmlVolumeInstance sample,
                                          GdmlVolumeInstance shieldFrom)
         {
+            return Build(geometry, overview, crystal, sample, shieldFrom, null);
+        }
+
+        /// <param name="sampleMaterial">(`AMBER332`) Вещество пробы из веществ редактора; null — вещество детали файла.</param>
+        public static GdmlFieldMap Build(GdmlGeometry geometry, GdmlOverview overview, GdmlVolumeInstance crystal, GdmlVolumeInstance sample,
+                                         GdmlVolumeInstance shieldFrom, GeometryMaterial sampleMaterial)
+        {
             GdmlFieldMap map = new GdmlFieldMap(geometry, overview ?? GdmlOverview.Of(geometry));
             map.crystalVolume = crystal ?? map.overview.Crystal;
             map.sampleVolume = sample ?? map.overview.Sample;
             map.shieldFrom = shieldFrom;
+            map.sampleMaterial = sampleMaterial == null ? null : sampleMaterial.Clone();
             if (ReferenceEquals(map.sampleVolume, map.crystalVolume))
             {
                 map.sampleVolume = null;
@@ -1094,7 +1141,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             double body = shell != null ? shell.Length : farWall + farGap + height + (marinelli ? 0.0 : wall);
 
             g.BeakerWall = ToField(wallMaterial);
-            g.Source = ToField(sample.Material);
+            g.Source = this.sampleMaterial != null ? this.sampleMaterial.Clone() : ToField(sample.Material);
             g.Scene = GeometrySceneKind.None;
             HashSet<GdmlVolumeInstance> taken = this.used[GdmlParts.Sample];
             taken.Add(sample);
@@ -1158,6 +1205,17 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.Line(GdmlParts.Sample,
                 string.Format(CultureInfo.InvariantCulture, GdmlText.T("GdmlMapSample", "Sample {0}, {1}"), Display(sample.Material), GdmlOverview.SizeText(sample, this.geometry.Axis)),
                 shape);
+            if (this.sampleMaterial != null)
+            {
+                // (`AMBER332`) Вещество пробы — из веществ редактора: своя строка сверки, плотность и масса — по нему.
+                double mass = this.MassOfSample();
+                this.Line(GdmlParts.Sample,
+                    string.Format(CultureInfo.InvariantCulture, GdmlText.T("GdmlMapSampleMaterialFile", "Sample material {0}, {1} g"),
+                        Display(sample.Material), double.IsNaN(sample.MassG) ? "?" : N(sample.MassG)),
+                    string.Format(CultureInfo.InvariantCulture, GdmlText.T("GdmlMapSampleMaterialEditor", "{0} from the editor, {1} g/cm3, {2} g"),
+                        this.sampleMaterial.Name, N(this.sampleMaterial.Density), double.IsNaN(mass) ? "?" : N(mass)));
+            }
+
             this.Line(GdmlParts.Sample,
                 string.Format(CultureInfo.InvariantCulture, GdmlText.T("GdmlMapVessel", "Vessel {0}: towards the detector {1}, side {2}, far end {3}"),
                     wallMaterial == null ? "—" : Display(wallMaterial), N(wall), N(marinelli ? holeWall : sideWall), N(farWall)),

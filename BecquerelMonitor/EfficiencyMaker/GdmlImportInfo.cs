@@ -44,6 +44,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         [XmlAttribute]
         public string ShieldPart = "";
 
+        /// <summary>
+        /// (`AMBER332`) Вещество пробы, выбранное человеком из веществ редактора вместо вещества детали файла (имя вещества
+        /// библиотеки); пусто — вещество из файла. Запись без атрибута (кривые до `AMBER332`) читается как «из файла».
+        /// </summary>
+        [XmlAttribute]
+        public string SampleMaterial = "";
+
+        public bool ShouldSerializeSampleMaterial()
+        {
+            return !string.IsNullOrEmpty(this.SampleMaterial);
+        }
+
         public bool ShouldSerializeCrystalPart()
         {
             return !string.IsNullOrEmpty(this.CrystalPart);

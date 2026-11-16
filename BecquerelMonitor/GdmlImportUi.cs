@@ -17,6 +17,13 @@ namespace BecquerelMonitor
         public GdmlVolumeInstance Crystal, Sample, ShieldFrom;
         public bool TakeSample, TakeShield;
 
+        /// <summary>
+        /// (`AMBER332`) Вещество пробы из веществ редактора (список «вещество пробы из редактора» под деталями файла); null —
+        /// вещество детали файла. Заменяет только вещество: форма, размеры, сосуд и положение пробы остаются из файла
+        /// (решение Amber 16.11.2026 «Только вещество пробы»).
+        /// </summary>
+        public GeometryMaterial SampleMaterial;
+
         public GdmlParts Parts
         {
             get { return GdmlParts.Detector | (this.TakeSample ? GdmlParts.Sample : 0) | (this.TakeShield ? GdmlParts.Shield : 0); }
@@ -31,15 +38,40 @@ namespace BecquerelMonitor
         {
             return other != null && ReferenceEquals(this.Crystal, other.Crystal) && this.TakeSample == other.TakeSample
                    && this.TakeShield == other.TakeShield
-                   && (!this.TakeSample || ReferenceEquals(this.Sample, other.Sample))
+                   && (!this.TakeSample || (ReferenceEquals(this.Sample, other.Sample) && SameMaterial(this.SampleMaterial, other.SampleMaterial)))
                    && (!this.TakeShield || ReferenceEquals(this.ShieldFrom, other.ShieldFrom));
+        }
+
+        /// <summary>Одно ли вещество: имя, плотность и состав (null — «из файла»).</summary>
+        public static bool SameMaterial(GeometryMaterial a, GeometryMaterial b)
+        {
+            if (a == null || b == null)
+            {
+                return a == null && b == null;
+            }
+
+            if (!string.Equals(a.Name, b.Name, StringComparison.OrdinalIgnoreCase) || a.Density != b.Density || a.Fractions.Count != b.Fractions.Count)
+            {
+                return false;
+            }
+
+            foreach (KeyValuePair<int, double> part in a.Fractions)
+            {
+                double other;
+                if (!b.Fractions.TryGetValue(part.Key, out other) || other != part.Value)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>Раскладка по этому выбору.</summary>
         public GdmlFieldMap Build(GdmlGeometry geometry, GdmlOverview overview)
         {
             return GdmlFieldMap.Build(geometry, overview, this.Crystal, this.TakeSample ? this.Sample : null,
-                                      this.TakeShield ? this.ShieldFrom : null);
+                                      this.TakeShield ? this.ShieldFrom : null, this.TakeSample ? this.SampleMaterial : null);
         }
 
         /// <summary>То, что узнала программа: всё найденное берётся из файла.</summary>
@@ -78,9 +110,47 @@ namespace BecquerelMonitor
         /// </summary>
         public static GdmlChoice FromInfo(GdmlImportInfo info, GdmlGeometry geometry, GdmlFieldMap guessed, List<string> missing)
         {
+            return FromInfo(info, geometry, guessed, missing, null);
+        }
+
+        /// <param name="savedSource">
+        /// (`AMBER332`) Вещество пробы сохранённых полей. Вещество из редактора, названное в записи, берётся отсюда, если имя то
+        /// же (плотность и состав — те, что сохранены), иначе — из библиотеки по имени; нет и там — вещество файла, а сверка
+        /// полей при открытии скажет о расхождении.
+        /// </param>
+        public static GdmlChoice FromInfo(GdmlImportInfo info, GdmlGeometry geometry, GdmlFieldMap guessed, List<string> missing,
+                                          GeometryMaterial savedSource)
+        {
+            return FromInfo(info, geometry, guessed, missing, savedSource, null);
+        }
+
+        /// <param name="missingMaterials">
+        /// (`AMBER332`, критик `crit332`) Сюда — имя вещества пробы из записи, которого нет ни в сохранённых полях, ни в
+        /// библиотеке веществ: выбор тогда — «(из файла)», и это надо назвать человеку по имени, а не только общей
+        /// строкой «поля расходятся». null — не собирать.
+        /// </param>
+        public static GdmlChoice FromInfo(GdmlImportInfo info, GdmlGeometry geometry, GdmlFieldMap guessed, List<string> missing,
+                                          GeometryMaterial savedSource, List<string> missingMaterials)
+        {
             GdmlChoice choice = Guess(guessed);
             choice.TakeSample = info.Sample;
             choice.TakeShield = info.Shield;
+            if (info.Sample && !string.IsNullOrEmpty(info.SampleMaterial))
+            {
+                if (savedSource != null && string.Equals(savedSource.Name, info.SampleMaterial, StringComparison.OrdinalIgnoreCase))
+                {
+                    choice.SampleMaterial = savedSource.Clone();
+                }
+                else
+                {
+                    GeometryMaterialLibrary.Entry entry = GeometryMaterialLibrary.ByName(info.SampleMaterial);
+                    choice.SampleMaterial = entry == null ? null : GeometryMaterialLibrary.Make(entry, entry.Density);
+                    if (entry == null && missingMaterials != null)
+                    {
+                        missingMaterials.Add(info.SampleMaterial);
+                    }
+                }
+            }
             foreach (KeyValuePair<string, Action<GdmlVolumeInstance>> role in new[]
             {
                 new KeyValuePair<string, Action<GdmlVolumeInstance>>(info.CrystalPart, v => choice.Crystal = v),
@@ -115,6 +185,7 @@ namespace BecquerelMonitor
             info.CrystalPart = this.Crystal != null && !ReferenceEquals(this.Crystal, guess.Crystal) ? this.Crystal.VolumeName : "";
             info.SamplePart = this.TakeSample && this.Sample != null && !ReferenceEquals(this.Sample, guess.Sample) ? this.Sample.VolumeName : "";
             info.ShieldPart = this.TakeShield && this.ShieldFrom != null ? this.ShieldFrom.VolumeName : "";
+            info.SampleMaterial = this.TakeSample && this.SampleMaterial != null ? this.SampleMaterial.Name ?? "" : "";
         }
     }
 
@@ -138,9 +209,32 @@ namespace BecquerelMonitor
             }
         }
 
-        readonly ComboBox crystalCombo, sampleCombo, shieldCombo;
+        /// <summary>(`AMBER332`) Строка списка «вещество пробы из редактора»: вещество библиотеки; без него — «(из файла)».</summary>
+        sealed class MaterialItem
+        {
+            public GeometryMaterialLibrary.Entry Entry;
+            public GeometryMaterial Material;
+            public string Text = "";
+
+            public GeometryMaterial Get()
+            {
+                if (this.Material == null && this.Entry != null)
+                {
+                    this.Material = GeometryMaterialLibrary.Make(this.Entry, this.Entry.Density);
+                }
+
+                return this.Material;
+            }
+
+            public override string ToString()
+            {
+                return this.Text;
+            }
+        }
+
+        readonly ComboBox crystalCombo, sampleCombo, shieldCombo, materialCombo;
         readonly CheckBox sampleCheck, shieldCheck;
-        readonly Label crystalHand, sampleHand, shieldHand, notice, auto;
+        readonly Label crystalHand, sampleHand, shieldHand, notice, auto, materialLabel;
         readonly Button applyButton;
         readonly LinkLabel resetLink;
         readonly ToolTip tips = new ToolTip();
@@ -212,6 +306,17 @@ namespace BecquerelMonitor
             this.sampleHand.Top = y + 2;
             y += 20;
             this.sampleCombo = combo();
+
+            // (`AMBER332`, Amber 16.11.2026: «Это не замена списка из gDML файла, это дополнение ниже списка из gDML файла»)
+            // Вещество пробы из тех, что редактор предлагает в строке «Вещество пробы»; первая строка — вещество детали файла.
+            this.materialLabel = new Label
+            {
+                AutoSize = true, Location = new Point(6, y + 1), Text = GdmlText.T("GdmlMapSampleMaterial", "Sample material from the geometry editor"),
+            };
+            this.tips.SetToolTip(this.materialLabel, AppUi.WrapWords(MaterialTip, 80));
+            this.Controls.Add(this.materialLabel);
+            y += 18;
+            this.materialCombo = combo();
 
             this.shieldCheck = new CheckBox { AutoSize = true, Location = new Point(6, y), Text = GdmlText.T("GdmlMapShieldRole", "and shield") };
             this.shieldCheck.CheckedChanged += this.Selected;
@@ -300,6 +405,15 @@ namespace BecquerelMonitor
             }
         }
 
+        static string MaterialTip
+        {
+            get
+            {
+                return GdmlText.T("GdmlMapSampleMaterialTip",
+                    "Only the material of the sample is replaced: its shape, size, vessel and position stay as in the file. “(from file)” keeps the material of the file part.");
+            }
+        }
+
         static string ItemText(GdmlVolumeInstance volume)
         {
             string material = volume.MaterialName ?? "";
@@ -329,6 +443,8 @@ namespace BecquerelMonitor
                 this.crystalCombo.Items.Clear();
                 this.sampleCombo.Items.Clear();
                 this.shieldCombo.Items.Clear();
+                this.FillMaterials();
+
                 if (this.guess.Crystal == null)
                 {
                     this.crystalCombo.Items.Add(new Item { Text = GdmlText.T("GdmlMapUnset", "(not chosen)") });
@@ -355,12 +471,12 @@ namespace BecquerelMonitor
                     this.shieldCombo.Items.Add(new Item { Volume = volume, Text = text });
                 }
 
-                foreach (ComboBox box in new[] { this.crystalCombo, this.sampleCombo, this.shieldCombo })
+                foreach (ComboBox box in new[] { this.crystalCombo, this.sampleCombo, this.shieldCombo, this.materialCombo })
                 {
                     int widest = box.Width;
-                    foreach (Item item in box.Items)
+                    foreach (object item in box.Items)
                     {
-                        widest = Math.Max(widest, TextRenderer.MeasureText(item.Text, box.Font).Width + 24);
+                        widest = Math.Max(widest, TextRenderer.MeasureText(item.ToString(), box.Font).Width + 24);
                     }
 
                     box.DropDownWidth = Math.Min(600, widest);
@@ -388,6 +504,73 @@ namespace BecquerelMonitor
             box.SelectedIndex = box.Items.Count > 0 ? 0 : -1;
         }
 
+        /// <summary>(`AMBER332`) Строки списка вещества пробы: «(из файла)» и вещества редактора (<see cref="GeometryMaterialLibrary.ForSlot"/>).</summary>
+        void FillMaterials()
+        {
+            this.materialCombo.Items.Clear();
+            this.materialCombo.Items.Add(new MaterialItem { Text = GdmlText.T("GdmlMapFromFile", "(from file)") });
+            foreach (GeometryMaterialLibrary.Entry entry in GeometryMaterialLibrary.ForSlot(GeometryMaterialLibrary.MaterialKind.Source))
+            {
+                this.materialCombo.Items.Add(new MaterialItem { Entry = entry, Text = entry.ToString() });
+            }
+        }
+
+        /// <summary>
+        /// (`AMBER332`, критик `crit332`) Библиотеку веществ поправили в редакторе: список вещества пробы перезаполняется, как
+        /// списки редактора (`ApplyLibraryEdit`), выбранное остаётся выбранным (тем же веществом). Поля и применённый выбор
+        /// не трогаются; ничего не сообщается.
+        /// </summary>
+        public void RefillMaterials()
+        {
+            GeometryMaterial current = MaterialOf(this.materialCombo);
+            this.filling = true;
+            try
+            {
+                this.FillMaterials();
+                this.PickMaterial(current);
+            }
+            finally
+            {
+                this.filling = false;
+            }
+
+            this.Refresh(false);
+        }
+
+        /// <summary>
+        /// (`AMBER332`) Поставить в списке вещество пробы: null — «(из файла)». Строка библиотеки ищется по имени и несёт ровно
+        /// это вещество (у сохранённой кривой — его плотность и состав); вещества нет в библиотеке — оно добавляется строкой.
+        /// </summary>
+        void PickMaterial(GeometryMaterial material)
+        {
+            ComboBox box = this.materialCombo;
+            if (material == null)
+            {
+                box.SelectedIndex = box.Items.Count > 0 ? 0 : -1;
+                return;
+            }
+
+            for (int i = 1; i < box.Items.Count; i++)
+            {
+                MaterialItem item = (MaterialItem)box.Items[i];
+                string name = item.Entry != null ? item.Entry.Name : item.Material != null ? item.Material.Name : null;
+                if (string.Equals(name, material.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    item.Material = material.Clone();
+                    box.SelectedIndex = i;
+                    return;
+                }
+            }
+
+            box.SelectedIndex = box.Items.Add(new MaterialItem { Material = material.Clone(), Text = material.Name });
+        }
+
+        static GeometryMaterial MaterialOf(ComboBox box)
+        {
+            MaterialItem item = box.SelectedItem as MaterialItem;
+            return item == null ? null : item.Get();
+        }
+
         /// <summary>Показать выбор в списках. <paramref name="asApplied"/> — это и есть применённое к полям.</summary>
         public void Show(GdmlChoice choice, bool asApplied)
         {
@@ -398,6 +581,7 @@ namespace BecquerelMonitor
                 this.crystalIndex = this.crystalCombo.SelectedIndex;
                 this.sampleCheck.Checked = choice.TakeSample;
                 Pick(this.sampleCombo, choice.TakeSample ? choice.Sample : null);
+                this.PickMaterial(choice.TakeSample ? choice.SampleMaterial : null);
                 this.shieldCheck.Checked = choice.TakeShield;
                 Pick(this.shieldCombo, choice.TakeShield ? choice.ShieldFrom : null);
             }
@@ -431,11 +615,14 @@ namespace BecquerelMonitor
         {
             get
             {
+                bool takeSample = this.sampleCheck.Checked && VolumeOf(this.sampleCombo) != null;
+                GeometryMaterial material = takeSample ? MaterialOf(this.materialCombo) : null;
                 return new GdmlChoice
                 {
                     Crystal = VolumeOf(this.crystalCombo),
-                    TakeSample = this.sampleCheck.Checked && VolumeOf(this.sampleCombo) != null,
+                    TakeSample = takeSample,
                     Sample = this.sampleCheck.Checked ? VolumeOf(this.sampleCombo) : null,
+                    SampleMaterial = material == null ? null : material.Clone(),
                     TakeShield = this.shieldCheck.Checked,
                     ShieldFrom = this.shieldCheck.Checked ? VolumeOf(this.shieldCombo) : null,
                 };
@@ -479,14 +666,22 @@ namespace BecquerelMonitor
         {
             this.sampleCombo.Enabled = this.sampleCheck.Checked;
             this.shieldCombo.Enabled = this.shieldCheck.Checked;
+            // (`AMBER332`) Вещество пробы выбирается, когда образец берётся из файла и деталь-проба выбрана.
+            bool material = this.sampleCheck.Checked && VolumeOf(this.sampleCombo) != null;
+            this.materialCombo.Enabled = material;
+            this.materialLabel.Enabled = material;
             GdmlChoice now = this.Choice;
             this.crystalHand.Visible = now.Crystal != null && !ReferenceEquals(now.Crystal, this.guess.Crystal);
-            this.sampleHand.Visible = now.TakeSample != this.guess.TakeSample || (now.TakeSample && !ReferenceEquals(now.Sample, this.guess.Sample));
+            this.sampleHand.Visible = now.TakeSample != this.guess.TakeSample
+                                      || (now.TakeSample && (!ReferenceEquals(now.Sample, this.guess.Sample) || now.SampleMaterial != null));
             this.shieldHand.Visible = now.TakeShield != this.guess.TakeShield || now.ShieldFrom != null;
             foreach (ComboBox box in new[] { this.crystalCombo, this.sampleCombo, this.shieldCombo })
             {
                 this.tips.SetToolTip(box, box.SelectedItem == null ? null : AppUi.WrapWords(box.SelectedItem.ToString(), 80));
             }
+
+            this.tips.SetToolTip(this.materialCombo, this.materialCombo.SelectedItem == null ? null
+                : AppUi.WrapWords(this.materialCombo.SelectedItem.ToString(), 80) + "\n" + AppUi.WrapWords(MaterialTip, 80));
 
             if (this.applyButton != null)
             {
@@ -587,6 +782,15 @@ namespace BecquerelMonitor
             {
                 text += " " + string.Format(CultureInfo.InvariantCulture, GdmlText.T("GdmlSourceNote", "The sample is not transferred: {0}."),
                     map.SampleProblem ?? GdmlText.T("GdmlWhyOffAxis", "it is not on the crystal axis"));
+            }
+
+            // (`AMBER332`) Вещество пробы из редактора: имя, плотность и масса пробы по ним — здесь, у кнопки «Импортировать».
+            if (good && choice.TakeSample && (map.Found & GdmlParts.Sample) != 0 && map.SampleMaterial != null)
+            {
+                double mass = map.SampleMassG;
+                text += " " + string.Format(CultureInfo.InvariantCulture,
+                    GdmlText.T("GdmlSampleMaterialNote", "Sample material from the editor: {0}, {1} g/cm3, {2} g."),
+                    map.SampleMaterial.Name, GdmlSketch.Fmt(map.SampleMaterial.Density), double.IsNaN(mass) ? "?" : GdmlSketch.Fmt(mass));
             }
 
             if (good && choice.TakeShield && (map.Found & GdmlParts.Shield) == 0)

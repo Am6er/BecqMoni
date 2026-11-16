@@ -46079,6 +46079,27 @@ The file and its previous copy will not change.</value>
   <data name="GdmlMapSampleRole" xml:space="preserve">
     <value>and sample, sample material</value>
   </data>
+  <data name="GdmlMapMaterialMissing" xml:space="preserve">
+    <value>Sample material {0} is neither in the saved fields nor in the material library: the list shows “(from file)”. The fields are as saved.</value>
+  </data>
+  <data name="GdmlMapFromFile" xml:space="preserve">
+    <value>(from file)</value>
+  </data>
+  <data name="GdmlMapSampleMaterial" xml:space="preserve">
+    <value>Sample material from the geometry editor</value>
+  </data>
+  <data name="GdmlMapSampleMaterialEditor" xml:space="preserve">
+    <value>{0} from the editor, {1} g/cm3, {2} g</value>
+  </data>
+  <data name="GdmlMapSampleMaterialFile" xml:space="preserve">
+    <value>Sample material {0}, {1} g</value>
+  </data>
+  <data name="GdmlMapSampleMaterialTip" xml:space="preserve">
+    <value>Only the material of the sample is replaced: its shape, size, vessel and position stay as in the file. “(from file)” keeps the material of the file part.</value>
+  </data>
+  <data name="GdmlSampleMaterialNote" xml:space="preserve">
+    <value>Sample material from the editor: {0}, {1} g/cm3, {2} g.</value>
+  </data>
   <data name="GdmlMapShieldCavity" xml:space="preserve">
     <value>Cavity: {0} mm across, {1} mm along the axis</value>
   </data>

@@ -2331,6 +2331,30 @@ namespace BecquerelMonitor.EfficiencyMaker
             Action<GdmlMaterialRow, bool> add = (row, faded) =>
             {
                 GdmlRole role = roleOf(row);
+                if (role == GdmlRole.Sample && m != null && m.SampleMaterial != null && m.Sample != null)
+                {
+                    // (`AMBER332`) Вещество пробы взято из редактора: в расчёте проба — это вещество с массой по его плотности.
+                    // Прочие детали вещества файла (если оно не только у пробы) остаются своей строкой, без роли и без пробы.
+                    string unit = GdmlText.T("GdmlUnitG", "g");
+                    entries.Add(new LegendCell
+                    {
+                        Text = GdmlOverview.RoleName(role) + ": " + m.SampleMaterial
+                             + (this.compact ? "" : ", " + (double.IsNaN(m.SampleMassG) ? "?" : Fmt(m.SampleMassG)) + " " + unit),
+                        Swatch = faded ? Fade(row.Color) : row.Color, Faded = faded,
+                    });
+                    if (row.Volumes > 1)
+                    {
+                        double rest = row.MassG - (double.IsNaN(m.Sample.MassG) ? 0.0 : m.Sample.MassG);
+                        entries.Add(new LegendCell
+                        {
+                            Text = row.Display + (this.compact ? "" : ", " + Fmt(Math.Max(0.0, rest)) + " " + unit + row.UncountedText()),
+                            Swatch = faded ? Fade(row.Color) : row.Color, Faded = faded,
+                        });
+                    }
+
+                    return;
+                }
+
                 string text = (role == GdmlRole.None ? "" : GdmlOverview.RoleName(role) + ": ") + row.Display
                             + (this.compact ? "" : ", " + row.MassText() + row.UncountedText());
                 entries.Add(new LegendCell { Text = text, Swatch = faded ? Fade(row.Color) : row.Color, Faded = faded });
@@ -4827,6 +4851,14 @@ namespace BecquerelMonitor.EfficiencyMaker
     {
         public GdmlVolumeInstance Crystal, Sample;
 
+        /// <summary>
+        /// (`AMBER332`) Вещество пробы из веществ редактора вместо вещества детали файла: имя и масса пробы по нему, г. null —
+        /// вещество файла; легенда тогда пишет строку вещества файла, как прежде.
+        /// </summary>
+        public string SampleMaterial;
+
+        public double SampleMassG = double.NaN;
+
         /// <summary>Самая массивная деталь защиты: в неё показывает выноска «Защита».</summary>
         public GdmlVolumeInstance Shield;
 
@@ -4888,6 +4920,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             if ((parts & GdmlParts.Sample) != 0)
             {
                 marks.Sample = map.Sample;
+                if (map.SampleMaterial != null)
+                {
+                    marks.SampleMaterial = map.SampleMaterial.Name ?? "";
+                    marks.SampleMassG = map.SampleMassG;
+                }
             }
             else
             {

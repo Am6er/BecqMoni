@@ -35,6 +35,12 @@ using System.Xml.Serialization;
 ///      без копии — все вкладки и строка; кривая без импорта в XML блока не несёт.
 ///   З. Сопоставление руками: «Пересчитать» со снятой галкой возвращает вкладку; негодный кристалл — отказ.
 ///   И. Чертёж: детали вне полей бледные, детали в полях — в полном цвете (положительный контроль — без бледности).
+///   О. (`AMBER332`, полоса a332) Вещество пробы из веществ редактора: меняется вещество и масса пробы, форма, размеры,
+///      сосуд и положение — из файла; «(из файла)» побитово как раньше; список окна — те же строки, что «Вещество пробы»
+///      редактора; сохранение и открытие; старая запись — «(из файла)».
+///      Ключи: --only=a332 — сцены и плечо О без прочих плеч; --spoil=drop|part|lostname|norefill — порча для
+///      положительного контроля (вещество теряется по дороге в раскладку; деталью-пробой подставлена стенка сосуда; в
+///      записи вещество, которое в библиотеке есть; правка библиотеки не доведена до панели): плечо О обязано отказать.
 /// </summary>
 static class GdmlFieldLayoutProbeA322
 {
@@ -997,6 +1003,358 @@ static class GdmlFieldLayoutProbeA322
         return (GeometryFwhmOrigin)Member(panel, "fwhmSource");
     }
 
+    // ------------------------------------------------------------------
+    //  О. Вещество пробы из веществ редактора (`AMBER332`, полоса a332, 16.11.2026)
+    // ------------------------------------------------------------------
+
+    /// <summary>
+    /// Порча для положительного контроля (`--spoil=`): drop — выбор по дороге в приложение теряет вещество пробы (список не
+    /// доехал до раскладки); part — деталью-пробой вместо узнанной подставлена стенка сосуда (форма пробы уже не та, что в
+    /// файле); lostname — в записи об импорте вещество, которое в библиотеке есть, а проба ждёт строку о пропавшем;
+    /// norefill — правка библиотеки веществ не доведена до панели (путь после окна библиотеки не пройден). На каждой порче
+    /// плечо О обязано отказать.
+    /// </summary>
+    static string spoil = "";
+
+    static GdmlChoice Spoiled(GdmlChoice choice, GdmlGeometry file)
+    {
+        GdmlChoice c = choice.Clone();
+        if (spoil == "drop")
+        {
+            c.SampleMaterial = null;
+        }
+        else if (spoil == "part")
+        {
+            GdmlVolumeInstance wall = file.Volumes.FirstOrDefault(v => v != null && (v.VolumeName == "Beaker_side" || v.VolumeName == "Outer_side"));
+            if (wall != null)
+            {
+                c.Sample = wall;
+            }
+        }
+
+        return c;
+    }
+
+    static GeometryMaterial Library(string name)
+    {
+        GeometryMaterialLibrary.Entry entry = GeometryMaterialLibrary.ByName(name);
+        return entry == null ? null : GeometryMaterialLibrary.Make(entry, entry.Density);
+    }
+
+    /// <summary>Отпечаток полей, если веществом пробы поставить данное: всё прочее сравнивается побитово.</summary>
+    static string WithSource(GeometryModel g, GeometryMaterial source)
+    {
+        GeometryModel copy = g.Clone();
+        copy.Source = source.Clone();
+        return ResponseMatrix.GeometryFingerprint(copy);
+    }
+
+    static string LinesOf(GdmlFieldMap map)
+    {
+        return string.Join("\n", map.Lines.Select(l => l.Part + ": " + l.InFile + " → " + l.InFields).ToArray());
+    }
+
+    /// <summary>Число, как его пишет чертёж (`GdmlSketch.Fmt`): четыре значащие, от тысячи — целым.</summary>
+    static string Fmt4(double value)
+    {
+        double size = Math.Abs(value);
+        return size >= 1000.0 && size < 1e15 ? value.ToString("F0", Inv) : value.ToString("G4", Inv);
+    }
+
+    static void Material332()
+    {
+        Console.WriteLine();
+        Console.WriteLine("=== О. Вещество пробы из веществ редактора (`AMBER332`): заменяется только вещество, форма из файла"
+                          + (spoil.Length > 0 ? " [ПОРЧА " + spoil + "]" : "") + " ===");
+
+        // О.1. Раскладка: две сцены, два вещества.
+        foreach (string[] arm in new[]
+        {
+            new[] { sceneBeaker, "цилиндр (SiO2)", "Water, liquid" },
+            new[] { sceneMarinelli, "маринелли (вода)", "Silicon dioxide" },
+        })
+        {
+            GdmlGeometry file = GdmlGeometry.Read(arm[0]);
+            GdmlOverview overview = GdmlOverview.Of(file);
+            GdmlFieldMap guessed = GdmlFieldMap.Build(file, overview);
+            GdmlChoice guess = GdmlChoice.Guess(guessed);
+            GeometryMaterial pick = Library(arm[2]);
+            Ok(pick != null && pick.Fractions.Count > 0 && pick.Density > 0.0, arm[1] + ": вещество «" + arm[2] + "» есть в библиотеке редактора",
+                pick == null ? "нет" : pick.Density.ToString("R", Inv) + " г/см3");
+            if (pick == null)
+            {
+                continue;
+            }
+
+            GeometryModel gGuess = Fields(guessed, guessed.Found);
+
+            // «(из файла)» — тот же выбор и те же поля, что узнала программа, побитово.
+            GdmlChoice fromFile = guess.Clone();
+            GdmlFieldMap same = Spoiled(fromFile, file).Build(file, overview);
+            GeometryModel gSame = Fields(same, same.Found);
+            Ok(fromFile.SampleMaterial == null && same.SampleMaterial == null && fromFile.Same(guess)
+               && ResponseMatrix.GeometryFingerprint(gSame) == ResponseMatrix.GeometryFingerprint(gGuess) && LinesOf(same) == LinesOf(guessed),
+               arm[1] + ": «(из файла)» — поля (отпечаток) и сверка побитово как у узнанного программой");
+            Ok(guessed.SampleMassG == guessed.Sample.MassG, arm[1] + ": «(из файла)» — масса пробы = масса детали файла", Fmt4(guessed.SampleMassG) + " г");
+
+            GdmlChoice chosen = guess.Clone();
+            chosen.SampleMaterial = pick;
+            GdmlFieldMap map = Spoiled(chosen, file).Build(file, overview);
+            GeometryModel g = Fields(map, map.Found);
+            Ok((map.Found & GdmlParts.Sample) != 0, arm[1] + ": проба с веществом редактора разложена", map.Found.ToString());
+            Ok(GdmlChoice.SameMaterial(g.Source, pick), arm[1] + ": вещество пробы в полях — выбранное «" + pick.Name + "», " + pick.Density.ToString("R", Inv) + " г/см3",
+                g.Source.Name + ", " + g.Source.Density.ToString("R", Inv));
+            Ok(WithSource(g, gGuess.Source) == ResponseMatrix.GeometryFingerprint(gGuess),
+                arm[1] + ": форма, размеры, сосуд, положение пробы и детектор — из файла (отпечаток полей с веществом файла совпал)");
+            Ok(g.SourceType == gGuess.SourceType && GdmlChoice.SameMaterial(g.BeakerWall, gGuess.BeakerWall)
+               && g.BeakerDiameter == gGuess.BeakerDiameter && g.MarinelliBeakerDiameter == gGuess.MarinelliBeakerDiameter,
+               arm[1] + ": тип пробы, стенка сосуда и диаметр сосуда — из файла", g.SourceType + " ⌀" + g.BeakerDiameter.ToString(Inv) + "/" + g.MarinelliBeakerDiameter.ToString(Inv));
+            double own = guessed.Sample.OwnVolumeCm3, want = own * pick.Density;
+            Ok(own > 0.0 && Math.Abs(map.SampleMassG - want) <= 1e-12 * want, arm[1] + ": масса пробы = собственный объём × новая плотность = "
+                + Fmt4(own) + " см3 × " + pick.Density.ToString("R", Inv) + " = " + Fmt4(want) + " г", "получено " + map.SampleMassG.ToString("R", Inv));
+            Ok(Math.Abs(map.SampleMassG - guessed.SampleMassG) > 1e-6, arm[1] + ": масса пробы сменилась: " + Fmt4(guessed.SampleMassG) + " → " + Fmt4(map.SampleMassG) + " г");
+            string lines = LinesOf(map);
+            Ok(lines.Contains(pick.Name + " from the editor, " + Fmt4(pick.Density) + " g/cm3, " + Fmt4(want) + " g"),
+                arm[1] + ": сверка «в файле → в полях» называет вещество из редактора, плотность и массу", lines.Replace("\n", " ¦ "));
+            GdmlSketchMarks marks = GdmlSketchMarks.From(file, map, map.Found, false);
+            Ok(marks.SampleMaterial == pick.Name && marks.SampleMassG == map.SampleMassG, arm[1] + ": метки чертежа несут вещество и массу пробы",
+                marks.SampleMaterial + " " + marks.SampleMassG.ToString("R", Inv));
+            GdmlSketchMarks plainMarks = GdmlSketchMarks.From(file, guessed, guessed.Found, false);
+            Ok(plainMarks.SampleMaterial == null && double.IsNaN(plainMarks.SampleMassG), arm[1] + ": «(из файла)» — меток вещества нет, легенда прежняя");
+
+            GdmlChoice other = chosen.Clone();
+            other.SampleMaterial = Library(arm[2] == "Water, liquid" ? "Silicon dioxide" : "Water, liquid");
+            GdmlChoice clone = chosen.Clone();
+            Ok(!chosen.Same(guess) && clone.Same(chosen) && !chosen.Same(other) && GdmlChoice.SameMaterial(clone.SampleMaterial, pick),
+                arm[1] + ": Same — смена вещества даёт другой выбор («Пересчитать» оживает), Clone вещество сохраняет");
+            GdmlChoice noSample = chosen.Clone();
+            noSample.TakeSample = false;
+            GdmlChoice noSampleGuess = guess.Clone();
+            noSampleGuess.TakeSample = false;
+            Ok(noSample.Same(noSampleGuess) && noSample.Build(file, overview).SampleMaterial == null,
+                arm[1] + ": галка «и образец» снята — вещество пробы в раскладку не идёт");
+        }
+
+        // О.2. Окно импорта: список под деталями, тот же источник, что строка «Вещество пробы» редактора.
+        GdmlGeometry beaker = GdmlGeometry.Read(sceneBeaker);
+        GdmlOverview beakerOverview = GdmlOverview.Of(beaker);
+        GeometryMaterial water = Library("Water, liquid");
+        List<string> editorList;
+        using (GeometryEditorPanel editor = new GeometryEditorPanel())
+        {
+            ComboBox source = ((Dictionary<string, ComboBox>)Member(editor, "materials"))["Source"];
+            editorList = source.Items.Cast<GeometryMaterialLibrary.Entry>().Select(e => e.Name).ToList();
+        }
+
+        using (GdmlImportDialog dialog = new GdmlImportDialog(beaker, beakerOverview, GdmlFieldMap.Build(beaker, beakerOverview)))
+        {
+            GdmlMappingPanel mapping = (GdmlMappingPanel)Member(dialog, "mapping");
+            ComboBox list = (ComboBox)Member(mapping, "materialCombo");
+            ComboBox parts = (ComboBox)Member(mapping, "sampleCombo");
+            Label caption = (Label)Member(mapping, "materialLabel");
+            Label result = (Label)Member(dialog, "result");
+            List<string> items = list.Items.Cast<object>().Select(o => o.ToString()).ToList();
+            List<string> names = list.Items.Cast<object>().Skip(1).Select(o => ((GeometryMaterialLibrary.Entry)Member(o, "Entry")).Name).ToList();
+            Ok(items.Count > 1 && items[0] == "(from file)" && list.SelectedIndex == 0, "окно: первая строка списка — «(from file)», она и выбрана", items.Count > 0 ? items[0] : "пусто");
+            Ok(names.SequenceEqual(editorList), "окно: вещества списка — ровно строки «Вещество пробы» редактора, в том же порядке",
+                names.Count.ToString(Inv) + " против " + editorList.Count.ToString(Inv));
+            Ok(list.Top > parts.Top && caption.Top > parts.Top && caption.Top < list.Top && caption.Text == "Sample material from the geometry editor",
+                "окно: подпись и список — ниже списка деталей файла", "детали " + parts.Top.ToString(Inv) + ", подпись " + caption.Top.ToString(Inv) + ", список " + list.Top.ToString(Inv));
+            Ok(Enabled(list) && dialog.Choice.SampleMaterial == null, "окно: проба узнана — список доступен, вещество «из файла»");
+            string before = result.Text;
+
+            GdmlChoice pick = Spoiled(dialog.Choice.Clone(), beaker);
+            pick.SampleMaterial = spoil == "drop" ? null : water;
+            dialog.Choose(pick);
+            double want = beaker.Volumes.First(v => v != null && v.VolumeName == "Sample_soil").OwnVolumeCm3 * (water == null ? 0.0 : water.Density);
+            Ok(dialog.Choice.SampleMaterial != null && dialog.Choice.SampleMaterial.Name == "Water, liquid" && list.SelectedItem.ToString().Contains("Water, liquid"),
+                "окно: выбрана вода — она в списке и в выборе окна", list.SelectedItem == null ? "нет" : list.SelectedItem.ToString());
+            Ok(GdmlChoice.SameMaterial(Fields(dialog.Map, dialog.Map.Found).Source, water) && Math.Abs(dialog.Map.SampleMassG - want) < 1e-9,
+                "окно: раскладка окна — вода, масса " + Fmt4(want) + " г", dialog.Map.SampleMassG.ToString("R", Inv));
+            Ok(result.Text.Contains("Sample material from the editor: Water, liquid, 1 g/cm3, " + Fmt4(want) + " g."), "окно: у кнопки «Импортировать» названы вещество, плотность и масса", result.Text);
+            Ok(Shown((Label)Member(mapping, "sampleHand")) && mapping.ByHand(dialog.Choice), "окно: у образца помета «выбрано вручную»");
+
+            GdmlChoice off = dialog.Choice.Clone();
+            off.TakeSample = false;
+            dialog.Choose(off);
+            Ok(!Enabled(list) && !Enabled(caption) && dialog.Choice.SampleMaterial == null, "окно: галка «и образец» снята — список недоступен, вещества в выборе нет");
+
+            GdmlChoice back = GdmlChoice.Guess(GdmlFieldMap.Build(beaker, beakerOverview));
+            dialog.Choose(back);
+            Ok(list.SelectedIndex == 0 && dialog.Choice.SampleMaterial == null && result.Text == before, "окно: «(from file)» возвращает вещество файла и прежний итог", result.Text);
+        }
+
+        // О.3. Конструктор: импорт с веществом, сводка, легенда, «Пересчитать», сохранение и открытие.
+        string store = Path.Combine(tmp, "gdml_store332");
+        if (Directory.Exists(store))
+        {
+            Directory.Delete(store, true);
+        }
+
+        GdmlCopyStore.DirectoryOverride = store;
+        DeviceConfigInfo device = new DeviceConfigInfo { Guid = Guid.NewGuid().ToString(), Name = "a332" };
+        EfficiencyConfigData config = new EfficiencyConfigData("a332");
+        EfficiencyConfigData plain = new EfficiencyConfigData("a332-plain");
+        double wantMass = beaker.Volumes.First(v => v != null && v.VolumeName == "Sample_soil").OwnVolumeCm3 * (water == null ? 0.0 : water.Density);
+        using (EfficiencyMakerForm form = new EfficiencyMakerForm())
+        {
+            form.BindTo(device, config);
+            GeometryEditorPanel panel = (GeometryEditorPanel)Member(form, "geometryPanel");
+            ImportWith(form, sceneBeaker, (file, guessed) =>
+            {
+                GdmlChoice choice = GdmlChoice.Guess(guessed);
+                choice.SampleMaterial = water;
+                return Spoiled(choice, file);
+            });
+            Ok(GdmlChoice.SameMaterial(panel.Model.Source, water), "конструктор: импорт с водой — вещество пробы в полях вода", panel.Model.Source.Name);
+            Ok(Math.Abs(panel.Model.BeakerDiameter - 62.0) < 1e-3 && Math.Abs(panel.Model.SourceHeight - 20.0) < 1e-3 && panel.Model.SourceType == GeometrySourceType.Cylinder,
+                "конструктор: сосуд ⌀62, проба высотой 20 — из файла", panel.Model.BeakerDiameter.ToString(Inv) + " / " + panel.Model.SourceHeight.ToString(Inv));
+            Ok(panel.GdmlSummaryText.Contains("Water, liquid from the editor, 1 g/cm3, " + Fmt4(wantMass) + " g"), "конструктор: сводка «в файле → в полях» — вода из редактора, масса " + Fmt4(wantMass) + " г");
+            List<string> words = SketchWords((GdmlSketch)Member(panel, "gdmlSketch"));
+            Ok(words.Contains("Sample: Water, liquid, " + Fmt4(wantMass) + " g") && !words.Any(w => w.StartsWith("Sample: SILICON_DIOXIDE", StringComparison.Ordinal)),
+                "конструктор: легенда чертежа «Sample: Water, liquid, " + Fmt4(wantMass) + " g»", string.Join(" | ", words.Where(w => w.StartsWith("Sample", StringComparison.Ordinal)).ToArray()));
+
+            // «Пересчитать» оживает от смены одного вещества.
+            GdmlMappingPanel mapping = (GdmlMappingPanel)Member(panel, "gdmlMapping");
+            Button apply = (Button)Member(mapping, "applyButton");
+            Ok(!Enabled(apply), "конструктор: применённое — «Пересчитать» погашена");
+            GdmlChoice silica = panel.GdmlChoice.Clone();
+            silica.SampleMaterial = Library("Silicon dioxide");
+            mapping.Show(silica, false);
+            Ok(Enabled(apply), "конструктор: другое вещество в списке — «Пересчитать» доступна");
+            mapping.Show(panel.GdmlChoice, false);
+            Ok(!Enabled(apply), "конструктор: вещество вернули — «Пересчитать» снова погашена");
+            Ok(SaveInto(form), "конструктор: «Сохранить» проходит");
+        }
+
+        string xml = Xml(config);
+        Ok(config.GdmlImport != null && config.GdmlImport.SampleMaterial == "Water, liquid" && xml.Contains("SampleMaterial=\"Water, liquid\""),
+            "сохранение: вещество пробы из редактора записано в запись об импорте", config.GdmlImport == null ? "нет записи" : "«" + config.GdmlImport.SampleMaterial + "»");
+        EfficiencyConfigData reopened;
+        using (StringReader reader = new StringReader(xml))
+        {
+            reopened = (EfficiencyConfigData)new XmlSerializer(typeof(EfficiencyConfigData)).Deserialize(reader);
+        }
+
+        using (EfficiencyMakerForm form = new EfficiencyMakerForm())
+        {
+            form.BindTo(device, reopened);
+            GeometryEditorPanel panel = (GeometryEditorPanel)Member(form, "geometryPanel");
+            GdmlChoice choice = panel.GdmlChoice;
+            ComboBox list = (ComboBox)Member((GdmlMappingPanel)Member(panel, "gdmlMapping"), "materialCombo");
+            Ok(choice != null && choice.SampleMaterial != null && choice.SampleMaterial.Name == "Water, liquid" && list.SelectedItem != null && list.SelectedItem.ToString().Contains("Water, liquid"),
+                "открытие: в списке снова вода", list.SelectedItem == null ? "нет" : list.SelectedItem.ToString());
+            Ok(!panel.GdmlSummaryText.Contains("differ from what this version") && panel.GdmlStripText.Contains("Mapping changed by hand"),
+                "открытие: сохранённые поля сходятся с раскладкой по записи, строка «сопоставление изменено вручную»", panel.GdmlStripText);
+        }
+
+        // Старая запись (без атрибута) читается как «(из файла)»; «(из файла)» в XML атрибута не несёт.
+        using (EfficiencyMakerForm form = new EfficiencyMakerForm())
+        {
+            form.BindTo(device, plain);
+            ImportWith(form, sceneBeaker, (file, guessed) => Spoiled(GdmlChoice.Guess(guessed), file));
+            Ok(SaveInto(form), "«(из файла)»: «Сохранить» проходит");
+        }
+
+        string plainXml = Xml(plain);
+        Ok(plain.GdmlImport != null && !plainXml.Contains("SampleMaterial="), "«(из файла)»: в записи об импорте атрибута вещества нет (XML как до `AMBER332`)");
+        string oldXml = xml.Replace(" SampleMaterial=\"Water, liquid\"", "");
+        EfficiencyConfigData old;
+        using (StringReader reader = new StringReader(oldXml))
+        {
+            old = (EfficiencyConfigData)new XmlSerializer(typeof(EfficiencyConfigData)).Deserialize(reader);
+        }
+
+        GdmlGeometry copy = GdmlGeometry.Read(sceneBeaker);
+        GdmlFieldMap copyGuess = GdmlFieldMap.Build(copy, GdmlOverview.Of(copy));
+        GdmlChoice oldChoice = GdmlChoice.FromInfo(old.GdmlImport, copy, copyGuess, new List<string>(), old.Geometry.Source);
+        Ok(old.GdmlImport.SampleMaterial == "" && oldChoice.SampleMaterial == null && oldChoice.Same(GdmlChoice.Guess(copyGuess)),
+            "старая запись без атрибута читается как «(из файла)»");
+
+        // О.4. (критик `crit332`, п. 1) Вещество записи пропало и из полей, и из библиотеки: открытие называет его по имени.
+        // Порча lostname: в записи — вещество, которое в библиотеке есть, а проба всё равно ждёт строку о пропаже.
+        string lostName = spoil == "lostname" ? "Silicon dioxide" : "a332 lost sample material";
+        string lostXml = xml.Replace("SampleMaterial=\"Water, liquid\"", "SampleMaterial=\"" + lostName + "\"");
+        EfficiencyConfigData lost;
+        using (StringReader reader = new StringReader(lostXml))
+        {
+            lost = (EfficiencyConfigData)new XmlSerializer(typeof(EfficiencyConfigData)).Deserialize(reader);
+        }
+
+        GdmlCopyStore.DirectoryOverride = store;
+        using (EfficiencyMakerForm form = new EfficiencyMakerForm())
+        {
+            form.BindTo(device, lost);
+            GeometryEditorPanel panel = (GeometryEditorPanel)Member(form, "geometryPanel");
+            string want = "Sample material " + lostName + " is neither in the saved fields nor in the material library";
+            Ok(panel.GdmlSummaryText.Contains(want) && panel.GdmlChoice != null && panel.GdmlChoice.SampleMaterial == null,
+                "открытие: вещество «" + lostName + "» пропало и из полей, и из библиотеки — сводка называет его по имени, в списке «(из файла)»",
+                panel.GdmlChoice == null || panel.GdmlChoice.SampleMaterial == null ? "выбор — из файла" : "выбор — " + panel.GdmlChoice.SampleMaterial.Name);
+            Ok(panel.GdmlSummaryText.Contains("differ from what this version"), "открытие: общая строка «поля расходятся» остаётся (в полях сохранённая вода)");
+        }
+
+        // О.5. (критик `crit332`, п. 2) Правка библиотеки веществ перезаполняет список вещества пробы на подвкладке «Файл GDML»,
+        // выбор остаётся. Порча norefill: путь после окна библиотеки не пройден — нового вещества в списке нет.
+        const string Added = "a332 test sand";
+        try
+        {
+            using (EfficiencyMakerForm form = new EfficiencyMakerForm())
+            {
+                GeometryEditorPanel panel = (GeometryEditorPanel)Member(form, "geometryPanel");
+                ImportWith(form, sceneBeaker, (file, guessed) =>
+                {
+                    GdmlChoice choice = GdmlChoice.Guess(guessed);
+                    choice.SampleMaterial = water;
+                    return choice;
+                });
+                GdmlMappingPanel mapping = (GdmlMappingPanel)Member(panel, "gdmlMapping");
+                ComboBox list = (ComboBox)Member(mapping, "materialCombo");
+                Button apply = (Button)Member(mapping, "applyButton");
+                int countBefore = list.Items.Count;
+                Ok(!list.Items.Cast<object>().Any(o => o.ToString().Contains(Added)), "библиотека: до правки вещества «" + Added + "» в списке нет");
+
+                var materials = (Dictionary<string, ComboBox>)Member(panel, "materials");
+                MethodInfo materialOf = typeof(GeometryEditorPanel).GetMethod("MaterialOf", Any);
+                MethodInfo get = typeof(GeometryEditorPanel).GetMethod("Get", Any);
+                MethodInfo snapshot = typeof(GeometryEditorPanel).GetMethod("SnapshotMaterials", Any);
+                var was = new Dictionary<string, GeometryMaterial>(StringComparer.Ordinal);
+                foreach (string key in materials.Keys)
+                {
+                    was[key] = (GeometryMaterial)materialOf.Invoke(panel, new object[] { key, get.Invoke(panel, new object[] { key + ".Density" }) });
+                }
+
+                var before = (List<GeometryMaterialLibrary.Entry>)snapshot.Invoke(null, null);
+                GeometryMaterialStore.Entries.Add(new GeometryMaterialLibrary.Entry
+                {
+                    Abbr = "", Name = Added, Formula = "Si1 O2", Density = 1.7, Kind = GeometryMaterialLibrary.MaterialKind.Source,
+                });
+                var after = (List<GeometryMaterialLibrary.Entry>)snapshot.Invoke(null, null);
+                string fields = ResponseMatrix.GeometryFingerprint(panel.Model);
+                if (spoil != "norefill")
+                {
+                    typeof(GeometryEditorPanel).GetMethod("ApplyLibraryEdit", Any).Invoke(panel, new object[] { was, before, after });
+                }
+
+                Ok(list.Items.Count == countBefore + 1 && list.Items.Cast<object>().Any(o => o.ToString().Contains(Added)),
+                    "библиотека: после правки новое вещество — в списке «вещество пробы из редактора геометрии»", list.Items.Count.ToString(Inv) + " строк, было " + countBefore.ToString(Inv));
+                Ok(list.SelectedItem != null && list.SelectedItem.ToString().Contains("Water, liquid") && GdmlChoice.SameMaterial(panel.GdmlPendingChoice.SampleMaterial, water),
+                    "библиотека: выбор остался — вода", list.SelectedItem == null ? "нет" : list.SelectedItem.ToString());
+                Ok(!Enabled(apply) && ResponseMatrix.GeometryFingerprint(panel.Model) == fields, "библиотека: «Пересчитать» погашена, поля не тронуты");
+            }
+        }
+        finally
+        {
+            GeometryMaterialStore.Reload();
+        }
+
+        GdmlCopyStore.DirectoryOverride = null;
+    }
+
+    static bool Shown(Control control)
+    {
+        return (bool)typeof(Control).GetMethod("GetState", Any, null, new[] { typeof(int) }, null).Invoke(control, new object[] { 2 });
+    }
+
     static string FwhmText(GeometryEditorPanel panel)
     {
         return ((Dictionary<string, TextBox>)Member(panel, "fields"))["FwhmAt662Percent"].Text;
@@ -1230,6 +1588,7 @@ static class GdmlFieldLayoutProbeA322
 
     static string rc110Path;
     static GdmlParts? shotParts;
+    static bool only332;
 
     // ------------------------------------------------------------------
     //  Снимки (скрытый стол)
@@ -1317,6 +1676,14 @@ static class GdmlFieldLayoutProbeA322
             else if (a.StartsWith("--lang=", StringComparison.Ordinal)) lang = a.Substring(7);
             else if (a.StartsWith("--file=", StringComparison.Ordinal)) shotFiles.Add(a.Substring(7));
             else if (a == "--no-sample") shotParts = GdmlParts.Detector | GdmlParts.Shield;
+            else if (a.StartsWith("--spoil=", StringComparison.Ordinal)) spoil = a.Substring(8);
+            else if (a == "--only=a332") only332 = true;
+        }
+
+        if (spoil.Length > 0 && spoil != "drop" && spoil != "part" && spoil != "lostname" && spoil != "norefill")
+        {
+            Console.Error.WriteLine("--spoil= бывает drop, part, lostname или norefill");
+            return 2;
         }
 
         if (string.IsNullOrEmpty(tmp))
@@ -1341,17 +1708,22 @@ static class GdmlFieldLayoutProbeA322
         }
 
         Scenes();
-        rc110Path = rc110;
-        if (rc110 != null) Rc110(rc110);
-        if (data != null) Data(data);
-        if (real != null) Real(real);
-        Parts();
-        Window();
-        SaveOpen();
-        Remap();
-        Preview();
-        Sketch();
-        Third();
+        if (!only332)
+        {
+            rc110Path = rc110;
+            if (rc110 != null) Rc110(rc110);
+            if (data != null) Data(data);
+            if (real != null) Real(real);
+            Parts();
+            Window();
+            SaveOpen();
+            Remap();
+            Preview();
+            Sketch();
+            Third();
+        }
+
+        Material332();
 
         Console.WriteLine();
         Console.WriteLine(bad == 0
