@@ -1208,7 +1208,8 @@ namespace BecquerelMonitor
         void measurementResultsRToolStripMenuItem_Click(object sender, EventArgs e)
         {
             // Крестик скрывает панель, сохраняя её настройки и место в раскладке.
-            DCResultView dcresultView = this.dcResultViewList.Find(view => view.IsHidden);
+            DCResultView dcresultView = this.dcResultViewList.Find(view => view.IsHidden)
+                ?? this.dcResultViewList.Find(view => view.Pane?.IsAutoHide == true);
             if (dcresultView == null)
             {
                 if (this.dcResultViewList.Count >= 4)
@@ -1222,6 +1223,11 @@ namespace BecquerelMonitor
                 }
             }
             dcresultView.Show(this.dockPanel1);
+            // Панель с автосворачиванием раскрывается через выбор активной вкладки DockPanel.
+            if (dcresultView.Pane?.IsAutoHide == true)
+            {
+                this.dockPanel1.ActiveAutoHideContent = dcresultView;
+            }
             this.ShowMeasurementResult(false);
         }
 
