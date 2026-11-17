@@ -291,7 +291,7 @@ class CorpusMatrixProbe
                 options.ResolveEdges = Flag(a, 8);
             else if (a.StartsWith("--emin=", StringComparison.Ordinal))
                 // Диапазон сетки — чтобы профилировать ОДИН узел, как требует
-                // раздел Profiling в CLAUDE.md: профиль всей сцены смешивает
+                // раздел Profiling в AGENTS.md: профиль всей сцены смешивает
                 // низкие узлы (одно взаимодействие) с высокими (пары, вторички).
                 options.MinEnergyKev = double.Parse(a.Substring(7), CultureInfo.InvariantCulture);
             else if (a.StartsWith("--emax=", StringComparison.Ordinal))
@@ -642,7 +642,7 @@ class CorpusMatrixProbe
                 // то же самое, но разборов становится столько же, сколько шагов;
                 // по разности времени и разности их числа видно, чего стоит один
                 // разбор. Заведён, когда профиль снять было нечем; с 17.08.2026
-                // профиль снимается без запроса прав (`CLAUDE.md` §Profiling,
+                // профиль снимается без запроса прав (`AGENTS.md` §Profiling,
                 // задания `BqPerfView*`), ключ остаётся дешёвой мерой рядом с ним.
                 // В счёте не применять.
                 EfficiencySimulator.MeasureCollectCost = true;

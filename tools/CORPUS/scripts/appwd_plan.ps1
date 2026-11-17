@@ -402,7 +402,7 @@ function Get-AppWdPlan {
         [Parameter(Mandatory)][string]$Bin,
         [Parameter(Mandatory)][string]$Wd,
         # Откуда брать пробы. По умолчанию `probes\build` — каталог отладочной
-        # сборки. Оптимизированный рецепт (CLAUDE.md, «Computing») кладёт пробы
+        # сборки. Оптимизированный рецепт (AGENTS.md, «Computing») кладёт пробы
         # в `probes\build_rel`, и оснастку из `bin\Release_Codex` надо собирать
         # оттуда же: иначе приложение будет из одной сборки, а пробы рядом —
         # из другой, и сторож законно откажет.
@@ -471,7 +471,7 @@ function Get-AppWdPlan {
     if (-not (Test-Path -LiteralPath $probeBuild)) {
         throw ("НЕТ КАТАЛОГА ПРОБ: $probeBuild`n" +
                "   Отладочный рецепт: pwsh tools\effmaker\probes\build_all.ps1`n" +
-               "   Оптимизированный (CLAUDE.md): build_all.ps1 -Out tools\effmaker\probes\build_rel")
+               "   Оптимизированный (AGENTS.md): build_all.ps1 -Out tools\effmaker\probes\build_rel")
     }
     if (-not (Test-Path -LiteralPath $appCfgSrc)) {
         throw ("НЕТ $appCfgSrc — без него пробам не с чего класть exe.config (T32)")

@@ -20,7 +20,7 @@ New-Item -ItemType Directory -Force $Work, $tools | Out-Null
 
 if (-not $SkipApp) {
     $msbuild = 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe'
-    # ⛔ /p:GenerateManifests=false и свой IntermediateOutputPath обязательны (CLAUDE.md, `T75`).
+    # ⛔ /p:GenerateManifests=false и свой IntermediateOutputPath обязательны (AGENTS.md, `T75`).
     & $msbuild $proj /t:Build /restore /p:Configuration=Debug /p:Platform=AnyCPU /p:SignManifests=false `
         /p:GenerateManifests=false '/p:OutputPath=bin\guideshot\' '/p:IntermediateOutputPath=obj\guideshot\' `
         /v:minimal /nologo *> (Join-Path $Work 'msbuild.log')

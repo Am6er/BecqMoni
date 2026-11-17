@@ -951,7 +951,7 @@ def build_real_mutant(tree_root, mdir, replacements):
     shutil.copytree(tree_root, mdir, ignore=shutil.ignore_patterns("bin", "obj", ".git"))
     for rfile, old, new in replacements:
         patch_file(os.path.join(mdir, "BecquerelMonitor", rfile), old, new)
-    # the recipe of CLAUDE.md: MSBuild.exe on BecquerelMonitor.csproj with /p:GenerateManifests=false and its own output and obj directories
+    # the recipe of AGENTS.md: MSBuild.exe on BecquerelMonitor.csproj with /p:GenerateManifests=false and its own output and obj directories
     args = [MSBUILD, os.path.join("BecquerelMonitor", "BecquerelMonitor.csproj"), "/restore", "/t:Rebuild", "/p:Configuration=Release", "/p:Platform=AnyCPU", "/p:SignManifests=false", "/p:GenerateManifests=false",
             "/p:OutputPath=bin\\" + TEST_OUT + "\\", "/p:IntermediateOutputPath=obj\\" + TEST_OUT + "\\", "/nologo", "/v:minimal"]
     p = subprocess.run(args, cwd=mdir, capture_output=True, text=True, encoding="utf-8", errors="replace")
