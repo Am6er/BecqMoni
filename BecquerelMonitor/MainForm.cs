@@ -1207,16 +1207,20 @@ namespace BecquerelMonitor
         // Token: 0x06000A62 RID: 2658 RVA: 0x0003D8C8 File Offset: 0x0003BAC8
         void measurementResultsRToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (this.dcResultViewList.Count >= 4)
+            // Крестик скрывает панель, сохраняя её настройки и место в раскладке.
+            DCResultView dcresultView = this.dcResultViewList.Find(view => view.IsHidden);
+            if (dcresultView == null)
             {
-                return;
+                if (this.dcResultViewList.Count >= 4)
+                {
+                    dcresultView = this.dcResultViewList[0];
+                }
+                else
+                {
+                    dcresultView = new DCResultView(this) { Enabled = this.activeDocument != null };
+                    this.dcResultViewList.Add(dcresultView);
+                }
             }
-            DCResultView dcresultView = new DCResultView(this);
-            if (this.activeDocument == null)
-            {
-                dcresultView.Enabled = false;
-            }
-            this.dcResultViewList.Add(dcresultView);
             dcresultView.Show(this.dockPanel1);
             this.ShowMeasurementResult(false);
         }
