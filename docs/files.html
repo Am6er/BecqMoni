@@ -131,6 +131,12 @@ details.faq .a q{color:#ffd8b0;quotes:"«" "»"}
   <h2 data-t="e.h"></h2>
   <p class="lead" data-t="e.lead"></p>
   <div class="fmt" id="eFmt"></div>
+  <div class="card full" id="spectrum-report">
+    <h3 data-t="report.h"></h3>
+    <p data-t="report.open"></p>
+    <ul><li data-t="report.xlsx"></li><li data-t="report.zip"></li></ul>
+    <p data-t="report.analysis"></p>
+  </div>
   <div class="card full">
     <h3 data-t="c.h"></h3>
     <p class="note" style="margin-top:0" data-t="c.hint"></p>
@@ -228,7 +234,7 @@ GUIDE.texts({ru:{
 'i.l5':'<b>Формат Atom Spectra v3 · Файл формата N42</b> — родные форматы Atom Spectra и международный N42',
 'i.l6':'<b>Файл CSV (канал, отсчёты) · (энергия, отсчёты) · SpectraLine GBS</b> — простые таблицы и файлы *.spe',
 'i.l7':'<b>Импорт через SpecUtils... · Старый формат BecqMoni</b> — 23 формата через библиотеку SpecUtils и файлы v0.93Beta',
-'i.l8':'<b>Экспорт</b> — обратный путь: N42, Atom Spectra v3, CSV, Расширенный CSV (раздел ниже)',
+'i.l8':'<b>Экспорт</b> — спектр в N42, Atom Spectra v3, CSV или расширенном CSV, а также <a href="#spectrum-report">отчёт по выбранному спектру</a>',
 'i.su':'Импорт через SpecUtils читает 23 формата',
 'i.steps':'Пошагово: открыть чужой N42',
 'i.s1':'<span class="ui m">Файл → Импорт → Файл формата N42</span> (или <span class="ui">Импорт через SpecUtils...</span> для экзотики).',
@@ -238,6 +244,11 @@ GUIDE.texts({ru:{
 'i.s5':'<span class="ui m">Файл → Сохранить как...</span> — теперь это ваш XML со всем, что нужно.',
 'i.info':'<b>Фоновое измерение внутри файла</b> (так бывает в N42 и форматах SpecUtils) ложится фоном спектра — вычитать его можно сразу. В документ попадает не больше 16 спектров.',
 'e.k':'Экспорт','e.h':'Отдать спектр: Файл → Экспорт',
+'report.h':'Отчёт по выбранному спектру',
+'report.open':'Выберите спектр в списке и откройте <span class="ui m">Файл → Экспорт → Отчёт…</span>. В отчёте восемь глав со сведениями об образце, условиях измерения и результатах анализа. Язык отчёта совпадает с языком интерфейса. В окне сохранения выберите формат.',
+'report.xlsx':'<b>Excel (.xlsx)</b> — по одному листу на главу. График спектра встроен в книгу. Если для спектра есть результат FSA, в книге будет и график с разбором FSA.',
+'report.zip':'<b>ZIP с CSV</b> — те же восемь таблиц в отдельных файлах CSV (UTF-8, разделитель — запятая). Графики лежат рядом в виде файлов PNG.',
+'report.analysis':'Графики сохраняют текущий вид шкалы Y. Таблицы содержат доступные результаты без отсчётов по каналам. Если поиск пиков или FSA ещё не выполнялся, в соответствующей главе будет отметка об этом.',
 'e.lead':'Экспорт — как упаковать посылку: в одну коробку влезает всё (N42), в другую — только самое нужное (CSV). Выбирайте по тому, что будет делать получатель.',
 'e.n42':'N42','e.n42s':'международный, для любой программы','e.as':'Atom Spectra v3','e.ass':'для Atom Spectra и ей подобных','e.csv':'CSV','e.csvs':'«Channel,Counts», для таблиц','e.ecsv':'Расширенный CSV','e.ecsvs':'«Channel,Energy,Counts» — как на экране',
 'e.ch':'отсчёты по каналам','e.cal':'калибровка энергии','e.live':'живое время','e.real':'только реальное время','e.date':'дата начала набора','e.bgm':'фон — отдельным измерением','e.nobg':'фона нет','e.view':'с вычетом фона и сглаживанием, если они включены',
@@ -310,7 +321,7 @@ GUIDE.texts({ru:{
 'i.l5':'<b>Atom Spectra v3 format · N42 file format</b> — Atom Spectra’s native format and the international N42',
 'i.l6':'<b>CSV (Channel,Counts) · CSV (Energy,Counts) · SpectraLine GBS</b> — plain tables and *.spe files',
 'i.l7':'<b>Import using SpecUtils... · BecqMoni old format</b> — 23 formats via the SpecUtils library and v0.93Beta files',
-'i.l8':'<b>Export</b> — the way back: N42, Atom Spectra v3, CSV, Extended CSV (section below)',
+'i.l8':'<b>Export</b> saves the spectrum as N42, Atom Spectra v3, CSV or Extended CSV. You can also export a <a href="#spectrum-report">report for the selected spectrum</a>.',
 'i.su':'Import using SpecUtils reads 23 formats',
 'i.steps':'Step by step: open someone else’s N42',
 'i.s1':'<span class="ui m">File → Import → N42 file format</span> (or <span class="ui">Import using SpecUtils...</span> for anything exotic).',
@@ -320,6 +331,11 @@ GUIDE.texts({ru:{
 'i.s5':'<span class="ui m">File → Save As...</span> — now it is your XML with everything it needs.',
 'i.info':'<b>A background measurement inside the file</b> (common in N42 and SpecUtils formats) becomes the spectrum’s background — ready to subtract. A document holds at most 16 spectra.',
 'e.k':'Export','e.h':'Hand a spectrum over: File → Export',
+'report.h':'Report for the selected spectrum',
+'report.open':'Select a spectrum in the list and choose <span class="ui m">File → Export → Report…</span>. The report covers the sample, measurement conditions and analysis results in eight chapters. It uses the current interface language. Choose a format in the save dialog.',
+'report.xlsx':'<b>Excel (.xlsx)</b> — one worksheet per chapter. The workbook includes the spectrum plot and, if FSA results are available for this spectrum, the FSA decomposition plot.',
+'report.zip':'<b>ZIP with CSV files</b> — the same eight tables as separate UTF-8 CSV files with comma delimiters. The plots are included as PNG files.',
+'report.analysis':'The plots use the current Y-axis scale. The tables contain the available results without per-channel counts. If peak search or FSA has yet to run, the corresponding chapter says so.',
 'e.lead':'Export is packing a parcel: one box takes everything (N42), another only the essentials (CSV). Choose by what the recipient will do with it.',
 'e.n42':'N42','e.n42s':'international, for any program','e.as':'Atom Spectra v3','e.ass':'for Atom Spectra and its kin','e.csv':'CSV','e.csvs':'“Channel,Counts”, for spreadsheets','e.ecsv':'Extended CSV','e.ecsvs':'“Channel,Energy,Counts” — as on screen',
 'e.ch':'counts per channel','e.cal':'energy calibration','e.live':'live time','e.real':'real time only','e.date':'acquisition start date','e.bgm':'background as its own measurement','e.nobg':'no background','e.view':'with background subtracted and smoothing, if they are on',
