@@ -1227,6 +1227,15 @@ namespace BecquerelMonitor
             if (dcresultView.Pane?.IsAutoHide == true)
             {
                 this.dockPanel1.ActiveAutoHideContent = dcresultView;
+                if (dcresultView.Enabled)
+                {
+                    dcresultView.Activate();
+                }
+                else
+                {
+                    // Без спектра содержимое отключено, но область вкладки может принять фокус.
+                    dcresultView.Pane.Focus();
+                }
             }
             this.ShowMeasurementResult(false);
         }
