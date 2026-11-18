@@ -37,7 +37,6 @@ namespace BecquerelMonitor
             this.cSVEnFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.GBSFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.SpecUtilsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.legacyFormatV093bToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportEToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.N42ExpStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.AtomSpectraExpStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -198,8 +197,7 @@ namespace BecquerelMonitor
             this.cSVFileToolStripMenuItem,
             this.cSVEnFileToolStripMenuItem,
             this.GBSFileToolStripMenuItem,
-            this.SpecUtilsToolStripMenuItem,
-            this.legacyFormatV093bToolStripMenuItem});
+            this.SpecUtilsToolStripMenuItem});
             this.importIToolStripMenuItem.Name = "importIToolStripMenuItem";
             resources.ApplyResources(this.importIToolStripMenuItem, "importIToolStripMenuItem");
             // 
@@ -240,12 +238,6 @@ namespace BecquerelMonitor
             this.SpecUtilsToolStripMenuItem.Name = "SpecUtilsToolStripMenuItem";
             resources.ApplyResources(this.SpecUtilsToolStripMenuItem, "SpecUtilsToolStripMenuItem");
             this.SpecUtilsToolStripMenuItem.Click += new System.EventHandler(this.SpecUtilsToolStripMenuItem_Click);
-            // 
-            // legacyFormatV093bToolStripMenuItem
-            // 
-            this.legacyFormatV093bToolStripMenuItem.Name = "legacyFormatV093bToolStripMenuItem";
-            resources.ApplyResources(this.legacyFormatV093bToolStripMenuItem, "legacyFormatV093bToolStripMenuItem");
-            this.legacyFormatV093bToolStripMenuItem.Click += new System.EventHandler(this.legacyFormatV093bToolStripMenuItem_Click);
             // 
             // exportEToolStripMenuItem
             // 
@@ -825,9 +817,6 @@ namespace BecquerelMonitor
 
 		// Token: 0x040005A6 RID: 1446
 		global::System.Windows.Forms.ToolStripMenuItem sampleInfoSToolStripMenuItem;
-
-		// Token: 0x040005A7 RID: 1447
-		global::System.Windows.Forms.ToolStripMenuItem legacyFormatV093bToolStripMenuItem;
 
 		global::System.Windows.Forms.ToolStripMenuItem AtomSpectraStripMenuItem;
 

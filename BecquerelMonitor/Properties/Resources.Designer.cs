@@ -1665,15 +1665,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Import Old Format (0.93Beta or earlier) Spectrum File.
-        /// </summary>
-        public static string ImportOldFormatFileDialogTitle {
-            get {
-                return ResourceManager.GetString("ImportOldFormatFileDialogTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Import Spectra From File.
         /// </summary>
         public static string ImportSpectraFromFileDialogTitle {

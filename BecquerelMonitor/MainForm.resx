@@ -203,12 +203,6 @@
   <data name="SpecUtilsToolStripMenuItem.Text" xml:space="preserve">
     <value>Import using SpecUtils...</value>
   </data>
-  <data name="legacyFormatV093bToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
-    <value>297, 22</value>
-  </data>
-  <data name="legacyFormatV093bToolStripMenuItem.Text" xml:space="preserve">
-    <value>BecqMoni old format (v0.93Beta or earlier)</value>
-  </data>
   <data name="importIToolStripMenuItem.Size" type="System.Drawing.Size, System.Drawing">
     <value>180, 22</value>
   </data>
@@ -5052,12 +5046,6 @@
     <value>SpecUtilsToolStripMenuItem</value>
   </data>
   <data name="&gt;&gt;SpecUtilsToolStripMenuItem.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;legacyFormatV093bToolStripMenuItem.Name" xml:space="preserve">
-    <value>legacyFormatV093bToolStripMenuItem</value>
-  </data>
-  <data name="&gt;&gt;legacyFormatV093bToolStripMenuItem.Type" xml:space="preserve">
     <value>System.Windows.Forms.ToolStripMenuItem, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="&gt;&gt;exportEToolStripMenuItem.Name" xml:space="preserve">

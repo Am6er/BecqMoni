@@ -718,44 +718,6 @@ namespace BecquerelMonitor
         {
         }
 
-        public ResultData(ResultData_093b old)
-        {
-            this.sampleInfo = old.SampleInfo;
-            this.deviceConfig = old.DeviceConfig;
-            this.deviceConfigReference = old.DeviceConfigReference;
-            this.startTime = old.StartTime;
-            this.endTime = old.EndTime;
-            this.backgroundSpectrumFile = old.BackgroundSpectrumFile;
-            this.backgroundSpectrumPathname = old.BackgroundSpectrumPathname;
-            this.energySpectrum = old.EnergySpectrum;
-            // (`AMBER201`, подозрение полосы 2, 05.10.2026) Старый класс заводил фон
-            // ВСЕГДА (`new EnergySpectrum()`), и файл без фона несёт пустой элемент
-            // (ноль каналов, отсчётов нет). Это «фона нет», а не фон: иначе
-            // CheckDocument, теперь зовущийся и этой дверью, судил бы документ
-            // негодным и предлагал сбросить калибровку.
-            this.backgroundEnergySpectrum = HasCounts(old.BackgroundEnergySpectrum) ? old.BackgroundEnergySpectrum : null;
-            this.pulseCollection = old.PulseCollection;
-            // 0.93b stored a linear calibration as two scalars. Build a fresh linear
-            // calibration instead of writing Coefficients[2] into whatever array the
-            // deserializer produced (the default calibration has only 2 coefficients ->
-            // IndexOutOfRange) and only touch the background spectrum if it exists
-            // (old files without background -> NullReferenceException).
-            if (this.energySpectrum != null)
-            {
-                PolynomialEnergyCalibration polynomialEnergyCalibration = new PolynomialEnergyCalibration();
-                polynomialEnergyCalibration.PolynomialOrder = 1;
-                polynomialEnergyCalibration.Coefficients = new double[] { old.EnergyOffset, old.EnergyCoefficient };
-                this.energySpectrum.EnergyCalibration = polynomialEnergyCalibration;
-            }
-            if (this.backgroundEnergySpectrum != null)
-            {
-                PolynomialEnergyCalibration polynomialEnergyCalibration2 = new PolynomialEnergyCalibration();
-                polynomialEnergyCalibration2.PolynomialOrder = 1;
-                polynomialEnergyCalibration2.Coefficients = new double[] { old.EnergyOffset, old.EnergyCoefficient };
-                this.backgroundEnergySpectrum.EnergyCalibration = polynomialEnergyCalibration2;
-            }
-        }
-
         public ResultData(ResultData_097b old)
         {
             // (`AMBER201`, мелочь 2.11) Преобразователь заработал (его зовёт
@@ -780,12 +742,6 @@ namespace BecquerelMonitor
             {
                 this.pulseCollection = old.PulseCollection;
             }
-        }
-
-        /// <summary>(`AMBER201`) Спектр старого файла с отсчётами — не пустой элемент.</summary>
-        static bool HasCounts(EnergySpectrum spectrum)
-        {
-            return spectrum != null && spectrum.Spectrum != null && spectrum.Spectrum.Length > 0;
         }
 
         // Rendering prepares writable drawing buffers. Share metadata but isolate both spectra

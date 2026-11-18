@@ -674,7 +674,6 @@
     <Compile Include="ResultDataFile.cs" />
     <Compile Include="ResultDataFile_097b.cs" />
     <Compile Include="ResultDataStatus.cs" />
-    <Compile Include="ResultData_093b.cs" />
     <Compile Include="ResultData_097b.cs" />
     <Compile Include="ResultTranslation.cs" />
     <Compile Include="ResultValueCellRenderer.cs" />

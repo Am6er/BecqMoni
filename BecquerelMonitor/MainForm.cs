@@ -3449,19 +3449,6 @@ namespace BecquerelMonitor
             }
         }
 
-        // Token: 0x06000A96 RID: 2710 RVA: 0x0003F560 File Offset: 0x0003D760
-        void legacyFormatV093bToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            DocEnergySpectrum docEnergySpectrum = this.documentManager.ImportDocument093b();
-            if (docEnergySpectrum != null)
-            {
-                docEnergySpectrum.DockAreas = DockAreas.Document;
-                this.SubscribeDocumentEvent(docEnergySpectrum);
-                docEnergySpectrum.Show(this.dockPanel1);
-                this.ShowMeasurementResult(true);
-            }
-        }
-
         /// <returns>
         /// (`AMBER201`, подозрение полосы 2, 05.10.2026) false — документ НЕ создан
         /// (человек ответил «Нет» на вопрос о негодной калибровке прибора). Все
