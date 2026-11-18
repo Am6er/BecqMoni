@@ -417,9 +417,6 @@ namespace BecquerelMonitor
             // пики ВКЛ — вкладка открывается сразу в FSA, а режим фона по умолчанию
             // становится тем, куда она вернётся, когда FSA погаснет.
             this.ApplyFsaLink();
-            // Пункт «Показать FSA» списка режимов фона виден, но недоступен (решение
-            // Amber 12.11.2026): включается FSA теперь только своей кнопкой.
-            this.ShowFsaToolStripMenuItem.Enabled = false;
             this.toolStripSplitButtonFsa.ToolTipText = AppUi.WrapTip(this.toolStripSplitButtonFsa.ToolTipText);
             this.view.HorizontalMagnification = globalConfig.ChartViewConfig.DefaultHorizontalMagnification;
             // (П259, 14.10.2026) Нижний предел поля масштаба — 0.01, а не 0.1 из
@@ -972,8 +969,6 @@ namespace BecquerelMonitor
             this.SubstractBgToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.Substract);
             this.ShowConToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.ShowContinuum);
             this.ShowFsaToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.ShowFSA);
-            // (`AMBER328`) Виден (галочкой — показан ли FSA на вкладке), но недоступен.
-            this.ShowFsaToolStripMenuItem.Enabled = false;
             this.NormByEffToolStripMenuItem.Checked = (this.view.BackgroundMode == BackgroundMode.NormalizeByEfficiency);
         }
 
@@ -1020,11 +1015,15 @@ namespace BecquerelMonitor
         // в фоне (см. FsaAnalysisSession), поэтому нажатие не подвешивает окно.
         void ShowFsaToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (!this.EnsureFsaInputs())
+            if (!IsFsaShownBy(GlobalFsaModeEnabled, this.view.PeakMode) || !this.EnsureFsaInputs())
             {
                 return;
             }
 
+            if (this.view.BackgroundMode != BackgroundMode.ShowFSA)
+            {
+                this.backgroundModeBeforeFsa = this.view.BackgroundMode;
+            }
             this.view.BackgroundMode = BackgroundMode.ShowFSA;
             // Своя иконка, а не CONT: с ней кнопка врала — «показан континуум»
             // при разложенном спектре, и два разных режима выглядели одним.
@@ -1133,10 +1132,6 @@ namespace BecquerelMonitor
         // вопросов не задаёт вовсе (решение Amber 12.11.2026 «Просто включить режим, а
         // отображать причины как сейчас они отображаются»): чего разбору не хватает,
         // называет сам разбор — отказом в окне отчёта.
-        //
-        // ⚠ `EnsureFsaInputs` ниже остаётся у пункта меню «Показать FSA»
-        // (`ShowFsaToolStripMenuItem_Click`): пункт виден, но недоступен, и звать его
-        // могут только пробы и конвейер снимков гида.
 
         /// <summary>
         /// Двух вещей разложению может не хватать, и обеим есть замена, но
@@ -2175,6 +2170,7 @@ namespace BecquerelMonitor
             {
                 this.toolStripSplitButtonFsa.Image = image;
             }
+            this.ShowFsaToolStripMenuItem.Enabled = IsFsaShownBy(flag, this.view.PeakMode);
             this.toolStripSplitButtonFsa.Enabled = flag || canEnable;
             this.fsaOnToolStripMenuItem.Enabled = canEnable;
             this.fsaOffToolStripMenuItem.Enabled = true;

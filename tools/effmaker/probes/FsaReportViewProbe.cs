@@ -227,7 +227,20 @@ namespace FsaReportViewProbe
 
             Hygiene();
             WindowSection(mainForm, thorium, control);
-            EntrySection(mainForm, control);      // у контроля есть кривая: дверь FSA открыта без вопросов
+            ChartViewConfig chart = GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig;
+            bool savedFsa = chart.FsaModeEnabled;
+            PeakMode savedPeaks = control.EnergySpectrumView.PeakMode;
+            try
+            {
+                chart.FsaModeEnabled = true;
+                control.EnergySpectrumView.PeakMode = PeakMode.Visible;
+                EntrySection(mainForm, control);
+            }
+            finally
+            {
+                chart.FsaModeEnabled = savedFsa;
+                control.EnergySpectrumView.PeakMode = savedPeaks;
+            }
             OneResultSection(mainForm, thorium);
             ReportWithoutFsaModeSection(mainForm, thorium);
             RowKindsSection(mainForm, thorium, control);

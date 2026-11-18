@@ -25,7 +25,7 @@ namespace BecquerelMonitor.Probes
     /// при пиках ВКЛ («Кнопка FSA доступна к включению только после включения поиска
     /// пиков.»), выключить — всегда. Критерии:
     ///   К0 гигиена: кнопка FSA стоит СРАЗУ справа от кнопки пиков; пункт «Показать
-    ///      FSA» списка фона виден, но недоступен; при пиках ВКЛ кнопка и «Включить» доступны;
+    ///      FSA» списка фона при выключенном FSA недоступен; при пиках ВКЛ кнопка и «Включить» доступны;
     ///   К1 таблица истинности правила (4 сочетания);
     ///   К2 П4 — кнопка FSA ВКЛ: ВСЕ вкладки в ShowFSA (три вкладки, у третьей нет ни
     ///      кривой, ни FWHM — вопросов нет, исключения нет), событие входа у каждой одно
@@ -205,7 +205,7 @@ namespace BecquerelMonitor.Probes
 
             // К0 — гигиена
             Console.WriteLine();
-            Console.WriteLine("=== К0. кнопка справа от кнопки пиков; «Показать FSA» виден, но недоступен ===");
+            Console.WriteLine("=== К0. кнопка справа от кнопки пиков; «Показать FSA» при выключенном FSA недоступен ===");
             ToolStrip strip = (ToolStrip)Field(a, "toolStrip2");
             ToolStripItem peaksButton = (ToolStripItem)Field(a, "toolStripSplitButton9");
             ToolStripItem fsaButton = (ToolStripItem)Field(a, "toolStripSplitButtonFsa");
@@ -474,6 +474,7 @@ namespace BecquerelMonitor.Probes
 
             // К14 — Н2
             ContinuumSection(a, c);
+            LocalFsaMenuSection(a, b, chart);
 
             foreach (DocEnergySpectrum d in docs)
             {
@@ -481,6 +482,41 @@ namespace BecquerelMonitor.Probes
                 d.FsaSession.Reset();
             }
             return 0;
+        }
+
+        static void LocalFsaMenuSection(DocEnergySpectrum a, DocEnergySpectrum b, ChartViewConfig chart)
+        {
+            var item = Item(a, "ShowFsaToolStripMenuItem");
+            foreach (bool peaks in new[] { true, false })
+            {
+                foreach (bool globalFsa in new[] { true, false })
+                {
+                    Invoke(a, "showPeaksToolStripMenuItem_Click", null, EventArgs.Empty);
+                    Invoke(a, globalFsa ? "fsaOnToolStripMenuItem_Click" : "fsaOffToolStripMenuItem_Click", null, EventArgs.Empty);
+                    if (!peaks) Invoke(a, "hidePeaksToolStripMenuItem_Click", null, EventArgs.Empty);
+                    Invoke(a, "hideBackgroundToolStripMenuItem_Click", null, EventArgs.Empty);
+                    Invoke(b, "showBackgroundToolStripMenuItem_Click", null, EventArgs.Empty);
+                    Invoke(a, "toolStripSplitButton7_DropDownOpening", null, EventArgs.Empty);
+                    bool available = globalFsa && peaks;
+                    string state = "BG: FSA " + On(globalFsa) + ", пики " + On(peaks);
+                    Same(state + " — доступность", available, item.Enabled);
+                    Same(state + " — до выбора галочки нет", false, item.Checked);
+                    if (available) item.PerformClick();
+                    else Invoke(a, "ShowFsaToolStripMenuItem_Click", null, EventArgs.Empty);
+                    Invoke(a, "toolStripSplitButton7_DropDownOpening", null, EventArgs.Empty);
+                    Same(state + " — режим вкладки", available ? BackgroundMode.ShowFSA : BackgroundMode.Invisible,
+                         a.EnergySpectrumView.BackgroundMode);
+                    Same(state + " — отметка пункта", available, item.Checked);
+                    Same(state + " — соседняя вкладка", BackgroundMode.Visible, b.EnergySpectrumView.BackgroundMode);
+                    Same(state + " — глобальная настройка", globalFsa, chart.FsaModeEnabled);
+                    if (available)
+                    {
+                        item.PerformClick();
+                        Invoke(a, "fsaOffToolStripMenuItem_Click", null, EventArgs.Empty);
+                        Same("BG: повторный выбор сохраняет прежний режим", BackgroundMode.Invisible, a.EnergySpectrumView.BackgroundMode);
+                    }
+                }
+            }
         }
 
         static void ConfigSection(GlobalConfigManager manager)
