@@ -418,9 +418,14 @@ namespace BecquerelMonitor
         // Token: 0x06000437 RID: 1079 RVA: 0x00013C68 File Offset: 0x00011E68
         bool CheckDetected(MeasurementResult result)
         {
+            return CheckDetected(result, this.globalConfigManager.GlobalConfig.MeasurementConfig);
+        }
+
+        internal static bool CheckDetected(MeasurementResult result, MeasurementConfig config)
+        {
             bool result2 = false;
-            int detectionCondition = this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionCondition;
-            decimal detectionLevel = this.globalConfigManager.GlobalConfig.MeasurementConfig.DetectionLevel;
+            int detectionCondition = config.DetectionCondition;
+            decimal detectionLevel = config.DetectionLevel;
             switch (detectionCondition)
             {
                 case 0:
@@ -512,7 +517,7 @@ namespace BecquerelMonitor
         // (`AMBER274`, Ф14) пометка строки чистого бета-излучателя
         const string KeyFsaContinuumOnly = "DCResult_FsaContinuumOnly";
 
-        FullSpectrumAnalysis.FsaMeasurementResult.Texts FsaTexts()
+        internal static FullSpectrumAnalysis.FsaMeasurementResult.Texts FsaTexts()
         {
             return new FullSpectrumAnalysis.FsaMeasurementResult.Texts
             {
@@ -1099,7 +1104,7 @@ namespace BecquerelMonitor
                 return StatusCollection(rd, OwnText(KeyFsaComputing));
             }
             NuclideDefinitionManager nuclides = NuclideDefinitionManager.GetInstance();
-            FullSpectrumAnalysis.FsaMeasurementResult.Texts texts = this.FsaTexts();
+            FullSpectrumAnalysis.FsaMeasurementResult.Texts texts = FsaTexts();
             FullSpectrumAnalysis.FsaMeasurementResult.Summary summary;
             MeasurementResultCollection built = FullSpectrumAnalysis.FsaMeasurementResult.Build(
                 rd, result, nuclides.NuclideDefinitions, texts, out summary);

@@ -5432,4 +5432,13 @@
   <data name="&gt;&gt;$this.Type" xml:space="preserve">
     <value>System.Windows.Forms.Form, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="exportReportMenuItem.Text" xml:space="preserve">
+    <value>Report…</value>
+  </data>
+  <data name="ExportReportTitle" xml:space="preserve">
+    <value>Export spectrum report</value>
+  </data>
+  <data name="ExportReportFilter" xml:space="preserve">
+    <value>Excel workbook (*.xlsx)|*.xlsx|CSV tables and images (*.zip)|*.zip</value>
+  </data>
 </root>

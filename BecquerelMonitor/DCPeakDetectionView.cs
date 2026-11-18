@@ -232,6 +232,7 @@ namespace BecquerelMonitor
                     this.selectedNuclideSet,
                     nuclideDefinitions));
                 activeResultData.DetectedPeaks = new List<Peak>(peaks);
+                activeResultData.PeakSearchCompleted = true;
                 // Refresh only if the user is still on the same document: RefreshTable()
                 // reads the CURRENT ActiveResultData and used to show peaks of a foreign
                 // spectrum after switching documents mid-detection.
@@ -267,6 +268,7 @@ namespace BecquerelMonitor
                 if (activeResultData != null)
                 {
                     activeResultData.DetectedPeaks = new List<Peak>();
+                    activeResultData.PeakSearchFailure = ex.Message;
                 }
                 // Тот же сторож, что и на успешном пути: пока считали, человек
                 // мог уйти на другой документ. Чужую таблицу чистить нечего, и

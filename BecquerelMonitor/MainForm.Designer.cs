@@ -43,6 +43,7 @@ namespace BecquerelMonitor
             this.AtomSpectraExpStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.cSVCToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ECSVToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exportReportMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.forFwhmToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitXToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -253,7 +254,11 @@ namespace BecquerelMonitor
             this.AtomSpectraExpStripMenuItem,
             this.cSVCToolStripMenuItem,
             this.ECSVToolStripMenuItem,
-            this.forFwhmToolStripMenuItem});
+            this.forFwhmToolStripMenuItem,
+            this.exportReportMenuItem});
+            this.exportReportMenuItem.Name = "exportReportMenuItem";
+            resources.ApplyResources(this.exportReportMenuItem, "exportReportMenuItem");
+            this.exportReportMenuItem.Click += new System.EventHandler(this.ExportReport_Click);
             this.exportEToolStripMenuItem.Name = "exportEToolStripMenuItem";
             resources.ApplyResources(this.exportEToolStripMenuItem, "exportEToolStripMenuItem");
             // 
@@ -800,6 +805,8 @@ namespace BecquerelMonitor
 		global::System.Windows.Forms.ToolStripMenuItem importIToolStripMenuItem;
 
 		// Token: 0x040005A1 RID: 1441
+        System.Windows.Forms.ToolStripMenuItem exportReportMenuItem;
+
 		global::System.Windows.Forms.ToolStripMenuItem exportEToolStripMenuItem;
 
 		// Token: 0x040005A2 RID: 1442

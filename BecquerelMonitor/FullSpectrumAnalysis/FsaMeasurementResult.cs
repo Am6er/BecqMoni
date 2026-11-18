@@ -145,6 +145,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 reason = HiddenReason.NoResult;
                 return false;
             }
+            if (result.ActivityScaleReason.HasValue)
+            {
+                reason = result.ActivityScaleReason.Value;
+                return reason == HiddenReason.None;
+            }
             if (result.EfficiencyPerUnitFluence)
             {
                 reason = HiddenReason.FieldCurve;
@@ -171,6 +176,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
             reason = HiddenReason.NonAbsoluteOrigin;
             return false;
+        }
+
+        internal static void RememberScale(ResultData input, FsaResult result)
+        {
+            HiddenReason reason;
+            AbsoluteScale(input, result, out reason);
+            result.ActivityScaleReason = reason;
+            result.ActivityCurveOrigin = input.Efficiency?.Origin ?? EfficiencyOrigin.Manual;
         }
 
         /// <summary>
@@ -316,7 +329,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             summary.Absolute = absolute;
             summary.Reason = reason;
             summary.MatrixUsed = result.ResponseMatrixUsed;
-            summary.Origin = rd.Efficiency != null ? rd.Efficiency.Origin : EfficiencyOrigin.Manual;
+            summary.Origin = result.ActivityCurveOrigin ?? rd.Efficiency?.Origin ?? EfficiencyOrigin.Manual;
 
             var collection = new MeasurementResultCollection
             {

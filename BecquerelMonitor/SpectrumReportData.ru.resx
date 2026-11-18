@@ -1,0 +1,164 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Yes" xml:space="preserve"><value>Да</value></data>
+  <data name="No" xml:space="preserve"><value>Нет</value></data>
+  <data name="Sample" xml:space="preserve"><value>Образец и измерение</value></data>
+  <data name="Results" xml:space="preserve"><value>Результаты измерения</value></data>
+  <data name="Device" xml:space="preserve"><value>Прибор и геометрия</value></data>
+  <data name="Background" xml:space="preserve"><value>Фон</value></data>
+  <data name="Calibration" xml:space="preserve"><value>Калибровки и отклик</value></data>
+  <data name="Peaks" xml:space="preserve"><value>Пики и идентификация</value></data>
+  <data name="Dose" xml:space="preserve"><value>Мощность дозы</value></data>
+  <data name="Fsa" xml:space="preserve"><value>Полноспектральный анализ (FSA)</value></data>
+  <data name="Field" xml:space="preserve"><value>Показатель</value></data>
+  <data name="Parameter" xml:space="preserve"><value>Параметр</value></data>
+  <data name="Value" xml:space="preserve"><value>Значение</value></data>
+  <data name="File" xml:space="preserve"><value>Имя файла</value></data>
+  <data name="SpectrumNumber" xml:space="preserve"><value>Номер спектра в документе</value></data>
+  <data name="SampleName" xml:space="preserve"><value>Название образца</value></data>
+  <data name="Location" xml:space="preserve"><value>Место отбора</value></data>
+  <data name="SamplingTime" xml:space="preserve"><value>Время отбора</value></data>
+  <data name="Mass" xml:space="preserve"><value>Масса образца (кг)</value></data>
+  <data name="Volume" xml:space="preserve"><value>Объём образца (л)</value></data>
+  <data name="Notes" xml:space="preserve"><value>Примечания</value></data>
+  <data name="Start" xml:space="preserve"><value>Начало измерения</value></data>
+  <data name="End" xml:space="preserve"><value>Конец измерения</value></data>
+  <data name="Preset" xml:space="preserve"><value>Заданное время (с)</value></data>
+  <data name="RealTime" xml:space="preserve"><value>Время измерения (с)</value></data>
+  <data name="LiveTime" xml:space="preserve"><value>Живое время (с)</value></data>
+  <data name="Channels" xml:space="preserve"><value>Число каналов</value></data>
+  <data name="PulseCount" xml:space="preserve"><value>Всего импульсов</value></data>
+  <data name="ValidPulses" xml:space="preserve"><value>Принято импульсов</value></data>
+  <data name="AverageRate" xml:space="preserve"><value>Средняя скорость счёта принятых импульсов (имп/с)</value></data>
+  <data name="ChannelPitch" xml:space="preserve"><value>Шаг канала</value></data>
+  <data name="Samples" xml:space="preserve"><value>Число выборок</value></data>
+  <data name="DeviceName" xml:space="preserve"><value>Название прибора</value></data>
+  <data name="DeviceId" xml:space="preserve"><value>Идентификатор прибора</value></data>
+  <data name="Serial" xml:space="preserve"><value>Серийный номер</value></data>
+  <data name="Detector" xml:space="preserve"><value>Характеристики детектора</value></data>
+  <data name="DeviceType" xml:space="preserve"><value>Тип прибора</value></data>
+  <data name="Crystal" xml:space="preserve"><value>Материал кристалла</value></data>
+  <data name="Geometry" xml:space="preserve"><value>Геометрия</value></data>
+  <data name="Description" xml:space="preserve"><value>Описание</value></data>
+  <data name="Shielded" xml:space="preserve"><value>Геометрия в защите</value></data>
+  <data name="CrystalDensity" xml:space="preserve"><value>Плотность кристалла (г/см³)</value></data>
+  <data name="Fwhm662" xml:space="preserve"><value>FWHM при 662 кэВ (%)</value></data>
+  <data name="SourceMaterial" xml:space="preserve"><value>Материал источника</value></data>
+  <data name="SourceDensity" xml:space="preserve"><value>Плотность источника (г/см³)</value></data>
+  <data name="Linked" xml:space="preserve"><value>Фоновый спектр доступен</value></data>
+  <data name="BackgroundUsed" xml:space="preserve"><value>Фон учтён в FSA</value></data>
+  <data name="BackgroundScale" xml:space="preserve"><value>Множитель фона</value></data>
+  <data name="Gain" xml:space="preserve"><value>Множитель усиления</value></data>
+  <data name="Offset" xml:space="preserve"><value>Сдвиг (каналы)</value></data>
+  <data name="Reason" xml:space="preserve"><value>Причина</value></data>
+  <data name="Index" xml:space="preserve"><value>Индекс коэффициента</value></data>
+  <data name="Channel" xml:space="preserve"><value>Канал</value></data>
+  <data name="Energy" xml:space="preserve"><value>Энергия (кэВ)</value></data>
+  <data name="WidthCh" xml:space="preserve"><value>FWHM (каналы)</value></data>
+  <data name="Counts" xml:space="preserve"><value>Отсчёты</value></data>
+  <data name="Source" xml:space="preserve"><value>Источник</value></data>
+  <data name="EnergyAnchor" xml:space="preserve"><value>Опора шкалы энергий</value></data>
+  <data name="Efficiency" xml:space="preserve"><value>Эффективность</value></data>
+  <data name="EffError" xml:space="preserve"><value>Погрешность эффективности (%)</value></data>
+  <data name="EnergyCoeff" xml:space="preserve"><value>Коэффициент шкалы энергий</value></data>
+  <data name="WidthCoeff" xml:space="preserve"><value>Коэффициент FWHM</value></data>
+  <data name="FwhmModel" xml:space="preserve"><value>Функция FWHM</value></data>
+  <data name="Curvature" xml:space="preserve"><value>Кривизна тракта (1/МэВ)</value></data>
+  <data name="EnergyPoint" xml:space="preserve"><value>Точка калибровки по энергии</value></data>
+  <data name="CalibrationLine" xml:space="preserve"><value>Калибровочная линия</value></data>
+  <data name="Curve" xml:space="preserve"><value>Выбранная кривая эффективности</value></data>
+  <data name="FileCurve" xml:space="preserve"><value>Кривая эффективности из файла</value></data>
+  <data name="CurveId" xml:space="preserve"><value>Идентификатор кривой эффективности</value></data>
+  <data name="Origin" xml:space="preserve"><value>Происхождение кривой эффективности</value></data>
+  <data name="Updated" xml:space="preserve"><value>Последнее обновление</value></data>
+  <data name="Stamp" xml:space="preserve"><value>Клеймо расчёта</value></data>
+  <data name="GeometryId" xml:space="preserve"><value>Отпечаток геометрии</value></data>
+  <data name="MatrixEnabled" xml:space="preserve"><value>Матрица отклика включена</value></data>
+  <data name="EffPoint" xml:space="preserve"><value>Точка кривой эффективности</value></data>
+  <data name="EmbeddedStamp" xml:space="preserve"><value>Клеймо встроенной матрицы</value></data>
+  <data name="MatrixFormat" xml:space="preserve"><value>Формат встроенной матрицы</value></data>
+  <data name="MatrixHash" xml:space="preserve"><value>SHA-256 встроенной матрицы</value></data>
+  <data name="CurveUsed" xml:space="preserve"><value>Эффективность учтена в FSA</value></data>
+  <data name="MatrixUsed" xml:space="preserve"><value>Матрица отклика учтена в FSA</value></data>
+  <data name="Status" xml:space="preserve"><value>Статус</value></data>
+  <data name="WidthKev" xml:space="preserve"><value>FWHM (кэВ)</value></data>
+  <data name="Snr" xml:space="preserve"><value>Отношение сигнал/шум</value></data>
+  <data name="Left" xml:space="preserve"><value>Левый канал</value></data>
+  <data name="Right" xml:space="preserve"><value>Правый канал</value></data>
+  <data name="Nuclide" xml:space="preserve"><value>Нуклид</value></data>
+  <data name="OtherCandidates" xml:space="preserve"><value>Другие кандидаты</value></data>
+  <data name="NoPeaks" xml:space="preserve"><value>Пиков не найдено</value></data>
+  <data name="InProgress" xml:space="preserve"><value>Выполняется</value></data>
+  <data name="NotPerformed" xml:space="preserve"><value>Не выполнялся</value></data>
+  <data name="Detected" xml:space="preserve"><value>Обнаружен</value></data>
+  <data name="Undetected" xml:space="preserve"><value>Не обнаружен</value></data>
+  <data name="NoRows" xml:space="preserve"><value>Результаты по нуклидам отсутствуют</value></data>
+  <data name="LoKev" xml:space="preserve"><value>Нижняя граница (кэВ)</value></data>
+  <data name="HiKev" xml:space="preserve"><value>Верхняя граница (кэВ)</value></data>
+  <data name="Cps" xml:space="preserve"><value>Скорость счёта (имп/с)</value></data>
+  <data name="RateDose" xml:space="preserve"><value>Мощность дозы (мкЗв/ч)</value></data>
+  <data name="CenterEnergy" xml:space="preserve"><value>Центр интервала (кэВ)</value></data>
+  <data name="RepresentativeEnergy" xml:space="preserve"><value>Представительная энергия (кэВ)</value></data>
+  <data name="FluenceRate" xml:space="preserve"><value>Мощность флюенса (см⁻² с⁻¹)</value></data>
+  <data name="NoDose" xml:space="preserve"><value>Результат расчёта мощности дозы отсутствует</value></data>
+  <data name="DoseError" xml:space="preserve"><value>Погрешность (мкЗв/ч)</value></data>
+  <data name="Approximate" xml:space="preserve"><value>Приближённая оценка</value></data>
+  <data name="Coverage" xml:space="preserve"><value>Охвачено отсчётов (%)</value></data>
+  <data name="Band" xml:space="preserve"><value>Энергетический интервал</value></data>
+  <data name="SkippedBand" xml:space="preserve"><value>Исключённый энергетический интервал</value></data>
+  <data name="ReferenceTime" xml:space="preserve"><value>Момент приведения активности</value></data>
+  <data name="SigmaLevel" xml:space="preserve"><value>Уровень неопределённости (σ)</value></data>
+  <data name="ActivityBq" xml:space="preserve"><value>Активность (Бк)</value></data>
+  <data name="UncertaintyBq" xml:space="preserve"><value>Неопределённость (Бк)</value></data>
+  <data name="MdaBq" xml:space="preserve"><value>MDA (Бк)</value></data>
+  <data name="ActivityKg" xml:space="preserve"><value>Активность (Бк/кг)</value></data>
+  <data name="UncertaintyKg" xml:space="preserve"><value>Неопределённость (Бк/кг)</value></data>
+  <data name="MdaKg" xml:space="preserve"><value>MDA (Бк/кг)</value></data>
+  <data name="ActivityL" xml:space="preserve"><value>Активность (Бк/л)</value></data>
+  <data name="UncertaintyL" xml:space="preserve"><value>Неопределённость (Бк/л)</value></data>
+  <data name="MdaL" xml:space="preserve"><value>MDA (Бк/л)</value></data>
+  <data name="AtSampling" xml:space="preserve"><value>На момент отбора</value></data>
+  <data name="Average" xml:space="preserve"><value>Среднее за измерение</value></data>
+  <data name="Share" xml:space="preserve"><value>Доля (%)</value></data>
+  <data name="PeakShare" xml:space="preserve"><value>Доля пиков (%)</value></data>
+  <data name="ZScore" xml:space="preserve"><value>Значимость (σ)</value></data>
+  <data name="PeakCounts" xml:space="preserve"><value>Отсчёты в пиках</value></data>
+  <data name="DecisionRate" xml:space="preserve"><value>Порог решения (с⁻¹)</value></data>
+  <data name="LimitRate" xml:space="preserve"><value>Предел обнаружения (с⁻¹)</value></data>
+  <data name="ChainRoot" xml:space="preserve"><value>Родительский нуклид</value></data>
+  <data name="NuclideSet" xml:space="preserve"><value>Выбранный набор нуклидов</value></data>
+  <data name="FromSet" xml:space="preserve"><value>Использовать выбранный набор нуклидов</value></data>
+  <data name="DbLookups" xml:space="preserve"><value>Использовать базу нуклидов</value></data>
+  <data name="Equilibrium" xml:space="preserve"><value>Равновесие рядов включено</value></data>
+  <data name="AtomicXray" xml:space="preserve"><value>Характеристический рентген включён</value></data>
+  <data name="Cascade" xml:space="preserve"><value>Каскадное суммирование включено</value></data>
+  <data name="Backscatter" xml:space="preserve"><value>Обратное рассеяние включено</value></data>
+  <data name="Escape" xml:space="preserve"><value>Вылет и аннигиляция включены</value></data>
+  <data name="Pileup" xml:space="preserve"><value>Наложение импульсов включено</value></data>
+  <data name="FitStart" xml:space="preserve"><value>Начало подгонки (кэВ)</value></data>
+  <data name="FitFirst" xml:space="preserve"><value>Первый канал подгонки</value></data>
+  <data name="FitLast" xml:space="preserve"><value>Последний канал подгонки</value></data>
+  <data name="Chi2" xml:space="preserve"><value>χ²/ndf Пуассона</value></data>
+  <data name="WidthScale" xml:space="preserve"><value>Множитель FWHM</value></data>
+  <data name="UncertaintyFactor" xml:space="preserve"><value>Множитель неопределённости</value></data>
+  <data name="FitLiveTime" xml:space="preserve"><value>Живое время разбора (с)</value></data>
+  <data name="LimitRule" xml:space="preserve"><value>Критерий предела обнаружения</value></data>
+  <data name="Component" xml:space="preserve"><value>Компонент разбора</value></data>
+  <data name="AnalysisNote" xml:space="preserve"><value>Примечание к разбору</value></data>
+  <data name="RejectedPulses" xml:space="preserve"><value>Отклонено импульсов</value></data>
+  <data name="PolynomialOrder" xml:space="preserve"><value>Порядок полинома шкалы энергий</value></data>
+  <data name="FitCurve" xml:space="preserve"><value>Кривая эффективности, использованная при разборе</value></data>
+  <data name="FitMatrixStamp" xml:space="preserve"><value>Клеймо матрицы, использованной при разборе</value></data>
+  <data name="FitMatrixFormat" xml:space="preserve"><value>Формат матрицы, использованной при разборе</value></data>
+  <data name="SourceScene" xml:space="preserve"><value>Мощность дозы по геометрии источника</value></data>
+  <data name="SampleTransmission" xml:space="preserve"><value>Пропускание пробы (доля)</value></data>
+  <data name="LibraryEnergy" xml:space="preserve"><value>Энергия библиотечной линии (кэВ)</value></data>
+  <data name="EnergyDifference" xml:space="preserve"><value>Отклонение энергии (кэВ)</value></data>
+  <data name="EnergyDifferencePercent" xml:space="preserve"><value>Отклонение энергии (%)</value></data>
+  <data name="Resolution" xml:space="preserve"><value>Разрешение (%)</value></data>
+  <data name="FwhmDelta" xml:space="preserve"><value>Отклонение FWHM от калибровки (каналы)</value></data>
+</root>

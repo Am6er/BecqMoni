@@ -318,4 +318,13 @@
   <data name="oSDefaultToolStripMenuItem.Text" xml:space="preserve">
     <value>(Как в системе)</value>
   </data>
+  <data name="exportReportMenuItem.Text" xml:space="preserve">
+    <value>Отчёт…</value>
+  </data>
+  <data name="ExportReportTitle" xml:space="preserve">
+    <value>Экспорт отчёта по спектру</value>
+  </data>
+  <data name="ExportReportFilter" xml:space="preserve">
+    <value>Книга Excel (*.xlsx)|*.xlsx|Таблицы CSV и изображения (*.zip)|*.zip</value>
+  </data>
 </root>

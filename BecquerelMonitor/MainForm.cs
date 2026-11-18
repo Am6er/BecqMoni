@@ -2012,6 +2012,7 @@ namespace BecquerelMonitor
             this.closeDataCToolStripMenuItem.Enabled = (this.activeDocument != null);
             this.CloseAllToolStripMenuItem.Enabled = (this.activeDocument != null);
             this.CombineSpectrasToolStripMenuItem.Enabled = (this.activeDocument != null);
+            this.exportReportMenuItem.Enabled = this.activeDocument?.ActiveResultData?.EnergySpectrum != null;
         }
 
         // Token: 0x06000A7F RID: 2687 RVA: 0x0003E700 File Offset: 0x0003C900

@@ -2709,11 +2709,16 @@ namespace BecquerelMonitor
             var made = new List<Row>();
             made.Add(this.MakeRow(quality, OwnText(KeyChi2Row)));
 
-            FsaResult result = this.presentation != null ? this.presentation.Source : null;
-            if (result == null)
-            {
-                return made;
-            }
+            AddQualityDetails(made, this.presentation, this.ActiveResultData, this.session);
+            return made;
+        }
+
+        // Shared with report export so warnings and their explanations have a single source.
+        internal static void AddQualityDetails(List<Row> made, FsaPresentation presentation,
+                                               ResultData spectrum, FsaAnalysisSession session)
+        {
+            FsaResult result = presentation?.Source;
+            if (result == null) return;
 
             // (`A281`) МНОЖИТЕЛЬ ПОГРЕШНОСТЕЙ — сразу под χ²/ndf: он из него и
             // считан, и читать их порознь нельзя.
@@ -2727,7 +2732,7 @@ namespace BecquerelMonitor
             // ⛔ Число печатается ОДИН раз и явной инвариантной культурой
             // (`A242`): разделитель дробной части — всегда точка, группировки
             // разрядов нет.
-            made.Add(this.MakeNumberRow(
+            made.Add(MakeNumberRow(
                 KeyInflationRow,
                 result.SigmaInflation.ToString("F3", CultureInfo.InvariantCulture),
                 OwnText(KeyInflationTip)));
@@ -2739,7 +2744,7 @@ namespace BecquerelMonitor
             string limitRule = LimitRuleText(result);
             if (limitRule != null)
             {
-                made.Add(this.MakeNumberRow(KeyLimitRuleRow, limitRule, LimitRuleTip(result)));
+                made.Add(MakeNumberRow(KeyLimitRuleRow, limitRule, LimitRuleTip(result)));
             }
 
             // (`AMBER269`; решение Amber 02.11.2026 «Да, настройкой FSA с умолчанием 40 (Рекомендую)»)
@@ -2748,25 +2753,25 @@ namespace BecquerelMonitor
             string fitBound = FitBoundText(result);
             if (fitBound != null)
             {
-                made.Add(this.MakeNumberRow(KeyFitBoundRow, fitBound, FitBoundTip(result)));
+                made.Add(MakeNumberRow(KeyFitBoundRow, fitBound, FitBoundTip(result)));
             }
 
-            bool oldFormat = this.presentation.MatrixOldFormat;
+            bool oldFormat = presentation.MatrixOldFormat;
             // (`AMBER208` (в), П236) матрица склада ЕСТЬ, но посчитана по другой
             // геометрии, чем кривая разбора (KCl: кривая из файла спектра старше
             // кривой прибора) — «устарела», а не безликое «не учтена»
-            bool matrixStale = !result.ResponseMatrixUsed && this.session != null
-                               && this.session.ResponseMatrixSkip == FsaMatrixSkip.StaleGeometry;
+            bool matrixStale = !result.ResponseMatrixUsed && session != null
+                               && session.ResponseMatrixSkip == FsaMatrixSkip.StaleGeometry;
             // (`AMBER202`) матрица, приехавшая В ФАЙЛЕ СПЕКТРА, называет источник
-            bool matrixFromSpectrum = result.ResponseMatrixUsed && this.session != null
-                                      && this.session.ResponseMatrixFromSpectrum;
+            bool matrixFromSpectrum = result.ResponseMatrixUsed && session != null
+                                      && session.ResponseMatrixFromSpectrum;
             // ⛔ (`AMBER284`, решение Amber 02.11.2026 вопросником, дословно: «Объединить со строкой
             // выше, где уже написано - нет Матрицы отклика. Остальное убрать в подсказку.») Отдельной
             // строки-предупреждения «Нет матрицы отклика: …» (`AMBER156` (в), П195) больше нет: её
             // цена словами — подсказкой этой строки, а признак происшествия (красное значение и
             // `Warning` у строки) — здесь же, при том же условии: разбор с кривой и без матрицы.
             string matrixTip = MatrixNotUsedTip(result);
-            Row matrixRow = this.MakeMarkRow(KeyMatrixRow,
+            Row matrixRow = MakeMarkRow(KeyMatrixRow,
                                              matrixFromSpectrum
                                                  ? Resources.FSAReportMatrixUsedFromSpectrum
                                                  : OwnText(result.ResponseMatrixUsed
@@ -2783,10 +2788,10 @@ namespace BecquerelMonitor
 
             made.Add(matrixRow);
             // (`AMBER202`) матрица из файла спектра ОТВЕРГНУТА — причина словами
-            string spectrumMatrixRefusal = this.session != null ? this.session.SpectrumMatrixRefusal : "";
+            string spectrumMatrixRefusal = session != null ? session.SpectrumMatrixRefusal : "";
             if (!result.ResponseMatrixUsed && !string.IsNullOrEmpty(spectrumMatrixRefusal))
             {
-                made.Add(this.MakeMarkRowText(
+                made.Add(MakeMarkRowText(
                     string.Format(CultureInfo.InvariantCulture, Resources.FSAReportSpectrumMatrixRefusedRow,
                                   spectrumMatrixRefusal),
                     Resources.FSAReportSpectrumMatrixRefusedValue, false, true));
@@ -2795,7 +2800,7 @@ namespace BecquerelMonitor
             // выбрать кривую прибора вместо кривой из файла спектра
             if (matrixStale)
             {
-                made.Add(this.MakeMarkRowText(OwnText(KeyMatrixStaleRow), OwnText(KeyMatrixStaleValue), false, true));
+                made.Add(MakeMarkRowText(OwnText(KeyMatrixStaleRow), OwnText(KeyMatrixStaleValue), false, true));
             }
             // (`AMBER34`, решение Amber 15.09.2026 «Разбор идёт, Бк скрыты с
             // причиной») Кривая СЦЕНЫ ПОЛЯ учтена формой, а беккерели из
@@ -2804,7 +2809,7 @@ namespace BecquerelMonitor
             // предупреждение читающему числа. Строка — из общих ресурсов
             // приложения (в двух языках), как и прочие слова разбора.
             bool fieldCurve = result.EfficiencyUsed && result.EfficiencyPerUnitFluence;
-            made.Add(this.MakeMarkRow(KeyEfficiencyRow,
+            made.Add(MakeMarkRow(KeyEfficiencyRow,
                                       fieldCurve
                                           ? Resources.FSAReportEfficiencyFieldCurve
                                           : OwnText(result.EfficiencyUsed ? KeyEfficiencyUsed : KeyEfficiencyNotUsed),
@@ -2812,7 +2817,7 @@ namespace BecquerelMonitor
                                       fieldCurve));
             // (`AMBER34`) Матрица сцены поля: суммирование не применялось —
             // причина ПОЧЕМУ, а не только факт, как у `KeySummingNoMatrix`.
-            made.Add(this.MakeMarkRow(KeySummingRow,
+            made.Add(MakeMarkRow(KeySummingRow,
                                       result.CascadeSummingUsed
                                           ? OwnText(KeySummingUsed)
                                           : result.CascadeSummingRefusedFieldMatrix
@@ -2833,7 +2838,7 @@ namespace BecquerelMonitor
             {
                 bool betaUsed = result.SampleBetaKeyOn
                                 && result.SampleBetaRefusal == EfficiencyMaker.ElectronSectionRefusal.None;
-                Row betaRow = this.MakeMarkRow(KeySampleBetaRow, sampleBeta, betaUsed,
+                Row betaRow = MakeMarkRow(KeySampleBetaRow, sampleBeta, betaUsed,
                                                result.SampleBetaKeyOn && !betaUsed);
                 // (`AMBER284`) число узлов раздела — в подсказке легшей беты
                 string betaTip = SampleBetaTip(result);
@@ -2851,7 +2856,7 @@ namespace BecquerelMonitor
             string crystalRefused = CrystalOwnRefusedText(result);
             if (crystalRefused != null)
             {
-                made.Add(this.MakeMarkRow(KeyCrystalOwnRow, crystalRefused, false, true));
+                made.Add(MakeMarkRow(KeyCrystalOwnRow, crystalRefused, false, true));
             }
 
             // (`AMBER274`, Ф14) СТРОКИ ПО СПЛОШНОМУ СПЕКТРУ, СНЯТЫЕ ДО ФИТА — происшествие, только
@@ -2860,7 +2865,7 @@ namespace BecquerelMonitor
             string betaOnlyRemoved = BetaOnlyRemovedCaption(result);
             if (betaOnlyRemoved != null)
             {
-                made.Add(this.MakeMarkRowText(betaOnlyRemoved, OwnText(KeyBetaOnlyRemovedValue), false, true));
+                made.Add(MakeMarkRowText(betaOnlyRemoved, OwnText(KeyBetaOnlyRemovedValue), false, true));
             }
 
             // (`AMBER274`, решение Amber 02.11.2026 «Редкие узлы + два захода (Рекомендую)») ШАГ
@@ -2874,7 +2879,7 @@ namespace BecquerelMonitor
             string betaKnots = BetaKnotCaption(result);
             if (betaKnots != null && !result.BetaKnotVifMet)
             {
-                Row vif = this.MakeMarkRowText(OwnText(KeyBetaKnotVifOverRow), OwnText(KeyBetaKnotVifOverValue),
+                Row vif = MakeMarkRowText(OwnText(KeyBetaKnotVifOverRow), OwnText(KeyBetaKnotVifOverValue),
                                                false, true);
                 vif.Cells[0].ToolTipText = betaKnots;
                 vif.Cells[1].ToolTipText = betaKnots;
@@ -2890,7 +2895,7 @@ namespace BecquerelMonitor
             // гамма грубее). Подсказка — тот же текст шага узлов с причиной словами окна.
             if (betaKnots != null && result.BetaGammaPassRefusal != null)
             {
-                Row refused = this.MakeMarkRowText(OwnText(KeyBetaKnotSecondRefusedRow), OwnText(KeyBetaKnotSecondRefusedValue),
+                Row refused = MakeMarkRowText(OwnText(KeyBetaKnotSecondRefusedRow), OwnText(KeyBetaKnotSecondRefusedValue),
                                                    false, true);
                 refused.Cells[0].ToolTipText = betaKnots;
                 refused.Cells[1].ToolTipText = betaKnots;
@@ -2901,7 +2906,7 @@ namespace BecquerelMonitor
             string branchExcess = BetaBranchExcessCaption(result);
             if (branchExcess != null)
             {
-                made.Add(this.MakeMarkRowText(branchExcess, OwnText(KeyBetaBranchExcessValue), false, true));
+                made.Add(MakeMarkRowText(branchExcess, OwnText(KeyBetaBranchExcessValue), false, true));
             }
 
             // (`AMBER157`, П195; решение Amber 01.10.2026 «Исключать с
@@ -2910,7 +2915,7 @@ namespace BecquerelMonitor
             // слово справа. Числа — один раз и инвариантной культурой (`A242`).
             if (result.EfficiencyOutOfRangeLines != null && result.EfficiencyOutOfRangeLines.Count > 0)
             {
-                made.Add(this.MakeMarkRowText(
+                made.Add(MakeMarkRowText(
                     string.Format(CultureInfo.InvariantCulture, OwnText(KeyCurveOutsideRow),
                                   result.EfficiencyMinKev.ToString("0.#", CultureInfo.InvariantCulture),
                                   result.EfficiencyMaxKev.ToString("0.#", CultureInfo.InvariantCulture),
@@ -2923,10 +2928,10 @@ namespace BecquerelMonitor
             // и вес, и объём, а у сцены есть проба. Сверяется здесь, при каждом
             // заполнении: вес и объём в отпечаток разбора не входят. Красным —
             // при |расхождении| выше порога; поправки активности нет.
-            FsaSampleDensityCheck density = DensityOf(this.ActiveResultData);
+            FsaSampleDensityCheck density = DensityOf(spectrum);
             if (density != null)
             {
-                made.Add(this.MakeMarkRowText(DensityCaption(density),
+                made.Add(MakeMarkRowText(DensityCaption(density),
                                               density.DeviationPercent.ToString("+0;-0;0", CultureInfo.InvariantCulture) + " %",
                                               !density.Warning, density.Warning));
             }
@@ -2939,10 +2944,10 @@ namespace BecquerelMonitor
             // ПРИБОРА (`DeviceConfigForm.GeometryNotes`): кривая, посчитанная до
             // сдвига точки в капсуле, помечается этой причиной, а не «геометрию
             // правили после расчёта» — отпечаток расходится только строкой сдвига.
-            ResultData shown = this.ActiveResultData;
+            ResultData shown = spectrum;
             if (shown != null && shown.Efficiency != null && shown.Efficiency.CurveGeometryMismatch)
             {
-                made.Add(this.MakeMarkRowText(shown.Efficiency.CurveBeforeSourceOffset
+                made.Add(MakeMarkRowText(shown.Efficiency.CurveBeforeSourceOffset
                                                   ? DeviceConfigForm.CurveBeforeSourceOffsetNote(shown.Efficiency)
                                                   : Resources.EfficiencyCurveOtherGeometry,
                                               Resources.FSAReportCurveOtherGeometryValue, false, true));
@@ -2960,12 +2965,12 @@ namespace BecquerelMonitor
             // самого разбора (`FSABackgroundNoCounts` и соседи), а не здесь.
             if (result.BackgroundRejected != null)
             {
-                made.Add(this.MakeMarkRow(KeyBackgroundRejectedRow, result.BackgroundRejected, false, true));
+                made.Add(MakeMarkRow(KeyBackgroundRejectedRow, result.BackgroundRejected, false, true));
             }
 
             if (result.DriftOnGridEdge)
             {
-                made.Add(this.MakeMarkRow(KeyDriftRow, OwnText(KeyDriftEdge), false, true));
+                made.Add(MakeMarkRow(KeyDriftRow, OwnText(KeyDriftEdge), false, true));
             }
 
             // (`AMBER17`) ПРИВЯЗКА ШКАЛЫ — печатается ВСЕГДА при живой матрице:
@@ -2978,7 +2983,7 @@ namespace BecquerelMonitor
             // пикам кривой, — и строка печатается при любом разборе с кривой.
             if (result.ResponseMatrixUsed || result.EfficiencyUsed)
             {
-                this.AddAnchorRow(made, result);
+                AddAnchorRow(made, result);
             }
 
             if (result.CompositionSuppressed)
@@ -2988,7 +2993,7 @@ namespace BecquerelMonitor
                 // строки состава (П274 по слову распорядителя, вслед за П275:
                 // по-русски здесь стояло служебное «Backscatter» рядом с
                 // «Обратное рассеяние» в составе). Нуклид подпись не меняет.
-                made.Add(this.MakeMarkRow(KeySuppressedRow, FsaPalette.DisplayName(result.SuppressorName ?? string.Empty), false, true));
+                made.Add(MakeMarkRow(KeySuppressedRow, FsaPalette.DisplayName(result.SuppressorName ?? string.Empty), false, true));
             }
 
             // (`S187`, П152 24.09.2026) РАСХОЖДЕНИЯ ПОСТАВОК ДАННЫХ РАСПАДА —
@@ -2998,7 +3003,7 @@ namespace BecquerelMonitor
             // до человека не доходили.
             if (result.SupplyDiscrepancies != null && result.SupplyDiscrepancies.Count > 0)
             {
-                this.AddSupplyRow(made, result.SupplyDiscrepancies);
+                AddSupplyRow(made, result.SupplyDiscrepancies);
             }
 
             // ⛔ (`AMBER199`, 05.10.2026) БАЗА НЕ ПРОЧИТАНА — происшествие,
@@ -3014,7 +3019,7 @@ namespace BecquerelMonitor
                                       ? string.Format(CultureInfo.InvariantCulture, " (+{0})",
                                                       result.DatabaseFailures.Count - 1)
                                       : string.Empty);
-                Row failed = this.MakeMarkRowText(Resources.FSAReportDatabaseFailedRow, first, false, true);
+                Row failed = MakeMarkRowText(Resources.FSAReportDatabaseFailedRow, first, false, true);
                 failed.Cells[1].ToolTipText = string.Join(Environment.NewLine, result.DatabaseFailures.ToArray());
                 made.Add(failed);
             }
@@ -3026,7 +3031,7 @@ namespace BecquerelMonitor
             // поэтому кирпичным и только когда было.
             if (result.PileUpNotPairs)
             {
-                made.Add(this.MakeMarkRowText(
+                made.Add(MakeMarkRowText(
                     string.Format(CultureInfo.InvariantCulture, OwnText(KeyPileUpCapRow),
                                   result.PileUpUncappedPairs, result.PileUpCapPairs),
                     OwnText(KeyPileUpCapValue), false, true));
@@ -3041,7 +3046,7 @@ namespace BecquerelMonitor
             {
                 foreach (FsaLineInterference item in result.LineInterferences)
                 {
-                    made.Add(this.MakeMarkRowText(
+                    made.Add(MakeMarkRowText(
                         string.Format(CultureInfo.InvariantCulture, OwnText(KeyInterferenceRow),
                                       item.LineKev.ToString("F1", CultureInfo.InvariantCulture),
                                       item.Companion ?? string.Empty, item.Reference ?? string.Empty,
@@ -3068,7 +3073,7 @@ namespace BecquerelMonitor
                     string verdict = OwnText(item.Verdict == FsaIsotopeVerdict.Depleted ? KeyIsotopeDepleted
                                              : item.Verdict == FsaIsotopeVerdict.Enriched ? KeyIsotopeEnriched
                                              : KeyIsotopeNatural);
-                    made.Add(this.MakeMarkRowText(
+                    made.Add(MakeMarkRowText(
                         string.Format(CultureInfo.InvariantCulture, OwnText(KeyIsotopeRow),
                                       item.Isotope ?? string.Empty, item.Others ?? string.Empty,
                                       item.MassPercent.ToString("F3", CultureInfo.InvariantCulture),
@@ -3091,7 +3096,7 @@ namespace BecquerelMonitor
             string masked = BackgroundMaskText(result);
             if (masked != null)
             {
-                Row maskRow = this.MakeMarkRowText(masked, OwnText(result.BackgroundMaskBands.Count == 1 ? KeyBackgroundMaskValueOne : KeyBackgroundMaskValue), false, true);
+                Row maskRow = MakeMarkRowText(masked, OwnText(result.BackgroundMaskBands.Count == 1 ? KeyBackgroundMaskValueOne : KeyBackgroundMaskValue), false, true);
                 string tip = BackgroundMaskTip(result);
                 maskRow.Cells[0].ToolTipText = tip;
                 maskRow.Cells[1].ToolTipText = tip;
@@ -3099,7 +3104,7 @@ namespace BecquerelMonitor
             }
             else if (backgroundAbove != null)
             {
-                Row above = this.MakeMarkRowText(backgroundAbove, OwnText(KeyBackgroundAboveValue), false, true);
+                Row above = MakeMarkRowText(backgroundAbove, OwnText(KeyBackgroundAboveValue), false, true);
                 string tip = BackgroundOversubtractedTip(result);
                 above.Cells[0].ToolTipText = tip;
                 above.Cells[1].ToolTipText = tip;
@@ -3113,7 +3118,7 @@ namespace BecquerelMonitor
             string shelf = CrystalShelfText(result);
             if (shelf != null)
             {
-                Row shelfRow = this.MakeMarkRowText(shelf, OwnText(KeyCrystalShelfValue), false, true);
+                Row shelfRow = MakeMarkRowText(shelf, OwnText(KeyCrystalShelfValue), false, true);
                 string tip = CrystalShelfTip(result);
                 shelfRow.Cells[0].ToolTipText = tip;
                 shelfRow.Cells[1].ToolTipText = tip;
@@ -3124,7 +3129,7 @@ namespace BecquerelMonitor
             string knife = BackgroundKnifeText(result);
             if (knife != null)
             {
-                Row knifeRow = this.MakeMarkRowText(knife, BackgroundKnifeValue(result), false, true);
+                Row knifeRow = MakeMarkRowText(knife, BackgroundKnifeValue(result), false, true);
                 string tip = BackgroundKnifeTip(result);
                 knifeRow.Cells[0].ToolTipText = tip;
                 knifeRow.Cells[1].ToolTipText = tip;
@@ -3135,7 +3140,7 @@ namespace BecquerelMonitor
             if (imagesAbove != null)
             {
                 // (`AMBER284`) z — в подсказке, как у «фон больше спектра»
-                Row images = this.MakeMarkRowText(imagesAbove, OwnText(KeyImagesAboveValue), false, true);
+                Row images = MakeMarkRowText(imagesAbove, OwnText(KeyImagesAboveValue), false, true);
                 string tip = ImagesAboveSpectrumTip(result);
                 images.Cells[0].ToolTipText = tip;
                 images.Cells[1].ToolTipText = tip;
@@ -3157,7 +3162,7 @@ namespace BecquerelMonitor
                         names.Add(candidate.Nuclide + " " + candidate.EnergyKev.ToString("F1", CultureInfo.InvariantCulture));
                     }
 
-                    made.Add(this.MakeMarkRowText(
+                    made.Add(MakeMarkRowText(
                         string.Format(CultureInfo.InvariantCulture, OwnText(KeyUncoveredRow),
                                       item.EnergyKev.ToString("F1", CultureInfo.InvariantCulture),
                                       (100.0 * item.ExcessShare).ToString("F0", CultureInfo.InvariantCulture),
@@ -3175,14 +3180,12 @@ namespace BecquerelMonitor
             {
                 foreach (FsaSetOmission item in result.SetOmissions)
                 {
-                    made.Add(this.MakeMarkRowText(
+                    made.Add(MakeMarkRowText(
                         string.Format(CultureInfo.InvariantCulture, OwnText(KeySetOmittedRow),
                                       item.Nuclide ?? string.Empty, SetOmissionReason(item)),
                         OwnText(KeySetOmittedValue), false, true));
                 }
             }
-
-            return made;
         }
 
         /// <summary>
@@ -3398,7 +3401,7 @@ namespace BecquerelMonitor
         /// инвариантной культурой (`A242`); цвета нет, как у строк с числом:
         /// это не суждение о разборе, а сказанное о данных.
         /// </summary>
-        void AddSupplyRow(List<Row> made, List<CascadeAtomicData.SupplyDiscrepancy> found)
+        static void AddSupplyRow(List<Row> made, List<CascadeAtomicData.SupplyDiscrepancy> found)
         {
             var parents = new List<string>();
             var tip = new System.Text.StringBuilder(OwnText(KeySupplyTip));
@@ -3419,7 +3422,7 @@ namespace BecquerelMonitor
                 tip.Append(SupplyLine(item, parent));
             }
 
-            made.Add(this.MakeNumberRow(KeySupplyRow, string.Join(", ", parents.ToArray()), tip.ToString()));
+            made.Add(MakeNumberRow(KeySupplyRow, string.Join(", ", parents.ToArray()), tip.ToString()));
         }
 
         /// <summary>(`S187`) Одна строка подсказки: вид расхождения и числа.</summary>
@@ -3476,9 +3479,9 @@ namespace BecquerelMonitor
         /// <paramref name="good"/> — статус положительный (учтено); у
         /// происшествий (<paramref name="attention"/>) его не бывает.
         /// </summary>
-        Row MakeMarkRow(string captionKey, string value, bool good, bool attention)
+        static Row MakeMarkRow(string captionKey, string value, bool good, bool attention)
         {
-            return this.MakeMarkRowText(OwnText(captionKey), value, good, attention);
+            return MakeMarkRowText(OwnText(captionKey), value, good, attention);
         }
 
         /// <summary>
@@ -3486,7 +3489,7 @@ namespace BecquerelMonitor
         /// ключ: у происшествий с числами (`AMBER123`, `AMBER118`) подпись
         /// собирается форматом и переносится по ширине колонки целиком.
         /// </summary>
-        Row MakeMarkRowText(string caption, string value, bool good, bool attention)
+        static Row MakeMarkRowText(string caption, string value, bool good, bool attention)
         {
             var name = new Cell(caption);
             var cell = new Cell(value ?? string.Empty);
@@ -3520,7 +3523,7 @@ namespace BecquerelMonitor
         /// привязки, — а следом отвергнутые кандидаты с причиной: без них
         /// «опор нет» неотличимо от «опор не искали».
         /// </summary>
-        void AddAnchorRow(List<Row> made, FsaResult result)
+        static void AddAnchorRow(List<Row> made, FsaResult result)
         {
             // (`AMBER269`, дефект 4) при откате (А2) опор у отданного разбора нет, но это не
             // «опор нет»: привязка нашлась и отменена как ухудшившая разбор — своё слово.
@@ -3563,10 +3566,10 @@ namespace BecquerelMonitor
                 }
             }
 
-            made.Add(this.MakeNumberRow(KeyAnchorRow, value, tip.ToString()));
+            made.Add(MakeNumberRow(KeyAnchorRow, value, tip.ToString()));
             if (brake != null)
             {
-                Row braked = this.MakeMarkRowText(brake, OwnText(AnchorBrakeOnMap(result) ? KeyAnchorBrakeMapValue : KeyAnchorBrakeValue), false, true);
+                Row braked = MakeMarkRowText(brake, OwnText(AnchorBrakeOnMap(result) ? KeyAnchorBrakeMapValue : KeyAnchorBrakeValue), false, true);
                 braked.Cells[0].ToolTipText = tip.ToString();
                 made.Add(braked);
             }
@@ -3574,18 +3577,18 @@ namespace BecquerelMonitor
             if (rollback != null)
             {
                 // (`AMBER294`) при тормозе не «шкала файла»: подстройки не было, значение то же, что у строки причины
-                Row rolled = this.MakeMarkRowText(rollback, OwnText(brake != null ? KeyAnchorBrakeValue : KeyAnchorRollbackValue), false, true);
+                Row rolled = MakeMarkRowText(rollback, OwnText(brake != null ? KeyAnchorBrakeValue : KeyAnchorRollbackValue), false, true);
                 rolled.Cells[0].ToolTipText = tip.ToString();
                 made.Add(rolled);
             }
 
             if (result.ScaleAnchorsUsed > 0)
             {
-                made.Add(this.MakeNumberRow(
+                made.Add(MakeNumberRow(
                     KeyAnchorGainRow,
                     (100.0 * (result.Gain - 1.0)).ToString("+0.00;-0.00", CultureInfo.InvariantCulture),
                     tip.ToString()));
-                made.Add(this.MakeNumberRow(
+                made.Add(MakeNumberRow(
                     KeyAnchorZeroRow,
                     result.AnchorOffsetKev.ToString("+0.00;-0.00", CultureInfo.InvariantCulture),
                     tip.ToString()));
@@ -3784,7 +3787,7 @@ namespace BecquerelMonitor
         /// Покрасить его значило бы вынести суждение, которого решение Amber
         /// не содержит: сказано печатать число.
         /// </summary>
-        Row MakeNumberRow(string captionKey, string value, string hint)
+        static Row MakeNumberRow(string captionKey, string value, string hint)
         {
             string caption = OwnText(captionKey);
             var name = new Cell(caption);

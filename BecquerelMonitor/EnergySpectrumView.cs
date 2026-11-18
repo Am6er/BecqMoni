@@ -1852,6 +1852,11 @@ namespace BecquerelMonitor
         // Token: 0x060004B3 RID: 1203 RVA: 0x00016A8C File Offset: 0x00014C8C
         public void PrepareViewData()
         {
+            this.PrepareDrawingData(true);
+        }
+
+        private void PrepareDrawingData(bool requestFsa)
+        {
             if (this.resultDataList == null)
             {
                 return;
@@ -1887,7 +1892,7 @@ namespace BecquerelMonitor
                 this.backgroundEnergyCalibration = null;
             }
 
-            this.CalculateDataForSpecificModes();
+            this.CalculateDataForSpecificModes(requestFsa);
             this.SetupDrawingData();
             this.CalculateDrawingDataBoundaries();
             this.ApplySmoothingToDrawingData();
@@ -1896,7 +1901,7 @@ namespace BecquerelMonitor
             this.nuclideCursorPeakDirty = true;
         }
 
-        private void CalculateDataForSpecificModes()
+        private void CalculateDataForSpecificModes(bool requestFsa)
         {
             if (this.backgroundMode == BackgroundMode.Substract)
             {
@@ -1959,7 +1964,7 @@ namespace BecquerelMonitor
                 sa.Dispose();
             }
 
-            if (this.backgroundMode == BackgroundMode.ShowFSA)
+            if (this.backgroundMode == BackgroundMode.ShowFSA && requestFsa)
             {
                 // Полноспектральное разложение считается в фоне: здесь оно
                 // только ставится в очередь, если устарело.

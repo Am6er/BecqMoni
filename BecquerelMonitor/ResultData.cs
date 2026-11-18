@@ -455,8 +455,13 @@ namespace BecquerelMonitor
             set
             {
                 this.detectedPeaks = value;
+                this.PeakSearchCompleted = false;
+                this.PeakSearchFailure = null;
             }
         }
+
+        internal bool PeakSearchCompleted { get; set; }
+        internal string PeakSearchFailure { get; set; }
 
         [XmlIgnore]
         public PeakDetectionMethodConfig PeakDetectionMethodConfig
@@ -781,6 +786,17 @@ namespace BecquerelMonitor
         static bool HasCounts(EnergySpectrum spectrum)
         {
             return spectrum != null && spectrum.Spectrum != null && spectrum.Spectrum.Length > 0;
+        }
+
+        // Rendering prepares writable drawing buffers. Share metadata but isolate both spectra
+        // from the live measurement, without copying its potentially large pulse collection.
+        internal ResultData CopyForReportPlot()
+        {
+            var copy = (ResultData)MemberwiseClone();
+            copy.EnergySpectrum = EnergySpectrum.Clone();
+            copy.BackgroundEnergySpectrum = BackgroundEnergySpectrum?.Clone();
+            copy.Visible = true;
+            return copy;
         }
 
         public ResultData Clone()

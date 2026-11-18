@@ -35,8 +35,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>2</ApplicationRevision>
-    <ApplicationVersion>2026.11.18.02</ApplicationVersion>
+    <ApplicationRevision>3</ApplicationRevision>
+    <ApplicationVersion>2026.11.18.03</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -93,6 +93,7 @@
     <Reference Include="System.Deployment" />
     <Reference Include="System.Design" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.IO.Compression" />
     <Reference Include="System.Management" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Security" />
@@ -450,6 +451,11 @@
     <Compile Include="LayoutMode.cs" />
     <Compile Include="LegendCellRenderer.cs" />
     <Compile Include="MagnificationReference.cs" />
+    <Compile Include="MainForm.SpectrumReport.cs" />
+    <Compile Include="EnergySpectrumView.Report.cs" />
+    <Compile Include="SpectrumReportData.cs" />
+    <Compile Include="SpectrumReportData.Analysis.cs" />
+    <Compile Include="SpectrumReportWriter.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -1145,6 +1151,8 @@
     <EmbeddedResource Include="InputDeviceForm.ru.resx">
       <DependentUpon>InputDeviceForm.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="SpectrumReportData.resx" />
+    <EmbeddedResource Include="SpectrumReportData.ru.resx" />
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
       <SubType>Designer</SubType>

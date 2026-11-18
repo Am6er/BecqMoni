@@ -1878,6 +1878,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public bool ResponseMatrixUsed { get; set; }
 
+        // Keep compact provenance with the published fit. The live curve or
+        // matrix can already have changed when a user exports that result.
+        internal string EfficiencyCurveName { get; set; }
+        internal string MatrixStamp { get; set; }
+        internal int MatrixFileVersion { get; set; }
+        internal FsaCalculationOptions CalculationOptions { get; set; }
+        internal FsaMeasurementResult.HiddenReason? ActivityScaleReason { get; set; }
+        internal EfficiencyOrigin? ActivityCurveOrigin { get; set; }
+
         /// <summary>(`AMBER274`) Хоть у одного компонента бета пробы легла в образ (Σ <see cref="FsaComponentResult.BetaCounts"/> &gt; 0).</summary>
         public bool SampleBetaUsed { get; set; }
 

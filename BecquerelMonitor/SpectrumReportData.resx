@@ -1,0 +1,164 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="No" xml:space="preserve"><value>No</value></data>
+  <data name="Sample" xml:space="preserve"><value>Sample and measurement</value></data>
+  <data name="Results" xml:space="preserve"><value>Measurement results</value></data>
+  <data name="Device" xml:space="preserve"><value>Instrument and geometry</value></data>
+  <data name="Background" xml:space="preserve"><value>Background</value></data>
+  <data name="Calibration" xml:space="preserve"><value>Calibrations and response</value></data>
+  <data name="Peaks" xml:space="preserve"><value>Peaks and identification</value></data>
+  <data name="Dose" xml:space="preserve"><value>Dose rate</value></data>
+  <data name="Fsa" xml:space="preserve"><value>Full spectrum analysis (FSA)</value></data>
+  <data name="Field" xml:space="preserve"><value>Field</value></data>
+  <data name="Parameter" xml:space="preserve"><value>Parameter</value></data>
+  <data name="Value" xml:space="preserve"><value>Value</value></data>
+  <data name="File" xml:space="preserve"><value>File name</value></data>
+  <data name="SpectrumNumber" xml:space="preserve"><value>Spectrum number in document</value></data>
+  <data name="SampleName" xml:space="preserve"><value>Sample name</value></data>
+  <data name="Location" xml:space="preserve"><value>Sampling location</value></data>
+  <data name="SamplingTime" xml:space="preserve"><value>Sampling time</value></data>
+  <data name="Mass" xml:space="preserve"><value>Sample mass (kg)</value></data>
+  <data name="Volume" xml:space="preserve"><value>Sample volume (L)</value></data>
+  <data name="Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="Start" xml:space="preserve"><value>Acquisition start</value></data>
+  <data name="End" xml:space="preserve"><value>Acquisition end</value></data>
+  <data name="Preset" xml:space="preserve"><value>Preset time (s)</value></data>
+  <data name="RealTime" xml:space="preserve"><value>Measurement time (s)</value></data>
+  <data name="LiveTime" xml:space="preserve"><value>Live time (s)</value></data>
+  <data name="Channels" xml:space="preserve"><value>Number of channels</value></data>
+  <data name="PulseCount" xml:space="preserve"><value>Total pulses</value></data>
+  <data name="ValidPulses" xml:space="preserve"><value>Accepted pulses</value></data>
+  <data name="AverageRate" xml:space="preserve"><value>Average accepted count rate (pulses/s)</value></data>
+  <data name="ChannelPitch" xml:space="preserve"><value>Channel pitch</value></data>
+  <data name="Samples" xml:space="preserve"><value>Acquisition samples</value></data>
+  <data name="DeviceName" xml:space="preserve"><value>Instrument name</value></data>
+  <data name="DeviceId" xml:space="preserve"><value>Instrument ID</value></data>
+  <data name="Serial" xml:space="preserve"><value>Serial number</value></data>
+  <data name="Detector" xml:space="preserve"><value>Detector characteristics</value></data>
+  <data name="DeviceType" xml:space="preserve"><value>Instrument type</value></data>
+  <data name="Crystal" xml:space="preserve"><value>Crystal material</value></data>
+  <data name="Geometry" xml:space="preserve"><value>Geometry</value></data>
+  <data name="Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Shielded" xml:space="preserve"><value>Shielded geometry</value></data>
+  <data name="CrystalDensity" xml:space="preserve"><value>Crystal density (g/cm³)</value></data>
+  <data name="Fwhm662" xml:space="preserve"><value>FWHM at 662 keV (%)</value></data>
+  <data name="SourceMaterial" xml:space="preserve"><value>Source material</value></data>
+  <data name="SourceDensity" xml:space="preserve"><value>Source density (g/cm³)</value></data>
+  <data name="Linked" xml:space="preserve"><value>Background spectrum available</value></data>
+  <data name="BackgroundUsed" xml:space="preserve"><value>Background used by FSA</value></data>
+  <data name="BackgroundScale" xml:space="preserve"><value>Background scale</value></data>
+  <data name="Gain" xml:space="preserve"><value>Gain factor</value></data>
+  <data name="Offset" xml:space="preserve"><value>Offset (channels)</value></data>
+  <data name="Reason" xml:space="preserve"><value>Reason</value></data>
+  <data name="Index" xml:space="preserve"><value>Coefficient index</value></data>
+  <data name="Channel" xml:space="preserve"><value>Channel</value></data>
+  <data name="Energy" xml:space="preserve"><value>Energy (keV)</value></data>
+  <data name="WidthCh" xml:space="preserve"><value>FWHM (channels)</value></data>
+  <data name="Counts" xml:space="preserve"><value>Counts</value></data>
+  <data name="Source" xml:space="preserve"><value>Source</value></data>
+  <data name="EnergyAnchor" xml:space="preserve"><value>Energy calibration anchor</value></data>
+  <data name="Efficiency" xml:space="preserve"><value>Efficiency</value></data>
+  <data name="EffError" xml:space="preserve"><value>Efficiency uncertainty (%)</value></data>
+  <data name="EnergyCoeff" xml:space="preserve"><value>Energy calibration coefficient</value></data>
+  <data name="WidthCoeff" xml:space="preserve"><value>FWHM coefficient</value></data>
+  <data name="FwhmModel" xml:space="preserve"><value>FWHM function</value></data>
+  <data name="Curvature" xml:space="preserve"><value>Signal chain curvature (1/MeV)</value></data>
+  <data name="EnergyPoint" xml:space="preserve"><value>Energy calibration point</value></data>
+  <data name="CalibrationLine" xml:space="preserve"><value>Calibration line</value></data>
+  <data name="Curve" xml:space="preserve"><value>Selected efficiency curve</value></data>
+  <data name="FileCurve" xml:space="preserve"><value>Efficiency curve in file</value></data>
+  <data name="CurveId" xml:space="preserve"><value>Efficiency curve ID</value></data>
+  <data name="Origin" xml:space="preserve"><value>Efficiency curve origin</value></data>
+  <data name="Updated" xml:space="preserve"><value>Last updated</value></data>
+  <data name="Stamp" xml:space="preserve"><value>Calculation stamp</value></data>
+  <data name="GeometryId" xml:space="preserve"><value>Geometry fingerprint</value></data>
+  <data name="MatrixEnabled" xml:space="preserve"><value>Response matrix enabled</value></data>
+  <data name="EffPoint" xml:space="preserve"><value>Efficiency curve point</value></data>
+  <data name="EmbeddedStamp" xml:space="preserve"><value>Embedded matrix stamp</value></data>
+  <data name="MatrixFormat" xml:space="preserve"><value>Embedded matrix format</value></data>
+  <data name="MatrixHash" xml:space="preserve"><value>Embedded matrix SHA-256</value></data>
+  <data name="CurveUsed" xml:space="preserve"><value>Efficiency used by FSA</value></data>
+  <data name="MatrixUsed" xml:space="preserve"><value>Response matrix used by FSA</value></data>
+  <data name="Status" xml:space="preserve"><value>Status</value></data>
+  <data name="WidthKev" xml:space="preserve"><value>FWHM (keV)</value></data>
+  <data name="Snr" xml:space="preserve"><value>Signal-to-noise ratio</value></data>
+  <data name="Left" xml:space="preserve"><value>Left channel</value></data>
+  <data name="Right" xml:space="preserve"><value>Right channel</value></data>
+  <data name="Nuclide" xml:space="preserve"><value>Nuclide</value></data>
+  <data name="OtherCandidates" xml:space="preserve"><value>Alternative identifications</value></data>
+  <data name="NoPeaks" xml:space="preserve"><value>No peaks found</value></data>
+  <data name="InProgress" xml:space="preserve"><value>In progress</value></data>
+  <data name="NotPerformed" xml:space="preserve"><value>Not performed</value></data>
+  <data name="Detected" xml:space="preserve"><value>Detected</value></data>
+  <data name="Undetected" xml:space="preserve"><value>Not detected</value></data>
+  <data name="NoRows" xml:space="preserve"><value>No nuclide results</value></data>
+  <data name="LoKev" xml:space="preserve"><value>Lower bound (keV)</value></data>
+  <data name="HiKev" xml:space="preserve"><value>Upper bound (keV)</value></data>
+  <data name="Cps" xml:space="preserve"><value>Count rate (counts/s)</value></data>
+  <data name="RateDose" xml:space="preserve"><value>Dose rate (µSv/h)</value></data>
+  <data name="CenterEnergy" xml:space="preserve"><value>Bin center (keV)</value></data>
+  <data name="RepresentativeEnergy" xml:space="preserve"><value>Representative energy (keV)</value></data>
+  <data name="FluenceRate" xml:space="preserve"><value>Fluence rate (cm⁻² s⁻¹)</value></data>
+  <data name="NoDose" xml:space="preserve"><value>No dose rate result available</value></data>
+  <data name="DoseError" xml:space="preserve"><value>Uncertainty (µSv/h)</value></data>
+  <data name="Approximate" xml:space="preserve"><value>Approximate estimate</value></data>
+  <data name="Coverage" xml:space="preserve"><value>Counts covered (%)</value></data>
+  <data name="Band" xml:space="preserve"><value>Energy interval</value></data>
+  <data name="SkippedBand" xml:space="preserve"><value>Excluded energy interval</value></data>
+  <data name="ReferenceTime" xml:space="preserve"><value>Activity reference time</value></data>
+  <data name="SigmaLevel" xml:space="preserve"><value>Uncertainty level (σ)</value></data>
+  <data name="ActivityBq" xml:space="preserve"><value>Activity (Bq)</value></data>
+  <data name="UncertaintyBq" xml:space="preserve"><value>Uncertainty (Bq)</value></data>
+  <data name="MdaBq" xml:space="preserve"><value>MDA (Bq)</value></data>
+  <data name="ActivityKg" xml:space="preserve"><value>Activity (Bq/kg)</value></data>
+  <data name="UncertaintyKg" xml:space="preserve"><value>Uncertainty (Bq/kg)</value></data>
+  <data name="MdaKg" xml:space="preserve"><value>MDA (Bq/kg)</value></data>
+  <data name="ActivityL" xml:space="preserve"><value>Activity (Bq/L)</value></data>
+  <data name="UncertaintyL" xml:space="preserve"><value>Uncertainty (Bq/L)</value></data>
+  <data name="MdaL" xml:space="preserve"><value>MDA (Bq/L)</value></data>
+  <data name="AtSampling" xml:space="preserve"><value>At sampling</value></data>
+  <data name="Average" xml:space="preserve"><value>Acquisition average</value></data>
+  <data name="Share" xml:space="preserve"><value>Contribution (%)</value></data>
+  <data name="PeakShare" xml:space="preserve"><value>Peak contribution (%)</value></data>
+  <data name="ZScore" xml:space="preserve"><value>Significance (σ)</value></data>
+  <data name="PeakCounts" xml:space="preserve"><value>Peak counts</value></data>
+  <data name="DecisionRate" xml:space="preserve"><value>Decision threshold (s⁻¹)</value></data>
+  <data name="LimitRate" xml:space="preserve"><value>Detection limit (s⁻¹)</value></data>
+  <data name="ChainRoot" xml:space="preserve"><value>Parent nuclide</value></data>
+  <data name="NuclideSet" xml:space="preserve"><value>Selected nuclide set</value></data>
+  <data name="FromSet" xml:space="preserve"><value>Use selected nuclide set</value></data>
+  <data name="DbLookups" xml:space="preserve"><value>Use nuclide database</value></data>
+  <data name="Equilibrium" xml:space="preserve"><value>Chain equilibrium enabled</value></data>
+  <data name="AtomicXray" xml:space="preserve"><value>Atomic X rays enabled</value></data>
+  <data name="Cascade" xml:space="preserve"><value>Cascade summing enabled</value></data>
+  <data name="Backscatter" xml:space="preserve"><value>Backscatter enabled</value></data>
+  <data name="Escape" xml:space="preserve"><value>Escape and annihilation enabled</value></data>
+  <data name="Pileup" xml:space="preserve"><value>Pile-up enabled</value></data>
+  <data name="FitStart" xml:space="preserve"><value>Fit start (keV)</value></data>
+  <data name="FitFirst" xml:space="preserve"><value>First fit channel</value></data>
+  <data name="FitLast" xml:space="preserve"><value>Last fit channel</value></data>
+  <data name="Chi2" xml:space="preserve"><value>Poisson χ²/ndf</value></data>
+  <data name="WidthScale" xml:space="preserve"><value>FWHM scale factor</value></data>
+  <data name="UncertaintyFactor" xml:space="preserve"><value>Uncertainty inflation factor</value></data>
+  <data name="FitLiveTime" xml:space="preserve"><value>Fit live time (s)</value></data>
+  <data name="LimitRule" xml:space="preserve"><value>Detection limit criterion</value></data>
+  <data name="Component" xml:space="preserve"><value>Fit component</value></data>
+  <data name="AnalysisNote" xml:space="preserve"><value>Analysis note</value></data>
+  <data name="RejectedPulses" xml:space="preserve"><value>Rejected pulses</value></data>
+  <data name="PolynomialOrder" xml:space="preserve"><value>Energy polynomial order</value></data>
+  <data name="FitCurve" xml:space="preserve"><value>Efficiency curve used in fit</value></data>
+  <data name="FitMatrixStamp" xml:space="preserve"><value>Stamp of matrix used in fit</value></data>
+  <data name="FitMatrixFormat" xml:space="preserve"><value>Format of matrix used in fit</value></data>
+  <data name="SourceScene" xml:space="preserve"><value>Source geometry used for dose rate</value></data>
+  <data name="SampleTransmission" xml:space="preserve"><value>Sample transmission (fraction)</value></data>
+  <data name="LibraryEnergy" xml:space="preserve"><value>Library line energy (keV)</value></data>
+  <data name="EnergyDifference" xml:space="preserve"><value>Energy deviation (keV)</value></data>
+  <data name="EnergyDifferencePercent" xml:space="preserve"><value>Energy deviation (%)</value></data>
+  <data name="Resolution" xml:space="preserve"><value>Resolution (%)</value></data>
+  <data name="FwhmDelta" xml:space="preserve"><value>FWHM difference from calibration (channels)</value></data>
+</root>

@@ -103,6 +103,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         readonly object sync = new object();
 
         FsaResult result;
+        ResultData resultSource;
         string stamp = "";
         bool running;
         string status;
@@ -274,6 +275,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
+        // A document can contain several spectra. During a new calculation
+        // the last published result still belongs to its original spectrum.
+        internal FsaResult ResultFor(ResultData source)
+        {
+            lock (this.sync)
+            {
+                return ReferenceEquals(source, this.resultSource) ? this.result : null;
+            }
+        }
+
+        internal static FsaAnalysisSession ForReportImage(FsaResult result, bool oldFormat)
+        {
+            return new FsaAnalysisSession { result = result, matrixOldFormat = oldFormat };
+        }
+
         /// <summary>Отпечаток входных данных, которому отвечает <see cref="Result"/>; пусто — результата нет.</summary>
         public string Stamp
         {
@@ -439,6 +455,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             lock (this.sync)
             {
                 this.result = null;
+                this.resultSource = null;
                 this.stamp = "";
                 this.pending = null;
                 this.status = null;
@@ -612,6 +629,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // снимок заново (как и прежде — каждый), и возврат входных данных к
                     // прежним не упрётся в отпечаток разбора, которого больше нет.
                     this.result = null;
+                    this.resultSource = resultData;
                     this.stamp = "";
                     this.status = said;
                 }
@@ -1231,6 +1249,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     if (computed != null)
                     {
                         RememberMemberActivityRatios(computed, memberRatios);
+                        FsaMeasurementResult.RememberScale(job.CompositionInput, computed);
+                        computed.CalculationOptions = job.Options;
+                        computed.EfficiencyCurveName = job.Efficiency?.Name;
+                        if (computed.ResponseMatrixUsed && job.Analyzer.ResponseMatrix != null)
+                        {
+                            computed.MatrixStamp = job.Analyzer.ResponseMatrix.Stamp;
+                            computed.MatrixFileVersion = job.Analyzer.ResponseMatrix.WrittenFormatVersion;
+                        }
 
                         // (`S187`) Расхождения поставок у нуклидов состава — здесь,
                         // в фоне: чтение базы не должно идти в окне отчёта.
@@ -1641,6 +1667,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         this.stamp = job.Stamp;
                         this.result = computed;
+                        this.resultSource = job.Source;
                         this.status = message;
                     }
                 }
@@ -1895,6 +1922,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     this.stamp = job.Stamp;
                     this.result = computed;
+                    this.resultSource = job.Source;
                     this.status = message;
                 }
                 else if (this.result == null)
