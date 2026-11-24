@@ -222,6 +222,9 @@
   <data name="manualMToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Инструкция</value>
   </data>
+  <data name="atomSpectraToolStripMenuItem.Text" xml:space="preserve">
+    <value>Atom&amp;Spectra</value>
+  </data>
   <data name="deleteDToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Удалить</value>
   </data>

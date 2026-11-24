@@ -3605,6 +3605,11 @@ namespace BecquerelMonitor
             Process.Start("https://t.me/software_kbradar");
         }
 
+        void atomSpectraToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            GuideLinks.OpenLink("https://atomspectra.com/");
+        }
+
         // (`AMBER249`, `AMBER250`, Amber 20.10.2026) «Помощь» → «Гид по BecqMoni»: гид из дистрибутива
         // (docs\ рядом с exe) в браузере по умолчанию, на языке интерфейса — ?lang=ru или ?lang=en;
         // без копии — сайт. Отказ называется словами, а не глотается (как OpenLink в AboutForm, `A14`).

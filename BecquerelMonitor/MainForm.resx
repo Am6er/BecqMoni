@@ -518,6 +518,9 @@
   <data name="manualMToolStripMenuItem.Text" xml:space="preserve">
     <value>&amp;Manual</value>
   </data>
+  <data name="atomSpectraToolStripMenuItem.Text" xml:space="preserve">
+    <value>Atom&amp;Spectra</value>
+  </data>
   <data name="toolStripSeparator3.Size" type="System.Drawing.Size, System.Drawing">
     <value>176, 6</value>
   </data>

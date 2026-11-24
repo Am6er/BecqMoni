@@ -92,6 +92,7 @@ namespace BecquerelMonitor
             this.helpHToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.guideGToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.manualMToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.atomSpectraToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showLogToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.UpdatesAToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -602,6 +603,7 @@ namespace BecquerelMonitor
             this.helpHToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.guideGToolStripMenuItem,
             this.manualMToolStripMenuItem,
+            this.atomSpectraToolStripMenuItem,
             this.toolStripSeparator3,
             this.UpdatesAToolStripMenuItem,
             this.showLogToolStripMenuItem,
@@ -620,6 +622,12 @@ namespace BecquerelMonitor
             this.manualMToolStripMenuItem.Name = "manualMToolStripMenuItem";
             resources.ApplyResources(this.manualMToolStripMenuItem, "manualMToolStripMenuItem");
             this.manualMToolStripMenuItem.Click += new System.EventHandler(this.manualMToolStripMenuItem_Click);
+            //
+            // atomSpectraToolStripMenuItem
+            //
+            this.atomSpectraToolStripMenuItem.Name = "atomSpectraToolStripMenuItem";
+            resources.ApplyResources(this.atomSpectraToolStripMenuItem, "atomSpectraToolStripMenuItem");
+            this.atomSpectraToolStripMenuItem.Click += new System.EventHandler(this.atomSpectraToolStripMenuItem_Click);
             // 
             // toolStripSeparator3
             // 
@@ -775,6 +783,7 @@ namespace BecquerelMonitor
 
 		// Token: 0x0400059C RID: 1436
 		global::System.Windows.Forms.ToolStripMenuItem manualMToolStripMenuItem;
+		global::System.Windows.Forms.ToolStripMenuItem atomSpectraToolStripMenuItem;
 
 		// `AMBER249`: «Помощь» → «Гид по BecqMoni»
 		global::System.Windows.Forms.ToolStripMenuItem guideGToolStripMenuItem;

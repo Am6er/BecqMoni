@@ -280,6 +280,7 @@ GUIDE.texts({ru:{
 'd.none':'Новой версии нет. Ваша версия приложения: {0}',
 'd.std':'Этот экземпляр приложения работает в ограниченном режиме. Такое приложение не будет обновляться. Необходимо установить приложение через setup.exe.',
 'd.ok':'OK','d.cancel':'Отмена','d.loading':'Скачивание и установка выпуска {0}…','d.restarting':'Перезапуск BecqMoni…',
+'d.atomSpectra':'Сайт atomspectra.com откроется в браузере по умолчанию.',
 'd.manual':'Откроется Telegram-канал программы: t.me/software_kbradar','d.guide':'Откроется этот гид — из файлов программы, в браузере, на языке программы.',
 'd.log':'Откроется Проводник с выделенным файлом:<br><code>{0}</code>','d.about':'BecqMoni Nuclear Edition<br>Версия {0}<br>Свободное использование.',
 'u.ptnote':'портативная копия не обновляется','d.aboutT':'О приложении BecqMoni Nuclear Edition','u.where':'настройки: <b>{0}</b>','u.ver':'версия: <b>{0}</b>','u.later':'новая версия заработает при следующем запуске','u.kept':'настройки не тронуты',
@@ -409,6 +410,7 @@ GUIDE.texts({ru:{
 'd.none':'No new version available. Current version: {0}',
 'd.std':'This application works in standalone mode. If you want to use update re-install it.',
 'd.ok':'OK','d.cancel':'Cancel','d.loading':'Downloading and installing {0}…','d.restarting':'Restarting BecqMoni…',
+'d.atomSpectra':'The atomspectra.com website opens in your default browser.',
 'd.manual':'The program’s Telegram channel opens: t.me/software_kbradar','d.guide':'This guide opens — from the program’s own files, in your browser, in the program’s language.',
 'd.log':'Explorer opens with the file selected:<br><code>{0}</code>','d.about':'BecqMoni Nuclear Edition<br>Version {0}<br>Free to use.',
 'u.ptnote':'a portable copy is not updated','d.aboutT':'About BecqMoni Nuclear Edition','u.where':'settings: <b>{0}</b>','u.ver':'version: <b>{0}</b>','u.later':'the new version starts with the next launch','u.kept':'settings untouched',
@@ -570,7 +572,7 @@ tabset('pTabs', $('#pTabs').parentNode);
     if (d === 'none') return box(t('d.msg'), t('d.none', S.ver), 'i', [['d.ok', 'close']]);
     if (d === 'std') return box(t('d.msg'), t('d.std'), 'i', [['d.ok', 'close']]);
     if (d === 'guide') return box(t('d.msg'), t('d.guide'), 'i', [['d.ok', 'close']]);
-    if (d === 'manual') return box(t('d.msg'), t('d.manual'), 'i', [['d.ok', 'close']]);
+    if (d === 'manual' || d === 'atomSpectra') return box(t('d.msg'), t('d.' + d), 'i', [['d.ok', 'close']]);
     if (d === 'log') return box(t('d.msg'), t('d.log', logPath()), 'i', [['d.ok', 'close']]);
     if (d === 'about') return box(t('d.aboutT'), t('d.about', S.ver), 'i', [['d.ok', 'close']]);
     return '';
@@ -579,7 +581,7 @@ tabset('pTabs', $('#pTabs').parentNode);
     const idle = !S.menu && !S.dlg;
     desk.innerHTML = '<div class="tb"><i></i>BecqMoni Nuclear Edition ' + S.ver + '</div>' +
       '<div class="mb"><span>' + t('m.file') + '</span><span>' + t('m.spec') + '</span><span>' + t('m.view') + '</span><span>' + t('m.tool') + '</span><span class="act' + (S.menu ? ' on' : '') + (idle ? ' pulse' : '') + '" data-act="menu" id="uHelp">' + t('m.help') + '</span></div>' + WS +
-      (S.menu ? '<div class="dd" id="uDD"><div data-act="guide">' + t('m.guide') + '</div><div data-act="manual">' + t('m.manual') + '</div><hr><div data-act="check">' + t('m.upd') + '</div><div data-act="log">' + t('m.log') + '</div><div data-act="about">' + t('m.about') + '</div></div>' : '') + dialog();
+      (S.menu ? '<div class="dd" id="uDD"><div data-act="guide">' + t('m.guide') + '</div><div data-act="manual">' + t('m.manual') + '</div><div data-act="atomSpectra">AtomSpectra</div><hr><div data-act="check">' + t('m.upd') + '</div><div data-act="log">' + t('m.log') + '</div><div data-act="about">' + t('m.about') + '</div></div>' : '') + dialog();
     if (S.menu) { const h = $('#uHelp'), dd = $('#uDD'); dd.style.left = Math.min(h.offsetLeft, desk.clientWidth - dd.offsetWidth - 4) + 'px'; dd.style.top = (h.offsetTop + h.offsetHeight) + 'px'; }
     tree.innerHTML = TREE[S.mode].map((r, i) => {
       const name = r[2][0] === '@' ? t(r[2].slice(1)) : r[2];
@@ -600,7 +602,7 @@ tabset('pTabs', $('#pTabs').parentNode);
     if (S.dlg && !a.closest('.mbox')) return;   // окно сообщения модально: пока оно открыто, меню не отвечает
     S.menu = act === 'menu' ? !S.menu : false;
     if (act === 'check') S.dlg = S.mode === 'pt' ? 'std' : (cbNew.checked && S.ver !== NEW) ? 'avail' : 'none';
-    else if (act === 'guide' || act === 'manual' || act === 'log' || act === 'about') S.dlg = act;
+    else if (act === 'guide' || act === 'manual' || act === 'atomSpectra' || act === 'log' || act === 'about') S.dlg = act;
     else if (act === 'close') S.dlg = null;
     else if (act === 'install') { S.dlg = 'loading'; render(); bar(1600, () => { S.dlg = 'done'; render(); }); return; }
     else if (act === 'later') { S.dlg = null; S.later = true; }

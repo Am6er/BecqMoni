@@ -1,8 +1,10 @@
+using BecquerelMonitor.Properties;
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
+using System.Windows.Forms;
 
 namespace BecquerelMonitor
 {
@@ -17,6 +19,33 @@ namespace BecquerelMonitor
     internal static class GuideLinks
     {
         public const string SiteUrl = "https://amba.cloud/becqmoni/help/";
+
+        /// <summary>
+        /// Открыть ссылку внешним обработчиком и НАЗВАТЬ ПРИЧИНУ, если не
+        /// вышло.
+        ///
+        /// ⛔ `A14`. Прежде каждый из трёх щелчков был обёрнут в
+        /// <c>catch (Exception) { }</c> целиком: щёлкнул — не произошло
+        /// ничего. Отличить «в системе нет обработчика http» от «промахнулся
+        /// мимо подписи» было невозможно ни человеку за экраном, ни тому, кто
+        /// разбирает жалобу: отказ есть, читателя у него нет.
+        ///
+        /// ⚠ Сообщение идёт через <see cref="AppUi.Report"/>, а не прямым
+        /// <c>MessageBox.Show</c>: это единственная дверь дерева, и она же
+        /// оставляет путь безоконным, если окон нет.
+        /// </summary>
+        internal static void OpenLink(string url)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                AppUi.Report(string.Format(Resources.ERROpenLinkFailure, url, ex.Message),
+                    Resources.ErrorDialogTitle, MessageBoxIcon.Exclamation);
+            }
+        }
 
         public static string Lang
         {
