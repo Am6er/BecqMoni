@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 
 namespace BecquerelMonitor.FullSpectrumAnalysis
 {
@@ -836,9 +837,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return Build(spec, out report);
         }
 
+        internal static List<FsaComponent> Build(FsaSampleSpec spec, CancellationToken cancellationToken)
+        {
+            Report report;
+            return Build(spec, out report, cancellationToken);
+        }
+
         /// <summary>То же, с отчётом о сборке.</summary>
         public static List<FsaComponent> Build(FsaSampleSpec spec, out Report report)
         {
+            return Build(spec, out report, CancellationToken.None);
+        }
+
+        internal static List<FsaComponent> Build(FsaSampleSpec spec, out Report report, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             report = new Report();
             var result = new List<FsaComponent>();
             if (spec == null)
@@ -866,13 +879,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             foreach (FsaSampleChain chain in spec.Chains)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (chain == null || string.IsNullOrEmpty(chain.Root))
                 {
                     continue;
                 }
 
                 CollectChain(chain, spec.MinChainBranch, spec.MinIsomerBranch,
-                             branch, owner, report);
+                             branch, owner, report, cancellationToken);
             }
 
             foreach (string nucid in spec.Nuclides)
@@ -936,7 +950,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // влияет: она по-прежнему требует `spec.Equilibrium`.
             foreach (string nucid in branch.Keys)
             {
-                if (DecayLines(nucid, report).Count == 0)
+                cancellationToken.ThrowIfCancellationRequested();
+                if (DecayLines(nucid, report, cancellationToken).Count == 0)
                 {
                     continue;
                 }
@@ -954,7 +969,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             foreach (KeyValuePair<string, double> member in branch)
             {
-                List<double[]> lines = DecayLines(member.Key, report);
+                cancellationToken.ThrowIfCancellationRequested();
+                List<double[]> lines = DecayLines(member.Key, report, cancellationToken);
                 if (lines.Count == 0)
                 {
                     // (`AMBER274`, Э1; `Р3`) Член ряда без линий, но с бетой (Bi-210, Sr-90
@@ -1018,6 +1034,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double floor = spec.LineFloorKev;
                 foreach (double[] line in lines)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (line[0] < floor || line[0] > spec.MaxEnergyKev)
                     {
                         continue;
@@ -1035,7 +1052,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 // (`AMBER274`, Э1) Бета-ветви члена — тем же весом (равновесное
                 // отношение к корню), что его линии, и под его именем.
-                AddBetas(component, self, member.Key, member.Value);
+                AddBetas(component, self, member.Key, member.Value, cancellationToken);
             }
 
             // (`AMBER274`, `Р3`) Бета члена без линий — в колонку его ряда при связке
@@ -1047,7 +1064,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var orphans = new List<KeyValuePair<string, double>>();
             foreach (KeyValuePair<string, double> member in lineless)
             {
-                if (FsaBetaLibrary.Branches(member.Key).Count == 0)
+                cancellationToken.ThrowIfCancellationRequested();
+                if (FsaBetaLibrary.Branches(member.Key, cancellationToken).Count == 0)
                 {
                     continue;
                 }
@@ -1075,7 +1093,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 if (host != null)
                 {
-                    AddBetas(host, PrettyName(member.Key), member.Key, member.Value);
+                    AddBetas(host, PrettyName(member.Key), member.Key, member.Value, cancellationToken);
                     hostOf[member.Key] = host.Name;
                 }
                 else
@@ -1085,7 +1103,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             // (`AMBER274`, Ф14) СТРОКИ ПО СПЛОШНОМУ СПЕКТРУ — колонки чистых бета-излучателей.
-            BetaOnlyColumns(spec, branch, owner, componentOf, hostOf, orphans, byName, order, report);
+            BetaOnlyColumns(spec, branch, owner, componentOf, hostOf, orphans, byName, order, report, cancellationToken);
 
             // Образы без единой линии в окне выбрасываются здесь, а не при
             // сборке: у члена ряда линии могут быть все выше потолка прибора, и
@@ -1132,11 +1150,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 declaredNames.UnionWith(typedNames);
-                AddAtomic(spec, result, declaredNames, report);
+                AddAtomic(spec, result, declaredNames, report, cancellationToken);
                 report.AtomicComponents = result.Count - before;
             }
 
-            AddEscapeImages(spec, result, report);
+            AddEscapeImages(spec, result, report, cancellationToken);
             AddAnnihilation(result, report);
 
             // S98: полоса библиотеки — в отчёт, и он её печатает. Считается
@@ -1154,6 +1172,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                            spec.NoCurveFloorKev);
             foreach (FsaComponent component in result)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 foreach (FsaLine line in component.Lines)
                 {
                     if (line.Energy < spec.MinEnergyKev)
@@ -1215,7 +1234,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         internal static void CollectChain(FsaSampleChain chain, double minBranch,
                                           double minIsomerBranch,
                                           Dictionary<string, double> branch,
-                                          Dictionary<string, string> owner, Report report)
+                                          Dictionary<string, string> owner, Report report,
+                                          CancellationToken cancellationToken = default(CancellationToken))
         {
             if (chain == null || string.IsNullOrEmpty(chain.Root))
             {
@@ -1249,19 +1269,19 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (П308, 14.10.2026) Изомер-членов 71 (4488 строк, 2361 дочерняя): +3
             // ребра второго прохода и снят двойной счёт задержанных частиц семьи β⁻
             // (`database/scheme.md` §2); ряды шести голов прежние, корпус побайтно rev47.
-            Dictionary<string, double> members = ChainBranches(chain.Root, report);
+            Dictionary<string, double> members = ChainBranches(chain.Root, report, cancellationToken);
             // (`T259`) Ряд — ОТ КОРНЯ ВНИЗ, ПОКА РАВНОВЕСИЕ ВОЗМОЖНО: член с
             // периодом длиннее корня (и всё под ним) в подряд не входит. У голов
             // рядов такого члена нет, и множество равно всему обходу; у «Rn-222»
             // оно обрывается на Pb-210. Что выброшено — в отчёт, не молча.
-            HashSet<string> reachable = EquilibriumMembers(chain.Root, report);
+            HashSet<string> reachable = EquilibriumMembers(chain.Root, report, cancellationToken);
             // (`AMBER55`) Доля члена в образе корня — РАВНОВЕСНОЕ отношение
             // активностей, а оно есть ветвление × множитель переходного
             // равновесия по Бейтману, а не одно ветвление; см.
             // <see cref="EquilibriumFactors"/>. Пороги ниже судят ВЕТВЛЕНИЕ,
             // как и прежде: множитель не меньше единицы и в состав никого не
             // добавляет и не выбрасывает.
-            Dictionary<string, double> factors = EquilibriumFactors(chain.Root, report);
+            Dictionary<string, double> factors = ReadEquilibriumFactors(chain.Root, report, cancellationToken);
             // (`AMBER119`) У выведенного корня множителя нет — см.
             // <see cref="FsaSampleChain.Transient"/>; каким он был бы, говорится.
             var secular = new List<string>();
@@ -1383,6 +1403,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         internal static Dictionary<string, double> EquilibriumFactors(string root, Report report)
         {
+            return ReadEquilibriumFactors(root, report, CancellationToken.None);
+        }
+
+        static Dictionary<string, double> ReadEquilibriumFactors(string root, Report report, CancellationToken cancellationToken)
+        {
             lock (Gate)
             {
                 Dictionary<string, double> cached;
@@ -1400,7 +1425,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 if (TryHalfLifeSeconds(root, out rootSeconds) && rootSeconds > 0.0)
                 {
                     double lambdaRoot = Math.Log(2.0) / rootSeconds;
-                    HashSet<string> reachable = EquilibriumMembers(root, report);
+                    HashSet<string> reachable = EquilibriumMembers(root, report, cancellationToken);
 
                     // Шаг 1: рёбра между членами равновесия и множитель каждого
                     // члена по его периоду. Тот же запрос и тот же зажим уровня,
@@ -1425,6 +1450,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         life.Parameters.AddWithValue("$n", root);
                         for (int i = 0; i < order.Count && order.Count <= MaxChainNodes; i++)
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
                             string current = order[i];
                             command.Parameters["$n"].Value = current;
                             var step = new List<KeyValuePair<string, double>>();
@@ -1432,6 +1458,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             {
                                 while (reader.Read())
                                 {
+                                    cancellationToken.ThrowIfCancellationRequested();
                                     string daughter = reader.IsDBNull(0) ? null : reader.GetString(0);
                                     double percent;
                                     if (string.IsNullOrEmpty(daughter)
@@ -1455,6 +1482,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                         foreach (string member in order)
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
                             if (string.Equals(member, root, StringComparison.OrdinalIgnoreCase))
                             {
                                 factorOf[member] = 1.0;
@@ -1487,6 +1515,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     var without = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
                     for (int pass = 0; pass < MaxChainPasses; pass++)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         var nextWith = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
                         var nextWithout = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
                         nextWith[root] = 1.0;
@@ -1548,7 +1577,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
-            catch (Exception error)
+            catch (Exception error) when (!(error is OperationCanceledException))
             {
                 report.Notes.Add("ряд от " + root + ": отказ базы при счёте переходного равновесия — "
                                  + error.Message + "; связка одним ветвлением");
@@ -2067,6 +2096,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static List<FsaIsotopeRatio> IsotopeRatiosOf(FsaResult result, double k)
         {
+            return IsotopeRatiosOf(result, k, CancellationToken.None);
+        }
+
+        internal static List<FsaIsotopeRatio> IsotopeRatiosOf(FsaResult result, double k, CancellationToken cancellationToken)
+        {
             var found = new List<FsaIsotopeRatio>();
             if (result == null || result.Components == null
                 || !(result.ResponseMatrixUsed || result.EfficiencyUsed))
@@ -2082,6 +2116,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 var linked = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (FsaComponentResult component in result.Components)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (component == null
                         || (component.Kind != FsaComponentKind.Single && component.Kind != FsaComponentKind.Chain)
                         || string.IsNullOrEmpty(component.Name)
@@ -2102,12 +2137,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         continue;
                     }
 
-                    foreach (Primordial ancestor in PrimordialAncestors(unit, report))
+                    foreach (Primordial ancestor in PrimordialAncestors(unit, report, cancellationToken))
                     {
                         if (!string.Equals(ancestor.Nucid, unit, StringComparison.OrdinalIgnoreCase))
                         {
                             string segment;
-                            if (!ChainSegments(ancestor.Nucid, report).SegmentOf.TryGetValue(unit, out segment)
+                            if (!ChainSegments(ancestor.Nucid, report, cancellationToken).SegmentOf.TryGetValue(unit, out segment)
                                 || !string.Equals(segment, ancestor.Nucid, StringComparison.OrdinalIgnoreCase))
                             {
                                 continue;
@@ -2139,6 +2174,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 foreach (List<Primordial> element in byZ.Values)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (element.Count < 2)
                     {
                         continue;
@@ -2251,7 +2287,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
-            catch (Exception error)
+            catch (Exception error) when (!(error is OperationCanceledException))
             {
                 // Отказ базы — строки нет; разбор от неё не зависит. Молча — нельзя (`AMBER199`).
                 FsaDatabaseFailures.Note("nucdb.sqlite", "isotope ratios", error);
@@ -2315,7 +2351,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// От каждого элемента берётся предок с НАИБОЛЬШЕЙ распространённостью
         /// (U-238, а не U-234 — тот и не первичен).
         /// </summary>
-        static List<Primordial> PrimordialAncestors(string nucid, Report report)
+        static List<Primordial> PrimordialAncestors(string nucid, Report report, CancellationToken cancellationToken = default(CancellationToken))
         {
             lock (Gate)
             {
@@ -2341,10 +2377,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     var next = new List<string>();
                     foreach (string current in level)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         Primordial self = PrimordialOf(connection, current);
                         if (self != null
                             && (string.Equals(current, nucid, StringComparison.OrdinalIgnoreCase)
-                                || EquilibriumMembers(current, report).Contains(nucid)))
+                                || EquilibriumMembers(current, report, cancellationToken).Contains(nucid)))
                         {
                             Primordial had;
                             if (!byZ.TryGetValue(self.Z, out had) || self.Abundance > had.Abundance)
@@ -2494,7 +2531,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// У голов рядов и Th-228 члена длиннее корня нет, множество равно всему
         /// обходу, и состав от правила не меняется — измерено побитово.
         /// </summary>
-        internal static HashSet<string> EquilibriumMembers(string root, Report report)
+        internal static HashSet<string> EquilibriumMembers(string root, Report report, CancellationToken cancellationToken = default(CancellationToken))
         {
             lock (Gate)
             {
@@ -2515,7 +2552,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // Периода у корня нет — обрывать не по чему: берётся весь обход,
                     // как до `T259`, и об этом сказано.
                     report.Notes.Add("ряд от " + root + ": периода корня в nuclides нет — подряд не обрывается");
-                    foreach (string member in ChainBranches(root, report).Keys)
+                    foreach (string member in ChainBranches(root, report, cancellationToken).Keys)
                     {
                         reachable.Add(member);
                     }
@@ -2538,6 +2575,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         life.Parameters.AddWithValue("$n", root);
                         for (int i = 0; i < order.Count && order.Count <= MaxChainNodes; i++)
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
                             string current = order[i];
                             edges.Parameters["$n"].Value = current;
                             var daughters = new List<string>();
@@ -2561,6 +2599,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                             foreach (string daughter in daughters)
                             {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 life.Parameters["$n"].Value = daughter;
                                 double seconds = 0.0;
                                 bool decays;
@@ -2585,11 +2624,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
-            catch (Exception error)
+            catch (Exception error) when (!(error is OperationCanceledException))
             {
                 report.Notes.Add("ряд от " + root + ": отказ базы при обходе равновесия — " + error.Message);
                 FsaDatabaseFailures.Note("nucdb.sqlite", root, error);
-                foreach (string member in ChainBranches(root, report).Keys)
+                foreach (string member in ChainBranches(root, report, cancellationToken).Keys)
                 {
                     reachable.Add(member);
                 }
@@ -2628,6 +2667,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static Dictionary<string, double> ChainBranches(string root, Report report)
         {
+            return ChainBranches(root, report, CancellationToken.None);
+        }
+
+        internal static Dictionary<string, double> ChainBranches(string root, Report report, CancellationToken cancellationToken)
+        {
             lock (Gate)
             {
                 Dictionary<string, double> cached;
@@ -2660,6 +2704,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     command.Parameters.AddWithValue("$n", root);
                     for (int i = 0; i < order.Count && order.Count <= MaxChainNodes; i++)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         string current = order[i];
                         command.Parameters["$n"].Value = current;
                         var step = new List<KeyValuePair<string, double>>();
@@ -2713,6 +2758,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double drift = 0.0;
                 for (int pass = 0; pass < MaxChainPasses; pass++)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var next = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
                     next[root] = 1.0;
                     foreach (string parent in order)
@@ -2761,7 +2807,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                      + drift.ToString("E2", CultureInfo.InvariantCulture));
                 }
             }
-            catch (Exception error)
+            catch (Exception error) when (!(error is OperationCanceledException))
             {
                 // Отказ базы не должен ронять разбор — но и молчать нельзя:
                 // «ряд пуст» и «читатель сломан» с виду одно и то же.
@@ -2796,7 +2842,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <see cref="ChainBranches"/>: второе соглашение о том, что считать
         /// ребром ряда, развело бы порядок с составом.
         /// </summary>
-        internal static Dictionary<string, int> ChainDepths(string root, Report report)
+        internal static Dictionary<string, int> ChainDepths(string root, Report report, CancellationToken cancellationToken = default(CancellationToken))
         {
             lock (Gate)
             {
@@ -2823,6 +2869,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     command.Parameters.AddWithValue("$n", root);
                     for (int i = 0; i < order.Count && order.Count <= MaxChainNodes; i++)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         string current = order[i];
                         command.Parameters["$n"].Value = current;
                         using (SqliteDataReader reader = command.ExecuteReader())
@@ -2853,7 +2900,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
-            catch (Exception error)
+            catch (Exception error) when (!(error is OperationCanceledException))
             {
                 report.Notes.Add("ряд " + root + ": отказ базы при обходе глубин — " + error.Message);
                 FsaDatabaseFailures.Note("nucdb.sqlite", root, error);
@@ -2921,7 +2968,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// в природных рядах таких нет — ветви сходятся на Pb-210 и стабильных
         /// концах. Отказ базы — пустое разбиение (резать не по чему) и замечание.
         /// </summary>
-        internal static ChainSegmentation ChainSegments(string root, Report report)
+        internal static ChainSegmentation ChainSegments(string root, Report report, CancellationToken cancellationToken = default(CancellationToken))
         {
             lock (Gate)
             {
@@ -2955,6 +3002,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     life.Parameters.AddWithValue("$n", root);
                     for (int i = 0; i < order.Count && order.Count <= MaxChainNodes; i++)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         string current = order[i];
                         string currentSegment = result.SegmentOf[current];
                         edges.Parameters["$n"].Value = current;
@@ -2978,6 +3026,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                         foreach (string daughter in daughters)
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
                             string known;
                             if (result.SegmentOf.TryGetValue(daughter, out known))
                             {
@@ -3017,7 +3066,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
-            catch (Exception error)
+            catch (Exception error) when (!(error is OperationCanceledException))
             {
                 report.Notes.Add("ряд " + root + ": отказ базы при разбиении на отрезки — " + error.Message);
                 FsaDatabaseFailures.Note("nucdb.sqlite", root, error);
@@ -3129,6 +3178,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// отсюда.
         public static List<double[]> DecayLines(string nucid, Report report)
         {
+            return DecayLines(nucid, report, CancellationToken.None);
+        }
+
+        internal static List<double[]> DecayLines(string nucid, Report report, CancellationToken cancellationToken)
+        {
             lock (Gate)
             {
                 List<double[]> cached;
@@ -3191,6 +3245,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         while (reader.Read())
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
                             string kind = reader.IsDBNull(0) ? "" : reader.GetString(0);
                             string series = reader.IsDBNull(1) ? "" : reader.GetString(1).Trim();
                             string channel = reader.IsDBNull(4) ? "" : reader.GetString(4).Trim();
@@ -3319,7 +3374,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
-            catch (Exception error)
+            catch (Exception error) when (!(error is OperationCanceledException))
             {
                 report.Notes.Add("линии " + nucid + ": отказ базы — " + error.Message);
                 FsaDatabaseFailures.Note("nucdb.sqlite", nucid, error);
@@ -3345,7 +3400,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // свой, а сумматора совпадений — см. <see cref="AnnihilationYieldPercent"/>.
             if (betaPlus > 0.0)
             {
-                double annihilation = AnnihilationYieldPercent(nucid, betaPlus, report);
+                double annihilation = AnnihilationYieldPercent(nucid, betaPlus, report, cancellationToken);
                 int same = -1;
                 for (int k = 0; k < gamma.Count; k++)
                 {
@@ -3434,11 +3489,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// разобран, отказ базы) — берётся сырое число с тем же потолком, и
         /// причина уходит в <see cref="Report.Notes"/>, а не теряется.
         /// </summary>
-        static double AnnihilationYieldPercent(string nucid, double rawBetaPlusPercent, Report report)
+        static double AnnihilationYieldPercent(string nucid, double rawBetaPlusPercent, Report report, CancellationToken cancellationToken)
         {
             const double Ceiling = 200.0;
             double raw = 2.0 * rawBetaPlusPercent;
-            CascadeAtomicData atomic = CascadeAtomicData.Of(nucid);
+            CascadeAtomicData atomic = CascadeAtomicData.Of(nucid, cancellationToken);
             double clamped = atomic != null && !atomic.Failed
                 ? 100.0 * atomic.AnnihilationQuanta : 0.0;
             if (!(clamped > 0.0))
@@ -3509,7 +3564,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// этими линиями нет активности, и в «пирог» долей они не входят.
         /// </summary>
         static void AddAtomic(FsaSampleSpec spec, List<FsaComponent> result,
-                              HashSet<string> declared, Report report)
+                              HashSet<string> declared, Report report, CancellationToken cancellationToken)
         {
             var seen = new HashSet<int>();
 
@@ -3545,7 +3600,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 AddFluorescence(spec, spec.ShieldElements, "защита", result, report, seen);
             }
 
-            AddEscape(spec, result, declared, report);
+            AddEscape(spec, result, declared, report, cancellationToken);
         }
 
         /// <summary>
@@ -3888,7 +3943,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// приближения снимается ключом `AtomicXray`, а не догадкой.
         /// </summary>
         static void AddEscape(FsaSampleSpec spec, List<FsaComponent> result,
-                              HashSet<string> declared, Report report)
+                              HashSet<string> declared, Report report, CancellationToken cancellationToken)
         {
             if (spec.CrystalElements.Count == 0)
             {
@@ -3900,6 +3955,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var parents = new List<double[]>();
             foreach (FsaComponent source in result)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 // Мешающие образы отсекаются по виду, нуклидные — по имени.
                 // Ряд, связанный равновесием, имеет вид `Chain`, и проверять
                 // «ровно `Single`» нельзя: объявленный ториевый источник ушёл
@@ -3963,6 +4019,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double muXray = mix.Attenuation(kAlpha);
                 foreach (double[] parent in parents)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     // Ниже K-края дырки в K-оболочке не бывает, и вылета нет.
                     if (parent[0] <= fluorescence.KEdgeKev)
                     {
@@ -4316,7 +4373,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <see cref="FsaLibrary.EscapeParentMarginKev"/> держит запас над
         /// порогом пар там, где вещества не опознать.
         /// </summary>
-        static void AddEscapeImages(FsaSampleSpec spec, List<FsaComponent> result, Report report)
+        static void AddEscapeImages(FsaSampleSpec spec, List<FsaComponent> result, Report report, CancellationToken cancellationToken)
         {
             if (result.Count == 0)
             {
@@ -4325,7 +4382,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             Dictionary<int, double> fractions = CrystalFractionsOf(spec);
             List<FsaComponent> images = FsaLibrary.EscapeImages(
-                result, fractions.Count > 0 ? fractions : null);
+                result, fractions.Count > 0 ? fractions : null, cancellationToken);
             var names = new List<string>();
             int outOfBand = 0;
             foreach (FsaComponent image in images)
@@ -4897,14 +4954,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static void BetaOnlyColumns(FsaSampleSpec spec, Dictionary<string, double> branch,
                                     Dictionary<string, string> owner, Dictionary<string, string> componentOf,
                                     Dictionary<string, string> hostOf, List<KeyValuePair<string, double>> orphans,
-                                    Dictionary<string, FsaComponent> byName, List<string> order, Report report)
+                                    Dictionary<string, FsaComponent> byName, List<string> order, Report report, CancellationToken cancellationToken)
         {
             // Ряды, где есть настоящий излучатель: член с фотонным выходом не ниже пола.
             var emitting = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (KeyValuePair<string, double> member in branch)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 double yield = 0.0;
-                foreach (double[] line in DecayLines(member.Key, report))
+                foreach (double[] line in DecayLines(member.Key, report, cancellationToken))
                 {
                     yield += line[1];
                 }
@@ -4965,7 +5023,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 string placed;
                 bool inConverted = (componentOf.TryGetValue(member.Key, out placed) && converted.Contains(placed))
                                    || (hostOf.TryGetValue(member.Key, out placed) && converted.Contains(placed));
-                if ((inConverted || orphanSet.Contains(member.Key)) && HasContinuousBeta(member.Key))
+                if ((inConverted || orphanSet.Contains(member.Key)) && HasContinuousBeta(FsaBetaLibrary.Branches(member.Key, cancellationToken)))
                 {
                     members.Add(member);
                 }
@@ -5030,7 +5088,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 var names = new List<string>();
                 foreach (KeyValuePair<string, double> member in group)
                 {
-                    AddBetas(component, PrettyName(member.Key), member.Key, member.Value);
+                    AddBetas(component, PrettyName(member.Key), member.Key, member.Value, cancellationToken);
                     componentOf[member.Key] = name;
                     names.Add(PrettyName(member.Key));
                     string root = OwnerOf(owner, member.Key);
@@ -5080,14 +5138,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// только образ по матрице с разделом строк электрона; линии конверсии (`Ф4`) — тем же
         /// списком.
         /// </summary>
-        static void AddBetas(FsaComponent component, string self, string nucid, double weight)
+        static void AddBetas(FsaComponent component, string self, string nucid, double weight, CancellationToken cancellationToken)
         {
             if (component == null || !(weight > 0.0))
             {
                 return;
             }
 
-            foreach (FsaBeta beta in FsaBetaLibrary.Branches(nucid))
+            foreach (FsaBeta beta in FsaBetaLibrary.Branches(nucid, cancellationToken))
             {
                 component.Betas.Add(beta.Scaled(self, weight));
             }
@@ -5714,6 +5772,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static List<FsaBeta> Branches(string nucid)
         {
+            return Branches(nucid, CancellationToken.None);
+        }
+
+        internal static List<FsaBeta> Branches(string nucid, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrEmpty(nucid))
             {
                 return new List<FsaBeta>();
@@ -5734,9 +5798,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var check = new BranchCheck();
             try
             {
-                list = Read(nucid, note, ref failed, check);
+                list = Read(nucid, note, ref failed, check, cancellationToken);
             }
-            catch (Exception error)
+            catch (Exception error) when (!(error is OperationCanceledException))
             {
                 FsaDatabaseFailures.Note("nucdb.sqlite", nucid, error);
                 list = new List<FsaBeta>();
@@ -5834,7 +5898,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (2) при сумме выше 100 % + <see cref="BranchSumTolerancePercent"/> — дубли второй
         /// оценки (<see cref="DuplicateEndpointKev"/>). Порядок прочих строк не меняется.
         /// </summary>
-        static void Screen(List<object[]> rows, StringBuilder note, BranchCheck check)
+        static void Screen(List<object[]> rows, StringBuilder note, BranchCheck check, CancellationToken cancellationToken)
         {
             for (int i = rows.Count - 1; i >= 0; i--)
             {
@@ -5878,6 +5942,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 double logRatio = Math.Log(DuplicateIntensityRatio);
                 foreach (int i in order)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     double e = Number((string)rows[i][2]);
                     double y = (double)rows[i][3];
                     int partner = -1;
@@ -5983,7 +6048,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public double[] Density;
         }
 
-        static List<FsaBeta> Read(string nucid, StringBuilder note, ref bool failed, BranchCheck check)
+        static List<FsaBeta> Read(string nucid, StringBuilder note, ref bool failed, BranchCheck check, CancellationToken cancellationToken)
         {
             var list = new List<FsaBeta>();
             int massNumber = 0, i0 = 0;
@@ -6048,6 +6113,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         while (r.Read())
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
                             string type = r.IsDBNull(0) ? "" : r.GetString(0);
                             if (type == "G")
                             {
@@ -6089,12 +6155,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // отказ, а «форм таблицей нет»: ветви строятся кодом.
                 if (rows.Count > 0 && HasTable(connection, "beta_shapes") && HasTable(connection, "beta_shape_points"))
                 {
-                    ReadShapes(connection, nucid, shapes);
+                    ReadShapes(connection, nucid, shapes, cancellationToken);
                 }
             }
 
             // (`AMBER274`, К3) Пределы `LT` и дубли второй оценки — до форм и схемы.
-            Screen(rows, note, check);
+            Screen(rows, note, check, cancellationToken);
 
             if (parentZ < 0)
             {
@@ -6127,10 +6193,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 try
                 {
                     ReadScheme(schemePath, scheme, parentZ, massNumber, isomer, parentHalfLife, rows, gammas,
-                               out minus, out plus, levels, alphas, g4, out parentLevelKev, note);
+                               out minus, out plus, levels, alphas, g4, out parentLevelKev, note, cancellationToken);
                     schemeOk = true;
                 }
-                catch (Exception error)
+                catch (Exception error) when (!(error is OperationCanceledException))
                 {
                     // (`Р4`) Отказ `schemedb` — под СВОИМ именем, не `nucdb`.
                     FsaDatabaseFailures.Note("schemedb.sqlite", nucid, error);
@@ -6149,6 +6215,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             bool parentParityKnown = TryParity(parentJp, out parentParity);
             foreach (object[] row in rows)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 bool positron = (string)row[0] == "B+";
                 double field = Number((string)row[2]);
                 if (!(field > 0.0))
@@ -6238,9 +6305,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 try
                 {
-                    AddConversion(nucid, parentZ, massNumber, gammas, alphas, g4, list, note);
+                    AddConversion(nucid, parentZ, massNumber, gammas, alphas, g4, list, note, cancellationToken);
                 }
-                catch (Exception error)
+                catch (Exception error) when (!(error is OperationCanceledException))
                 {
                     FsaDatabaseFailures.Note("matdb.sqlite", nucid, error);
                     note.Append("отказ чтения matdb (энергии связи): ").Append(error.Message).Append("; ");
@@ -6268,7 +6335,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
-        static void ReadShapes(SqliteConnection connection, string nucid, List<TableShape> shapes)
+        static void ReadShapes(SqliteConnection connection, string nucid, List<TableShape> shapes, CancellationToken cancellationToken)
         {
             using (SqliteCommand command = connection.CreateCommand())
             {
@@ -6279,6 +6346,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     while (r.Read())
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         var shape = new TableShape
                         {
                             Id = Convert.ToInt32(r.GetValue(0), CultureInfo.InvariantCulture),
@@ -6319,6 +6387,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         while (r.Read())
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
                             t.Add(r.GetDouble(0));
                             d.Add(r.GetDouble(1));
                         }
@@ -6362,7 +6431,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                out DataSet minus, out DataSet plus,
                                Dictionary<int, List<KeyValuePair<double, string>>> levels,
                                List<double[]> alphas, List<double[]> g4, out double parentLevelKev,
-                               StringBuilder note)
+                               StringBuilder note, CancellationToken cancellationToken)
         {
             minus = plus = null;
             parentLevelKev = 0.0;
@@ -6378,6 +6447,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         while (r.Read())
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
                             sets.Add(new DataSet
                             {
                                 Id = Convert.ToInt32(r.GetValue(0), CultureInfo.InvariantCulture),
@@ -6405,6 +6475,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         {
                             while (r.Read())
                             {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 double hl = Convert.ToDouble(r.GetValue(1), CultureInfo.InvariantCulture);
                                 double d = Math.Abs(Math.Log(hl / parentHalfLife));
                                 if (d < best)
@@ -6432,7 +6503,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             continue;
                         }
 
-                        levels[set.Id] = ReadLevels(connection, set.Id);
+                        levels[set.Id] = ReadLevels(connection, set.Id, cancellationToken);
                     }
                 }
 
@@ -6452,6 +6523,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         while (r.Read())
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
                             alphas.Add(new[] { r.GetDouble(0), r.GetDouble(1) });
                         }
                     }
@@ -6480,6 +6552,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         {
                             while (r.Read())
                             {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 g4.Add(new[]
                                 {
                                     key, Convert.ToDouble(r.GetValue(0), CultureInfo.InvariantCulture) / 1000.0, r.GetDouble(1),
@@ -6495,7 +6568,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
-        static List<KeyValuePair<double, string>> ReadLevels(SqliteConnection connection, int datasetId)
+        static List<KeyValuePair<double, string>> ReadLevels(SqliteConnection connection, int datasetId, CancellationToken cancellationToken)
         {
             var list = new List<KeyValuePair<double, string>>();
             using (SqliteCommand command = connection.CreateCommand())
@@ -6511,6 +6584,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     while (r.Read())
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         if (!r.IsDBNull(0))
                         {
                             bool fed = !r.IsDBNull(2) && Convert.ToInt64(r.GetValue(2), CultureInfo.InvariantCulture) != 0;
@@ -6533,6 +6607,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     while (r.Read())
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         list.Add(new KeyValuePair<double, string>(-r.GetDouble(0), "E" + (r.IsDBNull(1) ? "" : r.GetString(1))));
                     }
                 }
@@ -6571,7 +6646,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// тяжёлых, где выход оже по K мал (ω_K ≥ 0.95), — и ниже нижнего узла сетки раздела.
         /// </summary>
         static void AddConversion(string nucid, int parentZ, int massNumber, List<double[]> gammas,
-                                  List<double[]> alphas, List<double[]> g4, List<FsaBeta> list, StringBuilder note)
+                                  List<double[]> alphas, List<double[]> g4, List<FsaBeta> list, StringBuilder note, CancellationToken cancellationToken)
         {
             if (g4.Count == 0)
             {
@@ -6583,6 +6658,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double total = 0.0;
             foreach (double[] gamma in gammas)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 double energy = gamma[0], intensity = gamma[1];
                 int z, a;
                 if (!(energy > MinConversionKev) || !(intensity > 0.0) || !Daughter((int)gamma[2], parentZ, massNumber, out z, out a))
@@ -6930,6 +7006,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static double Density(FsaBeta beta, double t)
         {
+            return Density(beta, t, CancellationToken.None);
+        }
+
+        static double Density(FsaBeta beta, double t, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             if (beta == null || beta.IsLine || !(t > 0.0) || !(t < beta.EndpointKev))
             {
                 return 0.0;
@@ -6953,7 +7035,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 // (`AMBER274`, полоса `a274L` 13.11.2026) F₀ → F₀L₀ заряженной сферы; λₖ ниже —
                 // отношение амплитуд, L₀ в нём не сидит, двойного учёта нет.
-                f *= CoulombSphere.FiniteSizeL0(beta.DaughterZ, beta.MassNumber, beta.Positron, p);
+                f *= CoulombSphere.FiniteSizeL0(beta.DaughterZ, beta.MassNumber, beta.Positron, p, cancellationToken);
             }
 
             if (FermiScreening && beta.DaughterZ > 0)
@@ -6968,7 +7050,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 ? Math.Max(0.0, beta.ShapeFactor[0] + beta.ShapeFactor[1] * w + beta.ShapeFactor[2] / w
                                 + beta.ShapeFactor[3] * w * w)
                 : (CoulombLambda && beta.DaughterZ > 0 && beta.UniqueOrder > 0 && (!beta.Positron || !CoulombLambdaPointNucleus)
-                    ? UniqueShapeCoulomb(beta.UniqueOrder, p, q, beta.DaughterZ, beta.MassNumber, w, beta.Positron)
+                    ? UniqueShapeCoulomb(beta.UniqueOrder, p, q, beta.DaughterZ, beta.MassNumber, w, beta.Positron, cancellationToken)
                     : UniqueShape(beta.UniqueOrder, p, q));
             double value = p * w * q * q * f * s;
             return value > 0.0 && !double.IsInfinity(value) ? value : 0.0;
@@ -7004,6 +7086,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>∫ N(T) dT и средняя энергия формы, кэВ (Симпсон, 2048 отрезков); у линии — 1 и её энергия.</summary>
         public static double Integral(FsaBeta beta, out double meanKev)
         {
+            return Integral(beta, out meanKev, CancellationToken.None);
+        }
+
+        static double Integral(FsaBeta beta, out double meanKev, CancellationToken cancellationToken)
+        {
             meanKev = double.NaN;
             if (beta == null || !(beta.EndpointKev > 0.0))
             {
@@ -7021,7 +7108,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             for (int i = 0; i <= Steps; i++)
             {
                 double t = i == 0 ? 1e-6 * beta.EndpointKev : (i == Steps ? beta.EndpointKev * (1.0 - 1e-9) : h * i);
-                double f = Density(beta, t);
+                double f = Density(beta, t, cancellationToken);
                 double c = i == 0 || i == Steps ? 1.0 : (i % 2 == 1 ? 4.0 : 2.0);
                 sum += c * f;
                 first += c * f * t;
@@ -7166,7 +7253,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// нормированный, как <see cref="UniqueShape"/>, на коэффициент при q²ⁿ (λ₁ = 1). λₖ —
         /// заряженной сферы (β⁻ и β⁺), при рычаге <see cref="CoulombLambdaPointNucleus"/> — точечного ядра.
         /// </summary>
-        static double UniqueShapeCoulomb(int n, double p, double q, int z, int massNumber, double w, bool positron)
+        static double UniqueShapeCoulomb(int n, double p, double q, int z, int massNumber, double w, bool positron, CancellationToken cancellationToken)
         {
             double lead = 1.0 / (Factorial(1) * Factorial(2 * n + 1));
             double s = 0.0;
@@ -7177,7 +7264,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     term *= CoulombLambdaPointNucleus
                         ? CoulombAmplitudeRatio(k + 1, z, massNumber, w, p)
-                        : CoulombSphere.Lambda(k + 1, z, massNumber, positron, p);
+                        : CoulombSphere.Lambda(k + 1, z, massNumber, positron, p, cancellationToken);
                 }
 
                 s += term;
@@ -7803,6 +7890,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static double[] Weights(EfficiencyMaker.ResponseElectronSection section, FsaBeta beta)
         {
+            return Weights(section, beta, CancellationToken.None);
+        }
+
+        internal static double[] Weights(EfficiencyMaker.ResponseElectronSection section, FsaBeta beta, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             if (section == null || beta == null)
             {
                 return null;
@@ -7856,8 +7949,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             else
             {
                 double mean;
-                double norm = Integral(beta, out mean);
-                w = section.NodeWeights(t => Density(beta, t), beta.EndpointKev);
+                double norm = Integral(beta, out mean, cancellationToken);
+                w = section.NodeWeights(t => Density(beta, t, cancellationToken), beta.EndpointKev);
                 if (norm > 0.0)
                 {
                     for (int k = 0; k < w.Length; k++)
@@ -7932,6 +8025,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static double FiniteSizeL0(int z, int massNumber, bool positron, double p)
         {
+            return FiniteSizeL0(z, massNumber, positron, p, CancellationToken.None);
+        }
+
+        internal static double FiniteSizeL0(int z, int massNumber, bool positron, double p, CancellationToken cancellationToken)
+        {
             if (z <= 0 || !(p > 0.0))
             {
                 return 1.0;
@@ -7947,7 +8045,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             if (table == null)
             {
-                table = FiniteSizeTable(z, massNumber, positron);
+                table = FiniteSizeTable(z, massNumber, positron, cancellationToken);
                 lock (Gate)
                 {
                     FiniteSizeTables[key] = table;
@@ -8002,10 +8100,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return patched;
         }
 
-        static double[] FiniteSizeTable(int z, int massNumber, bool positron)
+        static double[] FiniteSizeTable(int z, int massNumber, bool positron, CancellationToken cancellationToken)
         {
-            double[] minus1 = Table(-1, z, massNumber, positron);
-            double[] plus1 = Table(1, z, massNumber, positron);
+            double[] minus1 = Table(-1, z, massNumber, positron, cancellationToken);
+            double[] plus1 = Table(1, z, massNumber, positron, cancellationToken);
             double az = (positron ? -1.0 : 1.0) * FineStructure * z;
             double radius = Radius(massNumber);
             var table = new double[Nodes];
@@ -8044,12 +8142,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>λₖ сферы при импульсе p (единицы mₑc); k ≤ 1, Z ≤ 0 или p ≤ 0 — единица.</summary>
         public static double Lambda(int k, int z, int massNumber, bool positron, double p)
         {
+            return Lambda(k, z, massNumber, positron, p, CancellationToken.None);
+        }
+
+        internal static double Lambda(int k, int z, int massNumber, bool positron, double p, CancellationToken cancellationToken)
+        {
             if (k <= 1 || z <= 0 || !(p > 0.0))
             {
                 return 1.0;
             }
 
-            double[] lam = LambdaTable(k, z, massNumber, positron);
+            double[] lam = LambdaTable(k, z, massNumber, positron, cancellationToken);
             double x = (Math.Log(p) - LnPMin) / (LnPMax - LnPMin) * (Nodes - 1);
             if (x <= 0.0)
             {
@@ -8096,12 +8199,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return IsFinite(v) ? v : 1.0;
         }
 
-        static double[] LambdaTable(int k, int z, int massNumber, bool positron)
+        static double[] LambdaTable(int k, int z, int massNumber, bool positron, CancellationToken cancellationToken)
         {
-            double[] minus1 = Table(-1, z, massNumber, positron);
-            double[] plus1 = Table(1, z, massNumber, positron);
-            double[] minusK = Table(-k, z, massNumber, positron);
-            double[] plusK = Table(k, z, massNumber, positron);
+            double[] minus1 = Table(-1, z, massNumber, positron, cancellationToken);
+            double[] plus1 = Table(1, z, massNumber, positron, cancellationToken);
+            double[] minusK = Table(-k, z, massNumber, positron, cancellationToken);
+            double[] plusK = Table(k, z, massNumber, positron, cancellationToken);
             var lam = new double[Nodes];
             for (int i = 0; i < Nodes; i++)
             {
@@ -8111,7 +8214,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return lam;
         }
 
-        static double[] Table(int kappa, int z, int massNumber, bool positron)
+        static double[] Table(int kappa, int z, int massNumber, bool positron, CancellationToken cancellationToken = default(CancellationToken))
         {
             string key = z.ToString(CultureInfo.InvariantCulture) + "|" + massNumber.ToString(CultureInfo.InvariantCulture)
                          + "|" + (positron ? "+" : "-") + "|" + kappa.ToString(CultureInfo.InvariantCulture);
@@ -8133,10 +8236,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`AS80_Th232Medal`) стоял на этих таблицах ~12 с одного потока. Пул потоков, а не
             // планировщик разбора — таблицу строят внутри ячейки гистограммы, которую ждут другие
             // заходы (см. `FsaParallel.ForPure`).
-            FsaParallel.ForPure(Nodes, i =>
+            FsaParallel.ForPure(Nodes, cancellationToken, i =>
             {
                 double p = Math.Exp(LnPMin + (LnPMax - LnPMin) * i / (Nodes - 1));
-                table[i] = AmplitudeSquared(kappa, az, radius, Math.Sqrt(1.0 + p * p), 1.0);
+                table[i] = AmplitudeSquared(kappa, az, radius, Math.Sqrt(1.0 + p * p), 1.0, cancellationToken);
             });
 
             lock (Gate)
@@ -8154,6 +8257,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// удался (переполнение под барьером у медленного позитрона: плотность там нулевая).
         /// </summary>
         public static double AmplitudeSquared(int kappa, double az, double radius, double w, double reach)
+        {
+            return AmplitudeSquared(kappa, az, radius, w, reach, CancellationToken.None);
+        }
+
+        static double AmplitudeSquared(int kappa, double az, double radius, double w, double reach, CancellationToken cancellationToken)
         {
             double p = Math.Sqrt(Math.Max(0.0, w * w - 1.0));
             if (kappa == 0 || !(p > 0.0) || !(radius > 0.0))
@@ -8186,7 +8294,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // Дальность: ≥ 400 длин 1/p и область, где ВКБ по кулоновскому хвосту точен (|dP/dr|/P² ≤ 10⁻⁵).
             double rEnd = reach * Math.Max(400.0 / p, Math.Sqrt(Math.Abs(az) * w / (1.0e-5 * p * p * p)));
             rEnd = Math.Max(rEnd, 50.0 * radius);
-            if (!Integrate(kappa, az, radius, w, ref u, ref v, r0, radius) || !Integrate(kappa, az, radius, w, ref u, ref v, radius, rEnd))
+            if (!Integrate(kappa, az, radius, w, ref u, ref v, r0, radius, cancellationToken) || !Integrate(kappa, az, radius, w, ref u, ref v, radius, rEnd, cancellationToken))
             {
                 return double.NaN;
             }
@@ -8249,13 +8357,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>Дорман–Принс 5(4) с выбором шага; ложь — переполнение или исчерпан счётчик шагов.</summary>
-        static bool Integrate(int kappa, double az, double radius, double w, ref double u, ref double v, double from, double to)
+        static bool Integrate(int kappa, double az, double radius, double w, ref double u, ref double v, double from, double to, CancellationToken cancellationToken)
         {
             const double Tol = 1.0e-10;
             double r = from;
             double h = Math.Max(1e-3 * (to - from), 1e-6 * from);
             for (int guard = 0; guard < 2000000 && r < to; guard++)
             {
+                if ((guard & 63) == 0)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
                 if (r + h > to)
                 {
                     h = to - r;

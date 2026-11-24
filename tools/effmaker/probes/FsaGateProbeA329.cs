@@ -37,8 +37,8 @@ namespace BecquerelMonitor.Probes
     ///   В3 пики ВЫКЛ (кнопкой пиков) при кнопке FSA ВКЛ: результат забыт, причина «пики» в обоих
     ///      окнах, строк 0; обновление вида и окна — запусков 0;
     ///   В4 пики ВКЛ: разбор вернулся сам, окна со строками;
-    ///   В5 кнопка ВЫКЛ ПОСРЕДИ счёта (счёт стоит на задвижке проб): по окончании счёта результата
-    ///      нет (отброшен поколением), окна — «FSA выключен», строк 0;
+    ///   В5 кнопка ВЫКЛ останавливает начатый счёт на закрытой задвижке; при быстром ВЫКЛ → ВКЛ
+    ///      прежний анализатор покидает ядро, новый расчёт получает собственный результат;
     ///   В6 тексты: обе причины есть в en и ru и различаются;
     ///   В7 ворота не трогают пробы: признак ВЫКЛ, кнопка ВЫКЛ — сеанс считает, как прежде.
     ///
@@ -188,7 +188,7 @@ namespace BecquerelMonitor.Probes
 
             // В5 — кнопка ВЫКЛ посреди счёта
             Console.WriteLine();
-            Console.WriteLine("=== В5. кнопка ВЫКЛ посреди счёта: результат отброшен ===");
+            Console.WriteLine("=== В5. выключение останавливает начатый расчёт FSA ===");
             FieldInfo gateField = typeof(FsaAnalysisSession).GetField("probeGate", Any);
             if (gateField == null)
             {
@@ -197,20 +197,29 @@ namespace BecquerelMonitor.Probes
             }
             else
             {
-                var gate = new ManualResetEvent(false);
-                gateField.SetValue(null, gate);
-                a.FsaSession.Reset();
-                a.RefreshView();                                  // окна заказывают новый счёт — он стоит
-                Pump(300);
-                bool running = a.FsaSession.IsRunning;
-                Same("счёт идёт (стоит на задвижке)", true, running);
-                Invoke(a, "toolStripSplitButtonFsa_ButtonClick", null, EventArgs.Empty);
-                Same("галочка FSA ВЫКЛ", false, chart.FsaModeEnabled);
-                gateField.SetValue(null, null);
-                gate.Set();
-                WaitIdle(a.FsaSession);
-                Pump(800);
-                Same("досчитанный результат не опубликован", true, a.FsaSession.Result == null);
+                CloseRunningDocument(a, spectrum, nuclides, gateField, false);
+                CloseRunningDocument(a, spectrum, nuclides, gateField, true);
+                using (var gate = new ManualResetEvent(false))
+                {
+                    try
+                    {
+                        gateField.SetValue(null, gate);
+                        a.FsaSession.Reset();
+                        a.RefreshView();
+                        Pump(300);
+                        Same("задача запущена с закрытой задвижкой", true, a.FsaSession.IsRunning);
+                        Invoke(a, "toolStripSplitButtonFsa_ButtonClick", null, EventArgs.Empty);
+                        Same("галочка FSA ВЫКЛ", false, chart.FsaModeEnabled);
+                        Same("поток вышел при закрытой задвижке", true, WaitFor(() => !a.FsaSession.IsRunning, 3000));
+                    }
+                    finally
+                    {
+                        gateField.SetValue(null, null);
+                        gate.Set();
+                        WaitIdle(a.FsaSession);
+                    }
+                }
+                Same("отменённый расчёт оставил результат пустым", true, a.FsaSession.Result == null);
                 int runs4 = a.FsaSession.RunCount;
                 started = 0;
                 a.RefreshView();
@@ -218,6 +227,7 @@ namespace BecquerelMonitor.Probes
                 Pump(1000);
                 WaitIdle(a.FsaSession);
                 Silent("ВЫКЛ посреди счёта", a, runs4, report, results, offButton);
+                CancelAndRestart(a, report, results, offButton, offPeaks, gateField);
             }
 
             // В7 — пробы без ворот
@@ -253,6 +263,128 @@ namespace BecquerelMonitor.Probes
             Console.Out.Flush();
             Environment.Exit(bad == 0 ? 0 : 1);
             return bad == 0 ? 0 : 1;
+        }
+
+        static void CloseRunningDocument(DocEnergySpectrum a, string spectrum, NuclideDefinitionManager nuclides,
+                                        FieldInfo gateField, bool directDispose)
+        {
+            string action = directDispose ? "Dispose" : "CloseDocument";
+            Console.WriteLine("=== {0} дополнительной вкладки во время расчёта FSA ===", action);
+            DocumentManager documents = DocumentManager.GetInstance();
+            var savedResult = a.FsaSession.Result;
+            int savedRuns = a.FsaSession.RunCount;
+            DocEnergySpectrum b = null;
+            using (var gate = new ManualResetEvent(false))
+            {
+                try
+                {
+                    gateField.SetValue(null, gate);
+                    b = Open(spectrum, nuclides);
+                    documents.DocumentList.Add(b);
+                    bool closed = false;
+                    b.FormClosed += (sender, e) => closed = true;
+                    // При наличии HWND штатный Form.Close проходит через FormClosed.
+                    Same(action + ": создано окно B", true, b.Handle != IntPtr.Zero);
+                    var session = b.FsaSession;
+                    ResultData source = b.ActiveResultData;
+                    session.EnsureUpToDate(source, false);
+                    Same(action + ": B начал расчёт с закрытой задвижкой", true,
+                         WaitFor(() => session.RunCount > 0 && session.IsRunning, 3000));
+                    if (directDispose)
+                    {
+                        b.Dispose();
+                    }
+                    else
+                    {
+                        documents.CloseDocument(b);
+                        Same(action + ": вызван FormClosed", true, closed);
+                    }
+                    Same(action + ": вкладка B освобождена", true, b.IsDisposed);
+                    Same(action + ": расчёт B завершился до открытия задвижки", true,
+                         WaitFor(() => !session.IsRunning, 3000));
+                    Same(action + ": вкладка B не опубликовала результат", true, session.Result == null);
+                    int runsAtClose = session.RunCount;
+                    session.EnsureUpToDate(source, false);
+                    Same(action + ": устаревший запрос не запустил B снова", runsAtClose, session.RunCount);
+                    Same(action + ": сеанс B остался свободен", false, session.IsRunning);
+                    Same(action + ": вкладка A открыта с прежним результатом", true,
+                         documents.DocumentList.Contains(a) && !a.IsDisposed && savedResult != null
+                         && ReferenceEquals(a.FsaSession.Result, savedResult) && a.FsaSession.RunCount == savedRuns);
+                }
+                finally
+                {
+                    gateField.SetValue(null, null);
+                    gate.Set();
+                    if (b != null)
+                    {
+                        WaitIdle(b.FsaSession);
+                        documents.DocumentList.Remove(b);
+                        if (!b.IsDisposed) b.Dispose();
+                    }
+                }
+            }
+        }
+
+        // В5б. Удержим старый расчёт уже в AnalyzeCore и включим FSA обратно до выхода рабочего
+        // потока. Новый расчёт ждёт отдельно, поэтому счётчик AnalyzeOnce может вырасти только
+        // у старого. Отсутствие старого результата само по себе отмену не доказывает.
+        static void CancelAndRestart(DocEnergySpectrum a, FSAReportView report, DCResultView results,
+                                     string offButton, string offPeaks, FieldInfo gateField)
+        {
+            var session = a.FsaSession;
+            using (var inCore = new ManualResetEvent(false))
+            using (var resumeCore = new ManualResetEvent(false))
+            using (var newJob = new ManualResetEvent(false))
+            {
+                Action<string> priorTrace = FsaAnalyzer.ProbeCoreTrace;
+                int priorParallelMode = FsaAnalyzer.CoreParallelMode;
+                int armed = 1;
+                try
+                {
+                    // У параллельной копии сообщение CORE доставляется уже после её вычислений.
+                    // Здесь нужна точка строго перед AnalyzeOnce того же рабочего потока.
+                    FsaAnalyzer.CoreParallelMode = 0;
+                    FsaAnalyzer.ProbeCoreTrace = line =>
+                    {
+                        if (line.StartsWith("CORE\t", StringComparison.Ordinal) && Interlocked.Exchange(ref armed, 0) == 1)
+                        {
+                            inCore.Set();
+                            resumeCore.WaitOne(TimeSpan.FromSeconds(timeoutS));
+                        }
+                    };
+                    Invoke(a, "toolStripSplitButtonFsa_ButtonClick", null, EventArgs.Empty);
+                    bool atCore = WaitFor(() => inCore.WaitOne(0), timeoutS * 1000);
+                    Same("старый расчёт вошёл в AnalyzeCore", true, atCore);
+                    if (!atCore) return;
+
+                    int oldRuns = session.RunCount;
+                    long onceAtOff = FsaAnalyzer.OncePassCount;
+                    gateField.SetValue(null, newJob);
+                    Invoke(a, "toolStripSplitButtonFsa_ButtonClick", null, EventArgs.Empty); // OFF
+                    Invoke(a, "toolStripSplitButtonFsa_ButtonClick", null, EventArgs.Empty); // сразу ON
+                    resumeCore.Set();
+                    bool restarted = WaitFor(() => session.RunCount > oldRuns, 3000);
+                    Same("после быстрого ВЫКЛ → ВКЛ новый расчёт запущен", true, restarted);
+                    Same("отменённое ядро не начало следующий AnalyzeOnce", onceAtOff, FsaAnalyzer.OncePassCount);
+                    Same("в ожидании нового расчёта результат пуст", true, session.Result == null);
+                    gateField.SetValue(null, null);
+                    newJob.Set();
+                    Alive("быстрое ВЫКЛ → ВКЛ", a, oldRuns, report, results, offButton, offPeaks);
+                }
+                finally
+                {
+                    FsaAnalyzer.ProbeCoreTrace = priorTrace;
+                    FsaAnalyzer.CoreParallelMode = priorParallelMode;
+                    gateField.SetValue(null, null);
+                    resumeCore.Set();
+                    newJob.Set();
+                    if (GlobalConfigManager.GetInstance().GlobalConfig.ChartViewConfig.FsaModeEnabled)
+                    {
+                        Invoke(a, "toolStripSplitButtonFsa_ButtonClick", null, EventArgs.Empty);
+                    }
+                    WaitIdle(session);
+                }
+            }
         }
 
         // ---- В0, В6 ----
@@ -380,6 +512,13 @@ namespace BecquerelMonitor.Probes
                 bad++;
                 Console.WriteLine("  ⛔  {0}: ждали {1}, вышло {2}", what, expected, actual);
             }
+        }
+
+        static bool WaitFor(Func<bool> condition, int milliseconds)
+        {
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            while (!condition() && timer.ElapsedMilliseconds < milliseconds) Pump(10);
+            return condition();
         }
 
         static void WaitIdle(FsaAnalysisSession session)

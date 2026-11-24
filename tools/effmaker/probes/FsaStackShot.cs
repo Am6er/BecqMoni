@@ -9,6 +9,7 @@ using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 using System.Xml.Serialization;
 
@@ -1054,6 +1055,7 @@ namespace FsaStackShot
             }
 
             const int left = 1;
+            using (var calculation = showCalculating ? new CancellationTokenSource() : null)
             using (var view = new EnergySpectrumView())
             using (var image = new Bitmap(width, height))
             {
@@ -1126,7 +1128,7 @@ namespace FsaStackShot
                 // ошибка, которой этот проект уже болел.
                 if (showCalculating)
                 {
-                    Field(overlay.GetType(), "running").SetValue(overlay, true);
+                    Field(overlay.GetType(), "activeCancellation").SetValue(overlay, calculation);
                     Field(overlay.GetType(), "status").SetValue(overlay,
                           BecquerelMonitor.Properties.Resources.FSACalculating);
                 }

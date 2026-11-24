@@ -105,7 +105,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         FsaResult result;
         ResultData resultSource;
         string stamp = "";
-        bool running;
+        CancellationTokenSource activeCancellation;
+        bool documentClosed;
         string status;
 
         /// <summary>Снимок, ожидающий окончания текущего счёта (не более одного).</summary>
@@ -312,7 +313,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 lock (this.sync)
                 {
-                    return this.running || this.withheldJob != null;
+                    return this.activeCancellation != null || this.withheldJob != null;
                 }
             }
         }
@@ -454,13 +455,31 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         {
             lock (this.sync)
             {
-                this.result = null;
-                this.resultSource = null;
-                this.stamp = "";
-                this.pending = null;
-                this.status = null;
-                this.DropWithheld();
-                this.generation++;
+                this.ResetLocked();
+            }
+        }
+
+        void ResetLocked()
+        {
+            this.result = null;
+            this.resultSource = null;
+            this.stamp = "";
+            this.pending = null;
+            this.status = null;
+            this.DropWithheld();
+            this.generation++;
+        }
+
+        // Отмена при глобальном Off опережает сохранение настроек и перерисовку окон.
+        internal void CancelRunningCalculation(bool documentClosed = false)
+        {
+            lock (this.sync)
+            {
+                this.documentClosed |= documentClosed;
+                this.ResetLocked();
+                this.activeStamp = null;
+                this.lastStartUtc = DateTime.MinValue;
+                this.activeCancellation?.Cancel();
             }
         }
 
@@ -493,7 +512,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             string currentStamp = this.StampOf(resultData, subtractBackground, FsaCalculationOptions.Of(resultData));
             lock (this.sync)
             {
-                return !this.running && this.withheldJob == null && currentStamp == this.stamp;
+                return this.activeCancellation == null && this.withheldJob == null && currentStamp == this.stamp;
             }
         }
 
@@ -556,7 +575,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     lock (this.sync)
                     {
-                        bool same = currentStamp == this.stamp || (this.running && currentStamp == this.activeStamp);
+                        bool same = currentStamp == this.stamp || (this.activeCancellation != null && currentStamp == this.activeStamp);
                         if (!same && (Clock() - this.lastStartUtc).TotalSeconds < interval)
                         {
                             return;
@@ -568,6 +587,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             int myGeneration;
             lock (this.sync)
             {
+                if (this.documentClosed)
+                {
+                    return;
+                }
+
                 // (П261) Счёт ЭТОГО ЖЕ снимка отложен до конца поиска пиков — второй не нужен:
                 // ответ даст конец поиска (`PeakSearchEnded`). Снимок сменился (пики пришли,
                 // настройки, спектр) — отложенный счёт больше никому не отвечает.
@@ -581,7 +605,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     this.DropWithheld();
                 }
 
-                if (this.running)
+                if (this.activeCancellation != null)
                 {
                     // Считается ровно это — очередь не нужна (и если там
                     // лежало что-то другое, оно больше не нужно тоже).
@@ -628,6 +652,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // прежнем результате»). Отпечаток сбрасывается: следующий заказ подготовит
                     // снимок заново (как и прежде — каждый), и возврат входных данных к
                     // прежним не упрётся в отпечаток разбора, которого больше нет.
+                    if (myGeneration != this.generation || this.OffReason != FsaOffReason.None)
+                    {
+                        return;
+                    }
                     this.result = null;
                     this.resultSource = resultData;
                     this.stamp = "";
@@ -639,7 +667,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             lock (this.sync)
             {
-                if (this.running)
+                if (myGeneration != this.generation || this.OffReason != FsaOffReason.None)
+                {
+                    return;
+                }
+                if (this.activeCancellation != null)
                 {
                     // Очередь из одного места: последний снимок вытесняет
                     // предыдущий (критерий 10).
@@ -682,12 +714,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Запуск под <see cref="sync"/>.</summary>
         void Start(Job job)
         {
-            this.running = true;
+            this.activeCancellation = new CancellationTokenSource();
+            CancellationToken cancellation = this.activeCancellation.Token;
+            job.Analyzer.CancellationToken = cancellation;
             this.runCount++;
             this.activeStamp = job.Stamp;
             this.lastStartUtc = Clock();
             this.status = Properties.Resources.FSACalculating;
-            Task.Run(() => this.Compute(job));
+            Task.Run(() => this.Compute(job, cancellation));
         }
 
         /// <summary>
@@ -1157,7 +1191,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>Фоновая половина: библиотека, разбор, публикация.</summary>
-        void Compute(Job job)
+        void Compute(Job job, CancellationToken cancellation)
         {
             FsaResult computed = null;
             string message = null;
@@ -1174,8 +1208,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 WaitHandle gate = probeGate;
                 if (gate != null)
                 {
-                    gate.WaitOne();
+                    WaitHandle.WaitAny(new[] { gate, cancellation.WaitHandle });
                 }
+                cancellation.ThrowIfCancellationRequested();
 
                 // ⛔ Сборка библиотеки здесь ОДНА на обе ветки, и вторую
                 // заводить нельзя. Развилка касается только того, ОТКУДА
@@ -1211,16 +1246,16 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     job.Options.ApplyTo(spec);
                     Trace.WriteLine("FSA composition: nuclide set, chains " + setChains.Count
                                     + ", nuclides " + setNuclides.Count);
-                    library = FsaSampleLibrary.Build(spec);
+                    library = FsaSampleLibrary.Build(spec, cancellation);
                     declaredBySet = true;
                 }
                 else if (job.Options.DbLookups)
                 {
-                    FsaSampleSpec spec = FsaCompositionInference.Infer(job.Peaks, job.CompositionInput, out inferred);
+                    FsaSampleSpec spec = FsaCompositionInference.Infer(job.Peaks, job.CompositionInput, out inferred, cancellation);
                     job.Options.ApplyTo(spec);
                     Trace.WriteLine("FSA composition: " + inferred);
                     shortfall = Shortfall(inferred);
-                    library = FsaSampleLibrary.Build(spec);
+                    library = FsaSampleLibrary.Build(spec, cancellation);
                 }
                 else
                 {
@@ -1230,7 +1265,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                                 job.Options.ChainEquilibrium, job.Options.AtomicXray);
                     job.Options.ApplyTo(spec);
                     FsaLibrary.LabelReport labels;
-                    library = FsaLibrary.BuildFromLabels(job.Peaks, job.Definitions, spec, out labels);
+                    library = FsaLibrary.BuildFromLabels(job.Peaks, job.Definitions, spec, out labels, cancellation);
                     Trace.WriteLine("FSA composition: " + labels);
                 }
 
@@ -1243,9 +1278,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     // (П254) Доли «свой распад на единицу амплитуды» у членов рядов —
                     // по библиотеке ДО разбора: анализатор строит из неё свои копии.
-                    Dictionary<string, double> memberRatios = MemberActivityRatiosOf(library, job.Definitions);
+                    Dictionary<string, double> memberRatios = MemberActivityRatiosOf(library, job.Definitions, cancellation);
                     computed = job.Analyzer.Analyze(job.Spectrum, job.Background, job.FwhmCalibration,
                                                     library, job.Efficiency);
+                    cancellation.ThrowIfCancellationRequested();
                     if (computed != null)
                     {
                         RememberMemberActivityRatios(computed, memberRatios);
@@ -1260,18 +1296,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                         // (`S187`) Расхождения поставок у нуклидов состава — здесь,
                         // в фоне: чтение базы не должно идти в окне отчёта.
-                        computed.SupplyDiscrepancies = FsaCascadeSummer.SupplyDiscrepanciesOf(computed);
+                        computed.SupplyDiscrepancies = FsaCascadeSummer.SupplyDiscrepanciesOf(computed, cancellation);
 
                         // (`AMBER236`) Изотопный состав элемента (обеднённый уран) — тоже
                         // в фоне: читается база.
-                        computed.IsotopeRatios = FsaSampleLibrary.IsotopeRatiosOf(computed, job.Analyzer.LimitQuantileK);
+                        computed.IsotopeRatios = FsaSampleLibrary.IsotopeRatiosOf(computed, job.Analyzer.LimitQuantileK, cancellation);
 
                         // (`AMBER221`) родители сета вне состава — строкой отчёта;
                         // состав, объявленный сетом, их не теряет по построению
                         if (!declaredBySet)
                         {
                             computed.SetOmissions.AddRange(FsaCompositionInference.SetOmissions(
-                                job.Set, job.Definitions, inferred, job.Peaks, library));
+                                job.Set, job.Definitions, inferred, job.Peaks, library, cancellation));
                         }
                     }
 
@@ -1302,6 +1338,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                         + (job.Analyzer.RefusalNote != null ? " — " + job.Analyzer.RefusalNote : ""));
                     }
                 }
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            {
+                // Finish освобождает сеанс и запускает новый заказ, если FSA уже включили снова.
             }
             catch (Exception ex)
             {
@@ -1353,7 +1393,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (<see cref="FsaLine.Nuclide"/>), то есть имя строки результата члена.
         /// </summary>
         static Dictionary<string, double> MemberActivityRatiosOf(List<FsaComponent> library,
-                                                                 List<NuclideDefinition> definitions)
+                                                                 List<NuclideDefinition> definitions, CancellationToken cancellation)
         {
             var ratios = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
             if (library == null)
@@ -1366,10 +1406,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 var report = new FsaSampleLibrary.Report();
                 foreach (FsaComponent component in library)
                 {
+                    cancellation.ThrowIfCancellationRequested();
                     // (`AMBER274`, Ф14) у строки по сплошному спектру линий нет — доля по бете
                     if (component != null && component.BetaOnly)
                     {
-                        BetaOnlyRatios(component, definitions, ratios);
+                        BetaOnlyRatios(component, definitions, ratios, cancellation);
                         continue;
                     }
 
@@ -1394,6 +1435,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     foreach (KeyValuePair<string, List<FsaLine>> member in members)
                     {
+                        cancellation.ThrowIfCancellationRequested();
                         string nucid = FsaSampleLibrary.NucidOf(member.Key);
                         if (nucid.Length == 0 || ratios.ContainsKey(member.Key)
                             || !IsChainMember(component, nucid, definitions))
@@ -1401,13 +1443,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             continue;
                         }
 
-                        List<double[]> own = FsaSampleLibrary.DecayLines(nucid, report);
+                        List<double[]> own = FsaSampleLibrary.DecayLines(nucid, report, cancellation);
                         if (own == null || own.Count == 0)
                         {
                             continue;
                         }
 
-                        double ratio = DominantRatio(member.Value, own);
+                        double ratio = DominantRatio(member.Value, own, cancellation);
                         if (ratio > 0.0 && !double.IsInfinity(ratio))
                         {
                             ratios[member.Key] = ratio;
@@ -1415,7 +1457,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!cancellation.IsCancellationRequested)
             {
                 // Без доли строка члена остаётся в распадах корня — как до П254; молча нельзя.
                 Trace.WriteLine("FSA member activity ratios failed: " + ex);
@@ -1432,7 +1474,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// строка ряда Sr-90 при выключенном равновесии печатает Y-90 в его собственных распадах.
         /// </summary>
         static void BetaOnlyRatios(FsaComponent component, List<NuclideDefinition> definitions,
-                                   Dictionary<string, double> ratios)
+                                   Dictionary<string, double> ratios, CancellationToken cancellation)
         {
             var inImage = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
             foreach (FsaBeta beta in component.Betas)
@@ -1446,6 +1488,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             foreach (KeyValuePair<string, double> member in inImage)
             {
+                cancellation.ThrowIfCancellationRequested();
                 string nucid = FsaSampleLibrary.NucidOf(member.Key);
                 if (nucid.Length == 0 || ratios.ContainsKey(member.Key) || !IsChainMember(component, nucid, definitions))
                 {
@@ -1453,7 +1496,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 double own = 0.0;
-                foreach (FsaBeta beta in FsaBetaLibrary.Branches(nucid))
+                foreach (FsaBeta beta in FsaBetaLibrary.Branches(nucid, cancellation))
                 {
                     if (!beta.IsLine && beta.Intensity > 0.0)
                     {
@@ -1479,11 +1522,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// по меткам — выходы базы, отношение единица; рукописная линия нуклида без базы
         /// сюда не доходит: собственных линий у него нет.
         /// </summary>
-        static double DominantRatio(List<FsaLine> lines, List<double[]> own)
+        static double DominantRatio(List<FsaLine> lines, List<double[]> own, CancellationToken cancellation)
         {
             var pairs = new List<KeyValuePair<double, double>>();
             foreach (FsaLine line in lines)
             {
+                cancellation.ThrowIfCancellationRequested();
                 if (!(line.Intensity > 0.0))
                 {
                     continue;
@@ -1638,15 +1682,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         void Finish(Job job, FsaResult computed, string message)
         {
             bool idle;
+            bool cancelled;
             lock (this.sync)
             {
-                this.running = false;
+                cancelled = this.activeCancellation.IsCancellationRequested;
+                this.activeCancellation.Dispose();
+                this.activeCancellation = null;
                 this.activeStamp = null;
                 Job next = this.pending;
                 this.pending = null;
                 bool withheld = false;
 
-                if (next == null && job.Generation == this.generation)
+                if (!cancelled && next == null && job.Generation == this.generation)
                 {
                     // ⛔ (П261) Снимок снят БЕЗ ПИКОВ, а пики этого спектра ещё ищутся — счёт
                     // отвечает на вопрос, которого через секунду не будет. Публиковать его
@@ -1695,7 +1742,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 // (`AMBER315`, a315f) чистка после разбора — см. CompactHeapAfterAnalysis; результат уже отдан
-                if (CompactHeapAfterAnalysis)
+                if (CompactHeapAfterAnalysis && !cancelled)
                 {
                     System.Runtime.GCSettings.LargeObjectHeapCompactionMode =
                         System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
@@ -1890,7 +1937,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 if (!searched || job.Generation != this.generation)
                 {
                     // счёт никому не отвечает; «считается…» прежнего снимка не оставлять
-                    if (!this.running && this.result == null)
+                    if (this.activeCancellation == null && this.result == null)
                     {
                         this.status = null;
                     }
@@ -1912,7 +1959,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             lock (this.sync)
             {
-                if (this.running || this.pending != null || this.withheldJob != null || job.Generation != this.generation)
+                if (this.activeCancellation != null || this.pending != null || this.withheldJob != null || job.Generation != this.generation)
                 {
                     // за это время заказали новый счёт — он и ответит
                     return;

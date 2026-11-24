@@ -1149,6 +1149,7 @@ namespace FsaReportViewProbe
         {
             Console.WriteLine();
             Console.WriteLine("=== состояния: СТРОКА НАД таблицей и содержимое таблицы ===");
+            using (var calculation = new CancellationTokenSource())
             using (var report = new FSAReportView(mainForm))
             {
                 // ⛔ ЧТО ИМЕННО ПОВЕРЯЕТСЯ ПОСЛЕ 07.09.2026. Признак «идёт
@@ -1161,7 +1162,8 @@ namespace FsaReportViewProbe
                 var session = new FsaAnalysisSession();
                 ResultData rd = doc.ActiveResultData;
 
-                Field(session, "running").SetValue(session, true);
+                FieldInfo active = Field(session, "activeCancellation");
+                active.SetValue(session, calculation);
                 Field(session, "status").SetValue(session, BecquerelMonitor.Properties.Resources.FSACalculating);
                 report.SetProbeSource(session, rd);
                 Same("первый расчёт идёт: строка состояния «идёт расчёт»",
@@ -1170,7 +1172,6 @@ namespace FsaReportViewProbe
                      0, report.ReportTable.TableModel.Rows.Count);
 
                 Plant(session, doc.FsaSession.Result, "old");
-                Field(session, "running").SetValue(session, true);
                 report.RefreshReport();
                 int rows = report.ReportTable.TableModel.Rows.Count;
                 Same("пересчёт при старом результате: строка состояния «идёт расчёт»",
@@ -1179,7 +1180,7 @@ namespace FsaReportViewProbe
                      FsaReportRowKind.Layer, ((FsaReportRow)report.ReportTable.TableModel.Rows[0].Tag).Kind);
                 Same("старые строки остались (их больше одной)", true, rows > 1);
 
-                Field(session, "running").SetValue(session, false);
+                active.SetValue(session, null);
                 report.RefreshReport();
                 Same("расчёт завершён: строка состояния «завершён»",
                      BecquerelMonitor.Properties.Resources.FSAStatusCompleted, status.Text);
@@ -3422,7 +3423,6 @@ namespace FsaReportViewProbe
         {
             Field(session, "result").SetValue(session, result);
             Field(session, "stamp").SetValue(session, stamp);
-            Field(session, "running").SetValue(session, false);
             Field(session, "status").SetValue(session, null);
         }
 

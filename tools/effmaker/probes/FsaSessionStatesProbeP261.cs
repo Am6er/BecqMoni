@@ -216,9 +216,16 @@ namespace BecquerelMonitor.Probes
                 // поток окон ЗАНЯТ (раскладка, отрисовка), пока первый проход сеанса не кончится:
                 // очередь сообщений стоит, фоновый счёт идёт
                 bool queued = (bool)Field(typeof(DCPeakDetectionView), "refreshPending").GetValue(peaks);
-                FieldInfo running = typeof(FsaAnalysisSession).GetField("running", Any);
+                // IsRunning включает и отложенную до конца поиска работу. Здесь ждём только поток.
+                FieldInfo worker = typeof(FsaAnalysisSession).GetField("activeCancellation", Any)
+                                   ?? Field(typeof(FsaAnalysisSession), "running");
+                bool WorkerActive()
+                {
+                    object state = worker.GetValue(doc.FsaSession);
+                    return state is bool running ? running : state != null;
+                }
                 DateTime blockStart = DateTime.UtcNow;
-                while ((bool)running.GetValue(doc.FsaSession) && (DateTime.UtcNow - blockStart).TotalSeconds < 120)
+                while (WorkerActive() && (DateTime.UtcNow - blockStart).TotalSeconds < 120)
                 {
                     Thread.Sleep(20);
                 }

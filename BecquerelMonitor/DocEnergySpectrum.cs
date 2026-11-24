@@ -370,14 +370,15 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Документ закрывается — идущий счёт по возвращении обязан промолчать
-        /// (поколение), а его результат никому больше не нужен.
+        /// Остановить FSA при закрытии вкладки, в том числе при прямом вызове Dispose.
+        /// После закрытия глобальный выключатель уже не найдёт этот документ.
         /// </summary>
-        protected override void OnFormClosed(FormClosedEventArgs e)
+        void CloseFsaSession(object sender, EventArgs e)
         {
+            this.FormClosed -= this.CloseFsaSession;
+            this.Disposed -= this.CloseFsaSession;
             this.fsaSession.Completed -= this.FsaSessionCompleted;
-            this.fsaSession.Reset();
-            base.OnFormClosed(e);
+            this.fsaSession.CancelRunningCalculation(documentClosed: true);
         }
 
         // Token: 0x0600031F RID: 799 RVA: 0x0000F8A8 File Offset: 0x0000DAA8
@@ -398,6 +399,8 @@ namespace BecquerelMonitor
             // (`AMBER329`) ворота разбора — правило показа FSA этой вкладки (кнопка FSA и пики)
             this.fsaSession.OffReasonSource = this.FsaOffReasonNow;
             this.fsaSession.Completed += this.FsaSessionCompleted;
+            this.FormClosed += this.CloseFsaSession;
+            this.Disposed += this.CloseFsaSession;
             this.toolTip1.SetToolTip(this.view, AppUi.WrapTip(this.toolTip1.GetToolTip(this.energySpectrumView1)));
             this.energySpectrumView1.Controls.Add(this.view);
             this.resultDataFile = new ResultDataFile();
@@ -1981,7 +1984,7 @@ namespace BecquerelMonitor
         // (<see cref="IsFsaShownBy"/>), и ворота стоят в самом сеансе
         // (`FsaAnalysisSession.EnsureUpToDate`), через который заказывают все три
         // потребителя — график, окно отчёта, окно результата. Вне ворот документ сбрасывает
-        // результат (идущий счёт по возвращении промолчит — поколение сеанса), окна пишут
+        // результат. При глобальном Off также отменяется уже начатый расчёт. Окна пишут
         // причину; при открытии ворот окна заказывают разбор сами, по
         // <see cref="FsaSwitchChanged"/>.
         // ====================================================================
@@ -2069,13 +2072,21 @@ namespace BecquerelMonitor
         {
             GlobalConfigManager manager = GlobalConfigManager.GetInstance();
             manager.GlobalConfig.ChartViewConfig.FsaModeEnabled = enabled;
+            List<DocEnergySpectrum> documents = OpenDocuments(origin);
+            if (!enabled)
+            {
+                foreach (DocEnergySpectrum document in documents)
+                {
+                    document.FsaSession.CancelRunningCalculation();
+                }
+            }
             if (FullSpectrumAnalysis.FsaCalculationOptions.ApplicationSource != null)
             {
                 manager.SaveConfigFile();
             }
 
             int changed = 0;
-            foreach (DocEnergySpectrum document in OpenDocuments(origin))
+            foreach (DocEnergySpectrum document in documents)
             {
                 FsaLinkStep step = document.ApplyFsaLink();
                 if (step == FsaLinkStep.None)

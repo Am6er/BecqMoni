@@ -1,6 +1,7 @@
 ﻿using BecquerelMonitor.EfficiencyMaker;
 using Microsoft.Data.Sqlite;
 using System;
+using System.Threading;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -806,6 +807,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static List<CascadeAtomicData.SupplyDiscrepancy> SupplyDiscrepanciesOf(FsaResult result)
         {
+            return SupplyDiscrepanciesOf(result, CancellationToken.None);
+        }
+
+        internal static List<CascadeAtomicData.SupplyDiscrepancy> SupplyDiscrepanciesOf(FsaResult result, CancellationToken cancellationToken)
+        {
             var found = new List<CascadeAtomicData.SupplyDiscrepancy>();
             if (result == null || result.Components == null)
             {
@@ -821,7 +827,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                CascadeAtomicData atomic = CascadeAtomicData.Of(nucid);
+                CascadeAtomicData atomic = CascadeAtomicData.Of(nucid, cancellationToken);
                 if (atomic == null || atomic.Failed || atomic.Discrepancies == null)
                 {
                     continue;
@@ -851,6 +857,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public const double DefaultCoincidenceWindowSec = 1.0E-6;
 
+        readonly CancellationToken cancellationToken;
         readonly ResponseMatrix matrix;
         readonly double[] peakAtNode;
         readonly double[] totalAtNode;
@@ -876,8 +883,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         FsaCascadeSummer(ResponseMatrix matrix, double[] peakAtNode, double[] totalAtNode,
                          MaterialDatabase.LightYieldCurve light, double windowSec,
                          bool withXrays, bool withAnnihilation, bool withIsomers,
-                         bool withTimeProbability)
+                         bool withTimeProbability, CancellationToken cancellationToken)
         {
+            this.cancellationToken = cancellationToken;
             this.matrix = matrix;
             this.peakAtNode = peakAtNode;
             this.totalAtNode = totalAtNode;
@@ -1158,6 +1166,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                               bool withAnnihilation, bool withIsomers,
                                               bool withTimeProbability)
         {
+            return Create(matrix, scintillator, windowSec, withXrays, withAnnihilation, withIsomers, withTimeProbability, CancellationToken.None);
+        }
+
+        internal static FsaCascadeSummer Create(ResponseMatrix matrix, string scintillator,
+                                              double windowSec, bool withXrays,
+                                              bool withAnnihilation, bool withIsomers,
+                                              bool withTimeProbability, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             if (matrix == null || !matrix.HasChannels || matrix.Energies == null
                 || matrix.Energies.Length == 0 || matrix.Rows == null)
             {
@@ -1175,6 +1192,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] total = new double[nodes];
             for (int i = 0; i < nodes; i++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 // (`AMBER145`, П199) Пиковая эффективность — ПО РАЗРЕШЕНИЮ (допуск
                 // ПШПВ/2 геометрии, определение кривой; блок EPRS формата 11), а не
                 // Σ канала `Peak` (допуск полубином): истории с недобором 1…7 кэВ
@@ -1207,7 +1225,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             return new FsaCascadeSummer(matrix, peak, total, curve, windowSec,
                                         withXrays, withAnnihilation, withIsomers,
-                                        withTimeProbability);
+                                        withTimeProbability, cancellationToken);
         }
 
         /// <summary>
@@ -1617,6 +1635,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // линии разных дочерних, и мешать их каскады нельзя.
             foreach (string nuclide in DistinctNuclides(component))
             {
+                this.cancellationToken.ThrowIfCancellationRequested();
                 NuclideData data = Data(nuclide);
                 if (data == null)
                 {
@@ -1876,6 +1895,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double strongestPair = 0.0;
             foreach (double[] pair in data.Pairs)
             {
+                this.cancellationToken.ThrowIfCancellationRequested();
                 double pairArea = scale * this.PairArea(data, pair);
                 if (pairArea > strongestPair)
                 {
@@ -1886,6 +1906,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double tripleFloor = strongestPair * SumPeakFloor;
             foreach (double[] pair in data.Pairs)
             {
+                this.cancellationToken.ThrowIfCancellationRequested();
                 // Энергия сумм-пика — ВИДИМАЯ (по свету, S20): именно на это
                 // место шкалы событие ложится, и именно с этим местом надо
                 // сверять окна линий компонента.
@@ -3542,6 +3563,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var weighted = new Dictionary<int, double>();
             foreach (int level in walk.Descending)
             {
+                this.cancellationToken.ThrowIfCancellationRequested();
                 double population;
                 walk.Population.TryGetValue(level, out population);
                 double came, carried;
@@ -3859,14 +3881,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return ready;
             }
 
-            NuclideData raw = BaseData(key);
+            NuclideData raw = BaseData(key, this.cancellationToken);
             ready = this.Augment(key, raw);
             this.augmented[key] = ready;
             return ready;
         }
 
         /// <summary>Поставка SandiaDecay как есть; кэш общий на процесс.</summary>
-        static NuclideData BaseData(string key)
+        static NuclideData BaseData(string key, CancellationToken cancellationToken = default(CancellationToken))
         {
             lock (Gate)
             {
@@ -3881,7 +3903,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // КЛАДЁТСЯ: прежде занятая в миг первого разбора база оставляла
                 // нуклид без поправки на совпадения до перезапуска программы.
                 int failuresBefore = FsaDatabaseFailures.ThreadCount;
-                data = Load(key);
+                cancellationToken.ThrowIfCancellationRequested();
+                data = Load(key, cancellationToken);
                 if (data != null && FsaDatabaseFailures.ThreadCount == failuresBefore)
                 {
                     Cache[key] = data;
@@ -3955,7 +3978,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                    + sandiaState;
         }
 
-        static NuclideData Load(string key)
+        static NuclideData Load(string key, CancellationToken cancellationToken)
         {
             NuclideData data = new NuclideData
             {
@@ -3995,6 +4018,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         {
                             while (reader.Read())
                             {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 data.Intensity[reader.GetDouble(0)] = reader.GetDouble(1);
                             }
                         }
@@ -4006,6 +4030,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         {
                             while (reader.Read())
                             {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 data.Pairs.Add(new[]
                                 {
                                     reader.GetDouble(0), reader.GetDouble(1), reader.GetDouble(2)
@@ -4015,7 +4040,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
-            catch (Exception error)
+            catch (Exception error) when (!(error is OperationCanceledException))
             {
                 // База читается только ради поправки: не прочлась — работаем
                 // без неё, как работали до неё. Но МОЛЧА этого делать нельзя:
@@ -4041,8 +4066,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`AMBER144`, П193) Перед этим — пары изомера ДОЧЕРНЕГО ядра,
             // которые поставка держит под отдельным нуклидом (Bi-207: пара
             // 1063.66 + 569.70 лежит под `Pb207m`).
-            AttachDaughterIsomers(key, data);
-            bool[] fromSupply = RectifyBySchemes(key, data);
+            AttachDaughterIsomers(key, data, cancellationToken);
+            bool[] fromSupply = RectifyBySchemes(key, data, cancellationToken);
 
             // Пара лежит в базе ОДИН раз и направленно; обратная условная
             // считается через отношение выходов: P(A|B) = P(B|A)·I(A)/I(B)
@@ -4238,7 +4263,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// ответ. Пары внутри изомера взаимно мгновенны (он их и делит), гейт
         /// времени им не нужен.
         /// </summary>
-        static void AttachDaughterIsomers(string key, NuclideData data)
+        static void AttachDaughterIsomers(string key, NuclideData data, CancellationToken cancellationToken)
         {
             if (data == null || key == null || key.StartsWith(IsomerPrefix, StringComparison.Ordinal))
             {
@@ -4274,6 +4299,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             {
                                 while (reader.Read())
                                 {
+                                    cancellationToken.ThrowIfCancellationRequested();
                                     string symbol = reader.IsDBNull(0) ? null : reader.GetString(0);
                                     if (string.IsNullOrEmpty(symbol))
                                     {
@@ -4297,6 +4323,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             {
                                 while (reader.Read())
                                 {
+                                    cancellationToken.ThrowIfCancellationRequested();
                                     string symbol = reader.IsDBNull(0) ? null : reader.GetString(0);
                                     if (string.IsNullOrEmpty(symbol) || !pairs.ContainsKey(symbol))
                                     {
@@ -4316,7 +4343,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
-            catch (Exception error)
+            catch (Exception error) when (!(error is OperationCanceledException))
             {
                 // Не прочлось — работаем без присоединения, как до него, но вслух.
                 Failure = key + ": пары изомеров дочки не прочлись: " + error.Message;
@@ -4331,7 +4358,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             // Библиотека родителя: выходы `decay_radiations` тем же правилом
             // уровня, что у образов (через `CascadeAtomicData`, один читатель).
-            CascadeAtomicData library = CascadeAtomicData.Nuclear(key);
+            CascadeAtomicData library = CascadeAtomicData.Nuclear(key, cancellationToken);
             if (library == null || library.Failed || library.GammaIntensity == null)
             {
                 return;
@@ -4442,6 +4469,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 int added = 0;
                 foreach (double[] pair in group.Value)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     double fromKey, toKey, ownLine;
                     if (!keyOf.TryGetValue(pair[0], out fromKey) || !keyOf.TryGetValue(pair[1], out toKey)
                         || !isomerLines.TryGetValue(pair[0], out ownLine))
@@ -4617,7 +4645,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// экзотика) — только выше; ход вниз от конечного уровня носителя
         /// покрывает поставку.
         /// </summary>
-        static bool[] RectifyBySchemes(string key, NuclideData data)
+        static bool[] RectifyBySchemes(string key, NuclideData data, CancellationToken cancellationToken)
         {
             bool[] fromSupply = new bool[data.Pairs.Count];
             for (int i = 0; i < fromSupply.Length; i++)
@@ -4673,6 +4701,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             int rectified = 0, kept = 0, unmatched = 0;
             foreach (KeyValuePair<double, List<int>> carrier in byCarrier)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 CascadeAtomicData.LevelScheme bestScheme = null;
                 Dictionary<int, double> bestReach = null;
                 double bestScore = 0.0, bestDelta = double.MaxValue, bestSibling = double.NaN;
@@ -5069,7 +5098,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return hasPairs ? raw : null;
             }
 
-            CascadeAtomicData atomic = CascadeAtomicData.Of(key);
+            CascadeAtomicData atomic = CascadeAtomicData.Of(key, this.cancellationToken);
             if (atomic == null)
             {
                 return hasPairs ? raw : null;
@@ -5340,6 +5369,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var annihilationReverse = new Dictionary<double, double>();
             foreach (CascadeAtomicData.GammaLine gamma in atomic.GammaIntensity)
             {
+                this.cancellationToken.ThrowIfCancellationRequested();
                 double decayEnergy = gamma.EnergyKev;
 
                 // ⛔ КЛЮЧ ПАРЫ — ТОТ ЖЕ, ЧТО У ЯДЕРНЫХ ПАР, а он приходит из

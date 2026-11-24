@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 
 namespace BecquerelMonitor.FullSpectrumAnalysis
 {
@@ -190,6 +191,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static List<FsaComponent> EscapeImages(
             List<FsaComponent> composition, IDictionary<int, double> crystalFractions)
+            => EscapeImages(composition, crystalFractions, CancellationToken.None);
+
+        internal static List<FsaComponent> EscapeImages(
+            List<FsaComponent> composition, IDictionary<int, double> crystalFractions, CancellationToken cancellationToken)
         {
             var extra = new List<FsaComponent>();
             if (composition == null || composition.Count == 0)
@@ -202,6 +207,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var parents = new List<EscapeParent>();
             foreach (FsaComponent component in composition)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (component.Kind == FsaComponentKind.Nuisance)
                 {
                     // Мешающие образы сами вылета не порождают: у них нет
@@ -211,6 +217,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 foreach (FsaLine line in component.Lines)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     // ⛔ (`A271`) Запас над порогом пар спрашивается ПЕРВЫМ и
                     // спрашивается всегда: он и есть тот отсев, который
                     // остаётся, когда вещество кристалла неизвестно. Прежде
@@ -615,6 +622,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             FsaSampleSpec spec,
             out LabelReport report)
         {
+            return BuildFromLabels(peaks, nuclideDefinitions, spec, out report, CancellationToken.None);
+        }
+
+        internal static List<FsaComponent> BuildFromLabels(
+            IEnumerable<Peak> peaks,
+            IEnumerable<NuclideDefinition> nuclideDefinitions,
+            FsaSampleSpec spec,
+            out LabelReport report,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             report = new LabelReport();
             if (peaks == null || nuclideDefinitions == null || spec == null)
             {
@@ -631,6 +649,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (Peak peak in peaks)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (peak == null || peak.Nuclide == null)
                 {
                     // «(unknown)»: подписать нечем, образа тоже нет
@@ -655,6 +674,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             foreach (string nuclide in order)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (NuclideDefinition.IsElementXrayName(nuclide))
                 {
                     // Рентген элемента — мешающий образ, а не нуклид: тот же вход, что
@@ -675,7 +695,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     string nucid = FsaSampleLibrary.NucidOf(nuclide);
                     List<double[]> lines = nucid.Length > 0
-                        ? FsaSampleLibrary.DecayLines(nucid, new FsaSampleLibrary.Report())
+                        ? FsaSampleLibrary.DecayLines(nucid, new FsaSampleLibrary.Report(), cancellationToken)
                         : null;
                     if (lines != null && lines.Count > 0)
                     {
@@ -685,12 +705,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                             report.FromDatabase.Add(nucid);
                         }
 
-                        NoteTypedLines(nuclide, lines, definitions, report);
+                        NoteTypedLines(nuclide, lines, definitions, report, cancellationToken);
                         continue;
                     }
                 }
 
-                FsaComponent typed = TypedComponent(nuclide, definitions, spec);
+                FsaComponent typed = TypedComponent(nuclide, definitions, spec, cancellationToken);
                 if (typed != null)
                 {
                     spec.TypedComponents.Add(typed);
@@ -704,17 +724,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             FsaSampleLibrary.Report built;
-            List<FsaComponent> library = FsaSampleLibrary.Build(spec, out built);
+            List<FsaComponent> library = FsaSampleLibrary.Build(spec, out built, cancellationToken);
             report.Library = built;
             return library;
         }
 
         /// <summary>(`AMBER306`) Линии библиотеки у нуклида из базы, которых в базе нет: назвать.</summary>
         static void NoteTypedLines(string nuclide, List<double[]> lines, List<NuclideDefinition> definitions,
-                                   LabelReport report)
+                                   LabelReport report, CancellationToken cancellationToken)
         {
             foreach (NuclideDefinition definition in definitions)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!string.Equals(NuclideToken(definition.Name), nuclide, StringComparison.OrdinalIgnoreCase)
                     || !PositiveFinite(definition.Intencity))
                 {
@@ -734,7 +755,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (`AMBER306`) Образ из линий библиотеки как вбиты: подписи нет в базах. Null —
         /// годных линий нет. Полоса та же, что у всех образов (`S98`).
         /// </summary>
-        static FsaComponent TypedComponent(string nuclide, List<NuclideDefinition> definitions, FsaSampleSpec spec)
+        static FsaComponent TypedComponent(string nuclide, List<NuclideDefinition> definitions, FsaSampleSpec spec, CancellationToken cancellationToken)
         {
             // Рентген — мешающий образ: активности за ним нет. Признак — отсутствие
             // массового числа в подписи, см. NuclideDefinition.IsElementXrayName.
@@ -745,6 +766,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double floor = spec.LineFloorKev;
             foreach (NuclideDefinition definition in definitions)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!PositiveFinite(definition.Intencity)
                     || definition.Energy < floor || definition.Energy > spec.MaxEnergyKev
                     || !string.Equals(NuclideToken(definition.Name), nuclide, StringComparison.OrdinalIgnoreCase))

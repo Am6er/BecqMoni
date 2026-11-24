@@ -1002,7 +1002,6 @@ namespace FsaResidualProbeF21
         {
             Field(session.GetType(), "result").SetValue(session, result);
             Field(session.GetType(), "stamp").SetValue(session, stamp);
-            Field(session.GetType(), "running").SetValue(session, false);
             Field(session.GetType(), "status").SetValue(session, null);
         }
 

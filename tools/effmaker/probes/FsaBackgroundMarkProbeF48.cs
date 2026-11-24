@@ -395,7 +395,6 @@ static class FsaBackgroundMarkProbeF48
     {
         Field(session, "result").SetValue(session, result);
         Field(session, "stamp").SetValue(session, stamp);
-        Field(session, "running").SetValue(session, false);
         Field(session, "status").SetValue(session, null);
     }
 

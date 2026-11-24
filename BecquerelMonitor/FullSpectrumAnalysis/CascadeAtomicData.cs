@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 
 namespace BecquerelMonitor.FullSpectrumAnalysis
 {
@@ -1028,15 +1029,33 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static CascadeAtomicData Of(string nucid)
         {
+            return Of(nucid, CancellationToken.None);
+        }
+
+        internal static CascadeAtomicData Of(string nucid, CancellationToken cancellationToken)
+        {
+            return GetCached(nucid, false, cancellationToken);
+        }
+
+        static CascadeAtomicData GetCached(string nucid, bool nuclearOnly, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrEmpty(nucid))
             {
                 return null;
             }
 
-            lock (Gate)
+            while (!Monitor.TryEnter(Gate, cancellationToken.CanBeCanceled ? 10 : Timeout.Infinite))
             {
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var cache = nuclearOnly ? NuclearCache : Cache;
                 CascadeAtomicData data;
-                if (Cache.TryGetValue(nucid, out data))
+                if (cache.TryGetValue(nucid, out data))
                 {
                     return data;
                 }
@@ -1044,9 +1063,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 int failuresBefore = FsaDatabaseFailures.ThreadCount;
                 try
                 {
-                    data = Build(nucid);
+                    data = Build(nucid, nuclearOnly, cancellationToken);
                 }
-                catch (Exception error)
+                catch (Exception error) when (!(error is OperationCanceledException))
                 {
                     // Отказ базы не должен ронять разбор — но и молчать нельзя:
                     // без записанной причины «рентгена не нашлось» неотличимо
@@ -1069,10 +1088,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 if (data == null || (!data.Failed && FsaDatabaseFailures.ThreadCount == failuresBefore))
                 {
-                    Cache[nucid] = data;
+                    cache[nucid] = data;
                 }
 
                 return data;
+            }
+            finally
+            {
+                Monitor.Exit(Gate);
             }
         }
 
@@ -1111,52 +1134,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static CascadeAtomicData Nuclear(string nucid)
         {
-            CascadeAtomicData data = Of(nucid);
+            return Nuclear(nucid, CancellationToken.None);
+        }
+
+        internal static CascadeAtomicData Nuclear(string nucid, CancellationToken cancellationToken)
+        {
+            CascadeAtomicData data = Of(nucid, cancellationToken);
             if (data != null || string.IsNullOrEmpty(nucid))
             {
                 return data;
             }
 
-            lock (Gate)
-            {
-                if (NuclearCache.TryGetValue(nucid, out data))
-                {
-                    return data;
-                }
-
-                int failuresBefore = FsaDatabaseFailures.ThreadCount;
-                try
-                {
-                    data = Build(nucid, true);
-                }
-                catch (Exception error)
-                {
-                    data = new CascadeAtomicData
-                    {
-                        Failed = true,
-                        Note = "отказ базы: " + error.Message
-                    };
-                    FsaDatabaseFailures.Note("nucdb.sqlite", nucid, error);
-                }
-
-                // ⛔ (`AMBER199`) тот же запрет, что у `Of`: отказ — не в кэш
-                if (data != null && data.Failed && FsaDatabaseFailures.ThreadCount == failuresBefore)
-                {
-                    FsaDatabaseFailures.Note("schemedb.sqlite", nucid, new IOException(data.Note));
-                }
-
-                if (data == null || (!data.Failed && FsaDatabaseFailures.ThreadCount == failuresBefore))
-                {
-                    NuclearCache[nucid] = data;
-                }
-
-                return data;
-            }
-        }
-
-        static CascadeAtomicData Build(string nucid)
-        {
-            return Build(nucid, false);
+            return GetCached(nucid, true, cancellationToken);
         }
 
         /// <param name="nuclearOnly">
@@ -1164,7 +1153,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// нет: ядерная часть (ветви, переходы, задержки) нужна угловой
         /// корреляции и без них. false — прежний ход <see cref="Of"/>, побитово.
         /// </param>
-        static CascadeAtomicData Build(string nucid, bool nuclearOnly)
+        static CascadeAtomicData Build(string nucid, bool nuclearOnly, CancellationToken cancellationToken)
         {
             var data = new CascadeAtomicData();
             var notes = new StringBuilder();
@@ -1231,6 +1220,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     while (reader.Read())
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         string kind = reader.IsDBNull(0) ? "" : reader.GetString(0);
                         string series = reader.IsDBNull(1) ? "" : reader.GetString(1);
                         double energy = reader.IsDBNull(2) ? 0.0 : reader.GetDouble(2);
@@ -1307,6 +1297,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     while (reader.Read())
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         string name = reader.IsDBNull(0) ? null : reader.GetString(0);
                         if (string.Equals(name, nucid, StringComparison.OrdinalIgnoreCase))
                         {
@@ -1435,6 +1426,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var halfLifeOf = new Dictionary<int, Dictionary<int, double>>();
             for (int index = 0; index < data.Branches.Count; index++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 Branch branch = data.Branches[index];
                 MaterialDatabase.Fluorescence bf = MaterialDatabase.FluorescenceOf(branch.Z);
                 branch.OmegaK = bf != null ? bf.Omega(true) : 0.0;
@@ -1443,17 +1435,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Dictionary<int, double> halfLife;
                 // Отсутствие базы схем — ОТКАЗ, и он поднимает признак; все
                 // прочие записки этой ветки остаются примечаниями.
-                if (!LoadScheme(branch.Z, branch.A, out scheme, out halfLife, notes))
+                if (!LoadScheme(branch.Z, branch.A, out scheme, out halfLife, notes, cancellationToken))
                 {
                     data.Failed = true;
                 }
 
                 halfLifeOf[index] = halfLife;
-                branch.Downstream = BuildDownstream(scheme);
+                branch.Downstream = BuildDownstream(scheme, cancellationToken);
 
                 double conversionVacancy = 0.0;
                 for (int line = 0; line < gammaIntensity.Count; line++)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     GammaLine row = gammaIntensity[line];
                     double energyKev = row.EnergyKev;
 
@@ -1497,7 +1490,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // (`S150`) Доля β⁺ у каждой гаммы ветви — по населённому
                 // уровню. Читается ПОСЛЕ раздачи гамм: годятся только те
                 // линии, которые этой ветви и достались.
-                LoadBetaPlusOfGamma(nucid, branch, gammaIntensity, notes, data.Discrepancies);
+                LoadBetaPlusOfGamma(nucid, branch, gammaIntensity, notes, data.Discrepancies, cancellationToken);
 
                 if (branch.OmegaK > 0.0)
                 {
@@ -1527,6 +1520,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // ядер свои, и общий ход по ним смешал бы чужие пути (`A290`).
             for (int index = 0; index < data.Branches.Count; index++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 Dictionary<int, double> halfLife;
                 if (!halfLifeOf.TryGetValue(index, out halfLife))
                 {
@@ -1553,7 +1547,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
 
-                Delays(own, halfLife);
+                Delays(own, halfLife, cancellationToken);
             }
 
             // Сводные поля — у сильнейшей ветви, ради прежних читателей.
@@ -1741,7 +1735,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
         static readonly Phase[] EmptyLives = new Phase[0];
 
-        static void Delays(List<Transition> gammas, Dictionary<int, double> halfLife)
+        static void Delays(List<Transition> gammas, Dictionary<int, double> halfLife, CancellationToken cancellationToken)
         {
             var levels = new List<int>();
             foreach (Transition transition in gammas)
@@ -1763,6 +1757,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var arrivalLives = new Dictionary<int, Phase[]>();
             foreach (int level in levels)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 double came;
                 if (!arrival.TryGetValue(level, out came))
                 {
@@ -2339,7 +2334,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static void LoadBetaPlusOfGamma(string parentNucid, Branch branch,
                                         List<GammaLine> gammaIntensity,
                                         StringBuilder notes,
-                                        List<SupplyDiscrepancy> discrepancies)
+                                        List<SupplyDiscrepancy> discrepancies, CancellationToken cancellationToken)
         {
             if (branch == null || string.IsNullOrEmpty(branch.Nucid)
                 || !(branch.BetaPlusShare > 0.0))
@@ -2383,6 +2378,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     while (reader.Read())
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         sets.Add(reader.GetInt64(0));
                     }
                 }
@@ -2435,6 +2431,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     while (reader.Read())
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         levelEnergy[reader.GetInt32(0)] =
                             reader.IsDBNull(1) ? 0.0 : reader.GetDouble(1);
                         if (!reader.IsDBNull(1))
@@ -2473,6 +2470,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     while (reader.Read())
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         if (reader.IsDBNull(0))
                         {
                             continue;
@@ -2541,6 +2539,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     while (reader.Read())
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         if (reader.IsDBNull(0) || reader.IsDBNull(1) || reader.IsDBNull(2))
                         {
                             continue;
@@ -2648,6 +2647,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var shareOf = new List<double[]>();
             foreach (int level in levels)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 double outTotal = 0.0;
                 foreach (double[] transition in transitions)
                 {
@@ -2771,6 +2771,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             foreach (GammaLine row in gammaIntensity)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!SameChannel(row.Channel, branch.DecType))
                 {
                     continue;
@@ -2830,7 +2831,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// сбрасывает энергию), но защита от повторного входа стоит: битая
         /// поставка с петлёй иначе увела бы обход в бесконечность.
         /// </summary>
-        static Dictionary<int, HashSet<int>> BuildDownstream(List<Transition> scheme)
+        static Dictionary<int, HashSet<int>> BuildDownstream(List<Transition> scheme, CancellationToken cancellationToken)
         {
             var closure = new Dictionary<int, HashSet<int>>();
             if (scheme == null || scheme.Count == 0)
@@ -2855,9 +2856,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             foreach (KeyValuePair<int, List<int>> entry in next)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!closure.ContainsKey(entry.Key))
                 {
-                    Descend(entry.Key, next, closure, new HashSet<int>());
+                    Descend(entry.Key, next, closure, new HashSet<int>(), cancellationToken);
                 }
             }
 
@@ -2865,7 +2867,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         static HashSet<int> Descend(int level, Dictionary<int, List<int>> next,
-                                    Dictionary<int, HashSet<int>> closure, HashSet<int> path)
+                                    Dictionary<int, HashSet<int>> closure, HashSet<int> path, CancellationToken cancellationToken)
         {
             HashSet<int> known;
             if (closure.TryGetValue(level, out known))
@@ -2886,8 +2888,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 foreach (int child in children)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     below.Add(child);
-                    below.UnionWith(Descend(child, next, closure, path));
+                    below.UnionWith(Descend(child, next, closure, path, cancellationToken));
                 }
             }
 
@@ -2904,7 +2907,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// примечания, работа при них идёт.
         /// </summary>
         static bool LoadScheme(int z, int a, out List<Transition> scheme,
-                               out Dictionary<int, double> halfLife, StringBuilder notes)
+                               out Dictionary<int, double> halfLife, StringBuilder notes, CancellationToken cancellationToken)
         {
             scheme = new List<Transition>();
             halfLife = new Dictionary<int, double>();
@@ -2930,6 +2933,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     while (reader.Read())
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         // Переход, которого не испускают, кандидатом быть не
                         // может: см. MatchTransition.
                         if (reader.IsDBNull(5) || reader.GetDouble(5) <= 0.0)
@@ -2999,6 +3003,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 {
                     while (reader.Read())
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         if (!reader.IsDBNull(1))
                         {
                             halfLife[reader.GetInt32(0)] = reader.GetDouble(1);

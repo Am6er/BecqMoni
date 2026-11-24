@@ -382,7 +382,8 @@ namespace BecquerelMonitor.Probes
                 t[1] = Lap(sw);
                 List<FsaComponent> library = FsaSampleLibrary.Build(spec);
                 t[2] = Lap(sw);
-                var ratios = (Dictionary<string, double>)ratiosOf.Invoke(null, new object[] { library, definitions });
+                var ratios = (Dictionary<string, double>)ratiosOf.Invoke(null, ratiosOf.GetParameters().Length == 2
+                    ? new object[] { library, definitions } : new object[] { library, definitions, CancellationToken.None });
                 t[3] = Lap(sw);
                 FsaResult computed = analyzer.Analyze((EnergySpectrum)f("Spectrum"), (EnergySpectrum)f("Background"),
                                                       (FwhmCalibration)f("FwhmCalibration"), library,

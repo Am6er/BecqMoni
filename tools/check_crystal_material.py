@@ -218,7 +218,7 @@ def judge(sources, names, loud=True):
             + (u' (общим входом FsaSampleSpec.OfSpectrum)' if not direct else u''))
 
     # --- 6. путь по меткам: та же обстановка спектра (`AMBER306`) --------
-    compute = body_of(session, u'void Compute(Job job)')
+    compute = body_of(session, u'void Compute(')
     if compute is None:
         found.append(u'6. не нашлось тело FsaAnalysisSession.Compute')
     elif u'FsaLibrary.BuildFromLabels(' not in compute:

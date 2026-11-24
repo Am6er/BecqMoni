@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using BecquerelMonitor.Properties;
 using BecquerelMonitor.Utils;
 
@@ -2714,6 +2715,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
     /// </summary>
     public sealed class FsaAnalyzer
     {
+        internal CancellationToken CancellationToken { get; set; }
+
         /// <summary>Модель континуума.</summary>
         public enum ContinuumMode
         {
@@ -7413,7 +7416,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     continue;
                 }
 
-                double[] w = FsaBetaLibrary.Weights(section, beta);
+                double[] w = FsaBetaLibrary.Weights(section, beta, this.CancellationToken);
                 if (w == null)
                 {
                     continue;
@@ -8275,7 +8278,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 layerSums = new double[fit.Columns.Count][];
                 layerParts = new double[fit.Columns.Count][][];
-                FsaParallel.For(fit.Columns.Count, k =>
+                FsaParallel.For(fit.Columns.Count, this.CancellationToken, k =>
                 {
                     if (layerPlans[k] != null)
                     {
@@ -8472,7 +8475,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 var blueImages = new double[blueCount][];
                 double blueBin = this.ResponseMatrix.BinKev;
-                FsaParallel.For(blueCount, r =>
+                FsaParallel.For(blueCount, this.CancellationToken, r =>
                 {
                     if (blueDeposits[r] != null)
                     {
@@ -11483,6 +11486,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<FsaComponent> originalLibrary,
             FsaEfficiency efficiency)
         {
+            this.CoreCheckpoint();
             if (this.shareRefit)
             {
                 return this.AnalyzeAllPasses(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
@@ -12250,7 +12254,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         static readonly HashSet<string> CoreOrchestratorFields = new HashSet<string>(StringComparer.Ordinal)
         {
             "AnchorRolledBack", "AnchorZeroGuardFired", "AnchorZeroGuardTaken", "backgroundMaskRefusal",
-            "backgroundMaskSuppressed", "fixedBetaRows", "fixedBetaCounts", "coreFutures", "coreStale", "coreSelf"
+            "backgroundMaskSuppressed", "fixedBetaRows", "fixedBetaCounts", "coreFutures", "coreStale", "coreSelf",
+            "CancellationToken"
         };
 
         static CoreField[] corePlan;
@@ -12496,6 +12501,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>Точка отмены: снятый заход копии дальше не считается.</summary>
         void CoreCheckpoint()
         {
+            this.CancellationToken.ThrowIfCancellationRequested();
             CoreFuture self = this.coreSelf;
             if (self != null && self.Cancelled)
             {
@@ -12793,6 +12799,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<FsaComponent> originalLibrary,
             FsaEfficiency efficiency)
         {
+            this.CoreCheckpoint();
             // (`A320`, П323) счёт проходов — положительному контролю проб; (`AMBER326`, a326p) заход копии
             // анализатора считает тот, кто его забирает, — заход впрок, оставшийся невостребованным, в счёт не идёт
             if (this.coreSelf == null)
@@ -17421,7 +17428,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     double[] norms = new double[count];
                     List<FsaLine>[] notes = new List<FsaLine>[count];
                     double bin = this.ResponseMatrix != null ? this.ResponseMatrix.BinKev : 0.0;
-                    FsaParallel.For(count, j =>
+                    FsaParallel.For(count, this.CancellationToken, j =>
                     {
                         double[] phi;
                         if (this.ResponseMatrix != null)
@@ -18425,7 +18432,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                               this.CoincidenceWindowSec, this.CascadeXrayPartners,
                                                               this.CascadeAnnihilationPartners,
                                                               this.CascadeIsomerPartners,
-                                                              this.CascadeDecayTimeProbability);
+                                                              this.CascadeDecayTimeProbability, this.CancellationToken);
             if (summer == null)
             {
                 return null;
@@ -20383,7 +20390,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
 
                 double memberBin = this.ResponseMatrix.BinKev;
-                FsaParallel.For(memberCount, m =>
+                FsaParallel.For(memberCount, this.CancellationToken, m =>
                 {
                     Deposit deposit = memberDeposits[m];
                     if (!byMatrix[m] || deposit == null)
@@ -20454,7 +20461,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             var memberSums = new double[memberCount][];
             var memberLayers = new double[memberCount][][];
-            FsaParallel.For(memberCount, m =>
+            FsaParallel.For(memberCount, this.CancellationToken, m =>
             {
                 if (memberPlans[m] != null)
                 {
@@ -20478,7 +20485,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             var memberEscapes = new double[memberCount][];
             var memberHumps = new double[memberCount][];
-            FsaParallel.For(memberCount, m =>
+            FsaParallel.For(memberCount, this.CancellationToken, m =>
             {
                 if (escapePlans[m] != null)
                 {
@@ -21531,6 +21538,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                          subset, out fromMatrix);
             for (int pass = 0; pass < passes; pass++)
             {
+                this.CancellationToken.ThrowIfCancellationRequested();
                 List<FitColumn> columns = new List<FitColumn>(built.Count);
                 foreach (FitColumn column in built)
                 {
@@ -22110,7 +22118,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// `N` поканального следа (`v = 1/w₀`), то есть формула — обобщение,
         /// а не вторая копия. Ячейка с `Σv = 0` выпадает И из χ², И отсюда.
         /// </summary>
-        static double ReportNdfPooled(FitResult fit, double[] report, int[] cell, double[] cellVariance,
+        double ReportNdfPooled(FitResult fit, double[] report, int[] cell, double[] cellVariance,
                                       int chLo, int chHi)
         {
             if (fit == null || report == null || cell == null || cellVariance == null
@@ -22213,7 +22221,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             int cells = cellInv.Count;
-            FsaParallel.For(p, a =>
+            FsaParallel.For(p, this.CancellationToken, a =>
             {
                 for (int q = 0; q < cells; q++)
                 {
@@ -22596,7 +22604,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            FsaParallel.For(count, i =>
+            FsaParallel.For(count, this.CancellationToken, i =>
             {
                 FsaComponent component = chosen[i];
                 if (route[i] == 0)
@@ -23354,7 +23362,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`AMBER213`, П241) Строки Грам — параллельно (<see cref="FsaParallel"/>):
             // строка a пишет только c[a] и ячейки (a, b≥a) / (b≥a, a), каждую
             // сумму ведёт один поток в прежнем порядке каналов — побитово то же.
-            FsaParallel.For(m, a =>
+            FsaParallel.For(m, this.CancellationToken, a =>
             {
                 double[] ta = columns[a].Values;
                 double dot = 0.0;
@@ -23366,6 +23374,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 c[a] = dot;
                 for (int b = a; b < m; b++)
                 {
+                    this.CancellationToken.ThrowIfCancellationRequested();
                     double[] tb = columns[b].Values;
                     double value = 0.0;
                     for (int i = chLo; i <= chHi; i++)
@@ -23851,6 +23860,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] pile = new double[bins];
             foreach (int a in filled)
             {
+                this.CancellationToken.ThrowIfCancellationRequested();
                 double va = byEnergy[a] / total;
                 foreach (int b in filled)
                 {
@@ -24518,6 +24528,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] q = new double[channels];
             for (int iteration = 0; iteration < 40; iteration++)
             {
+                this.CancellationToken.ThrowIfCancellationRequested();
                 double[] b = g == 1.0
                     ? backgroundSmooth
                     : Rebin(backgroundSmooth, scale, new StretchedCalibration(scale, g), channels);
@@ -24781,6 +24792,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] bestQ = new double[channels];
             for (int iteration = 0; iteration < 80; iteration++)
             {
+                this.CancellationToken.ThrowIfCancellationRequested();
                 double[] b = g == 1.0 && o == 0.0
                     ? backgroundSmooth
                     : Rebin(backgroundSmooth, scale, new StretchedCalibration(scale, g, o), channels);
@@ -25001,13 +25013,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <paramref name="sigma"/>[i], ядро до ±3σ, нормировано на свою сумму
         /// внутри полосы [lo, hi]. Вне полосы — нули.
         /// </summary>
-        static double[] SmoothVariable(double[] x, double[] sigma, int lo, int hi)
+        double[] SmoothVariable(double[] x, double[] sigma, int lo, int hi)
         {
             double[] result = new double[x.Length];
             // (`AMBER326`) каналы независимы (каждый пишет только свою ячейку, внутренняя сумма — прежним
             // порядком): параллельно, числа те же до бита. Прежде — 1 с последовательного счёта на разбор
             // Th-232 AS 80x80 (мера усиления и нуля фона, два сглаживания на меру).
-            FsaParallel.For(hi - lo + 1, n =>
+            FsaParallel.For(hi - lo + 1, this.CancellationToken, n =>
             {
                 int i = lo + n;
                 double s = sigma[i];
@@ -25858,6 +25870,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`AMBER326`, a326p) ячейка ключа: первый спросивший строит, остальные ждут готового
             while (true)
             {
+                this.CancellationToken.ThrowIfCancellationRequested();
                 DepositSlot slot;
                 bool owner = false;
                 lock (this.carryGate)
@@ -26640,6 +26653,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             bool any = false;
             foreach (FsaCascadeSummer.PairContinuum pair in pairs)
             {
+                this.CancellationToken.ThrowIfCancellationRequested();
                 double joint = pair.Joint;
                 if (!(joint > 0.0))
                 {
@@ -27749,6 +27763,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             int rampTop = onGrid ? ramp.Top : 0;
             for (int idx = srcLo; idx <= srcHi; idx++)
             {
+                if ((idx & 63) == 0)
+                {
+                    this.CancellationToken.ThrowIfCancellationRequested();
+                }
+
                 double weight = source[idx];
                 if (weight == 0.0)
                 {
@@ -28061,6 +28080,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double[] table = new double[count];
             for (int b = 0; b < count; b++)
             {
+                if ((b & 63) == 0)
+                {
+                    this.CancellationToken.ThrowIfCancellationRequested();
+                }
+
                 table[b] = this.LightToChannel(calibration, b * bin, channels);
             }
 
@@ -28937,7 +28961,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             FsaBand.RampProfile ramp = this.thresholdRamp;
             double[][] parts = new double[plans.Count][];
             int[] partLo = new int[plans.Count];
-            FsaParallel.For(plans.Count, j =>
+            FsaParallel.For(plans.Count, this.CancellationToken, j =>
             {
                 double[] plan = plans[j];
                 double p = plan[0], fwhm = plan[1], weight = plan[2];
@@ -29705,7 +29729,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         /// <summary>Быстрый NNLS (Bro &amp; de Jong) на готовых нормальных уравнениях.</summary>
-        static double[] NnlsSolve(double[,] gram, double[] c, int m, out bool[] active)
+        double[] NnlsSolve(double[,] gram, double[] c, int m, out bool[] active)
         {
             double[] x = new double[m];
             active = new bool[m];
@@ -29742,6 +29766,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 active[j] = true;
                 while (true)
                 {
+                    this.CancellationToken.ThrowIfCancellationRequested();
                     double[] z = SolveActive(gram, c, active, m);
                     if (z == null)
                     {
@@ -29838,7 +29863,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return max > 0.0 ? max : 1.0;
         }
 
-        static double[] SolveActive(double[,] gram, double[] c, bool[] active, int m)
+        double[] SolveActive(double[,] gram, double[] c, bool[] active, int m)
         {
             List<int> index = new List<int>();
             for (int k = 0; k < m; k++)
@@ -29880,10 +29905,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return z;
         }
 
-        static bool GaussSolve(double[,] a, int n)
+        bool GaussSolve(double[,] a, int n)
         {
             for (int col = 0; col < n; col++)
             {
+                this.CancellationToken.ThrowIfCancellationRequested();
                 int pivot = col;
                 for (int r = col + 1; r < n; r++)
                 {
@@ -30574,6 +30600,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static void For(int count, Action<int> body)
         {
+            For(count, CancellationToken.None, body);
+        }
+
+        internal static void For(int count, CancellationToken cancellationToken, Action<int> body)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             int degree = Degree;
             if (count <= 0)
             {
@@ -30584,6 +30616,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 for (int i = 0; i < count; i++)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     body(i);
                 }
 
@@ -30595,11 +30628,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 0, count,
                 new System.Threading.Tasks.ParallelOptions
                 {
+                    CancellationToken = cancellationToken,
                     MaxDegreeOfParallelism = degree,
                     TaskScheduler = SchedulerFor(degree)
                 },
                 i =>
                 {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        return;
+                    }
+
                     try
                     {
                         body(i);
@@ -30609,6 +30648,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                         errors[i] = ex;
                     }
                 });
+            cancellationToken.ThrowIfCancellationRequested();
             for (int i = 0; i < count; i++)
             {
                 if (errors[i] != null)
@@ -30630,6 +30670,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// </summary>
         public static void ForPure(int count, Action<int> body)
         {
+            ForPure(count, CancellationToken.None, body);
+        }
+
+        internal static void ForPure(int count, CancellationToken cancellationToken, Action<int> body)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             int degree = Degree;
             if (count <= 0)
             {
@@ -30640,6 +30686,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 for (int i = 0; i < count; i++)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     body(i);
                 }
 
@@ -30655,7 +30702,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             Action work = () =>
             {
                 int i;
-                while ((i = System.Threading.Interlocked.Increment(ref next)) < count)
+                while (!cancellationToken.IsCancellationRequested && (i = System.Threading.Interlocked.Increment(ref next)) < count)
                 {
                     try
                     {
@@ -30678,6 +30725,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             work();
             System.Threading.Tasks.Task.WaitAll(tasks);
+            cancellationToken.ThrowIfCancellationRequested();
             for (int i = 0; i < count; i++)
             {
                 if (errors[i] != null)

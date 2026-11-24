@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace BecquerelMonitor.FullSpectrumAnalysis
 {
@@ -504,6 +505,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                           FsaChainCut cut,
                                           out Report report)
         {
+            return Infer(peaks, resultData, coverage, novelty, cut, out report, CancellationToken.None);
+        }
+
+        static FsaSampleSpec Infer(IEnumerable<Peak> peaks, ResultData resultData, double coverage, bool novelty,
+                                   FsaChainCut cut, out Report report, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             report = new Report { Coverage = coverage, Cut = cut };
             if (resultData == null)
             {
@@ -529,6 +537,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 foreach (Peak peak in peaks)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (peak != null && peak.Energy > 0.0
                         && !double.IsNaN(peak.Energy) && !double.IsInfinity(peak.Energy))
                     {
@@ -549,11 +558,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`NuclideDefinition.Chain`), а кто выведен из подписи без ряда:
             // множитель переходного равновесия — только у первых.
             var declaredRoots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var candidates = Candidates(found, spec, report, declaredRoots);
+            var candidates = Candidates(found, spec, report, declaredRoots, cancellationToken);
             var models = new List<Model>();
             foreach (string nucid in candidates)
             {
-                Model model = Build(nucid, declaredRoots.Contains(nucid), spec, resultData, found, report);
+                cancellationToken.ThrowIfCancellationRequested();
+                Model model = Build(nucid, declaredRoots.Contains(nucid), spec, resultData, found, report, cancellationToken);
                 if (model != null)
                 {
                     models.Add(model);
@@ -579,7 +589,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             Breakdown(models);
             if (cut != FsaChainCut.Whole)
             {
-                Head(models, coverage, report);
+                Head(models, coverage, report, cancellationToken);
             }
 
             // Порядок РЕШАЕТ, а не украшает: приём идёт жадно, по убыванию
@@ -591,6 +601,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             foreach (Model model in models)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 report.Candidates.Add(model.Evidence);
                 if (!model.Evidence.Accepted)
                 {
@@ -634,6 +645,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             return Infer(peaks, resultData, DefaultCoverage, true, out report);
         }
 
+        internal static FsaSampleSpec Infer(IEnumerable<Peak> peaks, ResultData resultData,
+                                            out Report report, CancellationToken cancellationToken)
+        {
+            return Infer(peaks, resultData, DefaultCoverage, true, DefaultCut, out report, cancellationToken);
+        }
+
         // ------------------------------------------------------------------
         // Кандидаты
         // ------------------------------------------------------------------
@@ -648,13 +665,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// родителем является её собственный нуклид.
         /// </summary>
         static List<string> Candidates(List<Peak> peaks, FsaSampleSpec spec, Report report,
-                                       HashSet<string> declaredRoots)
+                                       HashSet<string> declaredRoots, CancellationToken cancellationToken)
         {
             var order = new List<string>();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var unknown = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (Peak peak in peaks)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (peak.Nuclide == null || string.IsNullOrEmpty(peak.Nuclide.Name))
                 {
                     continue;
@@ -773,6 +791,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                Dictionary<Group, List<Candidate>> options,
                                                List<Candidate> ranked)
         {
+            return MatchCandidates(order, options, ranked, CancellationToken.None);
+        }
+
+        static List<Candidate> MatchCandidates(List<Group> order, Dictionary<Group, List<Candidate>> options,
+                                               List<Candidate> ranked, CancellationToken cancellationToken)
+        {
             var rankOf = new Dictionary<Candidate, long>();
             for (int i = 0; i < ranked.Count; i++)
             {
@@ -859,6 +883,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // как только проход ничего не улучшил.
                 for (int pass = 0; pass < nodes; pass++)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     bool moved = false;
                     for (int e = 0; e < edges.Count; e++)
                     {
@@ -1046,7 +1071,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         static Model Build(string nucid, bool declaredRoot, FsaSampleSpec spec, ResultData resultData,
-                           List<Peak> peaks, Report report)
+                           List<Peak> peaks, Report report, CancellationToken cancellationToken)
         {
             var model = new Model();
             model.Evidence.Nucid = nucid;
@@ -1060,7 +1085,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`AMBER119`) Веса критерия — с тем же множителем, что уйдёт в
             // библиотеку: у выведенного корня — вековое равновесие.
             FsaSampleLibrary.CollectChain(new FsaSampleChain(nucid) { Transient = declaredRoot },
-                                          spec.MinChainBranch, spec.MinIsomerBranch, branch, sample);
+                                          spec.MinChainBranch, spec.MinIsomerBranch, branch, null, sample, cancellationToken);
             if (branch.Count == 0)
             {
                 // Нуклида нет в `decay_chain` вовсе (стабильный, или подпись
@@ -1083,13 +1108,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // порядок — можно и нужно: без него «голова ряда» не определена.
             if (model.Evidence.IsChain)
             {
-                model.Depths = FsaSampleLibrary.ChainDepths(nucid, sample);
+                model.Depths = FsaSampleLibrary.ChainDepths(nucid, sample, cancellationToken);
             }
 
             var lines = new List<Line>();
             foreach (KeyValuePair<string, double> member in branch)
             {
-                foreach (double[] line in FsaSampleLibrary.DecayLines(member.Key, sample))
+                cancellationToken.ThrowIfCancellationRequested();
+                foreach (double[] line in FsaSampleLibrary.DecayLines(member.Key, sample, cancellationToken))
                 {
                     if (line[0] < spec.MinEnergyKev || line[0] > spec.MaxEnergyKev)
                     {
@@ -1126,7 +1152,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             lines.Sort((a, b) => a.Energy.CompareTo(b.Energy));
-            Collect(model, lines, resultData, peaks, report.OutOfCurveLines);
+            Collect(model, lines, resultData, peaks, report.OutOfCurveLines, cancellationToken);
             return model;
         }
 
@@ -1148,7 +1174,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// это допущение, а не умолчание, и оно названо здесь.
         /// </summary>
         static void Collect(Model model, List<Line> lines, ResultData resultData,
-                            List<Peak> peaks, SortedSet<double> outOfCurve)
+                            List<Peak> peaks, SortedSet<double> outOfCurve, CancellationToken cancellationToken)
         {
             FsaEfficiency efficiency = FsaEfficiency.FromConfig(resultData.Efficiency);
             EnergySpectrum spectrum = resultData.EnergySpectrum;
@@ -1160,6 +1186,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             double currentTop = 0.0;
             foreach (Line line in lines)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 double weight = line.Weight;
                 if (efficiency != null)
                 {
@@ -1231,6 +1258,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             List<Candidate> pairs = new List<Candidate>();
             foreach (Group group in model.Groups)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 double window = Window(group.Energy,
                                        Resolution(group.Energy, energyCalibration,
                                                   fwhmCalibration, channels));
@@ -1242,6 +1270,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                 foreach (Peak peak in peaks)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     // (`AMBER221`) сдвиг пика от линии судил допуск при подписи;
                     // здесь — линия подписи против линий группы
                     double away = Away(peak, group);
@@ -1336,7 +1365,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // а не порядка построения списков.
             order.Sort((a, b) => a.Energy.CompareTo(b.Energy));
 
-            foreach (Candidate taken in MinCostMatching(order, options, pairs))
+            foreach (Candidate taken in MatchCandidates(order, options, pairs, cancellationToken))
             {
                 taken.Group.Snr = taken.Snr;
                 taken.Group.Peak = taken.Peak;
@@ -1690,10 +1719,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// ⚠ Правка строго добавочная: ряд, набравший порог целиком, судится только если у него есть
         /// ПУСТОЙ отрезок (<see cref="HasEmptySegment"/>, `AMBER309`); равновесные ряды проходят прежним путём.
         /// </summary>
-        static void Head(List<Model> models, double coverage, Report report)
+        static void Head(List<Model> models, double coverage, Report report, CancellationToken cancellationToken)
         {
             foreach (Model model in models)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 FsaParentEvidence evidence = model.Evidence;
                 if (model.Depths == null || model.Depths.Count == 0
                     || evidence.Expected == 0)
@@ -1712,7 +1742,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
 
                 var sample = new FsaSampleLibrary.Report();
-                FsaSampleLibrary.ChainSegmentation segments = FsaSampleLibrary.ChainSegments(evidence.Nucid, sample);
+                FsaSampleLibrary.ChainSegmentation segments = FsaSampleLibrary.ChainSegments(evidence.Nucid, sample, cancellationToken);
                 if (!passedWhole)
                 {
                     foreach (string note in sample.Notes)
@@ -2233,6 +2263,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                                         IEnumerable<Peak> peaks,
                                                         IEnumerable<FsaComponent> library)
         {
+            return SetOmissions(set, definitions, report, peaks, library, CancellationToken.None);
+        }
+
+        internal static List<FsaSetOmission> SetOmissions(NuclideSet set,
+                                                          IEnumerable<NuclideDefinition> definitions,
+                                                          Report report, IEnumerable<Peak> peaks,
+                                                          IEnumerable<FsaComponent> library, CancellationToken cancellationToken)
+        {
             var result = new List<FsaSetOmission>();
             if (set == null || definitions == null)
             {
@@ -2243,6 +2281,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (NuclideDefinition definition in definitions)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (definition == null || definition.Sets == null || !definition.Sets.Contains(set.Id)
                     || !definition.Visible || definition.Energy == 0.0
                     || string.IsNullOrEmpty(definition.Name)
@@ -2266,6 +2305,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 foreach (FsaComponent component in library)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (component == null)
                     {
                         continue;
@@ -2301,6 +2341,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
             foreach (string nucid in parents)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 string pretty = FsaSampleLibrary.PrettyName(nucid);
                 if (present.Contains(pretty))
                 {
