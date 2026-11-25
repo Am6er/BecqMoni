@@ -4918,13 +4918,13 @@ http://xptable.sourceforge.net/</value>
     <value>Передней взята грань с самым тонким покрытием.</value>
   </data>
   <data name="GdmlSimplHeader" xml:space="preserve">
-    <value>Упрощения</value>
+    <value>Приближения в полях редактора</value>
   </data>
   <data name="GdmlSimplMass" xml:space="preserve">
     <value>Слои корпуса из разных веществ заменены слоем {0} той же массовой толщины.</value>
   </data>
   <data name="GdmlSimplOpenMesh" xml:space="preserve">
-    <value>Незамкнутая сетка {0} лучами не измерена.</value>
+    <value>Незамкнутая сетка {0}. Путь у отверстий неоднозначен.</value>
   </data>
   <data name="GdmlSimplShield" xml:space="preserve">
     <value>Защита — вложенные цилиндры: толщины сняты сбоку, за пробой и за детектором.</value>
@@ -4942,7 +4942,7 @@ http://xptable.sourceforge.net/</value>
     <value>Проба не перенесена: {0}.</value>
   </data>
   <data name="GdmlStatusImported" xml:space="preserve">
-    <value>Импортирован {0}: {1} {2}.</value>
+    <value>Импортирован {0}: {1} {2}</value>
   </data>
   <data name="GdmlStatusRemapped" xml:space="preserve">
     <value>Пересчитано по выбору: {0} Кривую нужно посчитать заново.</value>
@@ -5211,4 +5211,15 @@ http://xptable.sourceforge.net/</value>
   <data name="Gdml3DError" xml:space="preserve">
     <value>Не удалось показать модель: {0}</value>
   </data>
+  <data name="GdmlMeshSample" xml:space="preserve"><value>Проба по сетке GDML</value></data>
+  <data name="GdmlMeshClosedLeaf" xml:space="preserve"><value>Сетка должна ограничивать замкнутый объём без вложенных деталей</value></data>
+  <data name="GdmlIncompleteTransport" xml:space="preserve"><value>Невозможно рассчитать неполный объём GDML</value></data>
+  <data name="GdmlUnknownMedium" xml:space="preserve"><value>Неизвестен состав или плотность вещества</value></data>
+  <data name="GdmlInheritedMedium" xml:space="preserve"><value>Материал не задан. Используется окружающая среда</value></data>
+  <data name="GdmlTransportOpen" xml:space="preserve"><value>Незамкнутая сетка. Расчёт использует исходные грани. Путь вещества у отверстий неоднозначен.</value></data>
+  <data name="GdmlOriginalVolume" xml:space="preserve"><value>Исходный объём GDML</value></data>
+  <data name="GdmlTransportCpu" xml:space="preserve"><value>Расчёт по исходной геометрии GDML выполняется на процессоре.</value></data>
+  <data name="GdmlTransportActive" xml:space="preserve"><value>Расчёт выполняется по исходным объёмам и материалам GDML.</value></data>
+  <data name="GdmlTransportMissing" xml:space="preserve"><value>Исходная сцена GDML отсутствует. Для расчёта повторите импорт файла.</value></data>
+  <data name="GdmlMeshMissing" xml:space="preserve"><value>Выберите замкнутую пробу при импорте GDML.</value></data>
 </root>

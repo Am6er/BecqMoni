@@ -147,7 +147,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 double pz = region.ZMin + (region.ZMax - region.ZMin) * this.Uniform();
-                if (!region.Contains(px, py, pz))
+                if (!region.Contains(px, py, pz) || (region.Gdml != null && this.At(px,py,pz) != region))
                 {
                     continue;
                 }

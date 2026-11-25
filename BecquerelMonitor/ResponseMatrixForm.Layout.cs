@@ -293,6 +293,14 @@ namespace BecquerelMonitor
         void SetDetails(string text)
         {
             this.detailsText = text ?? "";
+            var original = this.config?.Geometry?.TransportScene;
+            if (original != null)
+            {
+                string problem = original.Problem();
+                string warning = problem ?? string.Join(Environment.NewLine, original.Geometry.Warnings);
+                if (warning.Length > 0)
+                    this.detailsText += (this.detailsText.Length > 0 ? Environment.NewLine : "") + warning;
+            }
             this.detailsPanel.Controls.Clear();
             if (this.detailsText.Length == 0)
             {

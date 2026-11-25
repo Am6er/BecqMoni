@@ -51,6 +51,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             Add("G4_Cs", 1.873, "Cs", 1.0);
             Add("G4_W", 19.3, "W", 1.0);
             Add("G4_Pb", 11.35, "Pb", 1.0);
+            Add("G4_U", 18.95, "U", 1.0);
 
             // Соединения и смеси, которые встречаются в наборе VibeEngineering.
             // (`AMBER301`, fixGdml2) Пустота Geant4 — мир большинства примеров: `AddMaterial("G4_Galactic",

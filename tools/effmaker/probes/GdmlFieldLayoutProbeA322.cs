@@ -51,6 +51,7 @@ static class GdmlFieldLayoutProbeA322
 
     static void Ok(bool condition, string what, string detail = "")
     {
+        detail = detail ?? "";
         checks++;
         if (!condition)
         {
@@ -213,7 +214,7 @@ static class GdmlFieldLayoutProbeA322
         Near(g.BeakerFarEndWallThickness, 0.0, "дальнее дно (крышки нет)");
         Ok(g.Source.Fractions.ContainsKey(14) && g.BeakerWall.Fractions.ContainsKey(6), "вещества пробы и стенки — из файла", g.Source.Name + " / " + g.BeakerWall.Name);
         List<GdmlVolumeInstance> unused = map.Unused(map.Found);
-        Ok(unused.Count == 1 && unused[0].VolumeName == "PMT_glass", "не используется в геометрии: только стекло ФЭУ", string.Join(", ", unused.Select(v => v.VolumeName).ToArray()));
+        Ok(unused.Count == 0 && file.Volumes.Any(v=>v.VolumeName=="PMT_glass"), "стекло ФЭУ входит в исходную геометрию", string.Join(", ", unused.Select(v => v.VolumeName).ToArray()));
 
         map = Lay(sceneMarinelli, out file);
         Ok(map.Found == (GdmlParts.Detector | GdmlParts.Sample), "маринелли: найдены детектор и проба", map.Found + " " + map.SampleProblem);
@@ -229,7 +230,7 @@ static class GdmlFieldLayoutProbeA322
         Near(g.MarinelliBeakerDiameter, 102.0, "диаметр сосуда");
         Near(g.MarinelliEndWallThickness, 1.0, "дальнее дно");
         Near(g.MarinelliBeakerHeight, 62.0, "высота сосуда");
-        Ok(map.Unused(map.Found).Count == 1, "маринелли: вне полей одна деталь", map.Unused(map.Found).Count.ToString(Inv));
+        Ok(map.Unused(map.Found).Count == 0, "маринелли: учтены все исходные детали", map.Unused(map.Found).Count.ToString(Inv));
 
         map = Lay(sceneShielded, out file);
         Ok(map.Found == (GdmlParts.Detector | GdmlParts.Sample | GdmlParts.Shield), "сцена в защите: найдены все три части", map.Found.ToString());
@@ -281,11 +282,11 @@ static class GdmlFieldLayoutProbeA322
         Ok(map.Simplifications.Any(s => s.Value.Contains("same mass thickness")), "упрощение «равная массовая толщина» названо в сводке");
 
         map = Lay(sceneOffAxis, out file);
-        Ok(map.Found == GdmlParts.Detector && !string.IsNullOrEmpty(map.SampleProblem), "проба в стороне от оси: не переносится, причина названа", map.Found + ": " + map.SampleProblem);
-        Ok(map.Lines.Any(l => l.Part == GdmlParts.Sample && l.InFields.Contains("not transferred")), "в сверке строка «не перенесена»");
+        Ok(map.Found.HasFlag(GdmlParts.Sample) && Fields(map,map.Found).SourceType == GeometrySourceType.Mesh, "проба в стороне от оси использует исходный объём", map.Found + ": " + map.SampleProblem);
+        Ok(map.Lines.Any(l => l.Part == GdmlParts.Sample && l.InFields.Contains("Original GDML volume")), "сводка указывает исходный объём");
 
         map = Lay(sceneHollow, out file);
-        Ok(map.Found == GdmlParts.None && map.Refusal != null && map.Refusal.Contains("neither a cylinder nor a box"), "кристалл-труба: отказ раскладки с причиной", map.Refusal);
+        Ok(map.Found.HasFlag(GdmlParts.Detector) && Fields(map,map.Found).TransportScene != null, "полый кристалл рассчитывается по исходным границам", map.Refusal);
         map = Lay(sceneTwo, out file);
         Ok(map.Found == GdmlParts.None && map.Refusal != null && map.Refusal.Contains("more than one"), "два кристалла: отказ раскладки с причиной", map.Refusal);
 
@@ -293,8 +294,8 @@ static class GdmlFieldLayoutProbeA322
         // а на сцене с трубой выбор сплошной детали кристаллом раскладку даёт.
         GdmlGeometry hollow = GdmlGeometry.Read(sceneHollow);
         GdmlVolumeInstance glass = hollow.Volumes.First(v => v != null && v.VolumeName == "PMT_glass");
-        Ok(GdmlFieldMap.CrystalShapeFits(glass) && !GdmlFieldMap.CrystalShapeFits(hollow.Volumes.First(v => v != null && v.VolumeName == "Crystal")),
-            "форма: сплошной цилиндр годится кристаллом, труба — нет");
+        Ok(GdmlFieldMap.CrystalShapeFits(glass) && GdmlFieldMap.CrystalShapeFits(hollow.Volumes.First(v => v != null && v.VolumeName == "Crystal")),
+            "можно выбрать как сплошной, так и полый кристалл");
         GdmlFieldMap chosen = GdmlFieldMap.Build(hollow, GdmlOverview.Of(hollow), glass, null, null);
         Ok((chosen.Found & GdmlParts.Detector) != 0 && Math.Abs(Fields(chosen, chosen.Found).CrystalDiameter - 44.0) < 1e-3, "кристалл, выбранный человеком, раскладывается", chosen.Found + " " + chosen.Refusal);
     }
@@ -329,7 +330,7 @@ static class GdmlFieldLayoutProbeA322
         Ok(map.FrontName == "+Z" && map.SideName == "−X", "передняя грань +Z (напротив SiPM), бок — ближняя сторона −X", map.FrontName + " " + map.SideName);
         Ok(g.Crystal.Name == t.Crystal.Name, "вещество кристалла — то же имя, что у шаблона", g.Crystal.Name);
         List<GdmlVolumeInstance> unused = map.Unused(map.Found);
-        Ok(unused.Count == 6 && unused[0].VolumeName == "Battery_log", "не используется в геометрии: шесть деталей, тяжёлая первой",
+        Ok(unused.Count == 0 && file.Volumes.Any(v=>v.VolumeName=="Battery_log"), "исходная модель включает аккумулятор",
             string.Join(", ", unused.Select(v => v.VolumeName).ToArray()));
 
         // Кривая из полей импорта против кривой шаблона: точка на 100 мм.
@@ -611,15 +612,15 @@ static class GdmlFieldLayoutProbeA322
             Ok(Math.Abs(model.CrystalDiameter - 40.0) < 1e-3 && model.SourceType == GeometrySourceType.Cylinder && Math.Abs(model.BeakerDiameter - 62.0) < 1e-3
                && model.InShield && model.ShieldLayers.Count == 2 && Math.Abs(model.ShieldInnerDiameter - 120.0) < 1e-3,
                "в полях — геометрия файла: кристалл ⌀40, сосуд ⌀62, защита из двух слоёв");
-            Ok(status.Text.Contains("a322_shielded.gdml") && status.Text.Contains("detector, sample, shield") && status.Text.Contains("Not used in the geometry: parts 1, "),
-                "статус называет файл, что взято и что не используется", status.Text);
+            Ok(status.Text.Contains("a322_shielded.gdml") && status.Text.Contains("detector, sample, shield") && status.Text.Contains("original GDML volumes and materials"),
+                "статус называет файл, выбранные роли и исходную геометрию", status.Text);
             Ok(panel.GdmlStripText.Contains("Taken from the file: detector, sample, shield"), "строка-итог над вкладками", panel.GdmlStripText);
             string summary = panel.GdmlSummaryText;
-            Ok(summary.Contains("In the file → in the fields") && summary.Contains("Simplifications") && summary.Contains("▸ Not used in the geometry: parts 1, ")
+            Ok(summary.Contains("In the file → in the fields") && summary.Contains("Approximations in the editor fields") && !summary.Contains("▸ Not used in the geometry")
                && !summary.Contains("PMT_glass — ") && summary.Contains("File details"),
-               "сводка: сверка, упрощения, свёрнутый список «не используется», подробности файла");
+               "сводка: сведения о полях редактора и исходном файле");
             panel.ToggleGdmlUnused();
-            Ok(panel.GdmlSummaryText.Contains("▾ Not used in the geometry") && panel.GdmlSummaryText.Contains("PMT_glass — Pyrex_Glass"), "список «не используется» разворачивается");
+            Ok(panel.GdmlSummaryText == summary, "для полностью используемой геометрии отсутствует список исключённых деталей");
             panel.ToggleGdmlUnused();
 
             EfficiencyFitResult curve = EfficiencyCalculation.Run(model, 4000, null, null);
@@ -629,11 +630,11 @@ static class GdmlFieldLayoutProbeA322
 
             // Отказ раскладки: поля прежние, файл только смотрится.
             string fields = ResponseMatrix.GeometryFingerprint(panel.Model);
-            bool shown = Import(form, sceneHollow, null, out problem);
+            bool shown = Import(form, sceneTwo, null, out problem);
             Ok(shown && panel.GdmlMode && panel.GdmlTaken == GdmlParts.None && TabNames(panel) == "Detector|Source|Shield|GDML file",
-                "отказ (кристалл-труба): файл показан, все вкладки на месте", TabNames(panel));
+                "неоднозначный выбор кристалла: файл показан, все вкладки на месте", TabNames(panel));
             Ok(panel.TryCommit() && ResponseMatrix.GeometryFingerprint(panel.Model) == fields && Enabled(calc), "отказ: поля прежние, расчёт доступен");
-            Ok(status.Text.Contains("Fields unchanged") && status.Text.Contains("neither a cylinder nor a box"), "отказ: причина в статусе", status.Text);
+            Ok(status.Text.Contains("Fields unchanged") && status.Text.Contains("more than one"), "отказ: причина в статусе", status.Text);
 
             // Импорт другого файла поверх: вкладки по новому файлу.
             Import(form, sceneBeaker, null, out problem);
@@ -791,8 +792,8 @@ static class GdmlFieldLayoutProbeA322
             typeof(EfficiencyMakerForm).GetMethod("GdmlRemap", Any).Invoke(form, new object[] { null, EventArgs.Empty });
             Label notice = (Label)Member(mapping, "notice");
             panel.TryCommit();
-            Ok(ReferenceEquals(panel.GdmlChoice.Crystal, panel.GdmlGuess.Crystal) && ResponseMatrix.GeometryFingerprint(panel.Model) == fields && notice.Text.Contains("does not fit as the crystal"),
-                "негодный кристалл: отказ с причиной, выбор и поля прежние", notice.Text);
+            Ok(ReferenceEquals(panel.GdmlChoice.Crystal, wrong.Crystal) && ResponseMatrix.GeometryFingerprint(panel.Model) != fields,
+                "выбор полой детали изменяет кристалл и отпечаток геометрии", notice.Text);
         }
 
         // Окно импорта: итог пересчитывается при смене выбора, «Импортировать» недоступна без кристалла.
@@ -816,7 +817,7 @@ static class GdmlFieldLayoutProbeA322
         using (GdmlImportDialog dialog = new GdmlImportDialog(hollow, hollowOverview, GdmlFieldMap.Build(hollow, hollowOverview)))
         {
             Button ok = (Button)Member(dialog, "ok");
-            Ok(!Enabled(ok), "окно импорта: кристалл не разложен — «Импортировать» недоступна");
+            Ok(Enabled(ok), "окно импорта: полый кристалл доступен для импорта");
             GdmlChoice hand = dialog.Choice.Clone();
             hand.Crystal = hollow.Volumes.First(v => v != null && v.VolumeName == "PMT_glass");
             dialog.Choose(hand);
@@ -923,7 +924,7 @@ static class GdmlFieldLayoutProbeA322
             // «Пересчитать»: теперь защита не в расчёте, и слова обязаны это сказать.
             typeof(EfficiencyMakerForm).GetMethod("GdmlRemap", Any).Invoke(form, new object[] { null, EventArgs.Empty });
             List<string> applied = SketchWords(sketch);
-            Ok((panel.GdmlTaken & GdmlParts.Shield) == 0 && GroupAfter(applied, NotIn).Contains("Pb"), "после пересчёта свинец в группе «Не вошло в расчёт»", GroupAfter(applied, NotIn));
+            Ok((panel.GdmlTaken & GdmlParts.Shield) == 0 && !GroupAfter(applied, NotIn).Contains("Pb") && panel.Model.TransportScene != null, "после снятия роли защиты свинец остаётся в исходной сцене", GroupAfter(applied, NotIn));
             Ok(Member(sketch, "highlight") == null, "после пересчёта подсветка снята");
             Ok(!applied.Contains("→"), "после пересчёта: проба взята из файла — стрелки «к пробе» нет", "взято " + panel.GdmlTaken);
 
@@ -934,7 +935,7 @@ static class GdmlFieldLayoutProbeA322
             Ok(Member(sketch, "highlight") != null, "негодный выбор: подсветка стоит до пересчёта");
             typeof(EfficiencyMakerForm).GetMethod("GdmlRemap", Any).Invoke(form, new object[] { null, EventArgs.Empty });
             List<string> refused = SketchWords(sketch);
-            Ok(Member(sketch, "highlight") == null && applied.SequenceEqual(refused), "отказ пересчёта: подсветка снята, слова прежние", ((Label)Member(mapping, "notice")).Text);
+            Ok(Member(sketch, "highlight") == null && panel.GdmlChoice.Crystal == lead && !applied.SequenceEqual(refused), "выбранный кристалл со сложной формой принят", ((Label)Member(mapping, "notice")).Text);
         }
     }
 
@@ -954,7 +955,8 @@ static class GdmlFieldLayoutProbeA322
             Color full = (Color)typeof(GdmlSketch).GetMethod("FillOf", Any).Invoke(sketch, new object[] { glass });
             Color crystalColor = (Color)typeof(GdmlSketch).GetMethod("FillOf", Any).Invoke(sketch, new object[] { crystal });
             Dictionary<int, int> plain = Paint(sketch);
-            sketch.SetPale(unused.Contains);
+            Ok(unused.Count == 0, "в исходной модели стекло участвует в транспорте");
+            sketch.SetPale(v => v == glass);
             Color pale = (Color)typeof(GdmlSketch).GetMethod("FillOf", Any).Invoke(sketch, new object[] { glass });
             Dictionary<int, int> dimmed = Paint(sketch);
             Ok(full.ToArgb() != pale.ToArgb(), "цвет бледной детали отличается от цвета вещества", full + " → " + pale);
@@ -1046,6 +1048,7 @@ static class GdmlFieldLayoutProbeA322
     {
         GeometryModel copy = g.Clone();
         copy.Source = source.Clone();
+        copy.TransportScene = null; // Compare only editor fields here. The explicit sample material is part of the transport stamp.
         return ResponseMatrix.GeometryFingerprint(copy);
     }
 
@@ -1104,7 +1107,7 @@ static class GdmlFieldLayoutProbeA322
             Ok((map.Found & GdmlParts.Sample) != 0, arm[1] + ": проба с веществом редактора разложена", map.Found.ToString());
             Ok(GdmlChoice.SameMaterial(g.Source, pick), arm[1] + ": вещество пробы в полях — выбранное «" + pick.Name + "», " + pick.Density.ToString("R", Inv) + " г/см3",
                 g.Source.Name + ", " + g.Source.Density.ToString("R", Inv));
-            Ok(WithSource(g, gGuess.Source) == ResponseMatrix.GeometryFingerprint(gGuess),
+            Ok(WithSource(g, gGuess.Source) == WithSource(gGuess, gGuess.Source) && ResponseMatrix.GeometryFingerprint(g) != ResponseMatrix.GeometryFingerprint(gGuess),
                 arm[1] + ": форма, размеры, сосуд, положение пробы и детектор — из файла (отпечаток полей с веществом файла совпал)");
             Ok(g.SourceType == gGuess.SourceType && GdmlChoice.SameMaterial(g.BeakerWall, gGuess.BeakerWall)
                && g.BeakerDiameter == gGuess.BeakerDiameter && g.MarinelliBeakerDiameter == gGuess.MarinelliBeakerDiameter,
@@ -1542,12 +1545,12 @@ static class GdmlFieldLayoutProbeA322
             string problem;
             Import(form, sceneBeaker, null, out problem);
             GdmlVolumeInstance glass = Part(panel.Gdml, "PMT_glass"), crystal = Part(panel.Gdml, "Crystal"), wall = Part(panel.Gdml, "Beaker_side");
-            Ok(FillOf(sketch, glass).ToArgb() != PlainOf(sketch, glass).ToArgb(), "подвкладка «Файл GDML»: деталь вне полей (стекло ФЭУ) бледная");
+            Ok(FillOf(sketch, glass).ToArgb() == PlainOf(sketch, glass).ToArgb(), "подвкладка «Файл GDML»: стекло ФЭУ в полном цвете");
             Ok(FillOf(sketch, crystal).ToArgb() == PlainOf(sketch, crystal).ToArgb() && FillOf(sketch, wall).ToArgb() == PlainOf(sketch, wall).ToArgb(),
                 "подвкладка: кристалл и стенка сосуда (в полях) — в полном цвете");
             Import(form, sceneBeaker, GdmlParts.Detector, out problem);
-            Ok(FillOf(sketch, Part(panel.Gdml, "Beaker_side")).ToArgb() != PlainOf(sketch, Part(panel.Gdml, "Beaker_side")).ToArgb(),
-                "образец не взят: его сосуд на чертеже бледный");
+            Ok(FillOf(sketch, Part(panel.Gdml, "Beaker_side")).ToArgb() == PlainOf(sketch, Part(panel.Gdml, "Beaker_side")).ToArgb(),
+                "при ручной пробе исходный сосуд участвует в транспорте");
             Import(form, sceneHollow, null, out problem);
             Ok(FillOf(sketch, Part(panel.Gdml, "PMT_glass")).ToArgb() == PlainOf(sketch, Part(panel.Gdml, "PMT_glass")).ToArgb(), "отказ раскладки: бледных деталей нет");
         }
@@ -1558,12 +1561,12 @@ static class GdmlFieldLayoutProbeA322
         {
             GdmlSketch sketch = (GdmlSketch)Member(dialog, "sketch");
             GdmlVolumeInstance glass = Part(shielded, "PMT_glass"), lead = Part(shielded, "Pb_side"), crystal = Part(shielded, "Crystal");
-            Ok(FillOf(sketch, glass).ToArgb() != PlainOf(sketch, glass).ToArgb() && FillOf(sketch, crystal).ToArgb() == PlainOf(sketch, crystal).ToArgb()
-               && FillOf(sketch, lead).ToArgb() == PlainOf(sketch, lead).ToArgb(), "окно импорта: выбранное (кристалл, защита) в полном цвете, прочее бледное");
+            Ok(FillOf(sketch, glass).ToArgb() == PlainOf(sketch, glass).ToArgb() && FillOf(sketch, crystal).ToArgb() == PlainOf(sketch, crystal).ToArgb()
+               && FillOf(sketch, lead).ToArgb() == PlainOf(sketch, lead).ToArgb(), "окно импорта: все размещённые детали в полном цвете");
             GdmlChoice only = dialog.Choice.Clone();
             only.TakeShield = false;
             dialog.Choose(only);
-            Ok(FillOf(sketch, lead).ToArgb() != PlainOf(sketch, lead).ToArgb(), "окно импорта: галка защиты снята — защита бледнеет");
+            Ok(FillOf(sketch, lead).ToArgb() == PlainOf(sketch, lead).ToArgb(), "при снятой галке исходный свинец участвует в транспорте");
         }
 
         Console.WriteLine();

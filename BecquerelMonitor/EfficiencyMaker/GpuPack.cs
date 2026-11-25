@@ -223,6 +223,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return null;
             }
 
+            if (geometry.TransportScene != null) return GdmlText.T("GdmlTransportCpu", "Full GDML geometry is simulated on the CPU.");
             if (geometry.Scene == GeometrySceneKind.Iso)
             {
                 return "GPU-путь: изотропное поле (сцена ISO) на GPU не перенесено — считать на ЦП";

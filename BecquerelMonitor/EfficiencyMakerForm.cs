@@ -760,8 +760,8 @@ namespace BecquerelMonitor
             bool good = this.geometryPanel.GdmlTaken != GdmlParts.None;
             this.SayInLogAndStatus(good
                 ? string.Format(CultureInfo.InvariantCulture,
-                    ResourceText("GdmlStatusImported", "Imported {0}: {1} {2}."),
-                    this.gdmlName, GdmlOverview.TakenText(map, this.geometryPanel.GdmlTaken), GdmlOverview.UnusedText(map, this.geometryPanel.GdmlTaken))
+                    ResourceText("GdmlStatusImported", "Imported {0}: {1} {2}"),
+                    this.gdmlName, GdmlOverview.TakenText(map, this.geometryPanel.GdmlTaken), ResourceText("GdmlTransportActive", "Simulation uses the original GDML volumes and materials."))
                 : string.Format(CultureInfo.InvariantCulture, ResourceText("GdmlStatusViewOnly", "{0}: {1}"),
                     this.gdmlName, GdmlOverview.TakenText(map, GdmlParts.None)));
             this.SayGdmlFitNote();
@@ -1355,7 +1355,7 @@ namespace BecquerelMonitor
             if (this.geometryPanel.GdmlTaken == GdmlParts.None || this.gdmlContent == null)
             {
                 bool same = this.gdmlOrphan != null && fingerprintBefore != null
-                    && string.Equals(fingerprintBefore, ResponseMatrix.GeometryFingerprint(this.boundConfig.Geometry), StringComparison.Ordinal);
+                    && string.Equals(fingerprintBefore, ResponseMatrix.GeometryFingerprint(this.geometryPanel.Model), StringComparison.Ordinal);
                 this.boundConfig.GdmlImport = same ? this.gdmlOrphan : null;
                 return;
             }

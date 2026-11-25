@@ -35,8 +35,8 @@
     <MinimumRequiredVersion>2022.07.08.7</MinimumRequiredVersion>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
-    <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2026.11.25.01</ApplicationVersion>
+    <ApplicationRevision>2</ApplicationRevision>
+    <ApplicationVersion>2026.11.25.02</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -380,6 +380,9 @@
     <Compile Include="GdmlOrientationGlobe.cs" />
     <Compile Include="GdmlPartInspector.cs" />
     <Compile Include="EfficiencyMaker\GdmlPartDetails.cs" />
+    <Compile Include="EfficiencyMaker\GdmlSampleMesh.cs" />
+    <Compile Include="EfficiencyMaker\GdmlTransportScene.cs" />
+    <Compile Include="EfficiencyMaker\GdmlTransportBody.cs" />
     <Compile Include="EfficiencyMaker\GdmlSourceDocument.cs" />
     <Compile Include="EfficiencyMaker\GdmlSectionScene.cs" />
     <Compile Include="EfficiencyMaker\GdmlCavitySurface.cs" />

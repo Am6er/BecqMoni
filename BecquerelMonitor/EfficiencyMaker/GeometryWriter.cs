@@ -276,7 +276,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                                  path, sign, code, line, body);
         }
 
-        public static string Render(GeometryModel model)
+        public static string Render(GeometryModel model) { return Render(model,false); }
+
+        internal static string Render(GeometryModel model, bool forFingerprint)
         {
             // Формат `.in` записан в САНТИМЕТРАХ — так его читает GMaster, и
             // единица стоит в самой строке («= 5.03 cm»). Модель держит
@@ -364,7 +366,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             line("");
             line("SourceType = " + (model.SourceType == GeometrySourceType.Marinelli ? "MARINELLI"
                                     : model.SourceType == GeometrySourceType.Cylinder ? "CYLINDER"
-                                    : model.SourceType == GeometrySourceType.Box ? "BOX" : "POINT"));
+                                    : model.SourceType == GeometrySourceType.Box ? "BOX"
+                                    : model.SourceType == GeometrySourceType.Mesh ? "MESH" : "POINT"));
+            if (model.TransportScene != null) line("GDML_Scene = " + (forFingerprint ? model.TransportScene.Fingerprint : (model.TransportScene.Packed ?? "").Replace('/','_')));
+            if (model.SourceType == GeometrySourceType.Mesh && model.SampleMesh != null
+                && !(forFingerprint && model.TransportScene?.SampleOrNull != null))
+                line("SM_Mesh = " + model.SampleMesh.Packed.Replace('/','_'));
             line("");
             line("//Point source");
             cm("pdistance", model.PointDistance);

@@ -803,7 +803,7 @@ namespace BecquerelMonitor
             this.ok.Enabled = good;
 
             // Подсветка: выбранное и всё, что по нему легло в поля, — в полном цвете; остальное бледное.
-            this.sketch.SetPale(volume => !(good ? map.IsUsed(volume, parts) : ReferenceEquals(volume, choice.Crystal)));
+            this.sketch.SetPale(volume => !good && !ReferenceEquals(volume, choice.Crystal));
             this.sketch.SetMarks(GdmlSketchMarks.From(this.geometry, map, good ? parts : GdmlParts.None, false));
         }
 

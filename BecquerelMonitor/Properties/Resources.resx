@@ -46182,13 +46182,13 @@ The file and its previous copy will not change.</value>
     <value>The face with the thinnest cover is taken as the front.</value>
   </data>
   <data name="GdmlSimplHeader" xml:space="preserve">
-    <value>Simplifications</value>
+    <value>Approximations in the editor fields</value>
   </data>
   <data name="GdmlSimplMass" xml:space="preserve">
     <value>Housing layers of different materials are replaced by {0} of the same mass thickness.</value>
   </data>
   <data name="GdmlSimplOpenMesh" xml:space="preserve">
-    <value>Open mesh {0} is not measured by the rays.</value>
+    <value>Open mesh {0}. Paths at its holes are uncertain.</value>
   </data>
   <data name="GdmlSimplShield" xml:space="preserve">
     <value>The shield is a set of nested cylinders: thicknesses are measured at the side, beyond the sample and behind the detector.</value>
@@ -46206,7 +46206,7 @@ The file and its previous copy will not change.</value>
     <value>The sample is not transferred: {0}.</value>
   </data>
   <data name="GdmlStatusImported" xml:space="preserve">
-    <value>Imported {0}: {1} {2}.</value>
+    <value>Imported {0}: {1} {2}</value>
   </data>
   <data name="GdmlStatusRemapped" xml:space="preserve">
     <value>Recalculated for the chosen parts: {0} Calculate the curve again.</value>
@@ -46475,4 +46475,15 @@ The file and its previous copy will not change.</value>
   <data name="Gdml3DError" xml:space="preserve">
     <value>Could not display the model: {0}</value>
   </data>
+  <data name="GdmlMeshSample" xml:space="preserve"><value>GDML mesh sample</value></data>
+  <data name="GdmlMeshClosedLeaf" xml:space="preserve"><value>The mesh must enclose a volume without daughter parts</value></data>
+  <data name="GdmlIncompleteTransport" xml:space="preserve"><value>Cannot simulate an incomplete GDML volume</value></data>
+  <data name="GdmlUnknownMedium" xml:space="preserve"><value>Unknown composition or density</value></data>
+  <data name="GdmlInheritedMedium" xml:space="preserve"><value>No material specified. The surrounding medium is used</value></data>
+  <data name="GdmlTransportOpen" xml:space="preserve"><value>Open mesh. Tracking uses the original facets. Paths through holes are uncertain.</value></data>
+  <data name="GdmlOriginalVolume" xml:space="preserve"><value>Original GDML volume</value></data>
+  <data name="GdmlTransportCpu" xml:space="preserve"><value>Full GDML geometry is simulated on the CPU.</value></data>
+  <data name="GdmlTransportActive" xml:space="preserve"><value>Simulation uses the original GDML volumes and materials.</value></data>
+  <data name="GdmlTransportMissing" xml:space="preserve"><value>The original GDML scene is missing. Import the file again.</value></data>
+  <data name="GdmlMeshMissing" xml:space="preserve"><value>Choose a closed sample in the GDML import dialog.</value></data>
 </root>

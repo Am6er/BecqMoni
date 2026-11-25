@@ -36,6 +36,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     "GPU-упаковка: сцена симулятора не собрана (regionArray = null) — EnsureBuilt не звался");
             }
 
+            if (Array.Exists(array,r => r.Gdml != null)) throw new NotSupportedException(GdmlText.T("GdmlTransportCpu", "Full GDML geometry is simulated on the CPU."));
             var list = new EfficiencySimulator.Region[array.Length];
             for (int i = 0; i < list.Length; i++)
             {

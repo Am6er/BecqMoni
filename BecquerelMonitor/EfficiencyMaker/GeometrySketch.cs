@@ -1115,6 +1115,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                         : Dims(Resources.EfficiencySketchPoint, "", Math.Max(m.PointDistance, 0.0)));
                     break;
 
+                case GeometrySourceType.Mesh:
+                    lines.Add(GdmlText.T("GdmlMeshSample","GDML mesh sample"));
+                    break;
                 case GeometrySourceType.Box:
                     lines.Add(Dims(Resources.EfficiencySketchBox, "",
                                    Math.Max(m.BoxSourceX, 0.0),
@@ -1414,6 +1417,13 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             switch (m.SourceType)
             {
+                case GeometrySourceType.Mesh:
+                    var b = m.SampleMesh?.Solid?.Bounds ?? new System.Windows.Media.Media3D.Rect3D();
+                    left = b.X*10;
+                    right = (b.X+b.SizeX)*10;
+                    top = b.Z*10;
+                    bottom = (b.Z+b.SizeZ)*10;
+                    return;
                 case GeometrySourceType.Point:
                     left = -0.5;
                     right = 0.5;
@@ -1530,6 +1540,23 @@ namespace BecquerelMonitor.EfficiencyMaker
             return farEnd;
         }
 
+        void DrawMesh(Graphics g, GeometryModel model, bool plan)
+        {
+            var mesh = model.SampleMesh?.Solid;
+            if (mesh == null) return;
+            using (Brush fill = new SolidBrush(SampleColor))
+            {
+                foreach (var row in mesh.Sketch(plan))
+                {
+                    float x1 = plan ? PX(row.Left*10) : X(row.Left*10);
+                    float x2 = plan ? PX(row.Right*10) : X(row.Right*10);
+                    float y1 = plan ? PY(row.Top*10) : Y(row.Top*10);
+                    float y2 = plan ? PY(row.Bottom*10) : Y(row.Bottom*10);
+                    g.FillRectangle(fill,Math.Min(x1,x2),Math.Min(y1,y2),Math.Abs(x2-x1),Math.Max(1,Math.Abs(y2-y1)));
+                }
+            }
+        }
+
         void DrawSource(Graphics g, GeometryModel m, double zFace)
         {
             // (`AMBER13` (б)) Изотропное поле: штриховая окружность вокруг
@@ -1565,6 +1592,9 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             switch (m.SourceType)
             {
+                case GeometrySourceType.Mesh:
+                    DrawMesh(g,m,false);
+                    return;
                 case GeometrySourceType.Point:
                 {
                     float x = this.X(0.0), y = this.Y(zFace - Math.Max(m.PointDistance, 0.0));
@@ -1699,6 +1729,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             double outerHalf = this.dimOuterHalf;
             switch (m.SourceType)
             {
+                case GeometrySourceType.Mesh:
+                    return;
                 case GeometrySourceType.Point:
                     this.DimZ(g, DimSide.Right, 0, zFace - Math.Max(m.PointDistance, 0.0), zFace, 0.0, outerHalf,
                               Math.Max(m.PointDistance, 0.0), "PointDistance", RankMain);
@@ -2730,6 +2762,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 switch (m.SourceType)
                 {
+                    case GeometrySourceType.Mesh:
+                        var b = m.SampleMesh?.Solid?.Bounds ?? new System.Windows.Media.Media3D.Rect3D();
+                        reachX = 10*Math.Max(Math.Abs(b.X),Math.Abs(b.X+b.SizeX));
+                        reachY = 10*Math.Max(Math.Abs(b.Y),Math.Abs(b.Y+b.SizeY));
+                        break;
                     case GeometrySourceType.Marinelli:
                         reachX = reachY = 0.5 * Math.Max(m.MarinelliBeakerDiameter, 0.0);
                         break;
@@ -2809,6 +2846,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
+            if (m.SourceType == GeometrySourceType.Mesh)
+            {
+                if (!this.PlanFromDetector) this.DrawPlanDetector(g,m);
+                DrawMesh(g,m,true);
+                if (this.PlanFromDetector) this.DrawPlanDetector(g,m);
+                return;
+            }
             if (this.PlanFromDetector)
             {
                 this.DrawPlanFromDetector(g, m);

@@ -994,6 +994,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public static double SampleVolumeCm3(GeometryModel g)
         {
+            if (g.TransportScene != null && g.TransportScene.Problem() == null && g.TransportScene.Geometry.Sample != null)
+                return g.TransportScene.Geometry.Sample.OwnVolumeCm3;
             const double Mm3PerCm3 = 1000.0;
             switch (g.SourceType)
             {
@@ -1002,6 +1004,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double r = Math.Max(0.0, 0.5 * g.BeakerDiameter - g.BeakerSideWallThickness);
                     return Math.PI * r * r * Math.Max(0.0, g.SourceHeight) / Mm3PerCm3;
                 }
+                case GeometrySourceType.Mesh:
+                    return g.SampleMesh?.Solid?.VolumeCm3 ?? 0;
 
                 case GeometrySourceType.Box:
                     return Math.Max(0.0, g.BoxSourceX - 2.0 * g.BoxSideWallThickness)

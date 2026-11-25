@@ -2340,7 +2340,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             string text;
             try
             {
-                text = GeometryWriter.Render(StampView(geometry));
+                text = GeometryWriter.Render(StampView(geometry),true);
             }
             catch (Exception)
             {

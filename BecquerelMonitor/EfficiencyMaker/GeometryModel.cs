@@ -401,7 +401,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// `SourceType = BOX` ей неизвестен. Всё, что относится к этой форме,
         /// пишется ключами `SB_*` — те ЛСРМ тоже не читает.
         /// </summary>
-        Box
+        Box,
+        Mesh
     }
 
     /// <summary>
@@ -619,6 +620,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool IsScintillator;
 
         public GeometrySourceType SourceType;
+        public GeometrySampleMesh SampleMesh;
+        public GdmlTransportScene TransportScene;
+        public bool ShouldSerializeTransportScene() { return TransportScene != null; }
+        public bool ShouldSerializeSampleMesh() { return SourceType == GeometrySourceType.Mesh && SampleMesh != null; }
 
         /// <summary>
         /// Съёмка в поле (E27) — см. <see cref="GeometrySceneKind"/>. Умолчание
@@ -1588,6 +1593,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 {
                     case GeometrySourceType.Marinelli:
                         return this.MarinelliSourceHeight;
+                    case GeometrySourceType.Mesh:
+                        return (TransportScene?.SampleOrNull?.Bounds.SizeZ ?? this.SampleMesh?.Solid?.Bounds.SizeZ ?? 0) * MmPerCm;
                     case GeometrySourceType.Box:
                         return this.BoxSourceHeight;
                     case GeometrySourceType.Cylinder:
@@ -1615,6 +1622,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     case GeometrySourceType.Marinelli:
                         return this.MarinelliSourceHeight > 0.0
                                && this.MarinelliBeakerDiameter > 0.0;
+                    case GeometrySourceType.Mesh:
+                        return TransportScene?.SampleOrNull != null || this.SampleMesh?.Solid != null;
                     case GeometrySourceType.Box:
                         return this.BoxSourceHeight > 0.0 && this.BoxSourceX > 0.0
                                && this.BoxSourceY > 0.0;
@@ -2038,6 +2047,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 g.Raw[pair.Key] = pair.Value;
             }
 
+            if (kv.ContainsKey("GDML_Scene")) g.TransportScene = new GdmlTransportScene { Packed = Get(kv, "GDML_Scene").Replace('_','/') };
             g.Name = Path.GetFileNameWithoutExtension(path);
             g.IsScintillator = Get(kv, "DetectorType").IndexOf("SCINT", StringComparison.OrdinalIgnoreCase) >= 0;
 
@@ -2045,7 +2055,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             g.SourceType = source.StartsWith("MARINELLI") ? GeometrySourceType.Marinelli
                 : source.StartsWith("CYLINDER") ? GeometrySourceType.Cylinder
                 : source.StartsWith("BOX") ? GeometrySourceType.Box
-                : GeometrySourceType.Point;
+                : source == "MESH" ? GeometrySourceType.Mesh : GeometrySourceType.Point;
+            if (g.SourceType == GeometrySourceType.Mesh && Get(kv, "SM_Mesh").Length > 0)
+                g.SampleMesh = new GeometrySampleMesh { Packed = Get(kv, "SM_Mesh").Replace('_','/') };
 
             // Размеры читаются через Len: в файле они в сантиметрах, а модель
             // держит миллиметры. Обычный Num остаётся для того, что длиной не
@@ -2307,6 +2319,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             get
             {
                 List<string> all = new List<string>(this.ParseWarnings);
+                if (TransportScene != null)
+                {
+                    string error = TransportScene.Problem();
+                    if (error != null) all.Add(error);
+                    else all.AddRange(TransportScene.Geometry.Warnings);
+                }
+                if (SourceType == GeometrySourceType.Mesh && TransportScene?.SampleOrNull == null && SampleMesh?.Solid == null)
+                    all.Add(Res("GdmlMeshMissing", "Choose a closed sample in the GDML import dialog."));
                 all.AddRange(this.CheckLayers());
                 // (`AMBER201`, Р4, мелочь 9.2) Боковая постановка у ЦИЛИНДРА.
                 // `FacingError` прежде не читал никто (E21 обещал отказ словами),
@@ -2360,6 +2380,10 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         public string MissingMaterialProblem()
         {
+            string sceneError = TransportScene?.Problem();
+            if (sceneError != null) return sceneError;
+            if (SourceType == GeometrySourceType.Mesh && TransportScene?.SampleOrNull == null && SampleMesh?.Solid == null)
+                return Res("GdmlMeshMissing", "Choose a closed sample in the GDML import dialog.");
             string problem = null;
             Action<double, GeometryMaterial, string> check = (thickness, material, caption) =>
             {
@@ -2421,43 +2445,58 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// <see cref="CheckLayers"/> и <see cref="UnknownElementProblem"/>.</summary>
         void VisitLayers(Action<double, GeometryMaterial, string> check)
         {
-            check(Math.Max(this.FrontReflectorThickness, this.SideReflectorThickness),
-                  this.Reflector, Properties.Resources.GeometryEditorReflectorMaterial);
-            check(Math.Max(this.FrontGapThickness, this.SideGapThickness),
-                  this.Gap, Properties.Resources.GeometryEditorGapMaterial);
-            check(Math.Max(this.FrontCladdingThickness, this.SideCladdingThickness),
-                  this.Cladding, Properties.Resources.GeometryEditorCladdingMaterial);
-            // (`AMBER323`) Магнитный экран — слой, только когда он в сцене.
-            check(this.HasMagneticShield ? this.MagneticShieldThickness : 0.0,
-                  this.MagneticShield, Properties.Resources.GeometryEditorMagneticShieldMaterial);
-
-            double wall;
-            // Высота пробы берётся ОДНИМ местом (`SampleHeightMm`): её же
-            // читает признак «проба осталась воздухом» (`E19`), и вторая копия
-            // того же разбора разъехалась бы с первой молча (`S37`).
-            double sample = this.SampleHeightMm;
-            switch (this.SourceType)
+            GdmlTransportGeometry original = null;
+            if (TransportScene != null)
             {
-                case GeometrySourceType.Marinelli:
-                    wall = Math.Max(this.MarinelliSideThickness, this.MarinelliHoleSideThickness);
-                    break;
-                case GeometrySourceType.Box:
-                    wall = Math.Max(this.BoxSideWallThickness, this.BoxEndWallThickness);
-                    break;
-                case GeometrySourceType.Cylinder:
-                    wall = Math.Max(Math.Max(this.BeakerSideWallThickness, this.BeakerEndWallThickness),
-                                    this.BeakerFarEndWallThickness);
-                    break;
-                default:
-                    wall = 0.0;        // точечный источник вещества не имеет
-                    break;
+                if (TransportScene.Problem() != null) return;
+                original = TransportScene.Geometry;
+                foreach (var part in original.Parts)
+                {
+                    var material = original.MaterialOf(part, Source);
+                    check(1, material, part.Name + " / " + material.Name);
+                }
+            }
+            else
+            {
+                check(Math.Max(this.FrontReflectorThickness, this.SideReflectorThickness),
+                      this.Reflector, Properties.Resources.GeometryEditorReflectorMaterial);
+                check(Math.Max(this.FrontGapThickness, this.SideGapThickness),
+                      this.Gap, Properties.Resources.GeometryEditorGapMaterial);
+                check(Math.Max(this.FrontCladdingThickness, this.SideCladdingThickness),
+                      this.Cladding, Properties.Resources.GeometryEditorCladdingMaterial);
+                // (`AMBER323`) Магнитный экран — слой, только когда он в сцене.
+                check(this.HasMagneticShield ? this.MagneticShieldThickness : 0.0,
+                      this.MagneticShield, Properties.Resources.GeometryEditorMagneticShieldMaterial);
+            }
+            if (original == null || original.Sample == null)
+            {
+                double wall;
+                // Высота пробы берётся ОДНИМ местом (`SampleHeightMm`): её же
+                // читает признак «проба осталась воздухом» (`E19`), и вторая копия
+                // того же разбора разъехалась бы с первой молча (`S37`).
+                double sample = this.SampleHeightMm;
+                switch (this.SourceType)
+                {
+                    case GeometrySourceType.Marinelli:
+                        wall = Math.Max(this.MarinelliSideThickness, this.MarinelliHoleSideThickness);
+                        break;
+                    case GeometrySourceType.Box:
+                        wall = Math.Max(this.BoxSideWallThickness, this.BoxEndWallThickness);
+                        break;
+                    case GeometrySourceType.Cylinder:
+                        wall = Math.Max(Math.Max(this.BeakerSideWallThickness, this.BeakerEndWallThickness),
+                                        this.BeakerFarEndWallThickness);
+                        break;
+                    default:
+                        wall = 0.0;        // точечный источник вещества не имеет
+                        break;
+                }
+
+                check(wall, this.BeakerWall, Properties.Resources.GeometryEditorWallMaterial);
+                check(sample, this.Source, Properties.Resources.GeometryEditorSourceMaterial);
             }
 
-            check(wall, this.BeakerWall, Properties.Resources.GeometryEditorWallMaterial);
-            check(sample, this.Source, Properties.Resources.GeometryEditorSourceMaterial);
-
-            // (`AMBER282`) Слои защиты — только когда защита в сцене (иначе их не строит никто).
-            if (this.ShieldInScene)
+            if (this.ShieldInScene && (original == null || !original.ImportedShield))
             {
                 for (int i = 0; i < this.ShieldLayers.Count; i++)
                 {
@@ -2657,6 +2696,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                             Resources.GeometrySourceIso, this.FieldRadius)
                         : string.Format(CultureInfo.InvariantCulture,
                             Resources.GeometrySourcePoint, this.PointDistance);
+                    break;
+                case GeometrySourceType.Mesh:
+                    source = Res("GdmlMeshSample", "GDML mesh sample");
                     break;
                 case GeometrySourceType.Cylinder:
                     source = string.Format(CultureInfo.InvariantCulture,

@@ -409,6 +409,8 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         public string FileName = "";
         internal GdmlSourceDocument SourceDocument;
+        internal byte[] TransportXml;
+        internal GdmlVolumeInstance World;
         public string FatalError;
         public readonly List<GdmlVolumeInstance> Volumes = new List<GdmlVolumeInstance>();
         public readonly List<string> Warnings = new List<string>();
@@ -589,9 +591,13 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         public static GdmlGeometry Read(string path)
         {
-            GdmlGeometry geometry = new GdmlGeometry();
-            geometry.FileName = path;
-            geometry.SourceDocument = GdmlSourceDocument.ForFile(path);
+            return Read(File.ReadAllBytes(path), path);
+        }
+
+        internal static GdmlGeometry Read(byte[] xml, string path)
+        {
+            var geometry = new GdmlGeometry { TransportXml = xml, FileName = path ?? "" };
+            if (path != null) geometry.SourceDocument = GdmlSourceDocument.ForFile(path);
 
             try
             {
@@ -604,7 +610,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     CloseInput = true,
                 };
 
-                using (XmlReader reader = XmlReader.Create(path, settings))
+                using (XmlReader reader = XmlReader.Create(new MemoryStream(xml, false), settings))
                 {
                     reader.MoveToContent();
                     if (reader.NodeType != XmlNodeType.Element)
@@ -663,7 +669,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             catch (XmlException ex)
             {
                 // Запрет DTD остаётся; текст исключения про `DtdProcessing` читателю ничего не скажет.
-                geometry.FatalError = UsesDtd(path)
+                geometry.FatalError = path != null && UsesDtd(path)
                     ? GdmlText.T("GdmlFatalDtd",
                         "the file uses <!DOCTYPE> or <!ENTITY> to include other files; this is not supported and is not read, for safety: put the included text into the file itself")
                     : ex.Message;
@@ -3271,7 +3277,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Сумма по рёбрам: сколько раз ребро пройдено в одну сторону сверх обратной.
         /// У замкнутой согласованной сетки — ноль.
         /// </summary>
-        static int CountUnpairedEdges(GdmlSolid solid, out bool flipped)
+        internal static int CountUnpairedEdges(GdmlSolid solid, out bool flipped)
         {
             int[] map = MergeVertices(solid.Vertices);
             Dictionary<long, int> balance = new Dictionary<long, int>(solid.Triangles.Count, new EdgeComparer());
@@ -3890,6 +3896,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 this.Volumes.Add(instance);
             }
+            else this.World = instance;
 
             bool complete = true;
             foreach (GdmlChild child in definition.Children)

@@ -114,7 +114,8 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             if (this.sampleMaterial == null)
             {
-                return sample.MassG;
+                return sample.OwnVolumeCm3 >= 0 && EffectiveMaterial(sample)?.HasDensity == true
+                    ? sample.OwnVolumeCm3 * EffectiveMaterial(sample).Density : sample.MassG;
             }
 
             return sample.OwnVolumeCm3 >= 0.0 ? sample.OwnVolumeCm3 * this.sampleMaterial.Density : double.NaN;
@@ -125,12 +126,12 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         public int ShieldParts;
 
-        /// <summary>Годится ли деталь кристаллом по форме: короб или сплошной цилиндр.</summary>
+        /// <summary>Можно ли использовать исходное тело этой детали для кристалла.</summary>
         public static bool CrystalShapeFits(GdmlVolumeInstance volume)
         {
-            double a, b, c;
-            return volume != null && volume.Solid != null && volume.BoundsKnown
-                   && (volume.Solid.Kind == GdmlSolidKind.Box || IsCylinder(volume.Solid, out a, out b, out c));
+            return volume?.Solid != null && volume.BoundsKnown && volume.PlacementKnown
+                && !volume.Solid.ContainsUnknown && volume.Solid.Kind != GdmlSolidKind.Unknown
+                && (!volume.Solid.Unreadable || volume.Solid.Kind == GdmlSolidKind.Tessellated);
         }
         double[] deviceMin, deviceMax;
 
@@ -202,7 +203,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
-            if (map.LayDetector())
+            if (map.LayDetector(crystal != null))
             {
                 map.Found |= GdmlParts.Detector;
                 if (map.LaySample())
@@ -373,6 +374,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Вещество поля из вещества файла. Состав и плотность — файла; имя — библиотечное, когда состав совпал с
         /// веществом библиотеки (по имени вещества кристалла редактор берёт пресет разрешения, `AMBER321`).
         /// </summary>
+        internal static GdmlMaterial EffectiveMaterial(GdmlVolumeInstance volume)
+        {
+            for (var current = volume; current != null; current = current.Parent)
+                if (!string.IsNullOrWhiteSpace(current.MaterialName)) return current.Material;
+            return GdmlG4Materials.Table["G4_AIR"];
+        }
+
         internal static GeometryMaterial ToField(GdmlMaterial material)
         {
             GeometryMaterial result = new GeometryMaterial();
@@ -557,7 +565,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             return false;
         }
 
-        bool LayDetector()
+        bool LayDetector(bool selected)
         {
             GdmlVolumeInstance crystal = this.crystalVolume;
             if (crystal == null || crystal.Solid == null || !crystal.BoundsKnown)
@@ -575,7 +583,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
-            if (crystals > 1)
+            if (crystals > 1 && !selected)
             {
                 return this.Refuse("GdmlWhyManyCrystals", "there is more than one crystal");
             }
@@ -583,7 +591,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             GdmlTransform t = crystal.Transform ?? GdmlTransform.Identity();
             GdmlSolid solid = crystal.Solid;
             double[] half = new double[3];
-            double zMid = 0.0;
+            double zMid = 0.0, xMid = 0.0, yMid = 0.0;
             if (solid.Kind == GdmlSolidKind.Box)
             {
                 half[0] = 0.5 * solid.SizeX; half[1] = 0.5 * solid.SizeY; half[2] = 0.5 * solid.SizeZ;
@@ -595,10 +603,13 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
             else
             {
-                return this.Refuse("GdmlWhyCrystalShape", "the crystal is neither a cylinder nor a box");
+                if (solid.Kind == GdmlSolidKind.Unknown || !solid.BoundsKnown)
+                    return this.Refuse("GdmlWhyCrystalShape", "the crystal geometry is unknown");
+                for (int i = 0; i < 3; i++) half[i] = (solid.Max[i]-solid.Min[i])/2;
+                xMid = solid.Min[0]+half[0]; yMid = solid.Min[1]+half[1]; zMid = solid.Min[2]+half[2];
             }
 
-            GdmlPoint c = t.Apply(new GdmlPoint(0.0, 0.0, zMid));
+            GdmlPoint c = t.Apply(new GdmlPoint(xMid, yMid, zMid));
             GdmlPoint zero = t.Apply(new GdmlPoint(0, 0, 0));
             this.center = new[] { c.X, c.Y, c.Z };
             double[][] axes = new double[3][];
@@ -671,7 +682,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 g.CrystalBoxZ = R4(2.0 * this.halfDepth);
             }
 
-            g.Crystal = ToField(crystal.Material);
+            g.Crystal = ToField(EffectiveMaterial(crystal));
             Layers f = frontFace.Layers, s = side.Layers;
             g.FrontReflectorThickness = R4(f.Reflector);
             g.SideReflectorThickness = R4(s.Reflector);
@@ -993,8 +1004,17 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         bool SampleFails(string key, string fallback)
         {
-            this.SampleProblem = GdmlText.T(key, fallback);
             GdmlVolumeInstance sample = this.sampleVolume;
+            if (sample?.Solid != null && sample.BoundsKnown && sample.Solid.Kind != GdmlSolidKind.Unknown)
+            {
+                fields.SourceType = GeometrySourceType.Mesh;
+                fields.Scene = GeometrySceneKind.None;
+                fields.Source = sampleMaterial?.Clone() ?? ToField(EffectiveMaterial(sample));
+                used[GdmlParts.Sample].Add(sample);
+                Line(GdmlParts.Sample,sample.VolumeName,GdmlText.T("GdmlOriginalVolume", "Original GDML volume"));
+                return true;
+            }
+            this.SampleProblem = GdmlText.T(key, fallback);
             this.Line(GdmlParts.Sample,
                 string.Format(CultureInfo.InvariantCulture, GdmlText.T("GdmlMapSample", "Sample {0}, {1}"), Display(sample.Material), GdmlOverview.SizeText(sample, this.geometry.Axis)),
                 string.Format(CultureInfo.InvariantCulture, GdmlText.T("GdmlMapNotMoved", "not transferred: {0}"), this.SampleProblem));
@@ -1009,6 +1029,25 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return false;
             }
 
+            if (sample.Solid != null && sample.Solid.Kind == GdmlSolidKind.Tessellated)
+            {
+                if (!sample.Solid.VolumeKnown || sample.Children != 0)
+                    return this.SampleFails("GdmlMeshClosedLeaf", "the mesh must enclose a volume without daughter parts");
+                var placement = sample.Transform ?? GdmlTransform.Identity();
+                fields.SampleMesh = new GeometrySampleMesh { Packed = GdmlSampleMesh.Encode(sample.Solid, p =>
+                {
+                    var world = placement.Apply(p);
+                    double[] d = { world.X-center[0], world.Y-center[1], world.Z-center[2] };
+                    return new System.Windows.Media.Media3D.Point3D(Dot(d,sideU)/10, Dot(d,sideV)/10,
+                        (halfDepth-Dot(d,front))/10);
+                }) };
+                fields.SourceType = GeometrySourceType.Mesh;
+                fields.Scene = GeometrySceneKind.None;
+                fields.Source = sampleMaterial == null ? ToField(EffectiveMaterial(sample)) : sampleMaterial.Clone();
+                used[GdmlParts.Sample].Add(sample);
+                this.Line(GdmlParts.Sample, sample.VolumeName, GdmlText.T("GdmlMeshSample", "GDML mesh sample"));
+                return true;
+            }
             double reach = this.WorldReach(this.center, this.front) + 1.0;
             List<Run> axis = this.Runs(this.center, this.front, reach);
             int at = axis.FindIndex(this.IsSample);
@@ -1141,7 +1180,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             double body = shell != null ? shell.Length : farWall + farGap + height + (marinelli ? 0.0 : wall);
 
             g.BeakerWall = ToField(wallMaterial);
-            g.Source = this.sampleMaterial != null ? this.sampleMaterial.Clone() : ToField(sample.Material);
+            g.Source = this.sampleMaterial != null ? this.sampleMaterial.Clone() : ToField(EffectiveMaterial(sample));
             g.Scene = GeometrySceneKind.None;
             HashSet<GdmlVolumeInstance> taken = this.used[GdmlParts.Sample];
             taken.Add(sample);
@@ -1414,12 +1453,33 @@ namespace BecquerelMonitor.EfficiencyMaker
         // ------------------------------------------------------------------
 
         /// <summary>Положить выбранные части в модель; прочие поля модели не трогаются.</summary>
+        internal GdmlTransportScene Transport(GdmlParts parts)
+        {
+            parts &= Found;
+            if ((parts & GdmlParts.Detector) == 0) return null;
+            if (cachedTransport != null && cachedParts == parts) return cachedTransport;
+            var frame = new System.Windows.Media.Media3D.Matrix3D(
+                sideU[0]/10,sideV[0]/10,-front[0]/10,0,
+                sideU[1]/10,sideV[1]/10,-front[1]/10,0,
+                sideU[2]/10,sideV[2]/10,-front[2]/10,0,
+                -Dot(center,sideU)/10,-Dot(center,sideV)/10,(halfDepth+Dot(center,front))/10,1);
+            cachedParts = parts;
+            cachedTransport = GdmlTransportScene.Capture(geometry,geometry.Volumes.IndexOf(Crystal),
+                (parts & GdmlParts.Sample) != 0 ? geometry.Volumes.IndexOf(Sample) : -1,
+                (parts & GdmlParts.Shield) != 0, sampleMaterial != null, frame);
+            return cachedTransport;
+        }
+
+        GdmlTransportScene cachedTransport;
+        GdmlParts cachedParts;
+
         public void Apply(GeometryModel g, GdmlParts parts)
         {
             parts &= this.Found;
             GeometryModel f = this.fields;
             if ((parts & GdmlParts.Detector) != 0)
             {
+                g.TransportScene = Transport(parts);
                 g.IsScintillator = true;
                 g.Shape = f.Shape;
                 g.Facing = f.Facing;
@@ -1436,6 +1496,14 @@ namespace BecquerelMonitor.EfficiencyMaker
                 g.SideCladdingThickness = f.SideCladdingThickness;
                 g.MountingThickness = f.MountingThickness;
                 g.Crystal = f.Crystal.Clone();
+                if ((parts & GdmlParts.Sample) != 0 && sampleMaterial != null)
+                {
+                    for (var owner = crystalVolume; owner != null; owner = owner.Parent)
+                    {
+                        if (owner == sampleVolume) g.Crystal = sampleMaterial.Clone();
+                        if (owner == sampleVolume || !string.IsNullOrWhiteSpace(owner.MaterialName)) break;
+                    }
+                }
                 Take(f.Reflector, m => g.Reflector = m);
                 Take(f.Gap, m => g.Gap = m);
                 Take(f.Cladding, m => g.Cladding = m);
@@ -1451,6 +1519,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 g.Scene = GeometrySceneKind.None;
                 g.SourceType = f.SourceType;
+                g.SampleMesh = f.SampleMesh;
                 g.Source = f.Source.Clone();
                 Take(f.BeakerWall, m => g.BeakerWall = m);
                 if (f.SourceType == GeometrySourceType.Marinelli)
@@ -1526,6 +1595,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         public List<GdmlVolumeInstance> Unused(GdmlParts parts)
         {
             List<GdmlVolumeInstance> result = new List<GdmlVolumeInstance>();
+            if ((parts & Found & GdmlParts.Detector) != 0) return result;
             foreach (GdmlVolumeInstance volume in this.geometry.Volumes)
             {
                 if (volume != null && volume.Solid != null && !IsGas(volume) && !this.overview.IsOutOfFrame(volume) && !this.IsUsed(volume, parts))

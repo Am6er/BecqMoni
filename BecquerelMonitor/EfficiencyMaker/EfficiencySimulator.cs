@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Windows.Media.Media3D;
 
 namespace BecquerelMonitor.EfficiencyMaker
 {
@@ -1984,7 +1985,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             // областей детектора и до пяти у пробы, — так что упереться в предел
             // может только новый вид сцены. Тогда пусть падает громко здесь, а
             // не считает молча чужую область: сдвиг на 64 в C# заворачивается.
-            if (this.regions.Count > 64)
+            if (this.regions.Count > 64 && this.geometry.TransportScene == null)
             {
                 throw new InvalidOperationException(
                     "областей сцены " + this.regions.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " — больше 64, "
@@ -1996,6 +1997,14 @@ namespace BecquerelMonitor.EfficiencyMaker
             // на каждое обращение проверяет границы и версию коллекции. Сцена
             // после сборки не меняется, так что копия безопасна.
             this.regionArray = this.regions.ToArray();
+            if (this.geometry.TransportScene != null)
+            {
+                var indices = new Dictionary<GdmlTransportGeometry.Part,int>();
+                for (int i = 0; i < regionArray.Length; i++)
+                    if (regionArray[i].Gdml != null) indices.Add(regionArray[i].Gdml,i);
+                foreach (Region r in regionArray)
+                    if (r.Gdml?.Parent != null) r.ParentIndex = indices[r.Gdml.Parent];
+            }
 
             // Те же размеры плоскими массивами — для разбора луча (`A43`).
             int regionCount = this.regionArray.Length;
@@ -2204,6 +2213,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         internal sealed class Region
         {
+            public GdmlSampleMesh Mesh;
+            internal GdmlTransportGeometry.Part Gdml;
+            internal int ParentIndex = -1;
             public bool IsBox;
             public double RIn, ROut;      // кольцо
             public double AX, AY;         // полуразмеры бруса
@@ -2615,6 +2627,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             /// </summary>
             public bool Contains(double x, double y, double z, double r)
             {
+                if (Gdml != null) return Gdml.Contains(new Point3D(x,y,z));
+                if (Mesh != null) return Mesh.Contains(x,y,z);
                 if (z < this.ZMin - Eps || z >= this.ZMax - Eps)
                 {
                     return false;
@@ -3495,6 +3509,51 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.sphereR = Math.Sqrt(transverse * transverse
                                      + Math.Pow(0.5 * hc + tfr + tfg + tfc, 2.0)) + 1e-3;
 
+            var imported = g.TransportScene?.Geometry;
+            Region worldRegion = null;
+            if (imported != null)
+            {
+                // The editor dimensions still locate manual sources and aim importance sampling.
+                // Only original placed solids provide material boundaries for imported parts.
+                Region crystalDimensions = this.crystal;
+                regions.Clear();
+                sceneZMin = double.MaxValue;
+                sceneZMax = double.MinValue;
+                sceneRMax = 0;
+                foreach (var part in imported.Parts)
+                {
+                    bool sensitive = part == imported.Crystal;
+                    var bounds = part.Bounds;
+                    var r = sensitive ? crystalDimensions : new Region();
+                    r.Gdml = part;
+                    r.Material = imported.MaterialOf(part, sample);
+                    r.IsCrystal = sensitive;
+                    r.ZMin = bounds.Z;
+                    r.ZMax = bounds.Z + bounds.SizeZ;
+                    if (sensitive)
+                    {
+                        r.AX = bounds.SizeX/2;
+                        r.AY = bounds.SizeY/2;
+                        r.ROut = r.IsBox ? Math.Sqrt(r.AX*r.AX+r.AY*r.AY) : r.AX;
+                    }
+                    else
+                    {
+                        double rx = Math.Max(Math.Abs(bounds.X),Math.Abs(bounds.X+bounds.SizeX));
+                        double ry = Math.Max(Math.Abs(bounds.Y),Math.Abs(bounds.Y+bounds.SizeY));
+                        r.ROut = Math.Sqrt(rx*rx+ry*ry);
+                    }
+                    if (part == imported.World) worldRegion = r;
+                    else Register(r,sensitive);
+                }
+                if (imported.Sample != null)
+                {
+                    this.source = new MeshSampler(imported.Sample);
+                    if (g.ShieldInScene && !imported.ImportedShield) AddShield(g);
+                    Register(worldRegion,false);
+                    return;
+                }
+            }
+
             // (`AMBER13` (б)) Изотропное поле: пробы и сосуда нет, источник —
             // ламбертова сфера вокруг детектора. Решается ДО формы источника:
             // форма у поля точечная (так файл читает ЛСРМ), но точечный
@@ -3532,11 +3591,21 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 this.source = new IsoFieldSampler(this.sphereZ, g.FieldRadius, this.IsoFieldNoCosineWeight);
+                if (worldRegion != null) Register(worldRegion,false);
                 return;
             }
 
             switch (g.SourceType)
             {
+                case GeometrySourceType.Mesh:
+                    var mesh = g.SampleMesh?.Solid ?? throw new InvalidOperationException("GDML sample mesh is missing.");
+                    var bounds = mesh.Bounds;
+                    double mx = Math.Max(Math.Abs(bounds.X), Math.Abs(bounds.X + bounds.SizeX));
+                    double my = Math.Max(Math.Abs(bounds.Y), Math.Abs(bounds.Y + bounds.SizeY));
+                    this.Register(new Region { Mesh = mesh, ROut = Math.Sqrt(mx*mx + my*my),
+                        Material = g.Source, ZMin = bounds.Z, ZMax = bounds.Z + bounds.SizeZ }, false);
+                    this.source = new MeshSampler(mesh);
+                    break;
                 case GeometrySourceType.Point:
                     // (`AMBER274` Ф6, решение Amber 30.10.2026 вопросником, дословно: «На 1.5 мм
                     // и для фотонов (Рекомендую)») Расстояние точечной сцены — от ПЛОСКОСТИ
@@ -3685,10 +3754,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             // (`AMBER282`) Защита в расчёте — ПОСЛЕДНИМИ областями, вокруг всего, что выше.
-            if (g.ShieldInScene)
+            if (g.ShieldInScene && (imported == null || !imported.ImportedShield))
             {
                 this.AddShield(g);
             }
+            if (worldRegion != null) Register(worldRegion,false);
         }
 
         /// <summary>
@@ -3969,6 +4039,27 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// просто три независимых равномерных числа, в отличие от цилиндра, где
         /// радиус приходится брать корнем.
         /// </summary>
+        internal sealed class MeshSampler : Sampler
+        {
+            readonly GdmlSampleMesh mesh;
+            readonly GdmlTransportGeometry.Part part;
+            public MeshSampler(GdmlSampleMesh mesh) { this.mesh = mesh; }
+            public MeshSampler(GdmlTransportGeometry.Part part) { this.part = part; }
+            public override string Describe() { return "source gdml-mesh"; }
+            public override void Next(EfficiencySimulator s, out double x, out double y, out double z)
+            {
+                var b = part == null ? mesh.Bounds : part.Bounds;
+                for (int attempt = 0; attempt < 1000000; attempt++)
+                {
+                    x = b.X + b.SizeX*s.Uniform();
+                    y = b.Y + b.SizeY*s.Uniform();
+                    z = b.Z + b.SizeZ*s.Uniform();
+                    if (part == null ? mesh.Contains(x,y,z) : s.At(x,y,z)?.Gdml == part) return;
+                }
+                throw new InvalidOperationException("GDML sample rejection sampling exhausted its bounding box.");
+            }
+        }
+
         internal sealed class BoxSampler : Sampler
         {
             internal readonly double ax, ay, z0, z1;
@@ -4985,7 +5076,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 if (all[i].Contains(x, y, z, r))
                 {
-                    return all[i];
+                    int parent = all[i].ParentIndex;
+                    while (parent >= 0 && all[parent].Contains(x,y,z,r)) parent = all[parent].ParentIndex;
+                    if (parent < 0) return all[i];
                 }
             }
 
@@ -5334,7 +5427,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         // рабочие буферы сбора: события «вход/выход» и отрезки одной области
         double[] eventT;
         int[] eventCode;
-        readonly double[] spanBuf = new double[4];
+        double[] spanBuf = new double[4];
 
         // (`AMBER44`, П94 §7.1) СНИМОК КЭША ЛУЧА на время переноса электрона в
         // слоях обвязки (`TransportInLayers`): тот разбирает луч заново лучами
@@ -5519,9 +5612,28 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             int m = 0;
             ulong active = 0UL;
+            if (count > 64)
+            {
+                if (extraActive == null) extraActive = new ulong[(count+63)/64];
+                Array.Clear(extraActive,0,extraActive.Length);
+            }
+            var gdmlRay = new GdmlTransportBody.Ray(new Point3D(x,y,z),new Vector3D(ux,uy,uz));
             for (int i = 0; i < count; i++)
             {
-                int parts = this.SpanFlat(i, x, y, z, ux, uy, uz, this.spanBuf);
+                int parts;
+                if (all[i].Mesh == null && all[i].Gdml == null)
+                    parts = this.SpanFlat(i, x, y, z, ux, uy, uz, this.spanBuf);
+                else
+                {
+                    parts = all[i].Gdml != null ? all[i].Gdml.Spans(gdmlRay,ref this.spanBuf)
+                        : all[i].Mesh.Spans(x,y,z,ux,uy,uz,ref this.spanBuf);
+                    int capacity = m + 2*parts + 4*(count-i);
+                    if (this.eventT.Length < capacity)
+                    {
+                        Array.Resize(ref this.eventT, capacity);
+                        Array.Resize(ref this.eventCode, capacity);
+                    }
+                }
                 for (int p = 0; p < parts; p++)
                 {
                     double t0 = this.spanBuf[2 * p], t1 = this.spanBuf[2 * p + 1];
@@ -5532,7 +5644,8 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                     if (t0 <= 1e-7)
                     {
-                        active |= 1UL << i;             // область накрывает саму точку
+                        if (i >= 64) extraActive[i >> 6] |= 1UL << i;
+                        else active |= 1UL << i;             // область накрывает саму точку
                     }
                     else
                     {
@@ -5577,6 +5690,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.eventCode[j + 1] = code;
             }
 
+            if (this.rayCross.Length < m)
+            {
+                Array.Resize(ref this.rayCross,m);
+                Array.Resize(ref this.raySeg,m+1);
+            }
             int n = 0;
             Region current = this.Winner(active);
             for (int k = 0; k < m; k++)
@@ -5584,11 +5702,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                 int code = this.eventCode[k];
                 if (code > 0)
                 {
-                    active |= 1UL << (code - 1);
+                    if (code > 64) extraActive[(code-1) >> 6] |= 1UL << (code-1);
+                    else active |= 1UL << (code - 1);
                 }
                 else
                 {
-                    active &= ~(1UL << (-code - 1));
+                    if (-code > 64) extraActive[(-code-1) >> 6] &= ~(1UL << (-code-1));
+                    else active &= ~(1UL << (-code - 1));
                 }
 
                 // События в одной точке применяются ВСЕ, и только потом решается,
@@ -5648,8 +5768,29 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// он сразу, а не перебором (`T43`): развёртка зовёт это на каждое
         /// событие, а событий два десятка на луч.
         /// </summary>
+        ulong[] extraActive;
+
         Region Winner(ulong active)
         {
+            if (geometry.TransportScene != null)
+            {
+                int groups = (regionArray.Length+63)/64;
+                for (int group = 0; group < groups; group++)
+                {
+                    ulong bits = group == 0 ? active : extraActive[group];
+                    while (bits != 0)
+                    {
+                        ulong lowBit = bits & (0UL-bits);
+                        var r = regionArray[group*64 + LowBitIndex[lowBit*DeBruijn64 >> 58]];
+                        int parent = r.ParentIndex;
+                        while (parent >= 0 && ((parent < 64 ? active : extraActive[parent >> 6]) & (1UL << parent)) != 0)
+                            parent = regionArray[parent].ParentIndex;
+                        if (parent < 0) return r;
+                        bits ^= lowBit;
+                    }
+                }
+                return null;
+            }
             if (active == 0UL)
             {
                 return null;
@@ -6169,6 +6310,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             // того, как `At` назвал область кристаллом. Для точки СНАРУЖИ
             // величина смысла не имеет и не считается.
             Region c = this.crystal;
+            if (c.Gdml != null && (c.Gdml.Children.Count > 0 || !c.Gdml.Body.SimpleCrystal))
+            {
+                CollectCrossings(x,y,z,ux,uy,uz);
+                return raySeg[0] == c && rayCount > 0 ? rayCross[0] : 0;
+            }
             double best = double.MaxValue;
             SlabExit(z, uz, c.ZMin, c.ZMax, ref best);
             if (c.IsBox)
@@ -12658,7 +12804,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             {
                 // У бруса радиусов нет вовсе, и печатать их нулями — врать в
                 // журнале прогона, который теперь видит пользователь.
-                string shape = r.IsBox
+                string shape = r.Gdml != null ? "GDML " + r.Gdml.Name : r.Mesh != null
+                    ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "GDML mesh, {0:F3} cm3",r.Mesh.VolumeCm3)
+                    : r.IsBox
                     ? string.Format(System.Globalization.CultureInfo.InvariantCulture,
                         "{0:F2}x{1:F2}", 2.0 * r.AX, 2.0 * r.AY)
                     : string.Format(System.Globalization.CultureInfo.InvariantCulture,
@@ -12711,6 +12859,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.EnsureBuilt();
             var ci = System.Globalization.CultureInfo.InvariantCulture;
             var lines = new List<string> { "SCENE" };
+            var original = geometry.TransportScene;
+            if (original != null) lines.Add("gdml-scene " + original.Packed);
             var materialId = new Dictionary<GeometryMaterial, string>();
             foreach (Region r in this.regions)
             {
@@ -12735,6 +12885,17 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             foreach (Region r in this.regions)
             {
+                if (r.Gdml != null)
+                {
+                    int index = Array.IndexOf(original.Geometry.Parts, r.Gdml);
+                    lines.Add(string.Format(ci, "region gdml {0} {1} {2}", materialId[r.Material], index, r.IsCrystal ? "crystal" : "-"));
+                    continue;
+                }
+                if (r.Mesh != null)
+                {
+                    lines.Add("region mesh " + materialId[r.Material] + " " + geometry.SampleMesh.Packed);
+                    continue;
+                }
                 if (r.Shape != 0)
                 {
                     // (`AMBER282`) Область формы — своим видом строки: слой по z, признак кристалла,

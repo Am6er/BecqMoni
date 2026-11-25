@@ -269,6 +269,8 @@ namespace BecquerelMonitor
                 GeometrySourceType.Marinelli, GeometrySceneKind.Borehole),
             new KeyValuePair<GeometrySourceType, GeometrySceneKind>(
                 GeometrySourceType.Point, GeometrySceneKind.Iso),
+            new KeyValuePair<GeometrySourceType, GeometrySceneKind>(
+                GeometrySourceType.Mesh, GeometrySceneKind.None),
         };
 
         static int IndexOfSource(GeometryModel g)
@@ -521,6 +523,16 @@ namespace BecquerelMonitor
                 this.gdmlNotes.Add(GdmlText.T("GdmlShieldNoSample", "The source is set by hand: the scene stands on the shield floor."));
             }
 
+            if (!apply && parts != GdmlParts.None && this.model.TransportScene == null)
+                this.model.TransportScene = map.Transport(parts);
+            if (parts != GdmlParts.None)
+            {
+                var transport = map.Transport(parts);
+                string issue = transport.Problem();
+                this.gdmlNotes.Add(GdmlText.T("GdmlTransportActive", "Simulation uses the original GDML volumes and materials."));
+                if (issue != null) this.gdmlNotes.Add(issue);
+                else this.gdmlNotes.AddRange(transport.Geometry.Warnings);
+            }
             if (apply && parts != GdmlParts.None)
             {
                 this.ApplyTemplatePart(g => map.Apply(g, parts));
@@ -2002,6 +2014,7 @@ namespace BecquerelMonitor
             this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourceGround);
             this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourceBorehole);
             this.sourceTypeCombo.Items.Add(Resources.GeometryEditorSourceIso);
+            this.sourceTypeCombo.Items.Add(GdmlText.T("GdmlMeshSample", "GDML mesh sample"));
             this.sourceTypeCombo.Width = 260;
             this.sourceTypeCombo.SelectedIndexChanged += this.SourceTypeChanged;
             // (остаток `AMBER102`) Подсказка ISO — и при наведении на список:

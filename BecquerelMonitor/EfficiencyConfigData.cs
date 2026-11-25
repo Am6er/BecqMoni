@@ -157,7 +157,12 @@ namespace BecquerelMonitor
         /// </summary>
         public GeometryModel Geometry
         {
-            get { return this.geometry; }
+            get
+            {
+                if (geometry != null && gdmlImport != null && geometry.TransportScene == null)
+                    geometry.TransportScene = GdmlTransportScene.Restore(gdmlImport,geometry);
+                return geometry;
+            }
             set
             {
                 this.geometry = value;
@@ -302,7 +307,7 @@ namespace BecquerelMonitor
                 return this.HasCurve && this.HasGeometry
                        && !string.IsNullOrEmpty(this.geometryFingerprint)
                        && !string.Equals(this.geometryFingerprint,
-                                         ResponseMatrix.GeometryFingerprint(this.geometry),
+                                         ResponseMatrix.GeometryFingerprint(this.Geometry),
                                          StringComparison.Ordinal);
             }
         }

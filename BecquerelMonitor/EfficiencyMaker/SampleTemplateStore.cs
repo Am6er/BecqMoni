@@ -39,6 +39,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         public string Name = "";
 
         public GeometrySourceType SourceType = GeometrySourceType.Point;
+        public GeometrySampleMesh SampleMesh;
+        public bool ShouldSerializeSampleMesh() { return SourceType == GeometrySourceType.Mesh && SampleMesh != null; }
         public GeometrySceneKind Scene = GeometrySceneKind.None;
         public bool InShield;
 
@@ -132,6 +134,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         public void CaptureFrom(GeometryModel g)
         {
             this.SourceType = g.SourceType;
+            this.SampleMesh = g.SourceType == GeometrySourceType.Mesh ? g.SampleMesh : null;
             this.Scene = g.Scene;
             this.InShield = g.InShield;
 
@@ -185,6 +188,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         public void Apply(GeometryModel g)
         {
             g.SourceType = this.SourceType;
+            g.SampleMesh = this.SampleMesh;
             g.Scene = this.Scene;
             g.InShield = this.InShield;
 
@@ -271,6 +275,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             StringBuilder sb = new StringBuilder();
             CultureInfo ic = CultureInfo.InvariantCulture;
             sb.Append("type=").Append(g.SourceType);
+            if (g.SourceType == GeometrySourceType.Mesh) sb.Append(";mesh=").Append(g.SampleMesh?.Packed);
             sb.Append(";scene=").Append(g.Scene);
             sb.Append(";shield=").Append(g.InShield ? "1" : "0");
             double[] values =

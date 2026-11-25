@@ -1294,6 +1294,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         double CrystalNearestFace(double x, double y, double z)
         {
+            if (crystal.Gdml != null && (crystal.Gdml.Children.Count > 0 || !crystal.Gdml.Body.SimpleCrystal)) return 0;
             Region c = this.crystal;
             double d = Math.Min(z - c.ZMin, c.ZMax - z);
             if (c.IsBox)
@@ -1326,6 +1327,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         double RegionNearestFace(Region r, double x, double y, double z)
         {
+            // A GDML carrier may contain arbitrarily close daughter surfaces.
+            if (geometry.TransportScene != null) return 0;
             double d = Math.Min(z - r.ZMin, r.ZMax - z);
             double rad = Math.Sqrt(x * x + y * y);
             if (r.Shape != 0)
