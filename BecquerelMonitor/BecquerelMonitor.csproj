@@ -376,7 +376,9 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="GdmlImportUi.cs" />
-    <Compile Include="GdmlModelDialog.cs" />
+    <Compile Include="GdmlModelDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="GdmlOrientationGlobe.cs" />
     <Compile Include="GdmlPartInspector.cs" />
     <Compile Include="EfficiencyMaker\GdmlPartDetails.cs" />
@@ -470,8 +472,12 @@
     <Compile Include="LayoutMode.cs" />
     <Compile Include="LegendCellRenderer.cs" />
     <Compile Include="MagnificationReference.cs" />
-    <Compile Include="MainForm.SpectrumReport.cs" />
-    <Compile Include="EnergySpectrumView.Report.cs" />
+    <Compile Include="MainForm.SpectrumReport.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EnergySpectrumView.Report.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="SpectrumReportData.cs" />
     <Compile Include="SpectrumReportData.Analysis.cs" />
     <Compile Include="SpectrumReportWriter.cs" />
