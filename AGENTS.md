@@ -22,7 +22,8 @@ BecquerelMonitor — WinForms-приложение гамма-спектроме
 
 ## Сборка и проверка
 
-- MSBuild запускать через PowerShell. Для диагностики обязательны SignManifests=false, GenerateManifests=false и собственные OutputPath **и** IntermediateOutputPath (Debug_Codex / Release_Codex либо свои каталоги). Для настоящей ClickOnce-публикации GenerateManifests=false не подходит.
+- Все сборки BecqMoni выполнять в `D:\BqMoni_Claude`. Для MSBuild задавать абсолютные `OutputPath` и `IntermediateOutputPath` в отдельных подкаталогах задачи на этом диске, например `D:\BqMoni_Claude\<задача>\bin\Release\` и `D:\BqMoni_Claude\<задача>\obj\Release\`.
+- MSBuild запускать через PowerShell. Для диагностики обязательны SignManifests=false и GenerateManifests=false. Для настоящей ClickOnce-публикации GenerateManifests=false не подходит.
 - Матрицы и измерение скорости — оптимизированной Release-сборкой. Перед долгим расчётом пересобрать целевые пробы, проверить код возврата и первые две единицы работы. Не обходить сторожа подменой бинарника.
 - Подробный рецепт сборки и профилирования — в тематических правилах ниже; читать перед соответствующей работой.
 - Для приёмки коммита требуется python tools/check_all.py с кодом 0. Существующее красное состояние не прятать новым исключением.

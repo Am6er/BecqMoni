@@ -7,6 +7,9 @@ namespace BecquerelMonitor
     // Token: 0x02000120 RID: 288
     public class ColorConfig
     {
+        internal static readonly Color DefaultGdmlBackgroundColor = Color.FromArgb(38, 43, 49);
+        public SerializableColor GdmlBackgroundColor { get; set; } = DefaultGdmlBackgroundColor;
+
         // Token: 0x17000409 RID: 1033
         // (get) Token: 0x06000F74 RID: 3956 RVA: 0x00057100 File Offset: 0x00055300
         // (set) Token: 0x06000F75 RID: 3957 RVA: 0x00057108 File Offset: 0x00055308

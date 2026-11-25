@@ -4,14 +4,14 @@
 
 There is one solution (`BecquerelMonitor.sln`) with one project
 (`BecquerelMonitor/BecquerelMonitor.csproj`). Build with MSBuild (VS 2022). The canonical
-agent build command writes to a separate output dir to avoid clobbering IDE builds:
+agent build command writes its outputs and intermediates under D:\BqMoni_Claude. In the examples, replace gdml-review with the directory for your task:
 
 ```powershell
 & 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe' `
   'C:\Users\moroz\source\repos\BQ Eng res .NET 4.8\BecquerelMonitor\BecquerelMonitor.csproj' `
   /t:Build /p:Configuration=Debug /p:Platform='AnyCPU' `
-  /p:SignManifests=false /p:GenerateManifests=false /p:OutputPath='bin\Debug_Codex\' `
-  /p:IntermediateOutputPath='obj\Debug_Codex\'
+  /p:SignManifests=false /p:GenerateManifests=false /p:OutputPath='D:/BqMoni_Claude/gdml-review/bin/Debug/' `
+  /p:IntermediateOutputPath='D:/BqMoni_Claude/gdml-review/obj/Debug/'
 ```
 
 ⛔ **`/p:GenerateManifests=false` is NOT redundant — do not drop it** (`T75`). Without it the
@@ -62,8 +62,7 @@ IDE. A key-built exe left in `obj\Debug\` (`app.manifest` embedded) looked up to
 IDE, so the ClickOnce *Publish* of 2026.10.12.01 skipped compilation and shipped it: the update
 failed with `RefDefValidation` («Ссылка в манифесте не соответствует удостоверению скачанной
 сборки BecquerelMonitor.exe») — ClickOnce took the identity `MyApplication.app 1.0.0.0` from
-the embedded manifest instead of `BecquerelMonitor 2026.10.12.1`. Hence `obj\Debug_Codex\` /
-`obj\Release_Codex\` in both recipes. If a publish ever fails like that: **Rebuild** in the
+the embedded manifest instead of `BecquerelMonitor 2026.10.12.1`. Each recipe therefore sets a separate intermediate directory for its configuration. If a publish ever fails like that: **Rebuild** in the
 IDE, then Publish.
 
 **There are two recipes, and this is the one for DEBUGGING.** It builds WITHOUT optimization
@@ -82,10 +81,10 @@ the Debug set.
 ```powershell
 & '...\MSBuild.exe' 'BecquerelMonitor\BecquerelMonitor.csproj' /t:Build `
   /p:Configuration=Release /p:Platform=AnyCPU /p:SignManifests=false `
-  /p:GenerateManifests=false /p:OutputPath='bin\Release_Codex\' `
-  /p:IntermediateOutputPath='obj\Release_Codex\'
-pwsh tools\effmaker\probes\build_all.ps1 -Bin 'BecquerelMonitor\bin\Release_Codex' `
-                                         -Out 'tools\effmaker\probes\build_rel'
+  /p:GenerateManifests=false /p:OutputPath='D:/BqMoni_Claude/gdml-review/bin/Release/' `
+  /p:IntermediateOutputPath='D:/BqMoni_Claude/gdml-review/obj/Release/'
+pwsh tools\effmaker\probes\build_all.ps1 -Bin 'D:/BqMoni_Claude/gdml-review/bin/Release' `
+                                         -Out 'D:/BqMoni_Claude/gdml-review/probes/Release'
 ```
 
 ⛔ **A fresh `-Out` directory yields probes that build and then die** (`T45`): `build_all.ps1`

@@ -44,6 +44,7 @@ namespace BecquerelMonitor.EfficiencyMaker
     public sealed class GdmlSolid
     {
         public string Name = "";
+        internal long SourcePosition;
         public string Tag = "";
         public GdmlSolidKind Kind;
 
@@ -105,6 +106,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         public string Name = "";
         public double Density;
         public bool HasDensity;
+        internal long SourcePosition;
+        internal GdmlMaterial FileDefinition;
+        internal string State;
 
         /// <summary>Z -> массовая доля.</summary>
         public readonly Dictionary<int, double> Fractions = new Dictionary<int, double>();
@@ -249,10 +253,15 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
+        internal GdmlPoint ImageOfAxis(int axis)
+        {
+            return new GdmlPoint(this.rotation[0, axis], this.rotation[1, axis], this.rotation[2, axis]);
+        }
+
         /// <summary>Куда идёт локальная ось z, без сдвига.</summary>
         public GdmlPoint ImageOfLocalZ
         {
-            get { return new GdmlPoint(this.rotation[0, 2], this.rotation[1, 2], this.rotation[2, 2]); }
+            get { return ImageOfAxis(2); }
         }
 
         public GdmlPoint Apply(GdmlPoint p)
@@ -295,6 +304,7 @@ namespace BecquerelMonitor.EfficiencyMaker
     {
         public string VolumeName = "";
         public string InstanceName = "";
+        internal long VolumeSourcePosition, PlacementSourcePosition;
         public string MaterialName = "";
         public string SolidName = "";
         public GdmlSolid Solid;
@@ -398,6 +408,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         public const double LargeThreshold = 0.1;
 
         public string FileName = "";
+        internal GdmlSourceDocument SourceDocument;
         public string FatalError;
         public readonly List<GdmlVolumeInstance> Volumes = new List<GdmlVolumeInstance>();
         public readonly List<string> Warnings = new List<string>();
@@ -542,6 +553,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         sealed class GdmlVolumeDef
         {
             public string Name = "";
+            public long SourcePosition;
             public string MaterialRef = "";
             public string SolidRef = "";
             public readonly List<GdmlChild> Children = new List<GdmlChild>();
@@ -564,6 +576,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         sealed class GdmlChild
         {
             public string Name = "";
+            public long SourcePosition;
             public string VolumeRef = "";
             public GdmlTransform Placement;
             public bool PlacementKnown = true;
@@ -578,6 +591,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             GdmlGeometry geometry = new GdmlGeometry();
             geometry.FileName = path;
+            geometry.SourceDocument = GdmlSourceDocument.ForFile(path);
 
             try
             {
@@ -619,13 +633,13 @@ namespace BecquerelMonitor.EfficiencyMaker
                                     geometry.ReadDefine(LoadSection(reader));
                                     break;
                                 case "materials":
-                                    geometry.ReadMaterials(LoadSection(reader));
+                                    geometry.ReadMaterials(LoadSection(reader, LoadOptions.SetLineInfo));
                                     break;
                                 case "solids":
-                                    geometry.ReadSolids(LoadSection(reader));
+                                    geometry.ReadSolids(LoadSection(reader, LoadOptions.SetLineInfo));
                                     break;
                                 case "structure":
-                                    geometry.ReadStructure(LoadSection(reader));
+                                    geometry.ReadStructure(LoadSection(reader, LoadOptions.SetLineInfo));
                                     break;
                                 case "setup":
                                     geometry.ReadSetup(LoadSection(reader));
@@ -712,11 +726,11 @@ namespace BecquerelMonitor.EfficiencyMaker
             return index < 0 ? name : name.Substring(0, index);
         }
 
-        static XElement LoadSection(XmlReader reader)
+        static XElement LoadSection(XmlReader reader, LoadOptions options = LoadOptions.None)
         {
             using (XmlReader sub = reader.ReadSubtree())
             {
-                XElement element = XElement.Load(sub, LoadOptions.None);
+                XElement element = XElement.Load(sub, options);
                 reader.Skip();
                 return element;
             }
@@ -1005,6 +1019,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         void ReadMaterial(XElement element)
         {
             GdmlMaterial material = new GdmlMaterial();
+            material.SourcePosition = GdmlSourceDocument.Position(element);
+            material.State = Attr(element, "state");
             material.Name = StripName(Attr(element, "name"));
             material.Origin = "file";
             string owner = "material " + material.Name;
@@ -1582,6 +1598,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         {
             GdmlSolid solid = new GdmlSolid();
             solid.Name = Attr(element, "name");
+            solid.SourcePosition = GdmlSourceDocument.Position(element);
             solid.Tag = element.Name.LocalName;
             string tag = element.Name.LocalName;
 
@@ -2028,6 +2045,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 GdmlVolumeDef definition = new GdmlVolumeDef();
+                definition.SourcePosition = GdmlSourceDocument.Position(element);
                 definition.Name = Attr(element, "name");
                 foreach (XElement part in element.Elements())
                 {
@@ -2222,6 +2240,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double at = -width * 0.5 * (count - 1) + width * i;
                 GdmlChild child = new GdmlChild
                 {
+                    SourcePosition = GdmlSourceDocument.Position(part),
                     Name = StripName(reference) + "_PV",
                     VolumeRef = reference,
                     PlacementKnown = true,
@@ -2295,6 +2314,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         GdmlChild ReadPhysvol(XElement element, GdmlVolumeDef mother)
         {
             GdmlChild child = new GdmlChild();
+            child.SourcePosition = GdmlSourceDocument.Position(element);
             child.Name = Attr(element, "name");
             string owner = "physvol " + StripName(child.Name);
 
@@ -2530,6 +2550,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             if (this.fileMaterials.TryGetValue(name, out source))
             {
                 resolved = new GdmlMaterial { Name = name, Origin = "file" };
+                resolved.SourcePosition = source.SourcePosition;
+                resolved.FileDefinition = source;
                 resolved.Density = source.Density;
                 resolved.HasDensity = source.HasDensity;
                 resolved.AtomicMass = source.AtomicMass;
@@ -3771,7 +3793,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         /// <summary>Вернуть false, если том не размещён (цикл, глубина, предел числа).</summary>
         bool AddInstance(GdmlVolumeDef definition, GdmlTransform transform, string instanceName, int depth,
-                         GdmlVolumeInstance parent, bool placementKnown, HashSet<GdmlVolumeDef> path)
+                         GdmlVolumeInstance parent, bool placementKnown, HashSet<GdmlVolumeDef> path, long placementSource = 0)
         {
             if (this.limitHit)
             {
@@ -3806,6 +3828,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             instance.MaterialName = definition.MaterialRef;
             instance.SolidName = definition.SolidRef;
             instance.Transform = transform;
+            instance.VolumeSourcePosition = definition.SourcePosition;
+            instance.PlacementSourcePosition = placementSource;
             instance.Depth = depth;
             instance.Children = definition.Children.Count;
             instance.Parent = parent;
@@ -3877,7 +3901,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 GdmlTransform childTransform = transform.Compose(child.Placement);
                 complete &= this.AddInstance(child.Def, childTransform, child.Name, depth + 1, instance,
-                                             instance.PlacementKnown && child.PlacementKnown, path);
+                                             instance.PlacementKnown && child.PlacementKnown, path, child.SourcePosition);
             }
 
             path.Remove(definition);

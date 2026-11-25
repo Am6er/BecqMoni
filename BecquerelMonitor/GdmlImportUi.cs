@@ -729,6 +729,7 @@ namespace BecquerelMonitor
         {
             this.geometry = geometry;
             this.overview = overview;
+            this.Icon = Properties.Resources.becqmoni;
             this.Text = string.Format(CultureInfo.InvariantCulture, GdmlText.T("GdmlDialogTitle", "GDML import: {0}"), System.IO.Path.GetFileName(geometry.FileName ?? ""));
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.Sizable;
@@ -758,12 +759,12 @@ namespace BecquerelMonitor
             this.mapping = new GdmlMappingPanel(false) { Dock = DockStyle.Left, Width = 400 };
             // (`AMBER301`) Маленький чертёж — тот же рисунок без обвязки: размеры, пояснения и граммы стоят в списках слева.
             this.sketch = new GdmlSketch { Dock = DockStyle.Fill, Compact = true };
-            this.Controls.Add(this.sketch);
+            this.Controls.Add(this.sketch.WithModelButton());
             this.Controls.Add(this.mapping);
             this.Controls.Add(bottom);
             this.Controls.Add(question);
 
-            this.sketch.SetGeometry(geometry);
+            this.sketch.SetGeometry(geometry, overview);
             this.mapping.SetFile(geometry, overview, guessed);
             this.mapping.ChoiceChanged += (s, e) => this.Rebuild(null);
             this.Rebuild(guessed);

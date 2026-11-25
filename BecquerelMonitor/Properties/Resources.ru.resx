@@ -4989,4 +4989,226 @@ http://xptable.sourceforge.net/</value>
   <data name="GdmlMapFacing" xml:space="preserve">
     <value>Сторона к пробе</value>
   </data>
+  <data name="Gdml3DOpen" xml:space="preserve">
+    <value>3D-модель…</value>
+  </data>
+  <data name="Gdml3DTitle" xml:space="preserve">
+    <value>3D-модель — {0}</value>
+  </data>
+  <data name="GdmlInfoSourceChanged" xml:space="preserve">
+    <value>Исходный файл изменился или больше недоступен.</value>
+  </data>
+  <data name="GdmlInfoProperties" xml:space="preserve">
+    <value>Свойства</value>
+  </data>
+  <data name="GdmlInfoPrevious" xml:space="preserve">
+    <value>Предыдущая страница</value>
+  </data>
+  <data name="GdmlInfoNext" xml:space="preserve">
+    <value>Следующая страница</value>
+  </data>
+  <data name="GdmlInfoTitle" xml:space="preserve">
+    <value>Сведения об объекте</value>
+  </data>
+  <data name="GdmlInfoHover" xml:space="preserve">
+    <value>Наведите указатель на деталь модели.</value>
+  </data>
+  <data name="GdmlInfoReading" xml:space="preserve">
+    <value>Чтение GDML…</value>
+  </data>
+  <data name="GdmlInfoUnknown" xml:space="preserve">
+    <value>Не определено</value>
+  </data>
+  <data name="GdmlInfoMaterial" xml:space="preserve">
+    <value>Материал</value>
+  </data>
+  <data name="GdmlInfoShape" xml:space="preserve">
+    <value>Тип тела</value>
+  </data>
+  <data name="GdmlInfoLocalSize" xml:space="preserve">
+    <value>Габариты детали (X × Y × Z)</value>
+  </data>
+  <data name="GdmlInfoMass" xml:space="preserve">
+    <value>Масса</value>
+  </data>
+  <data name="GdmlInfoVolume" xml:space="preserve">
+    <value>Объём тела</value>
+  </data>
+  <data name="GdmlInfoOwnVolume" xml:space="preserve">
+    <value>Объём материала</value>
+  </data>
+  <data name="GdmlInfoDensity" xml:space="preserve">
+    <value>Плотность</value>
+  </data>
+  <data name="GdmlInfoDensityUnit" xml:space="preserve">
+    <value>г/см³</value>
+  </data>
+  <data name="GdmlInfoOuterDiameter" xml:space="preserve">
+    <value>Наружный диаметр</value>
+  </data>
+  <data name="GdmlInfoInnerDiameter" xml:space="preserve">
+    <value>Внутренний диаметр</value>
+  </data>
+  <data name="GdmlInfoHeight" xml:space="preserve">
+    <value>Высота</value>
+  </data>
+  <data name="GdmlInfoState" xml:space="preserve">
+    <value>Состояние материала</value>
+  </data>
+  <data name="GdmlInfoDeclaredFractions" xml:space="preserve">
+    <value>Массовые доли в файле</value>
+  </data>
+  <data name="GdmlInfoDeclaredAtoms" xml:space="preserve">
+    <value>Число атомов в файле</value>
+  </data>
+  <data name="GdmlInfoFractions" xml:space="preserve">
+    <value>Массовые доли элементов</value>
+  </data>
+  <data name="GdmlInfoMissing" xml:space="preserve">
+    <value>Не определены компоненты</value>
+  </data>
+  <data name="GdmlInfoAtomicMass" xml:space="preserve">
+    <value>Атомная масса</value>
+  </data>
+  <data name="GdmlInfoAtomicUnit" xml:space="preserve">
+    <value>г/моль</value>
+  </data>
+  <data name="GdmlInfoG4" xml:space="preserve">
+    <value>Таблица G4</value>
+  </data>
+  <data name="GdmlInfoMaterialSource" xml:space="preserve">
+    <value>Источник данных о материале</value>
+  </data>
+  <data name="GdmlInfoLogical" xml:space="preserve">
+    <value>Логический объём</value>
+  </data>
+  <data name="GdmlInfoPlacement" xml:space="preserve">
+    <value>Имя размещения</value>
+  </data>
+  <data name="GdmlInfoSolid" xml:space="preserve">
+    <value>Имя тела</value>
+  </data>
+  <data name="GdmlInfoPath" xml:space="preserve">
+    <value>Путь размещения</value>
+  </data>
+  <data name="GdmlInfoChildren" xml:space="preserve">
+    <value>Дочерние размещения</value>
+  </data>
+  <data name="GdmlInfoAxes" xml:space="preserve">
+    <value>Локальные оси в мировой системе координат</value>
+  </data>
+  <data name="GdmlInfoWorldOrigin" xml:space="preserve">
+    <value>Начало координат детали (X, Y, Z)</value>
+  </data>
+  <data name="GdmlInfoWorldMin" xml:space="preserve">
+    <value>Минимум в мировых координатах</value>
+  </data>
+  <data name="GdmlInfoWorldMax" xml:space="preserve">
+    <value>Максимум в мировых координатах</value>
+  </data>
+  <data name="GdmlInfoVertices" xml:space="preserve">
+    <value>Вершины</value>
+  </data>
+  <data name="GdmlInfoTriangles" xml:space="preserve">
+    <value>Треугольники</value>
+  </data>
+  <data name="GdmlInfoAngles" xml:space="preserve">
+    <value>Начальный угол / угловой размах</value>
+  </data>
+  <data name="GdmlInfoPlanes" xml:space="preserve">
+    <value>Плоскости (Z, внутр. R, внеш. R)</value>
+  </data>
+  <data name="GdmlInfoProfile" xml:space="preserve">
+    <value>Точки профиля (R, Z)</value>
+  </data>
+  <data name="GdmlInfoMoreProfile" xml:space="preserve">
+    <value>Полный профиль приведён на вкладке GDML.</value>
+  </data>
+  <data name="GdmlInfoOperand1" xml:space="preserve">
+    <value>Первое тело</value>
+  </data>
+  <data name="GdmlInfoOperands" xml:space="preserve">
+    <value>Остальные тела</value>
+  </data>
+  <data name="Gdml3DVerticalCut" xml:space="preserve">
+    <value>Вертикальный разрез от левого края модели</value>
+  </data>
+  <data name="Gdml3DHorizontalCut" xml:space="preserve">
+    <value>Горизонтальный разрез от верхнего края модели</value>
+  </data>
+  <data name="Gdml3DSectionError" xml:space="preserve">
+    <value>Не удалось отобразить разрез: {0}</value>
+  </data>
+  <data name="Gdml3DBackground" xml:space="preserve">
+    <value>Цвет фона</value>
+  </data>
+  <data name="Gdml3DBackgroundTip" xml:space="preserve">
+    <value>Выбрать цвет фона окна 3D-модели.</value>
+  </data>
+  <data name="Gdml3DAxisView" xml:space="preserve">
+    <value>Вид со стороны {0}</value>
+  </data>
+  <data name="Gdml3DAxisAngles" xml:space="preserve">
+    <value>Углы между направлением на камеру и положительными осями X, Y и Z. Нажмите на ось, чтобы выровнять вид.</value>
+  </data>
+  <data name="Gdml3DTemporaryPan" xml:space="preserve">
+    <value>Shift / Ctrl · Перемещение левой кнопкой мыши</value>
+  </data>
+  <data name="Gdml3DTemporaryRotate" xml:space="preserve">
+    <value>Shift / Ctrl · Вращение левой кнопкой мыши</value>
+  </data>
+  <data name="Gdml3DPan" xml:space="preserve">
+    <value>Перемещение</value>
+  </data>
+  <data name="Gdml3DPanTip" xml:space="preserve">
+    <value>Перемещайте модель левой кнопкой мыши. Удерживайте Shift или Ctrl, чтобы временно переключаться между перемещением и вращением.</value>
+  </data>
+  <data name="Gdml3DReset" xml:space="preserve">
+    <value>Сброс</value>
+  </data>
+  <data name="Gdml3DResetTip" xml:space="preserve">
+    <value>Восстановить исходный ракурс, масштаб, положение и режимы.</value>
+  </data>
+  <data name="Gdml3DShowCollisions" xml:space="preserve">
+    <value>Показать коллизии</value>
+  </data>
+  <data name="Gdml3DCollisionTip" xml:space="preserve">
+    <value>Подсветить красным общие участки пересекающихся деталей.</value>
+  </data>
+  <data name="Gdml3DPanControls" xml:space="preserve">
+    <value>Перемещайте модель левой кнопкой мыши. Колесо меняет масштаб.</value>
+  </data>
+  <data name="Gdml3DCollisionBusy" xml:space="preserve">
+    <value>Идёт поиск коллизий…</value>
+  </data>
+  <data name="Gdml3DNoCollisions" xml:space="preserve">
+    <value>При данном разрешении сетки коллизий не найдено.</value>
+  </data>
+  <data name="Gdml3DCollisionCount" xml:space="preserve">
+    <value>Пар с коллизиями: {0}. Общие участки показаны красным.</value>
+  </data>
+  <data name="Gdml3DCollisionSkipped" xml:space="preserve">
+    <value>Пропущено оболочек с неопределённым внутренним объёмом: {0}.</value>
+  </data>
+  <data name="Gdml3DCollisionError" xml:space="preserve">
+    <value>Не удалось проверить коллизии: {0}</value>
+  </data>
+  <data name="Gdml3DControls" xml:space="preserve">
+    <value>Вращайте модель левой кнопкой мыши. Колесо меняет масштаб.</value>
+  </data>
+  <data name="Gdml3DEmpty" xml:space="preserve">
+    <value>В модели нет поверхностей для показа.</value>
+  </data>
+  <data name="Gdml3DSkipped" xml:space="preserve">
+    <value>Пропущено деталей: {0}.</value>
+  </data>
+  <data name="Gdml3DBoolean" xml:space="preserve">
+    <value>Булевы тела показаны с точностью до ячейки сетки.</value>
+  </data>
+  <data name="Gdml3DLoading" xml:space="preserve">
+    <value>Построение 3D-модели…</value>
+  </data>
+  <data name="Gdml3DError" xml:space="preserve">
+    <value>Не удалось показать модель: {0}</value>
+  </data>
 </root>

@@ -732,7 +732,7 @@ function Assert-GuardIsAlive {
 Assert-GuardIsAlive -Repo $repo
 
 $csc = 'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\Roslyn\csc.exe'
-$facades = 'C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8\Facades'
+$framework = 'C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8'
 
 # Полный набор ссылок сразу всем: лишняя ссылка бесплатна, а раздача особых
 # случаев по пробам уже дважды устаревала молча.
@@ -740,9 +740,10 @@ $refs = @(
     "/r:$Bin\BecquerelMonitor.exe",
     '/r:System.dll', '/r:System.Core.dll', '/r:System.Xml.dll',
     '/r:System.Drawing.dll', '/r:System.Windows.Forms.dll',
+    "/r:$framework\WindowsBase.dll", "/r:$framework\PresentationCore.dll",
     "/r:$Bin\Microsoft.Data.Sqlite.dll",
     "/r:$Bin\WeifenLuo.WinFormsUI.Docking.dll",
-    "/r:$facades\netstandard.dll"
+    "/r:$framework\Facades\netstandard.dll"
 )
 
 $fail = @()

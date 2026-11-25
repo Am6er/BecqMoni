@@ -246,10 +246,39 @@ namespace BecquerelMonitor.EfficiencyMaker
             get { return this.geometry; }
         }
 
+        internal Panel WithModelButton()
+        {
+            Panel drawing = new Panel { Dock = DockStyle.Fill };
+            FlowLayoutPanel toolbar = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top, AutoSize = true, WrapContents = false,
+            };
+            Button showModel = new Button
+            {
+                AutoSize = true, Text = GdmlText.T("Gdml3DOpen", "3D model…"),
+            };
+            showModel.Click += (sender, e) =>
+            {
+                if (this.geometry == null)
+                    return;
+                using (GdmlModelDialog dialog = new GdmlModelDialog(this.geometry, this.Overview))
+                    dialog.ShowDialog(this.FindForm());
+            };
+            toolbar.Controls.Add(showModel);
+            drawing.Controls.Add(this);
+            drawing.Controls.Add(toolbar);
+            return drawing;
+        }
+
         public void SetGeometry(GdmlGeometry value)
         {
+            this.SetGeometry(value, null);
+        }
+
+        internal void SetGeometry(GdmlGeometry value, GdmlOverview overview)
+        {
             this.geometry = value;
-            this.overview = null;
+            this.overview = overview;
             this.commonScale = 0.0;
             this.reservedNotes[0] = this.reservedNotes[1] = 0f;
             this.shapeCosts.Clear();

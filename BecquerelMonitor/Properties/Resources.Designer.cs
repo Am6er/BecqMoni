@@ -2977,6 +2977,56 @@ namespace BecquerelMonitor.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        public static System.Drawing.Bitmap GdmlInfoIcon {
+            get {
+                object obj = ResourceManager.GetObject("GdmlInfoIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        public static System.Drawing.Bitmap GdmlOverlapIcon {
+            get {
+                object obj = ResourceManager.GetObject("GdmlOverlapIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        public static System.Drawing.Bitmap GdmlBackgroundIcon {
+            get {
+                object obj = ResourceManager.GetObject("GdmlBackgroundIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        public static System.Drawing.Bitmap GdmlPanIcon {
+            get {
+                object obj = ResourceManager.GetObject("GdmlPanIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        public static System.Drawing.Bitmap GdmlResetIcon {
+            get {
+                object obj = ResourceManager.GetObject("GdmlResetIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         public static System.Drawing.Bitmap RefreshBG {
             get {
                 object obj = ResourceManager.GetObject("RefreshBG", resourceCulture);

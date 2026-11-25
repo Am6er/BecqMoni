@@ -36,7 +36,7 @@
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
     <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2026.11.24.01</ApplicationVersion>
+    <ApplicationVersion>2026.11.25.01</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -85,6 +85,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="WindowsFormsIntegration" />
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Configuration" />
@@ -371,6 +376,17 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="GdmlImportUi.cs" />
+    <Compile Include="GdmlModelDialog.cs" />
+    <Compile Include="GdmlOrientationGlobe.cs" />
+    <Compile Include="GdmlPartInspector.cs" />
+    <Compile Include="EfficiencyMaker\GdmlPartDetails.cs" />
+    <Compile Include="EfficiencyMaker\GdmlSourceDocument.cs" />
+    <Compile Include="EfficiencyMaker\GdmlSectionScene.cs" />
+    <Compile Include="EfficiencyMaker\GdmlCavitySurface.cs" />
+    <Compile Include="EfficiencyMaker\GdmlModelMesh.cs" />
+    <Compile Include="EfficiencyMaker\GdmlBooleanMesh.cs" />
+    <Compile Include="EfficiencyMaker\GdmlVoxelGrid.cs" />
+    <Compile Include="EfficiencyMaker\GdmlCollisions.cs" />
     <Compile Include="GeometryEditorPanel.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -1279,6 +1295,11 @@
     </Content>
     <None Include="Resources\split.bmp" />
     <None Include="Resources\save.bmp" />
+    <None Include="Resources\GdmlInfoIcon.png" />
+    <None Include="Resources\GdmlOverlapIcon.png" />
+    <None Include="Resources\GdmlPanIcon.png" />
+    <None Include="Resources\GdmlBackgroundIcon.png" />
+    <None Include="Resources\GdmlResetIcon.png" />
     <None Include="Resources\RefreshBG.bmp" />
     <None Include="Resources\NORM.bmp" />
     <None Include="Resources\screenshot.bmp" />

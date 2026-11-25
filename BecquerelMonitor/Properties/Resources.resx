@@ -42405,6 +42405,21 @@ Device channels: {0}, spectrum files channels: {1}</value>
   <data name="CountRateDeadTimeHint" xml:space="preserve">
     <value>Dead time, %. With a device configuration whose dead time is above 0: over the time constant, from the counts rate and that dead time. With dead time 0 (the device reports live time itself, or its dead time is not known): over the whole spectrum, (real time - live time) / real time; 0 if the spectrum has no live time. With a device that reports live time itself, while it is measuring the value refers to the moment of its last read and is accurate to about 50/T percentage points (T — real time, s).</value>
   </data>
+  <data name="GdmlInfoIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\GdmlInfoIcon.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="GdmlOverlapIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\GdmlOverlapIcon.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="GdmlBackgroundIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\GdmlBackgroundIcon.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="GdmlPanIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\GdmlPanIcon.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="GdmlResetIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\GdmlResetIcon.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="RefreshBG" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\RefreshBG.bmp;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -46237,5 +46252,227 @@ The file and its previous copy will not change.</value>
   </data>
   <data name="GdmlMapFacing" xml:space="preserve">
     <value>Side facing the sample</value>
+  </data>
+  <data name="Gdml3DOpen" xml:space="preserve">
+    <value>3D model…</value>
+  </data>
+  <data name="Gdml3DTitle" xml:space="preserve">
+    <value>3D model — {0}</value>
+  </data>
+  <data name="GdmlInfoSourceChanged" xml:space="preserve">
+    <value>The imported file has changed or is no longer available.</value>
+  </data>
+  <data name="GdmlInfoProperties" xml:space="preserve">
+    <value>Properties</value>
+  </data>
+  <data name="GdmlInfoPrevious" xml:space="preserve">
+    <value>Previous page</value>
+  </data>
+  <data name="GdmlInfoNext" xml:space="preserve">
+    <value>Next page</value>
+  </data>
+  <data name="GdmlInfoTitle" xml:space="preserve">
+    <value>Object information</value>
+  </data>
+  <data name="GdmlInfoHover" xml:space="preserve">
+    <value>Point to a part of the model.</value>
+  </data>
+  <data name="GdmlInfoReading" xml:space="preserve">
+    <value>Reading GDML…</value>
+  </data>
+  <data name="GdmlInfoUnknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="GdmlInfoMaterial" xml:space="preserve">
+    <value>Material</value>
+  </data>
+  <data name="GdmlInfoShape" xml:space="preserve">
+    <value>Shape</value>
+  </data>
+  <data name="GdmlInfoLocalSize" xml:space="preserve">
+    <value>Local size (X × Y × Z)</value>
+  </data>
+  <data name="GdmlInfoMass" xml:space="preserve">
+    <value>Mass</value>
+  </data>
+  <data name="GdmlInfoVolume" xml:space="preserve">
+    <value>Solid volume</value>
+  </data>
+  <data name="GdmlInfoOwnVolume" xml:space="preserve">
+    <value>Material volume</value>
+  </data>
+  <data name="GdmlInfoDensity" xml:space="preserve">
+    <value>Density</value>
+  </data>
+  <data name="GdmlInfoDensityUnit" xml:space="preserve">
+    <value>g/cm³</value>
+  </data>
+  <data name="GdmlInfoOuterDiameter" xml:space="preserve">
+    <value>Outer diameter</value>
+  </data>
+  <data name="GdmlInfoInnerDiameter" xml:space="preserve">
+    <value>Bore diameter</value>
+  </data>
+  <data name="GdmlInfoHeight" xml:space="preserve">
+    <value>Height</value>
+  </data>
+  <data name="GdmlInfoState" xml:space="preserve">
+    <value>Material state</value>
+  </data>
+  <data name="GdmlInfoDeclaredFractions" xml:space="preserve">
+    <value>Mass fractions in file</value>
+  </data>
+  <data name="GdmlInfoDeclaredAtoms" xml:space="preserve">
+    <value>Atom counts in file</value>
+  </data>
+  <data name="GdmlInfoFractions" xml:space="preserve">
+    <value>Element mass fractions</value>
+  </data>
+  <data name="GdmlInfoMissing" xml:space="preserve">
+    <value>Unresolved components</value>
+  </data>
+  <data name="GdmlInfoAtomicMass" xml:space="preserve">
+    <value>Atomic mass</value>
+  </data>
+  <data name="GdmlInfoAtomicUnit" xml:space="preserve">
+    <value>g/mol</value>
+  </data>
+  <data name="GdmlInfoG4" xml:space="preserve">
+    <value>Built-in G4 table</value>
+  </data>
+  <data name="GdmlInfoMaterialSource" xml:space="preserve">
+    <value>Material data source</value>
+  </data>
+  <data name="GdmlInfoLogical" xml:space="preserve">
+    <value>Logical volume</value>
+  </data>
+  <data name="GdmlInfoPlacement" xml:space="preserve">
+    <value>Physical placement</value>
+  </data>
+  <data name="GdmlInfoSolid" xml:space="preserve">
+    <value>Solid</value>
+  </data>
+  <data name="GdmlInfoPath" xml:space="preserve">
+    <value>Placement path</value>
+  </data>
+  <data name="GdmlInfoChildren" xml:space="preserve">
+    <value>Child placements</value>
+  </data>
+  <data name="GdmlInfoAxes" xml:space="preserve">
+    <value>Local axes in world coordinates</value>
+  </data>
+  <data name="GdmlInfoWorldOrigin" xml:space="preserve">
+    <value>Origin in world (X, Y, Z)</value>
+  </data>
+  <data name="GdmlInfoWorldMin" xml:space="preserve">
+    <value>World minimum</value>
+  </data>
+  <data name="GdmlInfoWorldMax" xml:space="preserve">
+    <value>World maximum</value>
+  </data>
+  <data name="GdmlInfoVertices" xml:space="preserve">
+    <value>Vertices</value>
+  </data>
+  <data name="GdmlInfoTriangles" xml:space="preserve">
+    <value>Triangles</value>
+  </data>
+  <data name="GdmlInfoAngles" xml:space="preserve">
+    <value>Start angle / sweep</value>
+  </data>
+  <data name="GdmlInfoPlanes" xml:space="preserve">
+    <value>Planes (Z, inner R, outer R)</value>
+  </data>
+  <data name="GdmlInfoProfile" xml:space="preserve">
+    <value>Profile points (R, Z)</value>
+  </data>
+  <data name="GdmlInfoMoreProfile" xml:space="preserve">
+    <value>The GDML tab contains the full profile.</value>
+  </data>
+  <data name="GdmlInfoOperand1" xml:space="preserve">
+    <value>First operand</value>
+  </data>
+  <data name="GdmlInfoOperands" xml:space="preserve">
+    <value>Other operands</value>
+  </data>
+  <data name="Gdml3DVerticalCut" xml:space="preserve">
+    <value>Vertical cut from the left edge</value>
+  </data>
+  <data name="Gdml3DHorizontalCut" xml:space="preserve">
+    <value>Horizontal cut from the top edge</value>
+  </data>
+  <data name="Gdml3DSectionError" xml:space="preserve">
+    <value>Could not display the cut: {0}</value>
+  </data>
+  <data name="Gdml3DBackground" xml:space="preserve">
+    <value>Background colour</value>
+  </data>
+  <data name="Gdml3DBackgroundTip" xml:space="preserve">
+    <value>Choose the 3D viewer background colour.</value>
+  </data>
+  <data name="Gdml3DAxisView" xml:space="preserve">
+    <value>View from {0}</value>
+  </data>
+  <data name="Gdml3DAxisAngles" xml:space="preserve">
+    <value>Angles between the direction to the camera and the positive X, Y and Z axes. Click an axis to align the view.</value>
+  </data>
+  <data name="Gdml3DTemporaryPan" xml:space="preserve">
+    <value>Shift / Ctrl · Drag to pan</value>
+  </data>
+  <data name="Gdml3DTemporaryRotate" xml:space="preserve">
+    <value>Shift / Ctrl · Drag to rotate</value>
+  </data>
+  <data name="Gdml3DPan" xml:space="preserve">
+    <value>Pan</value>
+  </data>
+  <data name="Gdml3DPanTip" xml:space="preserve">
+    <value>Drag to pan. Hold Shift or Ctrl to temporarily switch between pan and rotation.</value>
+  </data>
+  <data name="Gdml3DReset" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="Gdml3DResetTip" xml:space="preserve">
+    <value>Restore the initial view and tools.</value>
+  </data>
+  <data name="Gdml3DShowCollisions" xml:space="preserve">
+    <value>Show overlaps</value>
+  </data>
+  <data name="Gdml3DCollisionTip" xml:space="preserve">
+    <value>Highlight intersecting volumes in red.</value>
+  </data>
+  <data name="Gdml3DPanControls" xml:space="preserve">
+    <value>Drag with the left mouse button to pan. Use the wheel to zoom.</value>
+  </data>
+  <data name="Gdml3DCollisionBusy" xml:space="preserve">
+    <value>Checking for overlaps…</value>
+  </data>
+  <data name="Gdml3DNoCollisions" xml:space="preserve">
+    <value>No overlaps found at grid resolution.</value>
+  </data>
+  <data name="Gdml3DCollisionCount" xml:space="preserve">
+    <value>Overlapping pairs: {0}. Shared regions are shown in red.</value>
+  </data>
+  <data name="Gdml3DCollisionSkipped" xml:space="preserve">
+    <value>Meshes with undefined interior skipped: {0}.</value>
+  </data>
+  <data name="Gdml3DCollisionError" xml:space="preserve">
+    <value>Could not check overlaps: {0}</value>
+  </data>
+  <data name="Gdml3DControls" xml:space="preserve">
+    <value>Drag with the left mouse button to rotate. Use the wheel to zoom.</value>
+  </data>
+  <data name="Gdml3DEmpty" xml:space="preserve">
+    <value>There are no surfaces to display.</value>
+  </data>
+  <data name="Gdml3DSkipped" xml:space="preserve">
+    <value>Parts omitted: {0}.</value>
+  </data>
+  <data name="Gdml3DBoolean" xml:space="preserve">
+    <value>Boolean solids are shown at grid resolution.</value>
+  </data>
+  <data name="Gdml3DLoading" xml:space="preserve">
+    <value>Building the 3D model…</value>
+  </data>
+  <data name="Gdml3DError" xml:space="preserve">
+    <value>Could not display the model: {0}</value>
   </data>
 </root>

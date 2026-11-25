@@ -324,7 +324,6 @@ namespace BecquerelMonitor
         TabPage sourceTab, gdmlTab;
         GdmlMappingPanel gdmlMapping;
         Label gdmlStrip;
-        GdmlOverview gdmlOverview;
         GdmlFieldMap gdmlMap, gdmlGuessed;
         GdmlChoice gdmlChoice;
         GdmlParts gdmlParts;
@@ -506,7 +505,6 @@ namespace BecquerelMonitor
         {
             this.RestoreTabs();
             this.gdml = value;
-            this.gdmlOverview = overview;
             this.gdmlGuessed = guessed;
             this.gdmlMap = map;
             this.gdmlChoice = choice.Clone();
@@ -571,7 +569,7 @@ namespace BecquerelMonitor
             }
 
             this.FillGdmlSummary();
-            this.gdmlSketch.SetGeometry(value);
+            this.gdmlSketch.SetGeometry(value, overview);
             this.PaleGdmlUnused();
             this.gdmlStrip.Text = string.Format(CultureInfo.InvariantCulture, GdmlText.T("GdmlStripFrom", "{0}: {1}"),
                 System.IO.Path.GetFileName(value.FileName ?? ""), GdmlOverview.TakenText(map, parts))
@@ -791,7 +789,6 @@ namespace BecquerelMonitor
             this.gdmlMap = null;
             this.gdmlGuessed = null;
             this.gdmlChoice = null;
-            this.gdmlOverview = null;
             this.gdmlParts = GdmlParts.None;
             this.gdmlNotes.Clear();
             this.RestoreTabs();
@@ -1307,8 +1304,7 @@ namespace BecquerelMonitor
                     handler(reason);
                 }
             };
-            tab.Controls.Add(this.gdmlSketch);
-            this.gdmlSketch.BringToFront();
+            tab.Controls.Add(this.gdmlSketch.WithModelButton());
 
             this.gdmlSummaryPanel = new Panel
             {

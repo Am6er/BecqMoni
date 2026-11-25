@@ -308,7 +308,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             return result;
         }
 
-        static bool InRevolution(GdmlSolid solid, double x, double y, double z)
+        internal static bool InRevolution(GdmlSolid solid, double x, double y, double z)
         {
             double r = Math.Sqrt(x * x + y * y);
             if (solid.DeltaPhi < 360.0 - 1e-6)
