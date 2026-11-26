@@ -66,8 +66,8 @@ PROBES_DEFAULT = os.path.join(REPO, u'tools', u'effmaker', u'probes', u'build')
 SIM = os.path.join(REPO, u'BecquerelMonitor', u'EfficiencyMaker', u'EfficiencySimulator.cs')
 GPU_DECL = os.path.join(REPO, u'tools', u'effmaker', u'gpu', u'decl_branch.inc')
 GPU_SIM = os.path.join(REPO, u'tools', u'effmaker', u'gpu', u'sim_branch.cuh')
-# Библиотека, с которой считается склад: `lines` и `br` раздела (`D:\\BqMoni_Claude\\fix305\\lib`, журнал `fix305`).
-STORE_LIB = {u'lines': u'141', u'br': u'116'}
+# Рабочий склад AMBER340: физика 31, 141 линия и 117 ветвей (nucdb 497fbaa0).
+STORE_LIB = {u'lines': u'141', u'br': u'117'}
 
 # Запись снята: склад пересчитан 07.11.2026, база `rev53`. Следующий рецепт, ждущий пересчёта, пишется сюда же: {esec, n}.
 STORE_PENDING = {}

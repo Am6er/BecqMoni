@@ -60,6 +60,12 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// о нём говорит <see cref="GeometryModel.CheckLayers"/>.
         /// </summary>
         [XmlIgnore]
+        public bool IsNamedVacuum =>
+            string.Equals(Name?.Trim(), "vacuum", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(Name?.Trim(), "G4_Galactic", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(Name?.Trim(), "вакуум", StringComparison.OrdinalIgnoreCase);
+
+        [XmlIgnore]
         public bool IsEmpty
         {
             get
@@ -2353,12 +2359,40 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// (`AMBER200`) Открыта и ничего не хранит: каждый вызов — проверка
         /// модели как она есть сейчас.
         /// </summary>
+        bool DefaultAirLayer(GeometryMaterial material)
+        {
+            return TransportScene == null && (material == null || material.IsEmpty || material.IsNamedVacuum);
+        }
+
+        internal GeometryMaterial VesselHeadspace(string prefix)
+        {
+            GeometryMaterial material = Material(Raw, prefix + "_", "EmptySpace",
+                "M_" + prefix + "_EmptySpace.MName", prefix + "_FractionTypeEmptySpace", null);
+            if (material.IsEmpty) return GeometryMaterialLibrary.SeedAir();
+            if (material.Density > 0 && material.Fractions.Count > 0) return material;
+            if (material.IsNamedVacuum) return GeometryMaterialLibrary.SeedVacuum();
+            return material;
+        }
+
+        internal GeometryMaterial CheckedVesselHeadspace(string prefix)
+        {
+            var material = VesselHeadspace(prefix);
+            int z;
+            if (!material.IsKnown(out z))
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture,
+                    Properties.Resources.ResourceManager.GetString("GeometryUnknownElementInLayer"),
+                    prefix + "_EmptySpace / " + material.Name, z));
+            if (!(material.Density > 0.0) || material.Fractions.Count == 0)
+                throw new InvalidOperationException("Incomplete vessel headspace material: " + material.Name);
+            return material;
+        }
+
         public List<string> CheckLayers()
         {
             List<string> warnings = new List<string>();
             Action<double, GeometryMaterial, string> check = (thickness, material, caption) =>
             {
-                if (thickness > 0.0 && (material == null || !(material.Density > 0.0)
+                if (!DefaultAirLayer(material) && thickness > 0.0 && (material == null || !(material.Density > 0.0)
                                         || material.Fractions.Count == 0))
                 {
                     warnings.Add(string.Format(CultureInfo.InvariantCulture,
@@ -2399,7 +2433,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 ? Math.Min(this.CrystalBoxX, Math.Min(this.CrystalBoxY, this.CrystalBoxZ))
                 : Math.Min(this.CrystalDiameter, this.CrystalHeight);
             check(crystal, this.Crystal, Properties.Resources.GeometryEditorCrystalMaterial);
-            this.VisitLayers(check);
+            this.VisitLayers((thickness, material, caption) =>
+            {
+                if (!DefaultAirLayer(material))
+                    check(thickness, material, string.IsNullOrWhiteSpace(material?.Name) ? caption : caption + " / " + material.Name);
+            });
             return problem;
         }
 
@@ -2492,6 +2530,28 @@ namespace BecquerelMonitor.EfficiencyMaker
                         break;
                 }
 
+                if (TransportScene == null && (SourceType == GeometrySourceType.Cylinder
+                    || SourceType == GeometrySourceType.Marinelli))
+                {
+                    var cm = InCentimeters();
+                    double gap, end, near;
+                    string slot;
+                    if (SourceType == GeometrySourceType.Cylinder)
+                    {
+                        EfficiencySimulator.CylinderVessel(cm, out gap, out end);
+                        slot = "SC";
+                    }
+                    else
+                    {
+                        EfficiencySimulator.MarinelliVessel(cm, out gap, out near, out end);
+                        slot = "SM";
+                    }
+                    if (gap > 0.0)
+                    {
+                        var contents = VesselHeadspace(slot);
+                        check(gap * 10.0, contents, slot + "_EmptySpace / " + contents.Name);
+                    }
+                }
                 check(wall, this.BeakerWall, Properties.Resources.GeometryEditorWallMaterial);
                 check(sample, this.Source, Properties.Resources.GeometryEditorSourceMaterial);
             }

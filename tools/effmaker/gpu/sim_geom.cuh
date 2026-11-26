@@ -1104,7 +1104,7 @@ __device__ real Sim::WeightedMu(int region, real energyKev)
 __device__ real Sim::PathLimit(real x, real y, real z)
 {
     const SceneG& s = *D.scene;
-    real limit = (real)40.0 * s.sphereR + (real)200.0;
+    real limit = (real)40.0 * s.sphereR + M_Max((real)200.0, (real)2.0 * s.pathSceneR);
     if (s.pathSceneR > (real)0)
     {
         real dz = z - s.pathSceneZ;

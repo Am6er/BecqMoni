@@ -1745,6 +1745,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         // (<see cref="PathLimit"/>); снимается в `EnsureBuilt` после `Build`,
         // ноль — сцена пуста, подлёт не добавляется.
         internal double pathSceneZ, pathSceneR;
+        bool hasAmbientAir;
+        internal bool UseCapsuleAirEstimate => CapsuleAir && !hasAmbientAir;
 
         // Габарит ВСЕЙ сцены — детектор вместе с сосудом и пробой (`A57`).
         // Копится в <see cref="Register"/>; вне его вещества нет вовсе, поэтому
@@ -1974,22 +1976,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             this.Build();
+            if (geometry.TransportScene == null)
+                AddAmbientAir();
             if (!this.SceneBounds(out this.pathSceneZ, out this.pathSceneR))
             {
                 this.pathSceneZ = 0.0;
                 this.pathSceneR = 0.0;
-            }
-
-            // Разбиение луча держит накрывающие области битовой маской (`T43`),
-            // а в ней 64 места. Сцена строится по жёсткой раскладке — шесть
-            // областей детектора и до пяти у пробы, — так что упереться в предел
-            // может только новый вид сцены. Тогда пусть падает громко здесь, а
-            // не считает молча чужую область: сдвиг на 64 в C# заворачивается.
-            if (this.regions.Count > 64 && this.geometry.TransportScene == null)
-            {
-                throw new InvalidOperationException(
-                    "областей сцены " + this.regions.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " — больше 64, "
-                    + "разбиение луча (T43) столько не держит");
             }
 
             // Массивом, а не списком: по областям проходят на каждом разборе
@@ -3160,12 +3152,18 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// Поэтому слой всё равно занимает своё место, но не поглощает.
         /// О самой пропаже говорит GeometryModel.Warnings.
         /// </summary>
-        static GeometryMaterial OrVacuum(GeometryMaterial material)
+        GeometryMaterial LayerMaterial(GeometryMaterial material)
         {
+            if (geometry.TransportScene == null && (material == null || material.IsEmpty))
+                return GeometryMaterialLibrary.SeedAir();
+
             if (material != null && material.Density > 0.0 && material.Fractions.Count > 0)
             {
                 return material;
             }
+
+            if (geometry.TransportScene == null && material != null && material.IsNamedVacuum)
+                return GeometryMaterialLibrary.SeedVacuum();
 
             GeometryMaterial vacuum = new GeometryMaterial { Name = "vacuum", Density = 1e-10 };
             vacuum.Fractions[1] = 1.0;
@@ -3333,24 +3331,46 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
+        // Experiment: the last region fills only the unoccupied space inside
+        // the axial and transverse bounds of this installation and its source.
+        void AddAmbientAir()
+        {
+            double ax = 0, ay = 0;
+            foreach (var r in regions)
+            {
+                if (r.Mesh != null)
+                {
+                    var b = r.Mesh.Bounds;
+                    ax = Math.Max(ax, Math.Max(Math.Abs(b.X), Math.Abs(b.X + b.SizeX)));
+                    ay = Math.Max(ay, Math.Max(Math.Abs(b.Y), Math.Abs(b.Y + b.SizeY)));
+                }
+                else if ((r.Shape & ShapeOuterPolygon) != 0)
+                {
+                    foreach (double x in r.PolyX) ax = Math.Max(ax, Math.Abs(x));
+                    foreach (double y in r.PolyY) ay = Math.Max(ay, Math.Abs(y));
+                }
+                else
+                {
+                    ax = Math.Max(ax, r.IsBox ? r.AX : r.ROut);
+                    ay = Math.Max(ay, r.IsBox ? r.AY : r.ROut);
+                }
+            }
+            var point = source as PointSampler;
+            double lo = point == null ? sceneZMin : Math.Min(sceneZMin, point.z);
+            double hi = point == null ? sceneZMax : Math.Max(sceneZMax, point.z);
+            AddBox(ax, ay, lo, hi, GeometryMaterialLibrary.SeedAir(), false);
+            hasAmbientAir = true;
+        }
+
         void Build()
         {
             GeometryModel g = this.geometry;
-            GeometryMaterial reflector = OrVacuum(g.Reflector);
+            GeometryMaterial reflector = LayerMaterial(g.Reflector);
 
-            // (`AMBER1`) Зазор между отражателем и корпусом — такой же слой
-            // сцены, как обвязка. Воздух в него кладут пресет и заготовка
-            // редактора (слово Amber 07.09.2026); здесь же стоит общий для всех
-            // слоёв `OrVacuum` — он отвечает на другой вопрос: что делать, если
-            // вещества НЕ НАЗВАЛИ вовсе. Подставлять в этом случае воздух
-            // молча нельзя: пустое вещество означает «не сказано», а не
-            // «известно, что воздух», и старый файл `.in` без ключей зазора
-            // получил бы вещество, которого в нём нет. При нулевой толщине
-            // разницы нет никакой — слой не строится.
-            GeometryMaterial gap = OrVacuum(g.Gap);
-            GeometryMaterial cladding = OrVacuum(g.Cladding);
-            GeometryMaterial beakerWall = OrVacuum(g.BeakerWall);
-            GeometryMaterial sample = OrVacuum(g.Source);
+            GeometryMaterial gap = LayerMaterial(g.Gap);
+            GeometryMaterial cladding = LayerMaterial(g.Cladding);
+            GeometryMaterial beakerWall = LayerMaterial(g.BeakerWall);
+            GeometryMaterial sample = LayerMaterial(g.Source);
             // ⛔ (`A94`) Размеры кристалла берутся ПО ЕГО ФОРМЕ. У бруска полей
             // `CrystalDiameter`/`CrystalHeight` не существует — рабочие размеры
             // даёт `CrystalBoxInScene` в ветке ниже, и читать здесь цилиндр «на
@@ -3415,7 +3435,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
                 tsh = g.MagneticShieldThickness;
                 lsh = g.MagneticShieldLength;
-                magnetic = OrVacuum(g.MagneticShield);
+                magnetic = LayerMaterial(g.MagneticShield);
             }
 
             // Кристалл и его обвязка. Области вкладываются, порядок значим:
@@ -3659,6 +3679,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // пробой (`headspace` = 0) строится до бита прежним.
                     double headspace, farEnd;
                     CylinderVessel(g, out headspace, out farEnd);
+                    if (headspace > 0 && g.TransportScene == null)
+                        Add(0.0, rIn, zSrcBottom - headspace, zSrcBottom, g.CheckedVesselHeadspace("SC"), false);
                     this.Add(0.0, rOut, zWallBottom, zWallTop, beakerWall, false);
                     this.Add(rIn, rOut, zSrcBottom - headspace, zSrcTop, beakerWall, false);
                     this.Add(0.0, rIn, zSrcBottom, zSrcTop, sample, false);
@@ -3729,6 +3751,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // своих местах, и сцена без донышка остаётся побитово той же
                     // (`Add` нулевой толщины не кладёт).
                     this.Add(0.0, rSrcOut, zOuter0, zOuter0 + endWall, beakerWall, false);
+                    if (farGap > 0 && g.TransportScene == null)
+                        Add(0.0, rSrcOut, zOuter0 + endWall, zSrc0, g.CheckedVesselHeadspace("SM"), false);
                     double mrIn = rh + ths, mz0 = zSrc0, mz1 = zSrc0 + hs, mzCap = zCeiling - the;
                     Sampler marinelli = new MarinelliSampler(mrIn, rSrcOut, mz0, mz1, mzCap);
                     // (`E29`) Важностный розыгрыш — ключом, поверх прежнего:
@@ -3813,6 +3837,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.AddShaped(rSrcOut, null, null, outX, outY, zSrc0, zSrc0 + hs, sample, rSrcOut - holeOuter);
             // Дальнее донышко — ПОСЛЕДНЕЙ областью, как у круглого колодца.
             this.Add(0.0, rSrcOut, zOuter0, zOuter0 + endWall, beakerWall, false);
+            if (farGap > 0 && g.TransportScene == null)
+                Add(0.0, rSrcOut, zOuter0 + endWall, zSrc0, g.CheckedVesselHeadspace("SM"), false);
             this.source = new TrapezoidMarinelliSampler(rSrcOut, zSrc0, zSrc0 + hs, zCeiling - the, outX, outY);
         }
 
@@ -3847,7 +3873,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             foreach (GeometryShieldLayer layer in g.ShieldLayers)
             {
-                GeometryMaterial m = OrVacuum(layer.Material);
+                GeometryMaterial m = LayerMaterial(layer.Material);
                 double r1 = r0 + Math.Max(0.0, layer.SideThickness);
                 double f1 = f0 - Math.Max(0.0, layer.FloorThickness);
                 double l1 = l0 + Math.Max(0.0, layer.LidThickness);
@@ -5772,7 +5798,7 @@ namespace BecquerelMonitor.EfficiencyMaker
 
         Region Winner(ulong active)
         {
-            if (geometry.TransportScene != null)
+            if (geometry.TransportScene != null || regionArray.Length > 64)
             {
                 int groups = (regionArray.Length+63)/64;
                 for (int group = 0; group < groups; group++)
@@ -5916,14 +5942,16 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// 250 / 256 см — 0.0721 / 0.0702 / 0.0704 см², на R = 300 см — 0.0000
         /// (48.4σ), A_полн — 0.3109 → 0.0000 (99.8σ).
         ///
-        /// Точка внутри габарита (проба, маринелли, вторичные кванты) получает
+        /// Без добавленной воздушной области точка внутри габарита получает
         /// прежний предел до бита; у точки снаружи история, не упиравшаяся в
         /// прежний предел, не упирается и в новый, — значит сцены, где предел
         /// не срабатывал (`CountPathLimitCut` = 0), считаются побитово прежними.
         /// </summary>
         double PathLimit(double x, double y, double z)
         {
-            double limit = 40.0 * this.sphereR + 200.0;
+            // Allow a straight crossing of the air envelope and the usual scattering allowance.
+            double crossing = this.hasAmbientAir ? Math.Max(200.0, 2.0 * this.pathSceneR) : 200.0;
+            double limit = 40.0 * this.sphereR + crossing;
             if (this.pathSceneR > 0.0)
             {
                 double dz = z - this.pathSceneZ;
@@ -9223,7 +9251,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 t = residual > 0.0 ? ElectronData.EnergyOfRange(medium, residual) : 0.0;
             }
 
-            if (t > 0.0 && uz > 0.0 && this.pointAirCm > 0.0 && this.CapsuleAir)
+            if (t > 0.0 && uz > 0.0 && this.pointAirCm > 0.0 && this.UseCapsuleAirEstimate)
             {
                 double airCm = this.pointAirCm / Math.Max(uz, 0.05);
                 ElectronData.Material water = this.WaterTable();

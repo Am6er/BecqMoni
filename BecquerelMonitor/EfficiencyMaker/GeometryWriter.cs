@@ -713,6 +713,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 take(key);
             }
 
+            take(EmptySpace("SC").FractionTypeKey);
+            take(EmptySpace("SM").FractionTypeKey);
             var slots = new List<Slot>(CarriedSlots) { EmptySpace("SC"), EmptySpace("SM") };
             foreach (Slot slot in slots)
             {
@@ -792,29 +794,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return;
             }
 
-            {
-                // Воздух. Состав в файлах LSRM у «пустого места» записан водой
-                // при воздушной плотности; повторять эту странность не будем,
-                // но и значить она ничего не может: 0.15 % на 5 см при 40 кэВ.
-                //
-                // (`AMBER53`, П123 22.09.2026) Состав — NIST «Air, dry (near sea
-                // level)» из засева, а не формула `N2 O1` (без аргона, N 0.6365
-                // против 0.7553). Нарочно ЗАСЕВ, а не действующая библиотека:
-                // этот блок входит в текст `Render`, а с ним в клеймо матрицы
-                // (`ResponseMatrix.ComputeStamp`) у всякой геометрии без
-                // разбора `Raw` — то есть у всех, собранных в редакторе; клеймо
-                // не может зависеть от того, что человек сделал со своим
-                // списком веществ.
-                //
-                // ⚠ Смена этого умолчания ДВИГАЕТ клеймо таких геометрий (`A139`):
-                // здесь это скрыто поднятым `PhysicsVersion = 23` (П122) — все
-                // матрицы и так пересчитываются; без смены поколения такую
-                // правку делать нельзя. Сцены корпуса `.in` несут блок в `Raw`
-                // и переносятся как есть; генератор `CorpusGeomProbe` с этой
-                // правки пишет их иначе — сцены пересоздаются ночным пересчётом.
-                material = GeometryMaterialLibrary.SeedAir();
-            }
-
+            string prefix = slot.RoKey.StartsWith("SC_", StringComparison.Ordinal) ? "SC" : "SM";
+            material = model.TransportScene == null
+                ? model.VesselHeadspace(prefix)
+                : GeometryMaterialLibrary.SeedAir();
             Material(text, slot, material);
         }
 

@@ -603,6 +603,13 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///
         /// Базу веществ не трогает: состав задан долями, атомные массы не нужны.
         /// </summary>
+        public static GeometryMaterial SeedVacuum()
+        {
+            var vacuum = new GeometryMaterial { Name = "vacuum", Density = 1e-25 };
+            vacuum.Fractions[1] = 1;
+            return vacuum;
+        }
+
         public static GeometryMaterial SeedAir()
         {
             Entry air = Nist("Air", "Air, dry", "Air, dry (near sea level)", MaterialKind.Source);

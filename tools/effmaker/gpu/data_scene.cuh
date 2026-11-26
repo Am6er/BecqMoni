@@ -13,7 +13,8 @@
 // Предел областей сцены на устройстве. Раскладка `Build` даёт не больше 13
 // (`map_geometry.md` §1.4), корпус — не больше 12; C# держит 64 (маска `ulong`).
 // Больше — отказ упаковки в `Read_regions`, а не тихая порча.
-#define RM_MAX_REG 16
+// Reserve room for the ambient volume and the vessel headspace.
+#define RM_MAX_REG 18
 
 // Событий разбора луча — как `4 * count + 4` у `CollectCrossings`
 // (EfficiencySimulator.cs:4477), на пределе областей.
@@ -21,7 +22,8 @@
 
 // Предел СУММЫ элементов снимков составов по всем областям — под массивы пары
 // узлов `bracketLo/Hi` нити (`Region.EnsureBracket`). Больше — отказ `Read_regions`.
-#define RM_MAX_SNAP_TOTAL 160
+// Up to 24 elements in a legacy vessel slot, plus the four dry-air elements.
+#define RM_MAX_SNAP_TOTAL 188
 
 // PhotonProcess (`PartialCrossSections.cs:6`) определён полосой А в data_tables.cuh
 // (`enum class PhotonProcess`), который data.cuh включает РАНЬШЕ этого файла.

@@ -384,7 +384,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             w.Int(filmMaterial != null ? reg.Of("electronMats", sim.CarryMedium(filmMaterial)) : -1);
             w.Real(filmMaterial != null ? filmMaterial.Density : 0.0);
             w.Real(sim.pointAirCm);
-            w.Bool(sim.CapsuleAir);
+            w.Bool(sim.UseCapsuleAirEstimate);
             // (`AMBER282`) Маринелли с колодцем-трапецией — нули и пусто у прочих видов.
             var trap = source as EfficiencySimulator.TrapezoidMarinelliSampler;
             w.Real(trap != null ? trap.rOut : 0.0);
