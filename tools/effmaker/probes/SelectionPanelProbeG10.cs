@@ -128,6 +128,7 @@ namespace SelectionPanelProbeG10
         /// наличие `EnergySpectrumView.SelectionActivityHint`.
         /// </summary>
         static bool reasonDrawn;
+        const int HistoricalReasonRow = 32;
 
         static readonly List<string> summary = new List<string>();
 
@@ -191,13 +192,13 @@ namespace SelectionPanelProbeG10
                 : "БЕЗ ПРАВКИ AMBER2 (плечо «до») — ждём отказ и подпись при нём на панели");
             amber208 = typeof(EnergySpectrumView).Assembly.GetType("BecquerelMonitor.ROIConfigManager") == null;
             Console.WriteLine("SETUP\tсборка: {0}", amber208
-                ? "С ПРАВКОЙ AMBER208 (нет ROIConfigManager) — строки активности на панели НЕТ, ждём только причину"
+                ? "С ПРАВКОЙ AMBER208 (нет ROIConfigManager) — числовой строки активности на панели нет"
                 : "БЕЗ ПРАВКИ AMBER208 (есть ROIConfigManager) — ждём подпись, спор и момент на панели");
             reasonDrawn = typeof(EnergySpectrumView).GetMethod("SelectionActivityHint",
                 BindingFlags.NonPublic | BindingFlags.Static) != null;
             Console.WriteLine("SETUP\tсборка: {0}", reasonDrawn
                 ? "С ПРАВКОЙ AMBER245 (есть EnergySpectrumView.SelectionActivityHint) — ждём строку причины 32 px"
-                : "БЕЗ ПРАВКИ AMBER245 — строки причины на панели нет");
+                : "Строки причины AMBER245 на панели нет");
             Console.WriteLine("SETUP\tприложение: {0}", typeof(EnergySpectrumView).Assembly.Location);
 
             MainForm mainForm = new MainForm();
@@ -403,17 +404,12 @@ namespace SelectionPanelProbeG10
                     PropertyInfo momentProp = an.GetType().GetProperty("ActivityMoment", Any);
                     string moment = momentProp != null ? (string)momentProp.GetValue(an, null) : null;
                     int momentRowHonest = string.IsNullOrEmpty(moment) ? 0 : 16; // ПАНЕЛЬ: момент
-                    // (`AMBER245`) Строка причины словами («активность — в окне
-                    // „Результат измерений“») стоит на панели, когда число ЕСТЬ, а
-                    // строка активности снята решением `AMBER208` (П236). Место под
-                    // неё — 32 px: текст длинный и переносится на две строки.
-                    int reasonRow = 32; // ПАНЕЛЬ: причина
                     if (momentRowHonest > 0)
                     {
                         Console.WriteLine("  строка момента: {0}", moment);
                     }
                     int expectedGrown = (activityOnPanel ? labelRow + rivalRowHonest + momentRowHonest : 0)
-                                        + (reasonDrawn ? reasonRow : 0);
+                                        + (reasonDrawn ? HistoricalReasonRow : 0);
                     Console.WriteLine("  устройство панели: строка активности {0}, строка причины {1}; снятие подписи обязано осесть на {2} px",
                                       activityOnPanel ? "РИСУЕТСЯ" : "снята (AMBER208)",
                                       reasonDrawn ? "РИСУЕТСЯ (32 px)" : "нет",
@@ -530,7 +526,7 @@ namespace SelectionPanelProbeG10
                                 new Rectangle(0, 0, frame.Width, frame.Height)) - changedReason;
                             Console.WriteLine("  положительный контроль «причина не напечатана»: панель {0} px против {1} px; изменилось точек в области панели {2}, вне её {3}",
                                               noReasonBox.Height, panelBox.Height, changedReason, outsideReason);
-                            Same("положительный контроль: панель ниже ровно на 32 px", reasonRow,
+                            Same("положительный контроль: панель ниже ровно на 32 px", HistoricalReasonRow,
                                  panelBox.Height - noReasonBox.Height);
                             Same("положительный контроль: точки причины изменились", true, changedReason > 0);
                             Same("снятие причины вне панели кадр не трогает", 0, outsideReason);

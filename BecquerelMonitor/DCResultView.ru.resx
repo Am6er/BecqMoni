@@ -141,6 +141,15 @@
   <data name="textColumn4.Text" xml:space="preserve">
     <value>МДА</value>
   </data>
+  <data name="activityMethodComboBox.Items" xml:space="preserve">
+    <value>По кривой эффективности</value>
+  </data>
+  <data name="activityMethodComboBox.Items1" xml:space="preserve">
+    <value>По матрице отклика</value>
+  </data>
+  <data name="activityMethodComboBox.AccessibleName" xml:space="preserve">
+    <value>Способ расчёта активности</value>
+  </data>
   <data name="comboBox1.Items" xml:space="preserve">
     <value>Бк</value>
   </data>

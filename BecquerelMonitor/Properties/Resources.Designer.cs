@@ -6589,15 +6589,6 @@ namespace BecquerelMonitor.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Activity is in the Measurement Result window.
-        /// </summary>
-        public static string SelectionActivityHint {
-            get {
-                return ResourceManager.GetString("SelectionActivityHint", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Background spectrum is not available for the active spectrum..
         /// </summary>
         public static string ERRNoBackgroundSpectrum {

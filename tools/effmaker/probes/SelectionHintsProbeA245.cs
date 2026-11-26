@@ -32,11 +32,8 @@ namespace SelectionHintsProbeA245
     ///      находит РОВНО один подписанный пик, отказа нет, Lc &gt; 0, активность
     ///      посчитана и больше нуля. То есть условие «ровно один подписанный пик»
     ///      ПРОЙДЕНО, и молчание панели им не объясняется.
-    ///   2. ПРИЧИНА НАЗВАНА СЛОВАМИ: `SelectionActivityHint` возвращает текст
-    ///      `Resources.SelectionActivityHint` на обоих языках — «активность
-    ///      считает полноспектральный разбор, смотрите окно „Результат
-    ///      измерений“». Это следствие решения Amber 06.10.2026 (`AMBER208`,
-    ///      П236): строка активности с панели выделения снята нарочно.
+    ///   2. Проверяется отсутствие строки о результате измерений. Для старой
+    ///      сборки с `SelectionActivityHint` сверяются её переводы.
     ///   3. ПОЛОЖИТЕЛЬНЫЙ КОНТРОЛЬ МЕРКИ: те же поля, но (а) второй подписанный
     ///      пик в том же выделении и (б) пик без подписи — `FindActivityPeak`
     ///      обязан вернуть null, активность — ноль, подсказка — null. Проверка,
@@ -89,7 +86,6 @@ namespace SelectionHintsProbeA245
 
             Console.WriteLine("=== чем мерено ===");
             Console.WriteLine("сборка приложения: {0}", typeof(EnergySpectrumView).Assembly.Location);
-            Console.WriteLine("подсказка панели выделения, ru: «{0}»", Text("ru", "SelectionActivityHint"));
             Console.WriteLine();
 
             Section8();
@@ -127,14 +123,22 @@ namespace SelectionHintsProbeA245
                               found == null ? "null" : found.Nuclide.Name + " " + F(found.Energy, "F2") + " кэВ");
             Check("условие «ровно один подписанный пик» пройдено", true, found != null);
 
-            // 2. Причина названа словами, и на обоих языках.
-            string ru = Hint(scene);
-            string en = Text("en", "SelectionActivityHint");
-            Console.WriteLine("  подсказка ru: «{0}»", Text("ru", "SelectionActivityHint"));
-            Console.WriteLine("  подсказка en: «{0}»", en);
-            Check("подсказка при посчитанном числе не пуста (ru)", true, !string.IsNullOrEmpty(ru));
-            Check("подсказка при посчитанном числе не пуста (en)", true, !string.IsNullOrEmpty(en));
-            Check("подсказка по-русски — не английский текст", false, ru == en);
+            const string key = "SelectionActivityHint";
+            if (ActivityHint == null)
+            {
+                Check("ресурс снятой строки отсутствует (ru)", null,
+                      Resources.ResourceManager.GetString(key, CultureInfo.GetCultureInfo("ru")));
+                Check("ресурс снятой строки отсутствует (en)", null,
+                      Resources.ResourceManager.GetString(key, CultureInfo.GetCultureInfo("en")));
+            }
+            else
+            {
+                string ru = Hint(scene);
+                string en = Text("en", key);
+                Check("подсказка при посчитанном числе не пуста (ru)", true, !string.IsNullOrEmpty(ru));
+                Check("подсказка при посчитанном числе не пуста (en)", true, !string.IsNullOrEmpty(en));
+                Check("подсказка по-русски отличается от английской", true, ru != en);
+            }
 
             // 3. Положительный контроль мерки: другой вход — другой ответ.
             Scene two = Scene.At(661.657);
@@ -368,19 +372,13 @@ namespace SelectionHintsProbeA245
         //  Мерка
         // ------------------------------------------------------------------
 
-        /// <summary>Подсказка панели выделения — тот же приватный метод, что зовёт отрисовка.</summary>
+        static readonly MethodInfo ActivityHint = typeof(EnergySpectrumView).GetMethod(
+            "SelectionActivityHint", BindingFlags.NonPublic | BindingFlags.Static);
+
         static string Hint(Scene scene)
         {
-            MethodInfo hint = typeof(EnergySpectrumView).GetMethod(
-                "SelectionActivityHint", BindingFlags.NonPublic | BindingFlags.Static);
-            if (hint == null)
-            {
-                Console.WriteLine("  ⛔ в сборке нет EnergySpectrumView.SelectionActivityHint — мерить нечем");
-                bad++;
-                return null;
-            }
-            Thread.CurrentThread.CurrentUICulture = new CultureInfo("ru");
-            return (string)hint.Invoke(null, new object[] { scene.Analytics });
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo("ru");
+            return (string)ActivityHint?.Invoke(null, new object[] { scene.Analytics });
         }
 
         /// <summary>Текст ресурса в названной культуре — тем же менеджером, что у приложения.</summary>

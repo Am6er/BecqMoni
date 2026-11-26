@@ -123,9 +123,6 @@
   <data name="ChartHeaderCountBGRatioHint" xml:space="preserve">
     <value>100 % = sample equals background</value>
   </data>
-  <data name="SelectionActivityHint" xml:space="preserve">
-    <value>Activity is in the Measurement Result window</value>
-  </data>
   <data name="ERRFileSaveFailure" xml:space="preserve">
     <value>File "{0}" couldn't be saved.
 ({1})</value>

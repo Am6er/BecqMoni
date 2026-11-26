@@ -471,6 +471,48 @@ namespace BecquerelMonitor
             this.RefreshSelectionPanel();
         }
 
+        void activityMethodComboBox_SelectionChangeCommitted(object sender, EventArgs e)
+        {
+            DocEnergySpectrum document = this.mainForm?.ActiveDocument;
+            var session = document?.FsaSession;
+            if (session == null || !session.CanUseMatrixForActivity(document.ActiveResultData))
+            {
+                return;
+            }
+
+            session.UseEfficiencyCurve = this.activityMethodComboBox.SelectedIndex == 0;
+            this.ShowResult(true);
+        }
+
+        void ShowActivityMethod(bool matrixAvailable, bool useEfficiencyCurve)
+        {
+            this.activityMethodComboBox.Enabled = matrixAvailable;
+            this.activityMethodComboBox.SelectedIndex = matrixAvailable && !useEfficiencyCurve ? 1 : 0;
+        }
+
+        protected override void OnLayout(System.Windows.Forms.LayoutEventArgs e)
+        {
+            base.OnLayout(e);
+            if (this.activityMethodComboBox?.Parent != this || this.table1?.Parent != this)
+            {
+                return;
+            }
+
+            int gap = this.comboBox2.Left - this.comboBox1.Right;
+            int nextLeft = this.comboBox2.Right + gap;
+            bool fits = nextLeft + this.activityMethodComboBox.Width + this.comboBox1.Left <= this.ClientSize.Width;
+            this.activityMethodComboBox.Location = new System.Drawing.Point(
+                fits ? nextLeft : this.comboBox1.Left,
+                fits ? this.comboBox2.Top : this.comboBox2.Bottom + gap / 2);
+
+            int tableTop = this.activityMethodComboBox.Bottom + gap / 2;
+            if (this.table1.Top != tableTop)
+            {
+                this.table1.SetBounds(this.table1.Left, tableTop, this.table1.Width,
+                    Math.Max(0, this.table1.Bottom - tableTop));
+            }
+        }
+
         // Token: 0x040001A3 RID: 419
         GlobalConfigManager globalConfigManager = GlobalConfigManager.GetInstance();
 
@@ -1044,6 +1086,7 @@ namespace BecquerelMonitor
             FullSpectrumAnalysis.FsaAnalysisSession session = document != null ? document.FsaSession : null;
             if (rd == null || session == null || rd.EnergySpectrum == null)
             {
+                this.ShowActivityMethod(false, true);
                 this.SetFsaHeader(OwnText(KeyFsaNoSpectrum), null);
                 return null;
             }
@@ -1053,6 +1096,7 @@ namespace BecquerelMonitor
             FullSpectrumAnalysis.FsaOffReason off = session.OffReason;
             if (off != FullSpectrumAnalysis.FsaOffReason.None)
             {
+                this.ShowActivityMethod(false, true);
                 string offText = FullSpectrumAnalysis.FsaAnalysisSession.OffText(off);
                 this.SetFsaHeader(offText, offText);
                 this.SetFsaMdaHeader(null);
@@ -1068,6 +1112,7 @@ namespace BecquerelMonitor
             // три потребителя заказывали бы три разных счёта по очереди.
             FullSpectrumAnalysis.FsaCalculationOptions options = FullSpectrumAnalysis.FsaCalculationOptions.Of(rd);
             session.EnsureUpToDate(rd, rd.BackgroundEnergySpectrum != null, options);
+            this.ShowActivityMethod(session.CanUseMatrixForActivity(rd), session.UseEfficiencyCurve);
             FullSpectrumAnalysis.FsaResult result = session.Result;
             bool running = session.IsRunning;
             // ⛔ (П254, 14.10.2026) ПРИЗНАК СВЕЖЕСТИ И ПРИ ПАУЗЕ ЗАПИСИ. Требование `AMBER208` (3):

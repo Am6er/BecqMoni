@@ -5854,6 +5854,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         public bool AnchorWidth { get; set; }
 
         /// <summary>
+        /// Уточнять FWHM по опорным пикам при выключенной привязке шкалы
+        /// и нулевых диапазонах усиления и смещения. Требует AnchorWidth.
+        /// </summary>
+        public bool AnchorWidthOnFixedScale { get; set; }
+
+        /// <summary>
         /// (`AMBER150`) Систематический пол погрешности логарифма ширины одной
         /// опоры: модель врёт формой (хвосты, подложка, соседи) на доли
         /// процента ширины, и статистическая σ в сотые доли процента у пика в
@@ -10071,12 +10077,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 }
             }
 
-            this.scaleSigmaNote = string.Format(CultureInfo.InvariantCulture,
+            this.scaleSigmaNote = this.AnchorScale ? string.Format(CultureInfo.InvariantCulture,
                 "погрешность шкалы: σ усиления {0:F5}, σ нуля {1:F3} кан., σ нуля света {2:F2} кэВ{5}, σ ширины {6:F2} %; в σ амплитуд — до {3:F2} %{4}",
                 Math.Sqrt(Math.Max(0.0, caa)), joint ? 0.0 : Math.Sqrt(Math.Max(0.0, cbb)),
                 joint ? Math.Sqrt(Math.Max(0.0, cbb)) : this.zeroSigmaKev, 100.0 * worst,
                 worstName != null ? " (" + worstName + ")" : "", joint ? " (совместно)" : "",
-                this.AnchorWidth && this.anchorWidthCount > 0 ? 100.0 * this.anchorWidthSigma : 0.0);
+                this.AnchorWidth && this.anchorWidthCount > 0 ? 100.0 * this.anchorWidthSigma : 0.0)
+                : string.Format(CultureInfo.InvariantCulture,
+                                "σ ширины {0:F2} %; в σ амплитуд — до {1:F2} %",
+                                100.0 * this.anchorWidthSigma, 100.0 * worst);
         }
 
         /// <summary>
@@ -11758,18 +11767,22 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             FsaEfficiency efficiency)
         {
             // (`AMBER326`, a326p) заходы ядра этого отката — параллельно на копиях анализатора (см. <see cref="StartCoreFutures"/>)
-            if (!this.StartCoreFutures(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency))
-            {
-                return this.AnalyzeRolledBackBody(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
-            }
-
+            bool widthOnFixedScale = this.AnchorWidthOnFixedScale;
+            bool startedFutures = false;
             try
             {
+                // Снятие привязки для проверки отката не включает режим фиксированной шкалы.
+                this.AnchorWidthOnFixedScale = widthOnFixedScale && !this.AnchorScale;
+                startedFutures = this.StartCoreFutures(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
                 return this.AnalyzeRolledBackBody(spectrum, backgroundSpectrum, fwhmCalibration, originalLibrary, efficiency);
             }
             finally
             {
-                this.CancelCoreFutures(false);
+                this.AnchorWidthOnFixedScale = widthOnFixedScale;
+                if (startedFutures)
+                {
+                    this.CancelCoreFutures(false);
+                }
             }
         }
 
@@ -14795,6 +14808,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.anchorStatRestored = false;
             this.anchorStatWarm = false;
             this.anchorWarmOut = null;
+            bool fitWidthOnly = !this.AnchorScale && this.AnchorWidthOnFixedScale && this.AnchorWidth
+                                && this.GainRange == 0.0 && this.OffsetRangeKev == 0.0
+                                && !PositiveFinite(this.rollbackWidth);
             long anchorTicks0 = System.Diagnostics.Stopwatch.GetTimestamp();
             if (this.AnchorScale)
             {
@@ -15551,6 +15567,67 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     }
                 }
             }
+            else if (fitWidthOnly)
+            {
+                double widthSigma = 0.0;
+                for (int pass = 0; pass < Math.Max(1, this.AnchorPasses); pass++)
+                {
+                    this.anchorStatPasses++;
+                    this.CollectScaleAnchors(
+                        best, calibration, fwhmCalibration, bestGain, bestOffset,
+                        chLo, chHi, channels, y, variance, channelsPerKev,
+                        out _, out _, out _, out int used, out _);
+                    if (used == 0 || this.anchorWidthCount == 0)
+                    {
+                        break;
+                    }
+
+                    if (Math.Abs(this.anchorWidthLog) < 0.002)
+                    {
+                        if (this.widthAnchors > 0)
+                        {
+                            widthSigma = this.anchorWidthSigma;
+                        }
+
+                        break;
+                    }
+
+                    double previousWidth = this.widthScale;
+                    double maxRatio = this.AnchorWidthMaxRatio;
+                    double proposedWidth = previousWidth * Math.Exp(this.anchorWidthLog);
+                    if (!PositiveFinite(proposedWidth)
+                        || (maxRatio > 1.0 && (proposedWidth > maxRatio || proposedWidth < 1.0 / maxRatio)))
+                    {
+                        break;
+                    }
+
+                    this.widthScale = proposedWidth;
+                    FitResult adjusted = FitHuber(library, fixedColumns, calibration, fwhmCalibration,
+                                                   efficiency, bestGain, bestOffset, chLo, chHi, channels,
+                                                   y, variance, baseWeights, reportWeights, null);
+                    this.anchorStatRefits++;
+                    if (adjusted == null || adjusted.FromResponseMatrix != best.FromResponseMatrix
+                        || !(adjusted.Chi2NdfBase < best.Chi2NdfBase))
+                    {
+                        this.widthScale = previousWidth;
+                        break;
+                    }
+
+                    best = adjusted;
+                    this.widthAnchors = this.anchorWidthCount;
+                    widthSigma = this.anchorWidthSigma;
+                }
+
+                // Оценщик опор также считает ковариацию положения. При фиксированной
+                // шкале в погрешность активности входит только неопределённость FWHM.
+                this.anchorCovAA = this.anchorCovAB = this.anchorCovBB = 0.0;
+                this.anchorWidthCount = this.widthAnchors;
+                this.anchorWidthSigma = widthSigma;
+                this.anchorNote = this.widthAnchors > 0
+                    ? string.Format(CultureInfo.InvariantCulture, "шкала фиксирована; ширина ×{0:F4} по {1} опорам",
+                                    this.widthScale, this.widthAnchors)
+                    : "шкала фиксирована; ширина по калибровке ПШПВ";
+            }
             else
             {
                 this.anchorNote = "привязка выключена ключом";
@@ -16149,7 +16226,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // ⛔ (`AMBER142`, П201) ПОГРЕШНОСТЬ ПРИВЯЗКИ — В σ АМПЛИТУД, до
             // `BuildResult`: значимость члена ряда берётся из колонки, и правка
             // `best.Z` доезжает до всех строк.
-            if (this.AnchorScale && this.AnchorSigmaInAmplitudes && this.scaleAnchorsUsed > 0)
+            if (this.AnchorSigmaInAmplitudes
+                && ((this.AnchorScale && this.scaleAnchorsUsed > 0) || (fitWidthOnly && this.widthAnchors > 0)))
             {
                 long sigmaTicks0 = System.Diagnostics.Stopwatch.GetTimestamp();
                 this.InflateZByScale(best, fixedColumns, calibration, fwhmCalibration, efficiency,

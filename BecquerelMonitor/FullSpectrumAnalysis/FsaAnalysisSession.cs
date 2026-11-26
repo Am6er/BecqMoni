@@ -264,6 +264,25 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
+        // Выбор действует в сеансе документа, без записи в кривую и конфигурацию прибора.
+        internal bool UseEfficiencyCurve { get; set; }
+
+        string matrixActivityStamp;
+
+        internal bool CanUseMatrixForActivity(ResultData data)
+        {
+            if (data?.Efficiency == null)
+            {
+                return false;
+            }
+
+            string stamp = MatrixInputStamp(data.Efficiency);
+            lock (this.sync)
+            {
+                return stamp == this.matrixActivityStamp;
+            }
+        }
+
         /// <summary>Готовое разложение или null, пока его нет.</summary>
         public FsaResult Result
         {
@@ -466,6 +485,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.stamp = "";
             this.pending = null;
             this.status = null;
+            this.matrixActivityStamp = null;
             this.DropWithheld();
             this.generation++;
         }
@@ -556,7 +576,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 options = FsaCalculationOptions.Of(resultData);
             }
 
-            string currentStamp = this.StampOf(resultData, subtractBackground, options);
+            bool useEfficiencyCurve = this.UseEfficiencyCurve;
+            string currentStamp = BuildStamp(resultData, subtractBackground, options, this.OwnSet(), useEfficiencyCurve);
 
             // (`AMBER211`, решение Amber 07.10.2026 вопросником, дословно: «Не чаще раза в
             // 30 с и только для видимых»; консоль, дословно: «30 секунд - вынеси в
@@ -635,7 +656,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             Job job;
             try
             {
-                job = this.Capture(resultData, subtractBackground, options, currentStamp, myGeneration);
+                job = this.Capture(resultData, subtractBackground, options, currentStamp, myGeneration, useEfficiencyCurve);
             }
             catch (Exception ex)
             {
@@ -660,6 +681,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     this.resultSource = resultData;
                     this.stamp = "";
                     this.status = said;
+                    this.matrixActivityStamp = null;
                 }
 
                 return;
@@ -1001,7 +1023,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         }
 
         Job Capture(ResultData resultData, bool subtractBackground, FsaCalculationOptions options,
-                    string currentStamp, int myGeneration)
+                    string currentStamp, int myGeneration, bool useEfficiencyCurve)
         {
             Job job = new Job
             {
@@ -1105,16 +1127,17 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // только если её отпечаток сходится с нынешней геометрией. Не
             // сошёлся — работаем без неё, старым путём: посчитать спектр по
             // матрице чужой геометрии хуже, чем не посчитать вовсе.
-            // UseResponseMatrix — выключатель пользователя (W11, галка в форме
-            // «Матрица отклика»): выключено — считаем без матрицы, файл даже
-            // не читаем.
+            // Годность матрицы нужна переключателю и при выбранном счёте по кривой.
+            // UseResponseMatrix оставляет пробам возможность пропустить чтение матрицы.
             bool oldFormat = false;
             bool fromSpectrum = false;
             string spectrumRefusal = "";
             FsaMatrixSkip skip = FsaMatrixSkip.None;
+            string availableMatrixStamp = null;
             if (efficiencyConfig != null && efficiencyConfig.HasGeometry
                 && efficiencyConfig.UseResponseMatrix)
             {
+                string matrixInputStamp = MatrixInputStamp(efficiencyConfig);
                 // ⛔ (`A50`) ОТКАЗ ЧИТАТЬ МАТРИЦУ ОБЯЗАН НАЗЫВАТЬ СЕБЯ. Прежде
                 // `Load` возвращал `null` молча — и «файла нет» было
                 // неотличимо от «файл есть, но посчитан прежним форматом»: в
@@ -1147,7 +1170,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // выходит побитово одинаковым.
                     // (`AMBER274` Э3, `a274f`) привязка — с прибором: его поля слоя кристалла (источник QF альф,
                     // форма групп, активность ряда); у прибора без них — ровно прежняя привязка по геометрии
-                    FsaMatrixBinding.BindDevice(analyzer, efficiencyConfig, matrix);
+                    if (job.Efficiency != null && !job.Efficiency.IsPerUnitFluence)
+                    {
+                        availableMatrixStamp = matrixInputStamp;
+                    }
+
+                    if (useEfficiencyCurve)
+                    {
+                        skip = FsaMatrixSkip.SwitchedOff;
+                        fromSpectrum = false;
+                    }
+                    else
+                    {
+                        FsaMatrixBinding.BindDevice(analyzer, efficiencyConfig, matrix);
+                    }
                 }
                 else
                 {
@@ -1172,6 +1208,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 this.matrixFromSpectrum = fromSpectrum;
                 this.spectrumMatrixRefusal = spectrumRefusal;
                 this.matrixSkip = skip;
+                this.matrixActivityStamp = availableMatrixStamp;
             }
 
             analyzer.CoincidenceWindowSec = DeadTimeOf(resultData);
@@ -2155,12 +2192,18 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// <summary>(`fixFsa2`) Отпечаток с набором ЭТОГО сеанса — им судят «тот ли вход» сеанс и его читатели.</summary>
         public string StampOf(ResultData resultData, bool subtractBackground, FsaCalculationOptions options)
         {
-            return BuildStamp(resultData, subtractBackground, options, this.OwnSet());
+            return BuildStamp(resultData, subtractBackground, options, this.OwnSet(), this.UseEfficiencyCurve);
         }
 
         /// <summary>То же с явным набором нуклидов (null — «все»).</summary>
         public static string BuildStamp(ResultData resultData, bool subtractBackground,
                                         FsaCalculationOptions options, NuclideSet set)
+        {
+            return BuildStamp(resultData, subtractBackground, options, set, false);
+        }
+
+        static string BuildStamp(ResultData resultData, bool subtractBackground,
+                                 FsaCalculationOptions options, NuclideSet set, bool useEfficiencyCurve)
         {
             EnergySpectrum spectrum = resultData.EnergySpectrum;
             EnergySpectrum background = resultData.BackgroundEnergySpectrum;
@@ -2210,8 +2253,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 "|", spectrum.LiveTime.ToString("R", CultureInfo.InvariantCulture),
                 "|", subtractBackground ? "bg" : "nobg",
                 "|", BackgroundStamp(background),
-                "|", EfficiencyStamp(resultData.Efficiency),
-                "|", MatrixFileStamp(resultData.Efficiency),
+                "|", MatrixInputStamp(resultData.Efficiency),
                 "|", CalibrationStamp(spectrum, resultData.FwhmCalibration),
                 // (`AMBER180`) Полоса и порог поиска: `Min_Range`/`Max_Range`
                 // уходят в `analyzer.MinEnergy/MaxEnergy` и в спецификацию
@@ -2235,7 +2277,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // добавленный в набор нуклид на экране не появлялся, пока
                 // человек не трогал что-нибудь ещё.
                 "|", NuclideSetStamp(set),
-                "|", peakStamp.ToString());
+                "|", peakStamp.ToString(),
+                useEfficiencyCurve ? "|curve-only" : "");
         }
 
         /// <summary>
@@ -2427,6 +2470,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// висит на экране и после того, как матрицу посчитали (и наоборот).
         /// Сам файл не читается — в отпечаток идут время записи и размер.
         /// </summary>
+        static string MatrixInputStamp(EfficiencyConfigData efficiency)
+        {
+            return EfficiencyStamp(efficiency) + "|" + MatrixFileStamp(efficiency);
+        }
+
         static string MatrixFileStamp(EfficiencyConfigData efficiency)
         {
             if (efficiency == null || !efficiency.HasGeometry)

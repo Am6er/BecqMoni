@@ -19,6 +19,7 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DCResultView));
             XPTable.Models.DataSourceColumnBinder dataSourceColumnBinder1 = new XPTable.Models.DataSourceColumnBinder();
             XPTable.Renderers.DragDropRenderer dragDropRenderer1 = new XPTable.Renderers.DragDropRenderer();
+            this.activityMethodComboBox = new System.Windows.Forms.ComboBox();
             this.comboBox2 = new System.Windows.Forms.ComboBox();
             this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.table1 = new XPTable.Models.Table();
@@ -31,6 +32,18 @@
             ((System.ComponentModel.ISupportInitialize)(this.table1)).BeginInit();
             this.SuspendLayout();
             // 
+            // activityMethodComboBox
+            //
+            this.activityMethodComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.activityMethodComboBox.Enabled = false;
+            this.activityMethodComboBox.FormattingEnabled = true;
+            this.activityMethodComboBox.Items.AddRange(new object[] {
+            resources.GetString("activityMethodComboBox.Items"),
+            resources.GetString("activityMethodComboBox.Items1")});
+            resources.ApplyResources(this.activityMethodComboBox, "activityMethodComboBox");
+            this.activityMethodComboBox.Name = "activityMethodComboBox";
+            this.activityMethodComboBox.SelectionChangeCommitted += new System.EventHandler(this.activityMethodComboBox_SelectionChangeCommitted);
+            //
             // comboBox2
             // 
             this.comboBox2.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
@@ -111,6 +124,7 @@
             this.Controls.Add(this.comboBox2);
             this.Controls.Add(this.comboBox1);
             this.Controls.Add(this.table1);
+            this.Controls.Add(this.activityMethodComboBox);
             this.HideOnClose = true;
             this.Name = "DCResultView";
             ((System.ComponentModel.ISupportInitialize)(this.table1)).EndInit();
@@ -146,6 +160,8 @@
 
 		// Token: 0x040001B1 RID: 433
 		global::System.Windows.Forms.ComboBox comboBox1;
+
+        private System.Windows.Forms.ComboBox activityMethodComboBox;
 
 		// Token: 0x040001B2 RID: 434
 		global::XPTable.Models.NumberColumn textColumn4;

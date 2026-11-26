@@ -123,9 +123,6 @@
   <data name="ChartHeaderCountBGRatioHint" xml:space="preserve">
     <value>100 % — проба равна фону</value>
   </data>
-  <data name="SelectionActivityHint" xml:space="preserve">
-    <value>Активность — в окне «Результат измерений»</value>
-  </data>
   <data name="ERRFileSaveFailure" xml:space="preserve">
     <value>Файл "{0}" не может быть сохранён.
 ({1})</value>
