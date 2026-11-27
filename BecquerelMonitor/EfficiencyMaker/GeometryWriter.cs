@@ -795,9 +795,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             string prefix = slot.RoKey.StartsWith("SC_", StringComparison.Ordinal) ? "SC" : "SM";
-            material = model.TransportScene == null
-                ? model.VesselHeadspace(prefix)
-                : GeometryMaterialLibrary.SeedAir();
+            material = model.VesselHeadspace(prefix);
             Material(text, slot, material);
         }
 

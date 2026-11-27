@@ -1348,6 +1348,10 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
+            // The atmosphere has no wall of its own. The nearest possible
+            // boundary is the surface of an earlier (explicit) volume.
+            if (r == this.unboundedAir) d = double.PositiveInfinity;
+
             // Дыры: области, стоящие в списке раньше этой.
             Region[] all = this.regionArray;
             for (int i = 0; i < all.Length && d > 0.0; i++)
@@ -2385,7 +2389,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 else
                 {
                     toNext = this.StepToBoundary(x, y, z, ux, uy, uz);
-                    if (toNext >= double.MaxValue)
+                    if (toNext >= double.MaxValue && (here == null || here != this.unboundedAir))
                     {
                         this.CountLayerLeftScene++;
                         this.layersLeftScene = true;
@@ -2610,7 +2614,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 else
                 {
                     toNext = this.StepToBoundary(x, y, z, ux, uy, uz);
-                    if (toNext >= double.MaxValue)
+                    if (toNext >= double.MaxValue && (here == null || here != this.unboundedAir))
                     {
                         this.CountLayerLeftScene++;
                         this.layersLeftScene = true;

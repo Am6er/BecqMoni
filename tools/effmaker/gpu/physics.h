@@ -30,4 +30,5 @@
 // затёртых долей, сечения шага на концах полного шага с мажорантой (`RefinedElasticStep`, `RefinedHardCollision`,
 // `RefinedAngle`, `CrystalHardCollision` — sim_electron.cuh, перенос ElectronTransport.cs); признак позитрона
 // в переносе (`TransportElectron`, `TransportInLayers`, `ElectronLoss`, `CarriedElectronEnters`).
-#define RM_PHYSICS_VERSION 31
+// 32 (AMBER341): unbounded dry air is the fallback medium of the packed scene.
+#define RM_PHYSICS_VERSION 32

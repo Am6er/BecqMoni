@@ -293,6 +293,15 @@ inline void Read_scene(BlobReader& r)
 
     SceneG s;
     std::memset(&s, 0, sizeof(s));
+    s.ambientRegion = -1;
+    if (!h.regions.empty())
+    {
+        const RegionG& last = h.regions.back();
+        if (last.IsBox && last.AX == 0 && last.AY == 0 && last.ZMin == 0 && last.ZMax == 0)
+        {
+            s.ambientRegion = (int)h.regions.size() - 1;
+        }
+    }
     s.crystal = r.Int();
     s.crystalMaterial = r.Int();
     s.sphereZ = r.Real();

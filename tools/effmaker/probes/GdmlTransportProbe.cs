@@ -88,7 +88,35 @@ internal static class GdmlTransportProbe
             var material=(GeometryMaterial)Field(owners.GetValue(i),"Material");
             Require(Math.Abs(material.Density-rho[i]) < Math.Max(1e-32,rho[i]*1e-9),"medium "+i+" "+material.Name+" "+material.Density);
         }
-        Require(owners.GetValue(expected.Length)==null,"world exit");
+        Require(owners.GetValue(expected.Length) != null, "missing air outside the GDML world");
+        var exterior = (GeometryMaterial)Field(owners.GetValue(expected.Length), "Material");
+        Require(Math.Abs(exterior.Density - GeometryMaterialLibrary.SeedAir().Density) < 1e-12,
+            "air after exiting the GDML world");
+    }
+
+    static void CheckManualSample(string path)
+    {
+        var g = Import(path, "Crystal");
+        g.SourceType = GeometrySourceType.Cylinder;
+        g.SourceHeight = 10;
+        g.BeakerHeight = 12;
+        g.BeakerDiameter = 20;
+        g.BeakerToDetectorDistance = 100;
+        g.BeakerSideWallThickness = 1;
+        g.BeakerEndWallThickness = 1;
+        g.Source = new GeometryMaterial();
+        g.BeakerWall = new GeometryMaterial();
+        Require(string.IsNullOrEmpty(g.MissingMaterialProblem()), "manual cylinder with unspecified materials");
+        var simulator = new EfficiencySimulator(g);
+        simulator.EnsureBuiltForProbe();
+        object source = Field(simulator, "source");
+        object[] args = { simulator, 0d, 0d, 0d };
+        source.GetType().GetMethod("Next", Members).Invoke(source, args);
+        object region = simulator.GetType().GetMethod("At", Members)
+            .Invoke(simulator, new object[] { args[1], args[2], args[3] });
+        var material = (GeometryMaterial)Field(region, "Material");
+        Require(Math.Abs(material.Density - GeometryMaterialLibrary.SeedAir().Density) < 1e-12,
+            "air in manual sample added to imported detector");
     }
 
     static void CheckLegacyImport(string dir)
@@ -210,6 +238,7 @@ internal static class GdmlTransportProbe
         Ray(inherited,.00120479,1);
         var inheritedCrystal=Import(Scene(dir,"G4_AIR",null,"inherited-crystal"),"Core");
         Require(inheritedCrystal.Crystal.Density==1 && inheritedCrystal.Crystal.Fractions.Count==2,"inherited crystal");
+        CheckManualSample(Scene(dir, "G4_Galactic", "G4_Galactic", "manual-sample"));
         CheckLegacyImport(dir);
         CheckSolidBoundaries(dir);
         CheckSampleOwnership(dir);

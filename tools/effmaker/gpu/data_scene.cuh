@@ -165,6 +165,7 @@ struct RegionG
 // Поля сцены симулятора, которые читают горячие пути. Ровно одна запись.
 struct SceneG
 {
+    int ambientRegion;        // fallback material after the last physical boundary; -1 in bounded scenes
     int crystal;              // = regionArray.IndexOf(crystal) (:1568), −1 — нет
     int crystalMaterial;      // = geometry.Crystal → D.materials (CrystalChannels :3602, VacancyXray :5406, :5562)
 

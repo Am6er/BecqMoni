@@ -244,6 +244,14 @@ namespace FsaSelectionProbeF16
             try
             {
                 Plant(doc.FsaSession, result, "f16");
+                ResultData source = doc.ActiveResultData;
+                var inputStamp = typeof(FsaAnalysisSession).GetMethod("ResultInputStamp", BindingFlags.Static | BindingFlags.NonPublic);
+                typeof(FsaResult).GetProperty("ActivityInputStamp", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(result, inputStamp.Invoke(null, new object[]
+                    {
+                        source.Efficiency, false, source.EnergySpectrum, source.FwhmCalibration, null
+                    }), null);
+                Field(doc.FsaSession.GetType(), "resultSource").SetValue(doc.FsaSession, source);
                 using (var report = new FSAReportView(null))
                 using (Form host = Host(report, 460, 900))
                 {

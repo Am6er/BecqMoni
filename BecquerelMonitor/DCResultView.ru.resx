@@ -180,6 +180,9 @@
   <data name="DCResult_MomentSampling" xml:space="preserve">
     <value>на дату отбора {0}, ×{1}</value>
   </data>
+  <data name="DCResult_FsaWaiting" xml:space="preserve">
+    <value>FSA: ожидание следующего расчёта…</value>
+  </data>
   <data name="DCResult_FsaComputing" xml:space="preserve">
     <value>FSA: идёт расчёт…</value>
   </data>
@@ -208,7 +211,7 @@
     <value>FSA: Бк скрыты — {0}</value>
   </data>
   <data name="DCResult_FsaReasonField" xml:space="preserve">
-    <value>кривая сцены поля (см² на единичный флюенс)</value>
+    <value>по полю излучения нельзя определить активность источника</value>
   </data>
   <data name="DCResult_FsaReasonNoCurve" xml:space="preserve">
     <value>кривой эффективности нет</value>

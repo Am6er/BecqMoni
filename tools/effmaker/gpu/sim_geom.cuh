@@ -553,7 +553,8 @@ __device__ int Sim::At(real x, real y, real z)
     }
 
     real r = M_Sqrt(x * x + y * y);
-    int count = D.nRegions;
+    int air = D.scene->ambientRegion;
+    int count = air >= 0 ? air : D.nRegions;
     for (int i = 0; i < count; i++)
     {
         if (RegContains(i, x, y, z, r))
@@ -562,7 +563,7 @@ __device__ int Sim::At(real x, real y, real z)
         }
     }
 
-    return -1;
+    return air;
 }
 
 // = EfficiencySimulator.cs:4057 SegmentAt
@@ -918,7 +919,8 @@ __device__ bool Sim::OnCachedRay(real x, real y, real z, real& along)
 __device__ void Sim::CollectCrossings(real x, real y, real z, real ux, real uy, real uz)
 {
     CountWalk++;
-    int count = D.nRegions;
+    int air = D.scene->ambientRegion;
+    int count = air >= 0 ? air : D.nRegions;
     // C# растит массивы под `4 * count + 4`; здесь они фиксированы (RM_MAX_EVENTS),
     // число областей проверено читателем упаковки.
     rayAllocated = true;
@@ -926,7 +928,7 @@ __device__ void Sim::CollectCrossings(real x, real y, real z, real ux, real uy, 
     int* raySeg = raySegBuf[rayCur];
 
     int m = 0;
-    uint64_t active = 0ULL;
+    uint64_t active = air >= 0 ? 1ULL << air : 0ULL;
     for (int i = 0; i < count; i++)
     {
         int parts = SpanFlat(i, x, y, z, ux, uy, uz, spanBuf);
@@ -1101,8 +1103,15 @@ __device__ real Sim::WeightedMu(int region, real energyKev)
 }
 
 // = EfficiencySimulator.cs:4749 PathLimit
+__device__ bool Sim::EndOfFlight(real step, int here, real attenuation)
+{
+    return step >= CS_DOUBLE_MAX && (here < 0 || here != D.scene->ambientRegion || !(attenuation > (real)0));
+}
+
 __device__ real Sim::PathLimit(real x, real y, real z)
 {
+    // A travelled-distance cutoff only applies to bounded diagnostic scenes.
+    if (D.scene->ambientRegion >= 0) return CS_DOUBLE_MAX;
     const SceneG& s = *D.scene;
     real limit = (real)40.0 * s.sphereR + M_Max((real)200.0, (real)2.0 * s.pathSceneR);
     if (s.pathSceneR > (real)0)
@@ -1288,6 +1297,11 @@ __device__ void Sim::Rotate(real& ux, real& uy, real& uz, real cos)
     if (cos > (real)1.0) cos = (real)1.0;
     if (cos < (real)-1.0) cos = (real)-1.0;
     real sin = M_Sqrt(M_Max((real)0, (real)1.0 - cos * cos));
+    Rotate(ux, uy, uz, cos, sin);
+}
+
+__device__ void Sim::Rotate(real& ux, real& uy, real& uz, real cos, real sin)
+{
     real phi = (real)2.0 * M_PI_R * Uniform();
     real cp = M_Cos(phi), sp = M_Sin(phi);
 
@@ -1324,11 +1338,15 @@ __device__ void Sim::Isotropic(real& ux, real& uy, real& uz)
 }
 
 // = EfficiencySimulator.cs:10512 InCone
-__device__ void Sim::InCone(real ax, real ay, real az, real cosMax, real& ux, real& uy, real& uz)
+__device__ void Sim::InCone(real ax, real ay, real az, const ConeCap& cap, real& ux, real& uy, real& uz)
 {
-    real cos = cosMax + ((real)1.0 - cosMax) * Uniform();
     ux = ax;
     uy = ay;
     uz = az;
-    Rotate(ux, uy, uz, cos);
+#ifdef RM_REAL_FLOAT
+    real delta = cap.height * ((real)1 - Uniform());
+    Rotate(ux, uy, uz, (real)1 - delta, M_Sqrt(delta * ((real)2 - delta)));
+#else
+    Rotate(ux, uy, uz, cap.cosMax + cap.height * Uniform());
+#endif
 }

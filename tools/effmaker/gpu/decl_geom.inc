@@ -123,6 +123,7 @@ static RM_DEVF void SlabExit(real p, real u, real lo, real hi, real& best);
 static RM_DEVF void CylinderExit(real x, real y, real ux, real uy, real radius, real& best);
 RM_DEVF real WeightedMu(int region, real energyKev);
 RM_DEVF real PathLimit(real x, real y, real z);
+RM_DEVF bool EndOfFlight(real step, int here, real attenuation);
 RM_DEVF bool PathCut(real wouldTravel, real limit);
 RM_DEVF real CrystalPath(real x, real y, real z, real ux, real uy, real uz);
 
@@ -134,6 +135,34 @@ RM_DEVF real SourceNextWeighted(real& x, real& y, real& z);
 RM_DEVF void SourceRetune(real energyKev);
 RM_DEVF real SourceDirectionWeight(real x, real y, real z, real ux, real uy, real uz);
 RM_DEVF bool SourcePreferCone();
+struct ConeCap
+{
+    real sin2, cosMax, height;
+    RM_DEV ConeCap(real radius, real distance)
+    {
+        sin2 = radius * radius / (distance * distance);
+        cosMax = M_Sqrt(M_Max((real)0, (real)1 - sin2));
+#ifdef RM_REAL_FLOAT
+        height = sin2 / ((real)1 + cosMax);
+#else
+        height = (real)1 - cosMax;   // reproduce the C# double history
+#endif
+    }
+
+    RM_DEV bool Contains(real ax, real ay, real az, real ux, real uy, real uz) const
+    {
+        real dot = ax * ux + ay * uy + az * uz;
+#ifdef RM_REAL_FLOAT
+        // For a far source cosMax rounds to 1; the small transverse components
+        // of the direction and the axis remain representable.
+        real dx = ay * uz - az * uy, dy = az * ux - ax * uz, dz = ax * uy - ay * ux;
+        return dot >= (real)0 && dx * dx + dy * dy + dz * dz <= sin2;
+#else
+        return dot >= cosMax;
+#endif
+    }
+};
 RM_DEVF void Rotate(real& ux, real& uy, real& uz, real cos);
+RM_DEVF void Rotate(real& ux, real& uy, real& uz, real cos, real sin);
 RM_DEVF void Isotropic(real& ux, real& uy, real& uz);
-RM_DEVF void InCone(real ax, real ay, real az, real cosMax, real& ux, real& uy, real& uz);
+RM_DEVF void InCone(real ax, real ay, real az, const ConeCap& cap, real& ux, real& uy, real& uz);

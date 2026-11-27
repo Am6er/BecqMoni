@@ -1,4 +1,5 @@
 ﻿using BecquerelMonitor.Properties;
+using BecquerelMonitor.FullSpectrumAnalysis;
 using System;
 using System.Globalization;
 using System.Threading;
@@ -475,7 +476,7 @@ namespace BecquerelMonitor
         {
             DocEnergySpectrum document = this.mainForm?.ActiveDocument;
             var session = document?.FsaSession;
-            if (session == null || !session.CanUseMatrixForActivity(document.ActiveResultData))
+            if (session == null || session.ActivityMethodsFor(document.ActiveResultData) != FsaActivityMethods.Both)
             {
                 return;
             }
@@ -484,10 +485,24 @@ namespace BecquerelMonitor
             this.ShowResult(true);
         }
 
-        void ShowActivityMethod(bool matrixAvailable, bool useEfficiencyCurve)
+        void ShowActivityMethod(FsaActivityMethods methods, bool useEfficiencyCurve)
         {
-            this.activityMethodComboBox.Enabled = matrixAvailable;
-            this.activityMethodComboBox.SelectedIndex = matrixAvailable && !useEfficiencyCurve ? 1 : 0;
+            this.activityMethodComboBox.Enabled = methods == FsaActivityMethods.Both;
+            switch (methods)
+            {
+                case FsaActivityMethods.Both:
+                    this.activityMethodComboBox.SelectedIndex = useEfficiencyCurve ? 0 : 1;
+                    break;
+                case FsaActivityMethods.Matrix:
+                    this.activityMethodComboBox.SelectedIndex = 1;
+                    break;
+                case FsaActivityMethods.Curve:
+                    this.activityMethodComboBox.SelectedIndex = 0;
+                    break;
+                default:
+                    this.activityMethodComboBox.SelectedIndex = -1;
+                    break;
+            }
         }
 
         protected override void OnLayout(System.Windows.Forms.LayoutEventArgs e)
@@ -1086,7 +1101,7 @@ namespace BecquerelMonitor
             FullSpectrumAnalysis.FsaAnalysisSession session = document != null ? document.FsaSession : null;
             if (rd == null || session == null || rd.EnergySpectrum == null)
             {
-                this.ShowActivityMethod(false, true);
+                this.ShowActivityMethod(FsaActivityMethods.None, false);
                 this.SetFsaHeader(OwnText(KeyFsaNoSpectrum), null);
                 return null;
             }
@@ -1096,7 +1111,7 @@ namespace BecquerelMonitor
             FullSpectrumAnalysis.FsaOffReason off = session.OffReason;
             if (off != FullSpectrumAnalysis.FsaOffReason.None)
             {
-                this.ShowActivityMethod(false, true);
+                this.ShowActivityMethod(FsaActivityMethods.None, false);
                 string offText = FullSpectrumAnalysis.FsaAnalysisSession.OffText(off);
                 this.SetFsaHeader(offText, offText);
                 this.SetFsaMdaHeader(null);
@@ -1112,8 +1127,8 @@ namespace BecquerelMonitor
             // три потребителя заказывали бы три разных счёта по очереди.
             FullSpectrumAnalysis.FsaCalculationOptions options = FullSpectrumAnalysis.FsaCalculationOptions.Of(rd);
             session.EnsureUpToDate(rd, rd.BackgroundEnergySpectrum != null, options);
-            this.ShowActivityMethod(session.CanUseMatrixForActivity(rd), session.UseEfficiencyCurve);
-            FullSpectrumAnalysis.FsaResult result = session.Result;
+            this.ShowActivityMethod(session.ActivityMethodsFor(rd), session.UseEfficiencyCurve);
+            FullSpectrumAnalysis.FsaResult result = session.ResultFor(rd);
             bool running = session.IsRunning;
             // ⛔ (П254, 14.10.2026) ПРИЗНАК СВЕЖЕСТИ И ПРИ ПАУЗЕ ЗАПИСИ. Требование `AMBER208` (3):
             // строки по прежнему разбору обязаны это говорить. Пауза `AMBER211` («Не чаще раза в
@@ -1137,6 +1152,13 @@ namespace BecquerelMonitor
                 // (его строка состояния «FSA error: …» и строка таблицы): заголовок — «FSA error»,
                 // ячейка — причина, подсказки ячейки и заголовка — она же целиком. «Идёт
                 // расчёт» — только пока сеанс занят (в том числе ждёт конца поиска пиков).
+                this.SetFsaMdaHeader(null);
+                if (!session.IsRunning && rd.ResultDataStatus?.Recording == true && session.Result != null)
+                {
+                    string waiting = OwnText("DCResult_FsaWaiting");
+                    this.SetFsaHeader(waiting, null);
+                    return StatusCollection(rd, waiting);
+                }
                 string refusal = session.Status;
                 if (!session.IsRunning && !string.IsNullOrEmpty(refusal))
                 {

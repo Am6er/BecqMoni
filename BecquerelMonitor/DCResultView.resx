@@ -4620,6 +4620,9 @@
   <data name="DCResult_MomentSampling" xml:space="preserve">
     <value>at sampling {0}, ×{1}</value>
   </data>
+  <data name="DCResult_FsaWaiting" xml:space="preserve">
+    <value>FSA: waiting for the next calculation…</value>
+  </data>
   <data name="DCResult_FsaComputing" xml:space="preserve">
     <value>FSA: computing…</value>
   </data>
@@ -4648,7 +4651,7 @@
     <value>FSA: Bq hidden — {0}</value>
   </data>
   <data name="DCResult_FsaReasonField" xml:space="preserve">
-    <value>field-scene curve (cm² per unit fluence)</value>
+    <value>source activity cannot be determined from a radiation field</value>
   </data>
   <data name="DCResult_FsaReasonNoCurve" xml:space="preserve">
     <value>no efficiency curve</value>

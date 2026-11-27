@@ -5094,6 +5094,9 @@ http://xptable.sourceforge.net/</value>
   <data name="GdmlInfoAxes" xml:space="preserve">
     <value>Локальные оси в мировой системе координат</value>
   </data>
+  <data name="EfficiencySceneAmbientMedium" xml:space="preserve">
+    <value>Окружающая среда без внешней границы ({0})</value>
+  </data>
   <data name="GdmlInfoWorldOrigin" xml:space="preserve">
     <value>Начало координат детали (X, Y, Z)</value>
   </data>

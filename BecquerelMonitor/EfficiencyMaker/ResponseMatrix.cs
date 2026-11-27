@@ -964,7 +964,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         //        29 без поправки Мотта вкладкой не помечалась, а GPU-библиотека до Мотта
         //        отказывала невнятным «контрольное слово не сошлось». `--eref=0 --dpwa=0 --ckv=0` —
         //        абляция, тело матрицы побайтно = физика 29, клеймо отличается `phys=`.
-        public const int PhysicsVersion = 31;
+        // 32 (AMBER341): dry air surrounds the detector and source and fills an unspecified mesh sample.
+        public const int PhysicsVersion = 32;
 
         /// <summary>Узлы сетки входных энергий, кэВ, по возрастанию.</summary>
         public double[] Energies { get; set; }

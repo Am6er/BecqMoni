@@ -46358,6 +46358,9 @@ The file and its previous copy will not change.</value>
   <data name="GdmlInfoAxes" xml:space="preserve">
     <value>Local axes in world coordinates</value>
   </data>
+  <data name="EfficiencySceneAmbientMedium" xml:space="preserve">
+    <value>Unbounded surrounding medium ({0})</value>
+  </data>
   <data name="GdmlInfoWorldOrigin" xml:space="preserve">
     <value>Origin in world (X, Y, Z)</value>
   </data>

@@ -107,7 +107,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public string ScaleMatrix = "FSA: Бк по матрице отклика";
             public string ScaleCurve = "FSA: Бк по кривой {0}";
             public string Hidden = "FSA: Бк скрыты — {0}";
-            public string ReasonFieldCurve = "кривая сцены поля (см² на единичный флюенс)";
+            public string ReasonFieldCurve = "по полю излучения нельзя определить активность источника";
             public string ReasonNoCurve = "кривой эффективности нет";
             public string ReasonCurveUnused = "кривая разбором не учтена";
             public string ReasonOrigin = "кривая без абсолютного уровня ({0})";
@@ -150,7 +150,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 reason = result.ActivityScaleReason.Value;
                 return reason == HiddenReason.None;
             }
-            if (result.EfficiencyPerUnitFluence)
+            if (IsFieldGeometry(rd?.Efficiency) || result.ResponseMatrixPerUnitFluence)
             {
                 reason = HiddenReason.FieldCurve;
                 return false;
@@ -160,6 +160,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 return true;
             }
             EfficiencyConfigData eff = rd != null ? rd.Efficiency : null;
+            if (result.EfficiencyPerUnitFluence || IsFieldCurve(eff))
+            {
+                reason = HiddenReason.FieldCurve;
+                return false;
+            }
             if (eff == null || !eff.HasCurve)
             {
                 reason = HiddenReason.NoCurve;
@@ -170,12 +175,27 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 reason = HiddenReason.CurveUnused;
                 return false;
             }
-            if (eff.Origin == EfficiencyOrigin.Simulation || eff.Origin == EfficiencyOrigin.Lsrm)
+            if (HasAbsoluteCurveOrigin(eff.Origin))
             {
                 return true;
             }
             reason = HiddenReason.NonAbsoluteOrigin;
             return false;
+        }
+
+        internal static bool IsFieldGeometry(EfficiencyConfigData config)
+        {
+            return EfficiencyMaker.ResponseMatrix.NormalizationOf(config?.Geometry) == EfficiencyMaker.ResponseMatrixNormalization.PerUnitFluence;
+        }
+
+        internal static bool IsFieldCurve(EfficiencyConfigData config)
+        {
+            return DoseRateInput.StampNormalization(config?.ComputeStamp) == EfficiencyMaker.ResponseMatrixNormalization.PerUnitFluence;
+        }
+
+        internal static bool HasAbsoluteCurveOrigin(EfficiencyOrigin origin)
+        {
+            return origin == EfficiencyOrigin.Simulation || origin == EfficiencyOrigin.Lsrm;
         }
 
         internal static void RememberScale(ResultData input, FsaResult result)

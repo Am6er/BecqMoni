@@ -46,9 +46,9 @@ namespace FsaInputCheckProbeP195
     ///   * `AMBER294` — сцена (2в): тот же K-40 с матрицей, порог 2000, без отката: усиление стоит, карта света
     ///     движется, строка своя. Сцена (2г): `AS80_Cs137_0cm`, матрица, порог 700: тормоз на проходе, а шкала
     ///     едет. Сцена (2д): счёт опор равен числу «+» на умолчании (`G1S16_Ba133_P5`, `AS80_Lu176`,
-    ///     `G1S24_Y88_P25`, опора не из шага — `G1S24_Th232_Mar`) и при позднем тормозе
-    ///     (`G1S24_Rn222Coal_Mar_3h`). ⚠ (`AMBER306`) Спектры (2г) и опоры не из шага сменены: прежние стояли на
-    ///     линиях библиотеки в образе и на образах из базы условия сцены не дают (перебор 136 спектров).
+    ///     `G1S24_Y88_P25`). На `AS80_Cs137_0cm` отдельно проверяются опора, появившаяся
+    ///     после одного шага, и поздний тормоз при границе 1000 кэВ. Кривая без матрицы проверяется на
+    ///     `G1S24_Rn222Coal_Mar_3h`.
     ///     Сцена (2е): `G1S16_Ce139_P25`, умолчание: откат при нуле опор, без тормоза.
     ///
     ///     FsaInputCheckProbeP195 --spectrum=G1S16_K40_Mar.xml
@@ -625,7 +625,7 @@ namespace FsaInputCheckProbeP195
 
         /// <summary>
         /// (`AMBER294`) Сцена (2д): строка «опор N» и число «+» в таблице сходятся. Умолчание, где расходились
-        /// (`G1S16_Ba133_P5` 1 и 3, `AS80_Lu176` 3 и 2), и поздний тормоз (`G1S24_Rn222Coal_Mar_3h`, порог 1765.49, 4 и 3).
+        /// (`G1S16_Ba133_P5` 1 и 3, `AS80_Lu176` 3 и 2), и поздний тормоз (с общей FWHM — `AS80_Cs137_0cm`, порог 1000 кэВ).
         /// </summary>
         static bool StepAnchorsScene(FSAReportView report, string path, NuclideDefinitionManager nuclides)
         {
@@ -664,13 +664,13 @@ namespace FsaInputCheckProbeP195
             var cases = new[]
             {
                 new { Name = "G1S16_Ba133_P5", Matrix = true, Brake = double.NaN, Late = false, NotInStep = false },
-                // (`AMBER311`) С разделом 800 тыс. опора «не из шага» окна живёт только на `AS80_Cs137_0cm` (перебор всего корпуса,
-                // ключ `--scan-notinstep`); у `G1S24_Th232_Mar` её больше нет.
                 new { Name = "G1S24_Th232_Mar", Matrix = true, Brake = double.NaN, Late = false, NotInStep = false },
+                // С общей FWHM между проходами 1 и 2 верхняя взятая линия меняется с 2615 на 662 кэВ.
+                new { Name = "AS80_Cs137_0cm", Matrix = true, Brake = 1000.0, Late = true, NotInStep = false },
                 new { Name = "AS80_Cs137_0cm", Matrix = true, Brake = double.NaN, Late = false, NotInStep = true },
                 new { Name = "AS80_Lu176", Matrix = true, Brake = double.NaN, Late = false, NotInStep = false },
                 new { Name = "G1S24_Y88_P25", Matrix = true, Brake = double.NaN, Late = false, NotInStep = false },
-                new { Name = "G1S24_Rn222Coal_Mar_3h", Matrix = false, Brake = 1765.49, Late = true, NotInStep = false }
+                new { Name = "G1S24_Rn222Coal_Mar_3h", Matrix = false, Brake = 1765.49, Late = false, NotInStep = false }
             };
             foreach (var c in cases)
             {
@@ -698,6 +698,13 @@ namespace FsaInputCheckProbeP195
                 FsaAnalysisSession.ProbeAnalyzerHook = an =>
                 {
                     an.AnchorRollback = false;
+                    if (c.NotInStep)
+                    {
+                        // После первого шага появляется ещё одна опора. Окно обязано отличить её от взятых в шаг.
+                        an.AnchorPasses = 1;
+                        an.AnchorClassicRounds = 0;
+                        an.AnchorZeroRounds = 0;
+                    }
                     if (!double.IsNaN(brake))
                     {
                         an.AnchorGainBrakeZeroMaxKev = brake;
@@ -724,7 +731,8 @@ namespace FsaInputCheckProbeP195
                     if (c.Late)
                     {
                         Same("(2д) " + c.Name + ": тормоз на позднем проходе", true,
-                             result != null && !(result.AnchorNote ?? "").Contains("на проходе 0") && (result.AnchorNote ?? "").Contains("тормоз усиления"));
+                             result != null && System.Text.RegularExpressions.Regex.IsMatch(
+                                 result.AnchorNote ?? "", @"тормоз усиления[^;]*? на проходе [1-9][0-9]*:"));
                     }
                 }
                 finally

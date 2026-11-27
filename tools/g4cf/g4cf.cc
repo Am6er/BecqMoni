@@ -29,15 +29,8 @@
 // из параметров после инициализации) и сводка RDM «Enable correlated gamma
 // emission 1». Умолчание без ключа — прежнее, изотропное.
 //
-// ⛔ КЛЮЧ `vacuum` ОБЯЗАТЕЛЕН ДЛЯ СВЕРОК НА ГОЛОМ КРИСТАЛЛЕ (`T133`, `A85`,
-// 03.09.2026). Мир арбитра решает 42 % полосы: та же сцена голого NaI Ø80×80 в
-// полосе 55…59 кэВ даёт 8.232e-4 на историю с ВОЗДУШНЫМ миром против 5.794e-4 в
-// пустоте, а в бинах 57…59 — ВТРОЕ. Сверка без ключа мерит воздух ВОКРУГ
-// кристалла, а не кристалл, и выглядит при этом совершенно обычно: ни отказа, ни
-// предупреждения от Geant4 не будет. Предупреждение печатает run_g4cf.bat.
-// ⚠ Правило узкое нарочно: на СЦЕНАХ С ОБВЯЗКОЙ И ПРОБОЙ цена воздуха мала —
-// 0.05 % полной на 59.5 кэВ (замер 02.09.2026, `A52`), — и запрещать там ключ
-// незачем; ломается именно голый кристалл на мягком краю шкалы.
+// Scene dumps from physics 32 name the surrounding material. The vacuum switch
+// explicitly selects G4_Galactic for reference runs in vacuum (T133).
 //
 // Ключ `ionhist <шаг_кэВ> <E_max_кэВ>` (П101, `S177`, 18.09.2026) — ГИСТОГРАММА
 // поглощённой энергии в ион-режиме, тем же правилом бина, что у `hist`
@@ -480,6 +473,7 @@ namespace
     std::map<std::string, SceneMat> gSceneMats;
     std::vector<SceneRegion> gSceneRegions;
     SceneSource gSceneSource;
+    std::string gSceneWorldMaterial;
 
     bool LoadScene(const char* path)
     {
@@ -519,6 +513,14 @@ namespace
                 }
 
                 gSceneMats[id] = m;
+            }
+            else if (word == "world")
+            {
+                if (!gSceneWorldMaterial.empty() || !(ss >> gSceneWorldMaterial))
+                {
+                    std::fprintf(stderr, "Invalid world material declaration: %s\n", line.c_str());
+                    return false;
+                }
             }
             else if (word == "region")
             {
@@ -586,6 +588,11 @@ namespace
             }
         }
 
+        if (!gSceneWorldMaterial.empty() && gSceneMats.count(gSceneWorldMaterial) == 0)
+        {
+            std::fprintf(stderr, "Unknown world material: %s\n", gSceneWorldMaterial.c_str());
+            return false;
+        }
         if (gSceneRegions.empty() || gSceneSource.kind.empty())
         {
             std::fprintf(stderr, "сцена пуста или без источника: %s\n", path);
@@ -848,11 +855,6 @@ public:
     G4VPhysicalVolume* ConstructFromScene()
     {
         auto nist = G4NistManager::Instance();
-        auto air = nist->FindOrBuildMaterial(gVacuumWorld ? "G4_Galactic" : "G4_AIR");
-        auto worldS = new G4Box("world", 60 * cm, 60 * cm, 60 * cm);
-        auto worldL = new G4LogicalVolume(worldS, air, "world");
-        auto worldP = new G4PVPlacement(nullptr, {}, worldL, "world", nullptr, false, 0);
-
         std::map<std::string, G4Material*> mats;
         int matIndex = 0;
         for (auto& entry : gSceneMats)
@@ -866,6 +868,22 @@ public:
             }
 
             mats[entry.first] = m;
+        }
+
+        auto worldMaterial = gVacuumWorld ? nist->FindOrBuildMaterial("G4_Galactic")
+            : gSceneWorldMaterial.empty() ? nist->FindOrBuildMaterial("G4_AIR")
+            : mats.at(gSceneWorldMaterial);
+        auto worldS = new G4Box("world", 60 * cm, 60 * cm, 60 * cm);
+        auto worldL = new G4LogicalVolume(worldS, worldMaterial, "world");
+        auto worldP = new G4PVPlacement(nullptr, {}, worldL, "world", nullptr, false, 0);
+        std::printf("SCENE_WORLD material=%s density_g_cm3=%.9g half_size_cm=60\n",
+                    worldMaterial->GetName().c_str(), worldMaterial->GetDensity() / (g / cm3));
+
+        if (!gVacuumWorld && gSceneRegions.size() == 1 && gSceneRegions.front().crystal)
+        {
+            std::fprintf(stderr, "T133: for a bare-crystal reference in vacuum, select 'vacuum'. "
+                                 "This run uses the scene world material %s.\n",
+                         worldMaterial->GetName().c_str());
         }
 
         // Сцена симулятора — «первая победившая», области перекрываются
@@ -2335,8 +2353,7 @@ int main(int argc, char** argv)
     {
         std::fprintf(stderr, "g4cf [vacuum] [corr] [nogp] [norayl] [seed <N>] [electron] [hemi] [espec <file>] [ionex <keV>] [emite] [twin <ns>] [nofluct] [nomsc] [phys <opt0|opt3|opt4|ss|liv|pen>] [plane <z_cm>] [ionhist <bin_keV> <Emax_keV>] [iontag] [killesc] [killcarry] [fullcarry] [scene <file>] mono <E_keV> <N>"
                              " | ion <Z> <A> <N> <windows...> | hist <E_keV> <N> <bin_keV>\n"
-                             "  vacuum: empty world instead of air. MANDATORY for bare-crystal"
-                             " checks (T133): air gives 8.232e-4 vs 5.794e-4 in 55...59 keV.\n"
+                             "  vacuum: override the scene world with vacuum for a vacuum reference.\n"
                              "  corr: gamma-gamma angular correlations in RDM (G4DeexPrecoParameters::"
                              "SetCorrelatedGamma); default is isotropic.\n"
                              "  killesc: kill e- leaving the crystal (no return from cladding, as in"

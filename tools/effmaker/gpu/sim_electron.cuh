@@ -473,6 +473,9 @@ RM_DEV real Sim::RegionNearestFace(int r, real x, real y, real z)
         }
     }
 
+    // The atmosphere has no wall. Only explicit regions bound a deep step.
+    if (r == D.scene->ambientRegion) d = CS_DOUBLE_MAX;
+
     // Дыры: области, стоящие в списке раньше этой.
     for (int i = 0; i < D.nRegions && d > (real)0; i++)
     {
@@ -1596,7 +1599,7 @@ RM_DEVF bool Sim::TransportInLayers(real& x, real& y, real& z, real& ux, real& u
         else
         {
             toNext = StepToBoundary(x, y, z, ux, uy, uz);
-            if (toNext >= CS_DOUBLE_MAX)
+            if (toNext >= CS_DOUBLE_MAX && (here < 0 || here != D.scene->ambientRegion))
             {
                 CountLayerLeftScene++;
                 layersLeftScene = true;
@@ -1809,7 +1812,7 @@ RM_DEVF bool Sim::TransportInLayers(real& x, real& y, real& z, real& ux, real& u
         else
         {
             toNext = StepToBoundary(x, y, z, ux, uy, uz);
-            if (toNext >= CS_DOUBLE_MAX)
+            if (toNext >= CS_DOUBLE_MAX && (here < 0 || here != D.scene->ambientRegion))
             {
                 CountLayerLeftScene++;
                 layersLeftScene = true;

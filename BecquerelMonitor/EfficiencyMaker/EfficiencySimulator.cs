@@ -1352,9 +1352,9 @@ namespace BecquerelMonitor.EfficiencyMaker
         public bool XcomPairThreshold = new ResponseMatrixOptions().XcomPairThreshold;
 
         /// <summary>
-        /// ⛔ (`A57`) Наводить направления АНАЛОГОВОГО континуума конусом на
-        /// габаритную сферу ВСЕЙ сцены, с весом телесного угла, вместо розыгрыша
-        /// по полной сфере.
+        /// (`A57`, `AMBER341`) Для аналогового континуума использовать смесь равновероятных
+        /// выборок по конусу на габарит установки и по всей сфере. Вес учитывает обе плотности
+        /// внутри конуса; вне конуса сохраняются истории с возвратом из окружающего воздуха.
         ///
         /// Зачем. Дальняя сцена выбрасывает почти всю статистику: у
         /// `G1S_point25` (точка в 25 см) телесный угол 0.38 %, и при 8 млн
@@ -1748,10 +1748,11 @@ namespace BecquerelMonitor.EfficiencyMaker
         bool hasAmbientAir;
         internal bool UseCapsuleAirEstimate => CapsuleAir && !hasAmbientAir;
 
-        // Габарит ВСЕЙ сцены — детектор вместе с сосудом и пробой (`A57`).
-        // Копится в <see cref="Register"/>; вне его вещества нет вовсе, поэтому
-        // конус на эту сферу не отсекает ни одной истории, которая могла бы
-        // дать отсчёт.
+        // Dimensions of the apparatus and sample for directional importance sampling.
+        // The surrounding air is transported outside this target as well.
+        // A finite margin is used by convergence tests; normal transport has no outer wall.
+        internal double AmbientAirPaddingCm = double.PositiveInfinity;
+        Region unboundedAir;
         internal double sceneRMax, sceneZMin = double.MaxValue, sceneZMax = double.MinValue;
 
         /// <summary>
@@ -1976,13 +1977,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             this.Build();
-            if (geometry.TransportScene == null)
-                AddAmbientAir();
-            if (!this.SceneBounds(out this.pathSceneZ, out this.pathSceneR))
-            {
-                this.pathSceneZ = 0.0;
-                this.pathSceneR = 0.0;
-            }
+            AddAmbientAir();
 
             // Массивом, а не списком: по областям проходят на каждом разборе
             // луча и на каждом поиске области мимо кэша, а индексатор `List`
@@ -3104,6 +3099,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             region.ThresholdPair = this.XcomPairThreshold;
             region.PhotoScale = isCrystal ? 1.0 : this.OutsidePhotoScale;   // `S197`, П178
             this.regions.Add(region);
+            if (region == this.unboundedAir) return; // material carrier without geometric bounds
             if (isCrystal)
             {
                 this.crystal = region;
@@ -3154,7 +3150,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         GeometryMaterial LayerMaterial(GeometryMaterial material)
         {
-            if (geometry.TransportScene == null && (material == null || material.IsEmpty))
+            if (material == null || material.IsEmpty)
                 return GeometryMaterialLibrary.SeedAir();
 
             if (material != null && material.Density > 0.0 && material.Fractions.Count > 0)
@@ -3162,7 +3158,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 return material;
             }
 
-            if (geometry.TransportScene == null && material != null && material.IsNamedVacuum)
+            if (material.IsNamedVacuum)
                 return GeometryMaterialLibrary.SeedVacuum();
 
             GeometryMaterial vacuum = new GeometryMaterial { Name = "vacuum", Density = 1e-10 };
@@ -3331,16 +3327,25 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
         }
 
-        // Experiment: the last region fills only the unoccupied space inside
-        // the axial and transverse bounds of this installation and its source.
+        // Lowest priority, also outside an imported world. Its explicit contents come first.
         void AddAmbientAir()
         {
+            if (double.IsPositiveInfinity(AmbientAirPaddingCm))
+            {
+                // This material-only entry has no surface. At and the ray cache
+                // select it wherever no explicitly placed region is active.
+                this.unboundedAir = new Region { IsBox = true, Material = GeometryMaterialLibrary.SeedAir() };
+                SceneBounds(out pathSceneZ, out pathSceneR);
+                Register(this.unboundedAir, false);
+                hasAmbientAir = true;
+                return;
+            }
             double ax = 0, ay = 0;
             foreach (var r in regions)
             {
-                if (r.Mesh != null)
+                if (r.Mesh != null || r.Gdml != null)
                 {
-                    var b = r.Mesh.Bounds;
+                    var b = r.Gdml != null ? r.Gdml.Bounds : r.Mesh.Bounds;
                     ax = Math.Max(ax, Math.Max(Math.Abs(b.X), Math.Abs(b.X + b.SizeX)));
                     ay = Math.Max(ay, Math.Max(Math.Abs(b.Y), Math.Abs(b.Y + b.SizeY)));
                 }
@@ -3358,7 +3363,22 @@ namespace BecquerelMonitor.EfficiencyMaker
             var point = source as PointSampler;
             double lo = point == null ? sceneZMin : Math.Min(sceneZMin, point.z);
             double hi = point == null ? sceneZMax : Math.Max(sceneZMax, point.z);
-            AddBox(ax, ay, lo, hi, GeometryMaterialLibrary.SeedAir(), false);
+            var field = source as IsoFieldSampler;
+            if (field != null)
+            {
+                ax = Math.Max(ax, field.RadiusCm);
+                ay = Math.Max(ay, field.RadiusCm);
+                lo = Math.Min(lo, sphereZ - field.RadiusCm);
+                hi = Math.Max(hi, sphereZ + field.RadiusCm);
+            }
+
+            double apparatusR = sceneRMax, apparatusLo = sceneZMin, apparatusHi = sceneZMax;
+            double pad = AmbientAirPaddingCm;
+            AddBox(ax + pad, ay + pad, lo - pad, hi + pad, GeometryMaterialLibrary.SeedAir(), false);
+            SceneBounds(out pathSceneZ, out pathSceneR);
+            sceneRMax = apparatusR;
+            sceneZMin = apparatusLo;
+            sceneZMax = apparatusHi;
             hasAmbientAir = true;
         }
 
@@ -3623,7 +3643,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     double mx = Math.Max(Math.Abs(bounds.X), Math.Abs(bounds.X + bounds.SizeX));
                     double my = Math.Max(Math.Abs(bounds.Y), Math.Abs(bounds.Y + bounds.SizeY));
                     this.Register(new Region { Mesh = mesh, ROut = Math.Sqrt(mx*mx + my*my),
-                        Material = g.Source, ZMin = bounds.Z, ZMax = bounds.Z + bounds.SizeZ }, false);
+                        Material = sample, ZMin = bounds.Z, ZMax = bounds.Z + bounds.SizeZ }, false);
                     this.source = new MeshSampler(mesh);
                     break;
                 case GeometrySourceType.Point:
@@ -3679,7 +3699,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // пробой (`headspace` = 0) строится до бита прежним.
                     double headspace, farEnd;
                     CylinderVessel(g, out headspace, out farEnd);
-                    if (headspace > 0 && g.TransportScene == null)
+                    if (headspace > 0)
                         Add(0.0, rIn, zSrcBottom - headspace, zSrcBottom, g.CheckedVesselHeadspace("SC"), false);
                     this.Add(0.0, rOut, zWallBottom, zWallTop, beakerWall, false);
                     this.Add(rIn, rOut, zSrcBottom - headspace, zSrcTop, beakerWall, false);
@@ -3751,7 +3771,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                     // своих местах, и сцена без донышка остаётся побитово той же
                     // (`Add` нулевой толщины не кладёт).
                     this.Add(0.0, rSrcOut, zOuter0, zOuter0 + endWall, beakerWall, false);
-                    if (farGap > 0 && g.TransportScene == null)
+                    if (farGap > 0)
                         Add(0.0, rSrcOut, zOuter0 + endWall, zSrc0, g.CheckedVesselHeadspace("SM"), false);
                     double mrIn = rh + ths, mz0 = zSrc0, mz1 = zSrc0 + hs, mzCap = zCeiling - the;
                     Sampler marinelli = new MarinelliSampler(mrIn, rSrcOut, mz0, mz1, mzCap);
@@ -3837,7 +3857,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.AddShaped(rSrcOut, null, null, outX, outY, zSrc0, zSrc0 + hs, sample, rSrcOut - holeOuter);
             // Дальнее донышко — ПОСЛЕДНЕЙ областью, как у круглого колодца.
             this.Add(0.0, rSrcOut, zOuter0, zOuter0 + endWall, beakerWall, false);
-            if (farGap > 0 && g.TransportScene == null)
+            if (farGap > 0)
                 Add(0.0, rSrcOut, zOuter0 + endWall, zSrc0, g.CheckedVesselHeadspace("SM"), false);
             this.source = new TrapezoidMarinelliSampler(rSrcOut, zSrc0, zSrc0 + hs, zCeiling - the, outX, outY);
         }
@@ -3939,12 +3959,9 @@ namespace BecquerelMonitor.EfficiencyMaker
             }
 
             /// <summary>
-            /// Требовать наведения конусом там, где обход умолчанием берёт
-            /// полную сферу (аналоговый континуум без `AnalogConeSampling`,
-            /// ε_полная при `TotalFullSphere`). У поля это не выбор, а
-            /// условие существования счёта: при R = 50 см в детектор попадает
-            /// одна история из тысячи, и без конуса континуум не набирается.
-            /// Матожидание конус не меняет — только дисперсию.
+            /// Включить выборку с предпочтением направлений на установку для поля ISO,
+            /// в том числе в расчёте полной эффективности. Полносферная часть смеси
+            /// учитывает первичные направления, способные рассеяться в воздухе.
             /// </summary>
             public virtual bool PreferCone
             {
@@ -5108,7 +5125,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
             }
 
-            return null;
+            return this.unboundedAir;
         }
 
         /// <summary>
@@ -5646,6 +5663,7 @@ namespace BecquerelMonitor.EfficiencyMaker
             var gdmlRay = new GdmlTransportBody.Ray(new Point3D(x,y,z),new Vector3D(ux,uy,uz));
             for (int i = 0; i < count; i++)
             {
+                if (all[i] == this.unboundedAir) continue;
                 int parts;
                 if (all[i].Mesh == null && all[i].Gdml == null)
                     parts = this.SpanFlat(i, x, y, z, ux, uy, uz, this.spanBuf);
@@ -5815,11 +5833,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                         bits ^= lowBit;
                     }
                 }
-                return null;
+                return this.unboundedAir;
             }
             if (active == 0UL)
             {
-                return null;
+                return this.unboundedAir;
             }
 
             ulong low = active & (0UL - active);
@@ -5926,43 +5944,22 @@ namespace BecquerelMonitor.EfficiencyMaker
                              this.CoherentPassesThrough && !this.RayleighToCrystal);
         }
 
+        bool EndOfFlight(double step, Region here, double attenuation)
+        {
+            return step == double.MaxValue && (here == null || here != this.unboundedAir || !(attenuation > 0.0));
+        }
+
         /// <summary>
-        /// ⛔ (`AMBER97`, П147 24.09.2026, физика 24) ПРЕДЕЛ ПУТИ ЛУЧА, см, от
-        /// точки <paramref name="x"/>, <paramref name="y"/>, <paramref name="z"/>:
-        /// прежние `40·sphereR + 200` — это запас на путь ВНУТРИ сцены, — плюс
-        /// ПОДЛЁТ точки к габаритной сфере сцены (`SceneBounds`), если точка за
-        /// ней.
-        ///
-        /// ЧТО БЫЛО НЕ ТАК. Предел `40·sphereR + 200` засчитывал и первый шаг от
-        /// источника (или от сферы поля) до сцены: у RC-103 (`sphereR` 1.44 см)
-        /// предел 257.7 см, у AS80 ≈ 522 см, и точка дальше предела или поле
-        /// ISO большего радиуса давали НОЛЬ во всех узлах — человек видел «нет
-        /// кривой» без причины, доза — отказ. Замер П147 (`IsoFieldProbe`,
-        /// `RC103_point0`, 200 тыс. историй, 661.657 кэВ): A_пик на R = 50 /
-        /// 250 / 256 см — 0.0721 / 0.0702 / 0.0704 см², на R = 300 см — 0.0000
-        /// (48.4σ), A_полн — 0.3109 → 0.0000 (99.8σ).
-        ///
-        /// Без добавленной воздушной области точка внутри габарита получает
-        /// прежний предел до бита; у точки снаружи история, не упиравшаяся в
-        /// прежний предел, не упирается и в новый, — значит сцены, где предел
-        /// не срабатывал (`CountPathLimitCut` = 0), считаются побитово прежними.
+        /// Scattering in the atmosphere may return a photon after an arbitrarily
+        /// long flight. Finite comparison volumes retain their original path guard.
         /// </summary>
         double PathLimit(double x, double y, double z)
         {
-            // Allow a straight crossing of the air envelope and the usual scattering allowance.
-            double crossing = this.hasAmbientAir ? Math.Max(200.0, 2.0 * this.pathSceneR) : 200.0;
-            double limit = 40.0 * this.sphereR + crossing;
-            if (this.pathSceneR > 0.0)
-            {
-                double dz = z - this.pathSceneZ;
-                double d2 = x * x + y * y + dz * dz;
-                if (d2 > this.pathSceneR * this.pathSceneR)
-                {
-                    limit += Math.Sqrt(d2) - this.pathSceneR;
-                }
-            }
-
-            return limit;
+            if (this.unboundedAir != null) return double.MaxValue;
+            double limit = 40.0 * this.sphereR + Math.Max(200.0, 2.0 * this.pathSceneR);
+            double dz = z - this.pathSceneZ;
+            double distance = Math.Sqrt(x * x + y * y + dz * dz);
+            return limit + Math.Max(0.0, distance - this.pathSceneR);
         }
 
         /// <summary>
@@ -6213,7 +6210,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 double step = this.StepToBoundary(px, py, pz, ux, uy, uz);
-                if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
+                double mu = here == null ? 0.0 : this.WeightedMu(here, energyKev);
+                if (EndOfFlight(step, here, mu) || this.PathCut(travelled + step, limit))
                 {
                     return false;
                 }
@@ -6221,7 +6219,6 @@ namespace BecquerelMonitor.EfficiencyMaker
                 if (here != null)
                 {
                     this.CountMu++;
-                    double mu = this.WeightedMu(here, energyKev);
                     if (mu > 0.0 && accumulated + mu * step >= tauTarget)
                     {
                         double advance = (tauTarget - accumulated) / mu;
@@ -6306,7 +6303,8 @@ namespace BecquerelMonitor.EfficiencyMaker
                 double step = this.StepToBoundary(x, y, z, ux, uy, uz);
                 if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
                 {
-                    return tau;
+                    return here != null && here == this.unboundedAir && this.WeightedMu(here, energyKev) > 0.0
+                        ? 60.0 : tau;
                 }
 
                 if (here != null)
@@ -8406,20 +8404,9 @@ namespace BecquerelMonitor.EfficiencyMaker
                 this.ForgetRay();      // (`A315`) кэш луча не переживает историю
                 // (`AMBER97`) Предел пути — от точки вылета: подлёт к сцене не в счёт.
                 double limit = this.PathLimit(x, y, z);
-                double dz = this.sphereZ - z;
-                double dist = Math.Sqrt(x * x + y * y + dz * dz);
                 double ux, uy, uz;
-                // (`AMBER13` (б)) У поля конус обязателен — см. Sampler.PreferCone.
-                if ((!this.TotalFullSphere || this.source.PreferCone) && dist > this.sphereR)
-                {
-                    double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - this.sphereR * this.sphereR / (dist * dist)));
-                    weight *= 0.5 * (1.0 - cosMax);
-                    this.InCone(-x / dist, -y / dist, dz / dist, cosMax, out ux, out uy, out uz);
-                }
-                else
-                {
-                    this.Isotropic(out ux, out uy, out uz);
-                }
+                weight *= this.SampleAnalogDirection(x, y, z, !this.TotalFullSphere || this.source.PreferCone,
+                                                     out ux, out uy, out uz);
 
                 // Вес по направлению источника: единица у всех, кроме поля.
                 weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
@@ -8488,12 +8475,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
 
                     double step = this.StepToBoundary(x, y, z, ux, uy, uz);
-                    if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
-                    {
-                        break;              // ушёл из сцены
-                    }
-
                     double muKill = here == null ? 0.0 : this.AnalogMu(here, e);
+                    if (EndOfFlight(step, here, muKill) || this.PathCut(travelled + step, limit))
+                    {
+                        break;
+                    }
                     if (muKill > 0.0)
                     {
                         double free = -Math.Log(1.0 - this.Uniform()) / muKill;
@@ -8757,8 +8743,8 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// пробе или воздухе, вернулся в кристалл» — на упоре это −4 % ε_T
         /// (измерено против Geant4, §9 журнала tccfcalc2), и именно этот
         /// хвост выглядел «остатком после заноса электронов». Ложь была в
-        /// оценщике, не в физике. false — старый конус: быстрее в ~1/вес по
-        /// историям, годится там, где ε_T не нужна точнее нескольких %.
+        /// оценщике, не в физике. С физики 32 при false применяется смесь конуса
+        /// на установку и полной сферы; у поля ISO смесь используется при обоих значениях.
         /// </summary>
         public bool TotalFullSphere = true;
 
@@ -11460,21 +11446,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             this.ForgetRay();          // (`A315`) кэш луча не переживает историю
             double limit = this.PathLimit(x, y, z);
             double ux, uy, uz;
-            double coneZ, coneR;
-            double coneDist = 0.0;
-            if ((this.AnalogConeSampling || this.source.PreferCone)
-                && this.SceneBounds(out coneZ, out coneR)
-                && (coneDist = Math.Sqrt(x * x + y * y + (coneZ - z) * (coneZ - z))) > coneR)
-            {
-                double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - coneR * coneR / (coneDist * coneDist)));
-                weight *= 0.5 * (1.0 - cosMax);
-                this.InCone(-x / coneDist, -y / coneDist, (coneZ - z) / coneDist, cosMax,
-                            out ux, out uy, out uz);
-            }
-            else
-            {
-                this.Isotropic(out ux, out uy, out uz);
-            }
+            weight *= this.SampleAnalogDirection(x, y, z, this.AnalogConeSampling || this.source.PreferCone,
+                                                 out ux, out uy, out uz);
 
             weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
 
@@ -11505,12 +11478,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                 }
 
                 double step = this.StepToBoundary(x, y, z, ux, uy, uz);
-                if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
+                double muKill = here == null ? 0.0 : this.AnalogMu(here, e);
+                if (EndOfFlight(step, here, muKill) || this.PathCut(travelled + step, limit))
                 {
                     break;
                 }
-
-                double muKill = here == null ? 0.0 : this.AnalogMu(here, e);
                 if (muKill > 0.0)
                 {
                     double free = -Math.Log(1.0 - this.Uniform()) / muKill;
@@ -11834,24 +11806,8 @@ namespace BecquerelMonitor.EfficiencyMaker
             double limit = this.PathLimit(x, y, z);
             double ux, uy, uz;
 
-            // Наведение конусом на габарит сцены (`A57`) — сужение ради
-            // дисперсии, не ради скорости: вес возвращает несмещённость.
-            double coneZ, coneR;
-            double coneDist = 0.0;
-            // (`AMBER13` (б)) У поля конус обязателен — см. Sampler.PreferCone.
-            if ((this.AnalogConeSampling || this.source.PreferCone)
-                && this.SceneBounds(out coneZ, out coneR)
-                && (coneDist = Math.Sqrt(x * x + y * y + (coneZ - z) * (coneZ - z))) > coneR)
-            {
-                double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - coneR * coneR / (coneDist * coneDist)));
-                weight *= 0.5 * (1.0 - cosMax);
-                this.InCone(-x / coneDist, -y / coneDist, (coneZ - z) / coneDist, cosMax,
-                            out ux, out uy, out uz);
-            }
-            else
-            {
-                this.Isotropic(out ux, out uy, out uz);
-            }
+            weight *= this.SampleAnalogDirection(x, y, z, this.AnalogConeSampling || this.source.PreferCone,
+                                                 out ux, out uy, out uz);
 
             // Вес по направлению источника: единица у всех, кроме поля.
             weight *= this.source.DirectionWeight(x, y, z, ux, uy, uz);
@@ -12014,12 +11970,11 @@ namespace BecquerelMonitor.EfficiencyMaker
                     }
 
                     double step = this.StepToBoundary(x, y, z, ux, uy, uz);
-                    if (step >= double.MaxValue || this.PathCut(travelled + step, limit))
-                    {
-                        break;              // ушёл из сцены
-                    }
-
                     double muKill = here == null ? 0.0 : this.AnalogMu(here, e);
+                    if (EndOfFlight(step, here, muKill) || this.PathCut(travelled + step, limit))
+                    {
+                        break;
+                    }
                     if (muKill > 0.0)
                     {
                         double free = -Math.Log(1.0 - this.Uniform()) / muKill;
@@ -12746,6 +12701,38 @@ namespace BecquerelMonitor.EfficiencyMaker
             Array.Copy(moved, histogram, histogram.Length);
         }
 
+        // Equal mixture of the apparatus cone and all directions. A photon initially
+        // missing the apparatus can scatter in air and reach the detector. Both
+        // proposals contribute inside the cone, so weight by their summed density.
+        double SampleAnalogDirection(double x, double y, double z, bool useCone,
+                                     out double ux, out double uy, out double uz)
+        {
+            double cz, radius;
+            if (useCone && SceneBounds(out cz, out radius))
+            {
+                double dz = cz - z;
+                double dist = Math.Sqrt(x * x + y * y + dz * dz);
+                if (dist > radius)
+                {
+                    double ax = -x / dist, ay = -y / dist, az = dz / dist;
+                    double cosMax = Math.Sqrt(Math.Max(0.0, 1.0 - radius * radius / (dist * dist)));
+                    double p = 0.5 * (1.0 - cosMax);
+                    if (Uniform() < 0.5)
+                    {
+                        InCone(ax, ay, az, cosMax, out ux, out uy, out uz);
+                    }
+                    else
+                    {
+                        Isotropic(out ux, out uy, out uz);
+                        if (ax * ux + ay * uy + az * uz < cosMax) return 2.0;
+                    }
+                    return 2.0 * p / (1.0 + p);
+                }
+            }
+            Isotropic(out ux, out uy, out uz);
+            return 1.0;
+        }
+
         void InCone(double ax, double ay, double az, double cosMax,
                     out double ux, out double uy, out double uz)
         {
@@ -12830,6 +12817,12 @@ namespace BecquerelMonitor.EfficiencyMaker
             List<string> parts = new List<string>();
             foreach (Region r in this.regions)
             {
+                if (r == this.unboundedAir)
+                {
+                    parts.Add(string.Format(System.Globalization.CultureInfo.CurrentUICulture,
+                        Properties.Resources.ResourceManager.GetString("EfficiencySceneAmbientMedium"), r.Material.Name));
+                    continue;
+                }
                 // У бруса радиусов нет вовсе, и печатать их нулями — врать в
                 // журнале прогона, который теперь видит пользователь.
                 string shape = r.Gdml != null ? "GDML " + r.Gdml.Name : r.Mesh != null
@@ -12871,6 +12864,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         ///
         ///     SCENE
         ///     mat m0 плотность Z:доля Z:доля ...
+        ///     world m0
         ///     region tub|box m0 (rIn rOut | ax ay) z0 z1 crystal|-
         ///     region shaped m0 z0 z1 crystal|- outer (disk R | poly n x y …) hole (none | disk r | poly n x y …)
         ///     source point z | cyl r z0 z1 | box ax ay z0 z1
@@ -12913,6 +12907,11 @@ namespace BecquerelMonitor.EfficiencyMaker
 
             foreach (Region r in this.regions)
             {
+                if (r == this.unboundedAir)
+                {
+                    lines.Add("world " + materialId[r.Material]);
+                    continue;
+                }
                 if (r.Gdml != null)
                 {
                     int index = Array.IndexOf(original.Geometry.Parts, r.Gdml);

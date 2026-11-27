@@ -629,8 +629,9 @@ namespace ScreenFixesProbe1107
                 var session = new FsaAnalysisSession();
                 typeof(FsaAnalysisSession).GetField("status", Any).SetValue(session, reason);
                 typeof(FSAReportView).GetField("session", Any).SetValue(report, session);
-                typeof(FSAReportView).GetField("probeResultData", Any).SetValue(report, new ResultData());
-                typeof(FSAReportView).GetMethod("RefreshStatusLine", Any).Invoke(report, null);
+                var data = new ResultData();
+                typeof(FSAReportView).GetField("probeResultData", Any).SetValue(report, data);
+                typeof(FSAReportView).GetMethod("RefreshStatusLine", Any).Invoke(report, new object[] { data, null });
                 var label = (Label)typeof(FSAReportView).GetField("statusLabel", Any).GetValue(report);
                 string tip = report.ToolTipOf(label);
                 Console.WriteLine("    метка «{0}», AutoEllipsis {1}", label.Text, label.AutoEllipsis);

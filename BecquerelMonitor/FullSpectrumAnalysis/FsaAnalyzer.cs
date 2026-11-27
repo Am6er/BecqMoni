@@ -4413,6 +4413,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// единица до ширинной опоры; ставится циклом привязки.
         /// </summary>
         double widthScale = 1.0;
+        FsaSpectrumWidth spectrumWidth;
+
+        internal void UseSpectrumWidth(FsaSpectrumWidth measured)
+        {
+            this.spectrumWidth = measured;
+            this.AnchorWidth = false;
+        }
+
+        double InitialWidth => spectrumWidth.Scale > 0 ? spectrumWidth.Scale : 1.0;
 
         /// <summary>(`AMBER150`) Сколько опор задали <see cref="widthScale"/>.</summary>
         int widthAnchors;
@@ -9870,8 +9879,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         void ApplyAnchorWarm(AnchorWarm warm)
         {
             double light = warm != null ? warm.Light : 0.0;
-            this.widthScale = warm != null ? warm.Width : 1.0;
-            this.widthAnchors = warm != null ? warm.WidthAnchors : 0;
+            this.widthScale = warm != null ? warm.Width : InitialWidth;
+            this.widthAnchors = warm != null ? warm.WidthAnchors : spectrumWidth.Peaks;
             if (light != this.driftLight && this.LightInImages)
             {
                 this.deposits.Clear();
@@ -10011,9 +10020,11 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             // множитель ширины (`AMBER150`) — четвёртое направление
-            if (this.AnchorWidth && this.anchorWidthCount > 0 && this.anchorWidthSigma > 0.0)
+            double widthSigma = spectrumWidth.Scale > 0 ? spectrumWidth.LogSigma
+                : (this.AnchorWidth && this.anchorWidthCount > 0 ? this.anchorWidthSigma : 0.0);
+            if (widthSigma > 0)
             {
-                directions.Add(new[] { 0.0, 0.0, 0.0, this.anchorWidthSigma });
+                directions.Add(new[] { 0.0, 0.0, 0.0, widthSigma });
             }
 
             if (directions.Count == 0)
@@ -10082,10 +10093,10 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 Math.Sqrt(Math.Max(0.0, caa)), joint ? 0.0 : Math.Sqrt(Math.Max(0.0, cbb)),
                 joint ? Math.Sqrt(Math.Max(0.0, cbb)) : this.zeroSigmaKev, 100.0 * worst,
                 worstName != null ? " (" + worstName + ")" : "", joint ? " (совместно)" : "",
-                this.AnchorWidth && this.anchorWidthCount > 0 ? 100.0 * this.anchorWidthSigma : 0.0)
+                100.0 * widthSigma)
                 : string.Format(CultureInfo.InvariantCulture,
                                 "σ ширины {0:F2} %; в σ амплитуд — до {1:F2} %",
-                                100.0 * this.anchorWidthSigma, 100.0 * worst);
+                                100.0 * widthSigma, 100.0 * worst);
         }
 
         /// <summary>
@@ -11822,7 +11833,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // А НЕ ШИРИНУ: у разбора с привязкой ширина опор измерена — разбор без
                 // привязки пересчитывается с ней (ставит её <see cref="AnalyzeCore"/> при
                 // выключенной привязке), и судит откат уже он.
-                if (this.AnchorRollbackKeepsWidth && main != null && bare != null && main.WidthAnchorsUsed > 0
+                if (spectrumWidth.Scale == 0 && this.AnchorRollbackKeepsWidth && main != null && bare != null && main.WidthAnchorsUsed > 0
                     && PositiveFinite(main.WidthScale) && main.WidthScale != 1.0)
                 {
                     try
@@ -13488,7 +13499,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.adcTractPerChannel = 0.0;
             this.adcTopLight = 0.0;
             this.adcChannels = channels;
-            this.widthScale = 1.0;
+            this.widthScale = InitialWidth;
             // (`AMBER269`, Н5) разбор без привязки внутри отката — с шириной опор отменённого
             // разбора (<see cref="AnchorRollbackKeepsWidth"/>); вне отката поле — NaN
             if (!this.AnchorScale && PositiveFinite(this.rollbackWidth))
@@ -13496,7 +13507,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 this.widthScale = this.rollbackWidth;
             }
 
-            this.widthAnchors = 0;
+            this.widthAnchors = spectrumWidth.Peaks;
             this.adcZeroKev = this.AnchorZeroKev;
             this.adcZeroNote = null;
             this.zeroCandidates = null;
@@ -15584,11 +15595,9 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
 
                     if (Math.Abs(this.anchorWidthLog) < 0.002)
                     {
-                        if (this.widthAnchors > 0)
-                        {
-                            widthSigma = this.anchorWidthSigma;
-                        }
-
+                        // Convergence on the initial width still measures its uncertainty.
+                        this.widthAnchors = this.anchorWidthCount;
+                        widthSigma = this.anchorWidthSigma;
                         break;
                     }
 
@@ -15666,7 +15675,13 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // (`AMBER150`) ширинная опора — последним хвостом служебной строки,
             // чтобы читатели прежних полей («опор n; усиление …», «нуль adc:»)
             // её не задевали
-            if (this.AnchorScale && this.AnchorWidth && this.scaleAnchorsUsed > 0)
+            if (spectrumWidth.Scale > 0)
+            {
+                this.anchorNote += spectrumWidth.Peaks > 0
+                    ? string.Format(CultureInfo.InvariantCulture, "; ширина по спектру ×{0:F4}, пиков {1}", spectrumWidth.Scale, spectrumWidth.Peaks)
+                    : "; ширина по калибровке ПШПВ (нет подходящих пиков спектра)";
+            }
+            else if (this.AnchorScale && this.AnchorWidth && this.scaleAnchorsUsed > 0)
             {
                 this.anchorNote += this.widthAnchors > 0
                     ? string.Format(CultureInfo.InvariantCulture, "; ширина ×{0:F4} по {1} опорам",
@@ -16227,7 +16242,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             // `BuildResult`: значимость члена ряда берётся из колонки, и правка
             // `best.Z` доезжает до всех строк.
             if (this.AnchorSigmaInAmplitudes
-                && ((this.AnchorScale && this.scaleAnchorsUsed > 0) || (fitWidthOnly && this.widthAnchors > 0)))
+                && ((this.AnchorScale && this.scaleAnchorsUsed > 0) || (fitWidthOnly && this.widthAnchors > 0)
+                    || spectrumWidth.LogSigma > 0))
             {
                 long sigmaTicks0 = System.Diagnostics.Stopwatch.GetTimestamp();
                 this.InflateZByScale(best, fixedColumns, calibration, fwhmCalibration, efficiency,
@@ -19704,6 +19720,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 EfficiencyOutOfRangeLines = this.OutOfCurveLines(),
                 CascadeSummingRefusedFieldMatrix = this.cascadeRefusedFieldMatrix && fit.FromResponseMatrix,
                 ResponseMatrixUsed = fit.FromResponseMatrix,
+                ResponseMatrixPerUnitFluence = fit.FromResponseMatrix
+                    && this.ResponseMatrix?.Normalization == EfficiencyMaker.ResponseMatrixNormalization.PerUnitFluence,
                 CascadeSummingUsed = this.cascadeApplied,
                 GainOnGridEdge = gainOnEdge,
                 OffsetOnGridEdge = offsetOnEdge,
@@ -28847,7 +28865,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         /// (<see cref="KernelChannelMean"/>). Среднее — Симпсоном по восьми
         /// отрезкам канала (у гауссианы с σ ≥ 0.4 канала ошибка ниже 10⁻⁴ доли).
         /// </summary>
-        static double ChannelShapeValue(double offset, double fwhm, FwhmCalibration calibration,
+        internal static double ChannelShapeValue(double offset, double fwhm, FwhmCalibration calibration,
                                         FsaKernelSampling mode)
         {
             if (mode == FsaKernelSampling.Point)

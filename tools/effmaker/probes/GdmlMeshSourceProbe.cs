@@ -36,6 +36,26 @@ internal static class GdmlMeshSourceProbe
         }
     }
 
+    static GeometryMaterial MaterialAt(EfficiencySimulator simulator, double x, double y, double z)
+    {
+        const BindingFlags members = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+        object region = typeof(EfficiencySimulator).GetMethod("At", members)
+            .Invoke(simulator, new object[] { x, y, z });
+        Check(region != null, "missing medium at " + x + ", " + y + ", " + z);
+        return (GeometryMaterial)region.GetType().GetField("Material", members).GetValue(region);
+    }
+
+    static void CheckTransport(GeometryModel geometry, double sampleDensity)
+    {
+        var simulator = new EfficiencySimulator(geometry);
+        simulator.EnsureBuiltForProbe();
+        double airDensity = GeometryMaterialLibrary.SeedAir().Density;
+        var sample = MaterialAt(simulator, .5, .4, -3.6);
+        Check(Math.Abs(sample.Density - sampleDensity) <= sampleDensity * 1e-10, "material inside mesh");
+        Check(Math.Abs(MaterialAt(simulator, 1.5, .4, -3.6).Density - airDensity) < 1e-12, "space between cubes");
+        Check(Math.Abs(MaterialAt(simulator, 100000, 0, 0).Density - airDensity) < 1e-12, "outside the apparatus");
+    }
+
     [STAThread]
     static void Main()
     {
@@ -49,6 +69,12 @@ internal static class GdmlMeshSourceProbe
         Check((int)span.Invoke(mesh,ray) == 3, "three intervals");
         var edges = (double[])ray[6];
         for (int i=0; i<6; i++) Check(Math.Abs(edges[i]-i-1) < 1e-10, "ray crossing");
+
+        g.Source = new GeometryMaterial();
+        CheckTransport(g, GeometryMaterialLibrary.SeedAir().Density);
+        g.Source = new GeometryMaterial { Name = "Explicit vacuum", Density = 1e-25 };
+        g.Source.Fractions[1] = 1;
+        CheckTransport(g, g.Source.Density);
 
         string path = Path.GetTempFileName();
         try

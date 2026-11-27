@@ -1884,6 +1884,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         internal string MatrixStamp { get; set; }
         internal int MatrixFileVersion { get; set; }
         internal FsaCalculationOptions CalculationOptions { get; set; }
+        internal bool ResponseMatrixPerUnitFluence { get; set; }
+        internal string ActivityInputStamp { get; set; }
         internal FsaMeasurementResult.HiddenReason? ActivityScaleReason { get; set; }
         internal EfficiencyOrigin? ActivityCurveOrigin { get; set; }
 

@@ -1265,6 +1265,12 @@ namespace BecquerelMonitor
             this.ReadDocument();
         }
 
+        FsaResult ResultForReport(ResultData data)
+        {
+            // SetProbeSource передаёт готовую сцену, включая синтетические результаты.
+            return this.probeResultData != null ? this.session?.Result : this.session?.ResultFor(data);
+        }
+
         ResultData probeResultData;
 
         /// <summary>Документ, который показывается сейчас (пробы).</summary>
@@ -1383,14 +1389,17 @@ namespace BecquerelMonitor
         }
 
         /// <summary>
-        /// Вид документа обновлён — данные могли смениться (`A295`). Заказ
-        /// идёт БЕЗ перестроения таблицы: строки перечитает
-        /// <see cref="SessionCompleted"/>, когда счёт кончится, а дёргать
-        /// таблицу на каждом такте отрисовки незачем.
+        /// При накоплении сохранять таблицу для того же входа до конца пересчёта.
+        /// При смене геометрии или калибровки убрать прежний состав даже в паузе.
         /// </summary>
         void DocumentViewRefreshed(object sender, EventArgs e)
         {
             this.Consume();
+            if (this.IsConsumer && (this.presentation != null || this.session?.Result != null)
+                && !ReferenceEquals(this.presentation?.Source, this.ResultForReport(this.ActiveResultData)))
+            {
+                this.RefreshReport();
+            }
         }
 
         /// <summary>
@@ -1427,9 +1436,8 @@ namespace BecquerelMonitor
 
         /// <summary>
         /// (`AMBER201`, мелочь 6.9, 05.10.2026) Пересчёт начался — строка состояния
-        /// переходит в «идёт расчёт». Только строка: таблица до прихода результата
-        /// остаётся прежней (её перечитает <see cref="SessionCompleted"/>), а цвет
-        /// и текст строки и есть то, что говорит человеку «числа ниже — прежние».
+        /// переходит в «идёт расчёт». Таблица сохраняется до прихода результата,
+        /// пока показанный состав подходит к текущей геометрии и калибровке.
         /// Событие приходит с потока окон, но окно без ручки (пробы) не трогается.
         /// </summary>
         void SessionStarted(object sender, EventArgs e)
@@ -1456,24 +1464,25 @@ namespace BecquerelMonitor
         /// поверх нормального разбора тория). Поэтому без результата таблица перестраивается —
         /// при идущем счёте <see cref="BuildRows"/> строки причины не даёт (решение Amber
         /// 07.09.2026 «идёт расчёт» в таблицу не возвращается: признак — строка состояния).
-        /// ⚠ Кроме записи спектра: там пересчёт идёт кругами, и та же причина мигала бы на каждом
-        /// круге — именно от мигания таблицы строку состояния и заводили (то же решение).
+        /// При записи таблицу перестраиваем только для очистки несовместимого состава.
         /// Перестройка — отложенно: пуск счёта приходит и изнутри отрисовки графика.
         /// </summary>
         void RefreshOnStart()
         {
-            this.RefreshStatusLine();
             FsaAnalysisSession current = this.session;
             ResultData rd = this.ActiveResultData;
-            if (current == null || rd == null || current.Result != null
-                || (rd.ResultDataStatus != null && rd.ResultDataStatus.Recording))
+            FsaResult result = this.ResultForReport(rd);
+            this.RefreshStatusLine(rd, result);
+            if (current == null || rd == null || result != null
+                || (this.presentation == null && rd.ResultDataStatus?.Recording == true))
             {
                 return;
             }
 
             this.BeginInvoke((MethodInvoker)delegate
             {
-                if (!this.IsDisposed && ReferenceEquals(this.session, current) && current.Result == null)
+                if (!this.IsDisposed && ReferenceEquals(this.session, current)
+                    && this.ResultForReport(this.ActiveResultData) == null)
                 {
                     this.RefreshReport();
                 }
@@ -2072,8 +2081,13 @@ namespace BecquerelMonitor
         /// </summary>
         public List<FsaReportRow> BuildRows()
         {
-            var rows = new List<FsaReportRow>();
             ResultData rd = this.ActiveResultData;
+            return this.BuildRows(rd, this.ResultForReport(rd));
+        }
+
+        List<FsaReportRow> BuildRows(ResultData rd, FsaResult result)
+        {
+            var rows = new List<FsaReportRow>();
             if (this.session == null || rd == null)
             {
                 this.presentation = null;
@@ -2089,8 +2103,6 @@ namespace BecquerelMonitor
                 return rows;
             }
 
-            // Один снимок на заполнение: фон публикует результат в любой момент.
-            FsaResult result = this.session.Result;
             string status = this.session.Status;
             bool running = this.session.IsRunning;
             bool oldFormat = this.session.ResponseMatrixOldFormat;
@@ -2161,10 +2173,8 @@ namespace BecquerelMonitor
         /// попали в поле, а не по `[chLo, chHi]`. Отсюда расхождение с числом
         /// строки `A300` (2631 из полосы 8075) — там считана полоса.
         /// </summary>
-        int ResidualClampedChannels()
+        static int ResidualClampedChannels(ResultData rd, FsaResult result)
         {
-            FsaResult result = this.session != null ? this.session.Result : null;
-            ResultData rd = this.ActiveResultData;
             if (result == null || rd == null || rd.EnergySpectrum == null
                 || rd.EnergySpectrum.Spectrum == null)
             {
@@ -2213,7 +2223,7 @@ namespace BecquerelMonitor
         /// причина («нет опознанных пиков», «разложение невозможно») — это то,
         /// что человеку и нужно, а красного цвета без причины мало.
         /// </summary>
-        void RefreshStatusLine()
+        void RefreshStatusLine(ResultData rd, FsaResult result)
         {
             if (this.statusLabel == null)
             {
@@ -2222,7 +2232,7 @@ namespace BecquerelMonitor
 
             string text;
             Color color;
-            if (this.session == null || this.ActiveResultData == null)
+            if (this.session == null || rd == null)
             {
                 text = Resources.FSAStatusIdle;
                 color = StatusIdleColor;
@@ -2235,9 +2245,6 @@ namespace BecquerelMonitor
             }
             else
             {
-                // Один снимок на обновление: фон публикует результат в любой
-                // момент, и три чтения подряд дали бы три разных состояния.
-                FsaResult result = this.session.Result;
                 string status = this.session.Status;
                 bool running = this.session.IsRunning;
 
@@ -2285,13 +2292,17 @@ namespace BecquerelMonitor
 
         public void RefreshReport()
         {
-            this.RefreshStatusLine();
-            List<FsaReportRow> rows = this.BuildRows();
+            // Фон может опубликовать ответ посреди перерисовки. Статус, строки
+            // и пометки невязки используют один совместимый результат.
+            ResultData rd = this.ActiveResultData;
+            FsaResult result = this.ResultForReport(rd);
+            this.RefreshStatusLine(rd, result);
+            List<FsaReportRow> rows = this.BuildRows(rd, result);
 
             // (`A300`) Признак подрезки считается ОДИН раз на заполнение: он
             // общий для всей таблицы, а `ClampedChannels` проходит спектр
             // целиком.
-            int clamped = this.ResidualClampedChannels();
+            int clamped = ResidualClampedChannels(rd, result);
             string residualCaption = OwnText(KeyResidualRow);
             var residualMarks = new List<string>();
             var residualTips = new List<string>();
@@ -2309,11 +2320,10 @@ namespace BecquerelMonitor
             // порог АЦП 0–30 кэВ виден лентой, а в процент не входит. Пометка
             // только когда пол режет полосу фита: при фите от `Min_Range` число
             // и лента и так об одном.
-            FsaResult floorResult = this.session != null ? this.session.Result : null;
-            if (floorResult != null && floorResult.ResidualFloorKev > 0.0
-                && floorResult.ResidualFloorChannel > floorResult.FirstChannel)
+            if (result != null && result.ResidualFloorKev > 0.0
+                && result.ResidualFloorChannel > result.FirstChannel)
             {
-                string kev = floorResult.ResidualFloorKev.ToString("G", CultureInfo.InvariantCulture);
+                string kev = result.ResidualFloorKev.ToString("G", CultureInfo.InvariantCulture);
                 residualMarks.Add(string.Format(CultureInfo.InvariantCulture, OwnText(KeyResidualFloor), kev));
                 residualTips.Add(string.Format(CultureInfo.InvariantCulture, OwnText(KeyResidualFloorTip), kev));
             }
@@ -2323,10 +2333,10 @@ namespace BecquerelMonitor
             // но без пола «не описано 37 %» у модели, описавшей всё (проба в 30σ
             // над фоном), читалось бы как недоработка модели. Первой пометкой:
             // она о самом числе, остальные — о показе.
-            if (floorResult != null && floorResult.ResidualSharesDefined
-                && floorResult.ResidualNoiseShare >= ResidualNoiseShownFloor)
+            if (result != null && result.ResidualSharesDefined
+                && result.ResidualNoiseShare >= ResidualNoiseShownFloor)
             {
-                string noise = (100.0 * floorResult.ResidualNoiseShare).ToString("F1", CultureInfo.InvariantCulture);
+                string noise = (100.0 * result.ResidualNoiseShare).ToString("F1", CultureInfo.InvariantCulture);
                 residualMarks.Insert(0, string.Format(CultureInfo.InvariantCulture, OwnText(KeyResidualNoise), noise));
                 residualTips.Insert(0, string.Format(CultureInfo.InvariantCulture, OwnText(KeyResidualNoiseTip), noise));
             }

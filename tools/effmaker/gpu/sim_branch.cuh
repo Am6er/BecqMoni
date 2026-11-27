@@ -164,9 +164,9 @@ RM_DEVF void Sim::WeightedFrontRun(real energyKev, real x, real y, real z, real 
     real ux, uy, uz;
     if (dist > sc.sphereR)
     {
-        real cosMax = M_Sqrt(M_Max((real)0.0, (real)1.0 - sc.sphereR * sc.sphereR / (dist * dist)));
-        weight *= (real)0.5 * ((real)1.0 - cosMax);
-        InCone(-x / dist, -y / dist, dz / dist, cosMax, ux, uy, uz);
+        ConeCap cap(sc.sphereR, dist);
+        weight *= (real)0.5 * cap.height;
+        InCone(-x / dist, -y / dist, dz / dist, cap, ux, uy, uz);
     }
     else
     {
@@ -437,7 +437,8 @@ RM_DEVF bool Sim::ScatterToCrystal(real x, real y, real z, real ux, real uy, rea
         }
 
         real step = StepToBoundary(px, py, pz, ux, uy, uz);
-        if (step >= CS_DOUBLE_MAX || PathCut(travelled + step, limit))
+        real mu = here < 0 ? (real)0 : WeightedMu(here, energyKev);
+        if (EndOfFlight(step, here, mu) || PathCut(travelled + step, limit))
         {
             return false;
         }
@@ -445,7 +446,6 @@ RM_DEVF bool Sim::ScatterToCrystal(real x, real y, real z, real ux, real uy, rea
         if (here >= 0)
         {
             CountMu++;
-            real mu = WeightedMu(here, energyKev);
             if (mu > (real)0.0 && accumulated + mu * step >= tauTarget)
             {
                 real advance = (tauTarget - accumulated) / mu;
@@ -517,10 +517,12 @@ RM_DEVF real Sim::KillDepthToExit(real x, real y, real z, real ux, real uy, real
     {
         int here = At(x, y, z);
         real step = StepToBoundary(x, y, z, ux, uy, uz);
-        if (step >= CS_DOUBLE_MAX || PathCut(travelled + step, limit))
+        if (step >= CS_DOUBLE_MAX)
         {
-            return tau;
+            return here >= 0 && here == D.scene->ambientRegion && WeightedMu(here, energyKev) > (real)0
+                ? (real)60 : tau;
         }
+        if (PathCut(travelled + step, limit)) return tau;
 
         if (here >= 0)
         {
@@ -580,9 +582,22 @@ RM_DEVF void Sim::AnalogFront(real x, real y, real z, real& weight, bool& inWeig
         && SceneBounds(coneZ, coneR)
         && (coneDist = M_Sqrt(x * x + y * y + (coneZ - z) * (coneZ - z))) > coneR)
     {
-        real cosMax = M_Sqrt(M_Max((real)0.0, (real)1.0 - coneR * coneR / (coneDist * coneDist)));
-        weight *= (real)0.5 * ((real)1.0 - cosMax);
-        InCone(-x / coneDist, -y / coneDist, (coneZ - z) / coneDist, cosMax, ux, uy, uz);
+        ConeCap cap(coneR, coneDist);
+        // Mix the cone with full-sphere directions: photons missing the apparatus
+        // can scatter back from ambient air. Correct for both proposal densities.
+        real ax = -x / coneDist, ay = -y / coneDist, az = (coneZ - z) / coneDist;
+        real p = (real)0.5 * cap.height;
+        bool inside = Uniform() < (real)0.5;
+        if (inside)
+        {
+            InCone(ax, ay, az, cap, ux, uy, uz);
+        }
+        else
+        {
+            Isotropic(ux, uy, uz);
+            inside = cap.Contains(ax, ay, az, ux, uy, uz);
+        }
+        weight *= inside ? (real)2.0 * p / ((real)1.0 + p) : (real)2.0;
     }
     else
     {
@@ -598,10 +613,13 @@ RM_DEVF void Sim::AnalogFront(real x, real y, real z, real& weight, bool& inWeig
     real coneR2 = M_Sqrt(x * x + y * y + coneDz * coneDz);
     if (coneR2 > sc.sphereR)
     {
-        real cosMaxDet = M_Sqrt(M_Max(
-            (real)0.0, (real)1.0 - sc.sphereR * sc.sphereR / (coneR2 * coneR2)));
+        ConeCap cap(sc.sphereR, coneR2);
+#ifdef RM_REAL_FLOAT
+        inWeightedCone = cap.Contains(-x / coneR2, -y / coneR2, coneDz / coneR2, ux, uy, uz);
+#else
         real cosToAxis = (ux * (-x) + uy * (-y) + uz * coneDz) / coneR2;
-        inWeightedCone = cosToAxis >= cosMaxDet;
+        inWeightedCone = cosToAxis >= cap.cosMax;
+#endif
     }
 }
 
@@ -728,12 +746,11 @@ RM_DEVF bool Sim::AnalogStep(AnalogWalk& w)
                 }
 
                 real step = StepToBoundary(x, y, z, ux, uy, uz);
-                if (step >= CS_DOUBLE_MAX || PathCut(travelled + step, limit))
-                {
-                    { exitFor = true; break; }              // ушёл из сцены
-                }
-
                 real muKill = here < 0 ? (real)0.0 : AnalogMu(here, e);
+                if (EndOfFlight(step, here, muKill) || PathCut(travelled + step, limit))
+                {
+                    { exitFor = true; break; }
+                }
                 if (muKill > (real)0.0)
                 {
                     real free = -M_Log((real)1.0 - Uniform()) / muKill;

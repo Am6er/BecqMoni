@@ -98,6 +98,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         Peaks
     }
 
+    [Flags]
+    internal enum FsaActivityMethods
+    {
+        None = 0,
+        Curve = 1,
+        Matrix = 2,
+        Both = Curve | Matrix
+    }
+
     public sealed class FsaAnalysisSession
     {
         readonly object sync = new object();
@@ -267,19 +276,20 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         // Выбор действует в сеансе документа, без записи в кривую и конфигурацию прибора.
         internal bool UseEfficiencyCurve { get; set; }
 
-        string matrixActivityStamp;
+        string activityMethodsStamp;
+        FsaActivityMethods activityMethods;
 
-        internal bool CanUseMatrixForActivity(ResultData data)
+        internal FsaActivityMethods ActivityMethodsFor(ResultData data)
         {
             if (data?.Efficiency == null)
             {
-                return false;
+                return FsaActivityMethods.None;
             }
 
             string stamp = MatrixInputStamp(data.Efficiency);
             lock (this.sync)
             {
-                return stamp == this.matrixActivityStamp;
+                return stamp == this.activityMethodsStamp ? this.activityMethods : FsaActivityMethods.None;
             }
         }
 
@@ -295,14 +305,34 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
         }
 
-        // A document can contain several spectra. During a new calculation
-        // the last published result still belongs to its original spectrum.
+        // During acquisition the last fit can still describe this spectrum while
+        // its calibration, geometry, activity method and matrix source match.
         internal FsaResult ResultFor(ResultData source)
         {
+            if (source?.EnergySpectrum == null) return null;
+            string input = ResultInputStamp(source.Efficiency, this.UseEfficiencyCurve,
+                source.EnergySpectrum, source.FwhmCalibration);
             lock (this.sync)
             {
-                return ReferenceEquals(source, this.resultSource) ? this.result : null;
+                return ReferenceEquals(source, this.resultSource) && this.result?.ActivityInputStamp == input
+                    ? this.result : null;
             }
+        }
+
+        static string ResultInputStamp(EfficiencyConfigData efficiency, bool useEfficiencyCurve,
+                                       EnergySpectrum spectrum, FwhmCalibration calibration, string matrixInputStamp = null)
+        {
+            return (matrixInputStamp ?? MatrixInputStamp(efficiency))
+                + CurveSelectionStamp(efficiency, useEfficiencyCurve)
+                + "|" + CalibrationStamp(spectrum, calibration);
+        }
+
+        static string CurveSelectionStamp(EfficiencyConfigData efficiency, bool useEfficiencyCurve)
+        {
+            return useEfficiencyCurve && efficiency?.HasCurve == true && efficiency.HasGeometry
+                && FsaMeasurementResult.HasAbsoluteCurveOrigin(efficiency.Origin)
+                && !FsaMeasurementResult.IsFieldGeometry(efficiency) && !FsaMeasurementResult.IsFieldCurve(efficiency)
+                ? "|curve-only" : "";
         }
 
         internal static FsaAnalysisSession ForReportImage(FsaResult result, bool oldFormat)
@@ -485,7 +515,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             this.stamp = "";
             this.pending = null;
             this.status = null;
-            this.matrixActivityStamp = null;
+            this.activityMethodsStamp = null;
             this.DropWithheld();
             this.generation++;
         }
@@ -681,7 +711,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     this.resultSource = resultData;
                     this.stamp = "";
                     this.status = said;
-                    this.matrixActivityStamp = null;
+                    this.activityMethodsStamp = null;
                 }
 
                 return;
@@ -965,6 +995,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
         sealed class Job
         {
             public string Stamp;
+            public string ActivityInputStamp;
             public int Generation;
             public EnergySpectrum Spectrum;
             public EnergySpectrum Background;
@@ -1004,6 +1035,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             public ResultData CompositionInput;
             public List<NuclideDefinition> Definitions;
             public List<Peak> Peaks;
+            public int[] WidthPeakChannels;
             /// <summary>(П236) Активный сет на момент постановки — источник состава «из сета».</summary>
             public NuclideSet Set;
             public FsaAnalyzer Analyzer;
@@ -1090,6 +1122,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 ? new List<Peak>(resultData.DetectedPeaks)
                 : new List<Peak>();
 
+            var centers = new SortedSet<int>();
+            foreach (Peak peak in job.Peaks)
+                if (peak != null) centers.Add(peak.Channel);
+            job.WidthPeakChannels = new int[centers.Count];
+            centers.CopyTo(job.WidthPeakChannels);
+
             FsaAnalyzer analyzer = new FsaAnalyzer();
 
             // (`A170`) Пользовательские настройки — во внутренние ключи ОДНИМ
@@ -1133,11 +1171,15 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             bool fromSpectrum = false;
             string spectrumRefusal = "";
             FsaMatrixSkip skip = FsaMatrixSkip.None;
-            string availableMatrixStamp = null;
+            string matrixInputStamp = MatrixInputStamp(efficiencyConfig);
+            job.ActivityInputStamp = ResultInputStamp(efficiencyConfig, useEfficiencyCurve,
+                job.Spectrum, job.FwhmCalibration, matrixInputStamp);
+            bool sourceGeometry = job.Efficiency != null && job.Efficiency.HasGeometry && !FsaMeasurementResult.IsFieldGeometry(efficiencyConfig);
+            FsaActivityMethods methods = sourceGeometry && !job.Efficiency.IsPerUnitFluence && FsaMeasurementResult.HasAbsoluteCurveOrigin(efficiencyConfig.Origin)
+                ? FsaActivityMethods.Curve : FsaActivityMethods.None;
             if (efficiencyConfig != null && efficiencyConfig.HasGeometry
                 && efficiencyConfig.UseResponseMatrix)
             {
-                string matrixInputStamp = MatrixInputStamp(efficiencyConfig);
                 // ⛔ (`A50`) ОТКАЗ ЧИТАТЬ МАТРИЦУ ОБЯЗАН НАЗЫВАТЬ СЕБЯ. Прежде
                 // `Load` возвращал `null` молча — и «файла нет» было
                 // неотличимо от «файл есть, но посчитан прежним форматом»: в
@@ -1170,12 +1212,12 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // выходит побитово одинаковым.
                     // (`AMBER274` Э3, `a274f`) привязка — с прибором: его поля слоя кристалла (источник QF альф,
                     // форма групп, активность ряда); у прибора без них — ровно прежняя привязка по геометрии
-                    if (job.Efficiency != null && !job.Efficiency.IsPerUnitFluence)
+                    if (sourceGeometry && matrix.Normalization == EfficiencyMaker.ResponseMatrixNormalization.PerEmittedQuantum)
                     {
-                        availableMatrixStamp = matrixInputStamp;
+                        methods |= FsaActivityMethods.Matrix;
                     }
 
-                    if (useEfficiencyCurve)
+                    if (useEfficiencyCurve && methods == FsaActivityMethods.Both)
                     {
                         skip = FsaMatrixSkip.SwitchedOff;
                         fromSpectrum = false;
@@ -1208,7 +1250,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 this.matrixFromSpectrum = fromSpectrum;
                 this.spectrumMatrixRefusal = spectrumRefusal;
                 this.matrixSkip = skip;
-                this.matrixActivityStamp = availableMatrixStamp;
+                this.activityMethods = methods;
+                this.activityMethodsStamp = matrixInputStamp;
             }
 
             analyzer.CoincidenceWindowSec = DeadTimeOf(resultData);
@@ -1316,6 +1359,14 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     // (П254) Доли «свой распад на единицу амплитуды» у членов рядов —
                     // по библиотеке ДО разбора: анализатор строит из неё свои копии.
                     Dictionary<string, double> memberRatios = MemberActivityRatiosOf(library, job.Definitions, cancellation);
+                    if (job.Analyzer.AnchorWidth && job.Efficiency != null
+                        && !FsaMeasurementResult.IsFieldGeometry(job.CompositionInput.Efficiency)
+                        && (!job.Efficiency.IsPerUnitFluence || job.Analyzer.ResponseMatrix?.Normalization == EfficiencyMaker.ResponseMatrixNormalization.PerEmittedQuantum))
+                    {
+                        job.Analyzer.UseSpectrumWidth(FsaSpectrumWidth.Measure(job.Spectrum, job.Background,
+                            job.FwhmCalibration, job.WidthPeakChannels, job.Analyzer.KernelChannelMean, job.Analyzer.AnchorWidthMaxRatio,
+                            job.Analyzer.AnchorWidthFloor, cancellation));
+                    }
                     computed = job.Analyzer.Analyze(job.Spectrum, job.Background, job.FwhmCalibration,
                                                     library, job.Efficiency);
                     cancellation.ThrowIfCancellationRequested();
@@ -1323,6 +1374,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                     {
                         RememberMemberActivityRatios(computed, memberRatios);
                         FsaMeasurementResult.RememberScale(job.CompositionInput, computed);
+                        computed.ActivityInputStamp = job.ActivityInputStamp;
                         computed.CalculationOptions = job.Options;
                         computed.EfficiencyCurveName = job.Efficiency?.Name;
                         if (computed.ResponseMatrixUsed && job.Analyzer.ResponseMatrix != null)
@@ -2219,6 +2271,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             {
                 foreach (Peak peak in resultData.DetectedPeaks)
                 {
+                    if (peak != null) peakStamp.Append('#').Append(peak.Channel.ToString(CultureInfo.InvariantCulture));
                     if (peak != null && peak.Nuclide != null)
                     {
                         // (`A36`) В отпечаток идёт и ПОЛОЖЕНИЕ пика, а не только
@@ -2278,7 +2331,7 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                 // человек не трогал что-нибудь ещё.
                 "|", NuclideSetStamp(set),
                 "|", peakStamp.ToString(),
-                useEfficiencyCurve ? "|curve-only" : "");
+                CurveSelectionStamp(resultData.Efficiency, useEfficiencyCurve));
         }
 
         /// <summary>
@@ -2510,7 +2563,8 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
             }
 
             return string.Concat(
-                efficiency.Guid,
+                efficiency.Guid, ":", efficiency.Origin, ":", DoseRateInput.StampNormalization(efficiency.ComputeStamp),
+                ":", EfficiencyMaker.ResponseMatrix.NormalizationOf(efficiency.Geometry),
                 ":", efficiency.LastUpdated.Ticks.ToString(CultureInfo.InvariantCulture),
                 ":", efficiency.Curve != null
                          ? efficiency.Curve.Count.ToString(CultureInfo.InvariantCulture)
@@ -2537,7 +2591,21 @@ namespace BecquerelMonitor.FullSpectrumAnalysis
                                             .ToString("R", CultureInfo.InvariantCulture));
             }
 
-            double[] fwhm = fwhmCalibration != null ? fwhmCalibration.Coefficients : null;
+            if (fwhmCalibration == null) return sb.ToString();
+            sb.Append(';').Append(fwhmCalibration.GetType().Name)
+              .Append(';').Append(fwhmCalibration.PeakType.ToString(CultureInfo.InvariantCulture));
+            if (fwhmCalibration.PeakType == FwhmCalibration.ExpGaussExpPeakType)
+            {
+                sb.Append(';').Append(fwhmCalibration.ExpGaussExpLeftTail.ToString("R", CultureInfo.InvariantCulture))
+                  .Append(';').Append(fwhmCalibration.ExpGaussExpRightTail.ToString("R", CultureInfo.InvariantCulture));
+            }
+            else if (fwhmCalibration.PeakType == FwhmCalibration.VoigtPeakType)
+            {
+                sb.Append(';').Append(fwhmCalibration.VoigtSigma.ToString("R", CultureInfo.InvariantCulture))
+                  .Append(';').Append(fwhmCalibration.VoigtGamma.ToString("R", CultureInfo.InvariantCulture));
+            }
+
+            double[] fwhm = fwhmCalibration.Coefficients;
             if (fwhm != null)
             {
                 foreach (double coefficient in fwhm)

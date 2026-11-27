@@ -2361,7 +2361,7 @@ namespace BecquerelMonitor.EfficiencyMaker
         /// </summary>
         bool DefaultAirLayer(GeometryMaterial material)
         {
-            return TransportScene == null && (material == null || material.IsEmpty || material.IsNamedVacuum);
+            return material == null || material.IsEmpty || material.IsNamedVacuum;
         }
 
         internal GeometryMaterial VesselHeadspace(string prefix)
@@ -2491,7 +2491,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                 foreach (var part in original.Parts)
                 {
                     var material = original.MaterialOf(part, Source);
-                    check(1, material, part.Name + " / " + material.Name);
+                    check(1, material, part.Name + " / " + material?.Name);
                 }
             }
             else
@@ -2530,8 +2530,7 @@ namespace BecquerelMonitor.EfficiencyMaker
                         break;
                 }
 
-                if (TransportScene == null && (SourceType == GeometrySourceType.Cylinder
-                    || SourceType == GeometrySourceType.Marinelli))
+                if (SourceType == GeometrySourceType.Cylinder || SourceType == GeometrySourceType.Marinelli)
                 {
                     var cm = InCentimeters();
                     double gap, end, near;

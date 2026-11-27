@@ -36,7 +36,7 @@
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>index.html</WebPage>
     <ApplicationRevision>1</ApplicationRevision>
-    <ApplicationVersion>2026.11.26.01</ApplicationVersion>
+    <ApplicationVersion>2026.11.27.01</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -402,6 +402,7 @@
       <DependentUpon>EfficiencyMakerForm.cs</DependentUpon>
     </Compile>
     <Compile Include="FullSpectrumAnalysis\FsaAnalyzer.cs" />
+    <Compile Include="FullSpectrumAnalysis\FsaSpectrumWidth.cs" />
     <Compile Include="FullSpectrumAnalysis\CrystalOwnActivityBuilder.cs" />
     <Compile Include="FullSpectrumAnalysis\FsaCalculationOptions.cs" />
     <Compile Include="FullSpectrumAnalysis\AngularCorrelation.cs" />
